@@ -1,0 +1,439 @@
+import { ClimateType, Tile, BiomeType, ClothingPiece, Item } from '../types';
+import { 
+    ALTITUDE_TIER_COLOR_ADJUSTMENTS, 
+    DESERT_TIER_COLOR_ADJUSTMENTS, 
+    HILLS_TIER_COLOR_ADJUSTMENTS, 
+    SCRUB_TIER_COLOR_ADJUSTMENTS, 
+    DENSE_FOREST_TIER_COLOR_ADJUSTMENTS, 
+    RIVERBANK_TIER_COLOR_ADJUSTMENTS,
+    TUNDRA_TIER_COLOR_ADJUSTMENTS, 
+    STEPPE_TIER_COLOR_ADJUSTMENTS, 
+    VOLCANIC_SOIL_TIER_COLOR_ADJUSTMENTS, 
+    VOLCANIC_ROCK_TIER_COLOR_ADJUSTMENTS,
+    MOUNTAIN_TIER_COLOR_ADJUSTMENTS,
+    GRASSLAND_ALTITUDE_BANDS, 
+    FOREST_ALTITUDE_BANDS, 
+    JUNGLE_ALTITUDE_BANDS, 
+    DENSE_FOREST_ALTITUDE_BANDS,
+    DESERT_ALTITUDE_BANDS, 
+    HILLS_ALTITUDE_BANDS, 
+    MOUNTAIN_ALTITUDE_BANDS, 
+    SCRUB_ALTITUDE_BANDS, 
+    RIVERBANK_ALTITUDE_BANDS,
+    TUNDRA_ALTITUDE_BANDS, 
+    STEPPE_ALTITUDE_BANDS, 
+    VOLCANIC_SOIL_ALTITUDE_BANDS, 
+    VOLCANIC_ROCK_ALTITUDE_BANDS
+} from '../constants/mapGeneration/biomes/altitude';
+import { BIOME_COLORS, CLIMATE_WATER_COLORS } from '../constants/mapGeneration/biomes/colors';
+import { ValueNoise } from './noise';
+
+export const getQualityGradientColor = (value: number, reverse: boolean = false): string => {
+  const h = reverse ? (1 - value) * 120 : value * 120; // Hue from 0 (red) to 120 (green)
+  return `hsl(${h}, 100%, 50%)`;
+};
+
+export function interpolateColor(color1: string, color2: string, factor: number) {
+    const result = color1.slice();
+    const c1 = hexToRgb(color1);
+    const c2 = hexToRgb(color2);
+    if (!c1 || !c2) return '#000000';
+    const r = Math.round(c1.r + factor * (c2.r - c1.r));
+    const g = Math.round(c1.g + factor * (c2.g - c1.g));
+    const b = Math.round(c1.b + factor * (c2.b - c1.b));
+    return `rgb(${r},${g},${b})`;
+}
+
+export const lightenColor = (color: string, amount: number): string => {
+    try {
+      let usePound = false;
+      if (color[0] === "#") {
+        color = color.slice(1);
+        usePound = true;
+      }
+      const num = parseInt(color, 16);
+      let r = (num >> 16) + Math.floor(255 * amount);
+      if (r > 255) r = 255;
+      if (r < 0) r = 0;
+      let b = ((num >> 8) & 0x00FF) + Math.floor(255 * amount);
+      if (b > 255) b = 255;
+      if (b < 0) b = 0;
+      let g = (num & 0x0000FF) + Math.floor(255 * amount);
+      if (g > 255) g = 255;
+      if (g < 0) g = 0;
+      return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
+    } catch (e) {
+        return color;
+    }
+};
+
+export const addBlueishShadow = (color: string, amount: number): string => {
+    try {
+      let usePound = false;
+      if (color[0] === "#") {
+        color = color.slice(1);
+        usePound = true;
+      }
+      const num = parseInt(color, 16);
+      let r = (num >> 16) - Math.floor(127 * amount);
+      if (r < 0) r = 0;
+      let b = ((num >> 8) & 0x00FF) - Math.floor(100 * amount);
+      if (b < 0) b = 0;
+      let g = (num & 0x0000FF) - Math.floor(127 * amount);
+      if (g < 0) g = 0;
+      return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
+    } catch (e) {
+        return color;
+    }
+};
+
+export const getClimateWaterColors = (climate: ClimateType) => CLIMATE_WATER_COLORS[climate];
+
+
+export const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
+    : null;
+};
+
+export const rgbToHsl = (r: number, g: number, b: number): { h: number; s: number; l: number } => {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s: number, l = (max + min) / 2;
+
+  if (max === min) {
+    h = s = 0; 
+  } else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+  return { h, s, l };
+};
+
+export const hslToRgb = (h: number, s: number, l: number): { r: number; g: number; b: number } => {
+  let rNum: number, gNum: number, bNum: number;
+  if (s === 0) {
+    rNum = gNum = bNum = l; 
+  } else {
+    const hue2rgb = (p: number, q: number, t: number) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    rNum = hue2rgb(p, q, h + 1 / 3);
+    gNum = hue2rgb(p, q, h);
+    bNum = hue2rgb(p, q, h - 1 / 3);
+  }
+  return { r: Math.round(rNum * 255), g: Math.round(gNum * 255), b: Math.round(bNum * 255) };
+};
+
+export const rgbToString = (rgb: {r: number, g: number, b: number}): string => {
+    return `#${rgb.r.toString(16).padStart(2, '0')}${rgb.g.toString(16).padStart(2, '0')}${rgb.b.toString(16).padStart(2, '0')}`;
+}
+
+export const shadeColorHSL = (hexColor: string, lightnessMultiplier: number = 1.0, saturationMultiplier: number = 1.0, fixedLightnessAdjust: number = 0): string => {
+  const rgb = hexToRgb(hexColor);
+  if (!rgb) return hexColor;
+  let { h, s, l } = rgbToHsl(rgb.r, rgb.g, rgb.b);
+  
+  l *= lightnessMultiplier;
+  l += fixedLightnessAdjust;
+  s *= saturationMultiplier;
+
+  l = Math.max(0.05, Math.min(0.95, l)); 
+  s = Math.max(0, Math.min(1, s));   
+
+  const newRgb = hslToRgb(h, s, l);
+  return rgbToString(newRgb);
+};
+
+export const blendColors = (color1Hex: string, color2Hex: string, ratio: number): string => {
+    const rgb1 = hexToRgb(color1Hex);
+    const rgb2 = hexToRgb(color2Hex);
+    if (!rgb1 || !rgb2) return color1Hex; 
+
+    const r = Math.round(rgb1.r * (1 - ratio) + rgb2.r * ratio);
+    const g = Math.round(rgb1.g * (1 - ratio) + rgb2.g * ratio);
+    const b = Math.round(rgb1.b * (1 - ratio) + rgb2.b * ratio);
+    return rgbToString({r, g, b});
+};
+
+function getTileColorVariation(baseColor: string, x: number, y: number, seed: number, variation: number = 0.06): string {
+    const rgb = hexToRgb(baseColor);
+    if (!rgb) return baseColor;
+
+    // Simple pseudo-random hash function for deterministic noise without a class instance
+    const betterHash = (x_h: number, y_h: number, seed_h: number): number => {
+        let h = seed_h + x_h * 374761393 + y_h * 668265263;
+        h = (h ^ (h >>> 13)) * 1274126177;
+        h = h ^ (h >>> 16);
+        return (h & 0x7FFFFFFF) / 0x7FFFFFFF;
+    };
+
+    const noise = (betterHash(x, y, seed) - 0.5) * 2; // -1 to 1
+    const brightnessFactor = 1 + (noise * variation);
+    
+    const r = Math.max(0, Math.min(255, Math.round(rgb.r * brightnessFactor)));
+    const g = Math.max(0, Math.min(255, Math.round(rgb.g * brightnessFactor)));
+    const b = Math.max(0, Math.min(255, Math.round(rgb.b * brightnessFactor)));
+
+    return rgbToString({r, g, b});
+}
+
+
+export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: number): string => {
+    const currentBiome = tile.biome; 
+    const waterColors = CLIMATE_WATER_COLORS[climate];
+    
+    let baseColorHex: string;
+    const aridMapping: Partial<Record<BiomeType, string>> = {
+        [BiomeType.HILLS]: '#ad8a68', 
+        [BiomeType.MOUNTAIN]: '#b0a49c',
+        [BiomeType.SCRUB]: '#c2b280', 
+    };
+
+    if (climate === ClimateType.ARID && aridMapping[currentBiome]) {
+        baseColorHex = aridMapping[currentBiome]!;
+    } else {
+        baseColorHex = BIOME_COLORS[currentBiome] || '#ff00ff';
+    }
+
+    if (currentBiome === BiomeType.RIVER) return waterColors.RIVER;
+    if (currentBiome === BiomeType.MAJOR_RIVER) return waterColors.MAJOR_RIVER;
+    if (currentBiome === BiomeType.DEEP_OCEAN) return waterColors.DEEP;
+    if (currentBiome === BiomeType.SHALLOW_OCEAN) return waterColors.SHALLOW;
+    if (currentBiome === BiomeType.FRESHWATER_LAKE) return waterColors.FRESHWATER_LAKE_DEEP;
+    if (currentBiome === BiomeType.REEF) return waterColors.REEF_BASE; 
+    if (currentBiome === BiomeType.SHOALS_TILE) return shadeColorHSL(waterColors.REEF_BASE, 1.2, 1.1, 0.05); 
+    if (currentBiome === BiomeType.HOT_SPRINGS) return BIOME_COLORS.HOT_SPRINGS; 
+    if (currentBiome === BiomeType.ESTUARY) {
+        const riverColor = CLIMATE_WATER_COLORS[climate]?.RIVER || BIOME_COLORS.RIVER;
+        const shallowOceanColor = CLIMATE_WATER_COLORS[climate]?.SHALLOW || BIOME_COLORS.SHALLOW_OCEAN;
+        return shadeColorHSL(blendColors(riverColor, shallowOceanColor, 0.7), 1.05); // More oceanic and lighter
+    }
+    const fixedColorBiomes = [
+        BiomeType.BEACH, BiomeType.SNOW, BiomeType.HIGH_PEAK, BiomeType.URBAN, 
+        BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, 
+        BiomeType.RUINS, BiomeType.CLIFF, BiomeType.PALACE,
+        BiomeType.HOLY_SITE, BiomeType.ACTIVE_LAVA, BiomeType.FARMLAND,
+        BiomeType.MARKETPLACE, BiomeType.GOVERNMENT_DISTRICT, BiomeType.CITY_CENTER,
+    ];
+    if (fixedColorBiomes.includes(currentBiome) && !(climate === ClimateType.ARID && aridMapping[currentBiome])) {
+        baseColorHex = BIOME_COLORS[currentBiome];
+    } else if (tile.isLand) {
+        let tier = 0; 
+        let tierAdjustments: Array<[number, number, number]> = ALTITUDE_TIER_COLOR_ADJUSTMENTS;
+        let altitudeBands: number[] = [];
+        
+        switch(currentBiome) {
+            case BiomeType.GRASSLAND: altitudeBands = GRASSLAND_ALTITUDE_BANDS; baseColorHex = BIOME_COLORS.GRASSLAND; break;
+            case BiomeType.FOREST: altitudeBands = FOREST_ALTITUDE_BANDS; baseColorHex = BIOME_COLORS.FOREST; break;
+            case BiomeType.DENSE_FOREST: altitudeBands = DENSE_FOREST_ALTITUDE_BANDS; tierAdjustments = DENSE_FOREST_TIER_COLOR_ADJUSTMENTS; baseColorHex = BIOME_COLORS.DENSE_FOREST; break;
+            case BiomeType.JUNGLE: altitudeBands = JUNGLE_ALTITUDE_BANDS; baseColorHex = BIOME_COLORS.JUNGLE; break;
+            case BiomeType.RIVERBANK: altitudeBands = RIVERBANK_ALTITUDE_BANDS; tierAdjustments = RIVERBANK_TIER_COLOR_ADJUSTMENTS; baseColorHex = BIOME_COLORS.RIVERBANK; break;
+            case BiomeType.SCRUB: altitudeBands = SCRUB_ALTITUDE_BANDS; tierAdjustments = SCRUB_TIER_COLOR_ADJUSTMENTS; baseColorHex = aridMapping[BiomeType.SCRUB] && climate === ClimateType.ARID ? aridMapping[BiomeType.SCRUB]! : BIOME_COLORS.SCRUB; break;
+            case BiomeType.HILLS: altitudeBands = HILLS_ALTITUDE_BANDS; tierAdjustments = HILLS_TIER_COLOR_ADJUSTMENTS; baseColorHex = aridMapping[BiomeType.HILLS] && climate === ClimateType.ARID ? aridMapping[BiomeType.HILLS]! : BIOME_COLORS.HILLS; break;
+            case BiomeType.MOUNTAIN: altitudeBands = MOUNTAIN_ALTITUDE_BANDS; tierAdjustments = MOUNTAIN_TIER_COLOR_ADJUSTMENTS; baseColorHex = aridMapping[BiomeType.MOUNTAIN] && climate === ClimateType.ARID ? aridMapping[BiomeType.MOUNTAIN]! : BIOME_COLORS.MOUNTAIN; break;
+            case BiomeType.DESERT: altitudeBands = DESERT_ALTITUDE_BANDS; tierAdjustments = DESERT_TIER_COLOR_ADJUSTMENTS; baseColorHex = BIOME_COLORS.DESERT; break;
+            case BiomeType.OASIS: baseColorHex = shadeColorHSL(BIOME_COLORS.GRASSLAND, 0.95, 1.15, 0.02); break;
+            case BiomeType.VOLCANIC_SOIL: altitudeBands = VOLCANIC_SOIL_ALTITUDE_BANDS; tierAdjustments = VOLCANIC_SOIL_TIER_COLOR_ADJUSTMENTS; baseColorHex = BIOME_COLORS.VOLCANIC_SOIL; break;
+            case BiomeType.VOLCANIC_ROCK: altitudeBands = VOLCANIC_ROCK_ALTITUDE_BANDS; tierAdjustments = VOLCANIC_ROCK_TIER_COLOR_ADJUSTMENTS; baseColorHex = BIOME_COLORS.VOLCANIC_ROCK; break;
+            case BiomeType.TUNDRA: altitudeBands = TUNDRA_ALTITUDE_BANDS; tierAdjustments = TUNDRA_TIER_COLOR_ADJUSTMENTS; baseColorHex = BIOME_COLORS.TUNDRA; break;
+            case BiomeType.STEPPE: altitudeBands = STEPPE_ALTITUDE_BANDS; tierAdjustments = STEPPE_TIER_COLOR_ADJUSTMENTS; baseColorHex = BIOME_COLORS.STEPPE; break;
+            case BiomeType.WETLANDS: baseColorHex = BIOME_COLORS.WETLANDS; break; // No tier adjustments for wetlands
+        }
+
+        if (altitudeBands.length > 0 && altitudeBands[0] !== undefined) { 
+             tier = altitudeBands.filter(band => tile.altitude >= band).length;
+        }
+        tier = Math.min(tier, tierAdjustments.length - 1);
+        const [lMult, sMult, lFix] = tierAdjustments[tier];
+        baseColorHex = shadeColorHSL(baseColorHex, lMult, sMult, lFix);
+    }
+    
+    let finalColorHex = getTileColorVariation(baseColorHex, tile.x, tile.y, seed);
+
+    // Make arid climates warmer and more saturated
+    if (climate === ClimateType.ARID) {
+        const rgb = hexToRgb(finalColorHex);
+        if (rgb) {
+            const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+            // Shift hue toward warmer colors and increase saturation
+            const adjustedHsl = {
+                h: (hsl.h * 360 - 10 + 360) % 360 / 360, // Shift hue towards orange/red
+                s: Math.min(1, hsl.s * 1.15), // Increase saturation
+                l: Math.max(0.15, hsl.l * 0.95) // Slightly darker for heat
+            };
+            const adjustedRgb = hslToRgb(adjustedHsl.h, adjustedHsl.s, adjustedHsl.l);
+            finalColorHex = rgbToString(adjustedRgb);
+        }
+    }
+    
+finalColorHex = shadeColorHSL(finalColorHex, 0.9, 0.9); // slightly toned down saturation
+
+    
+    return finalColorHex; 
+};
+
+export function getBlendCategory(biome: BiomeType): 'water' | 'veg' | 'soil' | 'stone' | 'urban' | 'special' {
+  switch(biome) {
+    case BiomeType.DEEP_OCEAN:
+    case BiomeType.SHALLOW_OCEAN:
+    case BiomeType.REEF:
+    case BiomeType.SHOALS_TILE:
+    case BiomeType.RIVER:
+    case BiomeType.MAJOR_RIVER:
+    case BiomeType.ESTUARY:
+    case BiomeType.FRESHWATER_LAKE:
+    case BiomeType.HOT_SPRINGS:
+      return 'water';
+
+    case BiomeType.GRASSLAND:
+    case BiomeType.FOREST:
+    case BiomeType.DENSE_FOREST:
+    case BiomeType.JUNGLE:
+    case BiomeType.RIVERBANK:
+    case BiomeType.WETLANDS:
+    case BiomeType.SCRUB:
+    case BiomeType.STEPPE:
+    case BiomeType.TUNDRA:
+    case BiomeType.MANGROVE:
+    case BiomeType.OASIS:
+      return 'veg';
+      
+    case BiomeType.BEACH:
+    case BiomeType.DESERT:
+    case BiomeType.SALT_FLATS:
+    case BiomeType.VOLCANIC_SOIL:
+      return 'soil';
+      
+    case BiomeType.HILLS:
+    case BiomeType.MOUNTAIN:
+    case BiomeType.HIGH_PEAK:
+    case BiomeType.SNOW:
+    case BiomeType.VOLCANIC_ROCK:
+    case BiomeType.CLIFF:
+      return 'stone';
+
+    case BiomeType.HAMLET:
+    case BiomeType.LOW_DENSITY_CITY:
+    case BiomeType.DENSE_CITY:
+    case BiomeType.URBAN:
+    case BiomeType.PALACE:
+    case BiomeType.FARMLAND:
+    case BiomeType.MARKETPLACE:
+    case BiomeType.GOVERNMENT_DISTRICT:
+    case BiomeType.CITY_CENTER:
+      return 'urban';
+
+    case BiomeType.RUINS:
+    case BiomeType.HOLY_SITE:
+    case BiomeType.ACTIVE_LAVA:
+      return 'special';
+      
+    default:
+      return 'veg';
+  }
+}
+
+const colorNameMapping: { [hex: string]: string } = {
+  // Specific Fixes
+  '#1A1A1A': 'nearly black',
+  '#2C1810': 'dark brown',
+
+  // Primary Brown/Earth
+  '#8B4513': 'saddle brown', '#A0522D': 'sienna', '#D2691E': 'chocolate', '#CD853F': 'peru',
+  '#800000': 'maroon', '#5A3D31': 'russet', '#654321': 'dark brown', '#4B3A26': 'umber',
+
+  // Primary Red/Orange
+  '#8B0000': 'dark red', '#DC143C': 'crimson', '#E34234': 'vermillion', '#FF4500': 'orange-red',
+  '#FF6347': 'coral', '#B45309': 'ochre', '#D97706': 'dark orange',
+
+  // Primary Yellow/Gold
+  '#FFD700': 'gold', '#DAA520': 'goldenrod', '#FBBF24': 'amber', '#FDE68A': 'pale yellow',
+
+  // Primary Green
+  '#006400': 'dark green', '#228B22': 'forest green', '#15803D': 'green', '#32CD32': 'lime green',
+  '#2F4F4F': 'dark slate', '#556B2F': 'olive drab',
+
+  // Primary Blue/Purple
+  '#000080': 'navy', '#1E40AF': 'cobalt blue', '#4169E1': 'royal blue', '#4B0082': 'indigo',
+  '#800080': 'purple', '#483D8B': 'dark slate blue', '#DA70D6': 'orchid',
+  
+  // Primary Neutrals
+  '#000000': 'black', '#696969': 'grey', '#FFFFFF': 'white', '#F5DEB3': 'beige',
+  '#D2B48C': 'tan', '#BC8F8F': 'rose brown', '#E5E7EB': 'silver-white', '#C0C0C0': 'silver',
+  '#4B5563': 'slate', '#3C362A': 'drab',
+};
+
+export function hexToColorName(hex: string): string {
+    const upperHex = hex.toUpperCase();
+    if (colorNameMapping[upperHex]) {
+        return colorNameMapping[upperHex];
+    }
+
+    // Fallback to find the closest color name if exact match is not found
+    const targetRgb = hexToRgb(upperHex);
+    if (!targetRgb) return 'colored';
+
+    let closestName = 'colored';
+    let minDistance = Infinity;
+
+    for (const [key, name] of Object.entries(colorNameMapping)) {
+        const currentRgb = hexToRgb(key);
+        if (currentRgb) {
+            const distance = Math.sqrt(
+                Math.pow(targetRgb.r - currentRgb.r, 2) +
+                Math.pow(targetRgb.g - currentRgb.g, 2) +
+                Math.pow(targetRgb.b - currentRgb.b, 2)
+            );
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestName = name;
+            }
+        }
+    }
+    
+    // Add a modifier for lightness/darkness
+    const { l } = rgbToHsl(targetRgb.r, targetRgb.g, targetRgb.b);
+    if (l > 0.75) return `light ${closestName}`;
+    if (l < 0.25) return `dark ${closestName}`;
+    
+    return closestName;
+}
+
+export function formatAppearanceText(piece: (ClothingPiece | Item) | undefined, colorHex: string | undefined): string {
+    if (!piece || !piece.name || piece.name.toLowerCase() === 'none' || piece.name.toLowerCase() === 'barefoot') {
+        return 'Nothing Worn';
+    }
+
+    const colorName = hexToColorName(colorHex || '#FFFFFF');
+    const itemName = piece.name.replace(/_/g, ' ');
+    const material = piece.material || 'cloth';
+
+    // If the item name already contains the material, just prepend the color.
+    // e.g., name: "Wool Tunic", material: "Wool" -> "A Red Wool Tunic"
+    if (piece.material && itemName.toLowerCase().includes(piece.material.toLowerCase())) {
+        return `A ${colorName} ${itemName}`;
+    }
+
+    // Otherwise, construct it fully.
+    // e.g., name: "Cap", material: "Cotton" -> "A White Cotton Cap"
+    return `A ${colorName} ${material} ${itemName}`;
+}

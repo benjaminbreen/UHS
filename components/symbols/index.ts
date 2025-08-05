@@ -1,0 +1,26 @@
+/**
+ * components/symbols/index.ts - Re-exports all symbol components
+ */
+export { default as RuinsSymbol } from './RuinsSymbol';
+export { default as PalaceSymbol } from './PalaceSymbol';
+export { default as HolyPlaceSymbol } from './HolyPlaceSymbol';
+export { default as CliffSymbol } from './CliffSymbol';
+export { default as UrbanSymbol } from './UrbanSymbol';
+export { default as PineTreeSymbol } from './PineTreeSymbol';
+export { default as PalmTreeSymbol } from './PalmTreeSymbol';
+export { default as DeciduousTreeSymbol } from './DeciduousTreeSymbol';
+export { default as CactusSymbol } from './CactusSymbol';
+export { default as BushSymbol } from './BushSymbol';
+export { default as PlayerIcon } from './PlayerIcon';
+export { default as ShipIcon } from './ShipIcon';
+export { default as FarmSymbol } from './FarmSymbol';
+export { default as NpcIcon } from './NpcIcon';
+export { default as EstuarySymbol } from './EstuarySymbol';
+export { default as HillSymbol } from './HillSymbol';
+export { default as MarketplaceSymbol } from './MarketplaceSymbol';
+export { default as FurnitureSymbol } from './FurnitureSymbol';
+export { default as CombatSprite } from './CombatSprite';
+export { default as AnimalCombatSprite } from './AnimalCombatSprite';
+export { default as MangroveSymbol } from './MangroveSymbol';
+export { default as CoralReefSymbol } from './CoralReefSymbol';
+export { default as SaltFlatsSymbol } from './SaltFlatsSymbol';

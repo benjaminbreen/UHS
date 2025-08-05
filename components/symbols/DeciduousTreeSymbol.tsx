@@ -1,0 +1,175 @@
+/**
+ * components/symbols/DeciduousTreeSymbol.tsx
+ * More naturalistic deciduous tree symbol with variant types
+ */
+import React from 'react';
+import { ValueNoise } from '../../utils/noise';
+import { Season } from '../../types';
+
+interface DeciduousTreeSymbolProps {
+  seed: number;
+  season: Season;
+}
+
+const DeciduousTreeSymbol: React.FC<DeciduousTreeSymbolProps> = React.memo(({ seed, season }) => {
+  const localRand = React.useMemo(() => new ValueNoise(seed).random, [seed]);
+
+  const isVariant = localRand() < 0.4; // 40% chance of showing the smaller tree variant
+
+  const getFoliageColor = (variation: number) => {
+    let hue, saturation, lightness;
+    switch (season) {
+      case 'fall':
+        hue = 25 + variation * 30; // Oranges, reds, yellows
+        saturation = 70 + variation * 20;
+        lightness = 45 + variation * 10;
+        break;
+      case 'spring':
+        hue = 90 + variation * 20; // Lighter, fresher greens
+        saturation = 60 + variation * 15;
+        lightness = 55 + variation * 10;
+        break;
+      case 'winter':
+        return 'transparent'; // No leaves in winter
+      case 'summer':
+      default:
+        hue = 95 + variation * 10; // Standard summer green
+        saturation = 55 + variation * 20;
+        lightness = 30 + variation * 15;
+    }
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  };
+
+  const trunkColor = `hsl(25, 45%, 28%)`;
+  const trunkHighlight = `hsl(25, 45%, 40%)`;
+
+  const trunkWidth = isVariant ? 2.2 + localRand() * 0.4 : 3 + localRand() * 0.6;
+  const trunkHeight = isVariant ? 6 + localRand() * 1.5 : 10 + localRand() * 2;
+  const trunkX = 12 - trunkWidth / 2;
+  const trunkY = 24 - trunkHeight;
+
+  const foliage: Array<{
+    cx: number;
+    cy: number;
+    rx: number;
+    ry: number;
+    color: string;
+    opacity: number;
+    z: number;
+    key: string;
+  }> = [];
+
+  const baseRadius = isVariant ? 5.5 : 7.5;
+  const verticalCompression = 0.6;
+  const layerCount = isVariant ? 3 : 5;
+
+  if (season !== 'winter') {
+    for (let i = 0; i < layerCount; i++) {
+      const angle = (i / layerCount) * 2 * Math.PI + localRand() * 0.4;
+      const distance = baseRadius * (0.6 + localRand() * 0.4);
+      const rx = baseRadius * (0.6 + localRand() * 0.3);
+      const ry = rx * verticalCompression;
+      const cx = 12 + Math.cos(angle) * distance * 0.9;
+      const cy = 12 + Math.sin(angle) * distance * 0.7;
+
+      foliage.push({
+        cx,
+        cy,
+        rx,
+        ry,
+        color: getFoliageColor(localRand()),
+        opacity: 0.8 + localRand() * 0.15,
+        z: cy,
+        key: `foliage-${i}`
+      });
+    }
+
+    // Central top cluster
+    foliage.push({
+      cx: 12,
+      cy: 10.5,
+      rx: baseRadius,
+      ry: baseRadius * verticalCompression,
+      color: getFoliageColor(localRand()),
+      opacity: 0.9,
+      z: 10.5,
+      key: 'foliage-center'
+    });
+  }
+
+  return (
+    <g filter="url(#symbolShadow)">
+      {/* Trunk */}
+      <path
+        d={`
+          M ${trunkX} 24
+          C ${trunkX - 0.4} ${trunkY + 3}, ${trunkX + 0.5} ${trunkY + 2}, ${trunkX} ${trunkY}
+          L ${trunkX + trunkWidth} ${trunkY}
+          C ${trunkX + trunkWidth + 0.4} ${trunkY + 2}, ${trunkX + trunkWidth - 0.5} ${trunkY + 3}, ${trunkX + trunkWidth} 24
+          Z
+        `}
+        fill={trunkColor}
+      />
+      <path
+        d={`
+          M ${trunkX + 0.5} ${trunkY + 1}
+          L ${trunkX + 0.5} ${trunkY + trunkHeight - 1}
+        `}
+        stroke={trunkHighlight}
+        strokeWidth="0.6"
+        strokeLinecap="round"
+      />
+
+      {/* Branches */}
+      <g stroke={trunkColor} strokeWidth="1" strokeLinecap="round" fill="none">
+        <path d={`M ${12} ${trunkY} L ${10} ${trunkY - 2}`} />
+        <path d={`M ${12} ${trunkY} L ${14} ${trunkY - 2}`} />
+        {isVariant ? null : (
+          <>
+            <path d={`M ${12} ${trunkY - 1} L ${11} ${trunkY - 3}`} />
+            <path d={`M ${12} ${trunkY - 1} L ${13} ${trunkY - 3}`} />
+          </>
+        )}
+      </g>
+
+      {/* Foliage */}
+      {foliage
+        .sort((a, b) => a.z - b.z)
+        .map(layer => (
+          <g key={layer.key}>
+            <ellipse
+              cx={layer.cx + 0.7}
+              cy={layer.cy + 0.7}
+              rx={layer.rx}
+              ry={layer.ry}
+              fill="black"
+              opacity={0.08}
+            />
+            <ellipse
+              cx={layer.cx}
+              cy={layer.cy}
+              rx={layer.rx}
+              ry={layer.ry}
+              fill={layer.color}
+              opacity={layer.opacity}
+            />
+            <ellipse
+              cx={layer.cx - 0.5}
+              cy={layer.cy - 0.6}
+              rx={layer.rx * 0.25}
+              ry={layer.ry * 0.25}
+              fill="rgba(255,255,255,0.1)"
+            />
+          </g>
+        ))}
+        {/* Spring Flowers */}
+        {season === 'spring' && [...Array(5)].map((_, i) => {
+            const flowerX = 12 + (localRand() - 0.5) * baseRadius * 1.5;
+            const flowerY = 12 + (localRand() - 0.5) * baseRadius;
+            return <circle key={`flower-${i}`} cx={flowerX} cy={flowerY} r="0.8" fill={localRand() > 0.5 ? '#f9a8d4' : '#c084fc'} opacity="0.9" />;
+        })}
+    </g>
+  );
+});
+
+export default DeciduousTreeSymbol;
