@@ -4,10 +4,10 @@
 import React, { useMemo } from 'react';
 import { TerrainStructure, MapData, HistoricalEra, CulturalZone, NpcEntity, GameDate } from '../types';
 import { SOCIETAL_PROFILES, ITEM_DEFINITIONS } from '../constants/index';
-import { parseDateString } from '../../utils/dateUtils';
-import { mapLocationToCulture } from '../../utils/mapUtils';
-import { useMap } from '../../contexts/MapContext';
-import { generatePoiDescription } from '../../services/poiDescriptionGenerator';
+import { parseDateString } from '../utils/dateUtils';
+import { mapLocationToCulture } from '../utils/mapUtils';
+import { useMap } from '../contexts/MapContext';
+import { generatePoiDescription } from '../services/poiDescriptionGenerator';
 import POISymbol from './POISymbol';
 import { ProceduralPortrait } from './portraits';
 

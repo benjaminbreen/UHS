@@ -1062,7 +1062,7 @@ export const IDEOLOGIES: Ideology[] = [
       'TECHNOLOGICAL_OPTIMISM': 0.5,
       'SYSTEMS_THINKING': 0.4
     }
-  }),
+  },
 
   // Oceanic Variants
   createIdeologyVariant(BASE_DREAMTIME, {

@@ -73,6 +73,6 @@ const HillSymbol: React.FC<HillSymbolProps> = React.memo(({ x, y, size, seed, ti
         }
     }
     return <g>{elements}</g>;
-}));
+});
 
 export default HillSymbol;

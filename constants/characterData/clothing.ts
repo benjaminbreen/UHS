@@ -1867,7 +1867,7 @@ export const CLOTHING_DATA: ClothingData = {
             }
         }
     
-    }
+    },
 
    // OCEANIA CULTURAL ZONE
 OCEANIA: {

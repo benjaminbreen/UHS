@@ -204,7 +204,7 @@ const CoastlineOverlay: React.FC<CoastlineOverlayProps> = ({ mapData, noise }) =
                 d={coastlinePaths.fullPathD}
                 stroke="rgba(84, 57, 34, 0.1)" // A bit more transparent
                 strokeWidth={TILE_SIZE_PX * 0.08} // approx 1.6px
-                fill="none"1
+                fill="none"
                 strokeLinecap="round"
                 strokeLinejoin="round"
             />
