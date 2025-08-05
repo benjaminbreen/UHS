@@ -10,7 +10,24 @@ export type ContainerKey = 'BOOKSHELF' | 'BARREL' | 'CHEST' | 'CABINET' | 'ARMOR
 
 type ItemBaseId = string;
 
-export const CONTAINER_LOOT_TABLES: Partial<Record<HistoricalEra, Partial<Record<LocationKey, Partial<Record<BuildingKey, Partial<Record<ContainerKey, ItemBaseId[]>>>>>>> = {
+export const CONTAINER_LOOT_TABLES: Partial<
+  Record<
+    HistoricalEra,
+    Partial<
+      Record<
+        LocationKey,
+        Partial<
+          Record<
+            BuildingKey,
+            Partial<
+              Record<ContainerKey, ItemBaseId[]>
+            >
+          >
+        >
+      >
+    >
+  >
+> = {
   [HistoricalEra.MEDIEVAL]: {
     EUROPE: {
       HOUSE: {
