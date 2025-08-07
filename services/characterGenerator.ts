@@ -144,7 +144,25 @@ export function generateCharacter(context: GenerationContext): PlayerCharacter {
             : baseProfile.appearance.accessory,
     };
     
-    const maxHealth = 80 + baseProfile.stats.constitution * 2;
+    const maxHealth = 80 + baseProfile.stats.constitution * 2 + baseProfile.stats.strength;
+    const startingHealth = Math.floor(maxHealth * (0.8 + Math.random() * 0.2)); // 80-100% of max health
+    
+    // Randomize fatigue based on time of day and character stats
+    const timeOfDay = generationContext.date ? new Date(generationContext.date).getHours() : 12;
+    let baseFatigue: number;
+    
+    // More tired at night, less tired during day
+    if (timeOfDay >= 22 || timeOfDay <= 5) {
+        baseFatigue = 70 + Math.random() * 30; // 70-100% tired at night
+    } else if (timeOfDay >= 6 && timeOfDay <= 9) {
+        baseFatigue = 20 + Math.random() * 30; // 20-50% tired in morning
+    } else {
+        baseFatigue = 30 + Math.random() * 40; // 30-70% tired during day
+    }
+    
+    // Constitution affects fatigue resistance 
+    const constitutionBonus = baseProfile.stats.constitution - 10;
+    const startingFatigue = Math.max(10, Math.min(100, baseFatigue - constitutionBonus * 3));
     
     const staticPortraitSeed = Math.floor(Math.random() * 1000000);
     
@@ -156,9 +174,9 @@ export function generateCharacter(context: GenerationContext): PlayerCharacter {
         level: 1,
         experience: 0,
         maxExperience: 100,
-        health: maxHealth,
+        health: startingHealth,
         maxHealth: maxHealth,
-        fatigue: 100,
+        fatigue: Math.floor(startingFatigue),
         maxFatigue: 100,
         currency: 10 + Math.floor(noise.random() * 20),
         era: generationContext.era,

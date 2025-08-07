@@ -279,13 +279,18 @@ export const useUIState = () => {
             }
         }
 
-        if (result?.type === 'dig' && result.success && result.tileCoords && result.amountExtracted) {
+        if (result?.type === 'dig' && result.success) {
             if (result.item) {
+                console.log("Dig result item:", result.item);
                 addItemsToInventory([result.item]);
                 setPanelNotificationItem(result.item);
                 setTimeout(() => setPanelNotificationItem(null), 2500);
+            } else {
+                console.log("Dig succeeded but no item found:", result);
             }
-            updateMineralDeposit(result.tileCoords.x, result.tileCoords.y, result.amountExtracted);
+            if (result.tileCoords && result.amountExtracted) {
+                updateMineralDeposit(result.tileCoords.x, result.tileCoords.y, result.amountExtracted);
+            }
         }
 
         if(result?.xpGained) {

@@ -107,14 +107,16 @@ const LeftSidebar: React.FC = () => {
 
     // MOVED: Move all useMemo hooks to top level
     const mineralDeposits = useMemo(() => {
-        if (!mapData || !mapData.tiles) return new Map<string, number>();
+        if (!terrainStructures || !Array.isArray(terrainStructures)) return new Map<string, number>();
         const counts = new Map<string, number>();
         
         try {
-            mapData.tiles.flat().forEach(tile => {
-                if (tile?.mineralDeposit?.metalId) {
-                    const metalName = METALS[tile.mineralDeposit.metalId]?.name || tile.mineralDeposit.metalId;
-                    counts.set(metalName, (counts.get(metalName) || 0) + 1);
+            terrainStructures.forEach(structure => {
+                if (structure?.mineralDeposits) {
+                    Object.entries(structure.mineralDeposits).forEach(([metalId, quantity]) => {
+                        const metalName = METALS[metalId]?.name || metalId;
+                        counts.set(metalName, (counts.get(metalName) || 0) + Math.ceil(quantity / 1000)); // Convert to meaningful units
+                    });
                 }
             });
         } catch (error) {
@@ -123,7 +125,7 @@ const LeftSidebar: React.FC = () => {
         }
         
         return counts;
-    }, [mapData]);
+    }, [terrainStructures]);
 
     const pointsOfInterest = useMemo(() => {
         if (!terrainStructures || !Array.isArray(terrainStructures)) {
@@ -147,51 +149,71 @@ const LeftSidebar: React.FC = () => {
     }, [terrainStructures]);
 
     const societyDescription = useMemo(() => {
-        if (!societalProfile || !mapData || !mapAnalysisData) return "Analyzing...";
+        if (!societalProfile || !mapData || !mapAnalysisData) {
+            console.log("Missing data for society description:", { societalProfile, mapData: !!mapData, mapAnalysisData: !!mapAnalysisData });
+            return "Analyzing regional characteristics...";
+        }
 
-        // 1. Determine base societal description
-        let baseDesc = '';
-        if (societalProfile.isAgricultural && societalProfile.isPastoral) {
-            baseDesc = "This is a society built on both farming and herding.";
-        } else if (societalProfile.isAgricultural) {
-            baseDesc = "This appears to be a settled, agricultural society.";
-        } else if (societalProfile.isPastoral) {
-            baseDesc = "This is a society centered around pastoralism and herding animals.";
-        } else {
-            if (mapAnalysisData.urbanTileCount === 0) {
-                baseDesc = "The people here appear to be nomadic hunter-gatherers.";
+        console.log("Society analysis data:", { 
+            isAgricultural: societalProfile.isAgricultural, 
+            isPastoral: societalProfile.isPastoral,
+            urbanTileCount: mapAnalysisData.urbanTileCount,
+            mapSize: mapData.width * mapData.height
+        });
+
+        // Concise societal description
+        let societyType = '';
+        let settlementSize = '';
+        
+        try {
+            // Determine society type
+            if (societalProfile.isAgricultural && societalProfile.isPastoral) {
+                societyType = "Farming/herding";
+            } else if (societalProfile.isAgricultural) {
+                societyType = "Agricultural";
+            } else if (societalProfile.isPastoral) {
+                societyType = "Pastoral";
             } else {
-                baseDesc = "This society seems to rely on non-agricultural means, like fishing or trade.";
+                societyType = mapAnalysisData.urbanTileCount === 0 ? "Hunter-gatherer" : "Trading";
             }
+
+            // Determine settlement size
+            const totalTiles = mapData.width * mapData.height;
+            const urbanRatio = totalTiles > 0 ? mapAnalysisData.urbanTileCount / totalTiles : 0;
+            
+            if (urbanRatio > 0.1) {
+                settlementSize = "cities";
+            } else if (urbanRatio > 0.05) {
+                settlementSize = "towns";
+            } else if (urbanRatio > 0.02) {
+                settlementSize = "villages";
+            } else if (mapAnalysisData.urbanTileCount > 0) {
+                settlementSize = "hamlets";
+            } else {
+                settlementSize = "no settlements";
+            }
+        } catch (error) {
+            console.error("Error determining society description:", error);
+            societyType = "Mixed";
+            settlementSize = "varied settlements";
         }
 
-        // 2. Add urbanization context
-        let urbanDesc = '';
-        const urbanRatio = mapAnalysisData.urbanTileCount / (mapData.width * mapData.height);
-        if (urbanRatio > 0.1) {
-            urbanDesc = 'It features a number of large, dense urban centers.';
-        } else if (urbanRatio > 0.05) {
-            urbanDesc = 'Several towns serve as local hubs for trade and craft.';
-        } else if (urbanRatio > 0.02) {
-            urbanDesc = 'Settlements are few and far between, consisting of small towns or large villages.';
-        } else if (mapAnalysisData.urbanTileCount > 0) {
-            urbanDesc = 'Permanent settlements are limited to small hamlets and villages.';
-        } else {
-            urbanDesc = 'There are no signs of permanent settlements.';
+        // Check for mineral resources (only mention if they exist)
+        let mineralNote = '';
+        try {
+            const totalMineralValue = Array.from(mineralDeposits.values()).reduce((sum, count) => sum + count, 0);
+            if (totalMineralValue > 20) {
+                mineralNote = " Rich mineral deposits.";
+            } else if (totalMineralValue > 0) {
+                mineralNote = " Some minerals.";
+            }
+        } catch (error) {
+            // Don't mention minerals if we can't determine them
         }
 
-        // 3. Add mineral resource context
-        let mineralDesc = '';
-        const mineralCount = mapData.tiles.flat().filter(t => t.mineralDeposit).length;
-        if (mineralCount > 15) {
-            mineralDesc = 'The land is rich with accessible mineral resources.';
-        } else if (mineralCount > 5) {
-            mineralDesc = 'Mineral resources appear to be present, but not widespread.';
-        } else {
-            mineralDesc = 'There are scarce mineral resources in this area.';
-        }
-
-        return `${baseDesc} ${urbanDesc} ${mineralDesc}`;
+        const finalDescription = `${societyType} communities in ${settlementSize}.${mineralNote}`;
+        console.log("Final society description:", finalDescription);
+        return finalDescription;
     }, [societalProfile, mapData, mapAnalysisData]);
 
     const primaryResourceDescription = useMemo(() => {
@@ -426,11 +448,8 @@ const LeftSidebar: React.FC = () => {
         <div className={`flex-shrink-0 bg-sidebar-gradient shadow-sidebar-left backdrop-blur-xl border-r border-slate-700/80 flex flex-col text-slate-200 transition-all duration-300 h-full ${isLeftSidebarExpanded ? 'w-[400px]' : 'w-0 p-0 border-none'}`}>
             <div className={`p-3 flex flex-col flex-1 overflow-hidden transition-opacity duration-200 ${isLeftSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
                 <div className="shrink-0">
-                    <div className="flex justify-between items-start mb-4">
-                        <h2 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent"></h2>
-                        <button onClick={() => setIsLeftSidebarExpanded(false)} className="text-slate-400 hover:text-white text-xl leading-none">&lt;&lt;</button>
-                    </div>
-                    <div className="p-4 rounded-xl bg-slate-800/70 mb-4 shadow-lg border border-slate-700/50">
+                    <div className="p-4 rounded-xl bg-slate-800/70 mb-4 shadow-lg border border-slate-700/50 relative">
+                        <button onClick={() => setIsLeftSidebarExpanded(false)} className="absolute top-2 right-2 text-slate-400 hover:text-white text-lg leading-none">&lt;&lt;</button>
                         <div className="grid grid-cols-2 gap-x-2 gap-y-3">
                             <div>
                                 <p className="text-xs text-slate-400">Date:</p>

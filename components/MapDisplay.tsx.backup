@@ -1445,32 +1445,30 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
                 {tiles.flat().map((tile) => {
                   const symbolX = tile.x * TILE_SIZE_PX;
                   const symbolY = tile.y * TILE_SIZE_PX;
-                  // Create position-specific seed for each symbol to ensure static randomization
-                  const tileSeed = seed + tile.x * 31 + tile.y * 37;
                   const elements = [];
                   
                   if ([BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.GOVERNMENT_DISTRICT, BiomeType.CITY_CENTER].includes(tile.biome)) {
-                    elements.push(<UrbanSymbol key={`urban-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} date={formattedDate} zone={currentLocation} />);
+                    elements.push(<UrbanSymbol key={`urban-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={seed} tile={tile} date={formattedDate} zone={currentLocation} />);
                   } else if(tile.biome === BiomeType.MARKETPLACE) {
-                    elements.push(<MarketplaceSymbol key={`marketplace-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} />);
+                    elements.push(<MarketplaceSymbol key={`marketplace-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={seed} tile={tile} />);
                   } else if(tile.biome === BiomeType.PALACE) {
-                    elements.push(<PalaceSymbol key={`palace-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} date={formattedDate} zone={currentLocation} />);
+                    elements.push(<PalaceSymbol key={`palace-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={seed} tile={tile} date={formattedDate} zone={currentLocation} />);
                   } else if(tile.biome === BiomeType.RUINS) {
-                    elements.push(<RuinsSymbol key={`ruins-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} />);
+                    elements.push(<RuinsSymbol key={`ruins-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={seed} tile={tile} />);
                   } else if(tile.biome === BiomeType.HOLY_SITE) {
-                    elements.push(<HolyPlaceSymbol key={`holy-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} date={formattedDate} zone={currentLocation} />);
+                    elements.push(<HolyPlaceSymbol key={`holy-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={seed} tile={tile} date={formattedDate} zone={currentLocation} />);
                   } else if(tile.biome === BiomeType.CLIFF) {
-                    elements.push(<CliffSymbol key={`cliff-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} />);
+                    elements.push(<CliffSymbol key={`cliff-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={seed} tile={tile} />);
                   } else if(tile.biome === BiomeType.MANGROVE) {
-                    elements.push(<MangroveSymbol key={`mangrove-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />);
+                    elements.push(<MangroveSymbol key={`mangrove-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={seed} tileX={tile.x} tileY={tile.y} />);
                   } else if(tile.biome === BiomeType.SALT_FLATS) {
-                    elements.push(<SaltFlatsSymbol key={`saltflats-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />);
+                    elements.push(<SaltFlatsSymbol key={`saltflats-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={seed} tileX={tile.x} tileY={tile.y} />);
                   } else if(tile.biome === BiomeType.HILLS) {
-                    elements.push(<HillSymbol key={`hill-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} climate={climate} season={season}/>);
+                    elements.push(<HillSymbol key={`hill-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={seed} tile={tile} climate={climate} season={season}/>);
                   } else if(tile.biome === BiomeType.FARMLAND) {
-                    elements.push(<FarmSymbol key={`farm-${tile.x}-${tile.y}`} tile={tile} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} />);
+                    elements.push(<FarmSymbol key={`farm-${tile.x}-${tile.y}`} tile={tile} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={seed} />);
                   } else if(tile.biome === BiomeType.ESTUARY && !shouldRenderAnimations) {
-                    elements.push(<EstuarySymbol key={`estuary-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />);
+                    elements.push(<EstuarySymbol key={`estuary-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={seed} tileX={tile.x} tileY={tile.y} />);
                   }
 
                   if (climate === ClimateType.ARID && (tile.biome === BiomeType.HILLS || tile.biome === BiomeType.DESERT || tile.biome === BiomeType.SCRUB)) {

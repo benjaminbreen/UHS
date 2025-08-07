@@ -54,7 +54,7 @@ const CraftingModal: React.FC<CraftingModalProps> = ({ isOpen, onClose, items, m
                                 {result.outcome.newItems.map((item, index) => (
                                     <div key={index} className="flex items-center gap-4 p-2 rounded-md bg-slate-800/50">
                                         <div className="w-10 h-10 flex items-center justify-center"><GenerativeItemIcon item={item as Item} size={40} /></div>
-                                        <p className="font-semibold text-white">{item.name}</p>
+                                        <p className="font-semibold text-white">{item.name} {item.quantity > 1 ? `(x${item.quantity})` : ''}</p>
                                     </div>
                                 ))}
                             </div>
@@ -70,7 +70,7 @@ const CraftingModal: React.FC<CraftingModalProps> = ({ isOpen, onClose, items, m
                     {items.map(item => (
                         <div key={item.id} className="flex flex-col items-center text-center">
                             <div className="w-16 h-16 flex items-center justify-center"><GenerativeItemIcon item={item} size={64} /></div>
-                            <p className="text-xs text-slate-300 w-20 truncate">{item.name}</p>
+                            <p className="text-xs text-slate-300 w-20 truncate">{item.name} {item.quantity > 1 ? `x${item.quantity}` : ''}</p>
                         </div>
                     ))}
                 </div>

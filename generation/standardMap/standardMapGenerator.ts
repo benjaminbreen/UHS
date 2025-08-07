@@ -619,7 +619,7 @@ export function proceduralGenerateMap(
 
   console.log("[Gen] Phase 10: Urban area generation - START");
    if (generationParams?.economicActivityLevel !== 0) {
-      generateUrbanAreas(tiles, featurePlacementNoise, archetype, determinedHarborSide, generateLargeCityFlag, generationParams?.economicActivityLevel);
+      generateUrbanAreas(tiles, featurePlacementNoise, archetype, determinedHarborSide, generateLargeCityFlag, generationParams?.economicActivityLevel, dateInfo.year, localArea);
   }
   console.log("[Gen] Phase 10: Urban area generation - END");
   

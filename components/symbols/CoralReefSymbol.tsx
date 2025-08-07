@@ -85,8 +85,8 @@ const CoralReefSymbol: React.FC<CoralReefSymbolProps> = React.memo(({ x, y, size
         const fishColor = `hsl(${180 + localRand() * 60}, 80%, 60%)`;
         elements.push(
             <g key={`fish-${i}`} transform={`translate(${x}, ${startY})`} 
-                className="reef-fish-swim" 
-                style={{'--fish-delay': `${localRand()*4}s`} as React.CSSProperties}
+                className="swooping-fish" 
+                style={{'--fish-duration': `${6 + localRand()*4}s`, '--fish-delay': `${localRand()*4}s`} as React.CSSProperties}
             >
                 <path d={`M 0 0 l ${fishSize} ${fishSize/4} l -${fishSize} ${fishSize/4} Z`} fill={fishColor} />
             </g>

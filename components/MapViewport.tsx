@@ -6,7 +6,7 @@ import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
 import { usePlayer } from '../contexts/PlayerContext';
 import { useGame } from '../contexts/GameContext';
-import { MapDisplay } from './MapDisplay';
+import { MapDisplayOptimized } from './MapDisplayOptimized';
 import { InteriorMapDisplay } from './interiorMap';
 import AmbianceDisplay from './AmbianceDisplay';
 import BottomPanel from './BottomPanel';
@@ -71,7 +71,7 @@ const MapViewport: React.FC = () => {
             return <CityModal tile={activeCityModal.tile} onClose={() => setActiveCityModal(null)} playerCharacter={playerCharacter} mapData={mapData} gameTimeHours={gameTimeHours} season={season} />;
         }
         if (viewMode === 'standard') {
-            return <MapDisplay mapData={mapData!} animals={visibleAnimals} npcs={visibleNpcs} onDevHover={handleDevHover} onDevCommandClick={handleDevCommandClick} onStructureClick={setStructureModalTarget} onPoiClick={setActivePoi} onSettlementClick={(tile: Tile) => setActiveSettlementInfo({ tile })} activeLens={activeLens} logicalControlledIconX={controlledIconX} logicalControlledIconY={controlledIconY} onIconAnimationComplete={onIconAnimationComplete} playerMode={playerMode} shipDockX={shipDockX} shipDockY={shipDockY} onAnimalClick={setInfoModalTarget} onNpcClick={setInfoModalTarget} selectedAnimalId={infoModalTarget?.id} selectedNpcId={infoModalTarget?.id} sunPosition={sunPosition} formattedDate={formattedDate} season={season} currentLocation={mapData?.continent || ''} iconRotation={iconRotation} velocity={velocity} playerCharacter={playerCharacter} />;
+            return <MapDisplayOptimized mapData={mapData!} animals={visibleAnimals} npcs={visibleNpcs} onDevHover={handleDevHover} onDevCommandClick={handleDevCommandClick} onStructureClick={setStructureModalTarget} onPoiClick={setActivePoi} onSettlementClick={(tile: Tile) => setActiveSettlementInfo({ tile })} activeLens={activeLens} logicalControlledIconX={controlledIconX} logicalControlledIconY={controlledIconY} onIconAnimationComplete={onIconAnimationComplete} playerMode={playerMode} shipDockX={shipDockX} shipDockY={shipDockY} onAnimalClick={setInfoModalTarget} onNpcClick={setInfoModalTarget} selectedAnimalId={infoModalTarget?.id} selectedNpcId={infoModalTarget?.id} sunPosition={sunPosition} formattedDate={formattedDate} season={season} currentLocation={mapData?.continent || ''} iconRotation={iconRotation} velocity={velocity} playerCharacter={playerCharacter} gameTimeHours={gameTimeHours} gameTimeMinutes={gameTimeMinutes} />;
         }
         if (viewMode === 'interior' && interiorViewState && interiorMapPlayerPos) {
             return <InteriorMapDisplay interiorMapData={interiorViewState.maps.get(interiorViewState.currentFloor)!} discoveredFloors={interiorViewState.discoveredFloors} onExit={handleExitInteriorView} playerPos={interiorMapPlayerPos} onPlayerMove={onPlayerMove} onEntityClick={handleEntityInteraction} onDevHover={handleDevHover} onDevCommandClick={handleDevCommandClick} />;

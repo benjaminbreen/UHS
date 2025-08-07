@@ -67,18 +67,47 @@ const RightSidebar: React.FC = () => {
         const healthPercent = playerCharacter.health / playerCharacter.maxHealth;
         const xpPercent = playerCharacter.experience / playerCharacter.maxExperience;
         const fatiguePercent = playerCharacter.fatigue / playerCharacter.maxFatigue;
+        const stats = playerCharacter.stats;
     
-        if (fatiguePercent > 0.8) return 'Feeling exhausted';
-        if (fatiguePercent > 0.5) return 'Feeling weary';
-        if (fatiguePercent > 0.2) return 'A little tired';
+        // Priority conditions (urgent states)
+        if (fatiguePercent > 0.85) return 'Feeling utterly exhausted';
+        if (fatiguePercent > 0.7) return 'Feeling very weary';
+        if (fatiguePercent > 0.5) return 'Feeling tired';
+        if (fatiguePercent < 0.15) return 'Feeling energetic and refreshed';
+        if (fatiguePercent < 0.3) return 'Feeling well-rested';
     
-        if (healthPercent < 0.3) return 'Gravely injured';
+        if (healthPercent < 0.3) return 'Gravely injured and weakened';
+        if (healthPercent < 0.6) return 'Wounded but pushing forward';
         if (healthPercent < 0.8) return 'Mildly injured';
     
         if (xpPercent >= 0.9) return 'On the verge of a breakthrough!';
-        if (xpPercent >= 0.75) return 'Feeling inspired';
-        if (xpPercent >= 0.5) return 'Making good progress';
-    
+        if (xpPercent >= 0.8) return 'Feeling accomplished and inspired';
+        if (xpPercent >= 0.65) return 'Making excellent progress';
+        
+        // Stat-based descriptions for neutral states
+        const hourNow = new Date().getHours();
+        const seed = Math.floor(hourNow / 1) + playerCharacter.id.charCodeAt(0); // Changes every hour
+        Math.floor(seed); // Use deterministic seed
+        
+        const statDescriptions: string[] = [];
+        if (stats.intelligence >= 15) statDescriptions.push('feeling intellectually curious');
+        if (stats.intelligence >= 12) statDescriptions.push('feeling thoughtful');
+        if (stats.wisdom >= 15) statDescriptions.push('feeling wise and contemplative');
+        if (stats.wisdom >= 12) statDescriptions.push('feeling perceptive');
+        if (stats.charisma >= 15) statDescriptions.push('feeling socially confident');
+        if (stats.charisma >= 12) statDescriptions.push('feeling personable');
+        if (stats.strength >= 15) statDescriptions.push('feeling physically powerful');
+        if (stats.strength >= 12) statDescriptions.push('feeling strong');
+        if (stats.dexterity >= 15) statDescriptions.push('feeling agile and quick');
+        if (stats.dexterity >= 12) statDescriptions.push('feeling nimble');
+        if (stats.constitution >= 15) statDescriptions.push('feeling robust and hardy');
+        if (stats.constitution >= 12) statDescriptions.push('feeling resilient');
+        
+        if (statDescriptions.length > 0) {
+            const index = seed % statDescriptions.length;
+            return statDescriptions[index].charAt(0).toUpperCase() + statDescriptions[index].slice(1);
+        }
+        
         return 'Feeling fine';
     }, [playerCharacter]);
 

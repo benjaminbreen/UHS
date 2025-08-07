@@ -20,7 +20,7 @@ export const STARTING_PACKAGES: Record<string, { equipment: Partial<Record<Equip
     'Caretaker': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HERB_BUNDLE', 'BREAD'] },
     'Potter': { equipment: { torso: 'LEATHER_APRON' }, inventory: ['CLAY_LAMP', 'WOODEN_BOWL', 'SMOOTH_STONE'] },
     'Shepherd': { equipment: { main_hand: 'STICK', torso: 'WOOL_TUNIC' }, inventory: ['BREAD'] },
-    'Farmer': { equipment: { main_hand: 'STICK', torso: 'LEATHER_APRON' }, inventory: ['WHEAT', 'BREAD'] },
+    'Farmer': { equipment: { main_hand: 'HARVEST_SICKLE', torso: 'LEATHER_APRON' }, inventory: ['BARLEY', 'RYE', 'GRAIN_FLAIL'] },
     'Child Watcher': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['WOODEN_BOWL', 'WILD_BERRIES'] },
     'Mother': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['BREAD', 'SIMPLE_RING'] },
 
@@ -41,20 +41,20 @@ export const STARTING_PACKAGES: Record<string, { equipment: Partial<Record<Equip
     'Oracle': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HERB_BUNDLE', 'CLAY_LAMP'] },
 
     // Medieval
-    'Knight': { equipment: { head: 'LEATHER_CAP', torso: 'WOOL_TUNIC', feet: 'LEATHER_BOOTS', main_hand: 'STICK' }, inventory: ['BREAD'] },
+    'Knight': { equipment: { head: 'LEATHER_CAP', torso: 'WOOL_TUNIC', feet: 'LEATHER_BOOTS', main_hand: 'STICK', belt: 'PURSE' }, inventory: ['BREAD', 'WHETSTONE'] },
     'Squire': { equipment: { torso: 'LEATHER_APRON', main_hand: 'STICK' }, inventory: [] },
     'Scribe': { equipment: { torso: 'SIMPLE_ROBE', feet: 'SANDALS' }, inventory: ['QUILL', 'INK_POT', 'PARCHMENT_ROLL'] },
-    'Blacksmith': { equipment: { torso: 'LEATHER_APRON', feet: 'LEATHER_BOOTS', main_hand: 'STICK' }, inventory: ['IRON_ORE'] },
-    'Merchant': { equipment: { torso: 'WOOL_TUNIC', feet: 'LEATHER_BOOTS' }, inventory: ['ROPE'] },
+    'Blacksmith': { equipment: { torso: 'LEATHER_APRON', feet: 'LEATHER_BOOTS', main_hand: 'HAMMER' }, inventory: ['IRON_ORE', 'BELLOWS', 'HORSESHOE'] },
+    'Merchant': { equipment: { torso: 'WOOL_TUNIC', feet: 'LEATHER_BOOTS', belt: 'PURSE', main_hand: 'SCALE' }, inventory: ['ROPE', 'SILK_CLOTH'] },
     'Thief': { equipment: { head: 'CLOTH_HOOD', torso: 'WOOL_TUNIC', feet: 'LEATHER_BOOTS' }, inventory: ['SMOOTH_STONE', 'STICK'] },
     'Innkeeper': { equipment: { torso: 'LEATHER_APRON', feet: 'LEATHER_BOOTS', main_hand: 'STICK' }, inventory: ['BREAD'] },
-    'Weaver': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['VINE', 'COTTON'] },
+    'Weaver': { equipment: { torso: 'SIMPLE_ROBE', main_hand: 'SPINDLE' }, inventory: ['WOOL_CARDERS', 'VINE', 'COTTON'] },
     'Baker': { equipment: { torso: 'LEATHER_APRON', main_hand: 'STICK' }, inventory: ['BREAD', 'WHEAT'] },
     'Carpenter': { equipment: { torso: 'LEATHER_APRON', main_hand: 'STICK' }, inventory: ['ROPE'] },
-    'Mason': { equipment: { torso: 'LEATHER_APRON', main_hand: 'STICK' }, inventory: ['SMOOTH_STONE'] },
+    'Mason': { equipment: { torso: 'LEATHER_APRON', main_hand: 'STONE_CHISEL' }, inventory: ['SMOOTH_STONE', 'HAMMER', 'TONGS'] },
     'Herbalist': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HERB_BUNDLE', 'MUSHROOM', 'MEDICINAL_HERBS'] },
     'Monk': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['BREAD', 'PARCHMENT_ROLL', 'SIMPLE_RING'] },
-    'Serf': { equipment: { torso: 'WOOL_TUNIC' }, inventory: ['POTATO', 'STICK'] },
+    'Serf': { equipment: { torso: 'WOOL_TUNIC', main_hand: 'HARVEST_SICKLE' }, inventory: ['BARLEY', 'PEAS', 'LENTILS'] },
     'Jester': { equipment: { head: 'CLOTH_HOOD', torso: 'SIMPLE_ROBE', feet: 'SANDALS' }, inventory: ['STRANGE_FRUIT'] },
     'Woodcutter': { equipment: { torso: 'LEATHER_APRON', main_hand: 'STICK' }, inventory: ['ROPE', 'STICK'] },
 
@@ -77,8 +77,8 @@ export const STARTING_PACKAGES: Record<string, { equipment: Partial<Record<Equip
     // == EAST ASIAN
     // =======================================================================
     'Court Scribe': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['QUILL', 'INK_POT', 'PARCHMENT_ROLL'] },
-    'Samurai': { equipment: { torso: 'LEATHER_APRON', feet: 'SANDALS', main_hand: 'STICK' }, inventory: ['RICE'] },
-    'Buddhist Monk': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['WOODEN_BOWL', 'RICE'] },
+    'Samurai': { equipment: { torso: 'LEATHER_APRON', feet: 'SANDALS', main_hand: 'KATANA' }, inventory: ['RICE', 'WHETSTONE', 'PRAYER_BEADS'] },
+    'Buddhist Monk': { equipment: { torso: 'SIMPLE_ROBE', amulet: 'PRAYER_BEADS' }, inventory: ['WOODEN_BOWL', 'RICE', 'INCENSE'] },
     'Swordsmith': { equipment: { torso: 'LEATHER_APRON', main_hand: 'STICK' }, inventory: ['IRON_ORE', 'SMOOTH_STONE'] },
     'Tea Trader': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['DRY_LEAVES'] },
     'Rickshaw Puller': { equipment: { feet: 'SANDALS' }, inventory: ['BREAD'] },
@@ -87,8 +87,8 @@ export const STARTING_PACKAGES: Record<string, { equipment: Partial<Record<Equip
     // == MENA (Middle East & North Africa)
     // =======================================================================
     'Nomad': { equipment: { head: 'CLOTH_HOOD', torso: 'SIMPLE_ROBE', feet: 'SANDALS', main_hand: 'STICK' }, inventory: ['DRY_LEAVES'] },
-    'Spice Merchant': { equipment: { head: 'CLOTH_HOOD', torso: 'SIMPLE_ROBE' }, inventory: ['HERB_BUNDLE'] },
-    'Janissary': { equipment: { torso: 'WOOL_TUNIC', feet: 'LEATHER_BOOTS', main_hand: 'STICK' }, inventory: [] },
+    'Spice Merchant': { equipment: { head: 'CLOTH_HOOD', torso: 'SIMPLE_ROBE', belt: 'PURSE', main_hand: 'SCALE' }, inventory: ['SPICE_POUCH', 'SILK_CLOTH'] },
+    'Janissary': { equipment: { torso: 'WOOL_TUNIC', feet: 'LEATHER_BOOTS', main_hand: 'SCIMITAR' }, inventory: ['BREAD', 'WHETSTONE'] },
     'Calligrapher': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['QUILL', 'INK_POT'] },
     
     // =======================================================================
@@ -97,7 +97,7 @@ export const STARTING_PACKAGES: Record<string, { equipment: Partial<Record<Equip
     'Iron Smelter': { equipment: { torso: 'LEATHER_APRON', main_hand: 'STICK' }, inventory: ['IRON_ORE'] },
     'Griot': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: [] },
     'Salt Miner': { equipment: { torso: 'WOOL_TUNIC', main_hand: 'STICK' }, inventory: ['SMOOTH_STONE'] },
-    'Ivory Carver': { equipment: { torso: 'LEATHER_APRON' }, inventory: ['BOAR_TUSK'] }, // Tusk as placeholder for ivory
+    'Ivory Carver': { equipment: { torso: 'LEATHER_APRON' }, inventory: ['IVORY_TUSK', 'SMOOTH_STONE'] },
 
     // =======================================================================
     // == AMERICAS

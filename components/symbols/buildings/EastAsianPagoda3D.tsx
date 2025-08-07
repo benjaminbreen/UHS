@@ -31,9 +31,17 @@ const getEraLevel = (era: HistoricalEra): number => {
 };
 
 const EastAsianPagoda3D: React.FC<EastAsianPagoda3DProps> = React.memo(({ x, y, size, era, seed, tile }) => {
-  const localRand = (offset = 0) => new ValueNoise(seed + offset).random();
+  // Memoize random values to ensure they're truly static
+  const staticValues = React.useMemo(() => {
+    const localRand = (offset = 0) => new ValueNoise(seed + offset).random();
+    return {
+      localRand,
+      tiers: tile.biome === BiomeType.CITY_CENTER ? 5 : 2 + Math.floor(localRand() * 2)
+    };
+  }, [seed, tile.biome]);
+  
   const eraLevel = getEraLevel(era);
-  const tiers = tile.biome === BiomeType.CITY_CENTER ? 5 : 2 + Math.floor(localRand() * 2);
+  const { tiers, localRand } = staticValues;
   
   return (
     <g className="buddhist-temple-3d">

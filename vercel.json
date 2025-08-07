@@ -1,0 +1,38 @@
+{
+  "functions": {
+    "api/llm.ts": {
+      "runtime": "@vercel/node@18"
+    }
+  },
+  "build": {
+    "env": {
+      "GEMINI_API_KEY": "@gemini-api-key"
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

@@ -90,7 +90,7 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
                 const size = 8 + noise.random() * 20;
                 
                 const grassGrad = ctx.createRadialGradient(x, y, 0, x, y, size);
-                grassGrad.addColorStop(0, `rgba(34, 139, 34, ${0.25 + noise.random() * 0.15})`);
+                grassGrad.addColorStop(0, `rgba(34, 139, 34, ${0.35 + noise.random() * 0.25})`);
                 grassGrad.addColorStop(1, 'transparent');
                 
                 ctx.fillStyle = grassGrad;
@@ -105,7 +105,7 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
                 const bend = (noise.random() - 0.5) * 4;
                 
                 // Grass blade with natural curve
-                ctx.strokeStyle = `rgba(${46 + Math.floor(noise.random() * 40)}, ${139 + Math.floor(noise.random() * 60)}, ${87 + Math.floor(noise.random() * 40)}, ${0.4 + noise.random() * 0.4})`;
+                ctx.strokeStyle = `rgba(${46 + Math.floor(noise.random() * 40)}, ${139 + Math.floor(noise.random() * 60)}, ${87 + Math.floor(noise.random() * 40)}, ${0.5 + noise.random() * 0.4})`;
                 ctx.lineWidth = 0.8 + noise.random() * 0.4;
                 ctx.beginPath();
                 ctx.moveTo(x, y);
@@ -124,7 +124,7 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
                     const bladeY = clumpY + (noise.random() - 0.5) * clumpSize;
                     const bladeHeight = 2 + noise.random() * 4;
                     
-                    ctx.strokeStyle = `rgba(74, 180, 74, ${0.6 + noise.random() * 0.3})`;
+                    ctx.strokeStyle = `rgba(74, 180, 74, ${0.7 + noise.random() * 0.3})`;
                     ctx.lineWidth = 0.6;
                     ctx.beginPath();
                     ctx.moveTo(bladeX, bladeY);
@@ -161,7 +161,7 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
                 const sway = (noise.random() - 0.5) * 2;
                 
                 // Reed stems
-                ctx.strokeStyle = `rgba(101, 163, 13, ${0.4 + noise.random() * 0.3})`;
+                ctx.strokeStyle = `rgba(101, 163, 13, ${0.5 + noise.random() * 0.3})`;
                 ctx.lineWidth = 1 + noise.random() * 0.5;
                 ctx.beginPath();
                 ctx.moveTo(x, y);
@@ -226,7 +226,7 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
                 const y = noise.random() * PATTERN_SIZE;
                 const height = 3 + noise.random() * 6;
                 
-                ctx.strokeStyle = `rgba(34, 139, 34, ${0.2 + noise.random() * 0.2})`;
+                ctx.strokeStyle = `rgba(34, 139, 34, ${0.3 + noise.random() * 0.2})`;
                 ctx.lineWidth = 0.8;
                 ctx.beginPath();
                 ctx.moveTo(x, y);
@@ -256,7 +256,7 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
                 const bushSize = 3 + noise.random() * 8;
                 
                 // Bush shape - irregular
-                ctx.fillStyle = `rgba(107, 142, 35, ${0.15 + noise.random() * 0.2})`;
+                ctx.fillStyle = `rgba(107, 142, 35, ${0.25 + noise.random() * 0.25})`;
                 ctx.beginPath();
                 const points = 6 + Math.floor(noise.random() * 4);
                 for (let p = 0; p < points; p++) {
@@ -276,7 +276,7 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
                     const grassY = y + (noise.random() - 0.5) * 12;
                     const grassHeight = 2 + noise.random() * 4;
                     
-                    ctx.strokeStyle = `rgba(154, 205, 50, ${0.2 + noise.random() * 0.3})`;
+                    ctx.strokeStyle = `rgba(154, 205, 50, ${0.3 + noise.random() * 0.3})`;
                     ctx.lineWidth = 0.5;
                     ctx.beginPath();
                     ctx.moveTo(grassX, grassY);
@@ -300,7 +300,7 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
                 ctx.save();
                 ctx.translate(x, y);
                 ctx.rotate(angle);
-                ctx.fillStyle = `rgba(105, 105, 105, ${0.1 + noise.random() * 0.15})`;
+                ctx.fillStyle = `rgba(105, 105, 105, ${0.15 + noise.random() * 0.2})`;
                 ctx.fillRect(-width/2, -height/2, width, height);
                 ctx.restore();
             }
@@ -312,7 +312,7 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
                 const x2 = x1 + (noise.random() - 0.5) * 40;
                 const y2 = y1 + (noise.random() - 0.5) * 40;
                 
-                ctx.strokeStyle = `rgba(169, 169, 169, ${0.15 + noise.random() * 0.1})`;
+                ctx.strokeStyle = `rgba(169, 169, 169, ${0.2 + noise.random() * 0.15})`;
                 ctx.lineWidth = 1 + noise.random() * 2;
                 ctx.beginPath();
                 ctx.moveTo(x1, y1);
@@ -329,7 +329,7 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
                 const y = (i / 12) * PATTERN_SIZE + (noise.random() - 0.5) * 15;
                 const amplitude = 2 + noise.random() * 4;
                 
-                ctx.strokeStyle = `rgba(238, 203, 173, ${0.15 + noise.random() * 0.1})`;
+                ctx.strokeStyle = `rgba(238, 203, 173, ${0.2 + noise.random() * 0.15})`;
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(0, y);
@@ -347,7 +347,7 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
                 const y = noise.random() * PATTERN_SIZE;
                 const size = 0.5 + noise.random() * 1.5;
                 
-                ctx.fillStyle = `rgba(244, 164, 96, ${0.1 + noise.random() * 0.2})`;
+                ctx.fillStyle = `rgba(244, 164, 96, ${0.15 + noise.random() * 0.25})`;
                 ctx.beginPath();
                 ctx.arc(x, y, size, 0, Math.PI * 2);
                 ctx.fill();
@@ -420,7 +420,7 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
                 const y = noise.random() * PATTERN_SIZE;
                 const grassHeight = 3 + noise.random() * 5;
                 
-                ctx.strokeStyle = `rgba(85, 170, 85, ${0.25 + noise.random() * 0.25})`;
+                ctx.strokeStyle = `rgba(85, 170, 85, ${0.35 + noise.random() * 0.25})`;
                 ctx.lineWidth = 0.8;
                 ctx.beginPath();
                 ctx.moveTo(x, y);
@@ -449,13 +449,13 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
                 const y = noise.random() * PATTERN_SIZE;
                 const plantSize = 1 + noise.random() * 3;
                 
-                ctx.fillStyle = `rgba(85, 107, 47, ${0.2 + noise.random() * 0.2})`;
+                ctx.fillStyle = `rgba(85, 107, 47, ${0.3 + noise.random() * 0.25})`;
                 ctx.beginPath();
                 ctx.arc(x, y, plantSize, 0, Math.PI * 2);
                 ctx.fill();
                 
                 // Small stem
-                ctx.strokeStyle = `rgba(107, 142, 35, ${0.3 + noise.random() * 0.2})`;
+                ctx.strokeStyle = `rgba(107, 142, 35, ${0.4 + noise.random() * 0.25})`;
                 ctx.lineWidth = 0.5;
                 ctx.beginPath();
                 ctx.moveTo(x, y);

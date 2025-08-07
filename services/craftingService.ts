@@ -56,7 +56,7 @@ export async function executeCrafting(method: 'COMBINE' | 'DISAGGREGATE', items:
     const inputItems = items.map(({ id, quantity, ...definition }) => ({ ...definition, instanceId: id }));
 
     const prompt = `
-        ROLE: You are a logical and creative Crafting Master for a realistic, historical RPG. Your goal is to determine the outcome of a player's crafting attempt based on the provided items and their intent.
+        ROLE: You are a logical and creative Crafting Master for a realistic, historical RPG. You understand that almost anything can be taken apart (disaggregated) into component pieces, and many things can be combined in sensible ways.
 
         INPUTS:
         - Method: ${method}
@@ -64,10 +64,28 @@ export async function executeCrafting(method: 'COMBINE' | 'DISAGGREGATE', items:
         - Player's Intent: "${playerText || ''}"
 
         TASK:
-        1. Analyze the inputs. Is the player's action plausible based on the items and their intent? For COMBINE, consider if the items can logically form something new. For DISAGGREGATE, consider if the item can be broken into useful components.
-        2. If plausible, determine the most logical outcome. This could be a new item or multiple new items. The 'baseId' for new items should be the item name in uppercase with spaces replaced by underscores. The new items must be logical results of the inputs.
-        3. If not plausible, explain why in a witty, in-character message. Consumed items should be an empty array on failure.
-        4. You MUST respond ONLY with a single, valid JSON object matching the provided schema.
+        ${method === 'DISAGGREGATE' ? `
+        DISAGGREGATION RULES:
+        - ALMOST ALL items can be disaggregated in some way. Be creative and logical.
+        - Food items (like "bag of grain") break into smaller portions: "pile of grain" (multiple units) + "empty bag"
+        - Cloth items break into "cloth pieces" + "thread" (of appropriate color)
+        - Weapons break into components: "metal blade" + "wooden handle" + "binding material"
+        - Animals/creatures break into parts: "earthworm" → "half an earthworm" (2 pieces)
+        - Tools break into materials: "wooden bowl" → "wood chips" + "bowl fragments"
+        - Complex items yield multiple components: "spinning wheel" → "wooden parts" + "metal components" + "spindle"
+        
+        CREATE MULTIPLE ITEMS when disaggregating (typically 2-10 items). Use stackable:true for small similar items.
+        ALWAYS consume the original item and create logical component items.` : `
+        COMBINATION RULES:
+        - Consider if items can logically work together
+        - Materials + tools = crafted items
+        - Similar materials can be combined
+        - Tools can modify other items`}
+        
+        1. For ${method}, analyze: Can this action be performed with these items?
+        2. If YES: Create logical resulting items. BaseId should be item name in UPPERCASE with spaces as underscores.
+        3. If NO: Explain why briefly. Return empty consumedItemIds array.
+        4. RESPOND ONLY with valid JSON matching the schema.
     `;
     
     try {
@@ -102,10 +120,30 @@ export async function executeCrafting(method: 'COMBINE' | 'DISAGGREGATE', items:
 
         // FIX: Directly create item instances from the LLM-provided definition
         if (parsedData.success && parsedData.outcome.newItems) {
-            parsedData.outcome.newItems = parsedData.outcome.newItems.map((itemDef: ItemDefinition) => ({
-                ...itemDef,
+            // Group similar stackable items together
+            const itemGroups = new Map<string, { def: ItemDefinition, count: number }>();
+            
+            for (const itemDef of parsedData.outcome.newItems) {
+                if (itemDef.stackable) {
+                    const key = `${itemDef.name}-${itemDef.material || 'default'}`;
+                    const existing = itemGroups.get(key);
+                    if (existing) {
+                        existing.count++;
+                    } else {
+                        itemGroups.set(key, { def: itemDef, count: 1 });
+                    }
+                } else {
+                    // Non-stackable items get individual entries
+                    const uniqueKey = `${itemDef.name}-${itemIdCounter++}`;
+                    itemGroups.set(uniqueKey, { def: itemDef, count: 1 });
+                }
+            }
+            
+            // Convert groups back to item instances
+            parsedData.outcome.newItems = Array.from(itemGroups.values()).map(({ def, count }) => ({
+                ...def,
                 id: `item-${itemIdCounter++}-${Date.now()}`,
-                quantity: 1
+                quantity: def.stackable ? count : 1
             }));
         }
 

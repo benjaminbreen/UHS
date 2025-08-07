@@ -285,13 +285,53 @@ function isNearDeepWater(tiles: Tile[][], x: number, y: number): boolean {
   return false;
 }
 
-export function generateUrbanAreas(tiles: Tile[][], randomNoise: ValueNoise, archetype: MapArchetype, harborSide?: number, generateLargeCity?: boolean, economicActivityLevel?: number) {
+export function generateUrbanAreas(tiles: Tile[][], randomNoise: ValueNoise, archetype: MapArchetype, harborSide?: number, generateLargeCity?: boolean, economicActivityLevel?: number, year?: number, mapAreaName?: string) {
   console.log("Generating enhanced urban clusters...");
   const strategicLocations = identifyStrategicUrbanLocations(tiles, archetype, harborSide);
-  let clusterCount = URBAN_CLUSTER_COUNT_BASE;
+  
+  // Era-based urbanization scaling
+  let eraMultiplier = 1;
+  if (year) {
+    if (year < 500) eraMultiplier = 0.3; // Prehistory - very few settlements
+    else if (year < 1000) eraMultiplier = 0.5; // Ancient - limited urbanization
+    else if (year < 1450) eraMultiplier = 0.7; // Medieval - moderate towns
+    else if (year < 1800) eraMultiplier = 1.0; // Early modern - baseline
+    else if (year < 1900) eraMultiplier = 1.5; // Industrial - major growth
+    else if (year < 2000) eraMultiplier = 2.5; // Modern - high urbanization
+    else eraMultiplier = 4.0; // Future - very high density
+    console.log(`[Urban] Era multiplier for year ${year}: ${eraMultiplier}`);
+  }
+  
+  // Check if this area corresponds to a known historical city
+  let cityBonus = 0;
+  if (mapAreaName && year) {
+    try {
+      const { CITIES_DATA } = require('../../../constants/gameData/cities');
+      const areaCities = CITIES_DATA[mapAreaName] || [];
+      
+      // Count how many cities should exist in this year
+      const activeCities = areaCities.filter((city: any) => 
+        year >= city.foundingYear && (!city.declineYear || year <= city.declineYear)
+      );
+      
+      if (activeCities.length > 0) {
+        cityBonus = Math.min(activeCities.length * 2, 8); // Up to 8 bonus clusters for major cities
+        console.log(`[Urban] Found ${activeCities.length} historical cities in ${mapAreaName}, adding ${cityBonus} bonus clusters`);
+      }
+    } catch (error) {
+      console.log(`[Urban] Could not load cities data for ${mapAreaName}`);
+    }
+  }
+  
+  let baseCount = Math.ceil(URBAN_CLUSTER_COUNT_BASE * eraMultiplier);
+  let clusterCount = baseCount + cityBonus;
+  
   if (generateLargeCity) clusterCount += 1 + Math.floor(randomNoise.random()*2);
-  if (archetype === MapArchetype.RIVER_PORT) clusterCount += 1;
-  clusterCount = Math.min(clusterCount, URBAN_CLUSTER_COUNT_MAX + (generateLargeCity ? 1 : 0) );
+  if (archetype === MapArchetype.RIVER_PORT) clusterCount += Math.ceil(2 * eraMultiplier);
+  
+  // Scale the max based on era too
+  let maxClusters = Math.ceil(URBAN_CLUSTER_COUNT_MAX * Math.max(eraMultiplier, 1.5));
+  clusterCount = Math.min(clusterCount, maxClusters + (generateLargeCity ? 2 : 0));
   const clusterCenters = selectUrbanClusterCenters(strategicLocations, clusterCount, randomNoise);
   clusterCenters.forEach((center, index) => {
     generateUrbanCluster(tiles, center, index, clusterCenters.length, generateLargeCity, randomNoise, economicActivityLevel);

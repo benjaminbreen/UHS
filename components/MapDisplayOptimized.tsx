@@ -1,29 +1,69 @@
+/**
+ * MapDisplayOptimized - Performance-optimized version of MapDisplay
+ * This addresses the critical performance issues by replacing the expensive canvas rendering
+ * with the MapCanvasPerformance component and optimized dependency management
+ */
+
 import React, { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react';
-import { MapData, Tile, BiomeType, ClimateType, MapArchetype, PathObject, PathType, DevTooltipDisplayData, AnimalEntity, NpcEntity, SunPosition, VegetationEntity, LensMode, TerrainStructure, Season, PlayerCharacter } from '../types/index';
+import { MapData, Tile, BiomeType, ClimateType, DevTooltipDisplayData, AnimalEntity, NpcEntity, VegetationEntity, LensMode, TerrainStructure, Season, PlayerCharacter } from '../types/index';
 import { 
     TILE_SIZE_PX as TILE_SIZE_PX_CONST,
-    CLIMATE_WATER_COLORS,
     MAP_WIDTH_TILES, 
     MAP_HEIGHT_TILES,
     STRUCTURE_BLUEPRINTS,
     METALS
 } from '../constants/index';
 import { ValueNoise } from '../utils/noise'; 
-import { getTileRenderColor, interpolateColor } from '../utils/colorUtils';
+import { interpolateColor } from '../utils/colorUtils';
 import { RuinsSymbol, PalaceSymbol, HolyPlaceSymbol, UrbanSymbol, CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol } from './symbols';
-import { useTilePatterns } from './TilePatterns';
 import CoastlineOverlay from './CoastlineOverlay';
 import Minimap from './Minimap';
+import MapCanvasPerformance from './MapCanvasPerformance';
 
 const TILE_SIZE_PX = TILE_SIZE_PX_CONST;
 const ICON_ANIMATION_DURATION = 100;
 const INITIAL_ZOOM_LEVEL = 1.4;
-const NOISE_SCALE_COASTLINE_PERTURB = 0.07; 
-const COASTLINE_PERTURB_AMOUNT = TILE_SIZE_PX * 0.25;
 
 type PlayerMode = 'ship' | 'onFoot';
 
-// Enhanced memoized components for better performance with React.memo comparison
+// Enhanced memoized components for better performance
+const MemoizedDustEffect = memo<{x: number, y: number, size: number, seed: number}>(({ x, y, size, seed }) => {
+    const localRand = useMemo(() => new ValueNoise(seed + x * 73 + y * 97).random, [seed, x, y]);
+    
+    const dustParticles = useMemo(() => {
+        const particles = [];
+        const numParticles = 3 + Math.floor(localRand() * 3); // 3-5 particles
+        
+        for (let i = 0; i < numParticles; i++) {
+            const particleX = x + localRand() * size;
+            const particleY = y + localRand() * size;
+            const particleSize = 2 + localRand() * 2; // 2-4px
+            const animationDelay = localRand() * 5; // Random delay up to 5s
+            const driftDistance = 10 + localRand() * 20; // 10-30px drift
+            
+            particles.push(
+                <circle
+                    key={`dust-${i}`}
+                    cx={particleX}
+                    cy={particleY}
+                    r={particleSize}
+                    fill="rgba(210, 180, 140, 0.4)" // Tan color with transparency
+                    className="animate-dust-drift"
+                    style={{
+                        '--delay': `${animationDelay}s`,
+                        '--drift': `${driftDistance}px`,
+                        '--duration': `${8 + localRand() * 4}s`, // 8-12s duration
+                        filter: 'blur(0.5px)',
+                    } as React.CSSProperties}
+                />
+            );
+        }
+        return particles;
+    }, [localRand, x, y, size]);
+    
+    return <g opacity="0.6">{dustParticles}</g>;
+}, (prev, next) => prev.x === next.x && prev.y === next.y && prev.size === next.size && prev.seed === next.seed);
+
 const MemoizedSnowEffect = memo<{x: number, y: number, size: number, seed: number}>(({ x, y, size, seed }) => {
     const localRand = useMemo(() => new ValueNoise(seed + x * 45 + y * 67).random, [seed, x, y]);
     
@@ -53,98 +93,7 @@ const MemoizedSnowEffect = memo<{x: number, y: number, size: number, seed: numbe
     return <g opacity="0.95">{snowflakes}</g>;
 }, (prev, next) => prev.x === next.x && prev.y === next.y && prev.size === next.size && prev.seed === next.seed);
 
-// Enhanced water animations with better visual effects
-const MemoizedCoralReefAnimation = memo<{x: number, y: number, size: number, seed: number}>(({ x, y, size, seed }) => {
-    const localRand = useMemo(() => new ValueNoise(seed + x * 13 + y * 17).random, [seed, x, y]);
-    
-    if (localRand() > 0.4) return null;
-    
-    return (
-        <g opacity="0.85">
-            {/* Coral reef emoji with water overlay effect */}
-            <text
-                x={x + size * 0.5}
-                y={y + size * 0.7}
-                fontSize={size * 0.8}
-                textAnchor="middle"
-                opacity="0.7"
-                filter="blur(0.3px)"
-                style={{
-                    mixBlendMode: 'normal'
-                }}
-            >
-                🪸
-            </text>
-            {/* Water ripple overlay */}
-            <circle
-                cx={x + size * 0.5}
-                cy={y + size * 0.5}
-                r={size * 0.4}
-                fill="url(#waterRippleGradient)"
-                opacity="0.4"
-                style={{
-                    mixBlendMode: 'overlay'
-                }}
-            />
-            {/* Fish animations */}
-            <text
-                x={x + size * 0.3}
-                y={y + size * 0.4}
-                fontSize={size * 0.4}
-                className="animate-reefFishSwim"
-                style={{
-                    '--fish-delay': `${localRand() * 2}s`,
-                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
-                } as React.CSSProperties}
-            >
-                🐠
-            </text>
-            {localRand() > 0.7 && (
-                <text
-                    x={x + size * 0.7}
-                    y={y + size * 0.6}
-                    fontSize={size * 0.35}
-                    className="animate-reefFishSwim"
-                    style={{
-                        '--fish-delay': `${localRand() * 3}s`,
-                        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
-                    } as React.CSSProperties}
-                >
-                    🐟
-                </text>
-            )}
-        </g>
-    );
-});
-
-const MemoizedHotSpringAnimation = memo<{x: number, y: number, size: number, seed: number}>(({ x, y, size, seed }) => {
-    const localRand = useMemo(() => new ValueNoise(seed + x * 37 + y * 41).random, [seed, x, y]);
-    
-    if (localRand() > 0.5) return null;
-    
-    return (
-        <g opacity="0.75">
-            <circle
-                cx={x + size * 0.3}
-                cy={y + size * 0.5}
-                r={size * 0.12}
-                fill="url(#steamGradient)"
-                className="animate-riseSteam"
-                filter="blur(1px)"
-            />
-            <circle
-                cx={x + size * 0.7}
-                cy={y + size * 0.6}
-                r={size * 0.06}
-                fill="rgba(173,216,230,0.8)"
-                className="animate-bubbleRise"
-                filter="url(#bubbleGlow)"
-            />
-        </g>
-    );
-});
-
-// Enhanced RAF throttle with better performance
+// RAF throttle with better performance
 const rafThrottle = <T extends (...args: any[]) => any>(
   func: T,
   delay: number = 0
@@ -165,10 +114,9 @@ const rafThrottle = <T extends (...args: any[]) => any>(
 };
 
 // Optimized easing functions
-const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
 const easeInOutCubic = (t: number): number => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
-interface MapDisplayProps {
+interface MapDisplayOptimizedProps {
   mapData: MapData | null;
   animals: AnimalEntity[];
   npcs: NpcEntity[];
@@ -188,16 +136,17 @@ interface MapDisplayProps {
   onNpcClick: (npc: NpcEntity) => void;
   selectedAnimalId?: string | null;
   selectedNpcId?: string | null;
-  sunPosition: SunPosition;
   formattedDate: string;
   season: Season;
   currentLocation: string;
   iconRotation: number;
   velocity: { x: number; y: number };
   playerCharacter: PlayerCharacter | null;
+  gameTimeHours: number;
+  gameTimeMinutes: number;
 }
 
-export const MapDisplay: React.FC<MapDisplayProps> = ({ 
+export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({ 
   mapData, 
   animals,
   npcs,
@@ -217,13 +166,14 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
   onNpcClick,
   selectedAnimalId,
   selectedNpcId,
-  sunPosition,
   formattedDate,
   season,
   currentLocation,
   iconRotation,
   velocity,
-  playerCharacter
+  playerCharacter,
+  gameTimeHours,
+  gameTimeMinutes
 }) => {
   // State management with performance considerations
   const [zoomLevel, setZoomLevel] = useState(INITIAL_ZOOM_LEVEL);
@@ -248,9 +198,8 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
   const cameraAnimationFrame = useRef<number | null>(null);
   const targetPanX = useRef(0);
   const targetPanY = useRef(0);
-  const renderFrameId = useRef<number | null>(null);
 
-  // NEW: Refs for direct transform manipulation to optimize dragging
+  // Refs for direct transform manipulation to optimize dragging
   const currentPanX = useRef(panX);
   const currentPanY = useRef(panY);
 
@@ -258,9 +207,10 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
   const [displayPixelIconX, setDisplayPixelIconX] = useState<number | null>(null);
   const [displayPixelIconY, setDisplayPixelIconY] = useState<number | null>(null);
   
-  const patterns = useTilePatterns({ mapData });
-
-  // Memoized noise generators
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Memoized noise generators - OPTIMIZED: Only recreate when mapData.seed changes
   const noiseGenerators = useMemo(() => {
     if (!mapData) return null;
     return {
@@ -277,8 +227,7 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
     currentPanY.current = panY;
   }, [panX, panY]);
 
-
-  // Container dimension tracking with debounce
+  // Container dimension tracking with debounce and mobile detection
   useEffect(() => {
     let timeoutId: number;
     const updateDimensions = () => {
@@ -288,6 +237,11 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
           const rect = containerRef.current.getBoundingClientRect();
           setContainerDimensions({ width: rect.width, height: rect.height });
         }
+        // Check if mobile based on screen size and touch capability
+        const isMobileDevice = window.innerWidth <= 768 || 
+                              ('ontouchstart' in window) || 
+                              (navigator.maxTouchPoints > 0);
+        setIsMobile(isMobileDevice);
       }, 100);
     };
 
@@ -312,305 +266,6 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
     }
   }, [mapData]);
 
-  // Enhanced canvas rendering with better visuals and performance
-  useEffect(() => {
-    if (!mapData || !canvasRef.current || canvasSize.width === 0 || !noiseGenerators) return;
-
-    // Cancel any pending render frame
-    if (renderFrameId.current) {
-      cancelAnimationFrame(renderFrameId.current);
-    }
-
-    renderFrameId.current = requestAnimationFrame(() => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      
-      const ctx = canvas.getContext('2d', { 
-        alpha: false,
-        desynchronized: true,
-        willReadFrequently: false
-      });
-      if (!ctx) return;
-
-      canvas.width = canvasSize.width;
-      canvas.height = canvasSize.height;
-
-      // Enable high-quality rendering
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-
-      // Beautiful seamless tropical ocean background with climate variations
-      const createSeamlessTropicalWater = () => {
-        let deepOceanColor = '#2563eb';
-        let midOceanColor = '#1e40af';
-        let shallowTint = 'rgba(34, 197, 194, 0.2)';
-        let foamColor = 'rgba(255, 255, 255, 0.12)';
-        
-        if (mapData.climate === ClimateType.TROPICAL || mapData.climate === ClimateType.SEMITROPICAL) {
-          deepOceanColor = '#1e40af';
-          midOceanColor = '#1e3a8a';
-          shallowTint = 'rgba(34, 211, 238, 0.35)';
-          foamColor = 'rgba(255, 255, 255, 0.18)';
-        } else if (mapData.climate === ClimateType.ARID) {
-          deepOceanColor = '#1e3a8a';
-          midOceanColor = '#172554';
-          shallowTint = 'rgba(14, 165, 233, 0.3)';
-        } else if (mapData.climate === ClimateType.COLD) {
-          deepOceanColor = '#1e3a8a';
-          midOceanColor = '#172554';
-          shallowTint = 'rgba(100, 116, 139, 0.25)';
-          foamColor = 'rgba(200, 220, 240, 0.12)';
-        }
-        
-        // Multi-layer ocean rendering for depth
-        ctx.fillStyle = deepOceanColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Add depth gradient with better blending
-        const depthGradient = ctx.createRadialGradient(
-          canvas.width / 2, canvas.height / 2, 0,
-          canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) * 0.8
-        );
-        depthGradient.addColorStop(0, shallowTint);
-        depthGradient.addColorStop(0.3, 'rgba(37, 99, 235, 0.18)');
-        depthGradient.addColorStop(0.7, 'rgba(30, 58, 138, 0.12)');
-        depthGradient.addColorStop(1, 'transparent');
-        ctx.fillStyle = depthGradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Add subtle wave patterns with better layering
-        ctx.globalAlpha = 0.06;
-        for (let i = 0; i < 4; i++) {
-          const waveGradient = ctx.createLinearGradient(0, i * 120, canvas.width, i * 120 + 250);
-          waveGradient.addColorStop(0, foamColor);
-          waveGradient.addColorStop(0.5, 'transparent');
-          waveGradient.addColorStop(1, foamColor);
-          ctx.fillStyle = waveGradient;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
-        ctx.globalAlpha = 1.0;
-      };
-
-      createSeamlessTropicalWater();
-
-      // Enhanced tile rendering with improved shoal blending
-      const generateOrganicLandPath = (tile: Tile, expand: number = 0): Path2D => {
-        const path = new Path2D();
-        const { x, y } = tile;
-        const tileX_base = x * TILE_SIZE_PX - expand;
-        const tileY_base = y * TILE_SIZE_PX - expand;
-        const expandedSize = TILE_SIZE_PX + expand * 2;
-
-        const getNeighbor = (nx: number, ny: number): Tile | null => {
-          if (nx >= 0 && nx < mapData.width && ny >= 0 && ny < mapData.height) {
-            return mapData.tiles[ny][nx];
-          }
-          return null;
-        };
-        
-        const getFractalNoise = (px: number, py: number): number => {
-          let value = 0;
-          let amplitude = 0.8; 
-          let frequency = 1.5; 
-          for (let i = 0; i < 3; i++) {
-            value += noiseGenerators.shoreline.noise(px * frequency, py * frequency) * amplitude;
-            amplitude *= 0.5;
-            frequency *= 2;
-          }
-          return value;
-        };
-
-        const edges = [
-          { x1: tileX_base, y1: tileY_base, x2: tileX_base + expandedSize, y2: tileY_base, nx: 0, ny: -1, edgeName: 'top' },
-          { x1: tileX_base + expandedSize, y1: tileY_base, x2: tileX_base + expandedSize, y2: tileY_base + expandedSize, nx: 1, ny: 0, edgeName: 'right' },
-          { x1: tileX_base + expandedSize, y1: tileY_base + expandedSize, x2: tileX_base, y2: tileY_base + expandedSize, nx: 0, ny: 1, edgeName: 'bottom' },
-          { x1: tileX_base, y1: tileY_base + expandedSize, x2: tileX_base, y2: tileY_base, nx: -1, ny: 0, edgeName: 'left' }
-        ];
-
-        path.moveTo(edges[0].x1, edges[0].y1);
-
-        edges.forEach(edge => {
-          const neighbor = getNeighbor(x + edge.nx, y + edge.ny);
-          const neighborIsWater = !neighbor || !neighbor.isLand;
-
-          if (!neighborIsWater) {
-            path.lineTo(edge.x2, edge.y2);
-          } else {
-            const segments = 6;
-            
-            for (let i = 0; i <= segments; i++) {
-              const t_local = i / segments;
-              const baseX = edge.x1 + (edge.x2 - edge.x1) * t_local;
-              const baseY = edge.y1 + (edge.y2 - edge.y1) * t_local;
-
-              const isHorizontalEdge = edge.y1 === edge.y2;
-              
-              let t_canonical = t_local;
-              if (edge.edgeName === 'bottom' || edge.edgeName === 'left') {
-                t_canonical = 1.0 - t_local;
-              }
-
-              let noiseSampleX, noiseSampleY;
-              if (isHorizontalEdge) {
-                const neighborY_logical = y + edge.ny;
-                noiseSampleX = x + t_canonical;
-                noiseSampleY = Math.min(y, neighborY_logical) + 1;
-              } else {
-                const neighborX_logical = x + edge.nx;
-                noiseSampleX = Math.min(x, neighborX_logical) + 1;
-                noiseSampleY = y + t_canonical;
-              }
-              
-              const fractalPerturb = getFractalNoise(
-                (noiseSampleX + mapData.seed) * NOISE_SCALE_COASTLINE_PERTURB,
-                (noiseSampleY + mapData.seed) * NOISE_SCALE_COASTLINE_PERTURB
-              ) * COASTLINE_PERTURB_AMOUNT;
-
-              const perturbedX = isHorizontalEdge ? baseX : baseX + fractalPerturb;
-              const perturbedY = isHorizontalEdge ? baseY + fractalPerturb : baseY;
-
-              if (i === 0) path.lineTo(perturbedX, perturbedY);
-              else path.lineTo(perturbedX, perturbedY);
-            }
-          }
-        });
-        
-        path.closePath();
-        return path;
-      };
-
-      // Enhanced shoal rendering with gradient blending
-      const renderShoals = () => {
-        for (let y = 0; y < mapData.height; y++) {
-          for (let x = 0; x < mapData.width; x++) {
-            const tile = mapData.tiles[y][x];
-            if (tile.biome === BiomeType.SHOALS_TILE) {
-              const tileX = x * TILE_SIZE_PX;
-              const tileY = y * TILE_SIZE_PX;
-              
-              // Create gradient for shoal blending
-              const gradient = ctx.createRadialGradient(
-                tileX + TILE_SIZE_PX / 2,
-                tileY + TILE_SIZE_PX / 2,
-                0,
-                tileX + TILE_SIZE_PX / 2,
-                tileY + TILE_SIZE_PX / 2,
-                TILE_SIZE_PX * 0.8
-              );
-              
-              // Blend from light turquoise center to transparent edges
-              gradient.addColorStop(0, 'rgba(94, 234, 212, 0.3)');
-              gradient.addColorStop(0.5, 'rgba(94, 234, 212, 0.15)');
-              gradient.addColorStop(0.8, 'rgba(94, 234, 212, 0.05)');
-              gradient.addColorStop(1, 'transparent');
-              
-              ctx.fillStyle = gradient;
-              ctx.fillRect(tileX - TILE_SIZE_PX * 0.5, tileY - TILE_SIZE_PX * 0.5, TILE_SIZE_PX * 2, TILE_SIZE_PX * 2);
-              
-              // Add subtle noise texture
-              ctx.globalAlpha = 0.1;
-              const noiseValue = noiseGenerators.shoalBlend.noise(x * 0.1, y * 0.1);
-              if (noiseValue > 0.5) {
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-                ctx.fillRect(tileX, tileY, TILE_SIZE_PX, TILE_SIZE_PX);
-              }
-              ctx.globalAlpha = 1.0;
-            }
-          }
-        }
-      };
-
-      // Render shoals first
-      renderShoals();
-
-      // Batch similar tiles for rendering with better grouping
-      const tileBatches = new Map<string, { tiles: Tile[], color: string }>();
-      
-      // First pass: group tiles by render properties
-      for (let y = 0; y < mapData.height; y++) {
-        for (let x = 0; x < mapData.width; x++) {
-          const tile = mapData.tiles[y][x];
-          if (tile.isLand) {
-            const color = getTileRenderColor(tile, mapData.climate, mapData.seed);
-            const key = `${tile.biome}-${color}`;
-            if (!tileBatches.has(key)) {
-              tileBatches.set(key, { tiles: [], color });
-            }
-            tileBatches.get(key)!.tiles.push(tile);
-          }
-        }
-      }
-
-      // Render expanded base layer to prevent gaps
-      ctx.save();
-      tileBatches.forEach(({ tiles, color }) => {
-        ctx.fillStyle = color;
-        tiles.forEach(tile => {
-          const expandedPath = generateOrganicLandPath(tile, 2);
-          ctx.fill(expandedPath);
-        });
-      });
-      ctx.restore();
-
-      // Render normal tiles with patterns and ambient occlusion
-      ctx.save();
-      tileBatches.forEach(({ tiles, color }) => {
-        tiles.forEach(tile => {
-          const organicPath = generateOrganicLandPath(tile, 0);
-          
-          // Base color with slight shadow
-          ctx.save();
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-          ctx.shadowBlur = 2;
-          ctx.shadowOffsetX = 1;
-          ctx.shadowOffsetY = 1;
-          ctx.fillStyle = color;
-          ctx.fill(organicPath);
-          ctx.restore();
-          
-          // Terrain pattern with varying opacity
-          const terrainPattern = patterns.terrain.get(tile.biome);
-          if (terrainPattern) {
-            let patternOpacity = 0.15;
-            if ([BiomeType.DESERT, BiomeType.GRASSLAND, BiomeType.BEACH, BiomeType.SCRUB].includes(tile.biome)) {
-              patternOpacity = 0.38;
-            } else if ([BiomeType.SNOW, BiomeType.TUNDRA].includes(tile.biome)) {
-              patternOpacity = 0.28;
-            }
-            ctx.globalAlpha = patternOpacity;
-            ctx.fillStyle = terrainPattern;
-            ctx.fill(organicPath);
-            ctx.globalAlpha = 1.0;
-          }
-          
-          // Enhanced ambient occlusion at edges
-          const gradient = ctx.createRadialGradient(
-            tile.x * TILE_SIZE_PX + TILE_SIZE_PX / 2,
-            tile.y * TILE_SIZE_PX + TILE_SIZE_PX / 2,
-            TILE_SIZE_PX * 0.25,
-            tile.x * TILE_SIZE_PX + TILE_SIZE_PX / 2,
-            tile.y * TILE_SIZE_PX + TILE_SIZE_PX / 2,
-            TILE_SIZE_PX * 0.75
-          );
-          gradient.addColorStop(0, 'transparent');
-          gradient.addColorStop(0.8, 'rgba(0, 0, 0, 0.08)');
-          gradient.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
-          ctx.fillStyle = gradient;
-          ctx.fill(organicPath);
-        });
-      });
-      ctx.restore();
-      
-      renderFrameId.current = null;
-    });
-
-    return () => {
-      if (renderFrameId.current) {
-        cancelAnimationFrame(renderFrameId.current);
-      }
-    };
-  }, [mapData, canvasSize, patterns, noiseGenerators]);
-
   // When player moves, disable free pan to re-engage camera follow
   useEffect(() => {
     if (logicalControlledIconX !== null || logicalControlledIconY !== null) {
@@ -620,7 +275,7 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
 
   // Refactored smooth camera loop for performance
   useEffect(() => {
-    const CAMERA_SMOOTH_FACTOR = 0.08; // Adjusted for snappier feel
+    const CAMERA_SMOOTH_FACTOR = 0.08;
     const CAMERA_SNAP_THRESHOLD = 0.1;
 
     let isLooping = true;
@@ -636,7 +291,6 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
             focusY = displayPixelIconY;
         }
         
-        // This part is the "controller" - it decides *where* the camera should go.
         if (focusX !== null && focusY !== null && !isDragging && !isFreePanMode) {
             const containerWidth = containerRef.current.clientWidth;
             const containerHeight = containerRef.current.clientHeight;
@@ -646,7 +300,6 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
             const deadZoneYMin = Math.min(margin, containerHeight * 0.4);
             const deadZoneYMax = Math.max(containerHeight - margin, containerHeight * 0.6);
             
-            // Read from the ref for current position, not the state, to avoid dependency loop.
             const focusScreenX = focusX * zoomLevel + currentPanX.current;
             const focusScreenY = focusY * zoomLevel + currentPanY.current;
             
@@ -662,24 +315,20 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
             targetPanY.current = newTargetPanY;
         }
 
-        // This part is the "animator" - it moves the camera.
         const deltaX = targetPanX.current - currentPanX.current;
         const deltaY = targetPanY.current - currentPanY.current;
 
-        // Only animate if not dragging and camera needs to move
         if (!isDragging && !isFreePanMode && (Math.abs(deltaX) > CAMERA_SNAP_THRESHOLD || Math.abs(deltaY) > CAMERA_SNAP_THRESHOLD)) {
             currentPanX.current += deltaX * CAMERA_SMOOTH_FACTOR;
             currentPanY.current += deltaY * CAMERA_SMOOTH_FACTOR;
 
             const newTransform = `translate(${currentPanX.current}px, ${currentPanY.current}px) scale(${zoomLevel})`;
-            if (canvasRef.current) canvasRef.current.style.transform = newTransform;
             if (svgRef.current) svgRef.current.style.transform = newTransform;
+            if (canvasRef.current) canvasRef.current.style.transform = newTransform;
         } else if (!isDragging && !isFreePanMode) {
-            // Animation is complete or delta is too small. Snap to final position and sync with React state.
             currentPanX.current = targetPanX.current;
             currentPanY.current = targetPanY.current;
 
-            // Only call setState if the ref and state are out of sync.
             if (panX !== targetPanX.current || panY !== targetPanY.current) {
                 setPanX(targetPanX.current);
                 setPanY(targetPanY.current);
@@ -699,43 +348,7 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
     };
   }, [mapData, displayPixelIconX, displayPixelIconY, isDragging, isFreePanMode, zoomLevel, panX, panY]);
 
-
-  // Detect player movement for camera centering
-  const prevLogicalX = useRef<number | null>(null);
-  const prevLogicalY = useRef<number | null>(null);
-  
-  useEffect(() => {
-    if (logicalControlledIconX !== null && logicalControlledIconY !== null) {
-      if (prevLogicalX.current !== null && prevLogicalY.current !== null) {
-        const moved = prevLogicalX.current !== logicalControlledIconX || 
-                      prevLogicalY.current !== logicalControlledIconY;
-        
-        if (moved && containerRef.current) {
-          const containerWidth = containerRef.current.clientWidth;
-          const containerHeight = containerRef.current.clientHeight;
-          const playerPixelX = logicalControlledIconX * TILE_SIZE_PX + TILE_SIZE_PX / 2;
-          const playerPixelY = logicalControlledIconY * TILE_SIZE_PX + TILE_SIZE_PX / 2;
-          
-          targetPanX.current = containerWidth / 2 - playerPixelX * zoomLevel;
-          targetPanY.current = containerHeight / 2 - playerPixelY * zoomLevel;
-        }
-      }
-      prevLogicalX.current = logicalControlledIconX;
-      prevLogicalY.current = logicalControlledIconY;
-    }
-  }, [logicalControlledIconX, logicalControlledIconY, zoomLevel]);
-  
-  // Global mouse event handling
-  useEffect(() => {
-    const handleGlobalMouseUp = () => {
-      setIsDragging(false);
-    };
-    
-    window.addEventListener('mouseup', handleGlobalMouseUp);
-    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
-  }, []);
-
-  // Enhanced icon animation with spring physics
+  // Enhanced icon animation
   useEffect(() => {
     if (logicalControlledIconX !== null && logicalControlledIconY !== null) {
       const targetPixelX = logicalControlledIconX * TILE_SIZE_PX + TILE_SIZE_PX / 2;
@@ -846,14 +459,14 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
     );
   }
 
-  const { width, height, tiles, seed, climate, pathObjects, continent, timeSlice, vegetation, terrainStructures } = mapData;
+  const { width, height, tiles, seed, climate, pathObjects, vegetation, terrainStructures } = mapData;
   const svgWidth = width * TILE_SIZE_PX;
   const svgHeight = height * TILE_SIZE_PX;
 
   const minZoom = 0.4;
   const maxZoom = 12;
 
-  // Optimized interaction handlers with debouncing
+  // Optimized interaction handlers
   const handleWheel = useCallback(rafThrottle((e: React.WheelEvent) => {
     e.preventDefault();
     const rect = containerRef.current?.getBoundingClientRect();
@@ -863,7 +476,9 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
     const mouseY = e.clientY - rect.top;
     const svgMouseX = (mouseX - panX) / zoomLevel;
     const svgMouseY = (mouseY - panY) / zoomLevel;
-    const zoomDelta = e.deltaY > 0 ? 0.82 : 1.22;
+    
+    // Smoother zoom increments
+    const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1; // Smaller steps for smoother zoom
     const newZoom = Math.max(minZoom, Math.min(maxZoom, zoomLevel * zoomDelta));
     
     if (newZoom !== zoomLevel) {
@@ -910,11 +525,11 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
 
       const newTransform = `translate(${currentPanX.current}px, ${currentPanY.current}px) scale(${zoomLevel})`;
 
-      if (canvasRef.current) {
-        canvasRef.current.style.transform = newTransform;
-      }
       if (svgRef.current) {
         svgRef.current.style.transform = newTransform;
+      }
+      if (canvasRef.current) {
+        canvasRef.current.style.transform = newTransform;
       }
       
       setLastMousePos({ x: e.clientX, y: e.clientY });
@@ -934,14 +549,12 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
         throttledOnDevHover(null);
       }
     }
-  }, [isDragging, lastMousePos, onDevHover, getTileFromMouseEvent, mapData, throttledOnDevHover, isFreePanMode, zoomLevel]);
+  }, [isDragging, lastMousePos, getTileFromMouseEvent, mapData, throttledOnDevHover, isFreePanMode, zoomLevel]);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     const tile = getTileFromMouseEvent(e);
     if (!tile) return;
 
-    // A structure is a POI if its type is holy_site, palace, or ruin.
-    // The structure can be on the tile itself (from older generation) or in the terrainStructures array.
     const structure = mapData?.terrainStructures?.find(s => s.location[0] === tile.x && s.location[1] === tile.y) || tile.structure;
     const isPoi = structure && ['holy_site', 'palace', 'ruin'].includes(structure.structureType);
     
@@ -949,17 +562,11 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
 
     if (isPoi) {
         onPoiClick(structure);
-    } 
-    // Prioritize clicking on any other structure object if it exists
-    else if (structure) {
+    } else if (structure) {
         onStructureClick(structure);
-    } 
-    // Then check for settlements
-    else if (settlementBiomes.has(tile.biome)) {
+    } else if (settlementBiomes.has(tile.biome)) {
         onSettlementClick(tile);
-    } 
-    // Finally, handle dev command clicks
-    else if (e.metaKey || e.ctrlKey) { 
+    } else if (e.metaKey || e.ctrlKey) { 
         const vegetation = tile.vegetationId ? mapData?.vegetation?.find(v => v.id === tile.vegetationId) : null;
         onDevCommandClick({
             viewMode: 'standard',
@@ -986,7 +593,103 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
     throttledOnDevHover(null);
   }, [throttledOnDevHover]);
 
-  // Enhanced zoom controls
+  // Touch event handlers for mobile
+  const touchStartRef = useRef<{ x: number; y: number; distance?: number } | null>(null);
+  
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      // Single touch - prepare for pan
+      touchStartRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY
+      };
+      setIsDragging(true);
+      setLastMousePos({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+    } else if (e.touches.length === 2) {
+      // Two touches - prepare for pinch zoom
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      touchStartRef.current = {
+        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+        distance
+      };
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+    
+    if (!touchStartRef.current || !mapData) return;
+    
+    if (e.touches.length === 1 && isDragging) {
+      // Single touch - pan
+      if (!isFreePanMode) setIsFreePanMode(true);
+      
+      const deltaX = e.touches[0].clientX - lastMousePos.x;
+      const deltaY = e.touches[0].clientY - lastMousePos.y;
+      
+      currentPanX.current += deltaX;
+      currentPanY.current += deltaY;
+
+      const newTransform = `translate(${currentPanX.current}px, ${currentPanY.current}px) scale(${zoomLevel})`;
+      if (svgRef.current) svgRef.current.style.transform = newTransform;
+      if (canvasRef.current) canvasRef.current.style.transform = newTransform;
+      
+      setLastMousePos({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+    } else if (e.touches.length === 2 && touchStartRef.current.distance) {
+      // Two touches - pinch zoom
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const newDistance = Math.sqrt(dx * dx + dy * dy);
+      
+      const scale = newDistance / touchStartRef.current.distance;
+      const newZoom = Math.max(minZoom, Math.min(maxZoom, zoomLevel * scale));
+      
+      if (newZoom !== zoomLevel) {
+        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (rect) {
+          const mouseX = centerX - rect.left;
+          const mouseY = centerY - rect.top;
+          const svgMouseX = (mouseX - panX) / zoomLevel;
+          const svgMouseY = (mouseY - panY) / zoomLevel;
+          
+          const newPanX = mouseX - svgMouseX * newZoom;
+          const newPanY = mouseY - svgMouseY * newZoom;
+          
+          setZoomLevel(newZoom);
+          setPanX(newPanX);
+          setPanY(newPanY);
+          targetPanX.current = newPanX;
+          targetPanY.current = newPanY;
+          
+          touchStartRef.current.distance = newDistance;
+        }
+      }
+    }
+  }, [isDragging, isFreePanMode, lastMousePos, mapData, zoomLevel, panX, panY]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (isDragging) {
+      setIsDragging(false);
+      setPanX(currentPanX.current);
+      setPanY(currentPanY.current);
+      targetPanX.current = currentPanX.current;
+      targetPanY.current = currentPanY.current;
+    }
+    touchStartRef.current = null;
+  }, [isDragging]);
+
+  // Detect Safari for performance optimizations
+  const isSafari = useMemo(() => {
+    return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  }, []);
+
+  // Zoom controls
   const zoomIn = useCallback(() => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
@@ -1052,36 +755,126 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
     }
   }, [logicalControlledIconX, logicalControlledIconY, mapData]);
 
-  // Keyboard controls
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-        return; 
-      }
-      if ((e.metaKey || e.ctrlKey) && e.altKey && e.key.toLowerCase() === 't') {
-        return; 
-      }
-      if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomIn(); } 
-      else if (e.key === '-') { e.preventDefault(); zoomOut(); } 
-      else if (e.key === '0') { e.preventDefault(); resetZoomAndCenter(); }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [zoomIn, zoomOut, resetZoomAndCenter]);
-  
-  // Performance-based rendering decisions
+  // Mobile pan controls
+  const panMap = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
+    if (!mapData || !containerRef.current) return;
+    
+    setIsFreePanMode(true);
+    const panAmount = 100; // pixels to pan
+    
+    let newPanX = currentPanX.current;
+    let newPanY = currentPanY.current;
+    
+    switch(direction) {
+      case 'up':
+        newPanY += panAmount;
+        break;
+      case 'down':
+        newPanY -= panAmount;
+        break;
+      case 'left':
+        newPanX += panAmount;
+        break;
+      case 'right':
+        newPanX -= panAmount;
+        break;
+    }
+    
+    currentPanX.current = newPanX;
+    currentPanY.current = newPanY;
+    targetPanX.current = newPanX;
+    targetPanY.current = newPanY;
+    
+    setPanX(newPanX);
+    setPanY(newPanY);
+    
+    const newTransform = `translate(${newPanX}px, ${newPanY}px) scale(${zoomLevel})`;
+    if (svgRef.current) svgRef.current.style.transform = newTransform;
+    if (canvasRef.current) canvasRef.current.style.transform = newTransform;
+  }, [mapData, zoomLevel]);
+
+  // Performance-based rendering decisions with Safari optimizations
   const shouldRenderDetailedSymbols = zoomLevel > 0.8;
   const shouldRenderVegetation = zoomLevel > 0.5;
   const shouldRenderAnimations = zoomLevel > 0.6;
+  const shouldUseBlurEffects = !isSafari || zoomLevel > 1.2; // Reduce blur effects on Safari
 
   // Helper to check if a tile is water (including shoals)
   const isWaterTile = useCallback((tile: Tile) => {
     return !tile.isLand || [BiomeType.RIVER, BiomeType.MAJOR_RIVER, BiomeType.DEEP_OCEAN, BiomeType.SHALLOW_OCEAN, BiomeType.SHOALS_TILE].includes(tile.biome);
   }, []);
 
+  // Enhanced day/night cycle with smooth hour-by-hour transitions
+  const timeOfDayData = useMemo(() => {
+    const hour = gameTimeHours;
+    const minute = gameTimeMinutes || 0;
+    const fractionalHour = hour + (minute / 60);
+    
+    // Calculate smooth nightIntensity based on fractional hour
+    let nightIntensity = 0;
+    let colorShift = { r: 1, g: 1, b: 1 }; // RGB multipliers for color toning
+    
+    if (fractionalHour < 5) {
+      // Deep night (midnight to 5am)
+      nightIntensity = 0.75;
+      colorShift = { r: 0.7, g: 0.75, b: 0.9 }; // Cool blue tint
+    } else if (fractionalHour < 6) {
+      // Pre-dawn (5am to 6am)
+      const t = fractionalHour - 5;
+      nightIntensity = 0.75 - (t * 0.25);
+      colorShift = { r: 0.7 + (t * 0.15), g: 0.75 + (t * 0.1), b: 0.9 - (t * 0.1) };
+    } else if (fractionalHour < 7) {
+      // Dawn (6am to 7am)
+      const t = fractionalHour - 6;
+      nightIntensity = 0.5 - (t * 0.3);
+      colorShift = { r: 0.85 + (t * 0.1), g: 0.85 + (t * 0.05), b: 0.8 + (t * 0.15) };
+    } else if (fractionalHour < 8) {
+      // Early morning (7am to 8am)
+      const t = fractionalHour - 7;
+      nightIntensity = 0.2 - (t * 0.2);
+      colorShift = { r: 0.95 + (t * 0.05), g: 0.9 + (t * 0.1), b: 0.95 + (t * 0.05) };
+    } else if (fractionalHour < 17) {
+      // Full daylight (8am to 5pm)
+      nightIntensity = 0;
+      colorShift = { r: 1, g: 1, b: 1 };
+    } else if (fractionalHour < 18) {
+      // Late afternoon (5pm to 6pm)
+      const t = fractionalHour - 17;
+      nightIntensity = t * 0.1;
+      colorShift = { r: 1, g: 0.98 - (t * 0.03), b: 0.95 - (t * 0.05) };
+    } else if (fractionalHour < 19) {
+      // Golden hour (6pm to 7pm)
+      const t = fractionalHour - 18;
+      nightIntensity = 0.1 + (t * 0.15);
+      colorShift = { r: 1, g: 0.95 - (t * 0.1), b: 0.9 - (t * 0.15) };
+    } else if (fractionalHour < 20) {
+      // Dusk (7pm to 8pm)
+      const t = fractionalHour - 19;
+      nightIntensity = 0.25 + (t * 0.25);
+      colorShift = { r: 1 - (t * 0.15), g: 0.85 - (t * 0.1), b: 0.75 - (t * 0.05) };
+    } else if (fractionalHour < 21) {
+      // Twilight (8pm to 9pm)
+      const t = fractionalHour - 20;
+      nightIntensity = 0.5 + (t * 0.15);
+      colorShift = { r: 0.85 - (t * 0.1), g: 0.75, b: 0.7 + (t * 0.1) };
+    } else {
+      // Night (9pm to midnight)
+      const t = Math.min((fractionalHour - 21) / 3, 1);
+      nightIntensity = 0.65 + (t * 0.1);
+      colorShift = { r: 0.75 - (t * 0.05), g: 0.75, b: 0.8 + (t * 0.1) };
+    }
+    
+    const isNight = fractionalHour < 6 || fractionalHour >= 20;
+    const isDawn = fractionalHour >= 5 && fractionalHour < 7;
+    const isDusk = fractionalHour >= 18 && fractionalHour < 21;
+    const isDay = fractionalHour >= 8 && fractionalHour < 18;
+
+    return { isNight, isDawn, isDusk, isDay, nightIntensity, colorShift };
+  }, [gameTimeHours, gameTimeMinutes]);
+
   return (
     <div className="relative w-full h-full overflow-hidden rounded-3xl">
-      {/* Enhanced zoom controls with glass morphism */}
+      {/* Enhanced zoom controls */}
       <div className="absolute top-6 left-6 z-30 flex flex-col space-y-3">
         <button 
           onClick={zoomIn} 
@@ -1112,6 +905,93 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
         <div className="text-xs text-gray-300">Zoom</div>
       </div>
 
+      {/* Performance indicator */}
+      <div className="absolute top-6 right-6 z-30 rounded-xl border border-green-600/30 bg-green-900/80 px-3 py-2 text-sm font-bold text-white shadow-xl backdrop-blur-md">
+        <div className="text-lg text-green-400">⚡ OPTIMIZED</div>
+        <div className="text-xs text-green-300">High Performance</div>
+      </div>
+
+      {/* Mobile Direction Controls */}
+      {isMobile && (
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center space-y-2">
+          {/* Up button */}
+          <button
+            onClick={() => panMap('up')}
+            className="group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95"
+            aria-label="Pan Up"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
+          
+          {/* Middle row with left, center, right */}
+          <div className="flex items-center space-x-2">
+            {/* Left button */}
+            <button
+              onClick={() => panMap('left')}
+              className="group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95"
+              aria-label="Pan Left"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            
+            {/* Center/Reset button */}
+            <button
+              onClick={resetZoomAndCenter}
+              className="group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-green-400/60 hover:bg-green-700/70 active:scale-95"
+              aria-label="Center on Player"
+            >
+              <span className="text-2xl">⌂</span>
+            </button>
+            
+            {/* Right button */}
+            <button
+              onClick={() => panMap('right')}
+              className="group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95"
+              aria-label="Pan Right"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+          
+          {/* Down button */}
+          <button
+            onClick={() => panMap('down')}
+            className="group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95"
+            aria-label="Pan Down"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* Mobile Zoom Controls - positioned differently on mobile */}
+      {isMobile && (
+        <div className="absolute bottom-24 right-6 z-30 flex flex-col space-y-3">
+          <button 
+            onClick={zoomIn} 
+            className="group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-2xl font-bold text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95"
+            aria-label="Zoom In"
+          >
+            <span className="text-3xl leading-none">+</span>
+          </button>
+          <button 
+            onClick={zoomOut} 
+            className="group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-2xl font-bold text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95"
+            aria-label="Zoom Out"
+          >
+            <span className="text-3xl leading-none">−</span>
+          </button>
+        </div>
+      )}
+
       {/* Enhanced minimap */}
       <Minimap
         mapData={mapData}
@@ -1124,39 +1004,35 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
         containerHeight={containerDimensions.height}
       />
 
-      {/* Main map container with better containment */}
+      {/* Main map container */}
       <div 
         ref={containerRef}
         className="relative h-full w-full overflow-hidden rounded-3xl bg-transparent"
         style={{ 
           cursor: isDragging ? 'grabbing' : 'grab',
-          contain: 'layout style paint'
+          contain: 'layout style paint',
+          touchAction: 'none' // Prevent default touch behaviors
         }}
         onWheel={handleWheel} 
         onMouseDown={handleMouseDown} 
         onMouseMove={handleMouseMove} 
         onMouseUp={handleMouseUp} 
         onMouseLeave={handleMouseLeave}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onClick={handleClick}
       >
-        {/* Enhanced canvas with filters */}
-        <canvas
+        {/* OPTIMIZED CANVAS - Using MapCanvasPerformance instead of expensive inline rendering */}
+        <MapCanvasPerformance
           ref={canvasRef}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            transform: `translate(${panX}px, ${panY}px) scale(${zoomLevel})`,
-            transformOrigin: '0 0',
-            imageRendering: zoomLevel > 3 ? 'crisp-edges' : 'auto',
-            filter: mapData.climate === ClimateType.TROPICAL || mapData.climate === ClimateType.SEMITROPICAL || mapData.climate === ClimateType.ARID
-              ? 'contrast(1.02) saturate(1.04) brightness(1.02) hue-rotate(-2deg)' // Enhanced vivid colors
-              : mapData.climate === ClimateType.COLD 
-              ? 'contrast(1.01) saturate(0.99) brightness(1.1) hue-rotate(-12deg)' // Cooler, more dramatic
-              : 'contrast(1.0) saturate(1.0) brightness(1.0)',
-            transition: 'filter 0.2s ease-out',
-            willChange: 'transform'
-          }}
+          mapData={mapData}
+          canvasSize={canvasSize}
+          panX={panX}
+          panY={panY}
+          zoomLevel={zoomLevel}
+          nightIntensity={timeOfDayData.nightIntensity}
+          colorShift={timeOfDayData.colorShift}
         />
         
         {/* Enhanced SVG overlay */}
@@ -1177,9 +1053,9 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
           <defs>
             {/* Enhanced filters and gradients */}
             <filter id="symbolShadow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+              <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
               <feOffset dx="2" dy="2" result="offsetblur"/>
-              <feFlood floodColor="#000000" floodOpacity="0.7"/>
+              <feFlood floodColor="#000000" floodOpacity="0.3"/>
               <feComposite in2="offsetblur" operator="in"/>
               <feMerge>
                 <feMergeNode/>
@@ -1194,30 +1070,6 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
                 <feMergeNode in="SourceGraphic"/>
               </feMerge>
             </filter>
-            
-            <filter id="bubbleGlow">
-              <feGaussianBlur stdDeviation="2.5" result="glow"/>
-              <feSpecularLighting result="specOut" in="glow" specularConstant="1.5" specularExponent="20" lighting-color="white">
-                <fePointLight x="-50" y="30" z="200"/>
-              </feSpecularLighting>
-              <feComposite in="glow" in2="specOut" operator="arithmetic" k1="0" k2="1" k3="1" k4="0"/>
-              <feMerge>
-                <feMergeNode in="specOut"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-            
-            <linearGradient id="steamGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
-              <stop offset="50%" stopColor="rgba(255,255,255,0.2)" />
-              <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-            </linearGradient>
-            
-            <radialGradient id="waterRippleGradient" cx="50%" cy="50%">
-              <stop offset="0%" stopColor="rgba(173,216,230,0.4)" />
-              <stop offset="50%" stopColor="rgba(135,206,235,0.2)" />
-              <stop offset="100%" stopColor="rgba(70,130,180,0.1)" />
-            </radialGradient>
             
             {/* Water mask for paths */}
             <mask id="waterMask">
@@ -1238,43 +1090,6 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
 
           {/* Rendering layers */}
           <g>
-            {/* Mineral Deposit Visuals */}
-            <g key="mineral-deposits">
-                {tiles.flat().map(tile => {
-                    if (!tile.mineralDeposit || tile.mineralDeposit.quantity <= 0) return null;
-                    const metalDef = METALS[tile.mineralDeposit.metalId];
-                    if (!metalDef?.visual) return null;
-
-                    const tileX = tile.x * TILE_SIZE_PX;
-                    const tileY = tile.y * TILE_SIZE_PX;
-                    const elements = [];
-                    const rand = new ValueNoise(seed + tile.x * 23 + tile.y * 53).random;
-
-                    switch(metalDef.visual.type) {
-                        case 'streaks':
-                            for(let i=0; i < 3; i++) {
-                                const startX = tileX + rand() * TILE_SIZE_PX;
-                                const startY = tileY + rand() * TILE_SIZE_PX;
-                                const endX = startX + (rand() - 0.5) * TILE_SIZE_PX * 1.2;
-                                const endY = startY + (rand() - 0.5) * TILE_SIZE_PX * 1.2;
-                                elements.push(<path key={`streak-${i}`} d={`M ${startX} ${startY} Q ${startX + (rand()-0.5)*5} ${startY + (rand()-0.5)*5}, ${endX} ${endY}`} stroke={metalDef.visual.color} strokeWidth="1.2" fill="none" opacity="0.8" />);
-                            }
-                            break;
-                        case 'patches':
-                             for(let i=0; i < 4; i++) {
-                                elements.push(<circle key={`patch-${i}`} cx={tileX + rand() * TILE_SIZE_PX} cy={tileY + rand() * TILE_SIZE_PX} r={1 + rand() * 2} fill={metalDef.visual.color} opacity="0.6" />);
-                            }
-                            break;
-                        case 'sparkles':
-                             for(let i=0; i < 5; i++) {
-                                elements.push(<circle key={`sparkle-${i}`} cx={tileX + rand() * TILE_SIZE_PX} cy={tileY + rand() * TILE_SIZE_PX} r={0.8} fill={metalDef.visual.color} className="animate-pulse" />);
-                            }
-                            break;
-                    }
-                    return <g key={`deposit-${tile.x}-${tile.y}`}>{elements}</g>;
-                })}
-            </g>
-
             {/* Strategic Lens Overlay */}
             {activeLens !== 'none' && (
                 <g key="strategic-lens" opacity="0.6" style={{ mixBlendMode: 'multiply' }}>
@@ -1286,16 +1101,16 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
                             switch(activeLens) {
                                 case 'safety':
                                     value = tile.qualities.safety;
-                                    color = interpolateColor('#ff4d4d', '#4dff4d', value); // Red to Green
+                                    color = interpolateColor('#ff4d4d', '#4dff4d', value);
                                     break;
                                 case 'biodiversity':
                                     value = tile.qualities.biodiversity;
-                                    color = interpolateColor('#a0ffff', '#006400', value); // Light Blue to Deep Green
+                                    color = interpolateColor('#a0ffff', '#006400', value);
                                     break;
                                 case 'minerals':
                                     value = Math.max(tile.qualities.geologicalStress || 0, tile.qualities.thermalActivity || 0);
                                     if (value > 0.3) {
-                                      color = interpolateColor('#ffff00', '#800080', (value - 0.3) / 0.7); // Yellow to Purple
+                                      color = interpolateColor('#ffff00', '#800080', (value - 0.3) / 0.7);
                                     }
                                     break;
                             }
@@ -1313,25 +1128,6 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
                                     fillOpacity={value * 0.9}
                                 />
                             );
-                        }
-                        return null;
-                    })}
-                     {/* Mineral Deposit Highlights on Minerals Lens */}
-                    {activeLens === 'minerals' && tiles.flat().map(tile => {
-                        if (tile.mineralDeposit && tile.mineralDeposit.quantity > 0) {
-                            return (
-                                <circle
-                                    key={`mineral-highlight-${tile.x}-${tile.y}`}
-                                    cx={tile.x * TILE_SIZE_PX + TILE_SIZE_PX / 2}
-                                    cy={tile.y * TILE_SIZE_PX + TILE_SIZE_PX / 2}
-                                    r={TILE_SIZE_PX * 0.6}
-                                    fill="none"
-                                    stroke="#ff00ff"
-                                    strokeWidth="2"
-                                    strokeDasharray="3 2"
-                                    className="animate-pulseGlow"
-                                />
-                            )
                         }
                         return null;
                     })}
@@ -1356,46 +1152,6 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
               ))}
             </g>
 
-                  {/* Animated water features */}
-            {shouldRenderAnimations && tiles.flat().map((tile) => {
-              if (tile.biome === BiomeType.REEF) {
-                return (
-                  <CoralReefSymbol
-                    key={`coral-${tile.x}-${tile.y}`}
-                    x={tile.x * TILE_SIZE_PX}
-                    y={tile.y * TILE_SIZE_PX}
-                    size={TILE_SIZE_PX}
-                    seed={seed}
-                    tileX={tile.x}
-                    tileY={tile.y}
-                  />
-                );
-              } else if (tile.biome === BiomeType.HOT_SPRINGS) {
-                return (
-                  <MemoizedHotSpringAnimation
-                    key={`hotspring-${tile.x}-${tile.y}`}
-                    x={tile.x * TILE_SIZE_PX}
-                    y={tile.y * TILE_SIZE_PX}
-                    size={TILE_SIZE_PX}
-                    seed={seed + tile.x * 61 + tile.y * 67}
-                  />
-                );
-              } else if (tile.biome === BiomeType.ESTUARY) {
-                return (
-                  <EstuarySymbol
-                    key={`estuary-anim-${tile.x}-${tile.y}`}
-                    x={tile.x * TILE_SIZE_PX}
-                    y={tile.y * TILE_SIZE_PX}
-                    size={TILE_SIZE_PX}
-                    seed={seed}
-                    tileX={tile.x}
-                    tileY={tile.y}
-                  />
-                );
-              }
-              return null;
-            })}
-
             {/* Vegetation layer */}
             {shouldRenderVegetation && vegetation?.map(veg => {
               const renderX = veg.x * TILE_SIZE_PX;
@@ -1414,8 +1170,7 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
               if (SymbolComponent) {
                 return (
                   <g key={veg.id} 
-                     transform={`translate(${renderX}, ${renderY}) scale(${TILE_SIZE_PX / 24})`}
-                     className="">
+                     transform={`translate(${renderX}, ${renderY}) scale(${TILE_SIZE_PX / 24})`}>
                     <SymbolComponent seed={seed + veg.x * 13 + veg.y * 31} season={season} climate={climate} />
                   </g>
                 );
@@ -1432,7 +1187,6 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
                     filter: 'drop-shadow(2px 3px 4px rgba(0,0,0,0.7))', 
                     pointerEvents: 'none'
                   }}
-                  className="transition-transform duration-300"
                 >
                   {veg.symbol}
                 </text>
@@ -1450,11 +1204,11 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
                   const elements = [];
                   
                   if ([BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.GOVERNMENT_DISTRICT, BiomeType.CITY_CENTER].includes(tile.biome)) {
-                    elements.push(<UrbanSymbol key={`urban-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} date={formattedDate} zone={currentLocation} />);
+                    elements.push(<UrbanSymbol key={`urban-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} date={formattedDate} zone={currentLocation} nightIntensity={timeOfDayData.nightIntensity} />);
                   } else if(tile.biome === BiomeType.MARKETPLACE) {
-                    elements.push(<MarketplaceSymbol key={`marketplace-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} />);
+                    elements.push(<MarketplaceSymbol key={`marketplace-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} nightIntensity={timeOfDayData.nightIntensity} date={formattedDate} zone={currentLocation} />);
                   } else if(tile.biome === BiomeType.PALACE) {
-                    elements.push(<PalaceSymbol key={`palace-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} date={formattedDate} zone={currentLocation} />);
+                    elements.push(<PalaceSymbol key={`palace-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} date={formattedDate} zone={currentLocation} nightIntensity={timeOfDayData.nightIntensity} />);
                   } else if(tile.biome === BiomeType.RUINS) {
                     elements.push(<RuinsSymbol key={`ruins-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} />);
                   } else if(tile.biome === BiomeType.HOLY_SITE) {
@@ -1469,24 +1223,10 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
                     elements.push(<HillSymbol key={`hill-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} climate={climate} season={season}/>);
                   } else if(tile.biome === BiomeType.FARMLAND) {
                     elements.push(<FarmSymbol key={`farm-${tile.x}-${tile.y}`} tile={tile} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} />);
-                  } else if(tile.biome === BiomeType.ESTUARY && !shouldRenderAnimations) {
+                  } else if(tile.biome === BiomeType.ESTUARY) {
                     elements.push(<EstuarySymbol key={`estuary-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />);
-                  }
-
-                  if (climate === ClimateType.ARID && (tile.biome === BiomeType.HILLS || tile.biome === BiomeType.DESERT || tile.biome === BiomeType.SCRUB)) {
-                    if (noiseGenerators) {
-                      const noiseValue = noiseGenerators.cactusPlacement.noise(tile.x * 0.1, tile.y * 0.1);
-                      const cactusChance = tile.biome === BiomeType.DESERT ? 0.08 : 0.12;
-                      if (noiseValue < cactusChance) {
-                        elements.push(
-                          <g key={`cactus-wrapper-${tile.x}-${tile.y}`} 
-                             transform={`translate(${symbolX}, ${symbolY}) scale(${TILE_SIZE_PX / 24})`}
-                             className="transition-transform duration-300">
-                            <CactusSymbol seed={seed + tile.y * 19 + tile.x * 5} />
-                          </g>
-                        );
-                      }
-                    }
+                  } else if(tile.biome === BiomeType.REEF) {
+                    elements.push(<CoralReefSymbol key={`reef-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />);
                   }
 
                   return elements;
@@ -1497,13 +1237,13 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
                   const blueprint = STRUCTURE_BLUEPRINTS[structure.structureType];
                   if (!blueprint) return null;
                   const isPoi = ['holy_site', 'palace', 'ruin'].includes(structure.structureType);
-                  if(isPoi) return null; // Don't render POI emojis, they have SVG symbols from biomes
+                  if(isPoi) return null;
 
                   const structX = structure.location[0] * TILE_SIZE_PX + TILE_SIZE_PX / 2;
                   const structY = structure.location[1] * TILE_SIZE_PX + TILE_SIZE_PX / 2;
                   const isRuined = structure.state === 'ruined';
                   return (
-                    <g key={structure.id} className="transition-transform duration-200 ">
+                    <g key={structure.id} className="transition-transform duration-200">
                       <text
                         x={structX}
                         y={structY}
@@ -1523,35 +1263,6 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
                     </g>
                   );
                 })}
-                
-                {/* Enhanced snow effects */}
-                {shouldRenderAnimations && tiles.flat().map((tile) => {
-                  let shouldHaveSnow = false;
-                  
-                  if (tile.biome === BiomeType.SNOW || 
-                      (tile.biome === BiomeType.HIGH_PEAK && climate === ClimateType.COLD)) {
-                    shouldHaveSnow = true;
-                  }
-                  else if (tile.biome === BiomeType.TUNDRA) {
-                    const snowChance = noiseGenerators ? noiseGenerators.ambientDetail.noise(tile.x * 0.3, tile.y * 0.3) : 0;
-                    shouldHaveSnow = snowChance > 0.8;
-                  }
-                  
-                  if (!shouldHaveSnow) return null;
-                  
-                  const symbolX = tile.x * TILE_SIZE_PX;
-                  const symbolY = tile.y * TILE_SIZE_PX;
-                  
-                  return (
-                    <MemoizedSnowEffect 
-                      key={`snow-${tile.x}-${tile.y}`}
-                      x={symbolX} 
-                      y={symbolY} 
-                      size={TILE_SIZE_PX} 
-                      seed={seed + tile.x + tile.y} 
-                    />
-                  );
-                })}
               </g>
             )}
 
@@ -1560,8 +1271,16 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
               {animals.map(animal => (
                 <g key={animal.id} 
                    onClick={(e) => { e.stopPropagation(); onAnimalClick(animal); }} 
-                   style={{cursor: 'pointer', pointerEvents: 'auto'}}
-                   className="">
+                   style={{cursor: 'pointer', pointerEvents: 'auto'}}>
+                  {/* Shadow beneath animal */}
+                  <ellipse
+                    cx={animal.x * TILE_SIZE_PX + TILE_SIZE_PX/2}
+                    cy={animal.y * TILE_SIZE_PX + TILE_SIZE_PX/2 + TILE_SIZE_PX * 0.4}
+                    rx={TILE_SIZE_PX * 0.3}
+                    ry={TILE_SIZE_PX * 0.1}
+                    fill="rgba(0,0,0,0.3)"
+                    filter={shouldUseBlurEffects ? "blur(2px)" : "none"}
+                  />
                   <text
                     x={animal.x * TILE_SIZE_PX + TILE_SIZE_PX/2}
                     y={animal.y * TILE_SIZE_PX + TILE_SIZE_PX/2}
@@ -1583,7 +1302,115 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
                 <g key={npc.id} 
                    onClick={(e) => { e.stopPropagation(); onNpcClick(npc); }} 
                    style={{cursor: 'pointer', pointerEvents: 'auto'}}
-                   className={` ${selectedNpcId === npc.id ? 'animate-ff6-idle-bob' : ''}`}>
+                   className={selectedNpcId === npc.id ? 'animate-ff6-idle-bob' : ''}>
+                  {/* Shadow beneath NPC */}
+                  <ellipse
+                    cx={npc.x * TILE_SIZE_PX + TILE_SIZE_PX/2}
+                    cy={npc.y * TILE_SIZE_PX + TILE_SIZE_PX/2 + TILE_SIZE_PX * 0.4}
+                    rx={TILE_SIZE_PX * 0.35}
+                    ry={TILE_SIZE_PX * 0.12}
+                    fill="rgba(0,0,0,0.35)"
+                    filter={shouldUseBlurEffects ? "blur(2px)" : "none"}
+                  />
+                  
+                  {/* NPC glow completely removed - no lighting effects at all */}
+                  {false && (() => {
+                    const currentEra = (() => {
+                      const year = parseInt(formattedDate.split(' ')[0]);
+                      if (year < 500) return 'ANTIQUITY';
+                      if (year < 1450) return 'MEDIEVAL'; 
+                      if (year < 1800) return 'RENAISSANCE';
+                      if (year < 1900) return 'INDUSTRIAL';
+                      return 'MODERN';
+                    })();
+                    
+                    const npcCulture = currentLocation || 'Europe';
+                    const isEastAsian = npcCulture.toLowerCase().includes('asia') || npcCulture.toLowerCase().includes('china') || npcCulture.toLowerCase().includes('japan');
+                    const isMENA = npcCulture.toLowerCase().includes('middle east') || npcCulture.toLowerCase().includes('arabia') || npcCulture.toLowerCase().includes('mena');
+                    const isAfrican = npcCulture.toLowerCase().includes('africa');
+                    
+                    // Determine light source and colors based on era and culture
+                    let lightColor1, lightColor2, lightSize, hasLight;
+                    
+                    if (currentEra === 'MODERN') {
+                      // Modern era - electric flashlights/lanterns (only some NPCs)
+                      hasLight = Math.random() < 0.3; // Only 30% have flashlights
+                      lightColor1 = 'rgba(240, 245, 255, 0.12)';
+                      lightColor2 = 'rgba(220, 230, 250, 0.18)';
+                      lightSize = 1.2;
+                    } else if (currentEra === 'INDUSTRIAL') {
+                      // Industrial era - oil lanterns
+                      hasLight = Math.random() < 0.6; // 60% have lanterns
+                      if (isEastAsian) {
+                        lightColor1 = 'rgba(255, 200, 100, 0.15)';
+                        lightColor2 = 'rgba(255, 160, 80, 0.22)';
+                      } else {
+                        lightColor1 = 'rgba(255, 180, 90, 0.15)';
+                        lightColor2 = 'rgba(255, 140, 60, 0.2)';
+                      }
+                      lightSize = 1.0;
+                    } else {
+                      // Medieval and earlier - torches, oil lamps, lanterns
+                      hasLight = Math.random() < 0.8; // 80% have some light source
+                      
+                      if (isEastAsian) {
+                        // Paper lanterns and oil lamps
+                        lightColor1 = 'rgba(255, 160, 80, 0.18)';
+                        lightColor2 = 'rgba(255, 120, 60, 0.25)';
+                      } else if (isMENA) {
+                        // Oil lamps and braziers
+                        lightColor1 = 'rgba(255, 140, 60, 0.18)';
+                        lightColor2 = 'rgba(255, 100, 40, 0.25)';
+                      } else if (isAfrican) {
+                        // Fire torches and oil lamps
+                        lightColor1 = 'rgba(255, 130, 50, 0.18)';
+                        lightColor2 = 'rgba(255, 90, 30, 0.26)';
+                      } else {
+                        // European torches and candles
+                        lightColor1 = 'rgba(255, 140, 0, 0.15)';
+                        lightColor2 = 'rgba(255, 180, 60, 0.22)';
+                      }
+                      lightSize = 0.9;
+                    }
+                    
+                    if (!hasLight) return null;
+                    
+                    // Completely static amber glow - no dynamic changes
+                    const npcSeed = npc.x * 1000 + npc.y; // Unique seed per NPC for consistent variation
+                    const sizeVariation = 0.9 + (npcSeed % 100) / 500; // Small consistent size variation per NPC
+                    
+                    // Fixed subtle glow - less noticeable, no day/night changes
+                    const staticGlowOpacity = 0.3; // Reduced from dynamic system
+                    const subtleAmberColor = 'rgba(255, 190, 120, 0.6)'; // Softer amber
+                    const warmAmberCore = 'rgba(255, 170, 100, 0.7)'; // Slightly warmer core
+                    
+                    return (
+                      <>
+                        {/* Subtle outer glow */}
+                        <circle
+                          cx={npc.x * TILE_SIZE_PX + TILE_SIZE_PX/2}
+                          cy={npc.y * TILE_SIZE_PX + TILE_SIZE_PX/2}
+                          r={TILE_SIZE_PX * lightSize * 0.7 * sizeVariation}
+                          fill={subtleAmberColor}
+                          opacity={staticGlowOpacity * 0.5}
+                          filter="blur(10px)"
+                        />
+                        
+                        {/* Gentle inner glow */}
+                        <circle
+                          cx={npc.x * TILE_SIZE_PX + TILE_SIZE_PX/2}
+                          cy={npc.y * TILE_SIZE_PX + TILE_SIZE_PX/2}
+                          r={TILE_SIZE_PX * lightSize * 0.4 * sizeVariation}
+                          fill={warmAmberCore}
+                          opacity={staticGlowOpacity * 0.7}
+                          filter="blur(5px)"
+                        />
+                        
+                        {/* Removed special effects that caused flickering - keeping NPCs simple and static */}
+                      </>
+                    );
+                  })()}
+                  
                   <NpcIcon npc={npc} size={TILE_SIZE_PX * 1.2} tileSize={TILE_SIZE_PX} />
                 </g>
               ))}
@@ -1604,31 +1431,89 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
               
               {/* Controlled Player/Ship Icon with glow effect */}
               {displayPixelIconX !== null && displayPixelIconY !== null && (
-                <g filter="url(#glow)">
-                  {playerMode === 'ship' ? (
-                    <ShipIcon
-                      x={displayPixelIconX}
-                      y={displayPixelIconY}
-                      rotation={iconRotation}
-                      velocity={velocity}
-                    />
-                  ) : playerCharacter && (
-                    <PlayerIcon
-                      x={displayPixelIconX}
-                      y={displayPixelIconY}
-                      character={playerCharacter}
-                    />
+                <g>
+                  {/* Enhanced glowing halo for player when on foot */}
+                  {playerMode === 'onFoot' && playerCharacter && (
+                    <>
+                      {/* Outer glow ring */}
+                      <circle
+                        cx={displayPixelIconX}
+                        cy={displayPixelIconY}
+                        r={TILE_SIZE_PX * 0.8}
+                        fill="none"
+                        stroke="rgba(255, 215, 0, 0.3)"
+                        strokeWidth="3"
+                        opacity="0.8"
+                        className="animate-pulse"
+                      />
+                      {/* Inner glow ring */}
+                      <circle
+                        cx={displayPixelIconX}
+                        cy={displayPixelIconY}
+                        r={TILE_SIZE_PX * 0.6}
+                        fill="none"
+                        stroke="rgba(255, 255, 100, 0.5)"
+                        strokeWidth="2"
+                        opacity="0.9"
+                        className="animate-pulse"
+                        style={{ animationDelay: '0.5s' }}
+                      />
+                      {/* Radial glow */}
+                      <circle
+                        cx={displayPixelIconX}
+                        cy={displayPixelIconY}
+                        r={TILE_SIZE_PX * 0.5}
+                        fill="rgba(255, 255, 150, 0.15)"
+                        filter={shouldUseBlurEffects ? "blur(8px)" : "none"}
+                      />
+                    </>
                   )}
+                  
+                  <g filter="url(#glow)">
+                    {playerMode === 'ship' ? (
+                      <ShipIcon
+                        x={displayPixelIconX}
+                        y={displayPixelIconY}
+                        rotation={iconRotation}
+                        velocity={velocity}
+                      />
+                    ) : playerCharacter && (
+                      <PlayerIcon
+                        x={displayPixelIconX}
+                        y={displayPixelIconY}
+                        character={playerCharacter}
+                      />
+                    )}
+                  </g>
                 </g>
               )}
             </g>
+
+            {/* Desert dust particles - atmospheric effect */}
+            {shouldRenderDetailedSymbols && (
+              <g>
+                {tiles.flat()
+                  .filter(tile => tile.biome === BiomeType.DESERT && tile.isLand)
+                  .map(tile => (
+                    <MemoizedDustEffect
+                      key={`dust-${tile.x}-${tile.y}`}
+                      x={tile.x * TILE_SIZE_PX}
+                      y={tile.y * TILE_SIZE_PX}
+                      size={TILE_SIZE_PX}
+                      seed={mapData.seed + tile.x * 31 + tile.y * 37}
+                    />
+                  ))}
+              </g>
+            )}
           </g>
         </svg>
       </div>
 
-      {/* Enhanced vignette effect with multiple layers */}
+      {/* Enhanced vignette effect */}
       <div className="absolute inset-0 pointer-events-none" style={{ mixBlendMode: 'normal' }}>
         <div className="absolute inset-0 bg-map-vignette-gradient opacity-80" />
+        
+        
         <div className={`absolute inset-0 transition-all duration-1000 ${
           season === 'winter' ? 'opacity-30 bg-gradient-to-b from-blue-200/25 to-transparent mix-blend-overlay' : 
           season === 'fall' ? 'opacity-25 bg-gradient-to-b from-orange-300/20 to-transparent mix-blend-overlay' : 
@@ -1642,4 +1527,4 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
 };
 
 // Export memoized version for performance
-export default memo(MapDisplay);
+export default memo(MapDisplayOptimized);

@@ -6,10 +6,10 @@ import { Tile, BiomeType } from '../../../types';
 import { ValueNoise } from '../../../utils/noise';
 
 interface AztecDwelling3DProps {
-  x: number; y: number; width: number; height: number; size: number; seed: number; tile: Tile;
+  x: number; y: number; width: number; height: number; size: number; seed: number; tile: Tile; nightIntensity?: number;
 }
 
-const AztecDwelling3D: React.FC<AztecDwelling3DProps> = React.memo(({ x, y, width, height, size, seed, tile }) => {
+const AztecDwelling3D: React.FC<AztecDwelling3DProps> = React.memo(({ x, y, width, height, size, seed, tile, nightIntensity = 0 }) => {
     const rand = new ValueNoise(seed + tile.x * 23 + tile.y * 41).random;
     const isTemple = tile.biome === BiomeType.CITY_CENTER || rand() > 0.8;
     const tiers = isTemple ? 3 : 2;
@@ -77,6 +77,49 @@ const AztecDwelling3D: React.FC<AztecDwelling3DProps> = React.memo(({ x, y, widt
       const stepHeight = (height * 0.8) / (tiers * 6);
       const stepY = y + height - i * stepHeight;
       elements.push(<rect key={`step-${i}`} x={stairX} y={stepY - stepHeight} width={stairWidth} height={stepHeight} fill={i%2 === 0 ? stairShadowColor : highlightColor} opacity="0.8"/>);
+    }
+
+    // Add torch braziers for night lighting (33% chance)
+    if (nightIntensity >= 0.2 && rand() > 0.67) {
+      const numTorches = isTemple ? 2 : 1;
+      for (let i = 0; i < numTorches; i++) {
+        const torchX = x + width * (0.2 + i * 0.6);
+        const torchY = y + height - (tiers * (height * 0.8) / tiers) + size * 0.05;
+        const fireColor = 'rgba(255, 120, 40, 0.9)';
+        const glowColor = 'rgba(255, 160, 60, 0.7)';
+        
+        // Fire brazier
+        elements.push(
+          <g key={`torch-${i}`}>
+            {/* Fire glow */}
+            <circle
+              cx={torchX}
+              cy={torchY}
+              r={size * 0.1}
+              fill={glowColor}
+              opacity={nightIntensity * 0.8}
+              filter="blur(5px)"
+            />
+            <circle
+              cx={torchX}
+              cy={torchY}
+              r={size * 0.05}
+              fill={fireColor}
+              opacity={nightIntensity}
+              filter="blur(2px)"
+            />
+            {/* Stone brazier base */}
+            <rect
+              x={torchX - size * 0.03}
+              y={torchY + size * 0.02}
+              width={size * 0.06}
+              height={size * 0.04}
+              fill={shadowColor}
+              opacity={nightIntensity * 0.9}
+            />
+          </g>
+        );
+      }
     }
   
     return (

@@ -6,10 +6,10 @@ import { Tile } from '../../../types';
 import { ValueNoise } from '../../../utils/noise';
 
 interface AfricanRoundHut3DProps {
-  x: number; y: number; width: number; height: number; size: number; seed: number; tile: Tile; roofColor: string;
+  x: number; y: number; width: number; height: number; size: number; seed: number; tile: Tile; roofColor: string; nightIntensity?: number;
 }
 
-const AfricanRoundHut3D: React.FC<AfricanRoundHut3DProps> = React.memo(({ x, y, width, height, size, seed, tile, roofColor }) => {
+const AfricanRoundHut3D: React.FC<AfricanRoundHut3DProps> = React.memo(({ x, y, width, height, size, seed, tile, roofColor, nightIntensity = 0 }) => {
     const rand = new ValueNoise(seed + tile.x * 5 + tile.y * 7).random;
     const cx = x + width / 2;
     const wallRadius = width * 0.4;
@@ -27,6 +27,47 @@ const AfricanRoundHut3D: React.FC<AfricanRoundHut3DProps> = React.memo(({ x, y, 
     const thatchHighlight = `hsl(45, 60%, 65%)`;
     const doorColor = '#4a2c17';
     const outlineColor = '#4a2c17';
+
+    // Torch lighting for windowless huts (33% chance)
+    const renderTorchLighting = () => {
+        if (nightIntensity < 0.2 || rand() < 0.67) return null; // Only 1 in 3 huts have torches
+        
+        const torchX = cx + wallRadius * 0.8;
+        const torchY = wallY + wallHeight * 0.6;
+        const torchColor = 'rgba(255, 140, 60, 0.9)';
+        const torchGlow = 'rgba(255, 160, 80, 0.6)';
+        
+        return (
+            <g>
+                {/* Torch glow */}
+                <circle
+                    cx={torchX}
+                    cy={torchY}
+                    r={size * 0.12}
+                    fill={torchGlow}
+                    opacity={nightIntensity * 0.7}
+                    filter="blur(6px)"
+                />
+                <circle
+                    cx={torchX}
+                    cy={torchY}
+                    r={size * 0.06}
+                    fill={torchColor}
+                    opacity={nightIntensity * 0.9}
+                    filter="blur(3px)"
+                />
+                {/* Torch post */}
+                <rect
+                    x={torchX - size * 0.008}
+                    y={torchY}
+                    width={size * 0.016}
+                    height={size * 0.15}
+                    fill="#654321"
+                    opacity={nightIntensity * 0.8}
+                />
+            </g>
+        );
+    };
 
     return (
         <g filter="url(#symbolShadow)">
@@ -61,6 +102,9 @@ const AfricanRoundHut3D: React.FC<AfricanRoundHut3DProps> = React.memo(({ x, y, 
             {rand() > 0.4 && [...Array(3)].map((_, i) => (
                 <circle key={`deco-${i}`} cx={cx + wallRadius * 0.6 + (rand() - 0.5) * 3} cy={wallY + wallHeight * (0.3 + i * 0.2)} r={size * 0.03} fill={i % 2 === 0 ? "#e11d48" : "#f59e0b"} opacity="0.7"/>
             ))}
+            
+            {/* Night torch lighting */}
+            {renderTorchLighting()}
         </g>
     );
 });
