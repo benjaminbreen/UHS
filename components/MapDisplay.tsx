@@ -1076,7 +1076,11 @@ export const MapDisplay: React.FC<MapDisplayProps> = ({
 
   // Helper to check if a tile is water (including shoals)
   const isWaterTile = useCallback((tile: Tile) => {
-    return !tile.isLand || [BiomeType.RIVER, BiomeType.MAJOR_RIVER, BiomeType.DEEP_OCEAN, BiomeType.SHALLOW_OCEAN, BiomeType.SHOALS_TILE].includes(tile.biome);
+    // Handle shoals tiles specially - they can be either land or water
+    if (tile.biome === BiomeType.SHOALS_TILE) {
+      return !tile.isLand;
+    }
+    return !tile.isLand || [BiomeType.RIVER, BiomeType.MAJOR_RIVER, BiomeType.DEEP_OCEAN, BiomeType.SHALLOW_OCEAN].includes(tile.biome);
   }, []);
 
   return (

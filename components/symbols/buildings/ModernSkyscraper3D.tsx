@@ -10,17 +10,24 @@ interface ModernSkyscraper3DProps {
 }
 
 const ModernSkyscraper3D: React.FC<ModernSkyscraper3DProps> = React.memo(({ x, y, width, height, size, seed, tile }) => {
-    const rand = new ValueNoise(seed + tile.x * 101 + tile.y * 103).random;
+    const rng = new ValueNoise(seed + tile.x * 101 + tile.y * 103);
     const uniqueId = `skyscraper-${tile.x}-${tile.y}`;
     
-    const skyColor1 = `hsl(200, 80%, ${70 + rand()*20}%)`;
-    const skyColor2 = `hsl(220, 70%, ${50 + rand()*20}%)`;
-    const frameColor = `hsl(210, 15%, ${30 + rand()*10}%)`;
+    // Pre-calculate all random values to prevent re-rendering
+    const rand1 = rng.random();
+    const rand2 = rng.random();
+    const rand3 = rng.random();
+    const rand4 = rng.random();
+    const rand5 = rng.random();
+    
+    const skyColor1 = `hsl(200, 80%, ${70 + rand1*20}%)`;
+    const skyColor2 = `hsl(220, 70%, ${50 + rand2*20}%)`;
+    const frameColor = `hsl(210, 15%, ${30 + rand3*10}%)`;
     const shadowColor = `hsl(220, 30%, 20%)`;
     const outlineColor = `hsl(220, 30%, 10%)`;
 
     const depth = size * 0.3;
-    const buildingHeight = height * (1.2 + rand() * 0.8);
+    const buildingHeight = height * (1.2 + rand4 * 0.8);
     const buildingY = y + height - buildingHeight;
 
     return (
@@ -55,7 +62,7 @@ const ModernSkyscraper3D: React.FC<ModernSkyscraper3DProps> = React.memo(({ x, y
             ))}
 
             {/* Top feature */}
-            {rand() > 0.6 ? (
+            {rand5 > 0.6 ? (
                 // Antenna
                 <line x1={x+width/2} y1={buildingY} x2={x+width/2} y2={buildingY-10} stroke="#a0a0a0" strokeWidth="1.5" />
             ) : (

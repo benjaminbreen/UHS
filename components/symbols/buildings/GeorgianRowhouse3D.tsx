@@ -10,24 +10,31 @@ interface GeorgianRowhouse3DProps {
 }
 
 const GeorgianRowhouse3D: React.FC<GeorgianRowhouse3DProps> = React.memo(({ x, y, width, height, size, seed, tile }) => {
-    const rand = new ValueNoise(seed + tile.x * 163 + tile.y * 167).random;
+    const rng = new ValueNoise(seed + tile.x * 163 + tile.y * 167);
     const uniqueId = `georgian-${tile.x}-${tile.y}`;
     const elements = [];
     
-    const isBrick = rand() > 0.4;
-    const brickColor = `hsl(15, 50%, ${55 + rand() * 10}%)`;
-    const stuccoColor = `hsl(45, 35%, ${85 + rand() * 10}%)`;
+    // Pre-calculate all random values to prevent re-rendering
+    const rand1 = rng.random();
+    const rand2 = rng.random();
+    const rand3 = rng.random();
+    const rand4 = rng.random();
+    const rand5 = rng.random();
+    
+    const isBrick = rand1 > 0.4;
+    const brickColor = `hsl(15, 50%, ${55 + rand2 * 10}%)`;
+    const stuccoColor = `hsl(45, 35%, ${85 + rand3 * 10}%)`;
     const roofColor = `hsl(210, 15%, 40%)`;
     const roofHighlight = `hsl(210, 15%, 60%)`;
     const trimColor = `hsl(40, 20%, 95%)`;
     const doorColors = ['#2c5282', '#97266d', '#2f855a', '#2d3748'];
-    const doorColor = doorColors[Math.floor(rand() * doorColors.length)];
+    const doorColor = doorColors[Math.floor(rand4 * doorColors.length)];
     const outlineColor = `hsl(15, 50%, 30%)`;
     const wallShadowColor = isBrick ? `hsl(15, 50%, 45%)` : `hsl(45, 35%, 75%)`;
 
     const wallFill = isBrick ? `url(#georgianBrick-${uniqueId})` : stuccoColor;
     const depth = size * 0.3;
-    const stories = 2 + Math.floor(rand() * 2);
+    const stories = 2 + Math.floor(rand5 * 2);
     const storyHeight = height / stories;
     const wallHeight = height;
     const wallY = y;

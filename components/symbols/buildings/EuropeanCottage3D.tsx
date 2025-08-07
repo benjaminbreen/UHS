@@ -10,17 +10,31 @@ interface EuropeanCottage3DProps {
 }
 
 const EuropeanCottage3D: React.FC<EuropeanCottage3DProps> = React.memo(({ x, y, width, height, size, seed, tile }) => {
-    const rand = new ValueNoise(seed + tile.x * 151 + tile.y * 157).random;
+    const rng = new ValueNoise(seed + tile.x * 151 + tile.y * 157);
     const uniqueId = `cottage-${tile.x}-${tile.y}`;
     const elements = [];
 
-    const wallType = rand() > 0.5 ? 'plaster' : 'stone';
-    const plasterColor = `hsl(40, 30%, ${80 + rand() * 10}%)`;
-    const stoneColor = `hsl(30, 15%, ${70 + rand() * 10}%)`;
+    // Pre-calculate all random values to prevent re-rendering changes
+    const wallTypeRand = rng.random();
+    const plasterBrightness = rng.random();
+    const stoneBrightness = rng.random();
+    const flowerHue = rng.random();
+    const hasTimberFraming = rng.random();
+    const hasDiagonalTimber = rng.random();
+    const hasWindow = rng.random();
+    const hasChimney = rng.random();
+    const hasSmoke = rng.random();
+    const smokeDelay = rng.random();
+    
+    const rand = rng.random; // Keep for compatibility if needed
+
+    const wallType = wallTypeRand > 0.5 ? 'plaster' : 'stone';
+    const plasterColor = `hsl(40, 30%, ${80 + plasterBrightness * 10}%)`;
+    const stoneColor = `hsl(30, 15%, ${70 + stoneBrightness * 10}%)`;
     const woodColor = `hsl(25, 45%, 30%)`;
     const thatchColor = `hsl(40, 45%, 45%)`;
     const thatchHighlight = `hsl(45, 55%, 65%)`;
-    const flowerColor = `hsl(${rand()*360}, 60%, 70%)`;
+    const flowerColor = `hsl(${flowerHue*360}, 60%, 70%)`;
     const outlineColor = `hsl(25, 45%, 20%)`;
 
     const depth = size * 0.3;
@@ -37,12 +51,12 @@ const EuropeanCottage3D: React.FC<EuropeanCottage3DProps> = React.memo(({ x, y, 
     elements.push(<path key="wall-side" d={`M ${x+width} ${y} L ${x+width+depth} ${y-depth*0.5} L ${x+width+depth} ${y+height-depth*0.5} L ${x+width} ${y+height} Z`} fill={wallType === 'plaster' ? plasterColor : `url(#stonePattern-${uniqueId})`} style={{filter:'brightness(0.7)'}} />);
     
     // Timber Framing
-    if (rand() > 0.3) {
+    if (hasTimberFraming > 0.3) {
       elements.push(<rect key="tf-h1" x={x} y={y} width={width} height={2} fill={woodColor} />);
       elements.push(<rect key="tf-h2" x={x} y={y+height-2} width={width} height={2} fill={woodColor} />);
       elements.push(<rect key="tf-v1" x={x} y={y} width={2} height={height} fill={woodColor} />);
       elements.push(<rect key="tf-v2" x={x+width-2} y={y} width={2} height={height} fill={woodColor} />);
-      if(rand() > 0.5) elements.push(<path key="tf-d" d={`M ${x} ${y} L ${x+width} ${y+height}`} stroke={woodColor} strokeWidth="2.5" />);
+      if(hasDiagonalTimber > 0.5) elements.push(<path key="tf-d" d={`M ${x} ${y} L ${x+width} ${y+height}`} stroke={woodColor} strokeWidth="2.5" />);
     }
 
     // Thatched Roof
@@ -57,7 +71,7 @@ const EuropeanCottage3D: React.FC<EuropeanCottage3DProps> = React.memo(({ x, y, 
     elements.push(<rect key="door" x={x + width*0.1} y={y+height-doorHeight} width={doorWidth} height={doorHeight} fill={woodColor} stroke={outlineColor} strokeWidth="0.5"/>);
     
     // Window with flower box
-    if (rand() > 0.4) {
+    if (hasWindow > 0.4) {
         const winWidth = width * 0.3;
         const winHeight = height * 0.25;
         const winX = x + width * 0.55;
@@ -71,7 +85,7 @@ const EuropeanCottage3D: React.FC<EuropeanCottage3DProps> = React.memo(({ x, y, 
     }
 
     // Chimney with smoke
-    if (rand() > 0.5) {
+    if (hasChimney > 0.5) {
         const chimneyWidth = width * 0.2;
         const chimneyHeight = height * 0.4;
         const chimneyX = x + width * 0.7;
@@ -80,8 +94,8 @@ const EuropeanCottage3D: React.FC<EuropeanCottage3DProps> = React.memo(({ x, y, 
         const chimneyYOnRoof = roofY + roofSlope * (chimneyX - (x-3));
 
         elements.push(<rect key="chimney" x={chimneyX} y={chimneyYOnRoof - chimneyHeight} width={chimneyWidth} height={chimneyHeight} fill={stoneColor} stroke={outlineColor} strokeWidth="0.3" />);
-        if (rand() > 0.3) { // Smoke
-             elements.push(<circle key="smoke" cx={chimneyX+chimneyWidth/2} cy={chimneyYOnRoof-chimneyHeight-3} r={3} fill="#e0e0e0" className="animate-smoke" style={{'--delay': rand()} as React.CSSProperties}/>);
+        if (hasSmoke > 0.3) { // Smoke
+             elements.push(<circle key="smoke" cx={chimneyX+chimneyWidth/2} cy={chimneyYOnRoof-chimneyHeight-3} r={3} fill="#e0e0e0" className="animate-smoke" style={{'--delay': smokeDelay} as React.CSSProperties}/>);
         }
     }
 

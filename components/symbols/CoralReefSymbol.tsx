@@ -77,18 +77,56 @@ const CoralReefSymbol: React.FC<CoralReefSymbolProps> = React.memo(({ x, y, size
         elements.push(<g key="coral-group" filter={`url(#coral-shadow-${uniqueId})`}>{coralGroup}</g>);
     }
     
-     // Add animated fish
-    const numFish = Math.floor(localRand() * 3);
+     // Add inline keyframes for fish animation
+    elements.push(
+        <g key="fish-defs">
+            <defs>
+                <style>
+                    {`
+                        @keyframes swoopingFish {
+                            0%, 100% {
+                                transform: translateX(0) translateY(0) rotate(0deg);
+                            }
+                            25% {
+                                transform: translateX(15px) translateY(-8px) rotate(8deg);
+                            }
+                            50% {
+                                transform: translateX(0) translateY(-15px) rotate(0deg);
+                            }
+                            75% {
+                                transform: translateX(-15px) translateY(-8px) rotate(-8deg);
+                            }
+                        }
+                    `}
+                </style>
+            </defs>
+        </g>
+    );
+
+     // Add animated fish - fewer, more fish-shaped, slower
+    const numFish = Math.floor(localRand() * 2); // Reduced from 3 to 2
     for(let i = 0; i < numFish; i++) {
-        const fishSize = size * (0.08 + localRand() * 0.05);
-        const startY = y + size * 0.2 + localRand() * size * 0.6;
-        const fishColor = `hsl(${180 + localRand() * 60}, 80%, 60%)`;
+        const fishLength = size * (0.06 + localRand() * 0.04);
+        const fishHeight = fishLength * 0.4;
+        const startY = y + size * 0.3 + localRand() * size * 0.4;
+        const fishColor = `hsl(${200 + localRand() * 40}, 70%, ${50 + localRand() * 30}%)`;
+        const fishDuration = 10 + localRand() * 6;
+        const fishDelay = localRand() * 5;
+        
+        // Create more realistic fish shape
         elements.push(
             <g key={`fish-${i}`} transform={`translate(${x}, ${startY})`} 
-                className="swooping-fish" 
-                style={{'--fish-duration': `${6 + localRand()*4}s`, '--fish-delay': `${localRand()*4}s`} as React.CSSProperties}
+                style={{
+                    animation: `swoopingFish ${fishDuration}s ease-in-out infinite ${fishDelay}s`
+                } as React.CSSProperties}
             >
-                <path d={`M 0 0 l ${fishSize} ${fishSize/4} l -${fishSize} ${fishSize/4} Z`} fill={fishColor} />
+                {/* Fish body */}
+                <ellipse cx={fishLength/2} cy={0} rx={fishLength/2} ry={fishHeight/2} fill={fishColor} />
+                {/* Fish tail */}
+                <path d={`M ${fishLength} 0 L ${fishLength + fishHeight/2} -${fishHeight/3} L ${fishLength + fishHeight/2} ${fishHeight/3} Z`} fill={fishColor} opacity="0.8" />
+                {/* Fish eye */}
+                <circle cx={fishLength * 0.25} cy={-fishHeight/8} r={fishHeight/8} fill="white" opacity="0.9" />
+                <circle cx={fishLength * 0.25} cy={-fishHeight/8} r={fishHeight/12} fill="black" opacity="0.8" />
             </g>
         )
     }

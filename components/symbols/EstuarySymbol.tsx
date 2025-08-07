@@ -61,15 +61,50 @@ const EstuarySymbol: React.FC<EstuarySymbolProps> = React.memo(({ x, y, size, se
             Z
         `;
 
-        // Create the animated seagull group
+        // Create the animated seagull group with inline keyframes
+        elements.push(
+            <g key="bird-defs">
+                <defs>
+                    <style>
+                        {`
+                            @keyframes circlingBird {
+                                0% { 
+                                    transform: translate(0px, 8px) rotate(0deg) scale(0.6); 
+                                    opacity: 0; 
+                                }
+                                5% { 
+                                    opacity: 0.1; 
+                                }
+                                20% { 
+                                    opacity: 0.7; 
+                                }
+                                50% { 
+                                    transform: translate(0px, -8px) rotate(180deg) scale(0.8); 
+                                    opacity: 0.9; 
+                                }
+                                80% { 
+                                    opacity: 0.7; 
+                                }
+                                95% { 
+                                    opacity: 0.1; 
+                                }
+                                100% { 
+                                    transform: translate(0px, 8px) rotate(360deg) scale(0.6); 
+                                    opacity: 0; 
+                                }
+                            }
+                        `}
+                    </style>
+                </defs>
+            </g>
+        );
+
         elements.push(
             <g 
                 key="circling-seagull-wrapper" 
                 transform={`translate(${x + size / 2}, ${y + size / 2}) scale(${scaleVariation})`}
-                className="circling-bird"
                 style={{
-                    '--bird-duration': `${animationDuration}s`,
-                    '--bird-delay': `${animationDelay}s`
+                    animation: `circlingBird ${animationDuration}s linear infinite ${animationDelay}s`
                 } as React.CSSProperties}
             >
                 {/* Seagull body */}

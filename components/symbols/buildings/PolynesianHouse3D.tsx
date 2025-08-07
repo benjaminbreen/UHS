@@ -18,8 +18,16 @@ interface PolynesianHouse3DProps {
 }
 
 const PolynesianHouse3D: React.FC<PolynesianHouse3DProps> = React.memo(({ x, y, width, height, size, seed, tile, roofColor, era }) => {
-  const rand = new ValueNoise(seed + tile.x * 11 + tile.y * 23).random;
+  const rng = new ValueNoise(seed + tile.x * 11 + tile.y * 23);
   const uniqueId = `polynesian-${tile.x}-${tile.y}`;
+  
+  // Pre-calculate all random values to prevent re-rendering
+  const rand1 = rng.random();
+  const rand2 = rng.random();
+  const rand3 = rng.random();
+  const rand4 = rng.random();
+  const rand5 = rng.random();
+  const rand6 = rng.random();
   
   // Elevated structure on stilts
   const buildingWidth = width * 0.9;
@@ -28,11 +36,11 @@ const PolynesianHouse3D: React.FC<PolynesianHouse3DProps> = React.memo(({ x, y, 
   const buildingY = y + height - buildingHeight;
   const stiltsHeight = size * 0.15;
   
-  const bambooColor = `hsl(60, 30%, ${50 + rand() * 15}%)`;
+  const bambooColor = `hsl(60, 30%, ${50 + rand1 * 15}%)`;
   const bambooShadowColor = `hsl(60, 30%, 35%)`;
-  const palmThatchColor = `hsl(35, 45%, ${35 + rand() * 15}%)`;
-  const palmFrondColor = `hsl(80, 40%, ${30 + rand() * 15}%)`;
-  const matColor = `hsl(40, 35%, ${45 + rand() * 10}%)`;
+  const palmThatchColor = `hsl(35, 45%, ${35 + rand2 * 15}%)`;
+  const palmFrondColor = `hsl(80, 40%, ${30 + rand3 * 15}%)`;
+  const matColor = `hsl(40, 35%, ${45 + rand4 * 10}%)`;
 
   return (
     <g filter="url(#symbolShadow)">
@@ -214,7 +222,7 @@ const PolynesianHouse3D: React.FC<PolynesianHouse3DProps> = React.memo(({ x, y, 
       />
       
       {/* Decorative carved posts (if higher status) */}
-      {rand() > 0.6 && (
+      {rand5 > 0.6 && (
         <g>
           <circle
             cx={buildingX + buildingWidth * 0.15}
@@ -249,7 +257,7 @@ const PolynesianHouse3D: React.FC<PolynesianHouse3DProps> = React.memo(({ x, y, 
       })}
       
       {/* Fishing nets hanging (if coastal) */}
-      {rand() > 0.5 && (
+      {rand6 > 0.5 && (
         <g>
           <path
             d={`M ${buildingX - size * 0.02} ${buildingY + buildingHeight * 0.6} 

@@ -268,6 +268,71 @@ const LeftSidebar: React.FC = () => {
         if (tab === 'analysis') {
             return (
                 <div className="space-y-4">
+                    {/* Map Archetype Display */}
+                    <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/30 rounded-lg p-3">
+                        <div className="text-xs text-blue-200 uppercase tracking-wide mb-1">Map Archetype</div>
+                        <div className="text-sm font-semibold text-blue-100">
+                            {currentMapArchetype ? formatEnumString(currentMapArchetype) : 'Unknown'}
+                        </div>
+                    </div>
+
+                    {/* Strategic Lenses */}
+                    <CollapsibleSection title="🔍 Strategic Lenses" count={6}>
+                        <div className="space-y-2">
+                            <div className="text-xs text-slate-400 mb-3">
+                                Visualize complex data directly on the map
+                            </div>
+                            {[
+                                { id: 'safety', name: 'Safety', icon: '🛡️', description: 'Defensive and secure areas' },
+                                { id: 'biodiversity', name: 'Wildlife', icon: '🦋', description: 'Biodiversity and animal habitats' },
+                                { id: 'sacrality', name: 'Sacrality', icon: '⛪', description: 'Religious and holy sites' },
+                                { id: 'healthiness', name: 'Health', icon: '💚', description: 'Disease risk and wellness' },
+                                { id: 'flammability', name: 'Fire Risk', icon: '🔥', description: 'Wildfire susceptibility' },
+                                { id: 'minerals', name: 'Minerals', icon: '💎', description: 'Mineral deposit locations' },
+                            ].map((lens) => (
+                                <button
+                                    key={lens.id}
+                                    onClick={() => setActiveLens(lens.id as LensMode)}
+                                    className={`w-full flex items-center justify-between p-2 rounded-md transition-all duration-200 text-left ${
+                                        activeLens === lens.id 
+                                            ? 'bg-amber-600/20 border border-amber-500/50 text-amber-200 shadow-md' 
+                                            : 'hover:bg-slate-700/50 text-slate-200 border border-transparent'
+                                    }`}
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <span className="text-lg">{lens.icon}</span>
+                                        <div>
+                                            <div className="text-sm font-medium">{lens.name}</div>
+                                            <div className="text-xs opacity-75">{lens.description}</div>
+                                        </div>
+                                    </div>
+                                    {activeLens === lens.id && (
+                                        <div className="text-amber-400">✓</div>
+                                    )}
+                                </button>
+                            ))}
+                            {activeLens !== 'none' && (
+                                <button
+                                    onClick={() => setActiveLens('none')}
+                                    className="w-full mt-2 p-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-200 rounded-md transition-colors duration-200 text-sm"
+                                >
+                                    Clear Active Lens
+                                </button>
+                            )}
+                        </div>
+                    </CollapsibleSection>
+
+                    {/* Map Details Button */}
+                    <div className="space-y-2">
+                        <button
+                            onClick={() => setIsMapDetailsModalOpen(true)}
+                            className="w-full flex items-center justify-center space-x-2 p-3 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 hover:from-emerald-600/30 hover:to-teal-600/30 border border-emerald-500/50 text-emerald-200 rounded-lg transition-all duration-200 font-medium"
+                        >
+                            <span className="text-lg">📊</span>
+                            <span>Detailed Terrain Analysis</span>
+                        </button>
+                    </div>
+
                     <CollapsibleSection title="Mineral Deposits" count={mineralDeposits.size}>
                          <ul className="space-y-1">
                            {Array.from(mineralDeposits.entries()).map(([name, count]) => (

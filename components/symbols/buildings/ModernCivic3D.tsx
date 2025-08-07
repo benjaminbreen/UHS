@@ -14,8 +14,21 @@ interface ModernCivic3DProps {
 const ModernCivic3D: React.FC<ModernCivic3DProps> = React.memo(({ 
   x, y, width, height, size, seed, tile, roofColor = '#8b7355', nightIntensity = 0 
 }) => {
-  const rand = new ValueNoise(seed + tile.x * 127 + tile.y * 131).random;
+  const rng = new ValueNoise(seed + tile.x * 127 + tile.y * 131);
   const uniqueId = `modern-civic-${tile.x}-${tile.y}`;
+  
+  // Pre-calculate all random values to prevent re-rendering issues
+  const randVal1 = rng.random(); // wallColor selection
+  const randVal2 = rng.random(); // trimColor brightness
+  const randVal3 = rng.random(); // windowColor opacity
+  const randVal4 = rng.random(); // stories count
+  const randVal5 = rng.random(); // stories count (second call)
+  const randVal6 = rng.random(); // stories count (third call)
+  const randVal7 = rng.random(); // tract house windows
+  const randVal8 = rng.random(); // night lighting count
+  
+  // Keep compatibility with existing rand() calls if needed elsewhere
+  const rand = rng.random;
   
   // Adaptive building type based on tile biome
   const buildingType = tile.biome === BiomeType.HAMLET ? 'tract_house' :
@@ -29,14 +42,14 @@ const ModernCivic3D: React.FC<ModernCivic3DProps> = React.memo(({
     '#cd853f', // peru
     '#bc9a6a'  // khaki
   ];
-  const wallColor = baseColors[Math.floor(rand() * baseColors.length)];
-  const trimColor = `hsl(0, 0%, ${20 + rand() * 20}%)`;
-  const windowColor = nightIntensity > 0.5 ? `rgba(255, 220, 120, ${0.6 + rand() * 0.3})` : '#87ceeb';
+  const wallColor = baseColors[Math.floor(randVal1 * baseColors.length)];
+  const trimColor = `hsl(0, 0%, ${20 + randVal2 * 20}%)`;
+  const windowColor = nightIntensity > 0.5 ? `rgba(255, 220, 120, ${0.6 + randVal3 * 0.3})` : '#87ceeb';
   
   // Adaptive dimensions
-  const stories = buildingType === 'tract_house' ? 1 + Math.floor(rand() * 2) : // 1-2 stories
-                  buildingType === 'row_home' ? 2 + Math.floor(rand() * 2) : // 2-3 stories
-                  3 + Math.floor(rand() * 3); // 3-5 stories for apartments
+  const stories = buildingType === 'tract_house' ? 1 + Math.floor(randVal4 * 2) : // 1-2 stories
+                  buildingType === 'row_home' ? 2 + Math.floor(randVal5 * 2) : // 2-3 stories
+                  3 + Math.floor(randVal6 * 3); // 3-5 stories for apartments
                   
   const buildingHeight = height * (0.7 + stories * 0.2);
   const buildingY = y + height - buildingHeight;
@@ -81,7 +94,7 @@ const ModernCivic3D: React.FC<ModernCivic3DProps> = React.memo(({
       {Array.from({ length: stories }, (_, storyIndex) => (
         <g key={`story-${storyIndex}`}>
           {Array.from({ 
-            length: buildingType === 'tract_house' ? 2 + Math.floor(rand() * 2) : 
+            length: buildingType === 'tract_house' ? 2 + Math.floor(randVal7 * 2) : 
                     buildingType === 'row_home' ? 3 : 4 
           }, (_, windowIndex) => {
             const windowX = x + windowWidth/2 + (windowIndex * (width - windowWidth) / (buildingType === 'tract_house' ? 2 : buildingType === 'row_home' ? 3 : 4));
@@ -153,7 +166,7 @@ const ModernCivic3D: React.FC<ModernCivic3DProps> = React.memo(({
         <g opacity={nightIntensity}>
           {/* Window glow */}
           <g filter="url(#glow)">
-            {Array.from({ length: Math.floor(stories * (buildingType === 'tract_house' ? 2 : 3) * rand()) }, (_, i) => (
+            {Array.from({ length: Math.floor(stories * (buildingType === 'tract_house' ? 2 : 3) * randVal8) }, (_, i) => (
               <circle 
                 key={`light-${i}`}
                 cx={x + (i % 3 + 1) * (width/4)} 

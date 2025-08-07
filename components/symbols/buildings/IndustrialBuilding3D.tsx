@@ -21,18 +21,25 @@ interface IndustrialBuilding3DProps {
 const IndustrialBuilding3D: React.FC<IndustrialBuilding3DProps> = React.memo(({ 
   x, y, width, height, size, seed, tile, roofColor, era, nightIntensity = 0 
 }) => {
-  const rand = new ValueNoise(seed + tile.x * 53 + tile.y * 61).random;
+  const rng = new ValueNoise(seed + tile.x * 53 + tile.y * 61);
   const uniqueId = `industrial-${tile.x}-${tile.y}`;
   
+  // Pre-calculate all random values to prevent re-rendering
+  const rand1 = rng.random();
+  const rand2 = rng.random();
+  const rand3 = rng.random();
+  const rand4 = rng.random();
+  const rand5 = rng.random();
+  
   // Cleaner design with less clutter
-  const hasChimney = rand() > 0.6; // Reduced from 0.3 to 0.6
-  const buildingLevels = 1 + Math.floor(rand() * 2); // 1-2 levels max for cleaner look
+  const hasChimney = rand1 > 0.6; // Reduced from 0.3 to 0.6
+  const buildingLevels = 1 + Math.floor(rand2 * 2); // 1-2 levels max for cleaner look
   
   // Better color palette
-  const brickRed = `hsl(15, 45%, ${50 + rand() * 8}%)`;
+  const brickRed = `hsl(15, 45%, ${50 + rand3 * 8}%)`;
   const brickShadow = `hsl(15, 45%, 35%)`;
   const mortarColor = `hsl(20, 15%, 65%)`;
-  const metalRoof = roofColor || `hsl(210, 8%, ${42 + rand() * 8}%)`;
+  const metalRoof = roofColor || `hsl(210, 8%, ${42 + rand4 * 8}%)`;
   const windowDark = 'rgba(20, 30, 40, 0.9)';
   const metalTrim = `hsl(210, 8%, 48%)`;
   
@@ -52,7 +59,7 @@ const IndustrialBuilding3D: React.FC<IndustrialBuilding3DProps> = React.memo(({
     for (let level = 0; level < buildingLevels; level++) {
       const numWindows = 3; // Consistent 3 windows per level
       for (let i = 0; i < numWindows; i++) {
-        if (rand(level * 10 + i) > 0.3) { // 70% chance each window is lit
+        if (new ValueNoise(seed + level * 10 + i).random() > 0.3) { // 70% chance each window is lit
           const winX = x + width * (0.15 + i * 0.25);
           const winY = buildingY + level * levelHeight + levelHeight * 0.3;
           const winW = width * 0.12;
@@ -85,7 +92,7 @@ const IndustrialBuilding3D: React.FC<IndustrialBuilding3DProps> = React.memo(({
     }
     
     // Factory exterior lighting - simple street lamp
-    if (rand(200) > 0.7) {
+    if (new ValueNoise(seed + 200).random() > 0.7) {
       const lampX = x + width + size * 0.08;
       const lampY = buildingY + buildingHeight * 0.3;
       
@@ -237,7 +244,7 @@ const IndustrialBuilding3D: React.FC<IndustrialBuilding3DProps> = React.memo(({
             strokeWidth="0.2"
           />
           {/* Subtle smoke */}
-          {rand() > 0.5 && (
+          {rand5 > 0.5 && (
             <circle
               cx={x + width * 0.75 + size * 0.04}
               cy={buildingY - size * 0.3}

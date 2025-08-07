@@ -18,8 +18,19 @@ interface AfricanStoneBuilding3DProps {
 }
 
 const AfricanStoneBuilding3D: React.FC<AfricanStoneBuilding3DProps> = React.memo(({ x, y, width, height, size, seed, tile, roofColor, era }) => {
-  const rand = new ValueNoise(seed + tile.x * 19 + tile.y * 31).random;
+  const rng = new ValueNoise(seed + tile.x * 19 + tile.y * 31);
   const uniqueId = `african-stone-${tile.x}-${tile.y}`;
+  
+  // Pre-calculate all random values to prevent re-rendering changes
+  const stoneColorVariation = rng.random();
+  const mortarColorVariation = rng.random();
+  const graniteColorVariation = rng.random();
+  const decorativeChance1 = rng.random();
+  const decorativeChance2 = rng.random();
+  const decorativeChance3 = rng.random();
+  
+  // Keep compatibility with existing rand() calls
+  const rand = rng.random;
   
   // Imposing stone structure
   const buildingWidth = width * 0.85;
@@ -27,10 +38,10 @@ const AfricanStoneBuilding3D: React.FC<AfricanStoneBuilding3DProps> = React.memo
   const buildingX = x + (width - buildingWidth) / 2;
   const buildingY = y + height - buildingHeight;
   
-  const stoneColor = `hsl(40, 20%, ${50 + rand() * 15}%)`;
+  const stoneColor = `hsl(40, 20%, ${50 + stoneColorVariation * 15}%)`;
   const stoneShadowColor = `hsl(40, 20%, 35%)`;
-  const mortarColor = `hsl(35, 15%, ${40 + rand() * 10}%)`;
-  const graniteColor = `hsl(0, 0%, ${45 + rand() * 10}%)`;
+  const mortarColor = `hsl(35, 15%, ${40 + mortarColorVariation * 10}%)`;
+  const graniteColor = `hsl(0, 0%, ${45 + graniteColorVariation * 10}%)`;
   const goldAccentColor = '#DAA520';
 
   return (
@@ -182,7 +193,7 @@ const AfricanStoneBuilding3D: React.FC<AfricanStoneBuilding3DProps> = React.memo
       />
       
       {/* Gold decorative elements (if wealthy) */}
-      {rand() > 0.6 && (
+      {decorativeChance1 > 0.6 && (
         <g>
           <circle
             cx={buildingX + buildingWidth * 0.425}
@@ -221,7 +232,7 @@ const AfricanStoneBuilding3D: React.FC<AfricanStoneBuilding3DProps> = React.memo
       })}
       
       {/* Bird motifs (soapstone bird was symbol of Great Zimbabwe) */}
-      {rand() > 0.7 && (
+      {decorativeChance2 > 0.7 && (
         <g>
           <circle
             cx={buildingX + buildingWidth * 0.8}
@@ -263,7 +274,7 @@ const AfricanStoneBuilding3D: React.FC<AfricanStoneBuilding3DProps> = React.memo
       />
       
       {/* Ritual/ceremonial area markings */}
-      {rand() > 0.5 && (
+      {decorativeChance3 > 0.5 && (
         <g>
           <circle
             cx={buildingX - size * 0.08}

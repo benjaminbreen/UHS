@@ -18,8 +18,15 @@ interface VikingLonghouse3DProps {
 }
 
 const VikingLonghouse3D: React.FC<VikingLonghouse3DProps> = React.memo(({ x, y, width, height, size, seed, tile, roofColor, era }) => {
-  const rand = new ValueNoise(seed + tile.x * 13 + tile.y * 17).random;
+  const rng = new ValueNoise(seed + tile.x * 13 + tile.y * 17);
   const uniqueId = `longhouse-${tile.x}-${tile.y}`;
+  
+  // Pre-calculate all random values to prevent re-rendering
+  const rand1 = rng.random();
+  const rand2 = rng.random();
+  const rand3 = rng.random();
+  const rand4 = rng.random();
+  const rand5 = rng.random();
   
   // Make it longer than tall
   const buildingWidth = width * 1.4;
@@ -27,9 +34,9 @@ const VikingLonghouse3D: React.FC<VikingLonghouse3DProps> = React.memo(({ x, y, 
   const buildingX = x - buildingWidth * 0.2;
   const buildingY = y + height - buildingHeight;
   
-  const wallColor = `hsl(30, 25%, ${45 + rand() * 15}%)`;
+  const wallColor = `hsl(30, 25%, ${45 + rand1 * 15}%)`;
   const wallShadowColor = `hsl(30, 25%, 35%)`;
-  const thatchColor = `hsl(35, 40%, ${40 + rand() * 10}%)`;
+  const thatchColor = `hsl(35, 40%, ${40 + rand2 * 10}%)`;
   const woodTrimColor = '#654321';
   const smokeColor = 'rgba(150, 150, 150, 0.7)';
 
@@ -161,14 +168,14 @@ const VikingLonghouse3D: React.FC<VikingLonghouse3DProps> = React.memo(({ x, y, 
         opacity={0.8}
       />
       <circle
-        cx={buildingX + buildingWidth/2 + (rand() - 0.5) * size * 0.03}
+        cx={buildingX + buildingWidth/2 + (rand3 - 0.5) * size * 0.03}
         cy={buildingY - buildingHeight * 0.5}
         r={size * 0.012}
         fill={smokeColor}
         opacity={0.6}
       />
       <circle
-        cx={buildingX + buildingWidth/2 + (rand() - 0.5) * size * 0.05}
+        cx={buildingX + buildingWidth/2 + (rand4 - 0.5) * size * 0.05}
         cy={buildingY - buildingHeight * 0.7}
         r={size * 0.008}
         fill={smokeColor}
@@ -176,7 +183,7 @@ const VikingLonghouse3D: React.FC<VikingLonghouse3DProps> = React.memo(({ x, y, 
       />
       
       {/* Decorative dragon head on roof ends (if high-status) */}
-      {rand() > 0.7 && (
+      {rand5 > 0.7 && (
         <g>
           {/* Left dragon head */}
           <path

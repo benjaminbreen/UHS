@@ -6,6 +6,7 @@ import { BiomeType, Tile, HistoricalEra } from '../../types/index';
 import { ValueNoise } from '../../utils/noise';
 import { parseDateString } from '../../utils/dateUtils';
 import {
+  AboriginalHut3D,
   AdobeBuilding3D,
   AfricanRoundHut3D,
   AfricanStoneBuilding3D,
@@ -45,7 +46,7 @@ const getCulturalStyle = (zone: string): string => {
     'EUROPEAN': 'EUROPEAN', 'EAST_ASIAN': 'EAST_ASIAN', 'SOUTH_ASIAN': 'SOUTH_ASIAN',
     'MENA': 'MENA', 'SUB_SAHARAN_AFRICAN': 'SUB_SAHARAN_AFRICAN',
     'NORTH_AMERICAN_PRE_COLUMBIAN': 'NORTH_AMERICAN_PRE_COLUMBIAN',
-    'SOUTH_AMERICAN': 'SOUTH_AMERICAN', 'OCEANIA': 'OCEANIA',
+    'SOUTH_AMERICAN': 'SOUTH_AMERICAN', 'OCEANIA': 'OCEANIA', 'ABORIGINAL_AUSTRALIAN': 'ABORIGINAL_AUSTRALIAN',
   };
   
   if (zoneMap[zone]) return zoneMap[zone];
@@ -54,7 +55,7 @@ const getCulturalStyle = (zone: string): string => {
     'europe': 'EUROPEAN', 'east asia': 'EAST_ASIAN', 'south asia': 'SOUTH_ASIAN',
     'middle east': 'MENA', 'mena': 'MENA', 'africa': 'SUB_SAHARAN_AFRICAN',
     'north america': 'NORTH_AMERICAN_PRE_COLUMBIAN', 'south america': 'SOUTH_AMERICAN',
-    'oceania': 'OCEANIA'
+    'oceania': 'OCEANIA', 'australia': 'ABORIGINAL_AUSTRALIAN', 'aboriginal': 'ABORIGINAL_AUSTRALIAN'
   };
 
   const lowerZone = zone.toLowerCase();
@@ -117,7 +118,13 @@ const UrbanSymbol: React.FC<UrbanSymbolProps> = React.memo(({ x, y, size, seed, 
   const isCityCenter = tile.biome === BiomeType.CITY_CENTER;
 
   const buildingData = useMemo(() => {
-    const rand = (offset: number) => new ValueNoise(seed + tile.x * 137 + tile.y * 149 + offset).random();
+    // Create a single seeded PRNG instance for this tile - this is the key fix!
+    const uniqueTileSeed = seed + tile.x * 137 + tile.y * 149;
+    const localRand = new ValueNoise(uniqueTileSeed);
+    const rand = (offset: number = 0) => {
+      // Use the same instance but with a small offset for different random values
+      return new ValueNoise(uniqueTileSeed + offset).random();
+    };
     const scaleDown = 0.85; 
     
     let widthFactor = 0.6, heightFactor = 0.6;
@@ -239,25 +246,27 @@ const UrbanSymbol: React.FC<UrbanSymbolProps> = React.memo(({ x, y, size, seed, 
       
       switch (effectiveCulture) {
         case 'NORTH_AMERICAN_PRE_COLUMBIAN':
-          if (climate === 'cold') {
+          // Regional building selection based on geography
+          const regionName = zone.toLowerCase();
+          
+          if (climate === 'cold' || regionName.includes('arctic') || regionName.includes('alaska')) {
             selectedBuilding = 'Igloo3D';
             buildingComponent = <Igloo3D {...commonProps} />;
-          } else if (climate === 'arid') {
+          } else if (climate === 'arid' || regionName.includes('southwest') || regionName.includes('desert') || regionName.includes('arizona') || regionName.includes('new mexico')) {
             selectedBuilding = 'AdobeBuilding3D';
             buildingComponent = <AdobeBuilding3D {...commonProps} />;
+          } else if (regionName.includes('plains') || regionName.includes('great plains') || regionName.includes('dakota') || regionName.includes('nebraska') || regionName.includes('kansas')) {
+            // Great Plains - primarily teepees
+            selectedBuilding = 'NativeTeepee3D';
+            buildingComponent = <NativeTeepee3D {...commonProps} />;
+          } else if (regionName.includes('pacific') || regionName.includes('northwest') || regionName.includes('washington') || regionName.includes('oregon') || regionName.includes('british columbia')) {
+            // Pacific Northwest - longhouses
+            selectedBuilding = 'Longhouse3D';
+            buildingComponent = <Longhouse3D {...commonProps} />;
           } else {
-            // Forest regions - use bark longhouses and teepees
-            const choice = rand(10);
-            if (choice > 0.6) {
-              selectedBuilding = 'BarkLonghouse3D';
-              buildingComponent = <BarkLonghouse3D {...commonProps} />;
-            } else if (choice > 0.3) {
-              selectedBuilding = 'NativeTeepee3D';
-              buildingComponent = <NativeTeepee3D {...commonProps} />;
-            } else {
-              selectedBuilding = 'Longhouse3D';
-              buildingComponent = <Longhouse3D {...commonProps} />;
-            }
+            // Eastern woodlands and other forest regions - bark longhouses
+            selectedBuilding = 'BarkLonghouse3D';
+            buildingComponent = <BarkLonghouse3D {...commonProps} />;
           }
           break;
         case 'SOUTH_AMERICAN':
@@ -293,6 +302,10 @@ const UrbanSymbol: React.FC<UrbanSymbolProps> = React.memo(({ x, y, size, seed, 
         case 'OCEANIA':
           selectedBuilding = 'PolynesianHouse3D';
           buildingComponent = <PolynesianHouse3D {...commonProps} />;
+          break;
+        case 'ABORIGINAL_AUSTRALIAN':
+          selectedBuilding = 'AboriginalHut3D';
+          buildingComponent = <AboriginalHut3D {...commonProps} />;
           break;
         case 'EUROPEAN':
         default:

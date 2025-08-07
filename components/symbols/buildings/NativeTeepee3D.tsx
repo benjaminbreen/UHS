@@ -10,51 +10,95 @@ interface NativeTeepee3DProps {
 }
 
 const NativeTeepee3D: React.FC<NativeTeepee3DProps> = React.memo(({ x, y, width, height, size, seed, tile }) => {
-    const rand = new ValueNoise(seed + tile.x * 107 + tile.y * 113).random;
+    const rng = new ValueNoise(seed + tile.x * 107 + tile.y * 113);
     const cx = x + width/2;
     const uniqueId = `teepee-${tile.x}-${tile.y}`;
 
-    const baseColor = `hsl(35, 40%, ${75 + rand()*10}%)`;
-    const shadowColor = `hsl(35, 40%, 60%)`;
-    const poleColor = `hsl(30, 45%, 40%)`;
-    const decoColor1 = `hsl(${rand()*360}, 60%, 50%)`;
-    const decoColor2 = `hsl(${rand()*360}, 60%, 50%)`;
-    const outlineColor = `hsl(35, 40%, 30%)`;
+    // Pre-calculate all random values to prevent re-rendering
+    const rand1 = rng.random();
+    const rand2 = rng.random();
+    const rand3 = rng.random();
+    const rand4 = rng.random();
+    const rand5 = rng.random();
+    const rand6 = rng.random();
+
+    const baseColor = `hsl(35, 45%, ${65 + rand1*15}%)`;
+    const shadowColor = `hsl(35, 50%, 45%)`;
+    const poleColor = `hsl(25, 55%, 35%)`;
+    const decoColor1 = `hsl(${rand2*360}, 70%, 45%)`;
+    const decoColor2 = `hsl(${rand3*360}, 70%, 45%)`;
+    const outlineColor = `hsl(25, 60%, 25%)`;
     
     return (
         <g filter="url(#symbolShadow)">
             <defs>
                 <linearGradient id={`teepeeGradient-${uniqueId}`} x1="0" y1="0" x2="1" y2="0.5">
                     <stop offset="0%" stopColor={baseColor} />
+                    <stop offset="60%" stopColor={`hsl(35, 45%, ${60 + rand1*10}%)`} />
                     <stop offset="100%" stopColor={shadowColor} />
                 </linearGradient>
-                 <filter id={`teepeeFilter-${uniqueId}`}>
-                    <feTurbulence type="fractalNoise" baseFrequency="0.2 0.5" numOctaves="2" result="noise"/>
-                    <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.5" />
+                <filter id={`teepeeFilter-${uniqueId}`}>
+                    <feTurbulence type="fractalNoise" baseFrequency="0.15 0.4" numOctaves="2" result="noise"/>
+                    <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.2" />
                 </filter>
             </defs>
-            {/* Shadow */}
-            <ellipse cx={cx + 2} cy={y+height} rx={width/2 * 0.8} ry={width/4} fill="rgba(0,0,0,0.2)" />
+            
+            {/* Enhanced shadow */}
+            <ellipse cx={cx + 1.5} cy={y+height + 1} rx={width/2 * 0.9} ry={width/4 * 1.2} fill="rgba(0,0,0,0.3)" />
 
-            {/* Poles */}
-            {[...Array(6)].map((_, i) => (
-                <line key={`pole-${i}`} x1={cx} y1={y+2} x2={cx + (i-2.5)*1.5 + (rand()-0.5)*2} y2={y - 5 - rand()*3} stroke={poleColor} strokeWidth="1" />
+            {/* Background pole bundle */}
+            <circle cx={cx} cy={y-3} r="1.5" fill={poleColor} stroke={outlineColor} strokeWidth="0.4"/>
+
+            {/* Extended poles for better visibility */}
+            {[...Array(8)].map((_, i) => (
+                <line key={`pole-${i}`} 
+                    x1={cx + (i-3.5)*0.8} y1={y+2} 
+                    x2={cx + (i-3.5)*1.8 + (rand4-0.5)*3} y2={y - 8 - rand5*4} 
+                    stroke={poleColor} strokeWidth="1.2" strokeLinecap="round" />
             ))}
 
-            {/* Main Cone */}
-            <path d={`M ${cx - width/2} ${y+height} L ${cx} ${y} L ${cx + width/2} ${y+height} Z`} fill={`url(#teepeeGradient-${uniqueId})`} filter={`url(#teepeeFilter-${uniqueId})`} stroke={outlineColor} strokeWidth="0.3"/>
+            {/* Main cone with enhanced contrast */}
+            <path d={`M ${cx - width/2} ${y+height} L ${cx} ${y-2} L ${cx + width/2} ${y+height} Z`} 
+                fill={`url(#teepeeGradient-${uniqueId})`} 
+                filter={`url(#teepeeFilter-${uniqueId})`} 
+                stroke={outlineColor} strokeWidth="1.2"/>
 
+            {/* Inner shadow for depth */}
+            <path d={`M ${cx - width/2*0.85} ${y+height*0.95} L ${cx*0.98} ${y*1.02} L ${cx + width/2*0.85} ${y+height*0.95} Z`} 
+                fill="rgba(0,0,0,0.1)" />
       
-            {/* Entrance */}
-            <path d={`M ${cx - width*0.1} ${y+height} A ${width*0.15} ${height*0.4} 0 0 1 ${cx + width*0.1} ${y+height} Z`} fill="#4a2c17" stroke="black" strokeWidth="0.3"/>
+            {/* Enhanced entrance */}
+            <path d={`M ${cx - width*0.12} ${y+height} A ${width*0.18} ${height*0.45} 0 0 1 ${cx + width*0.12} ${y+height} Z`} 
+                fill="#2d1810" stroke="#1a0f0a" strokeWidth="0.6"/>
+            
+            {/* Inner entrance detail */}
+            <path d={`M ${cx - width*0.08} ${y+height*0.98} A ${width*0.12} ${height*0.3} 0 0 1 ${cx + width*0.08} ${y+height*0.98} Z`} 
+                fill="#1a0f0a" />
 
-            {/* Smoke Flaps */}
-            <path d={`M ${cx} ${y} L ${cx-3} ${y+5} L ${cx-5-rand()*2} ${y+2} Z`} fill={shadowColor} stroke={outlineColor} strokeWidth="0.2"/>
-            <path d={`M ${cx} ${y} L ${cx+3} ${y+5} L ${cx+5+rand()*2} ${y+2} Z`} fill={baseColor} stroke={outlineColor} strokeWidth="0.2"/>
+            {/* Enhanced smoke flaps */}
+            <path d={`M ${cx} ${y-2} L ${cx-4} ${y+6} L ${cx-7-rand6*3} ${y+1} Z`} 
+                fill={shadowColor} stroke={outlineColor} strokeWidth="0.6"/>
+            <path d={`M ${cx} ${y-2} L ${cx+4} ${y+6} L ${cx+7+rand6*3} ${y+1} Z`} 
+                fill={baseColor} stroke={outlineColor} strokeWidth="0.6"/>
 
-            {/* Decorative Bands */}
-            <path d={`M ${cx - width/2*0.8} ${y+height*0.8} L ${cx+width/2*0.8} ${y+height*0.8}`} stroke={decoColor1} strokeWidth="1.2" />
-            <path d={`M ${cx - width/2*0.85} ${y+height*0.85} L ${cx+width/2*0.85} ${y+height*0.85}`} stroke={decoColor2} strokeWidth="1.5" />
+            {/* Multiple decorative bands with traditional patterns */}
+            <path d={`M ${cx - width/2*0.75} ${y+height*0.75} L ${cx+width/2*0.75} ${y+height*0.75}`} 
+                stroke={decoColor1} strokeWidth="1.8" strokeLinecap="round" />
+            <path d={`M ${cx - width/2*0.8} ${y+height*0.82} L ${cx+width/2*0.8} ${y+height*0.82}`} 
+                stroke={decoColor2} strokeWidth="2" strokeLinecap="round" />
+            <path d={`M ${cx - width/2*0.85} ${y+height*0.89} L ${cx+width/2*0.85} ${y+height*0.89}`} 
+                stroke={`hsl(${rand6*360}, 65%, 40%)`} strokeWidth="1.6" strokeLinecap="round" />
+
+            {/* Traditional geometric patterns */}
+            {[...Array(4)].map((_, i) => (
+                <circle key={`pattern-${i}`} 
+                    cx={cx + (i-1.5)*width*0.25} 
+                    cy={y+height*0.65} 
+                    r="1.5" 
+                    fill="none" 
+                    stroke={i % 2 === 0 ? decoColor1 : decoColor2} 
+                    strokeWidth="0.8" />
+            ))}
 
         </g>
     );

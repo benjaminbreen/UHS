@@ -14,11 +14,12 @@ import {
     METALS
 } from '../constants/index';
 import { ValueNoise } from '../utils/noise'; 
-import { interpolateColor } from '../utils/colorUtils';
+import { interpolateColor, getLensColor, getMineralColor } from '../utils/colorUtils';
 import { RuinsSymbol, PalaceSymbol, HolyPlaceSymbol, UrbanSymbol, CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol } from './symbols';
 import CoastlineOverlay from './CoastlineOverlay';
 import Minimap from './Minimap';
 import MapCanvasPerformance from './MapCanvasPerformance';
+import { getSafariOptimizedClassName, getSafariOptimizedStyle } from '../utils/safariUtils';
 
 const TILE_SIZE_PX = TILE_SIZE_PX_CONST;
 const ICON_ANIMATION_DURATION = 100;
@@ -53,7 +54,7 @@ const MemoizedDustEffect = memo<{x: number, y: number, size: number, seed: numbe
                         '--delay': `${animationDelay}s`,
                         '--drift': `${driftDistance}px`,
                         '--duration': `${8 + localRand() * 4}s`, // 8-12s duration
-                        filter: 'blur(0.5px)',
+                        ...getSafariOptimizedStyle({ filter: 'blur(0.5px)' }),
                     } as React.CSSProperties}
                 />
             );
@@ -82,7 +83,7 @@ const MemoizedSnowEffect = memo<{x: number, y: number, size: number, seed: numbe
                     className="animate-snow"
                     style={{
                         '--delay': i,
-                        filter: 'blur(0.5px) drop-shadow(0 0 1px rgba(255,255,255,0.8))'
+                        ...getSafariOptimizedStyle({ filter: 'blur(0.5px) drop-shadow(0 0 1px rgba(255,255,255,0.8))' }),
                     } as React.CSSProperties}
                 />
             );
@@ -822,81 +823,31 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   const shouldRenderDetailedSymbols = debugSettings?.reduceSVGComplexity ? false : zoomLevel > 0.8;
   const shouldRenderVegetation = zoomLevel > 0.5;
   const shouldRenderAnimations = debugSettings?.disableAnimations ? false : zoomLevel > 0.6;
-  const shouldUseBlurEffects = debugSettings?.disableBlurEffects ? false : (!isSafari || zoomLevel > 1.2); // Reduce blur effects on Safari
+  const shouldUseBlurEffects = debugSettings?.disableBlurEffects ? false : !isSafari; // Completely disable blur effects on Safari for performance
   const shouldRenderParticles = !debugSettings?.disableParticles;
   const shouldRenderShadows = !debugSettings?.disableShadows;
 
   // Helper to check if a tile is water (including shoals)
   const isWaterTile = useCallback((tile: Tile) => {
-    return !tile.isLand || [BiomeType.RIVER, BiomeType.MAJOR_RIVER, BiomeType.DEEP_OCEAN, BiomeType.SHALLOW_OCEAN, BiomeType.SHOALS_TILE].includes(tile.biome);
+    // Handle shoals tiles specially - they can be either land or water
+    if (tile.biome === BiomeType.SHOALS_TILE) {
+      return !tile.isLand;
+    }
+    return !tile.isLand || [BiomeType.RIVER, BiomeType.MAJOR_RIVER, BiomeType.DEEP_OCEAN, BiomeType.SHALLOW_OCEAN].includes(tile.biome);
   }, []);
 
-  // Enhanced day/night cycle with smooth hour-by-hour transitions
+  // Simple day/night detection for UI purposes only (no color tinting)
   const timeOfDayData = useMemo(() => {
     const hour = gameTimeHours;
     const minute = gameTimeMinutes || 0;
     const fractionalHour = hour + (minute / 60);
-    
-    // Calculate smooth nightIntensity based on fractional hour
-    let nightIntensity = 0;
-    let colorShift = { r: 1, g: 1, b: 1 }; // RGB multipliers for color toning
-    
-    if (fractionalHour < 5) {
-      // Deep night (midnight to 5am)
-      nightIntensity = 0.75;
-      colorShift = { r: 0.7, g: 0.75, b: 0.9 }; // Cool blue tint
-    } else if (fractionalHour < 6) {
-      // Pre-dawn (5am to 6am)
-      const t = fractionalHour - 5;
-      nightIntensity = 0.75 - (t * 0.25);
-      colorShift = { r: 0.7 + (t * 0.15), g: 0.75 + (t * 0.1), b: 0.9 - (t * 0.1) };
-    } else if (fractionalHour < 7) {
-      // Dawn (6am to 7am)
-      const t = fractionalHour - 6;
-      nightIntensity = 0.5 - (t * 0.3);
-      colorShift = { r: 0.85 + (t * 0.1), g: 0.85 + (t * 0.05), b: 0.8 + (t * 0.15) };
-    } else if (fractionalHour < 8) {
-      // Early morning (7am to 8am)
-      const t = fractionalHour - 7;
-      nightIntensity = 0.2 - (t * 0.2);
-      colorShift = { r: 0.95 + (t * 0.05), g: 0.9 + (t * 0.1), b: 0.95 + (t * 0.05) };
-    } else if (fractionalHour < 17) {
-      // Full daylight (8am to 5pm)
-      nightIntensity = 0;
-      colorShift = { r: 1, g: 1, b: 1 };
-    } else if (fractionalHour < 18) {
-      // Late afternoon (5pm to 6pm)
-      const t = fractionalHour - 17;
-      nightIntensity = t * 0.1;
-      colorShift = { r: 1, g: 0.98 - (t * 0.03), b: 0.95 - (t * 0.05) };
-    } else if (fractionalHour < 19) {
-      // Golden hour (6pm to 7pm)
-      const t = fractionalHour - 18;
-      nightIntensity = 0.1 + (t * 0.15);
-      colorShift = { r: 1, g: 0.95 - (t * 0.1), b: 0.9 - (t * 0.15) };
-    } else if (fractionalHour < 20) {
-      // Dusk (7pm to 8pm)
-      const t = fractionalHour - 19;
-      nightIntensity = 0.25 + (t * 0.25);
-      colorShift = { r: 1 - (t * 0.15), g: 0.85 - (t * 0.1), b: 0.75 - (t * 0.05) };
-    } else if (fractionalHour < 21) {
-      // Twilight (8pm to 9pm)
-      const t = fractionalHour - 20;
-      nightIntensity = 0.5 + (t * 0.15);
-      colorShift = { r: 0.85 - (t * 0.1), g: 0.75, b: 0.7 + (t * 0.1) };
-    } else {
-      // Night (9pm to midnight)
-      const t = Math.min((fractionalHour - 21) / 3, 1);
-      nightIntensity = 0.65 + (t * 0.1);
-      colorShift = { r: 0.75 - (t * 0.05), g: 0.75, b: 0.8 + (t * 0.1) };
-    }
     
     const isNight = fractionalHour < 6 || fractionalHour >= 20;
     const isDawn = fractionalHour >= 5 && fractionalHour < 7;
     const isDusk = fractionalHour >= 18 && fractionalHour < 21;
     const isDay = fractionalHour >= 8 && fractionalHour < 18;
 
-    return { isNight, isDawn, isDusk, isDay, nightIntensity, colorShift };
+    return { isNight, isDawn, isDusk, isDay };
   }, [gameTimeHours, gameTimeMinutes]);
 
   return (
@@ -905,21 +856,21 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       <div className="absolute top-6 left-6 z-30 flex flex-col space-y-3">
         <button 
           onClick={zoomIn} 
-          className="group w-12 h-12 flex items-center justify-center rounded-xl border border-gray-500/30 bg-gray-800/60 text-2xl font-bold text-white shadow-xl transition-all duration-200 backdrop-blur-md hover:border-blue-400/50 hover:bg-blue-700/60 hover:shadow-glow-primary"
+          className={getSafariOptimizedClassName("group w-12 h-12 flex items-center justify-center rounded-xl border border-gray-500/30 bg-gray-800/60 text-2xl font-bold text-white shadow-xl transition-all duration-200 backdrop-blur-md hover:border-blue-400/50 hover:bg-blue-700/60 hover:shadow-glow-primary")}
           title="Zoom In (+)"
         >
           <span className="text-3xl leading-none transition-transform group-hover:scale-110">+</span>
         </button>
         <button 
           onClick={zoomOut} 
-          className="group w-12 h-12 flex items-center justify-center rounded-xl border border-gray-500/30 bg-gray-800/60 text-2xl font-bold text-white shadow-xl transition-all duration-200 backdrop-blur-md hover:border-blue-400/50 hover:bg-blue-700/60 hover:shadow-glow-primary"
+          className={getSafariOptimizedClassName("group w-12 h-12 flex items-center justify-center rounded-xl border border-gray-500/30 bg-gray-800/60 text-2xl font-bold text-white shadow-xl transition-all duration-200 backdrop-blur-md hover:border-blue-400/50 hover:bg-blue-700/60 hover:shadow-glow-primary")}
           title="Zoom Out (-)"
         >
           <span className="text-3xl leading-none transition-transform group-hover:scale-110">−</span>
         </button>
         <button 
           onClick={resetZoomAndCenter} 
-          className="group w-12 h-12 flex items-center justify-center rounded-xl border border-gray-500/30 bg-gray-800/60 text-xl font-bold text-white shadow-xl transition-all duration-200 backdrop-blur-md hover:border-green-400/50 hover:bg-green-700/60 hover:shadow-glow-primary"
+          className={getSafariOptimizedClassName("group w-12 h-12 flex items-center justify-center rounded-xl border border-gray-500/30 bg-gray-800/60 text-xl font-bold text-white shadow-xl transition-all duration-200 backdrop-blur-md hover:border-green-400/50 hover:bg-green-700/60 hover:shadow-glow-primary")}
           title="Center on Player (0)"
         >
           <span className="text-2xl transition-transform group-hover:scale-110">⌂</span>
@@ -927,13 +878,13 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       </div>
 
       {/* Enhanced zoom indicator */}
-      <div className="absolute top-6 left-20 z-30 rounded-xl border border-gray-600/30 bg-gray-900/80 px-3 py-2 text-sm font-bold text-white shadow-xl backdrop-blur-md">
+      <div className={getSafariOptimizedClassName("absolute top-6 left-20 z-30 rounded-xl border border-gray-600/30 bg-gray-900/80 px-3 py-2 text-sm font-bold text-white shadow-xl backdrop-blur-md")}>
         <div className="text-lg bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">{Math.round(zoomLevel * 100)}%</div>
         <div className="text-xs text-gray-300">Zoom</div>
       </div>
 
       {/* Performance indicator */}
-      <div className="absolute top-6 right-6 z-30 rounded-xl border border-green-600/30 bg-green-900/80 px-3 py-2 text-sm font-bold text-white shadow-xl backdrop-blur-md">
+      <div className={getSafariOptimizedClassName("absolute top-6 right-6 z-30 rounded-xl border border-green-600/30 bg-green-900/80 px-3 py-2 text-sm font-bold text-white shadow-xl backdrop-blur-md")}>
         <div className="text-lg text-green-400">⚡ OPTIMIZED</div>
         <div className="text-xs text-green-300">High Performance</div>
       </div>
@@ -944,7 +895,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           {/* Up button */}
           <button
             onClick={() => panMap('up')}
-            className="group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95"
+            className={getSafariOptimizedClassName("group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95")}
             aria-label="Pan Up"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -957,7 +908,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {/* Left button */}
             <button
               onClick={() => panMap('left')}
-              className="group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95"
+              className={getSafariOptimizedClassName("group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95")}
               aria-label="Pan Left"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -968,7 +919,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {/* Center/Reset button */}
             <button
               onClick={resetZoomAndCenter}
-              className="group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-green-400/60 hover:bg-green-700/70 active:scale-95"
+              className={getSafariOptimizedClassName("group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-green-400/60 hover:bg-green-700/70 active:scale-95")}
               aria-label="Center on Player"
             >
               <span className="text-2xl">⌂</span>
@@ -977,7 +928,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {/* Right button */}
             <button
               onClick={() => panMap('right')}
-              className="group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95"
+              className={getSafariOptimizedClassName("group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95")}
               aria-label="Pan Right"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -989,7 +940,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           {/* Down button */}
           <button
             onClick={() => panMap('down')}
-            className="group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95"
+            className={getSafariOptimizedClassName("group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95")}
             aria-label="Pan Down"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1004,14 +955,14 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         <div className="absolute bottom-24 right-6 z-30 flex flex-col space-y-3">
           <button 
             onClick={zoomIn} 
-            className="group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-2xl font-bold text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95"
+            className={getSafariOptimizedClassName("group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-2xl font-bold text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95")}
             aria-label="Zoom In"
           >
             <span className="text-3xl leading-none">+</span>
           </button>
           <button 
             onClick={zoomOut} 
-            className="group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-2xl font-bold text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95"
+            className={getSafariOptimizedClassName("group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-2xl font-bold text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95")}
             aria-label="Zoom Out"
           >
             <span className="text-3xl leading-none">−</span>
@@ -1058,8 +1009,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           panX={panX}
           panY={panY}
           zoomLevel={zoomLevel}
-          nightIntensity={timeOfDayData.nightIntensity}
-          colorShift={timeOfDayData.colorShift}
+          isNight={timeOfDayData.isNight}
+          playerX={playerCharacter?.x}
+          playerY={playerCharacter?.y}
           disableSmoothing={debugSettings?.disableCanvasSmoothing}
         />
         
@@ -1120,46 +1072,119 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           <g>
             {/* Strategic Lens Overlay */}
             {activeLens !== 'none' && (
-                <g key="strategic-lens" opacity="0.6" style={{ mixBlendMode: 'multiply' }}>
+                <g key="strategic-lens">
+                    {/* Lens visualization layer */}
                     {tiles.flat().map(tile => {
+                        if (!tile.isLand && activeLens !== 'minerals') return null;
+                        
                         let value = 0;
                         let color = 'transparent';
+                        let showOverlay = false;
 
-                        if (tile.isLand) {
-                            switch(activeLens) {
-                                case 'safety':
-                                    value = tile.qualities.safety;
-                                    color = interpolateColor('#ff4d4d', '#4dff4d', value);
-                                    break;
-                                case 'biodiversity':
-                                    value = tile.qualities.biodiversity;
-                                    color = interpolateColor('#a0ffff', '#006400', value);
-                                    break;
-                                case 'minerals':
-                                    value = Math.max(tile.qualities.geologicalStress || 0, tile.qualities.thermalActivity || 0);
-                                    if (value > 0.3) {
-                                      color = interpolateColor('#ffff00', '#800080', (value - 0.3) / 0.7);
-                                    }
-                                    break;
-                            }
+                        switch(activeLens) {
+                            case 'safety':
+                                value = tile.qualities?.safety || 0;
+                                color = getLensColor('safety', value);
+                                showOverlay = value > 0.1;
+                                break;
+                                
+                            case 'biodiversity':
+                                value = tile.qualities?.biodiversity || 0;
+                                color = getLensColor('biodiversity', value);
+                                showOverlay = value > 0.1;
+                                break;
+                                
+                            case 'sacrality':
+                                value = tile.qualities?.sacrality || 0;
+                                color = getLensColor('sacrality', value);
+                                showOverlay = value > 0.1;
+                                break;
+                                
+                            case 'healthiness':
+                                value = tile.qualities?.healthiness || 0;
+                                color = getLensColor('healthiness', value);
+                                showOverlay = value > 0.1;
+                                break;
+                                
+                            case 'flammability':
+                                value = tile.qualities?.flammability || 0;
+                                color = getLensColor('flammability', value);
+                                showOverlay = value > 0.1;
+                                break;
+                                
+                            case 'minerals':
+                                // Special handling for minerals - show circles for each deposit
+                                return tile.mineralDeposits && Object.keys(tile.mineralDeposits).length > 0 ? (
+                                    <g key={`mineral-${tile.x}-${tile.y}`}>
+                                        {Object.entries(tile.mineralDeposits).map(([mineral, abundance], index) => (
+                                            <circle
+                                                key={`${tile.x}-${tile.y}-${mineral}`}
+                                                cx={tile.x * TILE_SIZE_PX + TILE_SIZE_PX / 2 + (index - 1) * 8}
+                                                cy={tile.y * TILE_SIZE_PX + TILE_SIZE_PX / 2}
+                                                r={Math.max(3, abundance * 8)}
+                                                fill={getMineralColor(mineral)}
+                                                stroke="#000000"
+                                                strokeWidth="0.5"
+                                                opacity={0.8}
+                                            />
+                                        ))}
+                                    </g>
+                                ) : null;
                         }
 
-                        if (value > 0.1 && color !== 'transparent') {
-                            return (
-                                <rect
-                                    key={`lens-${tile.x}-${tile.y}`}
-                                    x={tile.x * TILE_SIZE_PX}
-                                    y={tile.y * TILE_SIZE_PX}
-                                    width={TILE_SIZE_PX}
-                                    height={TILE_SIZE_PX}
-                                    fill={color}
-                                    fillOpacity={value * 0.9}
-                                />
-                            );
-                        }
-                        return null;
+                        if (!showOverlay || color === 'transparent') return null;
+
+                        return (
+                            <rect
+                                key={`lens-${tile.x}-${tile.y}`}
+                                x={tile.x * TILE_SIZE_PX}
+                                y={tile.y * TILE_SIZE_PX}
+                                width={TILE_SIZE_PX}
+                                height={TILE_SIZE_PX}
+                                fill={color}
+                                fillOpacity={Math.max(0.3, value * 0.8)}
+                                style={{ mixBlendMode: 'multiply' }}
+                            />
+                        );
                     })}
                 </g>
+            )}
+
+            {/* Mineral Legend for Minerals Lens */}
+            {activeLens === 'minerals' && (
+                <foreignObject 
+                    x={10} 
+                    y={50}
+                    width={200} 
+                    height={200}
+                    style={{ pointerEvents: 'none' }}
+                >
+                    <div className={getSafariOptimizedClassName("bg-slate-900/90 backdrop-blur-sm border border-slate-600 rounded-lg p-3 text-white text-sm shadow-xl")}>
+                        <div className="font-bold text-amber-400 mb-2">🗺️ Mineral Legend</div>
+                        <div className="space-y-1 text-xs">
+                            {[
+                                { name: 'Iron', color: '#8B4513' },
+                                { name: 'Copper', color: '#B87333' },
+                                { name: 'Gold', color: '#FFD700' },
+                                { name: 'Silver', color: '#C0C0C0' },
+                                { name: 'Coal', color: '#36454F' },
+                                { name: 'Salt', color: '#F8F8FF' },
+                                { name: 'Gems', color: '#FF1493' },
+                            ].map(mineral => (
+                                <div key={mineral.name} className="flex items-center space-x-2">
+                                    <div 
+                                        className="w-3 h-3 rounded-full border border-black/50"
+                                        style={{ backgroundColor: mineral.color }}
+                                    />
+                                    <span>{mineral.name}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="text-xs text-slate-400 mt-2">
+                            Circle size = abundance
+                        </div>
+                    </div>
+                </foreignObject>
             )}
 
             {/* Paths layer */}
@@ -1232,11 +1257,11 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   const elements = [];
                   
                   if ([BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.GOVERNMENT_DISTRICT, BiomeType.CITY_CENTER].includes(tile.biome)) {
-                    elements.push(<UrbanSymbol key={`urban-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} date={formattedDate} zone={currentLocation} nightIntensity={timeOfDayData.nightIntensity} />);
+                    elements.push(<UrbanSymbol key={`urban-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} date={formattedDate} zone={currentLocation} nightIntensity={timeOfDayData.isNight ? 0.6 : 0} />);
                   } else if(tile.biome === BiomeType.MARKETPLACE) {
-                    elements.push(<MarketplaceSymbol key={`marketplace-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} nightIntensity={timeOfDayData.nightIntensity} date={formattedDate} zone={currentLocation} />);
+                    elements.push(<MarketplaceSymbol key={`marketplace-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} nightIntensity={timeOfDayData.isNight ? 0.6 : 0} date={formattedDate} zone={currentLocation} />);
                   } else if(tile.biome === BiomeType.PALACE) {
-                    elements.push(<PalaceSymbol key={`palace-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} date={formattedDate} zone={currentLocation} nightIntensity={timeOfDayData.nightIntensity} />);
+                    elements.push(<PalaceSymbol key={`palace-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} date={formattedDate} zone={currentLocation} nightIntensity={timeOfDayData.isNight ? 0.6 : 0} />);
                   } else if(tile.biome === BiomeType.RUINS) {
                     elements.push(<RuinsSymbol key={`ruins-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} />);
                   } else if(tile.biome === BiomeType.HOLY_SITE) {
@@ -1298,7 +1323,14 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
 
             {/* Animals and NPCs layer  */}
             <g>
-              {animals.map(animal => (
+              {animals.filter(animal => {
+                // Only show animals within 10 tiles of player
+                if (logicalControlledIconX === null || logicalControlledIconY === null) return true;
+                const dx = animal.x - logicalControlledIconX;
+                const dy = animal.y - logicalControlledIconY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                return distance <= 10;
+              }).map(animal => (
                 <g key={animal.id} 
                    onClick={(e) => { e.stopPropagation(); onAnimalClick(animal); }} 
                    style={{cursor: 'pointer', pointerEvents: 'auto'}}>
@@ -1328,7 +1360,14 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   </text>
                 </g>
               ))}
-              {npcs.map(npc => (
+              {npcs.filter(npc => {
+                // Only show NPCs within 10 tiles of player
+                if (logicalControlledIconX === null || logicalControlledIconY === null) return true;
+                const dx = npc.x - logicalControlledIconX;
+                const dy = npc.y - logicalControlledIconY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                return distance <= 10;
+              }).map(npc => (
                 <g key={npc.id} 
                    onClick={(e) => { e.stopPropagation(); onNpcClick(npc); }} 
                    style={{cursor: 'pointer', pointerEvents: 'auto'}}

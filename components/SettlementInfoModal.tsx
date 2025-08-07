@@ -148,6 +148,33 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
         };
     }, [era, culturalZone, population, mapData, season, timeOfDay]);
 
+    const getBuildingTypeForLogging = () => {
+        if (tile.biome === BiomeType.FARMLAND) return 'FarmBanner';
+        if (tile.biome === BiomeType.MARKETPLACE) return 'MarketplaceBanner';
+        if ([BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.CITY_CENTER].includes(tile.biome)) {
+            // For urban areas, we need to approximate the building type based on cultural zone and era
+            // This mirrors the logic in UrbanSymbol.tsx
+            const { year, era: eraName } = useMemo(() => parseDateString(mapData.timeSlice || '1650'), [mapData.timeSlice]);
+            const eraLevel = eraName === 'Prehistoric' ? 0 : eraName === 'Ancient' ? 1 : eraName === 'Classical' ? 2 : eraName === 'Medieval' ? 3 : eraName === 'Early Modern' ? 4 : eraName === 'Modern' ? 5 : 6;
+            
+            if (eraLevel === 0) return 'PrehistoricShelter3D';
+            if (eraLevel >= 6) return 'ModernSkyscraper3D';
+            if (eraLevel === 5) return 'ModernCivic3D';
+            
+            switch(culturalZone) {
+                case 'SUB_SAHARAN_AFRICAN': return eraLevel >= 3 ? 'AfricanStoneBuilding3D' : 'AfricanRoundHut3D';
+                case 'EAST_ASIAN': return 'EastAsianPagoda3D';
+                case 'SOUTH_ASIAN': return 'SouthAsianTemple3D';
+                case 'MENA': return 'OttomanTownhouse3D';
+                case 'OCEANIA': return 'PolynesianHouse3D';
+                case 'NORTH_AMERICAN_PRE_COLUMBIAN': return 'BarkLonghouse3D';
+                case 'SOUTH_AMERICAN': return 'AztecDwelling3D';
+                default: return eraLevel >= 3 ? 'GeorgianRowhouse3D' : 'MedievalBuilding3D';
+            }
+        }
+        return 'GenericBuilding';
+    };
+
     const renderBanner = () => {
         switch(tile.biome) {
             case BiomeType.FARMLAND:
@@ -175,6 +202,7 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                          <h2 className="text-2xl font-bold capitalize" style={{ textShadow: '2px 2px 4px #000' }}>{name}</h2>
                          <p className="text-sm italic text-slate-300" style={{ textShadow: '1px 1px 2px #000' }}>{description}</p>
                     </div>
+                     <span className="absolute top-3 right-12 text-xs text-gray-500 italic font-mono">{getBuildingTypeForLogging()}</span>
                      <button onClick={onClose} className="absolute top-3 right-3 text-slate-300 hover:text-white transition-colors">&times;</button>
                 </header>
 

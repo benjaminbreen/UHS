@@ -20,8 +20,9 @@ interface MapCanvasProps {
   panX: number;
   panY: number;
   zoomLevel: number;
-  nightIntensity?: number;
-  colorShift?: { r: number; g: number; b: number };
+  isNight?: boolean;
+  playerX?: number;
+  playerY?: number;
   disableSmoothing?: boolean;
 }
 
@@ -58,7 +59,7 @@ class MapCanvasRenderer {
     );
   }
 
-  render(mapData: MapData, canvasSize: { width: number; height: number }, patterns: any, nightIntensity: number = 0, colorShift: { r: number; g: number; b: number } = { r: 1, g: 1, b: 1 }, disableSmoothing: boolean = false) {
+  render(mapData: MapData, canvasSize: { width: number; height: number }, patterns: any, isNight: boolean = false, playerX?: number, playerY?: number, disableSmoothing: boolean = false) {
     if (!this.canvas || !this.ctx || !this.shouldRender(mapData, canvasSize)) return;
 
     // Cancel any pending render
@@ -67,7 +68,7 @@ class MapCanvasRenderer {
     }
 
     this.renderFrameId = requestAnimationFrame(() => {
-      this.performRender(mapData, canvasSize, patterns, nightIntensity, colorShift, disableSmoothing);
+      this.performRender(mapData, canvasSize, patterns, isNight, playerX, playerY, disableSmoothing);
       this.lastMapSeed = mapData.seed;
       this.lastCanvasWidth = canvasSize.width;
       this.lastCanvasHeight = canvasSize.height;
@@ -75,7 +76,7 @@ class MapCanvasRenderer {
     });
   }
 
-  private performRender(mapData: MapData, canvasSize: { width: number; height: number }, patterns: any, nightIntensity: number = 0, colorShift: { r: number; g: number; b: number } = { r: 1, g: 1, b: 1 }, disableSmoothing: boolean = false) {
+  private performRender(mapData: MapData, canvasSize: { width: number; height: number }, patterns: any, isNight: boolean = false, playerX?: number, playerY?: number, disableSmoothing: boolean = false) {
     if (!this.canvas || !this.ctx) return;
 
     this.canvas.width = canvasSize.width;
@@ -100,9 +101,9 @@ class MapCanvasRenderer {
     this.renderShoals(mapData, noiseGenerators);
     this.renderLandTiles(mapData, patterns, noiseGenerators);
     
-    // Apply night darkening overlay only to terrain
-    if (nightIntensity > 0) {
-      this.renderNightOverlay(nightIntensity, colorShift);
+    // Apply player-centered vignette effect for nighttime
+    if (isNight && playerX !== undefined && playerY !== undefined) {
+      this.renderPlayerCenteredVignette(playerX, playerY, canvasSize);
     }
   }
 
@@ -198,13 +199,60 @@ class MapCanvasRenderer {
       }
     }
 
-    // Render tiles with optimized paths
+    // Enhanced rendering with 3D terraced effects and patterns
     this.ctx.save();
     tileBatches.forEach(({ tiles, color }) => {
-      this.ctx!.fillStyle = color;
       tiles.forEach(tile => {
         const organicPath = this.generateOrganicLandPath(tile, mapData, noiseGenerators);
-        this.ctx!.fill(organicPath);
+        
+        // Step 1: Base color with drop shadow for 3D terraced effect
+        this.ctx.save();
+        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+        // Safari-optimized shadow settings - reduce blur on Safari for performance
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        this.ctx.shadowBlur = isSafari ? 1.5 : 2.5;
+        this.ctx.shadowOffsetX = 1.2;
+        this.ctx.shadowOffsetY = 1.2;
+        this.ctx.fillStyle = color;
+        this.ctx.fill(organicPath);
+        this.ctx.restore();
+        
+        // Step 2: Terrain pattern overlay for surface texture
+        const terrainPattern = patterns.terrain.get(tile.biome);
+        if (terrainPattern) {
+          let patternOpacity = 0.15;
+          // Enhanced pattern opacity based on biome type for better visibility
+          if ([BiomeType.DESERT, BiomeType.GRASSLAND, BiomeType.BEACH, BiomeType.SCRUB].includes(tile.biome)) {
+            patternOpacity = 0.42; // Increased from 0.38 for better visibility
+          } else if ([BiomeType.SNOW, BiomeType.TUNDRA, BiomeType.HILLS].includes(tile.biome)) {
+            patternOpacity = 0.32; // Increased from 0.28
+          } else if ([BiomeType.FOREST, BiomeType.DENSE_FOREST, BiomeType.JUNGLE].includes(tile.biome)) {
+            patternOpacity = 0.25;
+          } else if ([BiomeType.MOUNTAIN, BiomeType.HIGH_PEAK, BiomeType.VOLCANIC_ROCK].includes(tile.biome)) {
+            patternOpacity = 0.35; // Rocky textures need more visibility
+          }
+          this.ctx.globalAlpha = patternOpacity;
+          this.ctx.fillStyle = terrainPattern;
+          this.ctx.fill(organicPath);
+          this.ctx.globalAlpha = 1.0;
+        }
+        
+        // Step 3: Enhanced ambient occlusion for depth
+        const tileX = tile.x * TILE_SIZE_PX;
+        const tileY = tile.y * TILE_SIZE_PX;
+        const gradient = this.ctx.createRadialGradient(
+          tileX + TILE_SIZE_PX / 2,
+          tileY + TILE_SIZE_PX / 2,
+          TILE_SIZE_PX * 0.2,
+          tileX + TILE_SIZE_PX / 2,
+          tileY + TILE_SIZE_PX / 2,
+          TILE_SIZE_PX * 0.85
+        );
+        gradient.addColorStop(0, 'transparent');
+        gradient.addColorStop(0.75, 'rgba(0, 0, 0, 0.06)');
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.18)');
+        this.ctx.fillStyle = gradient;
+        this.ctx.fill(organicPath);
       });
     });
     this.ctx.restore();
@@ -293,46 +341,38 @@ class MapCanvasRenderer {
     return path;
   }
 
-  private renderNightOverlay(nightIntensity: number, colorShift: { r: number; g: number; b: number } = { r: 1, g: 1, b: 1 }) {
+  private renderPlayerCenteredVignette(playerX: number, playerY: number, canvasSize: { width: number; height: number }) {
     if (!this.canvas || !this.ctx) return;
 
-    // Apply darkening effect
     this.ctx.save();
     
-    // First apply color shift using multiply blend
-    this.ctx.globalCompositeOperation = 'multiply';
+    // Convert player world coordinates to canvas coordinates
+    const playerCanvasX = playerX * TILE_SIZE_PX;
+    const playerCanvasY = playerY * TILE_SIZE_PX;
     
-    // Calculate darkness level (inverse of brightness)
-    const darkness = 1 - (1 - nightIntensity * 0.85); // Max darkness is 85%
+    // Define vignette parameters
+    const brightRadius = TILE_SIZE_PX * 10;  // 10 tiles around player stay bright
+    const darkStartRadius = TILE_SIZE_PX * 12; // Darkness starts at 12 tiles
+    const maxDarkRadius = TILE_SIZE_PX * 20;   // Maximum darkness at 20 tiles
     
-    // Apply color-shifted darkening
-    const r = Math.floor(255 * (1 - darkness * (1 - colorShift.r)));
-    const g = Math.floor(255 * (1 - darkness * (1 - colorShift.g)));
-    const b = Math.floor(255 * (1 - darkness * (1 - colorShift.b)));
+    // Create radial gradient centered on player
+    const gradient = this.ctx.createRadialGradient(
+      playerCanvasX, playerCanvasY, brightRadius,
+      playerCanvasX, playerCanvasY, maxDarkRadius
+    );
     
-    this.ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    // Gradient stops for smooth vignette
+    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');        // Completely transparent around player
+    gradient.addColorStop(0.6, 'rgba(0, 0, 0, 0)');      // Still transparent until dark start radius
+    gradient.addColorStop(0.75, 'rgba(0, 0, 0, 0.15)');  // Very subtle darkening begins
+    gradient.addColorStop(0.85, 'rgba(0, 0, 0, 0.35)');  // Moderate darkness
+    gradient.addColorStop(0.95, 'rgba(0, 0, 0, 0.55)');  // Strong darkness
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0.7)');      // Maximum darkness (never fully black)
     
-    // Add subtle atmospheric gradient for depth
-    if (nightIntensity > 0.2) {
-      this.ctx.globalCompositeOperation = 'multiply';
-      const gradient = this.ctx.createRadialGradient(
-        this.canvas.width / 2, 
-        this.canvas.height / 2, 
-        0,
-        this.canvas.width / 2, 
-        this.canvas.height / 2, 
-        Math.max(this.canvas.width, this.canvas.height) * 0.8
-      );
-      
-      // Subtle vignette effect
-      gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-      gradient.addColorStop(0.5, `rgba(240, 240, 255, ${1 - nightIntensity * 0.1})`);
-      gradient.addColorStop(1, `rgba(180, 190, 220, ${1 - nightIntensity * 0.3})`);
-      
-      this.ctx.fillStyle = gradient;
-      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    }
+    // Apply the vignette
+    this.ctx.globalCompositeOperation = 'source-atop';
+    this.ctx.fillStyle = gradient;
+    this.ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
     
     this.ctx.restore();
   }
@@ -351,8 +391,9 @@ export const MapCanvasPerformance = React.forwardRef<HTMLCanvasElement, MapCanva
   panX, 
   panY, 
   zoomLevel,
-  nightIntensity = 0,
-  colorShift = { r: 1, g: 1, b: 1 },
+  isNight = false,
+  playerX,
+  playerY,
   disableSmoothing = false
 }, ref) => {
   const internalCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -369,11 +410,11 @@ export const MapCanvasPerformance = React.forwardRef<HTMLCanvasElement, MapCanva
     renderer.setCanvas(canvasElement);
 
     if (mapData) {
-      renderer.render(mapData, canvasSize, memoizedPatterns, nightIntensity, colorShift, disableSmoothing);
+      renderer.render(mapData, canvasSize, memoizedPatterns, isNight, playerX, playerY, disableSmoothing);
     }
 
     return () => renderer.cleanup();
-  }, [mapData.seed, canvasSize.width, canvasSize.height, memoizedPatterns, nightIntensity, colorShift.r, colorShift.g, colorShift.b, disableSmoothing]);
+  }, [mapData.seed, canvasSize.width, canvasSize.height, memoizedPatterns, isNight, playerX, playerY, disableSmoothing]);
 
   return (
     <canvas

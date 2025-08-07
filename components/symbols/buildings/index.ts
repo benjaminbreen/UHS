@@ -31,3 +31,4 @@ export { default as PolynesianHouse3D } from './PolynesianHouse3D';
 export { default as AfricanStoneBuilding3D } from './AfricanStoneBuilding3D';
 export { default as BarkLonghouse3D } from './BarkLonghouse3D';
 export { default as PrehistoricShelter3D } from './PrehistoricShelter3D';
+export { default as AboriginalHut3D } from './AboriginalHut3D';

@@ -21,8 +21,15 @@ interface BarkLonghouse3DProps {
 const BarkLonghouse3D: React.FC<BarkLonghouse3DProps> = React.memo(({ 
   x, y, width, height, size, seed, tile, roofColor, era, nightIntensity = 0 
 }) => {
-  const rand = new ValueNoise(seed + tile.x * 17 + tile.y * 29).random;
+  const rng = new ValueNoise(seed + tile.x * 17 + tile.y * 29);
   const uniqueId = `bark-longhouse-${tile.x}-${tile.y}`;
+  
+  // Pre-calculate all random values to prevent re-rendering
+  const rand1 = rng.random();
+  const rand2 = rng.random();
+  const rand3 = rng.random();
+  const rand4 = rng.random();
+  const rand5 = rng.random();
   
   // Bark longhouse is elongated
   const buildingWidth = width * 1.6;
@@ -30,13 +37,13 @@ const BarkLonghouse3D: React.FC<BarkLonghouse3DProps> = React.memo(({
   const buildingX = x - buildingWidth * 0.3;
   const buildingY = y + height - buildingHeight;
   
-  const barkBrown = `hsl(30, 35%, ${40 + rand() * 12}%)`;
+  const barkBrown = `hsl(30, 35%, ${40 + rand1 * 12}%)`;
   const barkShadow = `hsl(30, 35%, 25%)`;
-  const frameWood = `hsl(25, 30%, ${35 + rand() * 10}%)`;
+  const frameWood = `hsl(25, 30%, ${35 + rand2 * 10}%)`;
   const smokeGray = 'rgba(120, 120, 120, 0.7)';
   
   const renderTorchLighting = () => {
-    if (nightIntensity < 0.2 || rand() < 0.7) return null; // 30% chance
+    if (nightIntensity < 0.2 || rand3 < 0.7) return null; // 30% chance
     
     const torchX = buildingX - size * 0.08;
     const torchY = buildingY + buildingHeight * 0.5;
@@ -163,7 +170,7 @@ const BarkLonghouse3D: React.FC<BarkLonghouse3DProps> = React.memo(({
       />
       
       {/* Smoke from hearths */}
-      {rand() > 0.4 && (
+      {rand4 > 0.4 && (
         <g>
           <circle
             cx={buildingX + buildingWidth * 0.3}
@@ -173,7 +180,7 @@ const BarkLonghouse3D: React.FC<BarkLonghouse3DProps> = React.memo(({
             opacity="0.6"
           />
           <circle
-            cx={buildingX + buildingWidth * 0.7 + (rand() - 0.5) * size * 0.03}
+            cx={buildingX + buildingWidth * 0.7 + (rand5 - 0.5) * size * 0.03}
             cy={buildingY + buildingHeight * 0.05}
             r={size * 0.01}
             fill={smokeGray}

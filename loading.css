@@ -181,7 +181,7 @@
 
 /* Coral reef fish swimming animation */
 .swooping-fish {
-  animation: swooping-motion var(--fish-duration, 8s) var(--fish-delay, 0s) infinite ease-in-out;
+  animation: swooping-motion var(--fish-duration, 12s) var(--fish-delay, 0s) infinite ease-in-out;
   transform-origin: center center;
 }
 
@@ -190,13 +190,13 @@
     transform: translateX(0) translateY(0) rotate(0deg);
   }
   25% {
-    transform: translateX(20px) translateY(-10px) rotate(10deg);
+    transform: translateX(15px) translateY(-8px) rotate(8deg);
   }
   50% {
-    transform: translateX(0) translateY(-20px) rotate(0deg);
+    transform: translateX(0) translateY(-15px) rotate(0deg);
   }
   75% {
-    transform: translateX(-20px) translateY(-10px) rotate(-10deg);
+    transform: translateX(-15px) translateY(-8px) rotate(-8deg);
   }
 }
 

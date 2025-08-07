@@ -9,6 +9,9 @@ import { ValueNoise } from '../utils/noise';
 const PATTERN_SIZE = 128; // Optimized for performance while maintaining quality
 const WATER_PATTERN_SIZE = 256;
 
+// Enhanced cache with size limit for memory optimization
+const MAX_CACHE_SIZE = 50;
+
 // Cache for generated patterns
 const patternCache = new Map<string, CanvasPattern>();
 
@@ -55,6 +58,11 @@ function createRealisticWaterPattern(climate: ClimateType, seed: number): Canvas
 
     const pattern = ctx.createPattern(canvas, 'repeat');
     if (pattern) {
+        // Implement cache size management for memory efficiency
+        if (patternCache.size >= MAX_CACHE_SIZE) {
+            const firstKey = patternCache.keys().next().value;
+            patternCache.delete(firstKey);
+        }
         patternCache.set(cacheKey, pattern);
     }
     return pattern;
@@ -243,7 +251,7 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
                 const y = noise.random() * PATTERN_SIZE;
                 const size = 8 + noise.random() * 16;
                 
-                ctx.fillStyle = `rgba(210, 180, 140, ${0.08 + noise.random() * 0.12})`;
+                ctx.fillStyle = `rgba(210, 180, 140, ${0.15 + noise.random() * 0.15})`;
                 ctx.beginPath();
                 ctx.arc(x, y, size, 0, Math.PI * 2);
                 ctx.fill();
@@ -402,7 +410,7 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
                 const startY = (i / 8) * PATTERN_SIZE + (noise.random() - 0.5) * 20;
                 const amplitude = 8 + noise.random() * 12;
                 
-                ctx.strokeStyle = `rgba(107, 142, 35, ${0.08 + noise.random() * 0.08})`;
+                ctx.strokeStyle = `rgba(107, 142, 35, ${0.15 + noise.random() * 0.12})`;
                 ctx.lineWidth = 2 + noise.random();
                 ctx.beginPath();
                 ctx.moveTo(0, startY);
@@ -464,12 +472,92 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
             }
             break;
 
+        case BiomeType.CLIFF:
+        case BiomeType.VOLCANIC_ROCK:
+            // Enhanced volcanic rock texture with lava veins and rough surfaces
+            // Rough volcanic surface base
+            for (let i = 0; i < 30; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const size = 4 + noise.random() * 10;
+                
+                ctx.fillStyle = `rgba(139, 69, 19, ${0.2 + noise.random() * 0.25})`;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Volcanic veins and cracks
+            for (let i = 0; i < 15; i++) {
+                const x1 = noise.random() * PATTERN_SIZE;
+                const y1 = noise.random() * PATTERN_SIZE;
+                const x2 = x1 + (noise.random() - 0.5) * 30;
+                const y2 = y1 + (noise.random() - 0.5) * 30;
+                
+                ctx.strokeStyle = `rgba(220, 20, 60, ${0.15 + noise.random() * 0.15})`;
+                ctx.lineWidth = 1 + noise.random() * 1.5;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            
+            // Rough texture spots
+            for (let i = 0; i < 25; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const size = 2 + noise.random() * 4;
+                
+                ctx.fillStyle = `rgba(105, 105, 105, ${0.3 + noise.random() * 0.2})`;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            break;
+
+        case BiomeType.SALT_FLATS:
+            // Salt crystal formation patterns
+            // Salt crust patches
+            for (let i = 0; i < 20; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const size = 8 + noise.random() * 15;
+                
+                ctx.fillStyle = `rgba(248, 248, 255, ${0.15 + noise.random() * 0.2})`;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Salt crystal lines
+            for (let i = 0; i < 25; i++) {
+                const x1 = noise.random() * PATTERN_SIZE;
+                const y1 = noise.random() * PATTERN_SIZE;
+                const length = 8 + noise.random() * 15;
+                const angle = noise.random() * Math.PI * 2;
+                const x2 = x1 + Math.cos(angle) * length;
+                const y2 = y1 + Math.sin(angle) * length;
+                
+                ctx.strokeStyle = `rgba(230, 230, 250, ${0.2 + noise.random() * 0.15})`;
+                ctx.lineWidth = 0.5 + noise.random() * 0.8;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            break;
+
         default:
             return null;
     }
 
     const pattern = ctx.createPattern(canvas, 'repeat');
     if (pattern) {
+        // Implement cache size management for memory efficiency
+        if (patternCache.size >= MAX_CACHE_SIZE) {
+            const firstKey = patternCache.keys().next().value;
+            patternCache.delete(firstKey);
+        }
         patternCache.set(cacheKey, pattern);
     }
     return pattern;
@@ -499,6 +587,11 @@ function createShorelineShadowPattern(seed: number): CanvasPattern | null {
 
     const pattern = ctx.createPattern(canvas, 'repeat');
     if (pattern) {
+        // Implement cache size management for memory efficiency
+        if (patternCache.size >= MAX_CACHE_SIZE) {
+            const firstKey = patternCache.keys().next().value;
+            patternCache.delete(firstKey);
+        }
         patternCache.set(cacheKey, pattern);
     }
     return pattern;
@@ -539,7 +632,8 @@ export const useTilePatterns = ({ mapData }: UseTilePatternsProps) => {
             BiomeType.HILLS,
             BiomeType.TUNDRA,
             BiomeType.CLIFF,
-            BiomeType.VOLCANIC_ROCK
+            BiomeType.VOLCANIC_ROCK,
+            BiomeType.SALT_FLATS
         ];
 
         for (const biome of allBiomes) {

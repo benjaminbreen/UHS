@@ -33,6 +33,85 @@ export const getQualityGradientColor = (value: number, reverse: boolean = false)
   return `hsl(${h}, 100%, 50%)`;
 };
 
+// Enhanced lens-specific color gradients with beautiful, vivid color schemes
+export const getLensColor = (lensType: string, value: number): string => {
+  // Clamp value between 0 and 1
+  const clampedValue = Math.max(0, Math.min(1, value));
+  
+  switch (lensType) {
+    case 'safety':
+      // Red (dangerous) to bright green (safe) with warm undertones
+      if (clampedValue < 0.5) {
+        // Red to amber transition for danger zones
+        const localValue = clampedValue * 2; // 0-1 within this range
+        return `hsl(${localValue * 30}, 90%, ${45 + localValue * 10}%)`; // 0° (red) to 30° (orange-red)
+      } else {
+        // Amber to bright green for safe zones  
+        const localValue = (clampedValue - 0.5) * 2; // 0-1 within this range
+        return `hsl(${30 + localValue * 90}, ${85 + localValue * 15}%, ${50 + localValue * 15}%)`; // 30° (amber) to 120° (green)
+      }
+      
+    case 'biodiversity':
+    case 'wildlife':
+      // Deep purple/blue (barren) to vibrant green (biodiverse)
+      return `hsl(${240 + clampedValue * 120}, ${70 + clampedValue * 30}%, ${40 + clampedValue * 25}%)`;
+      
+    case 'sacrality':
+      // Deep blue (mundane) to golden yellow (sacred) with purple midtones
+      if (clampedValue < 0.5) {
+        const localValue = clampedValue * 2;
+        return `hsl(${240 - localValue * 60}, ${80 + localValue * 20}%, ${35 + localValue * 15}%)`; // Blue to purple
+      } else {
+        const localValue = (clampedValue - 0.5) * 2;
+        return `hsl(${180 + localValue * 75}, ${90 + localValue * 10}%, ${45 + localValue * 25}%)`; // Purple to gold
+      }
+      
+    case 'healthiness':
+      // Sickly yellow-green (unhealthy) to vibrant cyan-green (healthy)
+      return `hsl(${60 + clampedValue * 120}, ${70 + clampedValue * 30}%, ${45 + clampedValue * 20}%)`;
+      
+    case 'flammability':
+      // Cool blue (fire resistant) to intense red-orange (flammable)
+      if (clampedValue < 0.3) {
+        // Blue to cyan for low flammability
+        const localValue = clampedValue / 0.3;
+        return `hsl(${200 + localValue * 20}, 85%, ${50 + localValue * 10}%)`;
+      } else if (clampedValue < 0.7) {
+        // Cyan to yellow for medium flammability
+        const localValue = (clampedValue - 0.3) / 0.4;
+        return `hsl(${220 - localValue * 160}, ${75 + localValue * 25}%, ${55 + localValue * 10}%)`;
+      } else {
+        // Yellow to red-orange for high flammability
+        const localValue = (clampedValue - 0.7) / 0.3;
+        return `hsl(${60 - localValue * 45}, 95%, ${60 + localValue * 15}%)`;
+      }
+      
+    default:
+      // Fallback to standard red-green gradient
+      return getQualityGradientColor(clampedValue);
+  }
+};
+
+// Get mineral colors for the mineral deposits lens
+export const getMineralColor = (mineralType: string): string => {
+  const mineralColors: Record<string, string> = {
+    'Iron': '#8B4513',      // Brown
+    'Copper': '#B87333',    // Bronze
+    'Gold': '#FFD700',      // Gold
+    'Silver': '#C0C0C0',    // Silver
+    'Lead': '#696969',      // Dim gray
+    'Tin': '#A8A8A8',       // Light gray
+    'Coal': '#36454F',      // Charcoal
+    'Salt': '#F8F8FF',      // Ghost white
+    'Stone': '#708090',     // Slate gray
+    'Clay': '#CD853F',      // Peru
+    'Gems': '#FF1493',      // Deep pink
+    'Rare Metals': '#9400D3', // Violet
+  };
+  
+  return mineralColors[mineralType] || '#708090'; // Default to slate gray
+};
+
 export function interpolateColor(color1: string, color2: string, factor: number) {
     const result = color1.slice();
     const c1 = hexToRgb(color1);
