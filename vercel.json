@@ -4,11 +4,7 @@
       "runtime": "@vercel/node@18"
     }
   },
-  "build": {
-    "env": {
-      "GEMINI_API_KEY": "@gemini-api-key"
-    }
-  },
+
   "headers": [
     {
       "source": "/(.*)",
