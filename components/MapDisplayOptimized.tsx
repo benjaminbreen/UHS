@@ -144,6 +144,19 @@ interface MapDisplayOptimizedProps {
   playerCharacter: PlayerCharacter | null;
   gameTimeHours: number;
   gameTimeMinutes: number;
+  debugSettings?: {
+    showFPS: boolean;
+    showRenderCount: boolean;
+    disableBlurEffects: boolean;
+    disableAnimations: boolean;
+    disableShadows: boolean;
+    disableParticles: boolean;
+    reduceSVGComplexity: boolean;
+    disableCanvasSmoothing: boolean;
+    throttleAnimationFPS: boolean;
+    showMemoryUsage: boolean;
+    logPerformanceMetrics: boolean;
+  };
 }
 
 export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({ 
@@ -173,7 +186,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   velocity,
   playerCharacter,
   gameTimeHours,
-  gameTimeMinutes
+  gameTimeMinutes,
+  debugSettings
 }) => {
   // State management with performance considerations
   const [zoomLevel, setZoomLevel] = useState(INITIAL_ZOOM_LEVEL);
@@ -279,9 +293,20 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     const CAMERA_SNAP_THRESHOLD = 0.1;
 
     let isLooping = true;
+    let lastFrameTime = 0;
+    const frameInterval = debugSettings?.throttleAnimationFPS ? 33 : 0; // 30fps = ~33ms per frame
     
-    const smoothCameraLoop = () => {
+    const smoothCameraLoop = (timestamp?: number) => {
         if (!isLooping || !containerRef.current || !mapData) return;
+        
+        // Throttle frame rate if enabled
+        if (frameInterval > 0 && timestamp) {
+            if (timestamp - lastFrameTime < frameInterval) {
+                cameraAnimationFrame.current = requestAnimationFrame(smoothCameraLoop);
+                return;
+            }
+            lastFrameTime = timestamp;
+        }
 
         let focusX: number | null = null;
         let focusY: number | null = null;
@@ -346,7 +371,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             cancelAnimationFrame(cameraAnimationFrame.current);
         }
     };
-  }, [mapData, displayPixelIconX, displayPixelIconY, isDragging, isFreePanMode, zoomLevel, panX, panY]);
+  }, [mapData, displayPixelIconX, displayPixelIconY, isDragging, isFreePanMode, zoomLevel, panX, panY, debugSettings?.throttleAnimationFPS]);
 
   // Enhanced icon animation
   useEffect(() => {
@@ -793,11 +818,13 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     if (canvasRef.current) canvasRef.current.style.transform = newTransform;
   }, [mapData, zoomLevel]);
 
-  // Performance-based rendering decisions with Safari optimizations
-  const shouldRenderDetailedSymbols = zoomLevel > 0.8;
+  // Performance-based rendering decisions with Safari optimizations and debug overrides
+  const shouldRenderDetailedSymbols = debugSettings?.reduceSVGComplexity ? false : zoomLevel > 0.8;
   const shouldRenderVegetation = zoomLevel > 0.5;
-  const shouldRenderAnimations = zoomLevel > 0.6;
-  const shouldUseBlurEffects = !isSafari || zoomLevel > 1.2; // Reduce blur effects on Safari
+  const shouldRenderAnimations = debugSettings?.disableAnimations ? false : zoomLevel > 0.6;
+  const shouldUseBlurEffects = debugSettings?.disableBlurEffects ? false : (!isSafari || zoomLevel > 1.2); // Reduce blur effects on Safari
+  const shouldRenderParticles = !debugSettings?.disableParticles;
+  const shouldRenderShadows = !debugSettings?.disableShadows;
 
   // Helper to check if a tile is water (including shoals)
   const isWaterTile = useCallback((tile: Tile) => {
@@ -1033,6 +1060,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           zoomLevel={zoomLevel}
           nightIntensity={timeOfDayData.nightIntensity}
           colorShift={timeOfDayData.colorShift}
+          disableSmoothing={debugSettings?.disableCanvasSmoothing}
         />
         
         {/* Enhanced SVG overlay */}
@@ -1086,7 +1114,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             </mask>
           </defs>
 
-          {noiseGenerators && <CoastlineOverlay mapData={mapData} noise={noiseGenerators.shoreline} />}
+          {noiseGenerators && <CoastlineOverlay mapData={mapData} noise={noiseGenerators.shoreline} disableBlur={debugSettings?.disableBlurEffects} />}
 
           {/* Rendering layers */}
           <g>
@@ -1184,7 +1212,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   textAnchor="middle"
                   dominantBaseline="central"
                   style={{ 
-                    filter: 'drop-shadow(2px 3px 4px rgba(0,0,0,0.7))', 
+                    filter: shouldRenderShadows ? 'drop-shadow(2px 3px 4px rgba(0,0,0,0.7))' : 'none', 
                     pointerEvents: 'none'
                   }}
                 >
@@ -1252,7 +1280,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         dominantBaseline="central"
                         style={{ 
                           cursor: 'pointer',
-                          filter: isRuined ? 'grayscale(1) drop-shadow(1px 1px 2px rgba(0,0,0,0.6))' : 'drop-shadow(2px 3px 4px rgba(0,0,0,0.9))',
+                          filter: shouldRenderShadows 
+                            ? (isRuined ? 'grayscale(1) drop-shadow(1px 1px 2px rgba(0,0,0,0.6))' : 'drop-shadow(2px 3px 4px rgba(0,0,0,0.9))')
+                            : (isRuined ? 'grayscale(1)' : 'none'),
                           opacity: isRuined ? 0.6 : 1,
                           pointerEvents: 'auto'
                         }}
@@ -1289,7 +1319,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     fontSize={TILE_SIZE_PX * 1.2}
                     className={selectedAnimalId === animal.id ? 'animate-ff6-idle-bob' : ''}
                     style={{
-                      filter: 'drop-shadow(2px 3px 4px rgba(0,0,0,0.8))',
+                      filter: shouldRenderShadows ? 'drop-shadow(2px 3px 4px rgba(0,0,0,0.8))' : 'none',
                       stroke: selectedAnimalId === animal.id ? 'yellow' : 'none',
                       strokeWidth: selectedAnimalId === animal.id ? 2 : 0
                     }}
@@ -1492,7 +1522,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {/* Desert dust particles - atmospheric effect */}
             {shouldRenderDetailedSymbols && (
               <g>
-                {tiles.flat()
+                {shouldRenderParticles && tiles.flat()
                   .filter(tile => tile.biome === BiomeType.DESERT && tile.isLand)
                   .map(tile => (
                     <MemoizedDustEffect

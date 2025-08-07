@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { MapData } from '../types';
 import { ValueNoise } from '../utils/noise';
 import { TILE_SIZE_PX } from '../constants/index';
@@ -6,6 +6,7 @@ import { TILE_SIZE_PX } from '../constants/index';
 interface CoastlineOverlayProps {
   mapData: MapData;
   noise: ValueNoise;
+  disableBlur?: boolean; // For debug mode
 }
 
 interface PixelPoint {
@@ -42,7 +43,17 @@ const chaikinCurve = (points: PixelPoint[], iterations: number): PixelPoint[] =>
 };
 
 
-const CoastlineOverlay: React.FC<CoastlineOverlayProps> = ({ mapData, noise }) => {
+const CoastlineOverlay: React.FC<CoastlineOverlayProps> = ({ mapData, noise, disableBlur = false }) => {
+    // Detect Safari for automatic performance optimization
+    const [isSafari, setIsSafari] = useState(false);
+    
+    useEffect(() => {
+        const safari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        setIsSafari(safari);
+    }, []);
+    
+    // Determine if we should use blur effects
+    const shouldUseBlur = !disableBlur && !isSafari;
     const coastlinePaths = useMemo(() => {
         if (!mapData) return null;
 
@@ -125,14 +136,16 @@ const CoastlineOverlay: React.FC<CoastlineOverlayProps> = ({ mapData, noise }) =
                 y: p.y * TILE_SIZE_PX
             }));
 
-            // More smoothing iterations for more pronounced curves
-            const smoothedPath = chaikinCurve(pixelPath, 2);
+            // More smoothing iterations for more pronounced curves (reduce for Safari)
+            const smoothingIterations = shouldUseBlur ? 2 : 1;
+            const smoothedPath = chaikinCurve(pixelPath, smoothingIterations);
 
             const wiggledPath = smoothedPath.map((p, i) => {
                  if (i === 0 || i === smoothedPath.length - 1) return p; // Don't wiggle endpoints
-                // Increased perturbation for more wiggles
-                const perturbX = (noise.noise(p.x * 0.2, p.y * 0.2) - 0.5) * TILE_SIZE_PX * 0.3;
-                const perturbY = (noise.noise(p.y * 0.2, p.x * 0.2) - 0.5) * TILE_SIZE_PX * 0.3;
+                // Reduce perturbation for Safari performance
+                const perturbAmount = shouldUseBlur ? 0.3 : 0.2;
+                const perturbX = (noise.noise(p.x * 0.2, p.y * 0.2) - 0.5) * TILE_SIZE_PX * perturbAmount;
+                const perturbY = (noise.noise(p.y * 0.2, p.x * 0.2) - 0.5) * TILE_SIZE_PX * perturbAmount;
                 return { x: p.x + perturbX, y: p.y + perturbY };
             });
 
@@ -150,64 +163,133 @@ const CoastlineOverlay: React.FC<CoastlineOverlayProps> = ({ mapData, noise }) =
     return (
         <g>
             <defs>
-                {/* Wider, softer blur for the water glow which spreads far */}
-                <filter id={`outer-coast-blur-${uniqueId}`}>
-                    <feGaussianBlur in="SourceGraphic" stdDeviation="5" />
-                </filter>
-                {/* Tighter blur for the sand to keep it closer to shore */}
-                <filter id={`inner-coast-blur-${uniqueId}`}>
-                    <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" />
-                </filter>
-                 {/* Soft blur for the sea foam line */}
-                <filter id={`foam-blur-${uniqueId}`}>
-                    <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" />
-                </filter>
+                {/* Gradients for proper color transitions */}
+                <linearGradient id={`water-gradient-${uniqueId}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#4A90E2" stopOpacity="0.6" />
+                    <stop offset="50%" stopColor="#87CEEB" stopOpacity="0.4" />
+                    <stop offset="100%" stopColor="#B0E0E6" stopOpacity="0.2" />
+                </linearGradient>
+                
+                <linearGradient id={`sand-gradient-${uniqueId}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#D2B48C" stopOpacity="0.2" />
+                    <stop offset="50%" stopColor="#F5DEB3" stopOpacity="0.5" />
+                    <stop offset="100%" stopColor="#FFF8DC" stopOpacity="0.3" />
+                </linearGradient>
+
+                {/* Only create blur filters if we're using them */}
+                {shouldUseBlur && (
+                    <>
+                        {/* Wider, softer blur for the water glow */}
+                        <filter id={`outer-coast-blur-${uniqueId}`}>
+                            <feGaussianBlur in="SourceGraphic" stdDeviation="5" />
+                        </filter>
+                        {/* Tighter blur for the sand */}
+                        <filter id={`inner-coast-blur-${uniqueId}`}>
+                            <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" />
+                        </filter>
+                        {/* Soft blur for the sea foam line */}
+                        <filter id={`foam-blur-${uniqueId}`}>
+                            <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" />
+                        </filter>
+                    </>
+                )}
             </defs>
             
-            {/* 1. Outer Water Gradient (Pale Electric Blue) - Drawn first, very wide and soft */}
-            <path
-                d={coastlinePaths.fullPathD}
-                stroke="#89f7fe" // pale electric blue
-                strokeWidth={TILE_SIZE_PX * 0.1} // 16px wide -> 8px bleed each way
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity="0.75"
-                filter={`url(#outer-coast-blur-${uniqueId})`}
-            />
+            {shouldUseBlur ? (
+                // Full blur version for Chrome/Firefox
+                <>
+                    {/* 1. Outer Water Gradient - wide and soft */}
+                    <path
+                        d={coastlinePaths.fullPathD}
+                        stroke={`url(#water-gradient-${uniqueId})`}
+                        strokeWidth={TILE_SIZE_PX * 0.7}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        opacity="0.8"
+                        filter={`url(#outer-coast-blur-${uniqueId})`}
+                    />
 
-            {/* 2. Inner Land Gradient (Sand Color) - Drawn on top, less wide */}
-            <path
-                d={coastlinePaths.fullPathD}
-                stroke="#f5eac9" // sand color
-                strokeWidth={TILE_SIZE_PX * 0.4} // 8px wide -> 4px bleed each way
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity="0.9"
-                filter={`url(#inner-coast-blur-${uniqueId})`}
-            />
-            
-            {/* 3. Sea Foam Line - Crucial for hiding the transition and adding realism */}
-            <path
-                d={coastlinePaths.fullPathD}
-                stroke="rgba(255, 255, 255, 0.45)"
-                strokeWidth={TILE_SIZE_PX * 0.15} // 2.4px wide, covers the central seam
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                filter={`url(#foam-blur-${uniqueId})`}
-            />
+                    {/* 2. Inner Land Gradient - less wide */}
+                    <path
+                        d={coastlinePaths.fullPathD}
+                        stroke={`url(#sand-gradient-${uniqueId})`}
+                        strokeWidth={TILE_SIZE_PX * 0.5}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        opacity="0.9"
+                        filter={`url(#inner-coast-blur-${uniqueId})`}
+                    />
+                    
+                    {/* 3. Sea Foam Line */}
+                    <path
+                        d={coastlinePaths.fullPathD}
+                        stroke="rgba(255, 255, 255, 0.6)"
+                        strokeWidth={TILE_SIZE_PX * 0.15}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        filter={`url(#foam-blur-${uniqueId})`}
+                    />
 
-           {/* 4. Main Line (Dark Brown) - sharp and on top for definition */}
-            <path
-                d={coastlinePaths.fullPathD}
-                stroke="rgba(84, 57, 34, 0.1)" // A bit more transparent
-                strokeWidth={TILE_SIZE_PX * 0.08} // approx 1.6px
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
+                    {/* 4. Main Line - sharp definition */}
+                    <path
+                        d={coastlinePaths.fullPathD}
+                        stroke="rgba(84, 57, 34, 0.15)"
+                        strokeWidth={TILE_SIZE_PX * 0.08}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    />
+                </>
+            ) : (
+                // Safari-optimized non-blur version
+                <>
+                    {/* 1. Wide water gradient stroke */}
+                    <path
+                        d={coastlinePaths.fullPathD}
+                        stroke={`url(#water-gradient-${uniqueId})`}
+                        strokeWidth={TILE_SIZE_PX * 0.8}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        opacity="0.7"
+                    />
+                    
+                    {/* 2. Medium sand gradient stroke */}
+                    <path
+                        d={coastlinePaths.fullPathD}
+                        stroke={`url(#sand-gradient-${uniqueId})`}
+                        strokeWidth={TILE_SIZE_PX * 0.5}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        opacity="0.8"
+                    />
+
+                    {/* 3. Thin foam line */}
+                    <path
+                        d={coastlinePaths.fullPathD}
+                        stroke="rgba(255, 255, 255, 0.7)"
+                        strokeWidth={TILE_SIZE_PX * 0.12}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        opacity="0.6"
+                    />
+
+                    {/* 4. Sharp coastline definition */}
+                    <path
+                        d={coastlinePaths.fullPathD}
+                        stroke="rgba(84, 57, 34, 0.25)"
+                        strokeWidth={TILE_SIZE_PX * 0.06}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    />
+                </>
+            )}
         </g>
     );
 };

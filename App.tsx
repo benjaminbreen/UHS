@@ -12,6 +12,7 @@ import LeftSidebar from './components/LeftSidebar';
 import MapViewport from './components/MapViewport';
 import RightSidebar from './components/RightSidebar';
 import ModalHub from './components/ModalHub';
+import DebugOverlay from './components/DebugOverlay';
 
 const AppContent: React.FC = () => {
     useCoreLoops();
@@ -81,6 +82,7 @@ const AppContent: React.FC = () => {
             </div>
         </div>
         <ModalHub />
+        <DebugOverlay />
       </div>
     );
 };

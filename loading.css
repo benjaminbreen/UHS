@@ -224,3 +224,50 @@
     opacity: 0.5;
   }
 }
+
+/* Performance optimization classes - toggled by debug overlay */
+
+/* Disable blur effects for better Safari performance */
+body.disable-blur * {
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Disable all animations */
+body.disable-animations * {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Disable shadows for performance */
+body.disable-shadows * {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: drop-shadow(0 0 0 transparent) !important;
+}
+
+/* Reduce SVG complexity */
+body.reduce-svg svg {
+  shape-rendering: optimizeSpeed !important;
+  text-rendering: optimizeSpeed !important;
+}
+
+body.reduce-svg .symbol-container {
+  will-change: auto !important;
+}
+
+/* Disable specific heavy animations */
+body.disable-animations .circling-bird,
+body.disable-animations .swooping-fish,
+body.disable-animations .animate-dust-drift {
+  animation: none !important;
+}
+
+/* Force hardware acceleration on Safari */
+@supports (-webkit-appearance: none) {
+  .map-container {
+    -webkit-transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+  }
+}

@@ -28,6 +28,7 @@ import LootModal from './LootModal';
 import LevelUpModal from './LevelUpModal';
 import PortraitModal from './portraits/PortraitModal';
 import CraftingModal from './CraftingModal';
+import AboutModal from './AboutModal';
 
 const ModalHub: React.FC = () => {
     const {
@@ -37,9 +38,11 @@ const ModalHub: React.FC = () => {
         structureModalTarget, setStructureModalTarget,
         activeSettlementInfo, setActiveSettlementInfo,
         isSettingsModalOpen, setIsSettingsModalOpen,
+        isAboutModalOpen, setIsAboutModalOpen,
         useLlmForDescriptions, setUseLlmForDescriptions,
         useLlmForCharacter, setUseLlmForCharacter,
         showDevTooltip, setShowDevTooltip,
+        isTestModeEnabled, setIsTestModeEnabled,
         isWorldMapModalOpen, setIsWorldMapModalOpen,
         interactionModalData, setInteractionModalData, handleTakeItem,
         isSkillsModalOpen, setIsSkillsModalOpen, isSkillLoading, skillResult,
@@ -75,7 +78,8 @@ const ModalHub: React.FC = () => {
             {tileInfoModalProps && ( <TileInfoModal modalProps={tileInfoModalProps} onClose={() => setTileInfoModalProps(null)} /> )}
             {infoModalTarget && isNpc(infoModalTarget) && <NpcModal npc={infoModalTarget} onClose={() => setInfoModalTarget(null)}/>}
             {infoModalTarget && isAnimal(infoModalTarget) && <AnimalInfoModal animal={infoModalTarget} onClose={() => setInfoModalTarget(null)}/>}
-            {isSettingsModalOpen && ( <SettingsPanel isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} currentSeed={initialGameSeed} onSeedChange={handleSeedChangeFromSettings} showDevTooltip={showDevTooltip} onToggleDevTooltip={() => setShowDevTooltip(p => !p)} useLlmForDescriptions={useLlmForDescriptions} onToggleLlmForDescriptions={() => setUseLlmForDescriptions(p => !p)} useLlmForCharacter={useLlmForCharacter} onToggleLlmForCharacter={() => setUseLlmForCharacter(p => !p)} /> )}
+            {isAboutModalOpen && <AboutModal isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} />}
+            {isSettingsModalOpen && ( <SettingsPanel isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} currentSeed={initialGameSeed} onSeedChange={handleSeedChangeFromSettings} showDevTooltip={showDevTooltip} onToggleDevTooltip={() => setShowDevTooltip(p => !p)} useLlmForDescriptions={useLlmForDescriptions} onToggleLlmForDescriptions={() => setUseLlmForDescriptions(p => !p)} useLlmForCharacter={useLlmForCharacter} onToggleLlmForCharacter={() => setUseLlmForCharacter(p => !p)} isTestModeEnabled={isTestModeEnabled} onToggleTestMode={() => setIsTestModeEnabled(p => !p)} /> )}
             {isWorldMapModalOpen && ( <WorldMapModal isOpen={isWorldMapModalOpen} onClose={() => setIsWorldMapModalOpen(false)} cachedMaps={mapDataCache} currentWorldCoords={currentWorldCoords} /> )}
             {interactionModalData && ( <InteractionModal {...interactionModalData} onClose={() => setInteractionModalData(null)} onTakeItem={(item) => handleTakeItem(item, interactionModalData.entityId)} /> )}
             <SkillsModal isOpen={isSkillsModalOpen} isLoading={isSkillLoading} result={skillResult} onClose={() => setIsSkillsModalOpen(false)} />

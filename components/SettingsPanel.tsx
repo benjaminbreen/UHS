@@ -11,6 +11,8 @@ interface SettingsPanelProps {
   onToggleLlmForDescriptions: () => void;
   useLlmForCharacter: boolean;
   onToggleLlmForCharacter: () => void;
+  isTestModeEnabled: boolean;
+  onToggleTestMode: () => void;
 }
 
 const SettingsToggle: React.FC<{
@@ -50,6 +52,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onToggleLlmForDescriptions,
   useLlmForCharacter,
   onToggleLlmForCharacter,
+  isTestModeEnabled,
+  onToggleTestMode,
 }) => {
   const handleSeedInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newSeedValue = parseInt(event.target.value, 10);
@@ -132,13 +136,22 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
           <section>
             <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Display Options</h3>
-             <SettingsToggle 
+            <div className="space-y-3">
+              <SettingsToggle 
                 id="devTooltipToggle"
                 label="Dev Tooltip on Hover"
                 description="Show a small tooltip with tile information in the corner of the map."
                 isChecked={showDevTooltip}
                 onToggle={onToggleDevTooltip}
               />
+              <SettingsToggle 
+                id="testModeToggle"
+                label="Test Mode (Performance Debug)"
+                description="Enable performance monitoring overlay with feature toggles for debugging Safari rendering issues."
+                isChecked={isTestModeEnabled}
+                onToggle={onToggleTestMode}
+              />
+            </div>
           </section>
         </div>
       </div>

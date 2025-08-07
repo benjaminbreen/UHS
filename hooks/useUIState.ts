@@ -40,6 +40,7 @@ export const useUIState = () => {
 
     // UI State
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
+    const [isAboutModalOpen, setIsAboutModalOpen] = useState<boolean>(false);
     const [isWorldMapModalOpen, setIsWorldMapModalOpen] = useState<boolean>(false);
     const [isCharacterProfileModalOpen, setIsCharacterProfileModalOpen] = useState<boolean>(false);
     const [isMapDetailsModalOpen, setIsMapDetailsModalOpen] = useState<boolean>(false);
@@ -57,6 +58,20 @@ export const useUIState = () => {
     const [showDevTooltip, setShowDevTooltip] = useState<boolean>(false);
     const [useLlmForDescriptions, setUseLlmForDescriptions] = useState(false);
     const [useLlmForCharacter, setUseLlmForCharacter] = useState(false);
+    const [isTestModeEnabled, setIsTestModeEnabled] = useState<boolean>(false);
+    const [debugSettings, setDebugSettings] = useState({
+        showFPS: true,
+        showRenderCount: true,
+        disableBlurEffects: false,
+        disableAnimations: false,
+        disableShadows: false,
+        disableParticles: false,
+        reduceSVGComplexity: false,
+        disableCanvasSmoothing: false,
+        throttleAnimationFPS: false,
+        showMemoryUsage: true,
+        logPerformanceMetrics: false
+    });
 
     // Left Sidebar
     const [isLeftSidebarExpanded, setIsLeftSidebarExpanded] = useState<boolean>(true);
@@ -97,10 +112,10 @@ export const useUIState = () => {
 
     // Memoize if any modal is open
     const isAnyModalOpen = useMemo(() =>
-        isSettingsModalOpen || isWorldMapModalOpen || isCharacterProfileModalOpen || isMapDetailsModalOpen ||
+        isSettingsModalOpen || isAboutModalOpen || isWorldMapModalOpen || isCharacterProfileModalOpen || isMapDetailsModalOpen ||
         !!tileInfoModalProps || !!infoModalTarget || !!structureModalTarget || !!activeSettlementInfo ||
         !!interactionModalData || isSkillsModalOpen || !!encounterTarget || !!combatant || !!victoryDetails || !!lootModalData || !!activeMarketplaceModal || !!activeCityModal || isLevelUpModalOpen || isPortraitModalOpen || isCraftingModalOpen || !!activeMiningModal || !!activePoi,
-        [isSettingsModalOpen, isWorldMapModalOpen, isCharacterProfileModalOpen, isMapDetailsModalOpen,
+        [isSettingsModalOpen, isAboutModalOpen, isWorldMapModalOpen, isCharacterProfileModalOpen, isMapDetailsModalOpen,
          tileInfoModalProps, infoModalTarget, structureModalTarget, activeSettlementInfo,
          interactionModalData, isSkillsModalOpen, encounterTarget, combatant, victoryDetails, lootModalData, activeMarketplaceModal, activeCityModal, isLevelUpModalOpen, isPortraitModalOpen, isCraftingModalOpen, activeMiningModal, activePoi]
     );
@@ -502,7 +517,8 @@ export const useUIState = () => {
         // State
         hoveredDevData, pinnedDevData, isTooltipPinnedOpen,
         tileInfoModalProps, infoModalTarget, structureModalTarget, activeSettlementInfo,
-        isSettingsModalOpen, useLlmForDescriptions, useLlmForCharacter, showDevTooltip,
+        isSettingsModalOpen, isAboutModalOpen, useLlmForDescriptions, useLlmForCharacter, showDevTooltip,
+        isTestModeEnabled, debugSettings,
         isWorldMapModalOpen, interactionModalData, isSkillsModalOpen, isSkillLoading, skillResult,
         isMapDetailsModalOpen, encounterTarget, combatant, victoryDetails, isCharacterProfileModalOpen,
         isAnyModalOpen, activeMarketplaceModal, activeCityModal, activeMiningModal,
@@ -516,7 +532,8 @@ export const useUIState = () => {
         // Handlers
         handleDevHover, handleCondenseTooltip, togglePinnedTooltip,
         setTileInfoModalProps, setInfoModalTarget, setStructureModalTarget, setActiveSettlementInfo,
-        setIsSettingsModalOpen, setUseLlmForDescriptions, setUseLlmForCharacter, setShowDevTooltip,
+        setIsSettingsModalOpen, setIsAboutModalOpen, setUseLlmForDescriptions, setUseLlmForCharacter, setShowDevTooltip,
+        setIsTestModeEnabled, setDebugSettings,
         setIsWorldMapModalOpen, setInteractionModalData, handleTakeItem,
         setIsSkillsModalOpen, setIsMapDetailsModalOpen,
         handleEncounter, handleCloseEncounter, handleInitiateCombat,

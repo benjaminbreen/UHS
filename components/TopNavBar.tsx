@@ -6,7 +6,7 @@ import { MapArchetype, ClimateType, AltitudeSetting, GameDate } from '../types';
 import { MAP_ARCHETYPE_DESCRIPTIONS, CLIMATE_TYPE_DESCRIPTIONS, CULTURE_ZONES } from '../constants/index';
 
 const TopNavBar: React.FC = () => {
-  const { setIsSettingsModalOpen, setIsWorldMapModalOpen } = useUI();
+  const { setIsSettingsModalOpen, setIsAboutModalOpen, setIsWorldMapModalOpen } = useUI();
   const { 
     currentMapSeed,
     currentWorldCoords,
@@ -71,6 +71,15 @@ const TopNavBar: React.FC = () => {
             aria-label="Toggle World Map View"
         >
             <span className="text-sm mr-1">🌍</span> World Map
+        </button>
+
+        <button
+            onClick={() => setIsAboutModalOpen(true)}
+            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded-md transition-colors"
+            title="About the game"
+            aria-label="About"
+        >
+            <span className="text-sm mr-1">ℹ️</span> About
         </button>
 
         <button

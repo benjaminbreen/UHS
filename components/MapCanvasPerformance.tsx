@@ -22,6 +22,7 @@ interface MapCanvasProps {
   zoomLevel: number;
   nightIntensity?: number;
   colorShift?: { r: number; g: number; b: number };
+  disableSmoothing?: boolean;
 }
 
 // Optimized renderer class to prevent unnecessary re-renders
@@ -57,7 +58,7 @@ class MapCanvasRenderer {
     );
   }
 
-  render(mapData: MapData, canvasSize: { width: number; height: number }, patterns: any, nightIntensity: number = 0, colorShift: { r: number; g: number; b: number } = { r: 1, g: 1, b: 1 }) {
+  render(mapData: MapData, canvasSize: { width: number; height: number }, patterns: any, nightIntensity: number = 0, colorShift: { r: number; g: number; b: number } = { r: 1, g: 1, b: 1 }, disableSmoothing: boolean = false) {
     if (!this.canvas || !this.ctx || !this.shouldRender(mapData, canvasSize)) return;
 
     // Cancel any pending render
@@ -66,7 +67,7 @@ class MapCanvasRenderer {
     }
 
     this.renderFrameId = requestAnimationFrame(() => {
-      this.performRender(mapData, canvasSize, patterns, nightIntensity, colorShift);
+      this.performRender(mapData, canvasSize, patterns, nightIntensity, colorShift, disableSmoothing);
       this.lastMapSeed = mapData.seed;
       this.lastCanvasWidth = canvasSize.width;
       this.lastCanvasHeight = canvasSize.height;
@@ -74,15 +75,15 @@ class MapCanvasRenderer {
     });
   }
 
-  private performRender(mapData: MapData, canvasSize: { width: number; height: number }, patterns: any, nightIntensity: number = 0, colorShift: { r: number; g: number; b: number } = { r: 1, g: 1, b: 1 }) {
+  private performRender(mapData: MapData, canvasSize: { width: number; height: number }, patterns: any, nightIntensity: number = 0, colorShift: { r: number; g: number; b: number } = { r: 1, g: 1, b: 1 }, disableSmoothing: boolean = false) {
     if (!this.canvas || !this.ctx) return;
 
     this.canvas.width = canvasSize.width;
     this.canvas.height = canvasSize.height;
 
-    // Enable high-quality rendering with Safari compatibility
-    this.ctx.imageSmoothingEnabled = true;
-    if ('imageSmoothingQuality' in this.ctx) {
+    // Configure image smoothing based on debug settings
+    this.ctx.imageSmoothingEnabled = !disableSmoothing;
+    if (!disableSmoothing && 'imageSmoothingQuality' in this.ctx) {
       this.ctx.imageSmoothingQuality = 'high';
     }
     
@@ -351,7 +352,8 @@ export const MapCanvasPerformance = React.forwardRef<HTMLCanvasElement, MapCanva
   panY, 
   zoomLevel,
   nightIntensity = 0,
-  colorShift = { r: 1, g: 1, b: 1 }
+  colorShift = { r: 1, g: 1, b: 1 },
+  disableSmoothing = false
 }, ref) => {
   const internalCanvasRef = useRef<HTMLCanvasElement>(null);
   const canvasRef = (ref as React.MutableRefObject<HTMLCanvasElement | null>) || internalCanvasRef;
@@ -367,11 +369,11 @@ export const MapCanvasPerformance = React.forwardRef<HTMLCanvasElement, MapCanva
     renderer.setCanvas(canvasElement);
 
     if (mapData) {
-      renderer.render(mapData, canvasSize, memoizedPatterns, nightIntensity, colorShift);
+      renderer.render(mapData, canvasSize, memoizedPatterns, nightIntensity, colorShift, disableSmoothing);
     }
 
     return () => renderer.cleanup();
-  }, [mapData.seed, canvasSize.width, canvasSize.height, memoizedPatterns, nightIntensity, colorShift.r, colorShift.g, colorShift.b]);
+  }, [mapData.seed, canvasSize.width, canvasSize.height, memoizedPatterns, nightIntensity, colorShift.r, colorShift.g, colorShift.b, disableSmoothing]);
 
   return (
     <canvas
