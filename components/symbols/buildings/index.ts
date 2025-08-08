@@ -17,6 +17,8 @@ export { default as ModernCivic3D } from './ModernCivic3D';
 export { default as NativeTeepee3D } from './NativeTeepee3D';
 export { default as OttomanTownhouse3D } from './OttomanTownhouse3D';
 export { default as SouthAsianTemple3D } from './SouthAsianTemple3D';
+export { default as SouthAsianBuilding3D } from './SouthAsianBuilding3D';
+export { default as MediterraneanBuilding3D } from './MediterraneanBuilding3D';
 
 // NEW: Export religious buildings
 export { default as ChristianChurch3D } from './ChristianChurch3D';

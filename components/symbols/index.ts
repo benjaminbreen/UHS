@@ -24,3 +24,7 @@ export { default as AnimalCombatSprite } from './AnimalCombatSprite';
 export { default as MangroveSymbol } from './MangroveSymbol';
 export { default as CoralReefSymbol } from './CoralReefSymbol';
 export { default as SaltFlatsSymbol } from './SaltFlatsSymbol';
+export { default as FishingHutSymbol } from './FishingHutSymbol';
+export { default as SteamSymbol } from './SteamSymbol';
+export { default as GovernmentDistrictSymbol } from './GovernmentDistrictSymbol';
+export { default as FireflySymbol } from './FireflySymbol';

@@ -11,6 +11,12 @@ export interface CityDefinition {
   allegianceHistory: {
     [startYear: number]: string; // Maps a start year to a faction name. e.g., { 1545: 'Spanish Empire', 1825: 'Bolivia' }
   };
+  urbanDensity: 'small' | 'moderate' | 'large' | 'massive';
+  eraSpecificDensity?: {
+    [era: string]: 'small' | 'moderate' | 'large' | 'massive';
+  };
+  populationPeak?: number;
+  economicFocus?: string[];
 }
 
 // Keyed by the `name` property from a MapAreaDefinition in geography.ts
@@ -24,7 +30,14 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       allegianceHistory: {
         1545: "Spanish Empire",
         1825: "Republic of Bolivia",
-      }
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: {
+        'early_modern': 'large',
+        'modern': 'small'
+      },
+      populationPeak: 160000,
+      economicFocus: ['mining', 'silver', 'trade']
     }
   ],
   "London": [
@@ -36,7 +49,10 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       description: "A major commercial center of Roman Britain, established after the conquest of 43 AD.",
       allegianceHistory: {
         47: "Roman Empire"
-      }
+      },
+      urbanDensity: 'moderate',
+      populationPeak: 60000,
+      economicFocus: ['trade', 'administration', 'military']
     },
     {
         name: "London",
@@ -47,7 +63,17 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
             411: "Anglo-Saxons",
             1066: "Kingdom of England",
             1707: "British Empire"
-        }
+        },
+        urbanDensity: 'large',
+        eraSpecificDensity: {
+          'prehistoric': 'small',
+          'ancient': 'small',
+          'medieval': 'moderate',
+          'early_modern': 'large',
+          'modern': 'massive'
+        },
+        populationPeak: 8900000,
+        economicFocus: ['finance', 'trade', 'manufacturing', 'government']
     }
   ],
   "Edinburgh": [
@@ -197,7 +223,17 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
         [-27]: "Roman Empire",
         756: "Papal States",
         1871: "Kingdom of Italy"
-      }
+      },
+      urbanDensity: 'large',
+      eraSpecificDensity: {
+        'prehistoric': 'small',
+        'ancient': 'massive',
+        'medieval': 'moderate',
+        'early_modern': 'moderate',
+        'modern': 'large'
+      },
+      populationPeak: 1000000,
+      economicFocus: ['government', 'trade', 'religion', 'military']
     }
   ],
   "Venetian Lagoon": [
@@ -451,7 +487,10 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
         description: "The magnificent island capital of the Aztec Empire, a vast metropolis of canals and pyramids.",
         allegianceHistory: {
             1325: "Aztec Empire"
-        }
+        },
+        urbanDensity: 'massive',
+        populationPeak: 200000,
+        economicFocus: ['government', 'trade', 'religion', 'military', 'agriculture']
     },
     {
         name: "Mexico City",
@@ -462,7 +501,14 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
             1522: "Spanish Empire",
             1821: "Mexican Empire",
             1823: "United Mexican States"
-        }
+        },
+        urbanDensity: 'large',
+        eraSpecificDensity: {
+          'early_modern': 'large',
+          'modern': 'massive'
+        },
+        populationPeak: 21500000,
+        economicFocus: ['government', 'trade', 'manufacturing', 'services']
     }
   ],
   "Yucatán Peninsula": [
@@ -990,6 +1036,291 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       description: "The legendary capital of the Mongol Empire, where Genghis Khan's successors ruled the world.",
       allegianceHistory: {
         1220: "Mongol Empire"
+      }
+    }
+  ],
+
+  // === MISSING NORTH AMERICAN CITIES ===
+  "Great Lakes Shoreline": [
+    {
+      name: "Detroit",
+      isHistorical: true,
+      foundingYear: 1701,
+      description: "A French fur trading post that became the motor city of America.",
+      allegianceHistory: {
+        1701: "New France",
+        1760: "British Empire",
+        1796: "United States"
+      }
+    }
+  ],
+  "Puget Sound": [
+    {
+      name: "Seattle",
+      isHistorical: true,
+      foundingYear: 1851,
+      description: "A timber and fishing town that grew into the Pacific Northwest's major port.",
+      allegianceHistory: {
+        1851: "United States"
+      }
+    }
+  ],
+  "Colorado Plateau": [
+    {
+      name: "Mesa Verde",
+      isHistorical: true,
+      foundingYear: 600,
+      declineYear: 1300,
+      description: "Ancient Puebloan cliff dwellings, a marvel of indigenous architecture.",
+      allegianceHistory: {
+        600: "Ancestral Puebloans"
+      }
+    }
+  ],
+  "Platte River Basin": [
+    {
+      name: "Fort Laramie",
+      isHistorical: true,
+      foundingYear: 1834,
+      description: "A crucial way station on the Oregon, California, and Mormon trails west.",
+      allegianceHistory: {
+        1834: "United States"
+      }
+    }
+  ],
+
+  // === MISSING CENTRAL ASIAN CITIES ===
+  "Kazakh Steppes": [
+    {
+      name: "Almaty",
+      isHistorical: true,
+      foundingYear: 1854,
+      description: "Founded as a Russian frontier fort, it became the major city of Kazakhstan.",
+      allegianceHistory: {
+        1854: "Russian Empire",
+        1991: "Kazakhstan"
+      }
+    }
+  ],
+  "Altai Mountains": [
+    {
+      name: "Gorno-Altaysk",
+      isHistorical: true,
+      foundingYear: 1824,
+      description: "A small mountain town serving as gateway to the Altai wilderness.",
+      allegianceHistory: {
+        1824: "Russian Empire",
+        1991: "Russia"
+      }
+    }
+  ],
+  "Mongolian Steppes": [
+    {
+      name: "Ulaanbaatar",
+      isHistorical: true,
+      foundingYear: 1639,
+      description: "The red hero city, ancient center of Mongolian Buddhism and modern capital.",
+      allegianceHistory: {
+        1639: "Mongol Tribes",
+        1691: "Qing Dynasty",
+        1921: "Mongolia"
+      }
+    }
+  ],
+
+  // === MISSING AFRICAN CITIES ===
+  "Serengeti Plain": [
+    {
+      name: "Olduvai",
+      isHistorical: true,
+      foundingYear: -2000000,
+      description: "The cradle of mankind, where early hominids first walked upright.",
+      allegianceHistory: {
+        [-2000000]: "Early Hominids"
+      }
+    }
+  ],
+  "Kalahari Basin": [
+    {
+      name: "Ghanzi",
+      isHistorical: true,
+      foundingYear: 1898,
+      description: "A small outpost in the vast Kalahari, center of cattle ranching.",
+      allegianceHistory: {
+        1898: "British Empire",
+        1966: "Botswana"
+      }
+    }
+  ],
+  "Congo River Bend": [
+    {
+      name: "Kinshasa",
+      isHistorical: true,
+      foundingYear: 1881,
+      description: "Leopold's trading post that became the sprawling capital of the Congo.",
+      allegianceHistory: {
+        1881: "Congo Free State",
+        1908: "Belgian Congo",
+        1960: "Democratic Republic of Congo"
+      }
+    }
+  ],
+
+  // === MISSING OCEANIAN CITIES ===
+  "Sydney Basin": [
+    {
+      name: "Sydney",
+      isHistorical: true,
+      foundingYear: 1788,
+      description: "The first European settlement in Australia, built around one of the world's most beautiful harbors.",
+      allegianceHistory: {
+        1788: "British Empire",
+        1901: "Commonwealth of Australia"
+      }
+    }
+  ],
+  "Canterbury Plains": [
+    {
+      name: "Christchurch",
+      isHistorical: true,
+      foundingYear: 1850,
+      description: "The English city of the South Pacific, cathedral town on the Canterbury Plains.",
+      allegianceHistory: {
+        1850: "British Empire",
+        1907: "Dominion of New Zealand"
+      }
+    }
+  ],
+  "Sepik River Basin": [
+    {
+      name: "Wewak",
+      isHistorical: true,
+      foundingYear: 1885,
+      description: "A German colonial outpost that became Papua New Guinea's northern port.",
+      allegianceHistory: {
+        1885: "German Empire",
+        1914: "British Empire",
+        1975: "Papua New Guinea"
+      }
+    }
+  ],
+
+  // === MISSING SOUTH AMERICAN CITIES ===
+  "Manaus Region": [
+    {
+      name: "Manaus",
+      isHistorical: true,
+      foundingYear: 1669,
+      description: "The rubber boom capital deep in the Amazon rainforest.",
+      allegianceHistory: {
+        1669: "Portuguese Empire",
+        1822: "Empire of Brazil",
+        1889: "Republic of Brazil"
+      }
+    }
+  ],
+  "Orinoco Delta": [
+    {
+      name: "Ciudad Guayana",
+      isHistorical: true,
+      foundingYear: 1961,
+      description: "A planned industrial city at the confluence of great rivers.",
+      allegianceHistory: {
+        1961: "Venezuela"
+      }
+    }
+  ],
+
+  // === MISSING ASIAN CITIES ===
+  "Western Siberia": [
+    {
+      name: "Novosibirsk",
+      isHistorical: true,
+      foundingYear: 1893,
+      description: "The Chicago of Siberia, built where the Trans-Siberian Railway crosses the Ob.",
+      allegianceHistory: {
+        1893: "Russian Empire",
+        1991: "Russia"
+      }
+    }
+  ],
+  "Yellow River Valley": [
+    {
+      name: "Yinxu",
+      isHistorical: true,
+      foundingYear: -1300,
+      declineYear: -1046,
+      description: "The last capital of the Shang dynasty, where the earliest known Chinese writing was discovered.",
+      allegianceHistory: {
+        [-1300]: "Shang Dynasty"
+      }
+    },
+    {
+      name: "Chang'an",
+      isHistorical: true,
+      foundingYear: -202,
+      description: "The magnificent capital of several Chinese dynasties, including the Han and Tang, once the largest city in the world.",
+      allegianceHistory: {
+        [-202]: "Han Dynasty",
+        581: "Sui Dynasty",
+        618: "Tang Dynasty"
+      }
+    }
+  ],
+  "Beijing Basin": [
+    {
+      name: "Beijing",
+      isHistorical: true,
+      foundingYear: 1045,
+      description: "The northern capital, seat of the Forbidden City and center of the Middle Kingdom.",
+      allegianceHistory: {
+        1045: "Zhou Dynasty",
+        1153: "Jin Dynasty",
+        1272: "Yuan Dynasty",
+        1368: "Ming Dynasty",
+        1644: "Qing Dynasty"
+      }
+    }
+  ],
+  "Pearl River Delta": [
+    {
+      name: "Canton",
+      isHistorical: true,
+      foundingYear: -214,
+      description: "The great southern port, window to the world and gateway of Chinese trade.",
+      allegianceHistory: {
+        [-214]: "Qin Dynasty",
+        [-206]: "Han Dynasty",
+        618: "Tang Dynasty",
+        960: "Song Dynasty",
+        1368: "Ming Dynasty"
+      }
+    }
+  ],
+
+  // === MORE MISSING REGIONS ===
+  "Empty Quarter": [
+    {
+      name: "Rub' al Khali Oasis",
+      isHistorical: false,
+      foundingYear: 400,
+      description: "A rare oasis in the world's largest continuous sand desert.",
+      allegianceHistory: {
+        400: "Bedouin Tribes",
+        1932: "Saudi Arabia"
+      }
+    }
+  ],
+  "Sahara Desert": [
+    {
+      name: "Taghaza",
+      isHistorical: true,
+      foundingYear: 1200,
+      description: "The salt mines that made the trans-Saharan trade possible.",
+      allegianceHistory: {
+        1200: "Ghana Empire",
+        1325: "Mali Empire",
+        1591: "Moroccan Sultanate"
       }
     }
   ]

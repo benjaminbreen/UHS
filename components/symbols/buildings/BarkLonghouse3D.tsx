@@ -1,8 +1,8 @@
 /**
- * components/symbols/buildings/BarkLonghouse3D.tsx - Native American bark longhouse
+ * components/symbols/buildings/BarkLonghouse3D.tsx - Native American bark longhouse in 2.5D isometric
  */
 import React from 'react';
-import { Tile, HistoricalEra } from '../../../types';
+import { Tile, HistoricalEra, BiomeType } from '../../../types';
 import { ValueNoise } from '../../../utils/noise';
 
 interface BarkLonghouse3DProps {
@@ -25,188 +25,271 @@ const BarkLonghouse3D: React.FC<BarkLonghouse3DProps> = React.memo(({
   const uniqueId = `bark-longhouse-${tile.x}-${tile.y}`;
   
   // Pre-calculate all random values to prevent re-rendering
-  const rand1 = rng.random();
-  const rand2 = rng.random();
-  const rand3 = rng.random();
-  const rand4 = rng.random();
-  const rand5 = rng.random();
+  const rand = () => rng.random();
   
-  // Bark longhouse is elongated
-  const buildingWidth = width * 1.6;
-  const buildingHeight = height * 0.7;
-  const buildingX = x - buildingWidth * 0.3;
-  const buildingY = y + height - buildingHeight;
+  // Determine scale based on density
+  let scaleFactor = 0.8;
+  if (tile.biome === BiomeType.CITY_CENTER || tile.biome === BiomeType.HIGH_DENSITY_URBAN) {
+    scaleFactor = 0.95;
+  } else if (tile.biome === BiomeType.LOW_DENSITY_URBAN) {
+    scaleFactor = 0.85;
+  } else {
+    scaleFactor = 0.65 + rand() * 0.15; // Rural/hamlet variation
+  }
   
-  const barkBrown = `hsl(30, 35%, ${40 + rand1 * 12}%)`;
-  const barkShadow = `hsl(30, 35%, 25%)`;
-  const frameWood = `hsl(25, 30%, ${35 + rand2 * 10}%)`;
-  const smokeGray = 'rgba(120, 120, 120, 0.7)';
+  // 2.5D isometric dimensions - elongated for longhouse
+  const adjustedSize = size * scaleFactor;
+  const buildingWidth = adjustedSize * 0.85; // Wider for longhouse
+  const buildingHeight = adjustedSize * 0.35;
+  const buildingDepth = adjustedSize * 0.25;
   
-  const renderTorchLighting = () => {
-    if (nightIntensity < 0.2 || rand3 < 0.7) return null; // 30% chance
-    
-    const torchX = buildingX - size * 0.08;
-    const torchY = buildingY + buildingHeight * 0.5;
-    const fireColor = 'rgba(255, 140, 60, 0.9)';
-    const glowColor = 'rgba(255, 160, 80, 0.6)';
-    
-    return (
-      <g>
-        <circle
-          cx={torchX}
-          cy={torchY}
-          r={size * 0.1}
-          fill={glowColor}
-          opacity={nightIntensity * 0.8}
-          filter="blur(5px)"
+  // Center the building in the tile
+  const buildingX = x + (size - buildingWidth) / 2;
+  const buildingY = y + (size - adjustedSize) / 2 + adjustedSize * 0.4;
+  
+  // Colors
+  const barkLight = `hsl(30, 28%, ${48 + rand() * 8}%)`;
+  const barkMid = `hsl(28, 25%, ${38 + rand() * 8}%)`;
+  const barkDark = `hsl(26, 22%, 28%)`;
+  const frameWood = `hsl(25, 20%, 25%)`;
+  const roofBark = `hsl(32, 24%, ${42 + rand() * 6}%)`;
+  const roofDark = `hsl(30, 20%, 32%)`;
+  
+  // Helper function for isometric right side
+  const sideQuad = (x0: number, y0: number, w: number, h: number, d: number = buildingDepth) =>
+    `M ${x0 + w} ${y0} L ${x0 + w + d} ${y0 - d * 0.5} L ${x0 + w + d} ${y0 + h - d * 0.5} L ${x0 + w} ${y0 + h} Z`;
+  
+  const gEls: JSX.Element[] = [];
+  
+  // Ground shadow
+  gEls.push(
+    <ellipse
+      key="shadow"
+      cx={x + size * 0.5}
+      cy={y + (size - adjustedSize) / 2 + adjustedSize * 0.88}
+      rx={buildingWidth * 0.55}
+      ry={buildingWidth * 0.2}
+      fill="rgba(0,0,0,0.25)"
+      filter={`url(#blur-${uniqueId})`}
+    />
+  );
+  
+  // Main body - right side (behind)
+  gEls.push(
+    <path
+      key="body-side"
+      d={sideQuad(buildingX, buildingY, buildingWidth, buildingHeight)}
+      fill={`url(#sideGradient-${uniqueId})`}
+      stroke={frameWood}
+      strokeWidth={0.5}
+    />
+  );
+  
+  // Main body - front
+  gEls.push(
+    <rect
+      key="body-front"
+      x={buildingX}
+      y={buildingY}
+      width={buildingWidth}
+      height={buildingHeight}
+      fill={`url(#barkTexture-${uniqueId})`}
+      stroke={frameWood}
+      strokeWidth={0.6}
+    />
+  );
+  
+  // Roof - curved barrel vault in isometric
+  const roofOverhang = adjustedSize * 0.08;
+  const roofHeight = adjustedSize * 0.18;
+  const roofX = buildingX - roofOverhang;
+  const roofY = buildingY - roofHeight * 0.7;
+  const roofWidth = buildingWidth + roofOverhang * 2;
+  
+  // Roof side (behind)
+  gEls.push(
+    <path
+      key="roof-side"
+      d={`M ${roofX + roofWidth} ${roofY + roofHeight}
+          L ${roofX + roofWidth + buildingDepth} ${roofY + roofHeight - buildingDepth * 0.5}
+          Q ${roofX + roofWidth + buildingDepth * 0.5} ${roofY - buildingDepth * 0.3}
+            ${roofX + roofWidth * 0.5 + buildingDepth * 0.5} ${roofY - buildingDepth * 0.4}
+          L ${roofX + roofWidth * 0.5} ${roofY}
+          Q ${roofX + roofWidth} ${roofY - roofHeight * 0.2}
+            ${roofX + roofWidth} ${roofY + roofHeight}
+          Z`}
+      fill={roofDark}
+      stroke={frameWood}
+      strokeWidth={0.4}
+      opacity={0.95}
+    />
+  );
+  
+  // Roof front - curved barrel shape
+  gEls.push(
+    <path
+      key="roof-front"
+      d={`M ${roofX} ${roofY + roofHeight}
+          Q ${roofX + roofWidth * 0.5} ${roofY - roofHeight * 0.3}
+            ${roofX + roofWidth} ${roofY + roofHeight}
+          Z`}
+      fill={`url(#roofPattern-${uniqueId})`}
+      stroke={frameWood}
+      strokeWidth={0.6}
+    />
+  );
+  
+  // Vertical support posts (visible)
+  const postWidth = adjustedSize * 0.018;
+  const posts = 3;
+  for (let i = 0; i < posts; i++) {
+    const postX = buildingX + (buildingWidth / (posts + 1)) * (i + 1) - postWidth / 2;
+    gEls.push(
+      <rect
+        key={`post-${i}`}
+        x={postX}
+        y={buildingY}
+        width={postWidth}
+        height={buildingHeight}
+        fill={frameWood}
+        opacity={0.8}
+      />
+    );
+  }
+  
+  // Entrance - dark oval opening
+  const doorWidth = adjustedSize * 0.08;
+  const doorHeight = adjustedSize * 0.12;
+  gEls.push(
+    <ellipse
+      key="door"
+      cx={buildingX + buildingWidth * 0.15}
+      cy={buildingY + buildingHeight - doorHeight / 2}
+      rx={doorWidth / 2}
+      ry={doorHeight / 2}
+      fill="rgba(10,10,15,0.9)"
+      stroke={frameWood}
+      strokeWidth={0.4}
+    />
+  );
+  
+  // Smoke holes on roof
+  if (rand() > 0.3) {
+    const holeSize = adjustedSize * 0.02;
+    gEls.push(
+      <g key="smoke-holes">
+        <ellipse
+          cx={buildingX + buildingWidth * 0.3}
+          cy={roofY + roofHeight * 0.3}
+          rx={holeSize}
+          ry={holeSize * 0.7}
+          fill="rgba(20,20,25,0.8)"
         />
-        <circle
-          cx={torchX}
-          cy={torchY}
-          r={size * 0.05}
-          fill={fireColor}
-          opacity={nightIntensity}
-          filter="blur(2px)"
-        />
-        <rect
-          x={torchX - size * 0.008}
-          y={torchY}
-          width={size * 0.016}
-          height={size * 0.12}
-          fill={frameWood}
-          opacity={nightIntensity * 0.8}
+        <ellipse
+          cx={buildingX + buildingWidth * 0.7}
+          cy={roofY + roofHeight * 0.25}
+          rx={holeSize}
+          ry={holeSize * 0.7}
+          fill="rgba(20,20,25,0.8)"
         />
       </g>
     );
-  };
-
+    
+    // Rising smoke
+    if (rand() > 0.5) {
+      gEls.push(
+        <g key="smoke" opacity={0.6}>
+          <circle
+            cx={buildingX + buildingWidth * 0.3}
+            cy={roofY + roofHeight * 0.1}
+            r={adjustedSize * 0.025}
+            fill="rgba(140,140,140,0.5)"
+            filter={`url(#blur-${uniqueId})`}
+          />
+          <circle
+            cx={buildingX + buildingWidth * 0.7}
+            cy={roofY + roofHeight * 0.05}
+            r={adjustedSize * 0.02}
+            fill="rgba(140,140,140,0.4)"
+            filter={`url(#blur-${uniqueId})`}
+          />
+        </g>
+      );
+    }
+  }
+  
+  // Night torch lighting
+  if (nightIntensity > 0.3 && rand() > 0.6) {
+    const torchX = buildingX - adjustedSize * 0.08;
+    const torchY = buildingY + buildingHeight * 0.5;
+    
+    gEls.push(
+      <g key="torch">
+        <circle
+          cx={torchX}
+          cy={torchY}
+          r={adjustedSize * 0.1}
+          fill="rgba(255, 160, 80, 0.4)"
+          opacity={nightIntensity * 0.8}
+          filter={`url(#blur-${uniqueId})`}
+        />
+        <circle
+          cx={torchX}
+          cy={torchY - adjustedSize * 0.02}
+          r={adjustedSize * 0.03}
+          fill="rgba(255, 140, 60, 0.9)"
+          opacity={nightIntensity}
+        />
+        <rect
+          x={torchX - adjustedSize * 0.008}
+          y={torchY}
+          width={adjustedSize * 0.016}
+          height={adjustedSize * 0.08}
+          fill={frameWood}
+        />
+      </g>
+    );
+  }
+  
   return (
     <g filter="url(#symbolShadow)">
       <defs>
-        <pattern id={`barkTexture-${uniqueId}`} patternUnits="userSpaceOnUse" width="6" height="8">
-          <rect width="6" height="8" fill={barkBrown}/>
-          <rect x="0" y="2" width="6" height="1" fill={barkShadow} opacity="0.4"/>
-          <rect x="0" y="5" width="6" height="1" fill={barkShadow} opacity="0.3"/>
-          <rect x="1" y="0" width="1" height="8" fill={barkShadow} opacity="0.2"/>
-          <rect x="4" y="0" width="1" height="8" fill={barkShadow} opacity="0.2"/>
+        <clipPath id={`clip-${uniqueId}`}>
+          <rect x={x} y={y} width={size} height={size} />
+        </clipPath>
+        
+        <filter id={`blur-${uniqueId}`} x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="2" />
+        </filter>
+        
+        {/* Bark texture pattern */}
+        <pattern id={`barkTexture-${uniqueId}`} patternUnits="userSpaceOnUse" width="8" height="12">
+          <rect width="8" height="12" fill={barkMid}/>
+          <rect x="0" y="3" width="8" height="1" fill={barkDark} opacity="0.5"/>
+          <rect x="0" y="7" width="8" height="1" fill={barkDark} opacity="0.4"/>
+          <rect x="0" y="10" width="8" height="1" fill={barkDark} opacity="0.3"/>
+          <rect x="2" y="0" width="1" height="12" fill={barkLight} opacity="0.3"/>
+          <rect x="5" y="0" width="1" height="12" fill={barkDark} opacity="0.3"/>
         </pattern>
-        <linearGradient id={`barkGradient-${uniqueId}`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor={barkBrown} />
-          <stop offset="100%" stopColor={barkShadow} />
+        
+        {/* Roof bark pattern */}
+        <pattern id={`roofPattern-${uniqueId}`} patternUnits="userSpaceOnUse" width="10" height="8">
+          <rect width="10" height="8" fill={roofBark}/>
+          <path d="M 0 4 h 10" stroke={roofDark} strokeWidth="0.8" opacity="0.6"/>
+          <rect x="3" y="0" width="1" height="8" fill={roofDark} opacity="0.3"/>
+          <rect x="7" y="0" width="1" height="8" fill={roofDark} opacity="0.3"/>
+        </pattern>
+        
+        {/* Side gradient */}
+        <linearGradient id={`sideGradient-${uniqueId}`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor={barkDark} />
+          <stop offset="100%" stopColor={barkMid} />
         </linearGradient>
       </defs>
       
-      {/* Ground shadow */}
-      <ellipse
-        cx={buildingX + buildingWidth/2}
-        cy={buildingY + buildingHeight + size * 0.02}
-        rx={buildingWidth * 0.7}
-        ry={buildingWidth * 0.15}
-        fill="rgba(0,0,0,0.2)"
-      />
-      
-      {/* Main structure - curved barrel shape */}
-      <path
-        d={`M ${buildingX} ${buildingY + buildingHeight} 
-            Q ${buildingX + buildingWidth/2} ${buildingY - buildingHeight * 0.1} 
-            ${buildingX + buildingWidth} ${buildingY + buildingHeight} 
-            Z`}
-        fill={`url(#barkTexture-${uniqueId})`}
-        stroke={barkShadow}
-        strokeWidth="0.3"
-      />
-      
-      {/* Side wall for 3D effect */}
-      <path
-        d={`M ${buildingX + buildingWidth} ${buildingY + buildingHeight} 
-            Q ${buildingX + buildingWidth + size * 0.15} ${buildingY - buildingHeight * 0.05} 
-            ${buildingX + buildingWidth + size * 0.15} ${buildingY + buildingHeight * 0.8}
-            Q ${buildingX + buildingWidth} ${buildingY + buildingHeight * 0.9}
-            ${buildingX + buildingWidth} ${buildingY + buildingHeight}
-            Z`}
-        fill={barkShadow}
-        stroke={barkShadow}
-        strokeWidth="0.2"
-      />
-      
-      {/* Vertical bark strips */}
-      {Array.from({ length: Math.floor(buildingWidth / (size * 0.08)) }).map((_, i) => {
-        const stripX = buildingX + i * size * 0.08;
-        const stripHeight = buildingHeight * (0.6 + Math.sin(i) * 0.2);
-        return (
-          <rect
-            key={`strip-${i}`}
-            x={stripX}
-            y={buildingY + buildingHeight - stripHeight}
-            width={size * 0.02}
-            height={stripHeight}
-            fill={frameWood}
-            opacity="0.6"
-          />
-        );
-      })}
-      
-      {/* Entrance opening */}
-      <ellipse
-        cx={buildingX + buildingWidth * 0.15}
-        cy={buildingY + buildingHeight * 0.8}
-        rx={size * 0.04}
-        ry={size * 0.06}
-        fill="rgba(0,0,0,0.8)"
-      />
-      
-      {/* Smoke holes */}
-      <circle
-        cx={buildingX + buildingWidth * 0.3}
-        cy={buildingY + buildingHeight * 0.2}
-        r={size * 0.02}
-        fill="rgba(0,0,0,0.6)"
-      />
-      <circle
-        cx={buildingX + buildingWidth * 0.7}
-        cy={buildingY + buildingHeight * 0.15}
-        r={size * 0.02}
-        fill="rgba(0,0,0,0.6)"
-      />
-      
-      {/* Smoke from hearths */}
-      {rand4 > 0.4 && (
-        <g>
-          <circle
-            cx={buildingX + buildingWidth * 0.3}
-            cy={buildingY + buildingHeight * 0.1}
-            r={size * 0.015}
-            fill={smokeGray}
-            opacity="0.6"
-          />
-          <circle
-            cx={buildingX + buildingWidth * 0.7 + (rand5 - 0.5) * size * 0.03}
-            cy={buildingY + buildingHeight * 0.05}
-            r={size * 0.01}
-            fill={smokeGray}
-            opacity="0.4"
-          />
-        </g>
-      )}
-      
-      {/* Wooden frame posts */}
-      <rect
-        x={buildingX + size * 0.02}
-        y={buildingY + buildingHeight * 0.2}
-        width={size * 0.02}
-        height={buildingHeight * 0.6}
-        fill={frameWood}
-      />
-      <rect
-        x={buildingX + buildingWidth - size * 0.04}
-        y={buildingY + buildingHeight * 0.2}
-        width={size * 0.02}
-        height={buildingHeight * 0.6}
-        fill={frameWood}
-      />
-      
-      {/* Torch lighting */}
-      {renderTorchLighting()}
+      <g clipPath={`url(#clip-${uniqueId})`}>
+        {gEls}
+      </g>
     </g>
   );
 });

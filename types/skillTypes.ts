@@ -29,6 +29,15 @@ export interface PlayerContext {
     mapData?: MapData | null;
     npcs?: NpcEntity[];
     gameDate?: GameDate;
+    // Interior context information
+    interiorContext?: {
+        buildingType: string;
+        buildingName: string;
+        currentSpace?: string;
+        religion?: string;
+        culturalZone?: string;
+        layoutName?: string;
+    };
 }
 
 export interface ObserveSkillResult {

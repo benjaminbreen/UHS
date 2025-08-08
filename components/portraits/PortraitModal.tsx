@@ -25,7 +25,7 @@ const PortraitModal: React.FC<PortraitModalProps> = ({ character, onClose }) => 
                 <div className="flex-shrink-0 w-full md:w-1/2 flex flex-col items-center">
                     <h3 className="text-2xl font-bold text-blue-300 mb-4 text-center">{character.name}</h3>
                     <div className="w-full max-w-xs md:max-w-full aspect-square bg-slate-900/50 rounded-lg border-2 border-slate-600/50 shadow-xl shadow-black/40">
-                        <ProceduralPortrait character={character} size={512} />
+                        <ProceduralPortrait character={character} size={400} />
                     </div>
                 </div>
 

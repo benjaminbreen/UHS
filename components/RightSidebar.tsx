@@ -13,6 +13,7 @@ import { mapLocationToCulture } from '../utils/mapUtils';
 import NarrationPanel from './NarrationPanel';
 import InventoryPanel from './InventoryPanel';
 import BeliefsPanel from './BeliefsPanel';
+import { getSafariOptimizedClassName } from '../utils/safariUtils';
 import { ProceduralPortrait } from './portraits';
 import { SKILL_DATA, SKILL_BUTTON_ORDER } from '../constants/index';
 
@@ -117,7 +118,7 @@ const RightSidebar: React.FC = () => {
     const repPercent = playerCharacter ? playerCharacter.mapReputation : 50;
 
     return (
-        <div className="h-full flex flex-col w-[400px] flex-shrink-0 bg-sidebar-gradient shadow-sidebar-right backdrop-blur-xl border-l border-slate-700/80 text-slate-200">
+        <div className={getSafariOptimizedClassName("h-full flex flex-col w-[400px] flex-shrink-0 bg-sidebar-gradient shadow-sidebar-right backdrop-blur-xl border-l border-slate-700/80 text-slate-200")}>
             <div className="flex flex-col h-full overflow-y-auto scrollbar-thin">
                 {/* Player Profile Card */}
                 <div className="flex-shrink-0 p-4">

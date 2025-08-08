@@ -16,7 +16,16 @@ export interface Room {
   y: number;
   width: number;
   height: number;
-  purpose: 'living' | 'bedroom' | 'kitchen' | 'storage' | 'hallway' | 'special' | 'tavern_main' | 'private_chamber' | 'throne_room' | 'great_hall' | 'guard_room';
+  purpose: 'living' | 'bedroom' | 'kitchen' | 'storage' | 'hallway' | 'special' | 
+           'tavern_main' | 'private_chamber' | 'throne_room' | 'great_hall' | 'guard_room' |
+           // Religious rooms
+           'sanctuary' | 'nave' | 'vestry' | 'crypt' | 'bell_tower' |
+           'prayer_hall' | 'mihrab' | 'minaret' | 'ablution' | 'library' |
+           'ark_room' | 'study' | 'mikvah' |
+           'meditation_hall' | 'shrine_room' | 'living_quarters' |
+           'sanctum' | 'mandapa' |
+           'worship_hall' | 'offering_hall' | 'purification' |
+           'sacred_chamber' | 'ritual_room' | 'offering_room';
 }
 
 export interface InteriorTile {
@@ -45,7 +54,7 @@ export interface InteriorEntity {
   height: number;
   rotation?: number;
   isInteractable?: boolean;
-  contents?: string[];
+  contents?: any[]; // Can hold Item objects including PrimarySourceTexts
   quality?: FurnitureQuality;
   description?: string;
   // NEW: Staircase properties
@@ -84,4 +93,7 @@ export interface InteriorMapData {
   floor: number;
   buildingId: string;
   totalFloors: number;
+  // NEW: NPCs in interior
+  npcs?: any[]; // NpcEntity[]
+  restrictions?: any[]; // RoomRestriction[]
 }

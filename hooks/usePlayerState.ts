@@ -210,19 +210,26 @@ export const usePlayerState = (props: usePlayerStateProps) => {
       }, [playerCharacter]);
 
     const findInitialIconPosition = useCallback((tiles: any[][], mode: 'ship' | 'onFoot'): { x: number; y: number; mode: 'ship' | 'onFoot' } | null => {
+        // Add null/undefined checks for tiles
+        if (!tiles || tiles.length === 0 || !tiles[0]) {
+            const fallbackX = Math.floor(MAP_WIDTH_TILES / 2);
+            const fallbackY = Math.floor(MAP_HEIGHT_TILES / 2);
+            return { x: fallbackX, y: fallbackY, mode };
+        }
+        
         const priorityOrderWater: BiomeType[] = [BiomeType.SHALLOW_OCEAN, BiomeType.MAJOR_RIVER, BiomeType.DEEP_OCEAN, BiomeType.RIVER, BiomeType.REEF, BiomeType.OASIS, BiomeType.SHOALS_TILE, BiomeType.FRESHWATER_LAKE, BiomeType.ESTUARY]; 
         const priorityOrderLand: BiomeType[] = [BiomeType.BEACH, BiomeType.GRASSLAND, BiomeType.RIVERBANK, BiomeType.FOREST, BiomeType.HILLS]; 
         const targetOrder = mode === 'ship' ? priorityOrderWater : priorityOrderLand; 
         for (const biome of targetOrder) { 
             for (let y = 0; y < MAP_HEIGHT_TILES; y++) { 
                 for (let x = 0; x < MAP_WIDTH_TILES; x++) { 
-                    if (tiles[y][x].biome === biome) { 
+                    if (tiles[y] && tiles[y][x] && tiles[y][x].biome === biome) { 
                         if (mode === 'ship') { 
                             if ([BiomeType.SHALLOW_OCEAN, BiomeType.DEEP_OCEAN, BiomeType.REEF, BiomeType.SHOALS_TILE, BiomeType.FRESHWATER_LAKE, BiomeType.ESTUARY].includes(biome)) { 
                                 for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { 
                                     if (dx === 0 && dy === 0) continue; 
                                     const ny = y + dy; const nx = x + dx; 
-                                    if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES && tiles[ny][nx].isLand && tiles[ny][nx].biome !== BiomeType.ACTIVE_LAVA && tiles[ny][nx].biome !== BiomeType.SHOALS_TILE) return { x, y, mode }; 
+                                    if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES && tiles[ny] && tiles[ny][nx] && tiles[ny][nx].isLand && tiles[ny][nx].biome !== BiomeType.ACTIVE_LAVA && tiles[ny][nx].biome !== BiomeType.SHOALS_TILE) return { x, y, mode }; 
                                 } 
                             } else return { x, y, mode }; 
                         } else { 
@@ -236,9 +243,9 @@ export const usePlayerState = (props: usePlayerStateProps) => {
         if(mode === 'ship' && tiles[fallbackY]?.[fallbackX] && !tiles[fallbackY][fallbackX].isLand) return {x: fallbackX, y: fallbackY, mode}; 
         if(mode === 'onFoot' && tiles[fallbackY]?.[fallbackX] && tiles[fallbackY][fallbackX].isLand) return {x: fallbackX, y: fallbackY, mode}; 
         if(mode === 'ship') { 
-            for (let y = 0; y < MAP_HEIGHT_TILES; y++) for (let x = 0; x < MAP_WIDTH_TILES; x++) if (!tiles[y][x].isLand && tiles[y][x].biome !== BiomeType.ACTIVE_LAVA) return {x,y, mode}; 
+            for (let y = 0; y < MAP_HEIGHT_TILES; y++) for (let x = 0; x < MAP_WIDTH_TILES; x++) if (tiles[y] && tiles[y][x] && !tiles[y][x].isLand && tiles[y][x].biome !== BiomeType.ACTIVE_LAVA) return {x,y, mode}; 
         } else { 
-            for (let y = 0; y < MAP_HEIGHT_TILES; y++) for (let x = 0; x < MAP_WIDTH_TILES; x++) if (tiles[y][x].isLand && tiles[y][x].biome !== BiomeType.ACTIVE_LAVA) return {x,y, mode}; 
+            for (let y = 0; y < MAP_HEIGHT_TILES; y++) for (let x = 0; x < MAP_WIDTH_TILES; x++) if (tiles[y] && tiles[y][x] && tiles[y][x].isLand && tiles[y][x].biome !== BiomeType.ACTIVE_LAVA) return {x,y, mode}; 
         } 
         return {x: fallbackX , y: fallbackY, mode}; 
     }, []);
@@ -246,16 +253,66 @@ export const usePlayerState = (props: usePlayerStateProps) => {
     const onIconAnimationComplete = useCallback(() => { isIconMoving.current = false; }, []);
 
     const onEnterBuilding = useCallback((tile: Tile, mapData: MapData) => {
-        if (!mapData || !tile.structure) return;
+        console.log('🏗️ [usePlayerState] onEnterBuilding called');
+        console.log('📍 Tile data:', {
+            x: tile.x,
+            y: tile.y,
+            structure: tile.structure,
+            holyPlaceReligion: tile.holyPlaceReligion
+        });
+        
+        if (!mapData || !tile.structure) {
+            console.log('❌ Missing mapData or structure, returning');
+            return;
+        }
         const buildingId = tile.structure.id;
         
         setInteriorViewState(prev => {
             if (prev?.buildingId === buildingId) {
+                console.log('♻️ Reusing existing interior for building:', buildingId);
                 setViewMode('interior');
                 return prev;
             }
+            
+            console.log('🔧 Creating new interior for building:', buildingId);
+            console.log('🏢 Structure details:', {
+                type: tile.structure!.type,
+                structureType: tile.structure!.structureType,
+                name: tile.structure!.name
+            });
+            
+            // Map structure types to interior building types - some buildings might have different names
+            let buildingType = tile.structure!.structureType || tile.structure!.type;
+            
+            console.log('🔍 [usePlayerState] Structure analysis:', {
+                structureType: tile.structure!.structureType,
+                type: tile.structure!.type,
+                name: tile.structure!.name,
+                initialBuildingType: buildingType
+            });
+            
+            // Handle variations in structure naming
+            if (tile.structure!.type === 'palace' || tile.structure!.name?.toLowerCase().includes('palace')) {
+                console.log('🏰 Detected PALACE - mapping to palace');
+                buildingType = 'palace';
+            } else if (tile.structure!.type === 'holy_place' || tile.structure!.type === 'temple' || tile.structure!.type === 'holy_site' ||
+                       tile.structure!.structureType === 'holy_place' || tile.structure!.structureType === 'temple' || tile.structure!.structureType === 'holy_site' ||
+                       tile.structure!.name?.toLowerCase().includes('temple') || 
+                       tile.structure!.name?.toLowerCase().includes('church') ||
+                       tile.structure!.name?.toLowerCase().includes('cathedral') ||
+                       tile.structure!.name?.toLowerCase().includes('mosque')) {
+                console.log('⛪ Detected HOLY PLACE - mapping to holy_place');
+                buildingType = 'holy_place';
+            }
+            
+            console.log('🎯 Final building type mapping:', {
+                original: tile.structure!.structureType,
+                mapped: buildingType,
+                holyPlaceReligion: tile.holyPlaceReligion
+            });
+            
             const interiorMap = generateInteriorMap({
-                buildingType: tile.structure!.structureType,
+                buildingType: buildingType,
                 contextTile: tile,
                 standardMapContext: mapData,
                 date: String(gameDate.year),

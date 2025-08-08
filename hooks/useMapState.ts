@@ -12,6 +12,38 @@ import { generateCharacter } from '../services/characterGenerator';
 import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
 
+/**
+ * Convert MapArchetype enum to a readable area name for display
+ */
+function getArchetypeName(archetype: MapArchetype): string {
+    switch (archetype) {
+        case MapArchetype.SHOALS: return "Shoals";
+        case MapArchetype.OPEN_OCEAN: return "Open Ocean";
+        case MapArchetype.ISLAND: return "Island";
+        case MapArchetype.BAY: return "Bay";
+        case MapArchetype.STRAITS: return "Straits";
+        case MapArchetype.DELTA: return "River Delta";
+        case MapArchetype.RIVER_PORT: return "River Port";
+        case MapArchetype.FRESHWATER_LAKE: return "Lake";
+        case MapArchetype.PENINSULA: return "Peninsula";
+        case MapArchetype.ALL_LAND: return "Mainland";
+        case MapArchetype.ATOLL: return "Atoll";
+        default: return "Unknown Waters";
+    }
+}
+
+/**
+ * Get the opposite direction for liminal travel
+ */
+function getOppositeDirection(direction: AdjacencyDirection): AdjacencyDirection {
+    switch (direction) {
+        case 'N': return 'S';
+        case 'S': return 'N';
+        case 'E': return 'W';
+        case 'W': return 'E';
+        default: return direction;
+    }
+}
 
 interface CachedMapEntry {
   mapData: MapData;
@@ -324,67 +356,153 @@ export const useMapState = (props: useMapStateProps) => {
                 const west = mapDataCache.get(`${currentWorldCoords.x - 1},${currentWorldCoords.y}`);
                 if (west) neighboringEdges.west = west.mapData.edgeDataSet.west;
 
-                const areaInfo = findMapAreaDefinition(localArea);
-                if (areaInfo) {
-                     const newMapData = generateAndCacheMapInternal(
-                        currentMapSeed, areaInfo.areaDef.archetype, areaInfo.areaDef.climate,
+                // Check if we're in a liminal zone first
+                let mapToGenerate = null;
+                
+                if (gameState.liminalTravelState) {
+                    // We're in a liminal zone - generate based on current archetype
+                    const currentArchetype = gameState.liminalTravelState.sequence[gameState.liminalTravelState.progress];
+                    console.log(`[Map Generation] Generating liminal map for archetype: ${currentArchetype}`);
+                    
+                    // Determine climate based on origin area
+                    const originAreaInfo = findMapAreaDefinition(gameState.liminalTravelState.originArea);
+                    const climate = originAreaInfo ? originAreaInfo.areaDef.climate : ClimateType.TEMPERATE;
+                    
+                    mapToGenerate = {
+                        archetype: currentArchetype,
+                        climate: climate,
+                        name: getArchetypeName(currentArchetype),
+                        region: "Liminal Waters",
+                        zone: "Ocean"
+                    };
+                } else {
+                    // Normal area - find it in geographical data
+                    const areaInfo = findMapAreaDefinition(localArea);
+                    if (areaInfo) {
+                        mapToGenerate = {
+                            archetype: areaInfo.areaDef.archetype,
+                            climate: areaInfo.areaDef.climate,
+                            name: areaInfo.areaDef.name,
+                            region: areaInfo.region,
+                            zone: areaInfo.zone
+                        };
+                    }
+                }
+                
+                if (mapToGenerate) {
+                    const newMapData = generateAndCacheMapInternal(
+                        currentMapSeed, mapToGenerate.archetype, mapToGenerate.climate,
                         currentWorldCoords.x, currentWorldCoords.y,
-                        areaInfo.areaDef.name, areaInfo.region, areaInfo.zone, neighboringEdges
+                        mapToGenerate.name, mapToGenerate.region, mapToGenerate.zone, neighboringEdges
                     );
                     setMapData(newMapData.mapData);
                     setAnimals(newMapData.animals);
                     setNpcs(newMapData.npcs);
-                     if (playerState.pendingIconTransitionInfo) {
+                    if (playerState.pendingIconTransitionInfo) {
                         validateAndPlacePlayerOnNewMap(newMapData.mapData, playerState.pendingIconTransitionInfo);
                     }
                 }
                 setGameState.setIsLoading(false);
             }
         }
-    }, [currentWorldCoords]);
+    }, [currentWorldCoords, gameState.liminalTravelState, mapData, currentMapSeed, mapDataCache, setGameState, setLocalArea, playerState.pendingIconTransitionInfo, generateAndCacheMapInternal, validateAndPlacePlayerOnNewMap, localArea]);
 
 
     const handleMapTransition = useCallback((direction: AdjacencyDirection, entryX: number, entryY: number) => {
         console.log(`[Map Transition] Initiated. Direction: ${direction}, From: ${localArea}`);
-        if (gameState.liminalTravelState || playerState.pendingIconTransitionInfo) {
-            console.warn("[Map Transition] Aborted: Transition already in progress.");
+        if (playerState.pendingIconTransitionInfo) {
+            console.warn("[Map Transition] Aborted: Icon transition already in progress.");
             return;
         }
         
-        const nextMapResult = getNextMapArea(localArea, direction);
-        let targetWorldX = currentWorldCoords.x;
-        let targetWorldY = currentWorldCoords.y;
-        
-        if (direction === 'N') targetWorldY--;
-        else if (direction === 'S') targetWorldY++;
-        else if (direction === 'W') targetWorldX--;
-        else if (direction === 'E') targetWorldX++;
+        // Handle liminal travel progression
+        if (gameState.liminalTravelState) {
+            console.log(`[Liminal Travel] Continuing in liminal sequence. Current progress: ${gameState.liminalTravelState.progress}`);
+            const { sequence, progress, destination, originArea, originDirection } = gameState.liminalTravelState;
+            
+            // If we're moving in the original direction, advance through sequence
+            if (direction === originDirection) {
+                const nextProgress = progress + 1;
+                
+                if (nextProgress >= sequence.length) {
+                    // End of sequence - arrive at destination
+                    console.log(`[Liminal Travel] Sequence complete. Arriving at: ${destination}`);
+                    setGameState.setLiminalTravelState(null);
+                    setLocalArea(destination);
+                } else {
+                    // Move to next archetype in sequence
+                    const nextArchetype = sequence[nextProgress];
+                    console.log(`[Liminal Travel] Advancing to: ${getArchetypeName(nextArchetype)} (${nextProgress + 1}/${sequence.length})`);
+                    setGameState.setLiminalTravelState({
+                        ...gameState.liminalTravelState,
+                        progress: nextProgress
+                    });
+                    setLocalArea(getArchetypeName(nextArchetype));
+                }
+            } else if (direction === getOppositeDirection(originDirection)) {
+                // Moving backwards through sequence
+                const nextProgress = progress - 1;
+                
+                if (nextProgress < 0) {
+                    // Back to origin
+                    console.log(`[Liminal Travel] Returning to origin: ${originArea}`);
+                    setGameState.setLiminalTravelState(null);
+                    setLocalArea(originArea);
+                } else {
+                    // Move to previous archetype in sequence  
+                    const prevArchetype = sequence[nextProgress];
+                    console.log(`[Liminal Travel] Retreating to: ${getArchetypeName(prevArchetype)} (${nextProgress + 1}/${sequence.length})`);
+                    setGameState.setLiminalTravelState({
+                        ...gameState.liminalTravelState,
+                        progress: nextProgress
+                    });
+                    setLocalArea(getArchetypeName(prevArchetype));
+                }
+            } else {
+                // Invalid direction in liminal space
+                console.warn(`[Liminal Travel] Invalid direction ${direction} in liminal space. Can only move ${originDirection} or ${getOppositeDirection(originDirection)}.`);
+                return;
+            }
+        } else {
+            // Normal map transition logic
+            const nextMapResult = getNextMapArea(localArea, direction);
+            let targetWorldX = currentWorldCoords.x;
+            let targetWorldY = currentWorldCoords.y;
+            
+            if (direction === 'N') targetWorldY--;
+            else if (direction === 'S') targetWorldY++;
+            else if (direction === 'W') targetWorldX--;
+            else if (direction === 'E') targetWorldX++;
 
-        if (nextMapResult.type === 'liminal') {
-            console.log(`[Map Transition] Entering liminal sequence: ${nextMapResult.key}`);
-            setGameState.setLiminalTravelState({ 
-                sequence: nextMapResult.sequence, 
-                progress: 0, 
-                destination: nextMapResult.destination, 
-                originArea: localArea, 
-                originDirection: direction 
-            });
-            setLocalArea("Open Ocean"); // Temporarily set to open ocean
-        } else if (nextMapResult.type === 'adjacent') {
-            console.log(`[Map Transition] Moving to adjacent area: ${nextMapResult.areaDef.name}`);
-            setGameState.setCurrentZone(nextMapResult.zone);
-            setGameState.setCurrentRegion(nextMapResult.region);
-            setLocalArea(nextMapResult.areaDef.name);
-        } else if (nextMapResult.type === 'random') {
-            const { zone, region, areaDef } = _selectRandomMapArea();
-            console.log(`[Map Transition] Moving to random new area: ${areaDef.name}`);
-            setGameState.setCurrentZone(zone);
-            setGameState.setCurrentRegion(region);
-            setLocalArea(areaDef.name);
+            if (nextMapResult.type === 'liminal') {
+                console.log(`[Map Transition] Entering liminal sequence: ${nextMapResult.key}`);
+                const firstArchetype = nextMapResult.sequence[0];
+                console.log(`[Map Transition] Starting with archetype: ${firstArchetype}`);
+                setGameState.setLiminalTravelState({ 
+                    sequence: nextMapResult.sequence, 
+                    progress: 0, 
+                    destination: nextMapResult.destination, 
+                    originArea: localArea, 
+                    originDirection: direction 
+                });
+                // Set to the first archetype in sequence (should be SHOALS)
+                setLocalArea(getArchetypeName(firstArchetype));
+            } else if (nextMapResult.type === 'adjacent') {
+                console.log(`[Map Transition] Moving to adjacent area: ${nextMapResult.areaDef.name}`);
+                setGameState.setCurrentZone(nextMapResult.zone);
+                setGameState.setCurrentRegion(nextMapResult.region);
+                setLocalArea(nextMapResult.areaDef.name);
+            } else if (nextMapResult.type === 'random') {
+                const { zone, region, areaDef } = _selectRandomMapArea();
+                console.log(`[Map Transition] Moving to random new area: ${areaDef.name}`);
+                setGameState.setCurrentZone(zone);
+                setGameState.setCurrentRegion(region);
+                setLocalArea(areaDef.name);
+            }
+            
+            setCurrentWorldCoords({ x: targetWorldX, y: targetWorldY });
+            setPlayerState.setPendingIconTransitionInfo({ targetWorldX, targetWorldY, entryX, entryY, mode: playerState.playerMode });
         }
-        
-        setCurrentWorldCoords({ x: targetWorldX, y: targetWorldY });
-        setPlayerState.setPendingIconTransitionInfo({ targetWorldX, targetWorldY, entryX, entryY, mode: playerState.playerMode });
 
     }, [currentWorldCoords, playerState.playerMode, gameState.liminalTravelState, playerState.pendingIconTransitionInfo, localArea, setPlayerState, setGameState, _selectRandomMapArea]);
 

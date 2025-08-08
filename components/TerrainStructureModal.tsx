@@ -6,6 +6,7 @@ import { TerrainStructure, MapData, Tile, BiomeType, Season, TimeOfDay, NpcEntit
 import { calculatePrices } from '../services/economyService';
 import { STRUCTURE_BLUEPRINTS } from '../constants/index';
 import TerrainStructureBanner from './TerrainStructureBanner';
+import GovernmentDistrictModal from './GovernmentDistrictModal';
 
 
 // Helper to find the nearest urban center to a given point.
@@ -36,10 +37,29 @@ interface TerrainStructureModalProps {
   onClose: () => void;
   gameTimeHours: number;
   season: Season;
+  playerCharacter?: any;
+  currentLocation?: string;
+  formattedDate?: string;
 }
 
-const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({ structure, mapData, npcs, onClose, gameTimeHours, season }) => {
+const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({ structure, mapData, npcs, onClose, gameTimeHours, season, playerCharacter, currentLocation, formattedDate }) => {
     
+    // Special handling for government districts
+    if (structure.structureType === 'government_district' && playerCharacter && currentLocation && formattedDate) {
+        const tileAtLocation = mapData.tiles?.find(t => t.x === structure.location[0] && t.y === structure.location[1]);
+        return (
+            <GovernmentDistrictModal
+                structure={structure}
+                tile={tileAtLocation || { x: structure.location[0], y: structure.location[1], elevation: 0 }}
+                playerCharacter={playerCharacter}
+                mapData={mapData}
+                currentLocation={currentLocation}
+                formattedDate={formattedDate}
+                onClose={onClose}
+            />
+        );
+    }
+
     const { name, structureType, location, state, economicRole, npcAnchor, allegianceGroup, inputGoods, outputGoods, mineralDeposits } = structure;
     const blueprint = STRUCTURE_BLUEPRINTS[structureType];
     

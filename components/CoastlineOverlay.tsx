@@ -55,9 +55,12 @@ const CoastlineOverlay: React.FC<CoastlineOverlayProps> = ({ mapData, noise, dis
     // Determine if we should use blur effects
     const shouldUseBlur = !disableBlur && !isSafari;
     const coastlinePaths = useMemo(() => {
-        if (!mapData) return null;
+        if (!mapData || !mapData.tiles) return null;
 
         const { tiles, width, height } = mapData;
+        
+        // Additional safety check for tiles array
+        if (!tiles || tiles.length === 0 || !tiles[0]) return null;
 
         // 1. Find all unique land-water boundary edges
         const edges = new Set<string>();

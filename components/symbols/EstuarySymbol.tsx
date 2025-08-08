@@ -15,13 +15,35 @@ interface EstuarySymbolProps {
 
 const EstuarySymbol: React.FC<EstuarySymbolProps> = React.memo(({ x, y, size, seed, tileX, tileY }) => {
     const localRand = () => new ValueNoise(seed + tileX * 23 + tileY * 89 + (seed % 101)).random();
-    const elements = [];
 
-    // Only spawn birds occasionally - roughly 1 in 9 estuary tiles
-    if ((tileX + tileY + Math.floor(seed/10)) % 9 === 0) {
-        const animationDuration = 10 + (localRand() * 12); 
+    // Add white caps to all estuary tiles as indicators
+    const whiteCaps = (
+        <g key="white-caps">
+            {/* First white cap */}
+            <path
+                d={`M ${size * 0.3} ${size * 0.4} Q ${size * 0.35} ${size * 0.38} ${size * 0.4} ${size * 0.4}`}
+                stroke="rgba(255,255,255,0.6)"
+                strokeWidth={size * 0.01}
+                fill="none"
+                strokeLinecap="round"
+            />
+            {/* Second white cap */}
+            <path
+                d={`M ${size * 0.6} ${size * 0.6} Q ${size * 0.65} ${size * 0.58} ${size * 0.7} ${size * 0.6}`}
+                stroke="rgba(255,255,255,0.5)"
+                strokeWidth={size * 0.008}
+                fill="none"
+                strokeLinecap="round"
+            />
+        </g>
+    );
+
+    // Bird element - only spawn occasionally (roughly 1 in 6 estuary tiles)
+    let birdElement = null;
+    if ((tileX + tileY + Math.floor(seed/10)) % 6 === 0) {
+        const animationDuration = 15 + (localRand() * 10); // Slower
         const animationDelay = -(localRand() * animationDuration); 
-        const scaleVariation = 0.9 + (localRand() * 0.9); 
+        const scaleVariation = 0.5 + (localRand() * 1.0); // More size variation (0.5 to 1.5) for height effect 
         
         // Seagull proportions based on tile size
         const bodyLength = size * 0.18;
@@ -61,50 +83,15 @@ const EstuarySymbol: React.FC<EstuarySymbolProps> = React.memo(({ x, y, size, se
             Z
         `;
 
-        // Create the animated seagull group with inline keyframes
-        elements.push(
-            <g key="bird-defs">
-                <defs>
-                    <style>
-                        {`
-                            @keyframes circlingBird {
-                                0% { 
-                                    transform: translate(0px, 8px) rotate(0deg) scale(0.6); 
-                                    opacity: 0; 
-                                }
-                                5% { 
-                                    opacity: 0.1; 
-                                }
-                                20% { 
-                                    opacity: 0.7; 
-                                }
-                                50% { 
-                                    transform: translate(0px, -8px) rotate(180deg) scale(0.8); 
-                                    opacity: 0.9; 
-                                }
-                                80% { 
-                                    opacity: 0.7; 
-                                }
-                                95% { 
-                                    opacity: 0.1; 
-                                }
-                                100% { 
-                                    transform: translate(0px, 8px) rotate(360deg) scale(0.6); 
-                                    opacity: 0; 
-                                }
-                            }
-                        `}
-                    </style>
-                </defs>
-            </g>
-        );
-
-        elements.push(
+        // Create the animated seagull group
+        birdElement = (
             <g 
                 key="circling-seagull-wrapper" 
-                transform={`translate(${x + size / 2}, ${y + size / 2}) scale(${scaleVariation})`}
+                transform={`translate(${size / 2}, ${size / 2}) scale(${scaleVariation})`}
+                className="circling-bird"
                 style={{
-                    animation: `circlingBird ${animationDuration}s linear infinite ${animationDelay}s`
+                    '--bird-duration': `${animationDuration}s`,
+                    '--bird-delay': `${animationDelay}s`
                 } as React.CSSProperties}
             >
                 {/* Seagull body */}
@@ -166,7 +153,13 @@ const EstuarySymbol: React.FC<EstuarySymbolProps> = React.memo(({ x, y, size, se
         );
     }
     
-    return <>{elements}</>;
+    // Return properly positioned group with all elements
+    return (
+        <g transform={`translate(${x}, ${y})`}>
+            {whiteCaps}
+            {birdElement}
+        </g>
+    );
 });
 
 export default EstuarySymbol;

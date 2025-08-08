@@ -15,7 +15,7 @@ import {
 } from '../constants/index';
 import { ValueNoise } from '../utils/noise'; 
 import { interpolateColor, getLensColor, getMineralColor } from '../utils/colorUtils';
-import { RuinsSymbol, PalaceSymbol, HolyPlaceSymbol, UrbanSymbol, CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol } from './symbols';
+import { RuinsSymbol, PalaceSymbol, HolyPlaceSymbol, UrbanSymbol, CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol, FishingHutSymbol, SteamSymbol, GovernmentDistrictSymbol, FireflySymbol } from './symbols';
 import CoastlineOverlay from './CoastlineOverlay';
 import Minimap from './Minimap';
 import MapCanvasPerformance from './MapCanvasPerformance';
@@ -1280,6 +1280,28 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     elements.push(<EstuarySymbol key={`estuary-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />);
                   } else if(tile.biome === BiomeType.REEF) {
                     elements.push(<CoralReefSymbol key={`reef-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />);
+                  } else if(tile.biome === BiomeType.HOT_SPRINGS) {
+                    // Always show steam for hot springs
+                    elements.push(<SteamSymbol key={`hotspring-steam-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} intensity="heavy" />);
+                  } else if(tile.biome === BiomeType.VOLCANIC_ROCK) {
+                    // Rarely show steam for volcanic rock (1 in 8)
+                    if ((tile.x + tile.y + Math.floor(seed/10)) % 8 === 0) {
+                      elements.push(<SteamSymbol key={`volcanic-steam-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} intensity="light" />);
+                    }
+                  }
+                  
+                  // Add fireflies for swamps and temperate summer nights
+                  const shouldShowFireflies = (
+                    // Always show in wetlands/swamps at night
+                    (tile.biome === BiomeType.WETLANDS && timeOfDayData.isNight) ||
+                    // Show in temperate climates during summer nights
+                    (climate === 'temperate' && season === 'summer' && timeOfDayData.isNight && 
+                     (tile.biome === BiomeType.FOREST || tile.biome === BiomeType.DENSE_FOREST || 
+                      tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.RIVERBANK))
+                  );
+                  
+                  if (shouldShowFireflies && (tile.x + tile.y + tileSeed) % 3 === 0) {
+                    elements.push(<FireflySymbol key={`firefly-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} />);
                   }
 
                   return elements;
@@ -1292,14 +1314,65 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   const isPoi = ['holy_site', 'palace', 'ruin'].includes(structure.structureType);
                   if(isPoi) return null;
 
-                  const structX = structure.location[0] * TILE_SIZE_PX + TILE_SIZE_PX / 2;
-                  const structY = structure.location[1] * TILE_SIZE_PX + TILE_SIZE_PX / 2;
+                  const structX = structure.location[0] * TILE_SIZE_PX;
+                  const structY = structure.location[1] * TILE_SIZE_PX;
                   const isRuined = structure.state === 'ruined';
+                  
+                  // Special handling for government districts with custom SVG symbol
+                  if (structure.structureType === 'government_district' && !isRuined) {
+                    const tileSeed = seed + structure.location[0] * 31 + structure.location[1] * 37;
+                    const tileAtLocation = mapData.tiles?.find(t => t.x === structure.location[0] && t.y === structure.location[1]);
+                    
+                    return (
+                      <g key={structure.id} className="transition-transform duration-200">
+                        <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
+                          <title>{`${structure.name} (${structure.structureType})`}</title>
+                          <GovernmentDistrictSymbol
+                            x={structX} 
+                            y={structY} 
+                            size={TILE_SIZE_PX} 
+                            seed={tileSeed}
+                            tile={tileAtLocation || { x: structure.location[0], y: structure.location[1], elevation: 0 }}
+                            date={formattedDate}
+                            zone={currentLocation || "Europe"}
+                            nightIntensity={nightIntensity}
+                          />
+                        </g>
+                      </g>
+                    );
+                  }
+
+                  // Special handling for fishing hut with custom SVG symbol
+                  if (structure.structureType === 'fishing_hut' && !isRuined) {
+                    const year = parseInt(formattedDate.split(' ')[0]);
+                    const isModern = year >= 1800; // Modern era starts around 1800
+                    const tileSeed = seed + structure.location[0] * 31 + structure.location[1] * 37;
+                    
+                    return (
+                      <g key={structure.id} className="transition-transform duration-200">
+                        <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
+                          <title>{`${structure.name} (${structure.structureType})`}</title>
+                          <FishingHutSymbol 
+                            x={structX} 
+                            y={structY} 
+                            size={TILE_SIZE_PX} 
+                            seed={tileSeed}
+                            date={formattedDate}
+                            isModern={isModern}
+                          />
+                        </g>
+                      </g>
+                    );
+                  }
+                  
+                  // Default emoji rendering for other structures
+                  const centerX = structX + TILE_SIZE_PX / 2;
+                  const centerY = structY + TILE_SIZE_PX / 2;
                   return (
                     <g key={structure.id} className="transition-transform duration-200">
                       <text
-                        x={structX}
-                        y={structY}
+                        x={centerX}
+                        y={centerY}
                         fontSize={TILE_SIZE_PX * 1.3}
                         textAnchor="middle"
                         dominantBaseline="central"
@@ -1333,19 +1406,21 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               }).map(animal => (
                 <g key={animal.id} 
                    onClick={(e) => { e.stopPropagation(); onAnimalClick(animal); }} 
-                   style={{cursor: 'pointer', pointerEvents: 'auto'}}>
+                   style={{cursor: 'pointer', pointerEvents: 'auto'}}
+                   className="smooth-movement"
+                   transform={`translate(${animal.x * TILE_SIZE_PX}, ${animal.y * TILE_SIZE_PX})`}>
                   {/* Shadow beneath animal */}
                   <ellipse
-                    cx={animal.x * TILE_SIZE_PX + TILE_SIZE_PX/2}
-                    cy={animal.y * TILE_SIZE_PX + TILE_SIZE_PX/2 + TILE_SIZE_PX * 0.4}
+                    cx={TILE_SIZE_PX/2}
+                    cy={TILE_SIZE_PX/2 + TILE_SIZE_PX * 0.4}
                     rx={TILE_SIZE_PX * 0.3}
                     ry={TILE_SIZE_PX * 0.1}
                     fill="rgba(0,0,0,0.3)"
                     filter={shouldUseBlurEffects ? "blur(2px)" : "none"}
                   />
                   <text
-                    x={animal.x * TILE_SIZE_PX + TILE_SIZE_PX/2}
-                    y={animal.y * TILE_SIZE_PX + TILE_SIZE_PX/2}
+                    x={TILE_SIZE_PX/2}
+                    y={TILE_SIZE_PX/2}
                     textAnchor="middle"
                     dominantBaseline="central"
                     fontSize={TILE_SIZE_PX * 1.2}
@@ -1371,11 +1446,12 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 <g key={npc.id} 
                    onClick={(e) => { e.stopPropagation(); onNpcClick(npc); }} 
                    style={{cursor: 'pointer', pointerEvents: 'auto'}}
-                   className={selectedNpcId === npc.id ? 'animate-ff6-idle-bob' : ''}>
+                   className={`smooth-movement ${selectedNpcId === npc.id ? 'animate-ff6-idle-bob' : ''}`}
+                   transform={`translate(${npc.x * TILE_SIZE_PX}, ${npc.y * TILE_SIZE_PX})`}>
                   {/* Shadow beneath NPC */}
                   <ellipse
-                    cx={npc.x * TILE_SIZE_PX + TILE_SIZE_PX/2}
-                    cy={npc.y * TILE_SIZE_PX + TILE_SIZE_PX/2 + TILE_SIZE_PX * 0.4}
+                    cx={TILE_SIZE_PX/2}
+                    cy={TILE_SIZE_PX/2 + TILE_SIZE_PX * 0.4}
                     rx={TILE_SIZE_PX * 0.35}
                     ry={TILE_SIZE_PX * 0.12}
                     fill="rgba(0,0,0,0.35)"
@@ -1457,8 +1533,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       <>
                         {/* Subtle outer glow */}
                         <circle
-                          cx={npc.x * TILE_SIZE_PX + TILE_SIZE_PX/2}
-                          cy={npc.y * TILE_SIZE_PX + TILE_SIZE_PX/2}
+                          cx={TILE_SIZE_PX/2}
+                          cy={TILE_SIZE_PX/2}
                           r={TILE_SIZE_PX * lightSize * 0.7 * sizeVariation}
                           fill={subtleAmberColor}
                           opacity={staticGlowOpacity * 0.5}
@@ -1467,8 +1543,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         
                         {/* Gentle inner glow */}
                         <circle
-                          cx={npc.x * TILE_SIZE_PX + TILE_SIZE_PX/2}
-                          cy={npc.y * TILE_SIZE_PX + TILE_SIZE_PX/2}
+                          cx={TILE_SIZE_PX/2}
+                          cy={TILE_SIZE_PX/2}
                           r={TILE_SIZE_PX * lightSize * 0.4 * sizeVariation}
                           fill={warmAmberCore}
                           opacity={staticGlowOpacity * 0.7}

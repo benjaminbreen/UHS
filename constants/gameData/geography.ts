@@ -117,7 +117,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Redwood Coast": { name: "Redwood Coast", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY }
         },
         "Southwest": {
-            "Sonoran Desert": { name: "Sonoran Desert", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
+            "Sonoran Desert": { name: "Sonoran Desert", climate: ClimateType.ARID, archetype: MapArchetype.DESERT },
             "Chaco Canyon": { name: "Chaco Canyon", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
             "Rio Grande Valley": { name: "Rio Grande Valley", climate: ClimateType.ARID, archetype: MapArchetype.RIVER_PORT },
             "Colorado Plateau": { name: "Colorado Plateau", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
@@ -150,10 +150,10 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         },
         "Southeast": {
             "Smoky Mountains": { name: "Smoky Mountains", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND },
-            "Okefenokee Swamp": { name: "Okefenokee Swamp", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.SHOALS },
+            "Okefenokee Swamp": { name: "Okefenokee Swamp", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.SWAMP },
             "Piedmont Uplands": { name: "Piedmont Uplands", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND },
-            "Everglades": { name: "Everglades", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.SHOALS },
-            "Mississippi Bayou": { name: "Mississippi Bayou", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.BAY },
+            "Everglades": { name: "Everglades", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.SWAMP },
+            "Mississippi Bayou": { name: "Mississippi Bayou", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.SWAMP },
             "Blue Ridge Foothills": { name: "Blue Ridge Foothills", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND }
         },
         "Arctic and Subarctic": {
@@ -201,7 +201,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         "Andes South": {
             "Cuzco Valley": { name: "Cuzco Valley", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND },
             "Altiplano": { name: "Altiplano", climate: ClimateType.COLD, archetype: MapArchetype.ALL_LAND },
-            "Atacama Desert": { name: "Atacama Desert", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
+            "Atacama Desert": { name: "Atacama Desert", climate: ClimateType.ARID, archetype: MapArchetype.DESERT },
             "Mendoza Foothills": { name: "Mendoza Foothills", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND },
             "Aconcagua Range": { name: "Aconcagua Range", climate: ClimateType.COLD, archetype: MapArchetype.ALL_LAND },
             "Mapuche Territory": { name: "Mapuche Territory", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND }
@@ -211,7 +211,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Rio Negro Junction": { name: "Rio Negro Junction", climate: ClimateType.TROPICAL, archetype: MapArchetype.RIVER_PORT },
             "Xingu Headwaters": { name: "Xingu Headwaters", climate: ClimateType.TROPICAL, archetype: MapArchetype.RIVER_PORT },
             "Acre Rainforest": { name: "Acre Rainforest", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND },
-            "Varzea Floodplains": { name: "Varzea Floodplains", climate: ClimateType.TROPICAL, archetype: MapArchetype.DELTA },
+            "Varzea Floodplains": { name: "Varzea Floodplains", climate: ClimateType.TROPICAL, archetype: MapArchetype.SWAMP },
             "Tapajós Basin": { name: "Tapajós Basin", climate: ClimateType.TROPICAL, archetype: MapArchetype.RIVER_PORT }
         },
         "Gran Chaco and Pampas": {
@@ -219,6 +219,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Paraná Delta": { name: "Paraná Delta", climate: ClimateType.TEMPERATE, archetype: MapArchetype.DELTA },
             "Santa Fe Floodplain": { name: "Santa Fe Floodplain", climate: ClimateType.TEMPERATE, archetype: MapArchetype.DELTA },
             "Gran Chaco": { name: "Gran Chaco", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
+            "Pantanal": { name: "Pantanal", climate: ClimateType.TROPICAL, archetype: MapArchetype.SWAMP },
             "Córdoba Hills": { name: "Córdoba Hills", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND },
             "Uruguay River Valley": { name: "Uruguay River Valley", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT }
         },
@@ -231,7 +232,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Espírito Santo Shore": { name: "Espírito Santo Shore", climate: ClimateType.TROPICAL, archetype: MapArchetype.BAY }
         },
         "Guiana Shield": {
-            "Orinoco Delta": { name: "Orinoco Delta", climate: ClimateType.TROPICAL, archetype: MapArchetype.DELTA },
+            "Orinoco Delta": { name: "Orinoco Delta", climate: ClimateType.TROPICAL, archetype: MapArchetype.SWAMP },
             "Guiana Highlands": { name: "Guiana Highlands", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND },
             "Essequibo Valley": { name: "Essequibo Valley", climate: ClimateType.TROPICAL, archetype: MapArchetype.RIVER_PORT },
             "Maroni Basin": { name: "Maroni Basin", climate: ClimateType.TROPICAL, archetype: MapArchetype.RIVER_PORT },
@@ -267,9 +268,9 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         "Nile Valley": {
             "Thebes Valley": { name: "Thebes Valley", climate: ClimateType.ARID, archetype: MapArchetype.RIVER_PORT },
             "Nile Delta": { name: "Nile Delta", climate: ClimateType.ARID, archetype: MapArchetype.DELTA },
-            "Aswan Cataracts": { name: "Aswan Cataracts", climate: ClimateType.ARID, archetype: MapArchetype.RIVER_PORT },
+            "Aswan Cataracts": { name: "Aswan Cataracts", climate: ClimateType.ARID, archetype: MapArchetype.SWAMP },
             "Faiyum Oasis": { name: "Faiyum Oasis", climate: ClimateType.ARID, archetype: MapArchetype.FRESHWATER_LAKE },
-            "Eastern Desert Wadis": { name: "Eastern Desert Wadis", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
+            "Eastern Desert Wadis": { name: "Eastern Desert Wadis", climate: ClimateType.ARID, archetype: MapArchetype.DESERT },
             "Alexandria Coast": { name: "Alexandria Coast", climate: ClimateType.ARID, archetype: MapArchetype.BAY }
         },
         "Levant": {
@@ -291,7 +292,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         "Mesopotamia": {
             "Tigris–Euphrates Confluence": { name: "Tigris–Euphrates Confluence", climate: ClimateType.ARID, archetype: MapArchetype.RIVER_PORT },
             "Nineveh Plain": { name: "Nineveh Plain", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
-            "Marsh Arab Wetlands": { name: "Marsh Arab Wetlands", climate: ClimateType.ARID, archetype: MapArchetype.SHOALS },
+            "Marsh Arab Wetlands": { name: "Marsh Arab Wetlands", climate: ClimateType.ARID, archetype: MapArchetype.SWAMP },
             "Babylon Region": { name: "Babylon Region", climate: ClimateType.ARID, archetype: MapArchetype.RIVER_PORT },
             "Zagros Foothills": { name: "Zagros Foothills", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
             "Diyala Valley": { name: "Diyala Valley", climate: ClimateType.ARID, archetype: MapArchetype.RIVER_PORT }
@@ -306,10 +307,10 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         },
         "Arabian Peninsula": {
             "Hijaz Mountains": { name: "Hijaz Mountains", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
-            "Empty Quarter": { name: "Empty Quarter", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
+            "Empty Quarter": { name: "Empty Quarter", climate: ClimateType.ARID, archetype: MapArchetype.DESERT },
             "Hadhramaut Valley": { name: "Hadhramaut Valley", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
             "Dhofar Hills": { name: "Dhofar Hills", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
-            "Najd Plateau": { name: "Najd Plateau", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
+            "Najd Plateau": { name: "Najd Plateau", climate: ClimateType.ARID, archetype: MapArchetype.DESERT },
             "Red Sea Coast": { name: "Red Sea Coast", climate: ClimateType.ARID, archetype: MapArchetype.BAY }
         },
         "Persian Plateau": {
@@ -329,12 +330,12 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Caspian Depression": { name: "Caspian Depression", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND }
         },
         "Eastern Desert and Red Sea": {
-            "Eastern Desert Highlands": { name: "Eastern Desert Highlands", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
+            "Eastern Desert Highlands": { name: "Eastern Desert Highlands", climate: ClimateType.ARID, archetype: MapArchetype.DESERT },
             "Sudanese Red Sea": { name: "Sudanese Red Sea", climate: ClimateType.ARID, archetype: MapArchetype.BAY },
-            "Wadi Hammamat": { name: "Wadi Hammamat", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
+            "Wadi Hammamat": { name: "Wadi Hammamat", climate: ClimateType.ARID, archetype: MapArchetype.DESERT },
             "Berenice Hinterland": { name: "Berenice Hinterland", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
             "Suez Isthmus": { name: "Suez Isthmus", climate: ClimateType.ARID, archetype: MapArchetype.PENINSULA },
-            "Gebel Elba Region": { name: "Gebel Elba Region", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND }
+            "Gebel Elba Region": { name: "Gebel Elba Region", climate: ClimateType.ARID, archetype: MapArchetype.DESERT }
         }
     },
     "Sub Saharan Africa": {
@@ -342,7 +343,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Timbuktu Basin": { name: "Timbuktu Basin", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
             "Lake Chad": { name: "Lake Chad", climate: ClimateType.ARID, archetype: MapArchetype.FRESHWATER_LAKE },
             "Niger Bend": { name: "Niger Bend", climate: ClimateType.ARID, archetype: MapArchetype.RIVER_PORT },
-            "Gao Region": { name: "Gao Region", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
+            "Gao Region": { name: "Gao Region", climate: ClimateType.ARID, archetype: MapArchetype.DESERT },
             "Sahelian Scrublands": { name: "Sahelian Scrublands", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
             "Dogon Plateau": { name: "Dogon Plateau", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND }
         },
@@ -396,7 +397,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         },
         "West African Forests": {
             "Ibo Plateau": { name: "Ibo Plateau", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND },
-            "Niger Delta": { name: "Niger Delta", climate: ClimateType.TROPICAL, archetype: MapArchetype.DELTA },
+            "Niger Delta": { name: "Niger Delta", climate: ClimateType.TROPICAL, archetype: MapArchetype.SWAMP },
             "Benin Lowlands": { name: "Benin Lowlands", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND },
             "Oyo Hinterland": { name: "Oyo Hinterland", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND },
             "Jos Plateau": { name: "Jos Plateau", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND },
@@ -415,7 +416,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         "Indus Valley": {
             "Harappa Basin": { name: "Harappa Basin", climate: ClimateType.ARID, archetype: MapArchetype.RIVER_PORT },
             "Punjab Plains": { name: "Punjab Plains", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
-            "Thar Desert Margin": { name: "Thar Desert Margin", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
+            "Thar Desert Margin": { name: "Thar Desert Margin", climate: ClimateType.ARID, archetype: MapArchetype.DESERT },
             "Sindh River Delta": { name: "Sindh River Delta", climate: ClimateType.ARID, archetype: MapArchetype.DELTA },
             "Salt Range Foothills": { name: "Salt Range Foothills", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
             "Rann of Kutch": { name: "Rann of Kutch", climate: ClimateType.ARID, archetype: MapArchetype.DELTA }
@@ -426,7 +427,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Patna Lowlands": { name: "Patna Lowlands", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.ALL_LAND },
             "Delhi Region": { name: "Delhi Region", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.ALL_LAND },
             "Awadh Plains": { name: "Awadh Plains", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.ALL_LAND },
-            "Bengal Delta": { name: "Bengal Delta", climate: ClimateType.TROPICAL, archetype: MapArchetype.DELTA }
+            "Bengal Delta": { name: "Bengal Delta", climate: ClimateType.TROPICAL, archetype: MapArchetype.SWAMP }
         },
         "Deccan Plateau": {
             "Hyderabad Highlands": { name: "Hyderabad Highlands", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
@@ -462,7 +463,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         },
         "Mainland Southeast Asia": {
             "Irrawaddy Valley": { name: "Irrawaddy Valley", climate: ClimateType.TROPICAL, archetype: MapArchetype.RIVER_PORT },
-            "Mekong Delta": { name: "Mekong Delta", climate: ClimateType.TROPICAL, archetype: MapArchetype.DELTA },
+            "Mekong Delta": { name: "Mekong Delta", climate: ClimateType.TROPICAL, archetype: MapArchetype.SWAMP },
             "Red River Delta": { name: "Red River Delta", climate: ClimateType.TROPICAL, archetype: MapArchetype.DELTA },
             "Annam Highlands": { name: "Annam Highlands", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND },
             "Mekong River Basin": { name: "Mekong River Basin", climate: ClimateType.TROPICAL, archetype: MapArchetype.RIVER_PORT },
@@ -503,7 +504,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Dzungarian Basin": { name: "Dzungarian Basin", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND }
         },
         "Central Asian Oases": {
-            "Kyzylkum Desert": { name: "Kyzylkum Desert", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
+            "Kyzylkum Desert": { name: "Kyzylkum Desert", climate: ClimateType.ARID, archetype: MapArchetype.DESERT },
             "Ferghana Valley": { name: "Ferghana Valley", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
             "Samarkand Region": { name: "Samarkand Region", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
             "Balkh Plains": { name: "Balkh Plains", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
@@ -517,7 +518,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         },
         "Mongolia and Manchuria": {
             "Mongolian Steppes": { name: "Mongolian Steppes", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
-            "Gobi Desert": { name: "Gobi Desert", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
+            "Gobi Desert": { name: "Gobi Desert", climate: ClimateType.ARID, archetype: MapArchetype.DESERT },
             "Manchurian Plain": { name: "Manchurian Plain", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND }
         },
         "North China Plain": {
@@ -582,9 +583,9 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Alice Springs Basin": { name: "Alice Springs Basin", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
             "MacDonnell Ranges": { name: "MacDonnell Ranges", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
             "Lake Eyre Basin": { name: "Lake Eyre Basin", climate: ClimateType.ARID, archetype: MapArchetype.FRESHWATER_LAKE },
-            "Simpson Desert": { name: "Simpson Desert", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
+            "Simpson Desert": { name: "Simpson Desert", climate: ClimateType.ARID, archetype: MapArchetype.DESERT },
             "Uluru Region": { name: "Uluru Region", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
-            "Barkly Tableland": { name: "Barkly Tableland", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND }
+            "Barkly Tableland": { name: "Barkly Tableland", climate: ClimateType.ARID, archetype: MapArchetype.DESERT }
         },
         "Australia – North and Queensland": {
             "Cape York Peninsula": { name: "Cape York Peninsula", climate: ClimateType.TROPICAL, archetype: MapArchetype.PENINSULA },
@@ -597,8 +598,8 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         "Australia – West and Desert": {
             "Pilbara": { name: "Pilbara", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
             "Kimberley": { name: "Kimberley", climate: ClimateType.ARID, archetype: MapArchetype.BAY },
-            "Great Sandy Desert": { name: "Great Sandy Desert", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
-            "Nullarbor Plain": { name: "Nullarbor Plain", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
+            "Great Sandy Desert": { name: "Great Sandy Desert", climate: ClimateType.ARID, archetype: MapArchetype.DESERT },
+            "Nullarbor Plain": { name: "Nullarbor Plain", climate: ClimateType.ARID, archetype: MapArchetype.DESERT },
             "Swan Coastal Plain": { name: "Swan Coastal Plain", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY },
             "Goldfields Region": { name: "Goldfields Region", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND }
         },

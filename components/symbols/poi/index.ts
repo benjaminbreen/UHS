@@ -14,6 +14,10 @@ export { default as OttomanMosqueSymbol } from './OttomanMosqueSymbol';
 export { default as PagodaSymbol } from './PagodaSymbol';
 export { default as MesoamericanPyramidSymbol } from './MesoamericanPyramidSymbol';
 export { default as ShrineSymbol } from './ShrineSymbol';
+export { default as BuddhistTempleSymbol } from './BuddhistTempleSymbol';
+export { default as HinduTempleSymbol } from './HinduTempleSymbol';
+export { default as ShintoShrineSymbol } from './ShintoShrineSymbol';
+export { default as SynagogueSymbol } from './SynagogueSymbol';
 
 // Palaces
 export { default as FeudalKeepSymbol } from './FeudalKeepSymbol';

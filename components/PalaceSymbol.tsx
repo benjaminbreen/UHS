@@ -2,15 +2,15 @@
  * components/symbols/PalaceSymbol.tsx - Era and culture-specific palace rendering dispatcher.
  */
 import React from 'react';
-import { Tile, HistoricalEra } from '../../types';
-import { parseDateString } from '../../utils/dateUtils';
+import { Tile, HistoricalEra } from '../types';
+import { parseDateString } from '../utils/dateUtils';
 import { 
     FeudalKeepSymbol, 
     RomanVillaSymbol, 
     GenericPalaceSymbol,
     VikingHallSymbol,
     JapaneseCastleSymbol
-} from './poi';
+} from './symbols/poi';
 
 interface PalaceSymbolProps {
   x: number;

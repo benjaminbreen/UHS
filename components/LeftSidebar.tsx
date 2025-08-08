@@ -10,6 +10,7 @@ import HistoryPanel from './HistoryPanel';
 import JournalPanel from './JournalPanel';
 import { MAP_ARCHETYPE_DESCRIPTIONS, FACTION_DATA, STRUCTURE_BLUEPRINTS, METALS } from '../constants/index';
 import { mapLocationToCulture } from '../utils/mapUtils';
+import { getSafariOptimizedClassName } from '../utils/safariUtils';
 
 
 export type LeftSidebarTab = 'analysis' | 'overview' | 'npcs' | 'animals';
@@ -510,7 +511,7 @@ const LeftSidebar: React.FC = () => {
     ];
   
     return (
-        <div className={`flex-shrink-0 bg-sidebar-gradient shadow-sidebar-left backdrop-blur-xl border-r border-slate-700/80 flex flex-col text-slate-200 transition-all duration-300 h-full ${isLeftSidebarExpanded ? 'w-[400px]' : 'w-0 p-0 border-none'}`}>
+        <div className={getSafariOptimizedClassName(`flex-shrink-0 bg-sidebar-gradient shadow-sidebar-left backdrop-blur-xl border-r border-slate-700/80 flex flex-col text-slate-200 transition-all duration-300 h-full ${isLeftSidebarExpanded ? 'w-[400px]' : 'w-0 p-0 border-none'}`)}>
             <div className={`p-3 flex flex-col flex-1 overflow-hidden transition-opacity duration-200 ${isLeftSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
                 <div className="shrink-0">
                     <div className="p-4 rounded-xl bg-slate-800/70 mb-4 shadow-lg border border-slate-700/50 relative">

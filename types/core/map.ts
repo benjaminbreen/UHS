@@ -22,6 +22,8 @@ export enum MapArchetype {
   FRESHWATER_LAKE = 'FRESHWATER_LAKE',
   STRAITS = 'STRAITS',
   DELTA = 'DELTA',
+  SWAMP = 'SWAMP',
+  DESERT = 'DESERT', // Mostly desert/scrub/tundra with no urban unless overridden
 }
 
 /**

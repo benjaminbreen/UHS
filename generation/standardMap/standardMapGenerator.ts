@@ -21,13 +21,15 @@ import {
   generateVolcanicComplex, 
   generateClimateEnhancedBiomes, 
   generateSpecialTerrainTiles,
-  generateEstuaries 
+  generateEstuaries,
+  applyClimateTransitions
 } from './terrainAndBiomeGenerator'; 
 
 import { 
   generateEnhancedRiverPath,
   findRiverSources,
   findEdgeRiverSource,
+  findRiverContinuationPoints,
   generateHarbor,
   generateWetlands,
   generateOases,
@@ -342,6 +344,17 @@ export function proceduralGenerateMap(
             landThreshold = LAND_THRESHOLD_BASE - 0.15; 
           }
           break;
+        case MapArchetype.SWAMP:
+          // Swamps are all land with many rivers and small lakes
+          falloff = 1.0; // No distance-based falloff
+          landThreshold = -0.5; // Very low threshold ensures almost everything is land
+          // Rivers and lakes will be added in a separate pass
+          break;
+        case MapArchetype.DESERT:
+          // Desert archetype - all land, no water features except rare oases
+          falloff = 1.0; // No distance-based falloff
+          landThreshold = -1.0; // Everything is land
+          break;
         default:
           // Fallback to a standard island-like generation
           falloff = Math.max(0, 1 - distToCenterRatio * 1.0);
@@ -498,12 +511,53 @@ export function proceduralGenerateMap(
     }
   } 
   
+  // Special handling for swamps - generate many rivers
+  if (archetype === MapArchetype.SWAMP) {
+    console.log("[Gen] Generating swamp rivers and water features");
+    
+    // Generate 4-6 major rivers crossing the map
+    const numMajorRivers = 4 + Math.floor(featurePlacementNoise.random() * 3);
+    for (let i = 0; i < numMajorRivers; i++) {
+      const edge = i % 4; // Distribute rivers from different edges
+      const riverSource = findEdgeRiverSource(tiles, featurePlacementNoise, edge);
+      if (riverSource) {
+        generateEnhancedRiverPath(tiles, riverSource, featurePlacementNoise, riverMeanderNoise, riverWidthNoise, archetype, undefined, false, true);
+      }
+    }
+    
+    // Add scattered small lakes and ponds
+    const numLakes = 8 + Math.floor(featurePlacementNoise.random() * 5);
+    for (let i = 0; i < numLakes; i++) {
+      const lakeX = Math.floor(featurePlacementNoise.random() * (MAP_WIDTH_TILES - 10)) + 5;
+      const lakeY = Math.floor(featurePlacementNoise.random() * (MAP_HEIGHT_TILES - 10)) + 5;
+      const lakeSize = 1 + Math.floor(featurePlacementNoise.random() * 3);
+      
+      for (let dy = -lakeSize; dy <= lakeSize; dy++) {
+        for (let dx = -lakeSize; dx <= lakeSize; dx++) {
+          const x = lakeX + dx;
+          const y = lakeY + dy;
+          if (x >= 0 && x < MAP_WIDTH_TILES && y >= 0 && y < MAP_HEIGHT_TILES) {
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist <= lakeSize && featurePlacementNoise.random() > 0.3) {
+              tiles[y][x].terrain = TerrainType.WATER;
+              tiles[y][x].biome = BiomeType.RIVER;
+            }
+          }
+        }
+      }
+    }
+  }
+  
   let highAltitudeRiverSources = findRiverSources(tiles, featurePlacementNoise, archetype, climate);
   if (archetype === MapArchetype.FRESHWATER_LAKE) {
       highAltitudeRiverSources = highAltitudeRiverSources.filter(p => tiles[p.y][p.x].biome !== BiomeType.FRESHWATER_LAKE);
   }
 
-  let allRiverSources = [...highAltitudeRiverSources];
+  // Add river continuation points from neighboring edges
+  const riverContinuationPoints = findRiverContinuationPoints(neighboringEdges);
+  console.log(`[Gen] Found ${riverContinuationPoints.length} river continuation points from neighboring edges`);
+
+  let allRiverSources = [...highAltitudeRiverSources, ...riverContinuationPoints];
   let riversToLakeCount = 0;
   
   if (archetype === MapArchetype.DELTA && oceanEdgeForDeltaRiver !== undefined) {
@@ -594,6 +648,10 @@ export function proceduralGenerateMap(
   console.log("[Gen] Phase 9.5: Special Terrain Tiles (Salt Flats, Hot Springs, Shoals) - START");
   generateSpecialTerrainTiles(tiles, climate, humidityNoise, altitudeNoiseGen, thermalNoise, featurePlacementNoise, archetype);
   console.log("[Gen] Phase 9.5: Special Terrain Tiles - END");
+  
+  console.log("[Gen] Phase 9.75: Climate-Aware Map Stitching - START");
+  applyClimateTransitions(tiles, climate, localArea);
+  console.log("[Gen] Phase 9.75: Climate-Aware Map Stitching - END");
 
   const mapDataObject: MapData = { 
     width: MAP_WIDTH_TILES, 

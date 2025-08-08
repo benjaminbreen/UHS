@@ -3,7 +3,7 @@
  */
 import React, { useMemo } from 'react';
 import { TerrainStructure, MapData, HistoricalEra, CulturalZone, NpcEntity, GameDate } from '../types';
-import { SOCIETAL_PROFILES, ITEM_DEFINITIONS } from '../constants/index';
+import { SOCIETAL_PROFILES, ITEM_DEFINITIONS, FACTION_DATA } from '../constants/index';
 import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { useMap } from '../contexts/MapContext';
@@ -40,9 +40,14 @@ const PointOfInterestModal: React.FC<PointOfInterestModalProps> = ({ structure, 
         return SOCIETAL_PROFILES[culturalZone]?.[era] || SOCIETAL_PROFILES.DEFAULT;
     }, [culturalZone, era]);
 
+    const factionData = useMemo(() => {
+        return FACTION_DATA[culturalZone]?.[mapData.region || '']?.[era];
+    }, [culturalZone, mapData.region, era]);
+
     const anchoredNpcs = useMemo(() => {
         const figures = npcs.filter(npc => npc.workplaceId === structure.id);
-        const roleOrder = societalProfile.courtRoles?.[structure.structureType] || [];
+        // Get court roles from faction data, not societal profile
+        const roleOrder = factionData?.courtRoles?.[structure.structureType] || [];
         
         if (roleOrder.length > 0) {
             figures.sort((a, b) => {
@@ -56,7 +61,7 @@ const PointOfInterestModal: React.FC<PointOfInterestModalProps> = ({ structure, 
         }
         
         return figures;
-    }, [npcs, structure.id, structure.structureType, societalProfile]);
+    }, [npcs, structure.id, structure.structureType, factionData]);
 
     const consumedGoods = structureType === 'holy_site' ? societalProfile.holyPlaceConsumes : inputGoods;
     const producedGoods = structureType === 'holy_site' ? societalProfile.holyPlaceProduces : outputGoods;

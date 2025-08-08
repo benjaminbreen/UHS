@@ -44,24 +44,24 @@ const CoralReefSymbol: React.FC<CoralReefSymbolProps> = React.memo(({ x, y, size
     elements.push(
         <rect
             key="water-gradient"
-            x={x - size * 0.5}
-            y={y - size * 0.5}
+            x={-size * 0.5}
+            y={-size * 0.5}
             width={size * 2}
             height={size * 2}
             fill={`url(#grad-${uniqueId})`}
         />
     );
 
-    // Generate coral speckles on some tiles
-    if (localRand() < 0.45) {
-        const numCorals = 5 + Math.floor(localRand() * 8);
-        const coralColors = ['#ff4757', '#ffca28', '#ab47bc']; // red, yellow, purple
+    // Generate stationary coral formations - smaller and more spread out
+    if (localRand() < 0.4) {
+        const numCorals = 2 + Math.floor(localRand() * 4); // Fewer coral formations (2-5)
+        const coralColors = ['#ff4757', '#ffca28', '#ab47bc', '#ff6b9d', '#70a1ff']; // More coral colors
         const coralGroup = [];
 
         for (let i = 0; i < numCorals; i++) {
-            const cx = x + localRand() * size;
-            const cy = y + localRand() * size;
-            const r = size * (0.03 + localRand() * 0.04);
+            const cx = size * 0.1 + localRand() * size * 0.8; // Spread across more of the tile
+            const cy = size * 0.1 + localRand() * size * 0.8;
+            const r = size * (0.02 + localRand() * 0.03); // Much smaller coral formations
             const color = coralColors[Math.floor(localRand() * coralColors.length)];
             
             coralGroup.push(
@@ -71,30 +71,43 @@ const CoralReefSymbol: React.FC<CoralReefSymbolProps> = React.memo(({ x, y, size
                     cy={cy}
                     r={r}
                     fill={color}
+                    opacity={0.8}
                 />
             );
         }
         elements.push(<g key="coral-group" filter={`url(#coral-shadow-${uniqueId})`}>{coralGroup}</g>);
     }
     
-     // Add inline keyframes for fish animation
+     // Add inline keyframes for darting arrow fish animation
     elements.push(
         <g key="fish-defs">
             <defs>
                 <style>
                     {`
-                        @keyframes swoopingFish {
-                            0%, 100% {
+                        @keyframes dartFish {
+                            0% {
                                 transform: translateX(0) translateY(0) rotate(0deg);
+                                opacity: 0.7;
                             }
-                            25% {
-                                transform: translateX(15px) translateY(-8px) rotate(8deg);
+                            20% {
+                                transform: translateX(3px) translateY(-2px) rotate(15deg);
+                                opacity: 0.8;
                             }
-                            50% {
-                                transform: translateX(0) translateY(-15px) rotate(0deg);
+                            40% {
+                                transform: translateX(5px) translateY(1px) rotate(-10deg);
+                                opacity: 0.9;
                             }
-                            75% {
-                                transform: translateX(-15px) translateY(-8px) rotate(-8deg);
+                            60% {
+                                transform: translateX(2px) translateY(3px) rotate(5deg);
+                                opacity: 0.8;
+                            }
+                            80% {
+                                transform: translateX(-2px) translateY(2px) rotate(-20deg);
+                                opacity: 0.7;
+                            }
+                            100% {
+                                transform: translateX(0) translateY(0) rotate(0deg);
+                                opacity: 0.7;
                             }
                         }
                     `}
@@ -103,35 +116,50 @@ const CoralReefSymbol: React.FC<CoralReefSymbolProps> = React.memo(({ x, y, size
         </g>
     );
 
-     // Add animated fish - fewer, more fish-shaped, slower
-    const numFish = Math.floor(localRand() * 2); // Reduced from 3 to 2
+    // Add darting arrow-fish - small, fast moving fish that dart in and out
+    const fishChance = localRand();
+    const numFish = fishChance < 0.8 ? 0 : Math.floor(localRand() * 3) + 1; // 80% chance of no fish, otherwise 1-3
+    
     for(let i = 0; i < numFish; i++) {
-        const fishLength = size * (0.06 + localRand() * 0.04);
-        const fishHeight = fishLength * 0.4;
-        const startY = y + size * 0.3 + localRand() * size * 0.4;
-        const fishColor = `hsl(${200 + localRand() * 40}, 70%, ${50 + localRand() * 30}%)`;
-        const fishDuration = 10 + localRand() * 6;
-        const fishDelay = localRand() * 5;
+        const fishSize = size * (0.03 + localRand() * 0.02); // Smaller fish
+        const startX = size * 0.3 + localRand() * size * 0.4;
+        const startY = size * 0.3 + localRand() * size * 0.4;
+        const fishColor = `hsl(${180 + localRand() * 60}, 80%, ${60 + localRand() * 20}%)`; // Brighter tropical colors
+        const fishDuration = 8 + localRand() * 6; // Much slower random walk
+        const fishDelay = localRand() * fishDuration; // Random start times
         
-        // Create more realistic fish shape
+        // Create arrow-shaped fish that dart
         elements.push(
-            <g key={`fish-${i}`} transform={`translate(${x}, ${startY})`} 
+            <g key={`fish-${i}`} transform={`translate(${startX}, ${startY})`} 
                 style={{
-                    animation: `swoopingFish ${fishDuration}s ease-in-out infinite ${fishDelay}s`
+                    animation: `dartFish ${fishDuration}s ease-in-out infinite ${fishDelay}s`,
+                    transformOrigin: 'center center'
                 } as React.CSSProperties}
             >
-                {/* Fish body */}
-                <ellipse cx={fishLength/2} cy={0} rx={fishLength/2} ry={fishHeight/2} fill={fishColor} />
-                {/* Fish tail */}
-                <path d={`M ${fishLength} 0 L ${fishLength + fishHeight/2} -${fishHeight/3} L ${fishLength + fishHeight/2} ${fishHeight/3} Z`} fill={fishColor} opacity="0.8" />
-                {/* Fish eye */}
-                <circle cx={fishLength * 0.25} cy={-fishHeight/8} r={fishHeight/8} fill="white" opacity="0.9" />
-                <circle cx={fishLength * 0.25} cy={-fishHeight/8} r={fishHeight/12} fill="black" opacity="0.8" />
+                {/* Arrow-shaped fish body */}
+                <path 
+                    d={`M 0 0 L ${fishSize} -${fishSize*0.4} L ${fishSize*0.7} 0 L ${fishSize} ${fishSize*0.4} Z`}
+                    fill={fishColor}
+                    opacity="0.9"
+                />
+                {/* Small tail detail */}
+                <path 
+                    d={`M ${fishSize*0.7} -${fishSize*0.2} L ${fishSize*0.5} 0 L ${fishSize*0.7} ${fishSize*0.2} Z`}
+                    fill={fishColor}
+                    opacity="0.7"
+                />
+                {/* Tiny eye */}
+                <circle cx={fishSize*0.8} cy={-fishSize*0.1} r={fishSize*0.1} fill="white" opacity="0.8" />
             </g>
         )
     }
 
-    return <>{elements}</>;
+    // Return properly positioned group with all elements
+    return (
+        <g transform={`translate(${x}, ${y})`}>
+            {elements}
+        </g>
+    );
 });
 
 export default CoralReefSymbol;

@@ -15,7 +15,7 @@ import {
     PagodaSymbol,
     MesoamericanPyramidSymbol,
     ShrineSymbol
-} from './poi';
+} from './symbols/poi';
 
 interface HolyPlaceSymbolProps {
   x: number;

@@ -8,6 +8,7 @@ import { blendColors } from '../utils/colorUtils';
 interface TimeAwareBackgroundProps {
  gameTimeHours: number;
  gameTimeMinutes: number;
+ viewMode?: 'standard' | 'interior';
 }
 
 // Enhanced gradient colors for more realistic transitions
@@ -16,9 +17,14 @@ const GRADIENT_COLORS = {
     DAY: ['#87ceeb', '#4682b4'],   // Sky blue to steel blue
     DUSK: ['#8b4a6b', '#cd5c5c'],  // Magenta to indian red
     TWILIGHT: ['#2d1b69', '#4a1942'], // Deep purple twilight
-    NIGHT: ['#1e293b', '#0f172a'], // Slate to very dark slate
-    MIDNIGHT: ['#0f172a', '#020617'], // Very dark slate to deepest midnight blue
-    PRE_DAWN: ['#1e293b', '#334155'], // Lighter slate preparing for dawn
+    NIGHT: ['#1a202c', '#0d1117'], // More muted, realistic night colors
+    MIDNIGHT: ['#0d1117', '#010409'], // Deeper, more realistic midnight
+    PRE_DAWN: ['#1a202c', '#2d3748'], // Muted pre-dawn colors
+};
+
+// Interior-specific neutral colors
+const INTERIOR_GRADIENT = {
+    base: ['#2a2a2a', '#1a1a1a'], // Neutral dark gray for interior darkness
 };
 
 const TIME_POINTS = {
@@ -30,10 +36,19 @@ const TIME_POINTS = {
     PRE_DAWN_START: 4, // Pre-dawn glimmer begins
 };
 
-const TimeAwareBackground: React.FC<TimeAwareBackgroundProps> = React.memo(({ gameTimeHours, gameTimeMinutes }) => {
+const TimeAwareBackground: React.FC<TimeAwareBackgroundProps> = React.memo(({ gameTimeHours, gameTimeMinutes, viewMode = 'standard' }) => {
     const [backgroundStyle, setBackgroundStyle] = useState<React.CSSProperties>({});
 
     useEffect(() => {
+        // For interior view, use neutral dark background regardless of time
+        if (viewMode === 'interior') {
+            setBackgroundStyle({
+                background: `linear-gradient(160deg, ${INTERIOR_GRADIENT.base[0]} 0%, ${INTERIOR_GRADIENT.base[1]} 100%)`,
+                transition: 'background 2s ease-out'
+            });
+            return;
+        }
+
         const currentTime = gameTimeHours + gameTimeMinutes / 60;
         let fromKey: keyof typeof GRADIENT_COLORS;
         let toKey: keyof typeof GRADIENT_COLORS;
@@ -112,10 +127,13 @@ const TimeAwareBackground: React.FC<TimeAwareBackgroundProps> = React.memo(({ ga
             background: `linear-gradient(160deg, ${startColor} 0%, ${endColor} 100%)`,
             transition: 'background 3s ease-out'
         });
-    }, [gameTimeHours, gameTimeMinutes]);
+    }, [gameTimeHours, gameTimeMinutes, viewMode]);
 
     // Realistic star visibility calculation
     const getStarOpacity = () => {
+        // No stars in interior view
+        if (viewMode === 'interior') return 0;
+        
         const currentTime = gameTimeHours + gameTimeMinutes / 60;
         
         // Stars are only visible during night hours
@@ -144,7 +162,28 @@ const TimeAwareBackground: React.FC<TimeAwareBackgroundProps> = React.memo(({ ga
         return 0;
     };
 
+    // Generate randomized colored stars for more variety
+    const generateColoredStars = (seed: number) => {
+        const starColors = ['#ffffff', '#fffacd', '#b3d9ff', '#ffd1dc', '#e6e6fa', '#f0e68c'];
+        const positions = [];
+        const rng = (s: number) => {
+            let x = Math.sin(s) * 10000;
+            return x - Math.floor(x);
+        };
+        
+        for (let i = 0; i < 12; i++) {
+            const x = rng(seed + i) * 300 + 50;
+            const y = rng(seed + i + 100) * 200 + 30;
+            const size = rng(seed + i + 200) * 1.5 + 0.5;
+            const opacity = rng(seed + i + 300) * 0.6 + 0.4;
+            const colorIndex = Math.floor(rng(seed + i + 400) * starColors.length);
+            positions.push({ x, y, size, opacity, color: starColors[colorIndex] });
+        }
+        return positions;
+    };
+
     const starOpacity = getStarOpacity();
+    const coloredStars = generateColoredStars(Math.floor(gameTimeHours + gameTimeMinutes / 15)); // Change star pattern every 15 minutes
 
     return (
         <div className="absolute inset-0 -z-10 overflow-hidden" style={backgroundStyle}>
@@ -189,6 +228,43 @@ const TimeAwareBackground: React.FC<TimeAwareBackgroundProps> = React.memo(({ ga
                             animation: 'move-twink-back 12000s linear infinite'
                         }}
                     />
+
+                    {/* Randomized colored stars */}
+                    <div className="absolute inset-0 w-full h-full">
+                        {coloredStars.map((star, index) => (
+                            <div
+                                key={index}
+                                className="absolute animate-pulse"
+                                style={{
+                                    left: `${star.x}px`,
+                                    top: `${star.y}px`,
+                                    width: `${star.size * 2}px`,
+                                    height: `${star.size * 2}px`,
+                                    backgroundColor: star.color,
+                                    borderRadius: '50%',
+                                    opacity: star.opacity * starOpacity,
+                                    boxShadow: `0 0 ${star.size * 4}px ${star.color}`,
+                                    animationDuration: `${2 + (index % 3)}s`,
+                                    animationDelay: `${index * 0.2}s`
+                                }}
+                            />
+                        ))}
+                    </div>
+
+                    {/* Shooting stars - appear occasionally during peak night hours */}
+                    {starOpacity > 0.8 && (gameTimeHours + gameTimeMinutes / 60) % 1 < 0.1 && (
+                        <div className="absolute inset-0 w-full h-full overflow-hidden">
+                            <div
+                                className="absolute w-1 h-1 bg-white rounded-full"
+                                style={{
+                                    top: '20%',
+                                    left: '80%',
+                                    animation: 'shooting-star 3s ease-out',
+                                    boxShadow: '0 0 4px #ffffff, 0 0 8px #ffffff'
+                                }}
+                            />
+                        </div>
+                    )}
                 </div>
             )}
 

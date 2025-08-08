@@ -6,6 +6,10 @@ import { generateRoomLayouts } from './layouts/roomLayoutGenerator';
 import { placeFurniture } from './furnishings/furniturePlacer';
 import { ValueNoise } from '../../utils/noise';
 import { InteriorGenerationConfig } from '../../types/interiorMapTypes';
+import { generateEnhancedInteriorMap } from './enhancedInteriorGenerator';
+import { generateBeautifulInterior } from './beautifulInteriorGenerator';
+import { mapLocationToCulture } from '../../utils/mapUtils';
+import { parseDateString } from '../../utils/dateUtils';
 
 const INTERIOR_TILE_SIZE = 32;
 
@@ -188,24 +192,81 @@ function generateInteriorLayout(
  * @returns An InteriorMapData object.
  */
 export function generateInteriorMap(config: InteriorGenerationConfig): InteriorMapData {
+    console.log('🏭 [InteriorMapGenerator] Starting generation for:', {
+        buildingType: config.buildingType,
+        buildingId: config.buildingId,
+        contextTile: {
+            x: config.contextTile.x,
+            y: config.contextTile.y,
+            holyPlaceReligion: config.contextTile.holyPlaceReligion,
+            structure: config.contextTile.structure
+        }
+    });
+    
     const noise = new ValueNoise(config.contextTile.x * 10 + config.contextTile.y * 50 + config.floor);
     
     let interiorData: Omit<InteriorMapData, 'player' | 'entrance'> & { entrance?: Point };
     let width: number, height: number;
 
+    console.log('🔀 [InteriorMapGenerator] Routing to generator based on building type:', config.buildingType);
     switch (config.buildingType) {
-        case 'palace':
-            width = 40; height = 30;
-            interiorData = generateInteriorLayout(config, noise, width, height, 'marble_tile', '#e5e7eb', 'stone_brick_ornate');
-            break;
         case 'tavern':
+            console.log('🍺 [InteriorMapGenerator] Generating TAVERN layout');
             width = 25; height = 20;
             interiorData = generateInteriorLayout(config, noise, width, height, 'wood_plank_dark', '#856a5d', 'stone_wall');
             break;
+        case 'temple':
+        case 'holy_place':
+            console.log('🏛️ [InteriorMapGenerator] Holy place/temple detected, religion:', config.contextTile.holyPlaceReligion);
+        case 'palace': {
+            console.log('✨ [InteriorMapGenerator] Routing to BEAUTIFUL interior generator for:', config.buildingType);
+            // Use beautiful interior generator for holy places and palaces
+            const beautifulData = generateBeautifulInterior(config);
+            
+            console.log('📊 [InteriorMapGenerator] Beautiful data generated:', {
+                width: beautifulData.width,
+                height: beautifulData.height,
+                hasLayout: !!beautifulData.layout,
+                layoutName: beautifulData.layout?.name,
+                npcCount: beautifulData.npcs?.length || 0
+            });
+            
+            // Convert to standard InteriorMapData format for compatibility
+            return {
+                width: beautifulData.width,
+                height: beautifulData.height,
+                tiles: beautifulData.tiles,
+                entities: beautifulData.entities,
+                rooms: beautifulData.rooms,
+                player: beautifulData.player,
+                entrance: beautifulData.entrance,
+                buildingType: beautifulData.buildingType,
+                buildingId: beautifulData.buildingId,
+                floor: beautifulData.floor,
+                totalFloors: beautifulData.totalFloors,
+                description: beautifulData.description,
+                npcs: beautifulData.npcs,
+                restrictions: beautifulData.guardNpcs.map(npc => ({
+                    roomId: npc.guardedRoom || 'unknown',
+                    requiredReligion: npc.requiredReligionToPass,
+                    requiredClass: npc.requiredClassToPass,
+                    isPrivate: true,
+                    penalty: 'warning' as const
+                }))
+            };
+        }
         case 'house':
+            console.log('🏠 [InteriorMapGenerator] Generating HOUSE layout');
+            width = 20; height = 15;
+            interiorData = generateInteriorLayout(config, noise, width, height, 'wood_plank_light', '#a08a70', 'stone_wall');
+            break;
         case 'ruin': // Ruin entrance leads to a simple 'house' like layout for now
-        case 'temple': // Temple leads to a simple 'house' like layout for now
+            console.log('🏚️ [InteriorMapGenerator] Generating RUIN layout');
+            width = 20; height = 15;
+            interiorData = generateInteriorLayout(config, noise, width, height, 'wood_plank_light', '#a08a70', 'stone_wall');
+            break;
         default:
+            console.log('❓ [InteriorMapGenerator] Using DEFAULT layout for unknown type:', config.buildingType);
             width = 20; height = 15;
             interiorData = generateInteriorLayout(config, noise, width, height, 'wood_plank_light', '#a08a70', 'stone_wall');
             break;

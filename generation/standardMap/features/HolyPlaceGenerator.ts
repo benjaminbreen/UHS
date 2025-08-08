@@ -1,11 +1,12 @@
 /**
  * generation/standardMap/features/HolyPlaceGenerator.ts - Generates holy places for Standard Maps
  */
-import { Tile, BiomeType, MapData, SocietalProfile, TerrainStructure, FactionData } from '../../../types/index';
+import { Tile, BiomeType, MapData, SocietalProfile, TerrainStructure, FactionData, HistoricalEra } from '../../../types/index';
 import { ValueNoise } from '../../../utils/noise';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES, ALTITUDE_LEVELS, STRUCTURE_BLUEPRINTS, FACTION_DATA } from '../../../constants/index';
 import { parseDateString } from '../../../utils/dateUtils';
 import { mapLocationToCulture } from '../../../utils/mapUtils';
+import { RELIGION_DATA } from '../../../constants/characterData/religions';
 
 
 const HOLY_PLACE_BASE_CHANCE = 0.004;
@@ -93,6 +94,25 @@ export function generateHolyPlaces(mapData: MapData, featurePlacementNoise: Valu
             tile.biome = BiomeType.HOLY_SITE;
             const holyPlaceName = holyPlaceTypes[Math.floor(featurePlacementNoise.random() * holyPlaceTypes.length)];
             tile.holyPlaceType = holyPlaceName;
+            
+            // Assign religion based on region and era
+            const regionReligions = RELIGION_DATA[culturalZone]?.[mapData.region || '']?.[dateInfo.era as HistoricalEra];
+            if (regionReligions && regionReligions.length > 0) {
+                // Weight-based selection
+                const totalWeight = regionReligions.reduce((sum, r) => sum + r.weight, 0);
+                let random = featurePlacementNoise.random() * totalWeight;
+                let selectedReligion = regionReligions[0].religion;
+                
+                for (const religionEntry of regionReligions) {
+                    random -= religionEntry.weight;
+                    if (random <= 0) {
+                        selectedReligion = religionEntry.religion;
+                        break;
+                    }
+                }
+                
+                tile.holyPlaceReligion = selectedReligion;
+            }
 
             const blueprint = STRUCTURE_BLUEPRINTS['holy_site'];
             const holySiteStructure: TerrainStructure = {

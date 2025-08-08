@@ -9,6 +9,9 @@ export interface ParsedDateInfo {
 }
 
 export function parseDateString(dateStr: string): ParsedDateInfo {
+  if (!dateStr) {
+    dateStr = '1500 CE'; // Default fallback
+  }
   dateStr = dateStr.trim().toLowerCase();
   let year = parseInt(dateStr, 10);
 

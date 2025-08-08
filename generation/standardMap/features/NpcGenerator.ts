@@ -122,6 +122,71 @@ function createNpc(
 }
 
 /**
+ * Generate court NPCs for palaces and holy sites using faction data
+ */
+function generateCourtNpcs(
+    structures: TerrainStructure[],
+    context: { era: HistoricalEra, culturalZone: CulturalZone, region: string, year: number },
+    noise: ValueNoise,
+    statsTracker: NpcGenerationStats
+): NpcEntity[] {
+    const courtNpcs: NpcEntity[] = [];
+    
+    for (const structure of structures) {
+        if (structure.structureType === 'palace' || structure.structureType === 'holy_site') {
+            const factionData = FACTION_DATA[context.culturalZone]?.[context.region]?.[context.era];
+            if (factionData?.courtRoles) {
+                const courtRoles = factionData.courtRoles[structure.structureType];
+                if (courtRoles && courtRoles.length > 0) {
+                    // Generate NPCs for each court role (up to 3-4 maximum to avoid overcrowding)
+                    const maxCourtNpcs = Math.min(courtRoles.length, 4);
+                    for (let i = 0; i < maxCourtNpcs; i++) {
+                        const role = courtRoles[i];
+                        
+                        // Find a position near the structure
+                        const structureLocation = structure.location || [50, 50];
+                        const x = structureLocation[0] + Math.floor((noise.random() - 0.5) * 4);
+                        const y = structureLocation[1] + Math.floor((noise.random() - 0.5) * 4);
+                        
+                        const contextWithFactionData = {
+                            ...context,
+                            factionData
+                        };
+                        
+                        const courtNpc = createNpc(
+                            x, y,
+                            context,
+                            noise,
+                            statsTracker,
+                            structure,
+                            role // Use the specific court role
+                        );
+                        
+                        if (courtNpc) {
+                            // Override the role determination to use the specific court role
+                            const { socialClass, emoji } = determineSocialRole(
+                                courtNpc, 
+                                contextWithFactionData, 
+                                role, 
+                                structure.structureType
+                            );
+                            
+                            courtNpc.role = role;
+                            courtNpc.class = socialClass;
+                            courtNpc.emoji = emoji;
+                            
+                            courtNpcs.push(courtNpc);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    return courtNpcs;
+}
+
+/**
  * Enhanced NPC generation with comprehensive error handling and portrait integration
  */
 export function generateNpcsForStandardMap(

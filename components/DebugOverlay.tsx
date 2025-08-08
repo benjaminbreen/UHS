@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { usePerformanceMonitor } from '../hooks/usePerformanceMonitor';
 import { useUI } from '../contexts/UIContext';
+import { usePlayer } from '../contexts/PlayerContext';
+import { useMap } from '../contexts/MapContext';
 
 const DebugOverlay: React.FC = () => {
-  const { isTestModeEnabled, debugSettings, setDebugSettings } = useUI();
+  const { isTestModeEnabled, debugSettings, setDebugSettings, setActiveRuinModal } = useUI();
+  const { onEnterBuilding } = usePlayer();
+  const { mapData } = useMap();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isSafari, setIsSafari] = useState(false);
   const { metrics, resetMetrics } = usePerformanceMonitor(isTestModeEnabled);
@@ -34,6 +38,41 @@ const DebugOverlay: React.FC = () => {
     }
     if (key === 'reduceSVGComplexity') {
       document.body.classList.toggle('reduce-svg', !debugSettings.reduceSVGComplexity);
+    }
+  };
+
+  // Test teleportation functions
+  const createTestTile = (buildingType: string, holyPlaceReligion?: string) => {
+    return {
+      x: 50,
+      y: 50,
+      biome: 'GRASSLAND' as const,
+      elevation: 100,
+      temperature: 15,
+      precipitation: 500,
+      structure: {
+        id: `test-${buildingType}-${Date.now()}`,
+        type: buildingType as any,
+        structureType: buildingType === 'holy_place' ? 'holy_site' : buildingType, // Use 'holy_site' for holy places to match real data
+        name: `Test ${buildingType.replace('_', ' ')}`,
+        discovered: true,
+        culturalSignificance: 'high' as const
+      },
+      holyPlaceReligion
+    };
+  };
+
+  const teleportToInterior = (buildingType: string, religion?: string) => {
+    if (!mapData) return;
+    
+    const testTile = createTestTile(buildingType, religion);
+    console.log(`Teleporting to ${buildingType}${religion ? ` (${religion})` : ''}...`);
+    
+    // Use ruin modal for ruins, interior system for others
+    if (buildingType === 'ruin') {
+      setActiveRuinModal({ tile: testTile });
+    } else if (onEnterBuilding) {
+      onEnterBuilding(testTile, mapData);
     }
   };
 
@@ -260,6 +299,81 @@ const DebugOverlay: React.FC = () => {
               >
                 Save Settings
               </button>
+            </div>
+
+            {/* Interior Teleportation Test Suite */}
+            <div className="space-y-2 border-t border-cyan-500/30 pt-3">
+              <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Interior Teleportation</h4>
+              
+              {/* Palace */}
+              <button
+                onClick={() => teleportToInterior('palace')}
+                className="w-full px-2 py-1 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 text-xs rounded transition-colors"
+              >
+                👑 Palace (Beautiful Interior)
+              </button>
+
+              {/* Holy Places with different religions */}
+              <button
+                onClick={() => teleportToInterior('holy_place', 'Christianity')}
+                className="w-full px-2 py-1 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 text-xs rounded transition-colors"
+              >
+                ⛪ Christian Cathedral (Beautiful)
+              </button>
+
+              <button
+                onClick={() => teleportToInterior('holy_place', 'Islam')}
+                className="w-full px-2 py-1 bg-green-600/20 hover:bg-green-600/30 text-green-400 text-xs rounded transition-colors"
+              >
+                🕌 Islamic Mosque (Beautiful)
+              </button>
+
+              <button
+                onClick={() => teleportToInterior('holy_place', 'Buddhism')}
+                className="w-full px-2 py-1 bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 text-xs rounded transition-colors"
+              >
+                🏛️ Buddhist Temple (Beautiful)
+              </button>
+
+              <button
+                onClick={() => teleportToInterior('holy_place', 'Judaism')}
+                className="w-full px-2 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 text-xs rounded transition-colors"
+              >
+                🕍 Jewish Synagogue (Beautiful)
+              </button>
+
+              <button
+                onClick={() => teleportToInterior('temple')}
+                className="w-full px-2 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 text-xs rounded transition-colors"
+              >
+                🏛️ Generic Temple (Beautiful)
+              </button>
+
+              {/* Old System Buildings */}
+              <div className="border-t border-gray-600 pt-2 mt-2">
+                <span className="text-xs text-gray-500 mb-2 block">Legacy System</span>
+                
+                <button
+                  onClick={() => teleportToInterior('tavern')}
+                  className="w-full px-2 py-1 bg-gray-600/20 hover:bg-gray-600/30 text-gray-400 text-xs rounded transition-colors mb-1"
+                >
+                  🍺 Tavern (Old System)
+                </button>
+
+                <button
+                  onClick={() => teleportToInterior('house')}
+                  className="w-full px-2 py-1 bg-gray-600/20 hover:bg-gray-600/30 text-gray-400 text-xs rounded transition-colors mb-1"
+                >
+                  🏠 House (Old System)
+                </button>
+
+                <button
+                  onClick={() => teleportToInterior('ruin')}
+                  className="w-full px-2 py-1 bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 text-xs rounded transition-colors"
+                >
+                  🏚️ Ruin (Roguelike Modal)
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -76,6 +76,7 @@ export interface Tile {
   ruinType?: string; // For Ruins
   palaceType?: string; // For Palaces
   holyPlaceType?: string; // For Holy Places
+  holyPlaceReligion?: string; // Specific religion of this holy place
   paddockType?: string; // For Animal Paddocks
   isRoad?: boolean; // For pathfinding/NPC behavior
   structure?: TerrainStructure; // For any structure on the tile

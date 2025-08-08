@@ -123,4 +123,14 @@ export interface NpcEntity {
 
     // Memory & Reputation
     memory: NpcMemory;
+    
+    // Interior-specific behavior
+    isHostile?: boolean;
+    patrolRoute?: Point[];
+    currentPatrolIndex?: number;
+    guardedRoom?: string; // Room ID being guarded
+    requiredReligionToPass?: string;
+    requiredClassToPass?: string[];
+    confrontationDialogue?: string[];
+    hasConfrontedPlayer?: boolean;
 }

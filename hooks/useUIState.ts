@@ -59,6 +59,7 @@ export const useUIState = () => {
     const [useLlmForDescriptions, setUseLlmForDescriptions] = useState(false);
     const [useLlmForCharacter, setUseLlmForCharacter] = useState(false);
     const [isTestModeEnabled, setIsTestModeEnabled] = useState<boolean>(false);
+    const [isDevBuildingModeOpen, setIsDevBuildingModeOpen] = useState<boolean>(false);
     const [debugSettings, setDebugSettings] = useState({
         showFPS: true,
         showRenderCount: true,
@@ -85,6 +86,7 @@ export const useUIState = () => {
     const [activeSettlementInfo, setActiveSettlementInfo] = useState<{ tile: Tile } | null>(null);
     const [activeMarketplaceModal, _setActiveMarketplaceModal] = useState<{ tile: Tile } | null>(null);
     const [activeCityModal, _setActiveCityModal] = useState<{ tile: Tile } | null>(null);
+    const [activeRuinModal, setActiveRuinModal] = useState<{ tile: Tile } | null>(null);
     const [activeMiningModal, setActiveMiningModal] = useState<TerrainStructure | null>(null);
     const [interactionModalData, setInteractionModalData] = useState<any>(null); // For container loot
     const [encounterTarget, setEncounterTarget] = useState<EncounterableEntity | null>(null);
@@ -325,9 +327,30 @@ export const useUIState = () => {
         setIsNarratorLoading(true);
 
         let contextTile: any;
+        let interiorContext: any = undefined;
+        
         if(viewMode === 'interior' && interiorViewState && interiorMapPlayerPos) {
              const currentFloor = interiorViewState.maps.get(interiorViewState.currentFloor);
-             if (currentFloor) contextTile = currentFloor.tiles[interiorMapPlayerPos.y][interiorMapPlayerPos.x];
+             if (currentFloor) {
+                 contextTile = currentFloor.tiles[interiorMapPlayerPos.y][interiorMapPlayerPos.x];
+                 
+                 // Create interior context information for the LLM
+                 interiorContext = {
+                     buildingType: currentFloor.buildingType || 'building',
+                     buildingName: currentFloor.description || `${currentFloor.buildingType || 'Building'}`,
+                     layoutName: currentFloor.npcs?.[0] ? 
+                         (currentFloor.buildingType === 'palace' ? 'Royal Palace' :
+                          currentFloor.buildingType === 'holy_place' ? 'Sacred Temple' : 
+                          'Interior Space') : 'Simple Interior'
+                 };
+                 
+                 // Try to find religion and cultural info from NPCs or building data
+                 if (currentFloor.npcs && currentFloor.npcs.length > 0) {
+                     const firstNpc = currentFloor.npcs[0];
+                     if (firstNpc.religion) interiorContext.religion = firstNpc.religion;
+                     if (firstNpc.culturalZone) interiorContext.culturalZone = firstNpc.culturalZone;
+                 }
+             }
         } else {
             contextTile = mapData.tiles[controlledIconY][controlledIconX];
         }
@@ -345,7 +368,8 @@ export const useUIState = () => {
             terrainStructures,
             playerX: controlledIconX,
             playerY: controlledIconY,
-            mapData
+            mapData,
+            interiorContext
         };
         
         try {
@@ -518,10 +542,10 @@ export const useUIState = () => {
         hoveredDevData, pinnedDevData, isTooltipPinnedOpen,
         tileInfoModalProps, infoModalTarget, structureModalTarget, activeSettlementInfo,
         isSettingsModalOpen, isAboutModalOpen, useLlmForDescriptions, useLlmForCharacter, showDevTooltip,
-        isTestModeEnabled, debugSettings,
+        isTestModeEnabled, debugSettings, isDevBuildingModeOpen,
         isWorldMapModalOpen, interactionModalData, isSkillsModalOpen, isSkillLoading, skillResult,
         isMapDetailsModalOpen, encounterTarget, combatant, victoryDetails, isCharacterProfileModalOpen,
-        isAnyModalOpen, activeMarketplaceModal, activeCityModal, activeMiningModal,
+        isAnyModalOpen, activeMarketplaceModal, activeCityModal, activeRuinModal, activeMiningModal,
         isLeftSidebarExpanded, activeMapSubTab, activeLens, toastMessage, panelNotificationItem,
         lootModalData, setLootModalData,
         isLevelUpModalOpen, levelUpCharacter,
@@ -533,12 +557,12 @@ export const useUIState = () => {
         handleDevHover, handleCondenseTooltip, togglePinnedTooltip,
         setTileInfoModalProps, setInfoModalTarget, setStructureModalTarget, setActiveSettlementInfo,
         setIsSettingsModalOpen, setIsAboutModalOpen, setUseLlmForDescriptions, setUseLlmForCharacter, setShowDevTooltip,
-        setIsTestModeEnabled, setDebugSettings,
+        setIsTestModeEnabled, setDebugSettings, setIsDevBuildingModeOpen,
         setIsWorldMapModalOpen, setInteractionModalData, handleTakeItem,
         setIsSkillsModalOpen, setIsMapDetailsModalOpen,
         handleEncounter, handleCloseEncounter, handleInitiateCombat,
         setCombatant, handleCombatVictory, setVictoryDetails, setIsCharacterProfileModalOpen,
-        closeAllModals, setActiveMarketplaceModal, setActiveCityModal, setActiveMiningModal,
+        closeAllModals, setActiveMarketplaceModal, setActiveCityModal, setActiveRuinModal, setActiveMiningModal,
         setIsLeftSidebarExpanded, setActiveMapSubTab, setActiveLens, showToast, setPanelNotificationItem,
         handleLooting, handleCloseLootModal, onTakeCoins,
         handleVictoryClose,

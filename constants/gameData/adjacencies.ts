@@ -130,6 +130,55 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   // Far Eastern Islands
   "Sakhalin Island": { N: "Kamchatka Peninsula", S: "Tohoku Hills", W: "Manchurian Plain", E: "LIMINAL_PACIFIC_TO_NORTH_AMERICA" },
 
+  // === EAST ASIA - CHINA ===
+  // North China Plain
+  "Yellow River Valley": { N: "Beijing Basin", S: "Shandong Peninsula", E: "Shandong Peninsula", W: "Loess Plateau" },
+  "Shandong Peninsula": { N: "Beijing Basin", S: "Yangtze Gorges", W: "Yellow River Valley", E: "Han River Valley" },
+  "Loess Plateau": { N: "Gobi Desert", S: "Yangtze Gorges", E: "Yellow River Valley", W: "Tarim Basin" },
+  "Beijing Basin": { N: "Manchurian Plain", S: "Yellow River Valley", E: "Hebei Plain", W: "Taihang Mountains" },
+  "Taihang Mountains": { N: "Manchurian Plain", S: "Yellow River Valley", E: "Beijing Basin", W: "Loess Plateau" },
+  "Hebei Plain": { N: "Manchurian Plain", S: "Shandong Peninsula", W: "Beijing Basin", E: "Han River Valley" },
+
+  // South China
+  "Pearl River Delta": { N: "Yangtze Gorges", S: "Hainan Island", E: "Fujian Coast", W: "Guangxi Highlands" },
+  "Fujian Coast": { N: "Yangtze Gorges", S: "Taiwan Strait", W: "Pearl River Delta", E: "Taiwan Strait" },
+  "Guangxi Highlands": { N: "Sichuan Basin", S: "Red River Delta", E: "Pearl River Delta", W: "Yunnan Plateau" },
+  "Yangtze Gorges": { N: "Sichuan Basin", S: "Pearl River Delta", E: "Fujian Coast", W: "Sichuan Basin" },
+  "Hainan Island": { N: "Pearl River Delta", S: "LIMINAL_SOUTH_CHINA_SEA_TO_OCEANIA", E: "LIMINAL_SOUTH_CHINA_SEA_TO_OCEANIA", W: "Red River Delta" },
+  "Wuyi Mountains": { N: "Yangtze Gorges", S: "Fujian Coast", E: "Fujian Coast", W: "Guangxi Highlands" },
+
+  // West China and Tibet
+  "Sichuan Basin": { N: "Qaidam Basin", S: "Yunnan Plateau", E: "Yangtze Gorges", W: "Tibetan Plateau" },
+  "Yunnan Plateau": { N: "Sichuan Basin", S: "Irrawaddy Valley", E: "Guangxi Highlands", W: "Tibetan Plateau" },
+  "Tibetan Plateau": { N: "Kunlun Mountains", S: "Himalayan Slopes", E: "Sichuan Basin", W: "Kailash Region" },
+  "Himalayan Slopes": { N: "Tibetan Plateau", S: "Kashmir Valley", E: "Yunnan Plateau", W: "Kailash Region" },
+  "Kailash Region": { N: "Kunlun Mountains", S: "Kashmir Valley", E: "Tibetan Plateau", W: "Pamir Mountains" },
+  "Eastern Plateau Slopes": { N: "Tibetan Plateau", S: "Naga Hills", E: "Sichuan Basin", W: "Himalayan Slopes" },
+
+  // === EAST ASIA - JAPAN ===
+  "Kyoto Basin": { N: "Tohoku Hills", S: "Nara Uplands", E: "Edo Plain", W: "Inland Sea Coast" },
+  "Edo Plain": { N: "Tohoku Hills", S: "Mount Fuji Region", W: "Kyoto Basin", E: "LIMINAL_PACIFIC_TO_NORTH_AMERICA" },
+  "Inland Sea Coast": { N: "Tohoku Hills", S: "Nara Uplands", E: "Kyoto Basin", W: "Han River Valley" },
+  "Mount Fuji Region": { N: "Edo Plain", S: "Nara Uplands", E: "LIMINAL_PACIFIC_TO_NORTH_AMERICA", W: "Inland Sea Coast" },
+  "Tohoku Hills": { N: "Sakhalin Island", S: "Kyoto Basin", E: "LIMINAL_PACIFIC_TO_NORTH_AMERICA", W: "Baekdu Mountain Zone" },
+  "Nara Uplands": { N: "Kyoto Basin", S: "Ryukyu Islands", E: "Mount Fuji Region", W: "Inland Sea Coast" },
+
+  // === EAST ASIA - KOREA ===
+  "Han River Valley": { N: "Baekdu Mountain Zone", S: "Busan Coast", E: "LIMINAL_PACIFIC_TO_NORTH_AMERICA", W: "Hebei Plain" },
+  "Kaesong Foothills": { N: "Baekdu Mountain Zone", S: "Gyeongju Basin", E: "Han River Valley", W: "Manchurian Plain" },
+  "Gyeongju Basin": { N: "Kaesong Foothills", S: "Jeolla Highlands", E: "Busan Coast", W: "Hebei Plain" },
+  "Jeolla Highlands": { N: "Gyeongju Basin", S: "Busan Coast", E: "Busan Coast", W: "Yangtze Gorges" },
+  "Baekdu Mountain Zone": { N: "Manchurian Plain", S: "Han River Valley", E: "Tohoku Hills", W: "Beijing Basin" },
+  "Busan Coast": { N: "Han River Valley", S: "Kyoto Basin", E: "LIMINAL_PACIFIC_TO_NORTH_AMERICA", W: "Pearl River Delta" },
+
+  // === EAST ASIA - TAIWAN AND RYUKYU ===
+  "Central Mountains": { N: "Taipei Basin", S: "Kenting Peninsula", E: "East Coast Rift", W: "Taiwan Strait" },
+  "Taipei Basin": { S: "Central Mountains", E: "East Coast Rift", W: "Taiwan Strait", N: "Ryukyu Islands" },
+  "East Coast Rift": { N: "Taipei Basin", S: "Taitung Highlands", W: "Central Mountains", E: "LIMINAL_PACIFIC_TO_NORTH_AMERICA" },
+  "Ryukyu Islands": { N: "Tohoku Hills", S: "Taipei Basin", E: "LIMINAL_PACIFIC_TO_OCEANIA", W: "Fujian Coast" },
+  "Kenting Peninsula": { N: "Central Mountains", S: "LIMINAL_SOUTH_CHINA_SEA_TO_OCEANIA", E: "Taitung Highlands", W: "Taiwan Strait" },
+  "Taitung Highlands": { N: "East Coast Rift", S: "LIMINAL_SOUTH_CHINA_SEA_TO_OCEANIA", W: "Kenting Peninsula", E: "LIMINAL_PACIFIC_TO_OCEANIA" },
+
   // === SOUTHEAST ASIA ===
   // Mainland Southeast Asia
   "Irrawaddy Valley": { N: "Yunnan Plateau", S: "Tenasserim Coast", E: "Mekong Delta", W: "Bengal Delta" },
@@ -159,7 +208,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
 
   // === NORTH AMERICA ===
   // Pacific Coast
-  "Columbia River Valley": { N: "Puget Sound", S: "San Francisco Bay", E: "Snake River Plain", W: "LIMINAL_PACIFIC_TO_EAST_ASIA" },
+  "Columbia River Valley": { N: "Puget Sound", S: "Redwood Coast", E: "Snake River Plain", W: "LIMINAL_PACIFIC_TO_EAST_ASIA" },
   "Puget Sound": { S: "Columbia River Valley", E: "Glacier Foothills", N: "Yukon River Valley", W: "LIMINAL_PACIFIC_TO_EAST_ASIA" },
   "San Francisco Bay": { N: "Columbia River Valley", S: "Santa Barbara Channel", E: "Sonoran Desert", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
   "Santa Barbara Channel": { N: "San Francisco Bay", S: "Valley of Mexico", E: "Sonoran Desert", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
@@ -268,6 +317,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Paraná Delta": { N: "Santa Fe Floodplain", S: "Uruguay River Valley", W: "Pampas Grasslands", E: "Rio de Janeiro Bay" },
   "Santa Fe Floodplain": { S: "Paraná Delta", E: "São Paulo Plateau", W: "Gran Chaco" },
   "Gran Chaco": { N: "Tapajós Basin", S: "Córdoba Hills", E: "Santa Fe Floodplain", W: "Altiplano" },
+  "Pantanal": { N: "Tapajós Basin", S: "Gran Chaco", E: "Santa Fe Floodplain", W: "Yungas Slopes" },
   "Córdoba Hills": { N: "Gran Chaco", S: "Pampas Grasslands", E: "Paraná Delta" },
   "Uruguay River Valley": { N: "Paraná Delta", S: "Valdés Peninsula", W: "Pampas Grasslands", E: "Rio de Janeiro Bay" },
 
@@ -583,69 +633,51 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
 export const LIMINAL_SEQUENCES: Record<string, LiminalSequence> = {
   // === OCEANIC CROSSINGS === 
   
-  // Atlantic Ocean - Europe to Americas
-  "LIMINAL_ATLANTIC_TO_AMERICAS": { 
-    destination: "Chesapeake Bay", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  // === SMALL SEAS AND REGIONAL WATERWAYS ===
+  // English Channel and North Sea (short crossings - 1 ocean map)
+  "LIMINAL_CHANNEL_CROSSING": { 
+    destination: "Normandy", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
   },
-  "LIMINAL_ATLANTIC_TO_EUROPE": { 
-    destination: "Lisbon Coast", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
-  },
-
-  // Atlantic Ocean - Africa to Americas  
-  "LIMINAL_ATLANTIC_TO_AFRICA": { 
-    destination: "Sierra Leone Coast", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
-  },
-
-  // North Atlantic - Arctic routes
-  "LIMINAL_NORTH_ATLANTIC_TO_EUROPE": { 
-    destination: "Norwegian Fjords", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
-  },
-
-  // Pacific Ocean - Americas to Asia
-  "LIMINAL_PACIFIC_TO_EAST_ASIA": { 
-    destination: "Kamchatka Peninsula", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
-  },
-  "LIMINAL_PACIFIC_TO_NORTH_AMERICA": { 
-    destination: "Columbia River Valley", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  "LIMINAL_NORTH_SEA_TO_BRITAIN": { 
+    destination: "Thames Estuary", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
   },
   
-  // Pacific Ocean - Americas to Oceania
-  "LIMINAL_PACIFIC_TO_OCEANIA": { 
+  // Black Sea (regional sea - 1 ocean map)
+  "LIMINAL_BLACK_SEA_TO_EUROPE": { 
+    destination: "Thracian Plain", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  },
+  
+  // Bay of Bengal (regional crossing - 1 ocean map)
+  "LIMINAL_BAY_OF_BENGAL_TO_SOUTHEAST_ASIA": { 
+    destination: "Irrawaddy Valley", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  },
+
+  // === MEDIUM SEAS ===
+  // Arabian Sea and Red Sea (medium crossings - 2 ocean maps)
+  "LIMINAL_ARABIAN_SEA_TO_MENA": { 
+    destination: "Hadhramaut Valley", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  },
+  "LIMINAL_ARABIAN_SEA_TO_AFRICA": { 
+    destination: "Red Sea Shore", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  },
+
+  // Tasman Sea (medium crossing - 2 ocean maps)
+  "LIMINAL_TASMAN_TO_NEW_ZEALAND": { 
+    destination: "Canterbury Plains", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  },
+  "LIMINAL_TASMAN_TO_AUSTRALIA": { 
     destination: "Sydney Basin", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
   },
-  "LIMINAL_PACIFIC_TO_AMERICAS": { 
-    destination: "San Francisco Bay", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
-  },
-
-  // Pacific Ocean - South America connections
-  "LIMINAL_PACIFIC_TO_SOUTH_AMERICA": { 
-    destination: "Atacama Desert", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
-  },
-
-  // Arctic Ocean crossings
-  "LIMINAL_ARCTIC_OCEAN_TO_NORTH_AMERICA": { 
-    destination: "Yukon River Valley", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
-  },
-  "LIMINAL_ARCTIC_OCEAN_TO_ASIA": { 
-    destination: "Arctic Siberia", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
-  },
-  "LIMINAL_ARCTIC_OCEAN_TO_EUROPE": { 
-    destination: "Lapland", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
-  },
-
-  // Bering Sea - shorter Arctic crossings
+  
+  // Bering Sea (medium crossing - 2 ocean maps)
   "LIMINAL_BERING_SEA_TO_NORTH_AMERICA": { 
     destination: "Yukon River Valley", 
     sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
@@ -655,7 +687,36 @@ export const LIMINAL_SEQUENCES: Record<string, LiminalSequence> = {
     sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
   },
 
-  // Indian Ocean - Africa to Asia/Oceania
+  // === LARGE OCEAN REGIONS ===
+  // South China Sea (large regional crossing - 3 ocean maps)
+  "LIMINAL_SOUTH_CHINA_SEA_TO_OCEANIA": { 
+    destination: "Daintree Rainforest", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  },
+
+  // North Atlantic crossings (large - 4 ocean maps)
+  "LIMINAL_ATLANTIC_TO_AMERICAS": { 
+    destination: "Chesapeake Bay", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  },
+  "LIMINAL_ATLANTIC_TO_EUROPE": { 
+    destination: "Lisbon Coast", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  },
+  
+  // North Atlantic - Arctic routes (large - 4 ocean maps)
+  "LIMINAL_NORTH_ATLANTIC_TO_EUROPE": { 
+    destination: "Norwegian Fjords", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  },
+  
+  // Caribbean connections (medium-large - 3 ocean maps)  
+  "LIMINAL_CARIBBEAN_TO_EUROPE": { 
+    destination: "Lisbon Coast", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  },
+
+  // Indian Ocean crossings (medium-large - 3-4 ocean maps)
   "LIMINAL_INDIAN_OCEAN_TO_SOUTH_ASIA": { 
     destination: "Malabar Coast", 
     sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
@@ -669,61 +730,105 @@ export const LIMINAL_SEQUENCES: Record<string, LiminalSequence> = {
     sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
   },
 
-  // Arabian Sea connections
-  "LIMINAL_ARABIAN_SEA_TO_MENA": { 
-    destination: "Hadhramaut Valley", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
-  },
-  "LIMINAL_ARABIAN_SEA_TO_AFRICA": { 
-    destination: "Red Sea Shore", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
-  },
-  
-  // Bay of Bengal connections
-  "LIMINAL_BAY_OF_BENGAL_TO_SOUTHEAST_ASIA": { 
-    destination: "Irrawaddy Valley", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
-  },
-
-  // Southeast Asia ocean connections
-  "LIMINAL_SOUTH_CHINA_SEA_TO_OCEANIA": { 
-    destination: "Daintree Rainforest", 
+  // Atlantic Africa to Americas (medium - 3 ocean maps)
+  "LIMINAL_ATLANTIC_TO_AFRICA": { 
+    destination: "Sierra Leone Coast", 
     sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
   },
 
-  // Caribbean connections  
-  "LIMINAL_CARIBBEAN_TO_EUROPE": { 
-    destination: "Lisbon Coast", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
-  },
-
-  // European regional seas
-  "LIMINAL_CHANNEL_CROSSING": { 
-    destination: "Normandy", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
-  },
-  "LIMINAL_NORTH_SEA_TO_BRITAIN": { 
-    destination: "Thames Estuary", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
-  },
-  "LIMINAL_BLACK_SEA_TO_EUROPE": { 
-    destination: "Thracian Plain", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
-  },
-
-  // Tasman Sea
-  "LIMINAL_TASMAN_TO_NEW_ZEALAND": { 
-    destination: "Canterbury Plains", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
-  },
-  "LIMINAL_TASMAN_TO_AUSTRALIA": { 
-    destination: "Sydney Basin", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
-  },
-
-  // Pacific Island connections
+  // Pacific Island connections (large - 4 ocean maps)
   "LIMINAL_PACIFIC_TO_POLYNESIA": { 
     destination: "Society Islands", 
-    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  },
+
+  // === VAST OCEAN CROSSINGS ===
+  // Pacific Ocean - largest ocean (6 ocean maps for transcontinental)
+  "LIMINAL_PACIFIC_TO_EAST_ASIA": { 
+    destination: "Kamchatka Peninsula", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  },
+  "LIMINAL_PACIFIC_TO_NORTH_AMERICA": { 
+    destination: "Columbia River Valley", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  },
+  "LIMINAL_PACIFIC_TO_OCEANIA": { 
+    destination: "Sydney Basin", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  },
+  "LIMINAL_PACIFIC_TO_AMERICAS": { 
+    destination: "San Francisco Bay", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  },
+  "LIMINAL_PACIFIC_TO_SOUTH_AMERICA": { 
+    destination: "Atacama Desert", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  },
+
+  // === ARCTIC OCEAN CROSSINGS ===
+  // Arctic Ocean - vast and dangerous (7 ocean maps for trans-Arctic)
+  "LIMINAL_ARCTIC_OCEAN_TO_NORTH_AMERICA": { 
+    destination: "Yukon River Valley", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  },
+  "LIMINAL_ARCTIC_OCEAN_TO_ASIA": { 
+    destination: "Arctic Siberia", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  },
+  "LIMINAL_ARCTIC_OCEAN_TO_EUROPE": { 
+    destination: "Lapland", 
+    sequence: [MapArchetype.SHOALS, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.OPEN_OCEAN, MapArchetype.SHOALS] 
+  },
+
+  // === ARCTIC TUNDRA CROSSINGS ===
+  // Arctic land passages - empty tundra with only polar wildlife
+  "LIMINAL_ARCTIC_TUNDRA_PASSAGE": { 
+    destination: "Lapland", 
+    sequence: [MapArchetype.DESERT, MapArchetype.DESERT, MapArchetype.ALL_LAND] 
+  },
+  "LIMINAL_SIBERIAN_TUNDRA": { 
+    destination: "Arctic Siberia", 
+    sequence: [MapArchetype.DESERT, MapArchetype.DESERT, MapArchetype.DESERT, MapArchetype.ALL_LAND] 
+  },
+
+  // === DESERT CROSSINGS ===
+  // Sahara Desert - vast empty desert requiring multiple crossings
+  "LIMINAL_SAHARA_CROSSING_NORTH_SOUTH": { 
+    destination: "Timbuktu Basin", 
+    sequence: [MapArchetype.DESERT, MapArchetype.DESERT, MapArchetype.DESERT] 
+  },
+  "LIMINAL_SAHARA_CROSSING_EAST_WEST": { 
+    destination: "Lake Chad", 
+    sequence: [MapArchetype.ALL_LAND, MapArchetype.DESERT, MapArchetype.DESERT, MapArchetype.ALL_LAND] 
+  },
+  
+  // Arabian Desert crossings
+  "LIMINAL_ARABIAN_DESERT": { 
+    destination: "Empty Quarter", 
+    sequence: [MapArchetype.DESERT, MapArchetype.DESERT] 
+  },
+  
+  // Gobi Desert crossings
+  "LIMINAL_GOBI_DESERT": { 
+    destination: "Gobi Desert", 
+    sequence: [MapArchetype.DESERT, MapArchetype.DESERT, MapArchetype.DESERT] 
+  },
+  
+  // Australian Outback crossings
+  "LIMINAL_OUTBACK_CROSSING": { 
+    destination: "Alice Springs Basin", 
+    sequence: [MapArchetype.DESERT, MapArchetype.DESERT, MapArchetype.DESERT] 
+  },
+  
+  // American Southwest desert crossings
+  "LIMINAL_SONORAN_DESERT": { 
+    destination: "Colorado Plateau", 
+    sequence: [MapArchetype.DESERT, MapArchetype.DESERT] 
+  },
+  
+  // Patagonian steppe crossings
+  "LIMINAL_PATAGONIAN_STEPPE": { 
+    destination: "Magellanic Steppe", 
+    sequence: [MapArchetype.ALL_LAND, MapArchetype.ALL_LAND] 
   }
 };

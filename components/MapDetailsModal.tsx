@@ -79,7 +79,11 @@ const MapDetailsModal: React.FC<MapDetailsModalProps> = ({ isOpen, onClose, mapD
     }
   };
 
-  const formatBiomeName = (biome: BiomeType) => {
+  const formatBiomeName = (biome: BiomeType | undefined) => {
+    if (!biome) {
+      console.warn('[MapDetailsModal] Undefined biome detected, using fallback');
+      return 'Unknown Terrain';
+    }
     return biome.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
   };
 

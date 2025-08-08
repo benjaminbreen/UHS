@@ -154,7 +154,7 @@ const TabButton: React.FC<{ label: string; isActive: boolean; onClick: () => voi
 }) => (
     <button 
         onClick={onClick}
-        className={`flex-1 py-4 px-6 text-sm font-semibold border-b-2 transition-all duration-300 ${
+        className={`flex-shrink-0 py-3 md:py-4 px-3 md:px-6 text-xs md:text-sm font-semibold border-b-2 transition-all duration-300 whitespace-nowrap ${
             isActive 
                 ? 'text-white border-blue-500 bg-slate-700/50 shadow-glow-blue' 
                 : 'text-slate-400 border-transparent hover:bg-slate-800/40 hover:text-white hover:border-slate-500'
@@ -214,62 +214,140 @@ const CharacterProfileModal: React.FC<CharacterProfileModalProps> = ({
 
     const renderOverview = () => {
         return (
-            <div className="p-6">
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                    {/* Left column: Portrait and details */}
-                    <div className="flex flex-col md:flex-row xl:flex-col gap-6">
-                        <div 
-                            className="relative w-full max-w-sm mx-auto xl:max-w-none group cursor-pointer"
-                            onClick={() => {
-                                setIsPortraitModalOpen(true);
-                                setPortraitModalCharacter(character);
-                            }}
-                        >
-                            <div className="aspect-square bg-slate-900/50 rounded-lg border-2 border-slate-700/50 shadow-xl shadow-black/40 overflow-hidden transition-transform duration-300 group-hover:scale-105">
-                                <ProceduralPortrait character={character} size={512} />
+            <div className="p-4 md:p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+                    {/* Left column: Portrait and Vitals */}
+                    <div className="lg:col-span-1 space-y-4">
+                        {/* Portrait with Name/Profession Box */}
+                        <div className="space-y-4">
+                            <div 
+                                className="relative w-full max-w-xs mx-auto lg:max-w-none group cursor-pointer"
+                                onClick={() => {
+                                    setIsPortraitModalOpen(true);
+                                    setPortraitModalCharacter(character);
+                                }}
+                            >
+                                <div className="aspect-square bg-slate-900/50 rounded-lg border-2 border-slate-700/50 shadow-xl shadow-black/40 overflow-hidden transition-transform duration-300 group-hover:scale-105 flex items-center justify-center">
+                                    <div className="w-full h-full transform scale-110">
+                                        <ProceduralPortrait character={character} size={300} />
+                                    </div>
+                                </div>
+                                <div className="absolute inset-0 rounded-lg bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none group-hover:from-black/40 transition-colors" />
                             </div>
-                            <div className="absolute inset-0 rounded-lg bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none group-hover:from-black/40 transition-colors" />
-                            <div className="absolute bottom-4 left-4 text-white pointer-events-none">
-                                <h3 className="text-3xl font-bold text-shadow-lg">{character.name}</h3>
-                                <p className="text-lg font-semibold text-amber-300 capitalize">{character.profession}</p>
+
+                            {/* Name and Profession Box */}
+                            <div className="p-4 bg-slate-800/60 rounded-lg border border-slate-700/50 text-center">
+                                <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">{character.name}</h3>
+                                <p className="text-base md:text-lg font-semibold text-amber-300 capitalize">{character.profession}</p>
                             </div>
                         </div>
 
-                        <div className="flex-1 space-y-4">
-                            <div className="p-4 bg-slate-800/40 rounded-lg border border-slate-700/50">
-                                <h4 className="font-semibold text-blue-300 mb-2 text-sm">SUMMARY</h4>
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                                    <div><strong className="text-slate-400">LEVEL:</strong> <span className="font-bold text-white">{character.level}</span></div>
-                                    <div><strong className="text-slate-400">AGE:</strong> <span className="font-bold text-white">{character.age} years</span></div>
-                                    <div><strong className="text-slate-400">CLASS:</strong> <span className="font-bold text-white capitalize">{character.class?.toLowerCase()}</span></div>
-                                    <div><strong className="text-slate-400">RELIGION:</strong> <span className="font-bold text-white">{character.religion}</span></div>
+                        {/* Vitals Box */}
+                        <div className="p-4 bg-slate-800/40 rounded-lg border border-slate-700/50">
+                            <h4 className="font-semibold text-blue-300 mb-3 text-sm uppercase tracking-wider">VITALS</h4>
+                            <div className="space-y-3">
+                                <div>
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="text-sm text-red-400">Health</span>
+                                        <span className="text-sm font-bold text-white">{character.health}/{character.maxHealth}</span>
+                                    </div>
+                                    <div className="w-full h-4 bg-slate-700 rounded-full overflow-hidden">
+                                        <div className="h-full bg-gradient-to-r from-red-600 to-red-400 transition-all duration-300" style={{width: `${(character.health/character.maxHealth) * 100}%`}}></div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="p-4 bg-slate-800/40 rounded-lg border border-slate-700/50">
-                                <h4 className="font-semibold text-blue-300 mb-2 text-sm">APPEARANCE</h4>
-                                <div className="text-xs space-y-1">
-                                     <DetailRow label="Garment" value={formatAppearanceText(character.equippedItems.torso || character.appearance.garment, character.appearance.palette?.primary)} />
-                                     <DetailRow label="Headgear" value={formatAppearanceText(character.equippedItems.head || character.appearance.headgear, character.appearance.palette?.secondary)} />
-                                     <DetailRow label="Footwear" value={formatAppearanceText(character.equippedItems.feet || character.appearance.footwear, character.appearance.palette?.secondary)} />
-                                     <DetailRow label="Build" value={character.appearance?.build} />
+                                <div>
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="text-sm text-yellow-400">Fatigue</span>
+                                        <span className="text-sm font-bold text-white">{Math.round(character.fatigue)}/100</span>
+                                    </div>
+                                    <div className="w-full h-4 bg-slate-700 rounded-full overflow-hidden">
+                                        <div className="h-full bg-gradient-to-r from-yellow-600 to-yellow-400 transition-all duration-300" style={{width: `${character.fatigue}%`}}></div>
+                                    </div>
                                 </div>
-                            </div>
-                             <div className="p-4 bg-slate-800/40 rounded-lg border border-slate-700/50">
-                                <h4 className="font-semibold text-blue-300 mb-2 text-sm">EXPERIENCE</h4>
-                                <div className="w-full h-4 bg-slate-700 rounded-full overflow-hidden relative">
-                                    <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full" style={{width: `${(character.experience/character.maxExperience) * 100}%`}}></div>
-                                    <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white text-shadow-sm">{character.experience} / {character.maxExperience} XP</div>
+                                <div>
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="text-sm text-cyan-400">Experience</span>
+                                        <span className="text-sm font-bold text-white">{character.experience}/{character.maxExperience}</span>
+                                    </div>
+                                    <div className="w-full h-4 bg-slate-700 rounded-full overflow-hidden">
+                                        <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-300" style={{width: `${(character.experience/character.maxExperience) * 100}%`}}></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Right column: Background */}
-                    <div className="p-4 bg-slate-800/40 rounded-lg border border-slate-700/50">
-                        <h3 className="text-lg font-bold text-amber-400 mb-4 uppercase tracking-wider">Background</h3>
-                        <p className="font-lora text-base text-slate-200 leading-relaxed italic whitespace-pre-wrap">
-                           {character.backstory}
-                        </p>
+                    {/* Middle column: Background and Status */}
+                    <div className="lg:col-span-1 space-y-4">
+                        <div className="p-4 bg-slate-800/40 rounded-lg border border-slate-700/50 h-full">
+                            <h3 className="text-base md:text-lg font-bold text-amber-400 mb-3 uppercase tracking-wider">Background</h3>
+                            <p className="font-lora text-sm md:text-base text-slate-200 leading-relaxed italic whitespace-pre-wrap">
+                               {character.backstory}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Right column: Stats and Details */}
+                    <div className="lg:col-span-1 space-y-4">
+                        <div className="p-4 bg-slate-800/40 rounded-lg border border-slate-700/50">
+                            <h4 className="font-semibold text-blue-300 mb-3 text-sm uppercase tracking-wider">CHARACTER INFO</h4>
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                                <div>
+                                    <span className="text-slate-400">Level:</span>
+                                    <span className="font-bold text-white ml-2">{character.level}</span>
+                                </div>
+                                <div>
+                                    <span className="text-slate-400">Age:</span>
+                                    <span className="font-bold text-white ml-2">{character.age}</span>
+                                </div>
+                                <div>
+                                    <span className="text-slate-400">Class:</span>
+                                    <span className="font-bold text-white ml-2">{character.class?.replace(/_/g, ' ')}</span>
+                                </div>
+                                <div>
+                                    <span className="text-slate-400">Religion:</span>
+                                    <span className="font-bold text-white ml-2">{character.religion}</span>
+                                </div>
+                                <div>
+                                    <span className="text-slate-400">Height:</span>
+                                    <span className="font-bold text-white ml-2">{cmToFeetAndInches(character.appearance?.height || 170)}</span>
+                                </div>
+                                <div>
+                                    <span className="text-slate-400">Weight:</span>
+                                    <span className="font-bold text-white ml-2">{kgToLbs(character.appearance?.weight || 70)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="p-4 bg-slate-800/40 rounded-lg border border-slate-700/50">
+                            <h4 className="font-semibold text-blue-300 mb-3 text-sm uppercase tracking-wider">APPEARANCE</h4>
+                            <div className="text-sm space-y-2">
+                                 <DetailRow label="Garment" value={formatAppearanceText(character.equippedItems.torso || character.appearance.garment, character.appearance.palette?.primary)} />
+                                 <DetailRow label="Headgear" value={formatAppearanceText(character.equippedItems.head || character.appearance.headgear, character.appearance.palette?.secondary)} />
+                                 <DetailRow label="Footwear" value={formatAppearanceText(character.equippedItems.feet || character.appearance.footwear, character.appearance.palette?.secondary)} />
+                                 <DetailRow label="Build" value={character.appearance?.build} />
+                            </div>
+                        </div>
+                        
+                        <div className="p-4 bg-slate-800/40 rounded-lg border border-slate-700/50">
+                            <h4 className="font-semibold text-blue-300 mb-3 text-sm uppercase tracking-wider">TOP STATS</h4>
+                            <div className="space-y-3">
+                                {Object.entries(character.stats)
+                                    .sort((a, b) => b[1] - a[1])
+                                    .slice(0, 3)
+                                    .map(([stat, value]) => (
+                                        <div key={stat} className="flex justify-between items-center">
+                                            <span className="text-sm text-slate-300 capitalize">{stat}</span>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-24 h-3 bg-slate-700 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-300" style={{width: `${(value/20) * 100}%`}}></div>
+                                                </div>
+                                                <span className="text-sm font-bold text-white w-6 text-right">{value}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -427,19 +505,21 @@ const CharacterProfileModal: React.FC<CharacterProfileModalProps> = ({
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="ff-panel w-full max-w-6xl h-auto max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                <div className="grid grid-cols-[320px_1fr] flex-grow min-h-0">
-                    {/* Left Column: Party */}
-                    <div className="p-4 flex flex-col gap-4 border-r-2 border-slate-700 bg-slate-800/30">
-                        <h3 className="font-press-start text-xl text-slate-300 text-center tracking-wider">PARTY</h3>
+            <div className="ff-panel w-full max-w-5xl md:max-w-6xl h-auto max-h-[95vh] md:max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] flex-grow min-h-0">
+                    {/* Left Column: Party - hidden on mobile, shown on desktop */}
+                    <div className="hidden md:flex p-3 flex-col gap-3 border-r-2 border-slate-700 bg-slate-800/30">
+                        <h3 className="font-press-start text-lg text-slate-300 text-center tracking-wider">PARTY</h3>
                         <div className="p-3 rounded-lg bg-gradient-to-br from-slate-700/50 to-slate-800/40 border border-slate-600/50">
-                            <div className="flex items-center gap-4">
-                                <div className="w-20 h-20 rounded-full overflow-hidden bg-slate-900 border-2 border-slate-500 shadow-lg shrink-0">
-                                    <ProceduralPortrait character={character} size={80} />
+                            <div className="flex items-center gap-3">
+                                <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-900 border-2 border-slate-500 shadow-lg shrink-0 flex items-center justify-center">
+                                    <div className="transform scale-110">
+                                        <ProceduralPortrait character={character} size={64} />
+                                    </div>
                                 </div>
-                                <div>
-                                    <h4 className="font-bold text-lg text-white">{character.name}</h4>
-                                    <p className="text-sm text-amber-300 capitalize">{character.profession}</p>
+                                <div className="min-w-0">
+                                    <h4 className="font-bold text-base text-white truncate">{character.name}</h4>
+                                    <p className="text-xs text-amber-300 capitalize truncate">{character.profession}</p>
                                     <p className="text-xs text-blue-300 mt-1">Level {character.level}</p>
                                 </div>
                             </div>
@@ -448,7 +528,7 @@ const CharacterProfileModal: React.FC<CharacterProfileModalProps> = ({
 
                     {/* Right Column: Tabs */}
                     <div className="flex flex-col min-h-0">
-                        <div className="flex-shrink-0 flex border-b-2 border-slate-700 bg-slate-800/60">
+                        <div className="flex-shrink-0 flex border-b-2 border-slate-700 bg-slate-800/60 overflow-x-auto scrollbar-thin">
                             <TabButton label="Overview" isActive={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
                             <TabButton label="Stats" isActive={activeTab === 'stats'} onClick={() => setActiveTab('stats')} />
                             <TabButton label="Equipment" isActive={activeTab === 'equipment'} onClick={() => setActiveTab('equipment')} />

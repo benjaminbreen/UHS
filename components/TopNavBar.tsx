@@ -4,6 +4,7 @@ import { useMap } from '../contexts/MapContext';
 import { useGame } from '../contexts/GameContext';
 import { MapArchetype, ClimateType, AltitudeSetting, GameDate } from '../types';
 import { MAP_ARCHETYPE_DESCRIPTIONS, CLIMATE_TYPE_DESCRIPTIONS, CULTURE_ZONES } from '../constants/index';
+import { getSafariOptimizedClassName } from '../utils/safariUtils';
 
 const TopNavBar: React.FC = () => {
   const { setIsSettingsModalOpen, setIsAboutModalOpen, setIsWorldMapModalOpen } = useUI();
@@ -44,7 +45,7 @@ const TopNavBar: React.FC = () => {
   };
 
   return (
-    <nav className="relative w-full py-2 px-6 shadow-lg flex justify-between items-center bg-slate-800/70 backdrop-blur-sm border-b border-slate-700 z-40">
+    <nav className={getSafariOptimizedClassName("relative w-full py-2 px-6 shadow-lg flex justify-between items-center bg-slate-800/70 backdrop-blur-sm border-b border-slate-700 z-40")}>
       <div className="flex items-center space-x-4">
         <h1 className="font-press-start text-xl bg-clip-text text-transparent bg-gradient-to-br from-cyan-400 via-green-400 to-emerald-500 animate-logoGlow">MAP VOYAGER</h1>
       </div>
@@ -95,7 +96,7 @@ const TopNavBar: React.FC = () => {
         </button>
       </div>
 
-      <div id="generator-panel-content" className={`absolute top-full left-0 right-0 z-30 bg-gray-800/95 backdrop-blur-sm shadow-lg border-t border-gray-700 transition-all duration-500 ease-in-out overflow-hidden ${isGeneratorPanelOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
+      <div id="generator-panel-content" className={getSafariOptimizedClassName(`absolute top-full left-0 right-0 z-30 bg-gray-800/95 backdrop-blur-sm shadow-lg border-t border-gray-700 transition-all duration-500 ease-in-out overflow-hidden ${isGeneratorPanelOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`)}>
         <div className="max-w-4xl mx-auto p-4 space-y-4 text-sm">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
             <div className="space-y-3 p-3 bg-gray-700 bg-opacity-50 rounded-md border border-gray-600">

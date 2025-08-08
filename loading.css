@@ -172,10 +172,22 @@
 
 @keyframes circling-motion {
   0% {
-    transform: rotate(0deg) translateX(40px) rotate(0deg);
+    transform: rotate(0deg) translateX(20px) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.4;
+  }
+  50% {
+    transform: rotate(180deg) translateX(20px) rotate(-180deg);
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.4;
   }
   100% {
-    transform: rotate(360deg) translateX(40px) rotate(-360deg);
+    transform: rotate(360deg) translateX(20px) rotate(-360deg);
+    opacity: 0;
   }
 }
 
@@ -183,6 +195,11 @@
 .swooping-fish {
   animation: swooping-motion var(--fish-duration, 12s) var(--fish-delay, 0s) infinite ease-in-out;
   transform-origin: center center;
+}
+
+/* Smooth NPC and animal movement */
+.smooth-movement {
+  transition: transform 0.4s ease-in-out;
 }
 
 @keyframes swooping-motion {

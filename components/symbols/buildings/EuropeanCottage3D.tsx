@@ -72,9 +72,9 @@ const EuropeanCottage3D: React.FC<EuropeanCottage3DProps> = React.memo(({ x, y, 
     
     // Window with flower box
     if (hasWindow > 0.4) {
-        const winWidth = width * 0.3;
+        const winWidth = width * 0.2;
         const winHeight = height * 0.25;
-        const winX = x + width * 0.55;
+        const winX = x + width * 0.35;
         const winY = y + height * 0.4;
         elements.push(<rect key="window" x={winX} y={winY} width={winWidth} height={winHeight} fill="#4a3522" stroke={outlineColor} strokeWidth="0.4"/>);
         const flowerboxHeight = height * 0.15;

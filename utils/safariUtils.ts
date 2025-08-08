@@ -50,3 +50,17 @@ export const getSafariOptimizedStyle = (style: React.CSSProperties): React.CSSPr
   
   return optimizedStyle;
 };
+
+// Get Safari-optimized SVG filter attribute (removes blur on Safari)
+export const getSafariOptimizedFilter = (filter: string | undefined): string | undefined => {
+  if (!filter || !isSafari()) {
+    return filter;
+  }
+  
+  // Remove blur filters on Safari for performance
+  if (filter.includes('blur')) {
+    return undefined;
+  }
+  
+  return filter;
+};

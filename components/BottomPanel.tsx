@@ -1,5 +1,6 @@
 import React from 'react';
 import { Tile, PlayerCharacter, MapData, Season, Item, BiomeType, ActionableTile, TerrainStructure } from '../types';
+import { getSafariOptimizedClassName } from '../utils/safariUtils';
 
 interface BottomPanelProps {
     actionableTile: ActionableTile | null;
@@ -10,6 +11,7 @@ interface BottomPanelProps {
     playerY: number | null;
     onEnterCity: (tile: Tile) => void;
     onEnterMarketplace: (tile: Tile) => void;
+    onEnterRuin: (tile: Tile) => void;
     onEnterBuilding: (tile: Tile) => void;
     onEnterFarm: (tile: Tile) => void;
     onEnterMine: (structure: TerrainStructure) => void;
@@ -19,7 +21,7 @@ interface BottomPanelProps {
 const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, icon: string }> = ({ onClick, children, icon }) => (
     <button
         onClick={onClick}
-        className="group relative px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold rounded-xl shadow-lg text-lg transform hover:scale-105 transition-all duration-300 ease-out border border-blue-400/30 backdrop-blur-sm flex items-center justify-center gap-3 overflow-hidden"
+        className={getSafariOptimizedClassName("group relative px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold rounded-xl shadow-lg text-lg transform hover:scale-105 transition-all duration-300 ease-out border border-blue-400/30 backdrop-blur-sm flex items-center justify-center gap-3 overflow-hidden")}
         style={{ 
             textShadow: '1px 1px 2px rgba(0,0,0,0.5)', 
             boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3), inset 0 1px 1px rgba(255,255,255,0.2)' 
@@ -37,7 +39,7 @@ const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, i
 );
 
 const LocationDisplay: React.FC<{ title: string; subtitle: string; icon?: string }> = ({ title, subtitle, icon }) => (
-    <div className="flex items-center space-x-3 bg-slate-800/40 rounded-lg px-4 py-3 border border-slate-700/50 backdrop-blur-sm">
+    <div className={getSafariOptimizedClassName("flex items-center space-x-3 bg-slate-800/40 rounded-lg px-4 py-3 border border-slate-700/50 backdrop-blur-sm")}>
         {icon && (
             <div className="text-3xl drop-shadow-lg">{icon}</div>
         )}
@@ -49,7 +51,7 @@ const LocationDisplay: React.FC<{ title: string; subtitle: string; icon?: string
 );
 
 const ContextualAlert: React.FC<{ message: string }> = ({ message }) => (
-    <div className="flex items-center justify-center space-x-3 bg-gradient-to-r from-amber-900/40 to-orange-900/40 rounded-lg px-4 py-3 border border-amber-600/30 backdrop-blur-sm animate-pulse">
+    <div className={getSafariOptimizedClassName("flex items-center justify-center space-x-3 bg-gradient-to-r from-amber-900/40 to-orange-900/40 rounded-lg px-4 py-3 border border-amber-600/30 backdrop-blur-sm animate-pulse")}>
         <div className="text-2xl text-amber-400 animate-bounce">⚠️</div>
         <p className="text-amber-200 font-semibold text-center">{message}</p>
     </div>
@@ -64,6 +66,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
     playerY,
     onEnterCity,
     onEnterMarketplace,
+    onEnterRuin,
     onEnterBuilding,
     onEnterFarm,
     onEnterMine,
@@ -123,6 +126,20 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                     <LocationDisplay
                         title="Marketplace"
                         subtitle="Hub of Commerce"
+                        icon={locationIcon}
+                    />
+                );
+                break;
+            case 'ruin':
+                buttonText = 'Explore Ruins';
+                buttonIcon = '🏚️';
+                locationIcon = '🏛️';
+                onClickAction = () => onEnterRuin(tile);
+                helperText = "Investigate the ancient ruins and uncover forgotten treasures.";
+                contextualInfo = (
+                    <LocationDisplay
+                        title="Ancient Ruins"
+                        subtitle="Mysterious Remnants"
                         icon={locationIcon}
                     />
                 );
@@ -230,7 +247,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
     };
 
     return (
-        <div className="relative bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-md shadow-2xl transition-all duration-500 ease-in-out border-t border-slate-700/50 overflow-hidden">
+        <div className={getSafariOptimizedClassName("relative bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-md shadow-2xl transition-all duration-500 ease-in-out border-t border-slate-700/50 overflow-hidden")}>
             {/* Animated background pattern */}
             <div className="absolute inset-0 opacity-5">
                 <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-400 to-transparent"></div>
@@ -245,7 +262,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
             {/* Toast message */}
             {toastMessage && (
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full mb-2">
-                    <div className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-sm font-semibold rounded-lg shadow-xl border border-emerald-400/30 backdrop-blur-sm animate-in slide-in-from-bottom duration-300">
+                    <div className={getSafariOptimizedClassName("px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-sm font-semibold rounded-lg shadow-xl border border-emerald-400/30 backdrop-blur-sm animate-in slide-in-from-bottom duration-300")}>
                         <div className="flex items-center space-x-2">
                             <span>✓</span>
                             <span>{toastMessage}</span>

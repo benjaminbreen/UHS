@@ -4,21 +4,27 @@
  */
 import React from 'react';
 import { ValueNoise } from '../../utils/noise';
-import { Season } from '../../types';
+import { Season, ClimateType } from '../../types';
 
 interface DeciduousTreeSymbolProps {
   seed: number;
   season: Season;
+  climate?: ClimateType;
 }
 
-const DeciduousTreeSymbol: React.FC<DeciduousTreeSymbolProps> = React.memo(({ seed, season }) => {
+const DeciduousTreeSymbol: React.FC<DeciduousTreeSymbolProps> = React.memo(({ seed, season, climate }) => {
   const localRand = React.useMemo(() => new ValueNoise(seed).random, [seed]);
 
   const isVariant = localRand() < 0.4; // 40% chance of showing the smaller tree variant
 
+  // Only apply seasonal variations for cold and temperate climates
+  const useSeasonalVariation = !climate || climate === 'cold' || climate === 'temperate';
+  const effectiveSeason = useSeasonalVariation ? season : 'summer';
+
   const getFoliageColor = (variation: number) => {
     let hue, saturation, lightness;
-    switch (season) {
+    
+    switch (effectiveSeason) {
       case 'fall':
         hue = 25 + variation * 30; // Oranges, reds, yellows
         saturation = 70 + variation * 20;
@@ -30,7 +36,7 @@ const DeciduousTreeSymbol: React.FC<DeciduousTreeSymbolProps> = React.memo(({ se
         lightness = 55 + variation * 10;
         break;
       case 'winter':
-        return 'transparent'; // No leaves in winter
+        return 'transparent'; // No leaves in winter (only in cold/temperate)
       case 'summer':
       default:
         hue = 95 + variation * 10; // Standard summer green
@@ -63,7 +69,7 @@ const DeciduousTreeSymbol: React.FC<DeciduousTreeSymbolProps> = React.memo(({ se
   const verticalCompression = 0.6;
   const layerCount = isVariant ? 3 : 5;
 
-  if (season !== 'winter') {
+  if (effectiveSeason !== 'winter') {
     for (let i = 0; i < layerCount; i++) {
       const angle = (i / layerCount) * 2 * Math.PI + localRand() * 0.4;
       const distance = baseRadius * (0.6 + localRand() * 0.4);
@@ -162,8 +168,8 @@ const DeciduousTreeSymbol: React.FC<DeciduousTreeSymbolProps> = React.memo(({ se
             />
           </g>
         ))}
-        {/* Spring Flowers */}
-        {season === 'spring' && [...Array(5)].map((_, i) => {
+        {/* Spring Flowers (only in cold/temperate climates) */}
+        {effectiveSeason === 'spring' && [...Array(5)].map((_, i) => {
             const flowerX = 12 + (localRand() - 0.5) * baseRadius * 1.5;
             const flowerY = 12 + (localRand() - 0.5) * baseRadius;
             return <circle key={`flower-${i}`} cx={flowerX} cy={flowerY} r="0.8" fill={localRand() > 0.5 ? '#f9a8d4' : '#c084fc'} opacity="0.9" />;

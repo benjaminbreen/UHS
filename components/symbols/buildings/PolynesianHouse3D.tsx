@@ -1,8 +1,10 @@
 /**
- * components/symbols/buildings/PolynesianHouse3D.tsx - Renders a detailed Polynesian/Pacific Islander house
+ * components/symbols/buildings/PolynesianHouse3D.tsx
+ * Clean, readable 2.5D Polynesian stilt house with opaque roof and minimal detail.
+ * Auto-scales by biome (hamlet < low density < dense/city center).
  */
 import React from 'react';
-import { Tile, HistoricalEra } from '../../../types';
+import { Tile, HistoricalEra, BiomeType } from '../../../types';
 import { ValueNoise } from '../../../utils/noise';
 
 interface PolynesianHouse3DProps {
@@ -17,261 +19,227 @@ interface PolynesianHouse3DProps {
   era: HistoricalEra;
 }
 
-const PolynesianHouse3D: React.FC<PolynesianHouse3DProps> = React.memo(({ x, y, width, height, size, seed, tile, roofColor, era }) => {
-  const rng = new ValueNoise(seed + tile.x * 11 + tile.y * 23);
-  const uniqueId = `polynesian-${tile.x}-${tile.y}`;
-  
-  // Pre-calculate all random values to prevent re-rendering
-  const rand1 = rng.random();
-  const rand2 = rng.random();
-  const rand3 = rng.random();
-  const rand4 = rng.random();
-  const rand5 = rng.random();
-  const rand6 = rng.random();
-  
-  // Elevated structure on stilts
-  const buildingWidth = width * 0.9;
-  const buildingHeight = height * 0.6;
-  const buildingX = x + (width - buildingWidth) / 2;
-  const buildingY = y + height - buildingHeight;
-  const stiltsHeight = size * 0.15;
-  
-  const bambooColor = `hsl(60, 30%, ${50 + rand1 * 15}%)`;
-  const bambooShadowColor = `hsl(60, 30%, 35%)`;
-  const palmThatchColor = `hsl(35, 45%, ${35 + rand2 * 15}%)`;
-  const palmFrondColor = `hsl(80, 40%, ${30 + rand3 * 15}%)`;
-  const matColor = `hsl(40, 35%, ${45 + rand4 * 10}%)`;
+const PolynesianHouse3D: React.FC<PolynesianHouse3DProps> = React.memo(
+  ({ x, y, width, height, size, seed, tile, roofColor }) => {
+    // ---- Biome scaling (smaller in hamlets/low density) ---------------------
+    let scale = 1;
+    switch (tile.biome) {
+      case BiomeType.HAMLET: scale = 0.75; break;
+      case BiomeType.LOW_DENSITY_CITY: scale = 0.85; break;
+      default: scale = 1; break;
+    }
 
-  return (
-    <g filter="url(#symbolShadow)">
-      <defs>
-        <linearGradient id={`bambooWall-${uniqueId}`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor={bambooColor} />
-          <stop offset="70%" stopColor={bambooColor} />
-          <stop offset="100%" stopColor={bambooShadowColor} />
-        </linearGradient>
-        <pattern id={`palmThatch-${uniqueId}`} patternUnits="userSpaceOnUse" width="4" height="4">
-          <path d="M 0 2 L 4 1 M 0 3.5 L 4 2.5" stroke={palmFrondColor} strokeWidth="0.5" opacity="0.8" />
-          <path d="M 0 0.5 L 4 0 M 0 4 L 4 3.5" stroke={palmThatchColor} strokeWidth="0.4" opacity="0.6" />
-        </pattern>
-        <pattern id={`bambooFloor-${uniqueId}`} patternUnits="userSpaceOnUse" width="8" height="2">
-          <rect x="0" y="0" width="8" height="1" fill={bambooColor} />
-          <rect x="0" y="1" width="8" height="1" fill={bambooShadowColor} opacity="0.3" />
-        </pattern>
-      </defs>
-      
-      {/* Ground shadow */}
-      <ellipse 
-        cx={buildingX + buildingWidth/2} 
-        cy={buildingY + buildingHeight + stiltsHeight + 1} 
-        rx={buildingWidth * 0.7} 
-        ry={buildingWidth * 0.2} 
-        fill="rgba(0,0,0,0.2)" 
+    // ---- RNG (subtle, but pre-sampled) --------------------------------------
+    const noise = new ValueNoise(seed + tile.x * 11 + tile.y * 23);
+    const rvals = React.useMemo(() => Array.from({ length: 8 }, () => noise.random()), []); // eslint-disable-line
+    const uid = `poly-simpler-${tile.x}-${tile.y}-${seed}`;
+
+    // ---- Palette -------------------------------------------------------------
+    const bamboo = `hsl(50, 30%, ${48 + rvals[0] * 8}%)`;
+    const bambooDeep = `hsl(46, 28%, 32%)`;
+    const wood = `hsl(28, 34%, 26%)`;
+    const wallMat = `hsl(38, 32%, ${50 + rvals[1] * 6}%)`;
+    const wallShade = `hsl(36, 28%, 40%)`;
+
+    // Roof: opaque thatch based on provided color; darker side variant
+    const thatchMain = roofColor || `hsl(${36 + rvals[2] * 8}, 44%, 44%)`;
+    const thatchSideDark = `hsl(36, 42%, 30%)`;
+
+    // ---- Geometry (simple 2.5D to the right) --------------------------------
+    const depth = size * 0.24 * scale;   // right-side iso wedge
+    const bodyW = width * 1.0 * scale;
+    const bodyH = height * 0.56 * scale;
+    const stiltsH = size * 0.16 * scale;
+    const deckT = Math.max(3, size * 0.035 * scale);
+
+    const bodyX = x + (width - bodyW) / 2;
+    const bodyY = y + height - (bodyH + stiltsH);
+
+    // Roof
+    const roofY = bodyY + bodyH * 0.08;
+    const roofH = Math.max(12 * scale, bodyH * 0.46);
+    const roofOver = size * 0.06 * scale;
+
+    // Door (centered)
+    const doorW = Math.max(10 * scale, bodyW * 0.22);
+    const doorH = Math.max(16 * scale, bodyH * 0.36);
+    const doorX = bodyX + bodyW / 2 - doorW / 2;
+    const doorY = bodyY + bodyH - doorH;
+
+    // ---- Helpers -------------------------------------------------------------
+    const sideQuad = (x0: number, y0: number, w: number, h: number, d = depth) =>
+      `M ${x0 + w} ${y0} L ${x0 + w + d} ${y0 - d * 0.5} L ${x0 + w + d} ${y0 + h - d * 0.5} L ${x0 + w} ${y0 + h} Z`;
+
+    // Roof polygons (front + side) – fully opaque
+    const roofFront = `M ${bodyX - roofOver} ${roofY}
+      L ${bodyX + bodyW / 2} ${roofY - roofH}
+      L ${bodyX + bodyW + roofOver} ${roofY}
+      Z`;
+    const roofSide = `M ${bodyX + bodyW + roofOver} ${roofY}
+      L ${bodyX + bodyW + roofOver + depth} ${roofY - depth * 0.5}
+      L ${bodyX + bodyW / 2 + depth * 0.5} ${roofY - roofH - depth * 0.3}
+      L ${bodyX + bodyW / 2} ${roofY - roofH}
+      Z`;
+
+    // ---- Build ---------------------------------------------------------------
+    const els: JSX.Element[] = [];
+
+    // Ground shadow (single, soft)
+    els.push(
+      <ellipse
+        key="shadow"
+        cx={bodyX + bodyW * 0.55}
+        cy={y + height + depth * 0.08}
+        rx={Math.max(12, bodyW * 0.66)}
+        ry={Math.max(6, bodyH * 0.26)}
+        fill="rgba(0,0,0,0.22)"
+        filter={`url(#soft-${uid})`}
       />
-      
-      {/* Stilts/Posts */}
-      {Array.from({ length: 6 }).map((_, i) => {
-        const postX = buildingX + buildingWidth * (0.1 + i * 0.16);
-        return (
-          <rect
-            key={`post-${i}`}
-            x={postX}
-            y={buildingY + buildingHeight}
-            width={size * 0.02}
-            height={stiltsHeight}
-            fill={bambooColor}
-            stroke="#4a3728"
-            strokeWidth="0.2"
-          />
-        );
-      })}
-      
-      {/* Floor platform */}
-      <rect
-        x={buildingX}
-        y={buildingY + buildingHeight - size * 0.02}
-        width={buildingWidth}
-        height={size * 0.04}
-        fill={`url(#bambooFloor-${uniqueId})`}
-        stroke="#4a3728"
-        strokeWidth="0.2"
-      />
-      
-      {/* Wall structure - partial walls with open sides */}
-      <rect
-        x={buildingX + buildingWidth * 0.1}
-        y={buildingY + buildingHeight * 0.2}
-        width={buildingWidth * 0.8}
-        height={buildingHeight * 0.6}
-        fill={`url(#bambooWall-${uniqueId})`}
-        stroke="#4a3728"
-        strokeWidth="0.3"
-        opacity="0.9"
-      />
-      
-      {/* Woven mat walls */}
-      <rect
-        x={buildingX + buildingWidth * 0.1}
-        y={buildingY + buildingHeight * 0.2}
-        width={buildingWidth * 0.8}
-        height={buildingHeight * 0.6}
-        fill={matColor}
-        opacity="0.6"
-      />
-      
-      {/* Vertical bamboo slats pattern */}
-      {Array.from({ length: 8 }).map((_, i) => {
-        const slatX = buildingX + buildingWidth * (0.15 + i * 0.09);
-        return (
-          <rect
-            key={`slat-${i}`}
-            x={slatX}
-            y={buildingY + buildingHeight * 0.2}
-            width={size * 0.008}
-            height={buildingHeight * 0.6}
-            fill="#4a3728"
-            opacity="0.7"
-          />
-        );
-      })}
-      
-      {/* High-pitched thatched roof */}
-      <path
-        d={`M ${buildingX - size * 0.08} ${buildingY + buildingHeight * 0.2} 
-            L ${buildingX + buildingWidth/2} ${buildingY - buildingHeight * 0.3} 
-            L ${buildingX + buildingWidth + size * 0.08} ${buildingY + buildingHeight * 0.2} 
-            Z`}
-        fill={roofColor}
-        stroke="#4a3728"
-        strokeWidth="0.3"
-      />
-      
-      {/* Palm thatch texture */}
-      <path
-        d={`M ${buildingX - size * 0.08} ${buildingY + buildingHeight * 0.2} 
-            L ${buildingX + buildingWidth/2} ${buildingY - buildingHeight * 0.3} 
-            L ${buildingX + buildingWidth + size * 0.08} ${buildingY + buildingHeight * 0.2} 
-            Z`}
-        fill={`url(#palmThatch-${uniqueId})`}
-        opacity="0.8"
-      />
-      
-      {/* Overhanging eaves */}
-      <path
-        d={`M ${buildingX - size * 0.08} ${buildingY + buildingHeight * 0.2} 
-            L ${buildingX - size * 0.06} ${buildingY + buildingHeight * 0.25}
-            L ${buildingX + buildingWidth + size * 0.06} ${buildingY + buildingHeight * 0.25}
-            L ${buildingX + buildingWidth + size * 0.08} ${buildingY + buildingHeight * 0.2} 
-            Z`}
-        fill={palmThatchColor}
-        stroke="#4a3728"
-        strokeWidth="0.2"
-        opacity="0.9"
-      />
-      
-      {/* Open entrance (no door) */}
-      <rect
-        x={buildingX + buildingWidth * 0.4}
-        y={buildingY + buildingHeight * 0.5}
-        width={buildingWidth * 0.2}
-        height={buildingHeight * 0.3}
-        fill="rgba(0,0,0,0.6)"
-      />
-      
-      {/* Hanging entrance mat */}
-      <rect
-        x={buildingX + buildingWidth * 0.42}
-        y={buildingY + buildingHeight * 0.5}
-        width={buildingWidth * 0.16}
-        height={buildingHeight * 0.15}
-        fill={matColor}
-        stroke="#4a3728"
-        strokeWidth="0.2"
-        opacity="0.8"
-      />
-      
-      {/* Woven pattern on mat */}
-      {Array.from({ length: 3 }).map((_, i) => (
+    );
+
+    // Stilts (4 posts, simple)
+    const postXs = [bodyX + bodyW * 0.15, bodyX + bodyW * 0.45, bodyX + bodyW * 0.55, bodyX + bodyW * 0.85];
+    for (let i = 0; i < postXs.length; i++) {
+      const px = postXs[i];
+      const py = bodyY + bodyH + deckT;
+      els.push(
+        <rect key={`stilt-${i}`} x={px - 1.6} y={py} width={3.2} height={stiltsH} fill={bamboo} stroke={wood} strokeWidth={0.6} />
+      );
+      // slight side duplicate for isometric feel
+      els.push(
         <rect
-          key={`mat-line-${i}`}
-          x={buildingX + buildingWidth * 0.42}
-          y={buildingY + buildingHeight * (0.52 + i * 0.04)}
-          width={buildingWidth * 0.16}
-          height={size * 0.005}
-          fill="#4a3728"
-          opacity="0.6"
+          key={`stilt-side-${i}`}
+          x={px - 1.6 + depth * 0.1}
+          y={py - depth * 0.05}
+          width={3}
+          height={stiltsH}
+          fill={bambooDeep}
+          opacity={0.9}
         />
-      ))}
-      
-      {/* Side openings for ventilation */}
+      );
+    }
+
+    // Deck (front + side)
+    els.push(
       <rect
-        x={buildingX + buildingWidth * 0.05}
-        y={buildingY + buildingHeight * 0.4}
-        width={size * 0.03}
-        height={buildingHeight * 0.2}
-        fill="rgba(0,0,0,0.4)"
-        rx={size * 0.01}
+        key="deck-front"
+        x={bodyX}
+        y={bodyY + bodyH}
+        width={bodyW}
+        height={deckT}
+        fill={`url(#deck-${uid})`}
+        stroke={wood}
+        strokeWidth={0.8}
       />
+    );
+    els.push(
+      <path
+        key="deck-side"
+        d={sideQuad(bodyX, bodyY + bodyH, bodyW, deckT)}
+        fill={bambooDeep}
+        stroke={wood}
+        strokeWidth={0.7}
+        opacity={0.95}
+      />
+    );
+
+    // Wall (front + side) — **no extraneous slats/ornaments**
+    els.push(
       <rect
-        x={buildingX + buildingWidth * 0.92}
-        y={buildingY + buildingHeight * 0.4}
-        width={size * 0.03}
-        height={buildingHeight * 0.2}
-        fill="rgba(0,0,0,0.4)"
-        rx={size * 0.01}
+        key="wall-front"
+        x={bodyX}
+        y={bodyY}
+        width={bodyW}
+        height={bodyH}
+        fill={`url(#mat-${uid})`}
+        stroke={wood}
+        strokeWidth={0.8}
       />
-      
-      {/* Decorative carved posts (if higher status) */}
-      {rand5 > 0.6 && (
-        <g>
-          <circle
-            cx={buildingX + buildingWidth * 0.15}
-            cy={buildingY + buildingHeight * 0.4}
-            r={size * 0.015}
-            fill="#8B4513"
-          />
-          <circle
-            cx={buildingX + buildingWidth * 0.85}
-            cy={buildingY + buildingHeight * 0.4}
-            r={size * 0.015}
-            fill="#8B4513"
-          />
-        </g>
-      )}
-      
-      {/* Coconut palm fronds as decoration */}
-      {Array.from({ length: 2 }).map((_, i) => {
-        const frondX = buildingX + buildingWidth * (0.2 + i * 0.6);
-        return (
-          <path
-            key={`frond-${i}`}
-            d={`M ${frondX} ${buildingY - buildingHeight * 0.1} 
-                Q ${frondX + size * 0.04} ${buildingY - buildingHeight * 0.15} 
-                ${frondX + size * 0.02} ${buildingY - buildingHeight * 0.2}`}
-            fill="none"
-            stroke={palmFrondColor}
-            strokeWidth="1"
-            opacity="0.8"
-          />
-        );
-      })}
-      
-      {/* Fishing nets hanging (if coastal) */}
-      {rand6 > 0.5 && (
-        <g>
-          <path
-            d={`M ${buildingX - size * 0.02} ${buildingY + buildingHeight * 0.6} 
-                Q ${buildingX - size * 0.04} ${buildingY + buildingHeight * 0.7} 
-                ${buildingX - size * 0.02} ${buildingY + buildingHeight * 0.8}`}
-            fill="none"
-            stroke="rgba(139, 69, 19, 0.6)"
-            strokeWidth="0.5"
-          />
-          <circle cx={buildingX - size * 0.03} cy={buildingY + buildingHeight * 0.7} r={size * 0.01} fill="rgba(139, 69, 19, 0.4)" />
-        </g>
-      )}
-    </g>
-  );
-});
+    );
+    els.push(
+      <path
+        key="wall-side"
+        d={sideQuad(bodyX, bodyY, bodyW, bodyH)}
+        fill={wallShade}
+        stroke={wood}
+        strokeWidth={0.7}
+        opacity={0.96}
+      />
+    );
+
+    // Door (single dark opening)
+    els.push(
+      <rect
+        key="door"
+        x={doorX}
+        y={doorY}
+        width={doorW}
+        height={doorH}
+        fill="rgba(15,15,20,0.85)"
+        stroke={wood}
+        strokeWidth={0.8}
+        rx={2 * scale}
+      />
+    );
+
+    // Roof — **opaque**, simple eave line
+    els.push(
+      <path key="roof-front" d={roofFront} fill={thatchMain} stroke={wood} strokeWidth={0.9} />
+    );
+    els.push(
+      <path key="roof-side" d={roofSide} fill={thatchSideDark} stroke={wood} strokeWidth={0.9} />
+    );
+    els.push(
+      <line
+        key="eave"
+        x1={bodyX - roofOver + 4}
+        y1={roofY - 1}
+        x2={bodyX + bodyW + roofOver - 4}
+        y2={roofY - 1}
+        stroke="rgba(0,0,0,0.28)"
+        strokeWidth={1.4}
+      />
+    );
+
+    // Short ladder (tiny, not fussy) — optional, 50%
+    if (rvals[3] > 0.5) {
+      const lx = doorX + doorW * 0.15;
+      const top = bodyY + bodyH + 1;
+      const bottom = top + stiltsH * 0.6;
+      els.push(<line key="ladder-L" x1={lx} y1={top} x2={lx - 8 * scale} y2={bottom} stroke={wood} strokeWidth={1.1} />);
+      els.push(<line key="ladder-R" x1={lx + 10 * scale} y1={top} x2={lx + 2 * scale} y2={bottom} stroke={wood} strokeWidth={1.1} />);
+      for (let i = 0; i < 3; i++) {
+        const ry = top + (i / 2) * (bottom - top);
+        els.push(<line key={`r${i}`} x1={lx + 10 * (1 - i / 2) * scale} y1={ry} x2={lx + 2 * (1 - i / 2) * scale} y2={ry} stroke={bambooDeep} strokeWidth={1} />);
+      }
+    }
+
+    return (
+      <g filter="url(#symbolShadow)">
+        <defs>
+          {/* soft shadow */}
+          <filter id={`soft-${uid}`} x="-120%" y="-120%" width="340%" height="340%">
+            <feGaussianBlur stdDeviation="3.0" />
+          </filter>
+
+          {/* deck planks (subtle, fully opaque) */}
+          <pattern id={`deck-${uid}`} patternUnits="userSpaceOnUse" width="10" height="4">
+            <rect width="10" height="4" fill={bamboo} />
+            <rect x="0" y="2" width="10" height="1" fill={bambooDeep} opacity="0.35" />
+          </pattern>
+
+          {/* simple woven wall (opaque) */}
+          <pattern id={`mat-${uid}`} patternUnits="userSpaceOnUse" width="6" height="6">
+            <rect width="6" height="6" fill={wallMat} />
+            <rect x="0" y="3" width="6" height="1" fill={wallShade} opacity="0.25" />
+            <rect x="3" y="0" width="1" height="6" fill={wallShade} opacity="0.22" />
+          </pattern>
+        </defs>
+
+        {els}
+      </g>
+    );
+  }
+);
 
 export default PolynesianHouse3D;

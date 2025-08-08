@@ -8,12 +8,14 @@ import { usePlayer } from '../contexts/PlayerContext';
 import { useGame } from '../contexts/GameContext';
 import { MapDisplayOptimized } from './MapDisplayOptimized';
 import { InteriorMapDisplay } from './interiorMap';
+import BeautifulInteriorMapDisplay from './interiorMap/BeautifulInteriorMapDisplay';
 import AmbianceDisplay from './AmbianceDisplay';
 import BottomPanel from './BottomPanel';
 import NewItemModal from './NewItemModal';
 import FarmPanel from './FarmPanel';
 import MarketplaceModal from './MarketplaceModal';
 import CityModal from './CityModal';
+import RuinModal from './RuinModal';
 import { DevTooltipDisplayData, Tile, PlayerCharacter } from '../types';
 import TimeAwareBackground from './TimeAwareBackground';
 
@@ -24,8 +26,8 @@ const MapViewport: React.FC = () => {
         handleDevHover, setTileInfoModalProps, setStructureModalTarget, setActiveSettlementInfo,
         activeLens, infoModalTarget, panelNotificationItem, setPanelNotificationItem, toastMessage,
         activeMarketplaceModal, setActiveMarketplaceModal, activeCityModal, setActiveCityModal,
-        useLlmForDescriptions, handleEncounter, setInfoModalTarget, setActiveMiningModal,
-        setActivePoi, debugSettings
+        activeRuinModal, setActiveRuinModal, useLlmForDescriptions, handleEncounter, setInfoModalTarget, 
+        setActiveMiningModal, setActivePoi, debugSettings
     } = useUI();
     
     const { 
@@ -70,18 +72,80 @@ const MapViewport: React.FC = () => {
         if (activeCityModal && playerCharacter && mapData) {
             return <CityModal tile={activeCityModal.tile} onClose={() => setActiveCityModal(null)} playerCharacter={playerCharacter} mapData={mapData} gameTimeHours={gameTimeHours} season={season} />;
         }
+        if (activeRuinModal && playerCharacter && mapData) {
+            return <RuinModal tile={activeRuinModal.tile} onClose={() => setActiveRuinModal(null)} playerCharacter={playerCharacter} mapData={mapData} />;
+        }
         if (viewMode === 'standard') {
             return <MapDisplayOptimized mapData={mapData!} animals={visibleAnimals} npcs={visibleNpcs} onDevHover={handleDevHover} onDevCommandClick={handleDevCommandClick} onStructureClick={setStructureModalTarget} onPoiClick={setActivePoi} onSettlementClick={(tile: Tile) => setActiveSettlementInfo({ tile })} activeLens={activeLens} logicalControlledIconX={controlledIconX} logicalControlledIconY={controlledIconY} onIconAnimationComplete={onIconAnimationComplete} playerMode={playerMode} shipDockX={shipDockX} shipDockY={shipDockY} onAnimalClick={setInfoModalTarget} onNpcClick={setInfoModalTarget} selectedAnimalId={infoModalTarget?.id} selectedNpcId={infoModalTarget?.id} sunPosition={sunPosition} formattedDate={formattedDate} season={season} currentLocation={mapData?.continent || ''} iconRotation={iconRotation} velocity={velocity} playerCharacter={playerCharacter} gameTimeHours={gameTimeHours} gameTimeMinutes={gameTimeMinutes} debugSettings={debugSettings} />;
         }
         if (viewMode === 'interior' && interiorViewState && interiorMapPlayerPos) {
-            return <InteriorMapDisplay interiorMapData={interiorViewState.maps.get(interiorViewState.currentFloor)!} discoveredFloors={interiorViewState.discoveredFloors} onExit={handleExitInteriorView} playerPos={interiorMapPlayerPos} onPlayerMove={onPlayerMove} onEntityClick={handleEntityInteraction} onDevHover={handleDevHover} onDevCommandClick={handleDevCommandClick} />;
+            const interiorData = interiorViewState.maps.get(interiorViewState.currentFloor)!;
+            const buildingType = interiorData.buildingType;
+            
+            console.log('🖼️ [MapViewport] Interior mode detected:', {
+                buildingType,
+                buildingId: interiorViewState.buildingId,
+                hasInteriorData: !!interiorData
+            });
+            
+            // Use beautiful interior system for palaces and holy places
+            if (buildingType === 'palace' || buildingType === 'holy_place' || buildingType === 'temple') {
+                console.log('✨ [MapViewport] Using BEAUTIFUL interior system for:', buildingType);
+                // Find the original tile that was entered to get context
+                const contextTile = mapData?.tiles?.flat().find(tile => 
+                    tile.structure?.id === interiorViewState.buildingId
+                );
+                
+                if (contextTile && mapData && playerCharacter) {
+                    const config = {
+                        buildingType,
+                        contextTile,
+                        standardMapContext: mapData,
+                        date: formattedDate,
+                        location: mapData.continent || 'Europe',
+                        floor: interiorViewState.currentFloor,
+                        totalFloors: 1,
+                        buildingId: interiorViewState.buildingId
+                    };
+                    
+                    return (
+                        <BeautifulInteriorMapDisplay
+                            config={config}
+                            playerCharacter={playerCharacter}
+                            playerReligion={playerCharacter.religion}
+                            playerClass={playerCharacter.socialClass}
+                            playerReputation={playerCharacter.socialContext?.reputation || 0}
+                            onExit={handleExitInteriorView}
+                            onNpcInteraction={(npc, dialogue) => {
+                                // For confrontation/warning dialogues, just log them
+                                console.log(`${npc.name}: ${dialogue.join(' ')}`);
+                            }}
+                            onNpcClick={(npc) => {
+                                // Trigger proper encounter modal for clicked NPCs
+                                handleEncounter(npc);
+                            }}
+                            onReputationChange={(change, reason) => {
+                                // TODO: Apply reputation change to player
+                                console.log(`Reputation ${change > 0 ? '+' : ''}${change}: ${reason}`);
+                            }}
+                        />
+                    );
+                } else {
+                    console.log('❌ [MapViewport] No context tile found for beautiful interior, fallback to legacy');
+                }
+            } else {
+                console.log('🗂️ [MapViewport] Using LEGACY interior system for:', buildingType);
+            }
+            
+            // Fallback to old system for other building types
+            return <InteriorMapDisplay interiorMapData={interiorData} discoveredFloors={interiorViewState.discoveredFloors} onExit={handleExitInteriorView} playerPos={interiorMapPlayerPos} onPlayerMove={onPlayerMove} onEntityClick={handleEntityInteraction} onDevHover={handleDevHover} onDevCommandClick={handleDevCommandClick} />;
         }
         return null;
     };
 
     return (
         <main className="flex-1 flex flex-col bg-transparent relative">
-          <TimeAwareBackground gameTimeHours={gameTimeHours} gameTimeMinutes={gameTimeMinutes} />
+          <TimeAwareBackground gameTimeHours={gameTimeHours} gameTimeMinutes={gameTimeMinutes} viewMode={viewMode} />
           {isLoading ? (
             <div className="absolute inset-0 bg-gray-900/75 flex items-center justify-center z-50 rounded-2xl">
               <div className="text-center text-white">
@@ -106,7 +170,8 @@ const MapViewport: React.FC = () => {
                         playerX={controlledIconX} 
                         playerY={controlledIconY} 
                         onEnterCity={(tile: Tile) => setActiveCityModal({tile})} 
-                        onEnterMarketplace={(tile: Tile) => setActiveMarketplaceModal({tile})} 
+                        onEnterMarketplace={(tile: Tile) => setActiveMarketplaceModal({tile})}
+                        onEnterRuin={(tile: Tile) => setActiveRuinModal({tile})}
                         onEnterBuilding={(tile) => onEnterBuilding(tile, mapData)} 
                         onEnterFarm={(tile) => setActivePanel('farm')}
                         onEnterMine={(structure) => setActiveMiningModal(structure)}

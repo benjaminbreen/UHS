@@ -27,6 +27,8 @@ import {
   PolynesianHouse3D,
   PrehistoricShelter3D,
   SouthAsianTemple3D,
+  SouthAsianBuilding3D,
+  MediterraneanBuilding3D,
   VikingLonghouse3D,
 } from './buildings';
 
@@ -89,6 +91,7 @@ const getRoofPalette = (culturalStyle: string, eraLevel: number, variant: number
       'medieval': ['#8b4513', '#a0522d', '#654321'],
       'renaissance': ['#b22222', '#dc143c', '#8b0000'],
       'industrial': ['#2f4f4f', '#708090', '#696969'],
+      'traditional': ['#8b4513', '#a0522d', '#654321'] // Add fallback
     },
     'EAST_ASIAN': { 'traditional': ['#dc143c', '#b22222', '#8b0000'] },
     'SUB_SAHARAN_AFRICAN': { 'traditional': ['#d2a679', '#a0522d', '#8b6f47'] },
@@ -96,7 +99,10 @@ const getRoofPalette = (culturalStyle: string, eraLevel: number, variant: number
     'SOUTH_ASIAN': { 'traditional': ['#ff8c00', '#ffa500', '#ff6347'] },
     'SOUTH_AMERICAN': { 'traditional': ['#cd853f', '#daa520', '#b8860b'] },
     'NORTH_AMERICAN_PRE_COLUMBIAN': { 'traditional': ['#8b4513', '#a0522d', '#654321'] },
-    'OCEANIA': { 'traditional': ['#8b6f47', '#a0826d', '#deb887'] }
+    'OCEANIA': { 'traditional': ['#8b6f47', '#a0826d', '#deb887'] },
+    'MESOAMERICAN': { 'traditional': ['#b22222', '#dc143c', '#8b0000'] },
+    'NORTH_AMERICAN': { 'traditional': ['#8b4513', '#654321', '#704214'] },
+    'MONGOLIAN': { 'traditional': ['#deb887', '#d2b48c', '#f4a460'] }
   };
   
   let paletteKey = 'traditional';
@@ -105,7 +111,12 @@ const getRoofPalette = (culturalStyle: string, eraLevel: number, variant: number
   else if (eraLevel === 2 && culturalStyle === 'EUROPEAN') paletteKey = 'medieval';
   
   const culturePalette = palettes[culturalStyle] || palettes['EUROPEAN'];
-  const colors = culturePalette[paletteKey] || culturePalette['traditional'];
+  const colors = culturePalette[paletteKey] || culturePalette['traditional'] || ['#8b4513', '#a0522d', '#654321'];
+  
+  // Safety check to prevent undefined.length error
+  if (!colors || !Array.isArray(colors) || colors.length === 0) {
+    return '#8b4513'; // Default brown roof color
+  }
   
   return colors[variant % colors.length];
 };
@@ -147,10 +158,14 @@ const UrbanSymbol: React.FC<UrbanSymbolProps> = React.memo(({ x, y, size, seed, 
     return { width, height, xOffset, yOffset, rand, roofColor, hasTimberFrame };
   }, [seed, tile.x, tile.y, tile.biome, size, eraLevel, culturalStyle]);
   
-  const groundPatternColor = useMemo(() => {
-    const colors = ['#cd853f', '#a0826d', '#8b7355', '#696969', '#708090', '#778899'];
-    return colors[Math.min(eraLevel, colors.length - 1)];
-  }, [eraLevel]);
+  const groundPattern = useMemo(() => {
+    // Era-appropriate ground patterns
+    const patternId = `ground-${tile.x}-${tile.y}`;
+    const baseColors = ['#cd853f', '#a0826d', '#8b7355', '#696969', '#708090', '#778899'];
+    const baseColor = baseColors[Math.min(eraLevel, baseColors.length - 1)];
+    
+    return { patternId, baseColor };
+  }, [eraLevel, tile.x, tile.y]);
 
   const renderBuilding = () => {
     const { width, height, xOffset, yOffset, rand, roofColor, hasTimberFrame } = buildingData;
@@ -270,7 +285,11 @@ const UrbanSymbol: React.FC<UrbanSymbolProps> = React.memo(({ x, y, size, seed, 
           }
           break;
         case 'SOUTH_AMERICAN':
-          if (rand(11) > 0.3) {
+          // Use Mediterranean style for colonial and modern Latin America
+          if (eraLevel >= 3 && rand(12) > 0.4) {
+            selectedBuilding = 'MediterraneanBuilding3D';
+            buildingComponent = <MediterraneanBuilding3D {...commonProps} />;
+          } else if (rand(11) > 0.3) {
             selectedBuilding = 'AztecDwelling3D';
             buildingComponent = <AztecDwelling3D {...commonProps} />;
           } else {
@@ -292,12 +311,18 @@ const UrbanSymbol: React.FC<UrbanSymbolProps> = React.memo(({ x, y, size, seed, 
           buildingComponent = <EastAsianPagoda3D {...commonProps} />;
           break;
         case 'SOUTH_ASIAN': 
-          selectedBuilding = 'SouthAsianTemple3D';
-          buildingComponent = <SouthAsianTemple3D {...commonProps} />;
+          selectedBuilding = 'SouthAsianBuilding3D';
+          buildingComponent = <SouthAsianBuilding3D {...commonProps} />;
           break;
         case 'MENA': 
-          selectedBuilding = 'OttomanTownhouse3D';
-          buildingComponent = <OttomanTownhouse3D {...commonProps} />;
+          // Use Mediterranean style for coastal areas and mixed modern usage
+          if (zone.toLowerCase().includes('coast') || zone.toLowerCase().includes('mediterranean') || eraLevel >= 4) {
+            selectedBuilding = 'MediterraneanBuilding3D';
+            buildingComponent = <MediterraneanBuilding3D {...commonProps} />;
+          } else {
+            selectedBuilding = 'OttomanTownhouse3D';
+            buildingComponent = <OttomanTownhouse3D {...commonProps} />;
+          }
           break;
         case 'OCEANIA':
           selectedBuilding = 'PolynesianHouse3D';
@@ -309,7 +334,17 @@ const UrbanSymbol: React.FC<UrbanSymbolProps> = React.memo(({ x, y, size, seed, 
           break;
         case 'EUROPEAN':
         default:
-          if (tile.biome === BiomeType.HAMLET || tile.biome === BiomeType.LOW_DENSITY_CITY) {
+          // Mediterranean style for southern Europe and coastal areas
+          const isMediterraneanEurope = zone.toLowerCase().includes('mediterranean') || 
+                                       zone.toLowerCase().includes('spain') || 
+                                       zone.toLowerCase().includes('italy') || 
+                                       zone.toLowerCase().includes('greece') || 
+                                       zone.toLowerCase().includes('coast');
+          
+          if (isMediterraneanEurope && eraLevel >= 1 && rand(13) > 0.3) {
+            selectedBuilding = 'MediterraneanBuilding3D';
+            buildingComponent = <MediterraneanBuilding3D {...commonProps} />;
+          } else if (tile.biome === BiomeType.HAMLET || tile.biome === BiomeType.LOW_DENSITY_CITY) {
             selectedBuilding = 'EuropeanCottage3D';
             buildingComponent = <EuropeanCottage3D {...commonProps} />;
           } else if (climate === 'cold' && eraLevel === 2) {
@@ -339,7 +374,65 @@ const UrbanSymbol: React.FC<UrbanSymbolProps> = React.memo(({ x, y, size, seed, 
 
   return (
     <g>
-      <rect x={x} y={y} width={size} height={size} fill={groundPatternColor} />
+      <defs>
+        {/* Era-appropriate ground patterns */}
+        <pattern id={groundPattern.patternId} patternUnits="userSpaceOnUse" width={eraLevel >= 4 ? "12" : "10"} height={eraLevel >= 4 ? "12" : "10"}>
+          {eraLevel === 0 && (
+            // Prehistory - dirt
+            <>
+              <rect width="10" height="10" fill={groundPattern.baseColor} opacity="0.3"/>
+              <circle cx="2" cy="2" r="1" fill="rgba(139,69,19,0.2)"/>
+              <circle cx="7" cy="5" r="0.8" fill="rgba(160,82,45,0.15)"/>
+              <circle cx="4" cy="8" r="0.6" fill="rgba(139,69,19,0.15)"/>
+            </>
+          )}
+          {(eraLevel === 1 || eraLevel === 2) && (
+            // Antiquity/Medieval - cobblestone
+            <>
+              <rect width="10" height="10" fill={groundPattern.baseColor} opacity="0.35"/>
+              <rect x="0" y="0" width="4.5" height="4.5" fill="rgba(105,105,105,0.2)" stroke="rgba(0,0,0,0.1)" strokeWidth="0.3"/>
+              <rect x="5" y="0" width="4.5" height="4.5" fill="rgba(119,136,153,0.2)" stroke="rgba(0,0,0,0.1)" strokeWidth="0.3"/>
+              <rect x="0" y="5" width="4.5" height="4.5" fill="rgba(119,136,153,0.2)" stroke="rgba(0,0,0,0.1)" strokeWidth="0.3"/>
+              <rect x="5" y="5" width="4.5" height="4.5" fill="rgba(105,105,105,0.2)" stroke="rgba(0,0,0,0.1)" strokeWidth="0.3"/>
+            </>
+          )}
+          {eraLevel === 3 && (
+            // Renaissance - brick
+            <>
+              <rect width="10" height="10" fill={groundPattern.baseColor} opacity="0.35"/>
+              <rect x="0" y="0" width="4.8" height="2.3" fill="rgba(178,34,34,0.25)" stroke="rgba(0,0,0,0.15)" strokeWidth="0.2"/>
+              <rect x="5" y="0" width="4.8" height="2.3" fill="rgba(160,82,45,0.25)" stroke="rgba(0,0,0,0.15)" strokeWidth="0.2"/>
+              <rect x="0" y="2.5" width="4.8" height="2.3" fill="rgba(160,82,45,0.25)" stroke="rgba(0,0,0,0.15)" strokeWidth="0.2"/>
+              <rect x="5" y="2.5" width="4.8" height="2.3" fill="rgba(178,34,34,0.25)" stroke="rgba(0,0,0,0.15)" strokeWidth="0.2"/>
+              <rect x="0" y="5" width="4.8" height="2.3" fill="rgba(178,34,34,0.25)" stroke="rgba(0,0,0,0.15)" strokeWidth="0.2"/>
+              <rect x="5" y="5" width="4.8" height="2.3" fill="rgba(160,82,45,0.25)" stroke="rgba(0,0,0,0.15)" strokeWidth="0.2"/>
+              <rect x="0" y="7.5" width="4.8" height="2.3" fill="rgba(160,82,45,0.25)" stroke="rgba(0,0,0,0.15)" strokeWidth="0.2"/>
+              <rect x="5" y="7.5" width="4.8" height="2.3" fill="rgba(178,34,34,0.25)" stroke="rgba(0,0,0,0.15)" strokeWidth="0.2"/>
+            </>
+          )}
+          {(eraLevel === 4 || eraLevel === 5) && (
+            // Industrial/Modern - stone/concrete
+            <>
+              <rect width="12" height="12" fill={groundPattern.baseColor} opacity="0.3"/>
+              <rect x="0" y="0" width="5.8" height="5.8" fill="rgba(112,128,144,0.2)" stroke="rgba(0,0,0,0.1)" strokeWidth="0.2"/>
+              <rect x="6" y="0" width="5.8" height="5.8" fill="rgba(128,128,128,0.2)" stroke="rgba(0,0,0,0.1)" strokeWidth="0.2"/>
+              <rect x="0" y="6" width="5.8" height="5.8" fill="rgba(128,128,128,0.2)" stroke="rgba(0,0,0,0.1)" strokeWidth="0.2"/>
+              <rect x="6" y="6" width="5.8" height="5.8" fill="rgba(112,128,144,0.2)" stroke="rgba(0,0,0,0.1)" strokeWidth="0.2"/>
+            </>
+          )}
+          {eraLevel >= 6 && (
+            // Future - asphalt
+            <>
+              <rect width="12" height="12" fill={groundPattern.baseColor} opacity="0.25"/>
+              <rect x="0" y="5.5" width="12" height="1" fill="rgba(255,255,255,0.15)"/>
+              <rect x="5.5" y="0" width="1" height="12" fill="rgba(255,255,255,0.15)"/>
+              <circle cx="3" cy="3" r="0.3" fill="rgba(64,64,64,0.3)"/>
+              <circle cx="9" cy="9" r="0.3" fill="rgba(64,64,64,0.3)"/>
+            </>
+          )}
+        </pattern>
+      </defs>
+      <rect x={x} y={y} width={size} height={size} fill={`url(#${groundPattern.patternId})`} />
       {renderBuilding()}
       {isCityCenter && (
         <g>

@@ -240,4 +240,14 @@ export const ANIMAL_DATA: Record<string, AnimalData> = {
         spawnConditions: { minBiodiversity: 0.0, maxBiodiversity: 0.2 },
         habitat: 'aquatic', behaviorProfile: 'rabbit'
     },
+    FLAMINGO: {
+        name: 'Flamingo', emoji: '🦩', type: 'Ambient', social: 'herd', attack: 0, defense: 1, maxHealth: 3, speed: 4, strength: 1, agility: 5, perception: 6, level: 1,
+        drops: [{ name: 'Pink Feather', chance: 0.5 }],
+        spawnBiomes: [BiomeType.SALT_FLATS, BiomeType.MANGROVE],
+        spawnConditions: { 
+            climate: [ClimateType.TROPICAL, ClimateType.SEMITROPICAL, ClimateType.ARID],
+            zones: ['SUB_SAHARAN_AFRICAN', 'SOUTH_AMERICAN', 'MENA', 'NORTH_AMERICAN_COLONIAL'] 
+        },
+        habitat: 'wetland', behaviorProfile: 'rabbit'
+    },
 };

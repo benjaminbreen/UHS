@@ -65,8 +65,8 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
   
   const bodyBob = Math.abs(Math.sin(walkCycle * 2)) * bodyBobAmount;
   
-  const baseX = npc.x * tileSize + tileSize / 2;
-  const baseY = npc.y * tileSize + tileSize / 2;
+  const baseX = tileSize / 2;
+  const baseY = tileSize / 2;
 
   const isBroad = build === 'stocky' || build === 'imposing';
   const bodyWidth = isBroad ? p * 8 : p * 7;

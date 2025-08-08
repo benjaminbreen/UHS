@@ -1,7 +1,7 @@
 /**
  * generation/standardMap/features/RiverGenerator.ts - Generates rivers for Standard Maps
  */
-import { Tile, BiomeType, Point, MapArchetype, ClimateType } from '../../../types/index';
+import { Tile, BiomeType, Point, MapArchetype, ClimateType, NeighboringEdges } from '../../../types/index';
 import { ValueNoise } from '../../../utils/noise';
 import { 
     MAP_WIDTH_TILES, MAP_HEIGHT_TILES, ALTITUDE_LEVELS,
@@ -13,6 +13,54 @@ import {
     FRESHWATER_LAKE_RADIUS_RATIO, BAY_WATER_RATIO
 } from '../../../constants/index';
 
+
+/**
+ * Find river continuation points from neighboring edges
+ * Rivers should continue from adjacent maps when they reach an edge
+ */
+export function findRiverContinuationPoints(neighboringEdges: NeighboringEdges | undefined): Point[] {
+  const continuationPoints: Point[] = [];
+  
+  if (!neighboringEdges) return continuationPoints;
+  
+  // Check north edge for rivers coming from the north
+  if (neighboringEdges.north) {
+    neighboringEdges.north.forEach((tile, x) => {
+      if (tile.biome === BiomeType.RIVER || tile.biome === BiomeType.MAJOR_RIVER) {
+        continuationPoints.push({ x, y: 0 });
+      }
+    });
+  }
+  
+  // Check south edge for rivers coming from the south
+  if (neighboringEdges.south) {
+    neighboringEdges.south.forEach((tile, x) => {
+      if (tile.biome === BiomeType.RIVER || tile.biome === BiomeType.MAJOR_RIVER) {
+        continuationPoints.push({ x, y: MAP_HEIGHT_TILES - 1 });
+      }
+    });
+  }
+  
+  // Check east edge for rivers coming from the east
+  if (neighboringEdges.east) {
+    neighboringEdges.east.forEach((tile, y) => {
+      if (tile.biome === BiomeType.RIVER || tile.biome === BiomeType.MAJOR_RIVER) {
+        continuationPoints.push({ x: MAP_WIDTH_TILES - 1, y });
+      }
+    });
+  }
+  
+  // Check west edge for rivers coming from the west
+  if (neighboringEdges.west) {
+    neighboringEdges.west.forEach((tile, y) => {
+      if (tile.biome === BiomeType.RIVER || tile.biome === BiomeType.MAJOR_RIVER) {
+        continuationPoints.push({ x: 0, y });
+      }
+    });
+  }
+  
+  return continuationPoints;
+}
 
 export function findRiverSources(tiles: Tile[][], randomNoise: ValueNoise, archetype: MapArchetype, climate: ClimateType): Point[] {
   const potentialSources: Point[] = [];

@@ -3,6 +3,7 @@
  */
 import { Tile, BiomeType, MapArchetype, ClimateType, Point, NeighboringEdges, EdgeTileInfo, AltitudeSetting } from '../../types/index';
 import { ValueNoise } from '../../utils/noise';
+import { getNeighboringClimateInfo, applyClimateTransitionsToMap } from '../../utils/climateStitchingUtils';
 import {
     MAP_WIDTH_TILES, MAP_HEIGHT_TILES,
     ALTITUDE_LEVELS, NOISE_SCALE_ALTITUDE, NOISE_SCALE_BIOME_VARIATION,
@@ -381,7 +382,7 @@ export function generateRiverbanks(tiles: Tile[][], featurePlacementNoise: Value
           const eligibleBiomes = [BiomeType.GRASSLAND, BiomeType.SCRUB, BiomeType.STEPPE, BiomeType.TUNDRA];
           if (tile.isLand && eligibleBiomes.includes(tile.biome) && distance <= RIVERBANK_GENERATION_RADIUS && tile.biome !== BiomeType.ESTUARY && tile.biome !== BiomeType.FRESHWATER_LAKE && tile.biome !== BiomeType.CLIFF) {
             const probability = 1 - (distance / RIVERBANK_GENERATION_RADIUS);
-            if (featurePlacementNoise.random() < probability * 0.8) {
+            if (featurePlacementNoise.random() < probability * 0.9) {
               tile.biome = BiomeType.RIVERBANK;
               if (tile.altitude > ALTITUDE_LEVELS.GRASSLAND_LOWER_MAX) {
                 tile.altitude = Math.max(ALTITUDE_LEVELS.BEACH + 0.02, tile.altitude * 0.9);
@@ -721,7 +722,7 @@ export function generateShoalFormations(tiles: Tile[][], featurePlacementNoise: 
                         const tile = tiles[checkY][checkX];
                         if ((tile.biome === BiomeType.SHALLOW_OCEAN || tile.biome === BiomeType.DEEP_OCEAN || tile.biome === BiomeType.FRESHWATER_LAKE) && formationNoise.random() < 0.6) {
                             tile.biome = BiomeType.SHOALS_TILE;
-                            tile.isLand = formationNoise.random() < 0.4; // Shoals can be partially land
+                            tile.isLand = false; // Shoals are always water, never walkable
                             tile.altitude = ALTITUDE_LEVELS.SEA * (0.8 + formationNoise.random() * 0.4) - 0.01;
                         }
                     }
@@ -764,14 +765,14 @@ export function generateSpecialTerrainTiles(
 
                 // Add WETLANDS near coast on low land
                 if (tile.isLand && tile.isCoast && tile.altitude < ALTITUDE_LEVELS.BEACH * 1.5) {
-                    if (featurePlacementNoise.random() < 0.25) {
+                    if (featurePlacementNoise.random() < 0.4) {
                         tile.biome = BiomeType.WETLANDS;
                     }
                 }
 
                 // Add MANGROVE if tropical and coastal wetland
                 if ((climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL) && tile.biome === BiomeType.WETLANDS && tile.isCoast) {
-                     if (featurePlacementNoise.random() < 0.4) {
+                     if (featurePlacementNoise.random() < 0.6) {
                         tile.biome = BiomeType.MANGROVE;
                     }
                 }
@@ -785,7 +786,7 @@ export function generateSpecialTerrainTiles(
                              if(nx >=0 && nx < MAP_WIDTH_TILES && ny >=0 && ny < MAP_HEIGHT_TILES && !tiles[ny][nx].isLand) waterNeighbors++;
                         }
                     }
-                    if(waterNeighbors >= 3 && featurePlacementNoise.random() < 0.1) {
+                    if(waterNeighbors >= 3 && featurePlacementNoise.random() < 0.2) {
                         tile.biome = BiomeType.SALT_FLATS;
                     }
                 }
@@ -793,6 +794,105 @@ export function generateSpecialTerrainTiles(
         }
         return; // Shoals archetype handled by its own function
     }
+    
+    if (archetype === MapArchetype.SWAMP) {
+        // Swamp archetype: all land with wetlands, riverbanks, and mangroves
+        for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+            for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+                const tile = tiles[y][x];
+                const swampNoise = featurePlacementNoise.noise(x * 0.1, y * 0.1);
+                
+                // Keep all tiles as land and convert to swamp-appropriate biomes
+                if (tile.isLand && ![BiomeType.MOUNTAIN, BiomeType.HIGH_PEAK, BiomeType.SNOW, BiomeType.VOLCANIC_ROCK, BiomeType.ACTIVE_LAVA].includes(tile.biome)) {
+                    // Rivers are already placed in the river generation phase, don't convert land to water here
+                    if (tile.biome === BiomeType.RIVER || tile.biome === BiomeType.MAJOR_RIVER) {
+                        // Keep existing rivers
+                        continue;
+                    }
+                    
+                    if (swampNoise > 0.4) {
+                        // Many areas become wetlands
+                        tile.biome = BiomeType.WETLANDS;
+                        tile.altitude = Math.max(ALTITUDE_LEVELS.SEA + 0.01, tile.altitude * 0.5);
+                    } else if (swampNoise > 0.1) {
+                        // Some areas become riverbanks
+                        tile.biome = BiomeType.RIVERBANK;
+                        tile.altitude = Math.max(ALTITUDE_LEVELS.SEA + 0.02, tile.altitude * 0.6);
+                    } else if (swampNoise > -0.2) {
+                        // Coastal areas in tropical climates become mangroves
+                        if (tile.isCoast && (climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL)) {
+                            tile.biome = BiomeType.MANGROVE;
+                        } else {
+                            tile.biome = BiomeType.WETLANDS;
+                        }
+                        tile.altitude = Math.max(ALTITUDE_LEVELS.SEA + 0.01, tile.altitude * 0.5);
+                    } else {
+                        // Remaining areas are mixed wetlands and beaches
+                        if (tile.isCoast) {
+                            tile.biome = BiomeType.BEACH;
+                        } else {
+                            tile.biome = BiomeType.WETLANDS;
+                        }
+                        tile.altitude = Math.max(ALTITUDE_LEVELS.SEA + 0.015, tile.altitude * 0.7);
+                    }
+                }
+                
+                // Convert shallow ocean to more rivers and wetlands
+                if (tile.biome === BiomeType.SHALLOW_OCEAN && featurePlacementNoise.random() < 0.4) {
+                    if (featurePlacementNoise.random() < 0.6) {
+                        tile.biome = BiomeType.RIVER;
+                    } else {
+                        tile.biome = BiomeType.WETLANDS;
+                        tile.isLand = true;
+                    }
+                }
+            }
+        }
+        return; // Swamp archetype handled by its own function
+    }
+    
+    if (archetype === MapArchetype.DESERT) {
+        // Desert archetype: mostly desert, scrub, or tundra depending on climate
+        for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+            for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+                const tile = tiles[y][x];
+                if (!tile.isLand) continue;
+                
+                const desertNoise = featurePlacementNoise.noise(x * 0.08, y * 0.08);
+                
+                // Base biome depends on climate
+                if (climate === ClimateType.COLD) {
+                    // Cold desert = icy wasteland (snow/tundra)
+                    if (desertNoise > 0.3) {
+                        tile.biome = BiomeType.SNOW;
+                        tile.altitude = Math.max(tile.altitude, ALTITUDE_LEVELS.FOOTHILL);
+                    } else if (desertNoise > -0.2) {
+                        tile.biome = BiomeType.TUNDRA;
+                    } else {
+                        tile.biome = BiomeType.STEPPE;
+                    }
+                } else if (climate === ClimateType.ARID) {
+                    // Hot desert
+                    if (desertNoise > 0.4) {
+                        tile.biome = BiomeType.DESERT;
+                    } else if (desertNoise > 0.0) {
+                        tile.biome = BiomeType.SCRUB;
+                    } else {
+                        tile.biome = BiomeType.STEPPE;
+                    }
+                } else {
+                    // Temperate/other climates - mixed scrub/steppe
+                    if (desertNoise > 0.2) {
+                        tile.biome = BiomeType.SCRUB;
+                    } else {
+                        tile.biome = BiomeType.STEPPE;
+                    }
+                }
+            }
+        }
+        return; // Desert archetype handled
+    }
+    
     if (archetype === MapArchetype.OPEN_OCEAN) {
         // Small patches of shallow sea
         const numShallowPatches = 2 + Math.floor(featurePlacementNoise.random() * 4);
@@ -831,7 +931,7 @@ export function generateSpecialTerrainTiles(
                         if(sx>=0 && sx<MAP_WIDTH_TILES && sy>=0 && sy<MAP_HEIGHT_TILES && (tiles[sy][sx].biome === BiomeType.DEEP_OCEAN || tiles[sy][sx].biome === BiomeType.SHALLOW_OCEAN)){
                             tiles[sy][sx].biome = d === 1 ? BiomeType.SHOALS_TILE : BiomeType.SHALLOW_OCEAN;
                             tiles[sy][sx].altitude = ALTITUDE_LEVELS.SEA * (d === 1 ? 0.7 : 0.5);
-                            tiles[sy][sx].isLand = d === 1 && featurePlacementNoise.random() < 0.1;
+                            tiles[sy][sx].isLand = false; // Shoals are always water, never walkable
                         }
                     }
                 }
@@ -854,7 +954,7 @@ export function generateSpecialTerrainTiles(
                             minAlt = Math.min(minAlt, tiles[ny][nx].altitude); maxAlt = Math.max(maxAlt, tiles[ny][nx].altitude);
                         }
                     }
-                    if ((maxAlt - minAlt) < SALT_FLATS_ALTITUDE_VARIANCE_MAX && featurePlacementNoise.random() < 0.3) {
+                    if ((maxAlt - minAlt) < SALT_FLATS_ALTITUDE_VARIANCE_MAX && featurePlacementNoise.random() < 0.5) {
                         tile.biome = BiomeType.SALT_FLATS;
                     }
                 }
@@ -880,7 +980,7 @@ export function generateSpecialTerrainTiles(
                 }
             }
             const thermalVal = thermalNoise.noise(x * NOISE_SCALE_THERMAL, y * NOISE_SCALE_THERMAL);
-            if ((nearVolcano || nearMountain) && thermalVal > 0.65 && featurePlacementNoise.random() < 0.1) {
+            if ((nearVolcano || nearMountain) && thermalVal > 0.65 && featurePlacementNoise.random() < 0.05) {
                 tile.biome = BiomeType.HOT_SPRINGS;
                 tile.isLand = false;
                 tile.altitude = Math.max(ALTITUDE_LEVELS.SEA, tile.altitude * 0.5);
@@ -912,7 +1012,7 @@ export function generateSpecialTerrainTiles(
                 }
             }
             if (tile.biome === BiomeType.SHOALS_TILE) {
-                 tile.isLand = tile.altitude > SHOALS_TILE_MIN_ALTITUDE_FOR_LAND_PART && featurePlacementNoise.random() < 0.3;
+                 tile.isLand = false; // Shoals are always water, never walkable
                  tile.altitude = ALTITUDE_LEVELS.SEA * (0.8 + featurePlacementNoise.random() * 0.4) - 0.01;
             }
         }
@@ -967,4 +1067,77 @@ export function generateEstuaries(tiles: Tile[][], archetype: MapArchetype, feat
             }
         }
     });
+}
+/**
+ * Apply climate-aware transitions to biomes near map edges based on neighboring climate zones
+ * This creates smooth transitions between different climate regions (e.g., COLD → TEMPERATE)
+ */
+export function applyClimateTransitions(
+    tiles: Tile[][],
+    currentClimate: ClimateType,
+    localAreaName?: string
+): void {
+    if (!localAreaName) {
+        console.log("[Climate Stitching] No local area name provided, skipping climate transitions");
+        return;
+    }
+
+    console.log(`[Climate Stitching] Applying climate transitions for ${localAreaName} (${currentClimate})`);
+    
+    // Get neighboring climate information
+    const neighboringClimates = getNeighboringClimateInfo(localAreaName, currentClimate);
+    
+    // Check if any climate transitions are needed
+    const hasClimateTransitions = Object.values(neighboringClimates).some(
+        climate => climate && climate !== currentClimate
+    );
+    
+    if (!hasClimateTransitions) {
+        console.log("[Climate Stitching] No climate transitions detected");
+        return;
+    }
+
+    console.log("[Climate Stitching] Neighboring climates:", neighboringClimates);
+
+    // Convert tiles to simplified format for processing
+    const tilesToProcess: { biome: BiomeType; x: number; y: number }[] = [];
+    for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+        for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+            const tile = tiles[y][x];
+            if (tile.isLand) { // Only apply to land tiles
+                tilesToProcess.push({
+                    biome: tile.biome,
+                    x: x,
+                    y: y
+                });
+            }
+        }
+    }
+
+    // Apply climate transitions
+    applyClimateTransitionsToMap(
+        tilesToProcess,
+        currentClimate,
+        neighboringClimates,
+        MAP_WIDTH_TILES,
+        MAP_HEIGHT_TILES
+    );
+
+    // Update the actual tiles with the modified biomes
+    tilesToProcess.forEach(processedTile => {
+        const originalTile = tiles[processedTile.y][processedTile.x];
+        
+        // Validate the biome before applying it
+        if (!processedTile.biome) {
+            console.warn(`[Climate Stitching] Undefined biome at tile (${processedTile.x}, ${processedTile.y}), keeping original: ${originalTile.biome}`);
+            return;
+        }
+        
+        if (originalTile.biome !== processedTile.biome) {
+            console.log(`[Climate Stitching] Tile (${processedTile.x}, ${processedTile.y}): ${originalTile.biome} → ${processedTile.biome}`);
+            originalTile.biome = processedTile.biome;
+        }
+    });
+
+    console.log("[Climate Stitching] Climate transitions applied successfully");
 }

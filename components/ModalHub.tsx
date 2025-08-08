@@ -29,6 +29,7 @@ import LevelUpModal from './LevelUpModal';
 import PortraitModal from './portraits/PortraitModal';
 import CraftingModal from './CraftingModal';
 import AboutModal from './AboutModal';
+import DevBuildingModeModal from './DevBuildingModeModal';
 
 const ModalHub: React.FC = () => {
     const {
@@ -43,6 +44,7 @@ const ModalHub: React.FC = () => {
         useLlmForCharacter, setUseLlmForCharacter,
         showDevTooltip, setShowDevTooltip,
         isTestModeEnabled, setIsTestModeEnabled,
+        isDevBuildingModeOpen, setIsDevBuildingModeOpen,
         isWorldMapModalOpen, setIsWorldMapModalOpen,
         interactionModalData, setInteractionModalData, handleTakeItem,
         isSkillsModalOpen, setIsSkillsModalOpen, isSkillLoading, skillResult,
@@ -79,7 +81,8 @@ const ModalHub: React.FC = () => {
             {infoModalTarget && isNpc(infoModalTarget) && <NpcModal npc={infoModalTarget} onClose={() => setInfoModalTarget(null)}/>}
             {infoModalTarget && isAnimal(infoModalTarget) && <AnimalInfoModal animal={infoModalTarget} onClose={() => setInfoModalTarget(null)}/>}
             {isAboutModalOpen && <AboutModal isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} />}
-            {isSettingsModalOpen && ( <SettingsPanel isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} currentSeed={initialGameSeed} onSeedChange={handleSeedChangeFromSettings} showDevTooltip={showDevTooltip} onToggleDevTooltip={() => setShowDevTooltip(p => !p)} useLlmForDescriptions={useLlmForDescriptions} onToggleLlmForDescriptions={() => setUseLlmForDescriptions(p => !p)} useLlmForCharacter={useLlmForCharacter} onToggleLlmForCharacter={() => setUseLlmForCharacter(p => !p)} isTestModeEnabled={isTestModeEnabled} onToggleTestMode={() => setIsTestModeEnabled(p => !p)} /> )}
+            {isDevBuildingModeOpen && <DevBuildingModeModal isOpen={isDevBuildingModeOpen} onClose={() => setIsDevBuildingModeOpen(false)} />}
+            {isSettingsModalOpen && ( <SettingsPanel isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} currentSeed={initialGameSeed} onSeedChange={handleSeedChangeFromSettings} showDevTooltip={showDevTooltip} onToggleDevTooltip={() => setShowDevTooltip(p => !p)} useLlmForDescriptions={useLlmForDescriptions} onToggleLlmForDescriptions={() => setUseLlmForDescriptions(p => !p)} useLlmForCharacter={useLlmForCharacter} onToggleLlmForCharacter={() => setUseLlmForCharacter(p => !p)} isTestModeEnabled={isTestModeEnabled} onToggleTestMode={() => setIsTestModeEnabled(p => !p)} isDevBuildingModeOpen={isDevBuildingModeOpen} onToggleDevBuildingMode={() => setIsDevBuildingModeOpen(p => !p)} /> )}
             {isWorldMapModalOpen && ( <WorldMapModal isOpen={isWorldMapModalOpen} onClose={() => setIsWorldMapModalOpen(false)} cachedMaps={mapDataCache} currentWorldCoords={currentWorldCoords} /> )}
             {interactionModalData && ( <InteractionModal {...interactionModalData} onClose={() => setInteractionModalData(null)} onTakeItem={(item) => handleTakeItem(item, interactionModalData.entityId)} /> )}
             <SkillsModal isOpen={isSkillsModalOpen} isLoading={isSkillLoading} result={skillResult} onClose={() => setIsSkillsModalOpen(false)} />
@@ -112,7 +115,7 @@ const ModalHub: React.FC = () => {
             )}
             {victoryDetails && <VictoryModal {...victoryDetails} onClose={handleVictoryClose} />}
             {lootModalData && <LootModal opponent={lootModalData.opponent} onTakeItem={handleLooting} onClose={handleCloseLootModal} onTakeCoins={onTakeCoins} />}
-            {structureModalTarget && mapData && <TerrainStructureModal structure={structureModalTarget} mapData={mapData} npcs={npcs} onClose={() => setStructureModalTarget(null)} gameTimeHours={gameTimeHours} season={season} />}
+            {structureModalTarget && mapData && <TerrainStructureModal structure={structureModalTarget} mapData={mapData} npcs={npcs} onClose={() => setStructureModalTarget(null)} gameTimeHours={gameTimeHours} season={season} playerCharacter={playerCharacter} currentLocation={currentRegion} formattedDate={gameDate} />}
             {activeSettlementInfo && mapData && <SettlementInfoModal tile={activeSettlementInfo.tile} mapData={mapData} onClose={() => setActiveSettlementInfo(null)} gameTimeHours={gameTimeHours} season={season} />}
             {activeMiningModal && playerCharacter && <MiningModal structure={activeMiningModal} playerCharacter={playerCharacter} onClose={() => setActiveMiningModal(null)} onMine={() => {}} isMining={false} mineResult={null} />}
             {activePoi && mapData && <PointOfInterestModal structure={activePoi} mapData={mapData} onClose={() => setActivePoi(null)} />}

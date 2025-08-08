@@ -229,7 +229,7 @@ export async function generateLlmContents(entity: InteriorEntity, mapData: Inter
  */
 export async function generateDmResponse(playerQuery: string, context: PlayerContext): Promise<string> {
     const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
-    const { playerCharacter, mapData, npcs, animals, terrainStructures, playerX, playerY } = context;
+    const { playerCharacter, mapData, npcs, animals, terrainStructures, playerX, playerY, viewMode, interiorContext } = context;
 
     // Build rich context string
     const nearbyNpcs = npcs?.filter(n => Math.hypot(n.x - playerX!, n.y - playerY!) < 10)
@@ -242,10 +242,18 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
                                         .map(s => s.name)
                                         .join(', ') || 'none';
 
+    // Build location context based on view mode
+    let locationContext = '';
+    if (viewMode === 'interior' && interiorContext) {
+        locationContext = `The player is currently inside a ${interiorContext.buildingName || interiorContext.buildingType}, specifically in the ${interiorContext.currentSpace || 'main area'}. This is a ${interiorContext.layoutName || 'traditional'} layout${interiorContext.religion ? ` associated with ${interiorContext.religion}` : ''}${interiorContext.culturalZone ? ` from the ${interiorContext.culturalZone} cultural region` : ''}.`;
+    } else {
+        locationContext = `The player is on a ${isStandardTile(context.currentTile) ? context.currentTile.biome : 'exterior'} tile.`;
+    }
+
     const fullContext = `
         **Player:** ${playerCharacter?.name}, a ${playerCharacter?.age}-year-old ${playerCharacter?.profession}.
         **Date & Location:** ${mapData?.timeSlice} in ${mapData?.localArea}, a region with a ${mapData?.climate} climate.
-        **Immediate Surroundings:** The player is on a ${isStandardTile(context.currentTile) ? context.currentTile.biome : 'interior'} tile.
+        **Immediate Surroundings:** ${locationContext}
         **Nearby Entities:** NPCs: ${nearbyNpcs}. Animals: ${nearbyAnimals}. Structures: ${nearbyStructures}.
         **Overall Ambiance:** ${generateAmbianceText(context.ambianceContext)}
     `;

@@ -13,6 +13,8 @@ interface SettingsPanelProps {
   onToggleLlmForCharacter: () => void;
   isTestModeEnabled: boolean;
   onToggleTestMode: () => void;
+  isDevBuildingModeOpen: boolean;
+  onToggleDevBuildingMode: () => void;
 }
 
 const SettingsToggle: React.FC<{
@@ -54,6 +56,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onToggleLlmForCharacter,
   isTestModeEnabled,
   onToggleTestMode,
+  isDevBuildingModeOpen,
+  onToggleDevBuildingMode,
 }) => {
   const handleSeedInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newSeedValue = parseInt(event.target.value, 10);
@@ -150,6 +154,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 description="Enable performance monitoring overlay with feature toggles for debugging Safari rendering issues."
                 isChecked={isTestModeEnabled}
                 onToggle={onToggleTestMode}
+              />
+              <SettingsToggle 
+                id="devBuildingModeToggle"
+                label="Dev Building Mode"
+                description="Display a comprehensive grid of all map symbols, biomes, and structures with their code names for reference."
+                isChecked={isDevBuildingModeOpen}
+                onToggle={onToggleDevBuildingMode}
               />
             </div>
           </section>
