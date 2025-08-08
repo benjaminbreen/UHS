@@ -340,25 +340,29 @@ function calculateDirectionScore(
 
 function placeRiverTileWithWidth(
     tiles: Tile[][], x: number, y: number, width: number, 
-    path: Point[], isPrimaryChannel: boolean, archetype: MapArchetype
+    path: Point[], isPrimaryChannel: boolean, archetype: MapArchetype,
+    randomNoise: ValueNoise
 ): void {
   const baseAltitude = tiles[y][x].altitude; 
   const isRiverPortMain = (archetype === MapArchetype.RIVER_PORT && isPrimaryChannel);
   
-  for (let dy = -Math.floor(width/2); dy <= Math.ceil(width/2)-1; dy++) {
-    for (let dx = -Math.floor(width/2); dx <= Math.ceil(width/2)-1; dx++) {
+  // Place the main river channel with smoother curves
+  const riverRadius = width / 2;
+  for (let dy = -Math.floor(width); dy <= Math.ceil(width); dy++) {
+    for (let dx = -Math.floor(width); dx <= Math.ceil(width); dx++) {
       const nx = x + dx;
       const ny = y + dy;
       if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
-        if (Math.sqrt(dx * dx + dy * dy) <= width / 2) {
-          const tileToChange = tiles[ny][nx];
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const tileToChange = tiles[ny][nx];
+        
+        const uncarvableBlockers = [BiomeType.ACTIVE_LAVA, BiomeType.ESTUARY, BiomeType.CLIFF];
+        if (uncarvableBlockers.includes(tileToChange.biome)) continue;
+        
+        // Main river channel - ensure connectivity
+        if (distance <= riverRadius) {
+          if (tileToChange.biome === BiomeType.FRESHWATER_LAKE && !isRiverPortMain) continue;
           
-          const uncarvableBlockers = [BiomeType.ACTIVE_LAVA, BiomeType.ESTUARY, BiomeType.CLIFF];
-          if (uncarvableBlockers.includes(tileToChange.biome) || 
-              (tileToChange.biome === BiomeType.FRESHWATER_LAKE && !isRiverPortMain) ) {
-                continue;
-          }
-
           let riverBiomeType = BiomeType.RIVER;
           if (isRiverPortMain || (isPrimaryChannel && path.length > 15)) {
               riverBiomeType = BiomeType.MAJOR_RIVER;
@@ -375,7 +379,43 @@ function placeRiverTileWithWidth(
             prevRiverTileAltitude = tileToChange.altitude + 0.01; 
           }
           
-          tileToChange.altitude = Math.max(ALTITUDE_LEVELS.SEA * 0.05, Math.min(prevRiverTileAltitude - 0.001, baseAltitude - 0.005));
+          // Smoother altitude descent for connected flow
+          tileToChange.altitude = Math.max(ALTITUDE_LEVELS.SEA * 0.05, 
+            prevRiverTileAltitude - 0.0005 - (distance * 0.0001));
+        }
+        // Riverbank terrain - important for RIVER_PORT maps
+        else if (distance <= riverRadius + 2 && distance > riverRadius) {
+          if (tileToChange.isLand && 
+              !uncarvableBlockers.includes(tileToChange.biome) &&
+              tileToChange.biome !== BiomeType.URBAN &&
+              tileToChange.biome !== BiomeType.HAMLET &&
+              tileToChange.biome !== BiomeType.LOW_DENSITY_CITY &&
+              tileToChange.biome !== BiomeType.DENSE_CITY) {
+            
+            // High chance of riverbank terrain along rivers
+            if (randomNoise.random() < 0.75) {
+              tileToChange.biome = BiomeType.RIVERBANK;
+              // Lower altitude near river but keep as land
+              tileToChange.altitude = Math.max(ALTITUDE_LEVELS.BEACH, 
+                baseAltitude - 0.02);
+            } else if (randomNoise.random() < 0.15 && archetype === MapArchetype.RIVER_PORT) {
+              // Occasional wetlands in river ports
+              tileToChange.biome = BiomeType.WETLANDS;
+              tileToChange.altitude = Math.max(ALTITUDE_LEVELS.BEACH * 0.8, 
+                baseAltitude - 0.025);
+            }
+          }
+        }
+        // Reduce mountains near rivers
+        else if (distance <= riverRadius + 4) {
+          if ((tileToChange.biome === BiomeType.MOUNTAIN || 
+               tileToChange.biome === BiomeType.HIGH_PEAK ||
+               tileToChange.biome === BiomeType.SNOW) && 
+              tileToChange.altitude > ALTITUDE_LEVELS.HILLS_LOW) {
+            // Convert high altitude to hills near rivers
+            tileToChange.biome = BiomeType.HILLS;
+            tileToChange.altitude = ALTITUDE_LEVELS.HILLS_LOW + randomNoise.random() * 0.02;
+          }
         }
       }
     }
@@ -433,11 +473,11 @@ export function generateEnhancedRiverPath(
     
     let baseRiverWidth = 1;
     if (isTributary) {
-        baseRiverWidth = 1.0 + widthNoise.random() * 0.4; 
+        baseRiverWidth = 1.2 + widthNoise.random() * 0.4; 
     } else if (isDesignatedWideRiver) {
-        baseRiverWidth = 2.8 + widthNoise.random() * 0.8; 
+        baseRiverWidth = 3.5 + widthNoise.random() * 1.0; // Wider main channels for better connectivity
     } else {
-        baseRiverWidth = 1.5 + widthNoise.random() * 0.6; 
+        baseRiverWidth = 2.0 + widthNoise.random() * 0.8; 
     }
 
 
@@ -514,8 +554,10 @@ export function generateEnhancedRiverPath(
         }
         
         path.push({ ...current });
-        const currentRiverWidth = Math.max(1, Math.floor(baseRiverWidth * (0.8 + widthNoise.random() * 0.4)));
-        placeRiverTileWithWidth(tiles, current.x, current.y, currentRiverWidth, path, isDesignatedWideRiver, archetype);
+        // Increase river width gradually as it flows
+        const progressFactor = Math.min(1.0, path.length / 30);
+        const currentRiverWidth = Math.max(1, Math.floor(baseRiverWidth * (0.8 + progressFactor * 0.3 + widthNoise.random() * 0.3)));
+        placeRiverTileWithWidth(tiles, current.x, current.y, currentRiverWidth, path, isDesignatedWideRiver, archetype, randomNoise);
 
         if (archetype === MapArchetype.DELTA && isDesignatedWideRiver && !isTributary) {
             let isNearSea = false;
@@ -566,34 +608,51 @@ export function generateEnhancedRiverPath(
         }
 
         if (bestNextPoint) {
-            if (path.length > 5 && prevDirection && randomNoise.random() < RIVER_SINUOSITY_FACTOR) {
-                const meanderVal = meanderNoise.noise(current.x * RIVER_MEANDER_FREQUENCY, current.y * RIVER_MEANDER_FREQUENCY);
-                if (meanderVal < 0.33 && prevDirection.x !== 0) { 
-                    const potentialTurns = [{x:0, y:1}, {x:0,y:-1}];
-                    potentialTurns.sort(() => randomNoise.random() - 0.5);
-                    for(const turnDir of potentialTurns) {
-                        const turnScore = calculateDirectionScore(tiles, current, turnDir, drainageTarget, prevDirection, path.length, archetype, isDesignatedWideRiver);
-                        if (turnScore > maxScore * 0.7) { 
-                            bestNextPoint = {x: current.x + turnDir.x, y: current.y + turnDir.y};
-                            prevDirection = {...turnDir};
-                            break;
-                        }
+            // Enhanced meandering for more natural curves
+            if (path.length > 3 && prevDirection) {
+                const meanderVal = meanderNoise.noise(current.x * RIVER_MEANDER_FREQUENCY * 1.5, current.y * RIVER_MEANDER_FREQUENCY * 1.5);
+                const sinuosityBoost = archetype === MapArchetype.RIVER_PORT ? 1.5 : 1.0; // More curves for river ports
+                
+                // Add curves based on noise and previous direction
+                if (randomNoise.random() < RIVER_SINUOSITY_FACTOR * sinuosityBoost) {
+                    // Create smooth curves by preferring perpendicular turns
+                    let turnOptions: Point[] = [];
+                    
+                    if (Math.abs(prevDirection.x) > 0) {
+                        // Was moving horizontally, prefer vertical turns
+                        turnOptions = [{x: prevDirection.x, y: 1}, {x: prevDirection.x, y: -1}, 
+                                      {x: 0, y: 1}, {x: 0, y: -1}];
+                    } else {
+                        // Was moving vertically, prefer horizontal turns  
+                        turnOptions = [{x: 1, y: prevDirection.y}, {x: -1, y: prevDirection.y},
+                                      {x: 1, y: 0}, {x: -1, y: 0}];
                     }
-                } else if (meanderVal > 0.66 && prevDirection.y !== 0) { 
-                     const potentialTurns = [{x:1, y:0}, {x:-1,y:0}];
-                    potentialTurns.sort(() => randomNoise.random() - 0.5);
-                    for(const turnDir of potentialTurns) {
-                        const turnScore = calculateDirectionScore(tiles, current, turnDir, drainageTarget, prevDirection, path.length, archetype, isDesignatedWideRiver);
-                        if (turnScore > maxScore * 0.7) {
-                            bestNextPoint = {x: current.x + turnDir.x, y: current.y + turnDir.y};
-                            prevDirection = {...turnDir};
-                            break;
-                        }
+                    
+                    // Use noise to select turn direction for natural curves
+                    const turnIndex = Math.floor(Math.abs(meanderVal) * turnOptions.length);
+                    const turnDir = turnOptions[turnIndex % turnOptions.length];
+                    
+                    const turnScore = calculateDirectionScore(tiles, current, turnDir, drainageTarget, prevDirection, path.length, archetype, isDesignatedWideRiver);
+                    if (turnScore > maxScore * 0.6) { // More lenient to allow curves
+                        bestNextPoint = {x: current.x + turnDir.x, y: current.y + turnDir.y};
+                        prevDirection = {...turnDir};
                     }
                 }
+                
+                // Add occasional S-curves for variety
+                if (path.length > 10 && randomNoise.random() < 0.1) {
+                    const oppositeDir = {x: -prevDirection.x, y: -prevDirection.y};
+                    const perpDirs = prevDirection.x !== 0 ? 
+                        [{x: 0, y: 1}, {x: 0, y: -1}] : 
+                        [{x: 1, y: 0}, {x: -1, y: 0}];
+                    const selectedPerp = perpDirs[Math.floor(randomNoise.random() * 2)];
+                    bestNextPoint = {x: current.x + selectedPerp.x, y: current.y + selectedPerp.y};
+                    prevDirection = {...selectedPerp};
+                }
             }
-             if (bestNextPoint) current = bestNextPoint; 
-             else break; 
+            
+            if (bestNextPoint) current = bestNextPoint; 
+            else break; 
         } else {
             break; 
         }

@@ -64,7 +64,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Carpathian Foothills": { name: "Carpathian Foothills", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND },
             "Vienna Basin": { name: "Vienna Basin", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT },
             "Moravian Gate": { name: "Moravian Gate", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND },
-            "Tatra Mountains": { name: "Tatra Mountains", climate: ClimateType.COLD, archetype: MapArchetype.ALL_LAND }
+            "Tatra Mountains": { name: "Tatra Mountains", climate: ClimateType.COLD, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false }
         },
         "Balkans": {
             "Dinaric Alps": { name: "Dinaric Alps", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND },
@@ -90,6 +90,10 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Steppe Borderlands": { name: "Steppe Borderlands", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
             "Novgorod Woods": { name: "Novgorod Woods", climate: ClimateType.COLD, archetype: MapArchetype.ALL_LAND }
         },
+        "Ural and Arctic Europe": {
+            "Ural Mountains": { name: "Ural Mountains", climate: ClimateType.COLD, archetype: MapArchetype.ALL_LAND },
+            "White Sea Coast": { name: "White Sea Coast", climate: ClimateType.COLD, archetype: MapArchetype.BAY }
+        },
         "Low Countries": {
             "Rhine–Meuse Delta": { name: "Rhine–Meuse Delta", climate: ClimateType.TEMPERATE, archetype: MapArchetype.DELTA },
             "Flanders Fields": { name: "Flanders Fields", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND },
@@ -111,21 +115,41 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         "Pacific Coast": {
             "Columbia River Valley": { name: "Columbia River Valley", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT },
             "Puget Sound": { name: "Puget Sound", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY },
-            "San Francisco Bay": { name: "San Francisco Bay", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY },
-            "Santa Barbara Channel": { name: "Santa Barbara Channel", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.BAY },
             "Olympic Peninsula": { name: "Olympic Peninsula", climate: ClimateType.TEMPERATE, archetype: MapArchetype.PENINSULA },
             "Redwood Coast": { name: "Redwood Coast", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY }
+        },
+        "Northern California": {
+            "San Francisco Bay": { name: "San Francisco Bay", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY },
+            "Marin Headlands": { name: "Marin Headlands", climate: ClimateType.TEMPERATE, archetype: MapArchetype.PENINSULA },
+            "Sacramento Valley": { name: "Sacramento Valley", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT },
+            "Sierra Nevada Foothills": { name: "Sierra Nevada Foothills", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND },
+            "Napa Valley": { name: "Napa Valley", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND }
+        },
+        "Central California Coast": {
+            "Monterey Bay": { name: "Monterey Bay", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY, bayOutlet: 'west' },
+            "Santa Cruz Mountains": { name: "Santa Cruz Mountains", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, altitude: 'high' },
+            "Salinas Valley": { name: "Salinas Valley", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT, riverDirection: 'north-south', altitude: 'low' },
+            "Big Sur Coast": { name: "Big Sur Coast", climate: ClimateType.TEMPERATE, archetype: MapArchetype.PENINSULA },
+            "San Luis Obispo Bay": { name: "San Luis Obispo Bay", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY, bayOutlet: 'west' }
+        },
+        "Southern California": {
+            "Santa Barbara Channel": { name: "Santa Barbara Channel", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.BAY, bayOutlet: 'south' },
+            "Los Angeles Basin": { name: "Los Angeles Basin", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.BAY },
+            "Channel Islands": { name: "Channel Islands", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.BARRIER_ISLAND, islandOrientation: 'east-west' },
+            "San Diego Bay": { name: "San Diego Bay", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.BAY },
+            "Mojave Desert": { name: "Mojave Desert", climate: ClimateType.ARID, archetype: MapArchetype.DESERT }
         },
         "Southwest": {
             "Sonoran Desert": { name: "Sonoran Desert", climate: ClimateType.ARID, archetype: MapArchetype.DESERT },
             "Chaco Canyon": { name: "Chaco Canyon", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
             "Rio Grande Valley": { name: "Rio Grande Valley", climate: ClimateType.ARID, archetype: MapArchetype.RIVER_PORT },
             "Colorado Plateau": { name: "Colorado Plateau", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
+            "Rocky Mountains": { name: "Rocky Mountains", climate: ClimateType.COLD, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false },
             "Ancestral Puebloan Lands": { name: "Ancestral Puebloan Lands", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
             "Mogollon Rim": { name: "Mogollon Rim", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND }
         },
         "Great Plains": {
-            "Black Hills": { name: "Black Hills", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND },
+            "Black Hills": { name: "Black Hills", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, hasLakes: true },
             "Platte River Basin": { name: "Platte River Basin", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT },
             "Flint Hills": { name: "Flint Hills", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND },
             "Badlands": { name: "Badlands", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
@@ -134,7 +158,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         },
         "Mississippi Valley": {
             "Cahokia Mounds": { name: "Cahokia Mounds", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT },
-            "Lower Mississippi Delta": { name: "Lower Mississippi Delta", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.DELTA },
+            "Lower Mississippi Delta": { name: "Lower Mississippi Delta", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.DELTA, deltaOutlet: 'south' },
             "Ozark Plateau": { name: "Ozark Plateau", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND },
             "Natchez Bluffs": { name: "Natchez Bluffs", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.ALL_LAND },
             "Illinois River Valley": { name: "Illinois River Valley", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT },
@@ -172,6 +196,15 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Isthmus of Tehuantepec": { name: "Isthmus of Tehuantepec", climate: ClimateType.TROPICAL, archetype: MapArchetype.PENINSULA },
             "Lake Texcoco Basin": { name: "Lake Texcoco Basin", climate: ClimateType.TEMPERATE, archetype: MapArchetype.FRESHWATER_LAKE }
         },
+        "Central America": {
+            "Mayan Lowlands": { name: "Mayan Lowlands", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND },
+            "Mosquito Coast": { name: "Mosquito Coast", climate: ClimateType.TROPICAL, archetype: MapArchetype.BAY },
+            "Panama Isthmus": { name: "Panama Isthmus", climate: ClimateType.TROPICAL, archetype: MapArchetype.PENINSULA }
+        },
+        "The Caribbean": {
+            "Greater Antilles": { name: "Greater Antilles", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND },
+            "Lesser Antilles": { name: "Lesser Antilles", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND }
+        },
         "Northern Rockies": {
             "Bitterroot Range": { name: "Bitterroot Range", climate: ClimateType.COLD, archetype: MapArchetype.ALL_LAND },
             "Yellowstone Basin": { name: "Yellowstone Basin", climate: ClimateType.COLD, archetype: MapArchetype.ALL_LAND },
@@ -184,7 +217,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Chesapeake Bay": { name: "Chesapeake Bay", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY },
             "Cape Cod": { name: "Cape Cod", climate: ClimateType.TEMPERATE, archetype: MapArchetype.PENINSULA },
             "Pine Barrens": { name: "Pine Barrens", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND },
-            "Outer Banks": { name: "Outer Banks", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ISLAND },
+            "Outer Banks": { name: "Outer Banks", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BARRIER_ISLAND, islandOrientation: 'north-south' },
             "Delaware River Valley": { name: "Delaware River Valley", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT },
             "Tidewater Region": { name: "Tidewater Region", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY }
         }
@@ -267,11 +300,15 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
     "MENA": {
         "Nile Valley": {
             "Thebes Valley": { name: "Thebes Valley", climate: ClimateType.ARID, archetype: MapArchetype.RIVER_PORT },
-            "Nile Delta": { name: "Nile Delta", climate: ClimateType.ARID, archetype: MapArchetype.DELTA },
+            "Nile Delta": { name: "Nile Delta", climate: ClimateType.ARID, archetype: MapArchetype.DELTA, deltaOutlet: 'north' },
             "Aswan Cataracts": { name: "Aswan Cataracts", climate: ClimateType.ARID, archetype: MapArchetype.SWAMP },
             "Faiyum Oasis": { name: "Faiyum Oasis", climate: ClimateType.ARID, archetype: MapArchetype.FRESHWATER_LAKE },
             "Eastern Desert Wadis": { name: "Eastern Desert Wadis", climate: ClimateType.ARID, archetype: MapArchetype.DESERT },
             "Alexandria Coast": { name: "Alexandria Coast", climate: ClimateType.ARID, archetype: MapArchetype.BAY }
+        },
+        "Nubian Corridor": {
+            "Nubian Desert": { name: "Nubian Desert", climate: ClimateType.ARID, archetype: MapArchetype.DESERT },
+            "Bayuda Desert": { name: "Bayuda Desert", climate: ClimateType.ARID, archetype: MapArchetype.DESERT }
         },
         "Levant": {
             "Jerusalem Hills": { name: "Jerusalem Hills", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },
@@ -470,21 +507,35 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Tenasserim Coast": { name: "Tenasserim Coast", climate: ClimateType.TROPICAL, archetype: MapArchetype.BAY },
             "Malay Peninsula": { name: "Malay Peninsula", climate: ClimateType.TROPICAL, archetype: MapArchetype.PENINSULA }
         },
+        "Indochina Interior": {
+            "Shan Plateau": { name: "Shan Plateau", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND },
+            "Annamite Cordillera": { name: "Annamite Cordillera", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND }
+        },
         "Maritime Southeast Asia": {
             "Strait of Malacca": { name: "Strait of Malacca", climate: ClimateType.TROPICAL, archetype: MapArchetype.STRAITS },
             "Sumatra Highlands": { name: "Sumatra Highlands", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND },
             "Java Sea": { name: "Java Sea", climate: ClimateType.TROPICAL, archetype: MapArchetype.SHOALS },
             "Central Java": { name: "Central Java", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND },
             "Sunda Strait": { name: "Sunda Strait", climate: ClimateType.TROPICAL, archetype: MapArchetype.STRAITS },
+            "Borneo": { name: "Borneo", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND },
             "Makassar Strait": { name: "Makassar Strait", climate: ClimateType.TROPICAL, archetype: MapArchetype.STRAITS },
             "Spice Islands": { name: "Spice Islands", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND },
             "Celebes Sea": { name: "Celebes Sea", climate: ClimateType.TROPICAL, archetype: MapArchetype.SHOALS },
             "Banda Sea": { name: "Banda Sea", climate: ClimateType.TROPICAL, archetype: MapArchetype.SHOALS },
             "Timor Sea": { name: "Timor Sea", climate: ClimateType.TROPICAL, archetype: MapArchetype.SHOALS }
         },
-        "Philippines and Taiwan Strait": {
-            "Philippine Archipelago": { name: "Philippine Archipelago", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND },
-            "Taiwan Strait": { name: "Taiwan Strait", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.STRAITS }
+        "Philippines": {
+            "Luzon Highlands": { name: "Luzon Highlands", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND },
+            "Visayan Sea": { name: "Visayan Sea", climate: ClimateType.TROPICAL, archetype: MapArchetype.SHOALS },
+            "Mindanao": { name: "Mindanao", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND },
+            "Philippine Sea": { name: "Philippine Sea", climate: ClimateType.TROPICAL, archetype: MapArchetype.OPEN_OCEAN },
+            "Palawan": { name: "Palawan", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND },
+            "Sulu Sea": { name: "Sulu Sea", climate: ClimateType.TROPICAL, archetype: MapArchetype.SHOALS }
+        },
+        "Taiwan and East China Sea": {
+            "Taiwan Strait": { name: "Taiwan Strait", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.STRAITS },
+            "Ryukyu Islands": { name: "Ryukyu Islands", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.ISLAND },
+            "East China Sea": { name: "East China Sea", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.OPEN_OCEAN }
         }
     },
     "East Asia": {

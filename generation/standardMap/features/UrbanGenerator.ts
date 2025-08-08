@@ -289,52 +289,103 @@ export function generateUrbanAreas(tiles: Tile[][], randomNoise: ValueNoise, arc
   console.log("Generating enhanced urban clusters...");
   const strategicLocations = identifyStrategicUrbanLocations(tiles, archetype, harborSide);
   
-  // Era-based urbanization scaling
-  let eraMultiplier = 1;
-  if (year) {
-    if (year < 500) eraMultiplier = 0.3; // Prehistory - very few settlements
-    else if (year < 1000) eraMultiplier = 0.5; // Ancient - limited urbanization
-    else if (year < 1450) eraMultiplier = 0.7; // Medieval - moderate towns
-    else if (year < 1800) eraMultiplier = 1.0; // Early modern - baseline
-    else if (year < 1900) eraMultiplier = 1.5; // Industrial - major growth
-    else if (year < 2000) eraMultiplier = 2.5; // Modern - high urbanization
-    else eraMultiplier = 4.0; // Future - very high density
-    console.log(`[Urban] Era multiplier for year ${year}: ${eraMultiplier}`);
-  }
+  // Check if this area has defined cities
+  let hasCities = false;
+  let activeCities: any[] = [];
+  let cityDensity: 'small' | 'moderate' | 'large' | 'massive' | undefined;
   
-  // Check if this area corresponds to a known historical city
-  let cityBonus = 0;
   if (mapAreaName && year) {
     try {
+      // Check cities.ts first
       const { CITIES_DATA } = require('../../../constants/gameData/cities');
       const areaCities = CITIES_DATA[mapAreaName] || [];
       
       // Count how many cities should exist in this year
-      const activeCities = areaCities.filter((city: any) => 
+      activeCities = areaCities.filter((city: any) => 
         year >= city.foundingYear && (!city.declineYear || year <= city.declineYear)
       );
       
       if (activeCities.length > 0) {
-        cityBonus = Math.min(activeCities.length * 2, 8); // Up to 8 bonus clusters for major cities
-        console.log(`[Urban] Found ${activeCities.length} historical cities in ${mapAreaName}, adding ${cityBonus} bonus clusters`);
+        hasCities = true;
+        // Get the density from the most prominent city
+        cityDensity = activeCities[0].urbanDensity;
+        if (activeCities[0].eraSpecificDensity) {
+          // Determine era based on year
+          let era = 'ancient';
+          if (year >= 1450) era = 'early_modern';
+          if (year >= 1800) era = 'modern';
+          if (year < 500) era = 'prehistoric';
+          else if (year < 1450) era = 'medieval';
+          
+          cityDensity = activeCities[0].eraSpecificDensity[era] || cityDensity;
+        }
+        console.log(`[Urban] Found ${activeCities.length} historical cities in ${mapAreaName} with density: ${cityDensity}`);
+      }
+      
+      // If no cities in cities.ts, check proceduralCityData.ts
+      if (!hasCities) {
+        const { PROCEDURAL_CITY_DATA } = require('../../../constants/gameData/proceduralCityData');
+        const proceduralCities = PROCEDURAL_CITY_DATA[mapAreaName] || [];
+        if (proceduralCities.length > 0) {
+          hasCities = true;
+          cityDensity = 'small'; // Procedural cities default to small
+          console.log(`[Urban] Found procedural cities in ${mapAreaName}`);
+        }
       }
     } catch (error) {
-      console.log(`[Urban] Could not load cities data for ${mapAreaName}`);
+      console.log(`[Urban] Could not load city data for ${mapAreaName}`);
     }
   }
   
-  let baseCount = Math.ceil(URBAN_CLUSTER_COUNT_BASE * eraMultiplier);
-  let clusterCount = baseCount + cityBonus;
+  // Determine urban generation based on whether cities are defined
+  let clusterCount = 0;
   
-  if (generateLargeCity) clusterCount += 1 + Math.floor(randomNoise.random()*2);
-  if (archetype === MapArchetype.RIVER_PORT) clusterCount += Math.ceil(2 * eraMultiplier);
+  if (hasCities) {
+    // City-based generation - use density settings
+    const densityMap: Record<string, number> = {
+      'small': 2,
+      'moderate': 4,
+      'large': 6,
+      'massive': 8
+    };
+    clusterCount = densityMap[cityDensity || 'small'];
+    
+    // Add bonus for multiple cities
+    if (activeCities.length > 1) {
+      clusterCount += Math.min(activeCities.length - 1, 2);
+    }
+    
+    if (generateLargeCity) clusterCount += 1;
+    console.log(`[Urban] City-based generation: ${clusterCount} clusters for ${cityDensity} density`);
+  } else {
+    // No cities defined - minimal or no urbanization
+    const spawnChance = randomNoise.random();
+    
+    if (spawnChance < 0.4) {
+      // 40% chance of no settlements at all
+      clusterCount = 0;
+      console.log(`[Urban] No cities defined - no settlements spawned`);
+    } else if (spawnChance < 0.8) {
+      // 40% chance of 1-2 hamlets
+      clusterCount = 1 + Math.floor(randomNoise.random() * 2);
+      console.log(`[Urban] No cities defined - spawning ${clusterCount} hamlet(s)`);
+    } else {
+      // 20% chance of 2-3 hamlets
+      clusterCount = 2 + Math.floor(randomNoise.random() * 2);
+      console.log(`[Urban] No cities defined - spawning ${clusterCount} hamlets`);
+    }
+    
+    // Never exceed 3 clusters when no cities are defined
+    clusterCount = Math.min(clusterCount, 3);
+  }
   
-  // Scale the max based on era too
-  let maxClusters = Math.ceil(URBAN_CLUSTER_COUNT_MAX * Math.max(eraMultiplier, 1.5));
-  clusterCount = Math.min(clusterCount, maxClusters + (generateLargeCity ? 2 : 0));
-  const clusterCenters = selectUrbanClusterCenters(strategicLocations, clusterCount, randomNoise);
-  clusterCenters.forEach((center, index) => {
-    generateUrbanCluster(tiles, center, index, clusterCenters.length, generateLargeCity, randomNoise, economicActivityLevel);
-  });
-  console.log(`Generated ${clusterCenters.length} urban clusters`);
+  if (clusterCount > 0) {
+    const clusterCenters = selectUrbanClusterCenters(strategicLocations, clusterCount, randomNoise);
+    clusterCenters.forEach((center, index) => {
+      // For areas without cities, only generate small hamlets
+      const shouldGenerateLarge = hasCities ? generateLargeCity : false;
+      generateUrbanCluster(tiles, center, index, clusterCenters.length, shouldGenerateLarge, randomNoise, economicActivityLevel);
+    });
+    console.log(`Generated ${clusterCenters.length} urban clusters`);
+  }
 }

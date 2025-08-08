@@ -31,9 +31,48 @@ export function generateHolyPlaces(mapData: MapData, featurePlacementNoise: Valu
     const culturalZone = mapLocationToCulture(mapData.continent || 'Europe', dateInfo.year);
     const factionData: FactionData | undefined = FACTION_DATA[culturalZone]?.[mapData.region || '']?.[dateInfo.era];
 
+    // Check if this area has defined cities
+    let hasCities = false;
+    const mapAreaName = mapData.localArea;
+    
+    if (mapAreaName && dateInfo.year) {
+        try {
+            const { CITIES_DATA } = require('../../../constants/gameData/cities');
+            const areaCities = CITIES_DATA[mapAreaName] || [];
+            const activeCities = areaCities.filter((city: any) => 
+                dateInfo.year >= city.foundingYear && (!city.declineYear || dateInfo.year <= city.declineYear)
+            );
+            
+            if (activeCities.length > 0) {
+                hasCities = true;
+            } else {
+                // Check procedural cities
+                const { PROCEDURAL_CITY_DATA } = require('../../../constants/gameData/proceduralCityData');
+                const proceduralCities = PROCEDURAL_CITY_DATA[mapAreaName] || [];
+                if (proceduralCities.length > 0) {
+                    hasCities = true;
+                }
+            }
+        } catch (error) {
+            console.log(`[HolyPlace] Could not load city data for ${mapAreaName}`);
+        }
+    }
+
     const generatedHolyPlaces: TerrainStructure[] = [];
     let placesPlaced = 0;
-    const maxPlaces = 1 + Math.floor(featurePlacementNoise.random() * 2); // 1-2 per map
+    
+    // Reduce holy places when no cities are defined
+    let maxPlaces = 1 + Math.floor(featurePlacementNoise.random() * 2); // 1-2 per map
+    if (!hasCities) {
+        // Only 20% chance of a single holy site when no cities
+        if (featurePlacementNoise.random() < 0.2) {
+            maxPlaces = 1;
+            console.log(`[HolyPlace] No cities defined for ${mapAreaName}, spawning 1 holy site`);
+        } else {
+            maxPlaces = 0;
+            console.log(`[HolyPlace] No cities defined for ${mapAreaName}, skipping holy site generation`);
+        }
+    }
 
     const candidates: { tile: Tile, score: number }[] = [];
 

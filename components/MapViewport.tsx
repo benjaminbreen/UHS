@@ -16,8 +16,9 @@ import FarmPanel from './FarmPanel';
 import MarketplaceModal from './MarketplaceModal';
 import CityModal from './CityModal';
 import RuinModal from './RuinModal';
-import { DevTooltipDisplayData, Tile, PlayerCharacter } from '../types';
+import { DevTooltipDisplayData, Tile, PlayerCharacter, BiomeType } from '../types';
 import TimeAwareBackground from './TimeAwareBackground';
+import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES } from '../constants';
 
 type ActivePanel = 'farm' | null;
 
@@ -92,9 +93,29 @@ const MapViewport: React.FC = () => {
             if (buildingType === 'palace' || buildingType === 'holy_place' || buildingType === 'temple') {
                 console.log('✨ [MapViewport] Using BEAUTIFUL interior system for:', buildingType);
                 // Find the original tile that was entered to get context
-                const contextTile = mapData?.tiles?.flat().find(tile => 
+                let contextTile = mapData?.tiles?.flat().find(tile => 
                     tile.structure?.id === interiorViewState.buildingId
                 );
+                
+                // If no context tile found, create a minimal fallback tile
+                if (!contextTile && mapData) {
+                    console.log('⚠️ [MapViewport] No context tile found, creating fallback');
+                    contextTile = {
+                        x: Math.floor(MAP_WIDTH_TILES / 2),
+                        y: Math.floor(MAP_HEIGHT_TILES / 2),
+                        biome: BiomeType.HOLY_SITE,
+                        isLand: true,
+                        temperature: 20,
+                        humidity: 50,
+                        elevation: 0.5,
+                        holyPlaceReligion: buildingType === 'holy_place' ? 'Christianity' : undefined,
+                        structure: {
+                            id: interiorViewState.buildingId,
+                            type: buildingType as any,
+                            subtype: buildingType === 'palace' ? 'castle' : buildingType === 'holy_place' ? 'cathedral' : 'temple'
+                        }
+                    } as any;
+                }
                 
                 if (contextTile && mapData && playerCharacter) {
                     const config = {
@@ -131,7 +152,7 @@ const MapViewport: React.FC = () => {
                         />
                     );
                 } else {
-                    console.log('❌ [MapViewport] No context tile found for beautiful interior, fallback to legacy');
+                    console.log('❌ [MapViewport] Failed to create context for beautiful interior, fallback to legacy');
                 }
             } else {
                 console.log('🗂️ [MapViewport] Using LEGACY interior system for:', buildingType);

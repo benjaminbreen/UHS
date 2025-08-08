@@ -233,9 +233,9 @@ export const useMapState = (props: useMapStateProps) => {
         return { areaDef: randomMapAreaDef, region: randomRegionName, zone: randomZoneName };
     }, []);
 
-    const generateAndCacheMapInternal = useCallback(( seedToUse: number, archetypeToUse: MapArchetype, climateToUse: ClimateType, worldX: number, worldY: number, localAreaToUse: string, regionToUse: string, zoneToUse: string, neighboringEdges?: any ): CachedMapEntry => { 
+    const generateAndCacheMapInternal = useCallback(( seedToUse: number, archetypeToUse: MapArchetype, climateToUse: ClimateType, worldX: number, worldY: number, localAreaToUse: string, regionToUse: string, zoneToUse: string, neighboringEdges?: any, altitudeOverride?: 'standard' | 'high' | 'low', hasLakes?: boolean ): CachedMapEntry => { 
         const generationParams: MapGenerationParams = { isAgricultural, isPastoral, economicActivityLevel };
-        const newMap = proceduralGenerateMap( seedToUse, archetypeToUse, climateToUse,  generateHarbor, generateLargeCity,  userSelectedBaseAltitude, forceVolcanicActivity, zoneToUse, regionToUse, localAreaToUse, String(gameState.gameDate.year), generationParams, neighboringEdges ); 
+        const newMap = proceduralGenerateMap( seedToUse, archetypeToUse, climateToUse,  generateHarbor, generateLargeCity,  altitudeOverride || userSelectedBaseAltitude, forceVolcanicActivity, zoneToUse, regionToUse, localAreaToUse, String(gameState.gameDate.year), generationParams, neighboringEdges, hasLakes ); 
         const newAnimals = newMap.animals || []; const newNpcs = newMap.npcs || [];
         delete newMap.animals; delete newMap.npcs;
         const newCacheEntry = { mapData: newMap, animals: newAnimals, npcs: newNpcs, seed: seedToUse, archetype: archetypeToUse, climate: climateToUse, worldX, worldY, region: regionToUse, localArea: localAreaToUse };
@@ -294,9 +294,10 @@ export const useMapState = (props: useMapStateProps) => {
 
         const newMapData = proceduralGenerateMap(
             initialGameSeed, areaDef.archetype, areaDef.climate, generateHarbor, generateLargeCity,
-            userSelectedBaseAltitude, forceVolcanicActivity,
+            areaDef.altitude || userSelectedBaseAltitude, forceVolcanicActivity,
             zone, region, areaDef.name,
-            String(gameState.gameDate.year), { isAgricultural, isPastoral, economicActivityLevel }, {}
+            String(gameState.gameDate.year), { isAgricultural, isPastoral, economicActivityLevel }, {},
+            areaDef.hasLakes
         );
         
         setMapData(newMapData);
@@ -384,7 +385,9 @@ export const useMapState = (props: useMapStateProps) => {
                             climate: areaInfo.areaDef.climate,
                             name: areaInfo.areaDef.name,
                             region: areaInfo.region,
-                            zone: areaInfo.zone
+                            zone: areaInfo.zone,
+                            altitude: areaInfo.areaDef.altitude,
+                            hasLakes: areaInfo.areaDef.hasLakes
                         };
                     }
                 }
@@ -393,7 +396,8 @@ export const useMapState = (props: useMapStateProps) => {
                     const newMapData = generateAndCacheMapInternal(
                         currentMapSeed, mapToGenerate.archetype, mapToGenerate.climate,
                         currentWorldCoords.x, currentWorldCoords.y,
-                        mapToGenerate.name, mapToGenerate.region, mapToGenerate.zone, neighboringEdges
+                        mapToGenerate.name, mapToGenerate.region, mapToGenerate.zone, neighboringEdges,
+                        mapToGenerate.altitude, mapToGenerate.hasLakes
                     );
                     setMapData(newMapData.mapData);
                     setAnimals(newMapData.animals);

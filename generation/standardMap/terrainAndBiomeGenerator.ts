@@ -45,7 +45,8 @@ export function generateAltitudeAndInitialBiomes(
   archetype: MapArchetype,
   altitudeSetting: AltitudeSetting,
   determinedHarborSide?: number,
-  neighboringEdges?: NeighboringEdges
+  neighboringEdges?: NeighboringEdges,
+  hasLakes?: boolean
 ): void {
   const EDGE_INFLUENCE_DISTANCE_ALT = 3;
 
@@ -85,15 +86,27 @@ export function generateAltitudeAndInitialBiomes(
             }
             tile.altitude = altNoiseVal * (0.2 + landExtent * 0.8);
 
-        } else if (archetype === MapArchetype.ALL_LAND && determinedHarborSide !== undefined) {
-            const landConcentrationRatio = 0.40;
-            let distFactor = 0;
-             if (determinedHarborSide === 0) distFactor = Math.min(1, x / (MAP_WIDTH_TILES * landConcentrationRatio));
-             else if (determinedHarborSide === 1) distFactor = Math.min(1, (MAP_WIDTH_TILES - x) / (MAP_WIDTH_TILES * landConcentrationRatio));
-             else if (determinedHarborSide === 2) distFactor = Math.min(1, y / (MAP_HEIGHT_TILES * landConcentrationRatio));
-             else distFactor = Math.min(1, (MAP_HEIGHT_TILES - y) / (MAP_HEIGHT_TILES * landConcentrationRatio));
+        } else if (archetype === MapArchetype.ALL_LAND) {
+            if (determinedHarborSide !== undefined) {
+                const landConcentrationRatio = 0.40;
+                let distFactor = 0;
+                 if (determinedHarborSide === 0) distFactor = Math.min(1, x / (MAP_WIDTH_TILES * landConcentrationRatio));
+                 else if (determinedHarborSide === 1) distFactor = Math.min(1, (MAP_WIDTH_TILES - x) / (MAP_WIDTH_TILES * landConcentrationRatio));
+                 else if (determinedHarborSide === 2) distFactor = Math.min(1, y / (MAP_HEIGHT_TILES * landConcentrationRatio));
+                 else distFactor = Math.min(1, (MAP_HEIGHT_TILES - y) / (MAP_HEIGHT_TILES * landConcentrationRatio));
 
-            tile.altitude = altNoiseVal * (0.35 + distFactor * 0.65);
+                // Base altitude calculation
+                tile.altitude = altNoiseVal * (0.35 + distFactor * 0.65);
+            } else {
+                // ALL_LAND without harbor side - just use noise value
+                tile.altitude = altNoiseVal;
+            }
+            
+            // Prevent lake-like depressions for ALL_LAND maps (default no lakes unless explicitly enabled)
+            if (hasLakes !== true) {
+                // Ensure minimum altitude to prevent water-like depressions and beach formation
+                tile.altitude = Math.max(ALTITUDE_LEVELS.BEACH + 0.02, tile.altitude);
+            }
         } else if (archetype === MapArchetype.BAY || archetype === MapArchetype.FRESHWATER_LAKE) { // Include FRESHWATER_LAKE here for surrounding terrain altitude
             const dX_center = x / MAP_WIDTH_TILES - 0.5;
             const dY_center = y / MAP_HEIGHT_TILES - 0.5;
@@ -793,6 +806,62 @@ export function generateSpecialTerrainTiles(
             }
         }
         return; // Shoals archetype handled by its own function
+    }
+    
+    if (archetype === MapArchetype.BARRIER_ISLAND) {
+        // Barrier islands: mostly beach, wetlands, with some low hills
+        for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+            for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+                const tile = tiles[y][x];
+                if (!tile.isLand) continue;
+                
+                const barrierNoise = featurePlacementNoise.noise(x * 0.15, y * 0.15);
+                
+                // Set low altitude for barrier islands
+                tile.altitude = ALTITUDE_LEVELS.BEACH + barrierNoise * 0.02;
+                
+                // Determine biome based on climate and position
+                if (tile.isCoast) {
+                    // Coastal areas - beaches and wetlands
+                    if (featurePlacementNoise.random() < 0.4) {
+                        tile.biome = BiomeType.BEACH;
+                    } else if (featurePlacementNoise.random() < 0.6) {
+                        tile.biome = BiomeType.WETLANDS;
+                        
+                        // Convert to mangrove in tropical/semitropical
+                        if (climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL) {
+                            if (featurePlacementNoise.random() < 0.7) {
+                                tile.biome = BiomeType.MANGROVE;
+                            }
+                        }
+                        // Convert to salt flats in arid
+                        else if (climate === ClimateType.ARID) {
+                            if (featurePlacementNoise.random() < 0.5) {
+                                tile.biome = BiomeType.SALT_FLATS;
+                            }
+                        }
+                    }
+                } else {
+                    // Interior areas - low terrain
+                    if (barrierNoise > 0.6 && featurePlacementNoise.random() < 0.3) {
+                        // Occasional low hills
+                        tile.biome = BiomeType.HILLS;
+                        tile.altitude = ALTITUDE_LEVELS.HILLS_LOW + barrierNoise * 0.01;
+                    } else if (barrierNoise < -0.2) {
+                        // Some wetlands in interior
+                        tile.biome = BiomeType.WETLANDS;
+                    } else {
+                        // Mostly grassland or scrub
+                        if (climate === ClimateType.ARID || climate === ClimateType.SEMITROPICAL) {
+                            tile.biome = BiomeType.SCRUB;
+                        } else {
+                            tile.biome = BiomeType.GRASSLAND;
+                        }
+                    }
+                }
+            }
+        }
+        return; // Barrier islands handled
     }
     
     if (archetype === MapArchetype.SWAMP) {

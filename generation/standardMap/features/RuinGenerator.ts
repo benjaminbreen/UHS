@@ -10,10 +10,38 @@ import {
 
 let ruinIdCounter = 0;
 
-export function generateRuins(tiles: Tile[][], featurePlacementNoise: ValueNoise, societalProfile: SocietalProfile): TerrainStructure[] {
+export function generateRuins(tiles: Tile[][], featurePlacementNoise: ValueNoise, societalProfile: SocietalProfile, mapData?: any): TerrainStructure[] {
     const ruinTypes = societalProfile.ruinNames;
     if (!ruinTypes || ruinTypes.length === 0) {
         return []; // Don't generate ruins if none are defined for the culture/era
+    }
+
+    // Check if this area has defined cities
+    let hasCities = false;
+    const mapAreaName = mapData?.localArea;
+    const year = mapData?.timeSlice ? parseInt(mapData.timeSlice) : 1650;
+    
+    if (mapAreaName && year) {
+        try {
+            const { CITIES_DATA } = require('../../../constants/gameData/cities');
+            const areaCities = CITIES_DATA[mapAreaName] || [];
+            const activeCities = areaCities.filter((city: any) => 
+                year >= city.foundingYear && (!city.declineYear || year <= city.declineYear)
+            );
+            
+            if (activeCities.length > 0) {
+                hasCities = true;
+            } else {
+                // Check procedural cities
+                const { PROCEDURAL_CITY_DATA } = require('../../../constants/gameData/proceduralCityData');
+                const proceduralCities = PROCEDURAL_CITY_DATA[mapAreaName] || [];
+                if (proceduralCities.length > 0) {
+                    hasCities = true;
+                }
+            }
+        } catch (error) {
+            console.log(`[Ruins] Could not load city data for ${mapAreaName}`);
+        }
     }
 
     const generatedRuins: TerrainStructure[] = [];
@@ -24,7 +52,18 @@ export function generateRuins(tiles: Tile[][], featurePlacementNoise: ValueNoise
     ];
 
     let ruinsPlaced = 0;
-    const maxRuins = 1 + Math.floor(featurePlacementNoise.random() * 2);
+    let maxRuins = 1 + Math.floor(featurePlacementNoise.random() * 2);
+    
+    // Areas without cities are more likely to have ruins (abandoned places)
+    if (!hasCities) {
+        if (featurePlacementNoise.random() < 0.4) {
+            maxRuins = 1; // 40% chance of a single ruin
+            console.log(`[Ruins] No cities defined for ${mapAreaName}, may spawn 1 ruin`);
+        } else {
+            maxRuins = 0; // 60% chance of no ruins
+            console.log(`[Ruins] No cities defined for ${mapAreaName}, skipping ruins generation`);
+        }
+    }
 
     for (let attempts = 0; attempts < MAP_WIDTH_TILES * MAP_HEIGHT_TILES * 0.1 && ruinsPlaced < maxRuins; attempts++) {
         const x = Math.floor(featurePlacementNoise.random() * MAP_WIDTH_TILES);

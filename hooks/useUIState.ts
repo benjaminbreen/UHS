@@ -18,6 +18,7 @@ import { generateDmResponse, summarizeConversation } from '../services/llmServic
 import { executeCrafting } from '../services/craftingService';
 import { parseDateString } from '../utils/dateUtils';
 import { ANIMAL_DATA } from '../constants/index';
+import { isSafari } from '../utils/safariUtils';
 
 export interface VictoryDetails {
     xpGained: number;
@@ -61,7 +62,7 @@ export const useUIState = () => {
     const [isTestModeEnabled, setIsTestModeEnabled] = useState<boolean>(false);
     const [isDevBuildingModeOpen, setIsDevBuildingModeOpen] = useState<boolean>(false);
     const [debugSettings, setDebugSettings] = useState({
-        showFPS: true,
+        showFPS: true, // Show FPS when debug mode is on
         showRenderCount: true,
         disableBlurEffects: false,
         disableAnimations: false,
@@ -110,6 +111,19 @@ export const useUIState = () => {
 
     const setActiveCityModal = useCallback((data: { tile: Tile } | null) => {
         _setActiveCityModal(data);
+    }, []);
+
+    // Auto-enable blur disabling for Safari users for better performance
+    useEffect(() => {
+        if (isSafari()) {
+            setDebugSettings(prev => ({
+                ...prev,
+                disableBlurEffects: true
+            }));
+            // Apply the class immediately
+            document.body.classList.add('disable-blur');
+            console.log('[Performance] Safari detected - automatically disabling blur effects');
+        }
     }, []);
 
     // Memoize if any modal is open

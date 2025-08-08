@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import PerformanceDiagnostics from './PerformanceDiagnostics';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -59,6 +60,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   isDevBuildingModeOpen,
   onToggleDevBuildingMode,
 }) => {
+  const [showPerformanceDiagnostics, setShowPerformanceDiagnostics] = useState(false);
+
   const handleSeedInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newSeedValue = parseInt(event.target.value, 10);
     if (!isNaN(newSeedValue) && newSeedValue >=0) {
@@ -164,8 +167,31 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               />
             </div>
           </section>
+
+          <section className="mt-6">
+            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Performance Testing</h3>
+            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+              <button
+                onClick={() => setShowPerformanceDiagnostics(true)}
+                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-purple-600 to-blue-600 rounded-md hover:from-purple-700 hover:to-blue-700 flex items-center justify-center gap-2"
+              >
+                <span>🔬</span>
+                <span>Open Performance Diagnostics</span>
+              </button>
+              <p className="mt-2 text-xs text-slate-400">
+                Analyze FPS, memory usage, DOM complexity, and identify performance bottlenecks. 
+                Includes Safari-specific performance tests.
+              </p>
+            </div>
+          </section>
         </div>
       </div>
+
+      {/* Performance Diagnostics Modal */}
+      <PerformanceDiagnostics 
+        isOpen={showPerformanceDiagnostics}
+        onClose={() => setShowPerformanceDiagnostics(false)}
+      />
     </>
   );
 };

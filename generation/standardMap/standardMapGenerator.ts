@@ -76,7 +76,8 @@ export function proceduralGenerateMap(
   localArea?: string,
   timeSlice?: string,
   generationParams?: MapGenerationParams, // NEW
-  neighboringEdges?: NeighboringEdges
+  neighboringEdges?: NeighboringEdges,
+  hasLakes?: boolean
 ): MapData {
   console.log(`[Gen] Starting map generation - Seed: ${seed}, Archetype: ${archetype}, Climate: ${climate}`);
   
@@ -306,6 +307,40 @@ export function proceduralGenerateMap(
             landThreshold = LAND_THRESHOLD_BASE - 0.3; // Strongly favor land
             falloff = 1.0; // Ensure it's always land, no falloff at edges
             break;
+        case MapArchetype.BARRIER_ISLAND: {
+            // Long thin coastal islands - 2-3 islands oriented north-south or east-west
+            const isNorthSouth = (seed % 2 === 0);
+            const numIslands = 2 + Math.floor(featurePlacementNoise.random() * 2); // 2-3 islands
+            const islandWidth = (isNorthSouth ? MAP_WIDTH_TILES : MAP_HEIGHT_TILES) * 0.08; // Very thin
+            const spacing = (isNorthSouth ? MAP_WIDTH_TILES : MAP_HEIGHT_TILES) / (numIslands + 1);
+            
+            // Default to water
+            falloff = 0;
+            landThreshold = 1.0;
+            
+            // Create the islands
+            for (let i = 1; i <= numIslands; i++) {
+                const islandCenter = spacing * i;
+                const distFromCenter = isNorthSouth ? 
+                    Math.abs(x - islandCenter) : 
+                    Math.abs(y - islandCenter);
+                
+                if (distFromCenter < islandWidth / 2) {
+                    // Create island with some variation
+                    const lengthVar = microVariationNoise.noise(x * 0.1, y * 0.1) * 0.3;
+                    const edgeDist = isNorthSouth ? 
+                        Math.min(y, MAP_HEIGHT_TILES - 1 - y) / MAP_HEIGHT_TILES : 
+                        Math.min(x, MAP_WIDTH_TILES - 1 - x) / MAP_WIDTH_TILES;
+                    
+                    // Taper islands at ends
+                    if (edgeDist > 0.1 + lengthVar) {
+                        falloff = 1.0;
+                        landThreshold = LAND_THRESHOLD_BASE - 0.3;
+                    }
+                }
+            }
+            break;
+        }
         case MapArchetype.STRAITS: {
             const straitAxis = (seed % 2 === 0) ? 'vertical' : 'horizontal';
             const straitWidth = (straitAxis === 'vertical' ? MAP_WIDTH_TILES : MAP_HEIGHT_TILES) * (0.2 + featurePlacementNoise.random() * 0.15);
@@ -467,7 +502,7 @@ export function proceduralGenerateMap(
 
 
   console.log("[Gen] Phase 2: Altitude and biome assignment - START");
-  generateAltitudeAndInitialBiomes(tiles, altitudeNoiseGen, biomeVariationNoise, archetype, altitudeSetting, archetype === MapArchetype.DELTA ? oceanEdgeForDelta : determinedHarborSide, neighboringEdges);
+  generateAltitudeAndInitialBiomes(tiles, altitudeNoiseGen, biomeVariationNoise, archetype, altitudeSetting, archetype === MapArchetype.DELTA ? oceanEdgeForDelta : determinedHarborSide, neighboringEdges, hasLakes);
   console.log("[Gen] Phase 2: Altitude and biome assignment - END");
   
   console.log("[Gen] Phase 2.5: Volcanic Complex Generation - START");
@@ -511,8 +546,92 @@ export function proceduralGenerateMap(
     }
   } 
   
+  // Special handling for deltas - generate fan-shaped river system
+  if (archetype === MapArchetype.DELTA) {
+    console.log("[Gen] Generating delta fan-shaped river system");
+    
+    // Determine which edge is the ocean based on oceanEdgeForDelta
+    const deltaOceanEdge = oceanEdgeForDelta !== undefined ? oceanEdgeForDelta : 0;
+    
+    // Generate 3-5 major rivers in a fan pattern
+    const numMajorRivers = 3 + Math.floor(featurePlacementNoise.random() * 3);
+    
+    // Determine the apex point (where rivers start) - opposite side from ocean
+    let apexX = MAP_WIDTH_TILES / 2;
+    let apexY = MAP_HEIGHT_TILES / 2;
+    
+    if (deltaOceanEdge === 0) { // South ocean - start from north
+      apexY = Math.floor(MAP_HEIGHT_TILES * 0.1);
+    } else if (deltaOceanEdge === 1) { // North ocean - start from south
+      apexY = Math.floor(MAP_HEIGHT_TILES * 0.9);
+    } else if (deltaOceanEdge === 2) { // East ocean - start from west
+      apexX = Math.floor(MAP_WIDTH_TILES * 0.1);
+    } else { // West ocean - start from east
+      apexX = Math.floor(MAP_WIDTH_TILES * 0.9);
+    }
+    
+    // Generate main rivers in fan pattern
+    for (let i = 0; i < numMajorRivers; i++) {
+      // Spread out the starting points slightly
+      const spreadFactor = 0.2;
+      let startX = apexX;
+      let startY = apexY;
+      
+      if (deltaOceanEdge === 0 || deltaOceanEdge === 1) {
+        // For north-south deltas, spread horizontally
+        startX = apexX + (i - numMajorRivers/2) * (MAP_WIDTH_TILES * spreadFactor / numMajorRivers);
+      } else {
+        // For east-west deltas, spread vertically
+        startY = apexY + (i - numMajorRivers/2) * (MAP_HEIGHT_TILES * spreadFactor / numMajorRivers);
+      }
+      
+      startX = Math.max(1, Math.min(MAP_WIDTH_TILES - 2, Math.floor(startX)));
+      startY = Math.max(1, Math.min(MAP_HEIGHT_TILES - 2, Math.floor(startY)));
+      
+      const riverStart = { x: startX, y: startY };
+      
+      // Ensure starting point is on land
+      if (!tiles[startY][startX].isLand) {
+        // Find nearest land tile
+        for (let radius = 1; radius < 5; radius++) {
+          let foundLand = false;
+          for (let dy = -radius; dy <= radius && !foundLand; dy++) {
+            for (let dx = -radius; dx <= radius && !foundLand; dx++) {
+              const nx = startX + dx;
+              const ny = startY + dy;
+              if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES && tiles[ny][nx].isLand) {
+                riverStart.x = nx;
+                riverStart.y = ny;
+                foundLand = true;
+              }
+            }
+          }
+          if (foundLand) break;
+        }
+      }
+      
+      // Set appropriate altitude for river source
+      tiles[riverStart.y][riverStart.x].altitude = ALTITUDE_LEVELS.GRASSLAND_LOWER_MAX + 0.02 + featurePlacementNoise.random() * 0.03;
+      
+      // Generate the river with extra width for delta
+      generateEnhancedRiverPath(tiles, riverStart, featurePlacementNoise, riverMeanderNoise, riverWidthNoise, 
+                               archetype, deltaOceanEdge, false, true, deltaOceanEdge);
+    }
+    
+    // Generate 2-3 additional smaller rivers
+    const numSmallRivers = 2 + Math.floor(featurePlacementNoise.random() * 2);
+    for (let i = 0; i < numSmallRivers; i++) {
+      const edge = (deltaOceanEdge + 2) % 4; // Start from opposite edge
+      const riverSource = findEdgeRiverSource(tiles, featurePlacementNoise, edge);
+      if (riverSource) {
+        generateEnhancedRiverPath(tiles, riverSource, featurePlacementNoise, riverMeanderNoise, riverWidthNoise, 
+                                 archetype, deltaOceanEdge, false, false, deltaOceanEdge);
+      }
+    }
+  }
+  
   // Special handling for swamps - generate many rivers
-  if (archetype === MapArchetype.SWAMP) {
+  else if (archetype === MapArchetype.SWAMP) {
     console.log("[Gen] Generating swamp rivers and water features");
     
     // Generate 4-6 major rivers crossing the map
@@ -686,7 +805,7 @@ export function proceduralGenerateMap(
 
   console.log("[Gen] Phase 10.5: Farmland and Ruins Generation - START");
   generateFarmland(mapDataObject, featurePlacementNoise, continent, timeSlice, societalProfile);
-  const ruins = generateRuins(tiles, featurePlacementNoise, societalProfile);
+  const ruins = generateRuins(tiles, featurePlacementNoise, societalProfile, mapDataObject);
   if (ruins.length > 0) mapDataObject.terrainStructures!.push(...ruins);
   console.log("[Gen] Phase 10.5: Farmland and Ruins Generation - END");
   
@@ -727,7 +846,7 @@ export function proceduralGenerateMap(
   console.log("[Gen] Phase 11.8: Animal & NPC Spawning - START");
   if (generationParams?.economicActivityLevel !== 0) {
     mapDataObject.animals = generateAnimalsForMap(mapDataObject, animalNoise);
-    mapDataObject.npcs = generateNpcsForStandardMap(mapDataObject, climate, timeSlice || '1650', continent || 'Europe', npcNoise, region);
+    mapDataObject.npcs = generateNpcsForStandardMap(mapDataObject, climate, timeSlice || '1650', continent || 'Europe', npcNoise, region, localArea);
   }
   console.log("[Gen] Phase 11.8: Animal & NPC Spawning - END");
 

@@ -13,10 +13,11 @@ import MapViewport from './components/MapViewport';
 import RightSidebar from './components/RightSidebar';
 import ModalHub from './components/ModalHub';
 import DebugOverlay from './components/DebugOverlay';
+import FPSCounter from './components/FPSCounter';
 
 const AppContent: React.FC = () => {
     useCoreLoops();
-    const { isLeftSidebarExpanded, setIsLeftSidebarExpanded } = useUI();
+    const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, debugSettings, isTestModeEnabled } = useUI();
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState<'left' | 'right' | null>(null);
 
     return (
@@ -83,6 +84,9 @@ const AppContent: React.FC = () => {
         </div>
         <ModalHub />
         <DebugOverlay />
+        {isTestModeEnabled && debugSettings.showFPS && !debugSettings.logPerformanceMetrics && (
+          <FPSCounter position="top-right" />
+        )}
       </div>
     );
 };

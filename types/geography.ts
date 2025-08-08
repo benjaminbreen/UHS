@@ -28,6 +28,12 @@ export interface MapAreaDefinition {
     name: string;
     climate: ClimateType;
     archetype: MapArchetype;
+    altitude?: 'standard' | 'high' | 'low'; // Optional altitude modifier
+    riverDirection?: 'east-west' | 'north-south'; // Optional river flow direction for RIVER_PORT maps
+    bayOutlet?: 'north' | 'south' | 'east' | 'west'; // Optional bay outlet direction for BAY maps
+    deltaOutlet?: 'north' | 'south' | 'east' | 'west'; // Optional ocean edge for DELTA maps
+    islandOrientation?: 'east-west' | 'north-south'; // Optional orientation for BARRIER_ISLAND maps
+    hasLakes?: boolean; // Optional toggle for lake generation (especially for ALL_LAND maps)
 }
 
 export interface RegionDefinition {

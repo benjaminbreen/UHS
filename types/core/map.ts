@@ -24,6 +24,7 @@ export enum MapArchetype {
   DELTA = 'DELTA',
   SWAMP = 'SWAMP',
   DESERT = 'DESERT', // Mostly desert/scrub/tundra with no urban unless overridden
+  BARRIER_ISLAND = 'BARRIER_ISLAND', // Long thin coastal island
 }
 
 /**
