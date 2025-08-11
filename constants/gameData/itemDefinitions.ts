@@ -185,16 +185,19 @@ export interface CropDefinition {
 }
 
 export const CROPS_DATA: CropDefinition[] = [
-    { name: 'Wheat', baseId: 'WHEAT', zones: ['EUROPEAN', 'MENA'], climates: [ClimateType.TEMPERATE, ClimateType.ARID] },
-    { name: 'Barley', baseId: 'BARLEY', zones: ['EUROPEAN', 'MENA', 'SOUTH_ASIAN'], climates: [ClimateType.TEMPERATE, ClimateType.ARID, ClimateType.COLD] },
+    { name: 'Wheat', baseId: 'WHEAT', zones: ['EUROPEAN', 'MENA'], climates: [ClimateType.TEMPERATE, ClimateType.ARID, ClimateType.MEDITERRANEAN] },
+    { name: 'Barley', baseId: 'BARLEY', zones: ['EUROPEAN', 'MENA', 'SOUTH_ASIAN'], climates: [ClimateType.TEMPERATE, ClimateType.ARID, ClimateType.COLD, ClimateType.MEDITERRANEAN] },
     { name: 'Corn (Maize)', baseId: 'CORN', zones: ['NORTH_AMERICAN_PRE_COLUMBIAN', 'SOUTH_AMERICAN'], climates: [ClimateType.TEMPERATE, ClimateType.SEMITROPICAL, ClimateType.TROPICAL], eraEnd: 1492 },
     { name: 'Corn', baseId: 'CORN', zones: ['EUROPEAN', 'SUB_SAHARAN_AFRICAN', 'EAST_ASIAN', 'SOUTH_ASIAN'], climates: [ClimateType.TEMPERATE, ClimateType.SEMITROPICAL], eraStart: 1492 },
     { name: 'Rice', baseId: 'RICE', zones: ['EAST_ASIAN', 'SOUTH_ASIAN'], climates: [ClimateType.TROPICAL, ClimateType.SEMITROPICAL] },
     { name: 'Potato', baseId: 'POTATO', zones: ['SOUTH_AMERICAN'], climates: [ClimateType.COLD, ClimateType.TEMPERATE], eraEnd: 1536 },
     { name: 'Potato', baseId: 'POTATO', zones: ['EUROPEAN'], climates: [ClimateType.COLD, ClimateType.TEMPERATE], eraStart: 1536 },
     { name: 'Yam', baseId: 'YAM', zones: ['SUB_SAHARAN_AFRICAN', 'OCEANIA', 'SOUTH_AMERICAN'], climates: [ClimateType.TROPICAL] },
-    { name: 'Olive Grove', baseId: 'OLIVES', zones: ['EUROPEAN', 'MENA'], climates: [ClimateType.TEMPERATE, ClimateType.SEMITROPICAL] },
-    { name: 'Vineyard', baseId: 'GRAPES', zones: ['EUROPEAN', 'MENA'], climates: [ClimateType.TEMPERATE, ClimateType.ARID] },
+    { name: 'Olive Grove', baseId: 'OLIVES', zones: ['EUROPEAN', 'MENA'], climates: [ClimateType.TEMPERATE, ClimateType.SEMITROPICAL, ClimateType.MEDITERRANEAN] },
+    { name: 'Vineyard', baseId: 'GRAPES', zones: ['EUROPEAN', 'MENA'], climates: [ClimateType.TEMPERATE, ClimateType.ARID, ClimateType.MEDITERRANEAN] },
+    { name: 'Citrus Orchard', baseId: 'CITRUS', zones: ['EUROPEAN', 'MENA'], climates: [ClimateType.MEDITERRANEAN, ClimateType.SEMITROPICAL] },
+    { name: 'Almond Grove', baseId: 'ALMONDS', zones: ['EUROPEAN', 'MENA'], climates: [ClimateType.MEDITERRANEAN] },
+    { name: 'Fig Orchard', baseId: 'FIGS', zones: ['EUROPEAN', 'MENA'], climates: [ClimateType.MEDITERRANEAN, ClimateType.SEMITROPICAL] },
     { name: 'Cotton', baseId: 'COTTON', zones: ['SOUTH_ASIAN', 'MENA', 'SOUTH_AMERICAN'], climates: [ClimateType.ARID, ClimateType.TROPICAL, ClimateType.SEMITROPICAL] },
     { name: 'Sugar Cane', baseId: 'SUGAR_CANE', zones: ['SOUTH_ASIAN', 'OCEANIA', 'SUB_SAHARAN_AFRICAN', 'SOUTH_AMERICAN'], climates: [ClimateType.TROPICAL] },
 ];

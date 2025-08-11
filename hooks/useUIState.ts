@@ -293,11 +293,14 @@ export const useUIState = () => {
         const result = await executeSkill(skillId, playerContext);
         
         if (result?.type === 'forage' && result.success && result.item) {
-            const newItem = createItemInstance(result.item.name.toUpperCase().replace(/ /g, '_'));
-            if(newItem) {
-                addItemsToInventory([newItem]);
-                setPanelNotificationItem(newItem);
-                setTimeout(() => setPanelNotificationItem(null), 2500);
+            // Use the item directly from the result (it's already created with custom names)
+            addItemsToInventory([result.item]);
+            setPanelNotificationItem(result.item);
+            setTimeout(() => setPanelNotificationItem(null), 2500);
+            
+            // Remove vegetation if it was foraged from a bush
+            if (result.entityToRemoveId) {
+                removeVegetation(result.entityToRemoveId);
             }
         }
         

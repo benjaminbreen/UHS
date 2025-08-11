@@ -268,6 +268,9 @@ export function applyClimateBiomeChanges(
         if (tile.altitude >= ALTITUDE_LEVELS.SNOW_LINE * 0.7 && tile.biome !== BiomeType.HIGH_PEAK) tile.biome = BiomeType.SNOW;
       } else if (climate === ClimateType.TEMPERATE) {
         if (tile.altitude >= ALTITUDE_LEVELS.SNOW_LINE && tile.biome !== BiomeType.HIGH_PEAK) tile.biome = BiomeType.SNOW;
+      } else if (climate === ClimateType.MEDITERRANEAN) {
+        // Mediterranean has snow only on the highest peaks
+        if (tile.altitude >= ALTITUDE_LEVELS.SNOW_LINE * 1.1 && tile.biome !== BiomeType.HIGH_PEAK) tile.biome = BiomeType.SNOW;
       } else {
         if (biomeAtClimateCheckStart === BiomeType.SNOW && tile.altitude < ALTITUDE_LEVELS.SNOW_LINE * 1.2) {
              tile.biome = tile.altitude > ALTITUDE_LEVELS.MOUNTAIN_MAX ? BiomeType.HIGH_PEAK : BiomeType.MOUNTAIN;
@@ -305,6 +308,15 @@ export function applyClimateBiomeChanges(
                 }
               }
             }
+        }
+      } else if (climate === ClimateType.MEDITERRANEAN) {
+        // Mediterranean: more scrub, less dense forest
+        if (tile.biome === BiomeType.DENSE_FOREST && biomeVar < 0.6) {
+            tile.biome = BiomeType.FOREST; // Mediterranean forests are less dense
+        }
+        // Convert some grassland to scrub in Mediterranean climate (maquis/garrigue)
+        if (tile.biome === BiomeType.GRASSLAND && humidityVal < 0.5 && biomeVar < 0.4) {
+            tile.biome = BiomeType.SCRUB;
         }
       }
 
@@ -467,11 +479,18 @@ export function updateCoastlinesAndShallowOceans(
 
         const nonBeachCoastBiomes = new Set([BiomeType.MOUNTAIN, BiomeType.HIGH_PEAK, BiomeType.SNOW, BiomeType.RIVER, BiomeType.MAJOR_RIVER, BiomeType.URBAN, BiomeType.DENSE_CITY, BiomeType.LOW_DENSITY_CITY, BiomeType.HAMLET, BiomeType.WETLANDS, BiomeType.DESERT, BiomeType.JUNGLE, BiomeType.DENSE_FOREST, BiomeType.RIVERBANK, BiomeType.VOLCANIC_ROCK, BiomeType.ACTIVE_LAVA, BiomeType.MANGROVE, BiomeType.RUINS, BiomeType.FARMLAND, BiomeType.ESTUARY, BiomeType.FRESHWATER_LAKE, BiomeType.CLIFF, BiomeType.MARKETPLACE, BiomeType.GOVERNMENT_DISTRICT, BiomeType.HOLY_SITE, BiomeType.PALACE]);
         if (isCoastal && !nonBeachCoastBiomes.has(tile.biome)) {
-            tile.biome = BiomeType.BEACH;
-            if (tile.altitude > ALTITUDE_LEVELS.BEACH + 0.02) {
-                tile.altitude = ALTITUDE_LEVELS.BEACH + featurePlacementNoise.random() * 0.01;
-            } else if (tile.altitude < ALTITUDE_LEVELS.SEA) {
-                 tile.altitude = ALTITUDE_LEVELS.SEA + featurePlacementNoise.random() * 0.01;
+            // Check for cliff conditions: high altitude near water
+            if (tile.altitude > ALTITUDE_LEVELS.HILLS_START && featurePlacementNoise.random() < 0.3) {
+                // 30% chance to make coastal hills/mountains into cliffs
+                tile.biome = BiomeType.CLIFF;
+                // Keep altitude high for cliffs
+            } else {
+                tile.biome = BiomeType.BEACH;
+                if (tile.altitude > ALTITUDE_LEVELS.BEACH + 0.02) {
+                    tile.altitude = ALTITUDE_LEVELS.BEACH + featurePlacementNoise.random() * 0.01;
+                } else if (tile.altitude < ALTITUDE_LEVELS.SEA) {
+                     tile.altitude = ALTITUDE_LEVELS.SEA + featurePlacementNoise.random() * 0.01;
+                }
             }
         }
       } else { // Tile is water
@@ -636,7 +655,7 @@ export function generateVolcanicComplex(tiles: Tile[][], temperatureNoise: Value
     });
 }
 
-export function generateClimateEnhancedBiomes(tiles: Tile[][], climate: ClimateType, temperatureNoise: ValueNoise, humidityNoise: ValueNoise, featurePlacementNoise: ValueNoise) {
+export function generateClimateEnhancedBiomes(tiles: Tile[][], climate: ClimateType, archetype: MapArchetype, temperatureNoise: ValueNoise, humidityNoise: ValueNoise, featurePlacementNoise: ValueNoise) {
     for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
         for (let x = 0; x < MAP_WIDTH_TILES; x++) {
             const tile = tiles[y][x];
@@ -657,8 +676,35 @@ export function generateClimateEnhancedBiomes(tiles: Tile[][], climate: ClimateT
                 }
             }
 
-            if ((climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL) && humidVal > MANGROVE_MIN_HUMIDITY) {
-                if (tile.isCoast && (tile.biome === BiomeType.BEACH || tile.biome === BiomeType.WETLANDS || tile.biome === BiomeType.SHALLOW_OCEAN) && tile.altitude < ALTITUDE_LEVELS.BEACH + 0.01) {
+            // Enhanced mangrove generation in tropical/semitropical climates
+            if (climate === ClimateType.TROPICAL) {
+                // Much more aggressive mangrove generation for tropical climates
+                if (tile.isCoast && (tile.biome === BiomeType.BEACH || tile.biome === BiomeType.WETLANDS || tile.biome === BiomeType.SHALLOW_OCEAN || tile.biome === BiomeType.GRASSLAND) && 
+                    tile.altitude < ALTITUDE_LEVELS.BEACH + 0.03 && humidVal > MANGROVE_MIN_HUMIDITY * 0.5) { // Much lower humidity threshold
+                    
+                    let landNeighbors = 0;
+                    let waterNeighbors = 0;
+                    for(let dy = -1; dy <= 1; dy++){
+                        for(let dx = -1; dx <= 1; dx++){
+                            if(dx === 0 && dy === 0) continue;
+                            const nx = x + dx; const ny = y + dy;
+                            if(nx >=0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
+                                if(tiles[ny][nx].isLand) landNeighbors++;
+                                else waterNeighbors++;
+                            }
+                        }
+                    }
+                    
+                    // Place mangroves when there's a mix of land and water
+                    if (landNeighbors >= 1 && waterNeighbors >= 1 && featurePlacementNoise.random() < 0.9) { // 90% chance in tropical
+                        tile.biome = BiomeType.MANGROVE;
+                        tile.isLand = true;
+                    }
+                }
+            } else if (climate === ClimateType.SEMITROPICAL && humidVal > MANGROVE_MIN_HUMIDITY * 0.7) {
+                // Moderate mangrove generation for semitropical
+                if (tile.isCoast && (tile.biome === BiomeType.BEACH || tile.biome === BiomeType.WETLANDS || tile.biome === BiomeType.SHALLOW_OCEAN) && 
+                    tile.altitude < ALTITUDE_LEVELS.BEACH + 0.02) {
                     let isSheltered = false;
                     let landNeighbors = 0;
                     for(let dy = -1; dy <= 1; dy++){
@@ -670,7 +716,7 @@ export function generateClimateEnhancedBiomes(tiles: Tile[][], climate: ClimateT
                     }
                     if(landNeighbors >= 2) isSheltered = true;
 
-                    if (isSheltered && featurePlacementNoise.random() < 0.6) {
+                    if (isSheltered && featurePlacementNoise.random() < 0.8) { // 80% chance in semitropical
                         let canPlaceMangrove = true;
                         for(let dy = -MANGROVE_COASTAL_RANGE; dy <= MANGROVE_COASTAL_RANGE; dy++){
                             for(let dx = -MANGROVE_COASTAL_RANGE; dx <= MANGROVE_COASTAL_RANGE; dx++){
@@ -688,6 +734,72 @@ export function generateClimateEnhancedBiomes(tiles: Tile[][], climate: ClimateT
                         }
                     }
                 }
+            }
+        }
+    }
+    
+    // Fallback mangrove generation for tropical/semitropical water-related archetypes
+    if ((climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL) && 
+        [MapArchetype.ISLAND, MapArchetype.ATOLL, MapArchetype.PENINSULA, MapArchetype.BAY, 
+         MapArchetype.DELTA, MapArchetype.STRAITS, MapArchetype.FRESHWATER_LAKE].includes(archetype)) {
+        
+        // Count existing mangroves
+        let mangroveCount = 0;
+        for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+            for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+                if (tiles[y][x].biome === BiomeType.MANGROVE) {
+                    mangroveCount++;
+                }
+            }
+        }
+        
+        // If we have less than 1 mangrove, force generate some
+        if (mangroveCount < 1) {
+            const targetMangroves = climate === ClimateType.TROPICAL ? 
+                3 + Math.floor(featurePlacementNoise.random() * 8) : // 3-10 for tropical
+                1 + Math.floor(featurePlacementNoise.random() * 5);  // 1-5 for semitropical
+            
+            let placedMangroves = 0;
+            let attempts = 0;
+            
+            while (placedMangroves < targetMangroves && attempts < 500) {
+                attempts++;
+                const x = Math.floor(featurePlacementNoise.random() * MAP_WIDTH_TILES);
+                const y = Math.floor(featurePlacementNoise.random() * MAP_HEIGHT_TILES);
+                const tile = tiles[y][x];
+                
+                // Look for coastal tiles that can become mangroves
+                if (tile.isCoast && (tile.biome === BiomeType.BEACH || tile.biome === BiomeType.WETLANDS || 
+                    tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.RIVERBANK)) {
+                    
+                    // Check for water neighbor
+                    let hasWater = false;
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            if (dx === 0 && dy === 0) continue;
+                            const nx = x + dx;
+                            const ny = y + dy;
+                            if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
+                                if (!tiles[ny][nx].isLand) {
+                                    hasWater = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (hasWater) break;
+                    }
+                    
+                    if (hasWater) {
+                        tile.biome = BiomeType.MANGROVE;
+                        tile.isLand = true;
+                        placedMangroves++;
+                        console.log(`[Terrain] Fallback mangrove placed at (${x}, ${y})`);
+                    }
+                }
+            }
+            
+            if (placedMangroves > 0) {
+                console.log(`[Terrain] Fallback: Generated ${placedMangroves} mangroves for ${climate} ${archetype}`);
             }
         }
     }
@@ -771,41 +883,42 @@ export function generateSpecialTerrainTiles(
 ) {
     if (archetype === MapArchetype.SHOALS) {
         generateShoalFormations(tiles, featurePlacementNoise, thermalNoise);
-         // Add more biome diversity for SHOALS
+        // SHOALS should be 95% water with only small land outcrops
+        // Land tiles should ONLY be wetlands, beach, cliff, or mangrove
         for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
             for (let x = 0; x < MAP_WIDTH_TILES; x++) {
                 const tile = tiles[y][x];
 
-                // Add WETLANDS near coast on low land
-                if (tile.isLand && tile.isCoast && tile.altitude < ALTITUDE_LEVELS.BEACH * 1.5) {
-                    if (featurePlacementNoise.random() < 0.4) {
+                if (tile.isLand) {
+                    // Force all land to be very low altitude
+                    tile.altitude = ALTITUDE_LEVELS.BEACH + featurePlacementNoise.random() * 0.01;
+                    
+                    // Determine biome based on random chance and climate
+                    const biomeRoll = featurePlacementNoise.random();
+                    
+                    if (biomeRoll < 0.3) {
+                        // 30% chance of cliff
+                        tile.biome = BiomeType.CLIFF;
+                        tile.altitude = ALTITUDE_LEVELS.BEACH + 0.02; // Slightly higher for cliffs
+                    } else if (biomeRoll < 0.5) {
+                        // 20% chance of beach
+                        tile.biome = BiomeType.BEACH;
+                    } else if (biomeRoll < 0.75 && (climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL)) {
+                        // 25% chance of mangrove in tropical climates
+                        tile.biome = BiomeType.MANGROVE;
+                    } else {
+                        // Remaining becomes wetlands
                         tile.biome = BiomeType.WETLANDS;
                     }
-                }
-
-                // Add MANGROVE if tropical and coastal wetland
-                if ((climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL) && tile.biome === BiomeType.WETLANDS && tile.isCoast) {
-                     if (featurePlacementNoise.random() < 0.6) {
-                        tile.biome = BiomeType.MANGROVE;
-                    }
-                }
-
-                // Add SALT_FLATS if arid and very low land, surrounded by water
-                if (climate === ClimateType.ARID && tile.isLand && tile.altitude < ALTITUDE_LEVELS.BEACH * 1.1) {
-                    let waterNeighbors = 0;
-                    for (let dy = -1; dy <= 1; dy++) {
-                        for (let dx = -1; dx <= 1; dx++) {
-                            const nx = x + dx; const ny = y + dy;
-                             if(nx >=0 && nx < MAP_WIDTH_TILES && ny >=0 && ny < MAP_HEIGHT_TILES && !tiles[ny][nx].isLand) waterNeighbors++;
-                        }
-                    }
-                    if(waterNeighbors >= 3 && featurePlacementNoise.random() < 0.2) {
+                    
+                    // Add salt flats in arid climates - more abundant
+                    if (climate === ClimateType.ARID && featurePlacementNoise.random() < 0.25) {
                         tile.biome = BiomeType.SALT_FLATS;
                     }
                 }
             }
         }
-        return; // Shoals archetype handled by its own function
+        return; // Shoals archetype handled completely here
     }
     
     if (archetype === MapArchetype.BARRIER_ISLAND) {
@@ -834,9 +947,9 @@ export function generateSpecialTerrainTiles(
                                 tile.biome = BiomeType.MANGROVE;
                             }
                         }
-                        // Convert to salt flats in arid
+                        // Convert to salt flats in arid - more abundant
                         else if (climate === ClimateType.ARID) {
-                            if (featurePlacementNoise.random() < 0.5) {
+                            if (featurePlacementNoise.random() < 0.7) {
                                 tile.biome = BiomeType.SALT_FLATS;
                             }
                         }
@@ -862,6 +975,85 @@ export function generateSpecialTerrainTiles(
             }
         }
         return; // Barrier islands handled
+    }
+    
+    // Bay archetype: enhanced wetlands and riverbank near water
+    if (archetype === MapArchetype.BAY) {
+        for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+            for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+                const tile = tiles[y][x];
+                
+                // Check distance to water for bay-specific terrain
+                if (tile.isLand && !tile.isCoast) {
+                    let minDistToWater = 999;
+                    
+                    // Find nearest water tile
+                    for (let dy = -5; dy <= 5; dy++) {
+                        for (let dx = -5; dx <= 5; dx++) {
+                            const ny = y + dy;
+                            const nx = x + dx;
+                            if (ny >= 0 && ny < MAP_HEIGHT_TILES && nx >= 0 && nx < MAP_WIDTH_TILES) {
+                                if (!tiles[ny][nx].isLand) {
+                                    const dist = Math.sqrt(dx * dx + dy * dy);
+                                    minDistToWater = Math.min(minDistToWater, dist);
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Convert near-water tiles to wetlands and riverbank
+                    if (minDistToWater <= 3 && tile.altitude < ALTITUDE_LEVELS.HILLS_START) {
+                        const wetlandNoise = featurePlacementNoise.noise(x * 0.15, y * 0.15);
+                        
+                        if (minDistToWater <= 1.5) {
+                            // Very close to water - mostly riverbank
+                            if (wetlandNoise > -0.3) {
+                                tile.biome = BiomeType.RIVERBANK;
+                                tile.altitude = Math.max(ALTITUDE_LEVELS.BEACH + 0.01, tile.altitude * 0.8);
+                            } else if (wetlandNoise > -0.6) {
+                                tile.biome = BiomeType.WETLANDS;
+                                tile.altitude = Math.max(ALTITUDE_LEVELS.BEACH + 0.005, tile.altitude * 0.7);
+                            }
+                        } else if (minDistToWater <= 2.5) {
+                            // Medium distance - mix of wetlands and riverbank
+                            if (wetlandNoise > 0.2) {
+                                tile.biome = BiomeType.WETLANDS;
+                                tile.altitude = Math.max(ALTITUDE_LEVELS.BEACH + 0.01, tile.altitude * 0.85);
+                            } else if (wetlandNoise > -0.2) {
+                                tile.biome = BiomeType.RIVERBANK;
+                                tile.altitude = Math.max(ALTITUDE_LEVELS.BEACH + 0.015, tile.altitude * 0.9);
+                            }
+                        } else if (minDistToWater <= 3) {
+                            // Further out - occasional wetlands
+                            if (wetlandNoise > 0.4) {
+                                tile.biome = BiomeType.WETLANDS;
+                            } else if (wetlandNoise > 0.2 && tile.biome === BiomeType.GRASSLAND) {
+                                tile.biome = BiomeType.RIVERBANK;
+                            }
+                        }
+                    }
+                }
+                
+                // Reduce beach and scrub near water
+                if (tile.isCoast) {
+                    if (tile.biome === BiomeType.BEACH) {
+                        // Convert most beaches to riverbank or wetlands
+                        if (featurePlacementNoise.random() < 0.7) {
+                            if (featurePlacementNoise.random() < 0.6) {
+                                tile.biome = BiomeType.RIVERBANK;
+                            } else {
+                                tile.biome = BiomeType.WETLANDS;
+                            }
+                        }
+                    } else if (tile.biome === BiomeType.SCRUB) {
+                        // Convert scrub to grassland or riverbank near water
+                        if (featurePlacementNoise.random() < 0.8) {
+                            tile.biome = featurePlacementNoise.random() < 0.5 ? BiomeType.RIVERBANK : BiomeType.GRASSLAND;
+                        }
+                    }
+                }
+            }
+        }
     }
     
     if (archetype === MapArchetype.SWAMP) {
@@ -1015,7 +1207,9 @@ export function generateSpecialTerrainTiles(
             for (let x = 0; x < MAP_WIDTH_TILES; x++) {
                 const tile = tiles[y][x];
                 const humidVal = humidityNoise.noise(x * NOISE_SCALE_HUMIDITY, y * NOISE_SCALE_HUMIDITY);
-                if (tile.isLand && tile.biome === BiomeType.DESERT && humidVal > SALT_FLATS_HUMIDITY_THRESHOLD) {
+                // Much more abundant salt flats generation in arid climates
+                if (tile.isLand && (tile.biome === BiomeType.DESERT || tile.biome === BiomeType.SCRUB || tile.biome === BiomeType.GRASSLAND) 
+                    && humidVal > SALT_FLATS_HUMIDITY_THRESHOLD * 0.4) { // Much lower threshold for arid
                     let minAlt = tile.altitude, maxAlt = tile.altitude;
                     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
                         const nx = x + dx; const ny = y + dy;
@@ -1023,7 +1217,8 @@ export function generateSpecialTerrainTiles(
                             minAlt = Math.min(minAlt, tiles[ny][nx].altitude); maxAlt = Math.max(maxAlt, tiles[ny][nx].altitude);
                         }
                     }
-                    if ((maxAlt - minAlt) < SALT_FLATS_ALTITUDE_VARIANCE_MAX && featurePlacementNoise.random() < 0.5) {
+                    // Much more likely to form salt flats in flat areas in arid
+                    if ((maxAlt - minAlt) < SALT_FLATS_ALTITUDE_VARIANCE_MAX * 2 && featurePlacementNoise.random() < 0.9) { // 90% chance in flat areas
                         tile.biome = BiomeType.SALT_FLATS;
                     }
                 }

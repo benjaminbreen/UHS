@@ -100,10 +100,15 @@ export function findRiverSources(tiles: Tile[][], randomNoise: ValueNoise, arche
   const sourceModifier = CLIMATE_RIVER_SOURCE_MODIFIERS[climate] || 1.0;
   let numSources = Math.floor((RIVER_MIN_SOURCES_BASE + Math.floor(randomNoise.random() * (RIVER_MAX_SOURCES_BASE - RIVER_MIN_SOURCES_BASE + 1))) * sourceModifier);
   
-  if (archetype === MapArchetype.BAY) {
+  // Strict water restrictions for specific archetypes and climates
+  if (archetype === MapArchetype.ALL_LAND) {
+      // For ALL_LAND, only very small occasional rivers (1-2 max)
+      numSources = climate === ClimateType.ARID ? 0 : Math.floor(randomNoise.random() * 2); // 0-1 rivers
+  } else if (archetype === MapArchetype.BAY) {
       numSources = 2 + Math.floor(randomNoise.random() * 3); // 2-4 rivers for Bay
   } else if (climate === ClimateType.ARID) {
-      numSources = Math.floor(numSources * 0.3); 
+      // No rivers at all in desert maps - water will be from small lakes/oases only
+      numSources = 0; 
   } else if (archetype === MapArchetype.ATOLL || archetype === MapArchetype.OPEN_OCEAN || archetype === MapArchetype.SHOALS || archetype === MapArchetype.STRAITS) {
       numSources = 0; 
   }
@@ -346,10 +351,23 @@ function placeRiverTileWithWidth(
   const baseAltitude = tiles[y][x].altitude; 
   const isRiverPortMain = (archetype === MapArchetype.RIVER_PORT && isPrimaryChannel);
   
+  // Strict width constraints based on archetype and river type
+  let constrainedWidth = width;
+  if (archetype === MapArchetype.ALL_LAND) {
+      // ALL_LAND maps get very narrow rivers (1 tile for normal, max 2 for major)
+      constrainedWidth = isPrimaryChannel ? Math.min(width, 2) : 1;
+  } else if (archetype === MapArchetype.RIVER_PORT) {
+      // River ports can have wider rivers
+      constrainedWidth = isPrimaryChannel ? Math.min(width, 4) : Math.min(width, 2);
+  } else {
+      // Standard maps: max 3 for major rivers, 1-2 for normal
+      constrainedWidth = isPrimaryChannel ? Math.min(width, 3) : Math.min(width, 2);
+  }
+  
   // Place the main river channel with smoother curves
-  const riverRadius = width / 2;
-  for (let dy = -Math.floor(width); dy <= Math.ceil(width); dy++) {
-    for (let dx = -Math.floor(width); dx <= Math.ceil(width); dx++) {
+  const riverRadius = constrainedWidth / 2;
+  for (let dy = -Math.floor(constrainedWidth); dy <= Math.ceil(constrainedWidth); dy++) {
+    for (let dx = -Math.floor(constrainedWidth); dx <= Math.ceil(constrainedWidth); dx++) {
       const nx = x + dx;
       const ny = y + dy;
       if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
@@ -441,7 +459,10 @@ function createOxbowLake(tiles: Tile[][], path: Point[], current: Point, randomN
   return null;
 }
 
-function createOxbowLakeFeature(tiles: Tile[][], oxbowPath: Point[], randomNoise: ValueNoise): void {
+function createOxbowLakeFeature(tiles: Tile[][], oxbowPath: Point[], randomNoise: ValueNoise, allowLakes: boolean = true): void {
+    // Only create lakes if explicitly allowed
+    if (!allowLakes) return;
+    
     oxbowPath.forEach(p => {
         const tile = tiles[p.y][p.x];
         if (tile.biome === BiomeType.RIVER) { 
@@ -463,7 +484,8 @@ export function generateEnhancedRiverPath(
     harborSide?: number,
     isTributary: boolean = false,
     isDesignatedWideRiver: boolean = false,
-    oceanEdge?: number
+    oceanEdge?: number,
+    hasLakes: boolean = true
 ): boolean { 
     let current = { ...start };
     const path: Point[] = [];
@@ -472,12 +494,24 @@ export function generateEnhancedRiverPath(
     let prevDirection: Point | null = null;
     
     let baseRiverWidth = 1;
-    if (isTributary) {
-        baseRiverWidth = 1.2 + widthNoise.random() * 0.4; 
-    } else if (isDesignatedWideRiver) {
-        baseRiverWidth = 3.5 + widthNoise.random() * 1.0; // Wider main channels for better connectivity
+    // Much narrower rivers for ALL_LAND maps
+    if (archetype === MapArchetype.ALL_LAND) {
+        if (isTributary) {
+            baseRiverWidth = 1.0; // Tributaries always 1 tile
+        } else if (isDesignatedWideRiver) {
+            baseRiverWidth = 1.5 + widthNoise.random() * 0.3; // Major rivers 1.5-1.8 tiles
+        } else {
+            baseRiverWidth = 1.0 + widthNoise.random() * 0.2; // Regular rivers 1-1.2 tiles
+        }
     } else {
-        baseRiverWidth = 2.0 + widthNoise.random() * 0.8; 
+        // Standard river widths for other archetypes
+        if (isTributary) {
+            baseRiverWidth = 1.0 + widthNoise.random() * 0.2; // Narrower tributaries 1-1.2
+        } else if (isDesignatedWideRiver) {
+            baseRiverWidth = 2.0 + widthNoise.random() * 0.5; // Major rivers 2-2.5 tiles
+        } else {
+            baseRiverWidth = 1.3 + widthNoise.random() * 0.4; // Regular rivers 1.3-1.7 tiles
+        }
     }
 
 
@@ -554,24 +588,42 @@ export function generateEnhancedRiverPath(
         }
         
         path.push({ ...current });
-        // Increase river width gradually as it flows
-        const progressFactor = Math.min(1.0, path.length / 30);
-        const currentRiverWidth = Math.max(1, Math.floor(baseRiverWidth * (0.8 + progressFactor * 0.3 + widthNoise.random() * 0.3)));
+        // Increase river width gradually as it flows (but constrained to max 3 for major rivers)
+        const progressFactor = Math.min(1.0, path.length / 50); // Slower progression
+        const widthMultiplier = 0.8 + progressFactor * 0.2; // Less growth (0.8 to 1.0 instead of 0.8 to 1.1)
+        const currentRiverWidth = Math.max(1, Math.min(3, Math.floor(baseRiverWidth * widthMultiplier)));
         placeRiverTileWithWidth(tiles, current.x, current.y, currentRiverWidth, path, isDesignatedWideRiver, archetype, randomNoise);
 
-        if (archetype === MapArchetype.DELTA && isDesignatedWideRiver && !isTributary) {
-            let isNearSea = false;
+        // Delta tributary generation - much more aggressive branching
+        if (archetype === MapArchetype.DELTA && !isTributary) {
+            let distanceToSea = 1.0;
             if (oceanEdge !== undefined) {
                 switch(oceanEdge){
-                    case 0: if (current.y > MAP_HEIGHT_TILES * 0.7) isNearSea = true; break; // South ocean
-                    case 1: if (current.y < MAP_HEIGHT_TILES * 0.3) isNearSea = true; break; // North ocean
-                    case 2: if (current.x > MAP_WIDTH_TILES * 0.7) isNearSea = true; break; // East ocean
-                    case 3: if (current.x < MAP_WIDTH_TILES * 0.3) isNearSea = true; break; // West ocean
+                    case 0: distanceToSea = 1.0 - (current.y / MAP_HEIGHT_TILES); break; // South ocean
+                    case 1: distanceToSea = current.y / MAP_HEIGHT_TILES; break; // North ocean
+                    case 2: distanceToSea = 1.0 - (current.x / MAP_WIDTH_TILES); break; // East ocean
+                    case 3: distanceToSea = current.x / MAP_WIDTH_TILES; break; // West ocean
                 }
             }
-            if(isNearSea && path.length > 5 && randomNoise.random() < 0.15) { // Chance to branch
-                generateEnhancedRiverPath(tiles, {...current}, randomNoise, meanderNoise, widthNoise, archetype, harborSide, true, false, oceanEdge);
-                generateEnhancedRiverPath(tiles, {...current}, randomNoise, meanderNoise, widthNoise, archetype, harborSide, true, false, oceanEdge);
+            
+            // Higher chance to branch as we get closer to the sea (delta fan effect)
+            const branchChance = isDesignatedWideRiver ? 
+                0.02 + (1.0 - distanceToSea) * 0.25 : // Main rivers: 2-27% chance
+                0.01 + (1.0 - distanceToSea) * 0.15;  // Small rivers: 1-16% chance
+            
+            if(path.length > 3 && randomNoise.random() < branchChance) {
+                // Generate 1-3 tributaries at this branch point
+                const numBranches = 1 + Math.floor(randomNoise.random() * (distanceToSea < 0.3 ? 3 : 2));
+                for(let i = 0; i < numBranches; i++) {
+                    // Offset the tributary start slightly to create natural branching
+                    const offsetX = Math.floor((randomNoise.random() - 0.5) * 3);
+                    const offsetY = Math.floor((randomNoise.random() - 0.5) * 3);
+                    const branchStart = {
+                        x: Math.max(0, Math.min(MAP_WIDTH_TILES-1, current.x + offsetX)),
+                        y: Math.max(0, Math.min(MAP_HEIGHT_TILES-1, current.y + offsetY))
+                    };
+                    generateEnhancedRiverPath(tiles, branchStart, randomNoise, meanderNoise, widthNoise, archetype, harborSide, true, false, oceanEdge, hasLakes);
+                }
             }
         }
 
@@ -581,7 +633,7 @@ export function generateEnhancedRiverPath(
                 const cutOffStartIndex = path.findIndex(p => p.x === oxbowReconnectPoint.x && p.y === oxbowReconnectPoint.y);
                 if (cutOffStartIndex !== -1 && cutOffStartIndex < path.length - 5) { 
                     const oxbowPathSegment = path.splice(cutOffStartIndex + 1); 
-                    createOxbowLakeFeature(tiles, oxbowPathSegment, randomNoise);
+                    createOxbowLakeFeature(tiles, oxbowPathSegment, randomNoise, hasLakes);
                     current = { ...oxbowReconnectPoint }; 
                 }
             }
@@ -589,70 +641,80 @@ export function generateEnhancedRiverPath(
         
         const effectiveTributaryChance = archetype === MapArchetype.BAY && !isTributary ? RIVER_TRIBUTARY_CHANCE + 0.15 : RIVER_TRIBUTARY_CHANCE;
         if (!isTributary && !isDesignatedWideRiver && path.length > 10 && path.length < RIVER_MAX_LENGTH * 0.7 && randomNoise.random() < effectiveTributaryChance * 0.1) {
-            generateEnhancedRiverPath(tiles, {...current}, randomNoise, meanderNoise, widthNoise, archetype, harborSide, true, false);
+            generateEnhancedRiverPath(tiles, {...current}, randomNoise, meanderNoise, widthNoise, archetype, harborSide, true, false, undefined, hasLakes);
         }
 
-        const directions: Point[] = [ {x: 0, y: -1}, {x: 1, y: 0}, {x: 0, y: 1}, {x: -1, y: 0}, {x: 1, y: -1}, {x: 1, y: 1}, {x: -1, y: 1}, {x: -1, y: -1} ];
-        directions.sort(() => randomNoise.random() - 0.5); 
+        // Only use orthogonal directions for continuous connectivity
+        const orthogonalDirections: Point[] = [ {x: 0, y: -1}, {x: 1, y: 0}, {x: 0, y: 1}, {x: -1, y: 0} ];
+        
+        // For diagonal movement, we need to add intermediate steps
+        const diagonalOptions: { diagonal: Point, steps: Point[] }[] = [
+            { diagonal: {x: 1, y: -1}, steps: [{x: 1, y: 0}, {x: 0, y: -1}] }, // Right then up
+            { diagonal: {x: 1, y: 1}, steps: [{x: 1, y: 0}, {x: 0, y: 1}] },   // Right then down
+            { diagonal: {x: -1, y: 1}, steps: [{x: -1, y: 0}, {x: 0, y: 1}] }, // Left then down
+            { diagonal: {x: -1, y: -1}, steps: [{x: -1, y: 0}, {x: 0, y: -1}] } // Left then up
+        ];
+        
+        // Shuffle for randomness
+        orthogonalDirections.sort(() => randomNoise.random() - 0.5);
+        diagonalOptions.sort(() => randomNoise.random() - 0.5);
 
-        let bestNextPoint: Point | null = null;
+        let bestNextMove: { points: Point[], score: number } | null = null;
         let maxScore = -Infinity;
 
-        for (const dir of directions) {
+        // Check orthogonal directions (single step)
+        for (const dir of orthogonalDirections) {
             const score = calculateDirectionScore(tiles, current, dir, drainageTarget, prevDirection, path.length, archetype, isDesignatedWideRiver);
             if (score > maxScore) {
                 maxScore = score;
-                bestNextPoint = { x: current.x + dir.x, y: current.y + dir.y };
-                prevDirection = { ...dir }; 
+                bestNextMove = { points: [{ x: current.x + dir.x, y: current.y + dir.y }], score };
+                prevDirection = { ...dir };
+            }
+        }
+        
+        // Check diagonal directions (two steps for connectivity)
+        for (const option of diagonalOptions) {
+            const diagonalScore = calculateDirectionScore(tiles, current, option.diagonal, drainageTarget, prevDirection, path.length, archetype, isDesignatedWideRiver);
+            
+            // Check if both intermediate steps are valid
+            const step1 = { x: current.x + option.steps[0].x, y: current.y + option.steps[0].y };
+            const step2 = { x: current.x + option.diagonal.x, y: current.y + option.diagonal.y };
+            
+            if (step1.x >= 0 && step1.x < MAP_WIDTH_TILES && step1.y >= 0 && step1.y < MAP_HEIGHT_TILES &&
+                step2.x >= 0 && step2.x < MAP_WIDTH_TILES && step2.y >= 0 && step2.y < MAP_HEIGHT_TILES) {
+                
+                // Prefer diagonal movement slightly less to maintain smoother rivers
+                const adjustedScore = diagonalScore * 0.9;
+                
+                if (adjustedScore > maxScore) {
+                    maxScore = adjustedScore;
+                    // Choose which intermediate step to take first based on terrain
+                    const step1First = randomNoise.random() < 0.5;
+                    bestNextMove = { 
+                        points: step1First ? [step1, step2] : [{ x: current.x + option.steps[1].x, y: current.y + option.steps[1].y }, step2],
+                        score: adjustedScore 
+                    };
+                    prevDirection = option.diagonal;
+                }
             }
         }
 
-        if (bestNextPoint) {
-            // Enhanced meandering for more natural curves
-            if (path.length > 3 && prevDirection) {
-                const meanderVal = meanderNoise.noise(current.x * RIVER_MEANDER_FREQUENCY * 1.5, current.y * RIVER_MEANDER_FREQUENCY * 1.5);
-                const sinuosityBoost = archetype === MapArchetype.RIVER_PORT ? 1.5 : 1.0; // More curves for river ports
-                
-                // Add curves based on noise and previous direction
-                if (randomNoise.random() < RIVER_SINUOSITY_FACTOR * sinuosityBoost) {
-                    // Create smooth curves by preferring perpendicular turns
-                    let turnOptions: Point[] = [];
-                    
-                    if (Math.abs(prevDirection.x) > 0) {
-                        // Was moving horizontally, prefer vertical turns
-                        turnOptions = [{x: prevDirection.x, y: 1}, {x: prevDirection.x, y: -1}, 
-                                      {x: 0, y: 1}, {x: 0, y: -1}];
-                    } else {
-                        // Was moving vertically, prefer horizontal turns  
-                        turnOptions = [{x: 1, y: prevDirection.y}, {x: -1, y: prevDirection.y},
-                                      {x: 1, y: 0}, {x: -1, y: 0}];
-                    }
-                    
-                    // Use noise to select turn direction for natural curves
-                    const turnIndex = Math.floor(Math.abs(meanderVal) * turnOptions.length);
-                    const turnDir = turnOptions[turnIndex % turnOptions.length];
-                    
-                    const turnScore = calculateDirectionScore(tiles, current, turnDir, drainageTarget, prevDirection, path.length, archetype, isDesignatedWideRiver);
-                    if (turnScore > maxScore * 0.6) { // More lenient to allow curves
-                        bestNextPoint = {x: current.x + turnDir.x, y: current.y + turnDir.y};
-                        prevDirection = {...turnDir};
-                    }
+        if (bestNextMove && bestNextMove.points.length > 0) {
+            // Process each point in the move (1 for orthogonal, 2 for diagonal)
+            for (const nextPoint of bestNextMove.points) {
+                // Skip if we've already been to this point
+                if (path.some(p => p.x === nextPoint.x && p.y === nextPoint.y)) {
+                    continue;
                 }
                 
-                // Add occasional S-curves for variety
-                if (path.length > 10 && randomNoise.random() < 0.1) {
-                    const oppositeDir = {x: -prevDirection.x, y: -prevDirection.y};
-                    const perpDirs = prevDirection.x !== 0 ? 
-                        [{x: 0, y: 1}, {x: 0, y: -1}] : 
-                        [{x: 1, y: 0}, {x: -1, y: 0}];
-                    const selectedPerp = perpDirs[Math.floor(randomNoise.random() * 2)];
-                    bestNextPoint = {x: current.x + selectedPerp.x, y: current.y + selectedPerp.y};
-                    prevDirection = {...selectedPerp};
-                }
+                // Place river tile and update path
+                const riverWidth = baseRiverWidth + widthNoise.noise(nextPoint.x * 0.1, nextPoint.y * 0.1) * 0.5;
+                placeRiverTileWithWidth(tiles, nextPoint.x, nextPoint.y, riverWidth, path, isDesignatedWideRiver, archetype, randomNoise);
+                path.push({ ...nextPoint });
+                current = { ...nextPoint };
             }
             
-            if (bestNextPoint) current = bestNextPoint; 
-            else break; 
+            // Meandering is now handled through the diagonal movement system
         } else {
             break; 
         }

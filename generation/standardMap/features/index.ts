@@ -8,6 +8,7 @@ export * from './EcologicalFeatureGenerator';
 export * from './FarmlandGenerator';
 export * from './HarborGenerator';
 export * from './HolyPlaceGenerator';
+export * from './MineralGenerator';
 export * from './NpcGenerator';
 export * from './PalaceGenerator';
 export * from './RiverGenerator';

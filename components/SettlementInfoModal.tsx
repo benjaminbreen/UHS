@@ -35,7 +35,28 @@ const DetailRow: React.FC<{ label: string; value: string | number | React.ReactN
 const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData, onClose, gameTimeHours, season }) => {
     const { era, culturalZone, year, timeOfDay } = useMemo(() => {
         const parsed = parseDateString(mapData.timeSlice || '1650');
-        const culture = mapLocationToCulture(mapData.continent || 'Europe', parsed.year);
+        
+        // Use localArea for more specific cultural zone detection
+        const localArea = mapData.localArea || '';
+        let culture: CulturalZone;
+        
+        // Check for specific regions first
+        if (localArea.toLowerCase().includes('moscow') || localArea.toLowerCase().includes('novgorod') || 
+            localArea.toLowerCase().includes('kiev') || localArea.toLowerCase().includes('dnieper') ||
+            localArea.toLowerCase().includes('volga') || localArea.toLowerCase().includes('poland') ||
+            localArea.toLowerCase().includes('bohemia') || localArea.toLowerCase().includes('carpathian') ||
+            localArea.toLowerCase().includes('thracian') || localArea.toLowerCase().includes('brandenburg')) {
+            culture = 'SLAVIC' as CulturalZone;
+        } else if (localArea.toLowerCase().includes('thebes') || localArea.toLowerCase().includes('nile') ||
+                   localArea.toLowerCase().includes('alexandria') || localArea.toLowerCase().includes('cairo')) {
+            culture = 'MENA' as CulturalZone;
+        } else if (localArea.toLowerCase().includes('beijing') || localArea.toLowerCase().includes('yangtze') ||
+                   localArea.toLowerCase().includes('yellow river') || localArea.toLowerCase().includes('han river')) {
+            culture = 'EAST_ASIAN' as CulturalZone;
+        } else {
+            // Fallback to continent-based detection
+            culture = mapLocationToCulture(mapData.continent || 'Europe', parsed.year);
+        }
         
         let tod: TimeOfDay = 'Midday';
         if (gameTimeHours >= 5 && gameTimeHours < 8) tod = 'Dawn';
@@ -45,16 +66,118 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
         else if (gameTimeHours >= 19 && gameTimeHours < 21) tod = 'Dusk';
         else tod = 'Night';
 
-        return { era: parsed.era as HistoricalEra, culturalZone: culture as CulturalZone, year: parsed.year, timeOfDay: tod };
-    }, [mapData.timeSlice, mapData.continent, gameTimeHours]);
+        return { era: parsed.era as HistoricalEra, culturalZone: culture, year: parsed.year, timeOfDay: tod };
+    }, [mapData.timeSlice, mapData.continent, mapData.localArea, gameTimeHours]);
 
     const { name, description, economicProfile, population, families, allegianceString, settlementProfessions, representativeInhabitants } = useMemo(() => {
         const noise = new ValueNoise(tile.x * 17 + tile.y * 31 + mapData.seed);
         const { majorCity } = mapData;
         
+        // Generate contextual description based on actual map data
+        const getSettlementDescription = () => {
+            const biomeType = tile.biome;
+            const regionName = mapData.localArea || mapData.mapAreaName || 'this region';
+            
+            // First check if tile has city description stored directly
+            if (tile.cityDescription) {
+                return tile.cityDescription;
+            }
+            
+            // Check if there's a major city nearby
+            let nearbyCity = '';
+            if (mapData.majorCity && mapData.majorCity.name && biomeType !== BiomeType.CITY_CENTER) {
+                nearbyCity = ` near ${mapData.majorCity.name}`;
+            } else if (tile.cityName && biomeType !== BiomeType.CITY_CENTER) {
+                nearbyCity = ` near ${tile.cityName}`;
+            }
+            
+            // Get local economic focus
+            let economicPrefix = '';
+            if (details.settlementProfessions && details.settlementProfessions.length > 0) {
+                const primaryProfession = details.settlementProfessions[0].toLowerCase();
+                if (primaryProfession.includes('farmer') || primaryProfession.includes('shepherd')) {
+                    economicPrefix = "Farming ";
+                } else if (primaryProfession.includes('miner')) {
+                    economicPrefix = "Mining ";
+                } else if (primaryProfession.includes('logger') || primaryProfession.includes('woodcutter')) {
+                    economicPrefix = "Logging ";
+                } else if (primaryProfession.includes('fisher')) {
+                    economicPrefix = "Fishing ";
+                } else if (primaryProfession.includes('merchant') || primaryProfession.includes('trader')) {
+                    economicPrefix = "Trading ";
+                } else if (primaryProfession.includes('smith') || primaryProfession.includes('craftsman')) {
+                    economicPrefix = "Crafting ";
+                }
+            }
+            
+            if (biomeType === BiomeType.HAMLET) {
+                if (nearbyCity) {
+                    return `${economicPrefix}hamlet${nearbyCity}`;
+                }
+                return `${economicPrefix}hamlet in ${regionName}`;
+            } else if (biomeType === BiomeType.FARMLAND) {
+                const cropType = tile.cropType || 'grain';
+                if (nearbyCity) {
+                    return `${cropType} farm${nearbyCity}`;
+                }
+                return `${cropType} farm in ${regionName}`;
+            } else if (biomeType === BiomeType.MARKETPLACE) {
+                if (nearbyCity) {
+                    return `Market square${nearbyCity}`;
+                }
+                return `Market square in ${regionName}`;
+            } else if (biomeType === BiomeType.LOW_DENSITY_CITY) {
+                if (mapData.majorCity && mapData.majorCity.name) {
+                    return `Outer district of ${mapData.majorCity.name}`;
+                }
+                return `Low density urban area in ${regionName}`;
+            } else if (biomeType === BiomeType.DENSE_CITY) {
+                if (mapData.majorCity && mapData.majorCity.name) {
+                    return `Dense urban core of ${mapData.majorCity.name}`;
+                }
+                return `Dense urban area in ${regionName}`;
+            } else if (biomeType === BiomeType.CITY_CENTER && mapData.majorCity) {
+                return mapData.majorCity.description || `The heart of ${regionName}`;
+            }
+            return `Settlement in ${regionName}`;
+        };
+
+        const getSettlementName = () => {
+            const biomeType = tile.biome;
+            
+            // First check if tile has city name stored directly
+            if (tile.cityName) {
+                return tile.cityName;
+            }
+            
+            // For city centers, use the actual city name from majorCity
+            if (biomeType === BiomeType.CITY_CENTER && majorCity) {
+                return majorCity.name;
+            }
+            
+            // For other settlement types, use descriptive names
+            if (biomeType === BiomeType.HAMLET) {
+                return 'Hamlet';
+            } else if (biomeType === BiomeType.FARMLAND) {
+                return 'Farm';
+            } else if (biomeType === BiomeType.MARKETPLACE) {
+                return 'Marketplace';
+            } else if (biomeType === BiomeType.LOW_DENSITY_CITY) {
+                return 'Outer City';
+            } else if (biomeType === BiomeType.DENSE_CITY) {
+                return 'City Center';
+            }
+            
+            // Fallback - capitalize and clean up biome name
+            return biomeType.replace(/_/g, ' ').toLowerCase()
+                .split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        };
+
         let details = {
-            name: tile.biome === BiomeType.CITY_CENTER && majorCity ? majorCity.name : tile.biome.replace(/_/g, ' '),
-            description: tile.biome === BiomeType.CITY_CENTER && majorCity ? majorCity.description : 'A local settlement.',
+            name: '',
+            description: '',
             population: tile.population || 0,
             economicProfile: ['Subsistence living'],
             families: [] as string[],
@@ -63,8 +186,12 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
             representativeInhabitants: [] as any[]
         };
         
-        // Economy
+        // Economy - Get professions first so we can use them in the description
         details.settlementProfessions = getSettlementProfessions(tile, mapData, culturalZone, era);
+        
+        // Now set name and description after we have professions
+        details.name = getSettlementName();
+        details.description = getSettlementDescription();
         if (details.settlementProfessions.length > 0) {
             details.economicProfile = [`Primary professions: ${details.settlementProfessions.slice(0,3).join(', ')}.`];
         } else {
@@ -98,18 +225,39 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
         else if (loyalty > 0.3) details.allegianceString = `Questionable loyalty to ${dominantFactionKey}`;
         else details.allegianceString = `Has strong dissenting elements`;
         
-        // Inhabitants
-        if(details.settlementProfessions.length > 0) {
+        // Inhabitants - Always generate them for settlements with population
+        if(details.population > 0 || tile.biome === BiomeType.FARMLAND) {
              const numInhabitants = 4;
+             // Use settlement professions if available, otherwise use generic ones
+             if (details.settlementProfessions.length === 0) {
+                 // Fallback professions based on biome type and era
+                 if (tile.biome === BiomeType.FARMLAND) {
+                     details.settlementProfessions = ['Farmer', 'Farm Hand', 'Shepherd', 'Miller'];
+                 } else if (tile.biome === BiomeType.MARKETPLACE) {
+                     details.settlementProfessions = ['Merchant', 'Trader', 'Craftsman', 'Guard'];
+                 } else if (tile.biome === BiomeType.HAMLET) {
+                     details.settlementProfessions = ['Farmer', 'Blacksmith', 'Carpenter', 'Laborer'];
+                 } else {
+                     details.settlementProfessions = ['Artisan', 'Merchant', 'Scholar', 'Guard'];
+                 }
+             }
+             
              for (let i = 0; i < numInhabitants; i++) {
                 const gender = noise.random() > 0.5 ? 'Male' as Gender : 'Female' as Gender;
                 let fullName: string;
-                if (singleFamilyName) {
+                
+                // Use family names from the families array if available
+                const familyName = details.families.length > 0 
+                    ? details.families[i % details.families.length]
+                    : singleFamilyName;
+                    
+                if (familyName) {
                     const firstName = generateNpcName(gender, culturalZone, undefined, year, noise).split(' ')[0];
-                    fullName = `${firstName} ${singleFamilyName}`;
+                    fullName = `${firstName} ${familyName}`;
                 } else {
                     fullName = generateNpcName(gender, culturalZone, undefined, year, noise);
                 }
+                
                 const age = 18 + Math.floor(noise.random() * 55);
                 const profession = details.settlementProfessions[i % details.settlementProfessions.length];
                 const wealth = i % 3 === 0 ? 'comfortable' : 'modest';

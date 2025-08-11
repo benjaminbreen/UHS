@@ -34,6 +34,7 @@ export interface MapAreaDefinition {
     deltaOutlet?: 'north' | 'south' | 'east' | 'west'; // Optional ocean edge for DELTA maps
     islandOrientation?: 'east-west' | 'north-south'; // Optional orientation for BARRIER_ISLAND maps
     hasLakes?: boolean; // Optional toggle for lake generation (especially for ALL_LAND maps)
+    economicActivityLevel?: number; // Optional: 0 (none/desolate), 1 (low), 2 (medium/default), 3 (high), 4 (very high)
 }
 
 export interface RegionDefinition {

@@ -102,6 +102,7 @@ function findPlacementCandidates(
                     if (tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.RIVERBANK) {
                         let isNearRiver = false;
                         let farmTilesNearby = 0;
+                        let settlementTilesNearby = 0;
                         for (let dy = -5; dy <= 5; dy++) {
                             for (let dx = -5; dx <= 5; dx++) {
                                 const nx = x + dx;
@@ -109,12 +110,17 @@ function findPlacementCandidates(
                                 if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
                                     if(Math.hypot(dx, dy) <= 1 && tiles[ny][nx].biome === BiomeType.RIVER) isNearRiver = true;
                                     if(tiles[ny][nx].biome === BiomeType.FARMLAND) farmTilesNearby++;
+                                    // Check for settlements within the search radius
+                                    if([BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.CITY_CENTER].includes(tiles[ny][nx].biome)) {
+                                        settlementTilesNearby++;
+                                    }
                                 }
                             }
                         }
-                        if (isNearRiver) {
+                        // Mills require river AND either farmland OR settlements nearby
+                        if (isNearRiver && (farmTilesNearby > 0 || settlementTilesNearby > 0)) {
                             isValid = true;
-                            score = farmTilesNearby;
+                            score = farmTilesNearby * 2 + settlementTilesNearby; // Prioritize areas with more farmland
                         }
                     }
                     break;
@@ -205,7 +211,7 @@ function findPlacementCandidates(
     return candidates;
 }
 
-export function generateTerrainStructures(mapData: MapData, noise: ValueNoise, region: string | undefined, societalProfile: SocietalProfile) {
+export function generateTerrainStructures(mapData: MapData, noise: ValueNoise, region: string | undefined, societalProfile: SocietalProfile, hasCities: boolean = false) {
     console.log("Generating terrain structures...");
     if (!mapData.terrainStructures) {
       mapData.terrainStructures = [];
@@ -227,7 +233,22 @@ export function generateTerrainStructures(mapData: MapData, noise: ValueNoise, r
 
         candidates.sort((a, b) => b.score - a.score);
 
-        const maxToPlace = structureType === 'fishing_hut' ? 2 : 1;
+        // For maps without cities, limit structure generation more strictly
+        let maxToPlace: number;
+        if (!hasCities) {
+            // Non-city maps should have very limited structures
+            maxToPlace = structureType === 'fishing_hut' ? 1 : 
+                        structureType === 'lumber_camp' ? 1 :
+                        structureType === 'mining_colony' ? 1 :
+                        structureType === 'mill' ? 0 : // No mills without cities/settlements
+                        structureType === 'marketplace' ? 0 : // No marketplaces without cities
+                        structureType === 'trading_post' ? 0 : // No trading posts without cities
+                        structureType === 'factory' ? 0 : // No factories without cities
+                        1;
+        } else {
+            // City maps can have normal structure counts
+            maxToPlace = structureType === 'fishing_hut' ? 2 : 1;
+        }
         let placedCount = 0;
 
         for (const candidate of candidates) {

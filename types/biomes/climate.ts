@@ -7,5 +7,6 @@ export enum ClimateType {
   SEMITROPICAL = 'SEMITROPICAL',
   TROPICAL = 'TROPICAL',
   ARID = 'ARID',
-  COLD = 'COLD', 
+  COLD = 'COLD',
+  MEDITERRANEAN = 'MEDITERRANEAN',
 }

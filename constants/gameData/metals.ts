@@ -75,5 +75,30 @@ export const METALS: Record<string, MetalDefinition> = {
         oreItemId: 'STONE_BLOCK',
         geologicalRules: { biomes: ['MOUNTAIN', 'HILLS', 'CLIFF'] },
         visual: { type: 'patches', color: 'rgba(150, 150, 150, 0.5)'}
+    },
+    // Modern/Future minerals
+    LITHIUM: {
+        name: 'Lithium',
+        oreItemId: 'LITHIUM_ORE',
+        geologicalRules: { biomes: ['SALT_FLATS', 'DESERT'], minThermal: 0.6 },
+        visual: { type: 'sparkles', color: 'rgba(200, 150, 255, 0.7)'}
+    },
+    RARE_EARTH: {
+        name: 'Rare Earth Elements',
+        oreItemId: 'RARE_EARTH_ORE',
+        geologicalRules: { biomes: ['MOUNTAIN'], minStress: 0.8, minThermal: 0.7 },
+        visual: { type: 'sparkles', color: 'rgba(150, 255, 200, 0.8)'}
+    },
+    URANIUM: {
+        name: 'Uranium',
+        oreItemId: 'URANIUM_ORE',
+        geologicalRules: { biomes: ['MOUNTAIN', 'HILLS'], minStress: 0.9 },
+        visual: { type: 'patches', color: 'rgba(50, 255, 50, 0.6)'}
+    },
+    GEMS: {
+        name: 'Gemstones',
+        oreItemId: 'RAW_GEMS',
+        geologicalRules: { biomes: ['MOUNTAIN'], minStress: 0.85, minThermal: 0.8 },
+        visual: { type: 'sparkles', color: 'rgba(255, 100, 255, 0.9)'}
     }
 };

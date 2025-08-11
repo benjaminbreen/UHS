@@ -42,7 +42,103 @@ async function executeForage(context: PlayerContext): Promise<ForageSkillResult>
     const vegetationEntity = mapData.vegetation?.find(v => v.id === tile.vegetationId);
     if (vegetationEntity) {
         const speciesDef = findSpeciesDefinition(vegetationEntity.baseType, vegetationEntity.speciesName, mapData.climate);
-        if (speciesDef?.drops && speciesDef.drops.length > 0) {
+        
+        // Check if it's a bush that can be foraged - always successful
+        if (vegetationEntity.baseType === 'generic_bush' || vegetationEntity.baseType === 'berry_bush') {
+            let itemToCreate: string | null = null;
+            const bushName = speciesDef?.name || vegetationEntity.speciesName || 'bush';
+            
+            // Map specific bush types to specific items
+            const nameLower = bushName.toLowerCase();
+            if (nameLower.includes('pepper')) {
+                itemToCreate = 'WILD_BERRIES'; // Using existing item as peppercorns
+            } else if (nameLower.includes('azalea')) {
+                itemToCreate = 'HERB_BUNDLE'; // Azalea flowers
+            } else if (nameLower.includes('jasmine')) {
+                itemToCreate = 'HERB_BUNDLE'; // Jasmine flowers
+            } else if (nameLower.includes('coffee')) {
+                itemToCreate = 'WILD_BERRIES'; // Coffee beans
+            } else if (nameLower.includes('tea')) {
+                itemToCreate = 'DRY_LEAVES'; // Tea leaves
+            } else if (nameLower.includes('berry') || nameLower.includes('elder') || 
+                       nameLower.includes('blackberry') || nameLower.includes('lingon') ||
+                       nameLower.includes('cloud') || nameLower.includes('crow')) {
+                itemToCreate = 'WILD_BERRIES';
+            } else if (nameLower.includes('rose')) {
+                itemToCreate = 'HERB_BUNDLE'; // Rose petals
+            } else if (nameLower.includes('hibiscus')) {
+                itemToCreate = 'HERB_BUNDLE'; // Hibiscus flowers
+            } else if (nameLower.includes('sage') || nameLower.includes('lavender') || 
+                       nameLower.includes('thyme') || nameLower.includes('rosemary') ||
+                       nameLower.includes('oregano') || nameLower.includes('basil')) {
+                itemToCreate = 'HERB_BUNDLE';
+            } else if (nameLower.includes('ginseng') || nameLower.includes('goldenseal') || 
+                       nameLower.includes('echinacea')) {
+                itemToCreate = 'MEDICINAL_HERBS';
+            } else if (speciesDef?.drops && speciesDef.drops.length > 0) {
+                // Use the first defined drop
+                itemToCreate = speciesDef.drops[0].name;
+            } else {
+                // Generic fallback
+                itemToCreate = 'HERB_BUNDLE';
+            }
+            
+            const item = createItemInstance(itemToCreate);
+            if (item) {
+                // Customize item name based on the bush
+                const customItem = { ...item };
+                if (nameLower.includes('pepper')) {
+                    customItem.name = 'Peppercorns';
+                    customItem.description = 'Aromatic black peppercorns, worth their weight in silver.';
+                } else if (nameLower.includes('coffee')) {
+                    customItem.name = 'Coffee Beans';
+                    customItem.description = 'Raw coffee beans, ready to be roasted.';
+                } else if (nameLower.includes('azalea')) {
+                    customItem.name = 'Azalea Flowers';
+                    customItem.description = 'Beautiful azalea flowers, prized for their color.';
+                } else if (nameLower.includes('jasmine')) {
+                    customItem.name = 'Jasmine Flowers';
+                    customItem.description = 'Fragrant jasmine flowers, perfect for tea or perfume.';
+                } else if (nameLower.includes('rose')) {
+                    customItem.name = 'Rose Petals';
+                    customItem.description = 'Delicate rose petals with a sweet fragrance.';
+                } else if (nameLower.includes('hibiscus')) {
+                    customItem.name = 'Hibiscus Flowers';
+                    customItem.description = 'Vibrant hibiscus flowers, excellent for tea.';
+                } else if (nameLower.includes('lavender')) {
+                    customItem.name = 'Lavender Sprigs';
+                    customItem.description = 'Fragrant lavender, prized for perfumes and medicine.';
+                } else if (nameLower.includes('rosemary')) {
+                    customItem.name = 'Fresh Rosemary';
+                    customItem.description = 'Aromatic rosemary, essential for Mediterranean cuisine.';
+                } else if (nameLower.includes('thyme')) {
+                    customItem.name = 'Wild Thyme';
+                    customItem.description = 'Fragrant wild thyme, perfect for cooking and medicine.';
+                } else if (nameLower.includes('oregano')) {
+                    customItem.name = 'Wild Oregano';
+                    customItem.description = 'Pungent oregano, a staple of Mediterranean cooking.';
+                } else if (nameLower.includes('olive')) {
+                    customItem.name = 'Fresh Olives';
+                    customItem.description = 'Ripe olives from ancient trees, ready for pressing or curing.';
+                } else if (nameLower.includes('grape')) {
+                    customItem.name = 'Wine Grapes';
+                    customItem.description = 'Sweet grapes perfect for winemaking.';
+                } else if (nameLower.includes('fig')) {
+                    customItem.name = 'Fresh Figs';
+                    customItem.description = 'Sweet, ripe figs - a Mediterranean delicacy.';
+                }
+                
+                return { 
+                    type: 'forage', 
+                    success: true, 
+                    item: customItem,
+                    message: `You successfully harvested ${customItem.name.toLowerCase()} from the ${bushName}.`,
+                    xpGained: 2,
+                    entityToRemoveId: vegetationEntity.id // Mark bush for removal
+                };
+            }
+        } else if (speciesDef?.drops && speciesDef.drops.length > 0) {
+            // For non-bush vegetation (trees, etc), use the original chance-based system
             for (const drop of speciesDef.drops) {
                 const successChance = drop.chance * (1 + (perception - 5) * 0.05 + (luck - 5) * 0.02);
                 if (Math.random() < successChance) {
@@ -179,16 +275,60 @@ async function executeDig(context: PlayerContext): Promise<DigSkillResult> {
 
     // Case 1: Mining a mineral deposit
     if (tile.mineralDeposit && tile.mineralDeposit.quantity > 0) {
-        if (!equippedTool || !equippedTool.baseId.includes('PICKAXE')) {
-            return { type: 'dig', success: false, message: "You need a pickaxe to mine this deposit." };
-        }
-
         const strength = playerCharacter.stats.strength || 5;
-        const toolModifier = equippedTool.baseId === 'STEEL_PICKAXE' ? 1.5 : 1.0;
-        const successChance = 0.75 + (strength - 5) * 0.05 * toolModifier;
+        
+        // Determine tool effectiveness
+        let toolEffectiveness = 0.25; // Default for any item (25% success rate)
+        let toolName = "your improvised tool";
+        let toolModifier = 0.5; // Amount modifier for non-pickaxe tools
+        
+        if (equippedTool) {
+            const toolId = equippedTool.baseId.toUpperCase();
+            
+            if (toolId.includes('PICKAXE')) {
+                // Pickaxes are 100% effective
+                toolEffectiveness = 1.0;
+                toolModifier = toolId === 'STEEL_PICKAXE' ? 1.5 : 1.0;
+                toolName = "your pickaxe";
+            } else if (toolId.includes('SHOVEL') || toolId.includes('SPADE')) {
+                // Shovels are moderately effective
+                toolEffectiveness = 0.5;
+                toolModifier = 0.7;
+                toolName = "your shovel";
+            } else if (toolId.includes('AXE') || toolId.includes('HAMMER')) {
+                // Axes and hammers are somewhat effective
+                toolEffectiveness = 0.4;
+                toolModifier = 0.6;
+                toolName = equippedTool.name.toLowerCase();
+            } else if (toolId.includes('SWORD') || toolId.includes('DAGGER') || toolId.includes('KNIFE')) {
+                // Bladed weapons are less effective
+                toolEffectiveness = 0.3;
+                toolModifier = 0.5;
+                toolName = equippedTool.name.toLowerCase();
+            } else if (toolId.includes('STICK') || toolId.includes('BRANCH')) {
+                // Sticks are minimally effective
+                toolEffectiveness = 0.25;
+                toolModifier = 0.3;
+                toolName = "your stick";
+            } else {
+                // Any other item
+                toolEffectiveness = 0.25;
+                toolModifier = 0.4;
+                toolName = equippedTool.name.toLowerCase();
+            }
+        } else {
+            // Bare hands - very ineffective
+            toolEffectiveness = 0.1;
+            toolModifier = 0.2;
+            toolName = "your bare hands";
+        }
+        
+        // Apply strength bonus to success chance
+        const successChance = toolEffectiveness + (strength - 5) * 0.02;
 
         if (Math.random() < successChance) {
-            const amountExtracted = Math.floor((5 + strength / 2 + Math.random() * 5) * toolModifier);
+            const baseAmount = 3 + Math.floor(strength / 3 + Math.random() * 3);
+            const amountExtracted = Math.floor(baseAmount * toolModifier);
             const actualAmount = Math.min(amountExtracted, tile.mineralDeposit.quantity);
             const oreItemId = METALS[tile.mineralDeposit.metalId].oreItemId;
             const item = createItemInstance(oreItemId);
@@ -197,8 +337,8 @@ async function executeDig(context: PlayerContext): Promise<DigSkillResult> {
                 item.quantity = actualAmount;
                 const newDepositQty = tile.mineralDeposit.quantity - actualAmount;
                 const message = newDepositQty > 0 
-                    ? `You successfully mined some ${item.name.toLowerCase()}!`
-                    : `You mined the last of the ${item.name.toLowerCase()} from the depleted deposit!`;
+                    ? `You successfully extract ${actualAmount} ${item.name.toLowerCase()} using ${toolName}!`
+                    : `You extract the last ${actualAmount} ${item.name.toLowerCase()} from the depleted deposit using ${toolName}!`;
                 
                 return {
                     type: 'dig',
@@ -211,7 +351,12 @@ async function executeDig(context: PlayerContext): Promise<DigSkillResult> {
                 };
             }
         }
-        return { type: 'dig', success: false, message: "You swing your pickaxe but fail to break off any ore." };
+        
+        // Failure message varies by tool
+        const failureMessage = equippedTool?.baseId.includes('PICKAXE') 
+            ? "You swing your pickaxe but fail to break off any ore."
+            : `You try to dig with ${toolName} but can't extract any ore this time.`;
+        return { type: 'dig', success: false, message: failureMessage };
     }
 
     // Case 2: Digging in normal ground

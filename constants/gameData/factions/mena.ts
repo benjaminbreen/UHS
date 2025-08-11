@@ -1201,6 +1201,197 @@ export const MENA_FACTIONS: FactionFile = {
                     holy_site: ['Virtual Pilgrimage Center', 'Climate Memorial']
                 }
             }
+        },
+        "Hejaz Mountains": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Quraysh Tribe',
+                dominantPowerDescription: 'The merchant tribe controlling Mecca and the lucrative caravan trade between Yemen and Syria.',
+                eraContextSentence: 'an age of tribal alliances and caravan trade, where the Kaaba draws pilgrims from across Arabia.',
+                allegianceGroups: [
+                    { name: 'Quraysh Tribe', type: 'primary', description: 'The ruling merchant tribe of Mecca.' },
+                    { name: 'Bedouin Tribes', type: 'secondary', description: 'Nomadic tribes of the desert.' },
+                    { name: 'Yemeni Traders', type: 'secondary', description: 'Merchants from the prosperous south.' }
+                ],
+                structureNames: {
+                    fortress: ['Tribal Fortress'],
+                    holy_site: ['The Kaaba', 'Sacred Well of Zamzam'],
+                    trading_post: ['Caravan Station']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Abbasid Caliphate',
+                dominantPowerDescription: 'The Islamic empire controlling the holy cities and the pilgrimage routes.',
+                eraContextSentence: 'an age of Islamic glory, where the hajj brings believers from Cordoba to Samarkand.',
+                allegianceGroups: [
+                    { name: 'Abbasid Caliphate', type: 'primary', description: 'The ruling Islamic dynasty.' },
+                    { name: 'Sharifs of Mecca', type: 'secondary', description: 'Descendants of the Prophet governing the holy city.' },
+                    { name: 'Pilgrim Caravans', type: 'secondary', description: 'Protected convoys of the faithful.' }
+                ],
+                structureNames: {
+                    fortress: ['Citadel'],
+                    holy_site: ['Grand Mosque', 'Prophet\'s Mosque'],
+                    palace: ['Sharif\'s Palace']
+                },
+                courtRoles: {
+                    palace: ['Sharif', 'Qadi', 'Captain of Guards', 'Keeper of the Kaaba']
+                }
+            }
+        },
+        "Khuzestan Plain": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Sassanid Empire',
+                dominantPowerDescription: 'The Persian empire with its ancient capital at Ctesiphon nearby.',
+                eraContextSentence: 'an age of Persian grandeur, where fire temples illuminate the ancient plains.',
+                allegianceGroups: [
+                    { name: 'Sassanid Empire', type: 'primary', description: 'The Persian imperial dynasty.' },
+                    { name: 'Arab Tribes', type: 'secondary', description: 'Desert peoples on the western frontier.' },
+                    { name: 'Mesopotamian Merchants', type: 'secondary', description: 'Traders from the river valleys.' }
+                ],
+                structureNames: {
+                    fortress: ['Persian Fortress'],
+                    palace: ['Satrap\'s Palace'],
+                    holy_site: ['Fire Temple']
+                }
+            }
+        },
+        "Khorasan": {
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Samanid Empire',
+                dominantPowerDescription: 'A Persian dynasty fostering Islamic learning and Persian culture.',
+                eraContextSentence: 'an age of Persian renaissance, where scholars and poets flourish under enlightened rule.',
+                allegianceGroups: [
+                    { name: 'Samanid Empire', type: 'primary', description: 'The ruling Persian dynasty.' },
+                    { name: 'Turkic Mercenaries', type: 'secondary', description: 'Nomadic warriors in imperial service.' },
+                    { name: 'Silk Road Merchants', type: 'secondary', description: 'Traders on the great eastern route.' }
+                ],
+                structureNames: {
+                    fortress: ['Citadel'],
+                    trading_post: ['Caravanserai'],
+                    palace: ['Emir\'s Palace']
+                }
+            }
+        },
+        "Transoxiana": {
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Khwarazmian Empire',
+                dominantPowerDescription: 'A powerful Central Asian empire controlling the Silk Road trade.',
+                eraContextSentence: 'an age of prosperity along the Silk Road, before the Mongol storm.',
+                allegianceGroups: [
+                    { name: 'Khwarazmian Empire', type: 'primary', description: 'The ruling dynasty.' },
+                    { name: 'Silk Road Merchants', type: 'secondary', description: 'International traders.' },
+                    { name: 'Turkic Nomads', type: 'secondary', description: 'Steppe peoples.' }
+                ],
+                structureNames: {
+                    fortress: ['Fortified City'],
+                    trading_post: ['Great Bazaar'],
+                    palace: ['Shah\'s Palace']
+                }
+            }
+        },
+        "Nubian Corridor": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Kingdom of Kush',
+                dominantPowerDescription: 'The ancient Nubian kingdom controls the gold mines and trade routes between Egypt and sub-Saharan Africa, occasionally conquering Egypt itself.',
+                eraContextSentence: 'the land of black pharaohs, where Nubian kings rule from Meroe with wealth from gold and ivory.',
+                allegianceGroups: [
+                    { name: 'Kingdom of Kush', type: 'primary', description: 'The Nubian royal dynasty at Meroe.' },
+                    { name: 'Egyptian Priests', type: 'secondary', description: 'Temple hierarchies maintaining ancient traditions.' },
+                    { name: 'Desert Nomads', type: 'secondary', description: 'Blemmyes and other desert peoples.' },
+                    { name: 'Axumite Traders', type: 'trade_company', description: 'Ethiopian merchants from the south.' }
+                ],
+                structureNames: {
+                    fortress: ['Nubian Fortress', 'Desert Fort', 'Nile Stronghold'],
+                    holy_site: ['Temple of Amun', 'Royal Pyramid', 'Desert Shrine'],
+                    palace: ['Candace\'s Palace', 'Royal Complex', 'Governor\'s Residence'],
+                    trading_post: ['Gold Market', 'Ivory Exchange', 'Slave Market'],
+                    quarry: ['Gold Mine', 'Granite Quarry', 'Emerald Mine']
+                },
+                courtRoles: {
+                    palace: ['Candace (Queen Mother)', 'Paqar (Prince)', 'High Priest of Amun', 'Royal Scribe', 'Commander of Bowmen']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Makurian Kingdom',
+                dominantPowerDescription: 'Christian Nubia maintains independence between Islamic Egypt and Ethiopia, with sophisticated administration and monumental churches.',
+                eraContextSentence: 'the African kingdom of the cross, where Christian kings resist Islamic expansion for centuries.',
+                allegianceGroups: [
+                    { name: 'Kingdom of Makuria', type: 'primary', description: 'The Christian Nubian state.' },
+                    { name: 'Coptic Church', type: 'secondary', description: 'The Christian hierarchy.' },
+                    { name: 'Fatimid Caliphate', type: 'secondary', description: 'Muslim rulers to the north.' },
+                    { name: 'Beja Tribes', type: 'rebel', description: 'Nomadic peoples of the Eastern Desert.' }
+                ],
+                structureNames: {
+                    fortress: ['Castle of Dongola', 'Border Fort', 'Monastery Fortress'],
+                    holy_site: ['Cathedral of Faras', 'Rock Church', 'Coptic Monastery', 'Desert Hermitage'],
+                    palace: ['King\'s Palace', 'Eparch\'s Residence', 'Bishop\'s Palace'],
+                    trading_post: ['Nile Port', 'Caravan Station', 'Market Square']
+                },
+                courtRoles: {
+                    palace: ['King of Makuria', 'Eparch of Nobadia', 'Great Scribe', 'Lord of the Horse', 'Keeper of the Royal Seal']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Funj Sultanate',
+                dominantPowerDescription: 'An Islamic kingdom controls the Blue Nile region, blending Arab and African traditions in a unique Sudanese culture.',
+                eraContextSentence: 'the age of the Black Sultanate, where African Muslim kings rule from Sennar.',
+                allegianceGroups: [
+                    { name: 'Funj Sultanate', type: 'primary', description: 'The ruling dynasty at Sennar.' },
+                    { name: 'Arab Tribes', type: 'secondary', description: 'Nomadic groups claiming descent from Arabia.' },
+                    { name: 'Ottoman Egypt', type: 'secondary', description: 'The northern neighbor seeking expansion.' },
+                    { name: 'Ethiopian Empire', type: 'secondary', description: 'Christian power to the southeast.' }
+                ],
+                structureNames: {
+                    fortress: ['Sultan\'s Fort', 'River Fortress', 'Tribal Stronghold'],
+                    holy_site: ['Grand Mosque', 'Sufi Lodge', 'Saint\'s Tomb', 'Quranic School'],
+                    palace: ['Sultan\'s Palace', 'Governor\'s Compound', 'Sheikh\'s Manor'],
+                    trading_post: ['Slave Market', 'Gold Exchange', 'Gum Arabic Market']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'Anglo-Egyptian Sudan',
+                dominantPowerDescription: 'After the Mahdist revolt, British and Egyptian forces jointly control Sudan, exploiting its resources while suppressing resistance.',
+                eraContextSentence: 'the age of empire on the Nile, where Gordon\'s death at Khartoum symbolizes colonial ambitions and African resistance.',
+                allegianceGroups: [
+                    { name: 'Anglo-Egyptian Administration', type: 'primary', description: 'The colonial condominium government.' },
+                    { name: 'Mahdist Remnants', type: 'rebel', description: 'Islamic resistance fighters.' },
+                    { name: 'Tribal Chiefs', type: 'secondary', description: 'Traditional leaders co-opted by colonialism.' },
+                    { name: 'Egyptian Bureaucrats', type: 'secondary', description: 'Administrative class from Cairo.' }
+                ],
+                structureNames: {
+                    fortress: ['British Garrison', 'River Fort', 'Desert Outpost'],
+                    factory: ['Cotton Gin', 'Railway Workshop', 'Gum Processing Plant'],
+                    trading_post: ['Railway Station', 'Steamboat Port', 'Cotton Exchange'],
+                    palace: ['Governor-General\'s Palace', 'District Commissioner\'s House']
+                },
+                mapAreaOverrides: {
+                    "Khartoum": {
+                        dominantPower: 'Mahdist State',
+                        dominantPowerDescription: 'The Mahdi\'s revolutionary Islamic state controls Sudan after destroying Egyptian rule, until British reconquest.',
+                        allegianceGroups: [
+                            { name: 'Mahdist State', type: 'primary', description: 'The Mahdi\'s theocratic government.' },
+                            { name: 'Ansar Warriors', type: 'secondary', description: 'Religious warriors of the Mahdi.' },
+                            { name: 'British Forces', type: 'secondary', description: 'Preparing reconquest from Egypt.' }
+                        ]
+                    }
+                }
+            },
+            [HistoricalEra.MODERN_ERA]: {
+                dominantPower: 'Republic of Sudan',
+                dominantPowerDescription: 'Independent Sudan struggles with civil war between Arab-dominated north and African south, before South Sudan\'s secession.',
+                eraContextSentence: 'a fractured nation, where ethnic and religious divisions fuel Africa\'s longest civil war.',
+                allegianceGroups: [
+                    { name: 'Sudanese Government', type: 'primary', description: 'The Khartoum-based regime.' },
+                    { name: 'SPLA/South Sudan', type: 'rebel', description: 'Southern rebels seeking independence.' },
+                    { name: 'Darfur Rebels', type: 'rebel', description: 'Western groups fighting marginalization.' },
+                    { name: 'Arab League', type: 'secondary', description: 'Regional bloc Sudan belongs to.' }
+                ],
+                structureNames: {
+                    fortress: ['Army Base', 'Paramilitary Camp', 'UN Compound'],
+                    factory: ['Oil Refinery', 'Sugar Plant', 'Textile Factory'],
+                    trading_post: ['Oil Pipeline Terminal', 'Airport', 'River Port'],
+                    mining_colony: ['Oil Field', 'Gold Mine', 'Gum Arabic Plantation']
+                }
+            }
         }
     }
 };

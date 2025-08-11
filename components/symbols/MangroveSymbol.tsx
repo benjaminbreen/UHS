@@ -22,61 +22,131 @@ const MangroveSymbol: React.FC<MangroveSymbolProps> = React.memo(({
   const elements = [];
   const numTrees = 2 + Math.floor(localRand() * 2);
 
-  for (let i = 0; i < numTrees; i++) {
-    const treeX = x + 5 + localRand() * (size - 10);
-    const trunkHeight = 6 + localRand() * 4;
-    const trunkY = y + size - 4 - trunkHeight;
+  // Water surface with ripples
+  elements.push(
+    <ellipse
+      key="water-surface"
+      cx={x + size/2}
+      cy={y + size - 2}
+      rx={size * 0.45}
+      ry={2}
+      fill="#4a8090"
+      opacity="0.3"
+    />
+  );
 
-    // Prop roots
-    for (let j = 0; j < 3 + Math.floor(localRand() * 3); j++) {
-      const rootAngle = (Math.PI / 2) + (localRand() - 0.5) * 1.5;
-      const rootLength = 4 + localRand() * 3;
+  for (let i = 0; i < numTrees; i++) {
+    const treeX = x + 8 + localRand() * (size - 16);
+    const trunkHeight = 8 + localRand() * 4;
+    const trunkY = y + size - 5 - trunkHeight;
+
+    // Complex aerial prop roots (characteristic of mangroves)
+    const numRoots = 5 + Math.floor(localRand() * 4);
+    for (let j = 0; j < numRoots; j++) {
+      const rootStartY = trunkY + trunkHeight * (0.3 + localRand() * 0.4);
+      const rootAngle = (Math.PI / 3) + (j / numRoots) * (Math.PI / 3) + (localRand() - 0.5) * 0.3;
+      const rootLength = 6 + localRand() * 4;
+      const rootEndX = treeX + Math.cos(rootAngle) * rootLength * (j < numRoots/2 ? -1 : 1);
+      const rootEndY = y + size - 3;
+      
+      // Curved aerial root using quadratic bezier
+      const controlX = (treeX + rootEndX) / 2 + (localRand() - 0.5) * 3;
+      const controlY = rootStartY + 2;
+      
       elements.push(
-        <line
+        <path
           key={`root-${i}-${j}`}
-          x1={treeX}
-          y1={y + size - 4}
-          x2={treeX + Math.cos(rootAngle) * rootLength}
-          y2={y + size - 4 - Math.sin(rootAngle) * rootLength}
-          stroke="#8B7355"
-          strokeWidth="1.2"
+          d={`M ${treeX} ${rootStartY} Q ${controlX} ${controlY}, ${rootEndX} ${rootEndY}`}
+          stroke="#6B5D4F"
+          strokeWidth={1.5 - j * 0.1}
+          fill="none"
+          opacity={0.9}
+        />
+      );
+      
+      // Root reflection in water
+      elements.push(
+        <path
+          key={`root-reflection-${i}-${j}`}
+          d={`M ${treeX} ${y + size - 3} Q ${controlX} ${y + size - 1}, ${rootEndX} ${y + size}`}
+          stroke="#4a6050"
+          strokeWidth={1.2 - j * 0.1}
+          fill="none"
+          opacity={0.2}
         />
       );
     }
 
-    // Trunk
+    // Main trunk
     elements.push(
       <rect 
         key={`trunk-${i}`} 
-        x={treeX - 1} 
+        x={treeX - 1.5} 
         y={trunkY} 
-        width="2" 
+        width="3" 
         height={trunkHeight} 
-        fill="#70543E" 
+        fill="#5C4A3D" 
+        rx="0.5"
       />
     );
 
-    // Canopy
-    const canopyRadius = 4 + localRand() * 2;
+    // Dense mangrove canopy with multiple layers
+    const canopyRadius = 5 + localRand() * 3;
+    const canopyY = trunkY - 1;
+    
+    // Background canopy layer
     elements.push(
-      <circle 
+      <ellipse 
+        key={`canopy-back-${i}`} 
+        cx={treeX} 
+        cy={canopyY} 
+        rx={canopyRadius * 1.2} 
+        ry={canopyRadius * 0.9}
+        fill="#1F5F3F" 
+        opacity="0.9"
+      />
+    );
+    
+    // Main canopy
+    elements.push(
+      <ellipse 
         key={`canopy-${i}`} 
         cx={treeX} 
-        cy={trunkY} 
-        r={canopyRadius} 
-        fill="#2E8B57" 
+        cy={canopyY - 1} 
+        rx={canopyRadius} 
+        ry={canopyRadius * 0.8}
+        fill="#2A7A4F" 
       />
     );
+    
+    // Canopy highlights for depth
     elements.push(
-      <circle 
+      <ellipse 
         key={`canopy-highlight-${i}`} 
         cx={treeX - 1} 
-        cy={trunkY - 1} 
-        r={canopyRadius * 0.5} 
-        fill="#3CB371" 
-        opacity="0.7"
+        cy={canopyY - 2} 
+        rx={canopyRadius * 0.6} 
+        ry={canopyRadius * 0.4}
+        fill="#3FA060" 
+        opacity="0.6"
       />
     );
+    
+    // Small detail leaves
+    for (let k = 0; k < 3; k++) {
+      const leafX = treeX + (localRand() - 0.5) * canopyRadius * 1.5;
+      const leafY = canopyY + (localRand() - 0.5) * canopyRadius;
+      elements.push(
+        <circle
+          key={`leaf-${i}-${k}`}
+          cx={leafX}
+          cy={leafY}
+          r={1.5}
+          fill="#4FB570"
+          opacity="0.7"
+        />
+      );
+    }
   }
 
   return <g filter="url(#symbolShadow)">{elements}</g>;

@@ -46,6 +46,7 @@ import {
   generateVegetation,
   generateStreams,
   generateTerrainStructures,
+  generateMineralDeposits,
 } from './features'; 
 
 import { calculateTileQualities } from './qualities/tileQualityCalculator'; 
@@ -104,6 +105,7 @@ export function proceduralGenerateMap(
   const vegetationNoise = new ValueNoise(seed + 20); // For vegetation spawning
 
   const dateInfo = parseDateString(timeSlice || '1650');
+  console.log(`[Gen] Date info: year=${dateInfo.year}, era=${dateInfo.era}, timeSlice="${timeSlice}"`);
   const culturalZone = mapLocationToCulture(continent || 'Europe', dateInfo.year);
   const regionName = region || Object.keys(GEOGRAPHICAL_DATA[culturalZone as CulturalZone] || {})[0] || 'DefaultRegion';
   const factionData = FACTION_DATA[culturalZone as CulturalZone]?.[regionName]?.[dateInfo.era as HistoricalEra];
@@ -290,13 +292,11 @@ export function proceduralGenerateMap(
             break;
         }
         case MapArchetype.SHOALS:
-            // Creates a noisy, low-lying coastal pattern.
-            // The result is a mix of wetlands, shallows, and small land patches.
-            noiseVal = landNoise.octaveNoise(x * NOISE_SCALE_LANDMASS * 2.0, y * NOISE_SCALE_LANDMASS * 2.0, 5, 0.45, 2.1);
-            // A gradient from more water at edges to more land in center
-            const distFromEdge = Math.min(x, y, MAP_WIDTH_TILES - 1 - x, MAP_HEIGHT_TILES - 1 - y);
-            const edgeFalloff = Math.pow(distFromEdge / (Math.min(MAP_WIDTH_TILES, MAP_HEIGHT_TILES) / 2), 0.5);
-            landThreshold = LAND_THRESHOLD_BASE + 0.25 - (edgeFalloff * 0.2);
+            // Creates mostly water (95%) with small scattered land outcrops (5%)
+            // Land should only be wetlands, beach, cliff, or mangrove
+            noiseVal = landNoise.octaveNoise(x * NOISE_SCALE_LANDMASS * 3.0, y * NOISE_SCALE_LANDMASS * 3.0, 5, 0.45, 2.1);
+            // Much higher threshold to ensure only 5% land
+            landThreshold = LAND_THRESHOLD_BASE + 0.45; // Only the highest noise values become land
             falloff = 1.0;
             break;
         case MapArchetype.OPEN_OCEAN:
@@ -515,7 +515,7 @@ export function proceduralGenerateMap(
   console.log("[Gen] Phase 3: Climate-specific biome modifications - END");
   
   console.log("[Gen] Phase 3.5: Climate-Enhanced Biome Generation - START");
-  generateClimateEnhancedBiomes(tiles, climate, temperatureNoise, humidityNoise, featurePlacementNoise);
+  generateClimateEnhancedBiomes(tiles, climate, archetype, temperatureNoise, humidityNoise, featurePlacementNoise);
   console.log("[Gen] Phase 3.5: Climate-Enhanced Biome Generation - END");
 
 
@@ -542,7 +542,7 @@ export function proceduralGenerateMap(
   if (archetype === MapArchetype.RIVER_PORT) {
     mainRiverPortSource = findEdgeRiverSource(tiles, featurePlacementNoise, determinedHarborSide !== undefined ? determinedHarborSide : 0); 
     if (mainRiverPortSource) {
-        generateEnhancedRiverPath(tiles, mainRiverPortSource, featurePlacementNoise, riverMeanderNoise, riverWidthNoise, archetype, determinedHarborSide, false, true); 
+        generateEnhancedRiverPath(tiles, mainRiverPortSource, featurePlacementNoise, riverMeanderNoise, riverWidthNoise, archetype, determinedHarborSide, false, true, undefined, hasLakes); 
     }
   } 
   
@@ -553,8 +553,8 @@ export function proceduralGenerateMap(
     // Determine which edge is the ocean based on oceanEdgeForDelta
     const deltaOceanEdge = oceanEdgeForDelta !== undefined ? oceanEdgeForDelta : 0;
     
-    // Generate 3-5 major rivers in a fan pattern
-    const numMajorRivers = 3 + Math.floor(featurePlacementNoise.random() * 3);
+    // Generate 5-7 major rivers in a fan pattern for a proper delta
+    const numMajorRivers = 5 + Math.floor(featurePlacementNoise.random() * 3);
     
     // Determine the apex point (where rivers start) - opposite side from ocean
     let apexX = MAP_WIDTH_TILES / 2;
@@ -615,7 +615,7 @@ export function proceduralGenerateMap(
       
       // Generate the river with extra width for delta
       generateEnhancedRiverPath(tiles, riverStart, featurePlacementNoise, riverMeanderNoise, riverWidthNoise, 
-                               archetype, deltaOceanEdge, false, true, deltaOceanEdge);
+                               archetype, deltaOceanEdge, false, true, deltaOceanEdge, hasLakes);
     }
     
     // Generate 2-3 additional smaller rivers
@@ -625,7 +625,7 @@ export function proceduralGenerateMap(
       const riverSource = findEdgeRiverSource(tiles, featurePlacementNoise, edge);
       if (riverSource) {
         generateEnhancedRiverPath(tiles, riverSource, featurePlacementNoise, riverMeanderNoise, riverWidthNoise, 
-                                 archetype, deltaOceanEdge, false, false, deltaOceanEdge);
+                                 archetype, deltaOceanEdge, false, false, deltaOceanEdge, hasLakes);
       }
     }
   }
@@ -640,7 +640,7 @@ export function proceduralGenerateMap(
       const edge = i % 4; // Distribute rivers from different edges
       const riverSource = findEdgeRiverSource(tiles, featurePlacementNoise, edge);
       if (riverSource) {
-        generateEnhancedRiverPath(tiles, riverSource, featurePlacementNoise, riverMeanderNoise, riverWidthNoise, archetype, undefined, false, true);
+        generateEnhancedRiverPath(tiles, riverSource, featurePlacementNoise, riverMeanderNoise, riverWidthNoise, archetype, undefined, false, true, undefined, hasLakes);
       }
     }
     
@@ -723,7 +723,7 @@ export function proceduralGenerateMap(
       }
       
       const terminatedInWater = generateEnhancedRiverPath(
-        tiles, source, featurePlacementNoise, riverMeanderNoise, riverWidthNoise, archetype, determinedHarborSide, false, isThisRiverDesignatedWide, oceanEdgeForDeltaRiver
+        tiles, source, featurePlacementNoise, riverMeanderNoise, riverWidthNoise, archetype, determinedHarborSide, false, isThisRiverDesignatedWide, oceanEdgeForDeltaRiver, hasLakes
       );
 
       if (archetype === MapArchetype.FRESHWATER_LAKE && terminatedInWater) {
@@ -738,7 +738,7 @@ export function proceduralGenerateMap(
           const edgeSource = findEdgeRiverSource(tiles, featurePlacementNoise, edgeSidesToTry[i]);
           if (edgeSource && tiles[edgeSource.y][edgeSource.x].biome !== BiomeType.FRESHWATER_LAKE) {
               const terminatedInLake = generateEnhancedRiverPath(
-                  tiles, edgeSource, featurePlacementNoise, riverMeanderNoise, riverWidthNoise, archetype, undefined, false, false 
+                  tiles, edgeSource, featurePlacementNoise, riverMeanderNoise, riverWidthNoise, archetype, undefined, false, false, undefined, hasLakes
               );
               if(terminatedInLake) riversToLakeCount++; 
           }
@@ -795,8 +795,15 @@ export function proceduralGenerateMap(
   console.log("[Gen] Phase 9.6: Stream Generation - END");
 
   console.log("[Gen] Phase 10: Urban area generation - START");
-   if (generationParams?.economicActivityLevel !== 0) {
-      generateUrbanAreas(tiles, featurePlacementNoise, archetype, determinedHarborSide, generateLargeCityFlag, generationParams?.economicActivityLevel, dateInfo.year, localArea);
+  console.log(`[Gen] Urban generation check: economicActivityLevel=${generationParams?.economicActivityLevel}, localArea="${localArea}", region="${region}"`);
+  
+  // Generate urban areas unless economicActivityLevel is explicitly 0
+  if (generationParams?.economicActivityLevel === 0) {
+      console.log("[Gen] Skipping urban generation due to economicActivityLevel = 0");
+  } else {
+      console.log(`[Gen] Proceeding with urban generation (economicActivityLevel=${generationParams?.economicActivityLevel || 'default'})`);
+      // Pass both region (for historical cities) and localArea (for procedural cities)
+      generateUrbanAreas(tiles, featurePlacementNoise, archetype, determinedHarborSide, generateLargeCityFlag, generationParams?.economicActivityLevel, dateInfo.year, region, localArea, timeSlice, dominantPower, culturalZone);
   }
   console.log("[Gen] Phase 10: Urban area generation - END");
   
@@ -813,13 +820,20 @@ export function proceduralGenerateMap(
   calculateTileQualities(tiles, climate, archetype, qualitiesNoise, microVariationNoise);
   console.log("[Gen] Phase 11: Tile qualities calculation - END");
   
+  console.log("[Gen] Phase 11.1: Mineral deposit generation - START");
+  generateMineralDeposits(mapDataObject, qualitiesNoise);
   const mineralDeposits = tiles.flat().filter(t => t.mineralDeposit);
-    if(mineralDeposits.length > 0) {
-        console.log(`[Gen] Mineral Deposits Spawned:`);
-        mineralDeposits.forEach(t => {
-            console.log(`  - ${t.mineralDeposit!.metalId} at (${t.x}, ${t.y}) with quantity ${t.mineralDeposit!.quantity}`);
-        });
-    }
+  if(mineralDeposits.length > 0) {
+      console.log(`[Gen] Mineral Deposits Spawned: ${mineralDeposits.length} total`);
+      const byType: Record<string, number> = {};
+      mineralDeposits.forEach(t => {
+          byType[t.mineralDeposit!.metalId] = (byType[t.mineralDeposit!.metalId] || 0) + 1;
+      });
+      Object.entries(byType).forEach(([type, count]) => {
+          console.log(`  - ${type}: ${count} deposits`);
+      });
+  }
+  console.log("[Gen] Phase 11.1: Mineral deposit generation - END");
 
 
   console.log("[Gen] Phase 11.5: POI Generation (Post-Qualities) - START");
@@ -830,8 +844,23 @@ export function proceduralGenerateMap(
   console.log("[Gen] Phase 11.5: POI Generation (Post-Qualities) - END");
   
   console.log("[Gen] Phase 11.5b: Terrain Structure Generation - START");
-  if (generationParams?.economicActivityLevel !== 0) {
-    generateTerrainStructures(mapDataObject, featurePlacementNoise, region, societalProfile);
+  // Only skip structure generation if economicActivityLevel is explicitly 0
+  if (generationParams?.economicActivityLevel !== 0 || generationParams?.economicActivityLevel === undefined) {
+    // Check if the map has cities by scanning for city biomes
+    let hasCities = false;
+    for (const row of tiles) {
+      for (const tile of row) {
+        if (tile.biome === BiomeType.CITY_CENTER || 
+            tile.biome === BiomeType.DENSE_CITY || 
+            tile.biome === BiomeType.LOW_DENSITY_CITY) {
+          hasCities = true;
+          break;
+        }
+      }
+      if (hasCities) break;
+    }
+    console.log(`[Gen] Map has cities: ${hasCities}`);
+    generateTerrainStructures(mapDataObject, featurePlacementNoise, region, societalProfile, hasCities);
   }
   console.log("[Gen] Phase 11.5b: Terrain Structure Generation - END");
 
@@ -844,35 +873,99 @@ export function proceduralGenerateMap(
   console.log("[Gen] Phase 11.7: Vegetation Generation - END");
   
   console.log("[Gen] Phase 11.8: Animal & NPC Spawning - START");
-  if (generationParams?.economicActivityLevel !== 0) {
+  // Only skip animal/NPC generation if economicActivityLevel is explicitly 0
+  if (generationParams?.economicActivityLevel !== 0 || generationParams?.economicActivityLevel === undefined) {
     mapDataObject.animals = generateAnimalsForMap(mapDataObject, animalNoise);
     mapDataObject.npcs = generateNpcsForStandardMap(mapDataObject, climate, timeSlice || '1650', continent || 'Europe', npcNoise, region, localArea);
   }
   console.log("[Gen] Phase 11.8: Animal & NPC Spawning - END");
 
   console.log("[Gen] Phase 11.9: Road and Path Network Generation - START");
-  if (generationParams?.economicActivityLevel !== 0) {
+  // Only skip road generation if economicActivityLevel is explicitly 0
+  if (generationParams?.economicActivityLevel !== 0 || generationParams?.economicActivityLevel === undefined) {
     generateRoadAndPathNetwork(mapDataObject, roadPathNoise); 
   }
   console.log("[Gen] Phase 11.9: Road and Path Network Generation - END");
 
-  // Fallback water source for Arid maps
-  if (archetype !== MapArchetype.ALL_LAND && climate === ClimateType.ARID) {
-      let hasWater = tiles.flat().some(t => !t.isLand);
-      if (!hasWater) {
-          console.log("[Gen] Arid map has no water, adding a fallback oasis.");
-          let placedOasis = false;
-          for (let attempts = 0; attempts < 100; attempts++) {
-              const x = Math.floor(featurePlacementNoise.random() * MAP_WIDTH_TILES);
-              const y = Math.floor(featurePlacementNoise.random() * MAP_HEIGHT_TILES);
+  // Desert water restrictions: small lakes and oases only
+  if (climate === ClimateType.ARID) {
+      // Remove any rivers that might have been generated
+      tiles.flat().forEach(tile => {
+          if (tile.biome === BiomeType.RIVER || tile.biome === BiomeType.MAJOR_RIVER) {
+              // Convert rivers back to land
+              tile.isLand = true;
+              tile.biome = BiomeType.DESERT;
+              tile.altitude = Math.max(ALTITUDE_LEVELS.BEACH, tile.altitude);
+          }
+      });
+      
+      // Add 1-3 small water bodies (lakes)
+      const numWaterBodies = 1 + Math.floor(featurePlacementNoise.random() * 3); // 1-3 lakes
+      console.log(`[Gen] Creating ${numWaterBodies} small water bodies for arid map`);
+      
+      for (let lakeIdx = 0; lakeIdx < numWaterBodies; lakeIdx++) {
+          for (let attempts = 0; attempts < 50; attempts++) {
+              const x = Math.floor(10 + featurePlacementNoise.random() * (MAP_WIDTH_TILES - 20));
+              const y = Math.floor(10 + featurePlacementNoise.random() * (MAP_HEIGHT_TILES - 20));
               const tile = tiles[y][x];
-              if (tile.isLand && tile.biome === BiomeType.DESERT && tile.altitude < 0.2) {
-                  tile.biome = BiomeType.OASIS;
+              
+              if (tile.isLand && tile.altitude < 0.3) {
+                  // Create a small lake (1-3 tiles)
+                  const lakeSize = 1 + Math.floor(featurePlacementNoise.random() * 3); // 1-3 tiles
+                  tile.biome = BiomeType.FRESHWATER_LAKE;
                   tile.isLand = false;
-                  tile.altitude = ALTITUDE_LEVELS.SEA;
-                  placedOasis = true;
+                  tile.altitude = ALTITUDE_LEVELS.SEA * 0.5;
+                  
+                  if (lakeSize > 1) {
+                      // Add adjacent tiles for larger lakes
+                      const directions = [[0,1], [1,0], [0,-1], [-1,0]];
+                      let tilesAdded = 1;
+                      for (const [dx, dy] of directions) {
+                          if (tilesAdded >= lakeSize) break;
+                          const nx = x + dx;
+                          const ny = y + dy;
+                          if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
+                              const neighbor = tiles[ny][nx];
+                              if (neighbor.isLand && neighbor.altitude < 0.3) {
+                                  neighbor.biome = BiomeType.FRESHWATER_LAKE;
+                                  neighbor.isLand = false;
+                                  neighbor.altitude = ALTITUDE_LEVELS.SEA * 0.5;
+                                  tilesAdded++;
+                              }
+                          }
+                      }
+                  }
                   break;
               }
+          }
+      }
+      
+      // Add 1-5 oases near water
+      const numOases = 1 + Math.floor(featurePlacementNoise.random() * 5); // 1-5 oases
+      console.log(`[Gen] Creating ${numOases} oases near water for arid map`);
+      
+      const waterTiles = tiles.flat().filter(t => !t.isLand);
+      for (let oasisIdx = 0; oasisIdx < numOases && waterTiles.length > 0; oasisIdx++) {
+          const waterTile = waterTiles[Math.floor(featurePlacementNoise.random() * waterTiles.length)];
+          
+          // Find a nearby land tile for oasis
+          for (let radius = 1; radius <= 3; radius++) {
+              let placed = false;
+              for (let dy = -radius; dy <= radius && !placed; dy++) {
+                  for (let dx = -radius; dx <= radius && !placed; dx++) {
+                      if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue; // Only check border
+                      const nx = waterTile.x + dx;
+                      const ny = waterTile.y + dy;
+                      if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
+                          const neighbor = tiles[ny][nx];
+                          if (neighbor.isLand && neighbor.biome === BiomeType.DESERT) {
+                              neighbor.biome = BiomeType.OASIS;
+                              placed = true;
+                          }
+                      }
+                  }
+              }
+              if (placed) break;
           }
       }
   }

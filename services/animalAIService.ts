@@ -99,7 +99,12 @@ function getTerrainPreference(animal: AnimalEntity, tile: Tile, map: MapData): n
     if (waterBiomes.includes(tile.biome)) {
         return 0.01; // Most land animals avoid water
     }
-    if (tile.biome === BiomeType.ACTIVE_LAVA) return 0;
+    
+    // Impassable terrain - animals cannot traverse these
+    const impassableBiomes = [BiomeType.ACTIVE_LAVA, BiomeType.CLIFF, BiomeType.MOUNTAIN, BiomeType.HIGH_PEAK];
+    if (impassableBiomes.includes(tile.biome)) {
+        return 0; // Animals cannot walk on cliffs, mountains, or lava
+    }
     
     return 0.5; // Neutral preference for other land biomes
 }
@@ -144,12 +149,31 @@ export function calculateAnimalUpdate(
     let nextPos = { x: animal.x, y: animal.y };
     const allNeighbors = getNeighbors(animal.x, animal.y, map);
     
+    // Define city biomes that wild animals should avoid
+    const cityBiomes = [
+        BiomeType.HAMLET,
+        BiomeType.LOW_DENSITY_CITY,
+        BiomeType.DENSE_CITY,
+        BiomeType.URBAN,
+        BiomeType.PALACE,
+        BiomeType.MARKETPLACE,
+        BiomeType.GOVERNMENT_DISTRICT,
+        BiomeType.CITY_CENTER
+    ];
+    
     let walkableNeighbors: Tile[];
 
     if (animalData.habitat === 'aquatic') {
         walkableNeighbors = allNeighbors.filter(n => !n.isLand && !isNearLand(n.x, n.y, map.tiles, 2));
     } else {
-        walkableNeighbors = allNeighbors.filter(n => n.isLand || n.biome === BiomeType.SHOALS_TILE);
+        // For land animals, filter out water AND city tiles (unless domestic)
+        walkableNeighbors = allNeighbors.filter(n => {
+            const isWalkableTerrain = n.isLand || n.biome === BiomeType.SHOALS_TILE;
+            // Wild animals (non-domestic) should avoid city tiles
+            const isCityTile = cityBiomes.includes(n.biome);
+            const canEnterCity = animal.isDomestic || !isCityTile;
+            return isWalkableTerrain && canEnterCity;
+        });
     }
     
     if(walkableNeighbors.length === 0) {

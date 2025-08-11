@@ -552,6 +552,315 @@ export const NORTH_AMERICAN_PRE_COLUMBIAN_FACTIONS: FactionFile = {
                     palace: ["Sachem's House"]
                 }
             }
+        },
+        "Long Island": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Lenape Peoples',
+                dominantPowerDescription: 'Coastal Algonquian peoples skilled in fishing, shellfishing, and farming, producing wampum for trade.',
+                eraContextSentence: 'an age of coastal villages and wampum trade, where the Lenape fish the rich waters.',
+                allegianceGroups: [
+                    { name: 'Lenape Peoples', type: 'primary', description: 'The indigenous inhabitants of the island.'},
+                    { name: 'Coastal Traders', type: 'secondary', description: 'Neighboring peoples who trade along the coast.' }
+                ],
+                structureNames: {
+                    fortress: ['Palisaded Village'],
+                    mill: ['Fish Weir', 'Wampum Workshop'],
+                    holy_site: ['Sacred Grove', 'Ceremonial Ground']
+                }
+            }
+        },
+        "Texas Hill Country": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Coahuiltecan Peoples',
+                dominantPowerDescription: 'Hunter-gatherer bands adapted to the semi-arid landscape, following seasonal resources.',
+                eraContextSentence: 'an age of buffalo hunts and prickly pear harvests in the limestone hills.',
+                allegianceGroups: [
+                    { name: 'Coahuiltecan Peoples', type: 'primary', description: 'The indigenous bands of the region.'},
+                    { name: 'Apache Bands', type: 'secondary', description: 'Mobile groups from the north.' }
+                ],
+                structureNames: {
+                    fortress: ['Rock Shelter', 'Hilltop Camp'],
+                    holy_site: ['Sacred Spring', 'Rock Art Site']
+                }
+            }
+        },
+        "Newfoundland Grand Banks": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Maritime Archaic Peoples',
+                dominantPowerDescription: 'Early maritime hunters specializing in seal, walrus, and deep-sea fishing.',
+                eraContextSentence: 'an age of seal hunters and ocean voyagers in the cold northern seas.',
+                allegianceGroups: [
+                    { name: 'Maritime Archaic Peoples', type: 'primary', description: 'The ancient maritime hunters.'},
+                    { name: 'Dorset Culture', type: 'secondary', description: 'Arctic peoples expanding southward.' }
+                ],
+                structureNames: {
+                    fortress: ['Coastal Camp'],
+                    mill: ['Fish Drying Rack'],
+                    holy_site: ['Burial Mound']
+                }
+            }
+        },
+        "Northern California": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Yurok and Karuk Peoples',
+                dominantPowerDescription: 'Sophisticated salmon-fishing cultures along the Klamath River with complex wealth systems and annual World Renewal ceremonies.',
+                eraContextSentence: 'the land of the salmon people, where dentalium shells serve as currency and redwood canoes ply the rivers.',
+                allegianceGroups: [
+                    { name: 'Yurok Nation', type: 'primary', description: 'Lower Klamath River people with elaborate law codes.' },
+                    { name: 'Karuk People', type: 'secondary', description: 'Upriver nation known for basketry and ceremonies.' },
+                    { name: 'Hupa Valley Tribes', type: 'secondary', description: 'Trinity River peoples.' },
+                    { name: 'Tolowa', type: 'secondary', description: 'Coastal peoples to the north.' }
+                ],
+                structureNames: {
+                    fortress: ['Hillside Village', 'River Settlement', 'Fortified Ridge'],
+                    mill: ['Acorn Processing Site', 'Salmon Weir', 'Fish Smokehouse'],
+                    holy_site: ['Jump Dance Ground', 'Sweat House', 'World Renewal Site', 'Medicine Rock'],
+                    palace: ['Wealthy Family House', 'Ceremonial House', 'Chiefs Plank House']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Pomo Confederacy',
+                dominantPowerDescription: 'Multiple triblets around Clear Lake creating the finest basketry in North America and managing controlled burns.',
+                eraContextSentence: 'the age of master basket weavers, where feathered baskets are treasures and controlled fires maintain oak groves.',
+                allegianceGroups: [
+                    { name: 'Eastern Pomo', type: 'primary', description: 'Clear Lake triblets with island settlements.' },
+                    { name: 'Coastal Pomo', type: 'secondary', description: 'Redwood coast peoples.' },
+                    { name: 'Wappo', type: 'secondary', description: 'Napa Valley inhabitants.' },
+                    { name: 'Lake Miwok', type: 'secondary', description: 'Southern neighbors.' }
+                ],
+                structureNames: {
+                    fortress: ['Triblet Center', 'Lake Island Village', 'Hill Fort'],
+                    mill: ['Acorn Granary', 'Fish Trap Complex', 'Processing Ground'],
+                    holy_site: ['Dance House', 'Kuksu Ceremonial Ground', 'Sacred Spring'],
+                    palace: ['Chief\'s Roundhouse', 'Council Lodge'],
+                    trading_post: ['Shell Bead Workshop', 'Obsidian Exchange', 'Basket Market']
+                }
+            }
+        },
+        "Central California Coast": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Ohlone Tribes',
+                dominantPowerDescription: 'Dozens of independent tribelets speaking eight languages, living in one of the world\'s most bountiful environments.',
+                eraContextSentence: 'the blessed coast, where shellfish, acorns, and game abound in a land of eternal spring.',
+                allegianceGroups: [
+                    { name: 'Rumsen Ohlone', type: 'primary', description: 'Monterey Bay area peoples.' },
+                    { name: 'Tamien', type: 'secondary', description: 'Santa Clara Valley inhabitants.' },
+                    { name: 'Chochenyo', type: 'secondary', description: 'East Bay triblets.' },
+                    { name: 'Esselen', type: 'secondary', description: 'Big Sur coastal peoples.' }
+                ],
+                structureNames: {
+                    fortress: ['Shellmound Village', 'Bay Shore Settlement', 'Hill Refuge'],
+                    mill: ['Acorn Processing Area', 'Shellfish Processing Site'],
+                    holy_site: ['Sacred Grove', 'Dance Circle', 'Ancestor Mound'],
+                    palace: ['Triblet Leader House', 'Council Shelter']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Bay Area Triblets',
+                dominantPowerDescription: 'Independent villages linked by trade networks, with elaborate shell bead currencies and seasonal rounds.',
+                eraContextSentence: 'the time of the great shellmounds, where generations of feasting build monuments along the bay.',
+                allegianceGroups: [
+                    { name: 'Ramaytush', type: 'primary', description: 'San Francisco peninsula peoples.' },
+                    { name: 'Yokuts Traders', type: 'trade_company', description: 'Central Valley trading partners.' },
+                    { name: 'Coast Miwok', type: 'secondary', description: 'North Bay neighbors.' },
+                    { name: 'Salinan', type: 'secondary', description: 'Southern coastal peoples.' }
+                ],
+                structureNames: {
+                    fortress: ['Mounded Village', 'Tule House Settlement', 'Coastal Camp'],
+                    mill: ['Seed Grinding Area', 'Acorn Leaching Station'],
+                    holy_site: ['Kuksu Lodge', 'Mourning Ceremony Ground', 'Vision Quest Site'],
+                    trading_post: ['Shell Bead Production Site', 'Trade Gathering Place']
+                }
+            }
+        },
+        "Southern California": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Chumash Chiefdoms',
+                dominantPowerDescription: 'Maritime chiefdoms with plank canoes, shell money, and astronomical knowledge, controlling Channel Islands trade.',
+                eraContextSentence: 'the realm of the tomol builders, where plank canoes cross dangerous channels to sacred islands.',
+                allegianceGroups: [
+                    { name: 'Island Chumash', type: 'primary', description: 'Channel Islands maritime chiefs.' },
+                    { name: 'Mainland Chumash', type: 'secondary', description: 'Coastal and inland villages.' },
+                    { name: 'Tongva', type: 'secondary', description: 'Los Angeles basin peoples.' },
+                    { name: 'Tataviam', type: 'secondary', description: 'Interior mountain peoples.' }
+                ],
+                structureNames: {
+                    fortress: ['Cliff Village', 'Island Settlement', 'Fortified Town'],
+                    mill: ['Acorn Storage Complex', 'Fish Processing Camp'],
+                    holy_site: ['Solstice Observatory', 'Rock Art Gallery', 'Alchuklash Sacred Enclosure'],
+                    palace: ['Wot\'s House', 'Chief\'s Compound'],
+                    trading_post: ['Shell Bead Mint', 'Steatite Quarry', 'Tomol Harbor']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Gabrielino-Tongva',
+                dominantPowerDescription: 'Wealthy chiefdoms in the Los Angeles basin, with Catalina Island as a religious and trade center.',
+                eraContextSentence: 'the age of island pilgrims, where sacred stones from Catalina carry power throughout the southland.',
+                allegianceGroups: [
+                    { name: 'Tongva Chiefs', type: 'primary', description: 'Los Angeles basin rulers.' },
+                    { name: 'Pimuvit (Catalina)', type: 'secondary', description: 'Sacred island controllers.' },
+                    { name: 'Serrano', type: 'secondary', description: 'Mountain peoples.' },
+                    { name: 'Luiseño', type: 'secondary', description: 'Southern neighbors.' }
+                ],
+                structureNames: {
+                    fortress: ['Yaanga (LA Village)', 'Coastal Rancheria', 'Mountain Refuge'],
+                    mill: ['Chia Seed Processing', 'Acorn Granary Complex'],
+                    holy_site: ['Chingichngish Temple', 'Jimsonweed Ceremony Ground', 'Mourning Pole'],
+                    palace: ['Tomyaar (Chief) House', 'Council Enclosure'],
+                    trading_post: ['Steatite Workshop', 'Shell Exchange', 'Asphaltum Trading Post']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Mission Indians',
+                dominantPowerDescription: 'Native peoples forced into Spanish missions, maintaining hidden traditions while laboring in colonial system.',
+                eraContextSentence: 'the mission bells toll, as ancient peoples become neophytes in a new and harsh world.',
+                allegianceGroups: [
+                    { name: 'Spanish Missions', type: 'primary', description: 'Franciscan colonial system.' },
+                    { name: 'Mission Indians', type: 'secondary', description: 'Converted native peoples.' },
+                    { name: 'Gentile Villages', type: 'rebel', description: 'Unconverted interior peoples.' },
+                    { name: 'Runaway Neophytes', type: 'rebel', description: 'Escaped mission Indians.' }
+                ],
+                structureNames: {
+                    fortress: ['Mission Presidio', 'Spanish Fort', 'Fortified Mission'],
+                    mill: ['Mission Mill', 'Wine Press', 'Tannery'],
+                    holy_site: ['Mission Church', 'Native Chapel', 'Hidden Ceremony Site'],
+                    palace: ['Father President Quarters', 'Presidio Commander House'],
+                    trading_post: ['Mission Warehouse', 'Hide and Tallow Trade']
+                }
+            }
+        },
+        "Central America": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Olmec Civilization',
+                dominantPowerDescription: 'The mother culture of Mesoamerica, creating colossal heads and establishing patterns for later civilizations.',
+                eraContextSentence: 'the dawn of Mesoamerican civilization, where jade and obsidian flow through trade networks.',
+                allegianceGroups: [
+                    { name: 'San Lorenzo', type: 'primary', description: 'Major Olmec center.' },
+                    { name: 'La Venta', type: 'secondary', description: 'Religious and political center.' },
+                    { name: 'Tres Zapotes', type: 'secondary', description: 'Later Olmec site.' },
+                    { name: 'Mokaya Culture', type: 'secondary', description: 'Pacific coast peoples.' }
+                ],
+                structureNames: {
+                    fortress: ['Ceremonial Center', 'Elite Compound', 'Earthen Pyramid'],
+                    mill: ['Cacao Processing', 'Maize Grinding Plaza'],
+                    holy_site: ['Colossal Head Plaza', 'Jade Workshop Temple', 'Sacred Cave'],
+                    palace: ['Ruler\'s Acropolis', 'Noble Compound'],
+                    quarry: ['Basalt Quarry', 'Jade Source', 'Obsidian Mine']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Maya City-States',
+                dominantPowerDescription: 'Competing Maya kingdoms with hieroglyphic writing, astronomy, and monumental architecture.',
+                eraContextSentence: 'the Classic Maya flowering, where god-kings record their deeds in stone and time itself is sacred.',
+                allegianceGroups: [
+                    { name: 'Tikal', type: 'primary', description: 'Powerful lowland kingdom.' },
+                    { name: 'Calakmul', type: 'secondary', description: 'Tikal\'s great rival.' },
+                    { name: 'Copán', type: 'secondary', description: 'Southeastern Maya center.' },
+                    { name: 'Palenque', type: 'secondary', description: 'Western Maya kingdom.' }
+                ],
+                structureNames: {
+                    fortress: ['Fortified Acropolis', 'Defensive Wall', 'Watchtower'],
+                    mill: ['Cacao Orchard', 'Maize Terrace', 'Cotton Workshop'],
+                    holy_site: ['Temple Pyramid', 'Ball Court', 'Royal Tomb', 'Astronomical Observatory'],
+                    palace: ['Royal Palace', 'Throne Room', 'Scribal School'],
+                    trading_post: ['Market Plaza', 'Long-Distance Trade Depot', 'Jade Workshop']
+                },
+                courtRoles: {
+                    palace: ['Ajaw (King)', 'Sajal (War Captain)', 'Itz\'at (Scribe)', 'Aj K\'uhuun (Priest)', 'Royal Astronomer']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Spanish Colonial Central America',
+                dominantPowerDescription: 'The Captaincy General of Guatemala under Spanish rule, with surviving Maya peoples resisting or adapting.',
+                eraContextSentence: 'the colonial yoke descends, as conquistadors seek gold and souls in the tropical lands.',
+                allegianceGroups: [
+                    { name: 'Spanish Crown', type: 'primary', description: 'Colonial government from Guatemala City.' },
+                    { name: 'Maya Communities', type: 'secondary', description: 'Indigenous peoples under Spanish rule.' },
+                    { name: 'Itza Kingdom', type: 'rebel', description: 'Last independent Maya state at Lake Petén.' },
+                    { name: 'Church Orders', type: 'secondary', description: 'Franciscans and Dominicans.' }
+                ],
+                structureNames: {
+                    fortress: ['Spanish Fort', 'Colonial Presidio', 'Fortified Town'],
+                    mill: ['Sugar Mill', 'Indigo Processing', 'Cacao Plantation'],
+                    holy_site: ['Cathedral', 'Mission Church', 'Hidden Maya Shrine'],
+                    palace: ['Governor\'s Palace', 'Bishop\'s Residence', 'Hacienda House'],
+                    trading_post: ['Colonial Market', 'Indigo Warehouse', 'Cacao Export House']
+                }
+            }
+        },
+        "The Caribbean": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Taíno Cacicazgos',
+                dominantPowerDescription: 'Arawakan-speaking peoples organized in chiefdoms across the Greater Antilles, with complex societies and ball courts.',
+                eraContextSentence: 'the island paradise, where caciques rule from ceremonial plazas and zemis hold spiritual power.',
+                allegianceGroups: [
+                    { name: 'Hispaniola Caciques', type: 'primary', description: 'Powerful chiefs of the largest island.' },
+                    { name: 'Borikén (Puerto Rico)', type: 'secondary', description: 'Eastern island chiefdoms.' },
+                    { name: 'Cuba Caciques', type: 'secondary', description: 'Western island rulers.' },
+                    { name: 'Jamaica Caciques', type: 'secondary', description: 'Central island chiefs.' }
+                ],
+                structureNames: {
+                    fortress: ['Hilltop Village', 'Coastal Settlement', 'Fortified Cacique Town'],
+                    mill: ['Cassava Processing Area', 'Cotton Workshop'],
+                    holy_site: ['Ceremonial Plaza', 'Ball Court', 'Zemi Shrine', 'Sacred Cave'],
+                    palace: ['Cacique Bohío', 'Caney (Chief House)'],
+                    trading_post: ['Canoe Harbor', 'Inter-Island Trade Beach']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Island Confederations',
+                dominantPowerDescription: 'Complex alliances between Taíno, Kalinago, and other peoples, with extensive maritime trade networks.',
+                eraContextSentence: 'the age of island navigators, where massive canoes connect distant shores and shells become wealth.',
+                allegianceGroups: [
+                    { name: 'Greater Antilles Taíno', type: 'primary', description: 'Dominant agricultural chiefdoms.' },
+                    { name: 'Kalinago (Caribs)', type: 'secondary', description: 'Lesser Antilles warriors.' },
+                    { name: 'Lucayan', type: 'secondary', description: 'Bahamas peoples.' },
+                    { name: 'Guanahatabey', type: 'secondary', description: 'Western Cuba hunter-gatherers.' }
+                ],
+                structureNames: {
+                    fortress: ['Cliff Refuge', 'Island Stronghold', 'Protected Bay Village'],
+                    mill: ['Manioc Garden', 'Fish Drying Platform'],
+                    holy_site: ['Batey (Ceremonial Plaza)', 'Cohoba Ceremony House', 'Ancestor Cave'],
+                    palace: ['Paramount Cacique Residence', 'Council House'],
+                    trading_post: ['Shell Workshop', 'Canoe Building Site', 'Trade Beach']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Spanish Caribbean Empire',
+                dominantPowerDescription: 'Spain\'s first American colonies, with decimated native populations replaced by African slaves on sugar plantations.',
+                eraContextSentence: 'the sugar islands, where enslaved Africans toil under the tropical sun to sweeten European tea.',
+                allegianceGroups: [
+                    { name: 'Spanish Crown', type: 'primary', description: 'Colonial government from Santo Domingo.' },
+                    { name: 'Plantation Owners', type: 'trade_company', description: 'Sugar and tobacco barons.' },
+                    { name: 'Maroons', type: 'rebel', description: 'Escaped slaves in mountain communities.' },
+                    { name: 'Pirates', type: 'rebel', description: 'Buccaneers and corsairs.' }
+                ],
+                structureNames: {
+                    fortress: ['Spanish Fort', 'Coastal Battery', 'Pirate Haven'],
+                    mill: ['Sugar Mill', 'Rum Distillery', 'Tobacco Shed'],
+                    holy_site: ['Cathedral', 'Slave Chapel', 'Maroon Sacred Ground'],
+                    palace: ['Governor\'s Palace', 'Plantation Great House', 'Viceroy Residence'],
+                    trading_post: ['Slave Market', 'Sugar Warehouse', 'Contraband Cove']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'Colonial Caribbean',
+                dominantPowerDescription: 'British, French, Spanish, Dutch, and American colonies compete for sugar wealth as slavery gives way to other labor systems.',
+                eraContextSentence: 'the age of empire and emancipation, where freed slaves seek dignity amid continuing exploitation.',
+                allegianceGroups: [
+                    { name: 'British Empire', type: 'primary', description: 'Dominant naval and economic power.' },
+                    { name: 'Spanish Cuba', type: 'secondary', description: 'Last major Spanish colony.' },
+                    { name: 'French Haiti', type: 'rebel', description: 'First Black republic after revolution.' },
+                    { name: 'United States', type: 'secondary', description: 'Growing hemispheric power.' }
+                ],
+                structureNames: {
+                    fortress: ['Naval Base', 'Colonial Fort', 'Coastal Defense'],
+                    factory: ['Steam Sugar Mill', 'Rum Factory', 'Coffee Processing'],
+                    trading_post: ['Steamship Port', 'Railway Terminal', 'Cable Station'],
+                    palace: ['Colonial Governor House', 'Planter Mansion'],
+                    mining_colony: ['Bauxite Mine', 'Guano Island']
+                }
+            }
         }
     }
 };

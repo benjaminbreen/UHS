@@ -2,11 +2,13 @@
  * components/TerrainStructureModal.tsx - A detailed modal for terrain structures.
  */
 import React, { useMemo } from 'react';
-import { TerrainStructure, MapData, Tile, BiomeType, Season, TimeOfDay, NpcEntity } from '../types';
+import { TerrainStructure, MapData, Tile, BiomeType, Season, TimeOfDay, NpcEntity, HistoricalEra } from '../types';
 import { calculatePrices } from '../services/economyService';
 import { STRUCTURE_BLUEPRINTS } from '../constants/index';
+import { getPrimaryIndustry, IndustryData } from '../constants/gameData/economicSectors';
 import TerrainStructureBanner from './TerrainStructureBanner';
 import GovernmentDistrictModal from './GovernmentDistrictModal';
+import FarmModal from './FarmModal';
 
 
 // Helper to find the nearest urban center to a given point.
@@ -44,6 +46,20 @@ interface TerrainStructureModalProps {
 
 const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({ structure, mapData, npcs, onClose, gameTimeHours, season, playerCharacter, currentLocation, formattedDate }) => {
     
+    // Special handling for farms
+    if (structure.structureType === 'farm') {
+        return (
+            <FarmModal
+                structure={structure}
+                mapData={mapData}
+                npcs={npcs}
+                onClose={onClose}
+                gameTimeHours={gameTimeHours}
+                season={season}
+            />
+        );
+    }
+    
     // Special handling for government districts
     if (structure.structureType === 'government_district' && playerCharacter && currentLocation && formattedDate) {
         const tileAtLocation = mapData.tiles?.find(t => t.x === structure.location[0] && t.y === structure.location[1]);
@@ -75,6 +91,41 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({ structure
 
     const specializationDetails = useMemo(() => {
         switch (structureType) {
+            case 'factory':
+                // Get region-appropriate industry
+                const era = mapData.era || HistoricalEra.MODERN_ERA;
+                const region = mapData.mapAreaName || 'Unknown';
+                const industry: IndustryData | null = getPrimaryIndustry(era, region);
+                
+                if (industry) {
+                    return (
+                        <div>
+                            <h4 className="text-base font-semibold text-amber-300 mb-2">{industry.name}</h4>
+                            <div className="text-xs space-y-1">
+                                <p className="text-slate-300 italic mb-2">{industry.description}</p>
+                                {industry.products && (
+                                    <p><strong>Products:</strong> {industry.products.join(', ')}</p>
+                                )}
+                                {industry.requiredResources && (
+                                    <p><strong>Resources Needed:</strong> {industry.requiredResources.join(', ')}</p>
+                                )}
+                                <p><strong>Workers:</strong> {industry.typicalJobs.slice(0, 3).join(', ')}</p>
+                                <p><strong>Economic Role:</strong> {economicRole || 'Processing'}</p>
+                            </div>
+                        </div>
+                    );
+                } else {
+                    return (
+                        <div>
+                            <h4 className="text-base font-semibold text-amber-300 mb-2">Factory</h4>
+                            <div className="text-xs space-y-1">
+                                <p><strong>Type:</strong> General Manufacturing</p>
+                                <p><strong>Economic Role:</strong> {economicRole || 'Processing'}</p>
+                                <p><strong>Personnel:</strong> Attracts {npcAnchor || 'factory_workers'}</p>
+                            </div>
+                        </div>
+                    );
+                }
             case 'mining_colony':
                 if (!mineralDeposits) return null;
                 const oreType = Object.keys(mineralDeposits)[0] || 'UNKNOWN_ORE';

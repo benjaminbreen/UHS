@@ -38,9 +38,9 @@ const EstuarySymbol: React.FC<EstuarySymbolProps> = React.memo(({ x, y, size, se
         </g>
     );
 
-    // Bird element - only spawn occasionally (roughly 1 in 6 estuary tiles)
+    // Bird element - only spawn occasionally (roughly 1 in 12 estuary tiles)
     let birdElement = null;
-    if ((tileX + tileY + Math.floor(seed/10)) % 6 === 0) {
+    if ((tileX + tileY + Math.floor(seed/10)) % 22 === 0) {
         const animationDuration = 15 + (localRand() * 10); // Slower
         const animationDelay = -(localRand() * animationDuration); 
         const scaleVariation = 0.5 + (localRand() * 1.0); // More size variation (0.5 to 1.5) for height effect 

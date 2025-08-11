@@ -9,6 +9,106 @@ function isNpc(target: EncounterableEntity): target is NpcEntity {
     return 'role' in target;
 }
 
+function getHistoricalLanguage(npc: NpcEntity, mapData: MapData | null): string {
+    if (!mapData) return 'Native';
+    
+    const year = parseInt(mapData.timeSlice || '1500');
+    const location = mapData.localArea || '';
+    const continent = mapData.continent || '';
+    const culturalZone = npc.culturalZone;
+    
+    // Ancient languages (Pre-500 CE)
+    if (year < 500) {
+        if (continent === 'Europe') {
+            if (location.includes('Rome') || location.includes('Roman')) return 'Latin';
+            if (location.includes('Greece') || location.includes('Greek')) return 'Ancient Greek';
+            if (location.includes('Gaul') || location.includes('Celtic')) return 'Gaulish';
+            if (location.includes('German')) return 'Proto-Germanic';
+            return 'Latin'; // Default for ancient Europe
+        }
+        if (continent === 'Asia') {
+            if (location.includes('China')) return 'Classical Chinese';
+            if (location.includes('India')) return 'Sanskrit';
+            if (location.includes('Mesopotamia') || location.includes('Babylon')) return 'Akkadian';
+            return 'Ancient Language';
+        }
+        if (continent === 'Africa') {
+            if (location.includes('Egypt')) return 'Ancient Egyptian';
+            return 'Ancient African';
+        }
+        if (continent === 'North America') {
+            if (location.includes('Columbia') || location.includes('River Valley')) return 'Chinookan';
+            if (location.includes('Pacific') || location.includes('Coast')) return 'Coast Salish';
+            if (location.includes('Plains')) return 'Proto-Siouan';
+            if (location.includes('Great Lakes')) return 'Proto-Algonquian';
+            if (location.includes('Southwest') || location.includes('Desert')) return 'Ancestral Puebloan';
+            if (culturalZone === 'NORTH_AMERICAN_PRE_COLUMBIAN') {
+                // More specific based on region
+                if (location.includes('Alaska')) return 'Proto-Inuit';
+                if (location.includes('Eastern')) return 'Proto-Iroquoian';
+                return 'Indigenous Language';
+            }
+            return 'Native American';
+        }
+        if (continent === 'South America') {
+            if (location.includes('Andes')) return 'Quechua';
+            if (culturalZone === 'SOUTH_AMERICAN') return 'Indigenous';
+            return 'Native Language';
+        }
+    }
+    
+    // Medieval languages (500-1500 CE)
+    if (year >= 500 && year < 1500) {
+        if (continent === 'Europe') {
+            if (location.includes('England')) {
+                if (year < 1100) return 'Old English';
+                return 'Middle English';
+            }
+            if (location.includes('France')) return 'Old French';
+            if (location.includes('Spain') || location.includes('Iberia')) return 'Old Spanish';
+            if (location.includes('Scandinavia') || location.includes('Norse')) return 'Old Norse';
+            if (location.includes('Russia')) return 'Old Slavonic';
+            return 'Medieval Language';
+        }
+        if (continent === 'Asia') {
+            if (location.includes('Japan')) return 'Classical Japanese';
+            if (location.includes('China')) return 'Middle Chinese';
+            if (location.includes('Mongolia')) return 'Middle Mongolian';
+            if (location.includes('Arab') || location.includes('Middle East')) return 'Classical Arabic';
+            return 'Medieval Asian';
+        }
+        if (continent === 'North America' || continent === 'South America') {
+            if (culturalZone === 'MESOAMERICAN') return 'Nahuatl';
+            if (location.includes('Andes')) return 'Quechua';
+            if (location.includes('Maya')) return 'Mayan';
+            return 'Indigenous Language';
+        }
+    }
+    
+    // Early Modern (1500-1800)
+    if (year >= 1500 && year < 1800) {
+        if (continent === 'Europe') {
+            if (location.includes('England')) return 'Early Modern English';
+            if (location.includes('France')) return 'Early French';
+            if (location.includes('Spain')) return 'Early Spanish';
+            if (location.includes('Germany')) return 'Early German';
+            return 'Early Modern Language';
+        }
+        if (continent === 'Asia') {
+            if (location.includes('Japan')) return 'Early Modern Japanese';
+            if (location.includes('China')) return 'Early Mandarin';
+            return 'Early Modern Asian';
+        }
+    }
+    
+    // Modern era fallback
+    if (year >= 1800) {
+        return 'Historical ' + (continent || 'Language');
+    }
+    
+    return 'Native Language';
+}
+
 interface EncounterModalProps {
   target: EncounterableEntity;
   playerCharacter: PlayerCharacter;
@@ -98,9 +198,9 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                         <button 
                             onClick={() => setUseRealLanguage(p => !p)} 
                             className="ff-action-button text-xs"
-                            title="Toggle between English and the NPC's native language"
+                            title={`Toggle between English and ${getHistoricalLanguage(target, mapData)}`}
                         >
-                            {useRealLanguage ? '🌐 Native' : '🇬🇧 English'}
+                            {useRealLanguage ? `🌐 ${getHistoricalLanguage(target, mapData)}` : '🇬🇧 English'}
                         </button>
                     )}
                 </header>

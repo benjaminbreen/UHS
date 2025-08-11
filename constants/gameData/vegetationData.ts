@@ -397,6 +397,38 @@ export const VEGETATION_SPECIES_DATA: Partial<Record<VegetationBaseType, Partial
                 { name: 'Cardamom Plant', linnaeanName: 'Elettaria cardamomum', emoji: '🌿', tradeValue: 'legendary', uses: ['cardamom spice'], drops: [{name: 'HERB_BUNDLE', chance: 0.9}] },
                 { name: 'Saffron Crocus', linnaeanName: 'Crocus sativus', emoji: '🟡', tradeValue: 'legendary', uses: ['saffron - worth its weight in gold'], drops: [{name: 'MEDICINAL_HERBS', chance: 0.3}] }
             ]
+        },
+        [ClimateType.MEDITERRANEAN]: {
+            common: [
+                { name: 'Olive Tree', linnaeanName: 'Olea europaea', emoji: '🫒', tradeValue: 'high', uses: ['olive oil', 'food', 'wood'], drops: [{name: 'OLIVES', chance: 0.8}] },
+                { name: 'Cork Oak', linnaeanName: 'Quercus suber', emoji: '🌳', tradeValue: 'high', uses: ['cork', 'timber'], drops: [{name: 'TREE_BARK', chance: 0.7}] },
+                { name: 'Italian Cypress', linnaeanName: 'Cupressus sempervirens', emoji: '🌲', tradeValue: 'medium', uses: ['ornamental', 'timber'], drops: [{name: 'STICK', chance: 0.5}] },
+                { name: 'Maritime Pine', linnaeanName: 'Pinus pinaster', emoji: '🌲', tradeValue: 'medium', uses: ['resin', 'timber'], drops: [{name: 'PINE_RESIN', chance: 0.6}] },
+                { name: 'Rosemary Bush', linnaeanName: 'Rosmarinus officinalis', emoji: '🌿', tradeValue: 'high', uses: ['culinary', 'medicine'], drops: [{name: 'ROSEMARY', chance: 0.9}] },
+                { name: 'Lavender Bush', linnaeanName: 'Lavandula angustifolia', emoji: '💜', tradeValue: 'high', uses: ['perfume', 'medicine'], drops: [{name: 'LAVENDER', chance: 0.9}] },
+                { name: 'Wild Thyme', linnaeanName: 'Thymus vulgaris', emoji: '🌿', tradeValue: 'medium', uses: ['culinary', 'medicine'], drops: [{name: 'HERB_BUNDLE', chance: 0.8}] },
+                { name: 'Sage Bush', linnaeanName: 'Salvia officinalis', emoji: '🌿', tradeValue: 'medium', uses: ['culinary', 'medicine'], drops: [{name: 'HERB_BUNDLE', chance: 0.8}] },
+                { name: 'Oregano', linnaeanName: 'Origanum vulgare', emoji: '🌿', tradeValue: 'medium', uses: ['culinary'], drops: [{name: 'HERB_BUNDLE', chance: 0.9}] }
+            ],
+            rare: [
+                { name: 'Grapevine', linnaeanName: 'Vitis vinifera', emoji: '🍇', tradeValue: 'legendary', uses: ['wine', 'food'], drops: [{name: 'GRAPES', chance: 0.8}] },
+                { name: 'Fig Tree', linnaeanName: 'Ficus carica', emoji: '🌳', tradeValue: 'high', uses: ['food', 'medicine'], drops: [{name: 'FIGS', chance: 0.7}] },
+                { name: 'Pomegranate', linnaeanName: 'Punica granatum', emoji: '🌳', tradeValue: 'high', uses: ['food', 'dye', 'medicine'], drops: [{name: 'STRANGE_FRUIT', chance: 0.6}] },
+                { name: 'Almond Tree', linnaeanName: 'Prunus dulcis', emoji: '🌳', tradeValue: 'high', uses: ['nuts', 'oil'], drops: [{name: 'ACORNS', chance: 0.7}] },
+                { name: 'Bay Laurel', linnaeanName: 'Laurus nobilis', emoji: '🍃', tradeValue: 'high', uses: ['culinary', 'wreaths'], drops: [{name: 'HERB_BUNDLE', chance: 0.8}] },
+                { name: 'Myrtle', linnaeanName: 'Myrtus communis', emoji: '🌿', tradeValue: 'medium', uses: ['perfume', 'medicine'], drops: [{name: 'WILD_BERRIES', chance: 0.6}] }
+            ],
+            superRare: [
+                { name: 'Citron Tree', linnaeanName: 'Citrus medica', emoji: '🍋', tradeValue: 'legendary', uses: ['perfume', 'medicine', 'ritual'], drops: [{name: 'CITRUS', chance: 0.6}] },
+                { name: 'Cedar of Lebanon', linnaeanName: 'Cedrus libani', emoji: '🌲', tradeValue: 'legendary', uses: ['sacred wood', 'shipbuilding'], drops: [{name: 'STICK', chance: 0.4}] },
+                { name: 'Carob Tree', linnaeanName: 'Ceratonia siliqua', emoji: '🫘', tradeValue: 'high', uses: ['food', 'fodder'], drops: [{name: 'WILD_BERRIES', chance: 0.6}] },
+                { name: 'Pistacia', linnaeanName: 'Pistacia vera', emoji: '🌳', tradeValue: 'legendary', uses: ['nuts', 'resin'], drops: [{name: 'ACORNS', chance: 0.5}] }
+            ],
+            ultraRare: [
+                { name: 'Frankincense Tree', linnaeanName: 'Boswellia sacra', emoji: '💨', tradeValue: 'legendary', uses: ['incense', 'medicine'], drops: [{name: 'PINE_RESIN', chance: 0.4}] },
+                { name: 'Myrrh Tree', linnaeanName: 'Commiphora myrrha', emoji: '✨', tradeValue: 'legendary', uses: ['incense', 'embalming'], drops: [{name: 'PINE_RESIN', chance: 0.4}] },
+                { name: 'Saffron Crocus', linnaeanName: 'Crocus sativus', emoji: '🟣', tradeValue: 'legendary', uses: ['spice worth more than gold'], drops: [{name: 'SAFFRON', chance: 0.2}] }
+            ]
         }
     }
 };

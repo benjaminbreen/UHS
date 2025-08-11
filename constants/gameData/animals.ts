@@ -42,7 +42,7 @@ export const ANIMAL_DATA: Record<string, AnimalData> = {
     BOAR: {
         name: 'Boar', emoji: '🐗', type: 'Predator', social: 'herd', attack: 4, defense: 4, maxHealth: 20, speed: 7, strength: 6, agility: 4, perception: 4, level: 4,
         drops: [{ name: 'Tough Hide', chance: 0.7 }, { name: 'Boar Tusk', chance: 0.4 }],
-        spawnBiomes: [BiomeType.FOREST, BiomeType.DENSE_FOREST, BiomeType.WETLANDS, BiomeType.HILLS],
+        spawnBiomes: [BiomeType.DENSE_FOREST],
         spawnConditions: { zones: ['EUROPEAN', 'EAST_ASIAN', 'SOUTH_ASIAN'] },
         habitat: 'forest', behaviorProfile: 'bear'
     },
@@ -112,7 +112,7 @@ export const ANIMAL_DATA: Record<string, AnimalData> = {
     CROCODILE: {
         name: 'Crocodile', emoji: '🐊', type: 'Predator', social: 'solitary', attack: 7, defense: 5, maxHealth: 22, speed: 6, strength: 8, agility: 4, perception: 7, level: 6,
         drops: [{ name: 'Crocodile Skin', chance: 0.8 }],
-        spawnBiomes: [BiomeType.RIVER, BiomeType.WETLANDS, BiomeType.MANGROVE, BiomeType.ESTUARY],
+        spawnBiomes: [BiomeType.RIVER, BiomeType.WETLANDS, BiomeType.MANGROVE],
         spawnConditions: { climate: [ClimateType.TROPICAL, ClimateType.SEMITROPICAL], zones: ['SUB_SAHARAN_AFRICAN', 'SOUTH_ASIAN', 'OCEANIA', 'SOUTH_AMERICAN'] },
         habitat: 'aquatic', behaviorProfile: 'wolf'
     },
@@ -148,12 +148,15 @@ export const ANIMAL_DATA: Record<string, AnimalData> = {
         name: 'Wild Horse', emoji: '🐎', type: 'Prey', social: 'herd', attack: 2, defense: 3, maxHealth: 18, speed: 9, strength: 6, agility: 8, perception: 8, level: 3,
         drops: [{ name: 'Horse Hide', chance: 0.7 }],
         spawnBiomes: [BiomeType.STEPPE, BiomeType.GRASSLAND],
-        spawnConditions: { zones: ['EAST_ASIAN', 'NORTH_AMERICAN_PRE_COLUMBIAN'] },
+        spawnConditions: { 
+            // Horses were native to Eurasia, reintroduced to Americas post-1492
+            zones: ['EAST_ASIAN', 'EUROPEAN', 'MENA']
+        },
         habitat: 'grassland', behaviorProfile: 'deer'
     },
     GOAT: {
         name: 'Goat', emoji: '🐐', type: 'Domestic', social: 'herd', attack: 1, defense: 1, maxHealth: 8, speed: 6, strength: 3, agility: 7, perception: 6, level: 1,
-        drops: [{ name: 'Goat Hide', chance: 0.8 }, { name: 'Meat', chance: 0.8 }],
+        drops: [{ name: 'Goat Hide', chance: 0.8 }, { name: 'Meat', chance: 0.9 }],
         spawnBiomes: [BiomeType.HILLS, BiomeType.MOUNTAIN, BiomeType.FARMLAND],
         spawnConditions: { nearSettlement: true, zones: ['EUROPEAN', 'MENA', 'SOUTH_ASIAN'] },
         habitat: 'mountain', behaviorProfile: 'deer'
@@ -165,18 +168,16 @@ export const ANIMAL_DATA: Record<string, AnimalData> = {
         spawnConditions: { minSacrality: 0.6 },
         habitat: 'mountain', behaviorProfile: 'wolf'
     },
-    OWL: {
-        name: 'Owl', emoji: '🦉', type: 'Ambient', social: 'solitary', attack: 1, defense: 1, maxHealth: 4, speed: 6, strength: 2, agility: 7, perception: 9, level: 1,
-        drops: [{ name: 'Magic Feather', chance: 0.1 }],
-        spawnBiomes: [BiomeType.FOREST, BiomeType.DENSE_FOREST, BiomeType.RUINS],
-        spawnConditions: {},
-        habitat: 'forest', behaviorProfile: 'rabbit'
-    },
+
     COW: {
         name: 'Cow', emoji: '🐄', type: 'Domestic', social: 'herd', attack: 1, defense: 2, maxHealth: 15, speed: 1, strength: 2, agility: 1, perception: 1, level: 1,
         drops: [{ name: 'Beef', chance: 1.0 }, { name: 'Cow Hide', chance: 0.8 }],
         spawnBiomes: [BiomeType.FARMLAND, BiomeType.GRASSLAND],
-        spawnConditions: { nearSettlement: true },
+        spawnConditions: { 
+            nearSettlement: true,
+            // Cows were introduced to Americas post-1492
+            zones: ['EUROPEAN', 'MENA', 'SOUTH_ASIAN', 'EAST_ASIAN', 'SUB_SAHARAN_AFRICAN', 'NORTH_AMERICAN_COLONIAL', 'SOUTH_AMERICAN_COLONIAL']
+        },
         habitat: 'grassland', behaviorProfile: 'deer'
     },
     CHICKEN: {
@@ -193,11 +194,12 @@ export const ANIMAL_DATA: Record<string, AnimalData> = {
         spawnConditions: { climate: [ClimateType.ARID, ClimateType.SEMITROPICAL], zones: ['MENA', 'EAST_ASIAN', 'SUB_SAHARAN_AFRICAN'] },
         habitat: 'desert', behaviorProfile: 'deer'
     },
+
     SNAKE: {
         name: 'Snake', emoji: '🐍', type: 'Predator', social: 'solitary', attack: 3, defense: 1, maxHealth: 6, speed: 5, strength: 2, agility: 8, perception: 6, level: 2,
         drops: [{ name: 'Snake Skin', chance: 0.6 }, { name: 'Venom', chance: 0.3 }],
         spawnBiomes: [BiomeType.DESERT, BiomeType.JUNGLE, BiomeType.WETLANDS, BiomeType.RUINS],
-        spawnConditions: { minBiodiversity: 0.5 },
+        spawnConditions: { minBiodiversity: 0.7 },
         habitat: 'desert', behaviorProfile: 'wolf'
     },
     MONKEY: {
@@ -217,7 +219,7 @@ export const ANIMAL_DATA: Record<string, AnimalData> = {
     JELLYFISH: {
         name: 'Jellyfish', emoji: '🪼', type: 'Ambient', social: 'herd', attack: 1, defense: 1, maxHealth: 2, speed: 2, strength: 1, agility: 2, perception: 2, level: 1,
         drops: [{ name: 'BIOLUMINESCENT_GOOP', chance: 0.75 }],
-        spawnBiomes: [BiomeType.SHALLOW_OCEAN, BiomeType.DEEP_OCEAN, BiomeType.REEF],
+        spawnBiomes: [BiomeType.SHALLOW_OCEAN],
         spawnConditions: {},
         habitat: 'aquatic', behaviorProfile: 'rabbit'
     },
@@ -250,4 +252,113 @@ export const ANIMAL_DATA: Record<string, AnimalData> = {
         },
         habitat: 'wetland', behaviorProfile: 'rabbit'
     },
+    
+    // New region-specific animals
+    LLAMA: {
+        name: 'Llama', emoji: '🦙', type: 'Prey', social: 'herd', attack: 2, defense: 3, maxHealth: 14, speed: 5, strength: 5, agility: 6, perception: 7, level: 2,
+        drops: [{ name: 'Llama Wool', chance: 0.8 }, { name: 'Meat', chance: 0.7 }],
+        spawnBiomes: [BiomeType.MOUNTAIN, BiomeType.HILLS, BiomeType.GRASSLAND],
+        spawnConditions: { zones: ['SOUTH_AMERICAN'], minAltitude: 0.3 },
+        habitat: 'mountain', behaviorProfile: 'deer'
+    },
+    PENGUIN: {
+        name: 'Penguin', emoji: '🐧', type: 'Ambient', social: 'herd', attack: 0, defense: 2, maxHealth: 5, speed: 2, strength: 2, agility: 3, perception: 5, level: 1,
+        drops: [{ name: 'Fish Meat', chance: 0.4 }],
+        spawnBiomes: [BiomeType.BEACH, BiomeType.SHALLOW_OCEAN],
+        spawnConditions: { climate: [ClimateType.COLD], zones: ['SOUTH_AMERICAN', 'OCEANIA'] },
+        habitat: 'aquatic', behaviorProfile: 'rabbit'
+    },
+    RABBIT: {
+        name: 'Rabbit', emoji: '🐇', type: 'Prey', social: 'solitary', attack: 0, defense: 1, maxHealth: 4, speed: 9, strength: 1, agility: 10, perception: 8, level: 1,
+        drops: [{ name: 'Rabbit Fur', chance: 0.7 }, { name: 'Meat', chance: 0.8 }],
+        spawnBiomes: [BiomeType.GRASSLAND, BiomeType.FOREST, BiomeType.SCRUB],
+        spawnConditions: { minBiodiversity: 0.3, zones: ['EUROPEAN', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'EAST_ASIAN'] },
+        habitat: 'grassland', behaviorProfile: 'rabbit'
+    },
+    SQUIRREL: {
+        name: 'Squirrel', emoji: '🐿️', type: 'Ambient', social: 'solitary', attack: 0, defense: 1, maxHealth: 2, speed: 8, strength: 1, agility: 9, perception: 7, level: 1,
+        drops: [{ name: 'Acorn', chance: 0.3 }],
+        spawnBiomes: [BiomeType.FOREST, BiomeType.DENSE_FOREST],
+        spawnConditions: { zones: ['EUROPEAN', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'EAST_ASIAN'] },
+        habitat: 'forest', behaviorProfile: 'rabbit'
+    },
+    HEDGEHOG: {
+        name: 'Hedgehog', emoji: '🦔', type: 'Ambient', social: 'solitary', attack: 0, defense: 3, maxHealth: 3, speed: 3, strength: 1, agility: 4, perception: 5, level: 1,
+        drops: [],
+        spawnBiomes: [BiomeType.SCRUB],
+        spawnConditions: { zones: ['EUROPEAN', 'MENA'] },
+        habitat: 'forest', behaviorProfile: 'rabbit'
+    },
+    BAT: {
+        name: 'Bat', emoji: '🦇', type: 'Ambient', social: 'herd', attack: 0, defense: 1, maxHealth: 2, speed: 8, strength: 1, agility: 10, perception: 6, level: 1,
+        drops: [{ name: 'Bat Guano', chance: 0.2 }],
+        spawnBiomes: [BiomeType.RUINS, BiomeType.MOUNTAIN, BiomeType.CLIFF],
+        spawnConditions: { minSacrality: 0.4 },
+        habitat: 'mountain', behaviorProfile: 'rabbit'
+    },
+    OTTER: {
+        name: 'Otter', emoji: '🦦', type: 'Prey', social: 'herd', attack: 1, defense: 2, maxHealth: 6, speed: 6, strength: 2, agility: 8, perception: 7, level: 1,
+        drops: [{ name: 'Otter Pelt', chance: 0.6 }],
+        spawnBiomes: [BiomeType.RIVER, BiomeType.MAJOR_RIVER, BiomeType.WETLANDS],
+        spawnConditions: { zones: ['EUROPEAN', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'EAST_ASIAN'] },
+        habitat: 'aquatic', behaviorProfile: 'rabbit'
+    },
+    PEACOCK: {
+        name: 'Peacock', emoji: '🦚', type: 'Ambient', social: 'solitary', attack: 1, defense: 1, maxHealth: 4, speed: 5, strength: 2, agility: 6, perception: 8, level: 1,
+        drops: [{ name: 'Peacock Feather', chance: 0.7 }],
+        spawnBiomes: [BiomeType.FOREST, BiomeType.PALACE],
+        spawnConditions: { zones: ['SOUTH_ASIAN'], minSacrality: 0.5 },
+        habitat: 'forest', behaviorProfile: 'rabbit'
+    },
+    TURKEY: {
+        name: 'Turkey', emoji: '🦃', type: 'Prey', social: 'herd', attack: 1, defense: 2, maxHealth: 6, speed: 5, strength: 3, agility: 5, perception: 6, level: 1,
+        drops: [{ name: 'Poultry', chance: 0.9 }, { name: 'Feather', chance: 0.7 }],
+        spawnBiomes: [BiomeType.FOREST, BiomeType.GRASSLAND],
+        spawnConditions: { zones: ['NORTH_AMERICAN_PRE_COLUMBIAN'] },
+        habitat: 'forest', behaviorProfile: 'deer'
+    },
+    PARROT: {
+        name: 'Parrot', emoji: '🦜', type: 'Ambient', social: 'herd', attack: 0, defense: 1, maxHealth: 3, speed: 7, strength: 1, agility: 8, perception: 7, level: 1,
+        drops: [{ name: 'Colorful Feather', chance: 0.6 }],
+        spawnBiomes: [BiomeType.JUNGLE, BiomeType.DENSE_FOREST],
+        spawnConditions: { climate: [ClimateType.TROPICAL, ClimateType.SEMITROPICAL], zones: ['SOUTH_AMERICAN', 'SUB_SAHARAN_AFRICAN', 'OCEANIA'] },
+        habitat: 'forest', behaviorProfile: 'rabbit'
+    },
+    SLOTH: {
+        name: 'Sloth', emoji: '🦥', type: 'Ambient', social: 'solitary', attack: 0, defense: 2, maxHealth: 5, speed: 1, strength: 2, agility: 2, perception: 3, level: 1,
+        drops: [],
+        spawnBiomes: [BiomeType.JUNGLE, BiomeType.DENSE_FOREST],
+        spawnConditions: { climate: [ClimateType.TROPICAL], zones: ['SOUTH_AMERICAN'], remote: true },
+        habitat: 'forest', behaviorProfile: 'rabbit'
+    },
+    BADGER: {
+        name: 'Badger', emoji: '🦡', type: 'Prey', social: 'solitary', attack: 3, defense: 3, maxHealth: 10, speed: 4, strength: 4, agility: 5, perception: 6, level: 2,
+        drops: [{ name: 'Badger Hide', chance: 0.6 }],
+        spawnBiomes: [BiomeType.FOREST, BiomeType.HILLS, BiomeType.GRASSLAND],
+        spawnConditions: { zones: ['EUROPEAN', 'NORTH_AMERICAN_PRE_COLUMBIAN'] },
+        habitat: 'forest', behaviorProfile: 'wolf'
+    },
+ 
+    LOBSTER: {
+        name: 'Lobster', emoji: '🦞', type: 'Ambient', social: 'solitary', attack: 1, defense: 3, maxHealth: 3, speed: 3, strength: 2, agility: 4, perception: 3, level: 1,
+        drops: [{ name: 'Lobster Meat', chance: 0.9 }],
+        spawnBiomes: [BiomeType.SHALLOW_OCEAN, BiomeType.REEF],
+        spawnConditions: { climate: [ClimateType.COLD, ClimateType.TEMPERATE] },
+        habitat: 'aquatic', behaviorProfile: 'rabbit'
+    },
+    OCTOPUS: {
+        name: 'Octopus', emoji: '🐙', type: 'Prey', social: 'solitary', attack: 2, defense: 2, maxHealth: 8, speed: 5, strength: 3, agility: 7, perception: 8, level: 2,
+        drops: [{ name: 'Ink Sac', chance: 0.6 }],
+        spawnBiomes: [BiomeType.SHALLOW_OCEAN, BiomeType.REEF],
+        spawnConditions: { zones: ['EUROPEAN', 'EAST_ASIAN', 'OCEANIA'] },
+        habitat: 'aquatic', behaviorProfile: 'wolf'
+    },
+
+    BUTTERFLY: {
+        name: 'Butterfly', emoji: '🦋', type: 'Ambient', social: 'solitary', attack: 0, defense: 0, maxHealth: 1, speed: 4, strength: 0, agility: 9, perception: 5, level: 1,
+        drops: [],
+        spawnBiomes: [BiomeType.GRASSLAND, BiomeType.FOREST],
+        spawnConditions: { minBiodiversity: 0.9, climate: [ClimateType.TEMPERATE, ClimateType.TROPICAL, ClimateType.SEMITROPICAL] },
+        habitat: 'grassland', behaviorProfile: 'rabbit'
+    }
 };

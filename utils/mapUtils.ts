@@ -30,15 +30,22 @@ export function deriveMapSeed(initialGameSeed: number, worldX: number, worldY: n
  * @returns The corresponding CulturalZone enum value.
  */
 export function mapLocationToCulture(location: string, year: number): CulturalZone {
-    const lowerLocation = location.toLowerCase();
+    const lowerLocation = location.toLowerCase().replace(/[_-]/g, ' ');
     
-    if (lowerLocation.includes('north america')) {
+    // Handle both "North America" and "North_America" formats
+    if (lowerLocation.includes('north america') || lowerLocation === 'north america') {
         if (year > 1600) return 'NORTH_AMERICAN_COLONIAL';
         return 'NORTH_AMERICAN_PRE_COLUMBIAN';
     }
     
+    // Check for South America (including Mesoamerica as part of cultural zone)
+    if (lowerLocation.includes('south america') || lowerLocation === 'south america' || 
+        lowerLocation.includes('mesoamerica') || lowerLocation.includes('mexico') || 
+        lowerLocation.includes('central america')) {
+        return 'SOUTH_AMERICAN';
+    }
+    
     if (lowerLocation.includes('europe')) return 'EUROPEAN';
-    if (lowerLocation.includes('south america')) return 'SOUTH_AMERICAN';
     if (lowerLocation.includes('mena') || lowerLocation.includes('middle east')) return 'MENA';
     if (lowerLocation.includes('sub saharan africa') || lowerLocation.includes('africa')) return 'SUB_SAHARAN_AFRICAN';
     if (lowerLocation.includes('south asia')) return 'SOUTH_ASIAN';

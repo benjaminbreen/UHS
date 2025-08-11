@@ -11,6 +11,7 @@ import JournalPanel from './JournalPanel';
 import { MAP_ARCHETYPE_DESCRIPTIONS, FACTION_DATA, STRUCTURE_BLUEPRINTS, METALS } from '../constants/index';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { getSafariOptimizedClassName } from '../utils/safariUtils';
+import { getDominantSector, getPrimaryIndustry, EconomicSector } from '../constants/gameData/economicSectors';
 
 
 export type LeftSidebarTab = 'analysis' | 'overview' | 'npcs' | 'animals';
@@ -219,7 +220,50 @@ const LeftSidebar: React.FC = () => {
 
     const primaryResourceDescription = useMemo(() => {
         if (!societalProfile || !mapData) return "";
+        
+        // Check the economic sector for this region and era
+        const era = mapData.era || HistoricalEra.MEDIEVAL;
+        const region = mapData.mapAreaName || 'Unknown';
+        const sector = getDominantSector(era, region);
+        
+        // For industrial and service economies
+        if (sector === EconomicSector.INDUSTRIAL || sector === EconomicSector.SERVICE) {
+            const industry = getPrimaryIndustry(era, region);
+            if (industry) {
+                if (sector === EconomicSector.SERVICE) {
+                    return `Primary economy is ${industry.name.toLowerCase()}.`;
+                } else {
+                    return `Primary industry is ${industry.name.toLowerCase()}.`;
+                }
+            }
+        }
+        
+        // For resource extraction economies
+        if (sector === EconomicSector.RESOURCE_EXTRACTION) {
+            // Check for actual mineral deposits
+            const mineralDeposits = mapData.tiles.flat()
+                .filter(t => t.mineralDeposit && t.mineralDeposit.quantity > 0)
+                .map(t => t.mineralDeposit!.metalId);
+            
+            if (mineralDeposits.length > 0) {
+                const mineralCounts: Record<string, number> = {};
+                mineralDeposits.forEach(m => mineralCounts[m] = (mineralCounts[m] || 0) + 1);
+                const primaryMineral = Object.keys(mineralCounts)
+                    .sort((a, b) => mineralCounts[b] - mineralCounts[a])[0];
+                
+                const metalName = METALS[primaryMineral]?.name || primaryMineral;
+                return `Primary extraction is ${metalName.toLowerCase()} mining.`;
+            }
+            
+            // Fallback for resource regions without visible deposits
+            if (region.includes('Texas') || region.includes('Persian') || region.includes('Arabian')) {
+                return "Primary industry is oil extraction.";
+            } else if (region.includes('Appalachian') || region.includes('Ruhr')) {
+                return "Primary industry is coal mining.";
+            }
+        }
 
+        // For agricultural economies
         if (societalProfile.isAgricultural) {
             const crops = mapData.tiles.flat().map(t => t.cropType).filter((c): c is string => !!c);
             if (crops.length === 0) return "Primary subsistence is foraging.";

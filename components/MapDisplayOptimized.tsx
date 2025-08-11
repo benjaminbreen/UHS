@@ -15,7 +15,7 @@ import {
 } from '../constants/index';
 import { ValueNoise } from '../utils/noise'; 
 import { interpolateColor, getLensColor, getMineralColor } from '../utils/colorUtils';
-import { RuinsSymbol, PalaceSymbol, HolyPlaceSymbol, UrbanSymbol, CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol, FishingHutSymbol, SteamSymbol, GovernmentDistrictSymbol, FireflySymbol } from './symbols';
+import { RuinsSymbol, PalaceSymbol, HolyPlaceSymbol, UrbanSymbol, CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol, FishingHutSymbol, SteamSymbol, GovernmentDistrictSymbol, FireflySymbol, MineralGlintSymbol, OasisSymbol } from './symbols';
 import CoastlineOverlay from './CoastlineOverlay';
 import Minimap from './Minimap';
 import MapCanvasPerformance from './MapCanvasPerformance';
@@ -1013,6 +1013,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           playerX={playerCharacter?.x}
           playerY={playerCharacter?.y}
           disableSmoothing={debugSettings?.disableCanvasSmoothing}
+          season={season}
         />
         
         {/* Enhanced SVG overlay */}
@@ -1113,22 +1114,18 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                                 break;
                                 
                             case 'minerals':
-                                // Special handling for minerals - show circles for each deposit
-                                return tile.mineralDeposits && Object.keys(tile.mineralDeposits).length > 0 ? (
-                                    <g key={`mineral-${tile.x}-${tile.y}`}>
-                                        {Object.entries(tile.mineralDeposits).map(([mineral, abundance], index) => (
-                                            <circle
-                                                key={`${tile.x}-${tile.y}-${mineral}`}
-                                                cx={tile.x * TILE_SIZE_PX + TILE_SIZE_PX / 2 + (index - 1) * 8}
-                                                cy={tile.y * TILE_SIZE_PX + TILE_SIZE_PX / 2}
-                                                r={Math.max(3, abundance * 8)}
-                                                fill={getMineralColor(mineral)}
-                                                stroke="#000000"
-                                                strokeWidth="0.5"
-                                                opacity={0.8}
-                                            />
-                                        ))}
-                                    </g>
+                                // Special handling for minerals - show circles for deposits
+                                return tile.mineralDeposit && tile.mineralDeposit.quantity > 0 ? (
+                                    <circle
+                                        key={`mineral-${tile.x}-${tile.y}`}
+                                        cx={tile.x * TILE_SIZE_PX + TILE_SIZE_PX / 2}
+                                        cy={tile.y * TILE_SIZE_PX + TILE_SIZE_PX / 2}
+                                        r={Math.max(3, Math.min(8, tile.mineralDeposit.quantity / 30))}
+                                        fill={getMineralColor(tile.mineralDeposit.metalId)}
+                                        stroke="#000000"
+                                        strokeWidth="0.5"
+                                        opacity={0.8}
+                                    />
                                 ) : null;
                         }
 
@@ -1274,6 +1271,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     elements.push(<SaltFlatsSymbol key={`saltflats-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />);
                   } else if(tile.biome === BiomeType.HILLS) {
                     elements.push(<HillSymbol key={`hill-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} climate={climate} season={season}/>);
+                  } else if(tile.biome === BiomeType.OASIS) {
+                    elements.push(<OasisSymbol key={`oasis-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} tileX={tile.x} tileY={tile.y} />);
                   } else if(tile.biome === BiomeType.FARMLAND) {
                     elements.push(<FarmSymbol key={`farm-${tile.x}-${tile.y}`} tile={tile} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} />);
                   } else if(tile.biome === BiomeType.ESTUARY) {
@@ -1393,6 +1392,21 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 })}
               </g>
             )}
+
+            {/* Mineral deposits layer - subtle glints on the map */}
+            {mapData && shouldRenderAnimations && mapData.tiles.flat().filter(tile => 
+              tile.mineralDeposit && tile.mineralDeposit.quantity > 0
+            ).map(tile => (
+              <MineralGlintSymbol
+                key={`mineral-${tile.x}-${tile.y}`}
+                x={tile.x}
+                y={tile.y}
+                metalId={tile.mineralDeposit!.metalId}
+                quantity={tile.mineralDeposit!.quantity}
+                tileSize={TILE_SIZE_PX}
+                shouldAnimate={shouldRenderAnimations}
+              />
+            ))}
 
             {/* Animals and NPCs layer  */}
             <g>
@@ -1634,11 +1648,12 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               )}
             </g>
 
-            {/* Desert dust particles - atmospheric effect */}
+            {/* Desert dust particles - atmospheric effect (reduced to 1/5th) */}
             {shouldRenderDetailedSymbols && (
               <g>
                 {shouldRenderParticles && tiles.flat()
                   .filter(tile => tile.biome === BiomeType.DESERT && tile.isLand)
+                  .filter(tile => (tile.x + tile.y * 7 + mapData.seed) % 5 === 0) // Only 1 in 5 desert tiles get particles
                   .map(tile => (
                     <MemoizedDustEffect
                       key={`dust-${tile.x}-${tile.y}`}

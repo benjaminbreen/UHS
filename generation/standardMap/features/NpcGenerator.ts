@@ -10,6 +10,7 @@ import { generateNpcDescriptions } from '../../../services/npcDescriptionService
 import { mapLocationToCulture } from '../../../utils/mapUtils';
 import { generateNpcFamilyAndLifeEvents, findNpcFriends } from '../../../services/socialService';
 import { createItemInstance } from '../../../utils/inventoryUtils';
+import { detectCitiesForArea } from '../../../utils/cityDetectionUtils';
 
 
 let standardNpcIdCounter = 0;
@@ -200,6 +201,12 @@ export function generateNpcsForStandardMap(
 ): NpcEntity[] {
     const startTime = performance.now();
     const npcs: NpcEntity[] = [];
+    
+    // Skip NPC generation for SHOALS archetype (no people on shoals)
+    if (mapData.archetype === 'SHOALS') {
+        console.log(`[NPC] Skipping NPC generation for SHOALS archetype`);
+        return [];
+    }
     const npcPositions = new Set<string>();
     
     // Initialize stats tracking
@@ -279,7 +286,7 @@ export function generateNpcsForStandardMap(
         }
         
         // 2. Spawn remaining wandering NPCs
-        const npcCount = calculateNpcCount(tiles, climate, noise, mapAreaName, dateInfo.year);
+        const npcCount = calculateNpcCount(tiles, climate, noise, region, mapAreaName, dateInfo.year);
         let attempts = 0;
         const maxAttempts = (npcCount - npcs.length) * 50;
         
@@ -379,7 +386,13 @@ function findValidNpcPosition(
         const tile = tiles[y][x];
         const positionKey = `${x},${y}`;
 
-        const isWalkable = tile.isLand && tile.biome !== BiomeType.ACTIVE_LAVA && tile.biome !== BiomeType.DEEP_OCEAN && tile.biome !== BiomeType.SHALLOW_OCEAN;
+        const isWalkable = tile.isLand && 
+            tile.biome !== BiomeType.ACTIVE_LAVA && 
+            tile.biome !== BiomeType.DEEP_OCEAN && 
+            tile.biome !== BiomeType.SHALLOW_OCEAN &&
+            tile.biome !== BiomeType.CLIFF &&
+            tile.biome !== BiomeType.MOUNTAIN &&
+            tile.biome !== BiomeType.HIGH_PEAK;
         if (isWalkable && !usedPositions.has(positionKey)) {
             return { x, y };
         }
@@ -387,47 +400,17 @@ function findValidNpcPosition(
     return null;
 }
 
-function calculateNpcCount(tiles: Tile[][], climate: ClimateType, noise: ValueNoise, mapAreaName?: string, year?: number): number {
-    // Check urbanization level based on cities
-    let hasCities = false;
-    let cityDensity: 'small' | 'moderate' | 'large' | 'massive' | undefined;
+function calculateNpcCount(tiles: Tile[][], climate: ClimateType, noise: ValueNoise, regionName?: string, localAreaName?: string, year?: number): number {
+    console.log(`[NPC] Starting NPC count calculation for localArea="${localAreaName}", region="${regionName}"`);
     
-    if (mapAreaName && year) {
-        try {
-            // Check cities.ts first
-            const { CITIES_DATA } = require('../../../constants/gameData/cities');
-            const areaCities = CITIES_DATA[mapAreaName] || [];
-            const activeCities = areaCities.filter((city: any) => 
-                year >= city.foundingYear && (!city.declineYear || year <= city.declineYear)
-            );
-            
-            if (activeCities.length > 0) {
-                hasCities = true;
-                cityDensity = activeCities[0].urbanDensity;
-                // Check for era-specific density
-                if (activeCities[0].eraSpecificDensity) {
-                    let era = 'ancient';
-                    if (year >= 1450) era = 'early_modern';
-                    if (year >= 1800) era = 'modern';
-                    if (year < 500) era = 'prehistoric';
-                    else if (year < 1450) era = 'medieval';
-                    cityDensity = activeCities[0].eraSpecificDensity[era] || cityDensity;
-                }
-            }
-            
-            // If no cities in cities.ts, check proceduralCityData.ts
-            if (!hasCities) {
-                const { PROCEDURAL_CITY_DATA } = require('../../../constants/gameData/proceduralCityData');
-                const proceduralCities = PROCEDURAL_CITY_DATA[mapAreaName] || [];
-                if (proceduralCities.length > 0) {
-                    hasCities = true;
-                    cityDensity = 'small';
-                }
-            }
-        } catch (error) {
-            console.log(`[NPC] Could not load city data for ${mapAreaName}`);
-        }
-    }
+    // Use centralized city detection for accurate era calculation
+    const dateInfo = parseDateString(year?.toString() || '1650');
+    const cityDetection = detectCitiesForArea(localAreaName, regionName, year || dateInfo.year, dateInfo.era, true);
+    
+    const hasCities = cityDetection.hasCities;
+    const cityDensity = cityDetection.cityDensity;
+    
+    console.log(`[NPC] City detection result: hasCities=${hasCities}, source=${cityDetection.source}, density=${cityDensity}`);
     
     // Count urban tiles to determine actual urbanization
     let urbanTileCount = 0;
@@ -464,8 +447,16 @@ function calculateNpcCount(tiles: Tile[][], climate: ClimateType, noise: ValueNo
             npcCount = 1 + Math.floor(urbanTileCount / 5);
         }
     } else {
-        // No urbanization at all - no NPCs or maybe 1 wanderer
-        npcCount = noise.random() < 0.8 ? 0 : 1; // 80% chance of no NPCs
+        // No urbanization at all - max 3 NPCs (wanderers, hermits, etc.)
+        const roll = noise.random();
+        if (roll < 0.4) {
+            npcCount = 0; // 40% chance of no NPCs
+        } else if (roll < 0.8) {
+            npcCount = 1 + Math.floor(noise.random() * 2); // 40% chance of 1-2 NPCs
+        } else {
+            npcCount = 2 + Math.floor(noise.random() * 2); // 20% chance of 2-3 NPCs
+        }
+        npcCount = Math.min(npcCount, 3); // Never more than 3 for maps without settlements
     }
     
     // Apply climate modifier

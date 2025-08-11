@@ -28,3 +28,5 @@ export { default as FishingHutSymbol } from './FishingHutSymbol';
 export { default as SteamSymbol } from './SteamSymbol';
 export { default as GovernmentDistrictSymbol } from './GovernmentDistrictSymbol';
 export { default as FireflySymbol } from './FireflySymbol';
+export { default as MineralGlintSymbol } from './MineralGlintSymbol';
+export { default as OasisSymbol } from './OasisSymbol';

@@ -67,6 +67,67 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
         surname: ['Smith', 'Baker', 'Cook', 'Taylor', 'Miller', 'Hill', 'Green', 'Carter', 'Wright', 'Mason', 'Cooper', 'Fletcher', 'Turner', 'Parker', 'Brown', 'Davis', 'Wilson', 'Moore', 'White', 'Harris', 'Martin', 'Thompson', 'Garcia', 'Martinez', 'Robinson', 'Clark', 'Lewis', 'Lee', 'Walker', 'Hall', 'Allen', 'Young', 'King', 'Scott', 'Adams', 'Campbell', 'Mitchell', 'Roberts', 'Phillips', 'Evans']
     },
 
+    // === REGIONAL TEXAS NAMES ===
+    TEXAS_SPANISH_COLONIAL: {
+        male: ['Antonio', 'Miguel', 'José', 'Francisco', 'Juan', 'Pedro', 'Manuel', 'Carlos', 'Luis', 'Fernando', 'Diego', 'Alejandro', 'Domingo', 'Gonzalo', 'Hernando', 'Ignacio', 'Joaquín', 'Lorenzo', 'Nicolás', 'Rafael'],
+        female: ['María', 'Ana', 'Isabel', 'Catalina', 'Juana', 'Teresa', 'Rosa', 'Carmen', 'Dolores', 'Esperanza', 'Francisca', 'Guadalupe', 'Inés', 'Josefa', 'Lucia', 'Margarita', 'Natalia', 'Patricia', 'Soledad', 'Victoria'],
+        surname: ['de León', 'Hernández', 'García', 'Martínez', 'Rodríguez', 'González', 'López', 'Sánchez', 'Pérez', 'Ramírez', 'Flores', 'Rivera', 'Gómez', 'Díaz', 'Cruz', 'Reyes', 'Morales', 'Gutiérrez', 'Jiménez', 'Ruiz']
+    },
+    TEXAS_ANGLO: {
+        male: ['Stephen', 'Austin', 'Sam', 'Houston', 'James', 'William', 'Moses', 'Josiah', 'Jared', 'Green', 'DeWitt', 'Martin', 'Robert', 'John', 'Thomas', 'Edward', 'Benjamin', 'Joseph', 'David', 'Andrew'],
+        female: ['Mary', 'Elizabeth', 'Sarah', 'Margaret', 'Jane', 'Nancy', 'Rebecca', 'Martha', 'Emily', 'Lucy', 'Susanna', 'Caroline', 'Harriet', 'Frances', 'Charlotte', 'Eleanor', 'Catherine', 'Anne', 'Rachel', 'Judith'],
+        surname: ['Austin', 'Houston', 'Travis', 'Bowie', 'Crockett', 'Fannin', 'Lamar', 'Burnet', 'Rusk', 'Jones', 'Smith', 'Brown', 'Williams', 'Johnson', 'Davis', 'Miller', 'Wilson', 'Moore', 'Taylor', 'Anderson']
+    },
+    
+    // === SWAHILI COAST ===
+    SWAHILI: {
+        male: ['Musa', 'Ali', 'Hassan', 'Omar', 'Yusuf', 'Ibrahim', 'Hamza', 'Juma', 'Salim', 'Bakari', 'Hamisi', 'Sefu', 'Zuberi', 'Jabari', 'Rashidi', 'Faraji', 'Daudi', 'Amani', 'Baraka', 'Kipenda'],
+        female: ['Fatima', 'Aisha', 'Zainab', 'Maryam', 'Halima', 'Khadija', 'Amina', 'Safia', 'Rukia', 'Salma', 'Jamila', 'Asha', 'Dalila', 'Hasina', 'Layla', 'Naima', 'Penda', 'Shani', 'Tatu', 'Zawadi'],
+        surname: ['bin Said', 'al-Shirazi', 'al-Kilwa', 'bin Hassan', 'al-Mogadishu', 'bin Omar', 'al-Barawi', 'bin Yusuf', 'al-Pemba', 'bin Ali', 'al-Lamu', 'bin Rashid', 'al-Mombasa', 'bin Hamza', 'al-Zanzibar', 'bin Salim', 'al-Pate', 'bin Juma', 'al-Malindi', 'bin Bakari']
+    },
+    
+    // === ARABIAN PENINSULA ===
+    ARABIAN_HEJAZ: {
+        male: ['Muhammad', 'Ahmad', 'Abdullah', 'Ali', 'Umar', 'Uthman', 'Abu Bakr', 'Hassan', 'Hussein', 'Khalid', 'Saad', 'Amr', 'Bilal', 'Hamza', 'Abbas', 'Jafar', 'Talha', 'Zubair', 'Abdul Rahman', 'Abdul Aziz'],
+        female: ['Khadija', 'Aisha', 'Fatima', 'Hafsa', 'Zainab', 'Umm Salama', 'Ruqayyah', 'Safiyya', 'Maryam', 'Asma', 'Hind', 'Lubna', 'Sumayyah', 'Nusaybah', 'Ramlah', 'Sawda', 'Maymunah', 'Juwayriyah', 'Safiyya', 'Rayhana'],
+        surname: ['al-Qurashi', 'al-Hashimi', 'al-Makki', 'al-Madani', 'al-Taifi', 'al-Ansari', 'al-Muhajir', 'al-Adnani', 'al-Qahtani', 'al-Azdi', 'al-Tamimi', 'al-Asadi', 'al-Kinani', 'al-Ghatafani', 'al-Judhami', 'al-Khuza\'i', 'al-Thaqafi', 'al-Hawazini', 'al-Sulami', 'al-Muzani']
+    },
+    
+    // === CENTRAL AFRICAN HIGHLANDS ===
+    RWANDA_BURUNDI: {
+        male: ['Mutara', 'Kigeli', 'Yuhi', 'Cyilima', 'Mibambwe', 'Gahindiro', 'Rwabugiri', 'Musinga', 'Rudahigwa', 'Ndahindurwa', 'Semugeshi', 'Gahiji', 'Nsoro', 'Samembe', 'Ruganzu', 'Cyamatare', 'Rwaka', 'Ruregeya', 'Kimenyi', 'Sekarama'],
+        female: ['Nyiramavugo', 'Nyiramongi', 'Nyabunyana', 'Kanjogera', 'Murorunkwere', 'Nyiratunga', 'Nyirakigeri', 'Musabyimana', 'Mukamusoni', 'Mukamwezi', 'Mukabalisa', 'Nyiramacibiri', 'Rwogera', 'Mukandamage', 'Nyiranzeyimana', 'Mukagatare', 'Nyirakabwa', 'Mukabayire', 'Nyirahabimana', 'Mukarutesi'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    
+    // === NUBIAN ===
+    NUBIAN: {
+        male: ['Taharqa', 'Piye', 'Shabaka', 'Shebitku', 'Tantamani', 'Kashta', 'Alara', 'Anlamani', 'Aspelta', 'Arikamani', 'Arkamani', 'Amanislo', 'Amanineteyerike', 'Teqorideamani', 'Nastasen', 'Harsiotef', 'Amannote', 'Baskakeren', 'Malewiebamani', 'Talakhamani'],
+        female: ['Amenirdis', 'Shepenupet', 'Karimala', 'Peksater', 'Khensa', 'Abar', 'Qalhata', 'Takahatenamun', 'Naparaye', 'Sakhmakh', 'Nasalsa', 'Madiqen', 'Amanishakheto', 'Amanitore', 'Amanirenas', 'Shanakdakhete', 'Nawidemak', 'Maleqorobar', 'Amanikhatashan', 'Amanikhabale'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    
+    // === PERSIAN KHORASAN ===
+    PERSIAN_KHORASAN: {
+        male: ['Ferdowsi', 'Omar', 'Rumi', 'Hafez', 'Saadi', 'Nizam', 'Attar', 'Sanai', 'Rudaki', 'Daqiqi', 'Asadi', 'Anvari', 'Khaqani', 'Nezami', 'Jami', 'Nasir', 'Biruni', 'Avicenna', 'Rhazes', 'Tusi'],
+        female: ['Rabia', 'Mahsati', 'Jahan', 'Mehri', 'Parvin', 'Forough', 'Simin', 'Tahereh', 'Bibi', 'Khadijeh', 'Zahra', 'Maryam', 'Fatimah', 'Golnar', 'Shirin', 'Leyla', 'Pari', 'Soraya', 'Roxana', 'Goli'],
+        surname: ['Tusi', 'Khorasani', 'Balkhi', 'Samarqandi', 'Bukhari', 'Mervi', 'Heravi', 'Nishapuri', 'Ghazni', 'Sistan', 'Kashani', 'Razi', 'Isfahani', 'Shirazi', 'Yazdi', 'Kermani', 'Tabrizi', 'Qazvin', 'Mashhadi', 'Sabzevari']
+    },
+    
+    // === TRANSYLVANIA ===
+    TRANSYLVANIAN: {
+        male: ['István', 'László', 'János', 'Béla', 'András', 'Mihály', 'György', 'Ferenc', 'Péter', 'Mátyás', 'Gábor', 'Zsigmond', 'Bálint', 'Tamás', 'Vlad', 'Radu', 'Mircea', 'Constantin', 'Alexandru', 'Ștefan'],
+        female: ['Erzsébet', 'Katalin', 'Anna', 'Mária', 'Ilona', 'Zsuzsanna', 'Klára', 'Borbála', 'Margit', 'Ágnes', 'Dorottya', 'Judit', 'Elena', 'Maria', 'Ana', 'Ioana', 'Elisabeta', 'Ecaterina', 'Sofia', 'Alexandra'],
+        surname: ['Báthory', 'Hunyadi', 'Corvinus', 'Bethlen', 'Rákóczi', 'Bocskai', 'Thököly', 'Apafi', 'Kemény', 'Barcsay', 'Szapolyai', 'Drăculești', 'Basarab', 'Brâncoveanu', 'Cantacuzino', 'Ghica', 'Movilă', 'Rareș', 'Mușat', 'Bogdan']
+    },
+    
+    // === GALICIAN ===
+    GALICIAN: {
+        male: ['Xosé', 'Manuel', 'Antonio', 'Francisco', 'Ramón', 'Pedro', 'Xulio', 'Carlos', 'Luis', 'Diego', 'Afonso', 'Sancho', 'García', 'Fernando', 'Rodrigo', 'Álvaro', 'Paio', 'Nuno', 'Mendo', 'Vasco'],
+        female: ['María', 'Carmen', 'Ana', 'Isabel', 'Teresa', 'Dolores', 'Rosa', 'Lucía', 'Beatriz', 'Elvira', 'Urraca', 'Sancha', 'Mayor', 'Constanza', 'Inés', 'Leonor', 'Berenguela', 'Jimena', 'Aldonza', 'Guiomar'],
+        surname: ['Fernández', 'González', 'Rodríguez', 'López', 'Martínez', 'Sánchez', 'Pérez', 'Gómez', 'García', 'Díaz', 'Vázquez', 'Castro', 'Ponte', 'Saavedra', 'Andrade', 'Ulloa', 'Lemos', 'Osorio', 'Quiroga', 'Ribera']
+    },
+    
     // === IMPROVED NATIVE AMERICAN NAMES ===
     NORTH_AMERICAN_ALGONQUIAN: {
         male: ['Nanabozho', 'Wabigwan', 'Makoons', 'Migizi', 'Giizhig', 'Binesi', 'Makak', 'Waabigwanii', 'Ogichidaa', 'Gichi', 'Migwech', 'Anishinaabe', 'Boozhoo', 'Giwedin', 'Ishkode', 'Manidoo', 'Miigwech', 'Nooko', 'Ozhaawashko', 'Waaboos'],
@@ -181,6 +242,42 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
         male: ['Bolesław', 'Casimir', 'Władysław', 'Mieszko', 'Leszek', 'Konrad', 'Henryk', 'Przemysł', 'Wacław', 'Ziemowit', 'Janusz', 'Siemowit', 'Trojden', 'Bolesław', 'Kazimierz', 'Sigismund', 'Stefan', 'Jan', 'Stanisław', 'Aleksander'],
         female: ['Jadwiga', 'Elżbieta', 'Anna', 'Katarzyna', 'Zofia', 'Barbara', 'Konstancja', 'Agnieszka', 'Małgorzata', 'Dorota', 'Krystyna', 'Urszula', 'Euphemia', 'Anastazja', 'Beatrycze', 'Cecylia', 'Helena', 'Marianna', 'Teresa', 'Franciszka'],
         surname: ['Jagiełło', 'Piast', 'Vasa', 'Sobieski', 'Poniatowski', 'Czartoryski', 'Potocki', 'Radziwiłł', 'Zamoyski', 'Lubomirski', 'Sapieha', 'Mniszech', 'Ossoliński', 'Tarnowski', 'Kmita', 'Górka', 'Kostka', 'Leszczyński', 'Wiśniowiecki', 'Sanguszko']
+    },
+    // Modern Central European names (20th century)
+    CZECH_MODERN: {
+        male: ['Jan', 'Petr', 'Josef', 'Pavel', 'Martin', 'Tomáš', 'Jaroslav', 'František', 'Miroslav', 'Václav', 'Karel', 'Milan', 'Jiří', 'Zdeněk', 'Vladimír', 'Stanislav', 'Michal', 'Lukáš', 'David', 'Ondřej'],
+        female: ['Marie', 'Jana', 'Eva', 'Anna', 'Hana', 'Lenka', 'Alena', 'Kateřina', 'Věra', 'Petra', 'Lucie', 'Jaroslava', 'Jitka', 'Helena', 'Ludmila', 'Zdeňka', 'Ivana', 'Monika', 'Tereza', 'Martina'],
+        surname: ['Novák', 'Svoboda', 'Novotný', 'Dvořák', 'Černý', 'Procházka', 'Kučera', 'Veselý', 'Horák', 'Němec', 'Pospíšil', 'Marek', 'Pokorný', 'Hájek', 'Král', 'Jelínek', 'Růžička', 'Beneš', 'Fiala', 'Sedláček']
+    },
+    SLOVAK_MODERN: {
+        male: ['Ján', 'Peter', 'Jozef', 'Štefan', 'Milan', 'Tomáš', 'Miroslav', 'Pavol', 'Martin', 'Michal', 'Lukáš', 'Andrej', 'Vladimír', 'Igor', 'Roman', 'Marek', 'Dušan', 'Branislav', 'Radoslav', 'Daniel'],
+        female: ['Mária', 'Anna', 'Zuzana', 'Eva', 'Katarína', 'Jana', 'Elena', 'Monika', 'Viera', 'Martina', 'Ivana', 'Lucia', 'Gabriela', 'Alžbeta', 'Lenka', 'Andrea', 'Simona', 'Daniela', 'Barbora', 'Michaela'],
+        surname: ['Horváth', 'Kováč', 'Varga', 'Tóth', 'Nagy', 'Baláž', 'Szabó', 'Molnár', 'Novák', 'Kočiš', 'Lukáč', 'Hudák', 'Pavlík', 'Gašpar', 'Marko', 'Jankovič', 'Krajčík', 'Urban', 'Šimko', 'Pavelka']
+    },
+    POLISH_MODERN: {
+        male: ['Jan', 'Stanisław', 'Andrzej', 'Józef', 'Tadeusz', 'Jerzy', 'Zbigniew', 'Krzysztof', 'Henryk', 'Ryszard', 'Kazimierz', 'Marek', 'Marian', 'Piotr', 'Janusz', 'Władysław', 'Adam', 'Wiesław', 'Zdzisław', 'Edward'],
+        female: ['Maria', 'Krystyna', 'Anna', 'Barbara', 'Teresa', 'Elżbieta', 'Janina', 'Zofia', 'Jadwiga', 'Danuta', 'Halina', 'Irena', 'Ewa', 'Małgorzata', 'Helena', 'Grażyna', 'Bożena', 'Stanisława', 'Jolanta', 'Urszula'],
+        surname: ['Nowak', 'Kowalski', 'Wiśniewski', 'Wójcik', 'Kowalczyk', 'Kamiński', 'Lewandowski', 'Zieliński', 'Szymański', 'Woźniak', 'Dąbrowski', 'Kozłowski', 'Jankowski', 'Mazur', 'Wojciechowski', 'Kwiatkowski', 'Krawczyk', 'Kaczmarek', 'Piotrowski', 'Grabowski']
+    },
+    HUNGARIAN_MODERN: {
+        male: ['László', 'István', 'József', 'János', 'Zoltán', 'Sándor', 'Gábor', 'Ferenc', 'Attila', 'Péter', 'Tamás', 'Zsolt', 'Tibor', 'Csaba', 'Imre', 'András', 'Béla', 'Gyula', 'Pál', 'Károly'],
+        female: ['Mária', 'Erzsébet', 'Katalin', 'Ilona', 'Éva', 'Anna', 'Zsuzsanna', 'Ágnes', 'Judit', 'Margit', 'Gabriella', 'Andrea', 'Ildikó', 'Mónika', 'Edit', 'Krisztina', 'Erika', 'Anikó', 'Eszter', 'Szilvia'],
+        surname: ['Nagy', 'Kovács', 'Tóth', 'Szabó', 'Horváth', 'Varga', 'Kiss', 'Molnár', 'Németh', 'Farkas', 'Balogh', 'Papp', 'Takács', 'Juhász', 'Lakatos', 'Mészáros', 'Oláh', 'Simon', 'Rácz', 'Fekete']
+    },
+    ROMANIAN: {
+        male: ['Ion', 'Gheorghe', 'Constantin', 'Vasile', 'Nicolae', 'Dumitru', 'Mihai', 'Alexandru', 'Stefan', 'Andrei', 'Florin', 'Adrian', 'Marian', 'Cristian', 'Daniel', 'Bogdan', 'Ionuț', 'Radu', 'Cosmin', 'Dragoș'],
+        female: ['Maria', 'Elena', 'Ana', 'Ioana', 'Nicoleta', 'Adriana', 'Mariana', 'Daniela', 'Cristina', 'Mihaela', 'Carmen', 'Gabriela', 'Alina', 'Monica', 'Simona', 'Laura', 'Andreea', 'Alexandra', 'Roxana', 'Diana'],
+        surname: ['Popa', 'Popescu', 'Pop', 'Radu', 'Ionescu', 'Dumitru', 'Stan', 'Stoica', 'Gheorghe', 'Constantin', 'Marin', 'Mihai', 'Ciobanu', 'Rusu', 'Serban', 'Dinu', 'Georgescu', 'Ionita', 'Tudor', 'Dobre']
+    },
+    YUGOSLAV: {
+        male: ['Milan', 'Dragan', 'Zoran', 'Goran', 'Slobodan', 'Predrag', 'Nenad', 'Aleksandar', 'Vladimir', 'Branislav', 'Miloš', 'Marko', 'Stefan', 'Nikola', 'Petar', 'Đorđe', 'Radovan', 'Miroslav', 'Bojan', 'Dejan'],
+        female: ['Milica', 'Jelena', 'Ana', 'Marija', 'Dragana', 'Snežana', 'Gordana', 'Ljiljana', 'Vesna', 'Biljana', 'Zorica', 'Slavica', 'Radmila', 'Mirjana', 'Nada', 'Vera', 'Dušanka', 'Milena', 'Svetlana', 'Branka'],
+        surname: ['Jovanović', 'Petrović', 'Nikolić', 'Marković', 'Đorđević', 'Stojanović', 'Ilić', 'Stanković', 'Pavlović', 'Milošević', 'Todorović', 'Ristić', 'Radovanović', 'Živković', 'Janković', 'Popović', 'Kostić', 'Mitić', 'Cvetković', 'Lazarević']
+    },
+    EAST_GERMAN: {
+        male: ['Hans', 'Klaus', 'Werner', 'Günter', 'Dieter', 'Horst', 'Jürgen', 'Helmut', 'Gerhard', 'Wolfgang', 'Rolf', 'Bernd', 'Manfred', 'Uwe', 'Peter', 'Frank', 'Thomas', 'Andreas', 'Michael', 'Matthias'],
+        female: ['Ingrid', 'Helga', 'Ursula', 'Renate', 'Monika', 'Karin', 'Brigitte', 'Gisela', 'Christa', 'Erika', 'Hannelore', 'Angelika', 'Petra', 'Sabine', 'Gabriele', 'Heike', 'Birgit', 'Martina', 'Katrin', 'Anja'],
+        surname: ['Müller', 'Schmidt', 'Schneider', 'Fischer', 'Weber', 'Meyer', 'Wagner', 'Becker', 'Schulz', 'Hoffmann', 'Schäfer', 'Koch', 'Bauer', 'Richter', 'Klein', 'Wolf', 'Schröder', 'Neumann', 'Schwarz', 'Zimmermann']
     },
     BOHEMIAN: {
         male: ['Václav', 'Boleslav', 'Vratislav', 'Břetislav', 'Spytihněv', 'Otakar', 'Karel', 'Jan', 'Václav', 'Sigismund', 'Ladislav', 'Jiří', 'Ferdinand', 'Rudolf', 'Matyáš', 'Ferdinand'],
@@ -435,7 +532,19 @@ export const REGION_NAME_MAPPING: Record<string, Record<string, Array<{
         "Eastern Europe": [
             { before: 800, keys: ['SLAVIC_MEDIEVAL', 'BYZANTINE'] },
             { after: 800, before: 1000, keys: ['SLAVIC_MEDIEVAL', 'BYZANTINE', 'RUSSIAN'] },
-            { after: 1000, keys: ['RUSSIAN', 'POLISH', 'HUNGARIAN', 'BOHEMIAN'] }
+            { after: 1000, before: 1500, keys: ['RUSSIAN', 'POLISH', 'HUNGARIAN', 'BOHEMIAN'] },
+            { after: 1500, before: 1918, keys: ['POLISH', 'HUNGARIAN', 'BOHEMIAN', 'GERMAN'] },
+            { after: 1918, before: 1945, keys: ['POLISH_MODERN', 'CZECH_MODERN', 'SLOVAK_MODERN', 'HUNGARIAN_MODERN', 'ROMANIAN'] },
+            { after: 1945, before: 1990, keys: ['POLISH_MODERN', 'CZECH_MODERN', 'SLOVAK_MODERN', 'HUNGARIAN_MODERN', 'EAST_GERMAN', 'YUGOSLAV', 'ROMANIAN'] },
+            { after: 1990, keys: ['POLISH_MODERN', 'CZECH_MODERN', 'SLOVAK_MODERN', 'HUNGARIAN_MODERN', 'ROMANIAN'] }
+        ],
+        "Carpathian Foothills": [
+            { before: 1000, keys: ['SLAVIC_MEDIEVAL'] },
+            { after: 1000, before: 1500, keys: ['POLISH', 'HUNGARIAN', 'BOHEMIAN'] },
+            { after: 1500, before: 1918, keys: ['POLISH', 'HUNGARIAN', 'BOHEMIAN', 'GERMAN'] },
+            { after: 1918, before: 1945, keys: ['POLISH_MODERN', 'CZECH_MODERN', 'SLOVAK_MODERN', 'HUNGARIAN_MODERN', 'ROMANIAN'] },
+            { after: 1945, before: 1990, keys: ['POLISH_MODERN', 'CZECH_MODERN', 'SLOVAK_MODERN', 'EAST_GERMAN', 'ROMANIAN'] },
+            { after: 1990, keys: ['POLISH_MODERN', 'CZECH_MODERN', 'SLOVAK_MODERN', 'ROMANIAN'] }
         ]
     },
     "NORTH_AMERICAN_COLONIAL": {
@@ -512,6 +621,9 @@ export const REGION_NAME_MAPPING: Record<string, Record<string, Array<{
             { before: 651, keys: ['PERSIAN_FARSI'] },
             { after: 651, keys: ['PERSIAN_FARSI', 'ARABIC_LEVANT'] }
         ],
+        "Persian Khorasan": [
+            { keys: ['PERSIAN_KHORASAN'] }
+        ],
         "Anatolia": [
             { before: 1071, keys: ['BYZANTINE', 'ARMENIAN'] },
             { after: 1071, before: 1453, keys: ['BYZANTINE', 'TURKISH', 'ARMENIAN'] },
@@ -520,6 +632,12 @@ export const REGION_NAME_MAPPING: Record<string, Record<string, Array<{
         "Arabia": [
             { before: 622, keys: ['ARABIC_LEVANT'] },
             { after: 622, keys: ['ARABIC_LEVANT'] }
+        ],
+        "Hejaz Mountains": [
+            { keys: ['ARABIAN_HEJAZ'] }
+        ],
+        "Red Sea Coast Yemen": [
+            { keys: ['ARABIC_LEVANT'] }
         ],
         "North Africa": [
             { before: 647, keys: ['BERBER_AMAZIGH', 'BYZANTINE'] },

@@ -7,6 +7,7 @@ import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES, ALTITUDE_LEVELS, STRUCTURE_BLUEPRINT
 import { parseDateString } from '../../../utils/dateUtils';
 import { mapLocationToCulture } from '../../../utils/mapUtils';
 import { RELIGION_DATA } from '../../../constants/characterData/religions';
+import { detectCitiesForArea } from '../../../utils/cityDetectionUtils';
 
 
 const HOLY_PLACE_BASE_CHANCE = 0.004;
@@ -22,41 +23,27 @@ const nonHolyPlaceBiomes = [
 
 export function generateHolyPlaces(mapData: MapData, featurePlacementNoise: ValueNoise, societalProfile: SocietalProfile): TerrainStructure[] {
     const { tiles } = mapData;
+    
+    // Skip holy place generation for SHOALS archetype
+    if (mapData.archetype === 'SHOALS') {
+        console.log(`[HolyPlace] Skipping holy place generation for SHOALS archetype`);
+        return [];
+    }
+    
     const holyPlaceTypes = societalProfile.holyPlaceNames;
     if (!holyPlaceTypes || holyPlaceTypes.length === 0) {
         return [];
     }
     
+    console.log(`[HolyPlace] Starting holy place generation for localArea="${mapData.localArea}", region="${mapData.region}"`);
+    
     const dateInfo = parseDateString(mapData.timeSlice || '1650');
     const culturalZone = mapLocationToCulture(mapData.continent || 'Europe', dateInfo.year);
     const factionData: FactionData | undefined = FACTION_DATA[culturalZone]?.[mapData.region || '']?.[dateInfo.era];
 
-    // Check if this area has defined cities
-    let hasCities = false;
-    const mapAreaName = mapData.localArea;
-    
-    if (mapAreaName && dateInfo.year) {
-        try {
-            const { CITIES_DATA } = require('../../../constants/gameData/cities');
-            const areaCities = CITIES_DATA[mapAreaName] || [];
-            const activeCities = areaCities.filter((city: any) => 
-                dateInfo.year >= city.foundingYear && (!city.declineYear || dateInfo.year <= city.declineYear)
-            );
-            
-            if (activeCities.length > 0) {
-                hasCities = true;
-            } else {
-                // Check procedural cities
-                const { PROCEDURAL_CITY_DATA } = require('../../../constants/gameData/proceduralCityData');
-                const proceduralCities = PROCEDURAL_CITY_DATA[mapAreaName] || [];
-                if (proceduralCities.length > 0) {
-                    hasCities = true;
-                }
-            }
-        } catch (error) {
-            console.log(`[HolyPlace] Could not load city data for ${mapAreaName}`);
-        }
-    }
+    // Use centralized city detection
+    const cityDetection = detectCitiesForArea(mapData.localArea, mapData.region, dateInfo.year, dateInfo.era, true);
+    const hasCities = cityDetection.hasCities;
 
     const generatedHolyPlaces: TerrainStructure[] = [];
     let placesPlaced = 0;
@@ -67,11 +54,13 @@ export function generateHolyPlaces(mapData: MapData, featurePlacementNoise: Valu
         // Only 20% chance of a single holy site when no cities
         if (featurePlacementNoise.random() < 0.2) {
             maxPlaces = 1;
-            console.log(`[HolyPlace] No cities defined for ${mapAreaName}, spawning 1 holy site`);
+            console.log(`[HolyPlace] No cities found for areas: ${cityDetection.checkedAreas.join(', ')}, spawning 1 holy site`);
         } else {
             maxPlaces = 0;
-            console.log(`[HolyPlace] No cities defined for ${mapAreaName}, skipping holy site generation`);
+            console.log(`[HolyPlace] No cities found for areas: ${cityDetection.checkedAreas.join(', ')}, skipping holy site generation`);
         }
+    } else {
+        console.log(`[HolyPlace] Cities detected (source: ${cityDetection.source}), proceeding with holy place generation`);
     }
 
     const candidates: { tile: Tile, score: number }[] = [];

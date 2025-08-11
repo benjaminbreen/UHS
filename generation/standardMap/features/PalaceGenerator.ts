@@ -8,6 +8,7 @@ import {
 } from '../../../constants/index';
 import { parseDateString } from '../../../utils/dateUtils';
 import { mapLocationToCulture } from '../../../utils/mapUtils';
+import { detectCitiesForArea } from '../../../utils/cityDetectionUtils';
 
 const PALACE_BASE_CHANCE = 0.005;
 const PALACE_ANTI_CLUSTERING_RADIUS = 25;
@@ -24,39 +25,26 @@ const nonPalaceBiomes = [
 export function generatePalaces(tiles: Tile[][], featurePlacementNoise: ValueNoise, societalProfile: SocietalProfile, mapData: MapData): TerrainStructure[] {
     const generatedPalaces: TerrainStructure[] = [];
     
-    // Check if this area has defined cities
-    let hasCities = false;
-    const mapAreaName = mapData.localArea;
-    const dateInfo = parseDateString(mapData.timeSlice || '1650');
+    console.log(`[Palace] Starting palace generation for localArea="${mapData.localArea}", region="${mapData.region}"`);
     
-    if (mapAreaName && dateInfo.year) {
-        try {
-            const { CITIES_DATA } = require('../../../constants/gameData/cities');
-            const areaCities = CITIES_DATA[mapAreaName] || [];
-            const activeCities = areaCities.filter((city: any) => 
-                dateInfo.year >= city.foundingYear && (!city.declineYear || dateInfo.year <= city.declineYear)
-            );
-            
-            if (activeCities.length > 0) {
-                hasCities = true;
-            } else {
-                // Check procedural cities
-                const { PROCEDURAL_CITY_DATA } = require('../../../constants/gameData/proceduralCityData');
-                const proceduralCities = PROCEDURAL_CITY_DATA[mapAreaName] || [];
-                if (proceduralCities.length > 0) {
-                    hasCities = true;
-                }
-            }
-        } catch (error) {
-            console.log(`[Palace] Could not load city data for ${mapAreaName}`);
-        }
-    }
-    
-    // No palaces if no cities are defined
-    if (!hasCities) {
-        console.log(`[Palace] No cities defined for ${mapAreaName}, skipping palace generation`);
+    // Skip palace generation for SHOALS archetype
+    if (mapData.archetype === 'SHOALS') {
+        console.log(`[Palace] Skipping palace generation for SHOALS archetype`);
         return [];
     }
+    
+    const dateInfo = parseDateString(mapData.timeSlice || '1650');
+    
+    // Use centralized city detection
+    const cityDetection = detectCitiesForArea(mapData.localArea, mapData.region, dateInfo.year, dateInfo.era, true);
+    
+    // No palaces if no cities are defined
+    if (!cityDetection.hasCities) {
+        console.log(`[Palace] No cities found for areas: ${cityDetection.checkedAreas.join(', ')}, skipping palace generation`);
+        return [];
+    }
+    
+    console.log(`[Palace] Cities detected (source: ${cityDetection.source}), proceeding with palace generation`);
     
     const maxPalaces = 1;
     

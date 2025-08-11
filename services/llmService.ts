@@ -125,7 +125,66 @@ export async function generateEncounterDialogue(
     const conversationHistoryText = history.slice(-4).map(h => `${h.speaker}: ${h.text}`).join('\n');
 
     const languageInstruction = useRealLanguage 
-        ? `**Language Rules:** Respond ONLY in the historically and culturally appropriate language for your character. Based on your context (Year ${mapData.timeSlice}, Location: ${mapData.localArea}), determine this language. For example, if you are a Roman soldier in 45 AD, you speak Latin. If you are a samurai in 1580 Japan, you speak Japanese. DO NOT provide a translation.`
+        ? `**CRITICAL LANGUAGE DIRECTIVE:** 
+        You MUST respond in the historically and linguistically accurate language for your character based on:
+        - Year: ${mapData.timeSlice}
+        - Location: ${mapData.localArea}, ${mapData.continent || 'Unknown Region'}
+        - Cultural Zone: ${target.culturalZone}
+        - Your Class/Role: ${target.class} ${target.role}
+        
+        **SPECIFIC LANGUAGE REQUIREMENTS:**
+        
+        ANCIENT LANGUAGES (Pre-500 CE):
+        - Mesopotamia/Babylon (3000-500 BCE): Use Akkadian or Sumerian phrases
+        - Egypt (3000 BCE-300 CE): Use Ancient Egyptian/Coptic phrases
+        - Greece (800 BCE-300 CE): Use Ancient Greek (transliterated)
+        - Rome/Italy (500 BCE-500 CE): Use Classical Latin
+        - India (1500 BCE-500 CE): Use Sanskrit or Prakrit
+        - China (1000 BCE-500 CE): Use Classical Chinese
+        - Celtic Europe (500 BCE-500 CE): Use Proto-Celtic or Gaulish approximations
+        - Germania (100 BCE-500 CE): Use Proto-Germanic reconstructions
+        - Americas (Pre-1492):
+          - Mesoamerica: Use Nahuatl (Aztec), Maya, or other regional languages
+          - Andes: Use Quechua or Aymara
+          - North America Pacific Coast (including Columbia River): Use Chinook Jargon or approximate Coast Salish/Chinookan languages
+          - North America Plains: Use proto-Siouan or proto-Algonquian
+        - Indus Valley (3000-1500 BCE): Use speculative Proto-Dravidian reconstructions
+        
+        MEDIEVAL LANGUAGES (500-1500 CE):
+        - England (500-1100): Use Old English (Anglo-Saxon)
+        - England (1100-1400): Use Middle English (like Chaucer)
+        - France (800-1300): Use Old French
+        - Iberia (700-1200): Mix Arabic with Old Spanish/Portuguese
+        - Scandinavia (800-1300): Use Old Norse
+        - Russia (900-1400): Use Old Church Slavonic
+        - Japan (800-1600): Use Classical Japanese (with appropriate keigo)
+        - Middle East (600-1500): Use Classical Arabic or Persian
+        - Mongolia/Steppes (1200-1400): Use Middle Mongolian
+        
+        EARLY MODERN (1500-1800):
+        - Use period-appropriate Early Modern versions of languages
+        - Include archaic grammar, vocabulary, and spelling
+        
+        **LINGUISTIC AUTHENTICITY RULES:**
+        1. Use actual words and phrases from the target language - do NOT use modern versions
+        2. For reconstructed/extinct languages, use scholarly approximations
+        3. Include appropriate honorifics, titles, and social markers
+        4. For pre-literate societies, use simple, direct speech patterns
+        5. Do NOT provide translations or explanations
+        6. If the exact language is unknown (like pre-Columbian Columbia River), make your best scholarly approximation based on linguistic reconstruction
+        7. NEVER default to English - always attempt the historical language
+        
+        **EXAMPLES OF CORRECT RESPONSES:**
+        - Roman merchant, 100 CE: "Salve, amice. Quid mercari vis hodie?"
+        - Viking trader, 900 CE: "Hvat viltu kaupa, útlendingr?"
+        - Aztec priest, 1400 CE: "Tlein ticnequi, teotl tlacatl?"
+        - Medieval English peasant, 1350 CE: "What woldest thou, gode sire?"
+        - Japanese samurai, 1580 CE: "Nanigoto de gozaru ka, tabi no kata?"
+        - Chinookan fisher, Columbia River, 10 CE: "Ikta mika tikéh?" (Chinook Jargon approximation)
+        - Ancient Egyptian scribe, 1350 BCE: "ỉw.k m-ḫd ỉḫ.t" (hieroglyphic transliteration)
+        - Sumerian merchant, 2500 BCE: "ana šu-ka damgar" 
+        
+        **YOUR RESPONSE MUST BE ENTIRELY IN THE APPROPRIATE HISTORICAL LANGUAGE.**`
         : `**Language Rules:** Respond in English.`;
 
 
@@ -141,6 +200,11 @@ export async function generateEncounterDialogue(
         - **Appearance:** You are ${formatAppearance(target)}
         - **Personality & Backstory:** ${target.backstory}
         - **Core Beliefs:** ${formatBeliefs(target)}
+        - **Your Stats (affects how you speak and act):** 
+          - Intelligence: ${target.stats?.intelligence || 10}/20 (${target.stats?.intelligence > 14 ? 'Very smart - speak eloquently' : target.stats?.intelligence > 10 ? 'Average intelligence' : 'Simple-minded - use simple words'})
+          - Charisma: ${target.stats?.charisma || 10}/20 (${target.stats?.charisma > 14 ? 'Very charming - naturally friendly' : target.stats?.charisma > 10 ? 'Personable' : 'Awkward - may be rude or blunt'})
+          - Wisdom: ${target.stats?.wisdom || 10}/20 (${target.stats?.wisdom > 14 ? 'Very wise - thoughtful responses' : target.stats?.wisdom > 10 ? 'Sensible' : 'Impulsive - may say foolish things'})
+        - **Your Current Activity:** You are ${target.currentActivity || 'going about your day'}.
         - **Your Memories of the Player:** 
           ${target.memory.conversationSummaries.length > 0 ? target.memory.conversationSummaries.map(s => `- ${s}`).join('\n') : "- You have no significant memories of this person."}
         
@@ -157,13 +221,24 @@ export async function generateEncounterDialogue(
         - **The Player just said to you:** "${playerInput}"
 
         **YOUR TASK AND RULES (MANDATORY):**
-        1.  **Stay in Character:** Respond ONLY with spoken dialogue.
-        2.  **Be Historically Accurate:** Your reaction MUST be based on your identity and context. Consider the player's gender, social class, and profession.
-        3.  **Detect Anachronisms:** If the player says something that makes no sense for your time period (e.g., mentions a 'computer', 'democracy', 'the internet'), you MUST react with confusion, suspicion, or dismissal. Do not understand the anachronism.
-        4.  **Use Your Memory:** If the conversation relates to something you've discussed before (see "Your Memories"), acknowledge it.
-        5.  **Factor in Reputation:** Adjust your tone based on the player's reputation score.
-        6.  **Be Concise:** Your response must be 1-3 sentences, unless there is a genuine need for it to be longer.
-        7.  **Output Format:** Your entire response must be ONLY the dialogue text. Do not add quotes.
+        1.  **Stay in Character:** Respond ONLY with spoken dialogue as a real person would.
+        2.  **Know Your World:** You are fully aware of major world events, leaders, and common knowledge for your time period. If someone asks about Xi Jinping in 2030s China, you KNOW who that is. If they ask about climate change in modern times, you understand what they mean. Don't play dumb about things that would be common knowledge.
+        3.  **React Based on Personality:** Your response should vary GREATLY based on:
+            - Your stats (intelligence, charisma, wisdom affect how you speak)
+            - Your social class vs theirs (nobles may be dismissive of peasants, etc.)
+            - Your current mood and the player's reputation
+            - Whether you're busy, friendly, hostile, or indifferent
+        4.  **Personality Types:** Based on your stats and role, be one of these:
+            - Friendly/Helpful (high charisma, good reputation): "Oh, you need directions? Sure, it's just down that path..."
+            - Busy/Dismissive (working, low patience): "Can't you see I'm working? What do you want?"
+            - Suspicious/Hostile (low reputation, guard role): "You again? I told you to stay away from here."
+            - Intellectual/Verbose (high intelligence): "Ah, an interesting question! Let me explain..."
+            - Simple/Direct (low intelligence): "Huh? I dunno about that."
+            - Flirtatious (high charisma, compatible): "Well hello there, haven't seen you around before..."
+        5.  **Detect ONLY True Anachronisms:** Only be confused if they mention something that TRULY doesn't exist yet (like computers in medieval times). Otherwise, answer normally.
+        6.  **Use Your Memory:** If you've talked before, remember it.
+        7.  **Be Natural:** Respond like a real person - sometimes short, sometimes long, sometimes rude, sometimes kind. 1-4 sentences typically.
+        8.  **Output Format:** Your entire response must be ONLY the dialogue text. Do not add quotes.
     `;
     
     try {

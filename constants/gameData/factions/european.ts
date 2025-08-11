@@ -2059,6 +2059,365 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                     }
                 }
             }
+        },
+        "Central Europe": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Germanic Tribes',
+                dominantPowerDescription: 'Free Germanic tribes dwelling in dark forests beyond the Rhine frontier, fiercely resisting Roman expansion.',
+                eraContextSentence: 'the unconquered lands where Germanic warriors defend their sacred groves against Roman legions.',
+                allegianceGroups: [
+                    { name: 'Cherusci Confederation', type: 'primary', description: 'Arminius\'s alliance that destroyed three legions.' },
+                    { name: 'Marcomanni Kingdom', type: 'secondary', description: 'Powerful kingdom under King Maroboduus.' },
+                    { name: 'Roman Client Tribes', type: 'secondary', description: 'Germanic peoples allied with Rome.' },
+                    { name: 'Suebi Tribes', type: 'secondary', description: 'Fierce warriors of the eastern forests.' }
+                ],
+                structureNames: {
+                    fortress: ['Hill Fort', 'Tribal Stronghold', 'Forest Refuge', 'River Fort'],
+                    holy_site: ['Sacred Grove', 'Wotan\'s Oak', 'Spring Shrine', 'Burial Mound'],
+                    palace: ['Chieftain\'s Hall', 'King\'s Compound', 'Tribal Assembly Ground']
+                },
+                courtRoles: {
+                    palace: ['War Chief', 'Shield Bearer', 'Skald', 'Tribal Elder', 'Seer']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Holy Roman Empire',
+                dominantPowerDescription: 'The complex patchwork of the Holy Roman Empire, where hundreds of princes, bishops, and free cities vie for power under an elected Emperor.',
+                eraContextSentence: 'the age of imperial dignity, where German princes elect their Emperor while maintaining fierce independence.',
+                allegianceGroups: [
+                    { name: 'Imperial Authority', type: 'primary', description: 'The elected Emperor and his court.' },
+                    { name: 'Electoral Princes', type: 'secondary', description: 'The seven electors who choose the Emperor.' },
+                    { name: 'Free Imperial Cities', type: 'trade_company', description: 'Wealthy merchant republics.' },
+                    { name: 'Teutonic Order', type: 'secondary', description: 'Crusading knights expanding eastward.' }
+                ],
+                structureNames: {
+                    fortress: ['Reichsburg', 'Bishop\'s Castle', 'Ordensburg', 'City Walls'],
+                    mill: ['Water Mill', 'Monastery Mill', 'Guild Mill'],
+                    holy_site: ['Cathedral', 'Abbey', 'Pilgrimage Church', 'Jewish Synagogue'],
+                    palace: ['Imperial Palace', 'Elector\'s Residence', 'Bishop\'s Palace'],
+                    trading_post: ['Hanseatic Kontor', 'Market Square', 'Guild Hall', 'Jewish Quarter']
+                },
+                courtRoles: {
+                    palace: ['Imperial Chancellor', 'Arch-Marshal', 'Prince-Elector', 'Hofmeister', 'Imperial Judge']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Habsburg Dominions',
+                dominantPowerDescription: 'The Habsburg dynasty controls vast territories, though the Reformation tears the Empire apart in religious wars.',
+                eraContextSentence: 'the age of religious warfare, where Protestant princes defy the Catholic Emperor in the name of conscience.',
+                allegianceGroups: [
+                    { name: 'Habsburg Emperor', type: 'primary', description: 'Catholic champion defending the old order.' },
+                    { name: 'Protestant Union', type: 'rebel', description: 'Lutheran and Calvinist princes.' },
+                    { name: 'Catholic League', type: 'secondary', description: 'Bavaria and other Catholic states.' },
+                    { name: 'Kingdom of France', type: 'secondary', description: 'Catholic power backing Protestants against Habsburg dominance.' }
+                ],
+                structureNames: {
+                    fortress: ['Star Fort', 'Baroque Citadel', 'Artillery Bastion'],
+                    holy_site: ['Lutheran Church', 'Jesuit College', 'Reformed Church', 'Baroque Cathedral'],
+                    palace: ['Baroque Palace', 'Residenz', 'Hunting Lodge'],
+                    trading_post: ['Counting House', 'Fugger Bank', 'Postal Station']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'German Empire',
+                dominantPowerDescription: 'Bismarck\'s Prussia unifies Germany through "blood and iron," creating a new industrial and military powerhouse.',
+                eraContextSentence: 'the age of unification, where Prussian militarism forges a new empire that challenges British hegemony.',
+                allegianceGroups: [
+                    { name: 'German Empire', type: 'primary', description: 'The Kaiserreich under Prussian leadership.' },
+                    { name: 'Austria-Hungary', type: 'secondary', description: 'Former rival, now ally in the Dual Alliance.' },
+                    { name: 'Social Democrats', type: 'secondary', description: 'Growing workers\' movement.' },
+                    { name: 'Catholic Center Party', type: 'secondary', description: 'Defending Church interests against Kulturkampf.' }
+                ],
+                structureNames: {
+                    fortress: ['Prussian Barracks', 'Fortress Ring', 'Naval Base'],
+                    factory: ['Krupp Steelworks', 'Chemical Plant', 'Locomotive Works', 'Electrical Factory'],
+                    mining_colony: ['Ruhr Coal Mine', 'Iron Mine', 'Potash Mine'],
+                    trading_post: ['Railway Station', 'Stock Exchange', 'Department Store']
+                }
+            },
+            [MODERN_ERA]: {
+                dominantPower: 'Federal Republic of Germany',
+                dominantPowerDescription: 'From Nazi catastrophe through division to reunification, Germany transforms into Europe\'s economic engine and democratic anchor.',
+                eraContextSentence: 'the phoenix from ashes, where Germany overcomes its dark past to lead European integration.',
+                allegianceGroups: [
+                    { name: 'Federal Republic', type: 'primary', description: 'Democratic West Germany, later reunified.' },
+                    { name: 'NATO Alliance', type: 'secondary', description: 'Western military alliance.' },
+                    { name: 'European Union', type: 'secondary', description: 'Economic and political union Germany helps lead.' },
+                    { name: 'East Germany (until 1990)', type: 'secondary', description: 'Communist state before reunification.' }
+                ],
+                structureNames: {
+                    fortress: ['NATO Base', 'Bundeswehr Kaserne', 'Border Checkpoint (historical)'],
+                    factory: ['Auto Plant', 'Chemical Works', 'High-Tech Factory', 'Wind Turbine Plant'],
+                    trading_post: ['Frankfurt Airport', 'Container Port', 'ICE Station', 'Tech Hub']
+                }
+            }
+        },
+        "Low Countries": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Batavian Confederation',
+                dominantPowerDescription: 'Germanic tribes in the Rhine delta serve as auxiliary troops for Rome while maintaining semi-independence.',
+                eraContextSentence: 'the watery frontier where Batavian horsemen patrol Roman borders along endless rivers and marshes.',
+                allegianceGroups: [
+                    { name: 'Batavian Allies', type: 'primary', description: 'Elite cavalry serving Rome.' },
+                    { name: 'Roman Gaul', type: 'secondary', description: 'The provincial administration.' },
+                    { name: 'Frisian Tribes', type: 'secondary', description: 'Coastal peoples beyond the frontier.' },
+                    { name: 'Frankish Raiders', type: 'rebel', description: 'Germanic warriors crossing the Rhine.' }
+                ],
+                structureNames: {
+                    fortress: ['River Fort', 'Roman Castellum', 'Tribal Stronghold'],
+                    holy_site: ['Romano-Germanic Temple', 'Sacred Spring', 'Matronae Shrine'],
+                    palace: ['Tribal King\'s Hall', 'Roman Villa', 'Prefect\'s Residence']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Burgundian Netherlands',
+                dominantPowerDescription: 'The wealthy cloth-producing cities of Flanders and Holland thrive under Burgundian rule, becoming Europe\'s commercial heart.',
+                eraContextSentence: 'the golden age of merchant princes, where Flemish cloth and Dutch ships dominate European trade.',
+                allegianceGroups: [
+                    { name: 'Duchy of Burgundy', type: 'primary', description: 'The ambitious dukes rivaling kings.' },
+                    { name: 'Flemish Cities', type: 'trade_company', description: 'Wealthy cloth-producing communes.' },
+                    { name: 'Hanseatic League', type: 'trade_company', description: 'German merchant confederation.' },
+                    { name: 'Kingdom of France', type: 'secondary', description: 'Nominal overlord seeking real control.' }
+                ],
+                structureNames: {
+                    fortress: ['City Walls', 'Ducal Castle', 'Guild Tower', 'Water Castle'],
+                    mill: ['Fulling Mill', 'Tide Mill', 'Windmill', 'Paper Mill'],
+                    holy_site: ['Gothic Cathedral', 'Beguinage', 'Abbey', 'Cloth Hall Chapel'],
+                    palace: ['Ducal Palace', 'Patrician Mansion', 'Guild Hall', 'Town Hall'],
+                    trading_post: ['Cloth Hall', 'Bourse', 'Weigh House', 'Hanseatic Kontor']
+                },
+                courtRoles: {
+                    palace: ['Chancellor of Burgundy', 'Captain-General', 'Receiver-General', 'Grand Bailiff']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Spanish Netherlands / Dutch Republic',
+                dominantPowerDescription: 'The Dutch Revolt splits the region between Spanish-controlled south and the independent Dutch Republic, creating Europe\'s first modern republic.',
+                eraContextSentence: 'the age of revolt and golden prosperity, where Dutch merchants challenge Spanish might.',
+                allegianceGroups: [
+                    { name: 'Dutch Republic', type: 'primary', description: 'The United Provinces winning independence.' },
+                    { name: 'Spanish Crown', type: 'secondary', description: 'Habsburg rulers of the southern provinces.' },
+                    { name: 'Dutch East India Company', type: 'trade_company', description: 'The world\'s first megacorporation.' },
+                    { name: 'House of Orange', type: 'secondary', description: 'Stadholders leading the revolt.' }
+                ],
+                structureNames: {
+                    fortress: ['Star Fort', 'Sea Fort', 'Spanish Citadel', 'Dutch Water Line'],
+                    mill: ['Polder Mill', 'Sawmill', 'Paper Mill', 'Oil Mill'],
+                    holy_site: ['Reformed Church', 'Catholic Church', 'Jewish Synagogue', 'Mennonite Meeting House'],
+                    palace: ['Stadholder\'s Palace', 'Burgher Mansion', 'Town Hall', 'Exchange'],
+                    trading_post: ['VOC Warehouse', 'Stock Exchange', 'Weigh House', 'Fish Market']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'Kingdom of the Netherlands / Kingdom of Belgium',
+                dominantPowerDescription: 'After brief unity, the Netherlands and Belgium separate, with Belgium industrializing rapidly while the Netherlands focuses on trade and colonies.',
+                eraContextSentence: 'the age of coal and colonies, where small nations punch above their weight through industry and empire.',
+                allegianceGroups: [
+                    { name: 'Kingdom of the Netherlands', type: 'primary', description: 'Constitutional monarchy with vast colonies.' },
+                    { name: 'Kingdom of Belgium', type: 'secondary', description: 'New industrial power with African ambitions.' },
+                    { name: 'Liberal Parties', type: 'secondary', description: 'Advocating free trade and reform.' },
+                    { name: 'Catholic Parties', type: 'secondary', description: 'Defending traditional values.' }
+                ],
+                structureNames: {
+                    fortress: ['Fortress Holland', 'Belgian Fort', 'Colonial Barracks'],
+                    factory: ['Textile Mill', 'Steel Plant', 'Diamond Workshop', 'Philips Factory'],
+                    mining_colony: ['Limburg Coal Mine', 'Walloon Iron Mine', 'Congo Rubber Plantation'],
+                    trading_post: ['Railway Station', 'Port Terminal', 'Colonial Office', 'Diamond Exchange']
+                }
+            },
+            [MODERN_ERA]: {
+                dominantPower: 'Benelux Union',
+                dominantPowerDescription: 'The Netherlands, Belgium, and Luxembourg pioneer European integration while adapting to post-colonial realities.',
+                eraContextSentence: 'the laboratory of Europe, where former empires become models of cooperation and prosperity.',
+                allegianceGroups: [
+                    { name: 'Kingdom of the Netherlands', type: 'primary', description: 'Liberal democracy and EU founding member.' },
+                    { name: 'Kingdom of Belgium', type: 'secondary', description: 'EU capital navigating linguistic division.' },
+                    { name: 'European Union', type: 'secondary', description: 'The supranational project centered in Brussels.' },
+                    { name: 'NATO', type: 'secondary', description: 'Transatlantic security alliance.' }
+                ],
+                structureNames: {
+                    fortress: ['NATO Headquarters', 'EU Quarter', 'Peace Palace'],
+                    factory: ['ASML Chip Plant', 'Port Refinery', 'Chemical Complex', 'Biotech Lab'],
+                    trading_post: ['Rotterdam Port', 'Schiphol Airport', 'Antwerp Diamond District', 'EU Institutions']
+                }
+            }
+        },
+        "Greece and Aegean": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Hellenistic Kingdoms',
+                dominantPowerDescription: 'After Alexander, Greek culture spreads across the Mediterranean under various successor kingdoms before Roman conquest.',
+                eraContextSentence: 'the twilight of Greek independence, where philosophy flourishes even as Roman power grows.',
+                allegianceGroups: [
+                    { name: 'Macedonian Kingdom', type: 'primary', description: 'Descendants of Alexander ruling northern Greece.' },
+                    { name: 'Achaean League', type: 'secondary', description: 'Federation of Greek city-states.' },
+                    { name: 'Rhodes', type: 'trade_company', description: 'Maritime republic controlling sea trade.' },
+                    { name: 'Roman Republic', type: 'secondary', description: 'The rising power from the west.' }
+                ],
+                structureNames: {
+                    fortress: ['Acropolis', 'Macedonian Fort', 'Island Fortress', 'City Walls'],
+                    mill: ['Water Mill', 'Olive Press', 'Grain Mill'],
+                    holy_site: ['Parthenon', 'Oracle at Delphi', 'Mystery Temple', 'Healing Sanctuary'],
+                    palace: ['Royal Palace', 'Tyrant\'s Residence', 'Prytaneion', 'Gymnasiarch\'s Complex'],
+                    trading_post: ['Agora', 'Emporion', 'Harbor Market', 'Banking House']
+                },
+                courtRoles: {
+                    palace: ['Strategos', 'Royal Secretary', 'Symposiarch', 'Chief Priest', 'Harbor Master']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Byzantine Empire',
+                dominantPowerDescription: 'Greece forms the heartland of the Byzantine Empire, preserving Greek learning and Orthodox Christianity.',
+                eraContextSentence: 'the age of Byzantine glory, where Greek fire protects Constantinople and monks preserve ancient wisdom.',
+                allegianceGroups: [
+                    { name: 'Byzantine Empire', type: 'primary', description: 'The Eastern Roman Empire, Greek in character.' },
+                    { name: 'Theme Commanders', type: 'secondary', description: 'Military governors of provinces.' },
+                    { name: 'Venetian Traders', type: 'trade_company', description: 'Italian merchants with special privileges.' },
+                    { name: 'Slavic Tribes', type: 'rebel', description: 'Settlers in the mainland.' }
+                ],
+                structureNames: {
+                    fortress: ['Theme Fortress', 'Coastal Castle', 'Mountain Kastro', 'City Walls'],
+                    holy_site: ['Orthodox Monastery', 'Byzantine Church', 'Icon Workshop', 'Pilgrimage Site'],
+                    palace: ['Governor\'s Palace', 'Theme Headquarters', 'Bishop\'s Residence'],
+                    trading_post: ['Venetian Quarter', 'Silk Workshop', 'Harbor Warehouse']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Ottoman Empire',
+                dominantPowerDescription: 'Greece falls under Ottoman rule, with local Christian communities maintaining their identity through the Orthodox Church.',
+                eraContextSentence: 'the age of the Turkish yoke, where Greeks preserve their culture in churches and secret schools.',
+                allegianceGroups: [
+                    { name: 'Ottoman Empire', type: 'primary', description: 'The ruling Muslim empire.' },
+                    { name: 'Phanariot Greeks', type: 'secondary', description: 'Greek elite serving the Sultan.' },
+                    { name: 'Orthodox Church', type: 'secondary', description: 'Preserving Greek identity.' },
+                    { name: 'Klephts', type: 'rebel', description: 'Mountain bandits and freedom fighters.' }
+                ],
+                structureNames: {
+                    fortress: ['Ottoman Fort', 'Venetian Castle', 'Mountain Hideout'],
+                    holy_site: ['Orthodox Monastery', 'Hidden Church', 'Mosque', 'Dervish Lodge'],
+                    palace: ['Pasha\'s Palace', 'Bey\'s Mansion', 'Archbishop\'s Residence'],
+                    trading_post: ['Bazaar', 'Caravanserai', 'Venetian Factory', 'Jewish Quarter']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'Kingdom of Greece',
+                dominantPowerDescription: 'Independent Greece struggles to reclaim Byzantine glory while modernizing under foreign dynasties.',
+                eraContextSentence: 'the age of the Great Idea, where Greeks dream of reclaiming Constantinople and Asia Minor.',
+                allegianceGroups: [
+                    { name: 'Kingdom of Greece', type: 'primary', description: 'The new nation under Bavarian then Danish kings.' },
+                    { name: 'Great Powers', type: 'secondary', description: 'Britain, France, and Russia as protectors.' },
+                    { name: 'Cretan Rebels', type: 'rebel', description: 'Greeks under Ottoman rule seeking union.' },
+                    { name: 'Ottoman Empire', type: 'secondary', description: 'The traditional enemy still holding Greek lands.' }
+                ],
+                structureNames: {
+                    fortress: ['Royal Fort', 'Naval Base', 'Border Fort'],
+                    mill: ['Olive Oil Factory', 'Flour Mill', 'Textile Mill'],
+                    trading_post: ['Piraeus Port', 'Railway Station', 'Steamship Office'],
+                    palace: ['Royal Palace', 'Parliament', 'Governor\'s Mansion']
+                }
+            },
+            [MODERN_ERA]: {
+                dominantPower: 'Hellenic Republic',
+                dominantPowerDescription: 'Modern Greece navigates between East and West, from civil war through dictatorship to EU membership.',
+                eraContextSentence: 'the return to democracy, where Greece reclaims its democratic heritage in the European family.',
+                allegianceGroups: [
+                    { name: 'Hellenic Republic', type: 'primary', description: 'Parliamentary democracy, EU member since 1981.' },
+                    { name: 'NATO', type: 'secondary', description: 'Western military alliance.' },
+                    { name: 'European Union', type: 'secondary', description: 'Economic and political union.' },
+                    { name: 'Cyprus Question', type: 'secondary', description: 'The divided island remains contentious.' }
+                ],
+                structureNames: {
+                    fortress: ['NATO Base', 'Naval Station', 'Air Force Base'],
+                    factory: ['Shipyard', 'Cement Factory', 'Food Processing Plant'],
+                    trading_post: ['Ferry Terminal', 'Athens Airport', 'Container Port', 'Tourist Resort'],
+                    holy_site: ['Orthodox Cathedral', 'Monastery', 'Archaeological Site']
+                }
+            }
+        },
+        "Ural and Arctic Europe": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Scythian Nomads',
+                dominantPowerDescription: 'Horse nomads roam the steppes bordering the Urals, trading and raiding settled peoples to the south.',
+                eraContextSentence: 'the endless grasslands where mounted warriors follow their herds and ancient trade routes.',
+                allegianceGroups: [
+                    { name: 'Scythian Confederation', type: 'primary', description: 'Nomadic horse warriors controlling the steppes.' },
+                    { name: 'Sarmatian Tribes', type: 'secondary', description: 'Related nomadic peoples.' },
+                    { name: 'Forest Tribes', type: 'secondary', description: 'Hunter-gatherers in the northern forests.' },
+                    { name: 'Greek Colonies', type: 'trade_company', description: 'Trading posts on the Black Sea.' }
+                ],
+                structureNames: {
+                    fortress: ['Kurgan', 'Nomad Camp', 'Hill Fort', 'Forest Stockade'],
+                    holy_site: ['Sky Burial Ground', 'Sacred Grove', 'Shaman Circle', 'Stone Idol'],
+                    palace: ['Khan\'s Yurt', 'Chieftain\'s Camp', 'Winter Settlement']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Volga Bulgaria',
+                dominantPowerDescription: 'Muslim Bulgar kingdom controls Volga trade routes, connecting Scandinavia with the Islamic world.',
+                eraContextSentence: 'the northern silk road, where Viking silver meets Islamic gold in Bulgar markets.',
+                allegianceGroups: [
+                    { name: 'Volga Bulgaria', type: 'primary', description: 'Muslim trading kingdom.' },
+                    { name: 'Khazar Khaganate', type: 'secondary', description: 'Jewish-ruled steppe empire.' },
+                    { name: 'Rus Principalities', type: 'secondary', description: 'Slavic states expanding eastward.' },
+                    { name: 'Finno-Ugric Tribes', type: 'secondary', description: 'Indigenous forest peoples.' }
+                ],
+                structureNames: {
+                    fortress: ['Bulgar Fort', 'Trading Post Stockade', 'River Fortress'],
+                    holy_site: ['Mosque', 'Pagan Shrine', 'Orthodox Chapel', 'Jewish Synagogue'],
+                    palace: ['Khan\'s Palace', 'Merchant Prince Mansion', 'Emir\'s Court'],
+                    trading_post: ['Fur Market', 'Slave Market', 'Silver Exchange', 'Caravan Station']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Tsardom of Russia',
+                dominantPowerDescription: 'Ivan the Terrible and successors conquer the Volga and push into Siberia, opening vast new lands.',
+                eraContextSentence: 'the conquest of the east, where Cossacks and fur traders claim an empire larger than Europe.',
+                allegianceGroups: [
+                    { name: 'Tsardom of Russia', type: 'primary', description: 'Expanding Muscovite state.' },
+                    { name: 'Cossack Hosts', type: 'mercenary', description: 'Frontier warriors serving the Tsar.' },
+                    { name: 'Tatar Khanates', type: 'rebel', description: 'Remnants of the Golden Horde.' },
+                    { name: 'Siberian Natives', type: 'secondary', description: 'Indigenous peoples paying fur tribute.' }
+                ],
+                structureNames: {
+                    fortress: ['Kremlin', 'Ostrog', 'Cossack Fortress', 'Frontier Fort'],
+                    holy_site: ['Orthodox Monastery', 'Old Believer Chapel', 'Mosque', 'Shaman Sacred Site'],
+                    palace: ['Governor\'s Palace', 'Boyar Estate', 'Cossack Ataman House'],
+                    trading_post: ['Fur Trading Post', 'Salt Works', 'Iron Works', 'Fair Ground']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'Russian Empire',
+                dominantPowerDescription: 'The Urals become Russia\'s industrial heartland, with factories and mines feeding imperial ambitions.',
+                eraContextSentence: 'the empire\'s forge, where serf labor extracts the metals that arm the Tsar\'s armies.',
+                allegianceGroups: [
+                    { name: 'Russian Empire', type: 'primary', description: 'The autocratic tsarist state.' },
+                    { name: 'Ural Factory Owners', type: 'trade_company', description: 'Industrial magnates.' },
+                    { name: 'Old Believers', type: 'secondary', description: 'Religious dissidents in remote areas.' },
+                    { name: 'Worker Movements', type: 'rebel', description: 'Early revolutionaries in factories.' }
+                ],
+                structureNames: {
+                    fortress: ['Imperial Fort', 'Cossack Barracks', 'Prison Camp'],
+                    factory: ['Iron Works', 'Copper Smelter', 'Arms Factory', 'Railroad Works'],
+                    mining_colony: ['Iron Mine', 'Copper Mine', 'Gold Mine', 'Platinum Mine'],
+                    trading_post: ['Railway Station', 'Company Store', 'Fur Trading Post']
+                }
+            },
+            [MODERN_ERA]: {
+                dominantPower: 'Russian Federation',
+                dominantPowerDescription: 'From Soviet industrialization through gulag system to modern resource extraction feeding global markets.',
+                eraContextSentence: 'the resource frontier, where oil and metals from ancient lands fuel modern ambitions.',
+                allegianceGroups: [
+                    { name: 'Russian Federation', type: 'primary', description: 'Post-Soviet state controlling vast resources.' },
+                    { name: 'Resource Oligarchs', type: 'trade_company', description: 'Billionaires controlling extraction.' },
+                    { name: 'Indigenous Peoples', type: 'secondary', description: 'Native groups seeking rights.' },
+                    { name: 'Environmental Activists', type: 'rebel', description: 'Opposing ecological destruction.' }
+                ],
+                structureNames: {
+                    fortress: ['Military Base', 'Strategic Missile Base', 'Arctic Base'],
+                    factory: ['Metallurgical Combine', 'Chemical Plant', 'Nuclear Facility'],
+                    mining_colony: ['Oil Field', 'Gas Field', 'Nickel Mine', 'Diamond Mine'],
+                    trading_post: ['Pipeline Terminal', 'Railway Junction', 'Arctic Port']
+                }
+            }
         }
     }
 };

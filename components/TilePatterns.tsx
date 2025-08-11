@@ -143,8 +143,150 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
             break;
 
         case BiomeType.WETLANDS:
+            // Enhanced wetlands pattern with marshy pools and vegetation
+            // Create irregular water pools with more realistic shapes
+            for (let i = 0; i < 10; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const width = 12 + noise.random() * 20;
+                const height = 8 + noise.random() * 15;
+                
+                // Irregular pool shape using ellipse with varied opacity
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(noise.random() * Math.PI);
+                
+                // More subtle, realistic water pooling
+                const poolGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, width);
+                poolGrad.addColorStop(0, 'rgba(65, 105, 135, 0.25)');
+                poolGrad.addColorStop(0.5, 'rgba(75, 115, 145, 0.15)');
+                poolGrad.addColorStop(1, 'transparent');
+                
+                ctx.fillStyle = poolGrad;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, width, height * 0.7, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+            
+            // Marsh grass clumps - denser and more varied
+            for (let i = 0; i < 35; i++) {
+                const clumpX = noise.random() * PATTERN_SIZE;
+                const clumpY = noise.random() * PATTERN_SIZE;
+                const clumpSize = 4 + noise.random() * 6;
+                
+                // Each clump has multiple grass blades
+                for (let j = 0; j < 6; j++) {
+                    const x = clumpX + (noise.random() - 0.5) * clumpSize;
+                    const y = clumpY + (noise.random() - 0.5) * clumpSize;
+                    const height = 5 + noise.random() * 10;
+                    const sway = (noise.random() - 0.5) * 2;
+                    
+                    // Varied grass colors for depth
+                    const grassColor = noise.random() > 0.5 
+                        ? `rgba(55, 85, 35, ${0.5 + noise.random() * 0.3})`
+                        : `rgba(75, 105, 55, ${0.4 + noise.random() * 0.3})`;
+                    
+                    ctx.strokeStyle = grassColor;
+                    ctx.lineWidth = 0.7 + noise.random() * 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.quadraticCurveTo(x + sway/2, y - height/2, x + sway, y - height);
+                    ctx.stroke();
+                }
+            }
+            
+            // Cattails and reeds - more prominent
+            for (let i = 0; i < 20; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const height = 10 + noise.random() * 16;
+                const sway = (noise.random() - 0.5) * 2.5;
+                
+                // Reed stem with slight curve
+                ctx.strokeStyle = `rgba(70, 90, 40, ${0.5 + noise.random() * 0.3})`;
+                ctx.lineWidth = 1 + noise.random() * 0.8;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.quadraticCurveTo(x + sway * 0.5, y - height * 0.6, x + sway, y - height);
+                ctx.stroke();
+                
+                // Cattail head (40% chance)
+                if (noise.random() > 0.6) {
+                    // More realistic cattail shape
+                    ctx.fillStyle = `rgba(92, 61, 28, ${0.6 + noise.random() * 0.2})`;
+                    ctx.beginPath();
+                    ctx.ellipse(x + sway, y - height, 2 + noise.random() * 0.5, 4 + noise.random() * 2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Cattail texture
+                    ctx.fillStyle = `rgba(71, 48, 22, 0.3)`;
+                    ctx.beginPath();
+                    ctx.ellipse(x + sway - 0.5, y - height + 1, 1.5, 3, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            // Muddy/silty patches with varied colors
+            for (let i = 0; i < 15; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const size = 8 + noise.random() * 14;
+                
+                const mudGrad = ctx.createRadialGradient(x, y, 0, x, y, size);
+                mudGrad.addColorStop(0, 'rgba(85, 72, 55, 0.12)');
+                mudGrad.addColorStop(0.6, 'rgba(95, 82, 65, 0.06)');
+                mudGrad.addColorStop(1, 'transparent');
+                
+                ctx.fillStyle = mudGrad;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Small sedge clumps
+            for (let i = 0; i < 12; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                
+                // Create small cluster of thin grasses
+                for (let j = 0; j < 4; j++) {
+                    const offsetX = x + (noise.random() - 0.5) * 3;
+                    const offsetY = y + (noise.random() - 0.5) * 3;
+                    const height = 3 + noise.random() * 5;
+                    
+                    ctx.strokeStyle = `rgba(65, 85, 45, ${0.4 + noise.random() * 0.2})`;
+                    ctx.lineWidth = 0.4 + noise.random() * 0.3;
+                    ctx.beginPath();
+                    ctx.moveTo(offsetX, offsetY);
+                    ctx.lineTo(offsetX + (noise.random() - 0.5), offsetY - height);
+                    ctx.stroke();
+                }
+            }
+            
+            // Lily pad hints - more subtle
+            for (let i = 0; i < 6; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const radius = 2.5 + noise.random() * 2.5;
+                
+                ctx.fillStyle = `rgba(65, 95, 45, ${0.15 + noise.random() * 0.1})`;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Lily pad notch
+                ctx.strokeStyle = `rgba(55, 85, 35, 0.25)`;
+                ctx.lineWidth = 0.4;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + radius * 0.8, y);
+                ctx.stroke();
+            }
+            break;
+            
         case BiomeType.MANGROVE:
-            // Realistic wetland with water patches and reeds
+            // Keep existing mangrove pattern as it's distinct from wetlands
             // Water patches scattered throughout
             for (let i = 0; i < 15; i++) {
                 const x = noise.random() * PATTERN_SIZE;
@@ -161,40 +303,26 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
                 ctx.fillRect(0, 0, PATTERN_SIZE, PATTERN_SIZE);
             }
             
-            // Wetland vegetation - reeds and rushes
-            for (let i = 0; i < 60; i++) {
+            // Mangrove roots pattern
+            for (let i = 0; i < 30; i++) {
                 const x = noise.random() * PATTERN_SIZE;
                 const y = noise.random() * PATTERN_SIZE;
-                const height = 6 + noise.random() * 12;
-                const sway = (noise.random() - 0.5) * 2;
+                const rootSpread = 8 + noise.random() * 12;
                 
-                // Reed stems
-                ctx.strokeStyle = `rgba(101, 163, 13, ${0.5 + noise.random() * 0.3})`;
+                // Aerial roots
+                ctx.strokeStyle = `rgba(101, 67, 33, ${0.3 + noise.random() * 0.2})`;
                 ctx.lineWidth = 1 + noise.random() * 0.5;
-                ctx.beginPath();
-                ctx.moveTo(x, y);
-                ctx.lineTo(x + sway, y - height);
-                ctx.stroke();
                 
-                // Reed tops
-                if (noise.random() > 0.6) {
-                    ctx.fillStyle = `rgba(139, 69, 19, ${0.3 + noise.random() * 0.2})`;
+                for (let j = 0; j < 3; j++) {
+                    const angle = (j / 3) * Math.PI * 2 + noise.random() * 0.5;
+                    const endX = x + Math.cos(angle) * rootSpread;
+                    const endY = y + Math.sin(angle) * rootSpread * 0.5;
+                    
                     ctx.beginPath();
-                    ctx.ellipse(x + sway, y - height, 1 + noise.random(), 2 + noise.random(), 0, 0, Math.PI * 2);
-                    ctx.fill();
+                    ctx.moveTo(x, y - 3);
+                    ctx.quadraticCurveTo(x + (endX - x) * 0.5, y, endX, endY);
+                    ctx.stroke();
                 }
-            }
-            
-            // Muddy patches
-            for (let i = 0; i < 20; i++) {
-                const x = noise.random() * PATTERN_SIZE;
-                const y = noise.random() * PATTERN_SIZE;
-                const size = 4 + noise.random() * 8;
-                
-                ctx.fillStyle = `rgba(101, 67, 33, ${0.1 + noise.random() * 0.15})`;
-                ctx.beginPath();
-                ctx.arc(x, y, size, 0, Math.PI * 2);
-                ctx.fill();
             }
             break;
 
@@ -516,30 +644,68 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
             break;
 
         case BiomeType.SALT_FLATS:
-            // Salt crystal formation patterns
-            // Salt crust patches
-            for (let i = 0; i < 20; i++) {
+            // Salt crystal formation patterns with mineral deposits
+            // Crystalline polygon patterns (like real salt flats)
+            for (let i = 0; i < 15; i++) {
                 const x = noise.random() * PATTERN_SIZE;
                 const y = noise.random() * PATTERN_SIZE;
-                const size = 8 + noise.random() * 15;
+                const size = 15 + noise.random() * 25;
+                const sides = 5 + Math.floor(noise.random() * 3); // 5-7 sided polygons
                 
-                ctx.fillStyle = `rgba(248, 248, 255, ${0.15 + noise.random() * 0.2})`;
+                ctx.strokeStyle = `rgba(255, 255, 255, ${0.3 + noise.random() * 0.3})`;
+                ctx.lineWidth = 1 + noise.random() * 1.5;
+                ctx.beginPath();
+                
+                // Draw polygon
+                for (let j = 0; j < sides; j++) {
+                    const angle = (j / sides) * Math.PI * 2;
+                    const px = x + Math.cos(angle) * size;
+                    const py = y + Math.sin(angle) * size;
+                    if (j === 0) {
+                        ctx.moveTo(px, py);
+                    } else {
+                        ctx.lineTo(px, py);
+                    }
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+            
+            // Mineral deposit spots (orange, red, blue areas)
+            const mineralColors = [
+                'rgba(255, 179, 102, 0.15)', // Orange
+                'rgba(255, 127, 102, 0.15)', // Red
+                'rgba(102, 217, 255, 0.12)', // Electric blue
+                'rgba(255, 255, 255, 0.25)',  // White salt
+            ];
+            
+            for (let i = 0; i < 12; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const size = 10 + noise.random() * 20;
+                const colorIndex = Math.floor(noise.random() * mineralColors.length);
+                
+                const grad = ctx.createRadialGradient(x, y, 0, x, y, size);
+                grad.addColorStop(0, mineralColors[colorIndex]);
+                grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                
+                ctx.fillStyle = grad;
                 ctx.beginPath();
                 ctx.arc(x, y, size, 0, Math.PI * 2);
                 ctx.fill();
             }
             
-            // Salt crystal lines
-            for (let i = 0; i < 25; i++) {
+            // Salt crust cracks
+            for (let i = 0; i < 20; i++) {
                 const x1 = noise.random() * PATTERN_SIZE;
                 const y1 = noise.random() * PATTERN_SIZE;
-                const length = 8 + noise.random() * 15;
+                const length = 10 + noise.random() * 20;
                 const angle = noise.random() * Math.PI * 2;
                 const x2 = x1 + Math.cos(angle) * length;
                 const y2 = y1 + Math.sin(angle) * length;
                 
-                ctx.strokeStyle = `rgba(230, 230, 250, ${0.2 + noise.random() * 0.15})`;
-                ctx.lineWidth = 0.5 + noise.random() * 0.8;
+                ctx.strokeStyle = `rgba(230, 230, 250, ${0.15 + noise.random() * 0.1})`;
+                ctx.lineWidth = 0.5 + noise.random() * 0.5;
                 ctx.beginPath();
                 ctx.moveTo(x1, y1);
                 ctx.lineTo(x2, y2);

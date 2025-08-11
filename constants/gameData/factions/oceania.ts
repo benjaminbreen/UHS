@@ -1014,6 +1014,348 @@ export const OCEANIA_FACTIONS: FactionFile = {
                     holy_site: ['Mauna Kea Protection Zone', 'Sovereignty Memorial', 'Climate Refugee Center']
                 }
             }
+        },
+        "Croatia and Environs": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Illyrian Tribes',
+                dominantPowerDescription: 'Indo-European Illyrian tribes control the Dalmatian coast and inland valleys, engaged in piracy, trade, and conflict with Greek colonies and later Rome.',
+                eraContextSentence: 'an age of tribal kingdoms, where Illyrian pirates rule the Adriatic shores.',
+                allegianceGroups: [
+                    { name: 'Illyrian Tribes', type: 'primary', description: 'Dalmatae, Liburni, and other coastal peoples.' },
+                    { name: 'Greek Colonies', type: 'trade_company', description: 'Trading posts on islands and coasts.' },
+                    { name: 'Dacian Peoples', type: 'secondary', description: 'Thracian groups in Transylvanian highlands.' },
+                    { name: 'Celtic Tribes', type: 'secondary', description: 'La Tène culture groups in northern areas.' }
+                ],
+                structureNames: {
+                    fortress: ['Hill Fort', 'Coastal Stronghold', 'Mountain Refuge'],
+                    mill: ['Salt Production', 'Iron Smelting'],
+                    holy_site: ['Sacred Grove', 'Hilltop Sanctuary', 'Ancestral Burial Mound'],
+                    trading_post: ['Pirate Harbor', 'Greek Trading Post', 'Alpine Pass Control']
+                },
+                courtRoles: {
+                    palace: ['Tribal King', 'War Leader', 'Druid Priest', 'Trade Master']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Croat Duchies',
+                dominantPowerDescription: 'Slavic Croats establish duchies along the Adriatic while Hungarians control Transylvania and Venice expands its maritime empire.',
+                eraContextSentence: 'an era of emerging kingdoms, where Croats, Magyars, and Venetians compete for dominance.',
+                allegianceGroups: [
+                    { name: 'Croatian Kingdom', type: 'primary', description: 'Unified Croatian state under native dynasties.' },
+                    { name: 'Hungarian Kingdom', type: 'primary', description: 'Magyar control over Transylvania and inland areas.' },
+                    { name: 'Venetian Republic', type: 'trade_company', description: 'Maritime empire controlling coastal cities.' },
+                    { name: 'Byzantine Empire', type: 'secondary', description: 'Declining eastern influence.' }
+                ],
+                structureNames: {
+                    fortress: ['Royal Fortress', 'Venetian Citadel', 'Hungarian Castle'],
+                    mill: ['Monastic Farm', 'Salt Works', 'Mining Village'],
+                    holy_site: ['Benedictine Abbey', 'Orthodox Monastery', 'Royal Chapel'],
+                    palace: ['Ban\'s Court', 'Doge\'s Palace', 'Voivode\'s Residence'],
+                    trading_post: ['Adriatic Port', 'Hungarian Market Town', 'Alpine Trade Route']
+                },
+                courtRoles: {
+                    palace: ['Ban of Croatia', 'Hungarian Voivode', 'Venetian Doge', 'Church Bishop']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Ottoman Empire',
+                dominantPowerDescription: 'Ottoman expansion brings most of the region under Turkish control, while Habsburg Austria controls northern areas and Venice maintains coastal footholds.',
+                eraContextSentence: 'an era of three empires, where Ottoman, Habsburg, and Venetian powers divide the land.',
+                allegianceGroups: [
+                    { name: 'Ottoman Empire', type: 'primary', description: 'Turkish control over most of the Balkans.' },
+                    { name: 'Habsburg Austria', type: 'primary', description: 'Austrian control of northern Croatia and Transylvania.' },
+                    { name: 'Venetian Republic', type: 'secondary', description: 'Dalmatian coastal cities and islands.' },
+                    { name: 'Military Frontier', type: 'secondary', description: 'Habsburg-organized border defense against Ottomans.' }
+                ],
+                structureNames: {
+                    fortress: ['Ottoman Fortress', 'Habsburg Border Fort', 'Venetian Sea Fortress'],
+                    mill: ['Turkish Timar Estate', 'Austrian Manor', 'Venetian Villa'],
+                    holy_site: ['Mosque', 'Catholic Cathedral', 'Orthodox Church'],
+                    palace: ['Pasha\'s Palace', 'Habsburg Residenz', 'Venetian Governor\'s Palace'],
+                    trading_post: ['Ottoman Bazaar', 'Venetian Fondaco', 'Habsburg Market']
+                },
+                courtRoles: {
+                    palace: ['Ottoman Pasha', 'Austrian Governor', 'Venetian Provveditore', 'Military Frontier Commander']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'Austro-Hungarian Empire',
+                dominantPowerDescription: 'After Ottoman withdrawal, Austria-Hungary modernizes the region through railroads and industry while South Slavs develop national consciousness.',
+                eraContextSentence: 'an era of imperial modernization and national awakening, where railways bring progress and rebellion.',
+                allegianceGroups: [
+                    { name: 'Austro-Hungarian Empire', type: 'primary', description: 'Dual monarchy controlling the region.' },
+                    { name: 'South Slav Nationalists', type: 'rebel', description: 'Croats, Serbs, and others seeking independence.' },
+                    { name: 'Hungarian Nobility', type: 'secondary', description: 'Magyar aristocrats in Transylvania.' },
+                    { name: 'German Settlers', type: 'secondary', description: 'Saxon communities, especially in Transylvania.' }
+                ],
+                structureNames: {
+                    fortress: ['Imperial Fortress', 'Police Station', 'Border Post'],
+                    mill: ['Steam Mill', 'Timber Processing', 'Agricultural Estate'],
+                    factory: ['Textile Factory', 'Iron Works', 'Brewery'],
+                    trading_post: ['Railway Station', 'Imperial Port', 'Commercial Bank'],
+                    palace: ['Governor\'s Palace', 'County Hall', 'Imperial Villa']
+                },
+                courtRoles: {
+                    palace: ['Imperial Governor', 'Ban of Croatia', 'County Prefect', 'Military Commander']
+                }
+            },
+            [MODERN_ERA]: {
+                dominantPower: 'Yugoslavia/Independent States',
+                dominantPowerDescription: 'After WWI, the region joins Yugoslavia, endures WWII occupation and communist rule, then achieves independence in the 1990s through violent breakup.',
+                eraContextSentence: 'an era of union and division, where Yugoslav unity gives way to national independence.',
+                allegianceGroups: [
+                    { name: 'Socialist Yugoslavia', type: 'primary', description: 'Tito\'s federal communist state.' },
+                    { name: 'Independent Croatia', type: 'primary', description: 'Post-1991 independent republic.' },
+                    { name: 'Independent Romania', type: 'secondary', description: 'Romanian control of Transylvania.' },
+                    { name: 'European Union', type: 'trade_company', description: 'Growing integration with Western Europe.' }
+                ],
+                structureNames: {
+                    fortress: ['JNA Barracks', 'Border Guards', 'NATO Base'],
+                    factory: ['Socialist Factory', 'Tourism Complex', 'EU-Funded Plant'],
+                    trading_post: ['Adriatic Port', 'International Airport', 'EU Trade Center'],
+                    holy_site: ['Partisan Memorial', 'Catholic Shrine', 'War Victims Memorial'],
+                    palace: ['Parliament Building', 'Presidential Palace', 'EU Office']
+                },
+                courtRoles: {
+                    palace: ['President', 'Prime Minister', 'EU Commissioner', 'Military Chief']
+                }
+            },
+            [HistoricalEra.FUTURE_ERA]: {
+                dominantPower: 'European Union',
+                dominantPowerDescription: 'Croatia and Romania fully integrate into the EU while managing demographic decline, climate migration, and tensions between European and national identity.',
+                eraContextSentence: 'an era of European integration and population decline, where ancient lands adapt to new realities.',
+                allegianceGroups: [
+                    { name: 'European Union', type: 'primary', description: 'Integrated European governance and economy.' },
+                    { name: 'National Governments', type: 'secondary', description: 'Croatian and Romanian state institutions.' },
+                    { name: 'Climate Migrants', type: 'secondary', description: 'Refugees from Mediterranean and Africa.' },
+                    { name: 'Diaspora Networks', type: 'trade_company', description: 'Emigrant communities supporting homelands.' }
+                ],
+                structureNames: {
+                    fortress: ['EU Border Agency', 'Climate Defense System'],
+                    factory: ['Renewable Energy Hub', 'Agricultural Automation', 'Tech Innovation Center'],
+                    trading_post: ['Digital Services Hub', 'Climate Adaptation Center', 'Diaspora Investment Office'],
+                    holy_site: ['European Values Memorial', 'Multicultural Center']
+                }
+            }
+        },
+        "Indonesian and Melanesian Islands": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Austronesian Peoples',
+                dominantPowerDescription: 'Austronesian seafarers settle the vast island chains, developing diverse maritime cultures, trade networks, and agricultural systems adapted to tropical islands.',
+                eraContextSentence: 'an age of island settlement, where seafaring peoples master the tropical archipelago.',
+                allegianceGroups: [
+                    { name: 'Austronesian Settlers', type: 'primary', description: 'Founding populations across the islands.' },
+                    { name: 'Melanesian Peoples', type: 'secondary', description: 'Earlier inhabitants of eastern islands.' },
+                    { name: 'Maritime Traders', type: 'trade_company', description: 'Inter-island exchange networks.' },
+                    { name: 'Highland Societies', type: 'secondary', description: 'Mountain-dwelling communities.' }
+                ],
+                structureNames: {
+                    fortress: ['Coastal Fortification', 'Hilltop Refuge', 'Island Stronghold'],
+                    mill: ['Rice Terrace', 'Sago Processing', 'Spice Garden'],
+                    holy_site: ['Ancestor Shrine', 'Sacred Mountain', 'Sea Spirit Temple'],
+                    trading_post: ['Island Harbor', 'Coastal Market', 'Spice Trading Post']
+                },
+                courtRoles: {
+                    holy_site: ['High Priest', 'Navigation Master', 'Ancestor Keeper', 'Island Chief']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Hindu-Buddhist Kingdoms',
+                dominantPowerDescription: 'Powerful maritime empires like Srivijaya and Majapahit dominate trade routes, spreading Hindu-Buddhist culture while local chiefs maintain traditional authority.',
+                eraContextSentence: 'an era of spice empires, where Hindu-Buddhist kings rule the sea lanes.',
+                allegianceGroups: [
+                    { name: 'Srivijaya Empire', type: 'primary', description: 'Sumatran maritime empire controlling trade.' },
+                    { name: 'Majapahit Empire', type: 'primary', description: 'Javanese kingdom extending across archipelago.' },
+                    { name: 'Local Rajahs', type: 'secondary', description: 'Indigenous rulers maintaining autonomy.' },
+                    { name: 'Buddhist Monasteries', type: 'religious', description: 'Centers of learning and trade.' }
+                ],
+                structureNames: {
+                    fortress: ['Royal Kraton', 'Island Fort', 'Trade Route Control'],
+                    mill: ['Spice Plantation', 'Rice Estate', 'Textile Workshop'],
+                    holy_site: ['Buddhist Temple', 'Hindu Shrine', 'Royal Mausoleum'],
+                    palace: ['Sultan\'s Palace', 'Rajah\'s Compound', 'Trade Guild Hall'],
+                    trading_post: ['Spice Entrepôt', 'Monastery Market', 'Royal Trading House']
+                },
+                courtRoles: {
+                    palace: ['Sultan/Rajah', 'Prime Minister', 'Trade Master', 'High Priest']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Islamic Sultanates',
+                dominantPowerDescription: 'Islam spreads through trade networks, establishing sultanates across the islands while maintaining Hindu-Buddhist traditions and local customs.',
+                eraContextSentence: 'an era of Islamic conversion, where new faith mixes with ancient traditions.',
+                allegianceGroups: [
+                    { name: 'Islamic Sultanates', type: 'primary', description: 'Muslim rulers across major islands.' },
+                    { name: 'Hindu-Buddhist Kingdoms', type: 'secondary', description: 'Remaining non-Islamic states like Bali.' },
+                    { name: 'Portuguese Traders', type: 'trade_company', description: 'First European trading presence.' },
+                    { name: 'Local Chiefs', type: 'secondary', description: 'Traditional leaders adapting to Islam.' }
+                ],
+                structureNames: {
+                    fortress: ['Sultanate Fort', 'Portuguese Factory', 'Island Citadel'],
+                    mill: ['Clove Plantation', 'Nutmeg Grove', 'Islamic School'],
+                    holy_site: ['Grand Mosque', 'Hindu Temple', 'Sacred Grave'],
+                    palace: ['Sultan\'s Istana', 'Portuguese Governor\'s House', 'Traditional Chief\'s Hall'],
+                    trading_post: ['Islamic Trading House', 'Portuguese Factory', 'Spice Market']
+                },
+                courtRoles: {
+                    palace: ['Sultan', 'Islamic Scholar', 'Portuguese Captain', 'Traditional Elder']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'Dutch East Indies',
+                dominantPowerDescription: 'The Dutch VOC and later colonial government establish control over most islands, introducing plantation agriculture and extractive economy while suppressing local rulers.',
+                eraContextSentence: 'an era of colonial exploitation, where Dutch rule transforms ancient kingdoms into plantations.',
+                allegianceGroups: [
+                    { name: 'Dutch Colonial Government', type: 'primary', description: 'Netherlands Indies administration.' },
+                    { name: 'Indigenous Resistance', type: 'rebel', description: 'Local rulers and peoples fighting colonization.' },
+                    { name: 'Plantation Companies', type: 'trade_company', description: 'Dutch and European agricultural enterprises.' },
+                    { name: 'Chinese Merchants', type: 'secondary', description: 'Trading communities serving colonial economy.' }
+                ],
+                structureNames: {
+                    fortress: ['Dutch Fort', 'Colonial Barracks', 'Resistance Stronghold'],
+                    mill: ['Sugar Plantation', 'Coffee Estate', 'Rubber Plantation'],
+                    factory: ['Sugar Mill', 'Tobacco Processing', 'Colonial Workshop'],
+                    trading_post: ['Colonial Port', 'Company Trading House', 'Chinese Quarter'],
+                    palace: ['Governor\'s Palace', 'Resident\'s House', 'Deposed Sultan\'s Palace']
+                },
+                courtRoles: {
+                    palace: ['Governor-General', 'Resident', 'Plantation Manager', 'Chinese Captain']
+                }
+            },
+            [MODERN_ERA]: {
+                dominantPower: 'Republic of Indonesia',
+                dominantPowerDescription: 'After independence struggle, Indonesia unifies the archipelago under Pancasila ideology while managing ethnic diversity, separatist movements, and economic development.',
+                eraContextSentence: 'an era of national unity and diversity, where one nation encompasses thousands of islands.',
+                allegianceGroups: [
+                    { name: 'Indonesian Government', type: 'primary', description: 'Central government in Jakarta.' },
+                    { name: 'Regional Autonomy', type: 'secondary', description: 'Provincial and local governments.' },
+                    { name: 'Separatist Movements', type: 'rebel', description: 'Groups seeking independence in various regions.' },
+                    { name: 'Foreign Investors', type: 'trade_company', description: 'International corporations and countries.' }
+                ],
+                structureNames: {
+                    fortress: ['TNI Base', 'Police Station', 'Border Post'],
+                    factory: ['Palm Oil Mill', 'Textile Factory', 'Mining Operation'],
+                    trading_post: ['International Port', 'Tourism Resort', 'Industrial Zone'],
+                    holy_site: ['National Monument', 'Islamic Center', 'Cultural Heritage Site'],
+                    palace: ['Governor\'s Office', 'Presidential Palace', 'Regency Hall']
+                },
+                courtRoles: {
+                    palace: ['President', 'Governor', 'Military Commander', 'Religious Leader']
+                }
+            },
+            [HistoricalEra.FUTURE_ERA]: {
+                dominantPower: 'Indonesian Federation',
+                dominantPowerDescription: 'Indonesia navigates climate change impacts, rising seas threatening low-lying islands, and tensions between central authority and regional autonomy in a changing world.',
+                eraContextSentence: 'an era of sinking islands and federal adaptation, where unity faces environmental and political challenges.',
+                allegianceGroups: [
+                    { name: 'Federal Indonesian Government', type: 'primary', description: 'Evolved central authority managing crisis.' },
+                    { name: 'Climate Displaced', type: 'secondary', description: 'Populations fleeing rising seas.' },
+                    { name: 'Chinese Belt and Road', type: 'trade_company', description: 'Major infrastructure investment partner.' },
+                    { name: 'Regional Autonomy Movements', type: 'rebel', description: 'Regions seeking greater self-rule.' }
+                ],
+                structureNames: {
+                    fortress: ['Climate Defense Center', 'Floating Military Base'],
+                    factory: ['Renewable Energy Plant', 'Floating Agriculture', 'Seaweed Farm'],
+                    trading_post: ['Climate Adaptation Hub', 'Digital Services Center', 'Refugee Processing'],
+                    holy_site: ['Sunken Island Memorial', 'Interfaith Climate Center']
+                }
+            }
+        },
+        "Major Seas and Oceans": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Open Waters',
+                dominantPowerDescription: 'Vast ocean expanses with minimal human presence, occasionally crossed by early navigators and traders but largely empty of permanent settlement.',
+                eraContextSentence: 'an age of empty seas, where only the bravest navigators dare cross the endless waters.',
+                allegianceGroups: [
+                    { name: 'Polynesian Navigators', type: 'trade_company', description: 'Rare voyaging expeditions.' },
+                    { name: 'Coastal Fishermen', type: 'secondary', description: 'Small-scale near-shore activities.' },
+                    { name: 'Ocean Spirits', type: 'religious', description: 'Supernatural forces believed to control the seas.' }
+                ],
+                structureNames: {
+                    trading_post: ['Temporary Fishing Camp', 'Navigator\'s Rest Stop'],
+                    holy_site: ['Sacred Island', 'Sea Spirit Shrine']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Maritime Trade Routes',
+                dominantPowerDescription: 'Established sea lanes connect distant lands through regular trading voyages, but the open ocean remains largely uninhabited except for passing vessels.',
+                eraContextSentence: 'an era of trade winds, where merchant ships follow ancient routes across empty seas.',
+                allegianceGroups: [
+                    { name: 'Arab Traders', type: 'trade_company', description: 'Islamic merchants crossing Indian Ocean.' },
+                    { name: 'Chinese Junks', type: 'trade_company', description: 'Imperial trading fleets.' },
+                    { name: 'Polynesian Voyagers', type: 'secondary', description: 'Continued Pacific exploration.' },
+                    { name: 'Pirates and Raiders', type: 'rebel', description: 'Occasional maritime predators.' }
+                ],
+                structureNames: {
+                    fortress: ['Pirate Haven', 'Naval Patrol Base'],
+                    trading_post: ['Supply Station', 'Merchant Fleet Harbor', 'Caravanserai of the Sea']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'European Naval Powers',
+                dominantPowerDescription: 'European exploration and trade create regular shipping lanes across major oceans, with naval bases and trading posts but limited permanent settlement in open waters.',
+                eraContextSentence: 'an era of great voyages, where European ships open new sea routes to distant lands.',
+                allegianceGroups: [
+                    { name: 'Portuguese Empire', type: 'primary', description: 'Pioneer of oceanic exploration.' },
+                    { name: 'Spanish Empire', type: 'primary', description: 'Pacific and Atlantic trade routes.' },
+                    { name: 'Dutch East India Company', type: 'trade_company', description: 'Dominant Indian Ocean traders.' },
+                    { name: 'Pirates and Privateers', type: 'rebel', description: 'Maritime raiders preying on trade.' }
+                ],
+                structureNames: {
+                    fortress: ['Naval Base', 'Pirate Stronghold', 'Coastal Battery'],
+                    trading_post: ['Supply Station', 'Trading Company Post', 'Merchant Marine Harbor']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'British Naval Empire',
+                dominantPowerDescription: 'British naval dominance secures global shipping lanes with coaling stations and naval bases, while steamships make ocean travel more regular and predictable.',
+                eraContextSentence: 'an era of steam and steel, where British naval power rules the waves.',
+                allegianceGroups: [
+                    { name: 'Royal Navy', type: 'primary', description: 'British naval supremacy worldwide.' },
+                    { name: 'Merchant Marine', type: 'trade_company', description: 'Commercial shipping companies.' },
+                    { name: 'Other Naval Powers', type: 'secondary', description: 'German, French, American, and Japanese fleets.' },
+                    { name: 'Telegraph Cable Companies', type: 'trade_company', description: 'Underwater communication networks.' }
+                ],
+                structureNames: {
+                    fortress: ['Naval Coaling Station', 'Cable Relay Station', 'Lighthouse Complex'],
+                    trading_post: ['Steamship Line Terminal', 'Marine Insurance Office', 'Weather Station'],
+                    factory: ['Ship Repair Facility', 'Cable Manufacturing']
+                }
+            },
+            [MODERN_ERA]: {
+                dominantPower: 'International Waters',
+                dominantPowerDescription: 'Global shipping networks carry most international trade while naval powers patrol sea lanes, but vast ocean areas remain under international maritime law with minimal permanent presence.',
+                eraContextSentence: 'an era of global commerce, where container ships and naval patrols cross regulated international waters.',
+                allegianceGroups: [
+                    { name: 'International Maritime Organization', type: 'primary', description: 'Global shipping regulations.' },
+                    { name: 'Major Naval Powers', type: 'secondary', description: 'US, Russian, Chinese, and allied fleets.' },
+                    { name: 'Commercial Shipping', type: 'trade_company', description: 'Global cargo and passenger lines.' },
+                    { name: 'Fishing Fleets', type: 'trade_company', description: 'Industrial fishing operations.' }
+                ],
+                structureNames: {
+                    fortress: ['Naval Patrol Base', 'Coast Guard Station', 'Submarine Base'],
+                    factory: ['Offshore Oil Platform', 'Floating Factory Ship', 'Research Vessel'],
+                    trading_post: ['Container Ship Route', 'Cruise Ship Terminal', 'Fishing Fleet Base'],
+                    holy_site: ['Maritime Memorial', 'Environmental Monitoring Station']
+                }
+            },
+            [HistoricalEra.FUTURE_ERA]: {
+                dominantPower: 'Climate-Affected Waters',
+                dominantPowerDescription: 'Rising seas and changing weather patterns disrupt traditional shipping while new technologies create floating cities, sea-based energy farms, and ocean-based solutions to climate change.',
+                eraContextSentence: 'an era of rising waters and floating solutions, where humanity adapts to life on the changing seas.',
+                allegianceGroups: [
+                    { name: 'Maritime Climate Alliance', type: 'primary', description: 'International cooperation on ocean-based climate solutions.' },
+                    { name: 'Floating Nation States', type: 'secondary', description: 'Artificial islands and sea-based communities.' },
+                    { name: 'Ocean Engineering Corps', type: 'trade_company', description: 'Companies building sea-based infrastructure.' },
+                    { name: 'Climate Pirates', type: 'rebel', description: 'Groups exploiting weakened maritime security.' }
+                ],
+                structureNames: {
+                    fortress: ['Floating Defense Platform', 'Ocean Patrol Drone Base'],
+                    factory: ['Ocean Energy Farm', 'Floating City Module', 'Seaweed Agriculture Platform'],
+                    trading_post: ['Autonomous Shipping Hub', 'Climate Refugee Port', 'Ocean Resource Exchange'],
+                    holy_site: ['Sunken Land Memorial', 'Ocean Conservation Shrine']
+                }
+            }
         }
     }
 };

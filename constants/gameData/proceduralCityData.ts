@@ -1026,7 +1026,7 @@ export const PROCEDURAL_CITY_DATA: Record<string, ProceduralCityEntry[]> = {
     { name: "Pygmy Camp", description: "A forest camp of the Pygmy peoples.", eras: [HistoricalEra.MEDIEVAL] }
   ],
   "Bangui Highlands": [
-    { name: "Banda Village", description: "A village of the Banda people in the highlands.", eras: [HistoricalEra.RENAISSANCE_EARLY_MODERN] }
+    { name: "Banda Village", description: "A village of the Banda people in the highlands.", eras: [HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA] }
   ],
   "Lake Tanganyika Shore": [
     { name: "Ujiji", description: "A trading town on the shores of Tanganyika.", eras: [HistoricalEra.RENAISSANCE_EARLY_MODERN] }
@@ -1198,7 +1198,7 @@ export const PROCEDURAL_CITY_DATA: Record<string, ProceduralCityEntry[]> = {
     { name: "Jaffna", description: "The cultural capital of the Tamil north.", eras: [HistoricalEra.MEDIEVAL] }
   ],
   "Anuradhapura Basin": [
-    { name: "Anuradhapura", description: "The ancient capital of Sinhalese civilization.", eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL] }
+    { name: "Anuradhapura", description: "The ancient capital of Sinhalese civilization.", eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN] }
   ],
   "Kandy Plateau": [
     { name: "Temple of the Tooth", description: "The sacred city housing Buddha's tooth.", eras: [HistoricalEra.MEDIEVAL] }

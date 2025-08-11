@@ -95,9 +95,34 @@ export const getLensColor = (lensType: string, value: number): string => {
 // Get mineral colors for the mineral deposits lens
 export const getMineralColor = (mineralType: string): string => {
   const mineralColors: Record<string, string> = {
-    'Iron': '#8B4513',      // Brown
-    'Copper': '#B87333',    // Bronze
-    'Gold': '#FFD700',      // Gold
+    // Primary metals
+    'IRON': '#8B4513',      // Rusty brown
+    'COPPER': '#B87333',    // Bronze/copper
+    'GOLD': '#FFD700',      // Gold
+    'SILVER': '#C0C0C0',    // Silver
+    'TIN': '#D3D3D3',       // Light gray
+    'LEAD': '#606060',      // Dark gray
+    
+    // Energy minerals
+    'COAL': '#1C1C1C',      // Black
+    'URANIUM': '#00FF00',   // Bright green (radioactive)
+    
+    // Common minerals
+    'SALT': '#FFFFFF',      // White
+    'CLAY': '#CD853F',      // Brown/tan
+    'STONE': '#808080',     // Gray
+    'FLINT': '#4B4B60',     // Dark bluish-gray
+    'OCHRE': '#CC4125',     // Red-orange
+    
+    // Rare/modern minerals
+    'LITHIUM': '#DDA0DD',   // Purple/plum
+    'RARE_EARTH': '#40E0D0', // Turquoise
+    'GEMS': '#FF1493',      // Deep pink
+    
+    // Legacy names (for backward compatibility)
+    'Iron': '#8B4513',
+    'Copper': '#B87333',
+    'Gold': '#FFD700',
     'Silver': '#C0C0C0',    // Silver
     'Lead': '#696969',      // Dim gray
     'Tin': '#A8A8A8',       // Light gray
@@ -276,23 +301,45 @@ function getTileColorVariation(baseColor: string, x: number, y: number, seed: nu
 }
 
 
-export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: number): string => {
+export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: number, season?: 'spring' | 'summer' | 'fall' | 'winter'): string => {
     const currentBiome = tile.biome; 
     const waterColors = CLIMATE_WATER_COLORS[climate];
     
     let baseColorHex: string;
+    
+    // Arid mapping - amber-scrub hills, dry yellow-green-brown grasslands
     const aridMapping: Partial<Record<BiomeType, string>> = {
-        [BiomeType.HILLS]: '#ad8a68', 
+        [BiomeType.HILLS]: '#b0a860',      // Amber version of scrub color
         [BiomeType.MOUNTAIN]: '#b0a49c',
-        [BiomeType.SCRUB]: '#c2b280', 
+        [BiomeType.SCRUB]: '#c2b280',
+        [BiomeType.GRASSLAND]: season === 'winter' ? '#a89668' :  // Slightly greener in winter
+                               season === 'spring' ? '#b8a470' :   // Dry yellow-green-brown
+                               season === 'summer' ? '#c0a668' :   // More brown/yellow in summer
+                               '#b8a268',                          // Fall - dry yellow-brown
+    };
+    
+    // Mediterranean-specific colors - realistic seasonal variation (green winter, golden summer)
+    const mediterraneanMapping: Partial<Record<BiomeType, string>> = {
+        [BiomeType.GRASSLAND]: season === 'winter' ? '#5a9638' :  // Rich green in winter (rainy season)
+                               season === 'spring' ? '#7aa850' :   // Bright green in spring
+                               season === 'summer' ? '#d4c080' :   // Golden/dry in summer
+                               '#c8b474',                          // Fall - turning golden
+        [BiomeType.HILLS]: season === 'winter' ? '#6a8850' :      // Green hills in winter
+                           season === 'spring' ? '#7a9458' :      // Green-gold transition
+                           season === 'summer' ? '#d0b070' :      // Golden California hills
+                           '#c4a468',                              // Fall golden
+        [BiomeType.SCRUB]: season === 'winter' ? '#5a8040' :      // Mediterranean scrub is green in winter
+                           season === 'spring' ? '#6a8848' :      // Still green in spring
+                           season === 'summer' ? '#a89860' :      // Dry golden-brown in summer
+                           '#9a8858',                              // Fall - drying out
+        [BiomeType.FOREST]: season === 'winter' ? '#4a7030' :     // Deep green in winter (evergreens + rain)
+                           season === 'spring' ? '#5a7838' :      // Bright green
+                           '#7a8756',                              // Olive green summer/fall
+        [BiomeType.MOUNTAIN]: '#9e9482',   // Limestone grey-tan
+        [BiomeType.BEACH]: '#f4e6d0',      // Sandy white beach
     };
 
-    if (climate === ClimateType.ARID && aridMapping[currentBiome]) {
-        baseColorHex = aridMapping[currentBiome]!;
-    } else {
-        baseColorHex = BIOME_COLORS[currentBiome] || '#ff00ff';
-    }
-
+    // Early return for water tiles
     if (currentBiome === BiomeType.RIVER) return waterColors.RIVER;
     if (currentBiome === BiomeType.MAJOR_RIVER) return waterColors.MAJOR_RIVER;
     if (currentBiome === BiomeType.DEEP_OCEAN) return waterColors.DEEP;
@@ -306,6 +353,100 @@ export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: numbe
         const shallowOceanColor = CLIMATE_WATER_COLORS[climate]?.SHALLOW || BIOME_COLORS.SHALLOW_OCEAN;
         return shadeColorHSL(blendColors(riverColor, shallowOceanColor, 0.7), 1.05); // More oceanic and lighter
     }
+    
+    // Climate-specific wetlands colors
+    if (currentBiome === BiomeType.WETLANDS) {
+        switch(climate) {
+            case ClimateType.TROPICAL:
+                return '#4a7a3c'; // Rich variegated green
+            case ClimateType.SEMITROPICAL:
+                return '#5a6e48'; // Green similar to riverbank but deeper and brownish
+            case ClimateType.TEMPERATE:
+                return '#606850'; // Slightly brownish green
+            case ClimateType.ARID:
+                return '#7a7058'; // Gray-brown with hint of green
+            case ClimateType.COLD:
+                return '#9a9088'; // Drab gray (original color, works well)
+            case ClimateType.MEDITERRANEAN:
+                return season === 'winter' ? '#5a6848' : // Greener in winter
+                       season === 'spring' ? '#6a7250' : // Still green
+                       '#7a7658'; // Drier in summer/fall
+            default:
+                return BIOME_COLORS[currentBiome]; // Fallback
+        }
+    }
+    
+    // Now handle land tiles with climate and seasonal variations
+    // Apply climate and seasonal color mappings - check arid/mediterranean FIRST
+    if (climate === ClimateType.ARID && aridMapping[currentBiome]) {
+        baseColorHex = aridMapping[currentBiome]!;
+    } else if (climate === ClimateType.MEDITERRANEAN && mediterraneanMapping[currentBiome]) {
+        baseColorHex = mediterraneanMapping[currentBiome]!;
+    }
+    // Apply seasonal variations for grassland in OTHER climates
+    else if (currentBiome === BiomeType.GRASSLAND && season === 'summer' && 
+        climate !== ClimateType.ARID && climate !== ClimateType.MEDITERRANEAN) {
+        // Dead grass color in summer for non-arid/mediterranean climates
+        baseColorHex = '#a8a060';
+    }
+    // Tundra with snow in cold climates
+    else if (currentBiome === BiomeType.TUNDRA) {
+        if (climate === ClimateType.COLD && season && ['winter', 'spring', 'fall'].includes(season)) {
+            baseColorHex = '#e8e8e8'; // Mostly white with snow patches
+        } else if (climate === ClimateType.TEMPERATE && season === 'winter') {
+            baseColorHex = '#d0d0d0'; // Snow patches in winter for temperate
+        } else {
+            baseColorHex = BIOME_COLORS[currentBiome];
+        }
+    } else {
+        baseColorHex = BIOME_COLORS[currentBiome] || '#ff00ff';
+    }
+    
+    // Special handling for salt flats with complex mineral colors and gradients
+    if (currentBiome === BiomeType.SALT_FLATS) {
+        // Create noise-based patterns for more realistic salt flat appearance
+        const noiseX = tile.x * 0.15;
+        const noiseY = tile.y * 0.15;
+        const noise = new ValueNoise(seed + 777);
+        
+        // Generate two layers of noise for complex patterns
+        const pattern1 = noise.noise(noiseX * 0.5, noiseY * 0.5);
+        const pattern2 = noise.noise(noiseX * 2, noiseY * 2);
+        const combinedPattern = (pattern1 * 0.7 + pattern2 * 0.3);
+        
+        // Base is always mostly white salt
+        const baseWhite = '#f8f8f8';
+        
+        // Mineral streak colors (more subtle, true to life)
+        const mineralColors = [
+            { color: '#ffded4', threshold: 0.15 },  // Very pale pink (iron oxide traces)
+            { color: '#e6f2ff', threshold: 0.1 },   // Very pale blue (mineral deposits)
+            { color: '#fff4e6', threshold: 0.1 },   // Very pale orange (sulfur traces)
+        ];
+        
+        // Determine if this area has mineral streaks
+        let finalColor = baseWhite;
+        const streakChance = Math.abs(combinedPattern);
+        
+        if (streakChance < 0.25) {  // 25% of tiles have mineral traces
+            // Select mineral color based on secondary pattern
+            const mineralSelect = ((tile.x * 3 + tile.y * 5) % 3);
+            const mineral = mineralColors[mineralSelect];
+            
+            // Gradient blend - stronger color at center of streak, fading to white
+            const streakIntensity = 1 - (streakChance / 0.25);  // Stronger when closer to 0
+            finalColor = blendColors(baseWhite, mineral.color, streakIntensity * 0.4);  // Max 40% mineral color
+        }
+        
+        // Add subtle variation to prevent flat appearance
+        const microVariation = ((tile.x * 17 + tile.y * 23 + seed * 13) % 100) / 100;
+        if (microVariation > 0.7) {
+            finalColor = blendColors(finalColor, '#e8e8e8', 0.2);  // Slightly grayer patches
+        }
+        
+        return finalColor;
+    }
+    
     const fixedColorBiomes = [
         BiomeType.BEACH, BiomeType.SNOW, BiomeType.HIGH_PEAK, BiomeType.URBAN, 
         BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, 
@@ -321,21 +462,21 @@ export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: numbe
         let altitudeBands: number[] = [];
         
         switch(currentBiome) {
-            case BiomeType.GRASSLAND: altitudeBands = GRASSLAND_ALTITUDE_BANDS; baseColorHex = BIOME_COLORS.GRASSLAND; break;
-            case BiomeType.FOREST: altitudeBands = FOREST_ALTITUDE_BANDS; baseColorHex = BIOME_COLORS.FOREST; break;
-            case BiomeType.DENSE_FOREST: altitudeBands = DENSE_FOREST_ALTITUDE_BANDS; tierAdjustments = DENSE_FOREST_TIER_COLOR_ADJUSTMENTS; baseColorHex = BIOME_COLORS.DENSE_FOREST; break;
-            case BiomeType.JUNGLE: altitudeBands = JUNGLE_ALTITUDE_BANDS; baseColorHex = BIOME_COLORS.JUNGLE; break;
-            case BiomeType.RIVERBANK: altitudeBands = RIVERBANK_ALTITUDE_BANDS; tierAdjustments = RIVERBANK_TIER_COLOR_ADJUSTMENTS; baseColorHex = BIOME_COLORS.RIVERBANK; break;
-            case BiomeType.SCRUB: altitudeBands = SCRUB_ALTITUDE_BANDS; tierAdjustments = SCRUB_TIER_COLOR_ADJUSTMENTS; baseColorHex = aridMapping[BiomeType.SCRUB] && climate === ClimateType.ARID ? aridMapping[BiomeType.SCRUB]! : BIOME_COLORS.SCRUB; break;
-            case BiomeType.HILLS: altitudeBands = HILLS_ALTITUDE_BANDS; tierAdjustments = HILLS_TIER_COLOR_ADJUSTMENTS; baseColorHex = aridMapping[BiomeType.HILLS] && climate === ClimateType.ARID ? aridMapping[BiomeType.HILLS]! : BIOME_COLORS.HILLS; break;
-            case BiomeType.MOUNTAIN: altitudeBands = MOUNTAIN_ALTITUDE_BANDS; tierAdjustments = MOUNTAIN_TIER_COLOR_ADJUSTMENTS; baseColorHex = aridMapping[BiomeType.MOUNTAIN] && climate === ClimateType.ARID ? aridMapping[BiomeType.MOUNTAIN]! : BIOME_COLORS.MOUNTAIN; break;
-            case BiomeType.DESERT: altitudeBands = DESERT_ALTITUDE_BANDS; tierAdjustments = DESERT_TIER_COLOR_ADJUSTMENTS; baseColorHex = BIOME_COLORS.DESERT; break;
-            case BiomeType.OASIS: baseColorHex = shadeColorHSL(BIOME_COLORS.GRASSLAND, 0.95, 1.15, 0.02); break;
-            case BiomeType.VOLCANIC_SOIL: altitudeBands = VOLCANIC_SOIL_ALTITUDE_BANDS; tierAdjustments = VOLCANIC_SOIL_TIER_COLOR_ADJUSTMENTS; baseColorHex = BIOME_COLORS.VOLCANIC_SOIL; break;
-            case BiomeType.VOLCANIC_ROCK: altitudeBands = VOLCANIC_ROCK_ALTITUDE_BANDS; tierAdjustments = VOLCANIC_ROCK_TIER_COLOR_ADJUSTMENTS; baseColorHex = BIOME_COLORS.VOLCANIC_ROCK; break;
-            case BiomeType.TUNDRA: altitudeBands = TUNDRA_ALTITUDE_BANDS; tierAdjustments = TUNDRA_TIER_COLOR_ADJUSTMENTS; baseColorHex = BIOME_COLORS.TUNDRA; break;
-            case BiomeType.STEPPE: altitudeBands = STEPPE_ALTITUDE_BANDS; tierAdjustments = STEPPE_TIER_COLOR_ADJUSTMENTS; baseColorHex = BIOME_COLORS.STEPPE; break;
-            case BiomeType.WETLANDS: baseColorHex = BIOME_COLORS.WETLANDS; break; // No tier adjustments for wetlands
+            case BiomeType.GRASSLAND: altitudeBands = GRASSLAND_ALTITUDE_BANDS; break; // Don't override baseColorHex - it was already set with seasonal/climate variations
+            case BiomeType.FOREST: altitudeBands = FOREST_ALTITUDE_BANDS; break; // Don't override
+            case BiomeType.DENSE_FOREST: altitudeBands = DENSE_FOREST_ALTITUDE_BANDS; tierAdjustments = DENSE_FOREST_TIER_COLOR_ADJUSTMENTS; break; // Don't override
+            case BiomeType.JUNGLE: altitudeBands = JUNGLE_ALTITUDE_BANDS; break; // Don't override
+            case BiomeType.RIVERBANK: altitudeBands = RIVERBANK_ALTITUDE_BANDS; tierAdjustments = RIVERBANK_TIER_COLOR_ADJUSTMENTS; break; // Don't override
+            case BiomeType.SCRUB: altitudeBands = SCRUB_ALTITUDE_BANDS; tierAdjustments = SCRUB_TIER_COLOR_ADJUSTMENTS; break; // Don't override
+            case BiomeType.HILLS: altitudeBands = HILLS_ALTITUDE_BANDS; tierAdjustments = HILLS_TIER_COLOR_ADJUSTMENTS; break; // Don't override
+            case BiomeType.MOUNTAIN: altitudeBands = MOUNTAIN_ALTITUDE_BANDS; tierAdjustments = MOUNTAIN_TIER_COLOR_ADJUSTMENTS; break; // Don't override
+            case BiomeType.DESERT: altitudeBands = DESERT_ALTITUDE_BANDS; tierAdjustments = DESERT_TIER_COLOR_ADJUSTMENTS; break; // Don't override
+            case BiomeType.OASIS: break; // Already set
+            case BiomeType.VOLCANIC_SOIL: altitudeBands = VOLCANIC_SOIL_ALTITUDE_BANDS; tierAdjustments = VOLCANIC_SOIL_TIER_COLOR_ADJUSTMENTS; break; // Don't override
+            case BiomeType.VOLCANIC_ROCK: altitudeBands = VOLCANIC_ROCK_ALTITUDE_BANDS; tierAdjustments = VOLCANIC_ROCK_TIER_COLOR_ADJUSTMENTS; break; // Don't override
+            case BiomeType.TUNDRA: altitudeBands = TUNDRA_ALTITUDE_BANDS; tierAdjustments = TUNDRA_TIER_COLOR_ADJUSTMENTS; break; // Don't override - already has seasonal snow
+            case BiomeType.STEPPE: altitudeBands = STEPPE_ALTITUDE_BANDS; tierAdjustments = STEPPE_TIER_COLOR_ADJUSTMENTS; break; // Don't override
+            case BiomeType.WETLANDS: break; // No tier adjustments for wetlands
         }
 
         if (altitudeBands.length > 0 && altitudeBands[0] !== undefined) { 
@@ -358,6 +499,22 @@ export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: numbe
                 h: (hsl.h * 360 - 10 + 360) % 360 / 360, // Shift hue towards orange/red
                 s: Math.min(1, hsl.s * 1.15), // Increase saturation
                 l: Math.max(0.15, hsl.l * 0.95) // Slightly darker for heat
+            };
+            const adjustedRgb = hslToRgb(adjustedHsl.h, adjustedHsl.s, adjustedHsl.l);
+            finalColorHex = rgbToString(adjustedRgb);
+        }
+    }
+    
+    // Mediterranean climates have warm golden tones
+    if (climate === ClimateType.MEDITERRANEAN) {
+        const rgb = hexToRgb(finalColorHex);
+        if (rgb) {
+            const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+            // Shift hue toward golden/amber colors
+            const adjustedHsl = {
+                h: (hsl.h * 360 - 5 + 360) % 360 / 360, // Slight shift towards golden
+                s: Math.min(1, hsl.s * 0.95), // Slightly less saturated than arid
+                l: Math.min(0.85, hsl.l * 1.05) // Slightly brighter, sun-bleached look
             };
             const adjustedRgb = hslToRgb(adjustedHsl.h, adjustedHsl.s, adjustedHsl.l);
             finalColorHex = rgbToString(adjustedRgb);

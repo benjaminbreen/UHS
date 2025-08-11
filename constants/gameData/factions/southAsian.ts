@@ -1328,6 +1328,261 @@ export const SOUTH_ASIAN_FACTIONS: FactionFile = {
                     holy_site: ['Forest Temple', 'Climate Memorial', 'Tribal Heritage Center']
                 }
             }
+        },
+
+        "Gangetic Plain": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Mauryan Empire',
+                dominantPowerDescription: 'The first great pan-Indian empire emerges from Magadha, unifying the Gangetic plains under Chandragupta and reaching its zenith under Ashoka.',
+                eraContextSentence: 'an age of imperial unity, where the sacred Ganges witnesses the rise of India\'s first great empire.',
+                allegianceGroups: [
+                    { name: 'Mauryan Empire', type: 'primary', description: 'Imperial dynasty ruling from Pataliputra.' },
+                    { name: 'Magadha Kingdom', type: 'primary', description: 'Core kingdom and imperial heartland.' },
+                    { name: 'Kosala Kingdom', type: 'secondary', description: 'Ancient kingdom along the Ganges.' },
+                    { name: 'Videha Republic', type: 'secondary', description: 'Republican confederation in Bihar.' }
+                ],
+                structureNames: {
+                    fortress: ['Pataliputra Citadel', 'Garrison Fort'],
+                    mill: ['Royal Granary', 'Artisan Workshop'],
+                    holy_site: ['Buddhist Stupa', 'Brahmanical Temple', 'Jain Shrine'],
+                    palace: ['Mauryan Palace', 'Provincial Court'],
+                    trading_post: ['Royal Market', 'River Wharf']
+                },
+                courtRoles: {
+                    palace: ['Chakravartin', 'Mahamatya', 'Senapati', 'Purohita', 'Yukta']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Gupta Empire',
+                dominantPowerDescription: 'The Classical Age of India flourishes under the Guptas, with unprecedented achievements in arts, sciences, and literature centered in the Gangetic heartland.',
+                eraContextSentence: 'an age of golden splendor, where the Gupta court becomes the beacon of Hindu civilization.',
+                allegianceGroups: [
+                    { name: 'Gupta Empire', type: 'primary', description: 'Classical Indian empire at its zenith.' },
+                    { name: 'Harsha\'s Empire', type: 'primary', description: 'Later empire reviving Gupta glory.' },
+                    { name: 'Hun Invasions', type: 'rebel', description: 'Central Asian tribes threatening the plains.' },
+                    { name: 'Feudal Rajas', type: 'secondary', description: 'Local rulers acknowledging imperial supremacy.' }
+                ],
+                structureNames: {
+                    fortress: ['Imperial Citadel', 'Border Garrison'],
+                    mill: ['Royal Workshop', 'Craft Guild'],
+                    holy_site: ['Nalanda University', 'Vishnu Temple', 'Buddhist Monastery'],
+                    palace: ['Gupta Rajasabha', 'Feudal Court'],
+                    trading_post: ['Royal Mint', 'Silk Road Station']
+                },
+                courtRoles: {
+                    palace: ['Maharajadhiraja', 'Mahadandanayaka', 'Kumaramatya', 'Sandhivigrahika'],
+                    holy_site: ['Acharya', 'Purohita', 'Buddhist Abbot']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Mughal Empire',
+                dominantPowerDescription: 'The Gangetic Plain becomes the heartland of Mughal India, with Agra and Delhi as twin capitals of a vast Islamic empire blending Persian and Indian traditions.',
+                eraContextSentence: 'an era of Mughal grandeur, where Indo-Islamic culture reaches its magnificent peak.',
+                allegianceGroups: [
+                    { name: 'Mughal Empire', type: 'primary', description: 'Central imperial administration.' },
+                    { name: 'Rajput Kingdoms', type: 'secondary', description: 'Allied Hindu principalities.' },
+                    { name: 'Sikh Gurus', type: 'secondary', description: 'Rising religious community in Punjab.' },
+                    { name: 'Maratha Confederacy', type: 'rebel', description: 'Deccan power challenging Mughal hegemony.' }
+                ],
+                structureNames: {
+                    fortress: ['Red Fort', 'Mughal Qila'],
+                    mill: ['Imperial Karkhana', 'Weaving Center'],
+                    holy_site: ['Jama Masjid', 'Taj Mahal', 'Hindu Mandir'],
+                    palace: ['Diwan-i-Khas', 'Zenana'],
+                    trading_post: ['Imperial Bazaar', 'Caravanserai']
+                },
+                courtRoles: {
+                    palace: ['Badshah', 'Wazir', 'Mir Bakshi', 'Sadr-us-Sudur', 'Diwan']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'British Raj',
+                dominantPowerDescription: 'The Gangetic Plain becomes the administrative and military heart of British India, with the Grand Trunk Road and railways transforming the ancient heartland.',
+                eraContextSentence: 'an era of imperial railways, where British steel tracks crisscross the sacred plains.',
+                allegianceGroups: [
+                    { name: 'British Raj', type: 'primary', description: 'Colonial government with twin capitals.' },
+                    { name: 'Indian National Congress', type: 'secondary', description: 'Growing independence movement.' },
+                    { name: 'Muslim League', type: 'secondary', description: 'Separate Muslim political organization.' },
+                    { name: 'Revolutionary Societies', type: 'rebel', description: 'Armed resistance groups.' }
+                ],
+                structureNames: {
+                    fortress: ['British Cantonment', 'Police Lines'],
+                    factory: ['Railway Workshop', 'Cotton Mill', 'Sugar Refinery'],
+                    mill: ['Flour Mill', 'Rice Mill'],
+                    trading_post: ['Railway Station', 'Civil Lines', 'Cloth Market'],
+                    palace: ['Government House', 'Collector\'s Residence'],
+                    holy_site: ['Colonial Church', 'Reformed Temple']
+                },
+                courtRoles: {
+                    palace: ['Viceroy', 'Chief Commissioner', 'District Collector', 'Deputy Commissioner']
+                }
+            },
+            [MODERN_ERA]: {
+                dominantPower: 'Republic of India',
+                dominantPowerDescription: 'Post-independence India\'s political heartland struggles with poverty, caste politics, and development challenges while remaining central to national democracy.',
+                eraContextSentence: 'an era of democratic awakening, where the Gangetic heartland shapes India\'s political destiny.',
+                allegianceGroups: [
+                    { name: 'Government of India', type: 'primary', description: 'Federal and state governments.' },
+                    { name: 'Regional Parties', type: 'secondary', description: 'Caste and community-based politics.' },
+                    { name: 'Naxalite Groups', type: 'rebel', description: 'Maoist insurgency in eastern regions.' },
+                    { name: 'Hindu Nationalist Organizations', type: 'secondary', description: 'Ideological movements.' }
+                ],
+                structureNames: {
+                    fortress: ['Police Headquarters', 'Army Base'],
+                    factory: ['Steel Plant', 'Fertilizer Factory', 'IT Park'],
+                    mill: ['Rice Mill', 'Sugar Mill'],
+                    trading_post: ['Railway Junction', 'Wholesale Market', 'Industrial Estate'],
+                    palace: ['State Assembly', 'Raj Bhavan'],
+                    holy_site: ['Ram Mandir', 'Gurdwara', 'Modern Mosque']
+                },
+                courtRoles: {
+                    palace: ['Chief Minister', 'Governor', 'District Magistrate', 'Police Superintendent']
+                }
+            },
+            [HistoricalEra.FUTURE_ERA]: {
+                dominantPower: 'Republic of India',
+                dominantPowerDescription: 'The Gangetic Plain confronts massive internal migration from climate change.',
+                eraContextSentence: 'an era of climate crisis, where the sacred Ganges basin adapts to a changing world.',
+                allegianceGroups: [
+                    { name: 'Federal Government', type: 'primary', description: 'Managing climate adaptation programs.' },
+                    { name: 'Climate Migration Agency', type: 'trade_company', description: 'Managing internal population displacement.' },
+                    { name: 'River Restoration Councils', type: 'secondary', description: 'Ganga cleanup and flood management.' },
+
+                ],
+                structureNames: {
+                    fortress: ['Climate Security Base', 'Flood Control Center'],
+                    factory: ['Solar Panel Manufacturing', 'Water Recycling Plant', 'Vertical Farm'],
+                    trading_post: ['Climate Refugee Center', 'Green Energy Exchange'],
+                    holy_site: ['Restored Ganga Ghat', 'Climate Memorial', 'Digital Ashram']
+                }
+            }
+        },
+
+        "Deccan Plateau": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Satavahana Dynasty',
+                dominantPowerDescription: 'The Satavahanas rule the Deccan for over 400 years, creating a stable empire that bridges North and South India through trade and cultural exchange.',
+                eraContextSentence: 'an age of Deccan unity, where the Satavahanas forge the first great South Indian empire.',
+                allegianceGroups: [
+                    { name: 'Satavahana Empire', type: 'primary', description: 'Long-ruling Deccan dynasty.' },
+                    { name: 'Western Kshatraps', type: 'secondary', description: 'Saka rulers in western regions.' },
+                    { name: 'Ikshvaku Dynasty', type: 'secondary', description: 'Successors in Andhra region.' },
+                    { name: 'Roman Traders', type: 'trade_company', description: 'Mediterranean merchants seeking spices.' }
+                ],
+                structureNames: {
+                    fortress: ['Hill Fort', 'Rock Citadel'],
+                    mill: ['Royal Workshop', 'Mining Settlement'],
+                    holy_site: ['Buddhist Chaitya', 'Hindu Cave Temple', 'Jain Basadi'],
+                    palace: ['Royal Court', 'Summer Palace'],
+                    trading_post: ['Caravan Stop', 'Port Market']
+                },
+                courtRoles: {
+                    palace: ['Maharaja', 'MahaSenapati', 'Maharathi', 'Mahabhoja']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Chalukya-Rashtrakuta Dynasties',
+                dominantPowerDescription: 'The Western Chalukyas and Rashtrakutas create architectural marvels and extensive trade networks, making the Deccan a center of art and learning.',
+                eraContextSentence: 'an age of architectural glory, where Deccan kings carve temples from living rock.',
+                allegianceGroups: [
+                    { name: 'Western Chalukya Empire', type: 'primary', description: 'Powerful Deccan dynasty.' },
+                    { name: 'Rashtrakuta Empire', type: 'primary', description: 'Successors expanding across India.' },
+                    { name: 'Kakatiya Dynasty', type: 'secondary', description: 'Eastern Deccan power in Telangana.' },
+                    { name: 'Yadava Dynasty', type: 'secondary', description: 'Maharashtra-based kingdom.' }
+                ],
+                structureNames: {
+                    fortress: ['Devagiri Fort', 'Mountain Citadel'],
+                    mill: ['Step Well', 'Textile Center'],
+                    holy_site: ['Ellora Caves', 'Kailasa Temple', 'Hoysaleshwara Temple'],
+                    palace: ['Royal Durbar', 'Queen\'s Palace'],
+                    trading_post: ['Diamond Market', 'Spice Bazaar']
+                },
+                courtRoles: {
+                    palace: ['Maharajadhiraja', 'Mahasamanta', 'Mahapradhana', 'Dharmadhikari'],
+                    holy_site: ['Royal Guru', 'Temple Architect', 'Court Poet']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Deccan Sultanates',
+                dominantPowerDescription: 'Five Deccan Sultanates emerge after the Bahmani Kingdom\'s collapse, creating a unique Indo-Islamic culture while resisting Mughal expansion.',
+                eraContextSentence: 'an era of Deccan defiance, where Muslim sultans forge a distinctive culture independent of Delhi.',
+                allegianceGroups: [
+                    { name: 'Adil Shahi (Bijapur)', type: 'primary', description: 'Powerful sultanate with advanced artillery.' },
+                    { name: 'Qutb Shahi (Golconda)', type: 'primary', description: 'Diamond-rich sultanate.' },
+                    { name: 'Nizam Shahi (Ahmadnagar)', type: 'secondary', description: 'Northwestern sultanate.' },
+                    { name: 'Maratha Confederacy', type: 'rebel', description: 'Rising Hindu power under Shivaji.' }
+                ],
+                structureNames: {
+                    fortress: ['Golconda Fort', 'Bijapur Citadel'],
+                    mill: ['Royal Karkhana', 'Diamond Cutting Workshop'],
+                    holy_site: ['Gol Gumbaz', 'Charminar', 'Hindu Temple'],
+                    palace: ['Sultan\'s Palace', 'Durbar Hall'],
+                    trading_post: ['Diamond Market', 'Spice Exchange', 'Portuguese Factory']
+                },
+                courtRoles: {
+                    palace: ['Sultan', 'Wazir', 'Mir Jumla', 'Kotwal']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'Hyderabad State',
+                dominantPowerDescription: 'The Nizam of Hyderabad rules the largest princely state, balancing British paramountcy with internal autonomy while modernizing administration.',
+                eraContextSentence: 'an era of princely reform, where the Nizam modernizes while maintaining independence.',
+                allegianceGroups: [
+                    { name: 'Hyderabad State', type: 'primary', description: 'Largest and richest princely state.' },
+                    { name: 'British Residency', type: 'secondary', description: 'Colonial oversight and advice.' },
+                    { name: 'Mysore Kingdom', type: 'secondary', description: 'Neighboring progressive princely state.' },
+                    { name: 'Peasant Movements', type: 'rebel', description: 'Telangana and other rural uprisings.' }
+                ],
+                structureNames: {
+                    fortress: ['British Cantonment', 'State Forces Base'],
+                    factory: ['Textile Mill', 'Railway Workshop'],
+                    mill: ['Rice Mill', 'Cotton Ginning'],
+                    trading_post: ['Railway Station', 'Modern Market'],
+                    palace: ['Nizam\'s Palace', 'Residency'],
+                    holy_site: ['Hindu Temple', 'Colonial Church', 'Sufi Shrine']
+                },
+                courtRoles: {
+                    palace: ['Nizam', 'Prime Minister', 'British Resident', 'Military Commander']
+                }
+            },
+            [MODERN_ERA]: {
+                dominantPower: 'Indian States',
+                dominantPowerDescription: 'The Deccan is reorganized into linguistic states (Maharashtra, Karnataka, Andhra Pradesh, Telangana) becoming India\'s technology and pharmaceutical hub.',
+                eraContextSentence: 'an era of technological emergence, where the Deccan becomes India\'s Silicon Valley.',
+                allegianceGroups: [
+                    { name: 'State Governments', type: 'primary', description: 'Maharashtra, Karnataka, Andhra Pradesh, Telangana.' },
+                    { name: 'IT Industry', type: 'trade_company', description: 'Bangalore, Hyderabad, Pune tech centers.' },
+                    { name: 'Regional Parties', type: 'secondary', description: 'Linguistic and caste-based politics.' },
+                    { name: 'Naxalite Movement', type: 'rebel', description: 'Maoist insurgency in tribal areas.' }
+                ],
+                structureNames: {
+                    fortress: ['Police Headquarters', 'Anti-Terrorist Squad Base'],
+                    factory: ['Pharmaceutical Plant', 'Auto Manufacturing', 'IT Park'],
+                    mill: ['Sugar Mill', 'Textile Mill'],
+                    trading_post: ['Software Export Zone', 'Wholesale Market'],
+                    palace: ['State Assembly', 'High-Tech City'],
+                    holy_site: ['Tirupati Temple']
+                },
+                courtRoles: {
+                    palace: ['Chief Minister', 'IT Secretary', 'Police Commissioner', 'Industrial Development Minister']
+                }
+            },
+            [HistoricalEra.FUTURE_ERA]: {
+                dominantPower: 'Republic of India',
+                dominantPowerDescription: 'The Deccan states grapple massive technological and social changes.',
+                eraContextSentence: 'an era of technological emergence, where the Deccan becomes India\'s Silicon Valley.',
+                allegianceGroups: [
+                   { name: 'State Governments', type: 'primary', description: 'Maharashtra, Karnataka, Andhra Pradesh, Telangana.' },
+                    { name: 'IT Industry', type: 'trade_company', description: 'Bangalore, Hyderabad, Pune tech centers.' },
+                    { name: 'Regional Parties', type: 'secondary', description: 'Linguistic and caste-based politics.' },
+                ],
+                structureNames: {
+                    fortress: ['Climate Security Hub', 'Biotech Research Facility'],
+                    factory: ['Genetic Engineering Lab', 'Solar Manufacturing', 'Vertical Farm'],
+                    trading_post: ['Carbon Credit Exchange', 'Biotech Patent Office'],
+                    holy_site: ['Tirupati Temple']
+                }
+            }
         }
     }
 };

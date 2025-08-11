@@ -24,6 +24,7 @@ interface MapCanvasProps {
   playerX?: number;
   playerY?: number;
   disableSmoothing?: boolean;
+  season?: 'spring' | 'summer' | 'fall' | 'winter';
 }
 
 // Optimized renderer class to prevent unnecessary re-renders
@@ -59,7 +60,7 @@ class MapCanvasRenderer {
     );
   }
 
-  render(mapData: MapData, canvasSize: { width: number; height: number }, patterns: any, isNight: boolean = false, playerX?: number, playerY?: number, disableSmoothing: boolean = false) {
+  render(mapData: MapData, canvasSize: { width: number; height: number }, patterns: any, isNight: boolean = false, playerX?: number, playerY?: number, disableSmoothing: boolean = false, season?: 'spring' | 'summer' | 'fall' | 'winter') {
     if (!this.canvas || !this.ctx || !this.shouldRender(mapData, canvasSize)) return;
 
     // Cancel any pending render
@@ -68,7 +69,7 @@ class MapCanvasRenderer {
     }
 
     this.renderFrameId = requestAnimationFrame(() => {
-      this.performRender(mapData, canvasSize, patterns, isNight, playerX, playerY, disableSmoothing);
+      this.performRender(mapData, canvasSize, patterns, isNight, playerX, playerY, disableSmoothing, season);
       this.lastMapSeed = mapData.seed;
       this.lastCanvasWidth = canvasSize.width;
       this.lastCanvasHeight = canvasSize.height;
@@ -76,7 +77,7 @@ class MapCanvasRenderer {
     });
   }
 
-  private performRender(mapData: MapData, canvasSize: { width: number; height: number }, patterns: any, isNight: boolean = false, playerX?: number, playerY?: number, disableSmoothing: boolean = false) {
+  private performRender(mapData: MapData, canvasSize: { width: number; height: number }, patterns: any, isNight: boolean = false, playerX?: number, playerY?: number, disableSmoothing: boolean = false, season?: 'spring' | 'summer' | 'fall' | 'winter') {
     if (!this.canvas || !this.ctx) return;
 
     this.canvas.width = canvasSize.width;
@@ -99,7 +100,7 @@ class MapCanvasRenderer {
 
     this.renderOceanBackground(mapData);
     this.renderShoals(mapData, noiseGenerators);
-    this.renderLandTiles(mapData, patterns, noiseGenerators);
+    this.renderLandTiles(mapData, patterns, noiseGenerators, season);
     
     // Apply player-centered vignette effect for nighttime
     if (isNight && playerX !== undefined && playerY !== undefined) {
@@ -179,7 +180,7 @@ class MapCanvasRenderer {
     }
   }
 
-  private renderLandTiles(mapData: MapData, patterns: any, noiseGenerators: any) {
+  private renderLandTiles(mapData: MapData, patterns: any, noiseGenerators: any, season?: 'spring' | 'summer' | 'fall' | 'winter') {
     if (!this.ctx) return;
 
     // Batch similar tiles for rendering
@@ -189,7 +190,7 @@ class MapCanvasRenderer {
       for (let x = 0; x < mapData.width; x++) {
         const tile = mapData.tiles[y][x];
         if (tile.isLand) {
-          const color = getTileRenderColor(tile, mapData.climate, mapData.seed);
+          const color = getTileRenderColor(tile, mapData.climate, mapData.seed, season);
           const key = `${tile.biome}-${color}`;
           if (!tileBatches.has(key)) {
             tileBatches.set(key, { tiles: [], color });
@@ -394,7 +395,8 @@ export const MapCanvasPerformance = React.forwardRef<HTMLCanvasElement, MapCanva
   isNight = false,
   playerX,
   playerY,
-  disableSmoothing = false
+  disableSmoothing = false,
+  season
 }, ref) => {
   const internalCanvasRef = useRef<HTMLCanvasElement>(null);
   const canvasRef = (ref as React.MutableRefObject<HTMLCanvasElement | null>) || internalCanvasRef;
@@ -410,11 +412,11 @@ export const MapCanvasPerformance = React.forwardRef<HTMLCanvasElement, MapCanva
     renderer.setCanvas(canvasElement);
 
     if (mapData) {
-      renderer.render(mapData, canvasSize, memoizedPatterns, isNight, playerX, playerY, disableSmoothing);
+      renderer.render(mapData, canvasSize, memoizedPatterns, isNight, playerX, playerY, disableSmoothing, season);
     }
 
     return () => renderer.cleanup();
-  }, [mapData.seed, canvasSize.width, canvasSize.height, memoizedPatterns, isNight, playerX, playerY, disableSmoothing]);
+  }, [mapData.seed, canvasSize.width, canvasSize.height, memoizedPatterns, isNight, playerX, playerY, disableSmoothing, season]);
 
   return (
     <canvas

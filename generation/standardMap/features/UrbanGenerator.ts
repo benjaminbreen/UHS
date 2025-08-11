@@ -12,6 +12,8 @@ import {
     MIN_INTER_CLUSTER_DISTANCE
 } from '../../../constants/index';
 import { isNearWaterBody, isNearSpecificRiver } from './EcologicalFeatureGenerator'; // Helper for strategic location
+import { detectCitiesForArea, CityInfo } from '../../../utils/cityDetectionUtils';
+import { parseDateString } from '../../../utils/dateUtils';
 
 const nonBuildableSiteBiomesSet = new Set([
   BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.URBAN, 
@@ -121,7 +123,7 @@ function selectUrbanClusterCenters(strategicLocations: Array<{point: Point, scor
   return centers;
 }
 
-function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: number, totalClusters: number, generateLargeCity: boolean | undefined, randomNoise: ValueNoise, economicActivityLevel?: number): void {
+function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: number, totalClusters: number, generateLargeCity: boolean | undefined, randomNoise: ValueNoise, economicActivityLevel?: number, activeCities?: any[]): void {
   const isMainCluster = clusterIndex === 0;
   const clusterRadius = URBAN_CLUSTER_RADIUS_MIN + Math.floor(randomNoise.random() * (URBAN_CLUSTER_RADIUS_MAX - URBAN_CLUSTER_RADIUS_MIN +1));
   
@@ -214,7 +216,8 @@ function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: numb
   });
 
   // After placing all urban tiles for the cluster, check if we should place a city center.
-  if (isMainCluster && placedUrbanTiles.some(t => t.biome === BiomeType.DENSE_CITY)) {
+  // ONLY place city centers if we have actual defined cities
+  if (isMainCluster && activeCities && activeCities.length > 0 && placedUrbanTiles.some(t => t.biome === BiomeType.DENSE_CITY)) {
     if (randomNoise.random() < 0.9) { // High chance for a city center in the main cluster
         const denseCityTilesInCluster = placedUrbanTiles.filter(t => t.biome === BiomeType.DENSE_CITY);
         if (denseCityTilesInCluster.length > 0) {
@@ -241,7 +244,22 @@ function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: numb
             if (bestTile) {
                 bestTile.biome = BiomeType.CITY_CENTER;
                 bestTile.population = 250 + Math.floor(randomNoise.random() * 250);
-                console.log(`[Gen] Placed CITY_CENTER at (${bestTile.x}, ${bestTile.y})`);
+                
+                // Store city information on the tile
+                if (activeCities && activeCities.length > 0 && clusterIndex === 0) {
+                    // Use the first active city for the main cluster
+                    const cityData = activeCities[0];
+                    bestTile.cityName = cityData.name;
+                    bestTile.cityDescription = cityData.description;
+                    
+                    // Also apply to all urban tiles in this cluster
+                    placedUrbanTiles.forEach(tile => {
+                        tile.cityName = cityData.name;
+                        tile.cityDescription = cityData.description;
+                    });
+                }
+                
+                console.log(`[Gen] Placed CITY_CENTER at (${bestTile.x}, ${bestTile.y}) - ${bestTile.cityName || 'Unnamed'}`);
             }
         }
     }
@@ -285,63 +303,35 @@ function isNearDeepWater(tiles: Tile[][], x: number, y: number): boolean {
   return false;
 }
 
-export function generateUrbanAreas(tiles: Tile[][], randomNoise: ValueNoise, archetype: MapArchetype, harborSide?: number, generateLargeCity?: boolean, economicActivityLevel?: number, year?: number, mapAreaName?: string) {
-  console.log("Generating enhanced urban clusters...");
+export function generateUrbanAreas(tiles: Tile[][], randomNoise: ValueNoise, archetype: MapArchetype, harborSide?: number, generateLargeCity?: boolean, economicActivityLevel?: number, year?: number, regionName?: string, localAreaName?: string, timeSlice?: string, dominantPower?: string, culturalZone?: string) {
+  console.log("[Urban] Phase 10: Urban area generation - START");
+  console.log(`[Urban] Parameters: economicActivityLevel=${economicActivityLevel}, year=${year}, localArea="${localAreaName}", region="${regionName}"`);
+  
+  // Skip urban generation entirely for SHOALS archetype
+  if (archetype === MapArchetype.SHOALS) {
+    console.log("[Urban] Skipping urban generation for SHOALS archetype (no settlements on shoals)");
+    return;
+  }
+  
   const strategicLocations = identifyStrategicUrbanLocations(tiles, archetype, harborSide);
   
-  // Check if this area has defined cities
-  let hasCities = false;
-  let activeCities: any[] = [];
-  let cityDensity: 'small' | 'moderate' | 'large' | 'massive' | undefined;
+  // Parse date info to get era
+  const dateInfo = timeSlice ? parseDateString(timeSlice) : { year: year || 1650, era: null as any };
   
-  if (mapAreaName && year) {
-    try {
-      // Check cities.ts first
-      const { CITIES_DATA } = require('../../../constants/gameData/cities');
-      const areaCities = CITIES_DATA[mapAreaName] || [];
-      
-      // Count how many cities should exist in this year
-      activeCities = areaCities.filter((city: any) => 
-        year >= city.foundingYear && (!city.declineYear || year <= city.declineYear)
-      );
-      
-      if (activeCities.length > 0) {
-        hasCities = true;
-        // Get the density from the most prominent city
-        cityDensity = activeCities[0].urbanDensity;
-        if (activeCities[0].eraSpecificDensity) {
-          // Determine era based on year
-          let era = 'ancient';
-          if (year >= 1450) era = 'early_modern';
-          if (year >= 1800) era = 'modern';
-          if (year < 500) era = 'prehistoric';
-          else if (year < 1450) era = 'medieval';
-          
-          cityDensity = activeCities[0].eraSpecificDensity[era] || cityDensity;
-        }
-        console.log(`[Urban] Found ${activeCities.length} historical cities in ${mapAreaName} with density: ${cityDensity}`);
-      }
-      
-      // If no cities in cities.ts, check proceduralCityData.ts
-      if (!hasCities) {
-        const { PROCEDURAL_CITY_DATA } = require('../../../constants/gameData/proceduralCityData');
-        const proceduralCities = PROCEDURAL_CITY_DATA[mapAreaName] || [];
-        if (proceduralCities.length > 0) {
-          hasCities = true;
-          cityDensity = 'small'; // Procedural cities default to small
-          console.log(`[Urban] Found procedural cities in ${mapAreaName}`);
-        }
-      }
-    } catch (error) {
-      console.log(`[Urban] Could not load city data for ${mapAreaName}`);
-    }
-  }
+  // Use centralized city detection
+  const cityDetection = detectCitiesForArea(localAreaName, regionName, year || dateInfo.year, dateInfo.era, true);
+  
+  const hasCities = cityDetection.hasCities;
+  const activeCities = cityDetection.activeCities;
+  const cityDensity = cityDetection.cityDensity;
+  
+  console.log(`[Urban] City detection result: hasCities=${hasCities}, source=${cityDetection.source}, cityCount=${activeCities.length}, density=${cityDensity}`);
   
   // Determine urban generation based on whether cities are defined
   let clusterCount = 0;
   
   if (hasCities) {
-    // City-based generation - use density settings
+    // City-based generation - ALWAYS generate cities when they're defined
     const densityMap: Record<string, number> = {
       'small': 2,
       'moderate': 4,
@@ -350,13 +340,16 @@ export function generateUrbanAreas(tiles: Tile[][], randomNoise: ValueNoise, arc
     };
     clusterCount = densityMap[cityDensity || 'small'];
     
+    // Ensure at least one cluster for any defined city
+    clusterCount = Math.max(clusterCount, 1);
+    
     // Add bonus for multiple cities
     if (activeCities.length > 1) {
-      clusterCount += Math.min(activeCities.length - 1, 2);
+      clusterCount += Math.min(activeCities.length - 1, 3);
     }
     
     if (generateLargeCity) clusterCount += 1;
-    console.log(`[Urban] City-based generation: ${clusterCount} clusters for ${cityDensity} density`);
+    console.log(`[Urban] City-based generation: WILL generate ${clusterCount} clusters for ${activeCities.length} cities with ${cityDensity} density`);
   } else {
     // No cities defined - minimal or no urbanization
     const spawnChance = randomNoise.random();
@@ -384,8 +377,77 @@ export function generateUrbanAreas(tiles: Tile[][], randomNoise: ValueNoise, arc
     clusterCenters.forEach((center, index) => {
       // For areas without cities, only generate small hamlets
       const shouldGenerateLarge = hasCities ? generateLargeCity : false;
-      generateUrbanCluster(tiles, center, index, clusterCenters.length, shouldGenerateLarge, randomNoise, economicActivityLevel);
+      generateUrbanCluster(tiles, center, index, clusterCenters.length, shouldGenerateLarge, randomNoise, economicActivityLevel, activeCities);
     });
     console.log(`Generated ${clusterCenters.length} urban clusters`);
+  }
+  
+  // Generate fishing huts for water-based maps without cities
+  if (!hasCities && hasWaterForFishing(archetype)) {
+    generateFishingHuts(tiles, randomNoise);
+  }
+}
+
+// Helper function to determine if archetype supports fishing
+function hasWaterForFishing(archetype: MapArchetype): boolean {
+  const waterArchetypes = [
+    MapArchetype.ISLAND,
+    MapArchetype.PENINSULA,
+    MapArchetype.BAY,
+    MapArchetype.ATOLL,
+    MapArchetype.SHOALS,
+    MapArchetype.STRAITS,
+    MapArchetype.DELTA,
+    MapArchetype.FRESHWATER_LAKE
+  ];
+  return waterArchetypes.includes(archetype);
+}
+
+// Generate 0-2 fishing huts on suitable coastal tiles
+function generateFishingHuts(tiles: Tile[][], randomNoise: ValueNoise) {
+  const hutCount = Math.floor(randomNoise.random() * 3); // 0-2 huts
+  if (hutCount === 0) return;
+  
+  // Find suitable coastal locations
+  const coastalTiles: Tile[] = [];
+  for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+    for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+      const tile = tiles[y][x];
+      if (tile.isCoast && tile.biome === BiomeType.BEACH && !tile.cityName) {
+        coastalTiles.push(tile);
+      }
+    }
+  }
+  
+  if (coastalTiles.length === 0) return;
+  
+  // Place up to hutCount fishing huts
+  const placedHuts: Tile[] = [];
+  for (let i = 0; i < hutCount && coastalTiles.length > 0; i++) {
+    const index = Math.floor(randomNoise.random() * coastalTiles.length);
+    const tile = coastalTiles[index];
+    
+    // Check distance from other huts (minimum 10 tiles apart)
+    let tooClose = false;
+    for (const placedHut of placedHuts) {
+      if (Math.hypot(tile.x - placedHut.x, tile.y - placedHut.y) < 10) {
+        tooClose = true;
+        break;
+      }
+    }
+    
+    if (!tooClose) {
+      // Mark tile as having a fishing hut (structure generator will handle the actual placement)
+      tile.hasFishingHut = true;
+      placedHuts.push(tile);
+      console.log(`[Urban] Placed fishing hut at (${tile.x}, ${tile.y})`);
+    }
+    
+    // Remove from candidates
+    coastalTiles.splice(index, 1);
+  }
+  
+  if (placedHuts.length > 0) {
+    console.log(`[Urban] Generated ${placedHuts.length} fishing huts for non-city coastal map`);
   }
 }

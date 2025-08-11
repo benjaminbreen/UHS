@@ -144,6 +144,21 @@ function determineVegetation(tile: Tile, climate: ClimateType, noise: ValueNoise
           if (rand < 0.4) { baseType = 'cactus'; symbol = 'cactus'; } 
           else { baseType = 'generic_bush'; symbol = 'bush'; }
           break;
+          
+        case ClimateType.MEDITERRANEAN:
+          // Mediterranean: Mix of evergreen and deciduous, with many bushes
+          if (isHighElevation) {
+            // High elevation Mediterranean: more conifers
+            if (treeRoll < 0.7) { baseType = 'coniferous_tree'; symbol = 'pine'; }
+            else if (treeRoll < 0.85) { baseType = 'deciduous_tree'; symbol = 'deciduous'; }
+            else { baseType = 'generic_bush'; symbol = 'bush'; }
+          } else {
+            // Low elevation Mediterranean: evergreen oaks, olives, cork oaks
+            if (treeRoll < 0.65) { baseType = 'deciduous_tree'; symbol = 'deciduous'; } // Will pick Mediterranean species
+            else if (treeRoll < 0.85) { baseType = 'coniferous_tree'; symbol = 'pine'; } // Mediterranean pines
+            else { baseType = 'generic_bush'; symbol = 'bush'; } // Rosemary, lavender, etc.
+          }
+          break;
       }
     }
 
@@ -321,6 +336,8 @@ export function generateVegetation(mapData: MapData, noise: ValueNoise): Vegetat
         return { maxTrees: 100, maxNonTrees: 15 };
       case ClimateType.COLD:
         return { maxTrees: 50, maxNonTrees: 2 }; // Sparse northern forests
+      case ClimateType.MEDITERRANEAN:
+        return { maxTrees: 70, maxNonTrees: 30 }; // Moderate trees with many herbs/bushes
       default:
         return { maxTrees: 50, maxNonTrees: 25 };
     }
@@ -411,6 +428,7 @@ export function generateVegetation(mapData: MapData, noise: ValueNoise): Vegetat
               case ClimateType.SEMITROPICAL: return 0.45;
               case ClimateType.TEMPERATE: return 0.55;
               case ClimateType.COLD: return 0.65;
+              case ClimateType.MEDITERRANEAN: return 0.50; // Moderate vegetation density
               default: return 0.55;
             }
           })();

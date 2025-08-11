@@ -85,4 +85,7 @@ export interface Tile {
   dominantReligions?: { name: string; percentage: number }[];
   cropType?: string; // NEW: For Farmland
   mineralDeposit?: { metalId: string; quantity: number }; // NEW: For mineral deposits
+  cityName?: string; // NEW: Name of the city this tile belongs to
+  cityDescription?: string; // NEW: Description of the city
+  hasFishingHut?: boolean; // NEW: Marker for fishing hut placement
 }

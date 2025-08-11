@@ -1177,6 +1177,272 @@ export const EAST_ASIAN_FACTIONS: FactionFile = {
                     palace: ['Ecological Wisdom Council', 'Environmental Dharma Palace', 'Sanctuary Coordination Center']
                 }
             }
+        },
+        "Kazakh Steppes": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Scythian Confederation',
+                dominantPowerDescription: 'Nomadic horse warriors control vast grasslands, mastering mounted archery and creating elaborate golden art.',
+                eraContextSentence: 'the endless steppe where warriors follow seasonal pastures and bury their kings with golden treasures.',
+                allegianceGroups: [
+                    { name: 'Royal Scythians', type: 'primary', description: 'The ruling warrior elite.' },
+                    { name: 'Saka Tribes', type: 'secondary', description: 'Eastern Scythian peoples.' },
+                    { name: 'Sarmatian Clans', type: 'secondary', description: 'Related Iranian nomads.' },
+                    { name: 'Greek Trading Colonies', type: 'trade_company', description: 'Black Sea merchants.' }
+                ],
+                structureNames: {
+                    fortress: ['Kurgan', 'Nomad Camp', 'Defensive Earthwork'],
+                    holy_site: ['Sky Burial Ground', 'Shamanistic Circle', 'Golden Man Tomb'],
+                    palace: ['Khan\'s Mobile Court', 'Royal Yurt Complex'],
+                    trading_post: ['Silk Road Caravanserai', 'Horse Market', 'Gold Exchange']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Turkic Khaganate',
+                dominantPowerDescription: 'Turkic confederations dominate the steppes, controlling Silk Road trade and influencing settled civilizations.',
+                eraContextSentence: 'the age of the eternal blue sky, where Turkic khans rule from the Altai to the Caspian.',
+                allegianceGroups: [
+                    { name: 'Western Turkic Khaganate', type: 'primary', description: 'The dominant steppe empire.' },
+                    { name: 'Khazar Khaganate', type: 'secondary', description: 'Jewish-converted trading empire.' },
+                    { name: 'Kipchak Confederation', type: 'secondary', description: 'Cumans and related tribes.' },
+                    { name: 'Sogdian Merchants', type: 'trade_company', description: 'Silk Road middlemen.' }
+                ],
+                structureNames: {
+                    fortress: ['Ordu (Military Camp)', 'Stone Balbals', 'Steppe Fortress'],
+                    holy_site: ['Tengrist Shrine', 'Ancestor Stones', 'Sacred Mountain'],
+                    palace: ['Khagan\'s Ordu', 'Noble Yurt Circle'],
+                    trading_post: ['Silk Road Station', 'Fur Market', 'Slave Market']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Kazakh Khanate',
+                dominantPowerDescription: 'The Kazakhs establish their khanate, maintaining nomadic traditions while resisting Russian and Chinese expansion.',
+                eraContextSentence: 'the last free steppes, where Kazakh hordes preserve ancient ways against encroaching empires.',
+                allegianceGroups: [
+                    { name: 'Kazakh Khanate', type: 'primary', description: 'United Kazakh tribes under the khan.' },
+                    { name: 'Great Horde', type: 'secondary', description: 'Senior Kazakh confederation.' },
+                    { name: 'Middle Horde', type: 'secondary', description: 'Central Kazakh tribes.' },
+                    { name: 'Junior Horde', type: 'secondary', description: 'Western Kazakh confederation.' }
+                ],
+                structureNames: {
+                    fortress: ['Khan\'s Stronghold', 'Border Fort', 'Tribal Gathering Ground'],
+                    holy_site: ['Muslim Mosque', 'Sufi Lodge', 'Ancestral Burial Ground'],
+                    palace: ['Khan\'s Palace', 'Sultan\'s Court'],
+                    trading_post: ['Russian Trading Post', 'Chinese Trade Station', 'Cattle Market']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'Russian Empire',
+                dominantPowerDescription: 'The Great Game unfolds as Russia conquers the steppes, settling Slavic farmers and exploiting resources.',
+                eraContextSentence: 'the closing of the frontier, where Cossack forts and settler towns transform ancient pastures.',
+                allegianceGroups: [
+                    { name: 'Russian Colonial Administration', type: 'primary', description: 'Tsarist governors and military.' },
+                    { name: 'Kazakh Nobility', type: 'secondary', description: 'Co-opted traditional leaders.' },
+                    { name: 'Slavic Settlers', type: 'secondary', description: 'Farming colonists.' },
+                    { name: 'Resistance Movements', type: 'rebel', description: 'Kazakh freedom fighters.' }
+                ],
+                structureNames: {
+                    fortress: ['Cossack Fort', 'Russian Garrison', 'Railway Guard Post'],
+                    factory: ['Cotton Mill', 'Mining Operation', 'Railway Workshop'],
+                    trading_post: ['Railway Station', 'Grain Market', 'Colonial Trading Post'],
+                    palace: ['Governor\'s Residence', 'Military Headquarters']
+                }
+            },
+            [HistoricalEra.MODERN_ERA]: {
+                dominantPower: 'Republic of Kazakhstan',
+                dominantPowerDescription: 'Independent Kazakhstan balances its nomadic heritage with oil wealth and geopolitical importance.',
+                eraContextSentence: 'the new Great Game, where oil pipelines cross ancient caravan routes.',
+                allegianceGroups: [
+                    { name: 'Republic of Kazakhstan', type: 'primary', description: 'Independent nation since 1991.' },
+                    { name: 'Russian Federation', type: 'secondary', description: 'Former colonial power, major partner.' },
+                    { name: 'China', type: 'secondary', description: 'Growing economic influence.' },
+                    { name: 'Western Oil Companies', type: 'trade_company', description: 'Extracting Caspian oil.' }
+                ],
+                structureNames: {
+                    fortress: ['Military Base', 'Border Guard Station', 'Baikonur Cosmodrome'],
+                    factory: ['Oil Refinery', 'Uranium Mine', 'Steel Plant'],
+                    trading_post: ['Oil Pipeline Terminal', 'China-Europe Railway Hub', 'Grain Export Terminal'],
+                    palace: ['Presidential Palace', 'Akorda', 'Regional Akimat']
+                }
+            }
+        },
+        "Taiwan and East China Sea": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Austronesian Peoples',
+                dominantPowerDescription: 'Indigenous Austronesian tribes inhabit Taiwan, origin point for Pacific island migrations.',
+                eraContextSentence: 'the ancestral homeland, where seafaring peoples perfect navigation before spreading across the Pacific.',
+                allegianceGroups: [
+                    { name: 'Plains Tribes', type: 'primary', description: 'Lowland agricultural peoples.' },
+                    { name: 'Mountain Tribes', type: 'secondary', description: 'Highland hunter-gatherers.' },
+                    { name: 'Coastal Peoples', type: 'secondary', description: 'Maritime fishing communities.' }
+                ],
+                structureNames: {
+                    fortress: ['Tribal Stockade', 'Mountain Refuge', 'Coastal Defense'],
+                    holy_site: ['Ancestor House', 'Sacred Grove', 'Spirit Stone'],
+                    palace: ['Chief\'s Longhouse', 'Tribal Council Hall'],
+                    trading_post: ['Beach Market', 'Mountain Pass Trading Post']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Song Dynasty Maritime Networks',
+                dominantPowerDescription: 'Chinese maritime trade flourishes, with Taiwan serving as a waystation for merchants and pirates.',
+                eraContextSentence: 'the age of maritime commerce, where Chinese junks and Japanese wako contest the Eastern seas.',
+                allegianceGroups: [
+                    { name: 'Chinese Merchants', type: 'trade_company', description: 'Song and Yuan traders.' },
+                    { name: 'Indigenous Kingdoms', type: 'primary', description: 'Native Taiwanese polities.' },
+                    { name: 'Japanese Pirates (Wako)', type: 'rebel', description: 'Raiders from Japan.' },
+                    { name: 'Ryukyu Kingdom', type: 'secondary', description: 'Okinawan maritime traders.' }
+                ],
+                structureNames: {
+                    fortress: ['Coastal Fort', 'Pirate Haven', 'Trading Post Defense'],
+                    holy_site: ['Buddhist Temple', 'Indigenous Sacred Site', 'Mazu Sea Goddess Shrine'],
+                    palace: ['Tribal King\'s Hall', 'Chinese Prefect\'s Compound'],
+                    trading_post: ['Maritime Trading Port', 'Smuggler\'s Cove', 'Fish Market']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Dutch Formosa / Zheng Maritime Network',
+                dominantPowerDescription: 'Dutch colonizers compete with Chinese Ming loyalists for control of Taiwan\'s profitable trade.',
+                eraContextSentence: 'the contested island, where European colonialism meets Chinese resistance and indigenous resilience.',
+                allegianceGroups: [
+                    { name: 'Dutch East India Company', type: 'trade_company', description: 'Colonial trading monopoly.' },
+                    { name: 'Kingdom of Tungning (Zheng)', type: 'primary', description: 'Ming loyalist maritime kingdom.' },
+                    { name: 'Qing Dynasty', type: 'secondary', description: 'Mainland Chinese empire.' },
+                    { name: 'Indigenous Tribes', type: 'rebel', description: 'Native resistance.' }
+                ],
+                structureNames: {
+                    fortress: ['Fort Zeelandia', 'Chinese Naval Base', 'Indigenous Stronghold'],
+                    mill: ['Sugar Mill', 'Rice Processing', 'Camphor Refinery'],
+                    holy_site: ['Confucian Temple', 'Dutch Reformed Church', 'Indigenous Spirit House'],
+                    palace: ['Dutch Governor\'s House', 'Zheng Family Palace'],
+                    trading_post: ['VOC Trading Post', 'Chinese Merchant Quarter', 'Deer Hide Market']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'Japanese Taiwan',
+                dominantPowerDescription: 'Japan modernizes Taiwan as a model colony, building infrastructure while suppressing Chinese culture.',
+                eraContextSentence: 'the model colony, where Japanese efficiency transforms the beautiful island into an industrial powerhouse.',
+                allegianceGroups: [
+                    { name: 'Japanese Colonial Government', type: 'primary', description: 'Imperial administration.' },
+                    { name: 'Taiwanese Gentry', type: 'secondary', description: 'Collaborating local elite.' },
+                    { name: 'Han Resistance', type: 'rebel', description: 'Chinese cultural preservation.' },
+                    { name: 'Indigenous Peoples', type: 'rebel', description: 'Mountain tribe resistance.' }
+                ],
+                structureNames: {
+                    fortress: ['Japanese Garrison', 'Police Station', 'Coastal Defense'],
+                    factory: ['Sugar Refinery', 'Camphor Factory', 'Railroad Workshop'],
+                    trading_post: ['Colonial Export Dock', 'Railway Station', 'Japanese Bank'],
+                    palace: ['Governor-General\'s Office', 'Shinto Shrine Complex']
+                }
+            },
+            [HistoricalEra.MODERN_ERA]: {
+                dominantPower: 'Republic of China (Taiwan)',
+                dominantPowerDescription: 'Democratic Taiwan becomes an economic powerhouse while navigating complex cross-strait relations.',
+                eraContextSentence: 'the island democracy, where silicon chips and freedom flourish in China\'s shadow.',
+                allegianceGroups: [
+                    { name: 'Republic of China', type: 'primary', description: 'Democratic government in Taipei.' },
+                    { name: 'People\'s Republic of China', type: 'secondary', description: 'Claims sovereignty from Beijing.' },
+                    { name: 'United States', type: 'secondary', description: 'Security guarantor.' },
+                    { name: 'Tech Corporations', type: 'trade_company', description: 'TSMC and electronics giants.' }
+                ],
+                structureNames: {
+                    fortress: ['Military Base', 'Missile Defense Site', 'Naval Base'],
+                    factory: ['Semiconductor Fab', 'Electronics Factory', 'Precision Manufacturing'],
+                    trading_post: ['Container Port', 'International Airport', 'Tech Hub'],
+                    palace: ['Presidential Office', 'Legislative Yuan', 'Taipei 101']
+                }
+            }
+        },
+        "Indochina Interior": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Funan Kingdom',
+                dominantPowerDescription: 'Early Indianized kingdom controls Mekong Delta trade routes, blending Hindu-Buddhist culture with local traditions.',
+                eraContextSentence: 'the dawn of Indianization, where Sanskrit prayers echo through monsoon forests.',
+                allegianceGroups: [
+                    { name: 'Funan Kingdom', type: 'primary', description: 'Early Khmer-speaking empire.' },
+                    { name: 'Chenla', type: 'secondary', description: 'Inland Khmer polity.' },
+                    { name: 'Champa', type: 'secondary', description: 'Coastal Austronesian kingdom.' },
+                    { name: 'Mon City-States', type: 'secondary', description: 'Buddhist trading centers.' }
+                ],
+                structureNames: {
+                    fortress: ['Moated City', 'Hill Fort', 'River Stronghold'],
+                    holy_site: ['Hindu Temple', 'Buddhist Stupa', 'Ancestor Shrine'],
+                    palace: ['God-King\'s Palace', 'Mandala Center'],
+                    trading_post: ['River Port', 'Forest Product Market', 'Indian Ocean Entrepot']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Khmer Empire',
+                dominantPowerDescription: 'Angkor commands a vast hydraulic civilization, building the world\'s largest religious monuments.',
+                eraContextSentence: 'the age of god-kings, where Angkor Wat rises from the jungle as mountains made by human hands.',
+                allegianceGroups: [
+                    { name: 'Khmer Empire', type: 'primary', description: 'The Angkorian state at its height.' },
+                    { name: 'Dai Viet', type: 'secondary', description: 'Vietnamese kingdom to the east.' },
+                    { name: 'Pagan Kingdom', type: 'secondary', description: 'Burmese empire to the west.' },
+                    { name: 'Srivijaya', type: 'trade_company', description: 'Maritime trading empire.' }
+                ],
+                structureNames: {
+                    fortress: ['Temple-Mountain', 'Moated Citadel', 'Border Garrison'],
+                    mill: ['Rice Paddy Complex', 'Irrigation Works', 'Fish Pond System'],
+                    holy_site: ['Angkor Wat', 'Bayon Temple', 'Buddhist Monastery'],
+                    palace: ['Royal Palace', 'Provincial Governor\'s Court'],
+                    trading_post: ['Great Market', 'Chinese Quarter', 'River Trade Port']
+                },
+                courtRoles: {
+                    palace: ['Devaraja (God-King)', 'Purohita (High Priest)', 'Senapati (General)', 'Mantri (Minister)']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Ayutthaya and Rival Kingdoms',
+                dominantPowerDescription: 'Siamese, Burmese, and Vietnamese kingdoms compete for dominance while European traders arrive.',
+                eraContextSentence: 'the age of gunpowder empires, where Buddhist kings adopt European weapons to fight ancient enemies.',
+                allegianceGroups: [
+                    { name: 'Ayutthaya Kingdom', type: 'primary', description: 'Siamese trading empire.' },
+                    { name: 'Toungoo Burma', type: 'secondary', description: 'Expansionist Burmese empire.' },
+                    { name: 'Dai Viet', type: 'secondary', description: 'Northern Vietnamese state.' },
+                    { name: 'European Traders', type: 'trade_company', description: 'Portuguese, Dutch, and French merchants.' }
+                ],
+                structureNames: {
+                    fortress: ['Star Fort', 'River Fortress', 'Mountain Stronghold'],
+                    mill: ['Rice Mill', 'Teak Sawmill', 'Spice Processing'],
+                    holy_site: ['Golden Pagoda', 'Theravada Monastery', 'Spirit House'],
+                    palace: ['Royal Palace', 'Mandarin\'s Compound', 'European Factor\'s House'],
+                    trading_post: ['International Quarter', 'River Port', 'Caravan Terminal']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'French Indochina',
+                dominantPowerDescription: 'France colonizes Vietnam, Laos, and Cambodia, exploiting resources while "civilizing" the natives.',
+                eraContextSentence: 'the colonial extraction, where rubber plantations and opium profits fuel the French empire.',
+                allegianceGroups: [
+                    { name: 'French Colonial Administration', type: 'primary', description: 'Governor-General in Saigon.' },
+                    { name: 'Siam (Thailand)', type: 'secondary', description: 'Independent buffer state.' },
+                    { name: 'Vietnamese Resistance', type: 'rebel', description: 'Anti-colonial movements.' },
+                    { name: 'Traditional Monarchies', type: 'secondary', description: 'Puppet kings in Cambodia and Laos.' }
+                ],
+                structureNames: {
+                    fortress: ['French Fort', 'Colonial Garrison', 'Border Post'],
+                    factory: ['Rubber Plantation', 'Rice Export Mill', 'Opium Refinery'],
+                    trading_post: ['Colonial Bank', 'Export Dock', 'Railway Station'],
+                    palace: ['Governor\'s Palace', 'Puppet King\'s Palace', 'French Club']
+                }
+            },
+            [HistoricalEra.MODERN_ERA]: {
+                dominantPower: 'ASEAN Nations',
+                dominantPowerDescription: 'Southeast Asian nations pursue development and regional cooperation after decades of war and revolution.',
+                eraContextSentence: 'the Asian miracle, where war-torn nations become manufacturing hubs and tourist destinations.',
+                allegianceGroups: [
+                    { name: 'Socialist Vietnam', type: 'primary', description: 'Communist party embracing markets.' },
+                    { name: 'Kingdom of Thailand', type: 'secondary', description: 'Regional economic hub.' },
+                    { name: 'ASEAN', type: 'secondary', description: 'Regional cooperation bloc.' },
+                    { name: 'China', type: 'secondary', description: 'Growing regional hegemon.' }
+                ],
+                structureNames: {
+                    fortress: ['Military Base', 'Border Checkpoint', 'Naval Base'],
+                    factory: ['Electronics Assembly', 'Textile Factory', 'Auto Plant'],
+                    trading_post: ['Special Economic Zone', 'Tourist Resort', 'Container Port'],
+                    palace: ['Presidential Palace', 'Party Headquarters', 'Royal Palace']
+                }
+            }
         }
     }
 };

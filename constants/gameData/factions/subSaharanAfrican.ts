@@ -221,7 +221,7 @@ export const SUB_SAHARAN_AFRICAN_FACTIONS: FactionFile = {
                 }
             }
         },
-        "East Africa": {
+        "Horn of Africa": {
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Kingdom of Kush',
                 dominantPowerDescription: 'The Nubian kingdom of Kush rivals Egypt in power, controlling the Nile trade and developing its own pyramid-building tradition.',
@@ -758,7 +758,7 @@ export const SUB_SAHARAN_AFRICAN_FACTIONS: FactionFile = {
                 }
             }
         },
-        "Madagascar": {
+        "Madagascar and Islands": {
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Austronesian Settlers',
                 dominantPowerDescription: 'Seafaring peoples from Southeast Asia settle Madagascar, bringing rice cultivation and outrigger canoes.',
@@ -856,6 +856,284 @@ export const SUB_SAHARAN_AFRICAN_FACTIONS: FactionFile = {
                     fortress: ['Ranger Station', 'Anti-Poaching Drone Base'],
                     factory: ['Sustainable Spice Farm', 'Solar Panel Assembly', 'Biodiversity Research Lab'],
                     trading_post: ['Carbon Credit Exchange', 'Eco-Tourism Hub', 'Digital Conservation Center']
+                }
+            }
+        },
+        "Swahili Coast": {
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Kilwa Sultanate',
+                dominantPowerDescription: 'A wealthy maritime power controlling the gold and ivory trade with the interior.',
+                eraContextSentence: 'an age of monsoon trade, where dhows carry gold from Zimbabwe to Arabia.',
+                allegianceGroups: [
+                    { name: 'Kilwa Sultanate', type: 'primary', description: 'The dominant Swahili city-state.' },
+                    { name: 'Mogadishu', type: 'secondary', description: 'A rival northern city-state.' },
+                    { name: 'Arab Merchants', type: 'secondary', description: 'Traders from Yemen and Oman.' }
+                ],
+                structureNames: {
+                    fortress: ['Stone Fort'],
+                    palace: ['Sultan\'s Palace'],
+                    trading_post: ['Dhow Harbor'],
+                    holy_site: ['Great Mosque']
+                },
+                courtRoles: {
+                    palace: ['Sultan', 'Vizier', 'Harbor Master', 'Chief Merchant']
+                }
+            }
+        },
+        "Rwanda Burundi Highlands": {
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Kingdom of Rwanda',
+                dominantPowerDescription: 'A centralized kingdom with sophisticated political institutions.',
+                eraContextSentence: 'an age of highland kingdoms, where cattle wealth determines social status.',
+                allegianceGroups: [
+                    { name: 'Kingdom of Rwanda', type: 'primary', description: 'The ruling Tutsi dynasty.' },
+                    { name: 'Hutu Farmers', type: 'secondary', description: 'The agricultural majority.' },
+                    { name: 'Twa Hunters', type: 'secondary', description: 'Forest-dwelling peoples.' }
+                ],
+                structureNames: {
+                    fortress: ['Royal Hill'],
+                    palace: ['Mwami\'s Court'],
+                    holy_site: ['Sacred Grove']
+                }
+            }
+        },
+        "Okavango Delta": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'San Peoples',
+                dominantPowerDescription: 'Hunter-gatherer bands with ancient knowledge of the delta\'s seasonal cycles.',
+                eraContextSentence: 'an age of harmony with nature, where the flood brings life to the desert.',
+                allegianceGroups: [
+                    { name: 'San Peoples', type: 'primary', description: 'The indigenous hunter-gatherers.' },
+                    { name: 'Bantu Migrants', type: 'secondary', description: 'Iron-working farmers arriving from the north.' }
+                ],
+                structureNames: {
+                    holy_site: ['Rock Art Site'],
+                    mill: ['Fish Weir']
+                }
+            }
+        },
+        "Nubian Desert": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Kingdom of Kush',
+                dominantPowerDescription: 'The ancient Nubian kingdom, once conquerors of Egypt.',
+                eraContextSentence: 'an age of black pharaohs, where Nubian pyramids rise from the desert.',
+                allegianceGroups: [
+                    { name: 'Kingdom of Kush', type: 'primary', description: 'The Nubian royal dynasty.' },
+                    { name: 'Desert Nomads', type: 'secondary', description: 'Bedouin tribes of the Eastern Desert.' },
+                    { name: 'Egyptian Traders', type: 'secondary', description: 'Merchants from the north.' }
+                ],
+                structureNames: {
+                    fortress: ['Desert Fort'],
+                    palace: ['Royal Palace'],
+                    holy_site: ['Temple of Amun']
+                }
+            }
+        },
+        "Lower Guinea and Congo Basin": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Bantu Migration',
+                dominantPowerDescription: 'Bantu-speaking peoples spread through the Congo Basin, bringing iron technology and agricultural practices to the rainforest.',
+                eraContextSentence: 'an age of migration and iron, as Bantu peoples transform the heart of Africa.',
+                allegianceGroups: [
+                    { name: 'Bantu Peoples', type: 'primary', description: 'The expanding agricultural societies.' },
+                    { name: 'Pygmy Groups', type: 'secondary', description: 'Indigenous forest dwellers.' },
+                    { name: 'Coastal Traders', type: 'trade_company', description: 'Early maritime merchants.' }
+                ],
+                structureNames: {
+                    fortress: ['Stockaded Village', 'Forest Settlement'],
+                    mill: ['Iron Forge', 'Palm Oil Press'],
+                    holy_site: ['Ancestor Grove', 'Forest Shrine']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Kingdom of Kongo',
+                dominantPowerDescription: 'The Kingdom of Kongo emerges as the dominant power, controlling trade routes and developing sophisticated political institutions.',
+                eraContextSentence: 'an age of divine kingship, where the Kongo kingdom dominates the Lower Guinea coast.',
+                allegianceGroups: [
+                    { name: 'Kingdom of Kongo', type: 'primary', description: 'The dominant coastal power.' },
+                    { name: 'Kingdom of Loango', type: 'secondary', description: 'A rival coastal kingdom to the north.' },
+                    { name: 'Luba Kingdom', type: 'secondary', description: 'An interior trading partner.' },
+                    { name: 'Forest Chiefdoms', type: 'secondary', description: 'Smaller polities in the rainforest interior.' }
+                ],
+                structureNames: {
+                    fortress: ['Royal Enclosure', 'Coastal Fort'],
+                    holy_site: ['Royal Burial Ground', 'Nkisi House'],
+                    palace: ['Manikongo\'s Court', 'Provincial Palace'],
+                    trading_post: ['Ivory Market', 'Copper Exchange']
+                },
+                courtRoles: {
+                    palace: ['Manikongo', 'Mwene', 'Royal Judge', 'Keeper of Customs']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Kingdom of Kongo (Portuguese Alliance)',
+                dominantPowerDescription: 'Kongo forms alliances with Portuguese traders and adopts Christianity, while struggling to control the growing Atlantic slave trade.',
+                eraContextSentence: 'an age of crosses and captives, where European contact transforms Central African societies.',
+                allegianceGroups: [
+                    { name: 'Kingdom of Kongo', type: 'primary', description: 'The Christianized African kingdom.' },
+                    { name: 'Portuguese Traders', type: 'trade_company', description: 'European slave traders and missionaries.' },
+                    { name: 'Imbangala Warriors', type: 'mercenary', description: 'Military bands serving as slave raiders.' },
+                    { name: 'Kingdom of Ndongo', type: 'secondary', description: 'Angolan kingdom resisting Portuguese expansion.' }
+                ],
+                structureNames: {
+                    fortress: ['Portuguese Fort', 'Kongo Stronghold'],
+                    holy_site: ['Catholic Church', 'Traditional Shrine'],
+                    palace: ['Christianized Royal Court'],
+                    trading_post: ['Slave Port', 'Ivory Warehouse']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'Belgian Congo',
+                dominantPowerDescription: 'King Leopold II\'s Congo Free State becomes synonymous with colonial brutality, exploiting rubber and minerals through forced labor.',
+                eraContextSentence: 'an era of rubber terror, where colonial greed creates unprecedented suffering.',
+                allegianceGroups: [
+                    { name: 'Congo Free State', type: 'primary', description: 'Leopold\'s brutal personal colony.' },
+                    { name: 'Force Publique', type: 'mercenary', description: 'The colonial military force.' },
+                    { name: 'Catholic Missions', type: 'religious', description: 'European missionary presence.' },
+                    { name: 'Resistance Movements', type: 'rebel', description: 'Various groups fighting colonial rule.' }
+                ],
+                structureNames: {
+                    fortress: ['Colonial Post', 'Rubber Collection Station'],
+                    factory: ['Rubber Processing Plant', 'Palm Oil Factory'],
+                    mining_colony: ['Copper Mine', 'Diamond Mine'],
+                    trading_post: ['River Station', 'Railway Depot']
+                }
+            },
+            [MODERN_ERA]: {
+                dominantPower: 'Democratic Republic of Congo',
+                dominantPowerDescription: 'The DRC struggles with the "resource curse" as vast mineral wealth fuels conflict rather than development in the post-colonial era.',
+                eraContextSentence: 'an era of minerals and militias, where Congo\'s riches become its curse.',
+                allegianceGroups: [
+                    { name: 'DRC Government', type: 'primary', description: 'The weak central government in Kinshasa.' },
+                    { name: 'UN Peacekeepers', type: 'secondary', description: 'International stabilization force.' },
+                    { name: 'M23 Rebels', type: 'rebel', description: 'One of many armed groups in the east.' },
+                    { name: 'Chinese Mining Companies', type: 'trade_company', description: 'Major mineral extractors.' }
+                ],
+                structureNames: {
+                    fortress: ['Army Base', 'UN Compound'],
+                    factory: ['Copper Smelter', 'Coltan Processing'],
+                    mining_colony: ['Cobalt Mine', 'Diamond Field', 'Coltan Mine'],
+                    trading_post: ['Border Crossing', 'Mineral Trading Post', 'NGO Base']
+                }
+            },
+            [FUTURE_ERA]: {
+                dominantPower: 'Congo Basin Federation',
+                dominantPowerDescription: 'Central African nations unite to protect the rainforest while developing sustainable extraction of critical minerals for the green economy.',
+                eraContextSentence: 'an age of green gold, where the rainforest and rare minerals shape global climate solutions.',
+                allegianceGroups: [
+                    { name: 'Congo Basin Federation', type: 'primary', description: 'Environmental protection alliance.' },
+                    { name: 'Global Climate Fund', type: 'secondary', description: 'International forest preservation backers.' },
+                    { name: 'Eco-Warriors', type: 'rebel', description: 'Radical forest defenders.' },
+                    { name: 'Mineral Cartels', type: 'trade_company', description: 'Companies controlling battery minerals.' }
+                ],
+                structureNames: {
+                    fortress: ['Eco-Ranger Station', 'Anti-Poaching Drone Base'],
+                    factory: ['Sustainable Mining Complex', 'Carbon Capture Forest', 'Battery Component Plant'],
+                    trading_post: ['Green Mineral Exchange', 'Eco-Tourism Hub', 'Research Station']
+                }
+            }
+        },
+        "East African Rift": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Early Cushitic Peoples',
+                dominantPowerDescription: 'Cushitic-speaking peoples establish pastoral and agricultural communities around the Great Rift lakes, developing complex social systems.',
+                eraContextSentence: 'an age of first farmers, where Cushitic peoples domesticate the highlands of East Africa.',
+                allegianceGroups: [
+                    { name: 'Cushitic Peoples', type: 'primary', description: 'The dominant pastoralist groups.' },
+                    { name: 'Nilotic Migrants', type: 'secondary', description: 'Cattle herders from the north.' },
+                    { name: 'Hunter-Gatherer Bands', type: 'secondary', description: 'Indigenous Khoisan-related peoples.' }
+                ],
+                structureNames: {
+                    fortress: ['Highland Stockade', 'Lakeside Settlement'],
+                    mill: ['Cattle Pen', 'Grinding Stone'],
+                    holy_site: ['Sacred Hill', 'Ancestral Cave']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Great Lakes Kingdoms',
+                dominantPowerDescription: 'Powerful kingdoms like Buganda, Rwanda, and Burundi emerge around Lake Victoria, developing sophisticated political hierarchies based on cattle wealth.',
+                eraContextSentence: 'an age of cattle kings, where the Great Lakes kingdoms create Africa\'s most centralized states.',
+                allegianceGroups: [
+                    { name: 'Kingdom of Buganda', type: 'primary', description: 'The most powerful Great Lakes kingdom.' },
+                    { name: 'Kingdom of Rwanda', type: 'secondary', description: 'A highly centralized highland state.' },
+                    { name: 'Kingdom of Burundi', type: 'secondary', description: 'A rival highland kingdom.' },
+                    { name: 'Maasai Pastoralists', type: 'secondary', description: 'Nilotic warrior-herders of the plains.' }
+                ],
+                structureNames: {
+                    fortress: ['Royal Hill', 'Cattle Enclosure'],
+                    holy_site: ['Sacred Drum House', 'Royal Burial Ground'],
+                    palace: ['Kabaka\'s Court', 'Mwami\'s Residence'],
+                    trading_post: ['Cattle Market', 'Iron Trading Post']
+                },
+                courtRoles: {
+                    palace: ['Kabaka', 'Katikkiro', 'Royal Drummer', 'Cattle Chief']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Buganda Empire',
+                dominantPowerDescription: 'Buganda expands around Lake Victoria, developing sophisticated governance while the Maasai dominate the Rift Valley plains.',
+                eraContextSentence: 'an age of expansion, where Buganda becomes the Prussia of Africa.',
+                allegianceGroups: [
+                    { name: 'Kingdom of Buganda', type: 'primary', description: 'The expanding lakeside empire.' },
+                    { name: 'Maasai Confederation', type: 'secondary', description: 'Warrior pastoralists controlling the plains.' },
+                    { name: 'Swahili Traders', type: 'trade_company', description: 'Coastal merchants seeking ivory and slaves.' },
+                    { name: 'Arab Merchants', type: 'trade_company', description: 'Muslim traders from Zanzibar.' }
+                ],
+                structureNames: {
+                    fortress: ['Royal Enclosure', 'Warrior Manyatta'],
+                    palace: ['Kabaka\'s Palace', 'Provincial Governor\'s Compound'],
+                    holy_site: ['Royal Tomb', 'Sacred Forest'],
+                    trading_post: ['Ivory Market', 'Slave Caravan Route']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'German East Africa',
+                dominantPowerDescription: 'German colonial rule transforms the region with the construction of railways, while British rule extends over Uganda and the lake kingdoms.',
+                eraContextSentence: 'an era of the scramble for Africa, where European powers carve up the Great Lakes region.',
+                allegianceGroups: [
+                    { name: 'German East Africa', type: 'primary', description: 'Colonial administration of Tanganyika.' },
+                    { name: 'British Uganda', type: 'secondary', description: 'Protectorate over the lake kingdoms.' },
+                    { name: 'Maji Maji Rebels', type: 'rebel', description: 'Anti-German resistance movement.' },
+                    { name: 'Traditional Rulers', type: 'secondary', description: 'Subordinated indigenous authorities under indirect rule.' }
+                ],
+                structureNames: {
+                    fortress: ['Colonial Fort', 'Railway Station Fort'],
+                    factory: ['Sisal Plantation', 'Coffee Processing Plant'],
+                    trading_post: ['Railway Depot', 'Administrative Center'],
+                    mining_colony: ['Diamond Mine', 'Gold Mine']
+                }
+            },
+            [MODERN_ERA]: {
+                dominantPower: 'East African Community',
+                dominantPowerDescription: 'Kenya, Tanzania, and Uganda form the East African Community while Rwanda and Burundi recover from genocide and civil war.',
+                eraContextSentence: 'an era of integration and recovery, where East Africa seeks unity amid diversity.',
+                allegianceGroups: [
+                    { name: 'Kenya', type: 'primary', description: 'The regional economic leader.' },
+                    { name: 'Tanzania', type: 'secondary', description: 'The largest East African nation.' },
+                    { name: 'East African Community', type: 'secondary', description: 'Regional integration organization.' },
+                    { name: 'Lord\'s Resistance Army', type: 'rebel', description: 'Insurgent group operating across borders.' }
+                ],
+                structureNames: {
+                    fortress: ['Military Base', 'Border Post'],
+                    factory: ['Tea Processing Plant', 'Flower Farm', 'Mobile Phone Assembly'],
+                    trading_post: ['Safari Lodge', 'Cross-Border Market', 'Tech Hub'],
+                    mining_colony: ['Gold Mine', 'Tanzanite Mine']
+                }
+            },
+            [FUTURE_ERA]: {
+                dominantPower: 'East African Community',
+                dominantPowerDescription: 'The Nairobi-Kampala corridor rapidly urbanizes.',
+                eraContextSentence: 'an age of rapid change and recovery from disaster.',
+                allegianceGroups: [
+                    { name: 'East African Federation', type: 'primary', description: 'The unified regional state.' },
+
+                    { name: 'Great Lakes Development Bank', type: 'trade_company', description: 'Regional financial institution.' },
+                    { name: 'Pastoralist Rights Movement', type: 'rebel', description: 'Traditional herders resisting modernization.' }
+                ],
+                structureNames: {
+                    fortress: ['UN Peacekeepers', 'Border Post'],
+                    factory: ['Geothermal Complex', 'Electric Vehicle Assembly', 'Vertical Farm'],
+                    mining_colony: ['Gold Mine', 'Tanzanite Mine']
                 }
             }
         }
