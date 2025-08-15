@@ -1,0 +1,25 @@
+{
+  "sources": [
+    {
+      "id": "amazon-restoration",
+      "title": "Amazon Restoration Compact",
+      "author": "Pan-Amazonian Council",
+      "year": 2052,
+      "excerpt": "The great forest breathes again as indigenous knowledge guides ecological restoration.",
+      "longExcerpt": "After decades of destruction, the Amazon is healing. Indigenous nations, granted full sovereignty over ancestral lands, lead restoration using traditional knowledge. Where cattle once grazed, forest returns - first the pioneer plants, then the great trees. Biotechnology assists: fungi that break down toxins, modified seeds that grow in degraded soil. The river dolphins return, the jaguar populations stabilize. Carbon capture pays for it all. The lungs of Earth breathe deeply again, and with them, we all breathe easier.",
+      "era": "FUTURE",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "keywords": [
+        "amazon",
+        "restoration",
+        "compact"
+      ],
+      "wikisourceTitle": "Amazon_Restoration_Compact",
+      "citation": {
+        "originalPublication": "Pan-Amazonian Council, 2052"
+      }
+    }
+  ]
+}

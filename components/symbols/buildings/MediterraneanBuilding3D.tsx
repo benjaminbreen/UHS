@@ -26,6 +26,10 @@ const MediterraneanBuilding3D: React.FC<MediterraneanBuilding3DProps> = React.me
   const rng = new ValueNoise(seed + tile.x * 173 + tile.y * 179);
   const rand = () => rng.random();
   const uniqueId = `med-building-${tile.x}-${tile.y}`;
+
+  // for sharper joins
+  const snap = (n: number) => Math.round(n) + 0.5;
+  const ve = 'non-scaling-stroke' as const;
   
   // Determine scale based on density
   let scaleFactor = 0.8;
@@ -39,16 +43,16 @@ const MediterraneanBuilding3D: React.FC<MediterraneanBuilding3DProps> = React.me
     hasBalcony = rand() > 0.4;
     hasArches = rand() > 0.5;
   } else if (tile.biome === BiomeType.HIGH_DENSITY_URBAN) {
-    scaleFactor = 0.85;
+    scaleFactor = 1.15;
     stories = rand() > 0.5 ? 2 : 1;
     hasBalcony = rand() > 0.6;
   } else if (tile.biome === BiomeType.LOW_DENSITY_URBAN) {
-    scaleFactor = 0.75;
+    scaleFactor = 1.05;
     stories = 1;
     hasBalcony = rand() > 0.8;
   } else {
     // Rural
-    scaleFactor = 0.6 + rand() * 0.15;
+    scaleFactor = 0.9 + rand() * 0.15;
     stories = 1;
   }
   
@@ -64,15 +68,15 @@ const MediterraneanBuilding3D: React.FC<MediterraneanBuilding3DProps> = React.me
   // Roof color variations - different shades of red/terracotta
   const roofVariant = Math.floor(rand() * 4);
   const roofColors = [
-    `hsl(15, 65%, 45%)`,  // Rich red
-    `hsl(20, 55%, 40%)`,  // Brick red
-    `hsl(25, 45%, 48%)`,  // Tan-brown-red
-    `hsl(10, 60%, 42%)`   // Deep terracotta
+    `hsl(15, 65%, 45%)`,
+    `hsl(20, 55%, 40%)`,
+    `hsl(25, 45%, 48%)`,
+    `hsl(10, 60%, 42%)`
   ];
   const roofMain = roofColors[roofVariant];
   const roofDark = `hsl(15, 50%, 30%)`;
   
-  // Wall colors - whitewashed with slight variations
+  // Wall colors
   const wallWhite = `hsl(45, 15%, ${92 + rand() * 6}%)`;
   const wallShadow = `hsl(45, 10%, 82%)`;
   const wallDark = `hsl(45, 8%, 75%)`;
@@ -83,7 +87,7 @@ const MediterraneanBuilding3D: React.FC<MediterraneanBuilding3DProps> = React.me
   
   // Helper for isometric right side
   const sideQuad = (x0: number, y0: number, w: number, h: number, d = depth) =>
-    `M ${x0 + w} ${y0} L ${x0 + w + d} ${y0 - d * 0.5} L ${x0 + w + d} ${y0 + h - d * 0.5} L ${x0 + w} ${y0 + h} Z`;
+    `M ${snap(x0 + w)} ${snap(y0)} L ${snap(x0 + w + d)} ${snap(y0 - d * 0.5)} L ${snap(x0 + w + d)} ${snap(y0 + h - d * 0.5)} L ${snap(x0 + w)} ${snap(y0 + h)} Z`;
   
   const gEls: JSX.Element[] = [];
   
@@ -115,13 +119,13 @@ const MediterraneanBuilding3D: React.FC<MediterraneanBuilding3DProps> = React.me
   gEls.push(
     <rect
       key="body-front"
-      x={bodyX}
-      y={bodyY}
-      width={bodyW}
-      height={bodyH}
+      x={snap(bodyX)}
+      y={snap(bodyY)}
+      width={Math.round(bodyW)}
+      height={Math.round(bodyH)}
       fill={`url(#wallFront-${uniqueId})`}
       stroke="rgba(0,0,0,0.2)"
-      strokeWidth={0.5}
+      strokeWidth={0.45}
     />
   );
   
@@ -137,33 +141,33 @@ const MediterraneanBuilding3D: React.FC<MediterraneanBuilding3DProps> = React.me
     gEls.push(
       <g key={`window-left-${s}`}>
         <rect
-          x={bodyX + bodyW * 0.2 - windowW / 2}
-          y={windowY}
-          width={windowW}
-          height={windowH}
+          x={snap(bodyX + bodyW * 0.2 - windowW / 2)}
+          y={snap(windowY)}
+          width={Math.round(windowW)}
+          height={Math.round(windowH)}
           fill="rgba(20,25,30,0.8)"
           stroke={woodBrown}
           strokeWidth={0.4}
-        />
+            />
         {/* Shutters */}
         <rect
-          x={bodyX + bodyW * 0.2 - windowW / 2 - windowW * 0.3}
-          y={windowY}
-          width={windowW * 0.25}
-          height={windowH}
+          x={snap(bodyX + bodyW * 0.2 - windowW / 2 - windowW * 0.3)}
+          y={snap(windowY)}
+          width={Math.round(windowW * 0.25)}
+          height={Math.round(windowH)}
           fill={shutterBlue}
           stroke="rgba(0,0,0,0.3)"
           strokeWidth={0.3}
-        />
+            />
         <rect
-          x={bodyX + bodyW * 0.2 + windowW / 2 + windowW * 0.05}
-          y={windowY}
-          width={windowW * 0.25}
-          height={windowH}
+          x={snap(bodyX + bodyW * 0.2 + windowW / 2 + windowW * 0.05)}
+          y={snap(windowY)}
+          width={Math.round(windowW * 0.25)}
+          height={Math.round(windowH)}
           fill={shutterBlue}
           stroke="rgba(0,0,0,0.3)"
           strokeWidth={0.3}
-        />
+            />
       </g>
     );
     
@@ -171,33 +175,33 @@ const MediterraneanBuilding3D: React.FC<MediterraneanBuilding3DProps> = React.me
     gEls.push(
       <g key={`window-right-${s}`}>
         <rect
-          x={bodyX + bodyW * 0.8 - windowW / 2}
-          y={windowY}
-          width={windowW}
-          height={windowH}
+          x={snap(bodyX + bodyW * 0.8 - windowW / 2)}
+          y={snap(windowY)}
+          width={Math.round(windowW)}
+          height={Math.round(windowH)}
           fill="rgba(20,25,30,0.8)"
           stroke={woodBrown}
           strokeWidth={0.4}
-        />
+            />
         {/* Shutters */}
         <rect
-          x={bodyX + bodyW * 0.8 - windowW / 2 - windowW * 0.3}
-          y={windowY}
-          width={windowW * 0.25}
-          height={windowH}
+          x={snap(bodyX + bodyW * 0.8 - windowW / 2 - windowW * 0.3)}
+          y={snap(windowY)}
+          width={Math.round(windowW * 0.25)}
+          height={Math.round(windowH)}
           fill={shutterBlue}
           stroke="rgba(0,0,0,0.3)"
           strokeWidth={0.3}
-        />
+            />
         <rect
-          x={bodyX + bodyW * 0.8 + windowW / 2 + windowW * 0.05}
-          y={windowY}
-          width={windowW * 0.25}
-          height={windowH}
+          x={snap(bodyX + bodyW * 0.8 + windowW / 2 + windowW * 0.05)}
+          y={snap(windowY)}
+          width={Math.round(windowW * 0.25)}
+          height={Math.round(windowH)}
           fill={shutterBlue}
           stroke="rgba(0,0,0,0.3)"
           strokeWidth={0.3}
-        />
+            />
       </g>
     );
   }
@@ -212,30 +216,30 @@ const MediterraneanBuilding3D: React.FC<MediterraneanBuilding3DProps> = React.me
     gEls.push(
       <g key="door-arch">
         <path
-          d={`M ${doorX} ${doorY + doorH}
-              L ${doorX} ${doorY + doorH * 0.3}
-              Q ${doorX + doorW / 2} ${doorY}
-                ${doorX + doorW} ${doorY + doorH * 0.3}
-              L ${doorX + doorW} ${doorY + doorH}
+          d={`M ${snap(doorX)} ${snap(doorY + doorH)}
+              L ${snap(doorX)} ${snap(doorY + doorH * 0.3)}
+              Q ${snap(doorX + doorW / 2)} ${snap(doorY)}
+                ${snap(doorX + doorW)} ${snap(doorY + doorH * 0.3)}
+              L ${snap(doorX + doorW)} ${snap(doorY + doorH)}
               Z`}
           fill="rgba(15,15,20,0.85)"
           stroke={woodBrown}
           strokeWidth={0.5}
-        />
+            />
       </g>
     );
   } else {
     gEls.push(
       <rect
         key="door"
-        x={doorX}
-        y={doorY}
-        width={doorW}
-        height={doorH}
+        x={snap(doorX)}
+        y={snap(doorY)}
+        width={Math.round(doorW)}
+        height={Math.round(doorH)}
         fill="rgba(15,15,20,0.85)"
         stroke={woodBrown}
         strokeWidth={0.5}
-      />
+        />
     );
   }
   
@@ -245,61 +249,81 @@ const MediterraneanBuilding3D: React.FC<MediterraneanBuilding3DProps> = React.me
     gEls.push(
       <g key="balcony">
         <rect
-          x={bodyX + bodyW * 0.3}
-          y={balconyY}
-          width={bodyW * 0.4}
-          height={adjustedSize * 0.015}
+          x={snap(bodyX + bodyW * 0.3)}
+          y={snap(balconyY)}
+          width={Math.round(bodyW * 0.4)}
+          height={Math.round(adjustedSize * 0.015)}
           fill={wallShadow}
           stroke="rgba(0,0,0,0.2)"
           strokeWidth={0.3}
-        />
+            />
         {/* Railing */}
         <line
-          x1={bodyX + bodyW * 0.3}
-          y1={balconyY - adjustedSize * 0.03}
-          x2={bodyX + bodyW * 0.7}
-          y2={balconyY - adjustedSize * 0.03}
+          x1={snap(bodyX + bodyW * 0.3)}
+          y1={snap(balconyY - adjustedSize * 0.03)}
+          x2={snap(bodyX + bodyW * 0.7)}
+          y2={snap(balconyY - adjustedSize * 0.03)}
           stroke="rgba(0,0,0,0.4)"
           strokeWidth={0.8}
-        />
+            />
       </g>
     );
   }
   
-  // Clay tile roof - hipped style typical of Mediterranean
+  // Clay tile roof — **FIXED ridge join**
   const roofOverhang = adjustedSize * 0.06;
   const roofHeight = adjustedSize * 0.15;
   const roofX = bodyX - roofOverhang;
   const roofY = bodyY - roofHeight * 0.5;
   const roofW = bodyW + roofOverhang * 2;
-  
-  // Roof side (3D effect)
+
+  // Shared ridge peak for BOTH front & side surfaces
+  const baseY = roofY + roofHeight;
+  const peakXFront = roofX + roofW * 0.5;
+  const peakY = roofY - roofHeight * 0.28;          // visible apex
+  const controlY = 2 * peakY - baseY;               // makes the quadratic pass through peakY
+  const peakXBack  = peakXFront + depth * 0.45;
+  const peakYBack  = peakY - depth * 0.2;
+
+  // Right roof (side in iso) – uses the *same* peak as the front
   gEls.push(
     <path
       key="roof-side"
-      d={`M ${roofX + roofW} ${roofY + roofHeight}
-          L ${roofX + roofW + depth * 0.9} ${roofY + roofHeight - depth * 0.45}
-          L ${roofX + roofW / 2 + depth * 0.45} ${roofY - depth * 0.2}
-          L ${roofX + roofW / 2} ${roofY}
-          Z`}
+      d={`M ${snap(roofX + roofW)} ${snap(baseY)}
+          L ${snap(roofX + roofW + depth * 0.9)} ${snap(baseY - depth * 0.45)}
+          L ${snap(peakXBack)} ${snap(peakYBack)}
+          L ${snap(peakXFront)} ${snap(peakY)} Z`}
       fill={roofDark}
       stroke="rgba(0,0,0,0.3)"
-      strokeWidth={0.4}
+      strokeWidth={0.45}
       opacity={0.95}
     />
   );
-  
-  // Roof front - hipped with gentle slope
+
+  // Front roof – quadratic arc that *passes through* the same peak
   gEls.push(
     <path
       key="roof-front"
-      d={`M ${roofX} ${roofY + roofHeight}
-          Q ${roofX + roofW * 0.5} ${roofY - roofHeight * 0.3}
-            ${roofX + roofW} ${roofY + roofHeight}
-          Z`}
+      d={`M ${snap(roofX)} ${snap(baseY)}
+          Q ${snap(peakXFront)} ${snap(controlY)}
+            ${snap(roofX + roofW)} ${snap(baseY)}
+          L ${snap(roofX)} ${snap(baseY)} Z`}
       fill={`url(#tiles-${uniqueId})`}
       stroke="rgba(0,0,0,0.3)"
       strokeWidth={0.5}
+    />
+  );
+
+  // (optional) tiny highlight along the ridge for readability
+  gEls.push(
+    <line
+      key="ridge-highlight"
+      x1={snap(peakXFront)}
+      y1={snap(peakY)}
+      x2={snap(peakXBack)}
+      y2={snap(peakYBack)}
+      stroke="rgba(255,255,255,0.2)"
+      strokeWidth={0.4}
     />
   );
   
@@ -310,31 +334,30 @@ const MediterraneanBuilding3D: React.FC<MediterraneanBuilding3DProps> = React.me
     gEls.push(
       <g key="chimney">
         <rect
-          x={chimneyX}
-          y={chimneyY - adjustedSize * 0.06}
-          width={adjustedSize * 0.03}
-          height={adjustedSize * 0.08}
+          x={snap(chimneyX)}
+          y={snap(chimneyY - adjustedSize * 0.06)}
+          width={Math.round(adjustedSize * 0.03)}
+          height={Math.round(adjustedSize * 0.08)}
           fill={wallWhite}
           stroke="rgba(0,0,0,0.3)"
           strokeWidth={0.3}
-        />
+            />
         <rect
-          x={chimneyX - adjustedSize * 0.005}
-          y={chimneyY - adjustedSize * 0.065}
-          width={adjustedSize * 0.04}
-          height={adjustedSize * 0.008}
+          x={snap(chimneyX - adjustedSize * 0.005)}
+          y={snap(chimneyY - adjustedSize * 0.065)}
+          width={Math.round(adjustedSize * 0.04)}
+          height={Math.round(adjustedSize * 0.008)}
           fill={roofMain}
         />
       </g>
     );
   }
   
-  // Night lighting
+  // Night lighting (unchanged)
   if (nightIntensity > 0.3) {
     const windowGlow = 'rgba(255, 200, 100, 0.7)';
-    
     for (let s = 0; s < stories; s++) {
-      if (rand() > 0.4) { // Some windows are lit
+      if (rand() > 0.4) {
         const windowY = bodyY + storyHeight * s + storyHeight * 0.3;
         gEls.push(
           <g key={`night-glow-${s}`} opacity={nightIntensity}>
@@ -353,7 +376,7 @@ const MediterraneanBuilding3D: React.FC<MediterraneanBuilding3DProps> = React.me
   }
   
   return (
-    <g filter="url(#symbolShadow)">
+    <g filter="url(#symbolShadow)" strokeLinejoin="miter" strokeLinecap="butt">
       <defs>
         <clipPath id={`clip-${uniqueId}`}>
           <rect x={x} y={y} width={size} height={size} />

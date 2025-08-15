@@ -25,8 +25,17 @@ const NativeTeepee3D: React.FC<NativeTeepee3DProps> = React.memo(({ x, y, width,
     const baseColor = `hsl(35, 45%, ${65 + rand1*15}%)`;
     const shadowColor = `hsl(35, 50%, 45%)`;
     const poleColor = `hsl(25, 55%, 35%)`;
-    const decoColor1 = `hsl(${rand2*360}, 70%, 45%)`;
-    const decoColor2 = `hsl(${rand3*360}, 70%, 45%)`;
+    // Earth tones and traditional colors for decorations (ochre, sienna, umber)
+    const earthTones = [
+        `hsl(30, 60%, 35%)`,  // Ochre
+        `hsl(20, 55%, 30%)`,  // Sienna
+        `hsl(25, 50%, 25%)`,  // Umber
+        `hsl(15, 65%, 40%)`,  // Burnt sienna
+        `hsl(10, 70%, 35%)`,  // Red ochre
+        `hsl(35, 40%, 45%)`   // Yellow ochre
+    ];
+    const decoColor1 = earthTones[Math.floor(rand2 * earthTones.length)];
+    const decoColor2 = earthTones[Math.floor(rand3 * earthTones.length)];
     const outlineColor = `hsl(25, 60%, 25%)`;
     
     return (
@@ -87,7 +96,7 @@ const NativeTeepee3D: React.FC<NativeTeepee3DProps> = React.memo(({ x, y, width,
             <path d={`M ${cx - width/2*0.8} ${y+height*0.82} L ${cx+width/2*0.8} ${y+height*0.82}`} 
                 stroke={decoColor2} strokeWidth="2" strokeLinecap="round" />
             <path d={`M ${cx - width/2*0.85} ${y+height*0.89} L ${cx+width/2*0.85} ${y+height*0.89}`} 
-                stroke={`hsl(${rand6*360}, 65%, 40%)`} strokeWidth="1.6" strokeLinecap="round" />
+                stroke={earthTones[Math.floor(rand6 * earthTones.length)]} strokeWidth="1.6" strokeLinecap="round" />
 
             {/* Traditional geometric patterns */}
             {[...Array(4)].map((_, i) => (

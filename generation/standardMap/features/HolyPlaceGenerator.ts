@@ -8,6 +8,7 @@ import { parseDateString } from '../../../utils/dateUtils';
 import { mapLocationToCulture } from '../../../utils/mapUtils';
 import { RELIGION_DATA } from '../../../constants/characterData/religions';
 import { detectCitiesForArea } from '../../../utils/cityDetectionUtils';
+import { holySiteEconomyService } from '../../../services/holySiteEconomyService';
 
 
 const HOLY_PLACE_BASE_CHANCE = 0.004;
@@ -16,9 +17,9 @@ let holyPlaceIdCounter = 0;
 
 const nonHolyPlaceBiomes = [
     BiomeType.DEEP_OCEAN, BiomeType.SHALLOW_OCEAN, BiomeType.RIVER, BiomeType.MAJOR_RIVER,
-    BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.URBAN,
+    BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.CITY_CENTER, BiomeType.URBAN,
     BiomeType.ACTIVE_LAVA, BiomeType.FARMLAND, BiomeType.RUINS, BiomeType.PALACE,
-    BiomeType.ESTUARY, BiomeType.FRESHWATER_LAKE, BiomeType.CLIFF,
+    BiomeType.ESTUARY, BiomeType.FRESHWATER_LAKE, BiomeType.CLIFF, BiomeType.MARKETPLACE,
 ];
 
 export function generateHolyPlaces(mapData: MapData, featurePlacementNoise: ValueNoise, societalProfile: SocietalProfile): TerrainStructure[] {
@@ -85,7 +86,7 @@ export function generateHolyPlaces(mapData: MapData, featurePlacementNoise: Valu
                     const checkX = x + dx; const checkY = y + dy;
                     if (checkX >= 0 && checkX < MAP_WIDTH_TILES && checkY >= 0 && checkY < MAP_HEIGHT_TILES) {
                         const checkBiome = tiles[checkY][checkX].biome;
-                        if ([BiomeType.DENSE_CITY, BiomeType.LOW_DENSITY_CITY, BiomeType.HAMLET].includes(checkBiome)) {
+                        if ([BiomeType.DENSE_CITY, BiomeType.LOW_DENSITY_CITY, BiomeType.HAMLET, BiomeType.CITY_CENTER].includes(checkBiome)) {
                             isIsolated = false; break;
                         }
                     }
@@ -124,12 +125,13 @@ export function generateHolyPlaces(mapData: MapData, featurePlacementNoise: Valu
             tile.holyPlaceType = holyPlaceName;
             
             // Assign religion based on region and era
+            let selectedReligion: string | undefined;
             const regionReligions = RELIGION_DATA[culturalZone]?.[mapData.region || '']?.[dateInfo.era as HistoricalEra];
             if (regionReligions && regionReligions.length > 0) {
                 // Weight-based selection
                 const totalWeight = regionReligions.reduce((sum, r) => sum + r.weight, 0);
                 let random = featurePlacementNoise.random() * totalWeight;
-                let selectedReligion = regionReligions[0].religion;
+                selectedReligion = regionReligions[0].religion;
                 
                 for (const religionEntry of regionReligions) {
                     random -= religionEntry.weight;
@@ -161,6 +163,11 @@ export function generateHolyPlaces(mapData: MapData, featurePlacementNoise: Valu
                     width: holyPlaceName === 'Sacred Grove' ? 5 + Math.floor(featurePlacementNoise.random() * 10) : undefined,
                 },
             };
+            
+            // Store religion, era, and cultural zone for proper symbol selection
+            (holySiteStructure as any).religion = selectedReligion || tile.holyPlaceReligion;
+            (holySiteStructure as any).era = dateInfo.era;
+            (holySiteStructure as any).culturalZone = culturalZone;
             
             generatedHolyPlaces.push(holySiteStructure);
             tile.structure = holySiteStructure;

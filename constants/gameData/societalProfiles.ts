@@ -7,7 +7,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
     DEFAULT: {
         isAgricultural: true,
         isPastoral: true,
-        allowedStructures: ['mill', 'lumber_camp', 'fishing_hut', 'farm', 'marketplace', 'fortress', 'mining_colony', 'factory', 'quarry', 'holy_site', 'trading_post', 'encampment'],
+        allowedStructures: ['mill', 'lumber_camp', 'fishing_hut', 'farm', 'marketplace', 'fortress', 'mining_colony', 'factory', 'quarry', 'holy_site', 'encampment'],
         allowedMineTypes: ['IRON', 'COPPER', 'TIN', 'COAL', 'STONE', 'CLAY', 'LEAD', 'SILVER'],
         fortressNames: ['Fort', 'Keep', 'Garrison', 'Citadel'],
         holyPlaceNames: ['Shrine', 'Sacred Grove', 'Temple'],
@@ -19,9 +19,8 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
             fortress: ['Commander', 'Guard', 'Scout', 'Quartermaster'],
             mill: ['Master Miller', 'Apprentice'],
             mining_colony: ['Foreman', 'Geologist', 'Miner'],
-            lumber_camp: ['Foreman', 'Lumberjack'],
-            trading_post: ['Factor', 'Clerk', 'Guard'],
-        },
+            lumber_camp: ['Foreman', 'Lumberjack']
+        }
     },
     EUROPEAN: {
         [HistoricalEra.PREHISTORY]: {
@@ -73,7 +72,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'holy_site', 'trading_post'],
+            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'holy_site'],
             allowedMineTypes: ['IRON', 'COAL', 'STONE', 'LEAD', 'COPPER'],
             fortressNames: ['Star Fort', 'Bastion', 'Citadel'],
             holyPlaceNames: ['Baroque Cathedral', 'Chapel', 'Seminary'],
@@ -89,7 +88,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.INDUSTRIAL_ERA]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'factory', 'mining_colony', 'trading_post'],
+            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'factory', 'mining_colony'],
             allowedMineTypes: ['IRON', 'COAL', 'STONE', 'LEAD', 'TIN'],
             fortressNames: ['Barracks', 'Redoubt', 'Fortification'],
             holyPlaceNames: ['Church', 'Cathedral'],
@@ -207,7 +206,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.ANTIQUITY]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['mill', 'farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'holy_site', 'trading_post'],
+            allowedStructures: ['mill', 'farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'holy_site'],
             allowedMineTypes: ['COPPER', 'STONE', 'SALT', 'OCHRE'],
             fortressNames: ['Citadel', 'Garrison'],
             holyPlaceNames: ['Ziggurat', 'Fire Temple', 'Synagogue', 'Pyramid'],
@@ -221,7 +220,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.MEDIEVAL]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['mill', 'farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'holy_site', 'trading_post'],
+            allowedStructures: ['mill', 'farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'holy_site'],
             allowedMineTypes: ['COPPER', 'STONE', 'SALT', 'OCHRE'],
             fortressNames: ['Kasbah', 'Ribat', "Qal'a"],
             holyPlaceNames: ['Mosque', 'Madrasa', 'Shrine'],
@@ -235,7 +234,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
         [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
             isAgricultural: true,
             isPastoral: true,
-            allowedStructures: ['mill', 'farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'holy_site', 'trading_post'],
+            allowedStructures: ['mill', 'farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'holy_site'],
             allowedMineTypes: ['COPPER', 'STONE', 'SALT', 'OCHRE'],
             fortressNames: ['Kasbah', 'Ribat', "Qal'a"],
             holyPlaceNames: ['Ottoman Mosque', 'Madrasa', 'Shrine'],
@@ -332,6 +331,92 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
             courtRoles: {
                 palace: ["Viceroy", "Oidor", "Corregidor", "Encomiendero", "Native Chief"],
                 holy_site: ["Archbishop", "Missionary Friar", "Inquisitor"]
+            }
+        }
+    },
+    SOUTH_ASIAN: {
+        [HistoricalEra.PREHISTORY]: {
+            isAgricultural: false,
+            isPastoral: true,
+            allowedStructures: ['farm', 'fishing_hut', 'marketplace', 'holy_site'],
+            allowedMineTypes: ['STONE', 'CLAY', 'OCHRE'],
+            fortressNames: ['Mud Fort', 'Hill Fort'],
+            holyPlaceNames: ['Sacred Tree', 'River Shrine', 'Stone Circle'],
+            palaceNames: ["Chief's Dwelling"],
+            ruinNames: ['Ancient Mound', 'Old Settlement'],
+            courtRoles: {
+                palace: ['Tribal Chief', 'Elder', 'Shaman'],
+                holy_site: ['Shaman', 'Keeper of Sacred Fire']
+            }
+        },
+        [HistoricalEra.ANTIQUITY]: {
+            isAgricultural: true,
+            isPastoral: true,
+            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site', 'mill'],
+            allowedMineTypes: ['IRON', 'COPPER', 'GOLD', 'PRECIOUS_STONES', 'STONE', 'CLAY'],
+            fortressNames: ['Hill Fort', 'Citadel', 'Durga'],
+            holyPlaceNames: ['Buddhist Stupa', 'Hindu Temple', 'Vihara', 'Chaitya', 'Brahmin Temple'],
+            palaceNames: ['Raja Palace', 'Royal Court', 'Mauryan Palace'],
+            ruinNames: ['Ancient Stupa', 'Ruined Monastery'],
+            courtRoles: {
+                palace: ['Raja', 'Mantri (Minister)', 'Senapati (General)', 'Purohita (Royal Priest)', 'Courtier'],
+                holy_site: ['Head Monk', 'Brahmin Priest', 'Temple Dancer', 'Ascetic']
+            }
+        },
+        [HistoricalEra.MEDIEVAL]: {
+            isAgricultural: true,
+            isPastoral: true,
+            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site', 'mill'],
+            allowedMineTypes: ['IRON', 'COPPER', 'GOLD', 'PRECIOUS_STONES', 'STONE', 'SALT'],
+            fortressNames: ['Fort', 'Citadel', 'Kila', 'Durg'],
+            holyPlaceNames: ['Buddhist Stupa', 'Hindu Temple', 'Buddhist Monastery', 'Kovil', 'Devalaya', 'Dagoba'],
+            palaceNames: ['Royal Palace', 'Rajdhani', 'Sultan Palace'],
+            ruinNames: ['Ruined Temple', 'Ancient City', 'Abandoned Palace'],
+            courtRoles: {
+                palace: ['King', 'Queen', 'Prince', 'Minister', 'General', 'Royal Astrologer', 'Court Poet'],
+                holy_site: ['Chief Monk', 'Head Priest', 'Temple Guardian', 'Novice Monk', 'Brahmin']
+            }
+        },
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+            isAgricultural: true,
+            isPastoral: true,
+            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site', 'mill', 'factory'],
+            allowedMineTypes: ['IRON', 'COPPER', 'GOLD', 'PRECIOUS_STONES', 'STONE', 'SALT', 'COAL'],
+            fortressNames: ['Fort', 'Citadel', 'Star Fort', 'Mughal Fort'],
+            holyPlaceNames: ['Hindu Temple', 'Buddhist Temple', 'Mosque', 'Church', 'Gurdwara'],
+            palaceNames: ['Mughal Palace', 'Nawab Palace', 'Colonial Mansion'],
+            ruinNames: ['Ancient Temple', 'Old Fort', 'Abandoned City'],
+            courtRoles: {
+                palace: ['Sultan', 'Nawab', 'Governor', 'Dewan', 'Colonial Administrator', 'Zamindar'],
+                holy_site: ['High Priest', 'Imam', 'Monk', 'Missionary', 'Temple Administrator']
+            }
+        },
+        [HistoricalEra.INDUSTRIAL]: {
+            isAgricultural: true,
+            isPastoral: false,
+            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site', 'mill', 'factory'],
+            allowedMineTypes: ['IRON', 'COAL', 'COPPER', 'GOLD', 'PRECIOUS_STONES', 'STONE', 'SALT'],
+            fortressNames: ['Fort', 'Cantonment', 'Military Base'],
+            holyPlaceNames: ['Temple', 'Mosque', 'Church', 'Gurdwara', 'Monastery'],
+            palaceNames: ['Palace', 'Government House', 'Raj Bhavan'],
+            ruinNames: ['Old Fort', 'Abandoned Temple', 'Colonial Ruins'],
+            courtRoles: {
+                palace: ['Raja', 'British Governor', 'Resident', 'Dewan', 'Secretary'],
+                holy_site: ['Head Priest', 'Abbot', 'Bishop', 'Imam']
+            }
+        },
+        [HistoricalEra.MODERN]: {
+            isAgricultural: true,
+            isPastoral: false,
+            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site', 'mill', 'factory'],
+            allowedMineTypes: ['IRON', 'COAL', 'COPPER', 'GOLD', 'PRECIOUS_STONES', 'STONE', 'SALT', 'URANIUM'],
+            fortressNames: ['Military Base', 'Army Cantonment', 'Border Post'],
+            holyPlaceNames: ['Temple', 'Mosque', 'Church', 'Gurdwara', 'Buddhist Temple'],
+            palaceNames: ['Government House', 'Presidential Palace', 'State Guest House'],
+            ruinNames: ['Ancient Site', 'Archaeological Site', 'Heritage Monument'],
+            courtRoles: {
+                palace: ['President', 'Prime Minister', 'Governor', 'Minister', 'Secretary'],
+                holy_site: ['Head Priest', 'Imam', 'Bishop', 'Chief Monk']
             }
         }
     }

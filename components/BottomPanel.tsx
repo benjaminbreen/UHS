@@ -21,7 +21,7 @@ interface BottomPanelProps {
 const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, icon: string }> = ({ onClick, children, icon }) => (
     <button
         onClick={onClick}
-        className={getSafariOptimizedClassName("group relative px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold rounded-xl shadow-lg text-lg transform hover:scale-105 transition-all duration-300 ease-out border border-blue-400/30 backdrop-blur-sm flex items-center justify-center gap-3 overflow-hidden")}
+        className={getSafariOptimizedClassName("group relative px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold rounded-xl shadow-lg text-base transform hover:scale-105 transition-all duration-300 ease-out border border-blue-400/30 backdrop-blur-sm flex items-center justify-center gap-2 overflow-hidden")}
         style={{ 
             textShadow: '1px 1px 2px rgba(0,0,0,0.5)', 
             boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3), inset 0 1px 1px rgba(255,255,255,0.2)' 
@@ -30,8 +30,8 @@ const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, i
         {/* Animated background effect */}
         <div className="absolute inset-0 bg-gradient-to-r from-blue-400/0 via-blue-300/20 to-blue-400/0 transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-700 ease-out" />
         
-        <span className="text-2xl relative z-10 drop-shadow-lg">{icon}</span>
-        <span className="relative z-10 font-semibold tracking-wide">{children}</span>
+        <span className="text-xl relative z-10 drop-shadow-lg">{icon}</span>
+        <span className="relative z-10 font-semibold">{children}</span>
         
         {/* Glow effect */}
         <div className="absolute inset-0 rounded-xl bg-blue-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm" />
@@ -39,13 +39,13 @@ const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, i
 );
 
 const LocationDisplay: React.FC<{ title: string; subtitle: string; icon?: string }> = ({ title, subtitle, icon }) => (
-    <div className={getSafariOptimizedClassName("flex items-center space-x-3 bg-slate-800/40 rounded-lg px-4 py-3 border border-slate-700/50 backdrop-blur-sm")}>
+    <div className={getSafariOptimizedClassName("flex items-center space-x-3 bg-slate-800/40 rounded-lg px-3 py-2 border border-slate-700/50 backdrop-blur-sm")}>
         {icon && (
-            <div className="text-3xl drop-shadow-lg">{icon}</div>
+            <div className="text-2xl drop-shadow-lg">{icon}</div>
         )}
         <div>
-            <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">{title}</p>
-            <p className="text-lg text-slate-200 font-semibold capitalize">{subtitle}</p>
+            <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">{title}</p>
+            <p className="text-base text-slate-200 font-semibold capitalize">{subtitle}</p>
         </div>
     </div>
 );
@@ -175,8 +175,8 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
         }
 
         return (
-            <div className="w-full grid grid-cols-[300px_1fr_300px] items-center gap-6 p-6 animate-in slide-in-from-bottom duration-500">
-                <div className="flex justify-start">
+            <div className="w-full flex flex-col sm:grid sm:grid-cols-[200px_1fr_200px] lg:grid-cols-[300px_1fr_300px] items-center gap-2 sm:gap-6 p-2 sm:p-4 lg:p-6 animate-in slide-in-from-bottom duration-500">
+                <div className="flex justify-center sm:justify-start w-full sm:w-auto">
                     {contextualInfo}
                 </div>
                 
@@ -186,8 +186,8 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                     </ActionButton>
                 </div>
                 
-                <div className="flex justify-end">
-                    <div className="text-right text-slate-400 italic text-sm max-w-xs bg-slate-800/20 rounded-lg px-4 py-3 border border-slate-700/30">
+                <div className="hidden sm:flex justify-end">
+                    <div className="text-right text-slate-400 italic text-xs sm:text-sm max-w-xs bg-slate-800/20 rounded-lg px-3 py-2 sm:px-4 sm:py-3 border border-slate-700/30">
                         {helperText}
                     </div>
                 </div>
@@ -215,7 +215,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
         };
 
         return (
-             <div className="w-full grid grid-cols-[300px_1fr_300px] items-center gap-6 p-6">
+             <div className="w-full grid grid-cols-[280px_1fr_280px] items-center gap-4 p-4">
                  <div className="flex justify-start">
                      <LocationDisplay
                          title="Current Location"

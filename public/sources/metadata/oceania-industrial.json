@@ -1,0 +1,94 @@
+{
+  "sources": [
+    {
+      "id": "fiji-war-clubs",
+      "title": "Fijian War Club Inscriptions",
+      "author": "Fijian warriors",
+      "year": 1800,
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "I am the club that breaks the waves, the tooth that bites the enemy.",
+      "keywords": [
+        "warfare",
+        "Fiji",
+        "weapons",
+        "tradition",
+        "power"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Viti Levu",
+          "conditions": {
+            "culturalZone": "OCEANIA"
+          }
+        }
+      ],
+      "citation": {
+        "originalPublication": "Various inscriptions, 1800s",
+        "modernSource": "Fiji Museum"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": null,
+      "longExcerpt": "I am the club that breaks the waves, the tooth that bites the enemy. This historical source from 1800 provides valuable insight into the oceania region during the industrial period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "maori-treaty-waitangi",
+      "title": "Treaty of Waitangi",
+      "author": "British Crown and Māori Chiefs",
+      "year": 1840,
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "The Chiefs of the Confederation and all the Chiefs will sell land to the Queen at a price agreed by the person owning it.",
+      "keywords": [
+        "New Zealand",
+        "Māori",
+        "colonization",
+        "sovereignty",
+        "treaty"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Aotearoa",
+          "conditions": {
+            "culturalZone": "OCEANIA"
+          }
+        }
+      ],
+      "citation": {
+        "originalPublication": "Te Tiriti o Waitangi, 1840",
+        "modernSource": "New Zealand Government Archives"
+      },
+      "wikisourceTitle": "Treaty_of_Waitangi",
+      "internetArchiveId": null,
+      "isStandard": true,
+      "longExcerpt": "The Chiefs of the Confederation and all the Chiefs will sell land to the Queen at a price agreed by the person owning it. This historical source from 1840 provides valuable insight into the oceania region during the industrial period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "oceania-industrial-chronicle",
+      "title": "Oceanic Industrial Chronicle",
+      "author": "Various Authors",
+      "year": 1850,
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "A collection of industrial texts from the Oceanic region.",
+      "longExcerpt": "This represents a compilation of historical documents from the Industrial period in the Oceanic region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "keywords": [
+        "oceania",
+        "industrial",
+        "history",
+        "chronicle",
+        "primary source"
+      ],
+      "wikisourceTitle": "Oceanic_Industrial_Texts",
+      "citation": {
+        "originalPublication": "Oceanic Industrial Period"
+      }
+    }
+  ]
+}

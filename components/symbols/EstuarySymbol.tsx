@@ -3,6 +3,7 @@
  */
 import React from 'react';
 import { ValueNoise } from '../../utils/noise';
+import { isSafari } from '../../utils/safariUtils';
 
 interface EstuarySymbolProps { 
     x: number; 
@@ -39,8 +40,9 @@ const EstuarySymbol: React.FC<EstuarySymbolProps> = React.memo(({ x, y, size, se
     );
 
     // Bird element - only spawn occasionally (roughly 1 in 12 estuary tiles)
+    // Disable birds on Safari for performance
     let birdElement = null;
-    if ((tileX + tileY + Math.floor(seed/10)) % 22 === 0) {
+    if (!isSafari() && (tileX + tileY + Math.floor(seed/10)) % 22 === 0) {
         const animationDuration = 15 + (localRand() * 10); // Slower
         const animationDelay = -(localRand() * animationDuration); 
         const scaleVariation = 0.5 + (localRand() * 1.0); // More size variation (0.5 to 1.5) for height effect 

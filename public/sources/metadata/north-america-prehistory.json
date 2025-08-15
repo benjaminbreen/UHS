@@ -1,0 +1,25 @@
+{
+  "sources": [
+    {
+      "id": "cahokia-chronicles",
+      "title": "Cahokia Copper Plates",
+      "author": "Mississippian Artisans",
+      "year": 1050,
+      "excerpt": "The Birdman spreads his wings, surrounded by the sacred circle and cross of the four directions.",
+      "longExcerpt": "At Cahokia, greatest city north of Mexico, copper plates tell stories. The Birdman - part human, part falcon - spreads his wings in eternal flight. He carries the souls of chiefs to the sky world. Around him, the sacred circle represents the cosmos, crossed by lines pointing to the four directions. This was a city of twenty thousand souls, with pyramids rivaling Egypt's, astronomical knowledge matching Maya calculations. Then it vanished, leaving only earth mounds and mysteries.",
+      "era": "PREHISTORY",
+      "culturalZones": [
+        "NORTH_AMERICAN_PRE_COLUMBIAN"
+      ],
+      "keywords": [
+        "cahokia",
+        "copper",
+        "plates"
+      ],
+      "wikisourceTitle": "Cahokia_Copper_Plates",
+      "citation": {
+        "originalPublication": "Mississippian Artisans, 1050"
+      }
+    }
+  ]
+}

@@ -18,6 +18,13 @@ export { default as BuddhistTempleSymbol } from './BuddhistTempleSymbol';
 export { default as HinduTempleSymbol } from './HinduTempleSymbol';
 export { default as ShintoShrineSymbol } from './ShintoShrineSymbol';
 export { default as SynagogueSymbol } from './SynagogueSymbol';
+export { default as RomanTempleSymbol } from './RomanTempleSymbol';
+export { default as GreekTempleSymbol } from './GreekTempleSymbol';
+export { default as SacredGroveSymbol } from './SacredGroveSymbol';
+export { default as SacredFireSymbol } from './SacredFireSymbol';
+export { default as StupaSymbol } from './StupaSymbol';
+export { default as TotemPoleSymbol } from './TotemPoleSymbol';
+export { default as AnimistShrineSymbol } from './AnimistShrineSymbol';
 
 // Palaces
 export { default as FeudalKeepSymbol } from './FeudalKeepSymbol';

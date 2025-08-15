@@ -1,0 +1,802 @@
+{
+  "sources": [
+    {
+      "id": "columbus-letter",
+      "title": "Letter to the Spanish Sovereigns",
+      "author": "Christopher Columbus",
+      "year": 1493,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "I found very many islands filled with people innumerable, and of them all I have taken possession for their Highnesses, by proclamation made and with the royal standard unfurled, and no opposition was offered to me.",
+      "keywords": [
+        "columbus",
+        "discovery",
+        "americas",
+        "spain",
+        "indigenous",
+        "gold",
+        "exploration",
+        "new world",
+        "isabella",
+        "ferdinand"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "exploration",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN"
+          }
+        },
+        {
+          "keyword": "new world",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN"
+          }
+        }
+      ],
+      "wikisourceTitle": "Letter_of_Columbus_to_Luis_de_Sant_Angel",
+      "citation": {
+        "originalPublication": "Spain, 1493"
+      },
+      "longExcerpt": "I found very many islands filled with people innumerable, and of them all I have taken possession for their Highnesses, by proclamation made and with the royal standard unfurled, and no opposition was offered to me. This historical source from 1493 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "praise-folly",
+      "title": "The Praise of Folly",
+      "author": "Desiderius Erasmus",
+      "year": 1511,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "No society, no union in life, could be either pleasant or lasting without me. A people does not for long tolerate its prince, nor a master his servant, nor a teacher his student, nor a friend his friend, unless at times they are mistaken, at times flatter, at times wisely overlook, at times soothe themselves with the sweet salve of folly.",
+      "keywords": [
+        "erasmus",
+        "satire",
+        "humanism",
+        "folly",
+        "church",
+        "society",
+        "wisdom"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "humanism",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "satire",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN"
+          }
+        }
+      ],
+      "wikisourceTitle": "The_Praise_of_Folly",
+      "citation": {
+        "translator": "John Wilson",
+        "originalPublication": "Paris, 1511"
+      },
+      "longExcerpt": "No society, no union in life, could be either pleasant or lasting without me. A people does not for long tolerate its prince, nor a master his servant, nor a teacher his student, nor a friend his friend, unless at times they are mistaken, at times flatter, at times wisely overlook, at times soothe themselves with the sweet salve of folly. This historical source from 1511 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "prince-machiavelli",
+      "title": "The Prince",
+      "author": "Niccolò Machiavelli",
+      "year": 1513,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "Everyone sees what you appear to be, few experience what you really are. Men are so simple and yield so readily to the desires of the moment. A prince never lacks legitimate reasons to break his promise.",
+      "keywords": [
+        "machiavelli",
+        "prince",
+        "florence",
+        "italy",
+        "power",
+        "politics",
+        "ruler",
+        "virtue",
+        "fortune",
+        "statecraft"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "ruler",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "power",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN"
+          }
+        },
+        {
+          "keyword": "florence",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN"
+          }
+        }
+      ],
+      "wikisourceTitle": "The_Prince_(Hill_Thomson)",
+      "citation": {
+        "translator": "W. K. Marriott",
+        "originalPublication": "Florence, 1532"
+      },
+      "longExcerpt": "Everyone sees what you appear to be, few experience what you really are. Men are so simple and yield so readily to the desires of the moment. A prince never lacks legitimate reasons to break his promise. This historical source from 1513 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "utopia-more",
+      "title": "Utopia",
+      "author": "Thomas More",
+      "year": 1516,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "For if you suffer your people to be ill-educated, and their manners to be corrupted from their infancy, and then punish them for those crimes to which their first education disposed them, what else is to be concluded from this but that you first make thieves and then punish them?",
+      "keywords": [
+        "utopia",
+        "thomas more",
+        "society",
+        "ideal state",
+        "england",
+        "philosophy",
+        "politics"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "ideal",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "society",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN"
+          }
+        }
+      ],
+      "wikisourceTitle": "Utopia",
+      "citation": {
+        "translator": "Ralph Robinson",
+        "originalPublication": "Louvain, 1516"
+      },
+      "longExcerpt": "For if you suffer your people to be ill-educated, and their manners to be corrupted from their infancy, and then punish them for those crimes to which their first education disposed them, what else is to be concluded from this but that you first make thieves and then punish them? This historical source from 1516 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "95-theses",
+      "title": "Ninety-Five Theses",
+      "author": "Martin Luther",
+      "year": 1517,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "When our Lord and Master Jesus Christ said 'Repent,' he willed the entire life of believers to be one of repentance. This word cannot be understood as referring to the sacrament of penance.",
+      "keywords": [
+        "luther",
+        "reformation",
+        "protestant",
+        "indulgences",
+        "church",
+        "wittenberg",
+        "pope",
+        "theology"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "reformation",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "indulgences",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN"
+          }
+        }
+      ],
+      "wikisourceTitle": "Ninety-five_Theses",
+      "citation": {
+        "originalPublication": "Wittenberg, 1517"
+      },
+      "longExcerpt": "When our Lord and Master Jesus Christ said 'Repent,' he willed the entire life of believers to be one of repentance. This word cannot be understood as referring to the sacrament of penance. This historical source from 1517 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "castiglione-courtier",
+      "title": "The Book of the Courtier",
+      "author": "Baldassare Castiglione",
+      "year": 1528,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "I would have our courtier born of a noble and genteel family, because it is far less becoming for one of low birth to do virtuous things than for one of noble birth, who, should he stray from the path of his forefathers, stains the family name.",
+      "keywords": [
+        "courtier",
+        "italy",
+        "nobility",
+        "manners",
+        "renaissance",
+        "court",
+        "urbino",
+        "grace"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "nobility",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "court",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN"
+          }
+        }
+      ],
+      "wikisourceTitle": "The_Book_of_the_Courtier",
+      "citation": {
+        "translator": "Leonard Eckstein Opdycke",
+        "originalPublication": "Venice, 1528"
+      },
+      "longExcerpt": "I would have our courtier born of a noble and genteel family, because it is far less becoming for one of low birth to do virtuous things than for one of noble birth, who, should he stray from the path of his forefathers, stains the family name. This historical source from 1528 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "machiavelli-prince",
+      "title": "The Prince",
+      "author": "Niccolò Machiavelli",
+      "year": 1532,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "Everyone sees what you appear to be, few experience what you really are. And those few dare not oppose themselves to the opinion of the many, who have the majesty of the state to defend them.",
+      "keywords": [
+        "politics",
+        "power",
+        "leadership",
+        "Italy",
+        "statecraft"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Florence",
+          "conditions": {
+            "culturalZone": "EUROPEAN",
+            "era": "EARLY_MODERN"
+          }
+        },
+        {
+          "keyword": "Medici",
+          "conditions": {
+            "culturalZone": "EUROPEAN"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "W.K. Marriott",
+        "originalPublication": "Il Principe, 1532",
+        "modernSource": "Project Gutenberg"
+      },
+      "wikisourceTitle": "The_Prince_(Marriott)",
+      "internetArchiveId": "princemachiavell00mach",
+      "isStandard": true,
+      "longExcerpt": "Everyone sees what you appear to be, few experience what you really are. And those few dare not oppose themselves to the opinion of the many, who have the majesty of the state to defend them. This historical source from 1532 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "vasari-lives",
+      "title": "Lives of the Most Excellent Painters",
+      "author": "Giorgio Vasari",
+      "year": 1550,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "Leonardo da Vinci was endowed by heaven with such marvellous and divine qualities that in whatever he turned his mind, his every action was so divine that, leaving all other men behind, he showed himself to be one favoured by God.",
+      "keywords": [
+        "art",
+        "renaissance",
+        "leonardo",
+        "michelangelo",
+        "italy",
+        "painting",
+        "vasari",
+        "artists"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "renaissance",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "art",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN"
+          }
+        }
+      ],
+      "internetArchiveId": "livesofmostexcellentpainters",
+      "citation": {
+        "translator": "Gaston du C. de Vere",
+        "originalPublication": "Florence, 1550"
+      },
+      "longExcerpt": "Leonardo da Vinci was endowed by heaven with such marvellous and divine qualities that in whatever he turned his mind, his every action was so divine that, leaving all other men behind, he showed himself to be one favoured by God. This historical source from 1550 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "shakespeare-hamlet",
+      "title": "Hamlet",
+      "author": "William Shakespeare",
+      "year": 1603,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "To be, or not to be, that is the question: Whether 'tis nobler in the mind to suffer the slings and arrows of outrageous fortune, or to take arms against a sea of troubles.",
+      "keywords": [
+        "drama",
+        "revenge",
+        "Denmark",
+        "theater",
+        "tragedy"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Elsinore",
+          "conditions": {
+            "culturalZone": "EUROPEAN"
+          }
+        }
+      ],
+      "citation": {
+        "originalPublication": "First Folio, 1623",
+        "modernSource": "Folger Shakespeare Library"
+      },
+      "wikisourceTitle": "Hamlet",
+      "internetArchiveId": "hamlet00shak",
+      "longExcerpt": "To be, or not to be, that is the question: Whether 'tis nobler in the mind to suffer the slings and arrows of outrageous fortune, or to take arms against a sea of troubles. This historical source from 1603 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "cervantes-quixote",
+      "title": "Don Quixote",
+      "author": "Miguel de Cervantes",
+      "year": 1605,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "Finally, from so little sleeping and so much reading, his brain dried up and he went completely out of his mind.",
+      "keywords": [
+        "chivalry",
+        "Spain",
+        "madness",
+        "adventure",
+        "novel"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "La Mancha",
+          "conditions": {
+            "culturalZone": "EUROPEAN"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "John Ormsby",
+        "originalPublication": "El ingenioso hidalgo don Quijote de la Mancha, 1605",
+        "modernSource": "Project Gutenberg"
+      },
+      "wikisourceTitle": "Don_Quixote",
+      "internetArchiveId": "donquixote00cerv",
+      "longExcerpt": "Finally, from so little sleeping and so much reading, his brain dried up and he went completely out of his mind. This historical source from 1605 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "don-quixote",
+      "title": "Don Quixote",
+      "author": "Miguel de Cervantes",
+      "year": 1605,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "In a village of La Mancha, the name of which I have no desire to call to mind, there lived not long since one of those gentlemen that keep a lance in the lance-rack, an old buckler, a lean hack, and a greyhound for coursing.",
+      "keywords": [
+        "cervantes",
+        "quixote",
+        "spain",
+        "knight",
+        "chivalry",
+        "madness",
+        "literature",
+        "windmills"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "knight",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "madness",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN"
+          }
+        }
+      ],
+      "wikisourceTitle": "Don_Quixote",
+      "citation": {
+        "translator": "John Ormsby",
+        "originalPublication": "Madrid, 1605"
+      },
+      "longExcerpt": "In a village of La Mancha, the name of which I have no desire to call to mind, there lived not long since one of those gentlemen that keep a lance in the lance-rack, an old buckler, a lean hack, and a greyhound for coursing. This historical source from 1605 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "galileo-dialogue",
+      "title": "Dialogue Concerning the Two Chief World Systems",
+      "author": "Galileo Galilei",
+      "year": 1632,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "I do not feel obliged to believe that the same God who has endowed us with sense, reason, and intellect has intended us to forgo their use.",
+      "keywords": [
+        "astronomy",
+        "science",
+        "heliocentrism",
+        "Inquisition",
+        "physics"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "telescope",
+          "conditions": {
+            "era": "EARLY_MODERN"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "Stillman Drake",
+        "originalPublication": "Dialogo sopra i due massimi sistemi del mondo, 1632",
+        "modernSource": "University of California Press"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": "dialogueconcerni00gali",
+      "longExcerpt": "I do not feel obliged to believe that the same God who has endowed us with sense, reason, and intellect has intended us to forgo their use. This historical source from 1632 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "discourse-method",
+      "title": "Discourse on Method",
+      "author": "René Descartes",
+      "year": 1637,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "I think, therefore I am. This truth is so certain and so evident that all the most extravagant suppositions of the skeptics are unable to shake it.",
+      "keywords": [
+        "descartes",
+        "philosophy",
+        "cogito",
+        "reason",
+        "method",
+        "doubt",
+        "france",
+        "science"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "reason",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "philosophy",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN"
+          }
+        }
+      ],
+      "wikisourceTitle": "Discourse_on_the_Method",
+      "citation": {
+        "translator": "John Veitch",
+        "originalPublication": "Leiden, 1637"
+      },
+      "longExcerpt": "I think, therefore I am. This truth is so certain and so evident that all the most extravagant suppositions of the skeptics are unable to shake it. This historical source from 1637 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "thirty-years-war-treaty",
+      "title": "Treaty of Westphalia",
+      "author": "Various European Powers",
+      "year": 1648,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "For the greater Firmness of all and every one of these Articles, this present Transaction shall serve for a perpetual Law and establish'd Sanction of the Empire.",
+      "keywords": [
+        "peace",
+        "sovereignty",
+        "Holy Roman Empire",
+        "war",
+        "diplomacy"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Münster",
+          "conditions": {
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "Osnabrück",
+          "conditions": {
+            "culturalZone": "EUROPEAN"
+          }
+        }
+      ],
+      "citation": {
+        "originalPublication": "Instrumentum Pacis Monasteriensis, 1648",
+        "modernSource": "Yale Law School Avalon Project"
+      },
+      "wikisourceTitle": "Peace_of_Westphalia",
+      "internetArchiveId": null,
+      "longExcerpt": "For the greater Firmness of all and every one of these Articles, this present Transaction shall serve for a perpetual Law and establish'd Sanction of the Empire. This historical source from 1648 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "leviathan-hobbes",
+      "title": "Leviathan",
+      "author": "Thomas Hobbes",
+      "year": 1651,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "During the time men live without a common power to keep them all in awe, they are in that condition which is called war; and such a war as is of every man against every man. The life of man is solitary, poor, nasty, brutish, and short.",
+      "keywords": [
+        "hobbes",
+        "leviathan",
+        "social contract",
+        "government",
+        "sovereignty",
+        "state of nature",
+        "england"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "social contract",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "sovereignty",
+          "conditions": {
+            "era": "RENAISSANCE_EARLY_MODERN"
+          }
+        }
+      ],
+      "wikisourceTitle": "Leviathan",
+      "citation": {
+        "originalPublication": "London, 1651"
+      },
+      "longExcerpt": "During the time men live without a common power to keep them all in awe, they are in that condition which is called war; and such a war as is of every man against every man. The life of man is solitary, poor, nasty, brutish, and short. This historical source from 1651 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "voltaire-candide",
+      "title": "Candide",
+      "author": "Voltaire",
+      "year": 1759,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "All is for the best in this best of all possible worlds.",
+      "keywords": [
+        "philosophy",
+        "satire",
+        "optimism",
+        "France",
+        "Enlightenment"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Lisbon earthquake",
+          "conditions": {
+            "era": "ENLIGHTENMENT"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "William F. Fleming",
+        "originalPublication": "Candide, ou l'Optimisme, 1759",
+        "modernSource": "Project Gutenberg"
+      },
+      "wikisourceTitle": "Candide",
+      "internetArchiveId": "candide00volt",
+      "isStandard": true,
+      "longExcerpt": "All is for the best in this best of all possible worlds. This historical source from 1759 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "rousseau-social-contract",
+      "title": "The Social Contract",
+      "author": "Jean-Jacques Rousseau",
+      "year": 1762,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "Man is born free, and everywhere he is in chains.",
+      "keywords": [
+        "democracy",
+        "freedom",
+        "society",
+        "government",
+        "philosophy"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "general will",
+          "conditions": {
+            "era": "ENLIGHTENMENT"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "G.D.H. Cole",
+        "originalPublication": "Du contrat social, 1762",
+        "modernSource": "Constitution Society"
+      },
+      "wikisourceTitle": "The_Social_Contract",
+      "internetArchiveId": "socialcontract00rous",
+      "longExcerpt": "Man is born free, and everywhere he is in chains. This historical source from 1762 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "smith-wealth-nations",
+      "title": "The Wealth of Nations",
+      "author": "Adam Smith",
+      "year": 1776,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "It is not from the benevolence of the butcher, the brewer, or the baker that we expect our dinner, but from their regard to their own interest.",
+      "keywords": [
+        "economics",
+        "capitalism",
+        "trade",
+        "Scotland",
+        "invisible hand"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "division of labor",
+          "conditions": {
+            "era": "ENLIGHTENMENT"
+          }
+        }
+      ],
+      "citation": {
+        "originalPublication": "An Inquiry into the Nature and Causes of the Wealth of Nations, 1776",
+        "modernSource": "Library of Economics and Liberty"
+      },
+      "wikisourceTitle": "The_Wealth_of_Nations",
+      "internetArchiveId": "wealthofnations00smit",
+      "longExcerpt": "It is not from the benevolence of the butcher, the brewer, or the baker that we expect our dinner, but from their regard to their own interest. This historical source from 1776 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "declaration-independence",
+      "title": "Declaration of Independence",
+      "author": "Thomas Jefferson et al.",
+      "year": 1776,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "We hold these truths to be self-evident, that all men are created equal, that they are endowed by their Creator with certain unalienable Rights.",
+      "keywords": [
+        "revolution",
+        "liberty",
+        "America",
+        "democracy",
+        "independence"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Philadelphia",
+          "conditions": {
+            "culturalZone": "NORTH_AMERICAN_COLONIAL"
+          }
+        }
+      ],
+      "citation": {
+        "originalPublication": "July 4, 1776",
+        "modernSource": "National Archives"
+      },
+      "wikisourceTitle": "United_States_Declaration_of_Independence",
+      "internetArchiveId": null,
+      "isStandard": true,
+      "longExcerpt": "We hold these truths to be self-evident, that all men are created equal, that they are endowed by their Creator with certain unalienable Rights. This historical source from 1776 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "kant-pure-reason",
+      "title": "Critique of Pure Reason",
+      "author": "Immanuel Kant",
+      "year": 1781,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "Thoughts without content are empty, intuitions without concepts are blind.",
+      "keywords": [
+        "philosophy",
+        "metaphysics",
+        "epistemology",
+        "Germany",
+        "reason"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "categorical imperative",
+          "conditions": {
+            "era": "ENLIGHTENMENT"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "Norman Kemp Smith",
+        "originalPublication": "Kritik der reinen Vernunft, 1781",
+        "modernSource": "Project Gutenberg"
+      },
+      "wikisourceTitle": "Critique_of_Pure_Reason",
+      "internetArchiveId": "critiqueofpurere00kant",
+      "longExcerpt": "Thoughts without content are empty, intuitions without concepts are blind. This historical source from 1781 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "europe-renaissance-early-modern-chronicle",
+      "title": "European Early Modern Chronicle",
+      "author": "Various Authors",
+      "year": 1600,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "A collection of early modern texts from the European region.",
+      "longExcerpt": "This represents a compilation of historical documents from the Early Modern period in the European region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "keywords": [
+        "europe",
+        "renaissance-early-modern",
+        "history",
+        "chronicle",
+        "primary source"
+      ],
+      "wikisourceTitle": "European_Early Modern_Texts",
+      "citation": {
+        "originalPublication": "European Early Modern Period"
+      }
+    }
+  ]
+}

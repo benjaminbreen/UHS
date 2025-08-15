@@ -4,6 +4,7 @@
 import React from 'react';
 import { Tile } from '../../types';
 import { ValueNoise } from '../../utils/noise';
+import { isSafari } from '../../utils/safariUtils';
 
 interface CoralReefSymbolProps {
   x: number;
@@ -53,7 +54,8 @@ const CoralReefSymbol: React.FC<CoralReefSymbolProps> = React.memo(({ x, y, size
     );
 
     // Generate stationary coral formations - smaller and more spread out
-    if (localRand() < 0.4) {
+    // Disable coral blobs on Safari for performance
+    if (!isSafari() && localRand() < 0.4) {
         const numCorals = 2 + Math.floor(localRand() * 4); // Fewer coral formations (2-5)
         const coralColors = ['#ff4757', '#ffca28', '#ab47bc', '#ff6b9d', '#70a1ff']; // More coral colors
         const coralGroup = [];
@@ -79,12 +81,14 @@ const CoralReefSymbol: React.FC<CoralReefSymbolProps> = React.memo(({ x, y, size
     }
     
      // Add inline keyframes for darting arrow fish animation
-    elements.push(
-        <g key="fish-defs">
-            <defs>
-                <style>
-                    {`
-                        @keyframes dartFish {
+    // Only add fish animations on non-Safari browsers
+    if (!isSafari()) {
+        elements.push(
+            <g key="fish-defs">
+                <defs>
+                    <style>
+                        {`
+                            @keyframes dartFish {
                             0% {
                                 transform: translateX(0) translateY(0) rotate(0deg);
                                 opacity: 0.7;
@@ -110,49 +114,50 @@ const CoralReefSymbol: React.FC<CoralReefSymbolProps> = React.memo(({ x, y, size
                                 opacity: 0.7;
                             }
                         }
-                    `}
-                </style>
-            </defs>
-        </g>
-    );
-
-    // Add darting arrow-fish - small, fast moving fish that dart in and out
-    const fishChance = localRand();
-    const numFish = fishChance < 0.8 ? 0 : Math.floor(localRand() * 3) + 1; // 80% chance of no fish, otherwise 1-3
-    
-    for(let i = 0; i < numFish; i++) {
-        const fishSize = size * (0.03 + localRand() * 0.02); // Smaller fish
-        const startX = size * 0.3 + localRand() * size * 0.4;
-        const startY = size * 0.3 + localRand() * size * 0.4;
-        const fishColor = `hsl(${180 + localRand() * 60}, 80%, ${60 + localRand() * 20}%)`; // Brighter tropical colors
-        const fishDuration = 8 + localRand() * 6; // Much slower random walk
-        const fishDelay = localRand() * fishDuration; // Random start times
-        
-        // Create arrow-shaped fish that dart
-        elements.push(
-            <g key={`fish-${i}`} transform={`translate(${startX}, ${startY})`} 
-                style={{
-                    animation: `dartFish ${fishDuration}s ease-in-out infinite ${fishDelay}s`,
-                    transformOrigin: 'center center'
-                } as React.CSSProperties}
-            >
-                {/* Arrow-shaped fish body */}
-                <path 
-                    d={`M 0 0 L ${fishSize} -${fishSize*0.4} L ${fishSize*0.7} 0 L ${fishSize} ${fishSize*0.4} Z`}
-                    fill={fishColor}
-                    opacity="0.9"
-                />
-                {/* Small tail detail */}
-                <path 
-                    d={`M ${fishSize*0.7} -${fishSize*0.2} L ${fishSize*0.5} 0 L ${fishSize*0.7} ${fishSize*0.2} Z`}
-                    fill={fishColor}
-                    opacity="0.7"
-                />
-                {/* Tiny eye */}
-                <circle cx={fishSize*0.8} cy={-fishSize*0.1} r={fishSize*0.1} fill="white" opacity="0.8" />
+                        `}
+                    </style>
+                </defs>
             </g>
-        )
-    }
+        );
+
+        // Add darting arrow-fish - small, fast moving fish that dart in and out
+        const fishChance = localRand();
+        const numFish = fishChance < 0.8 ? 0 : Math.floor(localRand() * 3) + 1; // 80% chance of no fish, otherwise 1-3
+        
+            for(let i = 0; i < numFish; i++) {
+                const fishSize = size * (0.03 + localRand() * 0.02); // Smaller fish
+                const startX = size * 0.3 + localRand() * size * 0.4;
+                const startY = size * 0.3 + localRand() * size * 0.4;
+                const fishColor = `hsl(${180 + localRand() * 60}, 80%, ${60 + localRand() * 20}%)`; // Brighter tropical colors
+                const fishDuration = 8 + localRand() * 6; // Much slower random walk
+                const fishDelay = localRand() * fishDuration; // Random start times
+                
+                // Create arrow-shaped fish that dart
+                elements.push(
+                    <g key={`fish-${i}`} transform={`translate(${startX}, ${startY})`} 
+                        style={{
+                            animation: `dartFish ${fishDuration}s ease-in-out infinite ${fishDelay}s`,
+                            transformOrigin: 'center center'
+                        } as React.CSSProperties}
+                    >
+                        {/* Arrow-shaped fish body */}
+                        <path 
+                            d={`M 0 0 L ${fishSize} -${fishSize*0.4} L ${fishSize*0.7} 0 L ${fishSize} ${fishSize*0.4} Z`}
+                            fill={fishColor}
+                            opacity="0.9"
+                        />
+                        {/* Small tail detail */}
+                        <path 
+                            d={`M ${fishSize*0.7} -${fishSize*0.2} L ${fishSize*0.5} 0 L ${fishSize*0.7} ${fishSize*0.2} Z`}
+                            fill={fishColor}
+                            opacity="0.7"
+                        />
+                        {/* Tiny eye */}
+                        <circle cx={fishSize*0.8} cy={-fishSize*0.1} r={fishSize*0.1} fill="white" opacity="0.8" />
+                    </g>
+                )
+            }
+        }
 
     // Return properly positioned group with all elements
     return (

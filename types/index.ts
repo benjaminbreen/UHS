@@ -82,6 +82,11 @@ export interface DevTooltipDisplayData {
         archetype: import('./core/map').MapArchetype;
         tiles: Tile[][];
     } | null;
+    componentInfo?: {
+        fileName?: string;
+        symbolName?: string;
+        variant?: string;
+    } | null;
 }
 
 

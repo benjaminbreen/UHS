@@ -12,6 +12,7 @@ export interface CityInfo {
     foundingYear?: number;
     declineYear?: number;
     eras?: HistoricalEra[];
+    populationPeak?: number;
 }
 
 export interface CityDetectionResult {

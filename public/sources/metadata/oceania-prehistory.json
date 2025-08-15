@@ -1,0 +1,25 @@
+{
+  "sources": [
+    {
+      "id": "lapita-pottery",
+      "title": "Lapita Pottery Patterns",
+      "author": "Lapita Navigators",
+      "year": -1500,
+      "excerpt": "Dentate-stamped patterns on pottery mark the path across the Pacific, island by island.",
+      "longExcerpt": "Three thousand years ago, the Lapita people began humanity's greatest migration. Their distinctive pottery - decorated with tooth-like stamps in complex geometric patterns - marks their path across the Pacific. From the Bismarck Archipelago to Samoa, each island shows the same designs, proving a shared culture spanning thousands of miles of open ocean. These were master navigators who read currents, winds, stars, the flight patterns of birds. They carried pigs, chickens, dogs, and crop plants, creating new worlds on uninhabited islands.",
+      "era": "PREHISTORY",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "keywords": [
+        "lapita",
+        "pottery",
+        "patterns"
+      ],
+      "wikisourceTitle": "Lapita_Pottery_Patterns",
+      "citation": {
+        "originalPublication": "Lapita Navigators, -1500"
+      }
+    }
+  ]
+}

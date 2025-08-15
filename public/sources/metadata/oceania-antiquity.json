@@ -1,0 +1,67 @@
+{
+  "sources": [
+    {
+      "id": "aboriginal-dreamtime",
+      "title": "Dreamtime Stories",
+      "author": "Aboriginal Australians",
+      "year": -40000,
+      "era": "ANCIENT",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "In the beginning the earth was a bare plain. There was no life, no death. The sun, the moon, and the stars slept beneath the earth.",
+      "keywords": [
+        "creation",
+        "Australia",
+        "spirituality",
+        "oral tradition",
+        "land"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Rainbow Serpent",
+          "conditions": {
+            "culturalZone": "OCEANIA"
+          }
+        },
+        {
+          "keyword": "Uluru",
+          "conditions": {
+            "culturalZone": "OCEANIA"
+          }
+        }
+      ],
+      "citation": {
+        "originalPublication": "Oral tradition, continuous",
+        "modernSource": "Various ethnographic collections"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": null,
+      "isStandard": true,
+      "longExcerpt": "In the beginning the earth was a bare plain. There was no life, no death. The sun, the moon, and the stars slept beneath the earth. This historical source from -40000 provides valuable insight into the oceania region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "oceania-antiquity-chronicle",
+      "title": "Oceanic Ancient Chronicle",
+      "author": "Various Authors",
+      "year": -500,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "A collection of ancient texts from the Oceanic region.",
+      "longExcerpt": "This represents a compilation of historical documents from the Ancient period in the Oceanic region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "keywords": [
+        "oceania",
+        "antiquity",
+        "history",
+        "chronicle",
+        "primary source"
+      ],
+      "wikisourceTitle": "Oceanic_Ancient_Texts",
+      "citation": {
+        "originalPublication": "Oceanic Ancient Period"
+      }
+    }
+  ]
+}

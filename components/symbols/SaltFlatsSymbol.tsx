@@ -38,29 +38,30 @@ const SaltFlatsSymbol: React.FC<SaltFlatsSymbolProps> = React.memo(({ x, y, size
     
     elements.push(
       <defs key="defs">
-        {/* Main gradient for edge transparency */}
+        {/* Main gradient for salt flat - pure gradient without base */}
         <radialGradient id={gradientId}>
-          <stop offset="0%" stopColor="#f8f8f8" stopOpacity="0.95" /> {/* Off-white center */}
-          <stop offset="40%" stopColor="#f0f0f0" stopOpacity="0.85" />
-          <stop offset="70%" stopColor="#e8e8e8" stopOpacity="0.5" />
-          <stop offset="100%" stopColor="#e0e0e0" stopOpacity="0.1" /> {/* Transparent edges */}
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" /> {/* Bright white center */}
+          <stop offset="25%" stopColor="#fafafa" stopOpacity="0.7" />
+          <stop offset="50%" stopColor="#f5f5f5" stopOpacity="0.4" />
+          <stop offset="75%" stopColor="#f0f0f0" stopOpacity="0.15" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0" /> {/* Fully transparent edges */}
         </radialGradient>
         
         {/* Mineral vein gradient if present */}
         {hasMinerals && (
           <linearGradient id={mineralGradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={selectedMineral.primary} stopOpacity="0.3" />
-            <stop offset="50%" stopColor={selectedMineral.secondary} stopOpacity="0.5" />
-            <stop offset="100%" stopColor={selectedMineral.primary} stopOpacity="0.2" />
+            <stop offset="0%" stopColor={selectedMineral.primary} stopOpacity="0.25" />
+            <stop offset="50%" stopColor={selectedMineral.secondary} stopOpacity="0.35" />
+            <stop offset="100%" stopColor={selectedMineral.primary} stopOpacity="0.15" />
           </linearGradient>
         )}
       </defs>
     );
     
-    // Base salt flat with gradient
+    // Salt flat with pure radial gradient - no underlying base color
     elements.push(
       <circle
-        key="base"
+        key="salt-gradient"
         cx={x + size/2}
         cy={y + size/2}
         r={size * 0.48}
@@ -91,49 +92,65 @@ const SaltFlatsSymbol: React.FC<SaltFlatsSymbolProps> = React.memo(({ x, y, size
         }
     }
     
-    // Generate crystalline crack patterns (polygonal)
-    const crackSegments = 5 + Math.floor(noise.random() * 4);
+    // Generate very subtle crack patterns - barely visible fissures
     const centerX = x + size/2;
     const centerY = y + size/2;
     
-    for (let i = 0; i < crackSegments; i++) {
-        const angle1 = (i / crackSegments) * Math.PI * 2;
-        const angle2 = ((i + 1) / crackSegments) * Math.PI * 2;
+    // Small irregular cracks scattered around
+    const crackCount = 8 + Math.floor(noise.random() * 6);
+    for (let i = 0; i < crackCount; i++) {
+        // Random starting point within the salt flat
+        const startX = centerX + (noise.random() - 0.5) * size * 0.6;
+        const startY = centerY + (noise.random() - 0.5) * size * 0.6;
         
-        // Vary the radius for organic feel
-        const radius1 = size * (0.35 + noise.random() * 0.1);
-        const radius2 = size * (0.35 + noise.random() * 0.1);
+        // Short, subtle crack line
+        const angle = noise.random() * Math.PI * 2;
+        const length = size * (0.05 + noise.random() * 0.1); // Very short cracks
+        const endX = startX + Math.cos(angle) * length;
+        const endY = startY + Math.sin(angle) * length;
         
-        const x1 = centerX + Math.cos(angle1) * radius1;
-        const y1 = centerY + Math.sin(angle1) * radius1;
-        const x2 = centerX + Math.cos(angle2) * radius2;
-        const y2 = centerY + Math.sin(angle2) * radius2;
-        
-        // Main crack from center to edge
-        elements.push(
-          <line
-            key={`crack-radial-${i}`}
-            x1={centerX}
-            y1={centerY}
-            x2={x1}
-            y2={y1}
-            stroke="rgba(180, 180, 190, 0.3)"
-            strokeWidth={0.5 + noise.random() * 0.5}
-          />
+        // Only draw if within visible area
+        const distFromCenter = Math.sqrt(
+            Math.pow(startX - centerX, 2) + Math.pow(startY - centerY, 2)
         );
         
-        // Polygon edge cracks
-        elements.push(
-          <line
-            key={`crack-edge-${i}`}
-            x1={x1}
-            y1={y1}
-            x2={x2}
-            y2={y2}
-            stroke="rgba(170, 170, 180, 0.4)"
-            strokeWidth={0.7 + noise.random() * 0.3}
-          />
-        );
+        if (distFromCenter < size * 0.4) {
+            elements.push(
+              <line
+                key={`crack-${i}`}
+                x1={startX}
+                y1={startY}
+                x2={endX}
+                y2={endY}
+                stroke="rgba(200, 200, 205, 0.15)" // Very faint gray
+                strokeWidth={0.3 + noise.random() * 0.2} // Very thin
+                strokeLinecap="round"
+              />
+            );
+            
+            // Occasionally add a tiny branching crack
+            if (noise.random() > 0.7) {
+                const branchAngle = angle + (noise.random() - 0.5) * Math.PI * 0.5;
+                const branchLength = length * 0.4;
+                const branchX = startX + Math.cos(angle) * length * 0.6;
+                const branchY = startY + Math.sin(angle) * length * 0.6;
+                const branchEndX = branchX + Math.cos(branchAngle) * branchLength;
+                const branchEndY = branchY + Math.sin(branchAngle) * branchLength;
+                
+                elements.push(
+                  <line
+                    key={`crack-branch-${i}`}
+                    x1={branchX}
+                    y1={branchY}
+                    x2={branchEndX}
+                    y2={branchEndY}
+                    stroke="rgba(195, 195, 200, 0.1)" // Even fainter
+                    strokeWidth={0.2}
+                    strokeLinecap="round"
+                  />
+                );
+            }
+        }
     }
     
     // Add subtle surface texture dots (salt crystals)

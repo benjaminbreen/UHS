@@ -1,0 +1,25 @@
+{
+  "sources": [
+    {
+      "id": "rubber-boom-diary",
+      "title": "Diary of a Rubber Tapper",
+      "author": "Anonymous Seringueiro",
+      "year": 1905,
+      "excerpt": "Before dawn I walk the trails, cutting diagonal slashes in rubber trees, collecting white latex blood.",
+      "longExcerpt": "The Amazon has become hell. Before dawn I walk the jungle trails, cutting diagonal slashes in rubber trees, placing cups to collect the white latex blood. By noon the cups are full. I carry forty kilos back to camp. The rubber baron charges us for everything - food, tools, medicine - always more than we earn. We can never leave, always in debt. Men die from malaria, snake bites, exhaustion. The world wants rubber for its automobiles. We pay with our lives in this green prison.",
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "keywords": [
+        "diary",
+        "rubber",
+        "tapper"
+      ],
+      "wikisourceTitle": "Diary_of_a_Rubber_Tapper",
+      "citation": {
+        "originalPublication": "Anonymous Seringueiro, 1905"
+      }
+    }
+  ]
+}

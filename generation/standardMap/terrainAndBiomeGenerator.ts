@@ -1404,4 +1404,168 @@ export function applyClimateTransitions(
     });
 
     console.log("[Climate Stitching] Climate transitions applied successfully");
+    
+    // Ensure edge continuity for land/water transitions
+    ensureEdgeContinuity(tiles, localAreaName);
+}
+
+/**
+ * Ensures that land/water tiles at map edges match up with neighboring maps
+ * to prevent discontinuities when crossing map boundaries
+ */
+function ensureEdgeContinuity(tiles: Tile[][], localAreaName: string): void {
+    console.log("[Edge Continuity] Ensuring land/water continuity at map borders");
+    
+    // Get saved edge data from neighboring maps if they exist
+    const edgeData = getNeighboringEdgeData(localAreaName);
+    
+    // North edge - ensure it matches the south edge of the map to the north
+    if (edgeData.north) {
+        for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+            const neighborIsLand = edgeData.north[x];
+            const currentTile = tiles[0][x];
+            
+            if (neighborIsLand !== currentTile.isLand) {
+                console.log(`[Edge Continuity] Fixing north edge at x=${x}: neighbor is ${neighborIsLand ? 'land' : 'water'}, current is ${currentTile.isLand ? 'land' : 'water'}`);
+                
+                if (neighborIsLand) {
+                    // Convert to land - use a basic land biome appropriate for the climate
+                    currentTile.isLand = true;
+                    currentTile.biome = BiomeType.GRASSLAND;
+                    currentTile.altitude = 10; // Just above sea level
+                } else {
+                    // Convert to water
+                    currentTile.isLand = false;
+                    currentTile.biome = BiomeType.OCEAN;
+                    currentTile.altitude = -10;
+                }
+            }
+        }
+    }
+    
+    // South edge - save for future maps and fix if needed
+    if (edgeData.south) {
+        for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+            const neighborIsLand = edgeData.south[x];
+            const currentTile = tiles[MAP_HEIGHT_TILES - 1][x];
+            
+            if (neighborIsLand !== currentTile.isLand) {
+                console.log(`[Edge Continuity] Fixing south edge at x=${x}`);
+                
+                if (neighborIsLand) {
+                    currentTile.isLand = true;
+                    currentTile.biome = BiomeType.GRASSLAND;
+                    currentTile.altitude = 10;
+                } else {
+                    currentTile.isLand = false;
+                    currentTile.biome = BiomeType.OCEAN;
+                    currentTile.altitude = -10;
+                }
+            }
+        }
+    }
+    
+    // East edge
+    if (edgeData.east) {
+        for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+            const neighborIsLand = edgeData.east[y];
+            const currentTile = tiles[y][MAP_WIDTH_TILES - 1];
+            
+            if (neighborIsLand !== currentTile.isLand) {
+                console.log(`[Edge Continuity] Fixing east edge at y=${y}`);
+                
+                if (neighborIsLand) {
+                    currentTile.isLand = true;
+                    currentTile.biome = BiomeType.GRASSLAND;
+                    currentTile.altitude = 10;
+                } else {
+                    currentTile.isLand = false;
+                    currentTile.biome = BiomeType.OCEAN;
+                    currentTile.altitude = -10;
+                }
+            }
+        }
+    }
+    
+    // West edge
+    if (edgeData.west) {
+        for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+            const neighborIsLand = edgeData.west[y];
+            const currentTile = tiles[y][0];
+            
+            if (neighborIsLand !== currentTile.isLand) {
+                console.log(`[Edge Continuity] Fixing west edge at y=${y}`);
+                
+                if (neighborIsLand) {
+                    currentTile.isLand = true;
+                    currentTile.biome = BiomeType.GRASSLAND;
+                    currentTile.altitude = 10;
+                } else {
+                    currentTile.isLand = false;
+                    currentTile.biome = BiomeType.OCEAN;
+                    currentTile.altitude = -10;
+                }
+            }
+        }
+    }
+    
+    // Save current map's edges for future neighboring maps
+    saveMapEdgeData(tiles, localAreaName);
+    
+    console.log("[Edge Continuity] Edge continuity ensured");
+}
+
+/**
+ * Gets edge data from neighboring maps that have already been generated
+ */
+function getNeighboringEdgeData(localAreaName: string): {
+    north?: boolean[],
+    south?: boolean[],
+    east?: boolean[],
+    west?: boolean[]
+} {
+    // This would ideally load from a cache or storage
+    // For now, we'll use a simple in-memory approach
+    const edgeCache = (globalThis as any).__mapEdgeCache || {};
+    
+    // Get neighboring area names based on geography
+    const neighbors = getNeighboringAreaNames(localAreaName);
+    
+    return {
+        north: edgeCache[neighbors.north]?.south,
+        south: edgeCache[neighbors.south]?.north,
+        east: edgeCache[neighbors.east]?.west,
+        west: edgeCache[neighbors.west]?.east
+    };
+}
+
+/**
+ * Saves the current map's edge data for future neighboring maps
+ */
+function saveMapEdgeData(tiles: Tile[][], localAreaName: string): void {
+    const edgeCache = (globalThis as any).__mapEdgeCache || {};
+    
+    const edgeData = {
+        north: Array.from({ length: MAP_WIDTH_TILES }, (_, x) => tiles[0][x].isLand),
+        south: Array.from({ length: MAP_WIDTH_TILES }, (_, x) => tiles[MAP_HEIGHT_TILES - 1][x].isLand),
+        east: Array.from({ length: MAP_HEIGHT_TILES }, (_, y) => tiles[y][MAP_WIDTH_TILES - 1].isLand),
+        west: Array.from({ length: MAP_HEIGHT_TILES }, (_, y) => tiles[y][0].isLand)
+    };
+    
+    edgeCache[localAreaName] = edgeData;
+    (globalThis as any).__mapEdgeCache = edgeCache;
+}
+
+/**
+ * Gets the names of neighboring areas based on geography
+ */
+function getNeighboringAreaNames(localAreaName: string): {
+    north?: string,
+    south?: string,
+    east?: string,
+    west?: string
+} {
+    // This would use the geography/adjacencies data
+    // For now, return empty - will be expanded with actual adjacency data
+    return {};
 }

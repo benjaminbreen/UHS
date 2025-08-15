@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react';
-import { MapData, Tile, BiomeType, ClimateType, DevTooltipDisplayData, AnimalEntity, NpcEntity, VegetationEntity, LensMode, TerrainStructure, Season, PlayerCharacter } from '../types/index';
+import { MapData, Tile, BiomeType, ClimateType, DevTooltipDisplayData, AnimalEntity, NpcEntity, VegetationEntity, LensMode, TerrainStructure, Season, PlayerCharacter, HistoricalEra } from '../types/index';
 import { 
     TILE_SIZE_PX as TILE_SIZE_PX_CONST,
     MAP_WIDTH_TILES, 
@@ -15,10 +15,39 @@ import {
 } from '../constants/index';
 import { ValueNoise } from '../utils/noise'; 
 import { interpolateColor, getLensColor, getMineralColor } from '../utils/colorUtils';
-import { RuinsSymbol, PalaceSymbol, HolyPlaceSymbol, UrbanSymbol, CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol, FishingHutSymbol, SteamSymbol, GovernmentDistrictSymbol, FireflySymbol, MineralGlintSymbol, OasisSymbol } from './symbols';
+import { parseDateString } from '../utils/dateUtils';
+import { mapLocationToCulture } from '../utils/mapUtils';
+import { selectBuilding } from '../utils/buildingSelectionSystem';
+import { getLocationCulturalStyle } from '../utils/culturalMappingUtils';
+import { RuinsSymbol, CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol, FishingHutSymbol, SteamSymbol, GovernmentDistrictSymbol, FireflySymbol, MineralGlintSymbol, OasisSymbol } from './symbols';
+import LumberCampSymbol from './symbols/structures/LumberCampSymbol';
+import UrbanSymbol from './symbols/UrbanSymbolSimplified';
+import { getPalaceSymbol } from './symbols/poi/PalaceSymbolsImproved';
+import { getHolySiteSymbol } from './symbols/poi/getHolySiteSymbol';
+import { 
+  PlantationSymbol, 
+  WarehouseSymbol, 
+  ManufactorySymbol, 
+  RefinerySymbol, 
+  Factory19thSymbol, 
+  Factory20thSymbol 
+} from './symbols/factories/FactorySymbols';
+import { getMillSymbol } from './symbols/mills/MillSymbols';
+import { getMineSymbol } from './symbols/mines/MineSymbols';
+import { getQuarrySymbol } from './symbols/quarries/QuarrySymbols';
+import { getFortressSymbol } from './symbols/fortresses/FortressSymbolsImproved';
+import { 
+  CityHallSymbol,
+  TribalCouncilSymbol,
+  MandateHallSymbol,
+  CaliphCourtSymbol,
+  ColonialOfficeSymbol,
+  RomanForumSymbol
+} from './symbols/government/GovernmentSymbolsImproved';
 import CoastlineOverlay from './CoastlineOverlay';
 import Minimap from './Minimap';
 import MapCanvasPerformance from './MapCanvasPerformance';
+import POIHoverTooltip from './POIHoverTooltip';
 import { getSafariOptimizedClassName, getSafariOptimizedStyle } from '../utils/safariUtils';
 
 const TILE_SIZE_PX = TILE_SIZE_PX_CONST;
@@ -199,6 +228,10 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
   const [isFreePanMode, setIsFreePanMode] = useState(false);
   
+  // POI hover state
+  const [hoveredPOI, setHoveredPOI] = useState<TerrainStructure | null>(null);
+  const [hoveredPOICoords, setHoveredPOICoords] = useState<{x: number, y: number} | null>(null);
+  
   // Refs for performance
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -224,6 +257,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false);
+  const [mobileNavSpeed, setMobileNavSpeed] = useState<'slow' | 'normal' | 'fast'>('normal');
+  const [mobileControlMode, setMobileControlMode] = useState<'camera' | 'player'>('player');
   
   // Memoized noise generators - OPTIMIZED: Only recreate when mapData.seed changes
   const noiseGenerators = useMemo(() => {
@@ -252,10 +287,12 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           const rect = containerRef.current.getBoundingClientRect();
           setContainerDimensions({ width: rect.width, height: rect.height });
         }
-        // Check if mobile based on screen size and touch capability
+        // Check if mobile based on screen size, touch capability, or lack of mouse
         const isMobileDevice = window.innerWidth <= 768 || 
                               ('ontouchstart' in window) || 
-                              (navigator.maxTouchPoints > 0);
+                              (navigator.maxTouchPoints > 0) ||
+                              /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                              (!window.matchMedia || window.matchMedia("(pointer: coarse)").matches);
         setIsMobile(isMobileDevice);
       }, 100);
     };
@@ -279,7 +316,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             height: mapData.height * TILE_SIZE_PX,
         });
     }
-  }, [mapData]);
+  }, [mapData, isMobile]);
 
   // When player moves, disable free pan to re-engage camera follow
   useEffect(() => {
@@ -539,6 +576,183 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     return null;
   }, [zoomLevel, panX, panY, mapData]);
 
+  // Helper function to get component info for a tile
+  const getComponentInfoForTile = (tile: Tile, structure?: TerrainStructure | null, npc?: NpcEntity | null, animal?: AnimalEntity | null) => {
+    let componentInfo = null;
+    
+    // Check for NPCs
+    if (npc) {
+      if (npc.tamedAnimals && npc.tamedAnimals.length > 0) {
+        return { fileName: 'NpcIconEnhanced.tsx', symbolName: 'NpcIconEnhanced' };
+      } else {
+        return { fileName: 'NpcIcon.tsx', symbolName: 'NpcIcon' };
+      }
+    }
+    
+    // Check for animals
+    if (animal) {
+      return { fileName: 'AnimalIcon.tsx', symbolName: 'AnimalIcon' };
+    }
+    
+    // Check for structures first
+    if (structure) {
+      switch (structure.structureType) {
+        case 'palace':
+          componentInfo = { 
+            fileName: 'PalaceSymbolsImproved.tsx',
+            symbolName: 'getPalaceSymbol',
+            variant: structure.culturalStyle || 'default'
+          };
+          break;
+        case 'holy_site':
+          componentInfo = { 
+            fileName: 'getHolySiteSymbol.ts',
+            symbolName: 'getHolySiteSymbol (modular)',
+            variant: structure.culturalStyle || 'default'
+          };
+          break;
+        case 'marketplace':
+          componentInfo = { fileName: 'MarketplaceSymbol.tsx', symbolName: 'MarketplaceSymbol' };
+          break;
+        case 'government_district':
+          componentInfo = { fileName: 'GovernmentDistrictSymbol.tsx', symbolName: 'GovernmentDistrictSymbol' };
+          break;
+        case 'farm':
+          componentInfo = { fileName: 'FarmSymbol.tsx', symbolName: 'FarmSymbol' };
+          break;
+        case 'fishing_hut':
+          componentInfo = { fileName: 'FishingHutSymbol.tsx', symbolName: 'FishingHutSymbol' };
+          break;
+        case 'lumber_camp':
+          componentInfo = { fileName: 'LumberCampSymbol.tsx', symbolName: 'LumberCampSymbol' };
+          break;
+        case 'mining_colony':
+          componentInfo = { fileName: 'MineralSymbol.tsx', symbolName: 'getMineSymbol' };
+          break;
+        case 'mill':
+          componentInfo = { fileName: 'MillSymbols.tsx', symbolName: 'MillSymbol' };
+          break;
+        case 'factory':
+          componentInfo = { fileName: 'FactorySymbol.tsx', symbolName: 'ManufactorySymbol' };
+          break;
+        case 'fortress':
+          componentInfo = { fileName: 'FortressSymbols.tsx', symbolName: 'FortressSymbol' };
+          break;
+        case 'ruin':
+          componentInfo = { fileName: 'RuinsSymbol.tsx', symbolName: 'RuinsSymbol' };
+          break;
+        case 'quarry':
+          componentInfo = { fileName: 'QuarrySymbol.tsx', symbolName: 'getQuarrySymbol' };
+          break;
+        case 'encampment':
+          componentInfo = { fileName: 'EncampmentSymbol.tsx', symbolName: 'EncampmentSymbol' };
+          break;
+        case 'city_center':
+          componentInfo = { fileName: 'CityCenterSymbol.tsx', symbolName: 'CityCenterSymbol' };
+          break;
+      }
+    }
+    
+    // Check for tile-based symbols
+    if (!componentInfo) {
+      switch (tile.biome) {
+        case BiomeType.HAMLET:
+        case BiomeType.LOW_DENSITY_CITY:
+        case BiomeType.DENSE_CITY:
+        case BiomeType.URBAN:
+        case BiomeType.CITY_CENTER:
+          // For urban tiles, determine the specific building component
+          if (mapData && formattedDate && currentLocation) {
+            try {
+              const { era } = parseDateString(formattedDate);
+              const yearMatch = formattedDate.match(/(\d+)\s*(BC|BCE|AD|CE)?/);
+              let year = yearMatch ? parseInt(yearMatch[1]) : 0;
+              if (yearMatch && (yearMatch[2] === 'BC' || yearMatch[2] === 'BCE')) {
+                year = -year;
+              }
+              
+              const culturalMapping = getLocationCulturalStyle(currentLocation, year);
+              const culture = culturalMapping.primaryCulture;
+              const uniqueTileSeed = (mapData.seed || 0) + tile.x * 137 + tile.y * 149;
+              
+              const selection = selectBuilding({
+                year,
+                location: currentLocation,
+                culture,
+                density: tile.biome,
+                era: era as HistoricalEra,
+                seed: uniqueTileSeed,
+                enableLogging: false
+              });
+              
+              // Extract the component name from the selection
+              const buildingName = selection.name || 'Unknown';
+              componentInfo = { 
+                fileName: `${buildingName}.tsx`, 
+                symbolName: buildingName,
+                variant: `${culture} - ${era}`
+              };
+            } catch (e) {
+              // Fallback if we can't determine the specific building
+              componentInfo = { 
+                fileName: 'UrbanSymbolSimplified.tsx', 
+                symbolName: 'UrbanSymbol',
+                variant: 'Unable to determine specific building'
+              };
+            }
+          } else {
+            componentInfo = { 
+              fileName: 'UrbanSymbolSimplified.tsx', 
+              symbolName: 'UrbanSymbol',
+              variant: 'Context not available'
+            };
+          }
+          break;
+        case BiomeType.CLIFF:
+          componentInfo = { fileName: 'CliffSymbol.tsx', symbolName: 'CliffSymbol' };
+          break;
+        case BiomeType.MANGROVE:
+          componentInfo = { fileName: 'MangroveSymbol.tsx', symbolName: 'MangroveSymbol' };
+          break;
+        case BiomeType.SALT_FLATS:
+          componentInfo = { fileName: 'SaltFlatsSymbol.tsx', symbolName: 'SaltFlatsSymbol' };
+          break;
+        case BiomeType.REEF:
+          componentInfo = { fileName: 'CoralReefSymbol.tsx', symbolName: 'CoralReefSymbol' };
+          break;
+        case BiomeType.ESTUARY:
+          componentInfo = { fileName: 'EstuarySymbol.tsx', symbolName: 'EstuarySymbol' };
+          break;
+        case BiomeType.HOT_SPRINGS:
+          componentInfo = { fileName: 'SteamSymbol.tsx', symbolName: 'SteamSymbol' };
+          break;
+        case BiomeType.OASIS:
+          componentInfo = { fileName: 'OasisSymbol.tsx', symbolName: 'OasisSymbol' };
+          break;
+      }
+    }
+    
+    // Check for vegetation
+    if (!componentInfo && tile.vegetationId && mapData?.vegetation) {
+      const veg = mapData.vegetation.find(v => v.id === tile.vegetationId);
+      if (veg) {
+        if (veg.speciesName.includes('Pine')) {
+          componentInfo = { fileName: 'PineTreeSymbol.tsx', symbolName: 'PineTreeSymbol' };
+        } else if (veg.speciesName.includes('Palm')) {
+          componentInfo = { fileName: 'PalmTreeSymbol.tsx', symbolName: 'PalmTreeSymbol' };
+        } else if (veg.speciesName.includes('Cactus')) {
+          componentInfo = { fileName: 'CactusSymbol.tsx', symbolName: 'CactusSymbol' };
+        } else if (veg.type === 'shrub') {
+          componentInfo = { fileName: 'BushSymbol.tsx', symbolName: 'BushSymbol' };
+        } else {
+          componentInfo = { fileName: 'DeciduousTreeSymbol.tsx', symbolName: 'DeciduousTreeSymbol' };
+        }
+      }
+    }
+    
+    return componentInfo;
+  };
+
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (isDragging && mapData) {
       if (!isFreePanMode) setIsFreePanMode(true);
@@ -564,18 +778,23 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       if (tile) {
         const structure = mapData?.terrainStructures?.find(s => s.location[0] === tile.x && s.location[1] === tile.y);
         const vegetation = tile.vegetationId ? mapData?.vegetation?.find(v => v.id === tile.vegetationId) : null;
+        
+        // Get component info for the tile
+        const componentInfo = getComponentInfoForTile(tile, structure, null, null);
+        
         throttledOnDevHover({
           viewMode: 'standard',
           tile: tile,
           vegetation: vegetation,
           structure: structure,
-          mapContext: { climate: mapData.climate, archetype: mapData.archetype, tiles: mapData.tiles }
+          mapContext: { climate: mapData.climate, archetype: mapData.archetype, tiles: mapData.tiles },
+          componentInfo: componentInfo || undefined
         });
       } else {
         throttledOnDevHover(null);
       }
     }
-  }, [isDragging, lastMousePos, getTileFromMouseEvent, mapData, throttledOnDevHover, isFreePanMode, zoomLevel]);
+  }, [isDragging, lastMousePos, getTileFromMouseEvent, mapData, throttledOnDevHover, isFreePanMode, zoomLevel, npcs, animals]);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     const tile = getTileFromMouseEvent(e);
@@ -594,15 +813,17 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         onSettlementClick(tile);
     } else if (e.metaKey || e.ctrlKey) { 
         const vegetation = tile.vegetationId ? mapData?.vegetation?.find(v => v.id === tile.vegetationId) : null;
+        const componentInfo = getComponentInfoForTile(tile, structure, null, null);
         onDevCommandClick({
             viewMode: 'standard',
             tile,
             vegetation,
             structure,
-            mapContext: { climate: mapData.climate, archetype: mapData.archetype, tiles: mapData.tiles }
+            mapContext: { climate: mapData.climate, archetype: mapData.archetype, tiles: mapData.tiles },
+            componentInfo: componentInfo || undefined
         });
     }
-  }, [onDevCommandClick, onStructureClick, onPoiClick, onSettlementClick, getTileFromMouseEvent, mapData]);
+  }, [onDevCommandClick, onStructureClick, onPoiClick, onSettlementClick, getTileFromMouseEvent, mapData, npcs, animals]);
 
   const handleMouseUp = useCallback(() => {
     if (isDragging) {
@@ -786,7 +1007,10 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     if (!mapData || !containerRef.current) return;
     
     setIsFreePanMode(true);
-    const panAmount = 100; // pixels to pan
+    // Adjustable pan amount based on mobile speed setting
+    const basePanAmount = isMobile ? 150 : 100;
+    const speedMultiplier = mobileNavSpeed === 'slow' ? 0.5 : mobileNavSpeed === 'fast' ? 2 : 1;
+    const panAmount = basePanAmount * speedMultiplier; // pixels to pan
     
     let newPanX = currentPanX.current;
     let newPanY = currentPanY.current;
@@ -817,7 +1041,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     const newTransform = `translate(${newPanX}px, ${newPanY}px) scale(${zoomLevel})`;
     if (svgRef.current) svgRef.current.style.transform = newTransform;
     if (canvasRef.current) canvasRef.current.style.transform = newTransform;
-  }, [mapData, zoomLevel]);
+  }, [mapData, zoomLevel, isMobile, mobileNavSpeed]);
 
   // Performance-based rendering decisions with Safari optimizations and debug overrides
   const shouldRenderDetailedSymbols = debugSettings?.reduceSVGComplexity ? false : zoomLevel > 0.8;
@@ -853,98 +1077,234 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   return (
     <div className="relative w-full h-full overflow-hidden rounded-3xl">
       {/* Enhanced zoom controls */}
-      <div className="absolute top-6 left-6 z-30 flex flex-col space-y-3">
+      <div className="absolute top-6 left-6 z-30 flex flex-col space-y-2">
         <button 
           onClick={zoomIn} 
-          className={getSafariOptimizedClassName("group w-12 h-12 flex items-center justify-center rounded-xl border border-gray-500/30 bg-gray-800/60 text-2xl font-bold text-white shadow-xl transition-all duration-200 backdrop-blur-md hover:border-blue-400/50 hover:bg-blue-700/60 hover:shadow-glow-primary")}
+          className={getSafariOptimizedClassName("group w-11 h-11 flex items-center justify-center rounded-lg border border-gray-600/40 bg-gray-900/70 text-white shadow-lg transition-all duration-200 backdrop-blur-sm hover:border-blue-400/60 hover:bg-blue-800/70")}
           title="Zoom In (+)"
         >
-          <span className="text-3xl leading-none transition-transform group-hover:scale-110">+</span>
+          <span className="text-2xl leading-none font-bold transition-transform group-hover:scale-110">+</span>
         </button>
         <button 
           onClick={zoomOut} 
-          className={getSafariOptimizedClassName("group w-12 h-12 flex items-center justify-center rounded-xl border border-gray-500/30 bg-gray-800/60 text-2xl font-bold text-white shadow-xl transition-all duration-200 backdrop-blur-md hover:border-blue-400/50 hover:bg-blue-700/60 hover:shadow-glow-primary")}
+          className={getSafariOptimizedClassName("group w-11 h-11 flex items-center justify-center rounded-lg border border-gray-600/40 bg-gray-900/70 text-white shadow-lg transition-all duration-200 backdrop-blur-sm hover:border-blue-400/60 hover:bg-blue-800/70")}
           title="Zoom Out (-)"
         >
-          <span className="text-3xl leading-none transition-transform group-hover:scale-110">−</span>
+          <span className="text-2xl leading-none font-bold transition-transform group-hover:scale-110">−</span>
         </button>
         <button 
           onClick={resetZoomAndCenter} 
-          className={getSafariOptimizedClassName("group w-12 h-12 flex items-center justify-center rounded-xl border border-gray-500/30 bg-gray-800/60 text-xl font-bold text-white shadow-xl transition-all duration-200 backdrop-blur-md hover:border-green-400/50 hover:bg-green-700/60 hover:shadow-glow-primary")}
+          className={getSafariOptimizedClassName("group w-11 h-11 flex items-center justify-center rounded-lg border border-gray-600/40 bg-gray-900/70 text-white shadow-lg transition-all duration-200 backdrop-blur-sm hover:border-green-400/60 hover:bg-green-800/70")}
           title="Center on Player (0)"
         >
-          <span className="text-2xl transition-transform group-hover:scale-110">⌂</span>
+          <span className="text-xl transition-transform group-hover:scale-110">⌂</span>
         </button>
-      </div>
-
-      {/* Enhanced zoom indicator */}
-      <div className={getSafariOptimizedClassName("absolute top-6 left-20 z-30 rounded-xl border border-gray-600/30 bg-gray-900/80 px-3 py-2 text-sm font-bold text-white shadow-xl backdrop-blur-md")}>
-        <div className="text-lg bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">{Math.round(zoomLevel * 100)}%</div>
-        <div className="text-xs text-gray-300">Zoom</div>
-      </div>
-
-      {/* Performance indicator */}
-      <div className={getSafariOptimizedClassName("absolute top-6 right-6 z-30 rounded-xl border border-green-600/30 bg-green-900/80 px-3 py-2 text-sm font-bold text-white shadow-xl backdrop-blur-md")}>
-        <div className="text-lg text-green-400">⚡ OPTIMIZED</div>
-        <div className="text-xs text-green-300">High Performance</div>
       </div>
 
       {/* Mobile Direction Controls */}
       {isMobile && (
-        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center space-y-2">
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center space-y-1">
+          {/* Control mode toggle */}
+          <div className="flex items-center space-x-1 mb-2 bg-gray-900/90 rounded-lg p-1">
+            <button
+              onClick={() => setMobileControlMode('player')}
+              className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
+                mobileControlMode === 'player' 
+                  ? 'bg-green-600 text-white' 
+                  : 'bg-gray-700/80 text-gray-300'
+              }`}
+            >
+              👤 Move
+            </button>
+            <button
+              onClick={() => setMobileControlMode('camera')}
+              className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
+                mobileControlMode === 'camera' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-gray-700/80 text-gray-300'
+              }`}
+            >
+              📷 View
+            </button>
+          </div>
           {/* Up button */}
           <button
-            onClick={() => panMap('up')}
-            className={getSafariOptimizedClassName("group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95")}
-            aria-label="Pan Up"
+            onClick={() => {
+              if (mobileControlMode === 'camera') {
+                panMap('up');
+              } else {
+                // Simulate ArrowUp key press for player movement
+                const event = new KeyboardEvent('keydown', { key: 'ArrowUp' });
+                window.dispatchEvent(event);
+                setTimeout(() => {
+                  const upEvent = new KeyboardEvent('keyup', { key: 'ArrowUp' });
+                  window.dispatchEvent(upEvent);
+                }, 100);
+              }
+            }}
+            onTouchStart={(e) => { 
+              e.preventDefault(); 
+              if (mobileControlMode === 'camera') {
+                panMap('up');
+              } else {
+                const event = new KeyboardEvent('keydown', { key: 'ArrowUp' });
+                window.dispatchEvent(event);
+              }
+            }}
+            onTouchEnd={(e) => {
+              if (mobileControlMode === 'player') {
+                const event = new KeyboardEvent('keyup', { key: 'ArrowUp' });
+                window.dispatchEvent(event);
+              }
+            }}
+            className={getSafariOptimizedClassName(`group w-14 h-14 flex items-center justify-center rounded-full border-2 ${
+              mobileControlMode === 'player' 
+                ? 'border-green-400/50 bg-green-900/80 active:bg-green-600/80' 
+                : 'border-blue-400/50 bg-blue-900/80 active:bg-blue-600/80'
+            } text-white shadow-xl transition-all duration-150 backdrop-blur-sm active:scale-95`)}
+            aria-label={mobileControlMode === 'player' ? "Move Up" : "Pan Up"}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
             </svg>
           </button>
           
           {/* Middle row with left, center, right */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1">
             {/* Left button */}
             <button
-              onClick={() => panMap('left')}
-              className={getSafariOptimizedClassName("group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95")}
-              aria-label="Pan Left"
+              onClick={() => {
+                if (mobileControlMode === 'camera') {
+                  panMap('left');
+                } else {
+                  const event = new KeyboardEvent('keydown', { key: 'ArrowLeft' });
+                  window.dispatchEvent(event);
+                  setTimeout(() => {
+                    const upEvent = new KeyboardEvent('keyup', { key: 'ArrowLeft' });
+                    window.dispatchEvent(upEvent);
+                  }, 100);
+                }
+              }}
+              onTouchStart={(e) => { 
+                e.preventDefault(); 
+                if (mobileControlMode === 'camera') {
+                  panMap('left');
+                } else {
+                  const event = new KeyboardEvent('keydown', { key: 'ArrowLeft' });
+                  window.dispatchEvent(event);
+                }
+              }}
+              onTouchEnd={(e) => {
+                if (mobileControlMode === 'player') {
+                  const event = new KeyboardEvent('keyup', { key: 'ArrowLeft' });
+                  window.dispatchEvent(event);
+                }
+              }}
+              className={getSafariOptimizedClassName(`group w-14 h-14 flex items-center justify-center rounded-full border-2 ${
+                mobileControlMode === 'player' 
+                  ? 'border-green-400/50 bg-green-900/80 active:bg-green-600/80' 
+                  : 'border-blue-400/50 bg-blue-900/80 active:bg-blue-600/80'
+              } text-white shadow-xl transition-all duration-150 backdrop-blur-sm active:scale-95`)}
+              aria-label={mobileControlMode === 'player' ? "Move Left" : "Pan Left"}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
             
             {/* Center/Reset button */}
             <button
               onClick={resetZoomAndCenter}
-              className={getSafariOptimizedClassName("group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-green-400/60 hover:bg-green-700/70 active:scale-95")}
+              onTouchStart={(e) => { e.preventDefault(); resetZoomAndCenter(); }}
+              className={getSafariOptimizedClassName("group w-14 h-14 flex items-center justify-center rounded-full border-2 border-amber-400/50 bg-amber-900/80 text-amber-200 shadow-xl transition-all duration-150 backdrop-blur-sm active:bg-amber-600/80 active:scale-95")}
               aria-label="Center on Player"
             >
-              <span className="text-2xl">⌂</span>
+              <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+                <circle cx="12" cy="12" r="3" fill="white"/>
+              </svg>
             </button>
             
             {/* Right button */}
             <button
-              onClick={() => panMap('right')}
-              className={getSafariOptimizedClassName("group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95")}
-              aria-label="Pan Right"
+              onClick={() => {
+                if (mobileControlMode === 'camera') {
+                  panMap('right');
+                } else {
+                  const event = new KeyboardEvent('keydown', { key: 'ArrowRight' });
+                  window.dispatchEvent(event);
+                  setTimeout(() => {
+                    const upEvent = new KeyboardEvent('keyup', { key: 'ArrowRight' });
+                    window.dispatchEvent(upEvent);
+                  }, 100);
+                }
+              }}
+              onTouchStart={(e) => { 
+                e.preventDefault(); 
+                if (mobileControlMode === 'camera') {
+                  panMap('right');
+                } else {
+                  const event = new KeyboardEvent('keydown', { key: 'ArrowRight' });
+                  window.dispatchEvent(event);
+                }
+              }}
+              onTouchEnd={(e) => {
+                if (mobileControlMode === 'player') {
+                  const event = new KeyboardEvent('keyup', { key: 'ArrowRight' });
+                  window.dispatchEvent(event);
+                }
+              }}
+              className={getSafariOptimizedClassName(`group w-14 h-14 flex items-center justify-center rounded-full border-2 ${
+                mobileControlMode === 'player' 
+                  ? 'border-green-400/50 bg-green-900/80 active:bg-green-600/80' 
+                  : 'border-blue-400/50 bg-blue-900/80 active:bg-blue-600/80'
+              } text-white shadow-xl transition-all duration-150 backdrop-blur-sm active:scale-95`)}
+              aria-label={mobileControlMode === 'player' ? "Move Right" : "Pan Right"}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </button>
           </div>
           
           {/* Down button */}
           <button
-            onClick={() => panMap('down')}
-            className={getSafariOptimizedClassName("group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95")}
-            aria-label="Pan Down"
+            onClick={() => {
+              if (mobileControlMode === 'camera') {
+                panMap('down');
+              } else {
+                const event = new KeyboardEvent('keydown', { key: 'ArrowDown' });
+                window.dispatchEvent(event);
+                setTimeout(() => {
+                  const upEvent = new KeyboardEvent('keyup', { key: 'ArrowDown' });
+                  window.dispatchEvent(upEvent);
+                }, 100);
+              }
+            }}
+            onTouchStart={(e) => { 
+              e.preventDefault(); 
+              if (mobileControlMode === 'camera') {
+                panMap('down');
+              } else {
+                const event = new KeyboardEvent('keydown', { key: 'ArrowDown' });
+                window.dispatchEvent(event);
+              }
+            }}
+            onTouchEnd={(e) => {
+              if (mobileControlMode === 'player') {
+                const event = new KeyboardEvent('keyup', { key: 'ArrowDown' });
+                window.dispatchEvent(event);
+              }
+            }}
+            className={getSafariOptimizedClassName(`group w-14 h-14 flex items-center justify-center rounded-full border-2 ${
+              mobileControlMode === 'player' 
+                ? 'border-green-400/50 bg-green-900/80 active:bg-green-600/80' 
+                : 'border-blue-400/50 bg-blue-900/80 active:bg-blue-600/80'
+            } text-white shadow-xl transition-all duration-150 backdrop-blur-sm active:scale-95`)}
+            aria-label={mobileControlMode === 'player' ? "Move Down" : "Pan Down"}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
             </svg>
           </button>
         </div>
@@ -952,35 +1312,39 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
 
       {/* Mobile Zoom Controls - positioned differently on mobile */}
       {isMobile && (
-        <div className="absolute bottom-24 right-6 z-30 flex flex-col space-y-3">
+        <div className="absolute bottom-16 right-2 z-30 flex flex-col space-y-1">
           <button 
-            onClick={zoomIn} 
-            className={getSafariOptimizedClassName("group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-2xl font-bold text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95")}
+            onClick={zoomIn}
+            onTouchStart={(e) => { e.preventDefault(); zoomIn(); }}
+            className={getSafariOptimizedClassName("group w-16 h-16 flex items-center justify-center rounded-full border-2 border-green-400/50 bg-green-900/80 text-3xl font-bold text-white shadow-xl transition-all duration-150 backdrop-blur-sm active:bg-green-600/80 active:scale-95")}
             aria-label="Zoom In"
           >
-            <span className="text-3xl leading-none">+</span>
+            <span className="text-4xl leading-none pb-1">+</span>
           </button>
           <button 
-            onClick={zoomOut} 
-            className={getSafariOptimizedClassName("group w-14 h-14 flex items-center justify-center rounded-full border border-gray-500/40 bg-gray-800/70 text-2xl font-bold text-white shadow-lg transition-all duration-200 backdrop-blur-md hover:border-blue-400/60 hover:bg-blue-700/70 active:scale-95")}
+            onClick={zoomOut}
+            onTouchStart={(e) => { e.preventDefault(); zoomOut(); }}
+            className={getSafariOptimizedClassName("group w-16 h-16 flex items-center justify-center rounded-full border-2 border-red-400/50 bg-red-900/80 text-3xl font-bold text-white shadow-xl transition-all duration-150 backdrop-blur-sm active:bg-red-600/80 active:scale-95")}
             aria-label="Zoom Out"
           >
-            <span className="text-3xl leading-none">−</span>
+            <span className="text-4xl leading-none pb-1">−</span>
           </button>
         </div>
       )}
 
-      {/* Enhanced minimap */}
-      <Minimap
-        mapData={mapData}
-        playerX={logicalControlledIconX}
-        playerY={logicalControlledIconY}
-        zoomLevel={zoomLevel}
-        panX={panX}
-        panY={panY}
-        containerWidth={containerDimensions.width}
-        containerHeight={containerDimensions.height}
-      />
+      {/* Enhanced minimap - hide on very small mobile screens */}
+      {(!isMobile || window.innerWidth > 480) && (
+        <Minimap
+          mapData={mapData}
+          playerX={logicalControlledIconX}
+          playerY={logicalControlledIconY}
+          zoomLevel={zoomLevel}
+          panX={panX}
+          panY={panY}
+          containerWidth={containerDimensions.width}
+          containerHeight={containerDimensions.height}
+        />
+      )}
 
       {/* Main map container */}
       <div 
@@ -1243,27 +1607,17 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               );
             })}
             
-            {/* Enhanced symbols layer */}
+            {/* Terrain features layer (farms, cliffs, etc - rendered BELOW urban symbols) */}
             {shouldRenderDetailedSymbols && (
               <g filter="url(#symbolShadow)">
                 {tiles.flat().map((tile) => {
                   const symbolX = tile.x * TILE_SIZE_PX;
                   const symbolY = tile.y * TILE_SIZE_PX;
-                  // Create position-specific seed for each symbol to ensure static randomization
                   const tileSeed = seed + tile.x * 31 + tile.y * 37;
                   const elements = [];
                   
-                  if ([BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.GOVERNMENT_DISTRICT, BiomeType.CITY_CENTER].includes(tile.biome)) {
-                    elements.push(<UrbanSymbol key={`urban-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} date={formattedDate} zone={currentLocation} nightIntensity={timeOfDayData.isNight ? 0.6 : 0} />);
-                  } else if(tile.biome === BiomeType.MARKETPLACE) {
-                    elements.push(<MarketplaceSymbol key={`marketplace-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} nightIntensity={timeOfDayData.isNight ? 0.6 : 0} date={formattedDate} zone={currentLocation} />);
-                  } else if(tile.biome === BiomeType.PALACE) {
-                    elements.push(<PalaceSymbol key={`palace-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} date={formattedDate} zone={currentLocation} nightIntensity={timeOfDayData.isNight ? 0.6 : 0} />);
-                  } else if(tile.biome === BiomeType.RUINS) {
-                    elements.push(<RuinsSymbol key={`ruins-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} />);
-                  } else if(tile.biome === BiomeType.HOLY_SITE) {
-                    elements.push(<HolyPlaceSymbol key={`holy-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} date={formattedDate} zone={currentLocation} />);
-                  } else if(tile.biome === BiomeType.CLIFF) {
+                  // Only render terrain features in this pass
+                  if(tile.biome === BiomeType.CLIFF) {
                     elements.push(<CliffSymbol key={`cliff-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} />);
                   } else if(tile.biome === BiomeType.MANGROVE) {
                     elements.push(<MangroveSymbol key={`mangrove-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />);
@@ -1280,10 +1634,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   } else if(tile.biome === BiomeType.REEF) {
                     elements.push(<CoralReefSymbol key={`reef-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />);
                   } else if(tile.biome === BiomeType.HOT_SPRINGS) {
-                    // Always show steam for hot springs
                     elements.push(<SteamSymbol key={`hotspring-steam-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} intensity="heavy" />);
                   } else if(tile.biome === BiomeType.VOLCANIC_ROCK) {
-                    // Rarely show steam for volcanic rock (1 in 8)
                     if ((tile.x + tile.y + Math.floor(seed/10)) % 8 === 0) {
                       elements.push(<SteamSymbol key={`volcanic-steam-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} intensity="light" />);
                     }
@@ -1299,8 +1651,230 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.RIVERBANK))
                   );
                   
-                  if (shouldShowFireflies && (tile.x + tile.y + tileSeed) % 3 === 0) {
+                  if (shouldShowFireflies && (tile.x + tile.y + tileSeed) % 30 === 0) {
                     elements.push(<FireflySymbol key={`firefly-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} />);
+                  }
+                  
+                  return elements;
+                })}
+              </g>
+            )}
+            
+            {/* Urban and structure symbols layer (rendered ABOVE terrain features) */}
+            {shouldRenderDetailedSymbols && (
+              <g filter="url(#symbolShadow)">
+                {tiles.flat().map((tile) => {
+                  const symbolX = tile.x * TILE_SIZE_PX;
+                  const symbolY = tile.y * TILE_SIZE_PX;
+                  const tileSeed = seed + tile.x * 31 + tile.y * 37;
+                  const elements = [];
+                  
+                  // Only render urban/structure symbols in this pass
+                  if ([BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.GOVERNMENT_DISTRICT, BiomeType.CITY_CENTER].includes(tile.biome)) {
+                    elements.push(<UrbanSymbol key={`urban-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} date={formattedDate} zone={currentLocation} location={mapData.localArea || mapData.region || currentLocation} nightIntensity={timeOfDayData.isNight ? 0.6 : 0} />);
+                  } else if(tile.biome === BiomeType.MARKETPLACE) {
+                    // Create a pseudo-structure for marketplace hover
+                    const marketplaceStructure: TerrainStructure = {
+                      id: `marketplace-${tile.x}-${tile.y}`,
+                      name: tile.cityName ? `${tile.cityName} Market` : 'Marketplace',
+                      structureType: 'marketplace' as any,
+                      location: [tile.x, tile.y],
+                      state: 'active',
+                      population: tile.population || 50,
+                      allegianceGroup: mapData.dominantPower || 'Local Authority',
+                      outputGoods: ['food', 'crafts', 'textiles', 'spices']
+                    };
+                    
+                    elements.push(
+                      <g
+                        key={`marketplace-${tile.x}-${tile.y}`}
+                        onMouseEnter={(e) => {
+                          if (!isDragging) {
+                            setHoveredPOI(marketplaceStructure);
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredPOI(null);
+                          setHoveredPOICoords(null);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <MarketplaceSymbol x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} nightIntensity={timeOfDayData.isNight ? 0.6 : 0} date={formattedDate} zone={currentLocation} />
+                        {hoveredPOI?.id === marketplaceStructure.id && (
+                          <rect
+                            x={symbolX}
+                            y={symbolY}
+                            width={TILE_SIZE_PX}
+                            height={TILE_SIZE_PX}
+                            fill="none"
+                            stroke="rgba(255, 191, 0, 0.8)"
+                            strokeWidth="3"
+                            className="animate-pulse"
+                            pointerEvents="none"
+                          />
+                        )}
+                      </g>
+                    );
+                  } else if(tile.biome === BiomeType.PALACE) {
+                    const palaceType = tile.palaceType || 'generic';
+                    const culture = currentLocation || 'Europe';
+                    // Parse year from formatted date like "June 3, 238 BC" or "June 3, 1500 CE"
+                    const yearMatch = formattedDate.match(/(\d+)\s*(BC|BCE|AD|CE)?/);
+                    let year = yearMatch ? parseInt(yearMatch[1]) : 0;
+                    if (yearMatch && (yearMatch[2] === 'BC' || yearMatch[2] === 'BCE')) {
+                      year = -year;
+                    }
+                    const era = year < 500 ? 'ancient' : year < 1500 ? 'medieval' : 'modern';
+                    
+                    // Removed console.log to prevent infinite spam
+                    const PalaceComponent = getPalaceSymbol(palaceType, culture, era);
+                    
+                    // Find the structure for this palace
+                    const palaceStructure = terrainStructures?.find(s => 
+                      s.location[0] === tile.x && s.location[1] === tile.y && s.structureType === 'palace'
+                    );
+                    
+                    elements.push(
+                      <g 
+                        key={`palace-${tile.x}-${tile.y}`}
+                        onMouseEnter={(e) => {
+                          if (palaceStructure && !isDragging) {
+                            setHoveredPOI(palaceStructure);
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredPOI(null);
+                          setHoveredPOICoords(null);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <PalaceComponent x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} />
+                        {hoveredPOI?.id === palaceStructure?.id && (
+                          <rect
+                            x={symbolX}
+                            y={symbolY}
+                            width={TILE_SIZE_PX}
+                            height={TILE_SIZE_PX}
+                            fill="none"
+                            stroke="rgba(255, 191, 0, 0.8)"
+                            strokeWidth="3"
+                            className="animate-pulse"
+                            pointerEvents="none"
+                          />
+                        )}
+                      </g>
+                    );
+                  } else if(tile.biome === BiomeType.RUINS) {
+                    // Find the structure for this ruin
+                    const ruinStructure = terrainStructures?.find(s => 
+                      s.location[0] === tile.x && s.location[1] === tile.y && s.structureType === 'ruin'
+                    );
+                    
+                    elements.push(
+                      <g 
+                        key={`ruins-${tile.x}-${tile.y}`}
+                        onMouseEnter={(e) => {
+                          if (ruinStructure && !isDragging) {
+                            setHoveredPOI(ruinStructure);
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredPOI(null);
+                          setHoveredPOICoords(null);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <RuinsSymbol x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} />
+                        {hoveredPOI?.id === ruinStructure?.id && (
+                          <rect
+                            x={symbolX}
+                            y={symbolY}
+                            width={TILE_SIZE_PX}
+                            height={TILE_SIZE_PX}
+                            fill="none"
+                            stroke="rgba(255, 191, 0, 0.8)"
+                            strokeWidth="3"
+                            className="animate-pulse"
+                            pointerEvents="none"
+                          />
+                        )}
+                      </g>
+                    );
+                  } else if(tile.biome === BiomeType.HOLY_SITE) {
+                    // Get cultural zone and year for proper selection
+                    const { year, era } = parseDateString(mapData.timeSlice || '1650');
+                    const culturalZone = mapLocationToCulture(mapData.continent || 'Europe', year);
+                    
+                    // Use assigned religion or get region-appropriate fallback
+                    let religion = tile.holyPlaceReligion;
+                    if (!religion || religion === 'generic') {
+                      // For modern/future era, default to most common religion for the region
+                      if (year >= 1900) {
+                        // Regional defaults for modern era
+                        if (culturalZone === 'SOUTH_AMERICAN' || culturalZone === 'MEDITERRANEAN') {
+                          religion = 'Roman Catholicism';
+                        } else if (culturalZone === 'MENA') {
+                          religion = 'Islam';
+                        } else if (culturalZone === 'SOUTH_ASIAN') {
+                          religion = 'Hinduism';
+                        } else if (culturalZone === 'EAST_ASIAN') {
+                          religion = 'Buddhism';
+                        } else if (culturalZone === 'SUB_SAHARAN_AFRICAN') {
+                          religion = year >= 1800 ? 'Christianity' : 'Traditional African';
+                        } else {
+                          religion = 'Christianity'; // Generic Christian for Europe/Americas
+                        }
+                      } else {
+                        // Historical era fallbacks
+                        religion = 'Traditional'; // Generic traditional/folk religion
+                      }
+                    }
+                    
+                    const HolySiteComponent = getHolySiteSymbol(religion, culturalZone);
+                    
+                    // Find the structure for this holy site
+                    const holySiteStructure = terrainStructures?.find(s => 
+                      s.location[0] === tile.x && s.location[1] === tile.y && s.structureType === 'holy_site'
+                    );
+                    
+                    elements.push(
+                      <g 
+                        key={`holy-${tile.x}-${tile.y}`}
+                        onMouseEnter={(e) => {
+                          if (holySiteStructure && !isDragging) {
+                            setHoveredPOI(holySiteStructure);
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredPOI(null);
+                          setHoveredPOICoords(null);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <HolySiteComponent x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} />
+                        {hoveredPOI?.id === holySiteStructure?.id && (
+                          <rect
+                            x={symbolX}
+                            y={symbolY}
+                            width={TILE_SIZE_PX}
+                            height={TILE_SIZE_PX}
+                            fill="none"
+                            stroke="rgba(255, 191, 0, 0.8)"
+                            strokeWidth="3"
+                            className="animate-pulse"
+                            pointerEvents="none"
+                          />
+                        )}
+                      </g>
+                    );
                   }
 
                   return elements;
@@ -1317,16 +1891,84 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   const structY = structure.location[1] * TILE_SIZE_PX;
                   const isRuined = structure.state === 'ruined';
                   
-                  // Special handling for government districts with custom SVG symbol
+                  // Special handling for government districts with custom SVG symbols
                   if (structure.structureType === 'government_district' && !isRuined) {
                     const tileSeed = seed + structure.location[0] * 31 + structure.location[1] * 37;
                     const tileAtLocation = mapData.tiles?.find(t => t.x === structure.location[0] && t.y === structure.location[1]);
+                    
+                    // Select the appropriate government building symbol based on name
+                    let GovernmentComponent;
+                    const govName = structure.name?.toLowerCase() || '';
+                    // Removed console.log to prevent infinite spam
+                    
+                    if (govName.includes('city hall')) {
+                      GovernmentComponent = CityHallSymbol;
+                    } else if (govName.includes('tribal council')) {
+                      GovernmentComponent = TribalCouncilSymbol;
+                    } else if (govName.includes('mandate hall')) {
+                      GovernmentComponent = MandateHallSymbol;
+                    } else if (govName.includes('caliph court')) {
+                      GovernmentComponent = CaliphCourtSymbol;
+                    } else if (govName.includes('colonial office')) {
+                      GovernmentComponent = ColonialOfficeSymbol;
+                    } else if (govName.includes('roman forum')) {
+                      GovernmentComponent = RomanForumSymbol;
+                    } else {
+                      GovernmentComponent = CityHallSymbol; // Default fallback
+                    }
                     
                     return (
                       <g key={structure.id} className="transition-transform duration-200">
                         <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
                           <title>{`${structure.name} (${structure.structureType})`}</title>
-                          <GovernmentDistrictSymbol
+                          <GovernmentComponent
+                            x={structX} 
+                            y={structY} 
+                            size={TILE_SIZE_PX} 
+                            seed={tileSeed}
+                            date={formattedDate}
+                            zone={currentLocation || "Europe"}
+                          />
+                        </g>
+                      </g>
+                    );
+                  }
+
+                  // Special handling for factory with custom SVG symbols
+                  if (structure.structureType === 'factory' && !isRuined) {
+                    const tileSeed = seed + structure.location[0] * 31 + structure.location[1] * 37;
+                    const tileAtLocation = mapData.tiles?.find(t => t.x === structure.location[0] && t.y === structure.location[1]);
+                    
+                    // Select the appropriate factory symbol based on subtype
+                    let FactoryComponent;
+                    switch (structure.factorySymbolType) {
+                      case 'plantation':
+                        FactoryComponent = PlantationSymbol;
+                        break;
+                      case 'warehouse':
+                        FactoryComponent = WarehouseSymbol;
+                        break;
+                      case 'manufactory':
+                        FactoryComponent = ManufactorySymbol;
+                        break;
+                      case 'refinery':
+                        FactoryComponent = RefinerySymbol;
+                        break;
+                      case 'factory19th':
+                        FactoryComponent = Factory19thSymbol;
+                        break;
+                      case 'factory20th':
+                        FactoryComponent = Factory20thSymbol;
+                        break;
+                      default:
+                        FactoryComponent = Factory19thSymbol; // Default fallback
+                    }
+                    
+                    return (
+                      <g key={structure.id} className="transition-transform duration-200">
+                        <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
+                          <title>{`${structure.name} (${structure.structureType})`}</title>
+                          <FactoryComponent
                             x={structX} 
                             y={structY} 
                             size={TILE_SIZE_PX} 
@@ -1343,7 +1985,12 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
 
                   // Special handling for fishing hut with custom SVG symbol
                   if (structure.structureType === 'fishing_hut' && !isRuined) {
-                    const year = parseInt(formattedDate.split(' ')[0]);
+                    // Parse year from formatted date like "June 3, 238 BC" or "June 3, 1500 CE"
+                    const yearMatch = formattedDate.match(/(\d+)\s*(BC|BCE|AD|CE)?/);
+                    let year = yearMatch ? parseInt(yearMatch[1]) : 0;
+                    if (yearMatch && (yearMatch[2] === 'BC' || yearMatch[2] === 'BCE')) {
+                      year = -year;
+                    }
                     const isModern = year >= 1800; // Modern era starts around 1800
                     const tileSeed = seed + structure.location[0] * 31 + structure.location[1] * 37;
                     
@@ -1359,6 +2006,204 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                             date={formattedDate}
                             isModern={isModern}
                           />
+                        </g>
+                      </g>
+                    );
+                  }
+
+                  // Special handling for mills with custom SVG symbols
+                  if (structure.structureType === 'mill' && !isRuined) {
+                    const tileSeed = seed + structure.location[0] * 31 + structure.location[1] * 37;
+                    // Parse year from formatted date like "June 3, 238 BC" or "June 3, 1500 CE"
+                    const yearMatch = formattedDate.match(/(\d+)\s*(BC|BCE|AD|CE)?/);
+                    let year = yearMatch ? parseInt(yearMatch[1]) : 0;
+                    if (yearMatch && (yearMatch[2] === 'BC' || yearMatch[2] === 'BCE')) {
+                      year = -year;
+                    }
+                    
+                    // Removed console.log to prevent infinite spam
+                    
+                    // Determine mill type based on era and name
+                    let era = 'medieval'; // Default
+                    if (year < -2000) era = 'prehistoric';
+                    else if (year < 500) era = 'ancient';
+                    else if (year < 1500) era = 'medieval';
+                    else if (year < 1750) era = 'renaissance';
+                    else if (year < 1900) era = 'industrial';
+                    else if (year < 2000) era = 'modern';
+                    else era = 'contemporary';
+                    
+                    // Removed console.log to prevent infinite spam
+                    
+                    const MillComponent = getMillSymbol(structure.name || 'Water Mill', era);
+                    
+                    return (
+                      <g key={structure.id} className="transition-transform duration-200">
+                        <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
+                          <title>{`${structure.name} (${structure.structureType})`}</title>
+                          <MillComponent
+                            x={structX} 
+                            y={structY} 
+                            size={TILE_SIZE_PX} 
+                            seed={tileSeed}
+                            millType={structure.name}
+                          />
+                        </g>
+                      </g>
+                    );
+                  }
+
+                  // Special handling for mines with custom SVG symbols
+                  if (structure.structureType === 'mining_colony' && !isRuined) {
+                    const tileSeed = seed + structure.location[0] * 41 + structure.location[1] * 43;
+                    const era = (structure as any).era || 'MEDIEVAL'; // Get era from structure
+                    const MineComponent = getMineSymbol(era);
+                    
+                    return (
+                      <g key={structure.id} className="transition-transform duration-200">
+                        <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
+                          <title>{`${structure.name} (${structure.structureType})`}</title>
+                          <MineComponent
+                            x={structX} 
+                            y={structY} 
+                            size={TILE_SIZE_PX} 
+                            seed={tileSeed}
+                          />
+                        </g>
+                      </g>
+                    );
+                  }
+
+                  // Special handling for quarries with custom SVG symbols
+                  if (structure.structureType === 'quarry' && !isRuined) {
+                    const tileSeed = seed + structure.location[0] * 47 + structure.location[1] * 53;
+                    const era = (structure as any).era || 'MEDIEVAL'; // Get era from structure
+                    const QuarryComponent = getQuarrySymbol(era);
+                    
+                    return (
+                      <g key={structure.id} className="transition-transform duration-200">
+                        <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
+                          <title>{`${structure.name} (${structure.structureType})`}</title>
+                          <QuarryComponent
+                            x={structX} 
+                            y={structY} 
+                            size={TILE_SIZE_PX} 
+                            seed={tileSeed}
+                          />
+                        </g>
+                      </g>
+                    );
+                  }
+
+                  // Special handling for fortresses with custom SVG symbols
+                  if (structure.structureType === 'fortress' && !isRuined) {
+                    const tileSeed = seed + structure.location[0] * 31 + structure.location[1] * 37;
+                    // Parse year from formatted date like "June 3, 238 BC" or "June 3, 1500 CE"
+                    const yearMatch = formattedDate.match(/(\d+)\s*(BC|BCE|AD|CE)?/);
+                    let year = yearMatch ? parseInt(yearMatch[1]) : 0;
+                    if (yearMatch && (yearMatch[2] === 'BC' || yearMatch[2] === 'BCE')) {
+                      year = -year;
+                    }
+                    
+                    // Determine fortress era
+                    let era = 'medieval'; // Default
+                    if (year < -2000) era = 'prehistoric';
+                    else if (year < 500) era = 'ancient';
+                    else if (year < 1500) era = 'medieval';
+                    else if (year < 1750) era = 'renaissance';
+                    else if (year < 1900) era = 'early_modern';
+                    else if (year < 2000) era = 'modern';
+                    else era = 'contemporary';
+                    
+                    // Get cultural zone from structure or default
+                    const culturalZone = (structure as any).culturalZone || (structure as any).culture || 'EUROPEAN';
+                    
+                    // Use era and cultural zone for proper fortress selection
+                    const FortressComponent = getFortressSymbol('', era, culturalZone);
+                    
+                    return (
+                      <g 
+                        key={structure.id} 
+                        className="transition-transform duration-200"
+                        onMouseEnter={(e) => {
+                          if (!isDragging) {
+                            setHoveredPOI(structure);
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredPOI(null);
+                          setHoveredPOICoords(null);
+                        }}
+                      >
+                        <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
+                          <title>{`${structure.name} (${structure.structureType})`}</title>
+                          <FortressComponent
+                            x={structX} 
+                            y={structY} 
+                            size={TILE_SIZE_PX} 
+                            seed={tileSeed}
+                            fortressType={structure.name}
+                          />
+                          {hoveredPOI?.id === structure?.id && (
+                            <rect
+                              x={structX}
+                              y={structY}
+                              width={TILE_SIZE_PX}
+                              height={TILE_SIZE_PX}
+                              fill="none"
+                              stroke="rgba(255, 191, 0, 0.8)"
+                              strokeWidth="3"
+                              className="animate-pulse"
+                              pointerEvents="none"
+                            />
+                          )}
+                        </g>
+                      </g>
+                    );
+                  }
+                  
+                  // Handle lumber camps with custom symbol
+                  if (structure.structureType === 'lumber_camp') {
+                    const tileSeed = seed + structure.location[0] * 31 + structure.location[1] * 37;
+                    return (
+                      <g 
+                        key={structure.id} 
+                        className="transition-transform duration-200"
+                        onMouseEnter={(e) => {
+                          if (!isDragging) {
+                            setHoveredPOI(structure);
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredPOI(null);
+                          setHoveredPOICoords(null);
+                        }}
+                      >
+                        <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
+                          <title>{`${structure.name} (${structure.structureType})`}</title>
+                          <LumberCampSymbol
+                            x={structX}
+                            y={structY}
+                            size={TILE_SIZE_PX}
+                            seed={tileSeed}
+                          />
+                          {hoveredPOI?.id === structure?.id && (
+                            <rect
+                              x={structX}
+                              y={structY}
+                              width={TILE_SIZE_PX}
+                              height={TILE_SIZE_PX}
+                              fill="none"
+                              stroke="rgba(255, 191, 0, 0.8)"
+                              strokeWidth="3"
+                              className="animate-pulse"
+                              pointerEvents="none"
+                            />
+                          )}
                         </g>
                       </g>
                     );
@@ -1404,13 +2249,13 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 metalId={tile.mineralDeposit!.metalId}
                 quantity={tile.mineralDeposit!.quantity}
                 tileSize={TILE_SIZE_PX}
-                shouldAnimate={shouldRenderAnimations}
+                shouldAnimate={false}
               />
             ))}
 
             {/* Animals and NPCs layer  */}
             <g>
-              {animals.filter(animal => {
+              {(animals || []).filter(animal => {
                 // Only show animals within 10 tiles of player
                 if (logicalControlledIconX === null || logicalControlledIconY === null) return true;
                 const dx = animal.x - logicalControlledIconX;
@@ -1449,7 +2294,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   </text>
                 </g>
               ))}
-              {npcs.filter(npc => {
+              {(npcs || []).filter(npc => {
                 // Only show NPCs within 10 tiles of player
                 if (logicalControlledIconX === null || logicalControlledIconY === null) return true;
                 const dx = npc.x - logicalControlledIconX;
@@ -1475,7 +2320,12 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   {/* NPC glow completely removed - no lighting effects at all */}
                   {false && (() => {
                     const currentEra = (() => {
-                      const year = parseInt(formattedDate.split(' ')[0]);
+                      // Parse year from formatted date like "June 3, 238 BC" or "June 3, 1500 CE"
+                    const yearMatch = formattedDate.match(/(\d+)\s*(BC|BCE|AD|CE)?/);
+                    let year = yearMatch ? parseInt(yearMatch[1]) : 0;
+                    if (yearMatch && (yearMatch[2] === 'BC' || yearMatch[2] === 'BCE')) {
+                      year = -year;
+                    }
                       if (year < 500) return 'ANTIQUITY';
                       if (year < 1450) return 'MEDIEVAL'; 
                       if (year < 1800) return 'RENAISSANCE';
@@ -1649,7 +2499,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             </g>
 
             {/* Desert dust particles - atmospheric effect (reduced to 1/5th) */}
-            {shouldRenderDetailedSymbols && (
+            {/* Disable on Safari for performance */}
+            {shouldRenderDetailedSymbols && !isSafari && (
               <g>
                 {shouldRenderParticles && tiles.flat()
                   .filter(tile => tile.biome === BiomeType.DESERT && tile.isLand)
@@ -1682,6 +2533,19 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         }`} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-60" />
       </div>
+      
+      {/* POI Hover Tooltip */}
+      {hoveredPOI && hoveredPOICoords && (
+        <POIHoverTooltip
+          structure={hoveredPOI}
+          x={hoveredPOICoords.x}
+          y={hoveredPOICoords.y}
+          npcs={npcs}
+          culturalZone={mapData.culturalZone || 'EUROPEAN'}
+          era={parseDateString(mapData.timeSlice || '1650').era}
+          visible={true}
+        />
+      )}
     </div>
   );
 };

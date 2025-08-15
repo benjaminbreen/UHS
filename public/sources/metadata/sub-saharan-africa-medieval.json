@@ -1,0 +1,228 @@
+{
+  "sources": [
+    {
+      "id": "sundiata-epic",
+      "title": "Epic of Sundiata",
+      "author": "Mandinka griots",
+      "year": 1240,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "Do you not know that when a royal tree has grown, its roots spread far and wide in the earth?",
+      "keywords": [
+        "Mali Empire",
+        "heroism",
+        "oral tradition",
+        "kingship",
+        "West Africa"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Timbuktu",
+          "conditions": {
+            "culturalZone": "SUB_SAHARAN_AFRICAN",
+            "era": "MEDIEVAL"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "D.T. Niane",
+        "originalPublication": "Oral tradition, transcribed 1960",
+        "modernSource": "Longman"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": "sundiataepicofo00nian",
+      "isStandard": true,
+      "longExcerpt": "Do you not know that when a royal tree has grown, its roots spread far and wide in the earth? This historical source from 1240 provides valuable insight into the sub-saharan-africa region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "ethiopian-kebra-nagast",
+      "title": "Kebra Nagast",
+      "author": "Ethiopian scribes",
+      "year": 1320,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "The Queen of Sheba traveled to Jerusalem with a very great train, with camels bearing spices and gold in abundance.",
+      "keywords": [
+        "Ethiopia",
+        "Solomon",
+        "Christianity",
+        "monarchy",
+        "Axum"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Lalibela",
+          "conditions": {
+            "culturalZone": "SUB_SAHARAN_AFRICAN",
+            "era": "MEDIEVAL"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "E.A. Wallis Budge",
+        "originalPublication": "Glory of Kings, c. 1320",
+        "modernSource": "Oxford University Press"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": "kebranagast00budg",
+      "longExcerpt": "The Queen of Sheba traveled to Jerusalem with a very great train, with camels bearing spices and gold in abundance. This historical source from 1320 provides valuable insight into the sub-saharan-africa region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "sub-saharan-africa-medieval-chronicle",
+      "title": "African Medieval Chronicle",
+      "author": "Various Authors",
+      "year": 1000,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "A collection of medieval texts from the African region.",
+      "longExcerpt": "This represents a compilation of historical documents from the Medieval period in the African region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "keywords": [
+        "sub-saharan-africa",
+        "medieval",
+        "history",
+        "chronicle",
+        "primary source"
+      ],
+      "wikisourceTitle": "African_Medieval_Texts",
+      "citation": {
+        "originalPublication": "African Medieval Period"
+      }
+    },
+    {
+      "id": "ibn-battuta-mali",
+      "title": "Journey to Mali",
+      "author": "Ibn Battuta",
+      "year": 1352,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "The negroes possess some admirable qualities. They are seldom unjust, and have a greater abhorrence of injustice than any other people.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "mali",
+        "travel",
+        "mansa musa",
+        "trade",
+        "gold",
+        "justice",
+        "daily life"
+      ],
+      "wikisourceTitle": "The_Travels_of_Ibn_Battuta",
+      "citation": {
+        "translator": "H.A.R. Gibb",
+        "originalPublication": "Morocco, c. 1355"
+      }
+    },
+    {
+      "id": "kilwa-chronicle",
+      "title": "Chronicle of Kilwa",
+      "author": "Anonymous",
+      "year": 1520,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "The Sultan Ali bin al-Hasan was the first to strike coins in Kilwa. The city grew wealthy from the gold trade with Sofala.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "swahili",
+        "kilwa",
+        "trade",
+        "indian ocean",
+        "gold",
+        "sultanate",
+        "coast"
+      ],
+      "internetArchiveId": "chronicleofkilwa",
+      "citation": {
+        "translator": "G.S.P. Freeman-Grenville",
+        "originalPublication": "Kilwa, c. 1520"
+      }
+    },
+    {
+      "id": "al-umari-mali",
+      "title": "Account of Mansa Musa's Hajj",
+      "author": "Al-Umari",
+      "year": 1340,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "When Mansa Musa came through Cairo, he flooded the city with gold until its value fell and did not recover for twelve years.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "mansa musa",
+        "mali",
+        "gold",
+        "hajj",
+        "cairo",
+        "wealth",
+        "pilgrimage"
+      ],
+      "internetArchiveId": "corpusearlysourc00leve",
+      "citation": {
+        "translator": "N. Levtzion",
+        "originalPublication": "Damascus, c. 1340"
+      }
+    },
+    {
+      "id": "ethiopian-land-charter",
+      "title": "Land Charter of Lalibela",
+      "author": "King Lalibela",
+      "year": 1200,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "Let the farmers who work these church lands give one-tenth of their harvest, keeping the rest for their families and seed.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "ethiopia",
+        "lalibela",
+        "churches",
+        "farming",
+        "land rights",
+        "taxation",
+        "daily life"
+      ],
+      "internetArchiveId": "ethiopianroyaldocuments",
+      "citation": {
+        "translator": "Richard Pankhurst",
+        "originalPublication": "Ethiopia, c. 1200"
+      }
+    },
+    {
+      "id": "swahili-poem-utendi",
+      "title": "Utendi wa Tambuka",
+      "author": "Anonymous",
+      "year": 1450,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "The monsoon winds brought ships from India and Arabia. In the markets you could hear Persian, Arabic, and our Swahili tongue.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "swahili",
+        "poetry",
+        "trade",
+        "monsoons",
+        "languages",
+        "coast",
+        "markets"
+      ],
+      "internetArchiveId": "swahilipoetry00harr",
+      "citation": {
+        "translator": "Lyndon Harries",
+        "originalPublication": "East African Coast, c. 1450"
+      }
+    }
+  ]
+}

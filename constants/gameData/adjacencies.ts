@@ -242,7 +242,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   
   // Taiwan and East China Sea
   "Taiwan Strait": { S: "Luzon Highlands", N: "Fujian Coast", E: "Ryukyu Islands", W: "Pearl River Delta" },
-  // ... (rest of the object)
+
 
   // === NORTH AMERICA ===
   // Pacific Coast
@@ -256,7 +256,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Shasta Region": { N: "Cascade Range", S: "Sacramento Valley", E: "Great Basin", W: "Pacific Coast Ranges" },
   "Sacramento Valley": { N: "Shasta Region", S: "San Francisco Bay", E: "Sierra Nevada", W: "Pacific Coast Ranges" },
   "Sierra Nevada": { N: "Shasta Region", S: "Central Valley", E: "Great Basin", W: "Sacramento Valley" },
-  "Pacific Coast Ranges": { N: "Redwood Coast", S: "Monterey Bay", E: "Sacramento Valley", W: "LIMINAL_PACIFIC_TO_EAST_ASIA" },
+  "Pacific Coast Ranges": { N: "Redwood Coast", S: "San Francisco Bay", E: "Sacramento Valley", W: "LIMINAL_PACIFIC_TO_EAST_ASIA" },
   
   // Central California Coast
   "San Francisco Bay": { N: "Sacramento Valley", S: "Monterey Bay", E: "Central Valley", W: "Pacific Coast Ranges" },
@@ -269,16 +269,16 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   
   // Southern California
   "Santa Barbara Channel": { N: "San Luis Obispo", S: "Los Angeles Basin", E: "Mojave Desert", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
-  "Los Angeles Basin": { N: "Santa Barbara Channel", S: "San Diego Region", E: "Mojave Desert", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
-  "San Diego Region": { N: "Los Angeles Basin", S: "Baja California", E: "Sonoran Desert", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
+  "Los Angeles Basin": { N: "Santa Barbara Channel", S: "San Diego Bay", E: "Mojave Desert", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
+  "San Diego Bay": { N: "Los Angeles Basin", S: "Baja California", E: "Sonoran Desert", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
   "Mojave Desert": { N: "Central Valley", S: "Sonoran Desert", E: "Colorado Plateau", W: "Los Angeles Basin" },
   "Channel Islands": { E: "Los Angeles Basin", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
-  "Baja California": { N: "San Diego Region", S: "Sinaloa Coast", E: "Sonoran Desert", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
+  "Baja California": { N: "San Diego Bay", S: "Sinaloa Coast", E: "Sonoran Desert", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
   "Sinaloa Coast": { N: "Baja California", S: "Valley of Mexico", E: "Chihuahuan Desert", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
   "Great Basin": { W: "Sierra Nevada", S: "Mojave Desert", E: "Colorado Plateau", N: "Snake River Plain" },
 
   // Southwest
-  "Sonoran Desert": { E: "Colorado Plateau", W: "San Diego Region", N: "Mojave Desert", S: "Valley of Mexico" },
+  "Sonoran Desert": { E: "Colorado Plateau", W: "San Diego Bay", N: "Mojave Desert", S: "Valley of Mexico" },
   "Chaco Canyon": { N: "Colorado Plateau", S: "Rio Grande Valley", E: "Black Hills" },
   "Rio Grande Valley": { N: "Chaco Canyon", S: "Valley of Mexico", E: "Tallgrass Prairie", W: "Colorado Plateau" },
   "Colorado Plateau": { S: "Rio Grande Valley", W: "Sonoran Desert", E: "Black Hills", N: "Yellowstone Basin" },
@@ -362,7 +362,8 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Pine Barrens": { N: "Delaware River Valley", S: "Chesapeake Bay", E: "LIMINAL_ATLANTIC_TO_EUROPE" },
   "Outer Banks": { N: "Chesapeake Bay", S: "Everglades", E: "LIMINAL_ATLANTIC_TO_EUROPE" },
   "Delaware River Valley": { N: "Cape Cod", S: "Pine Barrens", W: "Hudson River Valley", E: "LIMINAL_ATLANTIC_TO_EUROPE" },
-  "Tidewater Region": { N: "Chesapeake Bay", S: "Okefenokee Swamp", E: "LIMINAL_ATLANTIC_TO_EUROPE" },
+  "Tidewater Region": { N: "Chesapeake Bay", S: "Virginia", E: "LIMINAL_ATLANTIC_TO_EUROPE", W: "Virginia" },
+  "Virginia": { N: "Chesapeake Bay", S: "Okefenokee Swamp", E: "Tidewater Region" },
 
   // === SOUTH AMERICA ===
   // Andes North
@@ -477,7 +478,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
 
   // Maghreb
   "Atlas Mountains": { N: "Fez Plateau", S: "Timbuktu Basin", E: "Tripolitania", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
-  "Fez Plateau": { S: "Atlas Mountains", E: "Tunisian Sahel", W: "Rif Coast" },
+  "Fez Plateau": { S: "Atlas Mountains", E: "Tunisian Sahel", W: "Rif Coast", N: "Rif Coast" },
   "Tunisian Sahel": { W: "Fez Plateau", E: "Bay of Naples", S: "Tripolitania" },
   "Rif Coast": { E: "Fez Plateau", N: "Strait of Gibraltar", S: "Atlas Mountains", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
   "Draa Valley": { N: "Atlas Mountains", S: "Timbuktu Basin", E: "Timbuktu Basin" },

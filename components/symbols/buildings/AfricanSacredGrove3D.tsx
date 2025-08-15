@@ -10,6 +10,8 @@ interface AfricanSacredGrove3DProps {
 }
 
 const AfricanSacredGrove3D: React.FC<AfricanSacredGrove3DProps> = React.memo(({ x, y, width, height, size, seed, tile }) => {
+    // Increased size by 40% for more imposing presence
+    const scaleFactor = 1.4;
     const rand = new ValueNoise(seed + tile.x * 193 + tile.y * 197).random;
     const uniqueId = `grove-${tile.x}-${tile.y}`;
     
@@ -22,28 +24,46 @@ const AfricanSacredGrove3D: React.FC<AfricanSacredGrove3DProps> = React.memo(({ 
 
     return (
         <g filter="url(#symbolShadow)">
-             {/* Clearing Base */}
-            <ellipse cx={x+width/2} cy={y+height*0.75} rx={width/2} ry={height/4} fill={groundColor} />
+             {/* Clearing Base - Enlarged */}
+            <ellipse cx={x+width/2} cy={y+height*0.75} rx={width/2 * scaleFactor} ry={height/4 * scaleFactor} fill={groundColor} />
 
-            {/* Central Sacred Tree */}
+            {/* Central Sacred Tree - Larger and more majestic */}
             <g>
-                <rect x={x+width/2 - 2} y={y+height*0.2} width={4} height={height*0.6} fill={treeTrunk} />
-                <circle cx={x+width/2} cy={y+height*0.2} r={8} fill={treeCanopy} />
-                <circle cx={x+width/2-2} cy={y+height*0.2-2} r={4} fill={treeHighlight} />
+                <rect x={x+width/2 - 3} y={y+height*0.15} width={6} height={height*0.65} fill={treeTrunk} strokeWidth="0.5" stroke="#2d1810" />
+                <circle cx={x+width/2} cy={y+height*0.15} r={12} fill={treeCanopy} />
+                <circle cx={x+width/2-3} cy={y+height*0.15-3} r={6} fill={treeHighlight} />
+                <circle cx={x+width/2+2} cy={y+height*0.15+2} r={3} fill={treeHighlight} opacity="0.7" />
             </g>
 
-            {/* Surrounding smaller trees */}
-            {[...Array(5)].map((_, i) => (
-                <g key={`small-tree-${i}`}>
-                    <rect x={x + 5 + i * 4 + rand()*2} y={y+height*0.4+rand()*5} width={2} height={height*0.4} fill={treeTrunk} opacity="0.8"/>
-                    <circle cx={x + 6 + i * 4 + rand()*2} cy={y+height*0.4+rand()*5} r={4} fill={treeCanopy} opacity="0.8"/>
-                </g>
-            ))}
+            {/* Surrounding smaller trees - More and larger */}
+            {[...Array(8)].map((_, i) => {
+                const treeX = x + width * 0.15 + (i % 3) * width * 0.25 + rand()*width*0.1;
+                const treeY = y + height * 0.35 + Math.floor(i/3) * height * 0.15 + rand()*height*0.08;
+                return (
+                    <g key={`small-tree-${i}`}>
+                        <rect x={treeX - 1.5} y={treeY} width={3} height={height*0.45} fill={treeTrunk} opacity="0.8" stroke="#2d1810" strokeWidth="0.3"/>
+                        <circle cx={treeX} cy={treeY} r={5 + i % 2} fill={treeCanopy} opacity="0.8"/>
+                        <circle cx={treeX - 1} cy={treeY - 1} r={2} fill={treeHighlight} opacity="0.6"/>
+                    </g>
+                );
+            })}
 
-            {/* Standing Stones */}
-             {[...Array(4)].map((_, i) => (
-                <ellipse key={`stone-${i}`} cx={x + 10 + i * 4 + rand()*3} cy={y+height*0.7} rx={1.5} ry={3} fill={stoneColor} />
-            ))}
+            {/* Standing Stones - Larger and more imposing */}
+             {[...Array(6)].map((_, i) => {
+                const angle = (i / 6) * Math.PI * 2;
+                const radius = width * 0.3;
+                const stoneX = x + width/2 + Math.cos(angle) * radius;
+                const stoneY = y + height * 0.7 + Math.sin(angle) * radius * 0.3;
+                return (
+                    <ellipse key={`stone-${i}`} 
+                        cx={stoneX} cy={stoneY} 
+                        rx={2.5} ry={5} 
+                        fill={stoneColor} 
+                        stroke="#3d3d3d" 
+                        strokeWidth="0.3" 
+                    />
+                );
+            })}
         </g>
     );
 });

@@ -1,0 +1,26 @@
+{
+  "sources": [
+    {
+      "id": "engels-manchester",
+      "title": "The Condition of the Working Class in England",
+      "author": "Friedrich Engels",
+      "year": 1845,
+      "excerpt": "The streets are generally unpaved, rough, dirty, filled with vegetable and animal refuse.",
+      "longExcerpt": "Manchester, the classic type of a modern manufacturing town. The working-people's quarters are sharply separated from the sections of the city reserved for the middle-class. The streets are generally unpaved, rough, dirty, filled with vegetable and animal refuse, without sewers or gutters, but supplied with foul, stagnant pools instead. The atmosphere is poisoned by the smoke of a dozen tall factory chimneys. A horde of ragged women and children swarm about here, as filthy as the swine that thrive upon the garbage heaps.",
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "keywords": [
+        "condition",
+        "working",
+        "class",
+        "england"
+      ],
+      "wikisourceTitle": "The_Condition_of_the_Working_Class_in_England",
+      "citation": {
+        "originalPublication": "Friedrich Engels, 1845"
+      }
+    }
+  ]
+}

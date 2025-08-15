@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {
+      "id": "potosi-chronicle",
+      "title": "Chronicle of Potosí",
+      "author": "Bartolomé Arzáns de Orsúa y Vela",
+      "year": 1705,
+      "excerpt": "This mountain of silver has consumed eight million Indian lives in its hellish mines.",
+      "longExcerpt": "Potosí, richest city in the Americas, built on a mountain of silver and indigenous blood. The Cerro Rico has yielded enough silver to build a bridge to Spain, they say. But at what cost? Eight million Indians have died in these mines, chewing coca leaves to survive the altitude, the cold, the sixteen-hour shifts. The city has 160,000 souls, 36 churches, 14 dance halls, 800 professional gamblers. Prices exceed those of Paris. A chicken costs eight reales, an Indian life is worth nothing.",
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "keywords": [
+        "chronicle",
+        "potosí"
+      ],
+      "wikisourceTitle": "Chronicle_of_Potosí",
+      "citation": {
+        "originalPublication": "Bartolomé Arzáns de Orsúa y Vela, 1705"
+      }
+    }
+  ]
+}

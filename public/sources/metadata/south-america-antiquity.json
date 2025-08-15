@@ -1,0 +1,25 @@
+{
+  "sources": [
+    {
+      "id": "moche-ceramics",
+      "title": "Moche Portrait Vessels",
+      "author": "Moche Ceramicists",
+      "year": 400,
+      "excerpt": "Each face is unique - scars, wrinkles, expressions captured in clay with photographic precision.",
+      "longExcerpt": "The Moche of Peru's north coast created portrait vessels unlike anything in the ancient world. Not idealized gods or generic humans, but individuals - this man's broken nose, that woman's distinctive cheekbones, an elder's wrinkled smile. Some show the same person at different ages. Were they rulers? Ancestors? The vessels held chicha beer for ceremonies where the dead drank with the living. Each portrait preserves a soul, a name we'll never know, a life lived fifteen centuries ago.",
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "keywords": [
+        "moche",
+        "portrait",
+        "vessels"
+      ],
+      "wikisourceTitle": "Moche_Portrait_Vessels",
+      "citation": {
+        "originalPublication": "Moche Ceramicists, 400"
+      }
+    }
+  ]
+}

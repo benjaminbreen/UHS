@@ -14,6 +14,8 @@ const HinduTemple3D: React.FC<HinduTemple3DProps> = React.memo(({ x, y, width, h
     const uniqueId = `temple-${tile.x}-${tile.y}`;
     const elements = [];
 
+    // Increased size by 40% for more imposing presence
+    const scaleFactor = 1.4;
     const stoneColor = `hsl(35, 40%, ${80 + rand() * 10}%)`;
     const stoneShadow = `hsl(35, 40%, 65%)`;
     const goldColor = `hsl(45, 80%, 60%)`;
@@ -21,7 +23,7 @@ const HinduTemple3D: React.FC<HinduTemple3DProps> = React.memo(({ x, y, width, h
     const highlightColor = `hsl(40, 40%, 90%)`;
     const outlineColor = `hsl(35, 40%, 40%)`;
 
-    const depth = size * 0.3;
+    const depth = size * 0.4 * scaleFactor;
 
     // Cast Shadow
     elements.push(
@@ -30,42 +32,42 @@ const HinduTemple3D: React.FC<HinduTemple3DProps> = React.memo(({ x, y, width, h
     );
 
 
-    // Base Platform
-    const platformHeight = height * 0.2;
-    elements.push(<rect x={x} y={y + height * 0.8} width={width} height={platformHeight} fill={`url(#stoneGrad-${uniqueId})`} stroke={outlineColor} strokeWidth="0.3"/>);
-    elements.push(<path d={`M ${x+width} ${y+height*0.8} L ${x+width+depth} ${y+height*0.8-depth*0.5} L ${x+width+depth} ${y+height-depth*0.5} L ${x+width} ${y+height} Z`} fill={stoneShadow} stroke={outlineColor} strokeWidth="0.3"/>);
+    // Base Platform - Enlarged
+    const platformHeight = height * 0.25 * scaleFactor;
+    elements.push(<rect x={x - width * 0.2} y={y + height * 0.75} width={width * 1.4} height={platformHeight} fill={`url(#stoneGrad-${uniqueId})`} stroke={outlineColor} strokeWidth="0.5"/>);
+    elements.push(<path d={`M ${x+width*1.2} ${y+height*0.75} L ${x+width*1.2+depth} ${y+height*0.75-depth*0.5} L ${x+width*1.2+depth} ${y+height*1.25-depth*0.5} L ${x+width*1.2} ${y+height*1.25} Z`} fill={stoneShadow} stroke={outlineColor} strokeWidth="0.5"/>);
 
-    // Main Structure (Mandapa)
-    const mandapaHeight = height * 0.5;
-    const mandapaY = y + height - platformHeight - mandapaHeight;
-    elements.push(<rect x={x + width * 0.1} y={mandapaY} width={width * 0.8} height={mandapaHeight} fill={stoneColor} stroke={outlineColor} strokeWidth="0.3"/>);
-    elements.push(<path d={`M ${x+width*0.9} ${mandapaY} L ${x+width*0.9+depth*0.8} ${mandapaY-depth*0.4} L ${x+width*0.9+depth*0.8} ${y+height*0.8-depth*0.4} L ${x+width*0.9} ${y+height*0.8} Z`} fill={stoneShadow} stroke={outlineColor} strokeWidth="0.3"/>);
+    // Main Structure (Mandapa) - Larger
+    const mandapaHeight = height * 0.6 * scaleFactor;
+    const mandapaY = y + height * 0.75 - mandapaHeight;
+    elements.push(<rect x={x - width * 0.1} y={mandapaY} width={width * 1.2} height={mandapaHeight} fill={stoneColor} stroke={outlineColor} strokeWidth="0.5"/>);
+    elements.push(<path d={`M ${x+width*1.1} ${mandapaY} L ${x+width*1.1+depth*0.8} ${mandapaY-depth*0.4} L ${x+width*1.1+depth*0.8} ${y+height*0.75-depth*0.4} L ${x+width*1.1} ${y+height*0.75} Z`} fill={stoneShadow} stroke={outlineColor} strokeWidth="0.5"/>);
     
-    // Shikhara (Tower)
+    // Shikhara (Tower) - Taller and more prominent
     const shikharaY = mandapaY;
-    const shikharaHeight = height * 0.5;
+    const shikharaHeight = height * 0.7 * scaleFactor;
     elements.push(
         <path 
-            d={`M ${x + width*0.3} ${shikharaY} C ${x + width*0.3} ${shikharaY - shikharaHeight*0.8}, ${x + width*0.7} ${shikharaY - shikharaHeight*0.8}, ${x + width*0.7} ${shikharaY} L ${x+width*0.6} ${y} L ${x+width*0.4} ${y} Z`}
+            d={`M ${x + width*0.2} ${shikharaY} C ${x + width*0.2} ${shikharaY - shikharaHeight*0.8}, ${x + width*0.8} ${shikharaY - shikharaHeight*0.8}, ${x + width*0.8} ${shikharaY} L ${x+width*0.65} ${y - height*0.2} L ${x+width*0.35} ${y - height*0.2} Z`}
             fill={accentColor}
             stroke={outlineColor}
-            strokeWidth="0.4"
+            strokeWidth="0.6"
         />
     );
-    // Shikhara carving pattern
-    for(let i = 0; i < 5; i++) {
-        const lineY = shikharaY - i * 3.5;
-        if (lineY > y + 2) {
-             elements.push(<path d={`M ${x+width*0.35} ${lineY} C ${x+width/2} ${lineY-2.5}, ${x+width*0.65} ${lineY}`} stroke={goldColor} strokeWidth="0.6" fill="none" opacity="0.7"/>);
+    // Shikhara carving pattern - More detailed
+    for(let i = 0; i < 7; i++) {
+        const lineY = shikharaY - i * 5;
+        if (lineY > y - height*0.15) {
+             elements.push(<path d={`M ${x+width*0.25} ${lineY} C ${x+width/2} ${lineY-4}, ${x+width*0.75} ${lineY}`} stroke={goldColor} strokeWidth="0.8" fill="none" opacity="0.7"/>);
         }
     }
     
-    // Finial (Kalasha) on top
-    elements.push(<circle cx={x + width/2} cy={y-2} r={3} fill={goldColor} stroke="black" strokeWidth="0.2"/>);
-    elements.push(<line x1={x+width/2} y1={y-2} x2={x+width/2} y2={y-6} stroke={goldColor} strokeWidth="1.2"/>);
+    // Finial (Kalasha) on top - Larger and more prominent
+    elements.push(<circle cx={x + width/2} cy={y-height*0.2-3} r={5} fill={goldColor} stroke="black" strokeWidth="0.4"/>);
+    elements.push(<line x1={x+width/2} y1={y-height*0.2-3} x2={x+width/2} y2={y-height*0.2-10} stroke={goldColor} strokeWidth="2"/>);
 
-    // Entrance
-    elements.push(<rect x={x + width/2 - 5} y={y + height * 0.6} width={10} height={height*0.4} fill="#4a2c17" stroke="black" strokeWidth="0.3"/>);
+    // Entrance - Larger
+    elements.push(<rect x={x + width/2 - 8} y={y + height * 0.55} width={16} height={height*0.45} fill="#4a2c17" stroke="black" strokeWidth="0.5"/>);
 
     return (
         <g filter="url(#symbolShadow)">

@@ -26,6 +26,7 @@ export { default as IslamicMosque3D } from './IslamicMosque3D';
 export { default as BuddhistTemple3D } from './BuddhistTemple3D';
 export { default as HinduTemple3D } from './HinduTemple3D';
 export { default as AfricanSacredGrove3D } from './AfricanSacredGrove3D';
+export { default as SacredFire3D } from './SacredFire3D';
 
 // NEW: Export additional cultural buildings
 export { default as VikingLonghouse3D } from './VikingLonghouse3D';
@@ -34,3 +35,23 @@ export { default as AfricanStoneBuilding3D } from './AfricanStoneBuilding3D';
 export { default as BarkLonghouse3D } from './BarkLonghouse3D';
 export { default as PrehistoricShelter3D } from './PrehistoricShelter3D';
 export { default as AboriginalHut3D } from './AboriginalHut3D';
+
+export { default as StiltHouse3D } from './StiltHouse3D';
+export { default as BambooHouse3D } from './BambooHouse3D';
+export { default as EgyptianBuilding3D } from './EgyptianBuilding3D';
+export { default as MesopotamianBuilding3D } from './MesopotamianBuilding3D';
+
+// NEW: Export Roman and Classical buildings
+export { default as RomanInsula3D } from './RomanInsula3D';
+export { default as RomanVilla3D } from './RomanVilla3D';
+export { default as GreekHouse3D } from './GreekHouse3D';
+
+// NEW: Export Asian and nomadic buildings
+export { default as JapaneseHouse3D } from './JapaneseHouse3D';
+export { default as Yurt3D } from './Yurt3D';
+
+// NEW: Export Inca building
+export { default as IncaStoneHouse3D } from './IncaStoneHouse3D';
+
+// NEW: Export Tropical Hut
+export { default as TropicalHut3D } from './TropicalHut3D';

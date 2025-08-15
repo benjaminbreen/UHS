@@ -288,3 +288,62 @@ body.disable-animations .animate-dust-drift {
     -webkit-backface-visibility: hidden;
   }
 }
+
+/* Mobile sidebar slide animations */
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideInLeft {
+  animation: slideInLeft 0.3s ease-out forwards;
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.3s ease-out forwards;
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+  /* Larger touch targets for mobile */
+  button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  /* Optimize scrolling performance on mobile */
+  .sidebar-content {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Prevent text selection during swipe */
+  .map-container {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* Improve button feedback on mobile */
+  button:active {
+    transform: scale(0.95);
+  }
+}

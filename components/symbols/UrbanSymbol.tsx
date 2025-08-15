@@ -5,31 +5,48 @@ import React, { useMemo } from 'react';
 import { BiomeType, Tile, HistoricalEra } from '../../types/index';
 import { ValueNoise } from '../../utils/noise';
 import { parseDateString } from '../../utils/dateUtils';
+import { getLocationCulturalStyle, shouldIncludePrehistoricBuildings, getCulturalBuildingStyle } from '../../utils/culturalMappingUtils';
+
+// Type declaration for debug logging
+declare global {
+  interface Window {
+    urbanSymbolLogged?: boolean;
+  }
+}
 import {
   AboriginalHut3D,
   AdobeBuilding3D,
   AfricanRoundHut3D,
   AfricanStoneBuilding3D,
   AztecDwelling3D,
+  BambooHouse3D,
   BarkLonghouse3D,
   EastAsianPagoda3D,
   EuropeanCottage3D,
   GeorgianRowhouse3D,
+  GreekHouse3D,
   Igloo3D,
+  IncaStoneHouse3D,
   IndustrialBuilding3D,
   IndustrialRowhouse3D,
+  JapaneseHouse3D,
   Longhouse3D,
   MedievalBuilding3D,
+  MediterraneanBuilding3D,
   ModernSkyscraper3D,
   ModernCivic3D,
   NativeTeepee3D,
   OttomanTownhouse3D,
   PolynesianHouse3D,
   PrehistoricShelter3D,
+  RomanInsula3D,
+  RomanVilla3D,
   SouthAsianTemple3D,
   SouthAsianBuilding3D,
-  MediterraneanBuilding3D,
+  StiltHouse3D,
+  TropicalHut3D,
   VikingLonghouse3D,
+  Yurt3D,
 } from './buildings';
 
 interface UrbanSymbolProps {
@@ -41,6 +58,7 @@ interface UrbanSymbolProps {
   date: string;
   zone: string;
   nightIntensity?: number;
+  location?: string; // Add location prop for better mapping
 }
 
 const getCulturalStyle = (zone: string): string => {
@@ -121,10 +139,35 @@ const getRoofPalette = (culturalStyle: string, eraLevel: number, variant: number
   return colors[variant % colors.length];
 };
 
-const UrbanSymbol: React.FC<UrbanSymbolProps> = React.memo(({ x, y, size, seed, tile, date, zone, nightIntensity = 0 }) => {
+const UrbanSymbol: React.FC<UrbanSymbolProps> = React.memo(({ x, y, size, seed, tile, date, zone, nightIntensity = 0, location }) => {
   const { era } = parseDateString(date);
   const eraLevel = getEraLevel(era as HistoricalEra);
-  const culturalStyle = getCulturalStyle(zone);
+  
+  // Parse year from formatted date like "June 3, 238 BC" or "June 3, 1500 CE"
+  const yearMatch = date.match(/(\d+)\s*(BC|BCE|AD|CE)?/);
+  let year = yearMatch ? parseInt(yearMatch[1]) : 0;
+  if (yearMatch && (yearMatch[2] === 'BC' || yearMatch[2] === 'BCE')) {
+    year = -year;
+  }
+  
+  // Use the new cultural mapping system
+  const culturalMapping = getLocationCulturalStyle(location || zone, year);
+  const culturalStyle = getCulturalBuildingStyle(culturalMapping.primaryCulture);
+  const secondaryCulture = culturalMapping.secondaryCulture ? getCulturalBuildingStyle(culturalMapping.secondaryCulture) : null;
+  const mixRatio = culturalMapping.mixRatio || 0;
+  const specialBuildings = culturalMapping.specialBuildings || [];
+  
+  // Debug logging for Pacific Coast issue
+  if (location && location.toLowerCase().includes('pacific') && year < 1492) {
+    console.log('[UrbanSymbol] Pacific Coast detection:', {
+      location,
+      year,
+      culturalMapping,
+      culturalStyle,
+      specialBuildings
+    });
+  }
+  
   const climate = getClimate(zone);
   const isCityCenter = tile.biome === BiomeType.CITY_CENTER;
 
@@ -167,207 +210,391 @@ const UrbanSymbol: React.FC<UrbanSymbolProps> = React.memo(({ x, y, size, seed, 
     return { patternId, baseColor };
   }, [eraLevel, tile.x, tile.y]);
 
-  const renderBuilding = () => {
-    const { width, height, xOffset, yOffset, rand, roofColor, hasTimberFrame } = buildingData;
-    const commonProps = { x: x + xOffset, y: y + yOffset, width, height, size, seed, tile, roofColor, hasTimberFrame, era: era as HistoricalEra, nightIntensity };
+  // Memoized building selection to prevent random changes on re-renders
+  const selectedBuildingData = useMemo(() => {
+    const { rand } = buildingData;
+    
+    // Determine if we should use secondary culture or special buildings
+    const useSecondaryBuilding = secondaryCulture && rand(300) < mixRatio;
+    const includePrehistoric = shouldIncludePrehistoricBuildings(year, tile.biome === BiomeType.HAMLET ? 'HAMLET' : 'CITY', culturalMapping);
+    
+    // Check for special building selection
+    const selectSpecialBuilding = () => {
+      if (!specialBuildings || specialBuildings.length === 0) return null;
+      
+      // Match special building types to components
+      const buildingMap: { [key: string]: any } = {
+        'VikingLonghouse3D': VikingLonghouse3D,
+        'MediterraneanBuilding3D': MediterraneanBuilding3D,
+        'RomanInsula3D': RomanInsula3D,
+        'RomanVilla3D': RomanVilla3D,
+        'GreekHouse3D': GreekHouse3D,
+        'EgyptianBuilding3D': AfricanStoneBuilding3D, // Using as fallback
+        'PrehistoricShelter3D': PrehistoricShelter3D,
+        'AfricanStoneBuilding3D': AfricanStoneBuilding3D,
+        'AfricanRoundHut3D': AfricanRoundHut3D,
+        'MesopotamianBuilding3D': OttomanTownhouse3D, // Using as fallback
+        'OttomanTownhouse3D': OttomanTownhouse3D,
+        'SouthAsianBuilding3D': SouthAsianBuilding3D,
+        'EastAsianPagoda3D': EastAsianPagoda3D,
+        'JapaneseHouse3D': JapaneseHouse3D,
+        'BambooHouse3D': BambooHouse3D,
+        'StiltHouse3D': StiltHouse3D,
+        'PolynesianHouse3D': PolynesianHouse3D,
+        'MaoriPa3D': PolynesianHouse3D, // Using as fallback
+        'AboriginalHut3D': AboriginalHut3,
+        'Igloo3D': Igloo3D,
+        'AdobeBuilding3D': AdobeBuilding3D,
+        'NativeTeepee3D': NativeTeepee3D,
+        'Longhouse3D': Longhouse3D,
+        'BarkLonghouse3D': BarkLonghouse3D,
+        'AztecDwelling3D': AztecDwelling3D,
+        'IncaStoneHouse3D': IncaStoneHouse3D,
+        'TropicalHut3D': TropicalHut3D,
+        'Yurt3D': Yurt3D
+      };
+      
+      // Select a building from special buildings list
+      const buildingName = specialBuildings[Math.floor(rand(400) * specialBuildings.length)];
+      return buildingMap[buildingName] || null;
+    };
+    
+    const SpecialBuilding = selectSpecialBuilding();
     
     let selectedBuilding = '';
     let buildingComponent = null;
     
-    // Cultural mixing system - determine if we should use mixed architecture
-    const getMixedCulture = () => {
-      const year = parseInt(date.split(' ')[0]) || 1000;
-      const isTransitionEra = (eraLevel === 3 && rand(100) > 0.7) || (eraLevel === 4 && rand(101) > 0.8); // Era transitions
-      const isCoastalTrade = zone.toLowerCase().includes('coast') || zone.toLowerCase().includes('port') || zone.toLowerCase().includes('mediterranean');
-      const isCulturalBorderland = zone.toLowerCase().includes('istanbul') || zone.toLowerCase().includes('spain') || zone.toLowerCase().includes('balkans') || zone.toLowerCase().includes('silk road');
-      const isColonialPeriod = year >= 1500 && year <= 1900;
-      const isUrbanCenter = tile.biome === BiomeType.CITY_CENTER || tile.biome === BiomeType.DENSE_CITY;
-      
-      // Determine mixing probability
-      let mixingChance = 0;
-      if (isCulturalBorderland) mixingChance += 0.4;
-      if (isCoastalTrade) mixingChance += 0.2;
-      if (isTransitionEra) mixingChance += 0.3;
-      if (isColonialPeriod && culturalStyle === 'SUB_SAHARAN_AFRICAN') mixingChance += 0.3; // European colonial influence
-      if (isColonialPeriod && culturalStyle === 'SOUTH_AMERICAN') mixingChance += 0.25; // Spanish colonial
-      if (isUrbanCenter) mixingChance += 0.1; // Cities more cosmopolitan
-      
-      // Social stratification - poorer areas have older building styles
-      const isSlumsArea = tile.biome === BiomeType.LOW_DENSITY_CITY && rand(150) > 0.6;
-      if (isSlumsArea) mixingChance += 0.2; // More likely to have older/mixed styles
-      
-      if (rand(200) < mixingChance) {
-        // Determine secondary culture based on context
-        if (culturalStyle === 'MENA' && (isCulturalBorderland || isCoastalTrade)) return 'EUROPEAN';
-        if (culturalStyle === 'EUROPEAN' && zone.toLowerCase().includes('istanbul')) return 'MENA';
-        if (culturalStyle === 'SUB_SAHARAN_AFRICAN' && isColonialPeriod) return 'EUROPEAN';
-        if (culturalStyle === 'SOUTH_AMERICAN' && isColonialPeriod) return 'EUROPEAN';
-        if (culturalStyle === 'EAST_ASIAN' && isCoastalTrade && year >= 1800) return 'EUROPEAN';
-        if (isTransitionEra && eraLevel === 4) return culturalStyle; // Same culture but mixed eras
-      }
-      
-      return null; // No mixing
-    };
-    
-    const mixedCulture = getMixedCulture();
-    const isEraTransition = mixedCulture === culturalStyle; // Same culture, mixed eras
-    const useSecondaryBuilding = mixedCulture && rand(300) > 0.5; // 50% chance to use secondary culture's building
-    
-    // Handle prehistoric era first
-    if (eraLevel === 0 && !mixedCulture) {
+    // Handle prehistoric buildings or special buildings first
+    if (includePrehistoric && rand(450) > 0.7) {
       selectedBuilding = 'PrehistoricShelter3D';
-      buildingComponent = <PrehistoricShelter3D {...commonProps} />;
-    } else if (eraLevel >= 6) { // Future era only (post-2000) for skyscrapers
-      selectedBuilding = 'ModernSkyscraper3D';
-      buildingComponent = <ModernSkyscraper3D {...commonProps} />;
-    } else if (eraLevel === 5) { // Modern era (20th century) - mix of building types
-      // Mix of industrial, colonial, and early modern buildings for 20th century
+      buildingComponent = PrehistoricShelter3D;
+    } else if (SpecialBuilding && rand(451) > 0.05) {
+      // Use special buildings 95% of the time when available
+      selectedBuilding = 'SpecialBuilding';
+      buildingComponent = SpecialBuilding;
+    } else if (eraLevel >= 5) {
+      // Modern era buildings (20th century onwards)
       const modernChoice = rand(350);
       if (modernChoice > 0.7) {
         selectedBuilding = 'ModernCivic3D'; // New 20th century archetype
-        buildingComponent = <ModernCivic3D {...commonProps} />;
-      } else if (modernChoice > 0.5) {
-        selectedBuilding = 'IndustrialBuilding3D';
-        buildingComponent = <IndustrialBuilding3D {...commonProps} />;
-      } else if (modernChoice > 0.25) {
-        selectedBuilding = 'GeorgianRowhouse3D';
-        buildingComponent = <GeorgianRowhouse3D {...commonProps} />;
+        buildingComponent = ModernCivic3D;
+      } else if (modernChoice > 0.4) {
+        selectedBuilding = 'ModernSkyscraper3D';
+        buildingComponent = ModernSkyscraper3D;
       } else {
-        selectedBuilding = 'IndustrialRowhouse3D';
-        buildingComponent = <IndustrialRowhouse3D {...commonProps} />;
+        selectedBuilding = 'IndustrialBuilding3D';
+        buildingComponent = IndustrialBuilding3D;
       }
     } else if (eraLevel === 4) {
-      // Industrial era with possible era mixing (slums might have older buildings)
+      // Industrial era buildings with some Georgian holdovers
+      const isEraTransition = tile.biome === BiomeType.LOW_DENSITY_CITY || tile.biome === BiomeType.HAMLET;
       if (isEraTransition && rand(400) > 0.6) {
         // Use earlier era building in industrial slums
         const earlyModernChoice = rand(401);
         if (earlyModernChoice > 0.5) {
           selectedBuilding = 'GeorgianRowhouse3D';
-          buildingComponent = <GeorgianRowhouse3D {...commonProps} />;
+          buildingComponent = GeorgianRowhouse3D;
         } else {
-          selectedBuilding = 'MedievalBuilding3D';
-          buildingComponent = <MedievalBuilding3D {...commonProps} />;
+          selectedBuilding = 'EuropeanCottage3D';
+          buildingComponent = EuropeanCottage3D;
         }
       } else if (rand(5) > 0.4) {
         selectedBuilding = 'IndustrialBuilding3D';
-        buildingComponent = <IndustrialBuilding3D {...commonProps} />;
+        buildingComponent = IndustrialBuilding3D;
       } else {
         selectedBuilding = 'IndustrialRowhouse3D';
-        buildingComponent = <IndustrialRowhouse3D {...commonProps} />;
+        buildingComponent = IndustrialRowhouse3D;
       }
     } else {
-      // Use mixed culture if available
-      const effectiveCulture = useSecondaryBuilding ? mixedCulture : culturalStyle;
-      
-      switch (effectiveCulture) {
-        case 'NORTH_AMERICAN_PRE_COLUMBIAN':
-          // Regional building selection based on geography
-          const regionName = zone.toLowerCase();
-          
-          if (climate === 'cold' || regionName.includes('arctic') || regionName.includes('alaska')) {
-            selectedBuilding = 'Igloo3D';
-            buildingComponent = <Igloo3D {...commonProps} />;
-          } else if (climate === 'arid' || regionName.includes('southwest') || regionName.includes('desert') || regionName.includes('arizona') || regionName.includes('new mexico')) {
-            selectedBuilding = 'AdobeBuilding3D';
-            buildingComponent = <AdobeBuilding3D {...commonProps} />;
-          } else if (regionName.includes('plains') || regionName.includes('great plains') || regionName.includes('dakota') || regionName.includes('nebraska') || regionName.includes('kansas')) {
-            // Great Plains - primarily teepees
-            selectedBuilding = 'NativeTeepee3D';
-            buildingComponent = <NativeTeepee3D {...commonProps} />;
-          } else if (regionName.includes('pacific') || regionName.includes('northwest') || regionName.includes('washington') || regionName.includes('oregon') || regionName.includes('british columbia')) {
-            // Pacific Northwest - longhouses
-            selectedBuilding = 'Longhouse3D';
-            buildingComponent = <Longhouse3D {...commonProps} />;
+      // Pre-industrial buildings (Prehistory through Renaissance)
+      const cultureToUse = useSecondaryBuilding ? secondaryCulture : culturalStyle;
+      switch (cultureToUse) {
+        case 'ROMAN':
+          if (rand(6) > 0.5) {
+            selectedBuilding = 'MediterraneanBuilding3D';
+            buildingComponent = MediterraneanBuilding3D;
           } else {
-            // Eastern woodlands and other forest regions - bark longhouses
-            selectedBuilding = 'BarkLonghouse3D';
-            buildingComponent = <BarkLonghouse3D {...commonProps} />;
+            selectedBuilding = 'EuropeanCottage3D';
+            buildingComponent = EuropeanCottage3D;
           }
           break;
-        case 'SOUTH_AMERICAN':
+        case 'MESOAMERICAN':
           // Use Mediterranean style for colonial and modern Latin America
           if (eraLevel >= 3 && rand(12) > 0.4) {
             selectedBuilding = 'MediterraneanBuilding3D';
-            buildingComponent = <MediterraneanBuilding3D {...commonProps} />;
+            buildingComponent = MediterraneanBuilding3D;
           } else if (rand(11) > 0.3) {
             selectedBuilding = 'AztecDwelling3D';
-            buildingComponent = <AztecDwelling3D {...commonProps} />;
+            buildingComponent = AztecDwelling3D;
           } else {
-            selectedBuilding = 'AdobeBuilding3D';
-            buildingComponent = <AdobeBuilding3D {...commonProps} />;
+            selectedBuilding = 'EuropeanCottage3D';
+            buildingComponent = EuropeanCottage3D;
           }
           break;
-        case 'SUB_SAHARAN_AFRICAN': 
-          if (eraLevel >= 3) {
-            selectedBuilding = 'AfricanStoneBuilding3D';
-            buildingComponent = <AfricanStoneBuilding3D {...commonProps} />;
+        case 'SUB_SAHARAN_AFRICAN':
+          // Colonial era buildings for Africa (1800s+)
+          if (year >= 1800 && tile.biome !== BiomeType.HAMLET) {
+            // Mix of Mediterranean colonial and some traditional
+            if (rand(20) > 0.3) {
+              selectedBuilding = 'MediterraneanBuilding3D';
+              buildingComponent = MediterraneanBuilding3D;
+            } else {
+              selectedBuilding = 'AfricanRoundHut3D';
+              buildingComponent = AfricanRoundHut3D;
+            }
+          } else if (year >= 1800 && tile.biome === BiomeType.HAMLET) {
+            // Hamlets in colonial era are mostly Mediterranean style
+            if (rand(21) > 0.15) {
+              selectedBuilding = 'MediterraneanBuilding3D';
+              buildingComponent = MediterraneanBuilding3D;
+            } else {
+              selectedBuilding = 'AfricanRoundHut3D';
+              buildingComponent = AfricanRoundHut3D;
+            }
           } else {
+            // Pre-colonial era - traditional buildings
             selectedBuilding = 'AfricanRoundHut3D';
-            buildingComponent = <AfricanRoundHut3D {...commonProps} />;
+            buildingComponent = AfricanRoundHut3D;
           }
           break;
-        case 'EAST_ASIAN': 
-          selectedBuilding = 'EastAsianPagoda3D';
-          buildingComponent = <EastAsianPagoda3D {...commonProps} />;
-          break;
-        case 'SOUTH_ASIAN': 
-          selectedBuilding = 'SouthAsianBuilding3D';
-          buildingComponent = <SouthAsianBuilding3D {...commonProps} />;
-          break;
-        case 'MENA': 
-          // Use Mediterranean style for coastal areas and mixed modern usage
-          if (zone.toLowerCase().includes('coast') || zone.toLowerCase().includes('mediterranean') || eraLevel >= 4) {
+        case 'MENA':
+          // Colonial/modern era shows more Mediterranean influence
+          if (year >= 1850 && rand(22) > 0.4) {
             selectedBuilding = 'MediterraneanBuilding3D';
-            buildingComponent = <MediterraneanBuilding3D {...commonProps} />;
+            buildingComponent = MediterraneanBuilding3D;
           } else {
             selectedBuilding = 'OttomanTownhouse3D';
-            buildingComponent = <OttomanTownhouse3D {...commonProps} />;
+            buildingComponent = OttomanTownhouse3D;
           }
+          break;
+        case 'EAST_ASIAN':
+          selectedBuilding = 'EastAsianPagoda3D';
+          buildingComponent = EastAsianPagoda3D;
+          break;
+        case 'SOUTH_ASIAN':
+          selectedBuilding = 'SouthAsianBuilding3D';
+          buildingComponent = SouthAsianBuilding3D;
+          break;
+        case 'SOUTHEAST_ASIAN':
+          selectedBuilding = 'SouthAsianBuilding3D'; // Default fallback
+          buildingComponent = SouthAsianBuilding3D;
+          break;
+        case 'MONGOLIAN':
+          selectedBuilding = 'Yurt3D';
+          buildingComponent = Yurt3D;
+          break;
+        case 'ARCTIC':
+          selectedBuilding = 'Igloo3D';
+          buildingComponent = Igloo3D;
+          break;
+        case 'NORTH_AMERICAN_PRE_COLUMBIAN':
+          // Regional building selection based on geography
+          const regionName = zone.toLowerCase();
+          if (climate === 'cold' || regionName.includes('arctic') || regionName.includes('alaska')) {
+            selectedBuilding = 'Igloo3D';
+            buildingComponent = Igloo3D;
+          } else if (climate === 'arid' || regionName.includes('southwest') || regionName.includes('desert')) {
+            selectedBuilding = 'AdobeBuilding3D';
+            buildingComponent = AdobeBuilding3D;
+          } else if (regionName.includes('plains') || regionName.includes('great plains')) {
+            selectedBuilding = 'NativeTeepee3D';
+            buildingComponent = NativeTeepee3D;
+          } else if (regionName.includes('pacific') || regionName.includes('northwest')) {
+            selectedBuilding = 'Longhouse3D';
+            buildingComponent = Longhouse3D;
+          } else {
+            selectedBuilding = 'BarkLonghouse3D';
+            buildingComponent = BarkLonghouse3D;
+          }
+          break;
+        case 'SOUTH_AMERICAN':
+          if (eraLevel >= 3 && rand(12) > 0.4) {
+            selectedBuilding = 'MediterraneanBuilding3D';
+            buildingComponent = MediterraneanBuilding3D;
+          } else {
+            selectedBuilding = 'AdobeBuilding3D';
+            buildingComponent = AdobeBuilding3D;
+          }
+          break;
+        case 'ANDEAN':
+          selectedBuilding = 'IncaStoneHouse3D';
+          buildingComponent = IncaStoneHouse3D;
           break;
         case 'OCEANIA':
           selectedBuilding = 'PolynesianHouse3D';
-          buildingComponent = <PolynesianHouse3D {...commonProps} />;
+          buildingComponent = PolynesianHouse3D;
           break;
         case 'ABORIGINAL_AUSTRALIAN':
           selectedBuilding = 'AboriginalHut3D';
-          buildingComponent = <AboriginalHut3D {...commonProps} />;
+          buildingComponent = AboriginalHut3D;
+          break;
+        case 'VIKING':
+          selectedBuilding = 'VikingLonghouse3D';
+          buildingComponent = VikingLonghouse3D;
+          break;
+        case 'MEDITERRANEAN':
+        case 'GREEK':
+        case 'CLASSICAL_GREEK':
+          selectedBuilding = 'GreekHouse3D';
+          buildingComponent = GreekHouse3D;
+          break;
+        case 'BYZANTINE':
+        case 'SLAVIC':
+          selectedBuilding = 'MedievalBuilding3D';
+          buildingComponent = MedievalBuilding3D;
+          break;
+        case 'EGYPTIAN':
+        case 'ANCIENT_EGYPTIAN':
+          selectedBuilding = 'AfricanStoneBuilding3D';
+          buildingComponent = AfricanStoneBuilding3D;
+          break;
+        case 'MESOPOTAMIAN':
+        case 'ANCIENT_MESOPOTAMIAN':
+          // Use appropriate building for ancient Mesopotamia/Persia
+          selectedBuilding = 'OttomanTownhouse3D';
+          buildingComponent = OttomanTownhouse3D;
           break;
         case 'EUROPEAN':
-        default:
-          // Mediterranean style for southern Europe and coastal areas
-          const isMediterraneanEurope = zone.toLowerCase().includes('mediterranean') || 
-                                       zone.toLowerCase().includes('spain') || 
-                                       zone.toLowerCase().includes('italy') || 
-                                       zone.toLowerCase().includes('greece') || 
-                                       zone.toLowerCase().includes('coast');
+          const isMediterraneanEurope = zone?.toLowerCase().includes('mediterranean') || 
+                                     zone?.toLowerCase().includes('italy') || 
+                                     zone?.toLowerCase().includes('spain') || 
+                                     zone?.toLowerCase().includes('portugal') ||
+                                     zone?.toLowerCase().includes('greece') ||
+                                     zone?.toLowerCase().includes('southern');
           
-          if (isMediterraneanEurope && eraLevel >= 1 && rand(13) > 0.3) {
-            selectedBuilding = 'MediterraneanBuilding3D';
-            buildingComponent = <MediterraneanBuilding3D {...commonProps} />;
-          } else if (tile.biome === BiomeType.HAMLET || tile.biome === BiomeType.LOW_DENSITY_CITY) {
-            selectedBuilding = 'EuropeanCottage3D';
-            buildingComponent = <EuropeanCottage3D {...commonProps} />;
-          } else if (climate === 'cold' && eraLevel === 2) {
-            selectedBuilding = 'VikingLonghouse3D';
-            buildingComponent = <VikingLonghouse3D {...commonProps} />;
-          } else if (eraLevel >= 3) {
-            selectedBuilding = 'GeorgianRowhouse3D';
-            buildingComponent = <GeorgianRowhouse3D {...commonProps} />;
+          // Mediterranean regions or colonial contexts get Mediterranean buildings
+          if ((isMediterraneanEurope || climate === 'arid' || climate === 'tropical') && eraLevel >= 1) {
+            if (rand(13) > 0.2) {
+              selectedBuilding = 'MediterraneanBuilding3D';
+              buildingComponent = MediterraneanBuilding3D;
+            } else {
+              selectedBuilding = 'EuropeanCottage3D';
+              buildingComponent = EuropeanCottage3D;
+            }
+          } else if (tile.biome === BiomeType.HAMLET) {
+            // Hamlets in later eras often use Mediterranean style
+            if (eraLevel >= 3 && rand(14) > 0.4) {
+              selectedBuilding = 'MediterraneanBuilding3D';
+              buildingComponent = MediterraneanBuilding3D;
+            } else if (eraLevel >= 2 && rand(15) > 0.5) {
+              selectedBuilding = 'GeorgianRowhouse3D';
+              buildingComponent = GeorgianRowhouse3D;
+            } else if (eraLevel >= 1 && rand(16) > 0.4) {
+              selectedBuilding = 'MedievalBuilding3D';
+              buildingComponent = MedievalBuilding3D;
+            } else {
+              selectedBuilding = 'EuropeanCottage3D';
+              buildingComponent = EuropeanCottage3D;
+            }
+          } else if (tile.biome === BiomeType.LOW_DENSITY_CITY) {
+            if (eraLevel >= 2 && rand(14) > 0.5) {
+              selectedBuilding = 'GeorgianRowhouse3D';
+              buildingComponent = GeorgianRowhouse3D;
+            } else if (eraLevel >= 1 && rand(15) > 0.4) {
+              selectedBuilding = 'MedievalBuilding3D';
+              buildingComponent = MedievalBuilding3D;
+            } else {
+              selectedBuilding = 'EuropeanCottage3D';
+              buildingComponent = EuropeanCottage3D;
+            }
           } else {
-            selectedBuilding = 'MedievalBuilding3D';
-            buildingComponent = <MedievalBuilding3D {...commonProps} />;
+            // Dense city areas
+            if (eraLevel >= 2 && rand(16) > 0.3) {
+              selectedBuilding = 'GeorgianRowhouse3D';
+              buildingComponent = GeorgianRowhouse3D;
+            } else if (eraLevel >= 1 && rand(17) > 0.6) {
+              selectedBuilding = 'MedievalBuilding3D';
+              buildingComponent = MedievalBuilding3D;
+            } else {
+              selectedBuilding = 'EuropeanCottage3D';
+              buildingComponent = EuropeanCottage3D;
+            }
+          }
+          break;
+        default:
+          // Better default fallback - use special buildings if available
+          if (SpecialBuilding) {
+            selectedBuilding = 'SpecialBuilding';
+            buildingComponent = SpecialBuilding;
+          } else {
+            // Culturally appropriate fallback based on primary culture
+            const primaryCultureFallback = culturalMapping.primaryCulture;
+            
+            // Map primary cultures to appropriate fallback buildings
+            if (primaryCultureFallback === 'EAST_ASIAN') {
+              selectedBuilding = 'EastAsianPagoda3D';
+              buildingComponent = EastAsianPagoda3D;
+            } else if (primaryCultureFallback === 'SOUTH_ASIAN') {
+              selectedBuilding = 'SouthAsianBuilding3D';
+              buildingComponent = SouthAsianBuilding3D;
+            } else if (primaryCultureFallback === 'SUB_SAHARAN_AFRICAN') {
+              selectedBuilding = 'AfricanRoundHut3D';
+              buildingComponent = AfricanRoundHut3D;
+            } else if (primaryCultureFallback === 'MENA') {
+              selectedBuilding = 'OttomanTownhouse3D';
+              buildingComponent = OttomanTownhouse3D;
+            } else if (primaryCultureFallback === 'NORTH_AMERICAN_PRE_COLUMBIAN') {
+              selectedBuilding = 'AztecDwelling3D';
+              buildingComponent = AztecDwelling3D;
+            } else if (primaryCultureFallback === 'SOUTH_AMERICAN') {
+              selectedBuilding = 'AdobeBuilding3D';
+              buildingComponent = AdobeBuilding3D;
+            } else if (primaryCultureFallback === 'OCEANIA') {
+              selectedBuilding = 'PolynesianHouse3D';
+              buildingComponent = PolynesianHouse3D;
+            } else if (primaryCultureFallback === 'ABORIGINAL_AUSTRALIAN') {
+              selectedBuilding = 'AboriginalHut3D';
+              buildingComponent = AboriginalHut3D;
+            } else if (primaryCultureFallback === 'ARCTIC') {
+              selectedBuilding = 'Igloo3D';
+              buildingComponent = Igloo3D;
+            } else {
+              // Last resort for truly unknown cultures
+              selectedBuilding = 'EuropeanCottage3D';
+              buildingComponent = EuropeanCottage3D;
+            }
           }
           break;
       }
     }
+
+    return { selectedBuilding, buildingComponent };
+  }, [buildingData, secondaryCulture, mixRatio, year, culturalMapping, specialBuildings, eraLevel, tile.biome, culturalStyle, zone, climate]);
+
+  const renderBuilding = () => {
+    const { width, height, xOffset, yOffset, roofColor, hasTimberFrame } = buildingData;
+    const { selectedBuilding, buildingComponent } = selectedBuildingData;
+    const commonProps = { x: x + xOffset, y: y + yOffset, width, height, size, seed, tile, roofColor, hasTimberFrame, era: era as HistoricalEra, nightIntensity };
     
-    // Console logging to show which building type was selected (deterministic)
-    if (rand(999) < 0.01) { // Log only 1% of buildings to avoid spam
-      const mixingInfo = mixedCulture ? ` [MIXED: ${culturalStyle} + ${mixedCulture}${useSecondaryBuilding ? ' -> using secondary' : ' -> using primary'}]` : '';
-      console.log(`Building selected: ${selectedBuilding} for zone: ${zone}, era: ${era}, culture: ${culturalStyle}, climate: ${climate}${mixingInfo}`);
+    // Building selection is now memoized above to prevent changes on re-renders
+    if (!buildingComponent) {
+      console.error(`[UrbanSymbol] No building component selected! culturalStyle: ${culturalStyle}, era: ${era}, eraLevel: ${eraLevel}, year: ${year}`);
+      return null; // Fallback if no building component selected
     }
     
-    return buildingComponent;
+    // Render the memoized building component
+    const buildingElement = React.createElement(buildingComponent, commonProps);
+    
+    // Debug logging - only log one building to avoid spam  
+    const shouldLog = tile.x === 0 && tile.y === 0 && !window.urbanSymbolLogged;
+    if (shouldLog) {
+      window.urbanSymbolLogged = true;
+      const mixingInfo = secondaryCulture ? ` [MIXED: ${culturalStyle} + ${secondaryCulture}]` : '';
+      const specialInfo = specialBuildings.length > 0 ? ` [SPECIAL: ${specialBuildings.join(', ')}]` : '';
+      console.log(`[UrbanSymbol] Debug Info:
+        - location param: "${location}"
+        - zone param: "${zone}"
+        - year: ${year}
+        - culturalMapping.primaryCulture: "${culturalMapping.primaryCulture}"
+        - culturalStyle (after mapping): "${culturalStyle}"
+        - secondaryCulture: "${secondaryCulture}"
+        - selectedBuilding: "${selectedBuilding}"
+        ${mixingInfo}${specialInfo}`);
+      // Reset after 5 seconds so we can see logs again if map regenerates
+      setTimeout(() => { window.urbanSymbolLogged = false; }, 5000);
+    }
+    
+    return buildingElement;
   };
 
   // Night lighting is now handled by individual building components

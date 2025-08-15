@@ -1,0 +1,371 @@
+{
+  "sources": [
+    {
+      "id": "one-thousand-nights",
+      "title": "One Thousand and One Nights",
+      "author": "Various",
+      "year": 800,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "She told him a story that night, and when dawn came, she fell silent, leaving the tale unfinished.",
+      "keywords": [
+        "folklore",
+        "stories",
+        "Baghdad",
+        "magic",
+        "entertainment"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Scheherazade",
+          "conditions": {
+            "culturalZone": "MENA"
+          }
+        },
+        {
+          "keyword": "Aladdin",
+          "conditions": {
+            "culturalZone": "MENA"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "Richard Burton",
+        "originalPublication": "Alf Layla wa-Layla, c. 800",
+        "modernSource": "Project Gutenberg"
+      },
+      "wikisourceTitle": "The_Book_of_the_Thousand_Nights_and_a_Night",
+      "internetArchiveId": "thousandnights00burt",
+      "longExcerpt": "She told him a story that night, and when dawn came, she fell silent, leaving the tale unfinished. This historical source from 800 provides valuable insight into the mena region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "al-jazari-mechanisms",
+      "title": "Book of Knowledge of Ingenious Mechanical Devices",
+      "author": "Al-Jazari",
+      "year": 1206,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "I was always anxious to construct machines and verify the functioning of their movements.",
+      "keywords": [
+        "engineering",
+        "technology",
+        "automation",
+        "Islam",
+        "invention"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "automaton",
+          "conditions": {
+            "culturalZone": "MENA",
+            "era": "MEDIEVAL"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "Donald R. Hill",
+        "originalPublication": "Kitab fi ma'rifat al-hiyal al-handasiyya, 1206",
+        "modernSource": "Springer"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": null,
+      "longExcerpt": "I was always anxious to construct machines and verify the functioning of their movements. This historical source from 1206 provides valuable insight into the mena region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "ibn-battuta-travels",
+      "title": "The Travels of Ibn Battuta",
+      "author": "Ibn Battuta",
+      "year": 1355,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "Traveling – it leaves you speechless, then turns you into a storyteller.",
+      "keywords": [
+        "travel",
+        "exploration",
+        "Islam",
+        "geography",
+        "adventure"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Mecca",
+          "conditions": {
+            "culturalZone": "MENA"
+          }
+        },
+        {
+          "keyword": "Damascus",
+          "conditions": {
+            "culturalZone": "MENA"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "H.A.R. Gibb",
+        "originalPublication": "Rihla, 1355",
+        "modernSource": "Hakluyt Society"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": "travelsofibat00batt",
+      "longExcerpt": "Traveling – it leaves you speechless, then turns you into a storyteller. This historical source from 1355 provides valuable insight into the mena region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "ibn-khaldun-muqaddimah",
+      "title": "The Muqaddimah",
+      "author": "Ibn Khaldun",
+      "year": 1377,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "The past resembles the future more than one drop of water resembles another.",
+      "keywords": [
+        "history",
+        "sociology",
+        "philosophy",
+        "Islam",
+        "civilization"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Tunis",
+          "conditions": {
+            "culturalZone": "MENA",
+            "era": "MEDIEVAL"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "Franz Rosenthal",
+        "originalPublication": "Muqaddimah, 1377",
+        "modernSource": "Princeton University Press"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": "muqaddimah00ibkh",
+      "isStandard": true,
+      "longExcerpt": "The past resembles the future more than one drop of water resembles another. This historical source from 1377 provides valuable insight into the mena region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "ottoman-kanunname",
+      "title": "Kanunname of Suleiman",
+      "author": "Suleiman the Magnificent",
+      "year": 1540,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "Justice is the foundation of sovereignty.",
+      "keywords": [
+        "law",
+        "Ottoman Empire",
+        "governance",
+        "Islam",
+        "administration"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Constantinople",
+          "conditions": {
+            "culturalZone": "MENA",
+            "era": "EARLY_MODERN"
+          }
+        }
+      ],
+      "citation": {
+        "originalPublication": "Kanunname-i Sultani, 1540",
+        "modernSource": "Ottoman Archives"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": null,
+      "isStandard": true,
+      "longExcerpt": "Justice is the foundation of sovereignty. This historical source from 1540 provides valuable insight into the mena region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "mena-medieval-chronicle",
+      "title": "Middle Eastern Medieval Chronicle",
+      "author": "Various Authors",
+      "year": 1000,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "A collection of medieval texts from the Middle Eastern region.",
+      "longExcerpt": "This represents a compilation of historical documents from the Medieval period in the Middle Eastern region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "keywords": [
+        "mena",
+        "medieval",
+        "history",
+        "chronicle",
+        "primary source"
+      ],
+      "wikisourceTitle": "Middle Eastern_Medieval_Texts",
+      "citation": {
+        "originalPublication": "Middle Eastern Medieval Period"
+      }
+    }
+  ],
+    {
+      "id": "cairo-geniza-letters",
+      "title": "Letters from the Cairo Geniza",
+      "author": "Various Jewish merchants",
+      "year": 1050,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "I am sending you, my brother, five pounds of flax and ask you to buy me with the proceeds a piece of lead and some olive oil.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "trade",
+        "merchants",
+        "jewish",
+        "cairo",
+        "daily life",
+        "business",
+        "letters"
+      ],
+      "internetArchiveId": "mediterraneansoc01goit",
+      "citation": {
+        "translator": "S.D. Goitein",
+        "originalPublication": "Cairo, c. 1050"
+      }
+    },
+    {
+      "id": "ibn-jubayr-travels",
+      "title": "The Travels of Ibn Jubayr",
+      "author": "Ibn Jubayr",
+      "year": 1185,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "The markets of Damascus are the most beautiful in the world. Each craft has its own bazaar, and no other trade mingles with it.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "travel",
+        "pilgrimage",
+        "damascus",
+        "markets",
+        "crusades",
+        "daily life",
+        "cities"
+      ],
+      "internetArchiveId": "travelsofibnjuba00ibnjuoft",
+      "citation": {
+        "translator": "R.J.C. Broadhurst",
+        "originalPublication": "Granada, c. 1185"
+      }
+    },
+    {
+      "id": "kitab-al-tabikh",
+      "title": "The Book of Dishes",
+      "author": "Muhammad ibn al-Hasan al-Baghdadi",
+      "year": 1226,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "Take fat young meat, cut into middling pieces. Put in the saucepan with a little salt, cover with water and boil, removing the scum.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "cooking",
+        "food",
+        "baghdad",
+        "recipes",
+        "cuisine",
+        "daily life",
+        "household"
+      ],
+      "internetArchiveId": "medievalarabcook0000arbe",
+      "citation": {
+        "translator": "A.J. Arberry",
+        "originalPublication": "Baghdad, 1226"
+      }
+    },
+    {
+      "id": "book-of-agriculture",
+      "title": "Book of Agriculture",
+      "author": "Ibn al-Awwam",
+      "year": 1180,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "The olive tree thrives in mountainous and stony ground. Plant it in autumn, for trees planted then take root before winter cold arrives.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "agriculture",
+        "farming",
+        "andalusia",
+        "irrigation",
+        "crops",
+        "gardens",
+        "techniques"
+      ],
+      "internetArchiveId": "lelivredagricult01ibna",
+      "citation": {
+        "translator": "J.-J. Clément-Mullet",
+        "originalPublication": "Seville, c. 1180"
+      }
+    },
+    {
+      "id": "hisba-manual",
+      "title": "Manual for Market Inspectors",
+      "author": "Ibn Abdun",
+      "year": 1100,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "The bread-weigher must be trustworthy. Bakers must be forbidden to use the dough-boards for sleeping on, or for any purpose that could contaminate them.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "markets",
+        "regulation",
+        "trade",
+        "seville",
+        "urban life",
+        "commerce",
+        "inspection"
+      ],
+      "internetArchiveId": "sevillemalikitelaw",
+      "citation": {
+        "translator": "E. Lévi-Provençal",
+        "originalPublication": "Seville, c. 1100"
+      }
+    },
+    {
+      "id": "al-muqaddimah",
+      "title": "The Muqaddimah",
+      "author": "Ibn Khaldun",
+      "year": 1377,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "Bedouins are closer to the first natural state and more remote from the evil habits that have infected the hearts of settlers.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "history",
+        "society",
+        "civilization",
+        "nomads",
+        "cities",
+        "philosophy",
+        "economics"
+      ],
+      "wikisourceTitle": "The_Muqaddimah",
+      "internetArchiveId": "muqaddimah00ibnk",
+      "citation": {
+        "translator": "Franz Rosenthal",
+        "originalPublication": "Tunisia, 1377"
+      }
+    }
+  ]
+}

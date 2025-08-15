@@ -71,6 +71,7 @@ const RightSidebar: React.FC = () => {
         const stats = playerCharacter.stats;
     
         // Priority conditions (urgent states)
+               if (fatiguePercent > 0.95) return 'Feeling awful';
         if (fatiguePercent > 0.85) return 'Feeling utterly exhausted';
         if (fatiguePercent > 0.7) return 'Feeling very weary';
         if (fatiguePercent > 0.5) return 'Feeling tired';
@@ -124,10 +125,10 @@ const RightSidebar: React.FC = () => {
                 <div className="flex-shrink-0 p-4">
                     {playerCharacter && playerCharacter.appearance && (
                          <div 
-                            className="p-4 mb-4 transition-all duration-200 border rounded-2xl cursor-pointer bg-gradient-to-br from-slate-800/90 to-slate-900/95 border-slate-600/50 hover:border-slate-500/70 hover:shadow-xl hover:shadow-black/30 hover:-translate-y-1 hover:scale-[1.02]" 
+                            className="p-3 mb-3 transition-all duration-200 border rounded-2xl cursor-pointer bg-gradient-to-br from-slate-800/90 to-slate-900/95 border-slate-600/50 hover:border-slate-500/70 hover:shadow-xl hover:shadow-black/30 hover:-translate-y-1 hover:scale-[1.02]" 
                             onClick={() => setIsCharacterProfileModalOpen(true)}
                         >
-                            <div className="flex items-start gap-4 mb-4">
+                            <div className="flex items-start gap-4 mb-3">
                                <div className="flex flex-col items-center">
                                     <div className="relative">
                                         <div className="relative flex-shrink-0 w-24 h-24 overflow-hidden bg-gray-900 border-3 rounded-full border-slate-500/70 shadow-xl shadow-black/50">
@@ -141,9 +142,7 @@ const RightSidebar: React.FC = () => {
                                             </div>
                                             <div className="absolute -inset-1 rounded-full -z-10 blur-sm bg-gradient-to-br from-slate-400/40 to-slate-600/40"></div>
                                         </div>
-                                        <div className="w-24 mt-3 text-center">
-                                            <p className="text-xs font-medium leading-tight text-amber-200 italic">{statusText}</p>
-                                        </div>
+                                        
                                     </div>
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -151,7 +150,7 @@ const RightSidebar: React.FC = () => {
                                         <div>
                                             <h4 className="text-xl font-bold leading-tight text-white">{playerCharacter.name}</h4>
                                             <p className="text-sm font-semibold text-amber-300 capitalize">{playerCharacter.profession}</p>
-                                            <p className="mt-1 text-xs text-gray-400">Age {playerCharacter.age}</p>
+                                            <p className="mt-1 text-xs text-gray-400">Age {playerCharacter.age} • {playerCharacter.gender || 'Unknown'}</p>
                                         </div>
                                         <div className="flex-shrink-0 text-right">
                                             <p className="text-xl font-bold text-blue-300">Level {playerCharacter.level}</p>
@@ -167,36 +166,37 @@ const RightSidebar: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
+                                    <p className="mt-2 text-xs italic text-amber-200">{statusText}</p>
                                 </div>
                             </div>
-                            <div className="space-y-3">
+                            <div className="space-y-2 mt-3">
                                 <div>
-                                    <div className="flex items-center justify-between mb-1 text-xs font-semibold tracking-wider text-gray-200">
+                                    <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-gray-400">
                                         <span>HEALTH</span>
                                         <span>{playerCharacter.health} / {playerCharacter.maxHealth}</span>
                                     </div>
-                                    <div className="w-full h-2.5 overflow-hidden bg-gray-700 rounded-full shadow-inner"><div className="h-full transition-all duration-500 rounded-full bg-gradient-to-r from-red-500 via-orange-400 to-yellow-400 shadow-sm" style={{ width: `${healthPercent}%` }}></div></div>
+                                    <div className="w-full h-1.5 overflow-hidden bg-gray-700 rounded-full shadow-inner"><div className="h-full transition-all duration-500 rounded-full bg-gradient-to-r from-red-500 via-orange-400 to-yellow-400 shadow-sm" style={{ width: `${healthPercent}%` }}></div></div>
                                 </div>
                                 <div>
-                                    <div className="flex items-center justify-between mb-1 text-xs font-semibold tracking-wider text-gray-200">
+                                    <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-gray-400">
                                         <span>FATIGUE</span>
                                         <span>{playerCharacter.fatigue} / {playerCharacter.maxFatigue}</span>
                                     </div>
-                                    <div className="w-full h-2.5 overflow-hidden bg-gray-700 rounded-full shadow-inner"><div className="h-full transition-all duration-500 rounded-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-orange-500 shadow-sm" style={{ width: `${fatiguePercent}%` }}></div></div>
+                                    <div className="w-full h-1.5 overflow-hidden bg-gray-700 rounded-full shadow-inner"><div className="h-full transition-all duration-500 rounded-full bg-gradient-to-r from-amber-400 via-amber-600 to-orange-600 shadow-sm" style={{ width: `${fatiguePercent}%` }}></div></div>
                                 </div>
                                 <div>
-                                    <div className="flex items-center justify-between mb-1 text-xs font-semibold tracking-wider text-gray-200">
+                                    <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-gray-400">
                                         <span>EXPERIENCE</span>
                                         <span>{playerCharacter.experience} / {playerCharacter.maxExperience}</span>
                                     </div>
-                                    <div className="w-full h-2.5 overflow-hidden bg-gray-700 rounded-full shadow-inner"><div className="h-full transition-all duration-500 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full shadow-sm" style={{ width: `${xpPercent}%` }}></div></div>
+                                    <div className="w-full h-1.5 overflow-hidden bg-gray-700 rounded-full shadow-inner"><div className="h-full transition-all duration-500 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full shadow-sm" style={{ width: `${xpPercent}%` }}></div></div>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    <div className="mb-4">
-                        <h4 className="mb-2 text-xs tracking-wider text-gray-400 uppercase">Actions</h4>
+                    <div className="mb-2">
+                        <h4 className="mb-2 mt-2 text-xs tracking-wider text-gray-400 uppercase">Actions</h4>
                         <div className="grid grid-cols-4 gap-2">
                             {SKILL_BUTTON_ORDER.map(skillId => {
                                  const skill = SKILL_DATA[skillId];

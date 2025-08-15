@@ -23,59 +23,79 @@ const AfricanRoundHut3D: React.FC<AfricanRoundHut3DProps> = React.memo(({ x, y, 
     // Keep compatibility with existing rand() calls
     const rand = rng.random;
     
+    // Adjusted for proper hut proportions like 🛖 emoji
+    const scaleFactor = 1.05;
     const cx = x + width / 2;
-    const wallRadius = width * 0.4;
-    const wallHeight = height * 0.5;
-    const wallY = y + height - wallHeight;
-    const roofRadius = wallRadius * 1.3;
-    const roofHeight = height * 0.6;
-    const roofY = wallY;
+    const wallRadius = width * 0.4 * scaleFactor; // Smaller, round base
+    const wallHeight = height * 0.35 * scaleFactor; // Lower walls
+    const wallY = y + height - wallHeight - height * 0.1; // Raised off ground
+    const roofRadius = wallRadius * 1.4; // Significant roof overhang
+    const roofHeight = height * 0.55 * scaleFactor; // Tall conical roof
+    const roofY = wallY + wallHeight * 0.05; // Roof sits on walls
     const uniqueId = `hut-${tile.x}-${tile.y}`;
 
-    const wallBaseColor = `hsl(25, 35%, ${65 + wallColorVariation * 10}%)`;
-    const wallShadowColor = `hsl(25, 35%, 45%)`;
-    const thatchColor1 = `hsl(40, 50%, ${50 + thatchColor1Variation * 10}%)`;
-    const thatchColor2 = `hsl(40, 55%, ${35 + thatchColor2Variation * 10}%)`;
-    const thatchHighlight = `hsl(45, 60%, 65%)`;
-    const doorColor = '#4a2c17';
-    const outlineColor = '#4a2c17';
+    // More authentic mud/clay walls and golden thatch
+    const wallBaseColor = `hsl(30, 25%, ${55 + wallColorVariation * 10}%)`; // Clay/mud color
+    const wallShadowColor = `hsl(30, 25%, 35%)`;
+    const thatchColor1 = `hsl(45, 65%, ${60 + thatchColor1Variation * 10}%)`; // Golden straw
+    const thatchColor2 = `hsl(42, 60%, ${45 + thatchColor2Variation * 10}%)`;
+    const thatchHighlight = `hsl(48, 70%, 75%)`;
+    const doorColor = '#2c1810';
+    const outlineColor = '#3a2818';
 
-    // Torch lighting for windowless huts (33% chance)
+    // Enhanced torch lighting for bigger huts (40% chance)
     const renderTorchLighting = () => {
-        if (nightIntensity < 0.2 || torchChance < 0.67) return null; // Only 1 in 3 huts have torches
+        if (nightIntensity < 0.15 || torchChance < 0.6) return null; // Slightly more common
         
-        const torchX = cx + wallRadius * 0.8;
-        const torchY = wallY + wallHeight * 0.6;
-        const torchColor = 'rgba(255, 140, 60, 0.9)';
-        const torchGlow = 'rgba(255, 160, 80, 0.6)';
+        const torchX = cx + wallRadius * 0.9;
+        const torchY = wallY + wallHeight * 0.5;
+        const torchColor = 'rgba(255, 140, 60, 0.95)';
+        const torchGlow = 'rgba(255, 160, 80, 0.7)';
         
         return (
             <g>
-                {/* Torch glow */}
+                {/* Multiple glow layers for depth */}
+                <circle
+                    cx={torchX}
+                    cy={torchY}
+                    r={size * 0.18}
+                    fill={torchGlow}
+                    opacity={nightIntensity * 0.5}
+                    filter="blur(8px)"
+                />
                 <circle
                     cx={torchX}
                     cy={torchY}
                     r={size * 0.12}
                     fill={torchGlow}
                     opacity={nightIntensity * 0.7}
-                    filter="blur(6px)"
+                    filter="blur(5px)"
                 />
                 <circle
                     cx={torchX}
                     cy={torchY}
-                    r={size * 0.06}
+                    r={size * 0.08}
                     fill={torchColor}
                     opacity={nightIntensity * 0.9}
-                    filter="blur(3px)"
+                    filter="blur(2px)"
                 />
-                {/* Torch post */}
+                {/* Enhanced torch post */}
                 <rect
-                    x={torchX - size * 0.008}
+                    x={torchX - size * 0.012}
                     y={torchY}
-                    width={size * 0.016}
-                    height={size * 0.15}
+                    width={size * 0.024}
+                    height={size * 0.2}
                     fill="#654321"
+                    stroke="#4a2c17"
+                    strokeWidth="0.3"
                     opacity={nightIntensity * 0.8}
+                />
+                {/* Torch holder bracket */}
+                <path
+                    d={`M ${torchX - size * 0.02} ${torchY + size * 0.05} L ${torchX + size * 0.02} ${torchY + size * 0.05}`}
+                    stroke="#8b4513"
+                    strokeWidth="1.5"
+                    opacity={nightIntensity * 0.7}
                 />
             </g>
         );
@@ -108,81 +128,138 @@ const AfricanRoundHut3D: React.FC<AfricanRoundHut3DProps> = React.memo(({ x, y, 
                 </filter>
             </defs>
             
-            {/* Enhanced shadow */}
-            <ellipse cx={cx + 2} cy={y + height + 1.5} rx={roofRadius * 1.1} ry={roofRadius * 0.35} fill="rgba(0,0,0,0.35)" />
+            {/* Multi-layered enhanced shadows with blur */}
+            <ellipse cx={cx + 4} cy={y + height + 4} rx={roofRadius * 1.3} ry={roofRadius * 0.45} fill="rgba(0,0,0,0.3)" filter="blur(3px)" />
+            <ellipse cx={cx + 2} cy={y + height + 2} rx={roofRadius * 1.15} ry={roofRadius * 0.4} fill="rgba(0,0,0,0.25)" filter="blur(2px)" />
+            <ellipse cx={cx + 1} cy={y + height + 1} rx={roofRadius * 1.05} ry={roofRadius * 0.35} fill="rgba(0,0,0,0.4)" filter="blur(1px)" />
       
-            {/* Enhanced 3D cylindrical wall with proper perspective */}
-            {/* Back wall arc */}
-            <path d={`M ${cx - wallRadius} ${wallY} a ${wallRadius} ${wallRadius * 0.2} 0 0 1 ${wallRadius * 2} 0`} 
-                fill={`hsl(25, 30%, 45%)`} stroke={outlineColor} strokeWidth="0.5"/>
+            {/* Simple cylindrical mud walls */}
+            {/* Wall cylinder */}
+            <ellipse cx={cx} cy={wallY} rx={wallRadius} ry={wallRadius * 0.15} 
+                fill={wallShadowColor} opacity="0.5"/>
             
-            {/* Main wall cylinder */}
             <rect x={cx - wallRadius} y={wallY} width={wallRadius * 2} height={wallHeight} 
                 fill={`url(#wallGradient-${uniqueId})`} 
                 stroke={outlineColor} strokeWidth="0.8"
-                filter={`url(#mudTexture-${uniqueId})`} />
+                rx={wallRadius * 0.02} />
             
-            {/* Front wall arc (3D effect) */}
-            <path d={`M ${cx - wallRadius} ${wallY + wallHeight} a ${wallRadius} ${wallRadius * 0.2} 0 0 0 ${wallRadius * 2} 0`} 
-                fill={wallShadowColor} stroke={outlineColor} strokeWidth="0.8"/>
-            
-            {/* Enhanced arched doorway */}
-            <path d={`M ${cx - wallRadius * 0.3} ${wallY + wallHeight} 
-                v -${wallHeight * 0.75} 
-                a ${wallRadius * 0.3} ${wallRadius * 0.25} 0 0 1 ${wallRadius * 0.6} 0 
-                v ${wallHeight * 0.75} Z`} 
-                fill={doorColor} stroke={outlineColor} strokeWidth="0.8" />
-            
-            {/* Door frame details */}
-            <path d={`M ${cx - wallRadius * 0.35} ${wallY + wallHeight * 0.25} 
-                a ${wallRadius * 0.35} ${wallRadius * 0.28} 0 0 1 ${wallRadius * 0.7} 0`}
-                fill="none" stroke="#654321" strokeWidth="1.2" />
-            
-            {/* Small windows */}
-            <circle cx={cx + wallRadius * 0.6} cy={wallY + wallHeight * 0.4} r={size * 0.03} 
-                fill="rgba(0,0,0,0.9)" stroke={outlineColor} strokeWidth="0.6"/>
-            <circle cx={cx - wallRadius * 0.6} cy={wallY + wallHeight * 0.5} r={size * 0.025} 
-                fill="rgba(0,0,0,0.8)" stroke={outlineColor} strokeWidth="0.5"/>
-            
-            {/* Enhanced conical thatched roof */}
-            <path d={`M ${cx - roofRadius} ${roofY} Q ${cx} ${roofY - roofHeight * 1.15}, ${cx + roofRadius} ${roofY} Z`} 
-                fill={`url(#thatchGradient-${uniqueId})`} stroke={outlineColor} strokeWidth="0.4" />
-            <path d={`M ${cx - roofRadius} ${roofY} Q ${cx} ${roofY - roofHeight}, ${cx + roofRadius} ${roofY} Z`} 
-                fill={`url(#thatchPattern-${uniqueId})`} opacity="0.85" />
-            
-            {/* Detailed roof thatch lines */}
-            {[...Array(6)].map((_, i) => (
-                <path key={`thatch-line-${i}`} 
-                    d={`M ${cx - roofRadius * (0.85 - i * 0.12)} ${roofY - roofHeight * (i * 0.08)} 
-                        Q ${cx} ${roofY - roofHeight * (0.95 - i * 0.08)}, 
-                        ${cx + roofRadius * (0.85 - i * 0.12)} ${roofY - roofHeight * (i * 0.08)}`} 
-                    fill="none" stroke={i % 2 === 0 ? thatchHighlight : thatchColor1} 
-                    strokeWidth="0.6" opacity="0.7" strokeLinecap="round"/>
+            {/* Wall texture bands for realism */}
+            {[...Array(3)].map((_, i) => (
+                <rect key={`wall-band-${i}`}
+                    x={cx - wallRadius * 0.95} y={wallY + wallHeight * (0.2 + i * 0.25)} 
+                    width={wallRadius * 1.9} height={wallHeight * 0.05} 
+                    fill="none" stroke={wallShadowColor} strokeWidth="0.8" opacity="0.6" />
             ))}
+            
+            {/* Front wall arc (3D effect) - enhanced depth */}
+            <path d={`M ${cx - wallRadius} ${wallY + wallHeight} a ${wallRadius} ${wallRadius * 0.25} 0 0 0 ${wallRadius * 2} 0`} 
+                fill={wallShadowColor} stroke={outlineColor} strokeWidth="1.2"/>
+            
+            {/* Simple arched doorway */}
+            <path d={`M ${cx - wallRadius * 0.2} ${wallY + wallHeight} 
+                v -${wallHeight * 0.65} 
+                a ${wallRadius * 0.2} ${wallRadius * 0.15} 0 0 1 ${wallRadius * 0.4} 0 
+                v ${wallHeight * 0.65} Z`} 
+                fill={doorColor} 
+                stroke={outlineColor} 
+                strokeWidth="0.8" />
+            
+            {/* Interior shadow */}
+            <path d={`M ${cx - wallRadius * 0.2} ${wallY + wallHeight} 
+                v -${wallHeight * 0.6} 
+                a ${wallRadius * 0.2} ${wallRadius * 0.15} 0 0 1 ${wallRadius * 0.4} 0 
+                v ${wallHeight * 0.6} Z`} 
+                fill="rgba(0,0,0,0.7)" />
+            
+            {/* Enhanced door frame with lintel */}
+            <path d={`M ${cx - wallRadius * 0.35} ${wallY + wallHeight * 0.3} 
+                a ${wallRadius * 0.35} ${wallRadius * 0.3} 0 0 1 ${wallRadius * 0.7} 0`}
+                fill="none" stroke="#654321" strokeWidth="2.5" />
+            
+            {/* Wooden lintel beam */}
+            <rect x={cx - wallRadius * 0.3} y={wallY + wallHeight * 0.25} 
+                width={wallRadius * 0.6} height={size * 0.04} 
+                fill="#8b4513" stroke="#654321" strokeWidth="0.8" />
+            
+            {/* Small round window */}
+            <circle cx={cx + wallRadius * 0.5} cy={wallY + wallHeight * 0.4} r={size * 0.025} 
+                fill="rgba(0,0,0,0.8)" 
+                stroke={outlineColor} 
+                strokeWidth="0.6"/>
+            
+            {/* Prominent conical thatched roof like 🛖 */}
+            {/* Roof base shadow */}
+            <ellipse cx={cx} cy={roofY + 2} rx={roofRadius * 1.1} ry={roofRadius * 0.25} 
+                fill="rgba(0,0,0,0.4)" />
+            
+            {/* Main conical roof - tall and pointed */}
+            <path d={`M ${cx - roofRadius} ${roofY} 
+                      L ${cx} ${roofY - roofHeight * 1.4} 
+                      L ${cx + roofRadius} ${roofY} 
+                      Q ${cx} ${roofY + roofRadius * 0.15} ${cx - roofRadius} ${roofY}`} 
+                fill={`url(#thatchGradient-${uniqueId})`} 
+                stroke={outlineColor} 
+                strokeWidth="0.6" />
+            
+            {/* Layered thatch effect */}
+            <path d={`M ${cx - roofRadius * 0.9} ${roofY - roofHeight * 0.1} 
+                      L ${cx} ${roofY - roofHeight * 1.3} 
+                      L ${cx + roofRadius * 0.9} ${roofY - roofHeight * 0.1} 
+                      Q ${cx} ${roofY - roofHeight * 0.05 + roofRadius * 0.12} ${cx - roofRadius * 0.9} ${roofY - roofHeight * 0.1}`} 
+                fill={`url(#thatchPattern-${uniqueId})`} 
+                opacity="0.85" />
+            
+            {/* Roof ridge cap */}
+            <line x1={cx - roofRadius * 0.1} y1={roofY - roofHeight * 1.15} 
+                x2={cx + roofRadius * 0.1} y2={roofY - roofHeight * 1.15} 
+                stroke={thatchHighlight} strokeWidth="3" strokeLinecap="round" />
+            
+            {/* Horizontal thatch layers for authentic look */}
+            {[...Array(6)].map((_, i) => {
+                const layerY = roofY - roofHeight * (i * 0.2 + 0.1);
+                const layerWidth = roofRadius * (1 - i * 0.15);
+                return (
+                    <g key={`thatch-layer-${i}`}>
+                        <ellipse 
+                            cx={cx} 
+                            cy={layerY} 
+                            rx={layerWidth} 
+                            ry={layerWidth * 0.08}
+                            fill={i % 2 === 0 ? thatchColor1 : thatchColor2}
+                            opacity="0.9"
+                        />
+                        {/* Thatch texture lines */}
+                        <path 
+                            d={`M ${cx - layerWidth * 0.8} ${layerY} 
+                                Q ${cx} ${layerY - 2} ${cx + layerWidth * 0.8} ${layerY}`}
+                            stroke={thatchHighlight}
+                            strokeWidth="0.5"
+                            fill="none"
+                            opacity="0.6"
+                        />
+                    </g>
+                );
+            })}
 
-            {/* Enhanced decorative wall patterns */}
-            {decorationChance > 0.3 && [...Array(4)].map((_, i) => (
-                <g key={`pattern-${i}`}>
-                    {/* Traditional geometric patterns */}
-                    <circle cx={cx + wallRadius * 0.5 + (decorationOffsets[i] - 0.5) * 6} 
-                        cy={wallY + wallHeight * (0.2 + i * 0.18)} 
-                        r={size * 0.03} 
-                        fill={i % 3 === 0 ? "#dc2626" : i % 3 === 1 ? "#f59e0b" : "#65a30d"} 
-                        opacity="0.9" stroke="#2d1b07" strokeWidth="0.4"/>
-                    <circle cx={cx + wallRadius * 0.5 + (decorationOffsets[i] - 0.5) * 6} 
-                        cy={wallY + wallHeight * (0.2 + i * 0.18)} 
-                        r={size * 0.018} 
-                        fill="white" opacity="0.7"/>
+            {/* Simple geometric wall patterns */}
+            {decorationChance > 0.4 && (
+                <g>
+                    {/* Single decorative band with triangular pattern */}
+                    <rect x={cx - wallRadius * 0.8} y={wallY + wallHeight * 0.5} 
+                        width={wallRadius * 1.6} height={wallHeight * 0.08} 
+                        fill="none" stroke="#8B4513" strokeWidth="1" opacity="0.7"/>
+                    
+                    {/* Simple triangle pattern */}
+                    {[...Array(3)].map((_, i) => (
+                        <polygon key={`triangle-${i}`}
+                            points={`${cx + (i - 1) * wallRadius * 0.5},${wallY + wallHeight * 0.48} 
+                                     ${cx + (i - 1) * wallRadius * 0.5 - size * 0.025},${wallY + wallHeight * 0.58} 
+                                     ${cx + (i - 1) * wallRadius * 0.5 + size * 0.025},${wallY + wallHeight * 0.58}`}
+                            fill={i === 1 ? "#CD853F" : "#A0522D"} 
+                            opacity="0.8"/>
+                    ))}
                 </g>
-            ))}
-            
-            {/* Support posts and structural details */}
-            <rect x={cx + wallRadius + 2} y={wallY + wallHeight * 0.3} 
-                width={size * 0.03} height={wallHeight * 0.5} 
-                fill="#8b4513" stroke={outlineColor} strokeWidth="0.5"/>
-            <rect x={cx - wallRadius - size * 0.05} y={wallY + wallHeight * 0.25} 
-                width={size * 0.025} height={wallHeight * 0.55} 
-                fill="#8b4513" stroke={outlineColor} strokeWidth="0.4"/>
+            )}
             
             {/* Night torch lighting */}
             {renderTorchLighting()}

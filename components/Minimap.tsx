@@ -15,15 +15,19 @@ interface MinimapProps {
 
 const MINIMAP_MIN_SIZE = 120;
 const MINIMAP_MAX_SIZE = 400;
-const TILE_SIZE_PX = 20;
+const TILE_SIZE_PX = 18;
 
 const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel, panX, panY, containerWidth, containerHeight }) => {
   const [isMinimized, setIsMinimized] = useState(false);
-  const [size, setSize] = useState(160);
+  const [size, setSize] = useState(120);
   const [isResizing, setIsResizing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [position, setPosition] = useState({ x: 6, y: 6 });
   const wrapperRef = useRef<HTMLDivElement>(null);
   const resizeStartPos = useRef({ x: 0, y: 0 });
-  const resizeStartSize = useRef(160);
+  const resizeStartSize = useRef(140);
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  const dragStartElementPos = useRef({ x: 0, y: 0 });
 
   const handleResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -45,6 +49,28 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
     setSize(Math.max(MINIMAP_MIN_SIZE, Math.min(MINIMAP_MAX_SIZE, newSize)));
   }, [isResizing]);
 
+  const handleDragStart = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('.resize-handle')) return;
+    e.preventDefault();
+    setIsDragging(true);
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    dragStartElementPos.current = { x: position.x, y: position.y };
+  };
+
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const handleDragMove = useCallback((e: MouseEvent) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragStartPos.current.x;
+    const dy = e.clientY - dragStartPos.current.y;
+    setPosition({
+      x: dragStartElementPos.current.x + dx,
+      y: dragStartElementPos.current.y + dy
+    });
+  }, [isDragging]);
+
   useEffect(() => {
     if (isResizing) {
       window.addEventListener('mousemove', handleResizeMouseMove);
@@ -58,6 +84,20 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
       window.removeEventListener('mouseup', handleResizeMouseUp);
     };
   }, [isResizing, handleResizeMouseMove, handleResizeMouseUp]);
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleDragMove);
+      window.addEventListener('mouseup', handleDragEnd);
+    } else {
+      window.removeEventListener('mousemove', handleDragMove);
+      window.removeEventListener('mouseup', handleDragEnd);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleDragMove);
+      window.removeEventListener('mouseup', handleDragEnd);
+    };
+  }, [isDragging, handleDragMove, handleDragEnd]);
 
 
   const scale = useMemo(() => size / Math.max(mapData.width * TILE_SIZE_PX, mapData.height * TILE_SIZE_PX), [size, mapData]);
@@ -98,10 +138,10 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
   
   if (isMinimized) {
     return (
-      <div className="absolute top-6 right-6 z-30">
+      <div className="absolute z-30" style={{ top: `${position.y}px`, right: `${position.x}px` }}>
         <button 
             onClick={() => setIsMinimized(false)}
-            className="w-12 h-12 flex items-center justify-center rounded-xl border border-gray-500/50 bg-gray-800/80 text-2xl font-bold text-white shadow-xl transition-all duration-200 backdrop-blur-sm hover:border-blue-400/50 hover:bg-blue-700/80"
+            className="w-12 h-12 flex items-center justify-center rounded-2xl border border-gray-500/50 bg-gray-800/80 text-2xl font-bold text-white shadow-xl transition-all duration-200 backdrop-blur-sm hover:border-blue-400/50 hover:bg-blue-700/80"
             title="Show Minimap"
             aria-label="Show Minimap"
         >
@@ -114,17 +154,30 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
   return (
     <div 
         ref={wrapperRef}
-        className="absolute top-6 right-6 z-30 bg-gray-900/90 backdrop-blur-sm rounded-xl p-3 border border-gray-600/50 shadow-2xl select-none transition-all duration-200" 
-        style={{ width: size + 24, height: size + 48, cursor: isResizing ? 'nwse-resize' : 'default' }}
+        className="absolute z-30 bg-gray-900/60 backdrop-blur-sm rounded-xl p-3 border border-gray-600/50 shadow-2xl select-none transition-all duration-200" 
+        style={{ 
+          top: `${position.y}px`, 
+          right: `${position.x}px`,
+          width: size + 24, 
+          height: size + 24, 
+          cursor: isResizing ? 'nwse-resize' : isDragging ? 'grabbing' : 'grab' 
+        }}
+        onMouseDown={handleDragStart}
     >
-      <div className="flex justify-between items-center mb-2 cursor-grab">
-        <div className="text-xs text-gray-300 font-semibold tracking-wide pl-1">World Overview</div>
-        <button onClick={() => setIsMinimized(true)} className="text-gray-400 hover:text-white text-xl leading-none px-1" title="Minimize Map" aria-label="Minimize Map">
+      <div className="flex justify-between items-center mb-2">
+        <div className="text-xs text-gray-300 font-semibold tracking-wide pl-1" style={{ pointerEvents: 'none' }}>Overview</div>
+        <button 
+          onClick={() => setIsMinimized(true)} 
+          onMouseDown={(e) => e.stopPropagation()}
+          className="text-gray-400 hover:text-white text-xl leading-none px-1" 
+          title="Minimize Map" 
+          aria-label="Minimize Map"
+        >
             −
         </button>
       </div>
       <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-lg border border-gray-700/50 shadow-inner bg-slate-800">
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-lg border border-gray-700/50 shadow-inner bg-slate-800" preserveAspectRatio="xMidYMid slice">
           {minimapContent}
           
           {containerWidth > 0 && containerHeight > 0 && (
@@ -162,7 +215,7 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
         </svg>
         <div 
             onMouseDown={handleResizeMouseDown} 
-            className="absolute -bottom-3 -right-3 w-6 h-6 cursor-nwse-resize text-gray-500 hover:text-white p-1"
+            className="resize-handle absolute -bottom-3 -right-3 w-6 h-6 cursor-nwse-resize text-gray-500 hover:text-white p-1"
             title="Resize Map"
         >
           <svg className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"></path></svg>

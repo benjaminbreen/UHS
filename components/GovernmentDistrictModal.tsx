@@ -4,6 +4,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Tile, PlayerCharacter, MapData, TerrainStructure, HistoricalEra } from '../types';
 import { parseDateString } from '../utils/dateUtils';
+import GovernmentBanner, { GovernmentType } from './GovernmentBanner';
 import { EUROPEAN_FACTIONS } from '../constants/gameData/factions/european';
 import { EAST_ASIAN_FACTIONS } from '../constants/gameData/factions/eastAsian';
 import { MENA_FACTIONS } from '../constants/gameData/factions/mena';
@@ -26,6 +27,7 @@ interface GovernmentDistrictModalProps {
 
 interface GovernmentInfo {
     buildingName: string;
+    buildingType: GovernmentType;
     buildingDescription: string;
     dominantPower: string;
     dominantPowerDescription: string;
@@ -60,7 +62,10 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
 }) => {
     const [governmentInfo, setGovernmentInfo] = useState<GovernmentInfo | null>(null);
 
-    const { era } = parseDateString(formattedDate);
+    const { era, year } = useMemo(() => {
+        // Use mapData.timeSlice which contains the year string
+        return parseDateString(mapData.timeSlice || '1650');
+    }, [mapData.timeSlice]);
 
     useEffect(() => {
         const generateGovernmentInfo = (): GovernmentInfo => {
@@ -78,33 +83,33 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
             const eraData = regionData?.[era];
 
             // Determine building type based on era and culture
-            const getBuildingInfo = () => {
+            const getBuildingInfo = (): { name: string, desc: string, type: GovernmentType } => {
                 switch (era) {
                     case HistoricalEra.ANTIQUITY:
-                        if (cultureZone === 'Europe') return { name: 'Forum', desc: 'A grand public square where citizens gather to hear proclamations and conduct civic business.' };
-                        if (cultureZone === 'MENA') return { name: 'Palace Complex', desc: 'An imposing administrative center where regional governors hold court.' };
-                        if (cultureZone === 'East Asia') return { name: 'Commandery Office', desc: 'A formal administrative building where imperial officials manage local affairs.' };
-                        return { name: 'Tribal Council Grounds', desc: 'A sacred meeting place where tribal leaders gather to make decisions for the community.' };
+                        if (cultureZone === 'Europe') return { name: 'Forum', desc: 'A grand public square where citizens gather to hear proclamations and conduct civic business.', type: 'forum' };
+                        if (cultureZone === 'MENA') return { name: 'Palace Complex', desc: 'An imposing administrative center where regional governors hold court.', type: 'palace_complex' };
+                        if (cultureZone === 'East Asia') return { name: 'Commandery Office', desc: 'A formal administrative building where imperial officials manage local affairs.', type: 'commandery' };
+                        return { name: 'Tribal Council Grounds', desc: 'A sacred meeting place where tribal leaders gather to make decisions for the community.', type: 'tribal_council' };
                     
                     case HistoricalEra.MEDIEVAL:
-                        if (cultureZone === 'Europe') return { name: 'Great Hall', desc: 'A fortified manor house serving as the seat of local lordship and justice.' };
-                        if (cultureZone === 'MENA') return { name: 'Diwan', desc: 'The administrative court where the local ruler holds audience and dispenses justice.' };
-                        if (cultureZone === 'East Asia') return { name: 'Prefecture Hall', desc: 'An elegant compound where imperial magistrates govern according to the Mandate of Heaven.' };
-                        return { name: 'Royal Palace', desc: 'The seat of a powerful kingdom, adorned with symbols of divine authority.' };
+                        if (cultureZone === 'Europe') return { name: 'Great Hall', desc: 'A fortified manor house serving as the seat of local lordship and justice.', type: 'great_hall' };
+                        if (cultureZone === 'MENA') return { name: 'Diwan', desc: 'The administrative court where the local ruler holds audience and dispenses justice.', type: 'diwan' };
+                        if (cultureZone === 'East Asia') return { name: 'Prefecture Hall', desc: 'An elegant compound where imperial magistrates govern according to the Mandate of Heaven.', type: 'prefecture' };
+                        return { name: 'Royal Palace', desc: 'The seat of a powerful kingdom, adorned with symbols of divine authority.', type: 'royal_palace' };
                     
                     case HistoricalEra.RENAISSANCE_EARLY_MODERN:
-                        if (cultureZone === 'Europe') return { name: 'Town Hall', desc: 'A Renaissance civic building where merchant guilds and city councils meet.' };
-                        if (cultureZone === 'MENA') return { name: 'Court of the Pasha', desc: 'An ornate Ottoman administrative building with distinctive Islamic architecture.' };
-                        return { name: 'Colonial Administration', desc: 'A European-style building representing distant imperial authority.' };
+                        if (cultureZone === 'Europe') return { name: 'Town Hall', desc: 'A Renaissance civic building where merchant guilds and city councils meet.', type: 'town_hall' };
+                        if (cultureZone === 'MENA') return { name: 'Court of the Pasha', desc: 'An ornate Ottoman administrative building with distinctive Islamic architecture.', type: 'pasha_court' };
+                        return { name: 'Colonial Administration', desc: 'A European-style building representing distant imperial authority.', type: 'colonial_admin' };
                     
                     case HistoricalEra.INDUSTRIAL_ERA:
-                        return { name: 'Municipal Building', desc: 'A grand Victorian civic center reflecting the prosperity of the industrial age.' };
+                        return { name: 'Municipal Building', desc: 'A grand Victorian civic center reflecting the prosperity of the industrial age.', type: 'municipal' };
                     
                     case HistoricalEra.MODERN_ERA:
-                        return { name: 'Government Complex', desc: 'A modern administrative building with glass facades and efficient bureaucratic design.' };
+                        return { name: 'Government Complex', desc: 'A modern administrative building with glass facades and efficient bureaucratic design.', type: 'modern_complex' };
                     
                     default:
-                        return { name: 'Government Building', desc: 'An administrative center where local officials manage civic affairs.' };
+                        return { name: 'Government Building', desc: 'An administrative center where local officials manage civic affairs.', type: 'default' };
                 }
             };
 
@@ -142,6 +147,7 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
 
             return {
                 buildingName: buildingInfo.name,
+                buildingType: buildingInfo.type,
                 buildingDescription: buildingInfo.desc,
                 dominantPower,
                 dominantPowerDescription,
@@ -152,7 +158,7 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
         };
 
         setGovernmentInfo(generateGovernmentInfo());
-    }, [era, currentLocation, structure]);
+    }, [era, currentLocation, structure, mapData.timeSlice]);
 
     if (!governmentInfo) {
         return null; // Loading
@@ -162,21 +168,13 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
             <div className="bg-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-slate-600">
                 {/* Header Banner */}
-                <div className="bg-gradient-to-r from-blue-900 to-purple-900 p-6 rounded-t-2xl border-b border-slate-600">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h1 className="text-2xl font-bold text-white mb-1">{governmentInfo.buildingName}</h1>
-                            <h2 className="text-lg text-blue-200 mb-2">{structure.name}</h2>
-                            <p className="text-sm text-blue-300">
-                                {currentLocation} • {formattedDate}
-                            </p>
-                        </div>
-                        <div className="text-right">
-                            <div className="text-lg font-semibold text-yellow-300">{governmentInfo.dominantPower}</div>
-                            <div className="text-sm text-blue-200">Ruling Authority</div>
-                        </div>
-                    </div>
-                </div>
+                <GovernmentBanner 
+                    type={governmentInfo.buildingType}
+                    name={governmentInfo.buildingName}
+                    location={`${currentLocation} • ${formattedDate}`}
+                    dominantPower={governmentInfo.dominantPower}
+                    era={era}
+                />
                 
                 {/* Main Content */}
                 <div className="p-6 space-y-6">

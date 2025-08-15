@@ -1,10 +1,11 @@
 /**
  * services/skillService.ts - The main service for executing player skills.
  */
-import { Tile, SkillID, SkillResult, PlayerContext, ForageSkillResult, ObserveSkillResult, BiomeType, AnimalEntity, ChopSkillResult, DigSkillResult, VegetationEntity, VegetationSpecies, Item } from '../types';
+import { Tile, SkillID, SkillResult, PlayerContext, ForageSkillResult, ObserveSkillResult, BiomeType, AnimalEntity, ChopSkillResult, DigSkillResult, VegetationEntity, VegetationSpecies, Item, ItemQuality } from '../types';
 import { generateObservationText, generateUniqueForageItem } from './llmService';
 import { LOOT_TABLES, ANIMAL_DATA, VEGETATION_SPECIES_DATA, ITEM_DEFINITIONS, STRUCTURE_LOOT_TABLES, METALS } from '../constants/index';
 import { createItemInstance, generateProceduralItemDefinition } from '../utils/inventoryUtils';
+import { executeTerrainDig, executeTerrainForage, executeTerrainChop } from './terrainForagingService';
 
 
 async function executeObserve(context: PlayerContext): Promise<ObserveSkillResult> {
@@ -35,6 +36,31 @@ async function executeForage(context: PlayerContext): Promise<ForageSkillResult>
     }
     
     const tile = currentTile as Tile;
+    
+    // Check if this is an urban tile
+    const isUrbanTile = mapData.urbanCenters?.some(uc => 
+        uc.x === tile.x && uc.y === tile.y
+    ) || false;
+    
+    // Try terrain-specific foraging first
+    const terrainResult = executeTerrainForage(tile, playerCharacter, isUrbanTile);
+    if (terrainResult.success) {
+        const result: ForageSkillResult = {
+            type: 'forage',
+            success: true,
+            item: terrainResult.item!,
+            message: terrainResult.message,
+            xpGained: terrainResult.xpGained || 1
+        };
+        
+        // Add reputation change if stealing
+        if (terrainResult.reputationChange) {
+            (result as any).reputationChange = terrainResult.reputationChange;
+            (result as any).stealingDetected = terrainResult.stealingDetected;
+        }
+        
+        return result;
+    }
     const perception = playerCharacter.stats.perception || 5;
     const luck = playerCharacter.stats.luck || 5;
 
@@ -225,6 +251,31 @@ async function executeChop(context: PlayerContext): Promise<ChopSkillResult> {
     
     const tile = currentTile as Tile;
     const vegetationEntity = mapData.vegetation?.find(v => v.id === tile.vegetationId);
+    
+    // Check if this is an urban tile
+    const isUrbanTile = mapData.urbanCenters?.some(uc => 
+        uc.x === tile.x && uc.y === tile.y
+    ) || false;
+    
+    // Try terrain-specific chopping first (mangroves, bamboo, etc.)
+    const terrainResult = executeTerrainChop(tile, playerCharacter, isUrbanTile);
+    if (terrainResult.success || terrainResult.reputationChange) {
+        const result: ChopSkillResult = {
+            type: 'chop',
+            success: terrainResult.success,
+            item: terrainResult.item,
+            message: terrainResult.message,
+            xpGained: terrainResult.xpGained || 0
+        };
+        
+        // Add reputation change if vandalism
+        if (terrainResult.reputationChange) {
+            (result as any).reputationChange = terrainResult.reputationChange;
+            (result as any).stealingDetected = terrainResult.stealingDetected;
+        }
+        
+        return result;
+    }
 
     if (!vegetationEntity || !vegetationEntity.baseType.includes('tree')) {
         return { type: 'chop', success: false, message: 'There is nothing here to chop.' };
@@ -272,54 +323,88 @@ async function executeDig(context: PlayerContext): Promise<DigSkillResult> {
 
     const tile = currentTile as Tile;
     const equippedTool = playerCharacter.equippedItems.main_hand;
+    
+    // Check if this is an urban tile
+    const isUrbanTile = mapData.urbanCenters?.some(uc => 
+        uc.x === tile.x && uc.y === tile.y
+    ) || false;
+    
+    // Try terrain-specific digging first (salt flats, beaches, etc.)
+    const terrainResult = executeTerrainDig(tile, playerCharacter, isUrbanTile);
+    if (terrainResult.success) {
+        const result: DigSkillResult = {
+            type: 'dig',
+            success: true,
+            item: terrainResult.item!,
+            message: terrainResult.message,
+            xpGained: terrainResult.xpGained || 1
+        };
+        
+        // Add reputation change if stealing
+        if (terrainResult.reputationChange) {
+            (result as any).reputationChange = terrainResult.reputationChange;
+            (result as any).stealingDetected = terrainResult.stealingDetected;
+        }
+        
+        return result;
+    }
 
     // Case 1: Mining a mineral deposit
     if (tile.mineralDeposit && tile.mineralDeposit.quantity > 0) {
         const strength = playerCharacter.stats.strength || 5;
+        const luck = playerCharacter.stats.luck || 5;
         
-        // Determine tool effectiveness
+        // Determine tool effectiveness and quality bonus
         let toolEffectiveness = 0.25; // Default for any item (25% success rate)
         let toolName = "your improvised tool";
         let toolModifier = 0.5; // Amount modifier for non-pickaxe tools
+        let qualityBonus = 0; // Bonus to quality roll
         
         if (equippedTool) {
             const toolId = equippedTool.baseId.toUpperCase();
             
             if (toolId.includes('PICKAXE')) {
-                // Pickaxes are 100% effective
+                // Pickaxes are 100% effective and give quality bonus
                 toolEffectiveness = 1.0;
                 toolModifier = toolId === 'STEEL_PICKAXE' ? 1.5 : 1.0;
+                qualityBonus = toolId === 'STEEL_PICKAXE' ? 0.3 : 0.2;
                 toolName = "your pickaxe";
             } else if (toolId.includes('SHOVEL') || toolId.includes('SPADE')) {
                 // Shovels are moderately effective
                 toolEffectiveness = 0.5;
                 toolModifier = 0.7;
+                qualityBonus = 0.1;
                 toolName = "your shovel";
             } else if (toolId.includes('AXE') || toolId.includes('HAMMER')) {
                 // Axes and hammers are somewhat effective
                 toolEffectiveness = 0.4;
                 toolModifier = 0.6;
+                qualityBonus = 0.05;
                 toolName = equippedTool.name.toLowerCase();
             } else if (toolId.includes('SWORD') || toolId.includes('DAGGER') || toolId.includes('KNIFE')) {
                 // Bladed weapons are less effective
                 toolEffectiveness = 0.3;
                 toolModifier = 0.5;
+                qualityBonus = 0;
                 toolName = equippedTool.name.toLowerCase();
             } else if (toolId.includes('STICK') || toolId.includes('BRANCH')) {
                 // Sticks are minimally effective
                 toolEffectiveness = 0.25;
                 toolModifier = 0.3;
+                qualityBonus = -0.1; // Penalty to quality
                 toolName = "your stick";
             } else {
                 // Any other item
                 toolEffectiveness = 0.25;
                 toolModifier = 0.4;
+                qualityBonus = -0.05;
                 toolName = equippedTool.name.toLowerCase();
             }
         } else {
-            // Bare hands - very ineffective
+            // Bare hands - very ineffective and poor quality
             toolEffectiveness = 0.1;
             toolModifier = 0.2;
+            qualityBonus = -0.2;
             toolName = "your bare hands";
         }
         
@@ -334,18 +419,61 @@ async function executeDig(context: PlayerContext): Promise<DigSkillResult> {
             const item = createItemInstance(oreItemId);
 
             if (item) {
+                // Determine quality based on tool, luck, and random chance
+                const luckModifier = (luck - 5) * 0.03; // Each luck point adds 3% to quality roll
+                const qualityRoll = Math.random() + qualityBonus + luckModifier;
+                
+                let quality: ItemQuality;
+                let qualityDescription = "";
+                
+                if (qualityRoll >= 0.95) {
+                    quality = 'excellent';
+                    qualityDescription = "pristine quality ";
+                } else if (qualityRoll >= 0.7) {
+                    quality = 'good';
+                    qualityDescription = "good quality ";
+                } else if (qualityRoll >= 0.3) {
+                    quality = 'standard';
+                    qualityDescription = "";
+                } else {
+                    quality = 'poor';
+                    qualityDescription = "low quality ";
+                }
+                
+                // Apply quality to the item
+                item.quality = quality;
+                
+                // Modify item name based on quality for certain minerals
+                const metalName = METALS[tile.mineralDeposit.metalId].name.toLowerCase();
+                if (quality === 'poor' && (metalName === 'gold' || metalName === 'silver')) {
+                    item.name = metalName.charAt(0).toUpperCase() + metalName.slice(1) + ' Dust';
+                    item.description = `Fine ${metalName} dust, difficult to work with but still valuable.`;
+                } else if (quality === 'excellent' && (metalName === 'gold' || metalName === 'silver')) {
+                    item.name = metalName.charAt(0).toUpperCase() + metalName.slice(1) + ' Nugget';
+                    item.description = `A pure ${metalName} nugget, perfect for crafting fine items.`;
+                }
+                
+                // Adjust crafting value based on quality
+                if (quality === 'excellent') {
+                    item.craftingValue = (item.craftingValue || 1) * 1.5;
+                } else if (quality === 'good') {
+                    item.craftingValue = (item.craftingValue || 1) * 1.2;
+                } else if (quality === 'poor') {
+                    item.craftingValue = (item.craftingValue || 1) * 0.7;
+                }
+                
                 item.quantity = actualAmount;
                 const newDepositQty = tile.mineralDeposit.quantity - actualAmount;
                 const message = newDepositQty > 0 
-                    ? `You successfully extract ${actualAmount} ${item.name.toLowerCase()} using ${toolName}!`
-                    : `You extract the last ${actualAmount} ${item.name.toLowerCase()} from the depleted deposit using ${toolName}!`;
+                    ? `You successfully extract ${actualAmount} ${qualityDescription}${item.name.toLowerCase()} using ${toolName}!`
+                    : `You extract the last ${actualAmount} ${qualityDescription}${item.name.toLowerCase()} from the depleted deposit using ${toolName}!`;
                 
                 return {
                     type: 'dig',
                     success: true,
                     message,
                     item,
-                    xpGained: 2,
+                    xpGained: quality === 'excellent' ? 4 : quality === 'good' ? 3 : 2,
                     tileCoords: { x: tile.x, y: tile.y },
                     amountExtracted: actualAmount,
                 };

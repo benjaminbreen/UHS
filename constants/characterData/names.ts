@@ -1,7 +1,7 @@
 /**
  * constants/characterData/names.ts - Comprehensive data for procedural name generation.
  */
-export type CulturalZone = 'EUROPEAN' | 'EAST_ASIAN' | 'MENA' | 'NORTH_AMERICAN_PRE_COLUMBIAN' | 'NORTH_AMERICAN_COLONIAL' | 'OCEANIA' | 'SOUTH_ASIAN' | 'SOUTH_AMERICAN' | 'SUB_SAHARAN_AFRICAN';
+import { CulturalZone } from '../../types/characterData';
 
 export interface NameList {
     male: string[];

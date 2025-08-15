@@ -10,7 +10,10 @@ interface PagodaSymbolProps {
 }
 
 const PagodaSymbol: React.FC<PagodaSymbolProps> = ({ x, y, size, seed, tile }) => {
-    const localRand = (offset = 0) => new ValueNoise(seed + tile.x * 19 + tile.y * 53 + offset).random();
+    // Use tile coordinates if available, otherwise use x,y for randomization
+    const tileX = tile?.x ?? Math.floor(x / size);
+    const tileY = tile?.y ?? Math.floor(y / size);
+    const localRand = (offset = 0) => new ValueNoise(seed + tileX * 19 + tileY * 53 + offset).random();
     const tiers = 3 + Math.floor(localRand() * 3);
     const wallColor = "#F5DEB3";
     const roofColor = "#B22222";

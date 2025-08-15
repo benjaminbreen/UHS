@@ -1,7 +1,13 @@
 
-# Future Roadmap: Map Voyager Engine
+# Future Roadmap: Universal History Simulator
 
-This document outlines a strategic roadmap for the continued development of the Map Voyager engine. The plan is divided into three phases, starting with immediate quality-of-life improvements and culminating in the long-term vision of a universal, educational history simulator.
+This document outlines the strategic roadmap for transforming Map Voyager into a comprehensive educational history simulator with integrated primary sources and AI-driven scenario generation.
+
+---
+
+## Current Priority: Primary Source System (In Development)
+
+See `primarysourcesroadmap.md` for detailed implementation plan. The Primary Source System is the foundation for all educational features and must be completed before World Weaver development.
 
 ---
 
@@ -44,31 +50,70 @@ This phase focuses on making the generated world more dynamic, interactive, and 
 *   **NPC Schedules:** Implement the NPC scheduling concept from `ReadMe.md`. A `lumberjack` NPC anchored to a `lumber_camp` should have a procedurally generated `homeLocation` in a nearby `HAMLET`. They should travel from their home to the camp in the morning and return at night, making the world feel inhabited.
 *   **Culturally-Aware Structures:** The visual appearance of structures (e.g., in `TerrainStructureBanner.tsx`) should vary based on the `culturalZone`. A `fortress` in 'East Asia' should look different from one in 'Europe'. This can be achieved by creating different SVG symbol components for each cultural style.
 
-### 2.3. Staged Implementation: Game Modes (Bridge to the World Weaver)
+### 2.3. World Weaver System (Next Major Feature)
 
-This phase introduces "Game Modes," a system that provides structured objectives and varied playstyles. It serves as a crucial bridge between the dynamic simulation and the long-term vision of the "World Weaver" by creating the core mechanics (Quest Engine, Assessment Engine) that the World Weaver will eventually orchestrate with greater nuance.
+The World Weaver is an LLM-powered system that generates historically accurate scenarios from natural language prompts. It builds directly on the Primary Source System to create rich, educational gameplay experiences.
 
-#### Core Components:
+#### Implementation Phases:
 
-1.  **The Quest Engine (Procedural + LLM):**
-    *   **Procedural Core:** The engine will generate basic, systemic quests based on the current world state (e.g., "A `ruined` mill needs `STONE`," "The `fortress` is low on `FOOD`," "An NPC wants a rare `ITEM` from a nearby biome").
-    *   **LLM Enhancement:** A Gemini API call will take these procedural skeletons and enrich them with narrative flavor, historical context, and character-specific dialogue, making them feel unique and integrated into the scenario.
+**Phase 1: Scenario Generation (Weeks 3-4 after Primary Sources)**
+*   **Input Processing:** Natural language → structured JSON
+*   **Scenario Components:**
+    - Year, location, and map settings
+    - Player character role and objectives
+    - 2-3 Special NPCs with historical backgrounds
+    - Quest items and victory conditions
+    - Relevant primary sources to surface
+*   **Integration:** Hooks into existing map generation and NPC systems
 
-2.  **The Assessment Engine (LLM-Scored):**
-    *   **Function:** This Gemini-powered service will evaluate and score player actions based on the active Game Mode. It moves beyond simple win/loss states to provide qualitative feedback.
-    *   **Example:** For an "Inquiry" quest, the engine would score a player's journal entry on its historical plausibility, depth of observation, and creativity, teaching players *how to think* within a given context rather than just completing a task.
+**Phase 2: Dynamic Event System (Month 2)**
+*   **Event Types:** Initial, triggered, random, completion
+*   **Event Generation:** Based on game state, primary sources, player actions
+*   **Event Effects:** Spawn NPCs/items, change factions, modify objectives
 
-3.  **Dynamic "Sources" Tab:**
-    *   **UI:** A new "Sources" tab will be added to the Left Sidebar.
-    *   **Content:** This tab will dynamically display excerpts from relevant primary historical sources based on the player's current `gameMode`, `culturalZone`, and `historicalEra`. For example, selecting "Healing" mode in 14th century Europe would populate this tab with texts on the Black Death or humoral theory.
+**Phase 3: Assessment Engine (Month 3)**
+*   **Historical Accuracy Scoring:** Evaluate player actions against sources
+*   **Qualitative Feedback:** Explain anachronisms, highlight insights
+*   **Educational Modes:** Guided scenarios, required readings, accuracy constraints
 
-4.  **Mode-Specific Actions & UI:**
-    *   Game Modes will unlock unique UI elements and actions, creating distinct gameplay loops. For example:
-        *   **Healing Mode:** Enables "Diagnose" and "Treat" actions in a new `HealingModal`, a parallel to the `CombatModal`.
-        *   **Debate Mode:** Adds a "Persuade" button to the `EncounterModal`.
-        *   **Inquiry Mode:** Adds "Study" (opening a `StudyModal` for LLM interaction) and "Sample" actions.
+#### Scenario JSON Template:
+```json
+{
+  "scenario": {
+    "year": 1780,
+    "location": "Hudson Valley, New York",
+    "mapSettings": {
+      "center": {"x": 45, "y": 30},
+      "factions": ["British Empire", "Continental Army"]
+    }
+  },
+  "playerCharacter": {
+    "role": "Continental spy",
+    "startingLocation": "Patriot camp",
+    "primaryObjective": "Steal British troop movements"
+  },
+  "specialNPCs": [
+    {
+      "name": "Benedict Arnold",
+      "historicalContext": "[excerpt from primary source]",
+      "personality": "bitter, suspicious"
+    }
+  ],
+  "questItems": [
+    {
+      "id": "british-dispatches",
+      "location": "British officers' tent"
+    }
+  ],
+  "victoryConditions": {
+    "primary": "Return dispatches to Continental camp",
+    "optional": ["Avoid detection"]
+  },
+  "relevantSources": ["washington-letters", "arnold-papers"]
+}
+```
 
-#### Game Modes to Implement:
+#### Game Modes (Implemented via World Weaver):
 
 1.  **🧭 Exploration Mode:**
     *   **Objective:** Chart the unknown and document the world.
@@ -101,9 +146,9 @@ This phase introduces "Game Modes," a system that provides structured objectives
 
 ---
 
-## 3. The Universal History Simulator (Long-Term)
+## 3. The Universal History Simulator (Long-Term Vision)
 
-This phase realizes the ultimate vision of the project: creating a deeply educational and endlessly replayable history simulator powered by a combination of robust proceduralism and advanced AI. This builds on the "Parameterized World Engine" and "World Weaver" concepts.
+This phase realizes the ultimate vision: a deeply educational history simulator where primary sources, procedural generation, and AI create endless historically-grounded scenarios.
 
 ### 3.1. The Parameterized World Engine
 
@@ -121,25 +166,93 @@ The goal is to create a fully data-driven generation engine where the "rules" of
         *   A "Technology" section with toggles for `Iron Working`, `Gunpowder`, `Steam Power`, etc.
     *   **Educational Impact:** This turns the engine into a powerful tool for exploring counterfactual history. A player could ask, "What would the Roman Empire have looked like with gunpowder?" and generate a world to explore that scenario.
 
-### 3.2. The "World Weaver" (LLM-Driven Scenarios)
+### 3.2. Complete Educational Platform
 
-This is the ambitious system that allows players to generate entire scenarios from natural language prompts, with content grounded in real historical sources.
+The convergence of all systems creates a comprehensive learning environment:
 
-*   **Phase 1: Primary Source Integration:**
-    *   **Goal:** Build the knowledge base for the AI.
-    *   **Tasks:** Create a database (e.g., a simple JSON file or a Supabase instance) containing metadata for dozens of primary historical sources: `title`, `author`, `year`, `tags` (`Greek`, `Egypt`, `300 BCE`, `commerce`), and a concise `summary`. This directly addresses a core concept in the `ReadMe.md`.
-*   **Phase 2: "World Weaver" Scenario Generation:**
-    *   **Goal:** Generate a unique, historically-grounded scenario from a player's prompt.
-    *   **Tasks:**
-        1.  Implement an LLM function that takes a user prompt (e.g., "A Greek merchant exploring Egypt in 300 BCE").
-        2.  The LLM first parses the prompt into game parameters (`date`, `location`, `player_goal`).
-        3.  It then queries the primary source database for relevant documents based on the parameters.
-        4.  Finally, it generates a 150-word scenario summary and creates 2-3 **"Special NPCs"** whose backstories, personalities, and goals are directly based on the *summaries* of the retrieved primary sources.
-    *   **Educational Impact:** The player isn't just in a generic "ancient" setting; they are in a specific historical context, interacting with characters whose lives are inspired by real historical texts.
-*   **Phase 3: The Assessment Engine:**
-    *   **Goal:** Create a gameplay loop where the player's primary skill is creative, historically-aware thinking.
-    *   **Tasks:**
-        1.  Create an LLM "Assessment Engine" function. It takes two inputs: the player's submitted work (e.g., a journal entry, a trade proposal) and a dynamically generated rubric.
-        2.  The rubric is generated based on the quest's objectives and the `SocietalProfile` of the current map. *Example Rubric for a remedy in 1640s Europe: `{"Adherence to Humoral Theory": "50%", "Plausibility of Ingredients": "30%", "Clarity of Writing": "20%"}`.*
-        3.  The LLM returns a score and qualitative feedback (e.g., "Your remedy is well-written, but mentioning bacteria is anachronistic. A physician of this era would attribute the illness to an imbalance of phlegm.").
-    *   **Educational Impact:** This is the ultimate educational feature. It moves beyond rote memorization of facts and teaches players **how to think within a historical context**, making it a truly unique learning tool.
+#### Integrated Systems:
+*   **Primary Sources:** 800+ historical texts providing authentic context
+*   **World Weaver:** Natural language scenario generation
+*   **Assessment Engine:** Qualitative evaluation of historical thinking
+*   **Dynamic Events:** Responsive narrative based on sources and actions
+
+#### Educational Features:
+*   **Curriculum Integration:**
+    - Aligned with AP World History, IB History standards
+    - Custom lesson plans for specific topics
+    - Progress tracking and reporting
+    
+*   **Multiplayer Scenarios:**
+    - Collaborative historical problem-solving
+    - Competing factions in historical conflicts
+    - Teacher-moderated classroom sessions
+
+*   **Content Creator Tools:**
+    - Teachers can create custom scenarios
+    - Share scenario templates with community
+    - Import curriculum-specific source collections
+
+#### Monetization Model:
+*   **Free Tier:** Core game with 200 public domain sources
+*   **Premium ($5/month):** All 800 sources, custom uploads, advanced scenarios
+*   **Educational ($50/month per classroom):** Full features plus management tools
+*   **Enterprise (Custom pricing):** School district licensing, custom content
+
+### 3.3. Technical Evolution
+
+#### Performance at Scale:
+*   **Progressive Web App:** Works offline with cached sources
+*   **Cloud Saves:** Sync progress across devices
+*   **Multiplayer Infrastructure:** WebRTC for peer-to-peer sessions
+
+#### AI Integration:
+*   **Local LLM Option:** Run smaller models client-side for privacy
+*   **Custom Fine-Tuning:** Train on specific historical periods
+*   **Multi-Modal:** Image recognition for historical artifacts
+
+#### Platform Expansion:
+*   **Mobile Apps:** Native iOS/Android for better performance
+*   **VR/AR Support:** Immersive historical experiences
+*   **API Platform:** Let others build on our historical data
+
+## Implementation Timeline
+
+### Year 1: Foundation
+- **Months 1-2:** Primary Source System (Phase 1-2)
+- **Months 3-4:** World Weaver Scenario Generation
+- **Months 5-6:** Primary Source System (Phase 3) + Basic Assessment
+- **Months 7-8:** Dynamic Event System
+- **Months 9-10:** Polish, Testing, Beta Launch
+- **Months 11-12:** Freemium Model Launch
+
+### Year 2: Growth
+- **Q1:** Educational partnerships, curriculum alignment
+- **Q2:** Multiplayer features, collaborative scenarios
+- **Q3:** Mobile apps, offline mode
+- **Q4:** Enterprise features, school district tools
+
+### Year 3: Platform
+- **Q1:** Content creator marketplace
+- **Q2:** VR/AR prototypes
+- **Q3:** API platform launch
+- **Q4:** International expansion, localization
+
+## Success Metrics
+
+### Technical:
+- Page load time < 3 seconds
+- Source fetch time < 1 second
+- 99.9% uptime
+- Support for 10,000 concurrent users
+
+### Educational:
+- 50% of users read at least 5 sources per session
+- 30% improvement in historical knowledge tests
+- 80% teacher satisfaction rating
+- 10,000 students using in classrooms
+
+### Business:
+- 100,000 free users in Year 1
+- 5% conversion to premium
+- 100 educational licenses
+- Break-even by Month 18

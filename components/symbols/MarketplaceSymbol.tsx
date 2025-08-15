@@ -20,7 +20,7 @@ const MarketplaceSymbol: React.FC<MarketplaceSymbolProps> = React.memo(({ x, y, 
     // Memoize the random function and all static values
     const staticValues = useMemo(() => {
         const localRand = (offset = 0) => new ValueNoise(seed + tile.x * 17 + tile.y * 19 + offset).random();
-        const numStalls = 2 + Math.floor(localRand(0) * 3);
+        const numStalls = 1 + Math.floor(localRand(0) * 4); // 1 to 4 stalls
         const stallStripes = Array.from({ length: 8 }, (_, i) => localRand(i * 7) > 0.5); // Pre-compute all stall stripes
         return {
             localRand,
@@ -98,23 +98,53 @@ const MarketplaceSymbol: React.FC<MarketplaceSymbolProps> = React.memo(({ x, y, 
     const renderTraditionalMarket = () => {
         const elements: JSX.Element[] = [];
         const { numStalls, stallColors, stallStripes, localRand } = staticValues;
-        const stallsPerRow = numStalls <= 2 ? numStalls : 2;
+        
+        // Grid arrangement with guaranteed spacing
+        const stallPositions = [];
+        const padding = size * 0.15; // Minimum space between stalls
+        const maxStallSize = size * 0.35; // Maximum stall size
+        
+        if (numStalls === 1) {
+            // Center single stall
+            stallPositions.push({ x: x + size * 0.5, y: y + size * 0.5 });
+        } else if (numStalls === 2) {
+            // Two stalls side by side
+            stallPositions.push({ x: x + size * 0.3, y: y + size * 0.5 });
+            stallPositions.push({ x: x + size * 0.7, y: y + size * 0.5 });
+        } else if (numStalls === 3) {
+            // Triangle arrangement
+            stallPositions.push({ x: x + size * 0.5, y: y + size * 0.3 });
+            stallPositions.push({ x: x + size * 0.3, y: y + size * 0.65 });
+            stallPositions.push({ x: x + size * 0.7, y: y + size * 0.65 });
+        } else {
+            // Four stalls in corners with center space
+            stallPositions.push({ x: x + size * 0.3, y: y + size * 0.3 });
+            stallPositions.push({ x: x + size * 0.7, y: y + size * 0.3 });
+            stallPositions.push({ x: x + size * 0.3, y: y + size * 0.7 });
+            stallPositions.push({ x: x + size * 0.7, y: y + size * 0.7 });
+        }
         
         for (let i = 0; i < numStalls; i++) {
-            const row = Math.floor(i / stallsPerRow);
-            const col = i % stallsPerRow;
+            const pos = stallPositions[i];
             
-            const stallW = size * 0.35;
-            const stallH = size * 0.25;
-            const spacing = size * 0.1;
+            // Smaller, consistent stall sizes to ensure no overlap
+            const stallW = size * 0.22; // Fixed smaller width
+            const stallH = size * 0.18; // Fixed smaller height
             
-            const stallX = x + col * (stallW + spacing) + spacing;
-            const stallY = y + row * (stallH + spacing) + spacing;
+            const stallX = pos.x - stallW/2;
+            const stallY = pos.y - stallH/2;
             const awningH = size * 0.15;
             const depth = size * 0.08;
             
-            const stallColor = stallColors[i % stallColors.length];
-            const hasStripes = stallStripes[i]; // Pre-computed static value
+            // More varied awning colors - always include one purple for identity
+            const awningColors = [
+                ["#6B46C1", "#DC2626", "#059669", "#0284C7"], // Purple, red, green, blue
+                ["#7C3AED", "#EA580C", "#0891B2", "#DC2626"], // Light purple, orange, cyan, red
+                ["#5B21B6", "#16A34A", "#DC2626", "#CA8A04"], // Dark purple, green, red, yellow
+            ];
+            const colorSet = awningColors[Math.floor(localRand(i * 14) * awningColors.length)];
+            const stallColor = i === 0 ? colorSet[0] : colorSet[i % colorSet.length]; // First stall always purple
+            const hasStripes = stallStripes[i] && localRand(i * 15) > 0.3; // Some striped awnings
             
             // Cultural building variations (same colors, different shapes)
             let buildingElement;
@@ -238,19 +268,23 @@ const MarketplaceSymbol: React.FC<MarketplaceSymbolProps> = React.memo(({ x, y, 
                     {/* Cultural building variation */}
                     {buildingElement}
                     
-                    {/* Vertical stripes - alternating white with color */}
+                    {/* Stripes - white alternating with color */}
                     {hasStripes && (
                         <g>
-                            {Array.from({ length: 6 }).map((_, stripeIndex) => (
-                                <rect
-                                    key={`stripe-${stripeIndex}`}
-                                    x={stallX - size*0.05 + (stripeIndex * (stallW + size*0.1) / 6)}
-                                    y={stallY}
-                                    width={(stallW + size*0.1) / 12}
-                                    height={awningH}
-                                    fill={stripeIndex % 2 === 0 ? "rgba(255,255,255,0.8)" : "transparent"}
-                                />
-                            ))}
+                            {Array.from({ length: 8 }).map((_, stripeIndex) => {
+                                const stripeWidth = (stallW + size*0.1) / 8;
+                                return (
+                                    <rect
+                                        key={`stripe-${stripeIndex}`}
+                                        x={stallX - size*0.05 + (stripeIndex * stripeWidth)}
+                                        y={stallY}
+                                        width={stripeWidth}
+                                        height={awningH}
+                                        fill={stripeIndex % 2 === 0 ? stallColor : "rgba(255,255,255,0.9)"}
+                                        opacity={stripeIndex % 2 === 0 ? 0.9 : 1}
+                                    />
+                                );
+                            })}
                         </g>
                     )}
                     
@@ -285,21 +319,35 @@ const MarketplaceSymbol: React.FC<MarketplaceSymbolProps> = React.memo(({ x, y, 
 
     const renderModernMarket = () => {
         const elements: JSX.Element[] = [];
-        const { localRand } = staticValues;
-        const numStalls = 2 + Math.floor(localRand(0) * 3); // Static seed
-        const stallsPerRow = numStalls <= 2 ? numStalls : 2;
+        const { localRand, numStalls } = staticValues;
+        
+        // Use same positioning logic as traditional markets
+        const stallPositions = [];
+        if (numStalls === 1) {
+            stallPositions.push({ x: x + size * 0.5, y: y + size * 0.5 });
+        } else if (numStalls === 2) {
+            stallPositions.push({ x: x + size * 0.3, y: y + size * 0.5 });
+            stallPositions.push({ x: x + size * 0.7, y: y + size * 0.5 });
+        } else if (numStalls === 3) {
+            stallPositions.push({ x: x + size * 0.5, y: y + size * 0.3 });
+            stallPositions.push({ x: x + size * 0.3, y: y + size * 0.65 });
+            stallPositions.push({ x: x + size * 0.7, y: y + size * 0.65 });
+        } else {
+            stallPositions.push({ x: x + size * 0.3, y: y + size * 0.3 });
+            stallPositions.push({ x: x + size * 0.7, y: y + size * 0.3 });
+            stallPositions.push({ x: x + size * 0.3, y: y + size * 0.7 });
+            stallPositions.push({ x: x + size * 0.7, y: y + size * 0.7 });
+        }
         
         for (let i = 0; i < numStalls; i++) {
-            const row = Math.floor(i / stallsPerRow);
-            const col = i % stallsPerRow;
+            const pos = stallPositions[i];
             
-            const stallW = size * 0.35; // Same width as traditional
-            const stallH = size * 0.4; // Taller for modern era
-            const spacing = size * 0.08;
-            const depth = size * 0.08;
+            const stallW = size * 0.22; // Smaller width
+            const stallH = size * 0.25; // Slightly taller for modern
+            const depth = size * 0.06;
             
-            const stallX = x + col * (stallW + spacing) + spacing;
-            const stallY = y + row * (stallH + spacing) + spacing;
+            const stallX = pos.x - stallW/2;
+            const stallY = pos.y - stallH/2;
             
             elements.push(
                 <g key={`modern-stall-${i}`}>
@@ -401,70 +449,19 @@ const MarketplaceSymbol: React.FC<MarketplaceSymbolProps> = React.memo(({ x, y, 
     };
 
     const renderNightLighting = () => {
-        if (nightIntensity < 0.2) return [];
-        
-        const elements: JSX.Element[] = [];
-        const { localRand } = staticValues;
-        const numLights = era === 'PREHISTORY' ? 1 + Math.floor(localRand(100) * 2) : 
-                         era === 'MODERN' ? 2 + Math.floor(localRand(100) * 2) :
-                         2 + Math.floor(localRand(100) * 4);
-        
-        for (let i = 0; i < numLights; i++) {
-            const lightX = x + localRand(200 + i) * size;
-            const lightY = y + localRand(300 + i) * size * 0.7;
-            
-            if (era === 'PREHISTORY') {
-                // Firelight
-                elements.push(
-                    <g key={`fire-${i}`}>
-                        <circle cx={lightX} cy={lightY} r={size * 0.15} fill="rgba(255, 120, 0, 0.3)" filter="blur(8px)" opacity={nightIntensity * 0.8} />
-                        <circle cx={lightX} cy={lightY} r={size * 0.08} fill="rgba(255, 160, 40, 0.6)" filter="blur(4px)" opacity={nightIntensity} />
-                        <circle cx={lightX} cy={lightY} r={size * 0.03} fill="rgba(255, 200, 60, 0.9)" opacity={nightIntensity} />
-                    </g>
-                );
-            } else if (culture === 'EAST_ASIAN' && era !== 'MODERN') {
-                // Paper lanterns
-                elements.push(
-                    <g key={`lantern-${i}`}>
-                        <ellipse cx={lightX} cy={lightY} rx={size * 0.1} ry={size * 0.15} fill="rgba(255, 100, 100, 0.4)" filter="blur(6px)" opacity={nightIntensity * 0.7} />
-                        <ellipse cx={lightX} cy={lightY} rx={size * 0.06} ry={size * 0.1} fill="rgba(255, 150, 80, 0.8)" opacity={nightIntensity} />
-                        <ellipse cx={lightX} cy={lightY} rx={size * 0.04} ry={size * 0.08} fill="rgba(255, 180, 100, 0.9)" opacity={nightIntensity} />
-                    </g>
-                );
-            } else if (era === 'MODERN') {
-                // Electric lighting
-                elements.push(
-                    <g key={`electric-${i}`}>
-                        <circle cx={lightX} cy={lightY} r={size * 0.2} fill="rgba(240, 245, 255, 0.15)" filter="blur(10px)" opacity={nightIntensity * 0.6} />
-                        <circle cx={lightX} cy={lightY} r={size * 0.1} fill="rgba(255, 255, 240, 0.4)" filter="blur(5px)" opacity={nightIntensity * 0.8} />
-                        <rect x={lightX - size*0.01} y={lightY + size*0.12} width={size*0.02} height={size*0.1} fill="#404040" opacity={nightIntensity} />
-                    </g>
-                );
-            } else {
-                // Traditional oil lamps/torches
-                const lightColor1 = culture === 'MENA' ? 'rgba(255, 140, 60, 0.4)' : 'rgba(255, 160, 80, 0.4)';
-                const lightColor2 = culture === 'MENA' ? 'rgba(255, 180, 100, 0.7)' : 'rgba(255, 200, 120, 0.8)';
-                
-                elements.push(
-                    <g key={`torch-${i}`}>
-                        <circle cx={lightX} cy={lightY} r={size * 0.14} fill={lightColor1} filter="blur(6px)" opacity={nightIntensity * 0.7} />
-                        <circle cx={lightX} cy={lightY} r={size * 0.08} fill={lightColor2} filter="blur(3px)" opacity={nightIntensity * 0.9} />
-                        <circle cx={lightX} cy={lightY} r={size * 0.04} fill={lightColor2} opacity={nightIntensity} />
-                    </g>
-                );
-            }
-        }
-        return elements;
+        // No night lighting for marketplaces
+        return [];
     };
 
     const elements: JSX.Element[] = [];
     
-    // Ground base
+    // Semi-transparent purple ground to identify marketplace
     elements.push(
-        <rect key="ground" x={x} y={y} width={size} height={size} fill={
-            era === 'PREHISTORY' ? '#8B7355' :
-            era === 'MODERN' ? '#A0A0A0' : '#CD853F'
-        } />
+        <rect key="ground" x={x} y={y} width={size} height={size} 
+              fill="rgba(139, 69, 139, 0.15)" // Semi-transparent purple tint
+              stroke="rgba(75, 0, 130, 0.3)" // Indigo border
+              strokeWidth="0.5"
+        />
     );
     
     // Era-specific marketplace structures

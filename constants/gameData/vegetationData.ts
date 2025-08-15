@@ -106,6 +106,27 @@ export const VEGETATION_SPECIES_DATA: Partial<Record<VegetationBaseType, Partial
             ultraRare: [
                 { name: 'Arctic Poplar', linnaeanName: 'Populus balsamifera', emoji: '❄️', tradeValue: 'medium', uses: ['medicine', 'resin'], drops: [{name: 'PINE_RESIN', chance: 0.3}] }
             ]
+        },
+        [ClimateType.MEDITERRANEAN]: {
+            common: [
+                { name: 'Olive Tree', linnaeanName: 'Olea europaea', emoji: '🫒', tradeValue: 'high', uses: ['oil', 'food', 'timber'], drops: [{name: 'WILD_BERRIES', chance: 0.7}] },
+                { name: 'Carob', linnaeanName: 'Ceratonia siliqua', emoji: '🌳', tradeValue: 'medium', uses: ['food', 'fodder'], drops: [{name: 'SEED_POUCH', chance: 0.5}] },
+                { name: 'Fig Tree', linnaeanName: 'Ficus carica', emoji: '🌳', tradeValue: 'medium', uses: ['food'], drops: [{name: 'WILD_BERRIES', chance: 0.8}] },
+                { name: 'Almond', linnaeanName: 'Prunus dulcis', emoji: '🌳', tradeValue: 'high', uses: ['food', 'oil'], drops: [{name: 'MUSHROOM', chance: 0.6}] },
+                { name: 'Pomegranate', linnaeanName: 'Punica granatum', emoji: '🌳', tradeValue: 'medium', uses: ['food', 'dye'], drops: [{name: 'WILD_BERRIES', chance: 0.7}] }
+            ],
+            rare: [
+                { name: 'Citrus', linnaeanName: 'Citrus × sinensis', emoji: '🍊', tradeValue: 'high', uses: ['food', 'medicine'], drops: [{name: 'WILD_BERRIES', chance: 0.9}] },
+                { name: 'Bay Laurel', linnaeanName: 'Laurus nobilis', emoji: '🍃', tradeValue: 'medium', uses: ['spice', 'medicine'], drops: [{name: 'HERB_BUNDLE', chance: 0.6}] },
+                { name: 'Pistachio', linnaeanName: 'Pistacia vera', emoji: '🌳', tradeValue: 'high', uses: ['food'], drops: [{name: 'MUSHROOM', chance: 0.7}] }
+            ],
+            superRare: [
+                { name: 'Cork Oak', linnaeanName: 'Quercus suber', emoji: '🍾', tradeValue: 'high', uses: ['cork'], drops: [{name: 'TREE_BARK', chance: 0.8}] },
+                { name: 'Stone Pine', linnaeanName: 'Pinus pinea', emoji: '🌲', tradeValue: 'medium', uses: ['food', 'timber'], drops: [{name: 'PINE_CONE', chance: 0.9}] }
+            ],
+            ultraRare: [
+                { name: 'Ancient Olive', linnaeanName: 'Olea europaea var. sylvestris', emoji: '🌳', tradeValue: 'legendary', uses: ['sacred', 'oil'], drops: [{name: 'WILD_BERRIES', chance: 0.9}] }
+            ]
         }
     },
     coniferous_tree: {
@@ -177,6 +198,23 @@ export const VEGETATION_SPECIES_DATA: Partial<Record<VegetationBaseType, Partial
             ],
             ultraRare: [
                 { name: 'Kauri Pine', linnaeanName: 'Agathis robusta', emoji: '💎', tradeValue: 'legendary', uses: ['premium timber', 'amber resin'], drops: [{name: 'PINE_RESIN', chance: 0.5}] }
+            ]
+        },
+        [ClimateType.MEDITERRANEAN]: {
+            common: [
+                { name: 'Aleppo Pine', linnaeanName: 'Pinus halepensis', emoji: '🌲', tradeValue: 'low', uses: ['resin', 'timber'], drops: [{name: 'PINE_CONE', chance: 0.6}, {name: 'PINE_RESIN', chance: 0.4}] },
+                { name: 'Maritime Pine', linnaeanName: 'Pinus pinaster', emoji: '🌲', tradeValue: 'medium', uses: ['resin', 'timber'], drops: [{name: 'PINE_CONE', chance: 0.5}, {name: 'PINE_RESIN', chance: 0.5}] },
+                { name: 'Italian Cypress', linnaeanName: 'Cupressus sempervirens', emoji: '🌲', tradeValue: 'medium', uses: ['timber', 'ornamental'], drops: [{name: 'STICK', chance: 0.4}] }
+            ],
+            rare: [
+                { name: 'Cedar of Lebanon', linnaeanName: 'Cedrus libani', emoji: '🌲', tradeValue: 'legendary', uses: ['sacred timber', 'incense'], drops: [{name: 'PINE_RESIN', chance: 0.7}] },
+                { name: 'Atlas Cedar', linnaeanName: 'Cedrus atlantica', emoji: '🌲', tradeValue: 'high', uses: ['timber', 'oil'], drops: [{name: 'PINE_CONE', chance: 0.6}] }
+            ],
+            superRare: [
+                { name: 'Spanish Fir', linnaeanName: 'Abies pinsapo', emoji: '🌲', tradeValue: 'high', uses: ['timber'], drops: [{name: 'PINE_CONE', chance: 0.8}] }
+            ],
+            ultraRare: [
+                { name: 'Phoenician Juniper', linnaeanName: 'Juniperus phoenicea', emoji: '🌲', tradeValue: 'medium', uses: ['medicine', 'incense'], drops: [{name: 'HERB_BUNDLE', chance: 0.5}] }
             ]
         }
     },

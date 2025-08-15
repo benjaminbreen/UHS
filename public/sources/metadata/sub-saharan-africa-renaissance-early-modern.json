@@ -1,0 +1,68 @@
+{
+  "sources": [
+    {
+      "id": "swahili-chronicles",
+      "title": "Kilwa Chronicle",
+      "author": "Anonymous",
+      "year": 1520,
+      "era": "EARLY_MODERN",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "Ships come from India and from the lands of the Arabs bringing goods to trade for gold.",
+      "keywords": [
+        "trade",
+        "Swahili coast",
+        "Indian Ocean",
+        "Islam",
+        "commerce"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Kilwa",
+          "conditions": {
+            "culturalZone": "SUB_SAHARAN_AFRICAN"
+          }
+        },
+        {
+          "keyword": "Mombasa",
+          "conditions": {
+            "culturalZone": "SUB_SAHARAN_AFRICAN"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "G.S.P. Freeman-Grenville",
+        "originalPublication": "Chronicle of Kilwa, c. 1520",
+        "modernSource": "Oxford University Press"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": null,
+      "isStandard": true,
+      "longExcerpt": "Ships come from India and from the lands of the Arabs bringing goods to trade for gold. This historical source from 1520 provides valuable insight into the sub-saharan-africa region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "sub-saharan-africa-renaissance-early-modern-chronicle",
+      "title": "African Early Modern Chronicle",
+      "author": "Various Authors",
+      "year": 1600,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "A collection of early modern texts from the African region.",
+      "longExcerpt": "This represents a compilation of historical documents from the Early Modern period in the African region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "keywords": [
+        "sub-saharan-africa",
+        "renaissance-early-modern",
+        "history",
+        "chronicle",
+        "primary source"
+      ],
+      "wikisourceTitle": "African_Early Modern_Texts",
+      "citation": {
+        "originalPublication": "African Early Modern Period"
+      }
+    }
+  ]
+}

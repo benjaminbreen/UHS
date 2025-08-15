@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {
+      "id": "orwell-homage",
+      "title": "Homage to Catalonia",
+      "author": "George Orwell",
+      "year": 1938,
+      "excerpt": "It was the first time I had ever been in a town where the working class was in the saddle.",
+      "longExcerpt": "Barcelona in December 1936. It was the first time I had ever been in a town where the working class was in the saddle. Practically every building of any size had been seized by the workers and was draped with red flags or the red and black flag of the Anarchists. Every wall was scrawled with the hammer and sickle. Waiters and shop-walkers looked you in the face and treated you as an equal. Tipping was forbidden by law. There were no private motor cars, they had all been commandeered.",
+      "era": "MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "keywords": [
+        "homage",
+        "catalonia"
+      ],
+      "wikisourceTitle": "Homage_to_Catalonia",
+      "citation": {
+        "originalPublication": "George Orwell, 1938"
+      }
+    }
+  ]
+}

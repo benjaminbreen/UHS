@@ -99,23 +99,25 @@ const BarkLonghouse3D: React.FC<BarkLonghouse3DProps> = React.memo(({
     />
   );
   
-  // Roof - curved barrel vault in isometric
-  const roofOverhang = adjustedSize * 0.08;
-  const roofHeight = adjustedSize * 0.18;
+  // Roof - curved barrel vault in isometric with full coverage
+  const roofOverhang = adjustedSize * 0.1;
+  const roofHeight = adjustedSize * 0.22; // Taller for better coverage
   const roofX = buildingX - roofOverhang;
-  const roofY = buildingY - roofHeight * 0.7;
+  const roofY = buildingY - roofHeight * 0.8; // Higher positioning
   const roofWidth = buildingWidth + roofOverhang * 2;
   
-  // Roof side (behind)
+  // Roof side (behind) - fully rendered curved surface
   gEls.push(
     <path
       key="roof-side"
       d={`M ${roofX + roofWidth} ${roofY + roofHeight}
           L ${roofX + roofWidth + buildingDepth} ${roofY + roofHeight - buildingDepth * 0.5}
-          Q ${roofX + roofWidth + buildingDepth * 0.5} ${roofY - buildingDepth * 0.3}
-            ${roofX + roofWidth * 0.5 + buildingDepth * 0.5} ${roofY - buildingDepth * 0.4}
-          L ${roofX + roofWidth * 0.5} ${roofY}
-          Q ${roofX + roofWidth} ${roofY - roofHeight * 0.2}
+          Q ${roofX + roofWidth + buildingDepth * 0.7} ${roofY - buildingDepth * 0.2}
+            ${roofX + roofWidth * 0.5 + buildingDepth * 0.5} ${roofY - roofHeight * 0.15 - buildingDepth * 0.35}
+          Q ${roofX + buildingDepth * 0.3} ${roofY - buildingDepth * 0.2}
+            ${roofX + buildingDepth} ${roofY + roofHeight - buildingDepth * 0.5}
+          L ${roofX} ${roofY + roofHeight}
+          Q ${roofX + roofWidth * 0.5} ${roofY - roofHeight * 0.15}
             ${roofX + roofWidth} ${roofY + roofHeight}
           Z`}
       fill={roofDark}
@@ -125,19 +127,40 @@ const BarkLonghouse3D: React.FC<BarkLonghouse3DProps> = React.memo(({
     />
   );
   
-  // Roof front - curved barrel shape
+  // Roof front - curved barrel shape with bark texture
   gEls.push(
     <path
       key="roof-front"
       d={`M ${roofX} ${roofY + roofHeight}
-          Q ${roofX + roofWidth * 0.5} ${roofY - roofHeight * 0.3}
+          Q ${roofX + roofWidth * 0.25} ${roofY - roofHeight * 0.25}
+            ${roofX + roofWidth * 0.5} ${roofY - roofHeight * 0.35}
+          Q ${roofX + roofWidth * 0.75} ${roofY - roofHeight * 0.25}
             ${roofX + roofWidth} ${roofY + roofHeight}
+          L ${roofX + roofWidth} ${buildingY}
+          L ${roofX} ${buildingY}
           Z`}
       fill={`url(#roofPattern-${uniqueId})`}
       stroke={frameWood}
       strokeWidth={0.6}
     />
   );
+  
+  // Additional roof detail - bark strips for texture
+  for (let i = 0; i < 4; i++) {
+    const stripY = roofY + roofHeight * (0.2 + i * 0.2);
+    gEls.push(
+      <path
+        key={`roof-strip-${i}`}
+        d={`M ${roofX + roofOverhang * 0.5} ${stripY}
+            Q ${roofX + roofWidth * 0.5} ${stripY - roofHeight * 0.08}
+              ${roofX + roofWidth - roofOverhang * 0.5} ${stripY}`}
+        stroke={roofDark}
+        strokeWidth={0.5}
+        fill="none"
+        opacity={0.6}
+      />
+    );
+  }
   
   // Vertical support posts (visible)
   const postWidth = adjustedSize * 0.018;
@@ -272,12 +295,21 @@ const BarkLonghouse3D: React.FC<BarkLonghouse3DProps> = React.memo(({
           <rect x="5" y="0" width="1" height="12" fill={barkDark} opacity="0.3"/>
         </pattern>
         
-        {/* Roof bark pattern */}
-        <pattern id={`roofPattern-${uniqueId}`} patternUnits="userSpaceOnUse" width="10" height="8">
-          <rect width="10" height="8" fill={roofBark}/>
-          <path d="M 0 4 h 10" stroke={roofDark} strokeWidth="0.8" opacity="0.6"/>
-          <rect x="3" y="0" width="1" height="8" fill={roofDark} opacity="0.3"/>
-          <rect x="7" y="0" width="1" height="8" fill={roofDark} opacity="0.3"/>
+        {/* Enhanced roof bark pattern with realistic texture */}
+        <pattern id={`roofPattern-${uniqueId}`} patternUnits="userSpaceOnUse" width="12" height="10">
+          <rect width="12" height="10" fill={roofBark}/>
+          {/* Horizontal bark grain */}
+          <path d="M 0 2 h 12" stroke={roofDark} strokeWidth="0.5" opacity="0.7"/>
+          <path d="M 0 5 h 12" stroke={roofDark} strokeWidth="0.8" opacity="0.6"/>
+          <path d="M 0 8 h 12" stroke={roofDark} strokeWidth="0.6" opacity="0.5"/>
+          {/* Vertical bark texture */}
+          <rect x="2" y="0" width="1" height="10" fill={roofDark} opacity="0.4"/>
+          <rect x="5" y="0" width="0.8" height="10" fill={`hsl(32, 20%, 35%)`} opacity="0.3"/>
+          <rect x="8" y="0" width="1.2" height="10" fill={roofDark} opacity="0.35"/>
+          <rect x="10" y="0" width="0.6" height="10" fill={`hsl(30, 18%, 38%)`} opacity="0.3"/>
+          {/* Small bark chips/details */}
+          <circle cx="3" cy="3" r="0.5" fill={roofDark} opacity="0.3"/>
+          <circle cx="9" cy="6" r="0.4" fill={`hsl(30, 25%, 45%)`} opacity="0.25"/>
         </pattern>
         
         {/* Side gradient */}

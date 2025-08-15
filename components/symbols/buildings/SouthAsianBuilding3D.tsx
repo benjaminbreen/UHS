@@ -27,39 +27,51 @@ const SouthAsianBuilding3D: React.FC<SouthAsianBuilding3DProps> = React.memo(({
   const uniqueId = `sa-building-${tile.x}-${tile.y}`;
   
   // Determine building type and scale based on density
-  let scaleFactor = 0.8;
+  let scaleFactor = 0.9; // Increased base scale
   let buildingType: 'hut' | 'house' | 'haveli' | 'palace' = 'house';
   let domeCount = 0;
   let hasMinaret = false;
   let roofType: 'flat' | 'triangular' | 'dome' = 'flat';
   
+  // Random windows and floors
+  const hasWindows = rand() < 0.3; // 30% chance of windows
+  let floors = 1;
+  
+  // Determine floors based on density
+  if (tile.biome === BiomeType.HIGH_DENSITY_URBAN) {
+    floors = rand() < 0.2 ? 2 : 1; // 20% chance of 2 floors
+  } else if (tile.biome === BiomeType.LOW_DENSITY_URBAN) {
+    floors = rand() < 0.1 ? 2 : 1; // 10% chance of 2 floors
+  }
+  // Hamlets never have 2 floors (floors stays at 1)
+  
   if (tile.biome === BiomeType.CITY_CENTER) {
     // Mughal-style palace or grand haveli
     buildingType = 'palace';
-    scaleFactor = 1.1;
+    scaleFactor = 1.25; // Bigger
     domeCount = rand() > 0.3 ? 3 : 1;
     hasMinaret = rand() > 0.4;
     roofType = 'dome';
   } else if (tile.biome === BiomeType.HIGH_DENSITY_URBAN) {
     // Urban haveli
     buildingType = 'haveli';
-    scaleFactor = 0.9;
+    scaleFactor = 1.05; // Bigger
     domeCount = rand() > 0.6 ? 1 : 0;
     roofType = domeCount > 0 ? 'dome' : (rand() > 0.5 ? 'flat' : 'triangular');
   } else if (tile.biome === BiomeType.LOW_DENSITY_URBAN) {
     // Simple house
     buildingType = 'house';
-    scaleFactor = 0.75 + rand() * 0.1;
+    scaleFactor = 0.9 + rand() * 0.1; // Bigger
     roofType = rand() > 0.4 ? 'flat' : 'triangular';
   } else {
     // Rural - mix of huts and simple houses
     if (rand() > 0.5) {
       buildingType = 'hut';
-      scaleFactor = 0.45 + rand() * 0.15;
+      scaleFactor = 0.6 + rand() * 0.15; // Bigger
       roofType = 'triangular'; // Huts always have triangular roofs
     } else {
       buildingType = 'house';
-      scaleFactor = 0.6 + rand() * 0.1;
+      scaleFactor = 0.75 + rand() * 0.1; // Bigger
       roofType = rand() > 0.6 ? 'flat' : 'triangular';
     }
   }
@@ -69,9 +81,10 @@ const SouthAsianBuilding3D: React.FC<SouthAsianBuilding3DProps> = React.memo(({
   
   // Base dimensions
   const bodyW = adjustedSize * (buildingType === 'palace' ? 0.75 : 0.6);
-  const bodyH = adjustedSize * (buildingType === 'hut' ? 0.35 : 0.45);
+  const baseBodyH = adjustedSize * (buildingType === 'hut' ? 0.35 : 0.45);
+  const bodyH = baseBodyH * floors; // Adjust height for floors
   const bodyX = x + (size - bodyW) / 2;
-  const bodyY = y + size * 0.5 - bodyH * 0.3; // Properly centered
+  const bodyY = y + size * 0.5 - bodyH * 0.5; // Properly centered on tile
   
   // Colors based on building type
   const wallLight = buildingType === 'hut' 
@@ -204,6 +217,45 @@ const SouthAsianBuilding3D: React.FC<SouthAsianBuilding3DProps> = React.memo(({
           fill="rgba(20,20,25,0.7)"
           stroke={accentColor}
           strokeWidth={0.4}
+        />
+      );
+    }
+  }
+  
+  // Windows (if any)
+  if (hasWindows && buildingType !== 'hut') {
+    const winW = adjustedSize * 0.06;
+    const winH = adjustedSize * 0.08;
+    
+    // Window positions for each floor
+    for (let floor = 0; floor < floors; floor++) {
+      const winY = bodyY + (floor * baseBodyH) + baseBodyH * 0.3;
+      
+      // Left window
+      gEls.push(
+        <rect
+          key={`window-left-${floor}`}
+          x={bodyX + bodyW * 0.2}
+          y={winY}
+          width={winW}
+          height={winH}
+          fill="rgba(20,25,30,0.7)"
+          stroke="rgba(0,0,0,0.4)"
+          strokeWidth={0.3}
+        />
+      );
+      
+      // Right window
+      gEls.push(
+        <rect
+          key={`window-right-${floor}`}
+          x={bodyX + bodyW * 0.7}
+          y={winY}
+          width={winW}
+          height={winH}
+          fill="rgba(20,25,30,0.7)"
+          stroke="rgba(0,0,0,0.4)"
+          strokeWidth={0.3}
         />
       );
     }

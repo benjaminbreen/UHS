@@ -1,0 +1,100 @@
+{
+  "sources": [
+    {
+      "id": "haitian-declaration-independence",
+      "title": "Haitian Declaration of Independence",
+      "author": "Jean-Jacques Dessalines",
+      "year": 1804,
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "NORTH_AMERICAN_COLONIAL"
+      ],
+      "excerpt": "We must live independent or die. Let us swear to the whole universe, to ourselves, to renounce France forever, and to die rather than live under its domination.",
+      "longExcerpt": "Citizens, it is not enough to have expelled the barbarians who have bloodied our land for two centuries; it is not enough to have curbed the factions that one after another mocked the specter of liberty that France dangled before you. We must, with one last act of national authority, forever assure the empire of liberty in the country of our birth; we must take any hope of re-enslaving us away from the inhuman government that for so long kept us in the most humiliating torpor. In the end we must live independent or die.\n\nIndependence or death! Let these sacred words unite us and be the signal of battle and of our reunion. Citizens, my countrymen, on this solemn day I have brought together those courageous soldiers who, as liberty lay dying, have spilled their blood to save it; these generals who have guided your efforts against tyranny have not yet done enough for your happiness; the French name still haunts our land.\n\nEverything revives the memories of the cruelties of this barbarous people: our laws, our habits, our towns, everything still carries the stamp of the French. Indeed! There are still French in our island, and you believe yourself free and independent of that Republic which, it is true, has fought all the nations, but which has never defeated those who wanted to be free.\n\nAnd I, a single man, whose good fortune it is to have been the instrument by which the Almighty has delivered you from your afflictions, I who have seen sometimes with joy, sometimes with sorrow, the terrible blows of your avenging hands, I swear before posterity, which will one day be my judge, that I have done everything for your happiness.\n\nLet us swear to the whole universe, to ourselves, to renounce France forever, and to die rather than live under its domination. To fight until the last breath for the independence of our country!",
+      "keywords": [
+        "Haiti",
+        "revolution",
+        "independence",
+        "slavery",
+        "abolition",
+        "Dessalines"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Toussaint Louverture",
+          "conditions": {
+            "culturalZone": "NORTH_AMERICAN_COLONIAL",
+            "era": "INDUSTRIAL"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "Laurent Dubois and John D. Garrigus",
+        "originalPublication": "Gonaïves, Haiti, 1 January 1804",
+        "modernSource": "University of Virginia Press"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": null
+    },
+    {
+      "id": "bolivar-jamaica-letter",
+      "title": "Letter from Jamaica",
+      "author": "Simón Bolívar",
+      "year": 1815,
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "NORTH_AMERICAN_COLONIAL"
+      ],
+      "excerpt": "The destiny of America has been irrevocably decided; the tie that bound her to Spain has been severed.",
+      "longExcerpt": "I hasten to reply to the letter of the 29th of last month which you had the honor of sending me and which I received with the greatest satisfaction. I am, as you say, in Kingston, trying to win partisans for the cause of America and resources for carrying on the war. It seems that you desire to know the causes that have led to the revolution in Spanish America, the state of the war, and the future political prospects of the country. I shall try to answer your questions, although I am conscious that the task is far beyond my powers.\n\nThe destiny of America has been irrevocably decided; the tie that bound her to Spain has been severed. What is more, it has been severed by Spain herself. The hatred that the Peninsula has inspired in us is greater than the ocean between us. It would be easier to have the two continents join than to reconcile the spirits of the two countries. The habit of obedience; a community of interest, of understanding, of religion; mutual goodwill; a tender solicitude for the cradle and the glory of our ancestors; in short, all that gave rise to our hopes, came to us from Spain. But now the contrary is true. We are threatened with the yoke of slavery, and we have been plunged into the depths of servitude. We have been harassed by a conduct which has not only deprived us of our rights but has kept us in a sort of permanent infancy with regard to public affairs.\n\nWe are a small human species; we possess a world apart, surrounded by vast seas, new in almost all the arts and sciences, although in a certain manner old in the uses of civil society. I consider the actual state of America as when, after the fall of the Roman Empire, each dismembered part formed a political system, conformable to its interest and situation. We are, moreover, neither Indians nor Europeans, but a species midway between the legitimate proprietors of this country and the Spanish usurpers. In short, being Americans by birth and endowed with rights from Europe, we have to dispute these with the rights of the natives and at the same time to maintain ourselves in the country that gave us birth against the opposition of the invaders. Thus, our case is the most extraordinary and complicated.\n\nMore than anyone, I desire to see America fashioned into the greatest nation in the world, greatest not so much by virtue of her area and wealth as by her freedom and glory. Although I seek perfection for the government of my country, I cannot persuade myself that the New World can, at the moment, be organized as a great republic. Since it is impossible, I dare not desire it; yet much less do I desire to have all America a monarchy because this plan is not only impracticable but also impossible. Wrongs now existing will not be righted, and our emancipation would be fruitless. The American states need the care of paternal governments to heal the sores and wounds of despotism and war.",
+      "keywords": [
+        "independence",
+        "revolution",
+        "Venezuela",
+        "liberty",
+        "nationalism",
+        "colonialism"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Gran Colombia",
+          "conditions": {
+            "culturalZone": "SOUTH_AMERICAN",
+            "era": "INDUSTRIAL"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "Lewis Bertrand",
+        "originalPublication": "Carta de Jamaica, 1815",
+        "modernSource": "Public Domain"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": "selectedwritings01boli",
+      "isStandard": true
+    },
+    {
+      "id": "north-america-industrial-chronicle",
+      "title": "North American Industrial Chronicle",
+      "author": "Various Authors",
+      "year": 1850,
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "NORTH_AMERICAN_COLONIAL"
+      ],
+      "excerpt": "A collection of industrial texts from the North American region.",
+      "longExcerpt": "This represents a compilation of historical documents from the Industrial period in the North American region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "keywords": [
+        "north-america",
+        "industrial",
+        "history",
+        "chronicle",
+        "primary source"
+      ],
+      "wikisourceTitle": "North American_Industrial_Texts",
+      "citation": {
+        "originalPublication": "North American Industrial Period"
+      }
+    }
+  ]
+}

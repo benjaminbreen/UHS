@@ -39,10 +39,14 @@ export interface ItemDefinition {
     culturalAvailability?: CulturalZone[];
 }
 
+// Quality levels for minerals and crafted items
+export type ItemQuality = 'poor' | 'standard' | 'good' | 'excellent';
+
 // Represents a specific instance of an item in the game world or inventory
 export interface Item extends ItemDefinition {
     id: string; // Unique instance ID, e.g., 'item-12345'
     quantity: number;
+    quality?: ItemQuality; // Quality level for minerals, metals, and crafted items
 }
 
 // NEW: For Gemini-powered crafting

@@ -13,9 +13,11 @@
     "@aws-sdk/s3-request-presigner": "^3.864.0",
     "@google/genai": "^1.8.0",
     "@supabase/supabase-js": "^2.54.0",
+    "lucide-react": "^0.539.0",
     "pdf-parse": "^1.1.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-icons": "^5.5.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1"
   },

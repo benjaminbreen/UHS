@@ -1,0 +1,27 @@
+{
+  "sources": [
+    {
+      "id": "north-america-antiquity-chronicle",
+      "title": "North American Ancient Chronicle",
+      "author": "Various Authors",
+      "year": -500,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "NORTH_AMERICAN_PRE_COLUMBIAN"
+      ],
+      "excerpt": "A collection of ancient texts from the North American region.",
+      "longExcerpt": "This represents a compilation of historical documents from the Ancient period in the North American region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "keywords": [
+        "north-america",
+        "antiquity",
+        "history",
+        "chronicle",
+        "primary source"
+      ],
+      "wikisourceTitle": "North American_Ancient_Texts",
+      "citation": {
+        "originalPublication": "North American Ancient Period"
+      }
+    }
+  ]
+}

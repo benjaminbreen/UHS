@@ -73,11 +73,6 @@ export const STRUCTURE_BLUEPRINTS: Record<TerrainStructure['structureType'], Str
         npcAnchor: 'merchant',
         icon: '🌟',
     },
-    trading_post: {
-        economicRole: 'commerce',
-        npcAnchor: 'trader',
-        icon: '🛖',
-    },
     encampment: {
         economicRole: 'subsistence',
         npcAnchor: 'hunter',

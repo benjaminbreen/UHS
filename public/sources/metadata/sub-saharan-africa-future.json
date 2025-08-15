@@ -1,0 +1,26 @@
+{
+  "sources": [
+    {
+      "id": "lagos-accord",
+      "title": "Lagos Technological Innovation Charter",
+      "author": "African Union Commission",
+      "year": 2047,
+      "excerpt": "Africa leapfrogs old infrastructure, building smart cities powered by solar and connected by satellites.",
+      "longExcerpt": "Lagos, Nairobi, Addis Ababa - Africa's megacities have leapfrogged the industrial age straight into the digital. No landlines, but everyone has satellite internet. No power grids, but every roof has solar panels and batteries. No banks, but mobile money flows seamlessly. Vertical farms rise between skyscrapers. 3D printers produce tools on demand. Young coders in Kigali write apps used globally. We who were last shall be first, building the future without the weight of the past.",
+      "era": "FUTURE",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "keywords": [
+        "lagos",
+        "technological",
+        "innovation",
+        "charter"
+      ],
+      "wikisourceTitle": "Lagos_Technological_Innovation_Charter",
+      "citation": {
+        "originalPublication": "African Union Commission, 2047"
+      }
+    }
+  ]
+}

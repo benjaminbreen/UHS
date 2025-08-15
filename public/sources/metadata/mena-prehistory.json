@@ -1,0 +1,26 @@
+{
+  "sources": [
+    {
+      "id": "gobekli-tepe",
+      "title": "Göbekli Tepe Stone Pillars",
+      "author": "Pre-Pottery Neolithic Builders",
+      "year": -9500,
+      "excerpt": "Massive stone pillars carved with animals: serpents, foxes, boars, cranes, vultures.",
+      "longExcerpt": "Before agriculture, before cities, before writing, our ancestors built Göbekli Tepe. Massive T-shaped pillars, some five meters tall, arranged in circles. Carved upon them: serpents writhing, foxes prowling, wild boars charging, cranes dancing, vultures with outstretched wings. This was no settlement but a sanctuary. Hunter-gatherers came from far and wide for feasts and rituals. They buried the site deliberately, preserving it for us to find eleven thousand years later.",
+      "era": "PREHISTORY",
+      "culturalZones": [
+        "MENA"
+      ],
+      "keywords": [
+        "göbekli",
+        "tepe",
+        "stone",
+        "pillars"
+      ],
+      "wikisourceTitle": "Göbekli_Tepe_Stone_Pillars",
+      "citation": {
+        "originalPublication": "Pre-Pottery Neolithic Builders, -9500"
+      }
+    }
+  ]
+}

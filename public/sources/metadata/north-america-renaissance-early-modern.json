@@ -1,0 +1,212 @@
+{
+  "sources": [
+    {
+      "id": "aztec-codex-mendoza",
+      "title": "Codex Mendoza",
+      "author": "Aztec scribes (tlacuilos)",
+      "year": 1541,
+      "era": "EARLY_MODERN",
+      "culturalZones": [
+        "NORTH_AMERICAN_COLONIAL"
+      ],
+      "excerpt": "The tribute of twenty large baskets of ground cacao, each basket being of the usual size.",
+      "longExcerpt": "The Codex Mendoza provides a detailed pictographic and written account of the Aztec empire, commissioned by the first Viceroy of New Spain. The second part of the codex is a meticulous tribute roll, documenting the goods paid by the 38 provinces of the empire to their overlords in Tenochtitlan. These pages reveal the vast wealth and economic structure of the Aztec world. Each province is represented by a principal town glyph, and below it, glyphs for the tributary goods are arranged in rows.\n\nFor example, the province of Tochtepec, located on the Gulf Coast, was required to pay tribute twice a year. Its payment included: 400 loads of cacao; 400 small colored feathers of the Tzinzon bird; 20 bags of fine white down; one warrior's costume of yellow feathers with a bird device of the same; one shield of yellow feathers; 20 lip plugs of clear amber decorated with gold; and 20 lip plugs of crystal. In addition, every year they were to deliver 1,600 cloaks of rich cotton, intricately woven with designs; 800 large white cloaks; and 400 women's tunics and skirts. The glyphs show these items clearly: a basket represents a unit of cacao beans, bundles of cloaks are depicted tied together, and warrior costumes are shown in full regalia. This tribute was not just a tax; it was the lifeblood of the empire, supplying the capital with exotic foods, raw materials for artisans, and the spectacular feathered costumes worn by the elite warriors and priests in their ceremonies. The tribute system also functioned as a form of political control, constantly reminding the provinces of their subjugation to the Triple Alliance. The sheer variety of goods, from jaguar pelts and jade beads to live eagles and raw rubber, illustrates the ecological and cultural diversity of the lands under Aztec dominion, all of it funneling into the magnificent and demanding capital of Tenochtitlan.",
+      "keywords": [
+        "Aztec",
+        "tribute",
+        "Mexico",
+        "pictographic",
+        "economy",
+        "Tenochtitlan"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Tenochtitlan",
+          "conditions": {
+            "culturalZone": "NORTH_AMERICAN_PRE_COLUMBIAN"
+          }
+        }
+      ],
+      "citation": {
+        "originalPublication": "Codex Mendoza, c. 1541",
+        "modernSource": "Bodleian Library, Oxford"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": "codexmendoza00coopgoog",
+      "isStandard": true
+    },
+    {
+      "id": "popol-vuh",
+      "title": "Popol Vuh",
+      "author": "K'iche' Maya",
+      "year": 1550,
+      "era": "EARLY_MODERN",
+      "culturalZones": [
+        "NORTH_AMERICAN_COLONIAL"
+      ],
+      "excerpt": "This is the account of how all was in suspense, all calm, in silence; all motionless, still, and the expanse of the sky was empty.",
+      "longExcerpt": "This is the account of the beginning, when all was motionless in the sky, all was calm and silent, and the expanse of the sky was empty. There was not yet one person, one animal, bird, fish, crab, tree, rock, hollow, canyon, meadow, or forest. All was still. The face of the earth had not appeared. There was only the calm sea and the great expanse of the sky.\n\nThere was nothing brought together, nothing which could make a noise, nor anything which might move, or tremble, or could make a sound in the sky. There was nothing standing; only the calm water, the placid sea, alone and tranquil. Nothing existed.\n\nThen came the word. In the darkness, in the night, the Framer and the Shaper, the Forefathers, spoke to one another. They consulted together and meditated; they came to an agreement, they joined their words and their thoughts. Then while they meditated, it became clear to them that when dawn would break, man should appear. Then they planned the creation, and the growth of the trees and the thickets and the life and creation of humanity. Thus it was arranged in the darkness and in the night by the Heart of Heaven, who is called Huracan.\n\nThe first to be created were the animals, the deer, the birds, the puma, the jaguar, the serpent. The Forefathers said to them: 'Speak, cry, chatter! Let each one cry out according to its kind.' But the animals could not form words like men; they only squawked, and chattered, and croaked. Their speech was not understood. When the Framer and the Shaper saw that it was impossible for them to speak, they said to one another: 'They are not able to call upon our names.' So they were told they would be demoted, and their flesh would be eaten.\n\nThen the Forefathers tried again. They would make a new being who would be obedient and respectful, who would sustain and nourish them. They made a being of mud, but it could not stand, it was soft and crumbled, it could not turn its head, its face was all on one side, its sight was blurred, it could not speak. It was quickly destroyed.\n\nNext, they carved manikins from wood. They looked like men, they talked like men, and they populated the surface of the earth. They existed and multiplied; they had daughters, they had sons, these wooden manikins; but they did not have souls, nor minds, they did not remember their Framer, their Shaper; they walked on all fours, aimlessly. They were the first multitude of men who lived on the earth. They were destroyed in a great flood; a thick resin fell from the sky, the animals turned against them, and their own pots and grinding stones rose up to crush their faces. Their only remnants are the monkeys who live in the forest today.",
+      "keywords": [
+        "mythology",
+        "Maya",
+        "creation",
+        "Guatemala",
+        "cosmology"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Quetzalcoatl",
+          "conditions": {
+            "culturalZone": "NORTH_AMERICAN_PRE_COLUMBIAN"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "Dennis Tedlock",
+        "originalPublication": "Popol Wuj, c. 1550",
+        "modernSource": "Simon & Schuster"
+      },
+      "wikisourceTitle": "Popol_Vuh",
+      "internetArchiveId": "popolvuhsacredb00goet",
+      "isStandard": true
+    },
+    {
+      "id": "bartolome-de-las-casas",
+      "title": "A Short Account of the Destruction of the Indies",
+      "author": "Bartolomé de las Casas",
+      "year": 1552,
+      "era": "EARLY_MODERN",
+      "culturalZones": [
+        "NORTH_AMERICAN_COLONIAL"
+      ],
+      "excerpt": "The Christians, with their horses and swords and pikes, began to carry out massacres and strange cruelties against them. They attacked the towns and spared neither the children nor the aged nor pregnant women nor women in childbed, not only stabbing them and dismembering them but cutting them to pieces as if dealing with sheep in the slaughterhouse.",
+      "longExcerpt": "God has created all these numberless people to be quite the simplest, without malice or duplicity, most obedient, most faithful to their natural lords, and to the Christians, whom they serve; the most humble, most patient, most peaceful and calm, without strife nor tumults; not wrangling, nor querulous, as free from uproar, hatred and desire of revenge as any in the world. \n\nInto this sheepfold, into this land of meek outcasts, there came some Spaniards who immediately behaved like ravening wild beasts, wolves, tigers, or lions that had been starved for many days. And Spaniards have behaved in no other way during the past forty years, down to the present time, for they are still acting like ravening beasts, killing, terrorizing, afflicting, torturing, and destroying the native peoples, doing all this with the strangest and most varied new methods of cruelty, never seen or heard of before, and to such a degree that this Island of Hispaniola, once so populous (having a population that I estimated to be more than three million), has now a population of barely two hundred persons.\n\nThe Christians, with their horses and swords and pikes, began to carry out massacres and strange cruelties against them. They attacked the towns and spared neither the children nor the aged nor pregnant women nor women in childbed, not only stabbing them and dismembering them but cutting them to pieces as if dealing with sheep in the slaughterhouse. They laid bets as to who, with one stroke of the sword, could split a man in two or could cut off his head or spill out his entrails with a single stroke of the pike. They took infants from their mothers’ breasts, snatching them by the legs and pitching them headfirst against the crags or snatched them by the arms and threw them into the rivers, roaring with laughter and saying as the babies fell into the water, 'Boil there, you offspring of the devil!' They made a gallows just high enough for the feet to nearly touch the ground, and by thirteens, in honor and reverence for our Redeemer and the twelve Apostles, they put wood underneath and, with fire, they burned the Indians alive.",
+      "keywords": [
+        "colonialism",
+        "Spain",
+        "human rights",
+        "slavery",
+        "Caribbean",
+        "genocide"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Hispaniola",
+          "conditions": {
+            "culturalZone": "NORTH_AMERICAN_COLONIAL"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "Nigel Griffin",
+        "originalPublication": "Brevísima relación de la destrucción de las Indias, 1552",
+        "modernSource": "Penguin Books"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": "devastationofin00lasc",
+      "isStandard": true
+    },
+    {
+      "id": "nahua-florentine-codex",
+      "title": "The Florentine Codex, Book 12",
+      "author": "Nahua elders of Tlatelolco, compiled by Bernardino de Sahagún",
+      "year": 1577,
+      "era": "EARLY_MODERN",
+      "culturalZones": [
+        "NORTH_AMERICAN_COLONIAL"
+      ],
+      "excerpt": "Broken spears lie in the roads; we have torn our hair in our grief. The houses are roofless now, and their walls are red with blood.",
+      "longExcerpt": "This is the account, told by the old men, of what happened in the city of Mexico-Tlatelolco when the Spaniards came. For twelve months the war lasted. For twelve months we were besieged.\n\nAnd on the day that we fell, a great omen appeared in the sky. It was like a flaming whirlpool, it was like a fiery spiral, turning and circling. It showed itself, it was seen. This was long before the sun set. Then the fighting ceased. All was quiet, all was still. And then it was that the people of Tlatelolco were vanquished.\n\nBroken spears lie in the roads; we have torn our hair in our grief. The houses are roofless now, and their walls are red with blood. Worms are swarming in the streets and plazas, and the walls are spattered with gore. The water has turned red, as if it were dyed, and when we drink it, it has the taste of brine.\n\nWe have pounded our hands in despair against the adobe walls, for our inheritance, our city, is lost and dead. The shields of our warriors were its defense, but they could not save it.\n\nWe have eaten lumps of adobe, lizards, rats, and the dust of the earth. We have eaten the bitter weeds of the field. We have chewed on the tough leather of the shields. Nothing was left but sorrow and tears, where once we saw beauty and valor.\n\nLet it be known that we have suffered greatly. Our lord, Cuauhtemoc, was taken. He was led before the Captain, the 'god', Cortés. And when they had seized him, the people began to flee, to abandon the city. They went in all directions, to the mountains, to the countryside. And all this happened to us. We saw it, we admired it. With this lamentable and sad fortune we saw ourselves afflicted. We are crushed to the ground; we lie in ruins. There is nothing but grief and suffering in Mexico and Tlatelolco, where once we saw beauty and valor.",
+      "keywords": [
+        "Aztec",
+        "conquest",
+        "Nahua",
+        "Cortés",
+        "Mexico",
+        "Tenochtitlan",
+        "first-hand account"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Montezuma",
+          "conditions": {
+            "culturalZone": "NORTH_AMERICAN_COLONIAL"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "Miguel León-Portilla",
+        "originalPublication": "Florentine Codex, Book 12, c. 1577",
+        "modernSource": "Beacon Press (from 'The Broken Spears')"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": null
+    },
+    {
+      "id": "inca-garcilaso",
+      "title": "Royal Commentaries of the Incas",
+      "author": "Garcilaso de la Vega",
+      "year": 1609,
+      "era": "EARLY_MODERN",
+      "culturalZones": [
+        "NORTH_AMERICAN_COLONIAL"
+      ],
+      "excerpt": "Our Father the Sun, seeing the human race in the state I have described, took pity and compassion on them, and sent from heaven to earth a son and a daughter of his to instruct them.",
+      "longExcerpt": "Our Father the Sun, seeing the condition of the human race, who lived like wild beasts, without religion or government, without towns or houses, without cultivating the land or dressing in clothes, for they knew not how to weave cotton or wool to make them, took pity on them. He sent from heaven to earth a son and a daughter of his own to instruct them in the knowledge of our Father the Sun, that they might worship him and adopt him as their god, and to give them precepts and laws by which they might live as reasonable and civilized men.\n\nThe Inca Manco Capac and the Coya Mama Ocllo, his sister and wife, came to a place which they called Pacaritambo. From there they went to the valley of Cuzco, which was then a wilderness. The first settlement they made was in this valley. Manco Capac gave orders to those who were able to work to make themselves new homes, each one with his wife and children. He taught them how to plow the land and to cultivate maize and other seeds which he told them were good for food. The Coya Mama Ocllo taught the Indian women how to spin and weave wool and cotton, and to make the clothes that they and their husbands and children were to wear.\n\nFrom the city of Cuzco, the Incas began to spread their civilization. They taught the people to live in communities, with order and reason. They showed them how to build terraces on the steep mountainsides to increase their farmland, and how to make channels to irrigate their crops. They established a system of government, with the Inca as the divine ruler, the son of the Sun. They built great storehouses, called colcas, which were filled with food and clothing, to be distributed to the people in times of need. They established a system of roads that connected all parts of their vast empire, with messengers, called chasquis, who could run in relays to carry news and orders over great distances with incredible speed. They had no writing, but they kept their records with knotted cords called quipus, whose colors and knots could represent numbers and other information. In this way, the Incas brought order and prosperity to the lands they ruled, uniting many different peoples under the benevolent and sacred authority of their Father, the Sun.",
+      "keywords": [
+        "Inca",
+        "Peru",
+        "history",
+        "conquest",
+        "civilization",
+        "myth",
+        "Cuzco"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Cuzco",
+          "conditions": {
+            "culturalZone": "SOUTH_AMERICAN"
+          }
+        },
+        {
+          "keyword": "Machu Picchu",
+          "conditions": {
+            "culturalZone": "SOUTH_AMERICAN"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "Clements R. Markham",
+        "originalPublication": "Comentarios Reales de los Incas, 1609",
+        "modernSource": "Public Domain"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": "royalcommentarie01vegarich",
+      "isStandard": true
+    },
+    {
+      "id": "north-america-renaissance-early-modern-chronicle",
+      "title": "North American Early Modern Chronicle",
+      "author": "Various Authors",
+      "year": 1600,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "NORTH_AMERICAN_COLONIAL"
+      ],
+      "excerpt": "A collection of early modern texts from the North American region.",
+      "longExcerpt": "This represents a compilation of historical documents from the Early Modern period in the North American region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "keywords": [
+        "north-america",
+        "renaissance-early-modern",
+        "history",
+        "chronicle",
+        "primary source"
+      ],
+      "wikisourceTitle": "North American_Early Modern_Texts",
+      "citation": {
+        "originalPublication": "North American Early Modern Period"
+      }
+    }
+  ]
+}

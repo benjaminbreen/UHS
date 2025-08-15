@@ -1,8 +1,7 @@
 /**
  * constants/gameData/geography.ts - Defines geographical and cultural zones, and their generation data.
  */
-import { ZoneDefinition, ClimateType, MapArchetype } from '../../types';
-import { CulturalZone } from '../characterData/names';
+import { ZoneDefinition, ClimateType, MapArchetype, CulturalZone } from '../../types';
 
 export const CULTURE_ZONES = [
     "Europe",
@@ -28,7 +27,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         },
         "France": {
             "Paris Basin": { name: "Paris Basin", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, altitude: 'low', hasLakes: false },
-            "Loire Valley": { name: "Loire Valley", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.RIVER_PORT },
+            "Loire Valley": { name: "Loire Valley", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT },
             "Marseille Coast": { name: "Marseille Coast", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.BAY },
             "Pyrenees Foothills": { name: "Pyrenees Foothills", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false },
             "Normandy": { name: "Normandy", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY },
@@ -141,7 +140,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Santa Barbara Channel": { name: "Santa Barbara Channel", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.BAY, bayOutlet: 'south' },
             "Los Angeles Basin": { name: "Los Angeles Basin", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.BAY },
             "Channel Islands": { name: "Channel Islands", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.BARRIER_ISLAND, islandOrientation: 'east-west' },
-            "San Diego Bay": { name: "San Diego Bay", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.BAY },
+            "San Diego Bay": { name: "San Diego Bay", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.BAY, bayOutlet: 'west'},
             "Mojave Desert": { name: "Mojave Desert", climate: ClimateType.ARID, archetype: MapArchetype.DESERT, economicActivityLevel: 1 },
             "Central Valley": { name: "Central Valley", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.ALL_LAND, altitude: 'low' },
         },
@@ -235,10 +234,12 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         "Atlantic Coast": {
             "Chesapeake Bay": { name: "Chesapeake Bay", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY },
             "Cape Cod": { name: "Cape Cod", climate: ClimateType.TEMPERATE, archetype: MapArchetype.PENINSULA },
+                    "Boston Harbor": { name: "Boston Harbor", climate: ClimateType.TEMPERATE, archetype: MapArchetype.PENINSULA },
             "Pine Barrens": { name: "Pine Barrens", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, hasLakes: false },
             "Outer Banks": { name: "Outer Banks", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BARRIER_ISLAND, islandOrientation: 'north-south' },
             "Delaware River Valley": { name: "Delaware River Valley", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT },
-            "Tidewater Region": { name: "Tidewater Region", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY }
+            "Tidewater Region": { name: "Tidewater Region", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY },
+            "Virginia ": { name: "Virginia", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND }
         }
     },
     "South America": {
@@ -331,7 +332,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         "Nubian Corridor": {
             "Nubian Desert": { name: "Nubian Desert", climate: ClimateType.ARID, archetype: MapArchetype.DESERT, economicActivityLevel: 0 },
             "Bayuda Desert": { name: "Bayuda Desert", climate: ClimateType.ARID, archetype: MapArchetype.DESERT },
-             "Nubian Desert": { name: "Nubian Desert", climate: ClimateType.ARID, archetype: MapArchetype.DESERT, economicActivityLevel: 0 }
+            
         },
         "Levant": {
             "Jerusalem Hills": { name: "Jerusalem Hills", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND },

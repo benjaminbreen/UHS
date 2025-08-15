@@ -133,4 +133,41 @@ export interface NpcEntity {
     requiredClassToPass?: string[];
     confrontationDialogue?: string[];
     hasConfrontedPlayer?: boolean;
+    
+    // Factory worker attributes
+    fatigue?: number; // 0-1, how tired the worker is
+    morale?: number; // 0-1, worker happiness/motivation
+    workplace?: string; // ID of workplace structure
+    profession?: string; // Specific job title
+    shift?: 'morning' | 'afternoon' | 'night'; // Current work shift
+    currentActivity?: string; // Detailed current activity
+    reputation?: number; // Social standing
+    location?: Point; // Current location
+    
+    // Enhanced NPC behavior system
+    isInsideBuilding?: boolean; // Whether NPC is currently inside a building
+    buildingId?: string; // ID of building they're inside
+    travelDestination?: Point; // Where they're traveling to
+    isLeavingMap?: boolean; // About to exit map edge
+    mapEntryDirection?: 'north' | 'south' | 'east' | 'west'; // Where they entered from
+    shipId?: string; // ID of ship if on water
+    
+    // Animals and companions
+    tamedAnimals?: Array<{
+        type: string;
+        name?: string;
+        position: Point; // Relative to NPC
+    }>;
+    
+    // Enhanced relationship tracking
+    playerRelationship?: {
+        attitude: number; // -100 to 100
+        memories: Array<{
+            action: string;
+            impact: number;
+            timestamp: number;
+        }>;
+        willConfront: boolean;
+        willAttack: boolean;
+    };
 }

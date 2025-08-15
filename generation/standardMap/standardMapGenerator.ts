@@ -658,7 +658,7 @@ export function proceduralGenerateMap(
           if (x >= 0 && x < MAP_WIDTH_TILES && y >= 0 && y < MAP_HEIGHT_TILES) {
             const dist = Math.sqrt(dx * dx + dy * dy);
             if (dist <= lakeSize && featurePlacementNoise.random() > 0.3) {
-              tiles[y][x].terrain = TerrainType.WATER;
+              tiles[y][x].isLand = false;
               tiles[y][x].biome = BiomeType.RIVER;
             }
           }

@@ -1,0 +1,25 @@
+{
+  "sources": [
+    {
+      "id": "achebe-things-fall-apart",
+      "title": "Things Fall Apart",
+      "author": "Chinua Achebe",
+      "year": 1958,
+      "excerpt": "The white man is very clever. He came quietly with his religion. We were amused and allowed him to stay.",
+      "longExcerpt": "The white man is very clever. He came quietly and peaceably with his religion. We were amused at his foolishness and allowed him to stay. Now he has won our brothers, and our clan can no longer act like one. He has put a knife on the things that held us together and we have fallen apart. The missionaries built a church in the Evil Forest, where we bury those who die of evil diseases. We laughed. But they did not die. Their god protected them. Now our young men sing their hymns.",
+      "era": "MODERN",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "keywords": [
+        "things",
+        "fall",
+        "apart"
+      ],
+      "wikisourceTitle": "Things_Fall_Apart",
+      "citation": {
+        "originalPublication": "Chinua Achebe, 1958"
+      }
+    }
+  ]
+}

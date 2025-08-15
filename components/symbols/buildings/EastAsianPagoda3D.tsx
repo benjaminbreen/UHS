@@ -39,31 +39,31 @@ const EastAsianPagoda3D: React.FC<EastAsianPagoda3DProps> = React.memo(
     const rng = new ValueNoise(seed + tile.x * 313 + tile.y * 317);
     const rand = () => rng.random();
 
-    // Determine building scale and tiers based on density
-    let scaleFactor = 1.0;
+    // Determine building scale and tiers based on density - increased overall size
+    let scaleFactor = 1.3; // Base increased from 1.0
     let tiers = 3;
     let isHumbleDwelling = false;
     
     if (tile.biome === BiomeType.CITY_CENTER) {
       tiers = 5;
-      scaleFactor = 1.15; // Larger, grander pagoda
+      scaleFactor = 1.6; // Increased from 1.15
     } else if (tile.biome === BiomeType.HIGH_DENSITY_URBAN) {
       tiers = 4;
-      scaleFactor = 0.95;
+      scaleFactor = 1.4; // Increased from 0.95
     } else if (tile.biome === BiomeType.LOW_DENSITY_URBAN) {
       tiers = rand() > 0.5 ? 2 : 3;
-      scaleFactor = 0.75 + rand() * 0.15; // 0.75-0.9
+      scaleFactor = 1.1 + rand() * 0.15; // Increased from 0.75-0.9 to 1.1-1.25
     } else {
       // Hamlet or rural areas - mix of humble dwellings and small pagodas
       if (rand() > 0.6) {
         // Small humble dwelling/hut
         tiers = 1;
-        scaleFactor = 0.45 + rand() * 0.2; // 0.45-0.65
+        scaleFactor = 0.8 + rand() * 0.2; // Increased from 0.45-0.65 to 0.8-1.0
         isHumbleDwelling = true;
       } else {
         // Small pagoda
         tiers = rand() > 0.5 ? 1 : 2;
-        scaleFactor = 0.55 + rand() * 0.15; // 0.55-0.7
+        scaleFactor = 0.9 + rand() * 0.15; // Increased from 0.55-0.7 to 0.9-1.05
       }
     }
 

@@ -125,19 +125,103 @@ function selectUrbanClusterCenters(strategicLocations: Array<{point: Point, scor
 
 function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: number, totalClusters: number, generateLargeCity: boolean | undefined, randomNoise: ValueNoise, economicActivityLevel?: number, activeCities?: any[]): void {
   const isMainCluster = clusterIndex === 0;
-  const clusterRadius = URBAN_CLUSTER_RADIUS_MIN + Math.floor(randomNoise.random() * (URBAN_CLUSTER_RADIUS_MAX - URBAN_CLUSTER_RADIUS_MIN +1));
+  
+  // Get population data for this cluster's city
+  const cityData = (isMainCluster && activeCities && activeCities.length > 0) ? activeCities[0] : 
+                   (activeCities && clusterIndex < activeCities.length) ? activeCities[clusterIndex] : null;
+  const cityPopulation = cityData?.populationPeak || 0;
+  
+  // Calculate population-based scale factor
+  let populationScaleFactor = 1.0;
+  let radiusMultiplier = 1.0;
+  if (cityPopulation > 0) {
+    // Scale based on population brackets
+    if (cityPopulation < 10000) {
+      populationScaleFactor = 0.3; // Tiny settlement
+      radiusMultiplier = 0.7;
+    } else if (cityPopulation < 50000) {
+      populationScaleFactor = 0.6; // Small town
+      radiusMultiplier = 0.8;
+    } else if (cityPopulation < 100000) {
+      populationScaleFactor = 1.0; // Medium town
+      radiusMultiplier = 1.0;
+    } else if (cityPopulation < 250000) {
+      populationScaleFactor = 1.5; // Large town
+      radiusMultiplier = 1.2;
+    } else if (cityPopulation < 500000) {
+      populationScaleFactor = 2.0; // Small city
+      radiusMultiplier = 1.5;
+    } else if (cityPopulation < 1000000) {
+      populationScaleFactor = 3.0; // Medium city
+      radiusMultiplier = 1.8;
+    } else if (cityPopulation < 5000000) {
+      populationScaleFactor = 4.0; // Large city
+      radiusMultiplier = 2.2;
+    } else if (cityPopulation < 10000000) {
+      populationScaleFactor = 6.0; // Megacity
+      radiusMultiplier = 3.0;
+    } else if (cityPopulation < 20000000) {
+      populationScaleFactor = 8.0; // Super megacity
+      radiusMultiplier = 3.5;
+    } else {
+      populationScaleFactor = 10.0; // Hyper megacity (Beijing, Tokyo, etc.)
+      radiusMultiplier = 4.0;
+    }
+    
+    console.log(`[Urban] City "${cityData.name}" with population ${cityPopulation} -> scale factor ${populationScaleFactor}, radius multiplier ${radiusMultiplier}`);
+  }
+  
+  // Scale cluster radius based on population
+  const baseRadius = URBAN_CLUSTER_RADIUS_MIN + Math.floor(randomNoise.random() * (URBAN_CLUSTER_RADIUS_MAX - URBAN_CLUSTER_RADIUS_MIN + 1));
+  const clusterRadius = Math.floor(baseRadius * radiusMultiplier);
   
   const cityScaleFactor = (isMainCluster && generateLargeCity) ? 1.5 : (isMainCluster ? 1.0 : 0.7);
-  const activityMultiplier = economicActivityLevel !== undefined ? (economicActivityLevel / 2) : 1; // 0 (none), 0.5 (low) to 2.0 (v high)
+  const activityMultiplier = economicActivityLevel !== undefined ? (economicActivityLevel / 2) : 1;
   
-  let denseCityTiles = Math.floor((DENSE_CITY_SIZE_MIN + randomNoise.random() * (DENSE_CITY_SIZE_MAX - DENSE_CITY_SIZE_MIN)) * cityScaleFactor * 0.4 * activityMultiplier);
-  let lowDensityTiles = Math.floor((LOW_DENSITY_CITY_SIZE_MIN + randomNoise.random() * (LOW_DENSITY_CITY_SIZE_MAX - LOW_DENSITY_CITY_SIZE_MIN)) * cityScaleFactor * 1.2 * 0.5 * activityMultiplier);
-  let hamletTiles = Math.floor((HAMLET_SIZE_MIN + randomNoise.random() * (HAMLET_SIZE_MAX - HAMLET_SIZE_MIN)) * cityScaleFactor * 1.3 * activityMultiplier);
+  // Apply population-based scaling to tile counts
+  const finalScaleFactor = cityScaleFactor * activityMultiplier * populationScaleFactor;
+  
+  // Calculate tile counts with population-based scaling
+  let denseCityTiles = Math.floor((DENSE_CITY_SIZE_MIN + randomNoise.random() * (DENSE_CITY_SIZE_MAX - DENSE_CITY_SIZE_MIN)) * finalScaleFactor * 0.8);
+  let lowDensityTiles = Math.floor((LOW_DENSITY_CITY_SIZE_MIN + randomNoise.random() * (LOW_DENSITY_CITY_SIZE_MAX - LOW_DENSITY_CITY_SIZE_MIN)) * finalScaleFactor * 1.2);
+  let hamletTiles = Math.floor((HAMLET_SIZE_MIN + randomNoise.random() * (HAMLET_SIZE_MAX - HAMLET_SIZE_MIN)) * finalScaleFactor * 1.5);
 
-  if (!isMainCluster) { 
+  // For megacities, ensure minimum thresholds
+  if (cityPopulation > 20000000) {
+    // Hyper megacity (Beijing, Tokyo, etc.)
+    denseCityTiles = Math.max(denseCityTiles, 80);
+    lowDensityTiles = Math.max(lowDensityTiles, 120);
+    hamletTiles = Math.max(hamletTiles, 160);
+  } else if (cityPopulation > 10000000) {
+    // Super megacity
+    denseCityTiles = Math.max(denseCityTiles, 60);
+    lowDensityTiles = Math.max(lowDensityTiles, 90);
+    hamletTiles = Math.max(hamletTiles, 120);
+  } else if (cityPopulation > 5000000) {
+    // Regular megacity
+    denseCityTiles = Math.max(denseCityTiles, 40);
+    lowDensityTiles = Math.max(lowDensityTiles, 60);
+    hamletTiles = Math.max(hamletTiles, 80);
+  } else if (cityPopulation > 1000000) {
+    denseCityTiles = Math.max(denseCityTiles, 20);
+    lowDensityTiles = Math.max(lowDensityTiles, 30);
+    hamletTiles = Math.max(hamletTiles, 40);
+  }
+  
+  // For tiny settlements, cap the maximum
+  if (cityPopulation > 0 && cityPopulation < 50000) {
+    denseCityTiles = Math.min(denseCityTiles, 5);
+    lowDensityTiles = Math.min(lowDensityTiles, 8);
+    hamletTiles = Math.min(hamletTiles, 12);
+  }
+
+  if (!isMainCluster && !cityPopulation) { 
+      // Keep original limits for secondary clusters without specific population data
       denseCityTiles = Math.min(denseCityTiles, Math.floor(DENSE_CITY_SIZE_MAX * 0.3)); 
       lowDensityTiles = Math.min(lowDensityTiles, Math.floor(LOW_DENSITY_CITY_SIZE_MAX * 0.5));
   }
+  
+  console.log(`[Urban] Cluster ${clusterIndex}: dense=${denseCityTiles}, low=${lowDensityTiles}, hamlet=${hamletTiles}, radius=${clusterRadius}`);
   
   const tilesToPlace: Array<{biome: BiomeType, priority: number}> = [];
   for (let i = 0; i < denseCityTiles; i++) tilesToPlace.push({ biome: BiomeType.DENSE_CITY, priority: 3 });

@@ -1,0 +1,254 @@
+{
+  "sources": [
+    {
+      "id": "tale-of-genji",
+      "title": "The Tale of Genji",
+      "author": "Murasaki Shikibu",
+      "year": 1010,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "The beauty of life is in small details, not in the grand scheme.",
+      "keywords": [
+        "literature",
+        "Japan",
+        "Heian period",
+        "court life",
+        "romance"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Kyoto",
+          "conditions": {
+            "culturalZone": "EAST_ASIAN",
+            "era": "MEDIEVAL"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "Arthur Waley",
+        "originalPublication": "Genji Monogatari, c. 1010",
+        "modernSource": "Project Gutenberg"
+      },
+      "wikisourceTitle": "The_Tale_of_Genji",
+      "internetArchiveId": "taleofgenji00mura",
+      "isStandard": true,
+      "longExcerpt": "The beauty of life is in small details, not in the grand scheme. This historical source from 1010 provides valuable insight into the asia region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "zheng-he-voyages",
+      "title": "Records of Zheng He's Voyages",
+      "author": "Ma Huan",
+      "year": 1433,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "The countries beyond the horizon and at the ends of the earth have all become subjects.",
+      "keywords": [
+        "exploration",
+        "China",
+        "Ming dynasty",
+        "naval",
+        "trade"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "treasure fleet",
+          "conditions": {
+            "culturalZone": "EAST_ASIAN",
+            "era": "MEDIEVAL"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "J.V.G. Mills",
+        "originalPublication": "Ying-yai Sheng-lan, 1433",
+        "modernSource": "Hakluyt Society"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": null,
+      "longExcerpt": "The countries beyond the horizon and at the ends of the earth have all become subjects. This historical source from 1433 provides valuable insight into the asia region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "asia-medieval-chronicle",
+      "title": "Asian Medieval Chronicle",
+      "author": "Various Authors",
+      "year": 1000,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "A collection of medieval texts from the Asian region.",
+      "longExcerpt": "This represents a compilation of historical documents from the Medieval period in the Asian region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "keywords": [
+        "asia",
+        "medieval",
+        "history",
+        "chronicle",
+        "primary source"
+      ],
+      "wikisourceTitle": "Asian_Medieval_Texts",
+      "citation": {
+        "originalPublication": "Asian Medieval Period"
+      }
+    },
+    {
+      "id": "pillow-book",
+      "title": "The Pillow Book",
+      "author": "Sei Shōnagon",
+      "year": 1002,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "In spring it is the dawn that is most beautiful. As the light creeps over the hills, their outlines are dyed a faint red and wisps of purplish cloud trail over them.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "japan",
+        "heian",
+        "court",
+        "women",
+        "daily life",
+        "seasons",
+        "observations"
+      ],
+      "wikisourceTitle": "The_Pillow_Book_of_Sei_Shonagon",
+      "citation": {
+        "translator": "Arthur Waley",
+        "originalPublication": "Japan, c. 1002"
+      }
+    },
+    {
+      "id": "marco-polo-travels",
+      "title": "The Travels of Marco Polo",
+      "author": "Marco Polo",
+      "year": 1300,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "The city of Kanbalu contains such a multitude of houses and of people, no man could count them. The houses and shops are as fine as any in the world.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "mongol",
+        "yuan",
+        "china",
+        "kublai khan",
+        "trade",
+        "cities",
+        "daily life"
+      ],
+      "wikisourceTitle": "The_Travels_of_Marco_Polo",
+      "internetArchiveId": "marcopolo00polouoft",
+      "citation": {
+        "translator": "Henry Yule",
+        "originalPublication": "Venice, c. 1300"
+      }
+    },
+    {
+      "id": "yuan-agricultural-treatise",
+      "title": "Essential Techniques for the Peasantry",
+      "author": "Wang Zhen",
+      "year": 1313,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "For rice cultivation, first flood the field until the water is three inches deep. The seedlings should be planted when they have five leaves.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "agriculture",
+        "farming",
+        "china",
+        "yuan",
+        "rice",
+        "peasants",
+        "techniques"
+      ],
+      "internetArchiveId": "cu31924073213875",
+      "citation": {
+        "originalPublication": "China, 1313"
+      }
+    },
+    {
+      "id": "ibn-battuta-asia",
+      "title": "The Rihla - Asian Chapters",
+      "author": "Ibn Battuta",
+      "year": 1345,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EAST_ASIAN",
+        "SOUTH_ASIAN"
+      ],
+      "excerpt": "The Chinese use neither gold nor silver in their commerce. All their money is made of paper. As for the merchants, they deposit their wealth with the government.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "travel",
+        "islam",
+        "china",
+        "india",
+        "trade",
+        "currency",
+        "merchants"
+      ],
+      "wikisourceTitle": "The_Travels_of_Ibn_Battuta",
+      "citation": {
+        "translator": "H.A.R. Gibb",
+        "originalPublication": "Morocco, c. 1355"
+      }
+    },
+    {
+      "id": "japanese-tea-ceremony",
+      "title": "Record of Tea",
+      "author": "Eisai",
+      "year": 1211,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "Tea is the ultimate mental and medical remedy and has the ability to make one's life more full and complete. Tea has an extraordinary power to extend life.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "tea",
+        "zen",
+        "buddhism",
+        "japan",
+        "ceremony",
+        "health",
+        "daily ritual"
+      ],
+      "internetArchiveId": "booktea00okakgoog",
+      "citation": {
+        "originalPublication": "Japan, 1211"
+      }
+    },
+    {
+      "id": "secret-history-mongols",
+      "title": "The Secret History of the Mongols",
+      "author": "Anonymous",
+      "year": 1240,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "When Temüjin was nine years old, Yesügei decided to take him to find a bride. Among the Mongols it is custom to seek wives from other clans.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "mongol",
+        "genghis khan",
+        "steppe",
+        "nomadic",
+        "marriage",
+        "customs",
+        "clan life"
+      ],
+      "internetArchiveId": "secrethistoryofm00clea",
+      "citation": {
+        "translator": "Francis Woodman Cleaves",
+        "originalPublication": "Mongolia, c. 1240"
+      }
+    }
+  ]
+}

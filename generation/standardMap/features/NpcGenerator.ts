@@ -11,6 +11,11 @@ import { mapLocationToCulture } from '../../../utils/mapUtils';
 import { generateNpcFamilyAndLifeEvents, findNpcFriends } from '../../../services/socialService';
 import { createItemInstance } from '../../../utils/inventoryUtils';
 import { detectCitiesForArea } from '../../../utils/cityDetectionUtils';
+import { factoryEconomyService } from '../../../services/factoryEconomyService';
+import { factoryNpcBehaviorService } from '../../../services/factoryNpcBehaviors';
+import { getFactoryType } from '../../../constants/gameData/factoryTypes';
+import { holySiteEconomyService } from '../../../services/holySiteEconomyService';
+import { getClergyRoles } from '../../../constants/characterData/religionClergyRoles';
 
 
 let standardNpcIdCounter = 0;
@@ -248,26 +253,50 @@ export function generateNpcsForStandardMap(
                  const factionData = FACTION_DATA[context.culturalZone]?.[context.region]?.[context.era];
                  let rolesToSpawn: string[] = [];
 
-                 // Priority 1: Faction-specific court roles
-                 let roleSource = factionData?.courtRoles?.[structure.structureType];
+                 // Special handling for holy sites - use clergy roles
+                 if (structure.structureType === 'holy_site') {
+                     const religion = (structure as any).religion || structure.name || 'default';
+                     const clergyRoles = getClergyRoles(religion);
+                     
+                     // Always spawn at least one clergy member
+                     if (clergyRoles.length > 0) {
+                         rolesToSpawn.push(clergyRoles[0]); // Head priest/leader
+                         
+                         // Spawn additional clergy with decreasing probability
+                         for (let i = 1; i < Math.min(clergyRoles.length, 4); i++) {
+                             if (noise.random() < 0.8 / i) {
+                                 rolesToSpawn.push(clergyRoles[i]);
+                             }
+                         }
+                     }
+                     
+                     // If no clergy roles found, fallback to generic
+                     if (rolesToSpawn.length === 0) {
+                         rolesToSpawn = ['Priest', 'Acolyte'];
+                     }
+                 } else {
+                     // For non-holy sites, use the existing logic
+                     // Priority 1: Faction-specific court roles
+                     let roleSource = factionData?.courtRoles?.[structure.structureType];
 
-                 // Priority 2: Societal Profile fallback
-                 if (!roleSource || roleSource.length === 0) {
-                     roleSource = societalProfile.courtRoles?.[structure.structureType];
-                 }
+                     // Priority 2: Societal Profile fallback
+                     if (!roleSource || roleSource.length === 0) {
+                         roleSource = societalProfile.courtRoles?.[structure.structureType];
+                     }
 
-                 // Priority 3: Simple npcAnchor fallback
-                 if ((!roleSource || roleSource.length === 0) && structure.npcAnchor) {
-                     roleSource = [structure.npcAnchor];
-                 }
+                     // Priority 3: Simple npcAnchor fallback
+                     if ((!roleSource || roleSource.length === 0) && structure.npcAnchor) {
+                         roleSource = [structure.npcAnchor];
+                     }
 
-                 if (roleSource && roleSource.length > 0) {
-                     // Always spawn the first role (leader)
-                     rolesToSpawn.push(roleSource[0]);
-                     // Spawn subsequent roles with decreasing probability
-                     for (let i = 1; i < roleSource.length; i++) {
-                         if (noise.random() < 0.8 / i) {
-                             rolesToSpawn.push(roleSource[i]);
+                     if (roleSource && roleSource.length > 0) {
+                         // Always spawn the first role (leader)
+                         rolesToSpawn.push(roleSource[0]);
+                         // Spawn subsequent roles with decreasing probability
+                         for (let i = 1; i < roleSource.length; i++) {
+                             if (noise.random() < 0.8 / i) {
+                                 rolesToSpawn.push(roleSource[i]);
+                             }
                          }
                      }
                  }
@@ -285,7 +314,55 @@ export function generateNpcsForStandardMap(
             }
         }
         
-        // 2. Spawn remaining wandering NPCs
+        // 2. Initialize factory and holy site economies
+        if (mapData.terrainStructures) {
+            // Initialize holy site economies
+            const holySites = mapData.terrainStructures.filter(s => s.structureType === 'holy_site');
+            for (const holySite of holySites) {
+                holySiteEconomyService.initializeHolySite(holySite, mapData, npcs);
+            }
+            
+            // Initialize factory economies and assign workers
+            const factories = mapData.terrainStructures.filter(s => s.structureType === 'factory');
+            for (const factory of factories) {
+                // Initialize the factory economy first
+                factoryEconomyService.initializeFactory(factory, mapData, npcs);
+                
+                // Get the factory type for worker generation
+                const factoryType = getFactoryType(context.era, context.culturalZone, context.region);
+                if (factoryType) {
+                    // Generate additional factory workers if needed
+                    const workersNeeded = factoryType.workersNeeded;
+                    const nearbyWorkers = npcs.filter(npc => {
+                        const distance = Math.hypot(
+                            npc.x - factory.location[0],
+                            npc.y - factory.location[1]
+                        );
+                        return distance < 20 && !npc.workplaceId;
+                    });
+                    
+                    // Generate more workers if we don't have enough
+                    let workersGenerated = nearbyWorkers.length;
+                    while (workersGenerated < workersNeeded * 0.5) { // Try to get at least half workforce
+                        const position = findValidNpcPosition(tiles, npcPositions, noise, factory.location, 10);
+                        if (!position) break;
+                        
+                        const worker = createNpc(position.x, position.y, context, noise, stats, factory, 'Factory Worker');
+                        if (worker) {
+                            // Set factory-specific attributes
+                            worker.fatigue = 0.3 + Math.random() * 0.4; // Start with some fatigue
+                            worker.morale = 0.3 + Math.random() * 0.4; // Variable morale
+                            
+                            npcs.push(worker);
+                            npcPositions.add(`${position.x},${position.y}`);
+                            workersGenerated++;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 3. Spawn remaining wandering NPCs
         const npcCount = calculateNpcCount(tiles, climate, noise, region, mapAreaName, dateInfo.year);
         let attempts = 0;
         const maxAttempts = (npcCount - npcs.length) * 50;

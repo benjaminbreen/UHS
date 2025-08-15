@@ -16,10 +16,10 @@ let palaceIdCounter = 0;
 
 const nonPalaceBiomes = [
     BiomeType.DEEP_OCEAN, BiomeType.SHALLOW_OCEAN, BiomeType.RIVER, BiomeType.MAJOR_RIVER,
-    BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.URBAN,
+    BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.CITY_CENTER, BiomeType.URBAN,
     BiomeType.ACTIVE_LAVA, BiomeType.FARMLAND, BiomeType.RUINS, BiomeType.HOLY_SITE,
     BiomeType.ESTUARY, BiomeType.FRESHWATER_LAKE, BiomeType.CLIFF, BiomeType.WETLANDS,
-    BiomeType.SNOW, BiomeType.HIGH_PEAK,
+    BiomeType.SNOW, BiomeType.HIGH_PEAK, BiomeType.MARKETPLACE,
 ];
 
 export function generatePalaces(tiles: Tile[][], featurePlacementNoise: ValueNoise, societalProfile: SocietalProfile, mapData: MapData): TerrainStructure[] {
@@ -75,7 +75,7 @@ export function generatePalaces(tiles: Tile[][], featurePlacementNoise: ValueNoi
                     const checkX = x + dx;
                     const checkY = y + dy;
                     if (checkX >= 0 && checkX < MAP_WIDTH_TILES && checkY >= 0 && checkY < MAP_HEIGHT_TILES) {
-                        if ([BiomeType.DENSE_CITY, BiomeType.LOW_DENSITY_CITY].includes(tiles[checkY][checkX].biome)) {
+                        if ([BiomeType.DENSE_CITY, BiomeType.LOW_DENSITY_CITY, BiomeType.CITY_CENTER].includes(tiles[checkY][checkX].biome)) {
                             score += 5;
                             nearCity = true;
                             break;

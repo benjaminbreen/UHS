@@ -32,8 +32,10 @@ const ChristianChurch3D: React.FC<ChristianChurch3DProps> = React.memo(({ x, y, 
     const windowColor = `hsl(200, 40%, 30%)`;
     const stainedGlass = `url(#stainedGlass-${uniqueId})`;
 
-    const depth = size * 0.4;
-    const mainHeight = height * 0.9;
+    // Increased size by 40% for more imposing presence
+    const scaleFactor = 1.4;
+    const depth = size * 0.5 * scaleFactor;
+    const mainHeight = height * 0.95 * scaleFactor;
     const mainY = y + height - mainHeight;
 
     return (
@@ -45,31 +47,31 @@ const ChristianChurch3D: React.FC<ChristianChurch3DProps> = React.memo(({ x, y, 
                     <stop offset="100%" stopColor="#3b82f6" />
                 </linearGradient>
             </defs>
-             {/* Main Nave */}
-            <rect x={x} y={mainY} width={width} height={mainHeight} fill={stoneColor} stroke={outlineColor} strokeWidth="0.3"/>
-            {/* Side */}
-            <path d={`M ${x+width} ${mainY} L ${x+width+depth} ${mainY-depth*0.5} L ${x+width+depth} ${y+height-depth*0.5} L ${x+width} ${y+height} Z`} fill={shadowColor} stroke={outlineColor} strokeWidth="0.3"/>
+             {/* Main Nave - Enlarged */}
+            <rect x={x - width * 0.2} y={mainY} width={width * 1.4} height={mainHeight} fill={stoneColor} stroke={outlineColor} strokeWidth="0.5"/>
+            {/* Side - Adjusted for larger size */}
+            <path d={`M ${x+width*1.2} ${mainY} L ${x+width*1.2+depth} ${mainY-depth*0.5} L ${x+width*1.2+depth} ${y+height-depth*0.5} L ${x+width*1.2} ${y+height} Z`} fill={shadowColor} stroke={outlineColor} strokeWidth="0.5"/>
             
-            {/* Pitched Roof */}
-            <path d={`M ${x-2} ${mainY} L ${x+width/2} ${mainY-height*0.5} L ${x+width+2} ${mainY} Z`} fill={roofColor} stroke={outlineColor} strokeWidth="0.3"/>
-            <path d={`M ${x+width+2} ${mainY} L ${x+width+2+depth} ${mainY-depth*0.5} L ${x+width/2+depth} ${mainY-height*0.5-depth*0.5} L ${x+width/2} ${mainY-height*0.5} Z`} fill={roofColor} style={{filter: 'brightness(0.7)'}} stroke={outlineColor} strokeWidth="0.3"/>
+            {/* Pitched Roof - Taller and wider */}
+            <path d={`M ${x-width*0.25} ${mainY} L ${x+width*0.5} ${mainY-height*0.7*scaleFactor} L ${x+width*1.25} ${mainY} Z`} fill={roofColor} stroke={outlineColor} strokeWidth="0.5"/>
+            <path d={`M ${x+width*1.25} ${mainY} L ${x+width*1.25+depth} ${mainY-depth*0.5} L ${x+width*0.5+depth} ${mainY-height*0.7*scaleFactor-depth*0.5} L ${x+width*0.5} ${mainY-height*0.7*scaleFactor} Z`} fill={roofColor} style={{filter: 'brightness(0.7)'}} stroke={outlineColor} strokeWidth="0.5"/>
             
-            {/* Bell Tower */}
-            <rect x={x+width-10} y={y} width={12} height={height} fill={stoneColor} stroke={outlineColor} strokeWidth="0.3"/>
-            <path d={`M ${x+width+2} ${y} L ${x+width+2+depth} ${y-depth*0.5} L ${x+width+2+depth} ${y+height-depth*0.5} L ${x+width+2} ${y+height} Z`} fill={shadowColor} stroke={outlineColor} strokeWidth="0.3"/>
-            <path d={`M ${x+width-10} ${y} L ${x+width/2+10} ${y-height*0.2} L ${x+width+2} ${y} Z`} fill={roofColor} stroke={outlineColor} strokeWidth="0.3" transform="translate(14, 0)"/>
+            {/* Bell Tower - Taller and wider */}
+            <rect x={x+width*0.9} y={y-height*0.3} width={18} height={height*1.5} fill={stoneColor} stroke={outlineColor} strokeWidth="0.5"/>
+            <path d={`M ${x+width*0.9+18} ${y-height*0.3} L ${x+width*0.9+18+depth} ${y-height*0.3-depth*0.5} L ${x+width*0.9+18+depth} ${y+height*1.2-depth*0.5} L ${x+width*0.9+18} ${y+height*1.2} Z`} fill={shadowColor} stroke={outlineColor} strokeWidth="0.5"/>
+            <path d={`M ${x+width*0.9} ${y-height*0.3} L ${x+width*0.9+9} ${y-height*0.6} L ${x+width*0.9+18} ${y-height*0.3} Z`} fill={roofColor} stroke={outlineColor} strokeWidth="0.5"/>
 
             {/* Arched Windows */}
             {[...Array(isGothic ? 3 : 2)].map((_, i) => (
                 <g key={`window-${i}`}>
-                    <rect x={x + 4 + i*8} y={mainY+10} width="6" height="8" fill={windowColor} />
-                    <path d={`M ${x+4+i*8} ${mainY+10} A 3 4 0 0 1 ${x+10+i*8} ${mainY+10}`} fill={isGothic ? stainedGlass : windowColor} />
+                    <rect x={x - width*0.15 + 6 + i*12} y={mainY+15} width="9" height="12" fill={windowColor} />
+                    <path d={`M ${x - width*0.15 + 6 + i*12} ${mainY+15} A 4.5 6 0 0 1 ${x - width*0.15 + 15 + i*12} ${mainY+15}`} fill={isGothic ? stainedGlass : windowColor} />
                 </g>
             ))}
 
             {/* Buttresses */}
             {isGothic && [...Array(3)].map((_,i) => (
-                 <rect key={`buttress-${i}`} x={x + i * 11} y={mainY+5} width="3" height={mainHeight-5} fill={shadowColor} opacity="0.6"/>
+                 <rect key={`buttress-${i}`} x={x - width*0.2 + i * 16} y={mainY+8} width="5" height={mainHeight-8} fill={shadowColor} opacity="0.6"/>
             ))}
         </g>
     );

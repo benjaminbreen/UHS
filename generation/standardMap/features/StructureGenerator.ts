@@ -7,6 +7,8 @@ import { STRUCTURE_BLUEPRINTS, MAP_WIDTH_TILES, MAP_HEIGHT_TILES, FACTION_DATA, 
 import { mapLocationToCulture } from '../../../utils/mapUtils';
 import { parseDateString } from '../../../utils/dateUtils';
 import { determineReligion } from '../../common/npcUtils';
+import { getFactoryType, FactoryType } from '../../../constants/gameData/factoryTypes';
+import { MINE_FREQUENCY_BY_ERA, QUARRY_FREQUENCY_BY_ERA, getRandomMaterial } from '../../../constants/gameData/mineQuarryMaterials';
 
 
 let structureIdCounter = 0;
@@ -182,23 +184,26 @@ function findPlacementCandidates(
                     }
                     break;
                 case 'factory': // formerly smelter
-                case 'trading_post':
-                    let isNearUrban = false;
-                    for (let dy = -8; dy <= 8; dy++) {
-                        for (let dx = -8; dx <= 8; dx++) {
-                             const nx = x + dx; const ny = y + dy;
-                             if(nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
-                                 const neighborBiome = tiles[ny][nx].biome;
-                                 if ([BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.CITY_CENTER].includes(neighborBiome)) {
-                                     isNearUrban = true; break;
-                                 }
-                             }
+                case 'government_district':
+                    // Government buildings must be very close to city centers
+                    let isNearCityCenter = false;
+                    let cityDistance = 999;
+                    for (let dy = -5; dy <= 5; dy++) {
+                        for (let dx = -5; dx <= 5; dx++) {
+                            const nx = x + dx;
+                            const ny = y + dy;
+                            if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
+                                const dist = Math.hypot(dx, dy);
+                                if (tiles[ny][nx].biome === BiomeType.CITY_CENTER && dist < cityDistance) {
+                                    isNearCityCenter = true;
+                                    cityDistance = dist;
+                                }
+                            }
                         }
-                        if(isNearUrban) break;
                     }
-                    if (isNearUrban) {
+                    if (isNearCityCenter && cityDistance <= 5) {
                         isValid = true;
-                        score = tile.qualities.safety;
+                        score = 10 - cityDistance; // Prefer closer to city center
                     }
                     break;
             }
@@ -222,11 +227,39 @@ export function generateTerrainStructures(mapData: MapData, noise: ValueNoise, r
     const culturalZone = mapLocationToCulture(mapData.continent || 'Europe', dateInfo.year);
     const regionName = region || Object.keys(GEOGRAPHICAL_DATA[culturalZone as CulturalZone] || {})[0] || 'DefaultRegion';
     const factionData = FACTION_DATA[culturalZone as CulturalZone]?.[regionName]?.[dateInfo.era as HistoricalEra];
+    
+    // Check if factories should be allowed based on era
+    const factoriesAllowed = dateInfo.era !== 'PREHISTORY' && 
+                            dateInfo.era !== 'ANTIQUITY' && 
+                            dateInfo.era !== 'MEDIEVAL';
+    
+    // Get mine and quarry frequencies for current era
+    const mineFrequency = MINE_FREQUENCY_BY_ERA[dateInfo.era as HistoricalEra] || 0.2;
+    const quarryFrequency = QUARRY_FREQUENCY_BY_ERA[dateInfo.era as HistoricalEra] || 0.2;
 
     const mineralPotentialData = createMineralPotentialData(mapData.tiles, noise);
 
-    for (const structureType of societalProfile.allowedStructures) {
+    // Add government_district to allowed structures if we have cities
+    const structuresToGenerate = [...societalProfile.allowedStructures];
+    if (hasCities && !structuresToGenerate.includes('government_district')) {
+        structuresToGenerate.push('government_district');
+    }
+    
+    for (const structureType of structuresToGenerate) {
         if (['farm', 'holy_site', 'palace', 'ruin'].includes(structureType)) continue;
+        
+        // Skip factories if not in appropriate era
+        if (structureType === 'factory' && !factoriesAllowed) {
+            continue;
+        }
+        
+        // Skip mines and quarries based on era frequency
+        if (structureType === 'mining_colony' && Math.random() > mineFrequency) {
+            continue;
+        }
+        if (structureType === 'quarry' && Math.random() > quarryFrequency) {
+            continue;
+        }
 
         const candidates = findPlacementCandidates(mapData.tiles, structureType, mineralPotentialData);
         if (candidates.length === 0) continue;
@@ -242,12 +275,14 @@ export function generateTerrainStructures(mapData: MapData, noise: ValueNoise, r
                         structureType === 'mining_colony' ? 1 :
                         structureType === 'mill' ? 0 : // No mills without cities/settlements
                         structureType === 'marketplace' ? 0 : // No marketplaces without cities
-                        structureType === 'trading_post' ? 0 : // No trading posts without cities
                         structureType === 'factory' ? 0 : // No factories without cities
+                        structureType === 'government_district' ? 0 : // No government buildings without cities
                         1;
         } else {
             // City maps can have normal structure counts
-            maxToPlace = structureType === 'fishing_hut' ? 2 : 1;
+            maxToPlace = structureType === 'fishing_hut' ? 2 : 
+                        structureType === 'government_district' ? 1 : // Only one government building per city
+                        1;
         }
         let placedCount = 0;
 
@@ -271,30 +306,196 @@ export function generateTerrainStructures(mapData: MapData, noise: ValueNoise, r
             const blueprint = STRUCTURE_BLUEPRINTS[structureType];
             if (!blueprint) continue;
             
-            const culturalNames = factionData?.structureNames?.[structureType] || [structureType.replace(/_/g, ' ')];
-            const name = culturalNames[Math.floor(noise.random() * culturalNames.length)];
-
-
-            const newStructure: TerrainStructure = {
-                id: `struct-${structureIdCounter++}`,
-                structureType,
-                name: name,
-                location: [candidate.tile.x, candidate.tile.y],
-                economicRole: blueprint.economicRole,
-                npcAnchor: blueprint.npcAnchor,
-                state: 'active',
-                inputGoods: blueprint.inputGoods,
-                outputGoods: [...(blueprint.outputGoods || [])],
-            };
-
-            if (structureType === 'mining_colony' && candidate.bestMetal && candidate.bestMetalScore) {
-                const oreItemId = METALS[candidate.bestMetal]?.oreItemId || `${candidate.bestMetal}_ORE`;
-                newStructure.name = `${METALS[candidate.bestMetal].name} Mine`;
-                newStructure.mineralDeposits = { [candidate.bestMetal]: Math.floor(candidate.bestMetalScore * 20000) };
-                if (newStructure.outputGoods) {
-                    newStructure.outputGoods.push(oreItemId);
+            // Handle factory types specially
+            let finalStructure: TerrainStructure;
+            
+            if (structureType === 'factory' && factoriesAllowed) {
+                const factoryType = getFactoryType(
+                    dateInfo.era as HistoricalEra,
+                    culturalZone as CulturalZone,
+                    regionName
+                );
+                
+                if (!factoryType) {
+                    // No appropriate factory type for this era/region
+                    continue;
+                }
+                
+                finalStructure = {
+                    id: `struct-${structureIdCounter++}`,
+                    structureType,
+                    name: factoryType.name,
+                    location: [candidate.tile.x, candidate.tile.y],
+                    economicRole: blueprint.economicRole,
+                    npcAnchor: factoryType.npcAnchor,
+                    state: 'active',
+                    inputGoods: factoryType.inputGoods,
+                    outputGoods: factoryType.outputGoods,
+                    // Store factory subtype for rendering
+                    factorySubtype: factoryType.id,
+                    factorySymbolType: factoryType.symbolType
+                } as TerrainStructure & { factorySubtype?: string; factorySymbolType?: string };
+            } else {
+                // Determine structure name based on type and era
+                let name = '';
+                if (structureType === 'mill') {
+                    const year = dateInfo.year;
+                    console.log(`[StructureGen] Determining mill type for year ${year}, era: ${dateInfo.era}`);
+                    
+                    if (year < -2000) {
+                        name = 'Hand Quern';
+                    } else if (year < 500) {
+                        name = 'Animal Mill';
+                    } else if (year < 1100) {
+                        name = 'Water Mill';
+                    } else if (year < 1500) {
+                        // Mix of water and windmills
+                        name = noise.random() > 0.5 ? 'Water Mill' : 'Windmill';
+                    } else if (year < 1800) {
+                        name = 'Windmill';
+                    } else if (year < 1900) {
+                        name = 'Steam Mill';
+                    } else {
+                        name = 'Electric Mill';
+                    }
+                    
+                    console.log(`[StructureGen] Selected mill type: ${name} for year ${year}`);
                 } else {
+                    // Use region-specific faction data for naming, with fallbacks for missing data
+                    const culturalNames = factionData?.structureNames?.[structureType];
+                    
+                    if (culturalNames && culturalNames.length > 0) {
+                        // Use region-specific names from faction data
+                        name = culturalNames[Math.floor(noise.random() * culturalNames.length)];
+                        console.log(`[StructureGen] Using region-specific ${structureType} name: ${name} from faction data`);
+                    } else {
+                        // Fallback to era/culture-based naming for fortress and government districts
+                        if (structureType === 'fortress') {
+                            const year = dateInfo.year;
+                            console.log(`[StructureGen] No region-specific fortress names, using fallback for year ${year}, culture: ${culturalZone}`);
+                            
+                            // Select fortress type based on culture and era - FIXED LOGIC
+                            if (year >= 1900) {
+                                // Modern era - always modern fort
+                                name = 'Modern Fort';
+                            } else if (year < -1000) {
+                                // Prehistoric - hillfort
+                                name = 'Hillfort';
+                            } else if (year < 500) {
+                                // Ancient era - culture specific
+                                if (culturalZone === 'EUROPEAN' && regionName && (
+                                    regionName.includes('Rome') || regionName.includes('Italy') || 
+                                    regionName.includes('Gaul') || regionName.includes('Iberia') ||
+                                    regionName.includes('Britain') || regionName.includes('Germania')
+                                )) {
+                                    name = 'Roman Castrum';
+                                } else if (culturalZone === 'MENA' && year > -500) {
+                                    name = 'Roman Castrum'; // Only in areas Rome actually controlled
+                                } else if (culturalZone === 'EAST_ASIAN') {
+                                    name = 'Chinese Fort';
+                                } else {
+                                    name = 'Hillfort'; // Default ancient fortification
+                                }
+                            } else if (year < 1400) {
+                                // Medieval era
+                                if (culturalZone === 'EAST_ASIAN') {
+                                    name = 'Japanese Fortress';
+                                } else {
+                                    name = 'Medieval Castle';
+                                }
+                            } else if (year < 1700) {
+                                // Renaissance/Early Modern
+                                if ((culturalZone === 'NORTH_AMERICAN_COLONIAL' || culturalZone === 'SOUTH_AMERICAN') && year >= 1500) {
+                                    name = 'Colonial Presidio';
+                                } else {
+                                    name = 'Star Fort';
+                                }
+                            } else if (year < 1900) {
+                                // Industrial era
+                                if (culturalZone === 'NORTH_AMERICAN_COLONIAL' || culturalZone === 'SOUTH_AMERICAN') {
+                                    name = 'Colonial Presidio';
+                                } else if (culturalZone === 'EAST_ASIAN') {
+                                    name = 'Japanese Fortress';
+                                } else {
+                                    name = 'Star Fort';
+                                }
+                            } else {
+                                name = 'Modern Fort'; // Fallback
+                            }
+                        } else if (structureType === 'government_district') {
+                            const year = dateInfo.year;
+                            console.log(`[StructureGen] No region-specific government names, using fallback for year ${year}, culture: ${culturalZone}`);
+                            
+                            // Select government building based on culture and era
+                            if (culturalZone === 'EAST_ASIAN' && year < 1900) {
+                                name = 'Mandate Hall';
+                            } else if (culturalZone === 'MENA' && year < 1900) {
+                                name = 'Caliph Court';
+                            } else if ((culturalZone === 'NORTH_AMERICAN_COLONIAL' || culturalZone === 'SOUTH_AMERICAN') && year > 1500 && year < 1900) {
+                                name = 'Colonial Office';
+                            } else if (year < -500) {
+                                name = 'Tribal Council';
+                            } else if (year < 500) {
+                                name = 'Roman Forum';
+                            } else if (year < 1800) {
+                                name = 'City Hall';
+                            } else {
+                                name = 'City Hall';
+                            }
+                        } else {
+                            // Generic fallback for other structure types
+                            name = structureType.replace(/_/g, ' ');
+                        }
+                    }
+                }
+                
+                finalStructure = {
+                    id: `struct-${structureIdCounter++}`,
+                    structureType,
+                    name: name,
+                    location: [candidate.tile.x, candidate.tile.y],
+                    economicRole: blueprint.economicRole,
+                    npcAnchor: blueprint.npcAnchor,
+                    state: 'active',
+                    inputGoods: blueprint.inputGoods,
+                    outputGoods: [...(blueprint.outputGoods || [])],
+                };
+                
+                // Store era and cultural zone for fortresses and government districts
+                if (structureType === 'fortress' || structureType === 'government_district') {
+                    (finalStructure as any).era = dateInfo.era;
+                    (finalStructure as any).culturalZone = culturalZone;
+                }
+            }
+            
+            const newStructure = finalStructure;
+
+            if (structureType === 'mining_colony') {
+                // Use era-specific mine materials instead of generic metals
+                const mineMaterial = getRandomMaterial(dateInfo.era as HistoricalEra, 'mine');
+                if (mineMaterial) {
+                    newStructure.name = `${mineMaterial.name} Mine`;
+                    newStructure.mineralDeposits = { [mineMaterial.id]: Math.floor(Math.random() * 10000 + 5000) };
+                    newStructure.outputGoods = [mineMaterial.id.toUpperCase()];
+                    (newStructure as any).era = dateInfo.era; // Store era for symbol selection
+                } else if (candidate.bestMetal && candidate.bestMetalScore) {
+                    // Fallback to old system if no era-specific material
+                    const oreItemId = METALS[candidate.bestMetal]?.oreItemId || `${candidate.bestMetal}_ORE`;
+                    newStructure.name = `${METALS[candidate.bestMetal].name} Mine`;
+                    newStructure.mineralDeposits = { [candidate.bestMetal]: Math.floor(candidate.bestMetalScore * 20000) };
                     newStructure.outputGoods = [oreItemId];
+                    (newStructure as any).era = dateInfo.era;
+                }
+            }
+            
+            if (structureType === 'quarry') {
+                // Add era-specific quarry materials
+                const quarryMaterial = getRandomMaterial(dateInfo.era as HistoricalEra, 'quarry');
+                if (quarryMaterial) {
+                    newStructure.name = `${quarryMaterial.name} Quarry`;
+                    newStructure.mineralDeposits = { [quarryMaterial.id]: Math.floor(Math.random() * 15000 + 8000) };
+                    newStructure.outputGoods = [quarryMaterial.id.toUpperCase()];
+                    (newStructure as any).era = dateInfo.era; // Store era for symbol selection
                 }
             }
 

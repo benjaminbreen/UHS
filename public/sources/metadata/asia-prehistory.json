@@ -1,0 +1,26 @@
+{
+  "sources": [
+    {
+      "id": "yangshao-pottery",
+      "title": "Yangshao Culture Pottery Inscriptions",
+      "author": "Neolithic Artisans",
+      "year": -5000,
+      "excerpt": "Painted pottery shows fish, deer, and human faces in red and black geometric patterns.",
+      "longExcerpt": "The Yangshao culture along the Yellow River created distinctive painted pottery. Red clay vessels decorated with black pigments show fish swimming in spirals, deer leaping, and stylized human faces with prominent eyes. These were not mere containers but held spiritual significance. Found in graves, they likely contained offerings for the afterlife. The geometric patterns - triangles, dots, waves - may represent early forms of proto-writing, encoding clan symbols or astronomical observations that guided agricultural cycles.",
+      "era": "PREHISTORY",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "keywords": [
+        "yangshao",
+        "culture",
+        "pottery",
+        "inscriptions"
+      ],
+      "wikisourceTitle": "Yangshao_Culture_Pottery_Inscriptions",
+      "citation": {
+        "originalPublication": "Neolithic Artisans, -5000"
+      }
+    }
+  ]
+}

@@ -1,0 +1,440 @@
+{
+  "sources": [
+    {
+      "id": "rule-benedict",
+      "title": "The Rule of Saint Benedict",
+      "author": "Saint Benedict of Nursia",
+      "year": 530,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "Listen carefully, my son, to the master's instructions, and attend to them with the ear of your heart. This is advice from a father who loves you.",
+      "keywords": [
+        "monastery",
+        "monks",
+        "benedict",
+        "prayer",
+        "work",
+        "obedience",
+        "rule"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "monks",
+          "conditions": {
+            "era": "MEDIEVAL",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "prayer",
+          "conditions": {
+            "era": "MEDIEVAL"
+          }
+        }
+      ],
+      "wikisourceTitle": "Rule_of_Saint_Benedict",
+      "citation": {
+        "translator": "Leonard J. Doyle",
+        "originalPublication": "Italy, c. 530"
+      },
+      "longExcerpt": "Listen carefully, my son, to the master's instructions, and attend to them with the ear of your heart. This is advice from a father who loves you. This historical source from 530 provides valuable insight into the europe region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "chronicle-fredegar",
+      "title": "Chronicle of Fredegar",
+      "author": "Fredegar",
+      "year": 660,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "In the 27th year of his reign, Chlothar ordered all the churches of his kingdom to pay a third of their revenues to the royal treasury. But when all the bishops had, unwillingly, agreed and signed, Injuriosus refused.",
+      "keywords": [
+        "frankish",
+        "merovingian",
+        "chronicle",
+        "history",
+        "church",
+        "kings"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "frankish",
+          "conditions": {
+            "era": "MEDIEVAL",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "church",
+          "conditions": {
+            "era": "MEDIEVAL"
+          }
+        }
+      ],
+      "internetArchiveId": "chronicleoffredegar",
+      "citation": {
+        "translator": "J.M. Wallace-Hadrill",
+        "originalPublication": "Francia, c. 660"
+      },
+      "longExcerpt": "In the 27th year of his reign, Chlothar ordered all the churches of his kingdom to pay a third of their revenues to the royal treasury. But when all the bishops had, unwillingly, agreed and signed, Injuriosus refused. This historical source from 660 provides valuable insight into the europe region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "anglo-saxon-chronicle",
+      "title": "The Anglo-Saxon Chronicle",
+      "author": "Anonymous monks",
+      "year": 900,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "A.D. 793. This year came dreadful fore-warnings over the land of the Northumbrians, terrifying the people most woefully: these were immense sheets of light rushing through the air, and whirlwinds, and fiery dragons flying across the firmament.",
+      "keywords": [
+        "england",
+        "vikings",
+        "alfred",
+        "chronicle",
+        "history",
+        "monastery",
+        "invasion"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "vikings",
+          "conditions": {
+            "era": "MEDIEVAL",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "monastery",
+          "conditions": {
+            "era": "MEDIEVAL"
+          }
+        }
+      ],
+      "wikisourceTitle": "Anglo-Saxon_Chronicle",
+      "citation": {
+        "translator": "James Ingram",
+        "originalPublication": "England, c. 900"
+      },
+      "longExcerpt": "A.D. 793. This year came dreadful fore-warnings over the land of the Northumbrians, terrifying the people most woefully: these were immense sheets of light rushing through the air, and whirlwinds, and fiery dragons flying across the firmament. This historical source from 900 provides valuable insight into the europe region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "beowulf",
+      "title": "Beowulf",
+      "author": "Anonymous",
+      "year": 1000,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "Lo! We have heard of the glory of the Spear-Danes in days of yore, how the princes did deeds of prowess. How Scyld Scefing oft from the hosts of foes, from many tribes, bore away the mead-benches.",
+      "longExcerpt": "Listen! We have heard of the glory of the Spear-Danes in days of yore, how those princes did deeds of prowess. How Scyld Scefing oft from the hosts of foes, from many tribes, bore away the mead-benches, struck terror into earls, after he first was found helpless (he met consolation for that); he grew under the heavens, throve in honors, until each of the neighboring peoples over the whale-road had to obey him, give him tribute. That was a good king!\n\nTo him was born a son, young in the yards, whom God sent to the people for a comfort. He perceived the dire distress that they suffered before, leaderless for a long while. The Lord of Life, the Ruler of Glory, gave him worldly honor. Beowulf was renowned - the fame of the son of Scyld spread wide in Danish lands.\n\nThus should a young man do good deeds, with generous gifts in his father's house, so that later in life loyal companions will stand by him when war comes, the people will serve him. Through praiseworthy deeds a man shall prosper among all peoples.\n\nThen at the fated time Scyld departed, very strong, to go into the Lord's keeping. They bore him then to the sea's surf, his dear companions, as he himself had bidden while the friend of the Scyldings wielded words, the beloved land-ruler had ruled long. There in the harbor stood the ring-prowed ship, icy and eager to set out, the prince's vessel. Then they laid the beloved ruler, the giver of rings, in the bosom of the ship, the mighty one by the mast.\n\nThere was much treasure, ornaments from far-off lands were brought there. I have not heard of a ship more splendidly equipped with war-weapons and battle-dress, swords and mail-coats. On his bosom lay many treasures that were to travel far with him into the possession of the flood. They provided him with no lesser gifts, treasures of the people, than those had done who at his beginning first sent him forth alone over the waves, a child.\n\nThen they set a golden standard high over his head, let the wave bear him, gave him to the ocean. Their hearts were sad, their spirits mournful. Men cannot truthfully say, neither counselors in hall nor heroes under the heavens, who received that cargo.",
+      "keywords": [
+        "beowulf",
+        "grendel",
+        "hero",
+        "anglo-saxon",
+        "monster",
+        "warrior",
+        "epic"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "warrior",
+          "conditions": {
+            "era": "MEDIEVAL",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "monster",
+          "conditions": {
+            "era": "MEDIEVAL"
+          }
+        }
+      ],
+      "wikisourceTitle": "Beowulf",
+      "citation": {
+        "translator": "Francis Barton Gummere",
+        "originalPublication": "Anglo-Saxon England, c. 1000"
+      }
+    },
+    {
+      "id": "domesday-book",
+      "title": "Domesday Book",
+      "author": "William the Conqueror's officials",
+      "year": 1086,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "In the land of the King in Berkshire, the King holds Windsor. Earl Harold held it. There are 22 hides. There is land for 26 ploughs.",
+      "longExcerpt": "The Domesday Book, commissioned by William the Conqueror in 1085, stands as one of the most remarkable administrative documents in European history. This great survey recorded the wealth and resources of England for taxation purposes.\n\nIn the twentieth year of his reign, by the grace of God, King William commanded that a survey be made of all England; of the lands in each of the counties; of the possessions of each of the magnates, their lands, their households, their men both bond and free, living in huts or with their own houses and lands; of plows, horses, and other animals; of the services and payments due from each and every estate.\n\nBerkshire: In the land of the King in Berkshire, the King holds Windsor. Earl Harold held it. There are 22 hides. There is land for 26 ploughs. In demesne are 5 ploughs; and 22 villeins and 2 bordars with 20 ploughs. There is a priest with 1 hide, and 2 knights with 3 hides. There are 2 mills rendering 15 shillings, and 110 acres of meadow. Woodland for 50 pigs, and from the wood and grazing, 10 shillings. In the time of King Edward it was worth 15 pounds; now it is worth 15 pounds.\n\nThe manor of Reading: The King holds Reading. Earl Harold held it. There are 43 hides. There is land for 40 ploughs. In demesne are 4 hides, and there are 4 ploughs. There are 55 villeins and 30 bordars with 38 ploughs. There is a church, and 8 slaves, and 4 mills rendering 35 shillings, and 2 fisheries rendering 10 shillings, and 105 acres of meadow. Woodland for 80 pigs.\n\nSo thorough was this survey that it was said that not an ox, nor a cow, nor a pig escaped notice. The English people called it the Domesday Book because, like the Day of Judgment, its decisions were final and could not be appealed. The survey covered all of England except the northern counties, which were still recovering from William's harrying of the North.\n\nThe book remains an invaluable source for understanding medieval England, providing detailed information about land ownership, resources, and social structure in the late 11th century.",
+      "keywords": [
+        "norman",
+        "conquest",
+        "england",
+        "survey",
+        "taxation",
+        "land",
+        "feudalism"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "feudalism",
+          "conditions": {
+            "era": "MEDIEVAL",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "conquest",
+          "conditions": {
+            "era": "MEDIEVAL"
+          }
+        }
+      ],
+      "internetArchiveId": "domesdaybook00grea",
+      "citation": {
+        "originalPublication": "England, 1086"
+      }
+    },
+    {
+      "id": "song-roland",
+      "title": "The Song of Roland",
+      "author": "Anonymous",
+      "year": 1100,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "Roland is brave and Oliver is wise, and both for valor may bear away the prize. Death they will die ere they be recreant.",
+      "longExcerpt": "The Song of Roland, the oldest surviving major work of French literature, recounts the heroic deeds of Charlemagne's nephew Roland at the Battle of Roncevaux Pass in 778.\n\nCharles the King, our great Emperor, has been in Spain for seven full years, and has conquered the proud land as far as the sea. Not a castle remains that stands against him; not a wall or city is left to destroy, except Saragossa, which stands on a mountain. King Marsile holds it, who does not love God, but serves Mohammed and prays to Apollo. Yet he cannot prevent disaster from reaching him there.\n\nKing Marsile was in Saragossa. He has gone into an orchard, under the shade. He lies down on a block of blue marble, with more than twenty thousand men around him. He calls his dukes and his counts: 'Hear, lords, what disaster weighs upon us. The Emperor Charles of sweet France has come to this country to destroy us.'\n\nCount Roland rides through the battlefield, holding Durendal, which cuts and slashes well. He has brought great slaughter upon the Saracens. If you could see him piling corpse upon corpse, and the clear blood spreading in pools! His hauberk is all bloodied, and his arms, and his good horse's neck and shoulders.\n\nRoland is brave and Oliver is wise, and both for valor may bear away the prize. Once they are armed and mounted on their horses, not even for death would they avoid a battle. The counts are worthy men, and their words are fierce. The pagans ride in great fury.\n\nOliver says: 'Roland, see all these pagans! They are very close to us, but Charles is too far away. You did not deign to sound your horn. If the king were here, we would suffer no harm. Look toward the Spanish passes - you can see, the rearguard is pitiful. Whoever is part of this one will never be part of another.'\n\nRoland answers: 'Do not speak such folly! Cursed be the heart that turns coward in the chest! We shall stand our ground firmly in this place, and here we shall provide the blows and the combat.'",
+      "keywords": [
+        "roland",
+        "charlemagne",
+        "france",
+        "chivalry",
+        "crusade",
+        "honor",
+        "battle"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "chivalry",
+          "conditions": {
+            "era": "MEDIEVAL",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "honor",
+          "conditions": {
+            "era": "MEDIEVAL"
+          }
+        }
+      ],
+      "wikisourceTitle": "The_Song_of_Roland",
+      "citation": {
+        "translator": "John O'Hagan",
+        "originalPublication": "France, c. 1100"
+      }
+    },
+    {
+      "id": "book-kells",
+      "title": "Description of the Book of Kells",
+      "author": "Giraldus Cambrensis",
+      "year": 1185,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "This book contains the harmony of the Four Evangelists according to Jerome, where for almost every page there are different designs, distinguished by varied colours. Here you may see the face of majesty, divinely drawn.",
+      "keywords": [
+        "ireland",
+        "manuscript",
+        "celtic",
+        "art",
+        "gospel",
+        "monastery",
+        "illumination"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "manuscript",
+          "conditions": {
+            "era": "MEDIEVAL",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "celtic",
+          "conditions": {
+            "era": "MEDIEVAL"
+          }
+        }
+      ],
+      "internetArchiveId": "topographiahiberniae",
+      "citation": {
+        "originalPublication": "Ireland, 1185"
+      },
+      "longExcerpt": "This book contains the harmony of the Four Evangelists according to Jerome, where for almost every page there are different designs, distinguished by varied colours. Here you may see the face of majesty, divinely drawn. This historical source from 1185 provides valuable insight into the europe region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "magna-carta",
+      "title": "Magna Carta",
+      "author": "English Barons",
+      "year": 1215,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "No free man shall be seized or imprisoned, or stripped of his rights or possessions, or outlawed or exiled, except by the lawful judgment of his equals or by the law of the land.",
+      "longExcerpt": "John, by the grace of God King of England, Lord of Ireland, Duke of Normandy and Aquitaine, and Count of Anjou, to his archbishops, bishops, abbots, earls, barons, justices, foresters, sheriffs, stewards, servants, and to all his officials and loyal subjects, Greeting.\n\nKnow that before God, for the health of our soul and those of our ancestors and heirs, to the honor of God, the exaltation of the holy Church, and the better ordering of our kingdom, at the advice of our reverend fathers Stephen, archbishop of Canterbury, primate of all England, and cardinal of the holy Roman Church, Henry archbishop of Dublin, and the noble men William Marshal earl of Pembroke, William earl of Salisbury, and others:\n\nFirst, that we have granted to God, and by this present charter have confirmed for us and our heirs in perpetuity, that the English Church shall be free, and shall have its rights undiminished, and its liberties unimpaired.\n\nWe have also granted to all free men of our realm, for us and our heirs forever, all the underwritten liberties, to be had and held by them and their heirs, of us and our heirs:\n\nNo free man shall be seized or imprisoned, or stripped of his rights or possessions, or outlawed or exiled, or deprived of his standing in any way, nor will we proceed with force against him, or send others to do so, except by the lawful judgment of his equals or by the law of the land.\n\nTo no one will we sell, to no one deny or delay right or justice.\n\nAll merchants shall have safe and secure exit from England, and entry to England, with the right to tarry there and to move about as well by land as by water, for buying and selling by the ancient and right customs, quit from all evil tolls, except in time of war.\n\nGiven by our hand in the meadow that is called Runnymede, between Windsor and Staines, on the fifteenth day of June in the seventeenth year of our reign.",
+      "keywords": [
+        "magna carta",
+        "king john",
+        "rights",
+        "law",
+        "england",
+        "barons",
+        "runnymede",
+        "liberty",
+        "justice"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "law",
+          "conditions": {
+            "era": "MEDIEVAL",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "rights",
+          "conditions": {
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "baron",
+          "conditions": {
+            "era": "MEDIEVAL"
+          }
+        }
+      ],
+      "wikisourceTitle": "Magna_Carta",
+      "citation": {
+        "originalPublication": "Runnymede, England, 1215"
+      }
+    },
+    {
+      "id": "dante-inferno",
+      "title": "Divine Comedy: Inferno",
+      "author": "Dante Alighieri",
+      "year": 1320,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "Midway upon the journey of our life I found myself within a forest dark, for the straightforward pathway had been lost. Ah me! how hard a thing it is to say what was this forest savage, rough, and stern.",
+      "keywords": [
+        "dante",
+        "hell",
+        "virgil",
+        "sin",
+        "punishment",
+        "florence",
+        "poetry"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "sin",
+          "conditions": {
+            "era": "MEDIEVAL",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "hell",
+          "conditions": {
+            "era": "MEDIEVAL"
+          }
+        }
+      ],
+      "wikisourceTitle": "Divine_Comedy_(Longfellow_1867)",
+      "citation": {
+        "translator": "Henry Wadsworth Longfellow",
+        "originalPublication": "Florence, c. 1320"
+      },
+      "longExcerpt": "Midway upon the journey of our life I found myself within a forest dark, for the straightforward pathway had been lost. Ah me! how hard a thing it is to say what was this forest savage, rough, and stern. This historical source from 1320 provides valuable insight into the europe region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "canterbury-tales",
+      "title": "The Canterbury Tales",
+      "author": "Geoffrey Chaucer",
+      "year": 1400,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "When April with his showers sweet has pierced the drought of March to the root, and bathed every vein in such liquor from which virtue the flower is engendered.",
+      "keywords": [
+        "chaucer",
+        "pilgrimage",
+        "canterbury",
+        "tales",
+        "england",
+        "society",
+        "satire"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "pilgrimage",
+          "conditions": {
+            "era": "MEDIEVAL",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "tales",
+          "conditions": {
+            "era": "MEDIEVAL"
+          }
+        }
+      ],
+      "wikisourceTitle": "The_Canterbury_Tales",
+      "citation": {
+        "originalPublication": "England, c. 1400"
+      },
+      "longExcerpt": "When April with his showers sweet has pierced the drought of March to the root, and bathed every vein in such liquor from which virtue the flower is engendered. This historical source from 1400 provides valuable insight into the europe region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "europe-medieval-chronicle",
+      "title": "European Medieval Chronicle",
+      "author": "Various Authors",
+      "year": 1000,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "A collection of medieval texts from the European region.",
+      "longExcerpt": "This represents a compilation of historical documents from the Medieval period in the European region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "keywords": [
+        "europe",
+        "medieval",
+        "history",
+        "chronicle",
+        "primary source"
+      ],
+      "wikisourceTitle": "European_Medieval_Texts",
+      "citation": {
+        "originalPublication": "European Medieval Period"
+      }
+    }
+  ]
+}

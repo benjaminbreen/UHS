@@ -1,0 +1,137 @@
+{
+  "sources": [
+    {
+      "id": "bhagavad-gita",
+      "title": "Bhagavad Gita",
+      "author": "Vyasa (traditional)",
+      "year": -400,
+      "era": "ANCIENT",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "Now I am become Death, the destroyer of worlds.",
+      "keywords": [
+        "Hinduism",
+        "philosophy",
+        "dharma",
+        "Krishna",
+        "warfare"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Kurukshetra",
+          "conditions": {
+            "culturalZone": "SOUTH_ASIAN"
+          }
+        },
+        {
+          "keyword": "Arjuna",
+          "conditions": {
+            "culturalZone": "SOUTH_ASIAN"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "Eknath Easwaran",
+        "originalPublication": "Part of Mahabharata, c. 400 BCE",
+        "modernSource": "Nilgiri Press"
+      },
+      "wikisourceTitle": "Bhagavad_Gita",
+      "internetArchiveId": "bhagavadgita00vyas",
+      "isStandard": true,
+      "longExcerpt": "Now I am become Death, the destroyer of worlds. This historical source from -400 provides valuable insight into the asia region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "arthashastra",
+      "title": "Arthashastra",
+      "author": "Kautilya (Chanakya)",
+      "year": -300,
+      "era": "ANCIENT",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "In the happiness of his subjects lies the king's happiness; in their welfare his welfare.",
+      "keywords": [
+        "governance",
+        "economics",
+        "strategy",
+        "Maurya Empire",
+        "statecraft"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Pataliputra",
+          "conditions": {
+            "culturalZone": "SOUTH_ASIAN",
+            "era": "ANCIENT"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "R. Shamasastry",
+        "originalPublication": "Arthashastra, c. 300 BCE",
+        "modernSource": "Penguin Classics"
+      },
+      "wikisourceTitle": "Arthashastra",
+      "internetArchiveId": "arthashastra00kaut",
+      "longExcerpt": "In the happiness of his subjects lies the king's happiness; in their welfare his welfare. This historical source from -300 provides valuable insight into the asia region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "tirukkural",
+      "title": "Tirukkural",
+      "author": "Thiruvalluvar",
+      "year": 300,
+      "era": "ANCIENT",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "The wound caused by fire will heal within, but the wound caused by words will never heal.",
+      "keywords": [
+        "ethics",
+        "Tamil",
+        "philosophy",
+        "virtue",
+        "wisdom"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Tamil Nadu",
+          "conditions": {
+            "culturalZone": "SOUTH_ASIAN"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "G.U. Pope",
+        "originalPublication": "Tirukkural, c. 300 CE",
+        "modernSource": "Various publishers"
+      },
+      "wikisourceTitle": "Tirukkural",
+      "internetArchiveId": null,
+      "longExcerpt": "The wound caused by fire will heal within, but the wound caused by words will never heal. This historical source from 300 provides valuable insight into the asia region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "asia-antiquity-chronicle",
+      "title": "Asian Ancient Chronicle",
+      "author": "Various Authors",
+      "year": -500,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "A collection of ancient texts from the Asian region.",
+      "longExcerpt": "This represents a compilation of historical documents from the Ancient period in the Asian region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "keywords": [
+        "asia",
+        "antiquity",
+        "history",
+        "chronicle",
+        "primary source"
+      ],
+      "wikisourceTitle": "Asian_Ancient_Texts",
+      "citation": {
+        "originalPublication": "Asian Ancient Period"
+      }
+    }
+  ]
+}

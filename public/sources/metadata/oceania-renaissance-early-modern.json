@@ -1,0 +1,62 @@
+{
+  "sources": [
+    {
+      "id": "hawaiian-kumulipo",
+      "title": "Kumulipo",
+      "author": "Hawaiian priests",
+      "year": 1700,
+      "era": "EARLY_MODERN",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "At the time when the earth became hot, at the time when the heavens turned about, at the time when the sun was darkened.",
+      "longExcerpt": "The Kumulipo is the sacred creation chant of the Hawaiian people, a genealogical prayer chant that traces the origins of the universe and the lineage of Hawaiian royalty. The chant begins in primordial darkness and describes the emergence of life forms in genealogical sequence.\n\nO ke au i kahuli wela ka honua (At the time when the earth became hot)\nO ke au i kahuli lole ka lani (At the time when the heavens turned about)\nO ke au i kuka'iaka ka la (At the time when the sun was darkened)\nE ho'omalamalama i ka malama (To cause the moon to shine)\nO ke au o Makali'i ka po (The time of the rise of the Pleiades)\nO ka walewale ho'okumu honua ia (The slime, this was the source of the earth)\nO ke kumu o ka lipo, i lipo ai (The source of the darkness that made darkness)\nO ke kumu o ka Po, i po ai (The source of the night that made night)\n\nThe chant continues through multiple generations, describing the birth of sea creatures, land plants, animals, and eventually humans. Each section represents a different era or 'wa' of creation. The first seven wa describe the emergence of lower life forms in the darkness. Sea creatures appear first: coral polyps, starfish, sea cucumbers, and various shellfish. Then come seaweeds and rushes, followed by land plants.\n\nIn Hawaiian cosmology, all life forms are related through genealogical connections. The chant establishes these relationships: 'Hanau ka 'uku-ko'ako'a, hanau kana, he 'ako'ako'a, puka' (Born was the coral polyp, born was the coral, came forth). This pattern continues throughout, with each life form giving birth to related forms.\n\nThe eighth wa marks the transition from darkness (po) to light (ao) with the birth of the first humans. From this point, the chant becomes a genealogical record of the ali'i (chiefs), tracing their lineage back through the gods to the primordial forces of creation. The name Kumulipo itself means 'beginning in deep darkness.'\n\nThe chant was traditionally recited during important ceremonies, particularly during the Makahiki season (winter months) and at the birth or investiture of high-ranking ali'i. Its recitation could take hours, as the full chant contains over 2,000 lines. The version we know today was commissioned by King Kalakaua in 1889 and translated by Queen Liliuokalani while she was imprisoned after the overthrow of the Hawaiian Kingdom.",
+      "keywords": [
+        "creation",
+        "Hawaii",
+        "genealogy",
+        "cosmology",
+        "chant"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Pele",
+          "conditions": {
+            "culturalZone": "OCEANIA"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "Martha Warren Beckwith",
+        "originalPublication": "Oral tradition, transcribed 1889",
+        "modernSource": "University of Hawaii Press"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": "kumulipo00beck",
+      "isStandard": true
+    },
+    {
+      "id": "oceania-renaissance-early-modern-chronicle",
+      "title": "Oceanic Early Modern Chronicle",
+      "author": "Various Authors",
+      "year": 1600,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "A collection of early modern texts from the Oceanic region.",
+      "longExcerpt": "This represents a compilation of historical documents from the Early Modern period in the Oceanic region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "keywords": [
+        "oceania",
+        "renaissance-early-modern",
+        "history",
+        "chronicle",
+        "primary source"
+      ],
+      "wikisourceTitle": "Oceanic_Early Modern_Texts",
+      "citation": {
+        "originalPublication": "Oceanic Early Modern Period"
+      }
+    }
+  ]
+}

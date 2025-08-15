@@ -1,10 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Globe, Info, Settings, Shuffle, ChevronDown, Menu, X, Sparkles } from 'lucide-react';
 import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
 import { useGame } from '../contexts/GameContext';
 import { MapArchetype, ClimateType, AltitudeSetting, GameDate } from '../types';
-import { MAP_ARCHETYPE_DESCRIPTIONS, CLIMATE_TYPE_DESCRIPTIONS, CULTURE_ZONES } from '../constants/index';
+import { PrimarySourceSearch } from './PrimarySourceSearch';
+import { MAP_ARCHETYPE_DESCRIPTIONS, CLIMATE_TYPE_DESCRIPTIONS, CULTURE_ZONES, GEOGRAPHICAL_DATA } from '../constants/index';
 import { getSafariOptimizedClassName } from '../utils/safariUtils';
+import { worldWeaverService } from '../services/worldWeaverService';
+import ExplanationModal from './ExplanationModal';
+import { findZoneForMapArea } from '../utils/mapAreaLookup';
+import { normalizeZoneName, normalizeRegionName } from '../utils/worldWeaverHelpers';
 
 const TopNavBar: React.FC = () => {
   const { setIsSettingsModalOpen, setIsAboutModalOpen, setIsWorldMapModalOpen } = useUI();
@@ -25,10 +31,35 @@ const TopNavBar: React.FC = () => {
     onGenerateLargeCityToggle,
     onRegenerateMapWithCurrentSettings,
     onStartNewWorldWithCurrentSettings,
+    onStartNewWorldAtLocation,
+    onStartNewWorldAtZoneRegion,
   } = useMap();
   const { gameDate, onMapConfigDateChange, currentZone, onLocationChange } = useGame();
 
   const [isGeneratorPanelOpen, setIsGeneratorPanelOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [worldWeaverInput, setWorldWeaverInput] = useState('');
+  const [worldWeaverFocused, setWorldWeaverFocused] = useState(false);
+  const [isProcessingWorldWeaver, setIsProcessingWorldWeaver] = useState(false);
+  const [explanationModalData, setExplanationModalData] = useState<{
+    isOpen: boolean;
+    explanation: string;
+    reasoning?: string;
+    suggestion?: string;
+  }>({
+    isOpen: false,
+    explanation: ''
+  });
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const toggleGeneratorPanel = () => setIsGeneratorPanelOpen(prev => !prev);
   
@@ -44,55 +75,240 @@ const TopNavBar: React.FC = () => {
     }
   };
 
+  const handleWorldWeaverSubmit = async () => {
+    if (!worldWeaverInput.trim() || isProcessingWorldWeaver) return;
+    
+    console.log('[WorldWeaver] User input:', worldWeaverInput);
+    setIsProcessingWorldWeaver(true);
+    try {
+      const result = await worldWeaverService.interpretPrompt(worldWeaverInput);
+      console.log('[WorldWeaver] LLM result:', result);
+      
+      if (result.success && result.year && result.mapArea) {
+        // Set the date first
+        console.log('[WorldWeaver] Setting year to:', result.year);
+        onMapConfigDateChange({ year: result.year });
+        
+        // Find the zone and region for this map area
+        console.log('[WorldWeaver] Looking for zone containing map area:', result.mapArea);
+        const locationInfo = findZoneForMapArea(result.mapArea);
+        
+        if (locationInfo) {
+          console.log('[WorldWeaver] Found location:', locationInfo);
+          // Generate a new world at the specific location
+          console.log('[WorldWeaver] Calling onStartNewWorldAtLocation with:', locationInfo.zone, result.mapArea);
+          onStartNewWorldAtLocation(locationInfo.zone, result.mapArea);
+        } else if (result.zone && result.region) {
+          // Fallback to zone/region if exact area not found
+          console.warn(`[WorldWeaver] Map area "${result.mapArea}" not found, attempting zone/region fallback`);
+          
+          // Normalize zone and region names
+          const normalizedZone = normalizeZoneName(result.zone);
+          if (!normalizedZone) {
+            console.error(`[WorldWeaver] Could not normalize zone name: ${result.zone}`);
+            console.log('[WorldWeaver] Falling back to random generation');
+            onStartNewWorldWithCurrentSettings();
+            setWorldWeaverInput('');
+            setIsProcessingWorldWeaver(false);
+            return;
+          }
+          
+          const normalizedRegion = normalizeRegionName(normalizedZone, result.region);
+          if (!normalizedRegion) {
+            console.warn(`[WorldWeaver] Could not normalize region name: ${result.region}, using zone-wide random`);
+            // Just use the zone to pick any random area
+            onStartNewWorldAtZoneRegion(normalizedZone, Object.keys(GEOGRAPHICAL_DATA[normalizedZone] || {})[0] || '');
+          } else {
+            console.log(`[WorldWeaver] Using normalized zone: ${normalizedZone}, region: ${normalizedRegion}`);
+            onStartNewWorldAtZoneRegion(normalizedZone, normalizedRegion);
+          }
+        } else {
+          // Final fallback to random if area not found and no zone/region provided
+          console.error(`[WorldWeaver] Map area not found and no zone/region fallback: ${result.mapArea}`);
+          console.log('[WorldWeaver] Falling back to random generation');
+          onStartNewWorldWithCurrentSettings();
+        }
+        
+        // Show explanation modal
+        setExplanationModalData({
+          isOpen: true,
+          explanation: result.explanation || `Created a world in ${result.mapArea}, year ${result.year}`,
+          reasoning: result.reasoning,
+          suggestion: result.suggestion
+        });
+        
+        // Clear input
+        setWorldWeaverInput('');
+      } else {
+        // Show error message in input briefly
+        setWorldWeaverInput(result.errorMessage || 'Could not interpret prompt');
+        setTimeout(() => setWorldWeaverInput(''), 3000);
+      }
+    } catch (error) {
+      console.error('WorldWeaver error:', error);
+      setWorldWeaverInput('Service temporarily unavailable');
+      setTimeout(() => setWorldWeaverInput(''), 3000);
+    } finally {
+      setIsProcessingWorldWeaver(false);
+    }
+  };
+
   return (
-    <nav className={getSafariOptimizedClassName("relative w-full py-2 px-6 shadow-lg flex justify-between items-center bg-slate-800/70 backdrop-blur-sm border-b border-slate-700 z-40")}>
-      <div className="flex items-center space-x-4">
-        <h1 className="font-press-start text-xl bg-clip-text text-transparent bg-gradient-to-br from-cyan-400 via-green-400 to-emerald-500 animate-logoGlow">MAP VOYAGER</h1>
+    <>
+      <style jsx>{`
+        @keyframes pulseGlow {
+          0%, 100% {
+            box-shadow: 0 0 3px rgba(74, 222, 128, 0.1), 0 0 6px rgba(74, 222, 128, 0.05);
+          }
+          50% {
+            box-shadow: 0 0 8px rgba(74, 222, 128, 0.2), 0 0 12px rgba(74, 222, 128, 0.1);
+          }
+        }
+      `}</style>
+      <nav className={getSafariOptimizedClassName("relative w-full py-2 px-2 sm:px-6 shadow-lg flex justify-between items-center bg-slate-800/70 backdrop-blur-sm border-b border-slate-700 z-40")}>
+        <div className="flex items-center space-x-2 sm:space-x-4 flex-1 mr-10">
+        <h1 className="font-press-start text-sm sm:text-xl bg-clip-text text-transparent bg-gradient-to-br from-cyan-400 via-green-400 to-emerald-500 animate-logoGlow">HISTORY SIMULATOR</h1>
+        
+        {/* WorldWeaver Input - Hide on mobile */}
+        {!isMobile && (
+          <div className="flex items-center ml-20 flex-1 max-w-md">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={worldWeaverInput}
+                onChange={(e) => setWorldWeaverInput(e.target.value)}
+                onFocus={() => setWorldWeaverFocused(true)}
+                onBlur={() => setTimeout(() => setWorldWeaverFocused(false), 200)}
+                onKeyPress={(e) => e.key === 'Enter' && handleWorldWeaverSubmit()}
+                placeholder={worldWeaverFocused ? "Describe any historical scenario..." : "Create world from text..."}
+                disabled={isProcessingWorldWeaver}
+                className={`
+                  w-full px-3 py-1.5 text-xs
+                  bg-slate-900/50 border rounded-md
+                  text-gray-200 placeholder-gray-500
+                  transition-all duration-500
+                  ${worldWeaverFocused 
+                    ? 'border-green-400/50 shadow-lg shadow-green-400/10' 
+                    : 'border-slate-600/50 shadow-sm shadow-green-400/05'
+                  }
+                  ${isProcessingWorldWeaver ? 'opacity-50' : ''}
+                  focus:outline-none focus:ring-1 focus:ring-green-400/100
+           
+                `}
+                style={{
+        
+                }}
+              />
+              {worldWeaverFocused && (
+                <div className="absolute -bottom-6 left-0 text-xs text-green-400/70 whitespace-nowrap">
+                  Enter any text to enter a setting inspired by it. 
+                </div>
+              )}
+            </div>
+            {worldWeaverFocused && (
+              <button
+                onClick={handleWorldWeaverSubmit}
+                disabled={!worldWeaverInput.trim() || isProcessingWorldWeaver}
+                className={`
+                  ml-2 px-3 py-1.5 text-xs font-medium
+                  bg-gradient-to-r from-green-600 to-emerald-600
+                  hover:from-green-500 hover:to-emerald-500
+                  disabled:from-gray-600 disabled:to-gray-600
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  text-white rounded-md
+                  transition-all duration-200
+                  flex items-center gap-1
+                  shadow-md hover:shadow-lg hover:shadow-green-500/20
+                `}
+              >
+                <Sparkles className="w-3 h-3" />
+                Create
+              </button>
+            )}
+          </div>
+        )}
       </div>
       
-      <div className="flex items-center space-x-2">
+      {/* Mobile Hamburger Menu */}
+      {isMobile && (
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="p-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-md transition-colors z-50"
+          aria-label="Toggle Menu"
+        >
+          {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+      )}
+      
+      {/* Desktop Menu / Mobile Dropdown */}
+      <div className={`${
+        isMobile 
+          ? `absolute top-full right-0 mt-1 bg-slate-800/95 backdrop-blur-md border border-slate-600 rounded-lg shadow-xl p-2 space-y-1 transition-all duration-300 ${
+              isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
+            }`
+          : 'flex items-center space-x-2'
+      }`}>
+         {/* Primary Source Search - hide on mobile */}
+         {!isMobile && <PrimarySourceSearch />}
+         
          <button 
-            onClick={toggleGeneratorPanel}
-            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs rounded-md transition-colors flex items-center"
+            onClick={() => {
+              toggleGeneratorPanel();
+              if (isMobile) setIsMobileMenuOpen(false);
+            }}
+            className={`${
+              isMobile ? 'w-full justify-start' : ''
+            } px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs rounded-md transition-colors flex items-center`}
             title="Configure and Generate New Map"
             aria-expanded={isGeneratorPanelOpen}
             aria-controls="generator-panel-content"
         >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4 mr-1.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4-2.245 4.5 4.5 0 0 0 8.44-2.472c0-.539-.061-1.07-.182-1.585m15.356 5.47c0 .539-.061 1.07-.182-1.585a4.5 4.5 0 0 1-8.44 2.472c0-.539.061-1.07.182-1.585m15.356-5.47a4.5 4.5 0 0 0-8.44-2.472c0 .539.061 1.07.182 1.585m0 0A12.063 12.063 0 0 1 23.25 12c0 .539-.061 1.07-.182 1.585m0 0a4.5 4.5 0 0 0 8.44 2.472c0 .539-.061 1.07-.182-1.585M12 12a3 3 0 0 1-5.78-1.128 2.25 2.25 0 0 0-2.4 2.245 4.5 4.5 0 0 1 8.44 2.472c0 .539-.061-1.07-.182-1.585" />
-            </svg>
-            Configure New Map
-            <span className={`ml-1.5 transition-transform duration-300 ${isGeneratorPanelOpen ? 'rotate-180' : ''}`}>▾</span>
+            <Shuffle className="w-4 h-4 mr-1.5" />
+            {isMobile ? 'Map Config' : 'Configure New Map'}
+            {!isMobile && <ChevronDown className={`w-4 h-4 ml-1.5 transition-transform duration-300 ${isGeneratorPanelOpen ? 'rotate-180' : ''}`} />}
         </button>
 
         <button 
-            onClick={() => setIsWorldMapModalOpen(true)}
-            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-md transition-colors"
+            onClick={() => {
+              setIsWorldMapModalOpen(true);
+              if (isMobile) setIsMobileMenuOpen(false);
+            }}
+            className={`${
+              isMobile ? 'w-full justify-start' : ''
+            } px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-md transition-colors flex items-center`}
             title="Toggle World Map View"
             aria-label="Toggle World Map View"
         >
-            <span className="text-sm mr-1">🌍</span> World Map
+            <Globe className="w-4 h-4 mr-1" /> World Map
         </button>
 
         <button
-            onClick={() => setIsAboutModalOpen(true)}
-            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded-md transition-colors"
+            onClick={() => {
+              setIsAboutModalOpen(true);
+              if (isMobile) setIsMobileMenuOpen(false);
+            }}
+            className={`${
+              isMobile ? 'w-full justify-start' : ''
+            } px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded-md transition-colors flex items-center`}
             title="About the game"
             aria-label="About"
         >
-            <span className="text-sm mr-1">ℹ️</span> About
+            <Info className="w-4 h-4 mr-1" /> About
         </button>
 
         <button
-          onClick={() => setIsSettingsModalOpen(true)}
-          className="p-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-md transition-colors"
+          onClick={() => {
+            setIsSettingsModalOpen(true);
+            if (isMobile) setIsMobileMenuOpen(false);
+          }}
+          className={`${
+            isMobile ? 'w-full justify-start px-3 py-1.5' : 'p-2'
+          } bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-md transition-colors flex items-center`}
           aria-label="Open Settings Panel"
           title="Advanced Settings"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-           <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.108 1.204.165.399.505.71.93.78l.893.15c.543.09.94.56.94 1.11v1.093c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.399.165-.71.505-.781.93l-.149.894c-.09.542-.56.94-1.11-.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-.002.269-1.45.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.738c.25-.35.273-.806.108-1.204-.165-.399-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.11v-1.094c0 .55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.399-.165.71-.505.78-.93l.15-.893Z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-          </svg>
+          <Settings className="w-5 h-5" />
+          {isMobile && <span className="ml-2 text-xs">Settings</span>}
         </button>
       </div>
 
@@ -177,6 +393,17 @@ const TopNavBar: React.FC = () => {
         </div>
       </div>
     </nav>
+    
+    {/* WorldWeaver Explanation Modal */}
+    <ExplanationModal
+      isOpen={explanationModalData.isOpen}
+      onClose={() => setExplanationModalData(prev => ({ ...prev, isOpen: false }))}
+      title="World Created"
+      explanation={explanationModalData.explanation}
+      subExplanation={explanationModalData.reasoning}
+      suggestion={explanationModalData.suggestion}
+    />
+    </>
   );
 };
 

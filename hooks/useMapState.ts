@@ -554,6 +554,149 @@ export const useMapState = (props: useMapStateProps) => {
         setPlayerState.setPlayerCharacter(null);
     }, [setPlayerState]);
 
+
+    const onStartNewWorldAtLocation = useCallback((targetZone: string, targetMapArea: string) => {
+        console.log('[onStartNewWorldAtLocation] Called with zone:', targetZone, 'area:', targetMapArea);
+        
+        // Find the specific area definition
+        const zoneData = GEOGRAPHICAL_DATA[targetZone];
+        console.log('[onStartNewWorldAtLocation] Zone data found:', !!zoneData);
+        
+        if (!zoneData) {
+            console.error(`[onStartNewWorldAtLocation] Zone not found: ${targetZone}`);
+            console.log('[onStartNewWorldAtLocation] Available zones:', Object.keys(GEOGRAPHICAL_DATA));
+            return onStartNewWorldWithCurrentSettings(); // Fallback to random
+        }
+        
+        let foundAreaDef = null;
+        let foundRegion = null;
+        
+        // Search all regions in the zone for the target map area
+        console.log('[onStartNewWorldAtLocation] Searching for area in regions...');
+        for (const [regionName, regionData] of Object.entries(zoneData)) {
+            console.log(`[onStartNewWorldAtLocation] Checking region ${regionName}`);
+            for (const areaDef of Object.values(regionData)) {
+                console.log(`[onStartNewWorldAtLocation] - Area: ${areaDef.name}`);
+                if (areaDef.name === targetMapArea) {
+                    foundAreaDef = areaDef;
+                    foundRegion = regionName;
+                    console.log('[onStartNewWorldAtLocation] Found match!');
+                    break;
+                }
+            }
+            if (foundAreaDef) break;
+        }
+        
+        if (!foundAreaDef || !foundRegion) {
+            console.error(`[onStartNewWorldAtLocation] Map area not found: ${targetMapArea} in zone ${targetZone}`);
+            return onStartNewWorldWithCurrentSettings(); // Fallback to random
+        }
+        
+        console.log('[onStartNewWorldAtLocation] Success! Found area:', foundAreaDef.name, 'in region:', foundRegion);
+        
+        // Generate new seed and reset
+        const newSeed = Math.floor(Math.random() * 1000000);
+        setInitialGameSeed(newSeed);
+        setMapDataCache(new Map());
+        setCurrentWorldCoords({ x: 0, y: 0 });
+        
+        // Set the location
+        setGameState.setCurrentZone(targetZone);
+        setGameState.setCurrentRegion(foundRegion);
+        setLocalArea(targetMapArea);
+        
+        // Generate the map at this specific location
+        setGameState.setIsLoading(true);
+        const effectiveEconomicLevel = foundAreaDef.economicActivityLevel !== undefined ? 
+            foundAreaDef.economicActivityLevel : economicActivityLevel;
+        
+        const newMapData = proceduralGenerateMap(
+            newSeed, 
+            foundAreaDef.archetype, 
+            foundAreaDef.climate, 
+            generateHarbor, 
+            generateLargeCity,
+            foundAreaDef.altitude || userSelectedBaseAltitude, 
+            forceVolcanicActivity,
+            targetZone, 
+            foundRegion, 
+            foundAreaDef.name,
+            String(gameState.gameDate.year), 
+            { isAgricultural, isPastoral, economicActivityLevel: effectiveEconomicLevel }, 
+            {},
+            foundAreaDef.hasLakes
+        );
+        
+        // Extract animals and npcs before setting map data
+        const newAnimals = newMapData.animals || [];
+        const newNpcs = newMapData.npcs || [];
+        delete newMapData.animals;
+        delete newMapData.npcs;
+        
+        setMapData(newMapData);
+        setAnimals(newAnimals);
+        setNpcs(newNpcs);
+        setMapDataCache(new Map([[`0,0`, { 
+            mapData: newMapData, 
+            animals: newAnimals,
+            npcs: newNpcs,
+            seed: newSeed,
+            archetype: foundAreaDef.archetype, 
+            climate: foundAreaDef.climate,
+            worldX: 0,
+            worldY: 0,
+            region: foundRegion,
+            localArea: foundAreaDef.name
+        }]]));
+        
+        // Reset player
+        setPlayerState.setPlayerCharacter(null);
+    }, [setPlayerState, setGameState, generateHarbor, generateLargeCity, userSelectedBaseAltitude, 
+        forceVolcanicActivity, gameState.gameDate.year, isAgricultural, isPastoral, 
+        economicActivityLevel, onStartNewWorldWithCurrentSettings]);
+
+    const onStartNewWorldAtZoneRegion = useCallback((targetZone: string, targetRegion: string) => {
+        console.log('[onStartNewWorldAtZoneRegion] Called with zone:', targetZone, 'region:', targetRegion);
+        
+        // Find the zone data
+        const zoneData = GEOGRAPHICAL_DATA[targetZone];
+        if (!zoneData) {
+            console.error(`[onStartNewWorldAtZoneRegion] Zone not found: ${targetZone}`);
+            return onStartNewWorldWithCurrentSettings(); // Fallback to random
+        }
+        
+        // Find the region data
+        const regionData = zoneData[targetRegion];
+        if (!regionData) {
+            console.error(`[onStartNewWorldAtZoneRegion] Region not found: ${targetRegion} in zone ${targetZone}`);
+            // Try to find any region in the zone as fallback
+            const regionNames = Object.keys(zoneData);
+            if (regionNames.length > 0) {
+                const fallbackRegion = regionNames[0];
+                console.log(`[onStartNewWorldAtZoneRegion] Using fallback region: ${fallbackRegion}`);
+                const areas = Object.values(zoneData[fallbackRegion]) as MapAreaDefinition[];
+                if (areas.length > 0) {
+                    const randomArea = areas[Math.floor(Math.random() * areas.length)];
+                    return onStartNewWorldAtLocation(targetZone, randomArea.name);
+                }
+            }
+            return onStartNewWorldWithCurrentSettings();
+        }
+        
+        // Pick a random area from the region
+        const areasInRegion = Object.values(regionData) as MapAreaDefinition[];
+        if (areasInRegion.length === 0) {
+            console.error(`[onStartNewWorldAtZoneRegion] No areas found in region: ${targetRegion}`);
+            return onStartNewWorldWithCurrentSettings();
+        }
+        
+        const randomArea = areasInRegion[Math.floor(Math.random() * areasInRegion.length)];
+        console.log(`[onStartNewWorldAtZoneRegion] Selected random area: ${randomArea.name} from region ${targetRegion}`);
+        
+        // Use the existing onStartNewWorldAtLocation with the selected area
+        return onStartNewWorldAtLocation(targetZone, randomArea.name);
+    }, [onStartNewWorldWithCurrentSettings, onStartNewWorldAtLocation]);
+
     const updateStructureData = useCallback((structureId: string, updatedData: Partial<TerrainStructure>) => {
         setMapData(prevMapData => {
             if (!prevMapData?.terrainStructures) return prevMapData;
@@ -609,6 +752,8 @@ export const useMapState = (props: useMapStateProps) => {
         handleSeedChangeFromSettings,
         onRegenerateMapWithCurrentSettings,
         onStartNewWorldWithCurrentSettings,
+        onStartNewWorldAtLocation,
+        onStartNewWorldAtZoneRegion,
         removeVegetation,
         updateMineralDeposit,
         updateStructureData,

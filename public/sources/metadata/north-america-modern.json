@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {
+      "id": "steinbeck-grapes",
+      "title": "The Grapes of Wrath",
+      "author": "John Steinbeck",
+      "year": 1939,
+      "excerpt": "And then the dispossessed were drawn west - from Kansas, Oklahoma, Texas, New Mexico.",
+      "longExcerpt": "The dust had settled on everything. It was in the food, in the water, in the very air they breathed. And then the dispossessed were drawn west - from Kansas, Oklahoma, Texas, New Mexico; from Nevada and Arkansas, families, tribes, dusted out, tractored out. Carloads, caravans, homeless and hungry; twenty thousand and fifty thousand and a hundred thousand. They streamed over the mountains, hungry and restless - restless as ants, scurrying to find work to do - to lift, to push, to pull, to pick, to cut.",
+      "era": "MODERN",
+      "culturalZones": [
+        "NORTH_AMERICAN_COLONIAL"
+      ],
+      "keywords": [
+        "grapes",
+        "wrath"
+      ],
+      "wikisourceTitle": "The_Grapes_of_Wrath",
+      "citation": {
+        "originalPublication": "John Steinbeck, 1939"
+      }
+    }
+  ]
+}

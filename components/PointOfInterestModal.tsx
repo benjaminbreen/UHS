@@ -10,6 +10,10 @@ import { useMap } from '../contexts/MapContext';
 import { generatePoiDescription } from '../services/poiDescriptionGenerator';
 import POISymbol from './POISymbol';
 import { ProceduralPortrait } from './portraits';
+import HolySiteInteractions from './HolySiteInteractions';
+import { getReligiousEconomy, generateHolySiteTreasury, calculateHolySiteWealth } from '../constants/gameData/religiousEconomy';
+import { getClergyRoles } from '../constants/characterData/religionClergyRoles';
+import { getReligionDisplay, detectReligion } from '../constants/gameData/religionIcons';
 
 interface PointOfInterestModalProps {
   structure: TerrainStructure;
@@ -46,95 +50,237 @@ const PointOfInterestModal: React.FC<PointOfInterestModalProps> = ({ structure, 
 
     const anchoredNpcs = useMemo(() => {
         const figures = npcs.filter(npc => npc.workplaceId === structure.id);
-        // Get court roles from faction data, not societal profile
-        const roleOrder = factionData?.courtRoles?.[structure.structureType] || [];
         
-        if (roleOrder.length > 0) {
+        // For holy sites, sort by clergy role hierarchy
+        if (structure.structureType === 'holy_site') {
+            const religion = (structure as any).religion || 'default';
+            const clergyRoles = getClergyRoles(religion);
+            
             figures.sort((a, b) => {
-                const indexA = roleOrder.indexOf(a.role);
-                const indexB = roleOrder.indexOf(b.role);
+                const indexA = clergyRoles.indexOf(a.role);
+                const indexB = clergyRoles.indexOf(b.role);
                 // If a role is not in the list, it's considered lower rank
                 if (indexA === -1) return 1;
                 if (indexB === -1) return -1;
                 return indexA - indexB;
             });
+        } else {
+            // For non-holy sites, use faction data court roles
+            const roleOrder = factionData?.courtRoles?.[structure.structureType] || [];
+            
+            if (roleOrder.length > 0) {
+                figures.sort((a, b) => {
+                    const indexA = roleOrder.indexOf(a.role);
+                    const indexB = roleOrder.indexOf(b.role);
+                    // If a role is not in the list, it's considered lower rank
+                    if (indexA === -1) return 1;
+                    if (indexB === -1) return -1;
+                    return indexA - indexB;
+                });
+            }
         }
         
         return figures;
     }, [npcs, structure.id, structure.structureType, factionData]);
 
-    const consumedGoods = structureType === 'holy_site' ? societalProfile.holyPlaceConsumes : inputGoods;
-    const producedGoods = structureType === 'holy_site' ? societalProfile.holyPlaceProduces : outputGoods;
+    // Get economic goods for holy sites
+    const holySiteEconomy = useMemo(() => {
+        if (structureType === 'holy_site') {
+            const religion = (structure as any).religion || structure.name || 'default';
+            return getReligiousEconomy(religion, era);
+        }
+        return null;
+    }, [structureType, structure, era]);
+
+    // Calculate wealth level for holy sites
+    const holySiteWealth = useMemo(() => {
+        if (structureType === 'holy_site' && mapData) {
+            // Calculate urbanization level (rough approximation)
+            const urbanizationLevel = 0.3; // This should be calculated from actual map data
+            return calculateHolySiteWealth(urbanizationLevel, era, culturalZone);
+        }
+        return 5;
+    }, [structureType, mapData, era, culturalZone]);
+
+    // Generate treasury for holy sites
+    const holySiteTreasury = useMemo(() => {
+        if (structureType === 'holy_site') {
+            const religion = (structure as any).religion || structure.name || 'default';
+            return generateHolySiteTreasury(religion, era, holySiteWealth);
+        }
+        return treasury;
+    }, [structureType, structure, era, holySiteWealth, treasury]);
+
+    const consumedGoods = structureType === 'holy_site' ? holySiteEconomy?.consumes : inputGoods;
+    const producedGoods = structureType === 'holy_site' ? holySiteEconomy?.produces : outputGoods;
+
+    // Get religion information for holy sites
+    const religion = useMemo(() => {
+        if (structureType === 'holy_site') {
+            // First try to use the religion directly from the structure
+            let detectedReligion = (structure as any).religion;
+            
+            // If not found, try to detect from name and context
+            if (!detectedReligion || detectedReligion === 'generic') {
+                detectedReligion = detectReligion(structure.name, culturalZone, era);
+            }
+            
+            console.log('[Holy Site Religion]', {
+                structureName: structure.name,
+                structureReligion: (structure as any).religion,
+                detectedReligion,
+                culturalZone,
+                era
+            });
+            
+            return getReligionDisplay(detectedReligion);
+        }
+        return null;
+    }, [structureType, structure, culturalZone, era]);
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="ff-panel w-full max-w-lg" onClick={e => e.stopPropagation()}>
+            <div className="ff-panel w-full max-w-4xl" onClick={e => e.stopPropagation()}>
                 <div className="p-6">
                     <header className="flex items-center gap-4 mb-4 pb-4 border-b border-blue-500/30">
-                        <div className="w-16 h-16 flex-shrink-0">
-                            <POISymbol structure={structure} size={64} />
+                        <div className="w-20 h-20 flex-shrink-0">
+                            <POISymbol structure={structure} size={80} mapSeed={mapData.seed} />
                         </div>
-                        <div className="flex-1">
-                            <h3 className="text-2xl font-press-start" style={{ color: 'var(--ff-header-text)' }}>{name}</h3>
-                            <p className="text-sm text-slate-300 capitalize">{structureType.replace(/_/g, ' ')}</p>
+                        <div className="flex-1 flex justify-between items-start">
+                            <div>
+                                <h3 className="text-2xl font-press-start mb-2" style={{ color: 'var(--ff-header-text)' }}>{name}</h3>
+                                <p className="text-sm text-slate-300 capitalize">{structureType.replace(/_/g, ' ')}</p>
+                            </div>
+                            {religion && (
+                                <div className={`flex items-center gap-3 px-4 py-2 rounded-lg ${religion.bgColor} border border-slate-600/50`}>
+                                    <span style={{ color: religion.color }} className="text-2xl">
+                                        {religion.icon}
+                                    </span>
+                                    <span className="text-base font-bold" style={{ color: religion.color }}>
+                                        {religion.name}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     </header>
 
-                    <main className="space-y-4 text-sm max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin">
-                        <p className="italic text-slate-300 leading-relaxed">{description}</p>
+                    <main className="max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin">
+                        <p className="italic text-slate-300 leading-relaxed mb-4">{description}</p>
                         
-                        <div className="p-3 bg-slate-800/40 rounded-lg border border-slate-700/50">
-                            <DetailRow label="State" value={state} />
-                            <DetailRow label="Allegiance" value={allegianceGroup || 'Unaligned'} />
+                        {/* Dual column layout */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            {/* Left Column */}
+                            <div className="space-y-4">
+                                {/* Basic Info */}
+                                <div className="p-4 bg-slate-800/40 rounded-lg border border-slate-700/50">
+                                    <h4 className="font-semibold text-blue-400 mb-3 flex items-center gap-2">
+                                        <span className="text-lg">📍</span> Status
+                                    </h4>
+                                    <DetailRow label="State" value={state} />
+                                    <DetailRow label="Allegiance" value={allegianceGroup || 'Unaligned'} />
+                                    {structureType === 'holy_site' && (
+                                        <DetailRow label="Wealth Level" value={`${holySiteWealth}/10`} />
+                                    )}
+                                </div>
+                                
+                                {/* Key Figures */}
+                                {anchoredNpcs.length > 0 && (
+                                    <div className="p-4 bg-slate-800/40 rounded-lg border border-slate-700/50">
+                                        <h4 className="font-semibold text-cyan-400 mb-3 flex items-center gap-2">
+                                            <span className="text-lg">👥</span> Key Figures
+                                        </h4>
+                                        <div className="space-y-3">
+                                            {anchoredNpcs.map(npc => (
+                                                <div key={npc.id} className="flex items-center gap-3">
+                                                    <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-slate-600 shrink-0 bg-slate-700">
+                                                        <ProceduralPortrait character={npc} size={48} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-semibold text-white">{npc.name}</p>
+                                                        <p className="text-xs text-slate-400">{npc.role}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* Right Column */}
+                            <div className="space-y-4">
+                                {/* Economic Activity */}
+                                {structureType === 'holy_site' && (
+                                    <div className="p-4 bg-slate-800/40 rounded-lg border border-slate-700/50">
+                                        <h4 className="font-semibold text-amber-300 mb-3 flex items-center gap-2">
+                                            <span className="text-lg">🕊️</span> Offerings & Blessings
+                                        </h4>
+                                        <div className="space-y-2">
+                                            <div>
+                                                <p className="text-xs text-slate-500 mb-1">Consumes:</p>
+                                                <p className="text-sm text-white">
+                                                    {consumedGoods?.map(g => g.replace(/_/g, ' ')).join(', ') || 'Various offerings'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-slate-500 mb-1">Produces:</p>
+                                                <p className="text-sm text-white">
+                                                    {producedGoods?.map(g => g.replace(/_/g, ' ')).join(', ') || 'Spiritual services'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {/* Treasury */}
+                                {((structureType === 'holy_site' && holySiteTreasury && Object.keys(holySiteTreasury).length > 0) || 
+                                  (structureType !== 'holy_site' && treasury && Object.keys(treasury).length > 0)) && (
+                                    <div className="p-4 bg-slate-800/40 rounded-lg border border-slate-700/50">
+                                        <h4 className="font-semibold text-yellow-400 mb-3 flex items-center gap-2">
+                                            <span className="text-lg">💰</span> Treasury
+                                        </h4>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {Object.entries(structureType === 'holy_site' ? holySiteTreasury : treasury || {})
+                                                .slice(0, 6) // Show max 6 items
+                                                .map(([itemId, quantity]) => (
+                                                <div key={itemId} className="flex justify-between items-center py-1">
+                                                    <span className="text-xs text-slate-400">
+                                                        {ITEM_DEFINITIONS[itemId]?.name || itemId.replace(/_/g, ' ')}:
+                                                    </span>
+                                                    <span className="text-sm font-semibold text-white">
+                                                        {quantity.toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                        
-                        {structureType === 'holy_site' && (
-                             <div className="p-3 bg-slate-800/40 rounded-lg border border-slate-700/50">
-                                 <h4 className="font-semibold text-amber-300 mb-2">Offerings & Blessings</h4>
-                                 <DetailRow label="Consumes" value={consumedGoods?.map(g => g.replace(/_/g, ' ')).join(', ') || 'Prayers'} />
-                                 <DetailRow label="Produces" value={producedGoods?.map(g => g.replace(/_/g, ' ')).join(', ') || 'Faith'} />
-                             </div>
-                        )}
 
-                        {treasury && Object.keys(treasury).length > 0 && (
-                            <div className="p-3 bg-slate-800/40 rounded-lg border border-slate-700/50">
-                                <h4 className="font-semibold text-amber-300 mb-2">Treasury</h4>
-                                {Object.entries(treasury).map(([itemId, quantity]) => (
-                                    <DetailRow key={itemId} label={ITEM_DEFINITIONS[itemId]?.name || itemId} value={quantity.toLocaleString()} />
-                                ))}
+                        {/* Holy Site Interactions or Generic Actions */}
+                        {structure.structureType === 'holy_site' ? (
+                            <div className="mt-4">
+                                <HolySiteInteractions 
+                                    structure={structure}
+                                    religion={religion?.name || 'Local Faith'}
+                                    playerCharacter={npcs.find(npc => npc.isPlayerCharacter)}
+                                    onServicePurchased={(service) => {
+                                        console.log('Service purchased:', service);
+                                    }}
+                                />
+                            </div>
+                        ) : (
+                            <div className="pt-4">
+                                <h4 className="font-semibold text-lg text-blue-300 mb-3">Actions</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button className="ff-action-button">Seek Audience</button>
+                                    <button className="ff-action-button">Offer Tribute</button>
+                                    <button className="ff-action-button">Investigate</button>
+                                    <button className="ff-action-button">Listen for Rumors</button>
+                                </div>
+                                <p className="text-xs text-center text-slate-500 mt-3 italic">(More actions will be available through the quest system.)</p>
                             </div>
                         )}
-                        
-                        {anchoredNpcs.length > 0 && (
-                             <div className="p-3 bg-slate-800/40 rounded-lg border border-slate-700/50">
-                                 <h4 className="font-semibold text-cyan-400 mb-2">Key Figures</h4>
-                                 <div className="space-y-2">
-                                     {anchoredNpcs.map(npc => (
-                                         <div key={npc.id} className="flex items-center gap-3">
-                                             <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-600 shrink-0 bg-slate-700">
-                                                <ProceduralPortrait character={npc} size={40} />
-                                             </div>
-                                             <div>
-                                                 <p className="font-semibold text-white">{npc.name}</p>
-                                                 <p className="text-xs text-slate-400">{npc.role}</p>
-                                             </div>
-                                         </div>
-                                     ))}
-                                 </div>
-                             </div>
-                        )}
-
-                        {/* Placeholder for future Quest System */}
-                        <div className="pt-4">
-                            <h4 className="font-semibold text-lg text-blue-300 mb-3">Actions</h4>
-                            <div className="grid grid-cols-2 gap-3">
-                                <button className="ff-action-button">Seek Audience</button>
-                                <button className="ff-action-button">Offer Tribute</button>
-                                <button className="ff-action-button">Investigate</button>
-                                <button className="ff-action-button">Listen for Rumors</button>
-                            </div>
-                            <p className="text-xs text-center text-slate-500 mt-3 italic">(More actions will be available through the quest system.)</p>
-                        </div>
                     </main>
 
                     <footer className="mt-6 flex justify-end">

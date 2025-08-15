@@ -1,0 +1,69 @@
+{
+  "sources": [
+    {
+      "id": "ancient-egyptian-book-dead",
+      "title": "Book of the Dead",
+      "author": "Ancient Egyptian priests",
+      "year": -1550,
+      "era": "ANCIENT",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "I have not done evil to mankind. I have not oppressed the members of my family.",
+      "keywords": [
+        "afterlife",
+        "Egypt",
+        "religion",
+        "mummification",
+        "judgment"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Thebes",
+          "conditions": {
+            "culturalZone": "SUB_SAHARAN_AFRICAN",
+            "era": "ANCIENT"
+          }
+        },
+        {
+          "keyword": "Osiris",
+          "conditions": {
+            "era": "ANCIENT"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "E.A. Wallis Budge",
+        "originalPublication": "Papyrus of Ani, c. 1550 BCE",
+        "modernSource": "British Museum"
+      },
+      "wikisourceTitle": "Egyptian_Book_of_the_Dead",
+      "internetArchiveId": "bookofdeadpapyru00budg",
+      "isStandard": true,
+      "longExcerpt": "I have not done evil to mankind. I have not oppressed the members of my family. This historical source from -1550 provides valuable insight into the sub-saharan-africa region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "sub-saharan-africa-antiquity-chronicle",
+      "title": "African Ancient Chronicle",
+      "author": "Various Authors",
+      "year": -500,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "A collection of ancient texts from the African region.",
+      "longExcerpt": "This represents a compilation of historical documents from the Ancient period in the African region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "keywords": [
+        "sub-saharan-africa",
+        "antiquity",
+        "history",
+        "chronicle",
+        "primary source"
+      ],
+      "wikisourceTitle": "African_Ancient_Texts",
+      "citation": {
+        "originalPublication": "African Ancient Period"
+      }
+    }
+  ]
+}

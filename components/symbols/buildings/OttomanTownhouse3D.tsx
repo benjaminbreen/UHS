@@ -1,81 +1,332 @@
 /**
- * components/symbols/buildings/OttomanTownhouse3D.tsx - Renders a detailed, painterly Ottoman/MENA style townhouse.
+ * components/symbols/buildings/OttomanTownhouse3D.tsx - Clean Ottoman/Mediterranean townhouse with proper perspective
  */
 import React from 'react';
 import { Tile } from '../../../types';
 import { ValueNoise } from '../../../utils/noise';
 
 interface OttomanTownhouse3DProps {
-  x: number; y: number; width: number; height: number; size: number; seed: number; tile: Tile;
+  x: number; 
+  y: number; 
+  width: number; 
+  height: number; 
+  size: number; 
+  seed: number; 
+  tile: Tile;
+  nightIntensity?: number;
 }
 
-const OttomanTownhouse3D: React.FC<OttomanTownhouse3DProps> = React.memo(({ x, y, width, height, size, seed, tile }) => {
-    const rand = new ValueNoise(seed + tile.x * 127 + tile.y * 131).random;
-    const uniqueId = `ottoman-${tile.x}-${tile.y}`;
-    const elements = [];
-    
-    const wallColor = `hsl(45, 40%, ${85 + rand() * 10}%)`;
-    const woodColor = `hsl(25, 45%, 35%)`;
-    const roofColor = `hsl(10, 60%, 45%)`;
-    const stoneColor = `hsl(30, 20%, 75%)`;
-    const outlineColor = `hsl(25, 45%, 20%)`;
+const OttomanTownhouse3D: React.FC<OttomanTownhouse3DProps> = React.memo(({ 
+  x, y, width, height, size, seed, tile, nightIntensity = 0 
+}) => {
+  const rng = new ValueNoise(seed + tile.x * 127 + tile.y * 131);
+  const uniqueId = `ottoman-${tile.x}-${tile.y}`;
 
-    const depth = size * 0.3;
+  // Random variations
+  const colorVariation = rng.random();
+  const hasArches = rng.random() > 0.3;
+  const hasBalcony = rng.random() > 0.5;
+  const windowColumns = Math.floor(rng.random() * 2) + 2; // 2 or 3 columns
+  const roofColorVariant = Math.floor(rng.random() * 4); // More roof color variety
 
-    // Upper Floor (Jettied)
-    const jettyWidth = width + size*0.15;
-    const jettyX = x - size*0.075;
-    const jettyY = y;
-    const jettyHeight = height * 0.55;
-    const jettyDepth = depth * 1.15;
+  // Clean dimensions
+  const houseWidth = width * 0.98;
+  const houseHeight = height * 0.92;
+  const houseX = x + (width - houseWidth) / 2;
+  const houseY = y + height * 0.38;
 
-    // Cast Shadow
-    elements.push(
-      <path key="shadow-soft" d={`M ${jettyX + jettyDepth * 0.5} ${y + height + jettyDepth * 0.2} l ${jettyWidth} 0 l ${-jettyDepth*0.5} ${jettyDepth*0.3} l ${-jettyWidth} 0 Z`} fill="rgba(0,0,0,0.2)" />,
-      <path key="shadow-hard" d={`M ${jettyX + jettyDepth} ${y + height + jettyDepth * 0.5} L ${jettyX + jettyWidth + jettyDepth} ${y + height + jettyDepth * 0.5} L ${jettyX+jettyWidth} ${y+height} L ${jettyX} ${y+height} Z`} fill="rgba(0,0,0,0.15)" filter="url(#buildingShadow)" />
-    );
-
-    // Ground Floor (Stone)
-    const groundHeight = height * 0.45;
-    const groundY = y + height - groundHeight;
-    elements.push(<rect key="ground-wall" x={x} y={groundY} width={width} height={groundHeight} fill={stoneColor} stroke={outlineColor} strokeWidth="0.2"/>);
-    elements.push(<path key="ground-side" d={`M ${x+width} ${groundY} L ${x+width+depth} ${groundY-depth*0.5} L ${x+width+depth} ${y+height-depth*0.5} L ${x+width} ${y+height} Z`} fill={`hsl(30, 20%, 65%)`} stroke={outlineColor} strokeWidth="0.2"/>);
-    
-    const doorHeight = groundHeight * 0.8;
-    const doorWidth = width * 0.3;
-    elements.push(<rect key="ground-door" x={x + width/2 - doorWidth/2} y={y+height-doorHeight} width={doorWidth} height={doorHeight} fill={woodColor} stroke="black" strokeWidth="0.4"/>);
+  // Proper 3D perspective
+  const depthX = width * 0.1;
+  const depthY = height * 0.06;
   
-    // Upper Floor
-    elements.push(<rect key="upper-wall" x={jettyX} y={jettyY} width={jettyWidth} height={jettyHeight} fill={wallColor} stroke={outlineColor} strokeWidth="0.2"/>);
-    elements.push(<path key="upper-side" d={`M ${jettyX+jettyWidth} ${jettyY} L ${jettyX+jettyWidth+jettyDepth} ${jettyY-jettyDepth*0.5} L ${jettyX+jettyWidth+jettyDepth} ${jettyY+jettyHeight-jettyDepth*0.5} L ${jettyX+jettyWidth} ${jettyY+jettyHeight} Z`} fill={`hsl(45, 40%, 75%)`} stroke={outlineColor} strokeWidth="0.2"/>);
+  // Lower roof pitch (more Mediterranean)
+  const roofHeight = houseHeight * 0.15; // Lower than before
+  const peakX = houseX + houseWidth * 0.5;
+  const peakY = houseY - roofHeight;
 
-    // Mashrabiya window
-    elements.push(<rect key={`window`} x={jettyX + jettyWidth/2 - 8} y={jettyY + 4} width="16" height="8" fill={`url(#mashrabiya-${uniqueId})`} />);
-    elements.push(<rect key={`window-frame`} x={jettyX + jettyWidth/2 - 9} y={jettyY + 3} width="18" height="10" fill="none" stroke={woodColor} strokeWidth="1.2"/>);
+  // Wall colors
+  const wallColor = `hsl(30, 18%, ${84 + colorVariation * 6}%)`;
+  const wallDark = `hsl(30, 20%, ${72 + colorVariation * 4}%)`;
+  const wallAccent = `hsl(30, 15%, 90%)`;
+  
+  // Varied roof colors
+  const roofColors = [
+    { main: `hsl(15, 55%, 45%)`, dark: `hsl(12, 50%, 35%)` }, // Mediterranean red
+    { main: `hsl(20, 35%, 40%)`, dark: `hsl(18, 30%, 30%)` }, // Brown
+    { main: `hsl(25, 20%, 45%)`, dark: `hsl(22, 15%, 35%)` }, // Gray-brown
+    { main: `hsl(10, 45%, 50%)`, dark: `hsl(8, 40%, 38%)` },  // Terracotta
+  ];
+  const roofColor = roofColors[roofColorVariant].main;
+  const roofDark = roofColors[roofColorVariant].dark;
+  
+  const woodColor = '#6B5443';
+  const windowDark = '#1C1815';
 
-    // Jetty supports
-    elements.push(<rect key="jetty-support-main" x={x-1} y={y+jettyHeight} width={width+2} height={3} fill={woodColor} stroke={outlineColor} strokeWidth="0.3"/>);
-    elements.push(<path key="jetty-support-side" d={`M ${x+width+1} ${y+jettyHeight} L ${x+width+1+depth} ${y+jettyHeight-depth*0.5} L ${x+width+1+depth} ${y+jettyHeight+3-depth*0.5} L ${x+width+1} ${y+jettyHeight+3} Z`} fill={`hsl(25,45%,25%)`} stroke={outlineColor} strokeWidth="0.2"/>);
+  // Thin, clean lines
+  const strokeWidth = 0.4;
 
-    // Roof
-    const roofY = y;
-    const roofOverhang = 4;
-    const roofHeight = 8;
-    const correctedSideRoofPath = `M ${jettyX+jettyWidth+roofOverhang} ${roofY} L ${jettyX+jettyWidth+roofOverhang+jettyDepth} ${roofY-jettyDepth*0.5} L ${jettyX+jettyWidth+jettyDepth} ${roofY-roofHeight-jettyDepth*0.5} L ${jettyX+jettyWidth} ${roofY-roofHeight} Z`;
-    elements.push(<path key="roof-main" d={`M ${jettyX - roofOverhang} ${roofY} L ${jettyX + jettyWidth + roofOverhang} ${roofY} L ${jettyX + jettyWidth} ${roofY-roofHeight} L ${jettyX} ${roofY-roofHeight} Z`} fill={roofColor} stroke={outlineColor} strokeWidth="0.3"/>);
-    elements.push(<path key="roof-side" d={correctedSideRoofPath} fill={`hsl(10,60%,35%)`} stroke={outlineColor} strokeWidth="0.3"/>);
-    
-    return (
-        <g filter="url(#symbolShadow)">
-            <defs>
-                <pattern id={`mashrabiya-${uniqueId}`} patternUnits="userSpaceOnUse" width="4" height="4">
-                    <rect width="4" height="4" fill={woodColor} />
-                    <circle cx="2" cy="2" r="1.2" fill={wallColor} />
-                </pattern>
-            </defs>
-            {elements}
+  return (
+    <g>
+      {/* Proper shadow */}
+      <ellipse
+        cx={houseX + houseWidth/2 + depthX/2}
+        cy={houseY + houseHeight + 3}
+        rx={houseWidth * 0.6}
+        ry={houseHeight * 0.1}
+        fill="rgba(0,0,0,0.22)"
+      />
+
+      {/* Side wall (3D depth) */}
+      <path
+        d={`M ${houseX + houseWidth} ${houseY}
+           L ${houseX + houseWidth + depthX} ${houseY - depthY}
+           L ${houseX + houseWidth + depthX} ${houseY + houseHeight - depthY}
+           L ${houseX + houseWidth} ${houseY + houseHeight} Z`}
+        fill={wallDark}
+        stroke="rgba(0,0,0,0.2)"
+        strokeWidth={strokeWidth}
+      />
+
+      {/* Main front wall */}
+      <rect
+        x={houseX}
+        y={houseY}
+        width={houseWidth}
+        height={houseHeight}
+        fill={wallColor}
+        stroke="rgba(0,0,0,0.15)"
+        strokeWidth={strokeWidth}
+      />
+
+      {/* Wall texture - horizontal bands */}
+      <rect
+        x={houseX}
+        y={houseY + houseHeight * 0.35}
+        width={houseWidth}
+        height={1}
+        fill={wallDark}
+        opacity={0.3}
+      />
+
+      {/* Filled triangular gable (not see-through) */}
+      <polygon
+        points={`${houseX},${houseY} ${peakX},${peakY} ${houseX + houseWidth},${houseY}`}
+        fill={wallAccent}
+        stroke="rgba(0,0,0,0.15)"
+        strokeWidth={strokeWidth}
+      />
+
+      {/* Windows - properly positioned */}
+      {[...Array(windowColumns)].map((_, i) => {
+        const xPos = (i + 1) / (windowColumns + 1);
+        const winW = houseWidth * 0.12;
+        const winH = houseHeight * 0.15;
+        const winX = houseX + houseWidth * xPos - winW / 2;
+        const upperY = houseY + houseHeight * 0.2;
+        const lowerY = houseY + houseHeight * 0.55;
+
+        return (
+          <g key={`window-${i}`}>
+            {/* Upper window */}
+            {hasArches ? (
+              <g>
+                <path
+                  d={`M ${winX} ${upperY + winH}
+                     L ${winX} ${upperY + winH * 0.4}
+                     Q ${winX + winW/2} ${upperY}
+                       ${winX + winW} ${upperY + winH * 0.4}
+                     L ${winX + winW} ${upperY + winH} Z`}
+                  fill={windowDark}
+                  stroke={woodColor}
+                  strokeWidth={strokeWidth}
+                />
+                {/* Window cross */}
+                <line x1={winX + winW/2} y1={upperY} x2={winX + winW/2} y2={upperY + winH} 
+                      stroke={woodColor} strokeWidth={strokeWidth * 0.7} />
+              </g>
+            ) : (
+              <g>
+                <rect
+                  x={winX}
+                  y={upperY}
+                  width={winW}
+                  height={winH}
+                  fill={windowDark}
+                  stroke={woodColor}
+                  strokeWidth={strokeWidth}
+                />
+                {/* Window cross */}
+                <line x1={winX + winW/2} y1={upperY} x2={winX + winW/2} y2={upperY + winH} 
+                      stroke={woodColor} strokeWidth={strokeWidth * 0.7} />
+                <line x1={winX} y1={upperY + winH/2} x2={winX + winW} y2={upperY + winH/2} 
+                      stroke={woodColor} strokeWidth={strokeWidth * 0.7} />
+              </g>
+            )}
+
+            {/* Lower window */}
+            <rect
+              x={winX}
+              y={lowerY}
+              width={winW}
+              height={winH * 1.2}
+              fill={windowDark}
+              stroke={woodColor}
+              strokeWidth={strokeWidth}
+            />
+            {/* Window cross */}
+            <line x1={winX + winW/2} y1={lowerY} x2={winX + winW/2} y2={lowerY + winH * 1.2} 
+                  stroke={woodColor} strokeWidth={strokeWidth * 0.7} />
+            <line x1={winX} y1={lowerY + winH * 0.6} x2={winX + winW} y2={lowerY + winH * 0.6} 
+                  stroke={woodColor} strokeWidth={strokeWidth * 0.7} />
+          </g>
+        );
+      })}
+
+      {/* Door - properly centered and sized */}
+      <rect
+        x={houseX + houseWidth * 0.43}
+        y={houseY + houseHeight * 0.7}
+        width={houseWidth * 0.14}
+        height={houseHeight * 0.3}
+        fill={windowDark}
+        stroke={woodColor}
+        strokeWidth={strokeWidth * 1.2}
+      />
+      {/* Door panel detail */}
+      <rect
+        x={houseX + houseWidth * 0.45}
+        y={houseY + houseHeight * 0.75}
+        width={houseWidth * 0.1}
+        height={houseHeight * 0.1}
+        fill="none"
+        stroke={woodColor}
+        strokeWidth={strokeWidth * 0.6}
+      />
+
+      {/* Balcony */}
+      {hasBalcony && (
+        <g>
+          <rect
+            x={houseX + houseWidth * 0.15}
+            y={houseY + houseHeight * 0.48}
+            width={houseWidth * 0.7}
+            height={2}
+            fill={woodColor}
+            stroke="rgba(0,0,0,0.3)"
+            strokeWidth={strokeWidth}
+          />
+          {/* Balcony railing */}
+          <line
+            x1={houseX + houseWidth * 0.15}
+            y1={houseY + houseHeight * 0.45}
+            x2={houseX + houseWidth * 0.85}
+            y2={houseY + houseHeight * 0.45}
+            stroke={woodColor}
+            strokeWidth={strokeWidth}
+          />
+          {/* Balcony posts */}
+          {[0.15, 0.85].map((p, i) => (
+            <rect
+              key={`post-${i}`}
+              x={houseX + houseWidth * p - 1}
+              y={houseY + houseHeight * 0.45}
+              width={2}
+              height={5}
+              fill={woodColor}
+            />
+          ))}
         </g>
-    );
+      )}
+
+      {/* Roof - lower pitch, cleaner geometry */}
+      {/* Left roof plane */}
+      <path
+        d={`M ${houseX} ${houseY}
+           L ${peakX} ${peakY}
+           L ${peakX + depthX} ${peakY - depthY}
+           L ${houseX + depthX} ${houseY - depthY} Z`}
+        fill={roofColor}
+        stroke={roofDark}
+        strokeWidth={strokeWidth}
+      />
+      {/* Right roof plane */}
+      <path
+        d={`M ${houseX + houseWidth} ${houseY}
+           L ${houseX + houseWidth + depthX} ${houseY - depthY}
+           L ${peakX + depthX} ${peakY - depthY}
+           L ${peakX} ${peakY} Z`}
+        fill={roofDark}
+        stroke="rgba(0,0,0,0.2)"
+        strokeWidth={strokeWidth}
+      />
+      
+      {/* Roof tiles texture */}
+      {[0.3, 0.5, 0.7].map((yPos, i) => (
+        <line 
+          key={`tile-${i}`}
+          x1={houseX + houseWidth * 0.1} 
+          y1={houseY - roofHeight * yPos}
+          x2={houseX + houseWidth * 0.9} 
+          y2={houseY - roofHeight * yPos}
+          stroke={roofDark}
+          strokeWidth={strokeWidth * 0.5}
+          opacity={0.3}
+        />
+      ))}
+
+      {/* Ridge line */}
+      <line
+        x1={peakX}
+        y1={peakY}
+        x2={peakX + depthX}
+        y2={peakY - depthY}
+        stroke="rgba(255,255,255,0.2)"
+        strokeWidth={strokeWidth}
+      />
+
+      {/* Small chimney */}
+      <rect
+        x={houseX + houseWidth * 0.7}
+        y={peakY + roofHeight * 0.3}
+        width={3}
+        height={roofHeight * 0.5}
+        fill={roofColor}
+        stroke={roofDark}
+        strokeWidth={strokeWidth}
+      />
+
+      {/* Night lighting */}
+      {nightIntensity > 0 && (
+        <g opacity={nightIntensity}>
+          {/* Window glows */}
+          {[...Array(windowColumns)].map((_, i) => {
+            const xPos = (i + 1) / (windowColumns + 1);
+            const winW = houseWidth * 0.12;
+            const winX = houseX + houseWidth * xPos - winW / 2;
+            const upperY = houseY + houseHeight * 0.2;
+            return (
+              <rect
+                key={`glow-${i}`}
+                x={winX}
+                y={upperY}
+                width={winW}
+                height={houseHeight * 0.15}
+                fill="rgba(255, 200, 100, 0.6)"
+              />
+            );
+          })}
+          {/* Door glow */}
+          <rect
+            x={houseX + houseWidth * 0.43}
+            y={houseY + houseHeight * 0.7}
+            width={houseWidth * 0.14}
+            height={houseHeight * 0.3}
+            fill="rgba(255, 180, 80, 0.5)"
+          />
+        </g>
+      )}
+    </g>
+  );
 });
 
 export default OttomanTownhouse3D;

@@ -1,0 +1,25 @@
+{
+  "sources": [
+    {
+      "id": "eu-climate-accord",
+      "title": "European Climate Neutrality Act",
+      "author": "European Parliament",
+      "year": 2050,
+      "excerpt": "By 2050, Europe shall achieve climate neutrality through renewable energy and rewilding.",
+      "longExcerpt": "The European Federation declares its commitment to full climate neutrality by 2050. Solar farms cover former agricultural lands. Wind turbines line every coast. The great forests have returned - wolves roam the Carpathians again, bears fish in pristine rivers. Cities are green, vertical farms rise between buildings. Transportation is electric or hydrogen-powered. This is not just policy but survival. The old world of fossil fuels is dead. We build the new world on its ashes.",
+      "era": "FUTURE",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "keywords": [
+        "european",
+        "climate",
+        "neutrality"
+      ],
+      "wikisourceTitle": "European_Climate_Neutrality_Act",
+      "citation": {
+        "originalPublication": "European Parliament, 2050"
+      }
+    }
+  ]
+}

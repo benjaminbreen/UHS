@@ -10,6 +10,7 @@ import { mapLocationToCulture } from "../utils/mapUtils";
 import { ValueNoise } from "../utils/noise";
 import { parseDateString } from "../utils/dateUtils";
 import { findNpcFriends } from './socialService';
+import { primarySourceService } from './primarySourceService';
 
 
 const formatAppearance = (character: PlayerCharacter | NpcEntity): string => {
@@ -101,13 +102,13 @@ export async function summarizeConversation(history: DialogueEntry[]): Promise<{
  */
 export async function generateEncounterDialogue(
     target: EncounterableEntity,
-    history: DialogueEntry[],
+    history: DialogueEntry[] | string[],
     playerInput: string,
     playerCharacter: PlayerCharacter | null,
     allNpcs: NpcEntity[],
     mapData: MapData | null,
     useRealLanguage: boolean
-): Promise<{ text: string }> {
+): Promise<{ text: string, reputationChange?: number, shouldLeave?: boolean, shouldAttack?: boolean }> {
     if (!playerCharacter || !mapData) return { text: "You feel a strange sense of detachment." };
     
     if (isAnimal(target)) {
@@ -122,7 +123,55 @@ export async function generateEncounterDialogue(
 
     // It's an NPC. Generate a deeply contextual response.
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const conversationHistoryText = history.slice(-4).map(h => `${h.speaker}: ${h.text}`).join('\n');
+    
+    // Handle both DialogueEntry[] and string[] formats
+    let conversationHistoryText = '';
+    let previousSummaries = '';
+    
+    if (Array.isArray(history) && history.length > 0) {
+        if (typeof history[0] === 'string') {
+            // These are conversation summaries
+            previousSummaries = (history as string[]).map((s, i) => `- Previous conversation ${i + 1}: ${s}`).join('\n');
+            conversationHistoryText = ''; // No current conversation yet
+        } else {
+            // These are dialogue entries from current conversation
+            conversationHistoryText = (history as DialogueEntry[]).slice(-4).map(h => `${h.speaker}: ${h.text}`).join('\n');
+        }
+    }
+    
+    // Get historical context from primary sources
+    let primarySourceContext = '';
+    try {
+        const dateInfo = parseDateString(String(mapData.timeSlice));
+        const culturalZone = mapLocationToCulture(mapData.localArea, dateInfo.year);
+        
+        // Calculate NPC birth year based on current year and age
+        const currentYear = dateInfo.year;
+        const npcBirthYear = currentYear - (target.age || 30);
+        
+        // Preload and get sources most relevant to when the NPC was born/lived
+        await primarySourceService.preloadContext(dateInfo.era as HistoricalEra, culturalZone as CulturalZone);
+        const relevantSources = await primarySourceService.getTemporallyRelevantSources(
+            npcBirthYear, 
+            3, // Get top 3 most relevant sources
+            dateInfo.era as HistoricalEra, 
+            culturalZone as CulturalZone
+        );
+        
+        if (relevantSources.length > 0) {
+            primarySourceContext = `
+        
+        **HISTORICAL CONTEXT FROM PRIMARY SOURCES:**
+        ${relevantSources.map(source => `
+        From "${source.title}" (${source.author}, ${Math.abs(source.year)} ${source.year < 0 ? 'BCE' : 'CE'}):
+        "${source.excerpt}"
+        `).join('\n')}
+        
+        This historical context should subtly inform your worldview and speech patterns, but don't quote these sources directly unless specifically asked about them.`;
+        }
+    } catch (error) {
+        console.error('Error fetching primary sources for NPC dialogue:', error);
+    }
 
     const languageInstruction = useRealLanguage 
         ? `**CRITICAL LANGUAGE DIRECTIVE:** 
@@ -164,12 +213,14 @@ export async function generateEncounterDialogue(
         EARLY MODERN (1500-1800):
         - Use period-appropriate Early Modern versions of languages
         - Include archaic grammar, vocabulary, and spelling
+
+        ANY OTHER LANGUAGE: given the specific setting, do your best to provide dialogue in the most historically authentic language you know of, even if its a reach. If you are roleplaying as someone in 5000 BCE in Europe, start speaking in Proto-Indo-European, and so forth. Fill in the blanks and use all your knowledge. 
         
         **LINGUISTIC AUTHENTICITY RULES:**
         1. Use actual words and phrases from the target language - do NOT use modern versions
-        2. For reconstructed/extinct languages, use scholarly approximations
+        2. For reconstructed/extinct languages, use approximations, but never switch to english. 
         3. Include appropriate honorifics, titles, and social markers
-        4. For pre-literate societies, use simple, direct speech patterns
+        4. Use a wide range of words, expressions, rhetorical tones, and styles, and be voluble and realistic. 
         5. Do NOT provide translations or explanations
         6. If the exact language is unknown (like pre-Columbian Columbia River), make your best scholarly approximation based on linguistic reconstruction
         7. NEVER default to English - always attempt the historical language
@@ -189,8 +240,8 @@ export async function generateEncounterDialogue(
 
 
     const prompt = `
-        You are an advanced AI roleplaying as a character in a gritty, historically accurate history simulation game.
-        You MUST respond ONLY with a short line of spoken dialogue from your character's perspective. Do not add actions or descriptions.
+        You are an advanced AI roleplaying as a character in a realistic, super historically accurate history simulation game.
+        You MUST respond ONLY with a line or two of spoken dialogue from your character's perspective. NEVER add actions or descriptions.
 
         ${languageInstruction}
 
@@ -206,7 +257,7 @@ export async function generateEncounterDialogue(
           - Wisdom: ${target.stats?.wisdom || 10}/20 (${target.stats?.wisdom > 14 ? 'Very wise - thoughtful responses' : target.stats?.wisdom > 10 ? 'Sensible' : 'Impulsive - may say foolish things'})
         - **Your Current Activity:** You are ${target.currentActivity || 'going about your day'}.
         - **Your Memories of the Player:** 
-          ${target.memory.conversationSummaries.length > 0 ? target.memory.conversationSummaries.map(s => `- ${s}`).join('\n') : "- You have no significant memories of this person."}
+          ${previousSummaries || (target.memory.conversationSummaries && target.memory.conversationSummaries.length > 0 ? target.memory.conversationSummaries.map(s => `- ${s}`).join('\n') : "- You have no significant memories of this person.")}
         
         **THE PLAYER YOU ARE TALKING TO:**
         - **Name:** ${playerCharacter.name}
@@ -219,31 +270,86 @@ export async function generateEncounterDialogue(
         - **Recent Conversation:**
         ${conversationHistoryText}
         - **The Player just said to you:** "${playerInput}"
+        
+        ${primarySourceContext}
 
-        **YOUR TASK AND RULES (MANDATORY):**
-        1.  **Stay in Character:** Respond ONLY with spoken dialogue as a real person would.
-        2.  **Know Your World:** You are fully aware of major world events, leaders, and common knowledge for your time period. If someone asks about Xi Jinping in 2030s China, you KNOW who that is. If they ask about climate change in modern times, you understand what they mean. Don't play dumb about things that would be common knowledge.
-        3.  **React Based on Personality:** Your response should vary GREATLY based on:
-            - Your stats (intelligence, charisma, wisdom affect how you speak)
-            - Your social class vs theirs (nobles may be dismissive of peasants, etc.)
-            - Your current mood and the player's reputation
-            - Whether you're busy, friendly, hostile, or indifferent
-        4.  **Personality Types:** Based on your stats and role, be one of these:
-            - Friendly/Helpful (high charisma, good reputation): "Oh, you need directions? Sure, it's just down that path..."
-            - Busy/Dismissive (working, low patience): "Can't you see I'm working? What do you want?"
-            - Suspicious/Hostile (low reputation, guard role): "You again? I told you to stay away from here."
-            - Intellectual/Verbose (high intelligence): "Ah, an interesting question! Let me explain..."
-            - Simple/Direct (low intelligence): "Huh? I dunno about that."
-            - Flirtatious (high charisma, compatible): "Well hello there, haven't seen you around before..."
-        5.  **Detect ONLY True Anachronisms:** Only be confused if they mention something that TRULY doesn't exist yet (like computers in medieval times). Otherwise, answer normally.
-        6.  **Use Your Memory:** If you've talked before, remember it.
-        7.  **Be Natural:** Respond like a real person - sometimes short, sometimes long, sometimes rude, sometimes kind. 1-4 sentences typically.
-        8.  **Output Format:** Your entire response must be ONLY the dialogue text. Do not add quotes.
+        YOUR TASK AND RULES (MANDATORY):
+        1.  Stay in Character: Respond ONLY with spoken dialogue as a real person would. You should assume background knowledge of the world in the date the game is in, insofar as your character would be aware of it. I.e. someone in 1944 knows who Hitler and Churchill are, regardless of the location or their background. 
+        2.  Know Your World:** You are fully aware of major world events, leaders, and common knowledge for your time period. If someone asks about Xi Jinping in 2030s China, you KNOW who that is. If they ask about climate change in modern times, you understand what they mean. Don't play dumb about things that would be common knowledge.
+        3.  **CLASS CONSCIOUSNESS IS PARAMOUNT:** Your social class FUNDAMENTALLY shapes how you interact:
+            - **If YOU are higher class than the player:** Be condescending, impatient, or outright dismissive. You might refuse to speak to them at all, demand they address you properly, or threaten consequences or even violence.
+            - **If YOU are lower class than the player:** Be deferential but potentially resentful. Use proper titles. You might harbor hidden resentment or fear punishment for speaking out of turn.
+            - **If YOU are same class:** Be more natural but still aware of subtle status differences within your class.
+            - **Gender matters:** In most historical periods, gender creates additional power dynamics. A male merchant might dismiss a female noble in subtle ways. A female servant might be even more cautious around male nobility.
+        4.  **REACT TO INTERRUPTION:** Being approached by a stranger is NOT normal in many eras or settings. Your first reaction should often be:
+            - Suspicion: "Who are you? What do you want?"
+            - Annoyance: "Can't you see I'm busy?"
+            - Fear (if vulnerable): "Please, I have nothing of value..."
+            - Authority (if powerful): "You dare approach me unbidden?"
+            - Only be immediately friendly if: high charisma + good reputation + compatible personality
+        5.  Personality Based on Stats & Context. Always evoke a distinct personality for your NPC. they are a living, breathing person. 
+           
+        6.  **Historical Authenticity:** 
+            - Use period-appropriate insults and exclamations
+            - Reference real concerns of your era (plague, war, harvest, local politics)
+            - Show realistic prejudices and superstitions of your time
+          7. The dialogue should actually be good and interesting. Not formulaic, not cliche, not fan ficton. Real, authentic, and interesting and grounded. 
+        8.  Be REALISTIC to the setting - draw on your extensive historical knowledge to make this feel real. 
+        9.  AGENCY TO END CONVERSATIONS OR FIGHT:
+            - If the player insults you, threatens you, or crosses social boundaries, you should:
+              - **End the conversation** if you're not violent: "Leave me be", "This conversation is over", "Begone", etc.
+              - **Attack** if you're aggressive or the insult is severe: "Guards!", "You'll pay for that!", "How dare you!" 
+            - Consider your stats and class when deciding:
+              - Noble/high class + insulted = likely to call guards or end conversation imperiously
+              - Soldier/guard + threatened = likely to attack
+              - Peasant/low class + intimidated = likely to flee or beg
+              - High strength + low wisdom = more likely to attack when provoked
+        10. **REMEMBER PAST INTERACTIONS:** 
+            - If you've met this person before (check your memories), acknowledge it!
+            - Wrong: "Who are you?" (if you've already met)
+            - Right: "You again?", "What do you want now?"
+            - Use your memory of past conversations to inform your attitude
+        11. **Output Format:** Your entire response must be ONLY the dialogue text. Do not add quotes or asterisks ever.
     `;
     
     try {
         const response = await ai.models.generateContent({ model: 'gemini-2.5-flash-lite', contents: prompt });
-        return { text: response.text.trim().replace(/"/g, '') };
+        const npcText = response.text.trim().replace(/"/g, '');
+        
+        // Analyze the response for reputation changes and NPC reactions
+        let reputationChange = 0;
+        let shouldLeave = false;
+        let shouldAttack = false;
+        
+        const lowerText = npcText.toLowerCase();
+        
+        // Check for hostile reactions
+        if (lowerText.includes('guards!') || lowerText.includes('attack') || lowerText.includes('kill you') || 
+            lowerText.includes('draw your weapon') || lowerText.includes('you\'ll pay')) {
+            shouldAttack = true;
+            reputationChange = -20;
+        }
+        // Check for dismissive reactions
+        else if (lowerText.includes('leave me') || lowerText.includes('go away') || lowerText.includes('begone') ||
+                 lowerText.includes('we\'re done') || lowerText.includes('conversation is over')) {
+            shouldLeave = true;
+            reputationChange = -5;
+        }
+        // Check for positive reactions
+        else if (lowerText.includes('thank you') || lowerText.includes('kind of you') || lowerText.includes('appreciate')) {
+            reputationChange = 5;
+        }
+        // Check for very negative reactions
+        else if (lowerText.includes('disgusting') || lowerText.includes('insolent') || lowerText.includes('how dare')) {
+            reputationChange = -10;
+        }
+        
+        return { 
+            text: npcText,
+            reputationChange: reputationChange !== 0 ? reputationChange : undefined,
+            shouldLeave,
+            shouldAttack
+        };
     } catch (error) {
         console.error("Error generating NPC dialogue:", error);
         return { text: "..." };

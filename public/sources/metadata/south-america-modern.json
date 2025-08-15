@@ -1,0 +1,25 @@
+{
+  "sources": [
+    {
+      "id": "neruda-heights",
+      "title": "The Heights of Macchu Picchu",
+      "author": "Pablo Neruda",
+      "year": 1950,
+      "excerpt": "Stone upon stone, and man, where was he? Air upon air, and man, where was he?",
+      "longExcerpt": "I climbed to Macchu Picchu, city of stone staircases, and asked: Stone upon stone, and man, where was he? Air upon air, and man, where was he? Ancient America, sunken bride, your fingers reaching from jungle cathedrals toward empty heights of gods. But through the centuries I see the slave, the servant, sleeping in the fields, buried with a handful of corn. I see the laborer, the weaver, the silent potter. Rise up with me, my brother, from the depths of your disseminated sorrow.",
+      "era": "MODERN",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "keywords": [
+        "heights",
+        "macchu",
+        "picchu"
+      ],
+      "wikisourceTitle": "The_Heights_of_Macchu_Picchu",
+      "citation": {
+        "originalPublication": "Pablo Neruda, 1950"
+      }
+    }
+  ]
+}

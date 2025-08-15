@@ -1,0 +1,447 @@
+{
+  "sources": [
+    {
+      "id": "iliad-homer",
+      "title": "The Iliad",
+      "author": "Homer",
+      "year": -750,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "Sing, O goddess, the anger of Achilles son of Peleus, that brought countless ills upon the Achaeans. Many a brave soul did it send hurrying down to Hades.",
+      "keywords": [
+        "troy",
+        "achilles",
+        "homer",
+        "war",
+        "heroes",
+        "gods",
+        "epic",
+        "greece"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "war",
+          "conditions": {
+            "era": "CLASSICAL",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "hero",
+          "conditions": {
+            "era": "CLASSICAL"
+          }
+        }
+      ],
+      "wikisourceTitle": "The_Iliad",
+      "citation": {
+        "translator": "Samuel Butler",
+        "originalPublication": "Ancient Greece, c. 750 BCE"
+      },
+      "longExcerpt": "Sing, O goddess, the anger of Achilles son of Peleus, that brought countless ills upon the Achaeans. Many a brave soul did it send hurrying down to Hades. This historical source from -750 provides valuable insight into the europe region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "odyssey-homer",
+      "title": "The Odyssey",
+      "author": "Homer",
+      "year": -725,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "Tell me, O Muse, of that ingenious hero who travelled far and wide after he had sacked the famous town of Troy. Many cities did he visit, and many were the peoples whose manners and customs he learned.",
+      "keywords": [
+        "odysseus",
+        "journey",
+        "homer",
+        "sea",
+        "home",
+        "epic",
+        "greece",
+        "adventure"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "journey",
+          "conditions": {
+            "era": "CLASSICAL"
+          }
+        },
+        {
+          "keyword": "sea",
+          "conditions": {
+            "era": "CLASSICAL",
+            "culturalZone": "EUROPEAN"
+          }
+        }
+      ],
+      "wikisourceTitle": "The_Odyssey",
+      "citation": {
+        "translator": "Samuel Butler",
+        "originalPublication": "Ancient Greece, c. 725 BCE"
+      },
+      "longExcerpt": "Tell me, O Muse, of that ingenious hero who travelled far and wide after he had sacked the famous town of Troy. Many cities did he visit, and many were the peoples whose manners and customs he learned. This historical source from -725 provides valuable insight into the europe region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "histories-herodotus",
+      "title": "The Histories",
+      "author": "Herodotus",
+      "year": -440,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "This is the display of the inquiry of Herodotus of Halicarnassus, so that things done by man not be forgotten in time, and that great and marvelous deeds not lose their glory.",
+      "keywords": [
+        "history",
+        "persia",
+        "greece",
+        "war",
+        "customs",
+        "travel",
+        "herodotus"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "history",
+          "conditions": {
+            "era": "CLASSICAL"
+          }
+        },
+        {
+          "keyword": "customs",
+          "conditions": {
+            "era": "CLASSICAL"
+          }
+        }
+      ],
+      "wikisourceTitle": "History_of_Herodotus",
+      "citation": {
+        "translator": "George Rawlinson",
+        "originalPublication": "Greece, c. 440 BCE"
+      },
+      "longExcerpt": "This is the display of the inquiry of Herodotus of Halicarnassus, so that things done by man not be forgotten in time, and that great and marvelous deeds not lose their glory. This historical source from -440 provides valuable insight into the europe region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "thucydides-peloponnesian",
+      "title": "History of the Peloponnesian War",
+      "author": "Thucydides",
+      "year": -411,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "The growth of the power of Athens, and the alarm which this inspired in Sparta, made war inevitable. The real cause I consider to be the one which was formally most kept out of sight.",
+      "keywords": [
+        "athens",
+        "sparta",
+        "war",
+        "democracy",
+        "plague",
+        "thucydides",
+        "pericles"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "democracy",
+          "conditions": {
+            "era": "CLASSICAL",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "plague",
+          "conditions": {
+            "era": "CLASSICAL"
+          }
+        }
+      ],
+      "wikisourceTitle": "History_of_the_Peloponnesian_War",
+      "citation": {
+        "translator": "Richard Crawley",
+        "originalPublication": "Athens, c. 411 BCE"
+      },
+      "longExcerpt": "The growth of the power of Athens, and the alarm which this inspired in Sparta, made war inevitable. The real cause I consider to be the one which was formally most kept out of sight. This historical source from -411 provides valuable insight into the europe region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "republic-plato",
+      "title": "The Republic",
+      "author": "Plato",
+      "year": -380,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "The society we have described can never grow into a reality or see the light of day, and there will be no end to the troubles of states, or indeed of humanity itself, till philosophers become rulers in this world.",
+      "keywords": [
+        "plato",
+        "socrates",
+        "justice",
+        "philosophy",
+        "athens",
+        "ideal state",
+        "cave",
+        "forms",
+        "philosopher king"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "philosophy",
+          "conditions": {
+            "era": "CLASSICAL",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "ruler",
+          "conditions": {
+            "era": "CLASSICAL",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "justice",
+          "conditions": {
+            "era": "CLASSICAL"
+          }
+        }
+      ],
+      "wikisourceTitle": "The_Republic_of_Plato",
+      "citation": {
+        "translator": "Benjamin Jowett",
+        "originalPublication": "Athens, c. 380 BCE"
+      },
+      "longExcerpt": "The society we have described can never grow into a reality or see the light of day, and there will be no end to the troubles of states, or indeed of humanity itself, till philosophers become rulers in this world. This historical source from -380 provides valuable insight into the europe region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "aristotle-politics",
+      "title": "Politics",
+      "author": "Aristotle",
+      "year": -350,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "Man is by nature a political animal. He who is unable to live in society, or who has no need because he is sufficient for himself, must be either a beast or a god.",
+      "keywords": [
+        "politics",
+        "state",
+        "citizen",
+        "aristotle",
+        "government",
+        "constitution",
+        "democracy"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "citizen",
+          "conditions": {
+            "era": "CLASSICAL",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "state",
+          "conditions": {
+            "era": "CLASSICAL"
+          }
+        }
+      ],
+      "wikisourceTitle": "Politics_(Aristotle)",
+      "citation": {
+        "translator": "Benjamin Jowett",
+        "originalPublication": "Athens, c. 350 BCE"
+      },
+      "longExcerpt": "Man is by nature a political animal. He who is unable to live in society, or who has no need because he is sufficient for himself, must be either a beast or a god. This historical source from -350 provides valuable insight into the europe region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "gallic-wars-caesar",
+      "title": "Commentaries on the Gallic War",
+      "author": "Julius Caesar",
+      "year": -50,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "All Gaul is divided into three parts, one of which the Belgae inhabit, the Aquitani another, those who in their own language are called Celts, in ours Gauls, the third.",
+      "keywords": [
+        "caesar",
+        "gaul",
+        "rome",
+        "conquest",
+        "war",
+        "celts",
+        "military"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "conquest",
+          "conditions": {
+            "era": "CLASSICAL",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "gaul",
+          "conditions": {
+            "era": "CLASSICAL"
+          }
+        }
+      ],
+      "wikisourceTitle": "Commentaries_on_the_Gallic_War",
+      "citation": {
+        "translator": "W. A. McDevitte",
+        "originalPublication": "Rome, c. 50 BCE"
+      },
+      "longExcerpt": "All Gaul is divided into three parts, one of which the Belgae inhabit, the Aquitani another, those who in their own language are called Celts, in ours Gauls, the third. This historical source from -50 provides valuable insight into the europe region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "natural-history-pliny",
+      "title": "Natural History",
+      "author": "Pliny the Elder",
+      "year": 77,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "Nature, that is, life, is nothing else than this: to be born, to grow, to diminish, and to die. Man alone of all animals knows that he must die.",
+      "keywords": [
+        "nature",
+        "science",
+        "rome",
+        "encyclopedia",
+        "animals",
+        "plants",
+        "minerals"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "nature",
+          "conditions": {
+            "era": "CLASSICAL"
+          }
+        },
+        {
+          "keyword": "science",
+          "conditions": {
+            "era": "CLASSICAL",
+            "culturalZone": "EUROPEAN"
+          }
+        }
+      ],
+      "wikisourceTitle": "Natural_History_(Pliny)",
+      "citation": {
+        "translator": "John Bostock",
+        "originalPublication": "Rome, 77 CE"
+      },
+      "longExcerpt": "Nature, that is, life, is nothing else than this: to be born, to grow, to diminish, and to die. Man alone of all animals knows that he must die. This historical source from 77 provides valuable insight into the europe region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "germania-tacitus",
+      "title": "Germania",
+      "author": "Tacitus",
+      "year": 98,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "The Germans themselves I should regard as aboriginal, and not mixed at all with other races through immigration or intercourse. They all have fierce blue eyes, red hair, huge frames.",
+      "keywords": [
+        "germans",
+        "tribes",
+        "customs",
+        "romans",
+        "barbarians",
+        "tacitus",
+        "ethnography"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "tribes",
+          "conditions": {
+            "era": "CLASSICAL"
+          }
+        },
+        {
+          "keyword": "barbarians",
+          "conditions": {
+            "era": "CLASSICAL",
+            "culturalZone": "EUROPEAN"
+          }
+        }
+      ],
+      "wikisourceTitle": "Germania_(Tacitus)",
+      "citation": {
+        "translator": "Harold Mattingly",
+        "originalPublication": "Rome, 98 CE"
+      },
+      "longExcerpt": "The Germans themselves I should regard as aboriginal, and not mixed at all with other races through immigration or intercourse. They all have fierce blue eyes, red hair, huge frames. This historical source from 98 provides valuable insight into the europe region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "meditations-aurelius",
+      "title": "Meditations",
+      "author": "Marcus Aurelius",
+      "year": 170,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "You have power over your mind - not outside events. Realize this, and you will find strength. The universe is change; our life is what our thoughts make it.",
+      "keywords": [
+        "stoicism",
+        "philosophy",
+        "emperor",
+        "rome",
+        "wisdom",
+        "virtue",
+        "marcus aurelius"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "emperor",
+          "conditions": {
+            "era": "CLASSICAL",
+            "culturalZone": "EUROPEAN"
+          }
+        },
+        {
+          "keyword": "stoicism",
+          "conditions": {
+            "era": "CLASSICAL"
+          }
+        }
+      ],
+      "wikisourceTitle": "The_Meditations",
+      "citation": {
+        "translator": "George Long",
+        "originalPublication": "Roman Empire, c. 170 CE"
+      },
+      "longExcerpt": "You have power over your mind - not outside events. Realize this, and you will find strength. The universe is change; our life is what our thoughts make it. This historical source from 170 provides valuable insight into the europe region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "europe-antiquity-chronicle",
+      "title": "European Ancient Chronicle",
+      "author": "Various Authors",
+      "year": -500,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "A collection of ancient texts from the European region.",
+      "longExcerpt": "This represents a compilation of historical documents from the Ancient period in the European region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "keywords": [
+        "europe",
+        "antiquity",
+        "history",
+        "chronicle",
+        "primary source"
+      ],
+      "wikisourceTitle": "European_Ancient_Texts",
+      "citation": {
+        "originalPublication": "European Ancient Period"
+      }
+    }
+  ]
+}

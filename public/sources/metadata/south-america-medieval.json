@@ -1,0 +1,25 @@
+{
+  "sources": [
+    {
+      "id": "inca-quipu",
+      "title": "Quipu Administrative Records",
+      "author": "Inca Quipucamayoc",
+      "year": 1450,
+      "excerpt": "Knots in colored cords record tributes: 500 loads of potatoes, 200 llamas, 50 workers for road building.",
+      "longExcerpt": "The Inca Empire, largest in pre-Columbian America, ran without writing as Europeans knew it. Instead, quipucamayocs - keeper of the knots - recorded everything in quipu. Colored cords hang from a main string: red for war, yellow for gold, white for peace. Knots at different positions indicate numbers. This quipu records tribute from Cajamarca province: 500 loads of freeze-dried potatoes, 200 llamas, 50 workers for maintaining the royal road. An entire civilization's memory stored in textile.",
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "keywords": [
+        "quipu",
+        "administrative",
+        "records"
+      ],
+      "wikisourceTitle": "Quipu_Administrative_Records",
+      "citation": {
+        "originalPublication": "Inca Quipucamayoc, 1450"
+      }
+    }
+  ]
+}

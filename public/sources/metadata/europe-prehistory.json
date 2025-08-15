@@ -1,0 +1,25 @@
+{
+  "sources": [
+    {
+      "id": "cave-paintings-lascaux",
+      "title": "Cave Paintings of Lascaux",
+      "author": "Paleolithic Artists",
+      "year": -15000,
+      "excerpt": "The walls show hundreds of animals: horses, deer, aurochs, ibex, bison, and even some lions.",
+      "longExcerpt": "Deep within the caves of Lascaux in southwestern France, our ancestors left their mark upon the world. The Hall of Bulls contains some of the most spectacular paleolithic art ever discovered. Horses gallop across the ceiling, their manes flowing. Aurochs charge with lowered heads. Deer leap gracefully between them. These were not mere decorations but sacred spaces, perhaps used for hunting magic or spiritual ceremonies. The pigments - ochre, charcoal, manganese - were carefully prepared and applied with brushes, fingers, and blown through hollow bones.",
+      "era": "PREHISTORY",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "keywords": [
+        "cave",
+        "paintings",
+        "lascaux"
+      ],
+      "wikisourceTitle": "Cave_Paintings_of_Lascaux",
+      "citation": {
+        "originalPublication": "Paleolithic Artists, -15000"
+      }
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {
+      "id": "mahfouz-cairo",
+      "title": "Cairo Modern",
+      "author": "Naguib Mahfouz",
+      "year": 1945,
+      "excerpt": "The university was a battlefield of ideas: socialism, nationalism, Islamic reform, all colliding.",
+      "longExcerpt": "Cairo University in the 1930s was a battlefield of ideas. In the courtyards, Muslim Brothers preached return to pure Islam. In the cafes, communists distributed pamphlets about workers' revolution. The Wafd Party students wore their green scarves, demanding complete independence. Young women, unveiled for the first time, debated alongside men. The old world was dying, but what would replace it? Each group had its answer, its martyrs, its dreams of tomorrow.",
+      "era": "MODERN",
+      "culturalZones": [
+        "MENA"
+      ],
+      "keywords": [
+        "cairo",
+        "modern"
+      ],
+      "wikisourceTitle": "Cairo_Modern",
+      "citation": {
+        "originalPublication": "Naguib Mahfouz, 1945"
+      }
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {
+      "id": "lu-xun-diary",
+      "title": "Diary of a Madman",
+      "author": "Lu Xun",
+      "year": 1918,
+      "excerpt": "I have only just realized that I have been living all these years in a place where for four thousand years they have been eating people.",
+      "longExcerpt": "Tonight the moon is very bright. I have not seen it for over thirty years, so today when I saw it I felt in unusually high spirits. I begin to realize that during the past thirty-odd years I have been in the dark; but now I must be extremely careful. Otherwise why should the dogs have looked at me twice? I have only just realized that I have been living all these years in a place where for four thousand years they have been eating people. Eat people. It is a terrible discovery.",
+      "era": "MODERN",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "keywords": [
+        "diary",
+        "madman"
+      ],
+      "wikisourceTitle": "Diary_of_a_Madman",
+      "citation": {
+        "originalPublication": "Lu Xun, 1918"
+      }
+    }
+  ]
+}

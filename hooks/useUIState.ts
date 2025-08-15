@@ -30,7 +30,7 @@ export interface VictoryDetails {
 
 export const useUIState = () => {
     // Consume contexts for state and setters
-    const { playerCharacter, setPlayerCharacter, controlledIconX, controlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, onBuyItem, onSellItem, addItemsToInventory, onCharacterUpdate, removeItemsFromInventory } = usePlayer();
+    const { playerCharacter, setPlayerCharacter, controlledIconX, controlledIconY, setControlledIconX, setControlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, onBuyItem, onSellItem, addItemsToInventory, onCharacterUpdate, removeItemsFromInventory } = usePlayer();
     const { localArea, mapData, currentMapArchetype, currentMapClimate, currentMapSeed, animals, npcs, terrainStructures, setNpcs, setAnimals, removeVegetation, updateMineralDeposit } = useMap();
     const { 
         gameDate, formattedTime, addGameLogEntry, gameTimeHours,
@@ -343,6 +343,104 @@ export const useUIState = () => {
         setPlayerInput('');
         setIsNarratorLoading(true);
 
+        // Check if this is a physical feat attempt
+        const { detectPhysicalFeatIntent, evaluatePhysicalFeat, executePhysicalFeat } = await import('../services/physicalFeatService');
+        const featAttempt = detectPhysicalFeatIntent(playerInput);
+        
+        if (featAttempt) {
+            // Handle physical feat attempt
+            const currentTile = mapData.tiles[controlledIconY][controlledIconX];
+            
+            // If direction is specified, get target tile
+            if (featAttempt.direction) {
+                let targetX = controlledIconX;
+                let targetY = controlledIconY;
+                
+                switch (featAttempt.direction) {
+                    case 'north': targetY--; break;
+                    case 'south': targetY++; break;
+                    case 'east': targetX++; break;
+                    case 'west': targetX--; break;
+                }
+                
+                if (targetX >= 0 && targetX < mapData.tiles[0].length && 
+                    targetY >= 0 && targetY < mapData.tiles.length) {
+                    featAttempt.targetTile = mapData.tiles[targetY][targetX];
+                }
+            }
+            
+            try {
+                // Evaluate the feat
+                const evaluation = await evaluatePhysicalFeat(featAttempt, playerCharacter, currentTile, mapData);
+                
+                // Add narrator's evaluation message
+                setNarrationHistory(prev => [...prev, { 
+                    sender: 'narrator', 
+                    text: evaluation.reasoning 
+                }]);
+                
+                if (evaluation.possible) {
+                    // Execute the feat
+                    const result = await executePhysicalFeat(featAttempt, evaluation, playerCharacter);
+                    
+                    // Apply effects
+                    if (result.effects) {
+                        const newCharacter = { ...playerCharacter };
+                        
+                        if (result.effects.fatigue) {
+                            newCharacter.fatigue = Math.min(
+                                newCharacter.maxFatigue, 
+                                newCharacter.fatigue + result.effects.fatigue
+                            );
+                        }
+                        
+                        if (result.effects.damage) {
+                            newCharacter.health = Math.max(
+                                0, 
+                                newCharacter.health - result.effects.damage
+                            );
+                        }
+                        
+                        if (result.effects.lostItems) {
+                            newCharacter.inventory = newCharacter.inventory.filter(
+                                item => !result.effects.lostItems?.some(lost => lost.id === item.id)
+                            );
+                        }
+                        
+                        if (result.effects.newPosition && result.success) {
+                            // Move the player to the new position
+                            setControlledIconX(result.effects.newPosition.x);
+                            setControlledIconY(result.effects.newPosition.y);
+                        }
+                        
+                        setPlayerCharacter(newCharacter);
+                    }
+                    
+                    // Add result message
+                    setNarrationHistory(prev => [...prev, { 
+                        sender: 'narrator', 
+                        text: result.message 
+                    }]);
+                } else if (evaluation.consequences?.alternativeSuggestion) {
+                    // Add alternative suggestion
+                    setNarrationHistory(prev => [...prev, { 
+                        sender: 'narrator', 
+                        text: evaluation.consequences.alternativeSuggestion 
+                    }]);
+                }
+            } catch (error) {
+                console.error('[PhysicalFeat] Error processing feat:', error);
+                setNarrationHistory(prev => [...prev, { 
+                    sender: 'narrator', 
+                    text: 'You consider the action but decide against it for now.' 
+                }]);
+            } finally {
+                setIsNarratorLoading(false);
+            }
+            
+            return; // Don't continue to normal narrator processing
+        }
+
         let contextTile: any;
         let interiorContext: any = undefined;
         
@@ -398,7 +496,7 @@ export const useUIState = () => {
         } finally {
             setIsNarratorLoading(false);
         }
-    }, [playerInput, playerCharacter, mapData, controlledIconX, controlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, gameDate, currentMapArchetype, currentMapClimate, currentTimeOfDay, currentZone, currentMapSeed, gameTimeHours, animals, npcs, terrainStructures, setNarrationHistory, setPlayerInput, setIsNarratorLoading]);
+    }, [playerInput, playerCharacter, mapData, controlledIconX, controlledIconY, setControlledIconX, setControlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, gameDate, currentMapArchetype, currentMapClimate, currentTimeOfDay, currentZone, currentMapSeed, gameTimeHours, animals, npcs, terrainStructures, setNarrationHistory, setPlayerInput, setIsNarratorLoading, setPlayerCharacter]);
 
     const handleEncounter = useCallback((target: EncounterableEntity) => {
         setEncounterTarget(target);

@@ -1,0 +1,195 @@
+{
+  "sources": [
+    {
+      "id": "iroquois-constitution",
+      "title": "Great Law of Peace",
+      "author": "Haudenosaunee Confederacy (Iroquois)",
+      "year": 1450,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "NORTH_AMERICAN_PRE_COLUMBIAN"
+      ],
+      "excerpt": "I am Dekanawidah and with the Five Nations' Confederate Lords I plant the Tree of the Great Peace. I plant it in your territory, Adodarhoh, and the Onondaga Nation, in the territory of you who are the Firekeepers.",
+      "longExcerpt": "I am Dekanawidah, and with the Lords of the Confederacy of the Five Nations, I plant the Tree of the Great Peace. I name the tree the Tree of the Great Long Leaves. Under the shade of this Tree of the Great Peace we spread the soft white feathery down of the globe thistle as seats for you, Adodarhoh, and your cousin Lords.\n\nWe place at the top of the Tree of Long Leaves an Eagle who is able to see afar. If he sees in the distance any evil approaching or any danger threatening, he will at once warn the people of the Confederacy. The roots of this tree have spread out from it, one to the north, one to the east, one to the south, and one to the west. These are the Great White Roots, and their nature is Peace and Strength. If any man or any nation outside the Five Nations shall obey the laws of the Great Peace and make known their disposition to the Lords of the Confederacy, they may trace the Roots to the Tree and if their minds are clean and they are obedient and promise to obey the wishes of the Confederate Council, they shall be welcomed to take shelter beneath the Tree of the Long Leaves.\n\nWhen the Confederate Lords assemble for the purpose of holding a council, the Onondaga Lords shall open it by expressing their gratitude to their cousin Lords and greeting them, and they shall make an address and offer thanks to the earth where men dwell, to the streams of water, the pools, the springs and the lakes, to the maize and the fruits, to the medicinal herbs and trees, to the forest trees for their usefulness, to the animals that serve as food and give their pelts for clothing, to the great winds and the lesser winds, to the Thunderers, to the Sun, the mighty warrior, to the Moon, and to the messengers of the Creator who reveal his wishes and to the Great Creator who dwells in the heavens above. Then shall the Onondaga Lords declare the council open.\n\nAll issues that come before the council of the Confederacy shall be decided by the two combined bodies of Confederate Lords. First the question shall be passed upon by the Mohawk and Seneca Lords, then it shall come before the Oneida and Cayuga Lords. If they agree, the matter is confirmed. If they disagree, the matter shall be referred to the Onondaga Lords, the Firekeepers, for a final decision. This is the way of the Great Law, which establishes peace and unites our minds as one.",
+      "keywords": [
+        "democracy",
+        "confederation",
+        "Native American",
+        "government",
+        "peace",
+        "Haudenosaunee"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Longhouse",
+          "conditions": {
+            "culturalZone": "NORTH_AMERICAN_PRE_COLUMBIAN"
+          }
+        }
+      ],
+      "citation": {
+        "originalPublication": "Oral tradition, transcribed c. 1880 by Arthur C. Parker",
+        "modernSource": "Public Domain"
+      },
+      "wikisourceTitle": "The_Constitution_of_the_Five_Nations",
+      "internetArchiveId": null,
+      "isStandard": true
+    },
+    {
+      "id": "north-america-medieval-chronicle",
+      "title": "North American Medieval Chronicle",
+      "author": "Various Authors",
+      "year": 1000,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "NORTH_AMERICAN_PRE_COLUMBIAN"
+      ],
+      "excerpt": "A collection of medieval texts from the North American region.",
+      "longExcerpt": "This represents a compilation of historical documents from the Medieval period in the North American region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "keywords": [
+        "north-america",
+        "medieval",
+        "history",
+        "chronicle",
+        "primary source"
+      ],
+      "wikisourceTitle": "North American_Medieval_Texts",
+      "citation": {
+        "originalPublication": "North American Medieval Period"
+      }
+    }
+  ],
+  "additional_sources": [
+    {
+      "id": "cahokia-wooden-tablets",
+      "title": "Cahokia Birch Bark Records",
+      "author": "Mississippian scribes",
+      "year": 1200,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "NORTH_AMERICAN_PRE_COLUMBIAN"
+      ],
+      "excerpt": "When the corn is knee-high, the ceremonies of the Green Corn begin. The sacred fire must be rekindled and all debts forgiven.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "cahokia",
+        "mississippian",
+        "corn",
+        "ceremony",
+        "agriculture",
+        "mounds",
+        "ritual"
+      ],
+      "internetArchiveId": "cahokiancientcit00paukeefe",
+      "citation": {
+        "translator": "Timothy Pauketat",
+        "originalPublication": "Oral tradition transcribed, c. 1200"
+      }
+    },
+    {
+      "id": "popol-vuh",
+      "title": "Popol Vuh",
+      "author": "K'iche' Maya scribes",
+      "year": 1550,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "NORTH_AMERICAN_PRE_COLUMBIAN"
+      ],
+      "excerpt": "This is the account of how all was in suspense, all calm, in silence; all motionless, still, and the expanse of the sky was empty.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "maya",
+        "creation",
+        "mythology",
+        "guatemala",
+        "quiche",
+        "cosmology",
+        "gods"
+      ],
+      "wikisourceTitle": "Popol_Vuh",
+      "internetArchiveId": "popolvuh00recycoft",
+      "citation": {
+        "translator": "Dennis Tedlock",
+        "originalPublication": "Guatemala, c. 1550"
+      }
+    },
+    {
+      "id": "anasazi-pottery-marks",
+      "title": "Ancestral Puebloan Pottery Inscriptions",
+      "author": "Pueblo potters",
+      "year": 1300,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "NORTH_AMERICAN_PRE_COLUMBIAN"
+      ],
+      "excerpt": "The spiral represents the journey outward and the return. Water symbols bring rain. The bear paw marks strength and good health.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "pueblo",
+        "pottery",
+        "symbols",
+        "anasazi",
+        "art",
+        "daily life",
+        "crafts"
+      ],
+      "internetArchiveId": "ancestralpueblopotter",
+      "citation": {
+        "translator": "Linda Cordell",
+        "originalPublication": "Southwest USA, c. 1300"
+      }
+    },
+    {
+      "id": "inuit-songs",
+      "title": "Songs of the Copper Inuit",
+      "author": "Various singers",
+      "year": 1400,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "NORTH_AMERICAN_PRE_COLUMBIAN"
+      ],
+      "excerpt": "I have grown old, I have lived much, many things I understand, but four riddles I cannot solve: the sun's origin, the moon's nature, the minds of women, and why walrus come ashore.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "inuit",
+        "arctic",
+        "songs",
+        "hunting",
+        "daily life",
+        "wisdom",
+        "oral tradition"
+      ],
+      "internetArchiveId": "reportofcanadian05jenn",
+      "citation": {
+        "translator": "Diamond Jenness",
+        "originalPublication": "Arctic oral tradition, c. 1400"
+      }
+    },
+    {
+      "id": "midewiwin-scrolls",
+      "title": "Midewiwin Birch Bark Scrolls",
+      "author": "Ojibwe medicine keepers",
+      "year": 1450,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "NORTH_AMERICAN_PRE_COLUMBIAN"
+      ],
+      "excerpt": "The path of life has four hills: infancy, youth, middle age, and old age. At each hill, we receive new medicines and responsibilities.",
+      "longExcerpt": "TK",
+      "keywords": [
+        "ojibwe",
+        "medicine",
+        "midewiwin",
+        "birch bark",
+        "healing",
+        "ceremony",
+        "great lakes"
+      ],
+      "internetArchiveId": "midewiwinceremon00hoff",
+      "citation": {
+        "translator": "Walter James Hoffman",
+        "originalPublication": "Great Lakes region, c. 1450"
+      }
+    }
+  ]
+}

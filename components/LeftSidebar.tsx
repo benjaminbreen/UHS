@@ -1,5 +1,6 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { BarChart, Crown, Building, MapPin, Users, Heart, BookOpen } from 'lucide-react';
 import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
 import { useGame } from '../contexts/GameContext';
@@ -12,10 +13,15 @@ import { MAP_ARCHETYPE_DESCRIPTIONS, FACTION_DATA, STRUCTURE_BLUEPRINTS, METALS 
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { getSafariOptimizedClassName } from '../utils/safariUtils';
 import { getDominantSector, getPrimaryIndustry, EconomicSector } from '../constants/gameData/economicSectors';
+import { primarySourceService } from '../services/primarySourceService';
 
 
-export type LeftSidebarTab = 'analysis' | 'overview' | 'npcs' | 'animals';
+export type LeftSidebarTab = 'analysis' | 'overview' | 'npcs' | 'animals' | 'sources';
 type MajorTab = 'map' | 'history' | 'journal';
+
+const MIN_SIDEBAR_WIDTH = 280;
+const MAX_SIDEBAR_WIDTH = 500;
+const DEFAULT_SIDEBAR_WIDTH = 350;
 
 const AnimalListItem = React.memo(({ animal, isSelected, onClick, description }: { animal: AnimalEntity; isSelected: boolean; onClick: (animal: AnimalEntity) => void; description: string; }) => {
     return (
@@ -24,9 +30,7 @@ const AnimalListItem = React.memo(({ animal, isSelected, onClick, description }:
             <div className="flex-1 min-w-0">
                 <p className="font-semibold truncate text-sm">{animal.speciesName}</p>
                 <div className="text-xs text-gray-400 flex items-center mt-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3 h-3 mr-1 flex-shrink-0">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.53-2.475M15 19.128v-3.867m-1.371 3.267c-.24-.02-.48-.052-.728-.082m-4.5-4.243a4.5 4.5 0 118.27 2.135A4.5 4.5 0 0110.5 18c-1.554 0-2.923-.746-3.71-1.867m-1.371-3.267a4.5 4.5 0 015.426-3.318 4.5 4.5 0 011.88 4.041m-5.426-3.318a4.5 4.5 0 00-1.88-2.288M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
+                    <Heart className="w-3 h-3 mr-1 flex-shrink-0" />
                     <span className="truncate">{description}</span>
                 </div>
             </div>
@@ -41,9 +45,7 @@ const NpcListItem = React.memo(({ npc, isSelected, onClick }: { npc: NpcEntity; 
             <div className="flex-1 min-w-0">
                 <p className="font-semibold truncate text-sm">{npc.name}</p>
                 <div className="text-xs text-gray-400 flex items-center mt-1">
-                     <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 mr-1 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M10 9a3 3 0 100-6 3 3 0 000 6zM6 8a2 2 0 11-4 0 2 2 0 014 0zM1.49 15.326a.78.78 0 01-.358-.442 3 3 0 014.308-3.516 6.484 6.484 0 00-1.905 3.959c-.023.222-.014.442.028.658a.78.78 0 01-.357.901l-1.444.722a.78.78 0 01-1.002-.215zM12 11a5 5 0 015 5v1a1 1 0 01-1 1H6a1 1 0 01-1-1v-1a5 5 0 015-5z" />
-                    </svg>
+                     <Users className="w-3 h-3 mr-1 flex-shrink-0" />
                     <span className="truncate">{npc.descriptions.short}</span>
                 </div>
             </div>
@@ -98,6 +100,11 @@ const LeftSidebar: React.FC = () => {
     const { gameDate, season, gameTimeHours, gameTimeMinutes, currentTimeOfDay, gameLog, playerJournal, onAddPlayerJournalEntry, currentZone, currentRegion } = useGame();
   
     const [activeMajorTab, setActiveMajorTab] = useState<MajorTab>('map');
+    const [sourceCount, setSourceCount] = useState<number>(0);
+    const [sidebarWidth, setSidebarWidth] = useState<number>(DEFAULT_SIDEBAR_WIDTH);
+    const [isResizing, setIsResizing] = useState<boolean>(false);
+    const resizeStartX = useRef<number>(0);
+    const resizeStartWidth = useRef<number>(DEFAULT_SIDEBAR_WIDTH);
   
     const formattedTime = useMemo(() => `${String(gameTimeHours).padStart(2, '0')}:${String(gameTimeMinutes).padStart(2, '0')}`, [gameTimeHours, gameTimeMinutes]);
     
@@ -106,6 +113,59 @@ const LeftSidebar: React.FC = () => {
       const dateObj = new Date(gameDate.year, gameDate.month - 1, gameDate.day);
       return dateObj.toLocaleDateString(undefined, options);
     }, [gameDate]);
+
+    // Load source count when era/zone changes
+    useEffect(() => {
+        const loadSourceCount = async () => {
+            try {
+                const dateInfo = parseDateString(String(gameDate.year));
+                const culturalZoneEnum = mapLocationToCulture(currentZone, dateInfo.year);
+                const sources = await primarySourceService.getSourcesForContext(
+                    dateInfo.era as HistoricalEra,
+                    culturalZoneEnum as any
+                );
+                setSourceCount(sources.length);
+            } catch (error) {
+                console.error('Error loading source count:', error);
+                setSourceCount(0);
+            }
+        };
+        
+        loadSourceCount();
+    }, [gameDate.year, currentZone]);
+
+    // Resize handlers
+    const handleResizeStart = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
+        setIsResizing(true);
+        resizeStartX.current = e.clientX;
+        resizeStartWidth.current = sidebarWidth;
+    }, [sidebarWidth]);
+
+    const handleResizeMove = useCallback((e: MouseEvent) => {
+        if (!isResizing) return;
+        const dx = e.clientX - resizeStartX.current;
+        const newWidth = resizeStartWidth.current + dx;
+        setSidebarWidth(Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, newWidth)));
+    }, [isResizing]);
+
+    const handleResizeEnd = useCallback(() => {
+        setIsResizing(false);
+    }, []);
+
+    useEffect(() => {
+        if (isResizing) {
+            window.addEventListener('mousemove', handleResizeMove);
+            window.addEventListener('mouseup', handleResizeEnd);
+        } else {
+            window.removeEventListener('mousemove', handleResizeMove);
+            window.removeEventListener('mouseup', handleResizeEnd);
+        }
+        return () => {
+            window.removeEventListener('mousemove', handleResizeMove);
+            window.removeEventListener('mouseup', handleResizeEnd);
+        };
+    }, [isResizing, handleResizeMove, handleResizeEnd]);
 
     // MOVED: Move all useMemo hooks to top level
     const mineralDeposits = useMemo(() => {
@@ -288,7 +348,10 @@ const LeftSidebar: React.FC = () => {
     const selectedAnimalId = isAnimal(infoModalTarget) ? infoModalTarget?.id : undefined;
     const selectedNpcId = isNpc(infoModalTarget) ? infoModalTarget?.id : undefined;
 
-    const animalShortDescriptions = useMemo(() => new Map(animals.map(animal => [animal.id, generateAnimalDescriptions(animal).short])), [animals]);
+    const animalShortDescriptions = useMemo(() => {
+        if (!animals || !Array.isArray(animals)) return new Map();
+        return new Map(animals.map(animal => [animal.id, generateAnimalDescriptions(animal).short]));
+    }, [animals]);
     
     const formatEnumString = (enumString: string) => {
       if (!enumString) return "Unknown";
@@ -373,7 +436,7 @@ const LeftSidebar: React.FC = () => {
                             onClick={() => setIsMapDetailsModalOpen(true)}
                             className="w-full flex items-center justify-center space-x-2 p-3 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 hover:from-emerald-600/30 hover:to-teal-600/30 border border-emerald-500/50 text-emerald-200 rounded-lg transition-all duration-200 font-medium"
                         >
-                            <span className="text-lg">📊</span>
+                            <BarChart className="w-5 h-5" />
                             <span>Detailed Terrain Analysis</span>
                         </button>
                     </div>
@@ -432,7 +495,8 @@ const LeftSidebar: React.FC = () => {
             const archetypePhrase = getArchetypePhrase(currentMapArchetype);
           
             const sentence1 = `Located in the ${currentRegion}, ${localArea} is a ${climateStr} region which ${archetypePhrase}`;
-            const sentence2 = `The year is ${gameDate.year}, ${factionData?.eraContextSentence || 'a time of local conflicts and shifting allegiances.'}`;
+            const yearDisplay = gameDate.year < 0 ? `${Math.abs(gameDate.year)} BCE` : `${gameDate.year} CE`;
+            const sentence2 = `The year is ${yearDisplay}, ${factionData?.eraContextSentence || 'a time of local conflicts and shifting allegiances.'}`;
             
             const finalDesc = `${sentence1} ${sentence2}`;
            
@@ -441,39 +505,62 @@ const LeftSidebar: React.FC = () => {
             const dominantPower = factionData?.dominantPower || "Local Tribes";
           
             return (
-              <div className="space-y-5 text-sm text-gray-300">
-                <div>
-                  <h4 className="font-semibold text-amber-300 mb-2 border-b border-gray-600/50 pb-2 flex items-center gap-2">
-                    <span className="text-lg">👑</span>
-                    Dominant Power
-                  </h4>
-                  <p className="text-lg font-bold text-amber-400 mb-2">
-                    {dominantPower}
-                  </p>
-                  {factionData?.dominantPowerDescription && (
-                      <blockquote className="border-l-2 border-amber-600/50 pl-3 italic text-amber-200/80 leading-relaxed text-xs">
-                          {factionData.dominantPowerDescription}
-                      </blockquote>
-                  )}
-          
-                  {majorCity && (
-                    <>
-                      <h4 className="font-semibold text-cyan-300 mb-3 mt-4 border-b border-gray-600/50 pb-2 flex items-center gap-2">
-                        <span className="text-lg">🏛️</span>
-                        Major City
-                      </h4>
-                      <div className="bg-cyan-900/20 px-3 py-2 rounded-lg border border-cyan-700/30 mb-4">
-                        <p className="text-lg font-bold text-cyan-400 mb-1">{majorCity.name}</p>
-                        <p className="text-xs italic text-gray-400">{majorCity.description}</p>
-                      </div>
-                    </>
-                  )}
-          
-                  <h4 className="font-semibold text-blue-300 mb-3 mt-4 border-b border-gray-600/50 pb-2">Description</h4>
-                  <p className="italic text-gray-300 leading-relaxed bg-slate-800/30 p-3 rounded-lg border border-slate-700/30">
-                    {finalDesc}
-                  </p>
+              <div className="flex flex-col h-full">
+                <div className="space-y-5 text-sm text-gray-300 flex-1">
+                  <div>
+                    <h4 className="font-semibold text-amber-300 mb-2 border-b border-gray-600/50 pb-2 flex items-center gap-2">
+                      <Crown className="w-5 h-5" />
+                      Dominant Power
+                    </h4>
+                    <p className="text-lg font-bold text-amber-400 mb-2">
+                      {dominantPower}
+                    </p>
+                    {factionData?.dominantPowerDescription && (
+                        <blockquote className="border-l-2 border-amber-600/50 pl-3 italic text-amber-200/80 leading-relaxed text-xs">
+                            {factionData.dominantPowerDescription}
+                        </blockquote>
+                    )}
+            
+                    {majorCity && (
+                      <>
+                        <h4 className="font-semibold text-cyan-300 mb-3 mt-4 border-b border-gray-600/50 pb-2 flex items-center gap-2">
+                          <Building className="w-5 h-5" />
+                          Major City
+                        </h4>
+                        <div className="bg-cyan-900/20 px-3 py-2 rounded-lg border border-cyan-700/30 mb-4">
+                          <p className="text-lg font-bold text-cyan-400 mb-1">{majorCity.name}</p>
+                          <p className="text-xs italic text-gray-400">{majorCity.description}</p>
+                        </div>
+                      </>
+                    )}
+            
+                    <h4 className="font-semibold text-blue-300 mb-3 mt-4 border-b border-gray-600/50 pb-2">Description</h4>
+                    <p className="italic text-gray-300 leading-relaxed bg-slate-800/30 p-3 rounded-lg border border-slate-700/30">
+                      {finalDesc}
+                    </p>
+                  </div>
                 </div>
+                
+                {/* Primary Sources Banner */}
+                {sourceCount > 0 && (
+                  <button
+                    onClick={() => {
+                      setActiveMajorTab('history');
+                      // Note: The History panel will default to primary sources tab
+                    }}
+                    className="mt-4 w-full bg-gradient-to-r from-amber-600/20 to-amber-500/20 hover:from-amber-600/30 hover:to-amber-500/30 border border-amber-500/50 rounded-lg p-3 flex items-center justify-between group transition-all duration-200"
+                  >
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-amber-400" />
+                      <span className="text-sm font-medium text-amber-300">
+                        {sourceCount} historical source{sourceCount !== 1 ? 's' : ''} available
+                      </span>
+                    </div>
+                    <span className="text-xs text-amber-400/80 group-hover:text-amber-300 transition-colors">
+                      Click to view →
+                    </span>
+                  </button>
+                )}
               </div>
             );
         }
@@ -483,10 +570,10 @@ const LeftSidebar: React.FC = () => {
                     <h4 className="text-sm font-semibold text-blue-300 flex justify-between items-center shrink-0">
                         <span>Observed Wildlife</span>
                         <span className="bg-gray-600 text-gray-200 text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-sm">
-                            {animals.length}
+                            {animals?.length || 0}
                         </span>
                     </h4>
-                    {animals.length > 0 ? (
+                    {animals && animals.length > 0 ? (
                         <div className="space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 flex-1 pr-1">
                             {animals.map(animal => (
                                 <AnimalListItem key={animal.id} animal={animal} isSelected={selectedAnimalId === animal.id} onClick={setInfoModalTarget} description={animalShortDescriptions.get(animal.id) || ''} />
@@ -504,10 +591,10 @@ const LeftSidebar: React.FC = () => {
                     <h4 className="text-sm font-semibold text-blue-300 flex justify-between items-center shrink-0">
                         <span>Nearby People</span>
                         <span className="bg-gray-600 text-gray-200 text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-sm">
-                            {npcs.length}
+                            {npcs?.length || 0}
                         </span>
                     </h4>
-                    {npcs.length > 0 ? (
+                    {npcs && npcs.length > 0 ? (
                         <div className="space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 flex-1 pr-1">
                             {npcs.map(npc => (
                                 <NpcListItem key={npc.id} npc={npc} isSelected={selectedNpcId === npc.id} onClick={setInfoModalTarget} />
@@ -525,6 +612,7 @@ const LeftSidebar: React.FC = () => {
 
     const mapSubTabs: { id: LeftSidebarTab, label: string }[] = [
         { id: 'overview', label: 'Overview' },
+     
         { id: 'analysis', label: 'Analysis' },
         { id: 'npcs', label: 'NPCs' },
         { id: 'animals', label: 'Animals' },
@@ -555,7 +643,17 @@ const LeftSidebar: React.FC = () => {
     ];
   
     return (
-        <div className={getSafariOptimizedClassName(`flex-shrink-0 bg-sidebar-gradient shadow-sidebar-left backdrop-blur-xl border-r border-slate-700/80 flex flex-col text-slate-200 transition-all duration-300 h-full ${isLeftSidebarExpanded ? 'w-[400px]' : 'w-0 p-0 border-none'}`)}>
+        <div className={getSafariOptimizedClassName(`relative flex-shrink-0 bg-sidebar-gradient shadow-sidebar-left backdrop-blur-xl border-r border-slate-700/80 flex flex-col text-slate-200 transition-all duration-300 h-full`)}
+            style={{ width: isLeftSidebarExpanded ? `${sidebarWidth}px` : '0px' }}
+        >
+            {/* Resize handle */}
+            {isLeftSidebarExpanded && (
+                <div 
+                    onMouseDown={handleResizeStart}
+                    className="absolute top-0 right-0 w-1 h-full cursor-ew-resize hover:bg-blue-400/30 transition-colors z-10"
+                    style={{ width: '4px' }}
+                />
+            )}
             <div className={`p-3 flex flex-col flex-1 overflow-hidden transition-opacity duration-200 ${isLeftSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
                 <div className="shrink-0">
                     <div className="p-4 rounded-xl bg-slate-800/70 mb-4 shadow-lg border border-slate-700/50 relative">

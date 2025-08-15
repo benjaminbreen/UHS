@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {
+      "id": "nazca-lines",
+      "title": "The Nazca Lines",
+      "author": "Nazca Civilization",
+      "year": 200,
+      "excerpt": "Hummingbirds, spiders, monkeys, and geometric patterns stretch across the desert, visible only from the sky.",
+      "longExcerpt": "Across the Nazca desert, lines run straight for kilometers, triangles and trapezoids cover hundreds of meters, and enormous figures - a hummingbird, a spider, a monkey with a spiral tail - can only be seen complete from high above. Were they paths for ceremonial processions? Maps of underground water? Messages to the gods who looked down from mountain peaks? The builders left no written explanation, only these massive geoglyphs that have survived two thousand years of wind and sun.",
+      "era": "PREHISTORY",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "keywords": [
+        "nazca",
+        "lines"
+      ],
+      "wikisourceTitle": "The_Nazca_Lines",
+      "citation": {
+        "originalPublication": "Nazca Civilization, 200"
+      }
+    }
+  ]
+}

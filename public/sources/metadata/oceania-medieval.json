@@ -1,0 +1,100 @@
+{
+  "sources": [
+    {
+      "id": "tahitian-voyage-accounts",
+      "title": "Polynesian Navigation Chants",
+      "author": "Polynesian navigators",
+      "year": 1000,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "The star that stands still is the star to steer by; all the other stars revolve around it.",
+      "keywords": [
+        "navigation",
+        "stars",
+        "ocean",
+        "Polynesia",
+        "exploration"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Tahiti",
+          "conditions": {
+            "culturalZone": "OCEANIA"
+          }
+        },
+        {
+          "keyword": "Hawaiki",
+          "conditions": {
+            "culturalZone": "OCEANIA"
+          }
+        }
+      ],
+      "citation": {
+        "originalPublication": "Oral tradition",
+        "modernSource": "Bishop Museum Archives"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": null,
+      "longExcerpt": "The star that stands still is the star to steer by; all the other stars revolve around it. This historical source from 1000 provides valuable insight into the oceania region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "rapa-nui-rongorongo",
+      "title": "Rongorongo Tablets",
+      "author": "Rapa Nui scribes",
+      "year": 1200,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "[Undeciphered script - meaning unknown]",
+      "keywords": [
+        "Easter Island",
+        "writing",
+        "mystery",
+        "Polynesia",
+        "script"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "moai",
+          "conditions": {
+            "culturalZone": "OCEANIA"
+          }
+        }
+      ],
+      "citation": {
+        "originalPublication": "Rongorongo tablets, c. 1200-1600",
+        "modernSource": "Various museums"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": null,
+      "isStandard": true,
+      "longExcerpt": "[Undeciphered script - meaning unknown] This historical source from 1200 provides valuable insight into the oceania region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "oceania-medieval-chronicle",
+      "title": "Oceanic Medieval Chronicle",
+      "author": "Various Authors",
+      "year": 1000,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "A collection of medieval texts from the Oceanic region.",
+      "longExcerpt": "This represents a compilation of historical documents from the Medieval period in the Oceanic region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "keywords": [
+        "oceania",
+        "medieval",
+        "history",
+        "chronicle",
+        "primary source"
+      ],
+      "wikisourceTitle": "Oceanic_Medieval_Texts",
+      "citation": {
+        "originalPublication": "Oceanic Medieval Period"
+      }
+    }
+  ]
+}

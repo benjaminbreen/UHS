@@ -13,12 +13,12 @@ type EncounterableEntity = AnimalEntity | NpcEntity;
  */
 export function generateEncounterDialogue(
     target: EncounterableEntity,
-    history: DialogueEntry[],
+    history: DialogueEntry[] | string[],
     playerInput: string,
     playerCharacter: PlayerCharacter,
     allNpcs: NpcEntity[],
     mapData: MapData | null,
     useRealLanguage: boolean
-): Promise<{ text: string, newName?: string }> {
+): Promise<{ text: string, reputationChange?: number, shouldLeave?: boolean, shouldAttack?: boolean }> {
     return generateLlmDialogue(target, history, playerInput, playerCharacter, allNpcs, mapData, useRealLanguage);
 }

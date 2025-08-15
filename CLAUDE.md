@@ -3,26 +3,219 @@
 ## Project Overview
 - **Creator**: Benjamin Breen, Historian at UCSC
 - **Purpose**: Educational history simulation game for casual players and history students
-- **Focus**: Performance optimization and mobile experience improvements
+- **Current Phase**: Implementing Primary Source System & World Weaver
 
-## Current Issues & Tasks
+## INCOMPLETE FEATURES - NPC System (Added August 2025)
 
-### Map Display Optimization
-- **Problem**: MapDisplayOptimized.tsx has a critical bug where canvas terrain tiles don't move with SVG elements during drag
-- **Goal**: Achieve feature parity with MapDisplay.tsx but with better performance
-- **Key Requirements**:
-  - Snappy drag and drop
-  - Smooth zoom functionality  
-  - No lag during map movement
-  - Canvas and SVG layers must move in sync
+### NPC Enhancements (Partially Implemented)
+The following NPC features have UI elements created but lack full implementation:
 
-### Mobile Experience
-- **Add mobile-specific controls**:
-  - Direction buttons for navigation
-  - Touch-friendly zoom controls
-  - Pan gestures support
-- **Responsive design improvements for smaller screens**
-- **Auto-detect screen size and apply appropriate controls**
+1. **Trade/Bargaining System**
+   - ✅ UI: Slide-out negotiation panel exists in EncounterModal
+   - ❌ Backend: No LLM integration - responses are static/same each time
+   - ❌ Logic: No actual price negotiation or dynamic responses
+
+2. **Reputation System**
+   - ✅ UI: Reputation stat exists in player character (mapReputation)
+   - ❌ UI: No visual feedback when reputation changes during conversations
+   - ❌ Logic: Reputation doesn't actually change based on dialogue choices
+   - ❌ Effects: Reputation doesn't affect NPC behavior or prices
+
+3. **NPC Agency**
+   - ❌ NPCs cannot end conversations on their own
+   - ❌ NPCs cannot walk up to player and initiate dialogue
+   - ❌ NPCs cannot initiate combat based on reputation/context
+   - ❌ No NPC movement or pathfinding
+
+4. **NPC Memory & Context**
+   - ✅ UI: Memory system structure exists
+   - ❌ Logic: Memory doesn't persist between conversations properly
+   - ❌ Context: NPCs don't remember previous interactions meaningfully
+
+### Required Implementation Work:
+- Connect negotiation panel to LLM service for dynamic responses
+- Add reputation change notifications and effects
+- Implement NPC agency system for autonomous actions
+- Create NPC movement and interaction initiation
+- Fix memory persistence and context awareness
+
+## Active Development: Primary Source System
+
+### Implementation Plan (3 Phases)
+
+#### Phase 1: Core Infrastructure (Current Priority)
+**Goal**: Get 50 sources working end-to-end with sharded JSON architecture
+
+1. **Data Structure** 
+   - Create sharded JSON files in `/public/sources/metadata/` 
+   - Format: `{era}-{culturalZone}.json` (e.g., `medieval-european.json`)
+   - Start with 5 shards, 10 sources each
+   - Include: title, author, year, excerpt (2-3 sentences), keywords, contextual keywords
+
+2. **Service Layer** 
+   - Implement lazy-loading service for shards
+   - Add Wikisource API integration for full text fetching
+   - Browser caching with IndexedDB
+   - Context-aware keyword matching
+
+3. **UI Integration** 
+   - Clickable keyword highlighting in game text
+   - Primary Source Modal for reading full texts
+   - "Sources" tab in left sidebar showing relevant sources by era/region
+   - Source citations in NPC encounter modals
+
+4. **LLM Integration** 
+   - Pass 2-3 relevant source excerpts to NPC dialogue generation
+   - Add "Historical Context" section to encounter modals
+   - Include source references in generated text
+
+#### Phase 2: Content Expansion 
+**Goal**: Scale to 200 sources with enhanced features
+
+1. **Content Growth**
+   - Expand to 15-20 shards covering all eras/regions
+   - Add 150 more sources with focus on non-Western texts
+   - Implement source quality tiers (essential/supplementary)
+
+2. **Advanced Features**
+   - Smart pre-loading of likely-needed shards
+   - Related sources recommendation
+   - Search across all source metadata
+   - Source collections/themes
+
+3. **Performance Optimization**
+   - Implement service worker for offline access
+   - Compress shards with gzip
+   - Add loading states and progressive enhancement
+
+#### Phase 3: User Customization (Future)
+**Goal**: Premium features and user uploads
+
+1. **Freemium Model**
+   - Free: Access to all public domain sources
+   - Premium ($5/month): Upload custom sources, advanced search, priority caching
+   - Educational ($50/month): Classroom management, required readings, progress tracking
+
+2. **Custom Source System**
+   - Implement Supabase for user uploads (max 10MB per file)
+   - PDF text extraction in browser
+   - Custom keyword mapping interface
+
+## Next Development: World Weaver System
+
+### Overview
+An LLM-powered system that generates historically accurate scenarios from natural language prompts, creating special NPCs, quest items, victory conditions, and narrative events.
+
+### Implementation Plan
+
+#### Phase 1: Scenario Generation Engine
+**Goal**: Convert user prompts into playable scenarios
+
+1. **Input Processing**
+   ```
+   User: "Revolutionary War spy in upstate New York"
+   ↓
+   World Weaver: Structured JSON with year, location, NPCs, objectives
+   ```
+
+2. **Output Structure**
+   - Scenario metadata (year, location, map center)
+   - Player character (role, starting position, primary goal)
+   - 2-3 Special NPCs (historical figures with personalities)
+   - Quest items and victory conditions
+   - Relevant primary sources to surface
+
+3. **Integration Points**
+   - Hooks into map generation for faction placement
+   - Special NPC injection into standard NPC system
+   - Victory condition checks in game loop
+   - Primary source surfacing based on scenario
+
+#### Phase 2: Dynamic Event System
+**Goal**: Living world that responds to player actions
+
+1. **Event Types**
+   - Initial event (kicks off the narrative)
+   - Triggered events (based on player actions)
+   - Random events (historically appropriate)
+   - Completion events (victory/failure)
+
+2. **Event Generation**
+   - LLM generates events based on:
+     - Current game state
+     - Historical context from primary sources
+     - Player's recent actions
+     - Special NPC locations/states
+
+3. **Event Effects**
+   - Spawn new NPCs or items
+   - Change faction relationships
+   - Unlock new dialogue options
+   - Modify victory conditions
+
+#### Phase 3: Assessment & Educational Features
+**Goal**: Make learning measurable and guided
+
+1. **Assessment Engine**
+   - LLM evaluates player actions against historical accuracy
+   - Scores based on: historical plausibility, source usage, creative problem-solving
+   - Provides feedback on anachronisms or historical insights
+
+2. **Educational Modes**
+   - Guided scenarios with learning objectives
+   - Primary source requirements (must read X sources)
+   - Historical accuracy mode (stricter constraints)
+   - Creative mode (alternate history)
+
+### Technical Architecture
+
+```
+User Input → World Weaver LLM → Scenario JSON → Game State
+                     ↑                              ↓
+            Primary Sources Context          Dynamic Events
+```
+
+### Scenario Template Structure
+```json
+{
+  "scenario": {
+    "year": 1780,
+    "location": "Hudson Valley, New York",
+    "mapSettings": {
+      "center": {"x": 45, "y": 30},
+      "factions": ["British Empire", "Continental Army"],
+      "settlementDensity": "low"
+    }
+  },
+  "playerCharacter": {
+    "role": "Continental spy",
+    "startingLocation": "Patriot camp",
+    "inventory": ["forged_papers", "pistol"],
+    "primaryObjective": "Steal British troop movements"
+  },
+  "specialNPCs": [
+    {
+      "id": "benedict_arnold",
+      "historicalFigure": true,
+      "personality": "bitter, suspicious",
+      "dialogue_context": "[excerpt from Arnold's letters]",
+      "location": "British fort"
+    }
+  ],
+  "victoryConditions": {
+    "primary": "Return intelligence to Washington",
+    "optional": ["Avoid detection", "Turn a British informant"]
+  },
+  "relevantSources": ["washington-spy-letters", "arnold-treason-docs"]
+}
+```
+
+## Implementation Priority Order
+
+1. **NOW**: Primary Source System Phase 1 (2 weeks)
+2. **NEXT**: World Weaver Scenario Generation (2 weeks)
+3. **THEN**: Primary Source System Phase 2 (1 month)
+4. **FUTURE**: Dynamic Events & Assessment (ongoing)
 
 ## Performance Optimizations Status
 - LazyComponents.tsx - Created for lazy loading

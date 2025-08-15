@@ -154,9 +154,9 @@ const TabButton: React.FC<{ label: string; isActive: boolean; onClick: () => voi
 }) => (
     <button 
         onClick={onClick}
-        className={`flex-shrink-0 py-3 md:py-4 px-3 md:px-6 text-xs md:text-sm font-semibold border-b-2 transition-all duration-300 whitespace-nowrap ${
+        className={`flex-shrink-0 py-2.5 md:py-3 px-3 md:px-4 text-[11px] md:text-xs font-semibold border-b-2 transition-all duration-300 whitespace-nowrap ${
             isActive 
-                ? 'text-white border-blue-500 bg-slate-700/50 shadow-glow-blue' 
+                ? 'text-white border-blue-500 bg-slate-700/50' 
                 : 'text-slate-400 border-transparent hover:bg-slate-800/40 hover:text-white hover:border-slate-500'
         }`}
     >
@@ -226,13 +226,19 @@ const CharacterProfileModal: React.FC<CharacterProfileModalProps> = ({
                                     setIsPortraitModalOpen(true);
                                     setPortraitModalCharacter(character);
                                 }}
+                                title="Click to view full portrait"
                             >
-                                <div className="aspect-square bg-slate-900/50 rounded-lg border-2 border-slate-700/50 shadow-xl shadow-black/40 overflow-hidden transition-transform duration-300 group-hover:scale-105 flex items-center justify-center">
+                                <div className="aspect-square bg-slate-900/50 rounded-xl border-2 border-slate-700/50 shadow-xl shadow-black/40 overflow-hidden transition-all duration-300 group-hover:scale-105 group-hover:border-blue-500/50 flex items-center justify-center">
                                     <div className="w-full h-full transform scale-110">
                                         <ProceduralPortrait character={character} size={300} />
                                     </div>
                                 </div>
-                                <div className="absolute inset-0 rounded-lg bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none group-hover:from-black/40 transition-colors" />
+                                <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none group-hover:from-black/40 transition-colors" />
+                                <div className="absolute bottom-2 right-2 bg-black/50 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                    </svg>
+                                </div>
                             </div>
 
                             {/* Name and Profession Box */}
@@ -291,30 +297,30 @@ const CharacterProfileModal: React.FC<CharacterProfileModalProps> = ({
                     <div className="lg:col-span-1 space-y-4">
                         <div className="p-4 bg-slate-800/40 rounded-lg border border-slate-700/50">
                             <h4 className="font-semibold text-blue-300 mb-3 text-sm uppercase tracking-wider">CHARACTER INFO</h4>
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-                                <div>
+                            <div className="space-y-2 text-sm">
+                                <div className="flex justify-between items-center">
                                     <span className="text-slate-400">Level:</span>
-                                    <span className="font-bold text-white ml-2">{character.level}</span>
+                                    <span className="font-bold text-white">{character.level}</span>
                                 </div>
-                                <div>
+                                <div className="flex justify-between items-center">
                                     <span className="text-slate-400">Age:</span>
-                                    <span className="font-bold text-white ml-2">{character.age}</span>
+                                    <span className="font-bold text-white">{character.age}</span>
                                 </div>
-                                <div>
+                                <div className="flex justify-between items-center">
                                     <span className="text-slate-400">Class:</span>
-                                    <span className="font-bold text-white ml-2">{character.class?.replace(/_/g, ' ')}</span>
+                                    <span className="font-bold text-white text-right">{character.class?.replace(/_/g, ' ')}</span>
                                 </div>
-                                <div>
+                                <div className="flex justify-between items-start">
                                     <span className="text-slate-400">Religion:</span>
-                                    <span className="font-bold text-white ml-2">{character.religion}</span>
+                                    <span className="font-bold text-white text-right max-w-[60%]">{character.religion}</span>
                                 </div>
-                                <div>
+                                <div className="flex justify-between items-center">
                                     <span className="text-slate-400">Height:</span>
-                                    <span className="font-bold text-white ml-2">{cmToFeetAndInches(character.appearance?.height || 170)}</span>
+                                    <span className="font-bold text-white">{cmToFeetAndInches(character.appearance?.height || 170)}</span>
                                 </div>
-                                <div>
+                                <div className="flex justify-between items-center">
                                     <span className="text-slate-400">Weight:</span>
-                                    <span className="font-bold text-white ml-2">{kgToLbs(character.appearance?.weight || 70)}</span>
+                                    <span className="font-bold text-white">{kgToLbs(character.appearance?.weight || 70)}</span>
                                 </div>
                             </div>
                         </div>

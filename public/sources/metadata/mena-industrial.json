@@ -1,0 +1,25 @@
+{
+  "sources": [
+    {
+      "id": "suez-canal-opening",
+      "title": "Opening of the Suez Canal",
+      "author": "Illustrated London News Correspondent",
+      "year": 1869,
+      "excerpt": "The waters of the Mediterranean and Red Sea now mingle where once lay only desert sand.",
+      "longExcerpt": "Today marks a new epoch in world commerce. The Empress Eugénie's yacht leads a procession of ships through the canal. French engineers, Egyptian laborers - a million and a half of them - have carved this waterway through the desert. The journey from London to Bombay is halved. East meets West not through conquest but commerce. Yet the fellaheen who dug with their bare hands, who died by thousands from cholera, are absent from the celebrations.",
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "keywords": [
+        "opening",
+        "suez",
+        "canal"
+      ],
+      "wikisourceTitle": "Opening_of_the_Suez_Canal",
+      "citation": {
+        "originalPublication": "Illustrated London News Correspondent, 1869"
+      }
+    }
+  ]
+}

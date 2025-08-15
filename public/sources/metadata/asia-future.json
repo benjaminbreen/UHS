@@ -1,0 +1,26 @@
+{
+  "sources": [
+    {
+      "id": "tokyo-accord",
+      "title": "Pan-Asian Technological Cooperation Treaty",
+      "author": "Asian Federation Council",
+      "year": 2055,
+      "excerpt": "Quantum computing networks link Seoul, Tokyo, Beijing, and Mumbai in instantaneous communication.",
+      "longExcerpt": "The great cities of Asia are now nodes in a quantum network. Information flows instantaneously between Seoul's gaming districts, Tokyo's robotics labs, Beijing's AI research centers, and Mumbai's biotech hubs. The old barriers of language and culture dissolve in universal translation. Mag-lev trains travel at 600 kilometers per hour through vacuum tubes. Vertical farms feed billions. The age of scarcity has ended. We share knowledge freely, build collectively, and dream of the stars.",
+      "era": "FUTURE",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "keywords": [
+        "pan-asian",
+        "technological",
+        "cooperation",
+        "treaty"
+      ],
+      "wikisourceTitle": "Pan-Asian_Technological_Cooperation_Treaty",
+      "citation": {
+        "originalPublication": "Asian Federation Council, 2055"
+      }
+    }
+  ]
+}

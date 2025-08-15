@@ -145,6 +145,30 @@ const DevTooltip: React.FC<DevTooltipProps> = ({ hoveredData, pinnedData, isPinn
     setIsLocallyExpanded(isPinnedOpen);
   }, [isPinnedOpen]);
 
+  // Add keyboard shortcuts for expanding/collapsing
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Only handle if tooltip is visible
+      if (!currentDisplayData) return;
+      
+      // E key to expand/collapse (when tooltip is visible)
+      if (e.key === 'e' || e.key === 'E') {
+        e.preventDefault();
+        setIsLocallyExpanded(prev => !prev);
+      }
+      
+      // Escape to close pinned tooltip
+      if (e.key === 'Escape' && isPinnedOpen) {
+        onCondense();
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyPress);
+    return () => {
+      document.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [currentDisplayData, isPinnedOpen, onCondense]);
+
   useEffect(() => {
     // Click outside to close if pinned
     const handleClickOutside = (event: MouseEvent) => {
@@ -177,7 +201,8 @@ const DevTooltip: React.FC<DevTooltipProps> = ({ hoveredData, pinnedData, isPinn
         <h3 className="font-bold text-sm text-blue-300">
           {isStandardTile ? `Tile (${tile.x}, ${tile.y})` : `Interior (${tile.x}, ${tile.y})`}
         </h3>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <span className="text-gray-500 text-xs mr-2">[E] expand</span>
           <button onClick={() => setIsLocallyExpanded(!actuallyExpanded)} className="text-gray-400 hover:text-white text-xs">
             {actuallyExpanded ? '▼ Condense' : '▲ Expand'}
           </button>
@@ -191,6 +216,11 @@ const DevTooltip: React.FC<DevTooltipProps> = ({ hoveredData, pinnedData, isPinn
         {!isStandardTile && <p><strong>Type:</strong> {formatString(tile.type)}</p>}
         {structure && <p><strong>Structure:</strong> {structure.name}</p>}
         {vegetation && <p><strong>Vegetation:</strong> {vegetation.speciesName}</p>}
+        {currentDisplayData?.componentInfo && (
+          <p className="text-cyan-400 text-xs mt-1">
+            {currentDisplayData.componentInfo.fileName || currentDisplayData.componentInfo.symbolName}
+          </p>
+        )}
       </div>
 
       {/* Expanded View */}
@@ -219,6 +249,21 @@ const DevTooltip: React.FC<DevTooltipProps> = ({ hoveredData, pinnedData, isPinn
           <div>
             <p className="font-semibold text-green-400">Vegetation: {vegetation.speciesName}</p>
             <p className="italic text-gray-400">{vegetation.linnaeanName}</p>
+          </div>
+        )}
+        
+        {currentDisplayData?.componentInfo && (
+          <div className="border-t border-gray-600 pt-2">
+            <p className="font-semibold text-cyan-400 text-xs">Component Info:</p>
+            {currentDisplayData.componentInfo.fileName && (
+              <p className="text-cyan-300 text-xs">File: {currentDisplayData.componentInfo.fileName}</p>
+            )}
+            {currentDisplayData.componentInfo.symbolName && (
+              <p className="text-cyan-300 text-xs">Symbol: {currentDisplayData.componentInfo.symbolName}</p>
+            )}
+            {currentDisplayData.componentInfo.variant && (
+              <p className="text-cyan-300 text-xs">Variant: {currentDisplayData.componentInfo.variant}</p>
+            )}
           </div>
         )}
         
@@ -264,6 +309,11 @@ const DevTooltip: React.FC<DevTooltipProps> = ({ hoveredData, pinnedData, isPinn
             )}
           </>
         )}
+      </div>
+      
+      {/* Help text */}
+      <div className="mt-2 pt-2 border-t border-gray-700 text-center">
+        <span className="text-gray-500 text-xs">[D] toggle tooltip • [E] expand/collapse</span>
       </div>
     </div>
   );

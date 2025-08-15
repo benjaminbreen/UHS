@@ -1,7 +1,7 @@
 /**
  * components/ModalHub.tsx - Centralized component for rendering all application modals.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
 import { usePlayer } from '../contexts/PlayerContext';
@@ -73,6 +73,26 @@ const ModalHub: React.FC = () => {
     } = usePlayer();
     
     const { gameDate, currentZone, currentRegion, gameTimeHours, season } = useGame();
+    
+    // Add global keyboard shortcuts
+    useEffect(() => {
+        const handleKeyPress = (e: KeyboardEvent) => {
+            // D key to toggle DevTooltip on/off
+            if ((e.key === 'd' || e.key === 'D') && !e.metaKey && !e.ctrlKey && !e.altKey) {
+                // Don't trigger if typing in an input field
+                if (e.target && (e.target as HTMLElement).tagName === 'INPUT') return;
+                if (e.target && (e.target as HTMLElement).tagName === 'TEXTAREA') return;
+                
+                e.preventDefault();
+                setShowDevTooltip(prev => !prev);
+            }
+        };
+        
+        document.addEventListener('keydown', handleKeyPress);
+        return () => {
+            document.removeEventListener('keydown', handleKeyPress);
+        };
+    }, [setShowDevTooltip]);
 
     return (
         <>

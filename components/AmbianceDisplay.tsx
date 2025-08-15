@@ -24,7 +24,7 @@ const AmbianceDisplay: React.FC<AmbianceDisplayProps> = ({ ambianceText }) => {
     return (
         <div 
             key={key}
-            className="shrink-0 w-full flex justify-center items-center py-2 px-8 animate-popIn"
+            className="hidden sm:flex shrink-0 w-full justify-center items-center py-2 px-8 animate-popIn"
         >
             <div className="relative max-w-4xl w-full text-center p-3 bg-slate-900/50 backdrop-blur-sm rounded-lg border border-slate-700/50">
                 <p className="font-lora italic text-sm text-blue-300 leading-relaxed">

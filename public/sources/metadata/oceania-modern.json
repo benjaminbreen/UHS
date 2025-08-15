@@ -1,0 +1,26 @@
+{
+  "sources": [
+    {
+      "id": "mabo-decision",
+      "title": "Mabo v Queensland Legal Decision",
+      "author": "High Court of Australia",
+      "year": 1992,
+      "excerpt": "The fiction of terra nullius is overturned. Indigenous land rights existed before and survive colonization.",
+      "longExcerpt": "The High Court declares: Australia was not terra nullius - empty land - when Europeans arrived. The Meriam people of Murray Island have continuously occupied and cultivated their land for generations beyond memory. Their native title survives. This overturns two centuries of legal doctrine. Eddie Mabo did not live to see this victory, but his name echoes across the continent. From the Torres Strait to Tasmania, indigenous peoples reclaim what was never lost, only denied - their connection to country.",
+      "era": "MODERN",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "keywords": [
+        "mabo",
+        "queensland",
+        "legal",
+        "decision"
+      ],
+      "wikisourceTitle": "Mabo_v_Queensland_Legal_Decision",
+      "citation": {
+        "originalPublication": "High Court of Australia, 1992"
+      }
+    }
+  ]
+}

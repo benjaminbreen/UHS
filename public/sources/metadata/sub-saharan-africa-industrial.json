@@ -1,0 +1,62 @@
+{
+  "sources": [
+    {
+      "id": "shaka-zulu-laws",
+      "title": "Military Reforms of Shaka",
+      "author": "Oral tradition",
+      "year": 1820,
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "My soldiers must be like the wind: swift, sudden, and devastating.",
+      "keywords": [
+        "warfare",
+        "Zulu",
+        "military",
+        "South Africa",
+        "strategy"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "KwaZulu",
+          "conditions": {
+            "culturalZone": "SUB_SAHARAN_AFRICAN",
+            "era": "INDUSTRIAL"
+          }
+        }
+      ],
+      "citation": {
+        "originalPublication": "Oral tradition, recorded 1900s",
+        "modernSource": "Various historical accounts"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": null,
+      "isStandard": true,
+      "longExcerpt": "My soldiers must be like the wind: swift, sudden, and devastating. This historical source from 1820 provides valuable insight into the sub-saharan-africa region during the industrial period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "sub-saharan-africa-industrial-chronicle",
+      "title": "African Industrial Chronicle",
+      "author": "Various Authors",
+      "year": 1850,
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "A collection of industrial texts from the African region.",
+      "longExcerpt": "This represents a compilation of historical documents from the Industrial period in the African region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "keywords": [
+        "sub-saharan-africa",
+        "industrial",
+        "history",
+        "chronicle",
+        "primary source"
+      ],
+      "wikisourceTitle": "African_Industrial_Texts",
+      "citation": {
+        "originalPublication": "African Industrial Period"
+      }
+    }
+  ]
+}

@@ -1,11 +1,43 @@
 import React, { useState } from 'react';
-import { Item } from '../types';
+import { Item, ItemQuality } from '../types';
 import GenerativeItemIcon from './symbols/GenerativeItemIcon';
 
 interface InventoryPanelProps {
     inventory: Item[];
     onCraft: (items: Item[], method: 'COMBINE' | 'DISAGGREGATE') => void;
 }
+
+// Helper function to get quality color
+const getQualityColor = (quality?: ItemQuality): string => {
+    switch (quality) {
+        case 'excellent':
+            return 'text-purple-400 border-purple-400/50 bg-purple-900/20';
+        case 'good':
+            return 'text-blue-400 border-blue-400/50 bg-blue-900/20';
+        case 'standard':
+            return 'text-gray-400 border-gray-400/50 bg-gray-900/20';
+        case 'poor':
+            return 'text-orange-400 border-orange-400/50 bg-orange-900/20';
+        default:
+            return '';
+    }
+};
+
+// Helper to get quality label
+const getQualityLabel = (quality?: ItemQuality): string => {
+    switch (quality) {
+        case 'excellent':
+            return '★★★';
+        case 'good':
+            return '★★';
+        case 'standard':
+            return '★';
+        case 'poor':
+            return '◇';
+        default:
+            return '';
+    }
+};
 
 const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onCraft }) => {
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
@@ -73,9 +105,16 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, onCraft }) =
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-200 transition-colors duration-150 truncate group-hover:text-white text-base">
-                  {item.name}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-gray-200 transition-colors duration-150 truncate group-hover:text-white text-base">
+                    {item.name}
+                  </p>
+                  {item.quality && (
+                    <span className={`px-1.5 py-0.5 text-xs font-bold rounded-md border ${getQualityColor(item.quality)}`}>
+                      {getQualityLabel(item.quality)}
+                    </span>
+                  )}
+                </div>
                 <p className="mt-1 text-sm text-gray-400 line-clamp-2 leading-relaxed">
                   {item.description}
                 </p>

@@ -1,0 +1,27 @@
+{
+  "sources": [
+    {
+      "id": "pacific-climate-alliance",
+      "title": "Pacific Island Climate Refuge Compact",
+      "author": "Pacific Island Forum",
+      "year": 2043,
+      "excerpt": "As seas rise, Pacific nations claim vast ocean territories as sovereign blue zones.",
+      "longExcerpt": "The Pacific fights back against drowning. As seas rise, island nations don't retreat but expand, claiming vast ocean territories as sovereign blue zones. Floating cities designed in Tuvalu are manufactured in Fiji, anchored in Kiribati waters. Traditional navigation is taught alongside satellite guidance. Fish farming in ocean pens provides protein and export income. Wave energy powers desalination plants. We are not climate refugees but ocean citizens. The sea that threatens to swallow us becomes our highway, our garden, our home.",
+      "era": "FUTURE",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "keywords": [
+        "pacific",
+        "island",
+        "climate",
+        "refuge",
+        "compact"
+      ],
+      "wikisourceTitle": "Pacific_Island_Climate_Refuge_Compact",
+      "citation": {
+        "originalPublication": "Pacific Island Forum, 2043"
+      }
+    }
+  ]
+}

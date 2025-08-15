@@ -1,0 +1,145 @@
+{
+  "sources": [
+    {
+      "id": "akbarnama",
+      "title": "Akbarnama",
+      "author": "Abu'l-Fazl ibn Mubarak",
+      "year": 1590,
+      "era": "EARLY_MODERN",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "His Majesty's sole aim is to bring the world under universal peace.",
+      "keywords": [
+        "Mughal Empire",
+        "Akbar",
+        "history",
+        "India",
+        "tolerance"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Fatehpur Sikri",
+          "conditions": {
+            "culturalZone": "SOUTH_ASIAN",
+            "era": "EARLY_MODERN"
+          }
+        },
+        {
+          "keyword": "Agra",
+          "conditions": {
+            "culturalZone": "SOUTH_ASIAN"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "Henry Beveridge",
+        "originalPublication": "Akbarnama, 1590",
+        "modernSource": "Asiatic Society"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": "akbarnama00abul",
+      "isStandard": true,
+      "longExcerpt": "His Majesty's sole aim is to bring the world under universal peace. This historical source from 1590 provides valuable insight into the asia region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "sikh-guru-granth",
+      "title": "Guru Granth Sahib",
+      "author": "Sikh Gurus",
+      "year": 1604,
+      "era": "EARLY_MODERN",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "Truth is high, but higher still is truthful living.",
+      "keywords": [
+        "Sikhism",
+        "religion",
+        "Punjab",
+        "equality",
+        "devotion"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Amritsar",
+          "conditions": {
+            "culturalZone": "SOUTH_ASIAN"
+          }
+        },
+        {
+          "keyword": "Golden Temple",
+          "conditions": {
+            "culturalZone": "SOUTH_ASIAN"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "Sant Singh Khalsa",
+        "originalPublication": "Adi Granth, 1604",
+        "modernSource": "SikhNet"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": "gurugranthsahib00sikh",
+      "longExcerpt": "Truth is high, but higher still is truthful living. This historical source from 1604 provides valuable insight into the asia region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "hagakure",
+      "title": "Hagakure",
+      "author": "Yamamoto Tsunetomo",
+      "year": 1716,
+      "era": "EARLY_MODERN",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "The way of the Samurai is found in death. When it comes to either/or, there is only the quick choice of death.",
+      "keywords": [
+        "samurai",
+        "bushido",
+        "Japan",
+        "philosophy",
+        "warfare"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "Edo",
+          "conditions": {
+            "culturalZone": "EAST_ASIAN",
+            "era": "EARLY_MODERN"
+          }
+        }
+      ],
+      "citation": {
+        "translator": "William Scott Wilson",
+        "originalPublication": "Hagakure Kikigaki, 1716",
+        "modernSource": "Kodansha International"
+      },
+      "wikisourceTitle": null,
+      "internetArchiveId": "hagakure00yama",
+      "isStandard": true,
+      "longExcerpt": "The way of the Samurai is found in death. When it comes to either/or, there is only the quick choice of death. This historical source from 1716 provides valuable insight into the asia region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
+    },
+    {
+      "id": "asia-renaissance-early-modern-chronicle",
+      "title": "Asian Early Modern Chronicle",
+      "author": "Various Authors",
+      "year": 1600,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "A collection of early modern texts from the Asian region.",
+      "longExcerpt": "This represents a compilation of historical documents from the Early Modern period in the Asian region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "keywords": [
+        "asia",
+        "renaissance-early-modern",
+        "history",
+        "chronicle",
+        "primary source"
+      ],
+      "wikisourceTitle": "Asian_Early Modern_Texts",
+      "citation": {
+        "originalPublication": "Asian Early Modern Period"
+      }
+    }
+  ]
+}

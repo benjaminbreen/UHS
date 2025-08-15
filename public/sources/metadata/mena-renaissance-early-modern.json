@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {
+      "id": "evliya-celebi",
+      "title": "Book of Travels",
+      "author": "Evliya Çelebi",
+      "year": 1640,
+      "excerpt": "Cairo has 8,000 mosques, 9,000 schools, 300 hospitals, and markets beyond counting.",
+      "longExcerpt": "I entered Cairo, mother of the world, and was amazed. It has 8,000 mosques where the faithful pray, 9,000 schools where children learn Quran and mathematics, 300 hospitals where the sick find healing. The markets are beyond counting - spice sellers from India, silk merchants from Damascus, gold traders from Sudan. Coffee houses on every corner where men discuss poetry and politics. At night, storytellers in the squares narrate the tales of Antar and Abu Zayd.",
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "MENA"
+      ],
+      "keywords": [
+        "book",
+        "travels"
+      ],
+      "wikisourceTitle": "Book_of_Travels",
+      "citation": {
+        "originalPublication": "Evliya Çelebi, 1640"
+      }
+    }
+  ]
+}

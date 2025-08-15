@@ -1,5 +1,5 @@
 /**
- * components/symbols/buildings/SouthAsianTemple3D.tsx - Renders a detailed, painterly South Asian temple.
+ * components/symbols/buildings/SouthAsianTemple3D.tsx - Renders a detailed ornate South Asian building/temple in 2.5D isometric.
  */
 import React from 'react';
 import { Tile } from '../../../types';
@@ -10,73 +10,245 @@ interface SouthAsianTemple3DProps {
 }
 
 const SouthAsianTemple3D: React.FC<SouthAsianTemple3DProps> = React.memo(({ x, y, width, height, size, seed, tile }) => {
-    const rand = new ValueNoise(seed + tile.x * 137 + tile.y * 149).random;
+    const rng = new ValueNoise(seed + tile.x * 137 + tile.y * 149);
     const uniqueId = `temple-${tile.x}-${tile.y}`;
-    const elements = [];
-
-    const stoneColor = `hsl(35, 40%, ${80 + rand() * 10}%)`;
-    const stoneShadow = `hsl(35, 40%, 65%)`;
-    const goldColor = `hsl(45, 80%, 60%)`;
-    const accentColor = `hsl(5, 70%, 55%)`;
-    const highlightColor = `hsl(40, 40%, 90%)`;
-    const outlineColor = `hsl(35, 40%, 40%)`;
-
-    const depth = size * 0.3;
-
-    // Cast Shadow
-    elements.push(
-      <path key="shadow-soft" d={`M ${x + depth * 0.5} ${y + height + depth * 0.2} l ${width} 0 l ${-depth*0.5} ${depth*0.3} l ${-width} 0 Z`} fill="rgba(0,0,0,0.2)" />,
-      <path key="shadow-hard" d={`M ${x + depth} ${y + height + depth*0.5} L ${x + width + depth} ${y + height + depth*0.5} L ${x + width} ${y + height} L ${x} ${y + height} Z`} fill="rgba(0,0,0,0.15)" filter="url(#buildingShadow)" />
-    );
-
-
-    // Base Platform
-    const platformHeight = height * 0.2;
-    elements.push(<rect x={x} y={y + height * 0.8} width={width} height={platformHeight} fill={`url(#stoneGrad-${uniqueId})`} stroke={outlineColor} strokeWidth="0.3"/>);
-    elements.push(<path d={`M ${x+width} ${y+height*0.8} L ${x+width+depth} ${y+height*0.8-depth*0.5} L ${x+width+depth} ${y+height-depth*0.5} L ${x+width} ${y+height} Z`} fill={stoneShadow} stroke={outlineColor} strokeWidth="0.3"/>);
-
-    // Main Structure (Mandapa)
-    const mandapaHeight = height * 0.5;
-    const mandapaY = y + height - platformHeight - mandapaHeight;
-    elements.push(<rect x={x + width * 0.1} y={mandapaY} width={width * 0.8} height={mandapaHeight} fill={stoneColor} stroke={outlineColor} strokeWidth="0.3"/>);
-    elements.push(<path d={`M ${x+width*0.9} ${mandapaY} L ${x+width*0.9+depth*0.8} ${mandapaY-depth*0.4} L ${x+width*0.9+depth*0.8} ${y+height*0.8-depth*0.4} L ${x+width*0.9} ${y+height*0.8} Z`} fill={stoneShadow} stroke={outlineColor} strokeWidth="0.3"/>);
     
-    // Shikhara (Tower)
-    const shikharaY = mandapaY;
-    const shikharaHeight = height * 0.5;
-    elements.push(
-        <path 
-            d={`M ${x + width*0.3} ${shikharaY} C ${x + width*0.3} ${shikharaY - shikharaHeight*0.8}, ${x + width*0.7} ${shikharaY - shikharaHeight*0.8}, ${x + width*0.7} ${shikharaY} L ${x+width*0.6} ${y} L ${x+width*0.4} ${y} Z`}
-            fill={accentColor}
-            stroke={outlineColor}
-            strokeWidth="0.4"
-        />
-    );
-    // Shikhara carving pattern
-    for(let i = 0; i < 5; i++) {
-        const lineY = shikharaY - i * 3.5;
-        if (lineY > y + 2) {
-             elements.push(<path d={`M ${x+width*0.35} ${lineY} C ${x+width/2} ${lineY-2.5}, ${x+width*0.65} ${lineY}`} stroke={goldColor} strokeWidth="0.6" fill="none" opacity="0.7"/>);
-        }
-    }
+    // Pre-calculate random values
+    const rand1 = rng.random();
+    const rand2 = rng.random();
+    const rand3 = rng.random();
     
-    // Finial (Kalasha) on top
-    elements.push(<circle cx={x + width/2} cy={y-2} r={3} fill={goldColor} stroke="black" strokeWidth="0.2"/>);
-    elements.push(<line x1={x+width/2} y1={y-2} x2={x+width/2} y2={y-6} stroke={goldColor} strokeWidth="1.2"/>);
-
-    // Entrance
-    elements.push(<rect x={x + width/2 - 5} y={y + height * 0.6} width={10} height={height*0.4} fill="#4a2c17" stroke="black" strokeWidth="0.3"/>);
-
+    // 2.5D Isometric dimensions
+    const buildingWidth = width * 0.75;
+    const buildingHeight = height * 0.8;
+    const buildingDepth = width * 0.35;
+    const buildingX = x - buildingWidth * 0.35;
+    const buildingY = y + height * 0.05;
+    
+    // Color scheme - rich and ornate
+    const baseColor = `hsl(30, 45%, ${75 + rand1 * 10}%)`;
+    const shadowColor = `hsl(30, 45%, 60%)`;
+    const deepShadowColor = `hsl(30, 45%, 45%)`;
+    const goldColor = `hsl(45, 85%, 65%)`;
+    const redAccent = `hsl(0, 70%, ${50 + rand2 * 10}%)`;
+    const greenAccent = `hsl(140, 60%, ${40 + rand3 * 10}%)`;
+    const whiteMarble = `hsl(40, 20%, 92%)`;
+    
     return (
         <g filter="url(#symbolShadow)">
             <defs>
-                <linearGradient id={`stoneGrad-${uniqueId}`} x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor={highlightColor} />
-                    <stop offset="50%" stopColor={stoneColor} />
-                    <stop offset="100%" stopColor={stoneShadow} />
+                <linearGradient id={`templeGradient-${uniqueId}`} x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor={whiteMarble} />
+                    <stop offset="50%" stopColor={baseColor} />
+                    <stop offset="100%" stopColor={shadowColor} />
                 </linearGradient>
+                <pattern id={`ornatePattern-${uniqueId}`} patternUnits="userSpaceOnUse" width="6" height="6">
+                    <circle cx="3" cy="3" r="1" fill={goldColor} opacity="0.7"/>
+                    <path d="M 0 3 L 6 3 M 3 0 L 3 6" stroke={redAccent} strokeWidth="0.3" opacity="0.5"/>
+                </pattern>
             </defs>
-            {elements}
+            
+            {/* Ground shadow for 3D effect */}
+            <path 
+                d={`M ${buildingX} ${buildingY + buildingHeight} 
+                   L ${buildingX + buildingWidth} ${buildingY + buildingHeight}
+                   L ${buildingX + buildingWidth + buildingDepth * 0.5} ${buildingY + buildingHeight + buildingDepth * 0.3}
+                   L ${buildingX + buildingDepth * 0.5} ${buildingY + buildingHeight + buildingDepth * 0.3} Z`}
+                fill="rgba(0,0,0,0.3)" 
+            />
+            
+            {/* Multi-tiered base platform */}
+            <rect
+                x={buildingX - 5}
+                y={buildingY + buildingHeight * 0.85}
+                width={buildingWidth + 10}
+                height={buildingHeight * 0.15}
+                fill={shadowColor}
+                stroke={deepShadowColor}
+                strokeWidth="0.5"
+            />
+            
+            {/* Platform side (3D) */}
+            <path
+                d={`M ${buildingX + buildingWidth + 5} ${buildingY + buildingHeight * 0.85}
+                   L ${buildingX + buildingWidth + 5 + buildingDepth * 0.4} ${buildingY + buildingHeight * 0.85 - buildingDepth * 0.2}
+                   L ${buildingX + buildingWidth + 5 + buildingDepth * 0.4} ${buildingY + buildingHeight - buildingDepth * 0.2}
+                   L ${buildingX + buildingWidth + 5} ${buildingY + buildingHeight} Z`}
+                fill={deepShadowColor}
+                stroke={deepShadowColor}
+                strokeWidth="0.3"
+            />
+            
+            {/* Main building structure */}
+            <rect
+                x={buildingX}
+                y={buildingY + buildingHeight * 0.4}
+                width={buildingWidth}
+                height={buildingHeight * 0.45}
+                fill={`url(#templeGradient-${uniqueId})`}
+                stroke={deepShadowColor}
+                strokeWidth="0.5"
+            />
+            
+            {/* Building side wall (3D) */}
+            <path
+                d={`M ${buildingX + buildingWidth} ${buildingY + buildingHeight * 0.4}
+                   L ${buildingX + buildingWidth + buildingDepth * 0.5} ${buildingY + buildingHeight * 0.4 - buildingDepth * 0.25}
+                   L ${buildingX + buildingWidth + buildingDepth * 0.5} ${buildingY + buildingHeight * 0.85 - buildingDepth * 0.25}
+                   L ${buildingX + buildingWidth} ${buildingY + buildingHeight * 0.85} Z`}
+                fill={shadowColor}
+                stroke={deepShadowColor}
+                strokeWidth="0.5"
+            />
+            
+            {/* Ornate columns/pillars */}
+            {Array.from({ length: 4 }).map((_, i) => {
+                const pillarX = buildingX + buildingWidth * (0.15 + i * 0.23);
+                return (
+                    <g key={`pillar-${i}`}>
+                        <rect
+                            x={pillarX}
+                            y={buildingY + buildingHeight * 0.45}
+                            width={buildingWidth * 0.04}
+                            height={buildingHeight * 0.4}
+                            fill={whiteMarble}
+                            stroke={shadowColor}
+                            strokeWidth="0.3"
+                        />
+                        {/* Pillar capitals */}
+                        <ellipse
+                            cx={pillarX + buildingWidth * 0.02}
+                            cy={buildingY + buildingHeight * 0.45}
+                            rx={buildingWidth * 0.03}
+                            ry={buildingHeight * 0.02}
+                            fill={goldColor}
+                        />
+                    </g>
+                );
+            })}
+            
+            {/* Curved dome/shikhara tower */}
+            <path
+                d={`M ${buildingX + buildingWidth * 0.2} ${buildingY + buildingHeight * 0.4}
+                   Q ${buildingX + buildingWidth * 0.3} ${buildingY - buildingHeight * 0.1}
+                   ${buildingX + buildingWidth * 0.5} ${buildingY}
+                   Q ${buildingX + buildingWidth * 0.7} ${buildingY - buildingHeight * 0.1}
+                   ${buildingX + buildingWidth * 0.8} ${buildingY + buildingHeight * 0.4}
+                   Z`}
+                fill={redAccent}
+                stroke={deepShadowColor}
+                strokeWidth="0.5"
+            />
+            
+            {/* Dome side (3D effect) */}
+            <path
+                d={`M ${buildingX + buildingWidth * 0.8} ${buildingY + buildingHeight * 0.4}
+                   Q ${buildingX + buildingWidth * 0.85} ${buildingY - buildingHeight * 0.05}
+                   ${buildingX + buildingWidth * 0.5 + buildingDepth * 0.3} ${buildingY - buildingDepth * 0.15}
+                   L ${buildingX + buildingWidth + buildingDepth * 0.5} ${buildingY + buildingHeight * 0.4 - buildingDepth * 0.25}
+                   Z`}
+                fill={`hsl(0, 70%, ${40 + rand2 * 10}%)`}
+                stroke={deepShadowColor}
+                strokeWidth="0.3"
+            />
+            
+            {/* Decorative patterns on dome */}
+            <path
+                d={`M ${buildingX + buildingWidth * 0.2} ${buildingY + buildingHeight * 0.4}
+                   Q ${buildingX + buildingWidth * 0.3} ${buildingY - buildingHeight * 0.1}
+                   ${buildingX + buildingWidth * 0.5} ${buildingY}
+                   Q ${buildingX + buildingWidth * 0.7} ${buildingY - buildingHeight * 0.1}
+                   ${buildingX + buildingWidth * 0.8} ${buildingY + buildingHeight * 0.4}
+                   Z`}
+                fill={`url(#ornatePattern-${uniqueId})`}
+                opacity="0.4"
+            />
+            
+            {/* Golden finial/kalasha on top */}
+            <ellipse
+                cx={buildingX + buildingWidth * 0.5}
+                cy={buildingY - 2}
+                rx={buildingWidth * 0.05}
+                ry={buildingHeight * 0.03}
+                fill={goldColor}
+                stroke={deepShadowColor}
+                strokeWidth="0.3"
+            />
+            <line
+                x1={buildingX + buildingWidth * 0.5}
+                y1={buildingY - 2}
+                x2={buildingX + buildingWidth * 0.5}
+                y2={buildingY - 8}
+                stroke={goldColor}
+                strokeWidth="1.5"
+            />
+            <circle
+                cx={buildingX + buildingWidth * 0.5}
+                cy={buildingY - 8}
+                r="2"
+                fill={goldColor}
+            />
+            
+            {/* Ornate entrance arch */}
+            <path
+                d={`M ${buildingX + buildingWidth * 0.4} ${buildingY + buildingHeight * 0.85}
+                   V ${buildingY + buildingHeight * 0.6}
+                   Q ${buildingX + buildingWidth * 0.5} ${buildingY + buildingHeight * 0.55}
+                   ${buildingX + buildingWidth * 0.6} ${buildingY + buildingHeight * 0.6}
+                   V ${buildingY + buildingHeight * 0.85}
+                   Z`}
+                fill="rgba(0,0,0,0.8)"
+                stroke={goldColor}
+                strokeWidth="0.5"
+            />
+            
+            {/* Decorative arch frame */}
+            <path
+                d={`M ${buildingX + buildingWidth * 0.38} ${buildingY + buildingHeight * 0.6}
+                   Q ${buildingX + buildingWidth * 0.5} ${buildingY + buildingHeight * 0.53}
+                   ${buildingX + buildingWidth * 0.62} ${buildingY + buildingHeight * 0.6}`}
+                fill="none"
+                stroke={goldColor}
+                strokeWidth="1"
+            />
+            
+            {/* Small decorative windows */}
+            {Array.from({ length: 2 }).map((_, i) => {
+                const windowX = buildingX + buildingWidth * (0.25 + i * 0.5);
+                return (
+                    <g key={`window-${i}`}>
+                        <path
+                            d={`M ${windowX - 3} ${buildingY + buildingHeight * 0.5}
+                               Q ${windowX} ${buildingY + buildingHeight * 0.47}
+                               ${windowX + 3} ${buildingY + buildingHeight * 0.5}
+                               V ${buildingY + buildingHeight * 0.55}
+                               H ${windowX - 3}
+                               Z`}
+                            fill="rgba(0,0,0,0.7)"
+                            stroke={goldColor}
+                            strokeWidth="0.4"
+                        />
+                    </g>
+                );
+            })}
+            
+            {/* Decorative horizontal bands */}
+            <rect
+                x={buildingX}
+                y={buildingY + buildingHeight * 0.38}
+                width={buildingWidth}
+                height={buildingHeight * 0.02}
+                fill={greenAccent}
+                opacity="0.8"
+            />
+            <rect
+                x={buildingX}
+                y={buildingY + buildingHeight * 0.83}
+                width={buildingWidth}
+                height={buildingHeight * 0.02}
+                fill={greenAccent}
+                opacity="0.8"
+            />
         </g>
     );
 });

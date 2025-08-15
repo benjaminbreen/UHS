@@ -6,7 +6,7 @@
 export type TerrainStructureType = 
     'fortress' | 'mill' | 'mining_colony' | 'lumber_camp' | 
     'fishing_hut' | 'farm' | 'marketplace' | 'factory' | 
-    'government_district' | 'city_center' | 'trading_post' |
+    'government_district' | 'city_center' |
     'encampment' | 'quarry' | 'holy_site' | 'palace' | 'ruin';
 
 // The economic role a structure plays in the simulation.
@@ -52,4 +52,8 @@ export interface TerrainStructure {
     depth?: number;
     terraces?: number;
   };
+  
+  // For factory subtypes
+  factorySubtype?: string;
+  factorySymbolType?: 'plantation' | 'warehouse' | 'manufactory' | 'mill' | 'refinery' | 'factory19th' | 'factory20th';
 }

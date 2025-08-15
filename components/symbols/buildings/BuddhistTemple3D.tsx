@@ -24,30 +24,32 @@ const BuddhistTemple3D: React.FC<BuddhistTemple3DProps> = React.memo(({ x, y, wi
     const tiers = 2 + Math.min(3, eraLevel); // 2 to 5 tiers
     const uniqueId = `pagoda-${tile.x}-${tile.y}`;
     
+    // Increased size by 40% for more imposing presence
+    const scaleFactor = 1.4;
     const wallColor = `hsl(30, 60%, 80%)`;
     const woodColor = `hsl(20, 50%, 45%)`;
     const roofColor = `hsl(160, 50%, 40%)`;
     const roofHighlight = `hsl(160, 50%, 60%)`;
     const goldColor = `hsl(45, 85%, 60%)`;
     const outlineColor = `hsl(20, 50%, 25%)`;
-    const depth = size * 0.35;
+    const depth = size * 0.45 * scaleFactor;
     
     const elements: JSX.Element[] = [];
 
     for(let i=0; i<tiers; i++) {
-        const tierWidth = width * (1 - i * 0.15);
-        const tierHeight = height / (tiers * 1.2);
+        const tierWidth = width * (1 - i * 0.15) * scaleFactor;
+        const tierHeight = (height / (tiers * 1.2)) * scaleFactor;
         const tierX = x + (width - tierWidth)/2;
-        const tierY = y + height - (i+1) * (height / (tiers * 1.1));
+        const tierY = y + height - (i+1) * (height / (tiers * 1.1)) * scaleFactor;
         const tierDepth = depth * (1 - i * 0.15);
 
-        const roofOverhang = tierWidth * 0.2;
-        const roofHeight = tierHeight * 1.5;
+        const roofOverhang = tierWidth * 0.25;
+        const roofHeight = tierHeight * 1.8;
         const roofY = tierY;
 
-        // Wall section
-        elements.push(<rect key={`wall-${i}`} x={tierX} y={tierY} width={tierWidth} height={tierHeight} fill={wallColor} stroke={outlineColor} strokeWidth="0.2"/>);
-        elements.push(<path key={`side-${i}`} d={`M ${tierX+tierWidth} ${tierY} L ${tierX+tierWidth+tierDepth} ${tierY-tierDepth*0.5} L ${tierX+tierWidth+tierDepth} ${tierY+tierHeight-tierDepth*0.5} L ${tierX+tierWidth} ${tierY+tierHeight} Z`} fill={woodColor} stroke={outlineColor} strokeWidth="0.2"/>);
+        // Wall section - Enhanced stroke for visibility
+        elements.push(<rect key={`wall-${i}`} x={tierX} y={tierY} width={tierWidth} height={tierHeight} fill={wallColor} stroke={outlineColor} strokeWidth="0.4"/>);
+        elements.push(<path key={`side-${i}`} d={`M ${tierX+tierWidth} ${tierY} L ${tierX+tierWidth+tierDepth} ${tierY-tierDepth*0.5} L ${tierX+tierWidth+tierDepth} ${tierY+tierHeight-tierDepth*0.5} L ${tierX+tierWidth} ${tierY+tierHeight} Z`} fill={woodColor} stroke={outlineColor} strokeWidth="0.4"/>);
         
         // Roof section
         const roofPath = `M ${tierX-roofOverhang} ${roofY}
@@ -55,12 +57,12 @@ const BuddhistTemple3D: React.FC<BuddhistTemple3DProps> = React.memo(({ x, y, wi
                            Q ${tierX+tierWidth/2} ${roofY-roofHeight*0.4}, ${tierX-roofOverhang} ${roofY}
                            L ${tierX+tierWidth/2} ${roofY - roofHeight} Z`;
 
-        elements.push(<path key={`roof-${i}`} d={roofPath} fill={roofColor} stroke={outlineColor} strokeWidth="0.3"/>);
+        elements.push(<path key={`roof-${i}`} d={roofPath} fill={roofColor} stroke={outlineColor} strokeWidth="0.5"/>);
     }
     
-    // Finial on top
-    elements.push(<line key="finial" x1={x+width/2} y1={y+height-tiers*(height/(tiers*1.1))-height*0.25} x2={x+width/2} y2={y-2} stroke={goldColor} strokeWidth="1.5"/>);
-    elements.push(<circle key="finial-ball" cx={x+width/2} cy={y-3} r="2" fill={goldColor}/>);
+    // Finial on top - Taller and more prominent
+    elements.push(<line key="finial" x1={x+width/2} y1={y+height-tiers*(height/(tiers*1.1))*scaleFactor-height*0.35} x2={x+width/2} y2={y-height*0.2} stroke={goldColor} strokeWidth="2.5"/>);
+    elements.push(<circle key="finial-ball" cx={x+width/2} cy={y-height*0.2-2} r="4" fill={goldColor}/>);
 
     return <g filter="url(#symbolShadow)">{elements}</g>;
 });

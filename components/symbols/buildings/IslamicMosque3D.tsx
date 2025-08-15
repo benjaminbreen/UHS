@@ -20,9 +20,11 @@ const IslamicMosque3D: React.FC<IslamicMosque3DProps> = React.memo(({ x, y, widt
     const goldColor = `hsl(45, 85%, 60%)`;
     const outlineColor = `hsl(45, 50%, 50%)`;
 
-    const depth = size * 0.4;
-    const buildingY = y + height * 0.1;
-    const buildingHeight = height * 0.9;
+    // Increased size by 40% for more imposing presence
+    const scaleFactor = 1.4;
+    const depth = size * 0.5 * scaleFactor;
+    const buildingY = y + height * 0.05;
+    const buildingHeight = height * 0.95 * scaleFactor;
     
     return (
         <g filter="url(#symbolShadow)">
@@ -32,27 +34,27 @@ const IslamicMosque3D: React.FC<IslamicMosque3DProps> = React.memo(({ x, y, widt
                     <stop offset="100%" stopColor={domeColor} />
                 </radialGradient>
             </defs>
-            {/* Main Courtyard Wall */}
-            <rect x={x} y={buildingY} width={width} height={buildingHeight} fill={wallColor} stroke={outlineColor} strokeWidth="0.2"/>
-            <path d={`M ${x+width} ${buildingY} L ${x+width+depth} ${buildingY-depth*0.5} L ${x+width+depth} ${y+height-depth*0.5} L ${x+width} ${y+height} Z`} fill={shadowColor} stroke={outlineColor} strokeWidth="0.2"/>
+            {/* Main Courtyard Wall - Enlarged */}
+            <rect x={x - width * 0.2} y={buildingY} width={width * 1.4} height={buildingHeight} fill={wallColor} stroke={outlineColor} strokeWidth="0.4"/>
+            <path d={`M ${x+width*1.2} ${buildingY} L ${x+width*1.2+depth} ${buildingY-depth*0.5} L ${x+width*1.2+depth} ${y+height*1.2-depth*0.5} L ${x+width*1.2} ${y+height*1.2} Z`} fill={shadowColor} stroke={outlineColor} strokeWidth="0.4"/>
 
-            {/* Main Dome */}
-            <ellipse cx={x+width/2} cy={buildingY} rx={width*0.25} ry={height*0.2} fill={`url(#domeGrad-${uniqueId})`} stroke={outlineColor} strokeWidth="0.3"/>
-            <path d={`M ${x+width*0.48} ${buildingY - height*0.2 - 3} L ${x+width/2} ${buildingY - height*0.2 - 5} L ${x+width*0.52} ${buildingY - height*0.2 - 3}`} fill={goldColor}/>
+            {/* Main Dome - Larger and more prominent */}
+            <ellipse cx={x+width*0.5} cy={buildingY - height*0.1} rx={width*0.35} ry={height*0.3} fill={`url(#domeGrad-${uniqueId})`} stroke={outlineColor} strokeWidth="0.5"/>
+            <path d={`M ${x+width*0.47} ${buildingY - height*0.4 - 5} L ${x+width/2} ${buildingY - height*0.4 - 8} L ${x+width*0.53} ${buildingY - height*0.4 - 5}`} fill={goldColor}/>
             
             {/* Minarets */}
             {[0, 1].map(i => {
-                const minaretX = x + (i === 0 ? width * 0.1 : width * 0.9);
+                const minaretX = x + (i === 0 ? width * 0.05 - width * 0.2 : width * 0.95 + width * 0.2);
                 return (
                     <g key={`minaret-${i}`}>
-                        <rect x={minaretX - 3} y={y - 5} width={6} height={height} fill={wallColor} stroke={outlineColor} strokeWidth="0.2"/>
-                        <ellipse cx={minaretX} cy={y-5} rx={3} ry={2} fill={`url(#domeGrad-${uniqueId})`} />
+                        <rect x={minaretX - 5} y={y - height*0.3} width={10} height={height*1.5} fill={wallColor} stroke={outlineColor} strokeWidth="0.4"/>
+                        <ellipse cx={minaretX} cy={y-height*0.3} rx={5} ry={4} fill={`url(#domeGrad-${uniqueId})`} />
                     </g>
                 )
             })}
 
-            {/* Arched Entrance */}
-            <path d={`M ${x+width*0.4} ${y+height} v -${height*0.4} a ${width*0.1} ${height*0.2} 0 0 1 ${width*0.2} 0 v ${height*0.4} Z`} fill="#2c1e12" stroke={outlineColor} strokeWidth="0.3" />
+            {/* Arched Entrance - Larger */}
+            <path d={`M ${x+width*0.35 - width*0.2} ${y+height*1.2} v -${height*0.6} a ${width*0.15} ${height*0.3} 0 0 1 ${width*0.3} 0 v ${height*0.6} Z`} fill="#2c1e12" stroke={outlineColor} strokeWidth="0.5" />
 
         </g>
     );

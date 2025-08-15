@@ -26,7 +26,8 @@ const CLIMATE_PALETTES: Record<string, { ground: string, vegetation: string, acc
   [ClimateType.TEMPERATE]: { ground: '#86EFAC', vegetation: '#22C55E', accent: '#16A34A' },
   [ClimateType.ARID]: { ground: '#D2B48C', vegetation: '#8B7355', accent: '#CD853F' },
   [ClimateType.SEMITROPICAL]: { ground: '#6EE7B7', vegetation: '#32CD32', accent: '#228B22' },
-  [ClimateType.TROPICAL]: { ground: '#6EE7B7', vegetation: '#059669', accent: '#047857' }
+  [ClimateType.TROPICAL]: { ground: '#6EE7B7', vegetation: '#059669', accent: '#047857' },
+  [ClimateType.MEDITERRANEAN]: { ground: '#C4B5A0', vegetation: '#6B8E23', accent: '#8B7355' }
 };
 
 // Character animation data
