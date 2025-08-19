@@ -59,7 +59,8 @@ const NpcListItem = React.memo(({ npc, isSelected, onClick }: { npc: NpcEntity; 
 const RightSidebar: React.FC = () => {
     const { setIsCharacterProfileModalOpen, onUseSkill, onSend, onCraft } = useUI();
     const { narrationHistory, playerInput, onPlayerInputChange, isNarratorLoading, gameDate, currentZone } = useGame();
-    const { playerCharacter } = usePlayer();
+    const { playerCharacter, controlledIconX, controlledIconY, setShipDockX, setShipDockY, setCurrentVessel } = usePlayer();
+    const { deployVesselToMap } = useMap();
 
     const [activeTab, setActiveTab] = useState<RightSidebarTab>('narrator');
 
@@ -257,69 +258,6 @@ const RightSidebar: React.FC = () => {
                                     <div className="w-full h-1.5 overflow-hidden bg-gray-700 rounded-full shadow-inner"><div className="h-full transition-all duration-500 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full shadow-sm" style={{ width: `${xpPercent}%` }}></div></div>
                                 </div>
                             </div>
-
-                            {/* Disease Status Section */}
-                            {playerCharacter && playerCharacter.diseaseHealth && playerCharacter.diseaseHealth.currentDiseases && (
-                                <div className="mt-3 p-2 rounded-lg bg-slate-800/30 border border-slate-600/50">
-                                    <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-gray-400">
-                                        <span>HEALTH STATUS</span>
-                                        <span className="text-xs">
-                                            {(() => {
-                                                const diseaseHealth = playerCharacter.diseaseHealth;
-                                                switch (diseaseHealth.overallHealthStatus) {
-                                                    case 'critical': return '🔴 CRITICAL';
-                                                    case 'sick': return '🔴 SICK';
-                                                    case 'mild': return '🟡 MILD';
-                                                    case 'healthy': 
-                                                    default: 
-                                                        return diseaseHealth.currentDiseases?.length > 0 ? '🟡 EXPOSED' : '✅ HEALTHY';
-                                                }
-                                            })()}
-                                        </span>
-                                    </div>
-                                    
-                                    {(() => {
-                                        const diseaseHealth = playerCharacter.diseaseHealth;
-                                        const activeDiseases = diseaseHealth?.currentDiseases?.filter((d: any) => d.stage === 'symptomatic') || [];
-                                        const incubatingDiseases = diseaseHealth?.currentDiseases?.filter((d: any) => d.stage === 'incubating') || [];
-                                        
-                                        if (activeDiseases.length === 0 && incubatingDiseases.length === 0) {
-                                            return (
-                                                <div className="text-xs text-green-400">
-                                                    No active diseases detected
-                                                </div>
-                                            );
-                                        }
-                                        
-                                        return (
-                                            <div className="space-y-1">
-                                                {activeDiseases.map((activeDisease: any, index: number) => (
-                                                    <div key={`active-${index}`} className="flex items-center justify-between text-xs">
-                                                        <span className="flex items-center gap-1">
-                                                            <span>{activeDisease.disease.badgeIcon}</span>
-                                                            <span className="text-red-300">{activeDisease.disease.name}</span>
-                                                        </span>
-                                                        <span className="text-gray-400">
-                                                            {activeDisease.daysRemaining}d left
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                                {incubatingDiseases.map((activeDisease: any, index: number) => (
-                                                    <div key={`incubating-${index}`} className="flex items-center justify-between text-xs">
-                                                        <span className="flex items-center gap-1">
-                                                            <span>🔄</span>
-                                                            <span className="text-yellow-400">Incubating...</span>
-                                                        </span>
-                                                        <span className="text-gray-400">
-                                                            {activeDisease.daysRemaining}d
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        );
-                                    })()}
-                                </div>
-                            )}
                         </div>
                     )}
 
@@ -358,7 +296,25 @@ const RightSidebar: React.FC = () => {
                             isLoading={isNarratorLoading}
                         />
                     )}
-                    {activeTab === 'inventory' && <InventoryPanel inventory={playerCharacter?.inventory || []} onCraft={onCraft} />}
+                    {activeTab === 'inventory' && playerCharacter && (
+                        <InventoryPanel 
+                            inventory={playerCharacter.inventory || []} 
+                            playerCharacter={playerCharacter}
+                            onCraft={onCraft}
+                            onInventoryUpdate={() => {
+                                // Force a re-render to show updated inventory
+                                // This might need to be a prop passed down from parent
+                            }}
+                            deployVesselToMap={deployVesselToMap}
+                            playerX={controlledIconX}
+                            playerY={controlledIconY}
+                            setShipDockPosition={(x, y) => {
+                                setShipDockX(x);
+                                setShipDockY(y);
+                            }}
+                            setCurrentVessel={setCurrentVessel}
+                        />
+                    )}
                     {activeTab === 'beliefs' && <BeliefsPanel character={playerCharacter} />}
                 </div>
             </div>

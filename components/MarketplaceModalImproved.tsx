@@ -5,12 +5,13 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Tile, PlayerCharacter, Item, MapData, MapAnalysisData, Season, HistoricalEra, ClimateType, CulturalZone, TimeOfDay, NpcEntity, TerrainStructure } from '../types';
-import { ITEM_DEFINITIONS } from '../constants/index';
+import { ITEM_DEFINITIONS, ANIMAL_DATA } from '../constants/index';
 import { tradeService, TradeGood, MarketConditions } from '../services/tradeService';
 import MarketplaceBanner, { Condition } from './MarketplaceBanner';
 import { generateMarketplaceDescription, CitySize } from '../services/marketplaceDescriptionGenerator';
 import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
+import { loadTamedAnimals, removeFromParty, TamedAnimal } from '../services/animalTamingService';
 
 interface MarketplaceModalImprovedProps {
   tile: Tile;
@@ -39,6 +40,7 @@ const MarketplaceModalImproved: React.FC<MarketplaceModalImprovedProps> = ({
   const [marketConditions, setMarketConditions] = useState<MarketConditions | null>(null);
   const [merchantNpcs, setMerchantNpcs] = useState<NpcEntity[]>([]);
   const [selectedMerchant, setSelectedMerchant] = useState<NpcEntity | null>(null);
+  const [tamedAnimals, setTamedAnimals] = useState<TamedAnimal[]>([]);
   
   // Detect mobile
   const isMobile = useMemo(() => window.innerWidth <= 768, []);
@@ -72,6 +74,10 @@ const MarketplaceModalImproved: React.FC<MarketplaceModalImprovedProps> = ({
       npc.role?.toLowerCase().includes('vendor')
     );
     setMerchantNpcs(merchants);
+    
+    // Load tamed animals
+    const animals = loadTamedAnimals();
+    setTamedAnimals(animals);
   }, [tile, mapData, npcs]);
   
   // Generate market inventory with dynamic pricing
@@ -118,18 +124,44 @@ const MarketplaceModalImproved: React.FC<MarketplaceModalImprovedProps> = ({
     });
   }, [marketConditions, merchantNpcs, mapData, categoryFilter, searchQuery]);
   
-  // Player sellable items with dynamic pricing
+  // Player sellable items with dynamic pricing (including tamed animals)
   const playerSellableItems = useMemo(() => {
-    return playerCharacter.inventory.map(item => {
+    // Regular inventory items
+    const regularItems = playerCharacter.inventory.map(item => {
       const basePrice = item.value || 10;
       const priceModifier = marketConditions?.priceModifiers.get(item.baseId) || 0.8;
       
       return {
         ...item,
-        sellPrice: Math.floor(basePrice * priceModifier * 0.7) // Sell for less than buy
+        sellPrice: Math.floor(basePrice * priceModifier * 0.7), // Sell for less than buy
+        itemType: 'item' as const
       };
     });
-  }, [playerCharacter.inventory, marketConditions]);
+    
+    // Tamed animals as sellable items
+    const animalItems = tamedAnimals.map(animal => {
+      const animalData = ANIMAL_DATA[animal.baseId];
+      const basePrice = animal.value;
+      // Domestic animals have better prices, wild animals less
+      const typeModifier = animalData?.type === 'Domestic' ? 1.2 : 0.9;
+      const healthModifier = animal.health / 10; // Health affects price
+      const loyaltyModifier = 0.8 + (animal.loyalty / 100) * 0.4; // Loyalty adds 0-40% value
+      
+      return {
+        id: animal.id,
+        name: `${animal.speciesName} (Tamed)`,
+        baseId: animal.baseId,
+        emoji: animal.emoji,
+        description: `A tamed ${animal.speciesName}. Health: ${animal.health}/10, Loyalty: ${animal.loyalty}/100`,
+        value: basePrice,
+        sellPrice: Math.floor(basePrice * typeModifier * healthModifier * loyaltyModifier * 0.8),
+        itemType: 'animal' as const,
+        animalData: animal
+      };
+    });
+    
+    return [...regularItems, ...animalItems];
+  }, [playerCharacter.inventory, marketConditions, tamedAnimals]);
   
   // Trade routes from this marketplace
   const tradeRoutes = useMemo(() => {
@@ -168,9 +200,33 @@ const MarketplaceModalImproved: React.FC<MarketplaceModalImprovedProps> = ({
     }
   }, [playerCharacter.currency, onBuy, marketConditions]);
   
-  // Handle sell action
+  // Handle sell action (items and animals)
   const handleSell = useCallback((item: any) => {
-    onSell(item, item.sellPrice);
+    if (item.itemType === 'animal') {
+      // Selling a tamed animal
+      const animal = item.animalData as TamedAnimal;
+      
+      // Remove animal from party
+      removeFromParty(animal.id);
+      
+      // Update local state
+      setTamedAnimals(prev => prev.filter(a => a.id !== animal.id));
+      
+      // Add coins to player (the parent component should handle this)
+      // Create a pseudo-item for the transaction
+      const animalAsItem = {
+        id: animal.id,
+        name: item.name,
+        baseId: animal.baseId,
+        emoji: animal.emoji,
+        value: item.sellPrice,
+        quantity: 1
+      };
+      onSell(animalAsItem as Item, item.sellPrice);
+    } else {
+      // Regular item sale
+      onSell(item, item.sellPrice);
+    }
     
     // Update market conditions
     if (marketConditions) {
@@ -282,14 +338,28 @@ const MarketplaceModalImproved: React.FC<MarketplaceModalImprovedProps> = ({
               {playerSellableItems.map(item => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between p-3 bg-slate-800 border border-slate-700 rounded-lg hover:border-orange-600 transition-colors"
+                  className={`flex items-center justify-between p-3 bg-slate-800 border rounded-lg transition-colors ${
+                    item.itemType === 'animal' 
+                      ? 'border-green-700 hover:border-green-500 bg-gradient-to-r from-slate-800 to-green-900/20' 
+                      : 'border-slate-700 hover:border-orange-600'
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{item.emoji}</span>
                     <div>
-                      <p className="font-medium text-white">{item.name}</p>
+                      <p className="font-medium text-white">
+                        {item.name}
+                        {item.itemType === 'animal' && (
+                          <span className="ml-2 text-xs px-2 py-0.5 bg-green-600/30 text-green-400 rounded-full">
+                            Companion
+                          </span>
+                        )}
+                      </p>
                       <p className="text-sm text-slate-400">
-                        Quantity: {item.quantity || 1}
+                        {item.itemType === 'animal' 
+                          ? item.description 
+                          : `Quantity: ${item.quantity || 1}`
+                        }
                       </p>
                     </div>
                   </div>

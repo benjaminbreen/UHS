@@ -21,6 +21,16 @@ export interface CharacterSpecification {
   socialClass?: 'peasant' | 'commoner' | 'merchant' | 'noble';
   traits?: string[];
   disease?: string; // Disease ID like BUBONIC_PLAGUE
+  customBackstory?: string; // LLM-generated backstory specific to the scenario
+  customItems?: Array<{ // LLM-generated items specific to the profession/scenario
+    name: string;
+    description: string;
+    value: number;
+    weight: number;
+    category: string;
+    stackable?: boolean;
+    wearable?: boolean;
+  }>;
 }
 
 export interface WorldWeaverResult {
@@ -273,6 +283,17 @@ class WorldWeaverService {
     }
 
     try {
+      // Enhance character details if we have a character spec with profession
+      if (baseResult.characterSpec?.profession) {
+        console.log('[WorldWeaverService] Enhancing character details...');
+        baseResult.characterSpec = await this.enhanceCharacterDetails(
+          baseResult.characterSpec,
+          baseResult.year,
+          baseResult.mapArea,
+          userPrompt
+        );
+      }
+      
       // Determine the appropriate game mode
       const gameMode = this.determineGameMode(userPrompt, baseResult.characterSpec);
       console.log('[WorldWeaverService] Selected game mode:', gameMode.name);
@@ -420,6 +441,111 @@ class WorldWeaverService {
     if (characterSpec.socialClass) parts.push(`${characterSpec.socialClass} class`);
     
     return parts.join(', ') || 'An ordinary person';
+  }
+
+  /**
+   * Enhance character with custom backstory and items based on the scenario
+   */
+  async enhanceCharacterDetails(
+    characterSpec: CharacterSpecification, 
+    year: number, 
+    location: string,
+    userPrompt: string
+  ): Promise<CharacterSpecification> {
+    console.log('[WorldWeaverService] Enhancing character details for:', characterSpec);
+    
+    if (!characterSpec.profession) {
+      return characterSpec; // Can't enhance without a profession
+    }
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      
+      const prompt = `
+You are creating a historically accurate character for an educational history simulation game.
+
+CONTEXT:
+- Year: ${year}
+- Location: ${location}
+- Character: ${characterSpec.age || 30} year old ${characterSpec.gender || 'person'} who is a ${characterSpec.profession}
+- Social Class: ${characterSpec.socialClass || 'commoner'}
+- Original Scenario: "${userPrompt}"
+
+TASK 1 - BACKSTORY:
+Write a compelling 2-3 sentence backstory that:
+- Is SPECIFIC to being a ${characterSpec.profession} in ${location} in ${year}
+- References actual historical context (wars, events, social conditions)
+- Explains how they got into this situation
+- Hints at their personality and recent experiences
+- For military personnel, mention their unit/service and recent combat
+- For civilians in wartime, mention how the conflict affects them
+
+TASK 2 - STARTING ITEMS:
+Generate 4-6 items this person would realistically have based on their profession and the scenario.
+Items should be:
+- Historically accurate to ${year}
+- Specific to their profession (${characterSpec.profession})
+- Mix of practical tools, personal effects, and profession-specific items
+- Include at least one unique item that tells a story
+
+EXAMPLES:
+- RAF Pilot 1940: "Service revolver", "Escape compass", "Silk escape map", "Lucky charm from sweetheart"
+- Medieval Merchant 1348: "Letter of credit", "Spice samples", "Seal ring", "Accounting ledger"
+- Aztec Priest 1519: "Obsidian knife", "Codex fragment", "Jade amulet", "Copal incense"
+- Coal Miner 1880: "Safety lamp", "Union card", "Laudanum bottle", "Family photograph"
+
+Return JSON only:
+{
+  "backstory": "Your 2-3 sentence backstory here",
+  "items": [
+    {
+      "name": "Item name",
+      "description": "Brief description including historical detail",
+      "value": 1-100 (based on worth),
+      "weight": 0.1-5.0 (in kg),
+      "category": "Tool|Weapon|Document|Apparel|Special|Medicine|Food",
+      "stackable": true/false,
+      "wearable": true/false
+    }
+  ]
+}`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        generationConfig: {
+          temperature: 0.8,
+          maxOutputTokens: 500
+        }
+      });
+
+      let result = response.text;
+      console.log('[WorldWeaverService] Character enhancement response:', result);
+      
+      // Track API call
+      eventService.trackAPICall(prompt, result);
+      
+      // Clean and parse response
+      result = result.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+      const enhanced = JSON.parse(result);
+      
+      // Add the enhanced details to the character spec
+      if (enhanced.backstory) {
+        characterSpec.customBackstory = enhanced.backstory;
+      }
+      
+      if (enhanced.items && Array.isArray(enhanced.items)) {
+        characterSpec.customItems = enhanced.items;
+      }
+      
+      console.log('[WorldWeaverService] Enhanced character with backstory and', enhanced.items?.length || 0, 'items');
+      return characterSpec;
+      
+    } catch (error) {
+      console.error('[WorldWeaverService] Failed to enhance character:', error);
+      // Return original spec if enhancement fails
+      return characterSpec;
+    }
   }
 }
 

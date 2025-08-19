@@ -2,7 +2,7 @@
  * hooks/useMapState.ts - Manages map data, generation, and transitions.
  */
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { MapData, AnimalEntity, NpcEntity, MapAnalysisData, MapArchetype, ClimateType, AltitudeSetting, EdgeTileInfo, GameDate, AdjacencyDirection, Item, MapAreaDefinition, PlayerCharacter, BiomeType, MapGenerationParams, SocietalProfile, HistoricalEra, TerrainStructure } from '../types';
+import { MapData, AnimalEntity, NpcEntity, MapAnalysisData, MapArchetype, ClimateType, AltitudeSetting, EdgeTileInfo, GameDate, AdjacencyDirection, Item, MapAreaDefinition, PlayerCharacter, BiomeType, MapGenerationParams, SocietalProfile, HistoricalEra, TerrainStructure, DeployedVessel } from '../types';
 import { proceduralGenerateMap } from '../generation/standardMap/standardMapGenerator';
 import { deriveMapSeed } from '../utils/mapUtils';
 import { findMapAreaDefinition, getNextMapArea } from '../utils/geographyUtils';
@@ -11,6 +11,7 @@ import {  GEOGRAPHICAL_DATA, MAP_WIDTH_TILES, MAP_HEIGHT_TILES, SOCIETAL_PROFILE
 import { generateCharacter, generateCharacterWithSpec } from '../services/characterGenerator';
 import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
+import { SeedManager } from '../services/seedService';
 
 /**
  * Convert MapArchetype enum to a readable area name for display
@@ -49,6 +50,7 @@ interface CachedMapEntry {
   mapData: MapData;
   animals: AnimalEntity[];
   npcs: NpcEntity[];
+  deployedVessels: DeployedVessel[];
   seed: number;
   archetype: MapArchetype; 
   climate: ClimateType;   
@@ -93,7 +95,18 @@ export const useMapState = (props: useMapStateProps) => {
     const { playerState, setPlayerState, gameState, setGameState } = props;
 
     // Map Configuration
-    const [initialGameSeed, setInitialGameSeed] = useState<number>(() => Math.floor(Math.random() * 1000000));
+    const seedManager = SeedManager.getInstance();
+    const [initialGameSeed, setInitialGameSeed] = useState<number>(() => {
+        // Use hash of the seed string as numeric seed for map generation
+        const seedStr = seedManager.getSeed();
+        let hash = 0;
+        for (let i = 0; i < seedStr.length; i++) {
+            const char = seedStr.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return Math.abs(hash) % 1000000;
+    });
     const [userSelectedBaseArchetype, setUserSelectedBaseArchetype] = useState<MapArchetype>(MapArchetype.ISLAND);
     const [userSelectedBaseClimate, setUserSelectedBaseClimate] = useState<ClimateType>(ClimateType.TEMPERATE);
     const [userSelectedBaseAltitude, setUserSelectedBaseAltitude] = useState<AltitudeSetting>('standard');
@@ -109,6 +122,7 @@ export const useMapState = (props: useMapStateProps) => {
     const [mapData, setMapData] = useState<MapData | null>(null);
     const [animals, setAnimals] = useState<AnimalEntity[]>([]);
     const [npcs, setNpcs] = useState<NpcEntity[]>([]);
+    const [deployedVessels, setDeployedVessels] = useState<DeployedVessel[]>([]);
     const [mapDataCache, setMapDataCache] = useState<Map<string, CachedMapEntry>>(new Map());
     const [currentWorldCoords, setCurrentWorldCoords] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
     const [localArea, setLocalArea] = useState<string>('');
@@ -242,7 +256,7 @@ export const useMapState = (props: useMapStateProps) => {
         const newMap = proceduralGenerateMap( seedToUse, archetypeToUse, climateToUse,  generateHarbor, generateLargeCity,  altitudeOverride || userSelectedBaseAltitude, forceVolcanicActivity, zoneToUse, regionToUse, localAreaToUse, String(gameState.gameDate.year), generationParams, neighboringEdges, hasLakes ); 
         const newAnimals = newMap.animals || []; const newNpcs = newMap.npcs || [];
         delete newMap.animals; delete newMap.npcs;
-        const newCacheEntry = { mapData: newMap, animals: newAnimals, npcs: newNpcs, seed: seedToUse, archetype: archetypeToUse, climate: climateToUse, worldX, worldY, region: regionToUse, localArea: localAreaToUse };
+        const newCacheEntry = { mapData: newMap, animals: newAnimals, npcs: newNpcs, deployedVessels: [], seed: seedToUse, archetype: archetypeToUse, climate: climateToUse, worldX, worldY, region: regionToUse, localArea: localAreaToUse };
         setMapDataCache(prevCache => new Map(prevCache).set(`${worldX},${worldY}`, newCacheEntry)); 
         return newCacheEntry;
     }, [generateHarbor, generateLargeCity, userSelectedBaseAltitude, forceVolcanicActivity, gameState.gameDate, isAgricultural, isPastoral, economicActivityLevel]);
@@ -310,6 +324,7 @@ export const useMapState = (props: useMapStateProps) => {
         setMapData(newMapData);
         setAnimals(newMapData.animals || []);
         setNpcs(newMapData.npcs || []);
+        setDeployedVessels([]);
         setLocalArea(areaDef.name);
         setGameState.setCurrentZone(zone);
         setGameState.setCurrentRegion(region);
@@ -345,6 +360,7 @@ export const useMapState = (props: useMapStateProps) => {
                 setMapData(cachedEntry.mapData);
                 setAnimals(cachedEntry.animals);
                 setNpcs(cachedEntry.npcs);
+                setDeployedVessels(cachedEntry.deployedVessels || []);
                 setLocalArea(cachedEntry.localArea);
                 setGameState.setCurrentZone(cachedEntry.mapData.continent || '');
                 setGameState.setCurrentRegion(cachedEntry.region);
@@ -410,6 +426,7 @@ export const useMapState = (props: useMapStateProps) => {
                     setMapData(newMapData.mapData);
                     setAnimals(newMapData.animals);
                     setNpcs(newMapData.npcs);
+                    setDeployedVessels(newMapData.deployedVessels);
                     if (playerState.pendingIconTransitionInfo) {
                         validateAndPlacePlayerOnNewMap(newMapData.mapData, playerState.pendingIconTransitionInfo);
                     }
@@ -538,6 +555,7 @@ export const useMapState = (props: useMapStateProps) => {
         setMapData(newMapEntry.mapData);
         setAnimals(newMapEntry.animals);
         setNpcs(newMapEntry.npcs);
+        setDeployedVessels(newMapEntry.deployedVessels);
         const initialPos = setPlayerState.findInitialIconPosition(newMapEntry.mapData.tiles, playerState.playerMode);
         if (initialPos) {
             setPlayerState.setControlledIconX(initialPos.x);
@@ -547,7 +565,16 @@ export const useMapState = (props: useMapStateProps) => {
     }, [mapData, currentMapSeed, userSelectedBaseArchetype, userSelectedBaseClimate, currentWorldCoords, generateAndCacheMapInternal, setPlayerState, playerState.playerMode, setGameState]);
 
     const onStartNewWorldWithCurrentSettings = useCallback((characterSpec?: any) => {
-        const newSeed = Math.floor(Math.random() * 1000000);
+        // Reset the seed manager with a new seed
+        seedManager.reset();
+        const seedStr = seedManager.getSeed();
+        let hash = 0;
+        for (let i = 0; i < seedStr.length; i++) {
+            const char = seedStr.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        const newSeed = Math.abs(hash) % 1000000;
         setInitialGameSeed(newSeed);
         setMapDataCache(new Map());
         setCurrentWorldCoords({ x: 0, y: 0 });
@@ -589,6 +616,7 @@ export const useMapState = (props: useMapStateProps) => {
         setMapData(newMapData);
         setAnimals(newAnimals);
         setNpcs(newNpcs);
+        setDeployedVessels([]);
         
         // Generate the player character
         const charContext = { 
@@ -664,7 +692,15 @@ export const useMapState = (props: useMapStateProps) => {
         console.log('[onStartNewWorldAtLocation] Success! Found area:', foundAreaDef.name, 'in region:', foundRegion);
         
         // Generate new seed and reset
-        const newSeed = Math.floor(Math.random() * 1000000);
+        seedManager.reset();
+        const seedStr = seedManager.getSeed();
+        let hash = 0;
+        for (let i = 0; i < seedStr.length; i++) {
+            const char = seedStr.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        const newSeed = Math.abs(hash) % 1000000;
         setInitialGameSeed(newSeed);
         setMapDataCache(new Map());
         setCurrentWorldCoords({ x: 0, y: 0 });
@@ -708,10 +744,12 @@ export const useMapState = (props: useMapStateProps) => {
         setMapData(newMapData);
         setAnimals(newAnimals);
         setNpcs(newNpcs);
+        setDeployedVessels([]);
         setMapDataCache(new Map([[`0,0`, { 
             mapData: newMapData, 
             animals: newAnimals,
             npcs: newNpcs,
+            deployedVessels: [],
             seed: newSeed,
             archetype: foundAreaDef.archetype, 
             climate: foundAreaDef.climate,
@@ -824,10 +862,94 @@ export const useMapState = (props: useMapStateProps) => {
         });
     }, [currentWorldCoords, mapDataCache]);
 
+    const deployVesselToMap = useCallback((vesselItem: Item, playerX: number, playerY: number): { success: boolean, vesselPosition?: { x: number, y: number } } => {
+        if (!mapData) return { success: false };
+
+        // Find nearest water tile within 5 tiles of player
+        const findNearestWaterTile = (startX: number, startY: number): { x: number, y: number } | null => {
+            console.log(`[deployVesselToMap] Searching for water near player at (${startX}, ${startY})`);
+            
+            // Check all tiles within 5 tile radius, starting from closest
+            const candidates: { x: number, y: number, distance: number }[] = [];
+            
+            for (let dx = -5; dx <= 5; dx++) {
+                for (let dy = -5; dy <= 5; dy++) {
+                    const x = startX + dx;
+                    const y = startY + dy;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // Skip if too far or same tile as player
+                    if (distance > 5 || distance === 0) continue;
+                    
+                    if (x >= 0 && x < MAP_WIDTH_TILES && y >= 0 && y < MAP_HEIGHT_TILES) {
+                        const tile = mapData.tiles[y]?.[x];
+                        console.log(`[deployVesselToMap] Checking tile (${x}, ${y}): isLand=${tile?.isLand}, biome=${tile?.biome}`);
+                        
+                        if (tile && !tile.isLand) {
+                            // Check if spot is already occupied by another vessel
+                            const isOccupied = deployedVessels.some(v => v.x === x && v.y === y);
+                            if (!isOccupied) {
+                                candidates.push({ x, y, distance });
+                            } else {
+                                console.log(`[deployVesselToMap] Water tile at (${x}, ${y}) is occupied by another vessel`);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (candidates.length > 0) {
+                // Sort by distance and return the closest
+                candidates.sort((a, b) => a.distance - b.distance);
+                const chosen = candidates[0];
+                console.log(`[deployVesselToMap] Found ${candidates.length} water tiles, choosing closest at (${chosen.x}, ${chosen.y}) distance ${chosen.distance.toFixed(2)}`);
+                return { x: chosen.x, y: chosen.y };
+            }
+            
+            console.log('[deployVesselToMap] No water tiles found in search area');
+            return null;
+        };
+
+        const waterPosition = findNearestWaterTile(playerX, playerY);
+        if (!waterPosition) {
+            console.warn('[deployVesselToMap] No suitable water tile found within 5 tiles');
+            return { success: false };
+        }
+
+        // Create deployed vessel
+        const deployedVessel: DeployedVessel = {
+            id: `vessel_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            vesselItem,
+            x: waterPosition.x,
+            y: waterPosition.y,
+            deployedAt: Date.now(),
+            condition: 100,
+            isAvailable: true
+        };
+
+        // Add to current map
+        setDeployedVessels(prevVessels => [...prevVessels, deployedVessel]);
+
+        // Update cache
+        const cacheKey = `${currentWorldCoords.x},${currentWorldCoords.y}`;
+        const cachedEntry = mapDataCache.get(cacheKey);
+        if (cachedEntry) {
+            const updatedVessels = [...cachedEntry.deployedVessels, deployedVessel];
+            setMapDataCache(prevCache => new Map(prevCache).set(cacheKey, { 
+                ...cachedEntry, 
+                deployedVessels: updatedVessels 
+            }));
+        }
+
+        console.log(`[deployVesselToMap] Deployed ${vesselItem.name} at (${waterPosition.x}, ${waterPosition.y})`);
+        return { success: true, vesselPosition: { x: waterPosition.x, y: waterPosition.y } };
+    }, [mapData, deployedVessels, currentWorldCoords, mapDataCache]);
+
     return {
         mapData, setMapData,
         animals, setAnimals,
         npcs, setNpcs,
+        deployedVessels, setDeployedVessels,
         mapDataCache, setMapDataCache,
         currentWorldCoords, setCurrentWorldCoords,
         localArea, setLocalArea,
@@ -861,6 +983,7 @@ export const useMapState = (props: useMapStateProps) => {
         removeVegetation,
         updateMineralDeposit,
         updateStructureData,
+        deployVesselToMap,
         pendingScenarioData,
         setPendingScenarioData,
     };

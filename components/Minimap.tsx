@@ -91,8 +91,8 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
     const dy = e.clientY - dragStartPos.current.y;
     
     // Get viewport dimensions to prevent dragging off screen
-    const maxX = window.innerWidth - (size + 24);
-    const maxY = window.innerHeight - (size + 24);
+    const maxX = window.innerWidth - (displayDimensions.width + 24);
+    const maxY = window.innerHeight - (displayDimensions.height + 24);
     
     // Calculate new position with bounds checking
     const newX = Math.max(0, Math.min(maxX, dragStartElementPos.current.x - dx));
@@ -102,7 +102,7 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
       x: newX,
       y: newY
     });
-  }, [isDragging, size]);
+  }, [isDragging, displayDimensions]);
 
   useEffect(() => {
     if (isResizing) {
@@ -191,12 +191,11 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
   return (
     <div 
         ref={wrapperRef}
-        className="absolute z-30 bg-gray-900/60 backdrop-blur-sm rounded-xl p-3 border border-gray-600/50 shadow-2xl select-none" 
-        style={{ 
-          top: `${position.y}px`, 
+        className="absolute z-30 bg-gray-900/60 backdrop-blur-sm rounded-xl p-3 border border-gray-600/50 shadow-2xl select-none overflow-hidden" 
+        style={{
+          top: `${position.y}px`,
           right: `${position.x}px`,
-          width: Math.max(displayDimensions.width, displayDimensions.height) + 24, 
-          height: Math.max(displayDimensions.width, displayDimensions.height) + 24, 
+          width: displayDimensions.width + 24,   // padding p-3 = 12px each side
           cursor: isResizing ? 'nwse-resize' : isDragging ? 'grabbing' : 'grab',
           transition: isDragging || isResizing ? 'none' : 'all 0.2s'
         }}
@@ -214,7 +213,7 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
             −
         </button>
       </div>
-      <div className="relative flex items-center justify-center" style={{ width: Math.max(displayDimensions.width, displayDimensions.height), height: Math.max(displayDimensions.width, displayDimensions.height) }}>
+      <div className="relative" style={{ width: displayDimensions.width, height: displayDimensions.height }}>
         <svg 
           width={displayDimensions.width} 
           height={displayDimensions.height} 
@@ -259,7 +258,7 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
         </svg>
         <div 
             onMouseDown={handleResizeMouseDown} 
-            className="resize-handle absolute -bottom-1 -right-1 w-6 h-6 cursor-nwse-resize text-gray-500 hover:text-white p-1"
+            className="resize-handle absolute bottom-1 right-1 w-6 h-6 cursor-nwse-resize text-gray-500 hover:text-white p-1"
             title="Resize Map"
         >
           <svg className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"></path></svg>

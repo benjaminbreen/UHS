@@ -16,7 +16,7 @@ import FarmPanel from './FarmPanel';
 import MarketplaceModal from './MarketplaceModal';
 import CityModal from './CityModal';
 import RuinModal from './RuinModal';
-import { DevTooltipDisplayData, Tile, PlayerCharacter, BiomeType } from '../types';
+import { DevTooltipDisplayData, Tile, PlayerCharacter, BiomeType, DeployedVessel } from '../types';
 import TimeAwareBackground from './TimeAwareBackground';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES } from '../constants';
 import { useDeviceDetection } from '../utils/deviceUtils';
@@ -34,12 +34,12 @@ const MapViewport: React.FC = () => {
     
     const { 
         currentWorldCoords, mapData,
-        visibleAnimals, visibleNpcs, mapAnalysisData, 
+        visibleAnimals, visibleNpcs, deployedVessels, mapAnalysisData, 
     } = useMap();
 
     const {
         playerCharacter, controlledIconX, controlledIconY, onIconAnimationComplete,
-        playerMode, shipDockX, shipDockY, iconRotation, velocity,
+        playerMode, setPlayerMode, shipDockX, shipDockY, iconRotation, velocity, currentVessel,
         interiorViewState, interiorMapPlayerPos, onPlayerMove,
         handleExitInteriorView, handleEntityInteraction,
         onEnterBuilding, onBuyItem, onSellItem, viewMode,
@@ -74,6 +74,13 @@ const MapViewport: React.FC = () => {
         setTileInfoModalProps({ data: { ...data, mapContext: mapContextForModal }, parentTile });
     }, [mapData, setTileInfoModalProps]);
 
+    const handleVesselClick = useCallback((vessel: DeployedVessel) => {
+        // For now, just show info about the vessel
+        // The actual embarkation will happen automatically when player walks onto it
+        console.log('[MapViewport] Vessel clicked:', vessel.vesselItem.name);
+        alert(`${vessel.vesselItem.name} - Walk onto this vessel to embark!`);
+    }, []);
+
     const renderMapContent = () => {
         if (activeMarketplaceModal && playerCharacter && mapData && mapAnalysisData) {
             return <MarketplaceModal tile={activeMarketplaceModal.tile} onClose={() => setActiveMarketplaceModal(null)} playerCharacter={playerCharacter} onBuy={onBuyItem} onSell={onSellItem} mapData={mapData} npcs={visibleNpcs} mapAnalysisData={mapAnalysisData} gameTimeHours={gameTimeHours} season={season} />;
@@ -85,7 +92,42 @@ const MapViewport: React.FC = () => {
             return <RuinModal tile={activeRuinModal.tile} onClose={() => setActiveRuinModal(null)} playerCharacter={playerCharacter} mapData={mapData} />;
         }
         if (viewMode === 'standard') {
-            return <MapDisplayOptimized mapData={mapData!} animals={visibleAnimals} npcs={visibleNpcs} onDevHover={handleDevHover} onDevCommandClick={handleDevCommandClick} onStructureClick={setStructureModalTarget} onPoiClick={setActivePoi} onSettlementClick={(tile: Tile) => setActiveSettlementInfo({ tile })} activeLens={activeLens} logicalControlledIconX={controlledIconX} logicalControlledIconY={controlledIconY} onIconAnimationComplete={onIconAnimationComplete} playerMode={playerMode} shipDockX={shipDockX} shipDockY={shipDockY} onAnimalClick={setInfoModalTarget} onNpcClick={setInfoModalTarget} selectedAnimalId={infoModalTarget?.id} selectedNpcId={infoModalTarget?.id} sunPosition={sunPosition} formattedDate={formattedDate} season={season} currentLocation={mapData?.continent || ''} iconRotation={iconRotation} velocity={velocity} playerCharacter={playerCharacter} gameTimeHours={gameTimeHours} gameTimeMinutes={gameTimeMinutes} debugSettings={debugSettings} />;
+            return (
+                <MapDisplayOptimized 
+                    mapData={mapData!} 
+                    animals={visibleAnimals} 
+                    npcs={visibleNpcs} 
+                    deployedVessels={deployedVessels || []}
+                    onDevHover={handleDevHover} 
+                    onDevCommandClick={handleDevCommandClick} 
+                    onStructureClick={setStructureModalTarget} 
+                    onPoiClick={setActivePoi} 
+                    onSettlementClick={(tile: Tile) => setActiveSettlementInfo({ tile })} 
+                    onVesselClick={handleVesselClick}
+                    activeLens={activeLens} 
+                    logicalControlledIconX={controlledIconX} 
+                    logicalControlledIconY={controlledIconY} 
+                    onIconAnimationComplete={onIconAnimationComplete}
+                    currentVessel={currentVessel} 
+                    playerMode={playerMode} 
+                    shipDockX={shipDockX} 
+                    shipDockY={shipDockY} 
+                    onAnimalClick={setInfoModalTarget} 
+                    onNpcClick={setInfoModalTarget} 
+                    selectedAnimalId={infoModalTarget?.id} 
+                    selectedNpcId={infoModalTarget?.id} 
+                    sunPosition={sunPosition} 
+                    formattedDate={formattedDate} 
+                    season={season} 
+                    currentLocation={mapData?.continent || ''} 
+                    iconRotation={iconRotation} 
+                    velocity={velocity} 
+                    playerCharacter={playerCharacter} 
+                    gameTimeHours={gameTimeHours} 
+                    gameTimeMinutes={gameTimeMinutes} 
+                    debugSettings={debugSettings} 
+                />
+            );
         }
         if (viewMode === 'interior' && interiorViewState && interiorMapPlayerPos) {
             const interiorData = interiorViewState.maps.get(interiorViewState.currentFloor)!;

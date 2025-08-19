@@ -26,6 +26,7 @@ export * from './knowledge'; // NEW: Export beliefs and technology types
 export * from './societal'; // NEW: Export societal profiles
 export * from './goals'; // NEW: Export goal types
 export * from './diseaseTypes'; // NEW: Export disease types
+export * from './vesselTypes'; // NEW: Export vessel types
 
 import { Tile } from './core/tile';
 import { InteriorTile, InteriorEntity } from './interiorMapTypes';
@@ -33,6 +34,7 @@ import { AnimalEntity } from './animalTypes';
 import { Item } from './itemTypes';
 import { NpcEntity } from './npcTypes';
 import { VegetationEntity } from './vegetationTypes';
+import { DeployedVessel } from './vesselTypes';
 import { TerrainStructure } from './structures';
 import { ViewMode, Season, LensMode } from './ui'; 
 import { PartyMember, GameEvent, PlayerCharacter } from './playerCharacter';
@@ -43,7 +45,7 @@ export type { ViewMode, PartyMember, GameEvent, Season, LensMode, TerrainStructu
 
 // NEW: Universal Dev Tooltip Types
 export type AnyTile = Tile | InteriorTile;
-export type AnyEntity = InteriorEntity | AnimalEntity | NpcEntity | VegetationEntity;
+export type AnyEntity = InteriorEntity | AnimalEntity | NpcEntity | VegetationEntity | DeployedVessel;
 
 export type NpcModalData = EncounterableEntity | null;
 

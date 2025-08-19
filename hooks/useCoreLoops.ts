@@ -41,7 +41,7 @@ const useCoreLoops = () => {
         isIconMoving, activeKeys,
         playerMode, shipDockX, shipDockY, pendingIconTransitionInfo,
         setPlayerMode, setShipDockX, setShipDockY, setControlledIconX, setControlledIconY,
-        setIconRotation, setVelocity, setPlayerCharacter,
+        setIconRotation, setVelocity, setPlayerCharacter, setCurrentVessel,
         onPlayerMove, viewMode, interiorViewState, interiorMapPlayerPos, handleExitInteriorView,
     } = usePlayer();
 
@@ -713,6 +713,7 @@ const useCoreLoops = () => {
                 if (targetTile.isLand && targetTile.biome !== BiomeType.ESTUARY) {
                     setPlayerMode('onFoot'); setShipDockX(controlledIconX); setShipDockY(controlledIconY);
                     setControlledIconX(newLogicalX); setControlledIconY(newLogicalY); showToast("Disembarked!");
+                    // Keep currentVessel so the docked ship shows the correct type
                 } else { setControlledIconX(newLogicalX); setControlledIconY(newLogicalY); }
             } else {
                 if (newLogicalX === shipDockX && newLogicalY === shipDockY) {

@@ -16,6 +16,37 @@ interface LiminalTravelState {
 }
 
 const getInitialDate = (): GameDate => {
+    // Check if we have a URL configuration
+    if (typeof window !== 'undefined') {
+        const urlPath = window.location.pathname;
+        const urlSegments = urlPath.replace(/^\//, '').split('/').filter(Boolean);
+        
+        // Check for date in first segment (e.g., "1348" or "1348-1350")
+        if (urlSegments[0]) {
+            const dateSegment = urlSegments[0];
+            
+            // Try to parse as year or year range
+            if (dateSegment.includes('-')) {
+                const [start] = dateSegment.split('-').map(s => parseInt(s));
+                if (!isNaN(start)) {
+                    console.log('[GameState] Using year from URL:', start);
+                    const month = Math.floor(Math.random() * 12) + 1;
+                    const day = Math.floor(Math.random() * 28) + 1;
+                    return { year: start, month, day };
+                }
+            } else {
+                const year = parseInt(dateSegment);
+                if (!isNaN(year)) {
+                    console.log('[GameState] Using year from URL:', year);
+                    const month = Math.floor(Math.random() * 12) + 1;
+                    const day = Math.floor(Math.random() * 28) + 1;
+                    return { year, month, day };
+                }
+            }
+        }
+    }
+    
+    // Fall back to random date
     const randomYear = Math.floor(Math.random() * (2050 - -700 + 1)) - 700;
     const randomMonth = Math.floor(Math.random() * 12) + 1;
     const maxDaysInMonth = getDaysInMonth(randomYear, randomMonth);
@@ -52,7 +83,47 @@ export const useGameState = () => {
     const [contextualMessage, setContextualMessage] = useState<string | null>(null);
 
     // Location State - LIFTED HERE
-    const [currentZone, setCurrentZone] = useState<string>(() => CULTURE_ZONES[Math.floor(Math.random() * CULTURE_ZONES.length)]);
+    const [currentZone, setCurrentZone] = useState<string>(() => {
+        // Check if we have a URL configuration for zone
+        if (typeof window !== 'undefined') {
+            const urlPath = window.location.pathname;
+            const urlSegments = urlPath.replace(/^\//, '').split('/').filter(Boolean);
+            
+            // Check for geography in second segment (e.g., "europe", "mena")
+            if (urlSegments[1]) {
+                const geoSegment = urlSegments[1].toLowerCase();
+                
+                const zoneMapping: Record<string, string> = {
+                    'europe': 'Europe',
+                    'european': 'Europe',
+                    'mena': 'Middle East and North Africa',
+                    'middleeast': 'Middle East and North Africa',
+                    'eastasia': 'East Asia',
+                    'eastasian': 'East Asia',
+                    'asia': 'East Asia',
+                    'southasia': 'South Asia',
+                    'southasian': 'South Asia',
+                    'india': 'South Asia',
+                    'africa': 'Sub-Saharan Africa',
+                    'subsaharan': 'Sub-Saharan Africa',
+                    'northamerica': 'North America (Pre-Columbian)',
+                    'americas': 'North America (Pre-Columbian)',
+                    'southamerica': 'South America',
+                    'oceania': 'Oceania',
+                    'pacific': 'Oceania'
+                };
+                
+                const zone = zoneMapping[geoSegment];
+                if (zone) {
+                    console.log('[GameState] Using zone from URL:', zone);
+                    return zone;
+                }
+            }
+        }
+        
+        // Fall back to random zone
+        return CULTURE_ZONES[Math.floor(Math.random() * CULTURE_ZONES.length)];
+    });
     const [currentRegion, setCurrentRegion] = useState<string>('...');
     
     // Derived Time State

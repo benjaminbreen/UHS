@@ -5,6 +5,7 @@ import { createItemInstance, addItemToInventory } from '../utils/inventoryUtils'
 import { generateCombatTalkResponse, generateCombatItemResponse } from '../services/llmService';
 import { CombatSprite, AnimalCombatSprite } from './symbols';
 import { ProceduralPortrait } from './portraits';
+import { loadTamedAnimals, saveTamedAnimals, TamedAnimal } from '../services/animalTamingService';
 
 interface CombatModalProps {
   combatant: EncounterableEntity;
@@ -45,6 +46,11 @@ const CombatModal: React.FC<CombatModalProps> = ({
   const [isResolving, setIsResolving] = useState(false);
   const [round, setRound] = useState(1);
   
+  // Tamed animals state
+  const [tamedAnimals, setTamedAnimals] = useState<TamedAnimal[]>([]);
+  const [tamedAnimalHealth, setTamedAnimalHealth] = useState<Record<string, number>>({});
+  const [tamedAnimalAnimation, setTamedAnimalAnimation] = useState<Record<string, string>>({});
+  
   const [activeMenu, setActiveMenu] = useState<'main' | 'skills' | 'items' | 'talk'>('main');
   const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
   
@@ -72,6 +78,36 @@ const CombatModal: React.FC<CombatModalProps> = ({
   
   const opponentName = 'speciesName' in opponent ? opponent.speciesName : opponent.name;
   const combatSkills: SkillID[] = ['POWER_STRIKE', 'FIRST_AID', 'INTIMIDATING_SHOUT', 'CHOP', 'BURN'];
+  
+  // Load tamed animals on mount
+  useEffect(() => {
+    const animals = loadTamedAnimals();
+    setTamedAnimals(animals);
+    
+    // Initialize health for each tamed animal
+    const healthMap: Record<string, number> = {};
+    const animationMap: Record<string, string> = {};
+    animals.forEach(animal => {
+      healthMap[animal.id] = animal.health;
+      animationMap[animal.id] = 'idle';
+    });
+    setTamedAnimalHealth(healthMap);
+    setTamedAnimalAnimation(animationMap);
+  }, []);
+  
+  // Save tamed animal health changes when combat ends
+  useEffect(() => {
+    return () => {
+      // On unmount, save the current health state of tamed animals
+      if (tamedAnimals.length > 0) {
+        const updatedAnimals = tamedAnimals.map(animal => ({
+          ...animal,
+          health: tamedAnimalHealth[animal.id] !== undefined ? tamedAnimalHealth[animal.id] : animal.health
+        }));
+        saveTamedAnimals(updatedAnimals);
+      }
+    };
+  }, [tamedAnimals, tamedAnimalHealth]);
 
   // Status effect icons mapping
   const statusEffectIcons: Record<StatusEffectType, string> = {
@@ -276,45 +312,146 @@ const CombatModal: React.FC<CombatModalProps> = ({
     setIsPlayerTurn(false);
     setIsDefending(false); // Reset defense
     setCombatStats(prev => ({ ...prev, turnCount: prev.turnCount + 1 }));
-    setTimeout(() => {
+    
+    // If there are alive tamed animals, they get a turn first
+    const aliveTamedAnimals = tamedAnimals.filter(animal => tamedAnimalHealth[animal.id] > 0);
+    if (aliveTamedAnimals.length > 0) {
+      setTimeout(() => {
+        startTamedAnimalTurns(aliveTamedAnimals, 0);
+      }, 800);
+    } else {
+      setTimeout(() => {
         startOpponentTurn();
-    }, 800);
+      }, 800);
+    }
+  };
+  
+  const startTamedAnimalTurns = (aliveTamedAnimals: TamedAnimal[], index: number) => {
+    if (index >= aliveTamedAnimals.length) {
+      // All tamed animals have had their turn, now opponent goes
+      setTimeout(() => {
+        startOpponentTurn();
+      }, 600);
+      return;
+    }
+    
+    const currentAnimal = aliveTamedAnimals[index];
+    const animalData = ANIMAL_DATA[currentAnimal.baseId];
+    if (!animalData) {
+      // Skip this animal if we can't find its data
+      startTamedAnimalTurns(aliveTamedAnimals, index + 1);
+      return;
+    }
+    
+    // Animal attacks the opponent
+    addLog(`${currentAnimal.name} attacks!`, 'player');
+    setTamedAnimalAnimation(prev => ({ ...prev, [currentAnimal.id]: 'attacking' }));
+    
+    setTimeout(() => {
+      // Calculate animal's attack
+      const animalAttackPower = animalData.attack || 1;
+      const baseDamage = Math.max(1, animalAttackPower + Math.floor(Math.random() * 3));
+      const damage = Math.max(1, baseDamage - opponent.stats.defense);
+      
+      setOpponent(prev => ({ ...prev, health: Math.max(0, (prev.health || 0) - damage) }));
+      setOpponentAnimation('damaged');
+      addDamageSplat(damage.toString(), 'damage', 'opponent');
+      addLog(`${currentAnimal.name} deals ${damage} damage!`, 'player');
+      
+      setTimeout(() => {
+        setTamedAnimalAnimation(prev => ({ ...prev, [currentAnimal.id]: 'idle' }));
+        setOpponentAnimation('idle');
+        
+        if ((opponent.health || 0) - damage <= 0) {
+          const victoryText = getCombatFlavorText('victory', isAnimal(opponent), isAnimal(opponent) ? opponent.baseId : undefined);
+          addLog(victoryText || `${opponentName} is defeated!`, 'system');
+          setTimeout(() => onVictory(opponent), 1000);
+        } else {
+          // Continue to next tamed animal
+          startTamedAnimalTurns(aliveTamedAnimals, index + 1);
+        }
+      }, 400);
+    }, 600);
   };
   
   const startOpponentTurn = () => {
       // Process status effects at start of opponent turn
       processStatusEffects(opponent, false);
       
+      // Decide target - 30% chance to target a tamed animal if any are alive
+      const aliveTamedAnimals = tamedAnimals.filter(animal => tamedAnimalHealth[animal.id] > 0);
+      const targetAnimal = aliveTamedAnimals.length > 0 && Math.random() < 0.3 
+        ? aliveTamedAnimals[Math.floor(Math.random() * aliveTamedAnimals.length)]
+        : null;
+      
       setOpponentAnimation('attacking');
       const flavorText = getCombatFlavorText('attack', isAnimal(opponent), isAnimal(opponent) ? opponent.baseId : undefined);
-      addLog(flavorText || `${opponentName} attacks!`, 'opponent');
-
-      setTimeout(() => {
-          const result = calculateAttack(opponent, playerCharacter);
-          
-          if (result.hit) {
-              setPlayerAnimation('damaged');
-              addDamageSplat(result.text, result.crit ? 'crit' : 'damage', 'player');
-              
-              if (result.crit) {
-                setCombatStats(prev => ({ ...prev, criticalHits: prev.criticalHits + 1 }));
-                setScreenShake(true);
-              }
-              
-              setCombatStats(prev => ({ ...prev, opponentDamageDealt: prev.opponentDamageDealt + result.damage }));
-              addLog(`${opponentName} ${result.crit ? 'critically ' : ''}hits for ${result.damage} damage.`, 'opponent');
-              onCharacterUpdate(p => ({ ...p, health: Math.max(0, p.health - result.damage) }));
-          } else {
-              addDamageSplat('Miss!', 'miss', 'player');
-              const missText = getCombatFlavorText('miss', isAnimal(opponent), isAnimal(opponent) ? opponent.baseId : undefined);
-              addLog(missText || `${opponentName}'s attack misses!`, 'opponent');
-          }
+      
+      if (targetAnimal) {
+          addLog(`${opponentName} attacks ${targetAnimal.name}!`, 'opponent');
           
           setTimeout(() => {
-               setOpponentAnimation('idle');
-               setPlayerAnimation('idle');
-               setScreenShake(false);
-               if (playerCharacter.health - result.damage <= 0) {
+              // Calculate attack against animal
+              const animalData = ANIMAL_DATA[targetAnimal.baseId];
+              const animalDefense = animalData?.defense || 0;
+              const baseDamage = 2 + Math.floor(Math.random() * 4) + opponent.stats.attack;
+              const damage = Math.max(1, baseDamage - animalDefense);
+              
+              // Apply damage to tamed animal
+              setTamedAnimalHealth(prev => ({
+                  ...prev,
+                  [targetAnimal.id]: Math.max(0, prev[targetAnimal.id] - damage)
+              }));
+              
+              setTamedAnimalAnimation(prev => ({ ...prev, [targetAnimal.id]: 'damaged' }));
+              addLog(`${opponentName} hits ${targetAnimal.name} for ${damage} damage!`, 'opponent');
+              
+              // Check if animal died
+              if (tamedAnimalHealth[targetAnimal.id] - damage <= 0) {
+                  addLog(`${targetAnimal.name} has been defeated!`, 'system');
+                  // Update saved animals to reflect death
+                  const updatedAnimals = tamedAnimals.map(a => 
+                      a.id === targetAnimal.id ? { ...a, health: 0 } : a
+                  );
+                  saveTamedAnimals(updatedAnimals);
+              }
+              
+              setTimeout(() => {
+                  setOpponentAnimation('idle');
+                  setTamedAnimalAnimation(prev => ({ ...prev, [targetAnimal.id]: 'idle' }));
+                  setScreenShake(false);
+                  startPlayerTurn();
+              }, 600);
+          }, 600);
+      } else {
+          addLog(flavorText || `${opponentName} attacks!`, 'opponent');
+
+          setTimeout(() => {
+              const result = calculateAttack(opponent, playerCharacter);
+              
+              if (result.hit) {
+                  setPlayerAnimation('damaged');
+                  addDamageSplat(result.text, result.crit ? 'crit' : 'damage', 'player');
+                  
+                  if (result.crit) {
+                    setCombatStats(prev => ({ ...prev, criticalHits: prev.criticalHits + 1 }));
+                    setScreenShake(true);
+                  }
+                  
+                  setCombatStats(prev => ({ ...prev, opponentDamageDealt: prev.opponentDamageDealt + result.damage }));
+                  addLog(`${opponentName} ${result.crit ? 'critically ' : ''}hits for ${result.damage} damage.`, 'opponent');
+                  onCharacterUpdate(p => ({ ...p, health: Math.max(0, p.health - result.damage) }));
+              } else {
+                  addDamageSplat('Miss!', 'miss', 'player');
+                  const missText = getCombatFlavorText('miss', isAnimal(opponent), isAnimal(opponent) ? opponent.baseId : undefined);
+                  addLog(missText || `${opponentName}'s attack misses!`, 'opponent');
+              }
+          
+              setTimeout(() => {
+                   setOpponentAnimation('idle');
+                   setPlayerAnimation('idle');
+                   setScreenShake(false);
+                   if (playerCharacter.health - result.damage <= 0) {
                    addLog("You have been defeated!", 'system');
                    
                    // Check if opponent has disease and transmit it upon defeat
@@ -367,11 +504,12 @@ const CombatModal: React.FC<CombatModalProps> = ({
                    }
                    
                    setTimeout(onClose, 1500);
-               } else {
-                   startPlayerTurn();
-               }
-          }, 600);
-      }, 500);
+                   } else {
+                       startPlayerTurn();
+                   }
+              }, 600);
+          }, 500);
+      }
   };
   
   const startPlayerTurn = () => {
@@ -781,10 +919,35 @@ const CombatModal: React.FC<CombatModalProps> = ({
             
             {/* Combat Scene with elevated sprites */}
             <div className="combat-scene-elevated">
-                <div className="combatant-sprite-wrapper player-side">
+                <div className="combatant-sprite-wrapper player-side" style={{ display: 'flex', alignItems: 'flex-end', gap: '10px' }}>
                     {playerCharacter.health > 0 && (
                       <CombatSprite character={playerCharacter} animation={playerAnimation as any} facing="right" />
                     )}
+                    
+                    {/* Tamed Animals alongside player */}
+                    {tamedAnimals.filter(animal => tamedAnimalHealth[animal.id] > 0).map((animal, index) => (
+                      <div key={animal.id} style={{ position: 'relative', marginLeft: index > 0 ? '-20px' : '0' }}>
+                        <AnimalCombatSprite
+                          animal={{
+                            ...animal,
+                            baseId: animal.baseId,
+                            type: ANIMAL_DATA[animal.baseId]?.type || 'Domestic',
+                            health: tamedAnimalHealth[animal.id],
+                            maxHealth: ANIMAL_DATA[animal.baseId]?.maxHealth || 10,
+                            stats: {
+                              level: animal.stats?.level || 1,
+                              attack: ANIMAL_DATA[animal.baseId]?.attack || 1,
+                              defense: ANIMAL_DATA[animal.baseId]?.defense || 1,
+                              ...animal.stats
+                            }
+                          } as AnimalEntity}
+                          animation={tamedAnimalAnimation[animal.id] || 'idle'}
+                          size={80}
+                          facing="right"
+                        />
+                      </div>
+                    ))}
+                    
                     {damageSplats.filter(s => s.target === 'player').map(splat => (
                          <div key={splat.id} className={`damage-splat ${splat.type}`}>{splat.text}</div>
                     ))}
@@ -866,6 +1029,56 @@ const CombatModal: React.FC<CombatModalProps> = ({
                     </div>
                 </div>
             </div>
+            
+            {/* Tamed Animal Status Panel */}
+            {tamedAnimals.length > 0 && (
+                <div className="tamed-animals-panel" style={{
+                    position: 'absolute',
+                    top: '220px',
+                    left: '30px',
+                    background: 'rgba(26, 26, 46, 0.95)',
+                    border: '2px solid #60a5fa',
+                    borderRadius: '4px',
+                    padding: '8px',
+                    fontSize: '10px',
+                    fontFamily: "'Press Start 2P', monospace",
+                    color: '#fff',
+                    maxWidth: '280px'
+                }}>
+                    <h4 style={{ marginBottom: '8px', color: '#60a5fa', fontSize: '10px' }}>Animal Companions</h4>
+                    {tamedAnimals.map(animal => {
+                        const animalData = ANIMAL_DATA[animal.baseId];
+                        const currentHealth = tamedAnimalHealth[animal.id] || 0;
+                        const maxHealth = animalData?.maxHealth || 10;
+                        const healthPercent = (currentHealth / maxHealth) * 100;
+                        
+                        return (
+                            <div key={animal.id} style={{ marginBottom: '6px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                                    <span>{animal.name}</span>
+                                    <span style={{ color: currentHealth > 0 ? '#10b981' : '#ef4444' }}>
+                                        {currentHealth > 0 ? `${currentHealth}/${maxHealth}` : 'KO'}
+                                    </span>
+                                </div>
+                                <div style={{
+                                    width: '100%',
+                                    height: '4px',
+                                    background: 'rgba(0,0,0,0.5)',
+                                    borderRadius: '2px',
+                                    overflow: 'hidden'
+                                }}>
+                                    <div style={{
+                                        width: `${healthPercent}%`,
+                                        height: '100%',
+                                        background: healthPercent > 50 ? '#10b981' : healthPercent > 25 ? '#f59e0b' : '#ef4444',
+                                        transition: 'width 0.3s ease'
+                                    }} />
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
              
             {/* Enhanced Opponent Info Panel with External Portrait */}
             <div className="opponent-info-container">

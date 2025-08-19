@@ -17,11 +17,16 @@ export class QuestService {
   private locationInteractions: Map<string, LocationInteraction> = new Map();
 
   constructor() {
+    // Clear old placeholder quests on initialization
+    this.clearPlaceholderQuests();
+    
     // Load saved quests from localStorage
     const savedActive = localStorage.getItem('activeQuests');
     if (savedActive) {
       try {
-        this.activeQuests = JSON.parse(savedActive);
+        const quests = JSON.parse(savedActive);
+        // Only keep LLM-generated quests
+        this.activeQuests = quests.filter((quest: Quest) => quest.isLLMGenerated === true);
       } catch (e) {
         console.error('Failed to load active quests:', e);
       }
@@ -30,10 +35,42 @@ export class QuestService {
     const savedCompleted = localStorage.getItem('completedQuests');
     if (savedCompleted) {
       try {
-        this.completedQuests = JSON.parse(savedCompleted);
+        const quests = JSON.parse(savedCompleted);
+        // Only keep LLM-generated quests
+        this.completedQuests = quests.filter((quest: Quest) => quest.isLLMGenerated === true);
       } catch (e) {
         console.error('Failed to load completed quests:', e);
       }
+    }
+  }
+
+  /**
+   * Clear placeholder/fake quests that might be in localStorage
+   */
+  private clearPlaceholderQuests(): void {
+    try {
+      const savedActive = localStorage.getItem('activeQuests');
+      if (savedActive) {
+        const quests = JSON.parse(savedActive);
+        const placeholderQuests = quests.filter((quest: any) => 
+          !quest.isLLMGenerated || 
+          quest.title?.toLowerCase().includes('first sign') ||
+          quest.title?.toLowerCase().includes('placeholder') ||
+          quest.title?.toLowerCase().includes('test quest')
+        );
+        
+        if (placeholderQuests.length > 0) {
+          console.log(`[QuestService] Clearing ${placeholderQuests.length} placeholder quests`);
+          // Remove placeholder quests and save clean list
+          const cleanQuests = quests.filter((quest: any) => quest.isLLMGenerated === true);
+          localStorage.setItem('activeQuests', JSON.stringify(cleanQuests));
+        }
+      }
+    } catch (e) {
+      console.error('Error clearing placeholder quests:', e);
+      // If there's an error, clear all quests to start fresh
+      localStorage.removeItem('activeQuests');
+      localStorage.removeItem('completedQuests');
     }
   }
 
@@ -355,6 +392,16 @@ export class QuestService {
     this.activeQuests.push(quest);
     this.saveQuests();
     console.log('[QuestService] Added quest:', quest.title);
+    
+    // Dispatch event for UI to listen for quest updates
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('questAdded', {
+        detail: {
+          quest,
+          totalActiveQuests: this.activeQuests.length
+        }
+      }));
+    }
   }
 
   /**
@@ -461,6 +508,18 @@ export class QuestService {
 
     console.log('[QuestService] Completed quest:', quest.title, 'Rewards:', rewardResult);
     this.saveQuests();
+    
+    // Dispatch event for UI to listen for quest completion
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('questCompleted', {
+        detail: {
+          quest,
+          rewards: rewardResult,
+          totalActiveQuests: this.activeQuests.length,
+          totalCompletedQuests: this.completedQuests.length
+        }
+      }));
+    }
   }
 
   /**

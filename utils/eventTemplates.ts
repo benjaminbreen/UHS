@@ -446,8 +446,8 @@ function getWealthVariables(wealth: 'poor' | 'modest' | 'wealthy'): Record<strin
       
     case 'modest':
       vars.POSSESSION = ['basic furniture', 'working tools', 'decent clothing', 'small savings', 'modest home', 'few luxuries', 'practical items', 'reliable equipment'];
-      vars.CONCERN = ['maintaining income', 'family health', 'home repairs', 'seasonal challenges', 'business competition', 'community standing', 'children\\'s future', 'modest growth'];
-      vars.ASPIRATION = ['prosperity', 'better home', 'children\\'s education', 'business expansion', 'social advancement', 'comfortable retirement', 'respect', 'stability'];
+      vars.CONCERN = ['maintaining income', 'family health', 'home repairs', 'seasonal challenges', 'business competition', 'community standing', "children's future", 'modest growth'];
+      vars.ASPIRATION = ['prosperity', 'better home', "children's education", 'business expansion', 'social advancement', 'comfortable retirement', 'respect', 'stability'];
       vars.SOCIAL_STATUS = ['skilled craftsman', 'small merchant', 'successful farmer', 'minor official', 'guild member', 'respectable citizen', 'property owner', 'local leader'];
       vars.DWELLING = ['comfortable house', 'workshop with home', 'small farm', 'town residence', 'guild quarters', 'family home', 'modest estate', 'well-built cottage'];
       break;

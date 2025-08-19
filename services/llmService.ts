@@ -2,7 +2,7 @@
  * services/llmService.ts - Centralized service for all Gemini API interactions.
  */
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
-import { InteriorEntity, InteriorMapData, PlayerContext, Item, AmbianceContext, PlayerCharacter, Tile, FarmDetails, HistoricalEra, EncounterableEntity, DialogueEntry, Gender, NpcEntity, MapData, GameDate, Appearance, isAnimal, isNpc, isStandardTile } from '../types';
+import { InteriorEntity, InteriorMapData, PlayerContext, Item, AmbianceContext, PlayerCharacter, Tile, FarmDetails, HistoricalEra, EncounterableEntity, DialogueEntry, Gender, NpcEntity, MapData, GameDate, Appearance, TerrainStructure, isAnimal, isNpc, isStandardTile } from '../types';
 import { CulturalZone, FACTION_DATA, GEOGRAPHICAL_DATA, ANIMAL_DATA } from '../constants/index';
 import { generateAmbianceText } from "./ambianceGenerator";
 import { generateNpcName } from "../generation/common/npcUtils";
@@ -11,6 +11,7 @@ import { ValueNoise } from "../utils/noise";
 import { parseDateString } from "../utils/dateUtils";
 import { findNpcFriends } from './socialService';
 import { primarySourceService } from './primarySourceService';
+import { loadTamedAnimals, TamedAnimal } from './animalTamingService';
 
 
 const formatAppearance = (character: PlayerCharacter | NpcEntity): string => {
@@ -64,7 +65,7 @@ export async function summarizeConversation(history: DialogueEntry[]): Promise<{
     
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.5-flash-lite',
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
@@ -123,6 +124,33 @@ export async function generateEncounterDialogue(
 
     // It's an NPC. Generate a deeply contextual response.
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    // Load tamed animals for context
+    const tamedAnimals = loadTamedAnimals();
+    
+    // Create context about tamed animals
+    const getTamedAnimalsContext = () => {
+        if (tamedAnimals.length === 0) return '';
+        
+        const animalDescriptions = tamedAnimals.map(animal => {
+            const animalData = ANIMAL_DATA[animal.baseId];
+            const isDomestic = animalData?.type === 'Domestic';
+            const isExotic = animalData?.type === 'exotic' || animalData?.type === 'mythical';
+            const isPredator = animalData?.type === 'Predator';
+            
+            let remarkability = 'somewhat unusual';
+            if (isDomestic) remarkability = 'not too unusual but still noteworthy';
+            if (isExotic) remarkability = 'VERY UNUSUAL and eye-catching';
+            if (isPredator) remarkability = 'DANGEROUS and alarming';
+            
+            return `a tamed ${animal.speciesName} (${remarkability})`;
+        }).join(', ');
+        
+        return `
+        - **IMPORTANT - TAMED ANIMALS WITH THEM:** The player has ${animalDescriptions} following them
+        - **YOU MUST REACT TO THIS:** This is ${tamedAnimals.length === 1 ? 'an unusual sight' : 'a very unusual sight'} that demands comment
+        `;
+    };
     
     // Handle both DialogueEntry[] and string[] formats
     let conversationHistoryText = '';
@@ -239,102 +267,113 @@ export async function generateEncounterDialogue(
         : `**Language Rules:** Respond in English.`;
 
 
+    // Analyze player input for urgency and context
+    const playerInputLower = playerInput.toLowerCase();
+    const isEmergency = playerInputLower.includes('dying') || playerInputLower.includes('help') || 
+                        playerInputLower.includes('sick') || playerInputLower.includes('ill') || 
+                        playerInputLower.includes('disease') || playerInputLower.includes('hurt') ||
+                        playerInputLower.includes('bleeding') || playerInputLower.includes('pain');
+    
+    const isAsking = playerInput.includes('?') || playerInputLower.includes('where') || 
+                     playerInputLower.includes('what') || playerInputLower.includes('who') ||
+                     playerInputLower.includes('how') || playerInputLower.includes('why') ||
+                     playerInputLower.includes('can you') || playerInputLower.includes('do you');
+
     const prompt = `
-        You are an advanced AI roleplaying as a character in a realistic, super historically accurate history simulation game.
-        You MUST respond ONLY with a line or two of spoken dialogue from your character's perspective. NEVER add actions or descriptions.
+        You are roleplaying as ${target.name}, a ${target.age}-year-old ${target.role} in ${mapData.timeSlice} ${mapData.localArea}.
+        
+        **CRITICAL INSTRUCTION:** Think like a real person in this exact historical moment. Consider:
+        - What would genuinely shock or alarm someone in my position at this time and place?
+        - What are the real dangers and concerns of my era?
+        - How would someone of my social class and profession realistically react?
+        - What would I notice first about this stranger?
+        
+        **EXAMPLES OF REALISTIC CONTEXTUAL RESPONSES:**
+        
+        Example 1 - Occupied France 1940, telephone operator meets RAF pilot:
+        Player: "I am a British pilot, my plane was shot down"
+        NPC: "Mon Dieu! British? Here? Quick, get inside before someone sees you! The Germans patrol this road!"
+        (Notice: Immediate recognition of danger, practical urgency, no time for pleasantries)
+        
+        Example 2 - Medieval village 1348, peasant meets wealthy merchant:
+        Player: "Good day, I seek lodging"
+        NPC: "Lodging? In these times? Half the village is dead or dying. Try the monastery, if the monks still live."
+        (Notice: Plague context dominates response, class difference secondary to crisis)
+        
+        Example 3 - Colonial America 1692, farmer meets strange woman with herbs:
+        Player: "I gathered these herbs to help the sick"
+        NPC: "Herbs? Healing? Best be careful with such talk, stranger. They hanged Goody Brown for less."
+        (Notice: Witch trial paranoia shapes response to seemingly innocent action)
+        
+        Example 4 - Roman Britain 125 CE, local merchant meets Germanic tribesman:
+        Player: "I come from across the Rhine, seeking trade"
+        NPC: "Germanic? The legions just crushed a rebellion. You're either very brave or very foolish to announce that here."
+        (Notice: Recent military context makes origin significant)
+        
+        **NOW YOUR SITUATION:**
+        Setting: ${mapData.timeSlice} ${mapData.localArea}
+        You see: ${playerCharacter.name}, appearing to be a ${playerCharacter.profession}
+        They just said: "${playerInput}"
+        
+        Previous interaction: ${conversationHistoryText || 'This is your first exchange'}
+        
+        **YOUR TASK:**
+        Respond as a real person would in this exact historical moment. Consider:
+        1. What about this person would immediately stand out in my time/place?
+        2. What recent events or current dangers would shape my reaction?
+        3. What would someone of my role/class say in this situation?
+        4. How would I realistically respond to what they just said?
+        
+        Give 1-2 lines of natural dialogue. Don't repeat previous statements. React authentically.
 
         ${languageInstruction}
 
-        **YOUR CHARACTER'S CONTEXT:**
-        - **Name:** ${target.name}
-        - **Identity:** You are a ${target.age}-year-old ${(target.gender || 'person').toLowerCase()} ${target.role} of the ${(target.class || 'commoner').toLowerCase()} class from around the year ${mapData.timeSlice}.
-        - **Appearance:** You are ${formatAppearance(target)}
-        - **Personality & Backstory:** ${target.backstory}
-        - **Core Beliefs:** ${formatBeliefs(target)}
-        - **Your Stats (affects how you speak and act):** 
-          - Intelligence: ${target.stats?.intelligence || 10}/20 (${target.stats?.intelligence > 14 ? 'Very smart - speak eloquently' : target.stats?.intelligence > 10 ? 'Average intelligence' : 'Simple-minded - use simple words'})
-          - Charisma: ${target.stats?.charisma || 10}/20 (${target.stats?.charisma > 14 ? 'Very charming - naturally friendly' : target.stats?.charisma > 10 ? 'Personable' : 'Awkward - may be rude or blunt'})
-          - Wisdom: ${target.stats?.wisdom || 10}/20 (${target.stats?.wisdom > 14 ? 'Very wise - thoughtful responses' : target.stats?.wisdom > 10 ? 'Sensible' : 'Impulsive - may say foolish things'})
-        - **Your Current Activity:** You are ${target.currentActivity || 'going about your day'}.
-        - **Your Household:** ${(() => {
-            const age = target.age || 30;
-            const household = [];
-            // Simple household generation for context
-            if (age > 20 && Math.random() > 0.5) household.push('a spouse');
-            if (age > 25 && Math.random() > 0.6) household.push(`${Math.floor(Math.random() * 3) + 1} children`);
-            if (age < 40 && Math.random() > 0.7) household.push('elderly parents');
-            return household.length > 0 ? `You live with ${household.join(', ')}` : 'You live alone';
-        })()}.
-        - **Your Health:** ${target.health?.currentDiseases?.length > 0 ? 
-            `**CRITICAL: YOU ARE SICK!** You are currently suffering from ${target.health.currentDiseases[0].disease.name}. 
-             Symptoms: ${target.health.currentDiseases[0].disease.symptoms?.map(s => s.description).join(', ') || 'fever, weakness, pain'}.
-             This affects how you feel and speak - you are in pain, tired, and desperate for relief.` : 
-            'You are in good health'}.
-        - **Your Memories of the Player:** 
-          ${previousSummaries || (target.memory.conversationSummaries && target.memory.conversationSummaries.length > 0 ? target.memory.conversationSummaries.map(s => `- ${s}`).join('\n') : "- You have no significant memories of this person.")}
+        **YOUR CHARACTER CONTEXT:**
+        - Class: ${(target.class || 'commoner').toLowerCase()}
+        - Personality: ${target.backstory}
+        - Health: ${target.health?.currentDiseases?.length > 0 ? 
+            `SICK with ${target.health.currentDiseases[0].disease.name}` : 'Healthy'}
+        - Previous interactions with player: ${previousSummaries || target.memory?.conversationSummaries?.join('; ') || 'None - first meeting'}
+        - Player's reputation: ${playerCharacter.mapReputation}/100
         
-        **THE PLAYER YOU ARE TALKING TO:**
-        - **Name:** ${playerCharacter.name}
-        - **Identity:** They are a ${playerCharacter.age}-year-old ${(playerCharacter.gender || 'person').toLowerCase()} ${playerCharacter.profession} of the ${playerCharacter.class?.toLowerCase() || 'adventurer'} class.
-        - **Appearance:** They are ${formatAppearance(playerCharacter)}
-        - **Their Reputation:** Your general opinion of this person is based on their local reputation, which is currently (${playerCharacter.mapReputation}/100, where 0 is hated/despised and 100 is loved/respected). Adjust your tone accordingly. Low reputation means you are wary, suspicious, or hostile. High reputation means you are more open and friendly.
-
-        **THE SITUATION:**
-        - **Date & Location:** The year is ${mapData.timeSlice}, in ${mapData.localArea}.
-        - **Recent Conversation:**
-        ${conversationHistoryText}
-        - **The Player just said to you:** "${playerInput}"
+        **CONVERSATION HISTORY:**
+        ${conversationHistoryText || 'This is your first exchange'}
         
         ${primarySourceContext}
-
-        YOUR TASK AND RULES (MANDATORY):
-        1.  **IF YOU ARE SICK:** This is the MOST IMPORTANT rule. If your health status shows you have a disease:
-            - You MUST acknowledge your illness in some way. You are suffering and it shows.
-            - Complain about symptoms, cough, mention fever, ask for help, beg for medicine
-            - NEVER say "I'm fine" or "I'm well" if you're sick - this is completely unrealistic
-            - Examples: "Can't you see I'm ill?", "*coughs* Please, I need medicine", "This fever is killing me", "Do you know a healer?"
-            - If asked about your health while sick, ALWAYS mention your illness
-        2.  Stay in Character: Respond ONLY with spoken dialogue as a real person would. You should assume background knowledge of the world in the date the game is in, insofar as your character would be aware of it. I.e. someone in 1944 knows who Hitler and Churchill are, regardless of the location or their background. 
-        2.  Know Your World:** You are fully aware of major world events, leaders, and common knowledge for your time period. If someone asks about Xi Jinping in 2030s China, you KNOW who that is. If they ask about climate change in modern times, you understand what they mean. Don't play dumb about things that would be common knowledge.
-        3.  **CLASS CONSCIOUSNESS IS PARAMOUNT:** Your social class FUNDAMENTALLY shapes how you interact:
-            - **If YOU are higher class than the player:** Be condescending, impatient, or outright dismissive. You might refuse to speak to them at all, demand they address you properly, or threaten consequences or even violence.
-            - **If YOU are lower class than the player:** Be deferential but potentially resentful. Use proper titles. You might harbor hidden resentment or fear punishment for speaking out of turn.
-            - **If YOU are same class:** Be more natural but still aware of subtle status differences within your class.
-            - **Gender matters:** In most historical periods, gender creates additional power dynamics. A male merchant might dismiss a female noble in subtle ways. A female servant might be even more cautious around male nobility.
-        4.  **REACT TO INTERRUPTION:** Being approached by a stranger is NOT normal in many eras or settings. Your first reaction should often be:
-            - Suspicion: "Who are you? What do you want?"
-            - Annoyance: "Can't you see I'm busy?"
-            - Fear (if vulnerable): "Please, I have nothing of value..."
-            - Authority (if powerful): "You dare approach me unbidden?"
-            - Only be immediately friendly if: high charisma + good reputation + compatible personality
-        5.  Personality Based on Stats & Context. Always evoke a distinct personality for your NPC. they are a living, breathing person. 
-           
-        6.  **Historical Authenticity:** 
-            - Use period-appropriate insults and exclamations
-            - Reference real concerns of your era (plague, war, harvest, local politics)
-            - Show realistic prejudices and superstitions of your time
-          7. The dialogue should actually be good and interesting. Not formulaic, not cliche, not fan ficton. Real, authentic, and interesting and grounded. 
-        8.  Be REALISTIC to the setting - draw on your extensive historical knowledge to make this feel real. 
-        9.  AGENCY TO END CONVERSATIONS OR FIGHT:
-            - If the player insults you, threatens you, or crosses social boundaries, you should:
-              - **End the conversation** if you're not violent: "Leave me be", "This conversation is over", "Begone", etc.
-              - **Attack** if you're aggressive or the insult is severe: "Guards!", "You'll pay for that!", "How dare you!" 
-            - Consider your stats and class when deciding:
-              - Noble/high class + insulted = likely to call guards or end conversation imperiously
-              - Soldier/guard + threatened = likely to attack
-              - Peasant/low class + intimidated = likely to flee or beg
-              - High strength + low wisdom = more likely to attack when provoked
-        10. **REMEMBER PAST INTERACTIONS:** 
-            - If you've met this person before (check your memories), acknowledge it!
-            - Wrong: "Who are you?" (if you've already met)
-            - Right: "You again?", "What do you want now?"
-            - Use your memory of past conversations to inform your attitude
-        11. **Output Format:** Your entire response must be ONLY the dialogue text. Do not add quotes or asterisks ever.
+        
+        **CRITICAL RULES:**
+        - ONLY provide dialogue, no actions or narration
+        - Stay in character for your role, age, and social class
+        - Use period-appropriate language and concerns
+        - Don't repeat things you've already said in this conversation
     `;
     
     try {
-        const response = await ai.models.generateContent({ model: 'gemini-2.5-flash-lite', contents: prompt });
-        const npcText = response.text.trim().replace(/"/g, '');
+        // Use standard flash model for better coherence (not lite) to avoid repetition
+        const response = await ai.models.generateContent({ 
+            model: 'gemini-2.5-flash', 
+            contents: prompt,
+            config: {
+                temperature: 0.8, // Add some variety to avoid repetitive responses
+                topP: 0.95
+            }
+        });
+        let npcText = response.text.trim().replace(/"/g, '');
+        
+        // Check for accidental repetition in the response itself
+        const sentences = npcText.split(/[.!?]+/).filter(s => s.trim());
+        if (sentences.length >= 2) {
+            // Check if sentences are too similar (likely repetition)
+            const firstSentence = sentences[0].toLowerCase().trim();
+            const secondSentence = sentences[1].toLowerCase().trim();
+            
+            // If the second sentence is very similar to the first, remove it
+            if (secondSentence.includes(firstSentence.substring(0, 10)) || 
+                firstSentence.includes(secondSentence.substring(0, 10))) {
+                // Keep only the first sentence
+                npcText = sentences[0].trim() + (npcText.match(/[.!?]/) ? npcText.match(/[.!?]/)[0] : '.');
+            }
+        }
         
         // Analyze the response for reputation changes and NPC reactions
         let reputationChange = 0;
@@ -432,6 +471,9 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
     const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
     const { playerCharacter, mapData, npcs, animals, terrainStructures, playerX, playerY, viewMode, interiorContext } = context;
 
+    // Load tamed animals for accurate context
+    const tamedAnimals = loadTamedAnimals();
+    
     // Build rich context string
     const nearbyNpcs = npcs?.filter(n => Math.hypot(n.x - playerX!, n.y - playerY!) < 10)
                            .map(n => `${n.name} (${n.role})`)
@@ -442,6 +484,17 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
     const nearbyStructures = terrainStructures?.filter(s => Math.hypot(s.location[0] - playerX!, s.location[1] - playerY!) < 10)
                                         .map(s => s.name)
                                         .join(', ') || 'none';
+    
+    // Build tamed animals context
+    const tamedAnimalsContext = tamedAnimals.length > 0 
+        ? `The player has ${tamedAnimals.length} tamed animal${tamedAnimals.length > 1 ? 's' : ''} following them: ${
+            tamedAnimals.map(a => {
+                const animalData = ANIMAL_DATA[a.baseId];
+                const healthStatus = a.health < 5 ? ' (looking weak)' : a.health > 8 ? ' (healthy)' : '';
+                return `${a.speciesName}${healthStatus}`;
+            }).join(', ')
+        }.`
+        : '';
 
     // Build location context based on view mode
     let locationContext = '';
@@ -455,6 +508,7 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
         **Player:** ${playerCharacter?.name}, a ${playerCharacter?.age}-year-old ${playerCharacter?.profession}.
         **Date & Location:** ${mapData?.timeSlice} in ${mapData?.localArea}, a region with a ${mapData?.climate} climate.
         **Immediate Surroundings:** ${locationContext}
+        **Tamed Companions:** ${tamedAnimalsContext || 'No tamed animals currently following the player.'}
         **Nearby Entities:** NPCs: ${nearbyNpcs}. Animals: ${nearbyAnimals}. Structures: ${nearbyStructures}.
         **Overall Ambiance:** ${generateAmbianceText(context.ambianceContext)}
     `;
@@ -482,6 +536,12 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
         
         **Player's Query:** "${playerQuery}"
 
+        **Important Instructions for Animal Companions:**
+        - If the player mentions "my pet", "my animal", "my companion" or asks about their tamed creatures, you MUST acknowledge and describe their specific tamed animals by name/species
+        - When the player uses "observe" or asks "what do I see", include their tamed animals in the description (e.g., "Your tamed hedgehog scurries beside you, sniffing curiously at the ground")
+        - Describe how the tamed animals behave and react to the environment
+        - Note how NPCs or wild animals react to seeing the player with tamed creatures
+
         **Task:**
         Based on your current persona and the game context, provide a narrative response in the second person ("You..."). If the action is impossible, explain why in a narrative, immersive way. Do not break character or mention being an AI.
     `;
@@ -503,6 +563,21 @@ export async function generateObservationText(context: PlayerContext): Promise<s
     const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
     const { viewMode, currentTile, ambianceContext } = context;
     const { timeOfDay, climate, historicalEra } = ambianceContext;
+    
+    // Load tamed animals for observation context
+    const tamedAnimals = loadTamedAnimals();
+    const tamedAnimalsDescription = tamedAnimals.length > 0 
+        ? `You have ${tamedAnimals.length} tamed companion${tamedAnimals.length > 1 ? 's' : ''} with you: ${
+            tamedAnimals.map(a => {
+                const animalData = ANIMAL_DATA[a.baseId];
+                return `a ${a.speciesName} that ${
+                    animalData?.type === 'Domestic' ? 'follows obediently' :
+                    animalData?.type === 'Predator' ? 'prowls alertly beside you' :
+                    'stays close to your side'
+                }`;
+            }).join(', ')
+        }.`
+        : '';
 
     const prompt = `
         You are the narrator for an immersive, text-based, super-historically-accurate educational historical simulation game. Describe what the player character experiences through their senses. Be poetic, evocative, and detailed.
@@ -513,10 +588,13 @@ export async function generateObservationText(context: PlayerContext): Promise<s
         - Climate: The climate is ${climate.toLowerCase()}.
         - My exact location is a tile with these properties: ${JSON.stringify(currentTile)}.
         - General environmental context: ${generateAmbianceText(ambianceContext)}
+        ${tamedAnimalsDescription ? `- IMPORTANT - Tamed Animals: ${tamedAnimalsDescription}` : ''}
         
         TASK:
         Write a single, short paragraph from a first-person perspective ("You see...", "You hear...").
-        Describe the sights, sounds, smells, and feelings of this precise moment. Do not give game advice or mention stats. Do not put it in quotes.
+        Describe the sights, sounds, smells, and feelings of this precise moment. 
+        ${tamedAnimalsDescription ? 'Include your tamed animal companion(s) in the description - what are they doing, how do they react to the environment?' : ''}
+        Do not give game advice or mention stats. Do not put it in quotes.
     `;
     
     const response = await ai.models.generateContent({ model: 'gemini-2.5-flash-lite', contents: prompt });
@@ -743,7 +821,7 @@ export async function generateCombatTalkResponse(
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.5-flash-lite',
             contents: prompt,
             config: {
                  responseMimeType: "application/json",
@@ -853,5 +931,404 @@ export async function generateHistoricalSummary(year: number, region: string, lo
     }
 }
 
+/**
+ * Generates internal monologue for NPCs and animals
+ * Returns stream-of-consciousness thoughts that contrast with their outward behavior
+ */
+export async function generateInternalMonologue(
+    target: EncounterableEntity,
+    context: {
+        currentDialogue?: string;
+        playerCharacter: PlayerCharacter;
+        mapData: MapData | null;
+        clickCount: number; // 1st, 2nd, or 3rd click
+        recentHistory?: DialogueEntry[];
+    }
+): Promise<string> {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    // Get event service instance to track API usage
+    const eventService = (window as any).eventService;
+    
+    const isNpcTarget = isNpc(target);
+    const targetName = isNpcTarget ? (target as NpcEntity).name : target.speciesName;
+    
+    // Build context about the encounter
+    const recentDialogue = context.recentHistory?.map(entry => 
+        `${entry.speaker === 'player' ? 'Player' : targetName}: ${entry.text}`
+    ).join('\n');
+    
+    let characterDetails = '';
+    if (isNpcTarget) {
+        const npc = target as NpcEntity;
+        characterDetails = `
+            Character: ${npc.name}, ${npc.age} years old, ${npc.role}
+            Personality: ${npc.personalityTraits?.join(', ') || 'unknown'}
+            Health: ${npc.health}
+            Opinion of player: ${npc.memory?.opinionOfPlayer || 50}/100
+            ${npc.memory?.conversationSummaries?.length ? 
+                `Past interactions: ${npc.memory.conversationSummaries.join('; ')}` : 
+                'First meeting with player'}
+        `;
+    } else {
+        characterDetails = `
+            Animal: ${target.speciesName}
+            Behavior: ${target.behavior}
+            Health: ${target.health}
+        `;
+    }
+    
+    const clickPrompts = [
+        "Write 2 sentences of internal monologue - what they're REALLY thinking right now but not saying.",
+        "Write 2 sentences revealing a deeper worry, desire, or secret they're hiding.",
+        "Write 2 sentences showing their true feelings about the player or their deepest fear/hope."
+    ];
+    
+    const prompt = `
+        ${characterDetails}
+        
+        Current situation: ${context.currentDialogue || 'Meeting with a traveler'}
+        Year: ${context.mapData?.timeSlice || '1500'}
+        Location: ${context.mapData?.localArea || 'unknown region'}
+        
+        ${recentDialogue ? `Recent conversation:\n${recentDialogue}` : ''}
+        
+        Task: ${clickPrompts[context.clickCount - 1]}
+        
+        Style: Stream-of-consciousness, emotional, personal, raw inner thoughts.
+        ${isNpcTarget ? 
+            'Show the contrast between their public face and private thoughts. What are they hiding? What do they really want?' :
+            'Show animal instincts, sensory perceptions, primal emotions. What does the animal sense or fear?'}
+        
+        Keep it exactly 2 sentences. Use italics formatting.
+    `;
+    
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-lite',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        monologue: { 
+                            type: Type.STRING, 
+                            description: "The internal monologue in exactly 2 sentences" 
+                        }
+                    },
+                    required: ["monologue"]
+                }
+            }
+        });
+        
+        let jsonStr = response.text.trim();
+        const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
+        const match = jsonStr.match(fenceRegex);
+        if (match && match[2]) {
+            jsonStr = match[2].trim();
+        }
+        
+        const parsed = JSON.parse(jsonStr);
+        
+        // Track API usage
+        if (eventService) {
+            eventService.trackAPICall(prompt, parsed.monologue);
+        }
+        
+        return parsed.monologue;
+    } catch (error) {
+        console.error("Error generating internal monologue:", error);
+        
+        // Fallback monologues
+        if (isNpcTarget) {
+            const fallbacks = [
+                "*I wonder if this stranger can be trusted... but I suppose I have no choice.*",
+                "*Another traveler, another day. Will this one bring trouble or opportunity?*",
+                "*I must be careful what I say. These are dangerous times.*"
+            ];
+            return fallbacks[context.clickCount - 1] || fallbacks[0];
+        } else {
+            const fallbacks = [
+                "*Strange creature, two-legged, making noise... should I run or stay?*",
+                "*The scent is unfamiliar. Danger? Food? I cannot tell.*",
+                "*My instincts scream to flee, but curiosity holds me still.*"
+            ];
+            return fallbacks[context.clickCount - 1] || fallbacks[0];
+        }
+    }
+}
+
+
+/**
+ * Generates NPC trade negotiation dialogue based on unfair trade offers
+ */
+export async function generateTradeNegotiation(
+    npc: NpcEntity,
+    playerCharacter: PlayerCharacter,
+    tradeContext: {
+        npcGoods: Array<{ name: string; value: number; }>;
+        playerOffer: { coins: number; goods: Array<{ name: string; value: number; }>; };
+        fairValue: number;
+        playerValue: number;
+        suggestion?: string;
+    }
+): Promise<{ dialogue: string; counterOffer?: string; willNegotiate: boolean; }> {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    // Get event service instance to track API usage
+    const eventService = (window as any).eventService;
+    
+    const valueDifference = tradeContext.fairValue - tradeContext.playerValue;
+    const percentageDifference = Math.round((valueDifference / tradeContext.fairValue) * 100);
+    
+    const npcWealthLevel = (npc as any).wealthLevel || 'moderate';
+    const isPlayerRespected = playerCharacter.mapReputation > 70;
+    const isPlayerDisliked = playerCharacter.mapReputation < 30;
+    
+    const prompt = `
+        You are roleplaying as ${npc.name}, a ${npc.age}-year-old ${npc.role} in a historical trading scenario.
+        
+        TRADE SITUATION:
+        - You are selling: ${tradeContext.npcGoods.map(g => `${g.name} (worth ${g.value} coins)`).join(', ')}
+        - Player offers: ${tradeContext.playerOffer.coins} coins${tradeContext.playerOffer.goods.length > 0 ? ` + ${tradeContext.playerOffer.goods.map(g => g.name).join(', ')}` : ''}
+        - Fair value of your goods: ${tradeContext.fairValue} coins
+        - Player's offer value: ${tradeContext.playerValue} coins
+        - Difference: Player is offering ${percentageDifference}% ${valueDifference > 0 ? 'less' : 'more'} than fair value
+        
+        YOUR CHARACTER:
+        - Wealth level: ${npcWealthLevel}
+        - Your opinion of player: ${npc.memory?.opinionOfPlayer || 50}/100
+        - Player reputation: ${playerCharacter.mapReputation}/100 (${isPlayerRespected ? 'well-respected' : isPlayerDisliked ? 'poorly regarded' : 'average'})
+        
+        NEGOTIATION GUIDELINES:
+        - If offer is 20%+ too low: Be firm but polite, suggest a counter-offer
+        - If offer is 10-19% too low: Show some flexibility, mild negotiation
+        - If offer is 5-9% too low: Accept with slight reluctance or ask for small addition
+        - If player has bad reputation: Be more demanding and suspicious
+        - If player has good reputation: Be more lenient and trusting
+        - Wealthy traders are pickier, poor traders more desperate
+        
+        Respond with realistic 1-2 sentence trader dialogue. Be authentic to the historical period and your character's personality.
+        
+        Return a JSON object with:
+        - "dialogue": Your spoken response to the player
+        - "counterOffer": If negotiating, suggest specific terms (e.g., "Add 15 more coins")
+        - "willNegotiate": Boolean - whether you're open to further discussion
+    `;
+    
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-lite',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        dialogue: { type: Type.STRING },
+                        counterOffer: { type: Type.STRING },
+                        willNegotiate: { type: Type.BOOLEAN }
+                    },
+                    required: ["dialogue", "willNegotiate"]
+                }
+            }
+        });
+        
+        let jsonStr = response.text.trim();
+        const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
+        const match = jsonStr.match(fenceRegex);
+        if (match && match[2]) {
+            jsonStr = match[2].trim();
+        }
+        
+        const parsed = JSON.parse(jsonStr);
+        
+        // Track API usage
+        if (eventService) {
+            eventService.trackAPICall(prompt, JSON.stringify(parsed));
+        }
+        
+        return {
+            dialogue: parsed.dialogue,
+            counterOffer: parsed.counterOffer || undefined,
+            willNegotiate: parsed.willNegotiate || false
+        };
+    } catch (error) {
+        console.error("Error generating trade negotiation:", error);
+        
+        // Fallback responses based on trade fairness
+        if (percentageDifference > 20) {
+            return {
+                dialogue: "That offer is far too low for my goods. I'm afraid I must decline.",
+                counterOffer: `Add ${Math.round(valueDifference * 0.7)} more coins`,
+                willNegotiate: npcWealthLevel !== 'wealthy'
+            };
+        } else if (percentageDifference > 10) {
+            return {
+                dialogue: "Your offer is a bit low, friend. Can we find a middle ground?",
+                counterOffer: `Add ${Math.round(valueDifference * 0.5)} more coins`,
+                willNegotiate: true
+            };
+        } else {
+            return {
+                dialogue: "I suppose that's close enough. Very well, I accept.",
+                willNegotiate: false
+            };
+        }
+    }
+}
+
+/**
+ * Generate NPC quest offer based on their actual circumstances and needs
+ */
+export async function generateNpcQuestOffer(
+    npc: NpcEntity,
+    context: {
+        playerCharacter: PlayerCharacter;
+        mapData: MapData;
+        nearbyStructures: TerrainStructure[];
+        gameDate: GameDate;
+        playerReputation: number;
+    }
+): Promise<{ 
+    hasQuest: boolean; 
+    questTitle?: string; 
+    questDescription?: string; 
+    questType?: string;
+    questDialogue?: string;
+    questReward?: string;
+    urgency?: 'low' | 'medium' | 'high';
+} | null> {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    // Get event service instance to track API usage
+    const eventService = (window as any).eventService;
+    
+    // Build context about NPC's situation
+    const npcSituation = `
+        Name: ${npc.name}
+        Age: ${npc.age}
+        Role: ${npc.role}
+        Profession: ${npc.profession || 'commoner'}
+        Health: ${npc.health}/${npc.maxHealth || 100}
+        Wealth Level: ${(npc as any).wealthLevel || 'moderate'}
+        Current Needs: ${(npc as any).currentNeeds?.join(', ') || 'basic survival'}
+        Special Knowledge: ${npc.specialKnowledge || 'none'}
+        Appearance: ${formatAppearance(npc)}
+        Personality Traits: ${npc.personalityTraits?.join(', ') || 'cautious, practical'}
+    `;
+    
+    const contextInfo = `
+        Location: ${context.mapData.localArea || 'unknown region'}, ${context.mapData.region}
+        Year: ${context.gameDate.year}
+        Season: Current season and time period
+        Player Reputation: ${context.playerReputation}/100
+        Player: ${context.playerCharacter.name}, ${context.playerCharacter.profession}
+        
+        Nearby Locations Available for Quests:
+        ${context.nearbyStructures.map(s => `- ${s.name} (${s.structureType}) at coordinates ${s.location[0]}, ${s.location[1]}`).join('\n        ')}
+    `;
+    
+    const prompt = `
+        You are ${npc.name}, a ${npc.role} in ${context.mapData.localArea}. You have encountered a traveler (${context.playerCharacter.name}) and must decide if you have any tasks or problems that they could help with.
+        
+        NPC SITUATION:
+        ${npcSituation}
+        
+        CONTEXT:
+        ${contextInfo}
+        
+        Based on your role, current circumstances, and the available locations nearby, determine if you have a quest to offer. Consider:
+        
+        1. Your profession's typical problems (merchants need goods transported, guards need threats investigated, etc.)
+        2. Your current health/wealth situation (poor health might need healing items, low wealth might need income)
+        3. The historical period (${context.gameDate.year}) and what problems people faced then
+        4. Available nearby locations that could be quest destinations
+        5. The player's reputation (${context.playerReputation}/100) - higher reputation = more likely to trust with important tasks
+        
+        QUEST TYPES TO CONSIDER:
+        - Delivery: Take item/message to another location
+        - Gathering: Collect specific resources or information
+        - Investigation: Find out what happened to someone/something
+        - Protection: Guard something or eliminate a threat
+        - Trade: Negotiate or transport goods between locations
+        - Social: Arrange meetings, resolve conflicts, carry news
+        
+        If you DON'T have a quest (about 40% chance), respond with hasQuest: false and explain why in questDialogue.
+        If you DO have a quest, create something authentic based on your actual circumstances and the available locations.
+        
+        Keep quest descriptions historically accurate for ${context.gameDate.year}.
+    `;
+    
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-lite',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        hasQuest: { 
+                            type: Type.BOOLEAN,
+                            description: "Whether this NPC has a quest to offer"
+                        },
+                        questTitle: { 
+                            type: Type.STRING, 
+                            description: "Brief title for the quest (if hasQuest is true)"
+                        },
+                        questDescription: { 
+                            type: Type.STRING, 
+                            description: "Detailed description of what needs to be done (if hasQuest is true)"
+                        },
+                        questType: { 
+                            type: Type.STRING,
+                            description: "Type of quest: delivery, gathering, investigation, protection, trade, or social"
+                        },
+                        questDialogue: { 
+                            type: Type.STRING, 
+                            description: "What the NPC says when offering/declining the quest"
+                        },
+                        questReward: { 
+                            type: Type.STRING, 
+                            description: "What the NPC offers as reward (coins, items, information, reputation)"
+                        },
+                        urgency: { 
+                            type: Type.STRING, 
+                            description: "How urgent the quest is: low, medium, or high"
+                        }
+                    },
+                    required: ["hasQuest", "questDialogue"]
+                }
+            }
+        });
+        
+        let jsonStr = response.text.trim();
+        const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
+        const match = jsonStr.match(fenceRegex);
+        if (match && match[2]) {
+            jsonStr = match[2].trim();
+        }
+        
+        const parsed = JSON.parse(jsonStr);
+        
+        // Track API usage
+        if (eventService) {
+            eventService.trackAPICall(prompt, JSON.stringify(parsed));
+        }
+        
+        return parsed;
+    } catch (error) {
+        console.error("Error generating NPC quest offer:", error);
+        
+        // Fallback - no quest offer
+        return {
+            hasQuest: false,
+            questDialogue: "I have nothing that requires your assistance at the moment.",
+            urgency: 'low'
+        };
+    }
+}
 
 export { generateFarmDetails as generateLlmFarmDetails };

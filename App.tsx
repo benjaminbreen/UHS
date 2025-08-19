@@ -2,6 +2,7 @@
  * App.tsx - Main application component for the Map Voyager Engine
  */
 import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { UIProvider, useUI } from './contexts/UIContext';
 import { MapProvider, useMap } from './contexts/MapContext';
 import { PlayerProvider, usePlayer } from './contexts/PlayerContext';
@@ -18,20 +19,88 @@ import FPSCounter from './components/FPSCounter';
 import { EventModal } from './components/EventModal';
 import { EventNotification, EventBadge } from './components/EventNotification';
 import { GameModeSelector } from './components/GameModeSelector';
-import { suggestGameMode } from './constants/gameData/gameModes';
+import { suggestGameMode, GAME_MODES, getGameModeById } from './constants/gameData/gameModes';
 import InitialScenarioModal from './components/InitialScenarioModal';
 import { eventService } from './services/eventService';
 import QuestRewardNotification from './components/QuestRewardNotification';
+import { parseURLConfig, URLGameConfig } from './services/urlConfigService';
+import { SeedManager } from './services/seedService';
+import { useURLGameConfig } from './hooks/useURLGameConfig';
 
 const AppContent: React.FC = () => {
+    const location = useLocation();
+    const navigate = useNavigate();
+    
+    // Parse URL config FIRST, before any hooks that use game state
+    const urlConfig = React.useMemo(() => {
+        const config = parseURLConfig(location.pathname);
+        
+        // Initialize seed if provided in URL
+        if (config.seed) {
+            SeedManager.getInstance(config.seed);
+            console.log('[App] Initialized seed from URL:', config.seed);
+        }
+        
+        // Store game mode preference if provided
+        if (config.gameMode) {
+            localStorage.setItem('urlConfigGameMode', config.gameMode);
+            console.log('[App] Stored game mode preference:', config.gameMode);
+        }
+        
+        return config;
+    }, []); // Only parse once on mount
+    
     useCoreLoops();
     const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, debugSettings, isTestModeEnabled } = useUI();
     const { playerCharacter } = usePlayer();
     const { gameDate, currentZone, currentRegion } = useGame();
-    const { localArea } = useMap();
+    const { localArea, mapData, onStartNewWorldAtZoneRegion } = useMap();
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState<'left' | 'right' | null>(null);
     const [showInitialScenarioModal, setShowInitialScenarioModal] = React.useState(false);
     const [hasShownInitialScenario, setHasShownInitialScenario] = React.useState(false);
+    const [hasInitializedFromURL, setHasInitializedFromURL] = React.useState(false);
+    
+    // Store whether we should wait for URL config
+    const shouldWaitForURLConfig = React.useMemo(() => {
+        return !!(urlConfig.geography?.culturalZone || urlConfig.dateRange);
+    }, [urlConfig]);
+    
+    // Generate initial world from URL config if present
+    React.useEffect(() => {
+        // Only run once
+        if (hasInitializedFromURL) return;
+        
+        // If we have URL config, generate based on that
+        if (shouldWaitForURLConfig) {
+            console.log('[App] Generating initial world from URL config');
+            setHasInitializedFromURL(true);
+            
+            // Map cultural zone to the actual zone key used in GEOGRAPHICAL_DATA
+            const zoneMapping: Record<string, string> = {
+                'EUROPEAN': 'Europe',
+                'MENA': 'Middle East and North Africa',
+                'EAST_ASIAN': 'East Asia',
+                'SOUTH_ASIAN': 'South Asia',
+                'SUB_SAHARAN_AFRICAN': 'Sub-Saharan Africa',
+                'NORTH_AMERICAN_PRE_COLUMBIAN': 'North America (Pre-Columbian)',
+                'SOUTH_AMERICAN': 'South America',
+                'OCEANIA': 'Oceania'
+            };
+            
+            const targetZone = urlConfig.geography?.culturalZone 
+                ? (zoneMapping[urlConfig.geography.culturalZone] || 'Europe')
+                : currentZone; // Use the zone from initial state if no geography in URL
+            const targetRegion = urlConfig.geography?.region || '';
+            
+            // Create character spec if we have date config
+            const characterSpec = urlConfig.dateRange ? { year: urlConfig.dateRange.startYear } : undefined;
+            
+            console.log('[App] Starting world generation from URL:', targetZone, targetRegion, characterSpec);
+            
+            // Start world generation immediately
+            onStartNewWorldAtZoneRegion(targetZone, targetRegion, characterSpec);
+        }
+    }, [hasInitializedFromURL, shouldWaitForURLConfig, urlConfig, onStartNewWorldAtZoneRegion, currentZone]);
     
     // Initialize event system
     const { 
@@ -62,6 +131,9 @@ const AppContent: React.FC = () => {
         }
     }, [currentEvent, showEventModal, hasShownInitialEvent]);
     
+    // Track if this is the first character for URL mode application
+    const [hasAppliedURLMode, setHasAppliedURLMode] = React.useState(false);
+    
     // Reset event system when starting new games, then set game mode
     React.useEffect(() => {
         if (playerCharacter) {
@@ -70,44 +142,59 @@ const AppContent: React.FC = () => {
             // Reset initial scenario modal state for new character
             setHasShownInitialScenario(false);
             
-            // Use character attributes to suggest mode with weighted probability
-            // This happens for EVERY game start, not just World Weaver
-            const mode = suggestGameMode(
-                playerCharacter.occupation,
-                undefined, // location
-                playerCharacter.historicalEra,
-                {
-                    health: playerCharacter.health,
-                    intelligence: playerCharacter.stats.intelligence,
-                    charisma: playerCharacter.stats.charisma,
-                    strength: playerCharacter.stats.strength,
-                    privilege: playerCharacter.socialContext.privilege,
-                    constitution: playerCharacter.stats.constitution
+            // Check if we have a URL-configured game mode (only apply once)
+            const urlGameMode = localStorage.getItem('urlConfigGameMode');
+            let mode;
+            
+            if (urlGameMode && !hasAppliedURLMode) {
+                // Use the URL-specified game mode using the getGameModeById function
+                mode = getGameModeById(urlGameMode);
+                if (mode) {
+                    console.log('[GameMode] Using URL-configured mode:', urlGameMode);
+                    setHasAppliedURLMode(true);
+                    // Don't clear it yet - let it persist for the correct character
+                } else {
+                    console.warn('[GameMode] Invalid game mode from URL:', urlGameMode);
                 }
-            );
+            }
+            
+            if (!mode) {
+                // Fall back to procedural mode selection
+                mode = suggestGameMode(
+                    playerCharacter.occupation,
+                    undefined, // location
+                    playerCharacter.historicalEra,
+                    {
+                        health: playerCharacter.health,
+                        intelligence: playerCharacter.stats.intelligence,
+                        charisma: playerCharacter.stats.charisma,
+                        strength: playerCharacter.stats.strength,
+                        privilege: playerCharacter.socialContext.privilege,
+                        constitution: playerCharacter.stats.constitution
+                    }
+                );
+            }
             
             // Set mode immediately after reset to avoid race condition
             setGameMode(mode);
             
             console.log('═══════════════════════════════════════════════════════');
-            console.log('[GameMode] PROCEDURAL MODE SELECTION FOR ALL GAMES');
+            console.log('[GameMode] MODE SELECTION COMPLETE');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('Selected Mode:', mode.name);
+            console.log('Selected Mode:', mode?.name || 'NONE');
+            console.log('Mode was from URL:', !!urlGameMode && !hasAppliedURLMode);
             console.log('Character:', playerCharacter.name, '|', playerCharacter.occupation);
             console.log('Era:', playerCharacter.historicalEra);
-            console.log('Character Stats:', {
-                health: playerCharacter.health,
-                intelligence: playerCharacter.stats.intelligence,
-                charisma: playerCharacter.stats.charisma,
-                strength: playerCharacter.stats.strength,
-                privilege: playerCharacter.socialContext.privilege,
-                constitution: playerCharacter.stats.constitution
-            });
-            console.log('Mode Description:', mode.description);
-            console.log('Victory Conditions:', mode.victoryConditions.map(v => v.description));
+            if (mode) {
+                console.log('Mode ID:', mode.id);
+                console.log('Mode Description:', mode.description);
+                console.log('Victory Conditions:', mode.victoryConditions?.map(v => v.description) || 'None');
+            } else {
+                console.error('[GameMode] ERROR: No mode was selected!');
+            }
             console.log('═══════════════════════════════════════════════════════');
         }
-    }, [playerCharacter?.name, resetForNewGame, setGameMode]); // Only reset when character name changes (new character)
+    }, [playerCharacter?.name, resetForNewGame, setGameMode, hasAppliedURLMode]); // Only reset when character name changes (new character)
     
     // Show InitialScenarioModal for non-WorldWeaver games (only once per character)
     React.useEffect(() => {
@@ -338,6 +425,7 @@ const AppContent: React.FC = () => {
             currentRegion={currentRegion || currentZone} // Use actual region, fallback to zone
             localArea={localArea || 'Unknown Region'} // Use actual localArea from map
             gameMode={currentMode}
+            urlConfig={urlConfig}
           />
         )}
       </div>

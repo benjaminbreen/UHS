@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, User, Calendar, Globe, Trophy, MapPin, Crown, Scroll } from 'lucide-react';
+import { X, User, Calendar, Globe, Trophy, MapPin, Crown, Scroll, Link } from 'lucide-react';
 import { GameDate, HistoricalEra, CulturalZone } from '../types';
 import { PlayerCharacter } from '../types/playerCharacter';
 import { GameMode } from '../types/eventTypes';
@@ -7,6 +7,8 @@ import { HISTORY_GUIDE_DATA } from '../constants/gameData/historyguide';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { parseDateString, formatDateWithSeason, getSeasonFromDate } from '../utils/dateUtils';
 import { getDetailedHistoricalDescription } from '../utils/historicalPeriodUtils';
+import { URLGameConfig } from '../services/urlConfigService';
+import { SeedManager } from '../services/seedService';
 
 interface InitialScenarioModalProps {
     isOpen: boolean;
@@ -17,6 +19,7 @@ interface InitialScenarioModalProps {
     currentRegion: string;
     localArea: string;
     gameMode: GameMode | null;
+    urlConfig?: URLGameConfig | null;
 }
 
 // Mode-specific descriptions combining game mode, era, and culture
@@ -206,13 +209,28 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     currentZone, 
     currentRegion,
     localArea,
-    gameMode
+    gameMode,
+    urlConfig
 }) => {
     if (!isOpen) return null;
     
     const dateInfo = parseDateString(String(gameDate.year));
     const culturalZone = mapLocationToCulture(currentZone, dateInfo.year) as CulturalZone;
     const era = dateInfo.era as HistoricalEra;
+    
+    // Get the current seed from SeedManager
+    const seedManager = SeedManager.getInstance();
+    const gameSeed = seedManager.getSeed();
+    const [showShareLink, setShowShareLink] = React.useState(false);
+    const [shareableURL, setShareableURL] = React.useState('');
+    
+    // Generate shareable URL when requested
+    React.useEffect(() => {
+        if (showShareLink) {
+            const url = seedManager.createShareableURL(window.location.origin);
+            setShareableURL(url);
+        }
+    }, [showShareLink]);
     
     // Try to get a more specific historical description based on the exact year
     const detailedDescription = getDetailedHistoricalDescription(culturalZone, era, gameDate.year);
@@ -223,76 +241,89 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     const modeDescription = getModeDescription(gameMode, era, culturalZone, playerCharacter);
 
     return (
-        <div className="fixed inset-0 bg-black/60 flex items-start justify-center z-50 p-2 ">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-2 md:p-4">
             <div className="bg-gradient-to-br from-slate-900 via-slate-700 to-slate-900 
-                border border-slate-700/50 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] mt-[110px] overflow-y-auto">
+                border border-slate-700/50 rounded-2xl shadow-2xl max-w-5xl w-full 
+                max-h-[95vh] md:max-h-[90vh] md:mt-[8px] overflow-y-auto">
                 
                 {/* Header */}
-                <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg">
-                            <Scroll className="w-7 h-7 text-white" />
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 md:p-5 border-b border-slate-700/50">
+                    <div className="flex items-start sm:items-center gap-2 md:gap-4 w-full sm:w-auto">
+                        <div className="p-2 md:p-3 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg shrink-0">
+                            <Scroll className="w-5 h-5 md:w-7 md:h-7 text-white" />
                         </div>
-                        <div>
-                            <h2 className="text-3xl font-bold text-white mb-1">You are {playerCharacter.name}, and the year is {gameDate.year}</h2>
-                            <p className="text-lg text-slate-300">
-                                {formatEra(era)} • {formatCulturalZone(culturalZone)} • {currentRegion} • {formatDateWithSeason(gameDate, getSeasonFromDate(gameDate))}
+                        <div className="flex-1 min-w-0">
+                            <h2 className="text-lg sm:text-2xl md:text-3xl font-bold text-white mb-0.5 md:mb-1 break-words">
+                                You are {playerCharacter.name}, and the year is {gameDate.year}
+                            </h2>
+                            <p className="text-xs sm:text-sm md:text-lg text-slate-300 break-words">
+                                <span className="block sm:inline">{formatEra(era)} • {formatCulturalZone(culturalZone)}</span>
+                                <span className="block sm:inline sm:ml-1">• {currentRegion}</span>
+                                <span className="block sm:inline sm:ml-1">• {formatDateWithSeason(gameDate, getSeasonFromDate(gameDate))}</span>
                             </p>
                         </div>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+                        className="absolute top-3 right-3 p-1.5 md:p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
                     >
-                        <X className="w-6 h-6" />
+                        <X className="w-5 h-5 md:w-6 md:h-6" />
                     </button>
                 </div>
 
-                <div className="p-4 space-y-4">
+                <div className="p-3 md:p-4 space-y-3 md:space-y-4">
                    
                     {/* Historical Context */}
-                    <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-700/30">
-                        <div className="flex items-center gap-3 mb-4">
-                            <Globe className="w-6 h-6 text-blue-400" />
-                            <h3 className="text-xl font-semibold text-blue-400"> It is {getSeasonFromDate(gameDate)} in the {localArea}</h3>
+                    <div className="bg-slate-800/50 rounded-lg p-3 md:p-4 border border-slate-700/30">
+                        <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-4">
+                            <Globe className="w-5 h-5 md:w-6 md:h-6 text-blue-400 shrink-0" />
+                            <h3 className="text-base md:text-xl font-semibold text-blue-400 break-words">
+                                It is {getSeasonFromDate(gameDate)} in the {localArea}
+                            </h3>
                         </div>
-                        <p className="text-slate-300 leading-relaxed text-base">
+                        <p className="text-slate-300 leading-relaxed text-sm md:text-base">
                             {historicalContext}
                         </p>
                     </div>
 
                     {/* Character Info */}
-                    <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-700/30">
-                        <div className="flex items-center gap-1 mb-4">
-                            <User className="w-6 h-6 text-green-400" />
-                            <h3 className="text-xl font-semibold text-green-400">Your Character</h3>
+                    <div className="bg-slate-800/50 rounded-lg p-3 md:p-6 border border-slate-700/30">
+                        <div className="flex items-center gap-2 mb-2 md:mb-3">
+                            <User className="w-5 h-5 md:w-6 md:h-6 text-green-400" />
+                            <h3 className="text-base md:text-xl font-semibold text-green-400">Your Character</h3>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-base">
-                            <div>
-                                <span className="text-slate-400">Name:</span>
-                                <span className="text-white ml-3 font-medium text-lg">{playerCharacter.name}</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-1 text-sm md:text-base">
+                            <div className="col-span-1 sm:col-span-2 md:col-span-1">
+                                <span className="text-slate-400 text-xs md:text-base">Name:</span>
+                                <span className="text-white ml-2 md:ml-3 font-medium text-sm md:text-base break-words">
+                                    {playerCharacter.name}
+                                </span>
                             </div>
-                            <div>
-                                <span className="text-slate-400">Occupation:</span>
-                                <span className="text-white ml-3 font-medium text-lg">{playerCharacter.occupation || playerCharacter.profession || 'Unknown'}</span>
+                            <div className="col-span-1 sm:col-span-2 md:col-span-1">
+                                <span className="text-slate-400 text-xs md:text-base">Occupation:</span>
+                                <span className="text-white ml-2 md:ml-3 font-medium text-sm md:text-base break-words">
+                                    {playerCharacter.occupation || playerCharacter.profession || 'Unknown'}
+                                </span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <MapPin className="w-5 h-5 text-slate-400" />
-                                <span className="text-slate-400">Region:</span>
-                                <span className="text-white font-medium text-lg">{currentRegion}</span>
+                            <div className="flex items-center gap-1 md:gap-2 col-span-1 sm:col-span-2 md:col-span-1">
+                                <MapPin className="w-4 h-4 md:w-5 md:h-5 text-slate-400 shrink-0" />
+                                <span className="text-slate-400 text-xs md:text-base">Region:</span>
+                                <span className="text-white font-medium text-sm md:text-base break-words">{currentRegion}</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <Calendar className="w-5 h-5 text-slate-400" />
-                                <span className="text-slate-400">Date:</span>
-                                <span className="text-white font-medium text-lg">{formatDateWithSeason(gameDate, getSeasonFromDate(gameDate))}</span>
+                            <div className="flex items-center gap-1 md:gap-2 col-span-1 sm:col-span-2 md:col-span-1">
+                                <Calendar className="w-4 h-4 md:w-5 md:h-5 text-slate-400 shrink-0" />
+                                <span className="text-slate-400 text-xs md:text-base">Date:</span>
+                                <span className="text-white font-medium text-sm md:text-base break-words">
+                                    {formatDateWithSeason(gameDate, getSeasonFromDate(gameDate))}
+                                </span>
                             </div>
                             {playerCharacter.diseaseHealth?.currentDiseases?.length > 0 && (
-                                <div className="sm:col-span-2">
-                                    <span className="text-slate-400">Health:</span>
+                                <div className="col-span-1 sm:col-span-2">
+                                    <span className="text-slate-400 text-xs md:text-base">Health:</span>
                                     {playerCharacter.diseaseHealth.currentDiseases.map((disease, idx) => {
                                         const isCritical = disease.disease.mortalityRate > 0.3 || disease.severity > 0.7;
                                         return (
-                                            <span key={idx} className={`ml-3 font-medium text-lg ${isCritical ? 'text-red-500' : 'text-orange-500'}`}>
+                                            <span key={idx} className={`ml-2 md:ml-3 font-medium text-sm md:text-lg ${isCritical ? 'text-red-500' : 'text-orange-500'}`}>
                                                 Currently suffering from {disease.disease.name}
                                             </span>
                                         );
@@ -304,23 +335,22 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
 
                     {/* Game Mode & Mission */}
                     {gameMode && (
-                        <div className="bg-slate-800/50 rounded-lg p-5 border border-slate-700/30">
-                           
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-3">
-                                    <Crown className="w-5 h-5 text-amber-400" />
-                                    <span className="font-semibold text-amber-400 text-lg">{gameMode.name}</span>
+                        <div className="bg-slate-800/50 rounded-lg p-3 md:p-4 border border-slate-700/30">
+                            <div className="space-y-2 md:space-y-4">
+                                <div className="flex items-center gap-2 md:gap-3">
+                                    <Crown className="w-4 h-4 md:w-5 md:h-5 text-amber-400 shrink-0" />
+                                    <span className="font-semibold text-amber-400 text-sm md:text-lg">{gameMode.name}</span>
                                 </div>
-                                <p className="text-slate-300 leading-relaxed text-base">
+                                <p className="text-slate-300 leading-relaxed text-xs md:text-base">
                                     {modeDescription}
                                 </p>
                                 {gameMode.victoryConditions.length > 0 && (
-                                    <div className="mt-4">
-                                        <h4 className="text-sm font-medium text-slate-400 mb-2">Victory Conditions:</h4>
-                                        <div className="space-y-1">
+                                    <div className="mt-2 md:mt-4">
+                                        <h4 className="text-xs md:text-sm font-medium text-slate-400 mb-1 md:mb-2">Victory Conditions:</h4>
+                                        <div className="space-y-0.5 md:space-y-1">
                                             {gameMode.victoryConditions.slice(0, 3).map((condition, idx) => (
-                                                <div key={idx} className="flex items-center gap-2 text-sm">
-                                                    <div className="w-2 h-2 bg-green-400 rounded-full" />
+                                                <div key={idx} className="flex items-start gap-1.5 md:gap-2 text-xs md:text-sm">
+                                                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-400 rounded-full mt-1 shrink-0" />
                                                     <span className="text-slate-400">{condition.description}</span>
                                                 </div>
                                             ))}
@@ -330,15 +360,66 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                             </div>
                         </div>
                     )}
+
+                    {/* Game Seed Section */}
+                    <div className="bg-slate-800/50 rounded-lg p-2 md:p-3 border border-slate-700/30">
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2 md:gap-3">
+                                <Link className="w-4 h-4 md:w-5 md:h-5 text-purple-400 shrink-0" />
+                                <h3 className="text-sm md:text-base font-semibold text-purple-400">Game Seed</h3>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <code className="px-2 py-1 bg-slate-900 rounded text-xs md:text-sm font-mono text-purple-300">
+                                    {gameSeed}
+                                </code>
+                                <button
+                                    onClick={() => setShowShareLink(!showShareLink)}
+                                    className="px-2 py-1 text-xs md:text-sm bg-purple-600/20 hover:bg-purple-600/30 
+                                        text-purple-400 rounded transition-colors"
+                                >
+                                    {showShareLink ? 'Hide' : 'Share'}
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {showShareLink && (
+                            <div className="mt-3 p-2 bg-slate-900 rounded">
+                                <p className="text-xs text-slate-400 mb-1">Share this link to play the same world:</p>
+                                <div className="flex items-center gap-1">
+                                    <input
+                                        type="text"
+                                        value={shareableURL}
+                                        readOnly
+                                        className="flex-1 px-2 py-1 bg-slate-800 text-xs md:text-sm text-slate-300 
+                                            rounded border border-slate-700 font-mono"
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(shareableURL);
+                                        }}
+                                        className="px-2 py-1 text-xs bg-green-600/20 hover:bg-green-600/30 
+                                            text-green-400 rounded transition-colors"
+                                    >
+                                        Copy
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                        
+                        <p className="text-xs md:text-sm text-slate-400 mt-2">
+                            This seed ensures the same world generation for all players who use it.
+                        </p>
+                    </div>
                 </div>
 
-                {/* Footer */}
-                <div className="p-5 border-t border-slate-700/50 bg-slate-800/30">
+                {/* Footer - Sticky on mobile */}
+                <div className="sticky bottom-0 p-3 md:p-3 border-t border-slate-700/50 bg-slate-900/95 backdrop-blur-sm">
                     <button
                         onClick={onClose}
-                        className="w-full px-8 py-4 bg-gradient-to-r from-amber-600 to-amber-700 
+                        className="w-full px-4 md:px-8 py-3 md:py-4 bg-gradient-to-r from-amber-600 to-amber-700 
                             hover:from-amber-700 hover:to-amber-800 text-white font-semibold rounded-lg 
-                            transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] text-lg"
+                            transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] 
+                            text-sm md:text-lg"
                     >
                         Begin the Simulation
                     </button>

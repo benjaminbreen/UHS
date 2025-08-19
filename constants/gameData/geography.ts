@@ -16,6 +16,21 @@ export const CULTURE_ZONES = [
 
 export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
     "Europe": {
+
+       "European waters": {
+            "Irish Sea": { name: "Irish Sea", climate: ClimateType.TEMPERATE, archetype: MapArchetype.OPEN_OCEAN },
+            "North Sea": { name: "North Sea", climate: ClimateType.TEMPERATE, archetype: MapArchetype.OPEN_OCEAN },
+            "Baltic Sea": { name: "Baltic Sea", climate: ClimateType.TEMPERATE, archetype: MapArchetype.OPEN_OCEAN },
+            "Bay of Biscay": { name: "Bay of Biscay", climate: ClimateType.TEMPERATE, archetype: MapArchetype.OPEN_OCEAN },
+            "English Channel": { name: "English Channel", climate: ClimateType.TEMPERATE, archetype: MapArchetype.STRAITS },
+               
+            // Mediterranean
+            "Western Mediterranean": { name: "Western Mediterranean", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.OPEN_OCEAN },
+            "Eastern Mediterranean": { name: "Eastern Mediterranean", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.OPEN_OCEAN },
+            "Aegean Sea": { name: "Aegean Sea", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.OPEN_OCEAN },
+            "Adriatic Sea": { name: "Adriatic Sea", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.OPEN_OCEAN },
+            "Tyrrhenian Sea": { name: "Tyrrhenian Sea", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.OPEN_OCEAN },
+             },
         "British Isles": {
             "London": { name: "London", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT },
             "Edinburgh": { name: "Edinburgh", climate: ClimateType.TEMPERATE, archetype: MapArchetype.PENINSULA },
@@ -757,19 +772,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Gilbert Islands": { name: "Gilbert Islands", climate: ClimateType.TROPICAL, archetype: MapArchetype.ATOLL },
         },
         "Major Seas and Oceans": {
-            // European Waters
-            "Irish Sea": { name: "Irish Sea", climate: ClimateType.TEMPERATE, archetype: MapArchetype.OPEN_OCEAN },
-            "North Sea": { name: "North Sea", climate: ClimateType.TEMPERATE, archetype: MapArchetype.OPEN_OCEAN },
-            "Baltic Sea": { name: "Baltic Sea", climate: ClimateType.TEMPERATE, archetype: MapArchetype.OPEN_OCEAN },
-            "Bay of Biscay": { name: "Bay of Biscay", climate: ClimateType.TEMPERATE, archetype: MapArchetype.OPEN_OCEAN },
-            "English Channel": { name: "English Channel", climate: ClimateType.TEMPERATE, archetype: MapArchetype.STRAITS },
             
-            // Mediterranean
-            "Western Mediterranean": { name: "Western Mediterranean", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.OPEN_OCEAN },
-            "Eastern Mediterranean": { name: "Eastern Mediterranean", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.OPEN_OCEAN },
-            "Aegean Sea": { name: "Aegean Sea", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.OPEN_OCEAN },
-            "Adriatic Sea": { name: "Adriatic Sea", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.OPEN_OCEAN },
-            "Tyrrhenian Sea": { name: "Tyrrhenian Sea", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.OPEN_OCEAN },
             
             // Middle Eastern Waters
             "Black Sea": { name: "Black Sea", climate: ClimateType.TEMPERATE, archetype: MapArchetype.OPEN_OCEAN },

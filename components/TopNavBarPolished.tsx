@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Globe, Info, Settings, Shuffle, ChevronDown, Menu, X, Sparkles, 
   Cpu, ScrollText, MapPin, Compass, Activity,
-  Zap, Download, History, AlertCircle, Sliders, Trophy, Target, Clock
+  Zap, Download, History, AlertCircle, Sliders, Trophy, Target, Clock,
+  Shield, Compass as CompassIcon, Coins, BookOpen, Crown, Home, Users, Scale
 } from 'lucide-react';
 import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
@@ -29,6 +30,66 @@ const NAV_BUTTON_GROUPS = {
     { id: 'about', icon: Info, label: 'About', color: 'slate' },
     { id: 'settings', icon: Settings, label: 'Settings', color: 'slate' },
   ]
+};
+
+// Game mode configurations with icons and colors
+const GAME_MODE_CONFIG = {
+  survival: { 
+    icon: Shield, 
+    color: 'text-red-400', 
+    bgColor: 'bg-red-900/20',
+    borderColor: 'border-red-600/50',
+    description: 'Face existential threats and survive against all odds'
+  },
+  exploration: { 
+    icon: CompassIcon, 
+    color: 'text-blue-400', 
+    bgColor: 'bg-blue-900/20',
+    borderColor: 'border-blue-600/50',
+    description: 'Discover new lands and uncover hidden secrets'
+  },
+  commerce: { 
+    icon: Coins, 
+    color: 'text-yellow-400', 
+    bgColor: 'bg-yellow-900/20',
+    borderColor: 'border-yellow-600/50',
+    description: 'Build wealth through trade and business ventures'
+  },
+  scholarship: { 
+    icon: BookOpen, 
+    color: 'text-purple-400', 
+    bgColor: 'bg-purple-900/20',
+    borderColor: 'border-purple-600/50',
+    description: 'Pursue knowledge and intellectual achievement'
+  },
+  leadership: { 
+    icon: Crown, 
+    color: 'text-amber-400', 
+    bgColor: 'bg-amber-900/20',
+    borderColor: 'border-amber-600/50',
+    description: 'Lead your people through challenges and crises'
+  },
+  livelihood: { 
+    icon: Home, 
+    color: 'text-green-400', 
+    bgColor: 'bg-green-900/20',
+    borderColor: 'border-green-600/50',
+    description: 'Make an honest living and support your community'
+  },
+  diplomacy: { 
+    icon: Users, 
+    color: 'text-cyan-400', 
+    bgColor: 'bg-cyan-900/20',
+    borderColor: 'border-cyan-600/50',
+    description: 'Navigate complex political relationships'
+  },
+  legal: { 
+    icon: Scale, 
+    color: 'text-indigo-400', 
+    bgColor: 'bg-indigo-900/20',
+    borderColor: 'border-indigo-600/50',
+    description: 'Uphold justice and navigate legal complexities'
+  }
 };
 
 const TopNavBarPolished: React.FC = () => {
@@ -255,15 +316,25 @@ const TopNavBarPolished: React.FC = () => {
               {/* Game Mode Display */}
               <div className="relative">
                 <button
-                  className="px-3 ml-4 py-1.5 text-xs font-medium bg-gradient-to-r from-slate-700/60 to-slate-600/60 
+                  className={`px-3 ml-4 py-1.5 text-xs font-medium 
+                    ${currentMode && GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG] ? 
+                      `${GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG].bgColor} ${GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG].borderColor} border` :
+                      'bg-gradient-to-r from-slate-700/60 to-slate-600/60 border border-slate-500/40'
+                    }
                     hover:from-slate-600/70 hover:to-slate-500/70 
-                    border border-slate-500/40 rounded-lg transition-all duration-200
-                    text-slate-200 hover:text-white flex items-center gap-1.5"
+                    rounded-lg transition-all duration-200
+                    ${currentMode && GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG] ? 
+                      GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG].color : 
+                      'text-slate-200'
+                    } hover:text-white flex items-center gap-1.5`}
                   onMouseEnter={() => setShowGameModeTooltip(true)}
                   onMouseLeave={() => setShowGameModeTooltip(false)}
                   onClick={() => setShowGameModePanel(!showGameModePanel)}
                 >
-                  <Trophy className="w-3.5 h-3.5" />
+                  {currentMode && GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG] ? 
+                    React.createElement(GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG].icon, { className: "w-3.5 h-3.5" }) :
+                    <Trophy className="w-3.5 h-3.5" />
+                  }
                   <span>{currentMode ? currentMode.name : 'Select Mode'}</span>
                   <ChevronDown className={`w-3 h-3 transition-transform ${showGameModePanel ? 'rotate-180' : ''}`} />
                   </button>
@@ -284,12 +355,18 @@ const TopNavBarPolished: React.FC = () => {
                       {currentMode ? (
                         <>
                           <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <h3 className="text-sm font-semibold text-amber-400 flex items-center gap-1.5">
-                                <Trophy className="w-4 h-4" />
+                            <div className="flex-1">
+                              <h3 className={`text-sm font-semibold flex items-center gap-1.5 
+                                ${GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG]?.color || 'text-amber-400'}`}>
+                                {GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG] ? 
+                                  React.createElement(GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG].icon, { className: "w-4 h-4" }) :
+                                  <Trophy className="w-4 h-4" />
+                                }
                                 {currentMode.name}
                               </h3>
-                              <p className="text-xs text-slate-400 mt-1">{currentMode.description}</p>
+                              <p className="text-xs text-slate-400 mt-1">
+                                {GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG]?.description || currentMode.description}
+                              </p>
                         </div>
                         <button
                           onClick={() => setShowGameModePanel(false)}

@@ -135,6 +135,11 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
         baseProfile.age = spec.age;
     }
     
+    // Use custom name if provided
+    if (spec.name) {
+        baseProfile.name = spec.name;
+    }
+    
     // Handle health specification
     if (spec.health) {
         switch (spec.health) {
@@ -193,8 +198,15 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
     // Generate name - use custom if provided, otherwise generate
     const name = spec.name || generateNpcName(baseProfile.gender, culturalZone, context.region, dateInfo.year, noise, undefined);
     
+    // Create a minimal character first for companion generation
+    const tempCharacter: Partial<PlayerCharacter> = {
+        name,
+        profession: role,
+        year: dateInfo.year,
+    };
+    
     // Get starting package and inventory
-    const { inventory, equippedItems } = assembleStartingPackage(role);
+    const { inventory, equippedItems } = assembleStartingPackage(role, tempCharacter as PlayerCharacter);
     
     // Generate appearance with palette
     const palette = generateClothingPalette(baseProfile.wealthLevel, generationContext.era, culturalZone, baseProfile.gender, noise);
@@ -260,8 +272,35 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
         equippedItems,
     };
     
-    // Generate backstory
-    const backstory = _generateProceduralBackstory(partialCharacter as PlayerCharacter);
+    // Use custom backstory if provided, otherwise generate procedural one
+    const backstory = spec.customBackstory || _generateProceduralBackstory(partialCharacter as PlayerCharacter);
+    
+    // Add custom items to inventory if provided
+    if (spec.customItems && spec.customItems.length > 0) {
+        console.log(`[Character Generator] Adding ${spec.customItems.length} custom items from WorldWeaver`);
+        for (const customItem of spec.customItems) {
+            const item: Item = {
+                id: `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                baseId: customItem.name.toUpperCase().replace(/\s+/g, '_'),
+                name: customItem.name,
+                description: customItem.description,
+                value: customItem.value,
+                weight: customItem.weight,
+                category: customItem.category as any,
+                stackable: customItem.stackable || false,
+                wearable: customItem.wearable || false,
+                quantity: 1,
+                emoji: '📦', // Default emoji for custom items
+                rarity: 'Special',
+                attack: 0,
+                sustenance: 0,
+                wieldable: false,
+                throwable: false,
+                craftingValue: 1
+            };
+            inventory.push(item);
+        }
+    }
     
     // Add life events
     const currentYear = dateInfo.year;
@@ -402,8 +441,15 @@ export function generateCharacter(context: GenerationContext): PlayerCharacter {
     const { socialClass, role, nameKey } = determineSocialRole(baseProfile, generationContext);
     const name = generateNpcName(baseProfile.gender, culturalZone, context.region, dateInfo.year, noise, nameKey);
     
+    // Create a minimal character first for companion generation
+    const tempCharacter: Partial<PlayerCharacter> = {
+        name,
+        profession: role,
+        year: dateInfo.year,
+    };
+    
     // Get starting package and inventory first
-    const { inventory, equippedItems } = assembleStartingPackage(role);
+    const { inventory, equippedItems } = assembleStartingPackage(role, tempCharacter as PlayerCharacter);
 
     // Generate a color palette based on context
     const palette = generateClothingPalette(baseProfile.wealthLevel, generationContext.era, culturalZone, baseProfile.gender, noise);

@@ -19,6 +19,9 @@ import { generateNpcName } from '../generation/common/npcUtils';
 import { CHARACTER_NAMES } from '../constants/characterData/names';
 import { DISEASE_DATABASE } from '../constants/gameData/diseases';
 import { ValueNoise } from '../utils/noise';
+import { loadTamedAnimals, removeFromParty, TamedAnimal, updateAnimalName } from '../services/animalTamingService';
+import { ANIMAL_DATA } from '../constants';
+import AnimalCompanionModal from './AnimalCompanionModal';
 
 
 interface CharacterProfileModalProps {
@@ -620,6 +623,42 @@ const CharacterProfileModal: React.FC<CharacterProfileModalProps> = ({
     const [inventoryFilter, setInventoryFilter] = useState<'All' | 'Weapons' | 'Clothing' | 'Consumables' | 'Other'>('All');
     const [selectedDisease, setSelectedDisease] = useState<ActiveDisease | null>(null);
     const [isDiseaseModalOpen, setIsDiseaseModalOpen] = useState(false);
+    const [tamedAnimals, setTamedAnimals] = useState<TamedAnimal[]>([]);
+    const [selectedAnimal, setSelectedAnimal] = useState<TamedAnimal | null>(null);
+    const [isAnimalModalOpen, setIsAnimalModalOpen] = useState(false);
+    
+    // Load tamed animals when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            const animals = loadTamedAnimals();
+            setTamedAnimals(animals);
+        }
+    }, [isOpen]);
+    
+    const handleReleaseAnimal = (animalId: string) => {
+        removeFromParty(animalId);
+        setTamedAnimals(prev => prev.filter(a => a.id !== animalId));
+    };
+
+    const handleAnimalClick = (animal: TamedAnimal) => {
+        setSelectedAnimal(animal);
+        setIsAnimalModalOpen(true);
+    };
+
+    const handleAnimalModalClose = () => {
+        setIsAnimalModalOpen(false);
+        setSelectedAnimal(null);
+        // Refresh animals to show name changes
+        const animals = loadTamedAnimals();
+        setTamedAnimals(animals);
+    };
+
+    const handleAnimalNameUpdate = (animalId: string, newName: string) => {
+        updateAnimalName(animalId, newName);
+        // Refresh animals list
+        const animals = loadTamedAnimals();
+        setTamedAnimals(animals);
+    };
     
     // Memoize static content for History and Household tabs
     const expandedLifeEvents = useMemo(() => {
@@ -1215,8 +1254,10 @@ const CharacterProfileModal: React.FC<CharacterProfileModalProps> = ({
             <div className="ff-panel w-full max-w-6xl md:max-w-7xl h-auto max-h-[95vh] md:max-h-[92vh] flex flex-col" onClick={e => e.stopPropagation()}>
                 <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] flex-grow min-h-0">
                     {/* Left Column: Party - hidden on mobile, shown on desktop */}
-                    <div className="hidden md:flex p-5 flex-col gap-4 border-r-2 border-slate-700 bg-slate-800/30">
+                    <div className="hidden md:flex p-5 flex-col gap-4 border-r-2 border-slate-700 bg-slate-800/30 max-h-full overflow-y-auto">
                         <h3 className="font-press-start text-xl text-slate-300 text-center tracking-wider mb-2">PARTY</h3>
+                        
+                        {/* Player Character */}
                         <div className="p-4 rounded-lg bg-gradient-to-br from-slate-700/50 to-slate-800/40 border border-slate-600/50">
                             <div className="flex items-center gap-4">
                                 <div className="w-20 h-20 rounded-full overflow-hidden bg-slate-900 border-2 border-slate-500 shadow-lg shrink-0 flex items-center justify-center">
@@ -1231,6 +1272,50 @@ const CharacterProfileModal: React.FC<CharacterProfileModalProps> = ({
                                 </div>
                             </div>
                         </div>
+
+                        {/* Tamed Animals */}
+                        {tamedAnimals.length > 0 && (
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-bold text-amber-400 uppercase tracking-wider text-center">Animal Companions</h4>
+                                {tamedAnimals.map((animal) => {
+                                    const animalData = ANIMAL_DATA[animal.baseId];
+                                    const healthPercentage = (animal.health / 10) * 100;
+                                    
+                                    return (
+                                        <div 
+                                            key={animal.id}
+                                            onClick={() => handleAnimalClick(animal)}
+                                            className="p-3 rounded-lg bg-gradient-to-br from-green-900/30 to-slate-800/40 border border-green-600/30 hover:border-green-500/50 cursor-pointer transition-colors group"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="text-2xl flex-shrink-0">{animal.emoji}</div>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="text-sm font-bold text-white truncate capitalize group-hover:text-green-300 transition-colors">
+                                                        {animal.name || animal.speciesName}
+                                                    </div>
+                                                    <div className="text-xs text-gray-400 truncate">
+                                                        {animalData?.type || 'animal'}
+                                                    </div>
+                                                    <div className="w-full h-1 bg-slate-700 rounded-full overflow-hidden mt-1">
+                                                        <div 
+                                                            className={`h-full rounded-full transition-all ${healthPercentage > 70 ? 'bg-green-500' : healthPercentage > 40 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                                            style={{ width: `${healthPercentage}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                        
+                        {tamedAnimals.length === 0 && (
+                            <div className="text-center py-4">
+                                <div className="text-gray-500 text-sm italic">No animal companions</div>
+                                <div className="text-gray-600 text-xs mt-1">Tame animals during encounters</div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Right Column: Tabs */}
@@ -1271,6 +1356,111 @@ const CharacterProfileModal: React.FC<CharacterProfileModalProps> = ({
                     }}
                     currentYear={parseInt(date) || 1500}
                     culturalZone={mapLocationToCulture(location, parseInt(date) || 1500)}
+                />
+            )}
+            
+            {/* Animal Overview Modal */}
+            {selectedAnimal && isAnimalModalOpen && (
+                <div className="modal-overlay" onClick={() => setIsAnimalModalOpen(false)}>
+                    <div 
+                        className="bg-modal-bg-gradient border border-slate-600 rounded-2xl shadow-glow-blue text-slate-200 w-full max-w-md p-6 animate-popIn"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex items-start justify-between pb-2 mb-4 border-b border-gray-700">
+                            <div className="flex items-center gap-3">
+                                <span className="text-4xl">{selectedAnimal.emoji}</span>
+                                <div>
+                                    <h3 className="text-xl font-bold text-blue-300 capitalize">{selectedAnimal.speciesName}</h3>
+                                    <p className="text-sm italic text-gray-400 capitalize">{ANIMAL_DATA[selectedAnimal.baseId]?.type || 'animal'}</p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => setIsAnimalModalOpen(false)}
+                                className="text-3xl font-thin leading-none text-gray-400 transition-colors hover:text-white"
+                            >
+                                &times;
+                            </button>
+                        </div>
+                        
+                        {/* Basic Info */}
+                        <div className="space-y-3">
+                            <div className="text-sm text-gray-300">
+                                <strong className="text-amber-400">Tamed:</strong> {selectedAnimal.tamingDate.month}/{selectedAnimal.tamingDate.day}/{selectedAnimal.tamingDate.year}
+                            </div>
+                            <div className="text-sm text-gray-300">
+                                <strong className="text-amber-400">Market Value:</strong> {selectedAnimal.value} coins
+                            </div>
+                            
+                            {/* Health Bar */}
+                            <div>
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-sm text-gray-400">Health:</span>
+                                    <span className="text-sm text-white">{selectedAnimal.health}/10</span>
+                                </div>
+                                <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                                    <div 
+                                        className={`h-full rounded-full ${(selectedAnimal.health / 10) * 100 > 70 ? 'bg-green-500' : (selectedAnimal.health / 10) * 100 > 40 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                        style={{ width: `${(selectedAnimal.health / 10) * 100}%` }}
+                                    />
+                                </div>
+                            </div>
+                            
+                            {/* Loyalty Bar */}
+                            <div>
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-sm text-gray-400">Loyalty:</span>
+                                    <span className="text-sm text-white">{selectedAnimal.loyalty}/100</span>
+                                </div>
+                                <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                                    <div 
+                                        className={`h-full rounded-full ${selectedAnimal.loyalty > 70 ? 'bg-blue-500' : selectedAnimal.loyalty > 40 ? 'bg-purple-500' : 'bg-gray-500'}`}
+                                        style={{ width: `${selectedAnimal.loyalty}%` }}
+                                    />
+                                </div>
+                            </div>
+                            
+                            {/* Disease Status */}
+                            {selectedAnimal.diseaseHealth?.currentDiseases && selectedAnimal.diseaseHealth.currentDiseases.length > 0 && (
+                                <div className="p-2 bg-red-900/30 border border-red-600/30 rounded-lg">
+                                    <div className="text-xs text-red-400 flex items-center gap-1">
+                                        <span>🤒</span>
+                                        <span>Sick: {selectedAnimal.diseaseHealth.currentDiseases.map(d => d.disease.name).join(', ')}</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        
+                        {/* Actions */}
+                        <div className="flex justify-between mt-6">
+                            <button
+                                onClick={() => {
+                                    handleReleaseAnimal(selectedAnimal.id);
+                                    setIsAnimalModalOpen(false);
+                                }}
+                                className="px-4 py-2 text-sm bg-red-600/80 hover:bg-red-500 text-white rounded-md transition-colors border border-red-400"
+                                title="Release this animal back to the wild"
+                            >
+                                Release Animal
+                            </button>
+                            <button 
+                                onClick={() => setIsAnimalModalOpen(false)}
+                                className="px-6 py-2 text-sm font-semibold text-white transition duration-150 bg-gray-600 rounded-md hover:bg-gray-500"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            {/* Animal Companion Modal */}
+            {selectedAnimal && (
+                <AnimalCompanionModal
+                    animal={selectedAnimal}
+                    isOpen={isAnimalModalOpen}
+                    onClose={handleAnimalModalClose}
+                    onUpdateName={handleAnimalNameUpdate}
                 />
             )}
         </div>

@@ -58,115 +58,232 @@ const SHARED_MODERN_PROFESSIONS = {
         'CEO': {
             statRequirements: { minIntelligence: 7, minPersuasion: 8, minCraftiness: 7 },
             socialRequirements: { minPrivilege: 0.9, minAmbition: 0.8 },
-            keywords: 'corporate leadership',
+            keywords: 'corporate leadership business',
             emoji: '💼'
         },
         'Politician': {
             statRequirements: { minPersuasion: 8, minIntelligence: 6, minCraftiness: 7 },
             socialRequirements: { minPrivilege: 0.7, minAmbition: 0.9 },
-            keywords: 'government power',
+            keywords: 'government power statecraft',
             emoji: '🗳️'
         },
-        'Doctor': {
-            statRequirements: { minIntelligence: 8, minDexterity: 7, minStamina: 6 },
-            socialRequirements: { minPrivilege: 0.7 },
-            keywords: 'medicine surgery',
-            emoji: '👨‍⚕️'
+        'Surgeon': {
+            statRequirements: { minIntelligence: 8, minDexterity: 9, minStamina: 6 },
+            socialRequirements: { minPrivilege: 0.8 },
+            keywords: 'medicine specialist hospital',
+            emoji: '⚕️'
         },
         'Judge': {
             statRequirements: { minIntelligence: 8, minPersuasion: 6 },
             socialRequirements: { minPrivilege: 0.8 },
-            keywords: 'law justice',
+            keywords: 'law justice court',
             emoji: '⚖️'
+        },
+        'Bank President': {
+            statRequirements: { minIntelligence: 8, minCraftiness: 7 },
+            socialRequirements: { minPrivilege: 0.85, minAmbition: 0.7 },
+            keywords: 'finance capital money',
+            emoji: '🏦'
+        },
+        'University Professor': {
+            statRequirements: { minIntelligence: 9, minPersuasion: 6 },
+            socialRequirements: { minPrivilege: 0.7 },
+            keywords: 'academia research education',
+            emoji: '🎓'
         }
     },
     MIDDLE_CLASS: {
         'Teacher': {
             statRequirements: { minIntelligence: 6, minPersuasion: 6, minStamina: 5 },
-            keywords: 'education school',
+            keywords: 'education school learning',
             emoji: '👩‍🏫'
         },
         'Nurse': {
             statRequirements: { minStamina: 6, minDexterity: 6, minPersuasion: 5 },
-            keywords: 'healthcare hospital',
+            socialRequirements: { maxPrivilege: 0.7 },
+            genderBias: 'Female',
+            keywords: 'healthcare hospital medicine',
             emoji: '👩‍⚕️'
         },
         'Accountant': {
             statRequirements: { minIntelligence: 6, minPerception: 6 },
-            keywords: 'finance taxes',
+            keywords: 'finance taxes bookkeeping',
             emoji: '🧮'
         },
         'Police Officer': {
             statRequirements: { minStrength: 6, minPerception: 6, minStamina: 6 },
-            keywords: 'law enforcement',
+            keywords: 'law enforcement security',
             emoji: '👮'
         },
         'Office Manager': {
             statRequirements: { minIntelligence: 5, minPersuasion: 6 },
-            keywords: 'administration business',
+            keywords: 'administration business paperwork',
             emoji: '📊'
         },
-        'Electrician': {
-            statRequirements: { minDexterity: 7, minIntelligence: 6 },
-            keywords: 'trades skilled',
-            emoji: '⚡'
+        'Civil Engineer': {
+            statRequirements: { minIntelligence: 7, minCraftiness: 6 },
+            socialRequirements: { minPrivilege: 0.5 },
+            keywords: 'building infrastructure design',
+            emoji: '🏗️'
         },
-        'Plumber': {
-            statRequirements: { minStrength: 6, minDexterity: 6 },
-            keywords: 'trades pipes',
-            emoji: '🔧'
+        'Mechanic': {
+            statRequirements: { minCraftiness: 7, minStrength: 5, minIntelligence: 5 },
+            keywords: 'repair engine automobile',
+            emoji: '🛠️'
+        },
+        'Journalist': {
+            statRequirements: { minIntelligence: 6, minPersuasion: 6 },
+            socialRequirements: { minWanderlust: 0.4 },
+            keywords: 'news writing reporting',
+            emoji: '📰'
+        },
+        'Librarian': {
+            statRequirements: { minIntelligence: 6, minPerception: 5 },
+            keywords: 'books records archive',
+            emoji: '📚'
+        },
+        'Secretary': {
+            statRequirements: { minDexterity: 6, minPerception: 5 },
+            socialRequirements: { maxPrivilege: 0.6 },
+            genderBias: 'Female',
+            keywords: 'typing office administration',
+            emoji: '📊'
+        },
+        'Salesman': {
+            statRequirements: { minPersuasion: 7, minStamina: 5 },
+            socialRequirements: { minWanderlust: 0.5, minAmbition: 0.5 },
+            keywords: 'retail commerce travel',
+            emoji: '📈'
+        },
+        'Small Business Owner': {
+            statRequirements: { minCraftiness: 6, minPersuasion: 5 },
+            socialRequirements: { minAmbition: 0.6 },
+            keywords: 'shopkeeper retail entrepreneur',
+            emoji: '🏪'
         }
     },
     WORKING_CLASS: {
         'Factory Worker': {
             statRequirements: { minStamina: 6, minConstitution: 6 },
-            keywords: 'manufacturing assembly',
+            keywords: 'manufacturing assembly line labor',
             emoji: '🏭'
         },
         'Truck Driver': {
             statRequirements: { minStamina: 7, minPerception: 6 },
-            keywords: 'transport logistics',
+            keywords: 'transport logistics driving',
             emoji: '🚚'
         },
         'Construction Worker': {
-            statRequirements: { minStrength: 7, minStamina: 7 },
-            keywords: 'building labor',
+            statRequirements: { minStrength: 7, minStamina: 7, minConstitution: 7 },
+            keywords: 'building labor trades',
             emoji: '👷'
         },
         'Cashier': {
             statRequirements: { minStamina: 5, minPersuasion: 4 },
-            keywords: 'retail service',
+            keywords: 'retail service money',
             emoji: '🛒'
         },
         'Janitor': {
             statRequirements: { minStamina: 6, minConstitution: 5 },
-            keywords: 'cleaning maintenance',
+            keywords: 'cleaning maintenance custodian',
             emoji: '🧹'
         },
         'Security Guard': {
-            statRequirements: { minStrength: 6, minPerception: 6 },
-            keywords: 'protection safety',
-            emoji: '👮'
+            statRequirements: { minStrength: 5, minPerception: 6 },
+            keywords: 'protection safety watchman',
+            emoji: '🛡️'
         },
         'Farm Worker': {
-            statRequirements: { minStamina: 7, minConstitution: 6 },
-            keywords: 'agriculture harvest',
+            statRequirements: { minStamina: 7, minConstitution: 6, minStrength: 5 },
+            keywords: 'agriculture harvest farming',
             emoji: '🌾'
         },
         'Warehouse Worker': {
             statRequirements: { minStrength: 6, minStamina: 6 },
-            keywords: 'logistics shipping',
+            keywords: 'logistics shipping stocking',
             emoji: '📦'
         },
         'Cook': {
             statRequirements: { minDexterity: 6, minStamina: 6 },
-            keywords: 'restaurant food',
+            keywords: 'restaurant food service',
             emoji: '👨‍🍳'
         },
         'Miner': {
             statRequirements: { minStrength: 7, minStamina: 8, minConstitution: 7 },
-            keywords: 'coal extraction',
+            genderBias: 'Male',
+            keywords: 'coal extraction digging labor',
             emoji: '⛏️'
+        },
+        'Railroad Worker': {
+            statRequirements: { minStrength: 7, minStamina: 6, minConstitution: 6 },
+            genderBias: 'Male',
+            keywords: 'transport tracks railway labor',
+            emoji: '🚂'
+        },
+        'Dock Worker': {
+            statRequirements: { minStrength: 8, minStamina: 7 },
+            genderBias: 'Male',
+            keywords: 'shipping cargo port longshoreman',
+            emoji: '⚓'
+        },
+        'Textile Worker': {
+            statRequirements: { minDexterity: 6, minStamina: 6 },
+            genderBias: 'Female',
+            keywords: 'mill sewing garment factory',
+            emoji: '🧵'
+        },
+        'Telephone Operator': {
+            statRequirements: { minDexterity: 2, minPersuasion: 2 },
+            genderBias: 'Female',
+            keywords: 'communication switchboard service',
+            emoji: '📞'
+        },
+        'Postal Worker': {
+            statRequirements: { minStamina: 6, minPerception: 3 },
+            keywords: 'mail delivery postman',
+            emoji: '📮'
+        },
+        'Butcher': {
+            statRequirements: { minStrength: 6, minDexterity: 3 },
+            keywords: 'meat food processing',
+            emoji: '🔪'
+        },
+        'Baker': {
+            statRequirements: { minStamina: 5, minCraftiness: 5 },
+            keywords: 'bread food baking',
+            emoji: '🍞'
+        },
+        'Waiter': {
+            statRequirements: { minStamina: 5, minDexterity: 5, minPersuasion: 3 },
+            keywords: 'service restaurant food',
+            emoji: '🤵'
+        },
+        'Bartender': {
+            statRequirements: { minPersuasion: 7, minStamina: 1 },
+            keywords: 'service drinks alcohol',
+            emoji: '🍺'
+        },
+        'Taxi Driver': {
+            statRequirements: { minStamina: 6, minPerception: 6 },
+            keywords: 'driving transport service',
+            emoji: '🚕'
+        },
+        'Welder': {
+            statRequirements: { minDexterity: 7, minConstitution: 6 },
+            keywords: 'trades metalwork manufacturing',
+            emoji: '🔥'
+        },
+        'Lumberjack': {
+            statRequirements: { minStrength: 8, minStamina: 7 },
+            genderBias: 'Male',
+            keywords: 'forestry logging wood',
+            emoji: '🪓'
+        },
+        'Fisherman': {
+            statRequirements: { minStrength: 5, minConstitution: 6, minPerception: 6 },
+            genderBias: 'Male',
+            keywords: 'fishing sea food',
+            emoji: '🎣'
         }
     }
 };

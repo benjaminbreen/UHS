@@ -161,6 +161,16 @@ export const ANIMAL_DATA: Record<string, AnimalData> = {
         spawnConditions: { nearSettlement: true, zones: ['EUROPEAN', 'MENA', 'SOUTH_ASIAN'] },
         habitat: 'mountain', behaviorProfile: 'deer'
     },
+    SHEEP: {
+        name: 'Sheep', emoji: '🐑', type: 'Domestic', social: 'herd', attack: 0, defense: 1, maxHealth: 10, speed: 3, strength: 2, agility: 3, perception: 4, level: 1,
+        drops: [{ name: 'Wool', chance: 0.9 }, { name: 'Mutton', chance: 0.8 }, { name: 'Sheep Hide', chance: 0.7 }],
+        spawnBiomes: [BiomeType.GRASSLAND, BiomeType.HILLS, BiomeType.FARMLAND],
+        spawnConditions: { 
+            nearSettlement: true, 
+            zones: ['EUROPEAN', 'MENA', 'SOUTH_ASIAN', 'EAST_ASIAN', 'SUB_SAHARAN_AFRICAN', 'NORTH_AMERICAN_COLONIAL', 'SOUTH_AMERICAN_COLONIAL'] 
+        },
+        habitat: 'grassland', behaviorProfile: 'deer'
+    },
     EAGLE: {
         name: 'Eagle', emoji: '🦅', type: 'Ambient', social: 'solitary', attack: 3, defense: 1, maxHealth: 5, speed: 10, strength: 4, agility: 9, perception: 10, level: 3,
         drops: [{ name: 'Eagle Feather', chance: 0.9 }],
@@ -275,13 +285,6 @@ export const ANIMAL_DATA: Record<string, AnimalData> = {
         spawnConditions: { minBiodiversity: 0.3, zones: ['EUROPEAN', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'EAST_ASIAN'] },
         habitat: 'grassland', behaviorProfile: 'rabbit'
     },
-    SQUIRREL: {
-        name: 'Squirrel', emoji: '🐿️', type: 'Ambient', social: 'solitary', attack: 0, defense: 1, maxHealth: 2, speed: 8, strength: 1, agility: 9, perception: 7, level: 1,
-        drops: [{ name: 'Acorn', chance: 0.3 }],
-        spawnBiomes: [BiomeType.FOREST, BiomeType.DENSE_FOREST],
-        spawnConditions: { zones: ['EUROPEAN', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'EAST_ASIAN'] },
-        habitat: 'forest', behaviorProfile: 'rabbit'
-    },
     HEDGEHOG: {
         name: 'Hedgehog', emoji: '🦔', type: 'Ambient', social: 'solitary', attack: 0, defense: 3, maxHealth: 3, speed: 3, strength: 1, agility: 4, perception: 5, level: 1,
         drops: [],
@@ -360,5 +363,47 @@ export const ANIMAL_DATA: Record<string, AnimalData> = {
         spawnBiomes: [BiomeType.GRASSLAND, BiomeType.FOREST],
         spawnConditions: { minBiodiversity: 0.9, climate: [ClimateType.TEMPERATE, ClimateType.TROPICAL, ClimateType.SEMITROPICAL] },
         habitat: 'grassland', behaviorProfile: 'rabbit'
+    },
+
+    // === COMPANION ANIMALS ===
+    DOG: {
+        name: 'Dog', emoji: '🐕', type: 'Domestic', social: 'pack', attack: 3, defense: 2, maxHealth: 12, speed: 7, strength: 4, agility: 6, perception: 9, level: 2,
+        drops: [{ name: 'Dog Hide', chance: 0.3 }], // Dogs rarely killed for resources
+        spawnBiomes: [BiomeType.HAMLET, BiomeType.FARMLAND, BiomeType.VILLAGE],
+        spawnConditions: { zones: ['EUROPEAN', 'EAST_ASIAN', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'MENA', 'SUB_SAHARAN_AFRICAN'] },
+        habitat: 'grassland', behaviorProfile: 'wolf',
+        temperament: 'loyal'
+    },
+    CAT: {
+        name: 'Cat', emoji: '🐱', type: 'Domestic', social: 'solitary', attack: 2, defense: 1, maxHealth: 6, speed: 8, strength: 2, agility: 9, perception: 8, level: 1,
+        drops: [{ name: 'Cat Hide', chance: 0.2 }], // Cats rarely killed for resources
+        spawnBiomes: [BiomeType.HAMLET, BiomeType.VILLAGE, BiomeType.FARMLAND],
+        spawnConditions: { zones: ['EUROPEAN', 'EAST_ASIAN', 'MENA', 'SUB_SAHARAN_AFRICAN'] },
+        habitat: 'grassland', behaviorProfile: 'rabbit',
+        temperament: 'independent'
+    },
+    DONKEY: {
+        name: 'Donkey', emoji: '🫏', type: 'Domestic', social: 'herd', attack: 2, defense: 3, maxHealth: 18, speed: 4, strength: 8, agility: 3, perception: 6, level: 2,
+        drops: [{ name: 'Tough Hide', chance: 0.7 }],
+        spawnBiomes: [BiomeType.FARMLAND, BiomeType.HAMLET, BiomeType.DESERT],
+        spawnConditions: { zones: ['EUROPEAN', 'MENA', 'SUB_SAHARAN_AFRICAN', 'SOUTH_ASIAN'] },
+        habitat: 'grassland', behaviorProfile: 'deer',
+        temperament: 'stubborn'
+    },
+    SQUIRREL: {
+        name: 'Squirrel', emoji: '🐿️', type: 'Prey', social: 'solitary', attack: 1, defense: 0, maxHealth: 3, speed: 9, strength: 1, agility: 10, perception: 8, level: 1,
+        drops: [{ name: 'Small Pelt', chance: 0.4 }],
+        spawnBiomes: [BiomeType.FOREST, BiomeType.DENSE_FOREST, BiomeType.HILLS],
+        spawnConditions: { zones: ['EUROPEAN', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'EAST_ASIAN'] },
+        habitat: 'forest', behaviorProfile: 'rabbit',
+        temperament: 'playful'
+    },
+    PIG: {
+        name: 'Pig', emoji: '🐷', type: 'Domestic', social: 'herd', attack: 1, defense: 1, maxHealth: 12, speed: 3, strength: 4, agility: 2, perception: 3, level: 1,
+        drops: [{ name: 'Pork', chance: 1.0 }, { name: 'Pig Hide', chance: 0.6 }],
+        spawnBiomes: [BiomeType.FARMLAND, BiomeType.HAMLET],
+        spawnConditions: { zones: ['EUROPEAN', 'EAST_ASIAN', 'SUB_SAHARAN_AFRICAN'] },
+        habitat: 'grassland', behaviorProfile: 'deer',
+        temperament: 'docile'
     }
 };

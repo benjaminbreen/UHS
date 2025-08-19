@@ -21,6 +21,27 @@ const QuestsPanel: React.FC<QuestsPanelProps> = ({ isOpen, onClose, onNavigateTo
       setCompletedQuests(questService.getCompletedQuests());
     }
   }, [isOpen]);
+  
+  // Listen for quest updates
+  useEffect(() => {
+    const handleQuestAdded = () => {
+      setActiveQuests(questService.getActiveQuests());
+      setCompletedQuests(questService.getCompletedQuests());
+    };
+    
+    const handleQuestCompleted = () => {
+      setActiveQuests(questService.getActiveQuests());
+      setCompletedQuests(questService.getCompletedQuests());
+    };
+    
+    window.addEventListener('questAdded', handleQuestAdded);
+    window.addEventListener('questCompleted', handleQuestCompleted);
+    
+    return () => {
+      window.removeEventListener('questAdded', handleQuestAdded);
+      window.removeEventListener('questCompleted', handleQuestCompleted);
+    };
+  }, []);
 
   // Always render but with conditional visibility for smooth animations
   if (!isOpen) {

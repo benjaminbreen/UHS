@@ -24,7 +24,7 @@ const craftingSchema = {
                             rarity: { type: Type.STRING, enum: ['Junk', 'Common', 'Uncommon', 'Rare', 'Ultra-rare', 'Unique'] },
                             value: { type: Type.NUMBER },
                             weight: { type: Type.NUMBER },
-                            category: { type: Type.STRING, enum: ['Tool', 'Weapon', 'Material', 'Apparel', 'Food', 'Special', 'Document', 'Consumable'] },
+                            category: { type: Type.STRING, enum: ['Tool', 'Weapon', 'Material', 'Apparel', 'Food', 'Special', 'Document', 'Consumable', 'Vessel'] },
                             attack: { type: Type.NUMBER },
                             defense: { type: Type.NUMBER, nullable: true },
                             sustenance: { type: Type.NUMBER },
@@ -80,7 +80,21 @@ export async function executeCrafting(method: 'COMBINE' | 'DISAGGREGATE', items:
         - Consider if items can logically work together
         - Materials + tools = crafted items
         - Similar materials can be combined
-        - Tools can modify other items`}
+        - Tools can modify other items
+        
+        VESSEL CRAFTING EXAMPLES (category: "Vessel"):
+        - Wood + pelt/hide/rope = simple kayak or canoe (small, single person)
+        - Logs + rope/vines = basic raft (larger, can carry cargo)
+        - Wood planks + cloth/sail material = sailboat (medium, wind-powered)
+        - Wood + oars/paddles = rowboat (medium, oar-powered)
+        - Single log = improvised log raft (basic flotation)
+        
+        TOOL CATEGORIES BY FUNCTION:
+        - Vessels: kayak, canoe, raft, sailboat, rowboat, log_raft (enable sea travel)
+        - Cutting: axe, saw, knife, chisel (enable tree chopping, crafting)
+        - Digging: shovel, hoe, pickaxe (enable ground digging, mining)
+        - Building: hammer, chisel, drill (enable construction)
+        - Hunting: bow, spear, trap (enable animal hunting)`}
         
         1. For ${method}, analyze: Can this action be performed with these items?
         2. If YES: Create logical resulting items. BaseId should be item name in UPPERCASE with spaces as underscores.

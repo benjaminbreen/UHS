@@ -7,6 +7,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { NpcEntity, Item, PlayerCharacter } from '../types';
 import { tradeService, TradeGood } from '../services/tradeService';
 import { npcBehaviorService } from '../services/npcBehaviorService';
+import { generateTradeNegotiation } from '../services/llmService';
 
 interface NpcTradeInterfaceProps {
   npc: NpcEntity;
@@ -31,6 +32,12 @@ const NpcTradeInterface: React.FC<NpcTradeInterfaceProps> = ({
   const [offeredCoins, setOfferedCoins] = useState(0);
   const [tradeMessage, setTradeMessage] = useState('');
   const [isBartering, setIsBartering] = useState(false);
+  const [isNegotiating, setIsNegotiating] = useState(false);
+  const [negotiationResult, setNegotiationResult] = useState<{
+    dialogue: string;
+    counterOffer?: string;
+    willNegotiate: boolean;
+  } | null>(null);
   
   // Generate NPC trade goods on mount, including animals
   useEffect(() => {
@@ -93,13 +100,54 @@ const NpcTradeInterface: React.FC<NpcTradeInterfaceProps> = ({
     );
   }, [selectedNpcGoods, selectedPlayerItems, offeredCoins, npcGoods, player]);
   
-  // Handle trade execution
-  const executeTrade = () => {
-    if (!tradeEvaluation.fair) {
-      setTradeMessage(tradeEvaluation.suggestion || 'The trader refuses your offer.');
-      // Trigger negotiation panel in parent component
-      if (onTrade) onTrade(false);
+  // Handle trade execution with LLM negotiation
+  const executeTrade = async () => {
+    if (!tradeEvaluation.fair && !player) {
+      setTradeMessage('Unable to complete trade.');
       return;
+    }
+
+    if (!tradeEvaluation.fair) {
+      // Use LLM to generate negotiation response
+      setIsNegotiating(true);
+      setTradeMessage('');
+      
+      try {
+        const selectedGoods = Array.from(selectedNpcGoods).map(i => npcGoods[i]).filter(Boolean);
+        const playerGoods = Array.from(selectedPlayerItems).map(id => {
+          const item = player?.inventory?.find((i: Item) => i.id === id);
+          if (item) {
+            return {
+              name: item.name,
+              value: item.value || 10
+            };
+          }
+          return null;
+        }).filter(Boolean) as Array<{ name: string; value: number; }>;
+
+        const result = await generateTradeNegotiation(npc, player, {
+          npcGoods: selectedGoods.map(g => ({ name: g.name, value: g.currentPrice })),
+          playerOffer: { coins: offeredCoins, goods: playerGoods },
+          fairValue: tradeEvaluation.value,
+          playerValue: offeredCoins + playerGoods.reduce((sum, g) => sum + g.value, 0)
+        });
+        
+        setNegotiationResult(result);
+        setTradeMessage(result.dialogue);
+        setIsNegotiating(false);
+        
+        if (!result.willNegotiate) {
+          if (onTrade) onTrade(false);
+        }
+        
+        return;
+      } catch (error) {
+        console.error('Error in trade negotiation:', error);
+        setTradeMessage(tradeEvaluation.suggestion || 'The trader refuses your offer.');
+        setIsNegotiating(false);
+        if (onTrade) onTrade(false);
+        return;
+      }
     }
     
     // Successful trade!
@@ -170,6 +218,27 @@ const NpcTradeInterface: React.FC<NpcTradeInterfaceProps> = ({
       newSelection.add(itemId);
     }
     setSelectedPlayerItems(newSelection);
+  };
+  
+  // Accept counter-offer from NPC
+  const acceptCounterOffer = () => {
+    if (!negotiationResult?.counterOffer) return;
+    
+    // Parse counter-offer (e.g., "Add 15 more coins")
+    const match = negotiationResult.counterOffer.match(/(\d+)/);
+    if (match) {
+      const additionalCoins = parseInt(match[1]);
+      setOfferedCoins(prev => prev + additionalCoins);
+      setNegotiationResult(null);
+      setTradeMessage('');
+    }
+  };
+  
+  // Decline negotiation
+  const declineNegotiation = () => {
+    setNegotiationResult(null);
+    setTradeMessage('Trade declined.');
+    if (onTrade) onTrade(false);
   };
   
   // Mobile-friendly layout
@@ -327,11 +396,39 @@ const NpcTradeInterface: React.FC<NpcTradeInterfaceProps> = ({
           </div>
         </div>
         
-        {tradeMessage && (
+        {isNegotiating && (
+          <p className="text-sm text-blue-400 mb-2 animate-pulse">
+            💬 The trader is considering your offer...
+          </p>
+        )}
+        
+        {tradeMessage && !isNegotiating && (
           <p className="text-sm text-yellow-400 mb-2">{tradeMessage}</p>
         )}
         
-        {tradeEvaluation.suggestion && (
+        {negotiationResult && negotiationResult.counterOffer && (
+          <div className="mb-2 p-2 bg-orange-900/50 border border-orange-600/50 rounded">
+            <p className="text-sm text-orange-300 mb-2">
+              💰 Counter-offer: {negotiationResult.counterOffer}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={acceptCounterOffer}
+                className="px-3 py-1 text-xs bg-green-600 hover:bg-green-500 text-white rounded transition-colors"
+              >
+                Accept
+              </button>
+              <button
+                onClick={declineNegotiation}
+                className="px-3 py-1 text-xs bg-red-600 hover:bg-red-500 text-white rounded transition-colors"
+              >
+                Decline
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {tradeEvaluation.suggestion && !tradeMessage && !negotiationResult && (
           <p className="text-sm text-slate-400 italic mb-2">
             {tradeEvaluation.suggestion}
           </p>
@@ -342,16 +439,16 @@ const NpcTradeInterface: React.FC<NpcTradeInterfaceProps> = ({
       <div className="trade-actions flex gap-2 p-3 bg-slate-900 rounded-b-lg border-t border-slate-700">
         <button
           onClick={executeTrade}
-          disabled={selectedNpcGoods.size === 0}
+          disabled={selectedNpcGoods.size === 0 || isNegotiating}
           className={`flex-1 py-2 px-4 rounded font-medium transition-colors ${
-            selectedNpcGoods.size === 0
+            selectedNpcGoods.size === 0 || isNegotiating
               ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
               : tradeEvaluation.fair
                 ? 'bg-green-600 hover:bg-green-500 text-white'
                 : 'bg-yellow-600 hover:bg-yellow-500 text-white'
           }`}
         >
-          {tradeEvaluation.fair ? 'Execute Trade' : 'Try Anyway'}
+          {isNegotiating ? 'Negotiating...' : tradeEvaluation.fair ? 'Execute Trade' : 'Make Offer'}
         </button>
         <button
           onClick={onClose}

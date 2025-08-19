@@ -254,6 +254,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
         name: "London",
         isHistorical: true,
         foundingYear: 411,
+
         description: "A resilient metropolis that has been a center of trade, finance, and culture for centuries.",
         allegianceHistory: {
             411: "Anglo-Saxons",
@@ -268,7 +269,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
           'early_modern': 'large',
           'modern': 'massive'
         },
-        populationPeak: 8900000,
+        populationPeak: 7900000,
         economicFocus: ['finance', 'trade', 'manufacturing', 'government']
     }
   ],
@@ -323,6 +324,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       name: "Paris",
       isHistorical: true,
       foundingYear: 361,
+      populationPeak: 14000000,
       description: "The political and cultural heart of France, a center of arts, philosophy, and revolution.",
       allegianceHistory: {
         361: "Franks",
@@ -757,7 +759,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       }
     },
     {
-      name: "New York",
+      name: "New York City",
       isHistorical: true,
       foundingYear: 1665,
       description: "The bustling commercial heart of North America, gateway to the continent's riches.",
@@ -772,7 +774,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
         'MODERN_ERA': 'massive',
         'FUTURE_ERA': 'massive'
       },
-      populationPeak: 8336000,
+      populationPeak: 9336000,
       economicFocus: ['finance', 'trade', 'shipping', 'manufacturing', 'services']
     }
   ],
@@ -1175,9 +1177,10 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
   ],
   "Edo Plain": [
     {
-      name: "Edo",
+      name: "Tokyo",
       isHistorical: true,
       foundingYear: 1457,
+      populationPeak: 24000000,
       description: "The shogun's city that became the largest in the world, center of the great peace.",
       allegianceHistory: {
         1457: "Ota Clan",

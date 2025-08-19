@@ -33,6 +33,7 @@ export const usePlayerState = (props: usePlayerStateProps) => {
     const [playerMode, setPlayerMode] = useState<'ship' | 'onFoot'>('ship');
     const [shipDockX, setShipDockX] = useState<number | null>(null);
     const [shipDockY, setShipDockY] = useState<number | null>(null);
+    const [currentVessel, setCurrentVessel] = useState<Item | null>(null);
     const [pendingIconTransitionInfo, setPendingIconTransitionInfo] = useState<any | null>(null);
     const [lastExitingEdgeData, setLastExitingEdgeData] = useState<EdgeTileInfo[] | null>(null);
     const [iconRotation, setIconRotation] = useState(0);
@@ -409,6 +410,7 @@ export const usePlayerState = (props: usePlayerStateProps) => {
         playerMode, setPlayerMode,
         shipDockX, setShipDockX,
         shipDockY, setShipDockY,
+        currentVessel, setCurrentVessel,
         pendingIconTransitionInfo, setPendingIconTransitionInfo,
         lastExitingEdgeData, setLastExitingEdgeData,
         iconRotation, setIconRotation,

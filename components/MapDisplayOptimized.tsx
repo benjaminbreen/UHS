@@ -5,7 +5,8 @@
  */
 
 import React, { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react';
-import { MapData, Tile, BiomeType, ClimateType, DevTooltipDisplayData, AnimalEntity, NpcEntity, VegetationEntity, LensMode, TerrainStructure, Season, PlayerCharacter, HistoricalEra } from '../types/index';
+import { MapData, Tile, BiomeType, ClimateType, DevTooltipDisplayData, AnimalEntity, NpcEntity, VegetationEntity, LensMode, TerrainStructure, Season, PlayerCharacter, HistoricalEra, DeployedVessel } from '../types/index';
+import { loadTamedAnimals, TamedAnimal } from '../services/animalTamingService';
 import { 
     TILE_SIZE_PX as TILE_SIZE_PX_CONST,
     MAP_WIDTH_TILES, 
@@ -20,6 +21,7 @@ import { mapLocationToCulture } from '../utils/mapUtils';
 import { selectBuilding } from '../utils/buildingSelectionSystem';
 import { getLocationCulturalStyle } from '../utils/culturalMappingUtils';
 import { RuinsSymbol, CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol, FishingHutSymbol, SteamSymbol, GovernmentDistrictSymbol, FireflySymbol, MineralGlintSymbol, OasisSymbol } from './symbols';
+import VesselSymbol from './symbols/VesselSymbol';
 import LumberCampSymbol from './symbols/structures/LumberCampSymbol';
 import UrbanSymbol from './symbols/UrbanSymbolSimplified';
 import { getPalaceSymbol } from './symbols/poi/PalaceSymbolsImproved';
@@ -48,6 +50,7 @@ import CoastlineOverlay from './CoastlineOverlay';
 import Minimap from './Minimap';
 import MapCanvasPerformance from './MapCanvasPerformance';
 import POIHoverTooltip from './POIHoverTooltip';
+import TileHoverTooltip from './TileHoverTooltip';
 import { getSafariOptimizedClassName, getSafariOptimizedStyle } from '../utils/safariUtils';
 
 const TILE_SIZE_PX = TILE_SIZE_PX_CONST;
@@ -150,15 +153,18 @@ interface MapDisplayOptimizedProps {
   mapData: MapData | null;
   animals: AnimalEntity[];
   npcs: NpcEntity[];
+  deployedVessels: DeployedVessel[];
   onDevHover: (data: DevTooltipDisplayData | null) => void;
   onDevCommandClick: (data: DevTooltipDisplayData) => void;
   onStructureClick: (structure: TerrainStructure) => void;
   onPoiClick: (poi: TerrainStructure) => void;
   onSettlementClick: (tile: Tile) => void;
+  onVesselClick?: (vessel: DeployedVessel) => void;
   activeLens: LensMode;
   logicalControlledIconX: number | null; 
   logicalControlledIconY: number | null; 
   onIconAnimationComplete: () => void;
+  currentVessel?: Item | null;
   playerMode: PlayerMode;
   shipDockX: number | null;
   shipDockY: number | null;
@@ -193,15 +199,18 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   mapData, 
   animals,
   npcs,
+  deployedVessels,
   onDevHover,
   onDevCommandClick, 
   onStructureClick,
   onPoiClick,
   onSettlementClick,
+  onVesselClick,
   activeLens, 
   logicalControlledIconX, 
   logicalControlledIconY,
   onIconAnimationComplete,
+  currentVessel,
   playerMode,
   shipDockX,
   shipDockY,
@@ -231,6 +240,10 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   // POI hover state
   const [hoveredPOI, setHoveredPOI] = useState<TerrainStructure | null>(null);
   const [hoveredPOICoords, setHoveredPOICoords] = useState<{x: number, y: number} | null>(null);
+
+  // Hover tooltip state for tiles (farms and urban areas)
+  const [hoveredTile, setHoveredTile] = useState<Tile | null>(null);
+  const [hoveredTileCoords, setHoveredTileCoords] = useState<{ x: number, y: number } | null>(null);
   
   // NPC/Animal hover state
   const [hoveredNPC, setHoveredNPC] = useState<NpcEntity | null>(null);
@@ -264,6 +277,34 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   const [isMobile, setIsMobile] = useState(false);
   const [mobileNavSpeed, setMobileNavSpeed] = useState<'slow' | 'normal' | 'fast'>('normal');
   const [mobileControlMode, setMobileControlMode] = useState<'camera' | 'player'>('player');
+  const [tamedAnimals, setTamedAnimals] = useState<TamedAnimal[]>([]);
+  const [lastMoveDirection, setLastMoveDirection] = useState<{x: number, y: number}>({ x: 0, y: -1 });
+  
+  // Load tamed animals on mount and when player position changes
+  useEffect(() => {
+    const animals = loadTamedAnimals();
+    setTamedAnimals(animals);
+  }, [logicalControlledIconX, logicalControlledIconY]);
+  
+  // Track player movement direction
+  const prevPlayerPos = useRef({ x: logicalControlledIconX, y: logicalControlledIconY });
+  useEffect(() => {
+    if (logicalControlledIconX !== null && logicalControlledIconY !== null &&
+        prevPlayerPos.current.x !== null && prevPlayerPos.current.y !== null) {
+      const dx = logicalControlledIconX - (prevPlayerPos.current.x || 0);
+      const dy = logicalControlledIconY - (prevPlayerPos.current.y || 0);
+      
+      if (dx !== 0 || dy !== 0) {
+        // Normalize the direction
+        const length = Math.sqrt(dx * dx + dy * dy);
+        if (length > 0) {
+          setLastMoveDirection({ x: dx / length, y: dy / length });
+        }
+      }
+      
+      prevPlayerPos.current = { x: logicalControlledIconX, y: logicalControlledIconY };
+    }
+  }, [logicalControlledIconX, logicalControlledIconY]);
   
   // Memoized noise generators - OPTIMIZED: Only recreate when mapData.seed changes
   const noiseGenerators = useMemo(() => {
@@ -784,9 +825,10 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         const structure = mapData?.terrainStructures?.find(s => s.location[0] === tile.x && s.location[1] === tile.y);
         const vegetation = tile.vegetationId ? mapData?.vegetation?.find(v => v.id === tile.vegetationId) : null;
         
-        // Check for NPCs and animals at this tile
+        // Check for NPCs, animals, and deployed vessels at this tile
         const npc = npcs?.find(n => n.x === tile.x && n.y === tile.y);
         const animal = animals?.find(a => a.x === tile.x && a.y === tile.y);
+        const deployedVessel = deployedVessels?.find(v => v.x === tile.x && v.y === tile.y);
         
         // Update hover states for NPCs and animals
         if (npc !== hoveredNPC) {
@@ -831,10 +873,14 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
 
     const structure = mapData?.terrainStructures?.find(s => s.location[0] === tile.x && s.location[1] === tile.y) || tile.structure;
     const isPoi = structure && ['holy_site', 'palace', 'ruin'].includes(structure.structureType);
+    const deployedVessel = deployedVessels?.find(v => v.x === tile.x && v.y === tile.y);
     
     const settlementBiomes = new Set([BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.CITY_CENTER, BiomeType.MARKETPLACE, BiomeType.FARMLAND]);
 
-    if (isPoi) {
+    if (deployedVessel) {
+        // Handle vessel click - trigger embarkation
+        onVesselClick?.(deployedVessel);
+    } else if (isPoi) {
         onPoiClick(structure);
     } else if (structure) {
         onStructureClick(structure);
@@ -852,7 +898,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             componentInfo: componentInfo || undefined
         });
     }
-  }, [onDevCommandClick, onStructureClick, onPoiClick, onSettlementClick, getTileFromMouseEvent, mapData, npcs, animals]);
+  }, [onDevCommandClick, onStructureClick, onPoiClick, onSettlementClick, onVesselClick, getTileFromMouseEvent, mapData, npcs, animals, deployedVessels]);
 
   const handleMouseUp = useCallback(() => {
     if (isDragging) {
@@ -1657,7 +1703,25 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   } else if(tile.biome === BiomeType.OASIS) {
                     elements.push(<OasisSymbol key={`oasis-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} tileX={tile.x} tileY={tile.y} />);
                   } else if(tile.biome === BiomeType.FARMLAND) {
-                    elements.push(<FarmSymbol key={`farm-${tile.x}-${tile.y}`} tile={tile} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} />);
+                    elements.push(
+                      <g
+                        key={`farm-${tile.x}-${tile.y}`}
+                        onMouseEnter={(e) => {
+                          if (!isDragging) {
+                            setHoveredTile(tile);
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setHoveredTileCoords({ x: rect.left + rect.width / 2, y: rect.top });
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredTile(null);
+                          setHoveredTileCoords(null);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <FarmSymbol tile={tile} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} />
+                      </g>
+                    );
                   } else if(tile.biome === BiomeType.ESTUARY) {
                     elements.push(<EstuarySymbol key={`estuary-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />);
                   } else if(tile.biome === BiomeType.REEF) {
@@ -1700,7 +1764,25 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   
                   // Only render urban/structure symbols in this pass
                   if ([BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.GOVERNMENT_DISTRICT, BiomeType.CITY_CENTER].includes(tile.biome)) {
-                    elements.push(<UrbanSymbol key={`urban-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} date={formattedDate} zone={currentLocation} location={mapData.localArea || mapData.region || currentLocation} nightIntensity={timeOfDayData.isNight ? 0.6 : 0} />);
+                    elements.push(
+                      <g
+                        key={`urban-${tile.x}-${tile.y}`}
+                        onMouseEnter={(e) => {
+                          if (!isDragging) {
+                            setHoveredTile(tile);
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setHoveredTileCoords({ x: rect.left + rect.width / 2, y: rect.top });
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredTile(null);
+                          setHoveredTileCoords(null);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <UrbanSymbol x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} date={formattedDate} zone={currentLocation} location={mapData.localArea || mapData.region || currentLocation} nightIntensity={timeOfDayData.isNight ? 0.6 : 0} />
+                      </g>
+                    );
                   } else if(tile.biome === BiomeType.MARKETPLACE) {
                     // Create a pseudo-structure for marketplace hover
                     const marketplaceStructure: TerrainStructure = {
@@ -2107,7 +2189,19 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     const MillComponent = getMillSymbol(structure.name || 'Water Mill', era);
                     
                     return (
-                      <g key={structure.id} className="transition-transform duration-200">
+                      <g key={structure.id} className="transition-transform duration-200"
+                        onMouseEnter={(e) => {
+                          if (!isDragging) {
+                            setHoveredPOI(structure);
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredPOI(null);
+                          setHoveredPOICoords(null);
+                        }}
+                      >
                         <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
                           <title>{`${structure.name} (${structure.structureType})`}</title>
                           <MillComponent
@@ -2117,6 +2211,19 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                             seed={tileSeed}
                             millType={structure.name}
                           />
+                          {hoveredPOI?.id === structure?.id && (
+                            <rect
+                              x={structX}
+                              y={structY}
+                              width={TILE_SIZE_PX}
+                              height={TILE_SIZE_PX}
+                              fill="none"
+                              stroke="#fbbf24"
+                              strokeWidth="2"
+                              opacity="0.8"
+                              rx="3"
+                            />
+                          )}
                         </g>
                       </g>
                     );
@@ -2129,7 +2236,19 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     const MineComponent = getMineSymbol(era);
                     
                     return (
-                      <g key={structure.id} className="transition-transform duration-200">
+                      <g key={structure.id} className="transition-transform duration-200"
+                        onMouseEnter={(e) => {
+                          if (!isDragging) {
+                            setHoveredPOI(structure);
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredPOI(null);
+                          setHoveredPOICoords(null);
+                        }}
+                      >
                         <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
                           <title>{`${structure.name} (${structure.structureType})`}</title>
                           <MineComponent
@@ -2138,6 +2257,19 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                             size={TILE_SIZE_PX} 
                             seed={tileSeed}
                           />
+                          {hoveredPOI?.id === structure?.id && (
+                            <rect
+                              x={structX}
+                              y={structY}
+                              width={TILE_SIZE_PX}
+                              height={TILE_SIZE_PX}
+                              fill="none"
+                              stroke="#fbbf24"
+                              strokeWidth="2"
+                              opacity="0.8"
+                              rx="3"
+                            />
+                          )}
                         </g>
                       </g>
                     );
@@ -2150,7 +2282,19 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     const QuarryComponent = getQuarrySymbol(era);
                     
                     return (
-                      <g key={structure.id} className="transition-transform duration-200">
+                      <g key={structure.id} className="transition-transform duration-200"
+                        onMouseEnter={(e) => {
+                          if (!isDragging) {
+                            setHoveredPOI(structure);
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredPOI(null);
+                          setHoveredPOICoords(null);
+                        }}
+                      >
                         <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
                           <title>{`${structure.name} (${structure.structureType})`}</title>
                           <QuarryComponent
@@ -2159,6 +2303,19 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                             size={TILE_SIZE_PX} 
                             seed={tileSeed}
                           />
+                          {hoveredPOI?.id === structure?.id && (
+                            <rect
+                              x={structX}
+                              y={structY}
+                              width={TILE_SIZE_PX}
+                              height={TILE_SIZE_PX}
+                              fill="none"
+                              stroke="#fbbf24"
+                              strokeWidth="2"
+                              opacity="0.8"
+                              rx="3"
+                            />
+                          )}
                         </g>
                       </g>
                     );
@@ -2322,6 +2479,44 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               />
             ))}
 
+            {/* Deployed Vessels layer */}
+            <g>
+              {(deployedVessels || []).map(vessel => (
+                <g key={vessel.id} 
+                   onClick={(e) => { e.stopPropagation(); onVesselClick?.(vessel); }} 
+                   style={{cursor: 'pointer', pointerEvents: 'auto'}}
+                   className="smooth-movement"
+                   transform={`translate(${vessel.x * TILE_SIZE_PX}, ${vessel.y * TILE_SIZE_PX})`}>
+                  {/* Shadow beneath vessel */}
+                  <ellipse
+                    cx={TILE_SIZE_PX/2}
+                    cy={TILE_SIZE_PX/2 + TILE_SIZE_PX * 0.3}
+                    rx={TILE_SIZE_PX * 0.4}
+                    ry={TILE_SIZE_PX * 0.15}
+                    fill="rgba(0, 0, 0, 0.3)"
+                    opacity="0.8"
+                  />
+                  <VesselSymbol 
+                    vessel={vessel.vesselItem} 
+                    x={TILE_SIZE_PX/2} 
+                    y={TILE_SIZE_PX/2} 
+                    size={TILE_SIZE_PX * 1.1} 
+                  />
+                  {/* Availability indicator */}
+                  {vessel.isAvailable && (
+                    <circle
+                      cx={TILE_SIZE_PX * 0.8}
+                      cy={TILE_SIZE_PX * 0.2}
+                      r={TILE_SIZE_PX * 0.08}
+                      fill="#22c55e"
+                      stroke="#ffffff"
+                      strokeWidth="1"
+                    />
+                  )}
+                </g>
+              ))}
+            </g>
+
             {/* Animals and NPCs layer  */}
             <g>
               {(animals || []).filter(animal => {
@@ -2363,6 +2558,75 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   </text>
                 </g>
               ))}
+              
+              {/* Tamed Animals Following Player - Only show when on foot and limit to one */}
+              {playerMode === 'onFoot' && tamedAnimals.slice(0, 1).map((animal, index) => {
+                // Calculate position behind player
+                let followX = logicalControlledIconX || 0;
+                let followY = logicalControlledIconY || 0;
+                
+                // Position the animal 1 tile behind the player
+                const offsetDirection = lastMoveDirection || { x: 0, y: 1 };
+                followX -= offsetDirection.x;
+                followY -= offsetDirection.y;
+                
+                // Keep within map bounds
+                followX = Math.max(0, Math.min(MAP_WIDTH_TILES - 1, followX));
+                followY = Math.max(0, Math.min(MAP_HEIGHT_TILES - 1, followY));
+                
+                return (
+                  <g key={`tamed-${animal.id}`}
+                     className="smooth-movement"
+                     transform={`translate(${followX * TILE_SIZE_PX}, ${followY * TILE_SIZE_PX})`}>
+                    {/* Shadow beneath tamed animal */}
+                    <ellipse
+                      cx={TILE_SIZE_PX/2}
+                      cy={TILE_SIZE_PX/2 + TILE_SIZE_PX * 0.4}
+                      rx={TILE_SIZE_PX * 0.3}
+                      ry={TILE_SIZE_PX * 0.1}
+                      fill="rgba(0,0,0,0.3)"
+                      filter={shouldUseBlurEffects ? "blur(2px)" : "none"}
+                    />
+                    {/* Green glow to indicate tamed */}
+                    <circle
+                      cx={TILE_SIZE_PX/2}
+                      cy={TILE_SIZE_PX/2}
+                      r={TILE_SIZE_PX * 0.6}
+                      fill="rgba(0, 255, 0, 0.2)"
+                      filter={shouldUseBlurEffects ? "blur(4px)" : "none"}
+                    />
+                    <text
+                      x={TILE_SIZE_PX/2}
+                      y={TILE_SIZE_PX/2}
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fontSize={TILE_SIZE_PX * 0.8}
+                      className="animate-ff6-idle-bob"
+                      style={{
+                        filter: shouldRenderShadows ? 'drop-shadow(2px 3px 4px rgba(0,0,0,0.8))' : 'none',
+                      }}
+                    >
+                      {animal.emoji}
+                    </text>
+                    {/* Small loyalty indicator */}
+                    <rect
+                      x={TILE_SIZE_PX * 0.2}
+                      y={TILE_SIZE_PX * 0.85}
+                      width={TILE_SIZE_PX * 0.6}
+                      height={2}
+                      fill="rgba(0,0,0,0.5)"
+                    />
+                    <rect
+                      x={TILE_SIZE_PX * 0.2}
+                      y={TILE_SIZE_PX * 0.85}
+                      width={TILE_SIZE_PX * 0.6 * (animal.loyalty / 100)}
+                      height={2}
+                      fill="lime"
+                    />
+                  </g>
+                );
+              })}
+              
               {(npcs || []).filter(npc => {
                 // Only show NPCs within 10 tiles of player
                 if (logicalControlledIconX === null || logicalControlledIconY === null) return true;
@@ -2498,12 +2762,21 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               {/* Docked Ship Icon */}
               {shipDockX !== null && shipDockY !== null && playerMode === 'onFoot' && (
                 <g className="transition-opacity duration-300" opacity="0.85">
-                  <ShipIcon
-                    x={shipDockX * TILE_SIZE_PX + TILE_SIZE_PX / 2}
-                    y={shipDockY * TILE_SIZE_PX + TILE_SIZE_PX / 2}
-                    rotation={0}
-                    velocity={{ x: 0, y: 0 }}
-                  />
+                  {currentVessel ? (
+                    <VesselSymbol 
+                      vessel={currentVessel} 
+                      x={shipDockX * TILE_SIZE_PX + TILE_SIZE_PX / 2} 
+                      y={shipDockY * TILE_SIZE_PX + TILE_SIZE_PX / 2} 
+                      size={TILE_SIZE_PX * 1.1} 
+                    />
+                  ) : (
+                    <ShipIcon
+                      x={shipDockX * TILE_SIZE_PX + TILE_SIZE_PX / 2}
+                      y={shipDockY * TILE_SIZE_PX + TILE_SIZE_PX / 2}
+                      rotation={0}
+                      velocity={{ x: 0, y: 0 }}
+                    />
+                  )}
                 </g>
               )}
               
@@ -2549,12 +2822,21 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   
                   <g filter="url(#glow)">
                     {playerMode === 'ship' ? (
-                      <ShipIcon
-                        x={displayPixelIconX}
-                        y={displayPixelIconY}
-                        rotation={iconRotation}
-                        velocity={velocity}
-                      />
+                      currentVessel ? (
+                        <VesselSymbol 
+                          vessel={currentVessel} 
+                          x={displayPixelIconX} 
+                          y={displayPixelIconY} 
+                          size={TILE_SIZE_PX * 1.1} 
+                        />
+                      ) : (
+                        <ShipIcon
+                          x={displayPixelIconX}
+                          y={displayPixelIconY}
+                          rotation={iconRotation}
+                          velocity={velocity}
+                        />
+                      )
                     ) : playerCharacter && (
                       <PlayerIcon
                         x={displayPixelIconX}
@@ -2609,6 +2891,19 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           structure={hoveredPOI}
           x={hoveredPOICoords.x}
           y={hoveredPOICoords.y}
+          npcs={npcs}
+          culturalZone={mapData.culturalZone || 'EUROPEAN'}
+          era={parseDateString(mapData.timeSlice || '1650').era}
+          visible={true}
+        />
+      )}
+      
+      {/* Tile Hover Tooltip (for farms and urban areas) */}
+      {hoveredTile && hoveredTileCoords && (
+        <TileHoverTooltip
+          tile={hoveredTile}
+          x={hoveredTileCoords.x}
+          y={hoveredTileCoords.y}
           npcs={npcs}
           culturalZone={mapData.culturalZone || 'EUROPEAN'}
           era={parseDateString(mapData.timeSlice || '1650').era}

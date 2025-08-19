@@ -4,13 +4,22 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { EncounterableEntity, NpcEntity, DialogueEntry, PlayerCharacter, MapData } from '../types';
 import { generateEncounterDialogue } from '../services/encounterService';
-import { summarizeConversation } from '../services/llmService';
+import { summarizeConversation, generateInternalMonologue, generateNpcQuestOffer } from '../services/llmService';
+import { TypewriterText } from '../hooks/useTypewriter';
 import NpcTradeInterface from './NpcTradeInterface';
 import { ProceduralPortrait } from './portraits';
 import { questService } from '../services/questService';
 import { Quest } from '../types/questTypes';
-import { Sparkles, Target, MapPin, Info, AlertTriangle } from 'lucide-react';
+import { Sparkles, Target, MapPin, Info, AlertTriangle, Heart } from 'lucide-react';
+import { useUI } from '../contexts/UIContext';
 import DiseaseService from '../services/diseaseService';
+import { 
+    attemptTaming, 
+    checkAnimalOwnership, 
+    createTamedAnimal, 
+    addToParty,
+    calculateAnimalValue 
+} from '../services/animalTamingService';
 
 function isNpc(target: EncounterableEntity): target is NpcEntity {
     return 'role' in target;
@@ -127,10 +136,17 @@ interface EncounterModalProps {
 }
 
 const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter, allNpcs, mapData, onClose, onInitiateCombat, onOpenInfo }) => {
+    const { showToast } = useUI();
+    
     const [history, setHistory] = useState<DialogueEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [playerInput, setPlayerInput] = useState('');
-    const [activeTab, setActiveTab] = useState<'dialogue' | 'history' | 'trade' | 'medical' | 'household'>('dialogue');
+    const [activeTab, setActiveTab] = useState<'dialogue' | 'history' | 'trade' | 'medical' | 'household' | 'quest'>('dialogue');
+    
+    // Quest-related state
+    const [questOffer, setQuestOffer] = useState<any>(null);
+    const [isLoadingQuest, setIsLoadingQuest] = useState(false);
+    const [hasCheckedForQuest, setHasCheckedForQuest] = useState(false);
     const [useRealLanguage, setUseRealLanguage] = useState(false);
     const [showTradeInterface, setShowTradeInterface] = useState(false);
     const [showNegotiationPanel, setShowNegotiationPanel] = useState(false);
@@ -143,6 +159,23 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
         symptomDescriptions: string[];
     } | null>(null);
     const [showDiseaseWarning, setShowDiseaseWarning] = useState(false);
+    
+    // Taming states
+    const [showTamingInterface, setShowTamingInterface] = useState(false);
+    const [tamingApproach, setTamingApproach] = useState('');
+    const [tamingInProgress, setTamingInProgress] = useState(false);
+    const [tamingAttempts, setTamingAttempts] = useState(0);
+    const [tamingResult, setTamingResult] = useState<string | null>(null);
+    const [animalOwner, setAnimalOwner] = useState<NpcEntity | null>(null);
+    const [isTheft, setIsTheft] = useState(false);
+    
+    // Internal monologue states
+    const [showMonologue, setShowMonologue] = useState(false);
+    const [monologueText, setMonologueText] = useState('');
+    const [monologueClickCount, setMonologueClickCount] = useState(0);
+    const [isLoadingMonologue, setIsLoadingMonologue] = useState(false);
+    const monologueCache = useRef<Map<number, string>>(new Map());
+    
     const hasFetchedInitialDialogue = useRef(false);
     const dialogueLogRef = useRef<HTMLDivElement>(null);
     
@@ -237,6 +270,18 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
     }, [target, history, onClose]);
 
 
+    // Check animal ownership on mount
+    useEffect(() => {
+        if (!isNpc(target) && allNpcs && allNpcs.length > 0) {
+            const ownership = checkAnimalOwnership(target, allNpcs);
+            if (ownership.isOwned && ownership.owner) {
+                setAnimalOwner(ownership.owner);
+                setIsTheft(true);
+                console.log(`This ${target.speciesName} belongs to ${ownership.owner.name}!`);
+            }
+        }
+    }, [target, allNpcs]);
+
     useEffect(() => {
         if (!playerCharacter) return;
         if (!hasFetchedInitialDialogue.current && isNpc(target)) {
@@ -301,6 +346,87 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
         }
     }, [target, playerCharacter, mapData]);
     
+    // Taming handler
+    const handleTamingAttempt = async () => {
+        if (!tamingApproach.trim() || tamingInProgress || !playerCharacter) return;
+        
+        setTamingInProgress(true);
+        
+        try {
+            const result = await attemptTaming(
+                target,
+                tamingApproach,
+                playerCharacter,
+                tamingAttempts > 0 // Is second attempt
+            );
+            
+            setTamingAttempts(prev => prev + 1);
+            
+            if (result.success === 'tamed') {
+                // Success! Add to party
+                const tamedAnimal = createTamedAnimal(
+                    target,
+                    playerCharacter,
+                    { year: playerCharacter.year || 1500, month: 1, day: 1 }
+                );
+                addToParty(tamedAnimal);
+                
+                // Handle theft consequences
+                if (isTheft && animalOwner) {
+                    const reputationLoss = -30;
+                    setReputationChange(reputationLoss);
+                    playerCharacter.mapReputation = Math.max(0, (playerCharacter.mapReputation || 50) + reputationLoss);
+                    
+                    setTamingResult(`${result.message}\n\n⚠️ WARNING: You stole ${animalOwner.name}'s ${target.speciesName}! Your reputation has plummeted!`);
+                } else {
+                    setTamingResult(result.message);
+                }
+                
+                // Update history with success
+                setHistory(prev => [...prev, {
+                    speaker: 'npc',
+                    text: result.animalResponse,
+                    timestamp: new Date()
+                }]);
+                
+                // Close taming interface but keep modal open to show success
+                setTimeout(() => {
+                    setShowTamingInterface(false);
+                }, 5000);
+                
+            } else if (result.success === 'partial') {
+                // Partial success - can try again
+                setTamingResult(result.message);
+                setHistory(prev => [...prev, {
+                    speaker: 'npc',
+                    text: result.animalResponse,
+                    timestamp: new Date()
+                }]);
+                setTamingApproach(''); // Clear for next attempt
+                
+            } else {
+                // Failed - animal flees
+                setTamingResult(result.message);
+                setHistory(prev => [...prev, {
+                    speaker: 'npc',
+                    text: result.animalResponse,
+                    timestamp: new Date()
+                }]);
+                
+                // Close modal after delay
+                setTimeout(() => {
+                    handleClose();
+                }, 2000);
+            }
+            
+        } catch (error) {
+            console.error('Taming attempt failed:', error);
+            setTamingResult('The animal seems confused by your approach.');
+        } finally {
+            setTamingInProgress(false);
+        }
+    };
+
     // Check NPC reaction for hostility or desire to leave
     const checkNpcReaction = (response: { text: string, reputationChange?: number, shouldLeave?: boolean, shouldAttack?: boolean }) => {
         // Check for reputation change
@@ -362,22 +488,96 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
     };
 
     return (
-        <div className="modal-overlay" onClick={handleClose}>
-            <div className={`ff-panel ${showNegotiationPanel ? 'max-w-5xl' : 'max-w-2xl'} w-full h-[80vh] max-h-[700px] flex ${showNegotiationPanel ? 'flex-row gap-4' : 'flex-col'} p-4 transition-all duration-300 overflow-hidden`} onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-2 md:p-4" onClick={handleClose}>
+            <div className={`bg-slate-900 border border-slate-700 rounded-xl ${showNegotiationPanel ? 'max-w-5xl' : 'max-w-2xl'} w-full max-h-[95vh] md:max-h-[80vh] flex ${showNegotiationPanel ? 'flex-col lg:flex-row gap-2 md:gap-4' : 'flex-col'} p-3 md:p-4 transition-all duration-300 overflow-hidden`} onClick={e => e.stopPropagation()}>
                 {/* Main content area */}
                 <div className={`flex-1 flex flex-col min-h-0 ${showNegotiationPanel ? '' : 'w-full'}`}>
-                <header className="flex items-center gap-4 mb-3 pb-3 border-b border-blue-500/30">
+                <header className="flex items-center gap-2 md:gap-4 mb-2 md:mb-3 pb-2 md:pb-3 border-b border-blue-500/30">
                     {/* Replace emoji with procedural portrait */}
                     {isNpc(target) ? (
-                        <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border-2 border-slate-600">
+                        <div 
+                            className="w-12 h-12 md:w-16 md:h-16 flex-shrink-0 rounded-lg overflow-hidden border-2 border-slate-600 cursor-pointer transition-all hover:border-amber-500 hover:shadow-lg hover:shadow-amber-500/20"
+                            onClick={async () => {
+                                if (monologueClickCount >= 3) return;
+                                const nextCount = monologueClickCount + 1;
+                                setMonologueClickCount(nextCount);
+                                
+                                // Check cache first
+                                if (monologueCache.current.has(nextCount)) {
+                                    setMonologueText(monologueCache.current.get(nextCount)!);
+                                    setShowMonologue(true);
+                                    return;
+                                }
+                                
+                                setIsLoadingMonologue(true);
+                                setShowMonologue(true);
+                                
+                                try {
+                                    const monologue = await generateInternalMonologue(target, {
+                                        currentDialogue: history[history.length - 1]?.text,
+                                        playerCharacter,
+                                        mapData,
+                                        clickCount: nextCount,
+                                        recentHistory: history.slice(-4)
+                                    });
+                                    
+                                    monologueCache.current.set(nextCount, monologue);
+                                    setMonologueText(monologue);
+                                } catch (error) {
+                                    console.error('Failed to generate monologue:', error);
+                                    setMonologueText('*Their thoughts remain a mystery...*');
+                                } finally {
+                                    setIsLoadingMonologue(false);
+                                }
+                            }}
+                            title="Click to see what they're really thinking..."
+                        >
                             <ProceduralPortrait character={target as any} size={70} />
                         </div>
                     ) : (
-                        <div className="text-5xl flex-shrink-0">{target.emoji}</div>
+                        <div 
+                            className="text-3xl md:text-5xl flex-shrink-0 cursor-pointer transition-transform hover:scale-110"
+                            onClick={async () => {
+                                if (monologueClickCount >= 3) return;
+                                const nextCount = monologueClickCount + 1;
+                                setMonologueClickCount(nextCount);
+                                
+                                // Check cache first
+                                if (monologueCache.current.has(nextCount)) {
+                                    setMonologueText(monologueCache.current.get(nextCount)!);
+                                    setShowMonologue(true);
+                                    return;
+                                }
+                                
+                                setIsLoadingMonologue(true);
+                                setShowMonologue(true);
+                                
+                                try {
+                                    const monologue = await generateInternalMonologue(target, {
+                                        currentDialogue: history[history.length - 1]?.text,
+                                        playerCharacter,
+                                        mapData,
+                                        clickCount: nextCount,
+                                        recentHistory: history.slice(-4)
+                                    });
+                                    
+                                    monologueCache.current.set(nextCount, monologue);
+                                    setMonologueText(monologue);
+                                } catch (error) {
+                                    console.error('Failed to generate monologue:', error);
+                                    setMonologueText('*Their instincts remain hidden...*');
+                                } finally {
+                                    setIsLoadingMonologue(false);
+                                }
+                            }}
+                            title="Click to sense what they're feeling..."
+                        >
+                            {target.emoji}
+                        </div>
                     )}
-                    <div className="flex-1">
-                        <h3 className="text-2xl font-press-start" style={{ color: 'var(--ff-header-text)' }}>{targetName}</h3>
-                        <p className="text-sm text-slate-300 capitalize">
+                    <div className="flex-1 min-w-0">
+                        <h3 className="text-base md:text-2xl font-bold truncate" style={{ color: 'var(--ff-header-text)' }}>{targetName}</h3>
+                        <p className="text-xs md:text-sm text-slate-300 capitalize truncate">
                             {isNpc(target) ? `${target.class} - ${target.role}${target.religion ? ` • ${target.religion}` : ''}` : target.type}
                         </p>
                     </div>
@@ -439,6 +639,12 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                         <button onClick={() => setActiveTab('history')} className={`flex-1 py-3 px-2 text-center text-sm font-semibold transition-all duration-200 border-b-2 ${activeTab === 'history' ? 'text-white border-blue-400 bg-slate-700/50' : 'text-slate-300 border-transparent hover:bg-slate-700/40 hover:text-white'}`}>History</button>
                         <button onClick={() => setActiveTab('household')} className={`flex-1 py-3 px-2 text-center text-sm font-semibold transition-all duration-200 border-b-2 ${activeTab === 'household' ? 'text-white border-blue-400 bg-slate-700/50' : 'text-slate-300 border-transparent hover:bg-slate-700/40 hover:text-white'}`}>Household</button>
                         <button onClick={() => setActiveTab('trade')} className={`flex-1 py-3 px-2 text-center text-sm font-semibold transition-all duration-200 border-b-2 ${activeTab === 'trade' ? 'text-white border-blue-400 bg-slate-700/50' : 'text-slate-300 border-transparent hover:bg-slate-700/40 hover:text-white'}`}>Trade</button>
+                        <button onClick={() => setActiveTab('quest')} className={`flex-1 py-3 px-2 text-center text-sm font-semibold transition-all duration-200 border-b-2 ${activeTab === 'quest' ? 'text-white border-blue-400 bg-slate-700/50' : 'text-slate-300 border-transparent hover:bg-slate-700/40 hover:text-white'}`}>
+                            <span className="flex items-center justify-center gap-1">
+                                <Target className="w-3 h-3" />
+                                Quests
+                            </span>
+                        </button>
                         {/* Show medical tab if NPC is a healer or player has diseases */}
                         {((target.role && (target.role.toLowerCase().includes('healer') || target.role.toLowerCase().includes('physician') || target.role.toLowerCase().includes('apothecary'))) || 
                           (playerCharacter?.health?.currentDiseases && playerCharacter.health.currentDiseases.length > 0)) && (
@@ -680,6 +886,187 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                             )}
                         </div>
                      )}
+                     
+                     {/* Quest Tab Content */}
+                     {activeTab === 'quest' && isNpc(target) && playerCharacter && (
+                        <div className="space-y-4">
+                            <h4 className="text-lg font-semibold text-purple-300 flex items-center gap-2">
+                                <Target className="w-5 h-5" />
+                                Available Work
+                            </h4>
+                            
+                            {!hasCheckedForQuest ? (
+                                <div className="text-center py-8">
+                                    <button 
+                                        onClick={async () => {
+                                            setIsLoadingQuest(true);
+                                            setHasCheckedForQuest(true);
+                                            
+                                            // Get nearby structures for quest locations
+                                            const nearbyStructures: any[] = []; // This would need to be passed in from props
+                                            
+                                            // Generate quest offer
+                                            const questData = await generateNpcQuestOffer(target, {
+                                                playerCharacter,
+                                                mapData: mapData!,
+                                                nearbyStructures,
+                                                gameDate: { year: parseInt(mapData?.timeSlice || '1500'), month: 6, day: 15 },
+                                                playerReputation: playerCharacter.mapReputation || 50
+                                            });
+                                            
+                                            setQuestOffer(questData);
+                                            setIsLoadingQuest(false);
+                                        }}
+                                        disabled={isLoadingQuest}
+                                        className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2 mx-auto"
+                                    >
+                                        {isLoadingQuest ? (
+                                            <>
+                                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                Thinking...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Sparkles className="w-4 h-4" />
+                                                Ask for Work
+                                            </>
+                                        )}
+                                    </button>
+                                    <p className="text-xs text-slate-400 mt-2">
+                                        See if {target.name} has any tasks or problems you could help with.
+                                    </p>
+                                </div>
+                            ) : questOffer === null && isLoadingQuest ? (
+                                <div className="text-center py-8">
+                                    <div className="w-8 h-8 border-3 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                                    <p className="text-purple-300">Generating quest offer...</p>
+                                </div>
+                            ) : questOffer ? (
+                                <div className="space-y-4">
+                                    {questOffer.hasQuest ? (
+                                        <div className="bg-purple-900/20 border border-purple-600/30 rounded-lg p-4">
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div>
+                                                    <h5 className="text-white font-semibold text-lg">{questOffer.questTitle}</h5>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <span className={`text-xs px-2 py-1 rounded ${
+                                                            questOffer.urgency === 'high' ? 'bg-red-600 text-white' :
+                                                            questOffer.urgency === 'medium' ? 'bg-yellow-600 text-white' :
+                                                            'bg-green-600 text-white'
+                                                        }`}>
+                                                            {questOffer.urgency} priority
+                                                        </span>
+                                                        <span className="text-xs px-2 py-1 rounded bg-blue-600 text-white">
+                                                            {questOffer.questType}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="mb-4">
+                                                <p className="text-sm text-slate-300 mb-3 leading-relaxed">
+                                                    "{questOffer.questDialogue}"
+                                                </p>
+                                                
+                                                <div className="bg-slate-800/50 rounded-lg p-3">
+                                                    <h6 className="text-sm font-semibold text-amber-300 mb-2">Quest Details:</h6>
+                                                    <p className="text-sm text-slate-300 mb-2">{questOffer.questDescription}</p>
+                                                    
+                                                    {questOffer.questReward && (
+                                                        <div className="flex items-center gap-2 mt-3">
+                                                            <span className="text-xs text-amber-400 font-semibold">Reward:</span>
+                                                            <span className="text-xs text-white">{questOffer.questReward}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex gap-2">
+                                                <button 
+                                                    onClick={() => {
+                                                        // Convert LLM quest offer to proper Quest object
+                                                        const newQuest: Quest = {
+                                                            id: `llm-quest-${Date.now()}`,
+                                                            title: questOffer.questTitle || 'Untitled Task',
+                                                            description: questOffer.questDescription || questOffer.questDialogue || 'A task for you to complete.',
+                                                            category: questOffer.questType === 'delivery' ? 'trade' : 
+                                                                     questOffer.questType === 'gathering' ? 'survival' :
+                                                                     questOffer.questType === 'investigation' ? 'exploration' :
+                                                                     questOffer.questType === 'protection' ? 'survival' :
+                                                                     questOffer.questType === 'trade' ? 'trade' :
+                                                                     questOffer.questType === 'social' ? 'social' : 'main',
+                                                            objectives: [{
+                                                                id: `obj-${Date.now()}`,
+                                                                type: questOffer.questType === 'delivery' ? 'deliver_item' :
+                                                                      questOffer.questType === 'gathering' ? 'collect_item' :
+                                                                      questOffer.questType === 'social' ? 'talk_to_npc' : 'visit_location',
+                                                                description: questOffer.questDescription || questOffer.questDialogue || 'Complete the requested task',
+                                                                completed: false,
+                                                                targetLocation: mapData ? { x: mapData.playerX || 0, y: mapData.playerY || 0 } : undefined
+                                                            }],
+                                                            currentObjectiveIndex: 0,
+                                                            rewards: questOffer.questReward ? [{
+                                                                type: 'currency',
+                                                                amount: 50,
+                                                                description: questOffer.questReward
+                                                            }] : [],
+                                                            giver: isNpc(target) ? target.name : 'Unknown',
+                                                            status: 'active',
+                                                            createdTime: Date.now(),
+                                                            historicalContext: `Quest from ${isNpc(target) ? target.name : 'NPC'} in ${mapData?.localArea || 'the local area'} during ${mapData?.timeSlice || 'ancient times'}.`,
+                                                            isLLMGenerated: true
+                                                        };
+                                                        
+                                                        // Add quest to the service
+                                                        questService.addQuest(newQuest);
+                                                        
+                                                        // Show success message and close quest interface
+                                                        showToast(`Quest "${newQuest.title}" accepted! Check your Quests panel to track progress.`);
+                                                        setQuestOffer(null);
+                                                        setHasCheckedForQuest(false);
+                                                    }}
+                                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded font-semibold transition-colors"
+                                                >
+                                                    Accept Quest
+                                                </button>
+                                                <button 
+                                                    onClick={() => {
+                                                        setQuestOffer(null);
+                                                        setHasCheckedForQuest(false);
+                                                    }}
+                                                    className="flex-1 bg-slate-600 hover:bg-slate-700 text-white py-2 px-4 rounded font-semibold transition-colors"
+                                                >
+                                                    Decline
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-slate-800/50 rounded-lg p-4 text-center">
+                                            <AlertTriangle className="w-8 h-8 text-yellow-400 mx-auto mb-3" />
+                                            <p className="text-slate-300 mb-2">"{questOffer.questDialogue}"</p>
+                                            <p className="text-xs text-slate-400">
+                                                {target.name} doesn't have any work available right now.
+                                            </p>
+                                            <button 
+                                                onClick={() => {
+                                                    setQuestOffer(null);
+                                                    setHasCheckedForQuest(false);
+                                                }}
+                                                className="mt-3 bg-slate-600 hover:bg-slate-700 text-white py-1 px-3 rounded text-sm transition-colors"
+                                            >
+                                                Ask Again Later
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="text-center py-8">
+                                    <Info className="w-8 h-8 text-blue-400 mx-auto mb-3" />
+                                    <p className="text-slate-300">No quest information available.</p>
+                                </div>
+                            )}
+                        </div>
+                     )}
                 </main>
 
                 {isNpc(target) && activeTab === 'dialogue' && (
@@ -828,13 +1215,25 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
 
                 <footer className="grid grid-cols-2 md:grid-cols-4 gap-2 flex-shrink-0">
                     <button onClick={() => onOpenInfo(target)} className="ff-action-button">Profile</button>
-                    <button 
-                        onClick={() => setActiveTab('trade')} 
-                        className="ff-action-button" 
-                        disabled={!isNpc(target)}
-                    >
-                        Trade
-                    </button>
+                    {isNpc(target) ? (
+                        <button 
+                            onClick={() => setActiveTab('trade')} 
+                            className="ff-action-button"
+                        >
+                            Trade
+                        </button>
+                    ) : (
+                        <button 
+                            onClick={() => {
+                                setShowTamingInterface(true);
+                                setTamingResult(null);
+                            }} 
+                            className="ff-action-button flex items-center justify-center gap-1"
+                        >
+                            <Heart className="w-4 h-4" />
+                            Tame
+                        </button>
+                    )}
                     <button onClick={() => onInitiateCombat(target)} className="ff-action-button">Attack</button>
                     <button onClick={handleClose} className="ff-action-button" disabled={npcWantsToLeave}>
                         {npcWantsToLeave ? 'Leaving...' : 'Leave'}
@@ -878,6 +1277,159 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                         </button>
                     </div>
                 )}
+                
+                {/* Taming Interface Panel */}
+                {showTamingInterface && !isNpc(target) && (
+                    <div className="w-80 flex flex-col bg-slate-800/50 rounded-lg border border-slate-600/50 p-4">
+                        <h3 className="text-lg font-semibold text-green-400 mb-3 flex items-center gap-2">
+                            <Heart className="w-5 h-5" />
+                            Taming {targetName}
+                        </h3>
+                        
+                        {/* Ownership warning */}
+                        {isTheft && animalOwner && (
+                            <div className="mb-3 p-2 bg-red-900/30 border border-red-600/50 rounded">
+                                <p className="text-xs text-red-300 flex items-center gap-1">
+                                    <AlertTriangle className="w-4 h-4" />
+                                    Warning: This {target.speciesName} belongs to {animalOwner.name}!
+                                </p>
+                                <p className="text-xs text-red-200 mt-1">
+                                    Stealing it will severely damage your reputation (-30 points)
+                                </p>
+                            </div>
+                        )}
+                        
+                        {/* Animal value info */}
+                        <div className="mb-3 p-2 bg-slate-900/50 rounded">
+                            <p className="text-xs text-slate-300">
+                                Estimated Value: {calculateAnimalValue(target, playerCharacter?.year || 1500)} coins
+                            </p>
+                            <p className="text-xs text-slate-400 mt-1">
+                                {tamingAttempts === 0 ? 
+                                    'Approach carefully - your method matters!' :
+                                    'The animal seems interested... try again!'}
+                            </p>
+                        </div>
+                        
+                        {/* Taming result message */}
+                        {tamingResult && (
+                            <div className={`mb-3 p-3 rounded-lg border ${
+                                tamingResult.includes('Success') ? 
+                                    'bg-green-900/30 border-green-600/50 text-green-200' :
+                                tamingResult.includes('cautiously') ?
+                                    'bg-yellow-900/30 border-yellow-600/50 text-yellow-200' :
+                                    'bg-red-900/30 border-red-600/50 text-red-200'
+                            }`}>
+                                <p className="text-sm whitespace-pre-wrap">{tamingResult}</p>
+                            </div>
+                        )}
+                        
+                        {/* Approach input */}
+                        <div className="flex-1">
+                            <label className="block text-xs text-slate-400 mb-1">
+                                Describe your approach:
+                            </label>
+                            <textarea
+                                value={tamingApproach}
+                                onChange={(e) => setTamingApproach(e.target.value)}
+                                placeholder="e.g., 'I slowly approach with an outstretched hand, offering fresh grass...'"
+                                className="w-full px-3 py-2 text-sm bg-slate-700/50 border border-slate-600 rounded 
+                                         focus:outline-none focus:border-green-400 resize-none"
+                                rows={3}
+                                disabled={tamingInProgress}
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleTamingAttempt();
+                                    }
+                                }}
+                            />
+                        </div>
+                        
+                        {/* Action buttons */}
+                        <div className="flex gap-2 mt-3">
+                            <button
+                                onClick={handleTamingAttempt}
+                                disabled={!tamingApproach.trim() || tamingInProgress}
+                                className="flex-1 px-3 py-2 text-sm bg-green-600 hover:bg-green-700 disabled:bg-slate-600 
+                                         disabled:opacity-50 rounded transition-colors flex items-center justify-center gap-1"
+                            >
+                                {tamingInProgress ? 'Attempting...' : 
+                                 tamingAttempts > 0 ? 'Try Again' : 'Attempt Taming'}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowTamingInterface(false);
+                                    setTamingResult(null);
+                                    setTamingApproach('');
+                                }}
+                                className="px-3 py-2 text-sm bg-slate-700 hover:bg-slate-600 rounded transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+            
+            {/* Internal Monologue Slide-out Panel */}
+            <div className={`absolute top-0 right-0 h-full bg-gradient-to-l from-slate-900 via-slate-800 to-transparent border-l border-slate-600/50 shadow-2xl transition-all duration-500 ${showMonologue ? 'w-80 translate-x-0' : 'w-0 translate-x-full'} overflow-hidden`}>
+                <div className="p-4 h-full flex flex-col">
+                    {/* Close button */}
+                    <button 
+                        onClick={() => setShowMonologue(false)}
+                        className="absolute top-2 right-2 text-slate-400 hover:text-white text-xl"
+                    >
+                        ×
+                    </button>
+                    
+                    {/* Monologue header */}
+                    <div className="mb-4">
+                        <h3 className="text-lg font-semibold text-amber-400 mb-1">Inner Thoughts</h3>
+                        <p className="text-xs text-slate-400">
+                            Click {3 - monologueClickCount} more time{3 - monologueClickCount !== 1 ? 's' : ''} for deeper thoughts
+                        </p>
+                    </div>
+                    
+                    {/* Portrait */}
+                    <div className="mb-4 flex justify-center">
+                        {isNpc(target) ? (
+                            <div className="w-24 h-24 rounded-lg overflow-hidden border-2 border-amber-500/50 shadow-lg">
+                                <ProceduralPortrait character={target as any} size={100} />
+                            </div>
+                        ) : (
+                            <div className="text-7xl">{target.emoji}</div>
+                        )}
+                    </div>
+                    
+                    {/* Monologue text with typewriter effect */}
+                    <div className="flex-1 overflow-y-auto">
+                        {isLoadingMonologue ? (
+                            <div className="flex items-center justify-center h-full">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-amber-400"></div>
+                            </div>
+                        ) : (
+                            <div className="text-sm italic text-slate-200 leading-relaxed font-serif">
+                                <TypewriterText 
+                                    text={monologueText} 
+                                    speed={30}
+                                    wordMode={true}
+                                    showCursor={true}
+                                />
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* Contrast indicator */}
+                    <div className="mt-4 pt-4 border-t border-slate-700/50">
+                        <p className="text-xs text-slate-500 italic">
+                            {isNpc(target) ? 
+                                "What they say and what they think are often very different..." :
+                                "Animals perceive the world in ways we can only imagine..."
+                            }
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     );

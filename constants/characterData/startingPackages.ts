@@ -5,22 +5,34 @@
 import { EquipmentSlot } from '../../types';
 
 type ItemBaseId = string;
+type AnimalBaseId = string;
 
-export const STARTING_PACKAGES: Record<string, { equipment: Partial<Record<EquipmentSlot, ItemBaseId>>, inventory: ItemBaseId[] }> = {
+export const STARTING_PACKAGES: Record<string, { 
+    equipment: Partial<Record<EquipmentSlot, ItemBaseId>>, 
+    inventory: ItemBaseId[],
+    companions?: AnimalBaseId[]
+}> = {
 
     // =======================================================================
     // == FALLBACK & GENERIC ROLES
     // =======================================================================
-    'Wanderer': { equipment: { head: 'CLOTH_HOOD', torso: 'WOOL_TUNIC', feet: 'SANDALS' }, inventory: ['STICK', 'BREAD'] },
+    'Wanderer': { equipment: { head: 'CLOTH_HOOD', torso: 'WOOL_TUNIC', feet: 'SANDALS' }, inventory: ['STICK', 'BREAD'],  companions: ['DOG'] },
     'Artisan': { equipment: { torso: 'LEATHER_APRON', feet: 'LEATHER_BOOTS' }, inventory: ['SMOOTH_STONE', 'ROPE'] },
     'Commoner': { equipment: { torso: 'WOOL_TUNIC', feet: 'SANDALS' }, inventory: ['SMOOTH_STONE', 'BREAD'] },
     'Laborer': { equipment: { torso: 'WOOL_TUNIC', feet: 'LEATHER_BOOTS', main_hand: 'STICK' }, inventory: [] },
     'Peasant': { equipment: { torso: 'WOOL_TUNIC', feet: 'SANDALS' }, inventory: ['POTATO'] },
-    'Warrior': { equipment: { torso: 'LEATHER_APRON', feet: 'LEATHER_BOOTS', main_hand: 'STICK' }, inventory: ['MEAT'] },
+    'Warrior': { equipment: { torso: 'LEATHER_APRON', feet: 'LEATHER_BOOTS', main_hand: 'STICK' }, inventory: ['MEAT'],  companions: ['DOG'] },
     'Caretaker': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HERB_BUNDLE', 'BREAD'] },
     'Potter': { equipment: { torso: 'LEATHER_APRON' }, inventory: ['CLAY_LAMP', 'WOODEN_BOWL', 'SMOOTH_STONE'] },
-    'Shepherd': { equipment: { main_hand: 'STICK', torso: 'WOOL_TUNIC' }, inventory: ['BREAD'] },
-    'Farmer': { equipment: { main_hand: 'HARVEST_SICKLE', torso: 'LEATHER_APRON' }, inventory: ['BARLEY', 'RYE', 'GRAIN_FLAIL'] },
+    'Shepherd': { equipment: { main_hand: 'STICK', torso: 'WOOL_TUNIC' }, inventory: ['BREAD'], companions: ['SHEEP', 'DOG'] },
+    'Farmer': { equipment: { main_hand: 'HARVEST_SICKLE', torso: 'LEATHER_APRON' }, inventory: ['BARLEY', 'RYE', 'GRAIN_FLAIL'], companions: ['COW'] },
+    'Goat Herder': { equipment: { main_hand: 'STICK', torso: 'WOOL_TUNIC' }, inventory: ['BREAD'], companions: ['GOAT', 'GOAT', 'GOAT'] },
+    'Cattle Herder': { equipment: { main_hand: 'STICK', torso: 'WOOL_TUNIC' }, inventory: ['BREAD'], companions: ['COW', 'COW'] },
+    'Camel Herder': { equipment: { main_hand: 'STICK', torso: 'SIMPLE_ROBE', head: 'CLOTH_HOOD' }, inventory: ['DRY_LEAVES'], companions: ['CAMEL', 'CAMEL'] },
+    'Duck Herder': { equipment: { main_hand: 'STICK', torso: 'WOOL_TUNIC' }, inventory: ['BREAD'], companions: ['CHICKEN', 'CHICKEN', 'CHICKEN'] },
+    'Llama Herder': { equipment: { main_hand: 'STICK', torso: 'WOOL_TUNIC' }, inventory: ['BREAD'], companions: ['LLAMA', 'LLAMA'] },
+    'Ranchero': { equipment: { head: 'LEATHER_CAP', feet: 'LEATHER_BOOTS', main_hand: 'STICK' }, inventory: ['ROPE', 'BREAD'], companions: ['COW', 'WILD_HORSE'] },
+    'Horse Trainer': { equipment: { head: 'LEATHER_CAP', feet: 'LEATHER_BOOTS' }, inventory: ['ROPE', 'BREAD'], companions: ['WILD_HORSE', 'WILD_HORSE'] },
     'Child Watcher': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['WOODEN_BOWL', 'WILD_BERRIES'] },
     'Mother': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['BREAD', 'SIMPLE_RING'] },
 
@@ -29,7 +41,7 @@ export const STARTING_PACKAGES: Record<string, { equipment: Partial<Record<Equip
     // == EUROPEAN
     // =======================================================================
     // Prehistory
-    'Hunter': { equipment: { torso: 'DEER_HIDE', feet: 'LEATHER_BOOTS', main_hand: 'STICK' }, inventory: ['SMOOTH_STONE', 'MEAT'] },
+    'Hunter': { equipment: { torso: 'DEER_HIDE', feet: 'LEATHER_BOOTS', main_hand: 'STICK' }, inventory: ['SMOOTH_STONE', 'MEAT'], companions: ['DOG'] },
     'Gatherer': { equipment: { torso: 'DEER_HIDE', feet: 'SANDALS' }, inventory: ['WILD_BERRIES', 'MUSHROOM'] },
     'Shaman': { equipment: { head: 'CLOTH_HOOD', torso: 'SIMPLE_ROBE' }, inventory: ['HERB_BUNDLE', 'SMOOTH_STONE', 'DRY_LEAVES'] },
     'Toolmaker': { equipment: { torso: 'LEATHER_APRON', main_hand: 'STICK' }, inventory: ['SMOOTH_STONE'] },
@@ -49,12 +61,13 @@ export const STARTING_PACKAGES: Record<string, { equipment: Partial<Record<Equip
     'Thief': { equipment: { head: 'CLOTH_HOOD', torso: 'WOOL_TUNIC', feet: 'LEATHER_BOOTS' }, inventory: ['SMOOTH_STONE', 'STICK'] },
     'Innkeeper': { equipment: { torso: 'LEATHER_APRON', feet: 'LEATHER_BOOTS', main_hand: 'STICK' }, inventory: ['BREAD'] },
     'Weaver': { equipment: { torso: 'SIMPLE_ROBE', main_hand: 'SPINDLE' }, inventory: ['WOOL_CARDERS', 'VINE', 'COTTON'] },
+    'Silk Weaver': { equipment: { torso: 'SIMPLE_ROBE', main_hand: 'SPINDLE' }, inventory: ['SILK_CLOTH', 'COTTON', 'DRY_LEAVES'] },
     'Baker': { equipment: { torso: 'LEATHER_APRON', main_hand: 'STICK' }, inventory: ['BREAD', 'WHEAT'] },
     'Carpenter': { equipment: { torso: 'LEATHER_APRON', main_hand: 'STICK' }, inventory: ['ROPE'] },
     'Mason': { equipment: { torso: 'LEATHER_APRON', main_hand: 'STONE_CHISEL' }, inventory: ['SMOOTH_STONE', 'HAMMER', 'TONGS'] },
     'Herbalist': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HERB_BUNDLE', 'MUSHROOM', 'MEDICINAL_HERBS'] },
     'Monk': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['BREAD', 'PARCHMENT_ROLL', 'SIMPLE_RING'] },
-    'Serf': { equipment: { torso: 'WOOL_TUNIC', main_hand: 'HARVEST_SICKLE' }, inventory: ['BARLEY', 'PEAS', 'LENTILS'] },
+    'Serf': { equipment: { torso: 'WOOL_TUNIC', main_hand: 'HARVEST_SICKLE' }, inventory: ['BARLEY', 'PEAS', 'LENTILS'], companions: ['CHICKEN'] },
     'Jester': { equipment: { head: 'CLOTH_HOOD', torso: 'SIMPLE_ROBE', feet: 'SANDALS' }, inventory: ['STRANGE_FRUIT'] },
     'Woodcutter': { equipment: { torso: 'LEATHER_APRON', main_hand: 'STICK' }, inventory: ['ROPE', 'STICK'] },
 
@@ -86,8 +99,8 @@ export const STARTING_PACKAGES: Record<string, { equipment: Partial<Record<Equip
     // =======================================================================
     // == MENA (Middle East & North Africa)
     // =======================================================================
-    'Nomad': { equipment: { head: 'CLOTH_HOOD', torso: 'SIMPLE_ROBE', feet: 'SANDALS', main_hand: 'STICK' }, inventory: ['DRY_LEAVES'] },
-    'Spice Merchant': { equipment: { head: 'CLOTH_HOOD', torso: 'SIMPLE_ROBE', belt: 'PURSE', main_hand: 'SCALE' }, inventory: ['SPICE_POUCH', 'SILK_CLOTH'] },
+    'Nomad': { equipment: { head: 'CLOTH_HOOD', torso: 'SIMPLE_ROBE', feet: 'SANDALS', main_hand: 'STICK' }, inventory: ['DRY_LEAVES'], companions: ['CAMEL', 'GOAT'] },
+    'Spice Merchant': { equipment: { head: 'CLOTH_HOOD', torso: 'SIMPLE_ROBE', belt: 'PURSE', main_hand: 'SCALE' }, inventory: ['SPICE_POUCH', 'SILK_CLOTH'], companions: ['CAMEL'] },
     'Janissary': { equipment: { torso: 'WOOL_TUNIC', feet: 'LEATHER_BOOTS', main_hand: 'SCIMITAR' }, inventory: ['BREAD', 'WHETSTONE'] },
     'Calligrapher': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['QUILL', 'INK_POT'] },
     
@@ -104,11 +117,11 @@ export const STARTING_PACKAGES: Record<string, { equipment: Partial<Record<Equip
     // =======================================================================
     'Obsidian Knapper': { equipment: { torso: 'WOOL_TUNIC' }, inventory: ['SMOOTH_STONE'] },
     'Featherworker': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['OWL_FEATHER'] },
-    'Buffalo Hunter': { equipment: { torso: 'DEER_HIDE', main_hand: 'STICK' }, inventory: ['MEAT'] },
+    'Buffalo Hunter': { equipment: { torso: 'DEER_HIDE', main_hand: 'STICK' }, inventory: ['MEAT'], companions: ['DOG'] },
     'Canoe Builder': { equipment: { torso: 'LEATHER_APRON', main_hand: 'STICK' }, inventory: ['VINE'] },
-    'Vaquero': { equipment: { head: 'LEATHER_CAP', feet: 'LEATHER_BOOTS' }, inventory: ['ROPE', 'MEAT'] },
-    'Fur Trapper': { equipment: { head: 'LEATHER_CAP', torso: 'DEER_HIDE' }, inventory: ['STICK', 'ROPE'] },
-    'Cowboy': { equipment: { head: 'LEATHER_CAP', feet: 'LEATHER_BOOTS' }, inventory: ['ROPE', 'BREAD'] },
+    'Vaquero': { equipment: { head: 'LEATHER_CAP', feet: 'LEATHER_BOOTS' }, inventory: ['ROPE', 'MEAT'], companions: ['WILD_HORSE', 'DOG'] },
+    'Fur Trapper': { equipment: { head: 'LEATHER_CAP', torso: 'DEER_HIDE' }, inventory: ['STICK', 'ROPE'], companions: ['DOG'] },
+    'Cowboy': { equipment: { head: 'LEATHER_CAP', feet: 'LEATHER_BOOTS' }, inventory: ['ROPE', 'BREAD'], companions: ['WILD_HORSE', 'DOG', 'COW'] },
 
     // =======================================================================
     // == OCEANIA

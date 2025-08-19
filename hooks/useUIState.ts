@@ -64,8 +64,8 @@ export const useUIState = () => {
     const [debugSettings, setDebugSettings] = useState({
         showFPS: true, // Show FPS when debug mode is on
         showRenderCount: true,
-        disableBlurEffects: false,
-        disableAnimations: false,
+        disableBlurEffects: isSafari(), // Auto-disable blur on Safari
+        disableAnimations: isSafari(), // Auto-disable animations on Safari
         disableShadows: false,
         disableParticles: false,
         reduceSVGComplexity: false,
@@ -113,16 +113,17 @@ export const useUIState = () => {
         _setActiveCityModal(data);
     }, []);
 
-    // Auto-enable blur disabling for Safari users for better performance
+    // Auto-enable performance optimizations for Safari users
     useEffect(() => {
         if (isSafari()) {
             setDebugSettings(prev => ({
                 ...prev,
-                disableBlurEffects: true
+                disableBlurEffects: true,
+                disableAnimations: true  // Also disable animations for better Safari performance
             }));
             // Apply the class immediately
             document.body.classList.add('disable-blur');
-            console.log('[Performance] Safari detected - automatically disabling blur effects');
+            console.log('[Performance] Safari detected - automatically disabling blur effects and animations for better performance');
         }
     }, []);
 

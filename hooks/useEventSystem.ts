@@ -29,6 +29,19 @@ export function useEventSystem() {
   const [hasShownInitialEvent, setHasShownInitialEvent] = useState(eventService.hasShownInitialEvent());
   const [diseaseEventsAdded, setDiseaseEventsAdded] = useState(false);
   
+  // Sync currentMode with eventService periodically in case of updates
+  useEffect(() => {
+    const syncInterval = setInterval(() => {
+      const serviceMode = eventService.getGameMode();
+      if (serviceMode && serviceMode !== currentMode) {
+        console.log('[EventSystem] Syncing mode from service:', serviceMode.name);
+        setCurrentMode(serviceMode);
+      }
+    }, 500); // Check every 500ms
+    
+    return () => clearInterval(syncInterval);
+  }, [currentMode]);
+  
   const { playerCharacter, updatePlayerCharacter } = usePlayer();
   const { currentTile, worldData } = useMap();
   const { gameDate, currentZone } = useGame();
