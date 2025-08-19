@@ -8,11 +8,14 @@ import { TerrainStructure, Item, PlayerCharacter } from '../types';
 import POISymbol from './POISymbol';
 
 export interface POIInteractionConfig {
-  type: 'mill' | 'mine' | 'forge' | 'market' | 'shrine' | 'tavern';
+  type: 'mill' | 'mine' | 'forge' | 'market' | 'shrine' | 'tavern' | 'ruins' | 'holy_site';
   structure: TerrainStructure;
   playerInventory: Item[];
   playerCurrency: number;
+  playerCharacter?: PlayerCharacter;
+  activeQuest?: any; // Quest that targets this location
   onProcess?: (inputs: Item[], cost: number) => Promise<ProcessResult>;
+  onExplore?: () => Promise<LLMEvent>; // For quest exploration
   onClose: () => void;
   customData?: any; // Type-specific data
 }
@@ -45,7 +48,10 @@ const POIInteractionModal: React.FC<POIInteractionConfig> = ({
   structure,
   playerInventory,
   playerCurrency,
+  playerCharacter,
+  activeQuest,
   onProcess,
+  onExplore,
   onClose,
   customData
 }) => {
@@ -55,6 +61,8 @@ const POIInteractionModal: React.FC<POIInteractionConfig> = ({
   const [processResult, setProcessResult] = useState<ProcessResult | null>(null);
   const [llmEvent, setLlmEvent] = useState<LLMEvent | null>(null);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
+  const [isExploring, setIsExploring] = useState(false);
+  const [explorationInput, setExplorationInput] = useState('');
 
   // Calculate processing cost based on selected items
   useEffect(() => {
@@ -107,6 +115,40 @@ const POIInteractionModal: React.FC<POIInteractionConfig> = ({
   const canProcess = selectedItems.length > 0 && 
                      playerCurrency >= processingCost && 
                      !isProcessing;
+  
+  const canExplore = (type === 'ruins' || type === 'holy_site') && 
+                     activeQuest && 
+                     onExplore && 
+                     !isExploring;
+  
+  const handleExplore = async () => {
+    if (!onExplore) return;
+    
+    setIsExploring(true);
+    try {
+      const event = await onExplore();
+      setLlmEvent(event);
+    } catch (error) {
+      console.error('Exploration failed:', error);
+      setProcessResult({
+        success: false,
+        message: 'Failed to explore this location.'
+      });
+    } finally {
+      setIsExploring(false);
+    }
+  };
+  
+  const handleExplorationChoice = async (choice: string) => {
+    // This would trigger quest progression
+    if (activeQuest && onProcess) {
+      const result = await onProcess([], 0);
+      setProcessResult(result);
+      if (result.success && result.llmEvent) {
+        setLlmEvent(result.llmEvent);
+      }
+    }
+  };
 
   const getHeaderTitle = () => {
     switch (type) {
@@ -116,6 +158,8 @@ const POIInteractionModal: React.FC<POIInteractionConfig> = ({
       case 'market': return `${structure.name || 'Market'} - Trading Post`;
       case 'shrine': return `${structure.name || 'Shrine'} - Sacred Offerings`;
       case 'tavern': return `${structure.name || 'Tavern'} - Rest & Rumors`;
+      case 'ruins': return `${structure.name || 'Ancient Ruins'} - Mysterious Site`;
+      case 'holy_site': return `${structure.name || 'Holy Site'} - Sacred Ground`;
       default: return structure.name || 'Location';
     }
   };
@@ -241,6 +285,36 @@ const POIInteractionModal: React.FC<POIInteractionConfig> = ({
             </motion.div>
           )}
 
+          {/* Quest-related exploration content */}
+          {activeQuest && (type === 'ruins' || type === 'holy_site') && (
+            <div className="mb-4 p-4 bg-amber-900/20 border border-amber-600/30 rounded-lg">
+              <h3 className="text-amber-400 font-semibold mb-2 flex items-center gap-2">
+                <span>⚠️</span> Active Quest
+              </h3>
+              <p className="text-sm text-amber-200">{activeQuest.title}</p>
+              <p className="text-xs text-gray-400 mt-1">{activeQuest.description}</p>
+              {llmEvent && llmEvent.choices && (
+                <div className="mt-4">
+                  <p className="text-sm text-gray-300 mb-2">What do you do?</p>
+                  <textarea
+                    value={explorationInput}
+                    onChange={(e) => setExplorationInput(e.target.value)}
+                    placeholder="Describe your action..."
+                    className="w-full p-2 bg-slate-800/50 border border-slate-600 rounded text-sm text-white placeholder-gray-500 resize-none"
+                    rows={3}
+                  />
+                  <button
+                    onClick={() => handleExplorationChoice(explorationInput)}
+                    disabled={!explorationInput.trim() || isProcessing}
+                    className="mt-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 disabled:text-gray-500 text-white rounded text-sm font-medium transition-colors"
+                  >
+                    Submit Action
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          
           {/* Type-specific content */}
           {type === 'mill' && customData?.millType && (
             <div className="space-y-4">
@@ -410,27 +484,52 @@ const POIInteractionModal: React.FC<POIInteractionConfig> = ({
               >
                 Cancel
               </button>
-              <button
-                onClick={handleProcess}
-                disabled={!canProcess}
-                className={`px-6 py-2 rounded font-semibold transition-colors ${
-                  canProcess
-                    ? 'bg-blue-600 hover:bg-blue-500 text-white'
-                    : 'bg-slate-700 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                {isProcessing ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Processing...
-                  </span>
-                ) : (
-                  getProcessButtonText()
-                )}
-              </button>
+              {canExplore && (
+                <button
+                  onClick={handleExplore}
+                  disabled={isExploring}
+                  className={`px-6 py-2 rounded font-semibold transition-colors ${
+                    !isExploring
+                      ? 'bg-amber-600 hover:bg-amber-500 text-white'
+                      : 'bg-slate-700 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {isExploring ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Exploring...
+                    </span>
+                  ) : (
+                    '🔍 Explore (Quest)'
+                  )}
+                </button>
+              )}
+              {onProcess && (
+                <button
+                  onClick={handleProcess}
+                  disabled={!canProcess}
+                  className={`px-6 py-2 rounded font-semibold transition-colors ${
+                    canProcess
+                      ? 'bg-blue-600 hover:bg-blue-500 text-white'
+                      : 'bg-slate-700 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {isProcessing ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Processing...
+                    </span>
+                  ) : (
+                    getProcessButtonText()
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>

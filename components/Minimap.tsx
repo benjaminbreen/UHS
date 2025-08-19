@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { MapData, BiomeType } from '../types/index';
 
@@ -18,7 +17,9 @@ const MINIMAP_MAX_SIZE = 400;
 const TILE_SIZE_PX = 18;
 
 const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel, panX, panY, containerWidth, containerHeight }) => {
-  const [isMinimized, setIsMinimized] = useState(false);
+  // Check if mobile on mount
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+  const [isMinimized, setIsMinimized] = useState(isMobile);
   const [size, setSize] = useState(120);
   const [isResizing, setIsResizing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -28,6 +29,28 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
   const resizeStartSize = useRef(140);
   const dragStartPos = useRef({ x: 0, y: 0 });
   const dragStartElementPos = useRef({ x: 0, y: 0 });
+
+  // Calculate the aspect ratio of the actual map
+  const mapAspectRatio = useMemo(() => {
+    return mapData.width / mapData.height;
+  }, [mapData]);
+
+  // Calculate display dimensions to fit the map without black bars
+  const displayDimensions = useMemo(() => {
+    if (mapAspectRatio > 1) {
+      // Map is wider than tall
+      return {
+        width: size,
+        height: size / mapAspectRatio
+      };
+    } else {
+      // Map is taller than wide or square
+      return {
+        width: size * mapAspectRatio,
+        height: size
+      };
+    }
+  }, [size, mapAspectRatio]);
 
   const handleResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -52,6 +75,7 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
   const handleDragStart = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.resize-handle')) return;
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(true);
     dragStartPos.current = { x: e.clientX, y: e.clientY };
     dragStartElementPos.current = { x: position.x, y: position.y };
@@ -65,11 +89,20 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
     if (!isDragging) return;
     const dx = e.clientX - dragStartPos.current.x;
     const dy = e.clientY - dragStartPos.current.y;
+    
+    // Get viewport dimensions to prevent dragging off screen
+    const maxX = window.innerWidth - (size + 24);
+    const maxY = window.innerHeight - (size + 24);
+    
+    // Calculate new position with bounds checking
+    const newX = Math.max(0, Math.min(maxX, dragStartElementPos.current.x - dx));
+    const newY = Math.max(0, Math.min(maxY, dragStartElementPos.current.y + dy));
+    
     setPosition({
-      x: dragStartElementPos.current.x + dx,
-      y: dragStartElementPos.current.y + dy
+      x: newX,
+      y: newY
     });
-  }, [isDragging]);
+  }, [isDragging, size]);
 
   useEffect(() => {
     if (isResizing) {
@@ -99,8 +132,12 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
     };
   }, [isDragging, handleDragMove, handleDragEnd]);
 
-
-  const scale = useMemo(() => size / Math.max(mapData.width * TILE_SIZE_PX, mapData.height * TILE_SIZE_PX), [size, mapData]);
+  // Scale calculation based on the larger dimension
+  const scale = useMemo(() => {
+    const mapWidth = mapData.width * TILE_SIZE_PX;
+    const mapHeight = mapData.height * TILE_SIZE_PX;
+    return Math.min(displayDimensions.width / mapWidth, displayDimensions.height / mapHeight);
+  }, [displayDimensions, mapData]);
 
   const minimapContent = useMemo(() => {
      return mapData.tiles.flat().map((tile) => {
@@ -122,19 +159,19 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
           color = '#60a5fa';
         }
         
-        const rectSize = scale * TILE_SIZE_PX;
+        const rectSize = TILE_SIZE_PX;
         return (
           <rect
             key={`minimap-${tile.x}-${tile.y}`}
             x={tile.x * rectSize}
             y={tile.y * rectSize}
-            width={Math.max(1, rectSize)}
-            height={Math.max(1, rectSize)}
+            width={rectSize}
+            height={rectSize}
             fill={color}
           />
         );
       });
-  }, [mapData, scale]);
+  }, [mapData]);
   
   if (isMinimized) {
     return (
@@ -154,13 +191,14 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
   return (
     <div 
         ref={wrapperRef}
-        className="absolute z-30 bg-gray-900/60 backdrop-blur-sm rounded-xl p-3 border border-gray-600/50 shadow-2xl select-none transition-all duration-200" 
+        className="absolute z-30 bg-gray-900/60 backdrop-blur-sm rounded-xl p-3 border border-gray-600/50 shadow-2xl select-none" 
         style={{ 
           top: `${position.y}px`, 
           right: `${position.x}px`,
-          width: size + 24, 
-          height: size + 24, 
-          cursor: isResizing ? 'nwse-resize' : isDragging ? 'grabbing' : 'grab' 
+          width: Math.max(displayDimensions.width, displayDimensions.height) + 24, 
+          height: Math.max(displayDimensions.width, displayDimensions.height) + 24, 
+          cursor: isResizing ? 'nwse-resize' : isDragging ? 'grabbing' : 'grab',
+          transition: isDragging || isResizing ? 'none' : 'all 0.2s'
         }}
         onMouseDown={handleDragStart}
     >
@@ -176,16 +214,22 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
             −
         </button>
       </div>
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-lg border border-gray-700/50 shadow-inner bg-slate-800" preserveAspectRatio="xMidYMid slice">
+      <div className="relative flex items-center justify-center" style={{ width: Math.max(displayDimensions.width, displayDimensions.height), height: Math.max(displayDimensions.width, displayDimensions.height) }}>
+        <svg 
+          width={displayDimensions.width} 
+          height={displayDimensions.height} 
+          viewBox={`0 0 ${mapData.width * TILE_SIZE_PX} ${mapData.height * TILE_SIZE_PX}`} 
+          className="rounded-lg border border-gray-700/50 shadow-inner"
+          style={{ backgroundColor: '#1e293b' }}
+        >
           {minimapContent}
           
           {containerWidth > 0 && containerHeight > 0 && (
             <rect
-              x={-panX * scale}
-              y={-panY * scale}
-              width={containerWidth * scale / zoomLevel}
-              height={containerHeight * scale / zoomLevel}
+              x={-panX / zoomLevel}
+              y={-panY / zoomLevel}
+              width={containerWidth / zoomLevel}
+              height={containerHeight / zoomLevel}
               fill="none"
               stroke="#fbbf24"
               strokeWidth="2"
@@ -197,25 +241,25 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
           {playerX !== null && playerY !== null && (
             <g>
               <circle
-                cx={(playerX * TILE_SIZE_PX + TILE_SIZE_PX/2) * scale}
-                cy={(playerY * TILE_SIZE_PX + TILE_SIZE_PX/2) * scale}
-                r="4"
-                fill="rgba(239, 68, 68, 0.5)"
+                cx={playerX * TILE_SIZE_PX + TILE_SIZE_PX/2}
+                cy={playerY * TILE_SIZE_PX + TILE_SIZE_PX/2}
+                r="6"
+                fill="rgba(239, 68, 68, 0.3)"
               />
               <circle
-                cx={(playerX * TILE_SIZE_PX + TILE_SIZE_PX/2) * scale}
-                cy={(playerY * TILE_SIZE_PX + TILE_SIZE_PX/2) * scale}
-                r="2"
+                cx={playerX * TILE_SIZE_PX + TILE_SIZE_PX/2}
+                cy={playerY * TILE_SIZE_PX + TILE_SIZE_PX/2}
+                r="3"
                 fill="#ef4444"
                 stroke="white"
-                strokeWidth="0.5"
+                strokeWidth="1"
               />
             </g>
           )}
         </svg>
         <div 
             onMouseDown={handleResizeMouseDown} 
-            className="resize-handle absolute -bottom-3 -right-3 w-6 h-6 cursor-nwse-resize text-gray-500 hover:text-white p-1"
+            className="resize-handle absolute -bottom-1 -right-1 w-6 h-6 cursor-nwse-resize text-gray-500 hover:text-white p-1"
             title="Resize Map"
         >
           <svg className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"></path></svg>

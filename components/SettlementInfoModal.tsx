@@ -265,6 +265,12 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                 const baseProfile = generateBaseProfile(noise, { era, culturalZone, region: mapData.localArea || '' });
                 const { socialClass } = determineSocialRole(baseProfile, { era, culturalZone }, profession);
                 
+                // Add disease with 33% chance
+                let diseaseStatus = null;
+                if (Math.random() < 0.33) {
+                    diseaseStatus = 'Common Cold'; // Simplified for representative inhabitants
+                }
+                
                 details.representativeInhabitants.push({ 
                     name: fullName, 
                     age, 
@@ -276,7 +282,8 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                     stats: baseProfile.stats,
                     era: baseProfile.era,
                     culturalZone: baseProfile.culturalZone,
-                    class: socialClass
+                    class: socialClass,
+                    diseaseStatus
                 });
             }
         }
@@ -404,6 +411,9 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                                              <div className="text-left">
                                                  <p className="font-bold text-sm text-white">{p.name}</p>
                                                  <p className="text-xs text-slate-400">{p.age}, {p.profession}</p>
+                                                 {p.diseaseStatus && (
+                                                     <p className="text-xs text-orange-500 font-medium">{p.diseaseStatus}</p>
+                                                 )}
                                              </div>
                                         </div>
                                     ))}

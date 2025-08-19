@@ -10,6 +10,25 @@ const MODERN_ERA = 'MODERN_ERA';
 export const NORTH_AMERICAN_PRE_COLUMBIAN_FACTIONS: FactionFile = {
     'NORTH_AMERICAN_PRE_COLUMBIAN': {
         "Pacific Coast": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Archaic Coastal Peoples',
+                dominantPowerDescription: 'Early maritime peoples developing sophisticated fishing technologies, shell mound builders, and creators of the first permanent settlements.',
+                eraContextSentence: 'the time of the ancestors, when the first peoples learned the ways of salmon and seal, building the foundations of coastal life.',
+                allegianceGroups: [
+                    { name: 'Shell Mound Builders', type: 'primary', description: 'Early coastal settlements.' },
+                    { name: 'River Peoples', type: 'secondary', description: 'Salmon fishing communities inland.' },
+                    { name: 'Island Dwellers', type: 'secondary', description: 'Maritime specialists of the islands.' }
+                ],
+                structureNames: {
+                    fortress: ['Shell Mound', 'Coastal Camp', 'River Village'],
+                    quarry: ['Obsidian Source', 'Cedar Grove', 'Clamming Beach'],
+                    holy_site: ['Sacred Mound', 'First Salmon Ceremony Site', 'Vision Quest Place'],
+                    palace: ["Elder's Lodge", 'Big House', 'Council Ground'],
+                },
+                courtRoles: {
+                    palace: ['Village Elder', 'Salmon Chief', 'Keeper of Stories', 'Canoe Master']
+                }
+            },
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Pacific Northwest Peoples',
                 dominantPowerDescription: 'Complex hunter-gatherer societies with rich material cultures, elaborate ceremonies, and sophisticated resource management systems.',

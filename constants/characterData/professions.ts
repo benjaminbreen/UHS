@@ -50,6 +50,244 @@ export type ProfessionData = { [key in CulturalZone]?: EraMap };
 /*                            PROFESSION TABLE                             */
 /* ======================================================================= */
 
+/* ======================================================================= */
+/*                      SHARED MODERN/FUTURE PROFESSIONS                   */
+/* ======================================================================= */
+const SHARED_MODERN_PROFESSIONS = {
+    UPPER_CLASS: {
+        'CEO': {
+            statRequirements: { minIntelligence: 7, minPersuasion: 8, minCraftiness: 7 },
+            socialRequirements: { minPrivilege: 0.9, minAmbition: 0.8 },
+            keywords: 'corporate leadership',
+            emoji: '💼'
+        },
+        'Politician': {
+            statRequirements: { minPersuasion: 8, minIntelligence: 6, minCraftiness: 7 },
+            socialRequirements: { minPrivilege: 0.7, minAmbition: 0.9 },
+            keywords: 'government power',
+            emoji: '🗳️'
+        },
+        'Doctor': {
+            statRequirements: { minIntelligence: 8, minDexterity: 7, minStamina: 6 },
+            socialRequirements: { minPrivilege: 0.7 },
+            keywords: 'medicine surgery',
+            emoji: '👨‍⚕️'
+        },
+        'Judge': {
+            statRequirements: { minIntelligence: 8, minPersuasion: 6 },
+            socialRequirements: { minPrivilege: 0.8 },
+            keywords: 'law justice',
+            emoji: '⚖️'
+        }
+    },
+    MIDDLE_CLASS: {
+        'Teacher': {
+            statRequirements: { minIntelligence: 6, minPersuasion: 6, minStamina: 5 },
+            keywords: 'education school',
+            emoji: '👩‍🏫'
+        },
+        'Nurse': {
+            statRequirements: { minStamina: 6, minDexterity: 6, minPersuasion: 5 },
+            keywords: 'healthcare hospital',
+            emoji: '👩‍⚕️'
+        },
+        'Accountant': {
+            statRequirements: { minIntelligence: 6, minPerception: 6 },
+            keywords: 'finance taxes',
+            emoji: '🧮'
+        },
+        'Police Officer': {
+            statRequirements: { minStrength: 6, minPerception: 6, minStamina: 6 },
+            keywords: 'law enforcement',
+            emoji: '👮'
+        },
+        'Office Manager': {
+            statRequirements: { minIntelligence: 5, minPersuasion: 6 },
+            keywords: 'administration business',
+            emoji: '📊'
+        },
+        'Electrician': {
+            statRequirements: { minDexterity: 7, minIntelligence: 6 },
+            keywords: 'trades skilled',
+            emoji: '⚡'
+        },
+        'Plumber': {
+            statRequirements: { minStrength: 6, minDexterity: 6 },
+            keywords: 'trades pipes',
+            emoji: '🔧'
+        }
+    },
+    WORKING_CLASS: {
+        'Factory Worker': {
+            statRequirements: { minStamina: 6, minConstitution: 6 },
+            keywords: 'manufacturing assembly',
+            emoji: '🏭'
+        },
+        'Truck Driver': {
+            statRequirements: { minStamina: 7, minPerception: 6 },
+            keywords: 'transport logistics',
+            emoji: '🚚'
+        },
+        'Construction Worker': {
+            statRequirements: { minStrength: 7, minStamina: 7 },
+            keywords: 'building labor',
+            emoji: '👷'
+        },
+        'Cashier': {
+            statRequirements: { minStamina: 5, minPersuasion: 4 },
+            keywords: 'retail service',
+            emoji: '🛒'
+        },
+        'Janitor': {
+            statRequirements: { minStamina: 6, minConstitution: 5 },
+            keywords: 'cleaning maintenance',
+            emoji: '🧹'
+        },
+        'Security Guard': {
+            statRequirements: { minStrength: 6, minPerception: 6 },
+            keywords: 'protection safety',
+            emoji: '👮'
+        },
+        'Farm Worker': {
+            statRequirements: { minStamina: 7, minConstitution: 6 },
+            keywords: 'agriculture harvest',
+            emoji: '🌾'
+        },
+        'Warehouse Worker': {
+            statRequirements: { minStrength: 6, minStamina: 6 },
+            keywords: 'logistics shipping',
+            emoji: '📦'
+        },
+        'Cook': {
+            statRequirements: { minDexterity: 6, minStamina: 6 },
+            keywords: 'restaurant food',
+            emoji: '👨‍🍳'
+        },
+        'Miner': {
+            statRequirements: { minStrength: 7, minStamina: 8, minConstitution: 7 },
+            keywords: 'coal extraction',
+            emoji: '⛏️'
+        }
+    }
+};
+
+const SHARED_FUTURE_PROFESSIONS = {
+    UPPER_CLASS: {
+        'Tech CEO': {
+            statRequirements: { minIntelligence: 8, minCraftiness: 8, minPersuasion: 7 },
+            socialRequirements: { minPrivilege: 0.9, minAmbition: 0.9 },
+            keywords: 'startup founder',
+            emoji: '💻'
+        },
+        'Surgeon': {
+            statRequirements: { minIntelligence: 9, minDexterity: 9, minStamina: 6 },
+            socialRequirements: { minPrivilege: 0.8 },
+            keywords: 'medical specialist',
+            emoji: '🏥'
+        },
+        'Investment Banker': {
+            statRequirements: { minIntelligence: 8, minCraftiness: 7, minStamina: 6 },
+            socialRequirements: { minPrivilege: 0.8, minAmbition: 0.9 },
+            keywords: 'finance capital',
+            emoji: '📈'
+        }
+    },
+    MIDDLE_CLASS: {
+        'Software Developer': {
+            statRequirements: { minIntelligence: 8, minDexterity: 6, minPerception: 6 },
+            keywords: 'programming coding',
+            emoji: '💻'
+        },
+        'Marketing Manager': {
+            statRequirements: { minPersuasion: 7, minCraftiness: 6, minIntelligence: 6 },
+            keywords: 'advertising sales',
+            emoji: '📊'
+        },
+        'Physical Therapist': {
+            statRequirements: { minDexterity: 7, minIntelligence: 6, minStamina: 6 },
+            keywords: 'healthcare rehabilitation',
+            emoji: '🏥'
+        },
+        'Real Estate Agent': {
+            statRequirements: { minPersuasion: 7, minCraftiness: 6 },
+            keywords: 'property sales',
+            emoji: '🏠'
+        },
+        'Pharmacist': {
+            statRequirements: { minIntelligence: 7, minPerception: 7 },
+            keywords: 'medicine drugs',
+            emoji: '💊'
+        },
+        'Firefighter': {
+            statRequirements: { minStrength: 7, minStamina: 7, minConstitution: 7 },
+            keywords: 'emergency rescue',
+            emoji: '🚒'
+        },
+        'Dental Hygienist': {
+            statRequirements: { minDexterity: 7, minPersuasion: 5 },
+            keywords: 'dental health',
+            emoji: '🦷'
+        },
+        'Handyman': {
+            statRequirements: { minCraftiness: 7, minStrength: 5 },
+            keywords: 'repair maintenance',
+            emoji: '🔨'
+        }
+    },
+    SERVICE_ECONOMY: {
+        'Uber Driver': {
+            statRequirements: { minStamina: 6, minPerception: 6 },
+            keywords: 'rideshare transport',
+            emoji: '🚗'
+        },
+        'Delivery Driver': {
+            statRequirements: { minStamina: 7, minPerception: 6 },
+            keywords: 'packages food',
+            emoji: '📦'
+        },
+        'Barista': {
+            statRequirements: { minDexterity: 5, minPersuasion: 5 },
+            keywords: 'coffee service',
+            emoji: '☕'
+        },
+        'Customer Service Rep': {
+            statRequirements: { minPersuasion: 6, minStamina: 5 },
+            keywords: 'support helpdesk',
+            emoji: '🎧'
+        },
+        'Personal Trainer': {
+            statRequirements: { minStrength: 6, minPersuasion: 6 },
+            keywords: 'fitness gym',
+            emoji: '💪'
+        },
+        'Hair Stylist': {
+            statRequirements: { minDexterity: 7, minPersuasion: 6 },
+            keywords: 'beauty salon',
+            emoji: '💇'
+        },
+        'Hotel Clerk': {
+            statRequirements: { minPersuasion: 5, minStamina: 5 },
+            keywords: 'hospitality service',
+            emoji: '🏨'
+        },
+        'Grocery Clerk': {
+            statRequirements: { minStamina: 5, minPersuasion: 4 },
+            keywords: 'retail stock',
+            emoji: '🛒'
+        },
+        'Call Center Worker': {
+            statRequirements: { minPersuasion: 5, minStamina: 5 },
+            keywords: 'phone support',
+            emoji: '📞'
+        },
+        'Content Creator': {
+            statRequirements: { minCraftiness: 6, minPersuasion: 6 },
+            keywords: 'social media influencer',
+            emoji: '📱'
+        }
+    }
+};
+
 export const PROFESSIONS: ProfessionData = {
     /* =================================================================== */
     /*                              EUROPE                                 */
@@ -1047,7 +1285,11 @@ export const PROFESSIONS: ProfessionData = {
                     emoji: '👩‍🏫'
                 }
             }
-        }
+        },
+        /* ------- MODERN ERA ------------------------------------------------ */
+        [HistoricalEra.MODERN_ERA]: SHARED_MODERN_PROFESSIONS,
+        /* ------- FUTURE ERA (2025) ---------------------------------------- */
+        [HistoricalEra.FUTURE_ERA]: SHARED_FUTURE_PROFESSIONS
     },
 
     /* =================================================================== */
@@ -1618,7 +1860,9 @@ export const PROFESSIONS: ProfessionData = {
                     emoji: '⚙️'
                 }
             }
-        }
+        },
+        [HistoricalEra.MODERN_ERA]: SHARED_MODERN_PROFESSIONS,
+        [HistoricalEra.FUTURE_ERA]: SHARED_FUTURE_PROFESSIONS
     },
 
     /* =================================================================== */
@@ -1990,7 +2234,9 @@ export const PROFESSIONS: ProfessionData = {
                     emoji: '🛒'
                 }
             }
-        }
+        },
+        [HistoricalEra.MODERN_ERA]: SHARED_MODERN_PROFESSIONS,
+        [HistoricalEra.FUTURE_ERA]: SHARED_FUTURE_PROFESSIONS
     },
 
     /* =================================================================== */
@@ -2380,7 +2626,9 @@ export const PROFESSIONS: ProfessionData = {
                     emoji: '🛒'
                 }
             }
-        }
+        },
+        [HistoricalEra.MODERN_ERA]: SHARED_MODERN_PROFESSIONS,
+        [HistoricalEra.FUTURE_ERA]: SHARED_FUTURE_PROFESSIONS
     },
 
     /* =================================================================== */
@@ -2613,7 +2861,9 @@ export const PROFESSIONS: ProfessionData = {
                     emoji: '🐋'
                 }
             }
-        }
+        },
+        [HistoricalEra.MODERN_ERA]: SHARED_MODERN_PROFESSIONS,
+        [HistoricalEra.FUTURE_ERA]: SHARED_FUTURE_PROFESSIONS
     },
 
     /* =================================================================== */
@@ -2854,7 +3104,9 @@ export const PROFESSIONS: ProfessionData = {
                     emoji: '🏺'
                 }
             }
-        }
+        },
+        [HistoricalEra.MODERN_ERA]: SHARED_MODERN_PROFESSIONS,
+        [HistoricalEra.FUTURE_ERA]: SHARED_FUTURE_PROFESSIONS
     },
 
     /* =================================================================== */
@@ -3105,6 +3357,639 @@ export const PROFESSIONS: ProfessionData = {
                     emoji: '👑'
                 }
             }
-        }
+        },
+        [HistoricalEra.MODERN_ERA]: SHARED_MODERN_PROFESSIONS,
+        [HistoricalEra.FUTURE_ERA]: SHARED_FUTURE_PROFESSIONS
+    },
+
+    /* =================================================================== */
+    /*                         SUB-SAHARAN AFRICA                          */
+    /* =================================================================== */
+    SUB_SAHARAN_AFRICAN: {
+        /* ------- PREHISTORY ------------------------------------------------ */
+        [HistoricalEra.PREHISTORY]: {
+            HUNTER_GATHERER: {
+                'Hunter': {
+                    statRequirements: { minStrength: 5, minPerception: 6 },
+                    keywords: 'tracking',
+                    emoji: '🏹'
+                },
+                'Gatherer': {
+                    statRequirements: { minDexterity: 5, minPerception: 6 },
+                    genderBias: 'Female',
+                    keywords: 'foraging',
+                    emoji: '🌿'
+                },
+                'Spirit Medium': {
+                    statRequirements: { minIntelligence: 5, minPersuasion: 5 },
+                    socialRequirements: { minReligiosity: 0.7 },
+                    keywords: 'ancestors',
+                    emoji: '👻'
+                },
+                'Rock Painter': {
+                    statRequirements: { minDexterity: 6, minPerception: 7 },
+                    keywords: 'ritual art',
+                    emoji: '🎨'
+                },
+                'Honey Gatherer': {
+                    statRequirements: { minDexterity: 6, minStamina: 5 },
+                    keywords: 'climbing',
+                    emoji: '🍯'
+                },
+                'Fire Keeper': {
+                    statRequirements: { minConstitution: 5, minPerception: 6 },
+                    keywords: 'sacred flame',
+                    emoji: '🔥'
+                }
+            }
+        },
+        /* ------- ANTIQUITY ------------------------------------------------ */
+        [HistoricalEra.ANTIQUITY]: {
+            UPPER_CLASS: {
+                'Chief': {
+                    statRequirements: { minPersuasion: 7, minStrength: 5 },
+                    socialRequirements: { minPrivilege: 0.8 },
+                    genderBias: 'Male',
+                    keywords: 'leadership',
+                    emoji: '👑'
+                },
+                'Rain Maker': {
+                    statRequirements: { minIntelligence: 7, minPersuasion: 6 },
+                    socialRequirements: { minReligiosity: 0.8 },
+                    keywords: 'weather magic',
+                    emoji: '🌧️'
+                },
+                'War Leader': {
+                    statRequirements: { minStrength: 7, minPersuasion: 6 },
+                    socialRequirements: { minPrivilege: 0.7 },
+                    genderBias: 'Male',
+                    keywords: 'military',
+                    emoji: '⚔️'
+                }
+            },
+            CRAFTSMEN_MERCHANTS: {
+                'Iron Smelter': {
+                    statRequirements: { minStrength: 6, minCraftiness: 7 },
+                    keywords: 'metallurgy',
+                    emoji: '🔨'
+                },
+                'Potter': {
+                    statRequirements: { minDexterity: 6, minCraftiness: 6 },
+                    keywords: 'ceramics',
+                    emoji: '🏺'
+                },
+                'Ivory Carver': {
+                    statRequirements: { minDexterity: 8, minPerception: 7 },
+                    keywords: 'luxury',
+                    emoji: '🦣'
+                },
+                'Salt Trader': {
+                    statRequirements: { minPersuasion: 6, minStamina: 5 },
+                    keywords: 'trans-saharan',
+                    emoji: '🧂'
+                }
+            },
+            COMMONERS: {
+                'Farmer': {
+                    statRequirements: { minStamina: 5, minConstitution: 5 },
+                    keywords: 'agriculture',
+                    emoji: '🌾'
+                },
+                'Cattle Herder': {
+                    statRequirements: { minStamina: 5, minPerception: 5 },
+                    keywords: 'pastoralist',
+                    emoji: '🐄'
+                },
+                'Village Elder': {
+                    statRequirements: { minIntelligence: 5, minPersuasion: 5 },
+                    socialRequirements: { minPrivilege: 0.4 },
+                    keywords: 'wisdom',
+                    emoji: '👴🏿'
+                }
+            }
+        },
+        /* ------- MEDIEVAL ------------------------------------------------- */
+        [HistoricalEra.MEDIEVAL]: {
+            UPPER_CLASS: {
+                'King': {
+                    statRequirements: { minPersuasion: 8, minIntelligence: 6 },
+                    socialRequirements: { minPrivilege: 0.95 },
+                    genderBias: 'Male',
+                    keywords: 'royalty',
+                    emoji: '👑'
+                },
+                'Queen Mother': {
+                    statRequirements: { minPersuasion: 7, minIntelligence: 7 },
+                    socialRequirements: { minPrivilege: 0.9 },
+                    genderBias: 'Female',
+                    keywords: 'matriarch',
+                    emoji: '👸🏿'
+                },
+                'Griot': {
+                    statRequirements: { minIntelligence: 8, minPersuasion: 7 },
+                    socialRequirements: { minPrivilege: 0.6 },
+                    keywords: 'historian storyteller',
+                    emoji: '🎭'
+                },
+                'Islamic Scholar': {
+                    statRequirements: { minIntelligence: 8, minPersuasion: 6 },
+                    socialRequirements: { minReligiosity: 0.8 },
+                    keywords: 'madrasa',
+                    emoji: '📖'
+                }
+            },
+            CRAFTSMEN_MERCHANTS: {
+                'Gold Trader': {
+                    statRequirements: { minPersuasion: 7, minCraftiness: 6 },
+                    socialRequirements: { minPrivilege: 0.5 },
+                    keywords: 'trans-saharan wealth',
+                    emoji: '🪙'
+                },
+                'Blacksmith': {
+                    statRequirements: { minStrength: 6, minCraftiness: 7 },
+                    keywords: 'sacred craft',
+                    emoji: '⚒️'
+                },
+                'Weaver': {
+                    statRequirements: { minDexterity: 7, minCraftiness: 6 },
+                    keywords: 'kente cloth',
+                    emoji: '🧵'
+                },
+                'Caravan Guide': {
+                    statRequirements: { minStamina: 7, minPerception: 7 },
+                    keywords: 'desert navigation',
+                    emoji: '🐪'
+                }
+            },
+            COMMONERS: {
+                'Millet Farmer': {
+                    statRequirements: { minStamina: 5, minConstitution: 5 },
+                    keywords: 'subsistence',
+                    emoji: '🌾'
+                },
+                'Goat Herder': {
+                    statRequirements: { minStamina: 5, minPerception: 5 },
+                    keywords: 'pastoralist',
+                    emoji: '🐐'
+                },
+                'Diviner': {
+                    statRequirements: { minIntelligence: 6, minPersuasion: 5 },
+                    socialRequirements: { minReligiosity: 0.6 },
+                    keywords: 'fortune telling',
+                    emoji: '🔮'
+                }
+            }
+        },
+        /* ------- RENAISSANCE / EARLY MODERN ------------------------------- */
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+            UPPER_CLASS: {
+                'Sultan': {
+                    statRequirements: { minPersuasion: 8, minIntelligence: 6 },
+                    socialRequirements: { minPrivilege: 0.95 },
+                    genderBias: 'Male',
+                    keywords: 'islamic ruler',
+                    emoji: '👳🏿'
+                },
+                'Oba': {
+                    statRequirements: { minPersuasion: 8, minIntelligence: 6 },
+                    socialRequirements: { minPrivilege: 0.95 },
+                    genderBias: 'Male',
+                    keywords: 'yoruba king',
+                    emoji: '👑'
+                },
+                'Portuguese Factor': {
+                    statRequirements: { minPersuasion: 6, minCraftiness: 7 },
+                    socialRequirements: { minPrivilege: 0.6 },
+                    keywords: 'slave trade',
+                    emoji: '⚓'
+                }
+            },
+            CRAFTSMEN_MERCHANTS: {
+                'Slave Trader': {
+                    statRequirements: { minPersuasion: 5, minCraftiness: 6 },
+                    socialRequirements: { minPrivilege: 0.4 },
+                    keywords: 'atlantic trade',
+                    emoji: '⛓️'
+                },
+                'Brass Caster': {
+                    statRequirements: { minDexterity: 8, minCraftiness: 7 },
+                    keywords: 'benin bronze',
+                    emoji: '🗿'
+                },
+                'Musket Bearer': {
+                    statRequirements: { minStrength: 6, minDexterity: 5 },
+                    genderBias: 'Male',
+                    keywords: 'firearms',
+                    emoji: '🔫'
+                },
+                'Cowrie Counter': {
+                    statRequirements: { minIntelligence: 6, minPersuasion: 5 },
+                    keywords: 'currency',
+                    emoji: '🐚'
+                }
+            },
+            COMMONERS: {
+                'Rice Farmer': {
+                    statRequirements: { minStamina: 5, minConstitution: 5 },
+                    keywords: 'wetland agriculture',
+                    emoji: '🌾'
+                },
+                'Palm Wine Tapper': {
+                    statRequirements: { minDexterity: 6, minStamina: 5 },
+                    keywords: 'tree climbing',
+                    emoji: '🌴'
+                },
+                'War Captive': {
+                    statRequirements: { minConstitution: 5 },
+                    socialRequirements: { maxPrivilege: 0.1 },
+                    keywords: 'enslaved',
+                    emoji: '⛓️'
+                }
+            }
+        },
+        /* ------- INDUSTRIAL ERA ------------------------------------------- */
+        [HistoricalEra.INDUSTRIAL_ERA]: {
+            UPPER_CLASS: {
+                'Colonial Governor': {
+                    statRequirements: { minIntelligence: 7, minPersuasion: 7 },
+                    socialRequirements: { minPrivilege: 0.9 },
+                    genderBias: 'Male',
+                    keywords: 'european rule',
+                    emoji: '🎩'
+                },
+                'Paramount Chief': {
+                    statRequirements: { minPersuasion: 7, minIntelligence: 6 },
+                    socialRequirements: { minPrivilege: 0.8 },
+                    genderBias: 'Male',
+                    keywords: 'indirect rule',
+                    emoji: '👑'
+                },
+                'Missionary': {
+                    statRequirements: { minIntelligence: 6, minPersuasion: 7 },
+                    socialRequirements: { minReligiosity: 0.8 },
+                    keywords: 'christianization',
+                    emoji: '✝️'
+                }
+            },
+            MIDDLE_CLASS: {
+                'Court Interpreter': {
+                    statRequirements: { minIntelligence: 7, minPersuasion: 6 },
+                    keywords: 'colonial administration',
+                    emoji: '🗣️'
+                },
+                'Railway Worker': {
+                    statRequirements: { minStrength: 6, minStamina: 6 },
+                    genderBias: 'Male',
+                    keywords: 'infrastructure',
+                    emoji: '🚂'
+                },
+                'Mission Teacher': {
+                    statRequirements: { minIntelligence: 6, minPersuasion: 5 },
+                    keywords: 'education',
+                    emoji: '📚'
+                },
+                'Cash Crop Farmer': {
+                    statRequirements: { minStamina: 5, minCraftiness: 5 },
+                    keywords: 'cocoa coffee',
+                    emoji: '☕'
+                }
+            },
+            LOWER_CLASS: {
+                'Mine Worker': {
+                    statRequirements: { minStrength: 6, minStamina: 7 },
+                    genderBias: 'Male',
+                    keywords: 'gold diamonds',
+                    emoji: '⛏️'
+                },
+                'Porter': {
+                    statRequirements: { minStrength: 6, minStamina: 7 },
+                    keywords: 'head carrying',
+                    emoji: '🎒'
+                },
+                'Hut Tax Payer': {
+                    statRequirements: { minStamina: 5 },
+                    keywords: 'colonial subject',
+                    emoji: '🛖'
+                }
+            }
+        },
+        [HistoricalEra.MODERN_ERA]: SHARED_MODERN_PROFESSIONS,
+        [HistoricalEra.FUTURE_ERA]: SHARED_FUTURE_PROFESSIONS
+    },
+
+    /* =================================================================== */
+    /*                          SOUTH AMERICA                              */
+    /* =================================================================== */
+    SOUTH_AMERICAN: {
+        /* ------- PREHISTORY ------------------------------------------------ */
+        [HistoricalEra.PREHISTORY]: {
+            HUNTER_GATHERER: {
+                'Hunter': {
+                    statRequirements: { minStrength: 5, minPerception: 6 },
+                    keywords: 'tracking',
+                    emoji: '🏹'
+                },
+                'Gatherer': {
+                    statRequirements: { minDexterity: 5, minPerception: 6 },
+                    genderBias: 'Female',
+                    keywords: 'foraging',
+                    emoji: '🌿'
+                },
+                'Shaman': {
+                    statRequirements: { minIntelligence: 5, minPersuasion: 5 },
+                    socialRequirements: { minReligiosity: 0.7 },
+                    keywords: 'ayahuasca',
+                    emoji: '🍄'
+                },
+                'Poison Maker': {
+                    statRequirements: { minIntelligence: 6, minDexterity: 6 },
+                    keywords: 'curare darts',
+                    emoji: '☠️'
+                },
+                'Canoe Carver': {
+                    statRequirements: { minStrength: 5, minCraftiness: 7 },
+                    keywords: 'river transport',
+                    emoji: '🛶'
+                },
+                'Feather Worker': {
+                    statRequirements: { minDexterity: 7, minPerception: 6 },
+                    keywords: 'ritual adornment',
+                    emoji: '🦜'
+                }
+            }
+        },
+        /* ------- ANTIQUITY ------------------------------------------------ */
+        [HistoricalEra.ANTIQUITY]: {
+            UPPER_CLASS: {
+                'Priest-King': {
+                    statRequirements: { minIntelligence: 7, minPersuasion: 7 },
+                    socialRequirements: { minPrivilege: 0.9, minReligiosity: 0.8 },
+                    genderBias: 'Male',
+                    keywords: 'theocracy',
+                    emoji: '👑'
+                },
+                'Oracle': {
+                    statRequirements: { minIntelligence: 7, minPersuasion: 6 },
+                    socialRequirements: { minReligiosity: 0.9 },
+                    keywords: 'divination',
+                    emoji: '🔮'
+                },
+                'War Chief': {
+                    statRequirements: { minStrength: 7, minPersuasion: 6 },
+                    socialRequirements: { minPrivilege: 0.7 },
+                    genderBias: 'Male',
+                    keywords: 'military',
+                    emoji: '⚔️'
+                }
+            },
+            CRAFTSMEN_MERCHANTS: {
+                'Gold Worker': {
+                    statRequirements: { minDexterity: 8, minCraftiness: 7 },
+                    keywords: 'metallurgy',
+                    emoji: '🪙'
+                },
+                'Textile Weaver': {
+                    statRequirements: { minDexterity: 7, minCraftiness: 6 },
+                    genderBias: 'Female',
+                    keywords: 'cotton wool',
+                    emoji: '🧵'
+                },
+                'Pottery Maker': {
+                    statRequirements: { minDexterity: 6, minCraftiness: 6 },
+                    keywords: 'ceramics',
+                    emoji: '🏺'
+                },
+                'Coca Cultivator': {
+                    statRequirements: { minStamina: 5, minPerception: 5 },
+                    keywords: 'sacred plant',
+                    emoji: '🍃'
+                }
+            },
+            COMMONERS: {
+                'Maize Farmer': {
+                    statRequirements: { minStamina: 5, minConstitution: 5 },
+                    keywords: 'agriculture',
+                    emoji: '🌽'
+                },
+                'Llama Herder': {
+                    statRequirements: { minStamina: 5, minPerception: 5 },
+                    keywords: 'camelids',
+                    emoji: '🦙'
+                },
+                'Fisherman': {
+                    statRequirements: { minDexterity: 5, minPerception: 5 },
+                    keywords: 'coastal',
+                    emoji: '🎣'
+                }
+            }
+        },
+        /* ------- MEDIEVAL ------------------------------------------------- */
+        [HistoricalEra.MEDIEVAL]: {
+            UPPER_CLASS: {
+                'Sapa Inca': {
+                    statRequirements: { minIntelligence: 8, minPersuasion: 8 },
+                    socialRequirements: { minPrivilege: 1.0 },
+                    genderBias: 'Male',
+                    keywords: 'divine ruler',
+                    emoji: '👑'
+                },
+                'Coya': {
+                    statRequirements: { minIntelligence: 7, minPersuasion: 7 },
+                    socialRequirements: { minPrivilege: 0.95 },
+                    genderBias: 'Female',
+                    keywords: 'queen',
+                    emoji: '👸'
+                },
+                'High Priest': {
+                    statRequirements: { minIntelligence: 7, minPersuasion: 6 },
+                    socialRequirements: { minReligiosity: 0.9 },
+                    keywords: 'sun temple',
+                    emoji: '☀️'
+                },
+                'Curaca': {
+                    statRequirements: { minPersuasion: 6, minIntelligence: 5 },
+                    socialRequirements: { minPrivilege: 0.7 },
+                    keywords: 'local lord',
+                    emoji: '🎖️'
+                }
+            },
+            CRAFTSMEN_MERCHANTS: {
+                'Quipu Keeper': {
+                    statRequirements: { minIntelligence: 8, minDexterity: 7 },
+                    keywords: 'record keeping',
+                    emoji: '🪢'
+                },
+                'Master Builder': {
+                    statRequirements: { minIntelligence: 7, minStrength: 6 },
+                    keywords: 'stone architecture',
+                    emoji: '🏗️'
+                },
+                'Chasqui Runner': {
+                    statRequirements: { minStamina: 9, minConstitution: 7 },
+                    keywords: 'messenger',
+                    emoji: '🏃'
+                },
+                'Metalsmith': {
+                    statRequirements: { minDexterity: 7, minCraftiness: 7 },
+                    keywords: 'bronze silver',
+                    emoji: '🔨'
+                }
+            },
+            COMMONERS: {
+                'Terrace Farmer': {
+                    statRequirements: { minStamina: 6, minConstitution: 5 },
+                    keywords: 'mountain agriculture',
+                    emoji: '⛰️'
+                },
+                'Ayllu Member': {
+                    statRequirements: { minStamina: 5, minConstitution: 5 },
+                    keywords: 'community',
+                    emoji: '👥'
+                },
+                'Mita Worker': {
+                    statRequirements: { minStamina: 6, minConstitution: 6 },
+                    keywords: 'labor tax',
+                    emoji: '⚒️'
+                }
+            }
+        },
+        /* ------- RENAISSANCE / EARLY MODERN ------------------------------- */
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+            UPPER_CLASS: {
+                'Spanish Viceroy': {
+                    statRequirements: { minIntelligence: 7, minPersuasion: 7 },
+                    socialRequirements: { minPrivilege: 0.95 },
+                    genderBias: 'Male',
+                    keywords: 'colonial ruler',
+                    emoji: '👑'
+                },
+                'Encomendero': {
+                    statRequirements: { minPersuasion: 6, minCraftiness: 6 },
+                    socialRequirements: { minPrivilege: 0.8 },
+                    genderBias: 'Male',
+                    keywords: 'land grant',
+                    emoji: '🏛️'
+                },
+                'Bishop': {
+                    statRequirements: { minIntelligence: 7, minPersuasion: 7 },
+                    socialRequirements: { minReligiosity: 0.9 },
+                    genderBias: 'Male',
+                    keywords: 'catholic church',
+                    emoji: '✝️'
+                }
+            },
+            CRAFTSMEN_MERCHANTS: {
+                'Silver Miner': {
+                    statRequirements: { minStrength: 6, minStamina: 7 },
+                    genderBias: 'Male',
+                    keywords: 'potosi',
+                    emoji: '⛏️'
+                },
+                'Mestizo Trader': {
+                    statRequirements: { minPersuasion: 6, minCraftiness: 6 },
+                    keywords: 'mixed heritage',
+                    emoji: '🤝'
+                },
+                'Mission Indian': {
+                    statRequirements: { minStamina: 5, minConstitution: 5 },
+                    socialRequirements: { minReligiosity: 0.5 },
+                    keywords: 'reduction',
+                    emoji: '⛪'
+                },
+                'Muleteer': {
+                    statRequirements: { minStamina: 6, minPerception: 5 },
+                    keywords: 'transport',
+                    emoji: '🫏'
+                }
+            },
+            COMMONERS: {
+                'Hacienda Peon': {
+                    statRequirements: { minStamina: 6, minConstitution: 5 },
+                    keywords: 'estate labor',
+                    emoji: '🌾'
+                },
+                'Coca Chewer': {
+                    statRequirements: { minStamina: 7, minConstitution: 6 },
+                    keywords: 'mine worker',
+                    emoji: '🍃'
+                },
+                'Market Woman': {
+                    statRequirements: { minPersuasion: 5, minStamina: 5 },
+                    genderBias: 'Female',
+                    keywords: 'chola',
+                    emoji: '🧺'
+                }
+            }
+        },
+        /* ------- INDUSTRIAL ERA ------------------------------------------- */
+        [HistoricalEra.INDUSTRIAL_ERA]: {
+            UPPER_CLASS: {
+                'President': {
+                    statRequirements: { minIntelligence: 7, minPersuasion: 8 },
+                    socialRequirements: { minPrivilege: 0.9 },
+                    genderBias: 'Male',
+                    keywords: 'republic',
+                    emoji: '🎖️'
+                },
+                'Landowner': {
+                    statRequirements: { minPersuasion: 6, minCraftiness: 6 },
+                    socialRequirements: { minPrivilege: 0.85 },
+                    keywords: 'latifundio',
+                    emoji: '🏛️'
+                },
+                'British Engineer': {
+                    statRequirements: { minIntelligence: 7, minCraftiness: 7 },
+                    socialRequirements: { minPrivilege: 0.6 },
+                    genderBias: 'Male',
+                    keywords: 'railway',
+                    emoji: '🚂'
+                }
+            },
+            MIDDLE_CLASS: {
+                'Nitrate Worker': {
+                    statRequirements: { minStrength: 6, minStamina: 6 },
+                    genderBias: 'Male',
+                    keywords: 'saltpeter',
+                    emoji: '🧂'
+                },
+                'Rubber Tapper': {
+                    statRequirements: { minStamina: 7, minDexterity: 6 },
+                    genderBias: 'Male',
+                    keywords: 'amazon boom',
+                    emoji: '🌳'
+                },
+                'Coffee Planter': {
+                    statRequirements: { minStamina: 5, minCraftiness: 5 },
+                    keywords: 'export crop',
+                    emoji: '☕'
+                },
+                'Telegraph Operator': {
+                    statRequirements: { minIntelligence: 6, minDexterity: 6 },
+                    keywords: 'communications',
+                    emoji: '📡'
+                }
+            },
+            LOWER_CLASS: {
+                'Guano Digger': {
+                    statRequirements: { minStrength: 6, minStamina: 7 },
+                    genderBias: 'Male',
+                    keywords: 'fertilizer',
+                    emoji: '🦤'
+                },
+                'Canal Worker': {
+                    statRequirements: { minStrength: 7, minStamina: 7 },
+                    genderBias: 'Male',
+                    keywords: 'panama',
+                    emoji: '🚧'
+                },
+                'Indigenous Laborer': {
+                    statRequirements: { minStamina: 6, minConstitution: 5 },
+                    keywords: 'exploitation',
+                    emoji: '⛏️'
+                }
+            }
+        },
+        [HistoricalEra.MODERN_ERA]: SHARED_MODERN_PROFESSIONS,
+        [HistoricalEra.FUTURE_ERA]: SHARED_FUTURE_PROFESSIONS
     }
 };

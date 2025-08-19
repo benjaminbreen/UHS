@@ -1,10 +1,14 @@
 /**
  * components/AnimalInfoModal.tsx - Modal to display detailed animal information.
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { AnimalEntity } from '../types';
 import { generateAnimalDescriptions } from '../services/animalDescriptionGenerator';
 import { ANIMAL_DATA } from '../constants/index';
+import DiseaseModal from './DiseaseModal';
+import { ActiveDisease } from '../types/diseaseTypes';
+import { useGame } from '../contexts/GameContext';
+import { mapLocationToCulture } from '../utils/mapUtils';
 
 interface AnimalInfoModalProps {
   animal: AnimalEntity;
@@ -30,6 +34,9 @@ const StatDisplay: React.FC<{ label: string, value: number }> = ({ label, value 
 
 const AnimalInfoModal: React.FC<AnimalInfoModalProps> = ({ animal, onClose }) => {
   const { short, long } = useMemo(() => generateAnimalDescriptions(animal), [animal]);
+  const [selectedDisease, setSelectedDisease] = useState<ActiveDisease | null>(null);
+  const [isDiseaseModalOpen, setIsDiseaseModalOpen] = useState(false);
+  const { gameDate, currentZone } = useGame();
   const baseAnimalData = ANIMAL_DATA[animal.baseId];
   const baseAnimalName = baseAnimalData?.name || animal.baseId;
   const isAquatic = baseAnimalData?.habitat === 'aquatic';
@@ -90,9 +97,9 @@ const AnimalInfoModal: React.FC<AnimalInfoModalProps> = ({ animal, onClose }) =>
       >
         {/* Header */}
         <div className="flex items-start justify-between pb-2 mb-4 border-b border-gray-700">
-          <div className="flex items-center">
+          <div className="flex items-center flex-1">
             <span className="mr-4 text-5xl">{animal.emoji}</span>
-            <div>
+            <div className="flex-1">
                 <div className="flex flex-wrap items-baseline">
                     <h3 id="animal-modal-title" className="text-2xl font-bold text-blue-300 capitalize">
                         {animal.speciesName}
@@ -104,7 +111,38 @@ const AnimalInfoModal: React.FC<AnimalInfoModalProps> = ({ animal, onClose }) =>
                 <p className="text-sm italic text-gray-400">{short}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-3xl font-thin leading-none text-gray-400 transition-colors hover:text-white">&times;</button>
+          
+          <div className="flex items-start gap-3">
+            {/* Health/Disease Badge */}
+            {animal.diseaseHealth?.currentDiseases && animal.diseaseHealth.currentDiseases.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {animal.diseaseHealth.currentDiseases.map((disease, index) => (
+                  <button
+                    key={index}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedDisease(disease);
+                      setIsDiseaseModalOpen(true);
+                    }}
+                    className="px-2 py-0.5 bg-pink-600/80 hover:bg-pink-500 text-white text-xs font-bold rounded-full 
+                             border border-pink-400 shadow-md hover:shadow-pink-500/50 transition-all duration-200
+                             flex items-center gap-1 cursor-pointer"
+                    title={`Click for details about ${disease.disease.name}`}
+                  >
+                    <span className="text-sm">{disease.disease.badgeIcon}</span>
+                    <span>{disease.disease.name}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <span className="px-3 py-1 bg-green-600/80 text-white text-xs font-bold rounded-full 
+                           border border-green-400 shadow-md">
+                ✅ Healthy
+              </span>
+            )}
+            
+            <button onClick={onClose} className="text-3xl font-thin leading-none text-gray-400 transition-colors hover:text-white">&times;</button>
+          </div>
         </div>
         
         {/* Main Content */}
@@ -151,6 +189,20 @@ const AnimalInfoModal: React.FC<AnimalInfoModalProps> = ({ animal, onClose }) =>
             </button>
         </div>
       </div>
+      
+      {/* Disease Modal */}
+      {selectedDisease && (
+        <DiseaseModal
+          disease={selectedDisease}
+          isOpen={isDiseaseModalOpen}
+          onClose={() => {
+            setIsDiseaseModalOpen(false);
+            setSelectedDisease(null);
+          }}
+          currentYear={gameDate.year}
+          culturalZone={mapLocationToCulture(currentZone, gameDate.year)}
+        />
+      )}
     </div>
   );
 };

@@ -51,8 +51,8 @@ import POIHoverTooltip from './POIHoverTooltip';
 import { getSafariOptimizedClassName, getSafariOptimizedStyle } from '../utils/safariUtils';
 
 const TILE_SIZE_PX = TILE_SIZE_PX_CONST;
-const ICON_ANIMATION_DURATION = 100;
-const INITIAL_ZOOM_LEVEL = 1.4;
+const ICON_ANIMATION_DURATION = 200;
+const INITIAL_ZOOM_LEVEL = 2;
 
 type PlayerMode = 'ship' | 'onFoot';
 
@@ -231,6 +231,11 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   // POI hover state
   const [hoveredPOI, setHoveredPOI] = useState<TerrainStructure | null>(null);
   const [hoveredPOICoords, setHoveredPOICoords] = useState<{x: number, y: number} | null>(null);
+  
+  // NPC/Animal hover state
+  const [hoveredNPC, setHoveredNPC] = useState<NpcEntity | null>(null);
+  const [hoveredAnimal, setHoveredAnimal] = useState<AnimalEntity | null>(null);
+  const [hoveredEntityCoords, setHoveredEntityCoords] = useState<{x: number, y: number} | null>(null);
   
   // Refs for performance
   const containerRef = useRef<HTMLDivElement>(null);
@@ -779,8 +784,29 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         const structure = mapData?.terrainStructures?.find(s => s.location[0] === tile.x && s.location[1] === tile.y);
         const vegetation = tile.vegetationId ? mapData?.vegetation?.find(v => v.id === tile.vegetationId) : null;
         
+        // Check for NPCs and animals at this tile
+        const npc = npcs?.find(n => n.x === tile.x && n.y === tile.y);
+        const animal = animals?.find(a => a.x === tile.x && a.y === tile.y);
+        
+        // Update hover states for NPCs and animals
+        if (npc !== hoveredNPC) {
+          setHoveredNPC(npc || null);
+          if (npc) {
+            setHoveredEntityCoords({ x: e.clientX, y: e.clientY });
+          }
+        }
+        if (animal !== hoveredAnimal) {
+          setHoveredAnimal(animal || null);
+          if (animal) {
+            setHoveredEntityCoords({ x: e.clientX, y: e.clientY });
+          }
+        }
+        if (!npc && !animal) {
+          setHoveredEntityCoords(null);
+        }
+        
         // Get component info for the tile
-        const componentInfo = getComponentInfoForTile(tile, structure, null, null);
+        const componentInfo = getComponentInfoForTile(tile, structure, npc, animal);
         
         throttledOnDevHover({
           viewMode: 'standard',
@@ -792,6 +818,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         });
       } else {
         throttledOnDevHover(null);
+        setHoveredNPC(null);
+        setHoveredAnimal(null);
+        setHoveredEntityCoords(null);
       }
     }
   }, [isDragging, lastMousePos, getTileFromMouseEvent, mapData, throttledOnDevHover, isFreePanMode, zoomLevel, npcs, animals]);
@@ -1731,16 +1760,29 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     // Removed console.log to prevent infinite spam
                     const PalaceComponent = getPalaceSymbol(palaceType, culture, era);
                     
-                    // Find the structure for this palace
-                    const palaceStructure = terrainStructures?.find(s => 
+                    // Find the structure for this palace or create a fallback
+                    let palaceStructure = terrainStructures?.find(s => 
                       s.location[0] === tile.x && s.location[1] === tile.y && s.structureType === 'palace'
                     );
+                    
+                    // Create fallback structure if not found
+                    if (!palaceStructure) {
+                      palaceStructure = {
+                        id: `palace-${tile.x}-${tile.y}`,
+                        name: 'Royal Palace',
+                        structureType: 'palace' as const,
+                        location: [tile.x, tile.y],
+                        allegianceGroup: null,
+                        state: 'active' as const,
+                        treasury: { gold: 100, silver: 200, gems: 50 }
+                      };
+                    }
                     
                     elements.push(
                       <g 
                         key={`palace-${tile.x}-${tile.y}`}
                         onMouseEnter={(e) => {
-                          if (palaceStructure && !isDragging) {
+                          if (!isDragging) {
                             setHoveredPOI(palaceStructure);
                             const rect = e.currentTarget.getBoundingClientRect();
                             setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
@@ -1769,16 +1811,29 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       </g>
                     );
                   } else if(tile.biome === BiomeType.RUINS) {
-                    // Find the structure for this ruin
-                    const ruinStructure = terrainStructures?.find(s => 
+                    // Find the structure for this ruin or create a fallback
+                    let ruinStructure = terrainStructures?.find(s => 
                       s.location[0] === tile.x && s.location[1] === tile.y && s.structureType === 'ruin'
                     );
+                    
+                    // Create fallback structure if not found
+                    if (!ruinStructure) {
+                      ruinStructure = {
+                        id: `ruin-${tile.x}-${tile.y}`,
+                        name: 'Ancient Ruins',
+                        structureType: 'ruin' as const,
+                        location: [tile.x, tile.y],
+                        allegianceGroup: null,
+                        state: 'ruined' as const,
+                        treasury: Math.random() > 0.5 ? { gold: 10, silver: 20 } : null
+                      };
+                    }
                     
                     elements.push(
                       <g 
                         key={`ruins-${tile.x}-${tile.y}`}
                         onMouseEnter={(e) => {
-                          if (ruinStructure && !isDragging) {
+                          if (!isDragging) {
                             setHoveredPOI(ruinStructure);
                             const rect = e.currentTarget.getBoundingClientRect();
                             setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
@@ -1838,16 +1893,30 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     
                     const HolySiteComponent = getHolySiteSymbol(religion, culturalZone);
                     
-                    // Find the structure for this holy site
-                    const holySiteStructure = terrainStructures?.find(s => 
+                    // Find the structure for this holy site or create a fallback
+                    let holySiteStructure = terrainStructures?.find(s => 
                       s.location[0] === tile.x && s.location[1] === tile.y && s.structureType === 'holy_site'
                     );
+                    
+                    // Create fallback structure if not found
+                    if (!holySiteStructure) {
+                      holySiteStructure = {
+                        id: `holy-site-${tile.x}-${tile.y}`,
+                        name: `${religion.charAt(0).toUpperCase() + religion.slice(1)} Temple`,
+                        structureType: 'holy_site' as const,
+                        location: [tile.x, tile.y],
+                        allegianceGroup: null,
+                        religion: religion,
+                        state: 'active' as const,
+                        treasury: null
+                      };
+                    }
                     
                     elements.push(
                       <g 
                         key={`holy-${tile.x}-${tile.y}`}
                         onMouseEnter={(e) => {
-                          if (holySiteStructure && !isDragging) {
+                          if (!isDragging) {
                             setHoveredPOI(holySiteStructure);
                             const rect = e.currentTarget.getBoundingClientRect();
                             setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
@@ -2545,6 +2614,109 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           era={parseDateString(mapData.timeSlice || '1650').era}
           visible={true}
         />
+      )}
+      
+      {/* NPC/Animal hover tooltip */}
+      {(hoveredNPC || hoveredAnimal) && hoveredEntityCoords && (
+        <div
+          className="fixed pointer-events-none z-50"
+          style={{
+            left: `${hoveredEntityCoords.x}px`,
+            top: `${hoveredEntityCoords.y - 10}px`,
+            transform: 'translate(-50%, -100%)'
+          }}
+        >
+          <div className="bg-slate-900/95 backdrop-blur-sm border border-amber-500/50 rounded-lg p-3 shadow-xl min-w-[200px] max-w-[280px]">
+          {hoveredNPC && (
+            <>
+              <div className="font-bold text-sm mb-1.5 text-amber-300">{hoveredNPC.name}</div>
+              <div className="text-xs space-y-1 text-slate-200">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Age:</span>
+                  <span>{hoveredNPC.age} years old</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Gender:</span>
+                  <span>{hoveredNPC.gender}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Profession:</span>
+                  <span className="text-blue-300">{hoveredNPC.profession}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Class:</span>
+                  <span className="text-purple-300">{hoveredNPC.socialClass}</span>
+                </div>
+                {hoveredNPC.stats && (
+                  <>
+                    <div className="border-t border-slate-700 mt-1 pt-1">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Health:</span>
+                        <span>{hoveredNPC.health}/{hoveredNPC.maxHealth}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">STR/CON:</span>
+                        <span>{hoveredNPC.stats.strength}/{hoveredNPC.stats.constitution}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+                {hoveredNPC.diseaseHealth && hoveredNPC.diseaseHealth.currentDiseases && hoveredNPC.diseaseHealth.currentDiseases.length > 0 && (
+                  <div className="border-t border-slate-700 mt-1 pt-1">
+                    <div className="text-green-400 font-semibold">
+                      ⚠️ Disease: {hoveredNPC.diseaseHealth.currentDiseases[0].disease.name}
+                    </div>
+                    {hoveredNPC.diseaseHealth.currentDiseases[0].disease.symptoms && (
+                      <div className="text-xs text-green-300 mt-0.5">
+                        Symptoms: {hoveredNPC.diseaseHealth.currentDiseases[0].disease.symptoms.slice(0, 2).map(s => s.name).join(', ')}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+          {hoveredAnimal && (
+            <>
+              <div className="font-bold text-sm mb-1.5 text-amber-300">{hoveredAnimal.speciesName || hoveredAnimal.type}</div>
+              <div className="text-xs space-y-1 text-slate-200">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Type:</span>
+                  <span>{hoveredAnimal.type}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Age:</span>
+                  <span>{hoveredAnimal.age} years</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Temperament:</span>
+                  <span className="text-yellow-300">{hoveredAnimal.temperament || 'Unknown'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Health:</span>
+                  <span>{hoveredAnimal.health}/{hoveredAnimal.maxHealth}</span>
+                </div>
+                {hoveredAnimal.stats && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Attack/Defense:</span>
+                    <span>{hoveredAnimal.stats.attack}/{hoveredAnimal.stats.defense}</span>
+                  </div>
+                )}
+                {hoveredAnimal.diseaseHealth && hoveredAnimal.diseaseHealth.currentDiseases && hoveredAnimal.diseaseHealth.currentDiseases.length > 0 && (
+                  <div className="border-t border-slate-700 mt-1 pt-1">
+                    <div className="text-green-400 font-semibold">
+                      ⚠️ Disease: {hoveredAnimal.diseaseHealth.currentDiseases[0].disease.name}
+                    </div>
+                    <div className="text-xs text-green-300 mt-0.5">
+                      This animal appears sick - avoid contact!
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+          </div>
+        </div>
       )}
     </div>
   );

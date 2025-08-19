@@ -10,6 +10,25 @@ const MODERN_ERA = 'MODERN_ERA';
 export const EUROPEAN_FACTIONS: FactionFile = {
     'EUROPEAN': {
         "British Isles": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Beaker Culture',
+                dominantPowerDescription: 'Bronze Age peoples who brought metalworking and distinctive pottery styles to the islands, building stone circles and burial mounds.',
+                eraContextSentence: 'a time of stone monuments and bronze tools, where chieftains rule from hillforts and druids perform rituals at sacred circles.',
+                allegianceGroups: [
+                    { name: 'Beaker Folk', type: 'primary', description: 'Bronze Age settlers with advanced metalworking.' },
+                    { name: 'Native Britons', type: 'secondary', description: 'Earlier Neolithic peoples of the islands.' },
+                    { name: 'Seafaring Traders', type: 'secondary', description: 'Maritime peoples trading tin and copper.' }
+                ],
+                structureNames: {
+                    fortress: ['Hillfort', 'Dun', 'Broch', 'Timber Palisade'],
+                    quarry: ['Flint Mine', 'Tin Stream', 'Copper Pit'],
+                    holy_site: ['Stone Circle', 'Burial Mound', 'Sacred Grove', 'Standing Stones', 'Ritual Enclosure'],
+                    palace: ["Chieftain's Hall", 'Roundhouse Complex', 'Great Lodge'],
+                },
+                courtRoles: {
+                    palace: ['Chieftain', 'War Leader', 'Bronze Smith', 'Druid', 'Bard', 'Elder']
+                }
+            },
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Roman Britain',
                 dominantPowerDescription: 'The province is under the control of the Roman Empire, with legions enforcing peace and Roman-style cities flourishing.',
@@ -208,6 +227,36 @@ export const EUROPEAN_FACTIONS: FactionFile = {
             }
         },
         "France": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'La Tène Culture',
+                dominantPowerDescription: 'Iron Age Celtic peoples known for their elaborate metalwork, fortified oppida, and warrior culture that would later challenge Rome itself.',
+                eraContextSentence: 'a time of Celtic druids and warriors, where hillforts dominate the landscape and iron weapons determine power.',
+                allegianceGroups: [
+                    { name: 'Gallic Tribes', type: 'primary', description: 'Powerful Celtic confederations.' },
+                    { name: 'Belgae Warriors', type: 'secondary', description: 'Northern tribes known for their ferocity.' },
+                    { name: 'Greek Colonies', type: 'secondary', description: 'Mediterranean traders in the south.' }
+                ],
+                structureNames: {
+                    fortress: ['Oppidum', 'Hillfort', 'Murus Gallicus', 'Fortified Village'],
+                    quarry: ['Iron Mine', 'Salt Works', 'Quarry'],
+                    holy_site: ['Sacred Grove', 'Druid Circle', 'Spring Sanctuary', 'Votive Pool'],
+                    palace: ["Chieftain's Hall", 'Tribal Oppidum', 'Royal Compound'],
+                },
+                courtRoles: {
+                    palace: ['Tribal King', 'Druid', 'Champion', 'Bard', 'Smith', 'Noble Warrior']
+                },
+                mapAreaOverrides: {
+                    "Loire Valley": {
+                        dominantPower: 'Carnute Confederation',
+                        dominantPowerDescription: 'A powerful Celtic tribe controlling the sacred center of Gaul, where druids gather annually for great assemblies.',
+                        allegianceGroups: [
+                            { name: 'Carnutes', type: 'primary', description: 'Keepers of the sacred forest.' },
+                            { name: 'Aedui Alliance', type: 'secondary', description: 'Friendly neighboring tribes.' },
+                            { name: 'Arverni', type: 'secondary', description: 'Rival power to the south.' }
+                        ]
+                    }
+                }
+            },
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Roman Gaul',
                 dominantPowerDescription: 'Gaul is a prosperous province of the Roman Empire, integrated through a network of roads and cities, but with a lingering Celtic identity.',
@@ -377,6 +426,25 @@ export const EUROPEAN_FACTIONS: FactionFile = {
             }
         },
         "Iberian Peninsula": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Tartessian Culture',
+                dominantPowerDescription: 'A sophisticated Bronze Age civilization centered in the southwest, known for metalworking and trade with Phoenician merchants.',
+                eraContextSentence: 'an age of bronze and megaliths, where warrior-chiefs control rich mines and Phoenician traders bring exotic goods from the east.',
+                allegianceGroups: [
+                    { name: 'Tartessian Kings', type: 'primary', description: 'Wealthy rulers of the southwestern kingdoms.' },
+                    { name: 'Iberian Tribes', type: 'secondary', description: 'Eastern coastal peoples with fortified towns.' },
+                    { name: 'Celtic Invaders', type: 'secondary', description: 'Newcomers from beyond the Pyrenees.' }
+                ],
+                structureNames: {
+                    fortress: ['Castro', 'Oppida', 'Fortified Village', 'Cliff Settlement'],
+                    quarry: ['Copper Mine', 'Tin Workings', 'Silver Pit'],
+                    holy_site: ['Dolmen', 'Rock Sanctuary', 'Sacred Cave', 'Bull Shrine'],
+                    palace: ["King's Castro", 'Tribal Center', 'Fortified Acropolis'],
+                },
+                courtRoles: {
+                    palace: ['Tribal King', 'War Chief', 'Metal Master', 'Oracle', 'Merchant Prince']
+                }
+            },
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Roman Hispania',
                 dominantPowerDescription: 'The Iberian provinces become thoroughly Romanized, producing emperors, scholars, and serving as a vital source of metals and agricultural wealth.',
@@ -578,6 +646,25 @@ export const EUROPEAN_FACTIONS: FactionFile = {
             }
         },
         "Italy": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Etruscan Confederation',
+                dominantPowerDescription: 'Sophisticated city-states in central Italy, masters of metalwork, engineering, and divination, whose culture would profoundly influence Rome.',
+                eraContextSentence: 'an age of Etruscan princes and Greek colonies, where augurs read the flight of birds and warriors fight with bronze arms.',
+                allegianceGroups: [
+                    { name: 'Etruscan League', type: 'primary', description: 'The twelve cities of Etruria.' },
+                    { name: 'Latin Tribes', type: 'secondary', description: 'Farming peoples of Latium.' },
+                    { name: 'Greek Colonies', type: 'secondary', description: 'Magna Graecia in the south.' }
+                ],
+                structureNames: {
+                    fortress: ['Etruscan Walls', 'Acropolis', 'Hill Town', 'Fortified Port'],
+                    quarry: ['Bronze Workshop', 'Iron Mine', 'Marble Quarry'],
+                    holy_site: ['Etruscan Temple', 'Augural Platform', 'Necropolis', 'Sacred Spring'],
+                    palace: ['Lucumo Palace', 'Aristocratic Villa', 'Princely Tomb'],
+                },
+                courtRoles: {
+                    palace: ['Lucumo', 'Augur', 'Haruspex', 'Bronze Master', 'Aristocrat', 'Scribe']
+                }
+            },
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Roman Empire',
                 dominantPowerDescription: 'The heart of the greatest empire the world has ever known, where all roads lead to Rome and the legacy of the Caesars shapes civilization.',
@@ -826,6 +913,25 @@ export const EUROPEAN_FACTIONS: FactionFile = {
             }
         },
         "Germany": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Urnfield Culture',
+                dominantPowerDescription: 'Late Bronze Age peoples who cremated their dead and placed the ashes in urns, predecessors to the Celtic and Germanic tribes.',
+                eraContextSentence: 'a time of bronze swords and sacred bogs, where warriors are buried with their weapons and amber flows along ancient trade routes.',
+                allegianceGroups: [
+                    { name: 'Urnfield Chieftains', type: 'primary', description: 'Bronze Age warrior elite.' },
+                    { name: 'Nordic Traders', type: 'secondary', description: 'Amber merchants from the Baltic.' },
+                    { name: 'Alpine Peoples', type: 'secondary', description: 'Mountain dwelling tribes.' }
+                ],
+                structureNames: {
+                    fortress: ['Ring Fort', 'Hillfort', 'Palisade Wall', 'Lake Dwelling'],
+                    quarry: ['Bronze Foundry', 'Bog Iron Works', 'Salt Mine'],
+                    holy_site: ['Sacred Bog', 'Grove of the Gods', 'Burial Field', 'Solar Monument'],
+                    palace: ['Chieftain Longhouse', 'Warrior Hall', 'Clan Center'],
+                },
+                courtRoles: {
+                    palace: ['War Chief', 'Shaman', 'Bronzesmith', 'Clan Elder', 'Skald', 'Champion']
+                }
+            },
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Germanic Tribes',
                 dominantPowerDescription: 'Beyond the Rhine frontier, Germanic tribes maintain their independence from Rome, developing a warrior culture that will eventually overwhelm the empire.',
@@ -1080,6 +1186,25 @@ export const EUROPEAN_FACTIONS: FactionFile = {
             }
         },
         "Scandinavia": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Nordic Bronze Age',
+                dominantPowerDescription: 'Seafaring peoples of the north, creators of elaborate rock carvings and masters of bronze work, with connections stretching to the Mediterranean.',
+                eraContextSentence: 'an age of sun worship and sea voyages, where bronze lurs sound across the fjords and ships are buried with kings.',
+                allegianceGroups: [
+                    { name: 'Sea Kings', type: 'primary', description: 'Maritime chieftains with longships.' },
+                    { name: 'Forest Tribes', type: 'secondary', description: 'Inland hunting peoples.' },
+                    { name: 'Amber Lords', type: 'secondary', description: 'Controllers of the amber trade.' }
+                ],
+                structureNames: {
+                    fortress: ['Ring Fort', 'Coastal Fort', 'Mountain Stronghold', 'Ship Setting'],
+                    quarry: ['Amber Beach', 'Bog Iron Pit', 'Flint Mine'],
+                    holy_site: ['Rock Carving Site', 'Ship Burial', 'Sacred Grove', 'Sun Stone'],
+                    palace: ['Jarl Hall', 'Sea King Lodge', 'Chieftain Farmstead'],
+                },
+                courtRoles: {
+                    palace: ['Sea King', 'Skald', 'Shaman', 'Ship Builder', 'Bronze Worker', 'Warrior']
+                }
+            },
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Iron Age Tribes',
                 dominantPowerDescription: 'Northern Germanic tribes develop a distinctive culture, trading amber southward while remaining beyond Roman reach.',

@@ -8,6 +8,10 @@ import BeliefsPanel from './BeliefsPanel';
 import { formatAppearanceText } from '../utils/colorUtils';
 import { useMap } from '../contexts/MapContext';
 import { getRelativeDirection } from '../utils/geographyUtils';
+import DiseaseModal from './DiseaseModal';
+import { ActiveDisease } from '../types/diseaseTypes';
+import { mapLocationToCulture } from '../utils/mapUtils';
+import { useGame } from '../contexts/GameContext';
 
 interface NpcModalProps {
   npc: NpcEntity | PlayerCharacter;
@@ -101,7 +105,10 @@ const TabButton: React.FC<{
 
 const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitlyPlayer = false }) => {
   const [activeTab, setActiveTab] = useState<NpcModalTab>('overview');
+  const [selectedDisease, setSelectedDisease] = useState<ActiveDisease | null>(null);
+  const [isDiseaseModalOpen, setIsDiseaseModalOpen] = useState(false);
   const { terrainStructures, mapData } = useMap();
+  const { gameDate, currentZone } = useGame();
 
   if (!npc) return null;
 
@@ -352,7 +359,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex-shrink-0 p-4 flex justify-between items-center gap-4 border-b border-gray-700">
+        <div className="flex-shrink-0 p-4 flex justify-between items-start gap-4 border-b border-gray-700">
             <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-700 border-2 border-gray-600 shadow-lg flex-shrink-0">
                     <ProceduralPortrait
@@ -360,17 +367,48 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
                         size={64}
                     />
                 </div>
-                <div>
+                <div className="flex-1">
                     <h3 className="text-2xl font-bold text-blue-300">{targetName}</h3>
                     <p className="text-green-400 font-semibold capitalize">{profession} • {socialClass.toLowerCase()}</p>
                 </div>
             </div>
-            <button 
-                onClick={onClose} 
-                className="text-gray-400 hover:text-white text-3xl font-thin leading-none transition-colors"
-            >
-                &times;
-            </button>
+            
+            <div className="flex items-start gap-3">
+                {/* Health/Disease Badge */}
+                {npc.diseaseHealth?.currentDiseases && npc.diseaseHealth.currentDiseases.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 max-w-xs">
+                        {npc.diseaseHealth.currentDiseases.map((disease, index) => (
+                            <button
+                                key={index}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedDisease(disease);
+                                    setIsDiseaseModalOpen(true);
+                                }}
+                                className="px-2 py-0.5 bg-pink-600/80 hover:bg-pink-500 text-white text-xs font-bold rounded-full 
+                                         border border-pink-400 shadow-md hover:shadow-pink-500/50 transition-all duration-200
+                                         flex items-center gap-1 cursor-pointer"
+                                title={`Click for details about ${disease.disease.name}`}
+                            >
+                                <span className="text-sm">{disease.disease.badgeIcon}</span>
+                                <span>{disease.disease.name}</span>
+                            </button>
+                        ))}
+                    </div>
+                ) : (
+                    <span className="px-3 py-1 bg-green-600/80 text-white text-xs font-bold rounded-full 
+                                   border border-green-400 shadow-md">
+                        ✅ Healthy
+                    </span>
+                )}
+                
+                <button 
+                    onClick={onClose} 
+                    className="text-gray-400 hover:text-white text-3xl font-thin leading-none transition-colors"
+                >
+                    &times;
+                </button>
+            </div>
         </div>
         
         {/* Tabs */}
@@ -399,6 +437,20 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
           </button>
         </div>
       </div>
+      
+      {/* Disease Modal */}
+      {selectedDisease && (
+        <DiseaseModal
+          disease={selectedDisease}
+          isOpen={isDiseaseModalOpen}
+          onClose={() => {
+            setIsDiseaseModalOpen(false);
+            setSelectedDisease(null);
+          }}
+          currentYear={gameDate.year}
+          culturalZone={mapLocationToCulture(currentZone, gameDate.year)}
+        />
+      )}
     </div>
   );
 };

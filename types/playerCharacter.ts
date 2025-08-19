@@ -7,6 +7,7 @@ import { HistoricalEra } from './ambiance';
 import { StatusEffect } from './combat';
 import { FamilyMember, LifeEvent } from './npcTypes';
 import { InteriorViewState, Point } from './index';
+import { CharacterHealth } from './diseaseTypes';
 
 export type EquipmentSlot = 'head' | 'torso' | 'legs' | 'feet' | 
                           'main_hand' | 'off_hand' | 
@@ -99,6 +100,7 @@ export interface PlayerCharacter {
     
     appearance: Appearance;
     birthplace: string;
+    birthYear?: string; // Year the character was born
 
     ideology: string; // ID of the character's primary Ideology
     beliefs: { beliefId: string; conviction: number }[]; // NEW: Beliefs system
@@ -107,6 +109,9 @@ export interface PlayerCharacter {
     family: FamilyMember[];
     lifeEvents: LifeEvent[];
     mapReputation: number;
+    
+    // Disease System
+    diseaseHealth?: CharacterHealth;
 
     // New properties for interior view state
     interiorViewState?: InteriorViewState | null;

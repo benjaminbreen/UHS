@@ -10,6 +10,25 @@ const MODERN_ERA = 'MODERN_ERA';
 export const MENA_FACTIONS: FactionFile = {
     'MENA': {
         "Nile Valley": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Predynastic Kingdoms',
+                dominantPowerDescription: 'Early Egyptian kingdoms along the Nile, developing hieroglyphic writing, monumental architecture, and the foundations of pharaonic civilization.',
+                eraContextSentence: 'a time before the pharaohs, when the Two Lands are divided and the gods walk among mortals.',
+                allegianceGroups: [
+                    { name: 'Upper Egyptian Kings', type: 'primary', description: 'Rulers of the southern Nile valley.' },
+                    { name: 'Lower Egyptian Princes', type: 'secondary', description: 'Delta chieftains of the north.' },
+                    { name: 'Nubian Tribes', type: 'secondary', description: 'Southern peoples with gold and ivory.' }
+                ],
+                structureNames: {
+                    fortress: ['Mud Brick Fort', 'River Fort', 'Desert Outpost'],
+                    quarry: ['Gold Mine', 'Granite Quarry', 'Natron Pit'],
+                    holy_site: ['Proto-Temple', 'Sacred Burial', 'Nile Shrine', 'Animal Necropolis'],
+                    palace: ['Mud Palace', 'Royal Compound', 'Proto-Mastaba'],
+                },
+                courtRoles: {
+                    palace: ['Divine King', 'High Priest', 'Royal Scribe', 'Nomarch', 'Overseer of Gold']
+                }
+            },
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Roman Egypt',
                 dominantPowerDescription: 'Egypt serves as the granary of the Roman Empire, its ancient traditions continuing under imperial administration while Alexandria remains a center of learning.',
@@ -136,6 +155,25 @@ export const MENA_FACTIONS: FactionFile = {
             }
         },
         "Levant": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Canaanite City-States',
+                dominantPowerDescription: 'Bronze Age city-states along the coast and valleys, centers of early alphabetic writing and maritime trade with Egypt and the Aegean.',
+                eraContextSentence: 'an age of walled cities and merchant princes, where Baal and Astarte are worshipped and purple dye brings wealth.',
+                allegianceGroups: [
+                    { name: 'Coastal Cities', type: 'primary', description: 'Phoenician trading centers.' },
+                    { name: 'Inland Kingdoms', type: 'secondary', description: 'Agricultural city-states.' },
+                    { name: 'Desert Nomads', type: 'secondary', description: 'Bedouin tribes of the interior.' }
+                ],
+                structureNames: {
+                    fortress: ['Cyclopean Walls', 'Gate Tower', 'Coastal Fort', 'Desert Keep'],
+                    quarry: ['Cedar Grove', 'Purple Dye Works', 'Copper Mine'],
+                    holy_site: ['High Place', 'Baal Temple', 'Asherah Grove', 'Sacred Pillar'],
+                    palace: ['Merchant Palace', 'City-King Residence', 'Trading Hall'],
+                },
+                courtRoles: {
+                    palace: ['City King', 'High Priest', 'Master Merchant', 'Scribe', 'Harbor Master']
+                }
+            },
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Roman Syria',
                 dominantPowerDescription: 'The crossroads of empires, Syria-Palestine thrives under Roman rule as a vital link between East and West, with diverse populations maintaining their ancient traditions.',
@@ -388,6 +426,25 @@ export const MENA_FACTIONS: FactionFile = {
             }
         },
         "Mesopotamia": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Sumerian City-States',
+                dominantPowerDescription: 'The world\'s first cities rise between the rivers, inventing writing, law codes, and monumental architecture under priest-kings.',
+                eraContextSentence: 'the dawn of civilization, where ziggurats reach toward heaven and cuneiform tablets record the first laws.',
+                allegianceGroups: [
+                    { name: 'Uruk', type: 'primary', description: 'The greatest of the early cities.' },
+                    { name: 'Ur', type: 'secondary', description: 'Rival city of royal tombs.' },
+                    { name: 'Eridu', type: 'secondary', description: 'The first city, sacred to Enki.' }
+                ],
+                structureNames: {
+                    fortress: ['City Walls', 'Gate of Ishtar', 'River Fort'],
+                    quarry: ['Clay Pit', 'Reed Marsh', 'Bitumen Seep'],
+                    holy_site: ['Ziggurat', 'Temple Complex', 'Sacred Precinct', 'House of Tablets'],
+                    palace: ['Lugal Palace', 'Temple Estate', 'Royal Treasury'],
+                },
+                courtRoles: {
+                    palace: ['Lugal', 'Ensi', 'High Priestess', 'Cup Bearer', 'Chief Scribe', 'Diviner']
+                }
+            },
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Parthian Empire',
                 dominantPowerDescription: 'The Parthians rule from Ctesiphon, maintaining the ancient traditions of Mesopotamia while serving as Rome\'s greatest eastern rival.',
@@ -671,6 +728,25 @@ export const MENA_FACTIONS: FactionFile = {
             }
         },
         "Arabian Peninsula": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Sabaean Kingdom',
+                dominantPowerDescription: 'Early Arabian kingdoms controlling the incense trade, with sophisticated irrigation systems and monumental temples in the desert.',
+                eraContextSentence: 'an age of incense and myrrh, where camel caravans cross endless sands and the Queen of Sheba rules from her palace.',
+                allegianceGroups: [
+                    { name: 'Kingdom of Saba', type: 'primary', description: 'Controllers of the incense trade.' },
+                    { name: 'Minaean Traders', type: 'secondary', description: 'Northern Arabian merchants.' },
+                    { name: 'Bedouin Tribes', type: 'secondary', description: 'Desert nomads and raiders.' }
+                ],
+                structureNames: {
+                    fortress: ['Desert Fort', 'Oasis Tower', 'Mountain Refuge', 'Wadi Stronghold'],
+                    quarry: ['Frankincense Grove', 'Salt Flat', 'Date Palm Oasis'],
+                    holy_site: ['Moon Temple', 'Sacred Well', 'Rock Sanctuary', 'Pilgrimage Site'],
+                    palace: ['Mukarrib Palace', 'Oasis Palace', 'Incense Hall'],
+                },
+                courtRoles: {
+                    palace: ['Mukarrib', 'Priest of Almaqah', 'Caravan Master', 'Water Guardian', 'Scribe']
+                }
+            },
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Himyarite Kingdom',
                 dominantPowerDescription: 'Southern Arabia prospers from the incense trade, while northern tribes maintain independence between the Roman and Persian empires.',

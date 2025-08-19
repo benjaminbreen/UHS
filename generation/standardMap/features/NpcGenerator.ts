@@ -16,6 +16,7 @@ import { factoryNpcBehaviorService } from '../../../services/factoryNpcBehaviors
 import { getFactoryType } from '../../../constants/gameData/factoryTypes';
 import { holySiteEconomyService } from '../../../services/holySiteEconomyService';
 import { getClergyRoles } from '../../../constants/characterData/religionClergyRoles';
+import DiseaseService from '../../../services/diseaseService';
 
 
 let standardNpcIdCounter = 0;
@@ -99,6 +100,41 @@ function createNpc(
         
         const name = generateNpcName(baseProfile.gender, context.culturalZone, context.region, context.year, noise, nameKey);
         
+        // Initialize disease health with era-based chance
+        const diseaseService = DiseaseService.getInstance();
+        
+        // 50% chance for medieval and earlier, less for later periods
+        let diseaseChance = 0.5; // Base 50% for medieval
+        if (context.era === 'Renaissance' || context.era === 'EarlyModern') {
+            diseaseChance = 0.35; // 35% for Renaissance/Early Modern
+        } else if (context.era === 'Industrial') {
+            diseaseChance = 0.25; // 25% for Industrial
+        } else if (context.era === 'Modern' || context.era === 'Contemporary') {
+            diseaseChance = 0.15; // 15% for Modern
+        } else if (context.era === 'Classical' || context.era === 'Ancient') {
+            diseaseChance = 0.5; // 50% for ancient times too
+        }
+        
+        const shouldHaveDisease = Math.random() < diseaseChance;
+        
+        let diseaseHealth = undefined;
+        if (shouldHaveDisease) {
+            diseaseHealth = diseaseService.assignDiseasesToEntity(
+                { health: undefined } as any,
+                context.era,
+                context.culturalZone,
+                context.year
+            );
+            
+            if (diseaseHealth && diseaseHealth.currentDiseases.length > 0) {
+                const disease = diseaseHealth.currentDiseases[0].disease;
+                console.log(`[NPC Disease Spawn] ${name} (${role}, ${socialClass}) spawned with ${disease.name} at (${x}, ${y}) - ${(diseaseChance*100).toFixed(0)}% chance in ${context.era}`);
+                if (disease.symptoms && disease.symptoms.length > 0) {
+                    console.log(`  → Symptoms: ${disease.symptoms.join(', ')}`);
+                }
+            }
+        }
+        
         const npc: NpcEntity = {
             ...baseProfile,
             id, x, y, name, class: socialClass, role,
@@ -112,6 +148,7 @@ function createNpc(
             workplaceName: structure?.name,
             inventory: newInventory,
             equippedItems: newEquippedItems,
+            diseaseHealth, // Add disease health with potential disease
         };
         
         statsTracker.successful++;

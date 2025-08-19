@@ -10,6 +10,25 @@ const MODERN_ERA = 'MODERN_ERA';
 export const OCEANIA_FACTIONS: FactionFile = {
     'OCEANIA': {
         "Australia – Southeast": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'First Peoples',
+                dominantPowerDescription: 'The original inhabitants who crossed from New Guinea when sea levels were lower, developing unique cultures and the world\'s oldest continuous traditions.',
+                eraContextSentence: 'the Dreamtime, when the ancestors shaped the land and established the laws that govern all living things.',
+                allegianceGroups: [
+                    { name: 'First Peoples', type: 'primary', description: 'The original inhabitants.' },
+                    { name: 'Coastal Bands', type: 'secondary', description: 'Groups exploiting marine resources.' },
+                    { name: 'Inland Hunters', type: 'secondary', description: 'Groups following megafauna.' }
+                ],
+                structureNames: {
+                    fortress: ['Rock Shelter', 'Defensive Camp', 'Cliff Dwelling'],
+                    quarry: ['Ochre Mine', 'Stone Tool Quarry', 'Shell Midden'],
+                    holy_site: ['Dreaming Site', 'Rock Art Cave', 'Sacred Waterhole', 'Increase Site'],
+                    palace: ["Elder's Camp", 'Ceremonial Ground', 'Meeting Place'],
+                },
+                courtRoles: {
+                    palace: ['Keeper of Law', 'Dreamtime Singer', 'Fire Keeper', 'Tool Maker']
+                }
+            },
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Aboriginal Peoples',
                 dominantPowerDescription: 'Complex Aboriginal societies with sophisticated land management, trade networks, and cultural systems spanning tens of thousands of years.',

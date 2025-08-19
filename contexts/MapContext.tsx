@@ -46,6 +46,7 @@ export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             setLiminalTravelState: gameState.setLiminalTravelState,
             setCurrentZone: gameState.setCurrentZone,
             setCurrentRegion: gameState.setCurrentRegion,
+            onMapConfigDateChange: gameState.onMapConfigDateChange,
         },
     });
 

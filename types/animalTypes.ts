@@ -2,6 +2,7 @@
  * types/animalTypes.ts - Type definitions related to wildlife.
  */
 import { BiomeType, ClimateType, Point, StatusEffect, CulturalZone } from './index';
+import { CharacterHealth } from './diseaseTypes';
 
 export interface AnimalSpecies {
     name: string;
@@ -62,6 +63,7 @@ export interface AnimalEntity {
   isDomestic: boolean;
   health: number;
   maxHealth: number;
+  diseaseHealth?: CharacterHealth; // Disease tracking
   stats: {
     level: number;
     attack: number;

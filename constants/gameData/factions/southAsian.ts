@@ -10,7 +10,7 @@ const MODERN_ERA = 'MODERN_ERA';
 export const SOUTH_ASIAN_FACTIONS: FactionFile = {
     'SOUTH_ASIAN': {
         "Indus Valley": {
-            [HistoricalEra.ANTIQUITY]: {
+            [HistoricalEra.PREHISTORY]: {
                 dominantPower: 'Harappan Civilization',
                 dominantPowerDescription: 'One of the world\'s earliest urban civilizations flourishes with planned cities, sophisticated drainage systems, and extensive trade networks.',
                 eraContextSentence: 'an age of urban planning, where the Indus cities showcase humanity\'s first great civic engineering.',
@@ -29,6 +29,24 @@ export const SOUTH_ASIAN_FACTIONS: FactionFile = {
                 },
                 courtRoles: {
                     palace: ['City Administrator', 'Chief Merchant', 'Water Engineer']
+                }
+            },
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Vedic Kingdoms',
+                dominantPowerDescription: 'Indo-Aryan kingdoms establish the foundations of Hindu civilization, composing the Vedas and epic literature.',
+                eraContextSentence: 'the age of the Mahabharata, where dharma guides kings and great sages compose eternal truths.',
+                allegianceGroups: [
+                    { name: 'Kuru Kingdom', type: 'primary', description: 'Center of Vedic culture.' },
+                    { name: 'Panchala', type: 'secondary', description: 'Allied kingdom of scholars.' },
+                    { name: 'Gandhara', type: 'secondary', description: 'Northwestern kingdom with Persian ties.' }
+                ],
+                structureNames: {
+                    fortress: ['Raja Fort', 'River Citadel'],
+                    holy_site: ['Vedic Fire Altar', 'Ashram', 'Sacred Grove'],
+                    palace: ['Raja Sabha', 'Royal Court'],
+                },
+                courtRoles: {
+                    palace: ['Raja', 'Purohit', 'Senapati', 'Court Poet']
                 }
             },
             [HistoricalEra.MEDIEVAL]: {

@@ -6,7 +6,7 @@ import {
     PlayerCharacter, Item, EquipmentSlot, GameDate, ViewMode, InteriorViewState, 
     Point, EdgeTileInfo, BiomeType, NpcEntity, isNpc, isAnimal, InteriorMapData, TerrainStructure, Tile, MapData
 } from '../types';
-import { generateCharacter } from '../services/characterGenerator';
+import { generateCharacter, generateCharacterWithSpec } from '../services/characterGenerator';
 import { enhanceCharacterProfile } from '../services/llmService';
 import { addItemToInventory, createItemInstance } from '../utils/inventoryUtils';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES } from '../constants/index';
@@ -47,7 +47,9 @@ export const usePlayerState = (props: usePlayerStateProps) => {
     
     const handleCharacterGeneration = useCallback(async (useLlm: boolean) => {
         setIsEnhancing(true);
+        
         const newChar = generateCharacter({ date: String(gameDate.year), location: currentZone, region: currentRegion });
+        
         if (useLlm) {
             try {
                 const enhancedData = await enhanceCharacterProfile(newChar, { date: String(gameDate.year), location: currentZone, region: currentRegion });

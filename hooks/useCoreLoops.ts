@@ -16,6 +16,8 @@ import { AmbianceContext, BiomeType, Item, PlayerContext, TerrainStructureType }
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { createItemInstance, addItemToInventory } from '../utils/inventoryUtils';
 import { LogService } from '../services/logService';
+import DiseaseService from '../services/diseaseService';
+import { questService } from '../services/questService';
 
 
 const useCoreLoops = () => {
@@ -44,7 +46,7 @@ const useCoreLoops = () => {
     } = usePlayer();
 
     const { 
-        mapData, setAnimals, animalSpawnNoise, npcs, setNpcs, localArea,
+        mapData, animals, setAnimals, animalSpawnNoise, npcs, setNpcs, localArea,
         visibleAnimals,
         currentMapArchetype, currentMapClimate, currentMapSeed,
         handleMapTransition,
@@ -61,6 +63,85 @@ const useCoreLoops = () => {
     const moveLoopId = useRef<number | null>(null);
     const lastMoveTime = useRef<number>(0);
     const moveIntervalMs = 80;
+    const questsInitialized = useRef<boolean>(false);
+
+    // Quest Initialization - Generate quests when map and player are ready
+    useEffect(() => {
+        if (!mapData || !playerCharacter || questsInitialized.current) return;
+        
+        // Check if we have valid structures to generate quests from
+        const validStructures = mapData.terrainStructures?.filter(s => 
+            ['ruins', 'palace', 'marketplace', 'urban', 'holy_site', 'farm'].includes(s.structureType)
+        ) || [];
+        
+        if (validStructures.length === 0) {
+            console.log('[QuestInit] No valid structures for quest generation');
+            return;
+        }
+        
+        // Generate between 1-10 quests based on available structures
+        const numQuests = Math.min(10, Math.max(1, Math.floor(validStructures.length / 3)));
+        console.log(`[QuestInit] Generating ${numQuests} initial quests from ${validStructures.length} structures`);
+        
+        try {
+            // Determine cultural zone and era
+            const culturalZone = mapLocationToCulture(currentZone, gameDate.year);
+            const dateInfo = parseDateString(String(gameDate.year));
+            
+            // Generate initial quests
+            const generatedQuests = questService.generateInitialQuests(
+                'standard', // game mode
+                mapData.terrainStructures || [],
+                { x: controlledIconX || 50, y: controlledIconY || 50 },
+                culturalZone,
+                dateInfo.era,
+                mapData
+            );
+            
+            // If not enough quests generated, create simple exploration quests for structures
+            const currentQuestCount = questService.getActiveQuests().length;
+            if (currentQuestCount < numQuests) {
+                const additionalNeeded = numQuests - currentQuestCount;
+                const shuffledStructures = [...validStructures].sort(() => Math.random() - 0.5);
+                
+                for (let i = 0; i < additionalNeeded && i < shuffledStructures.length; i++) {
+                    const structure = shuffledStructures[i];
+                    const simpleQuest = {
+                        id: `quest_explore_${structure.id}_${Date.now()}`,
+                        title: `Investigate the ${structure.structureType.replace('_', ' ')}`,
+                        description: `There's a ${structure.structureType.replace('_', ' ')} nearby that might be worth investigating.`,
+                        category: 'exploration' as const,
+                        objectives: [{
+                            id: 'obj_1',
+                            description: `Visit the ${structure.structureType.replace('_', ' ')}`,
+                            type: 'visit_location' as const,
+                            targetLocation: { x: structure.location[0], y: structure.location[1] },
+                            targetType: structure.structureType as any,
+                            completed: false
+                        }],
+                        currentObjectiveIndex: 0,
+                        rewards: [{
+                            type: 'reputation' as const,
+                            value: 5,
+                            description: 'Reputation +5'
+                        }],
+                        startLocation: { x: controlledIconX || 50, y: controlledIconY || 50 },
+                        startTime: Date.now(),
+                        status: 'active' as const,
+                        isProceduralQuest: true
+                    };
+                    questService.addQuest(simpleQuest);
+                }
+            }
+            
+            const finalQuestCount = questService.getActiveQuests().length;
+            console.log(`[QuestInit] Successfully initialized ${finalQuestCount} quests`);
+            questsInitialized.current = true;
+            
+        } catch (error) {
+            console.error('[QuestInit] Failed to generate initial quests:', error);
+        }
+    }, [mapData, playerCharacter, controlledIconX, controlledIconY, currentZone, gameDate]);
 
     // Game Clock
     useEffect(() => {
@@ -83,6 +164,50 @@ const useCoreLoops = () => {
                                         year++;
                                     }
                                 }
+                                
+                                // Disease progression on new day for player character
+                                if (playerCharacter?.diseaseHealth?.currentDiseases?.length > 0) {
+                                    const diseaseService = DiseaseService.getInstance();
+                                    const result = diseaseService.updateDiseaseProgression(playerCharacter, year);
+                                    
+                                    // Log progression events
+                                    result.progressionEvents.forEach(event => {
+                                        console.log(`[DISEASE] ${event}`);
+                                    });
+                                    
+                                    // Log recovery events  
+                                    result.recoveryEvents.forEach(event => {
+                                        console.log(`[DISEASE RECOVERY] ${event}`);
+                                        // Show recovery notification (placeholder for now)
+                                        if (typeof window !== 'undefined' && (window as any).showNotification) {
+                                            (window as any).showNotification('You have recovered from your illness!', 'success');
+                                        }
+                                    });
+                                    
+                                    // Check for death from disease
+                                    if (result.mortalityRisk && playerCharacter.diseaseHealth.currentDiseases.length > 0) {
+                                        // Get the most severe disease
+                                        const mostSevere = playerCharacter.diseaseHealth.currentDiseases.reduce((worst: any, current: any) => {
+                                            const currentMortality = current.disease.mortalityRate * current.severity;
+                                            const worstMortality = worst.disease.mortalityRate * worst.severity;
+                                            return currentMortality > worstMortality ? current : worst;
+                                        });
+                                        
+                                        const deathChance = mostSevere.disease.mortalityRate * mostSevere.severity;
+                                        
+                                        if (Math.random() < deathChance) {
+                                            console.log(`[DISEASE DEATH] Player has died from ${mostSevere.disease.name}!`);
+                                            // Show death modal placeholder
+                                            setTimeout(() => {
+                                                alert(`Death feature to be implemented.\n\nYour character has succumbed to ${mostSevere.disease.name}.`);
+                                            }, 100);
+                                        }
+                                    }
+                                    
+                                    // Update the player character to trigger re-render
+                                    setPlayerCharacter({ ...playerCharacter });
+                                }
+                                
                                 return { day, month, year };
                             });
                         }
@@ -137,7 +262,8 @@ const useCoreLoops = () => {
         const tickInterval = setInterval(() => {
             if (isAnyModalOpen || !playerCharacter) return;
             
-            if (viewMode === 'standard' && mapData && npcs.length > 0 && controlledIconX !== null && controlledIconY !== null) {
+            if (viewMode === 'standard' && mapData && controlledIconX !== null && controlledIconY !== null) {
+                // Update NPCs with normal movement/behavior
                 setNpcs(prevNpcs => {
                     return prevNpcs.map(npc => {
                         if (Math.hypot(npc.x - controlledIconX, npc.y - controlledIconY) <= AI_UPDATE_RADIUS) {
@@ -151,6 +277,210 @@ const useCoreLoops = () => {
 
         return () => clearInterval(tickInterval);
     }, [mapData, npcs, playerCharacter, controlledIconX, controlledIconY, viewMode, isAnyModalOpen, setNpcs, gameTimeHours]);
+
+    // Disease Spreading Tick - runs every 10 seconds
+    useEffect(() => {
+        const SPREAD_RADIUS = 30; // Only check disease spread near player
+        
+        const diseaseInterval = setInterval(() => {
+            if (isAnyModalOpen || !playerCharacter || viewMode !== 'standard') return;
+            if (controlledIconX === null || controlledIconY === null) return;
+            
+            // Handle NPC-to-NPC and Animal-to-Animal spreading
+            setNpcs(prevNpcs => {
+                const updatedNpcs = [...prevNpcs];
+                
+                for (let i = 0; i < updatedNpcs.length; i++) {
+                    const npc1 = updatedNpcs[i];
+                    
+                    // Only process NPCs near player
+                    if (Math.hypot(npc1.x - controlledIconX, npc1.y - controlledIconY) > SPREAD_RADIUS) continue;
+                    
+                    // Skip if no disease
+                    if (!npc1.diseaseHealth?.currentDiseases?.length) continue;
+                    
+                    const disease = npc1.diseaseHealth.currentDiseases[0];
+                    
+                    // Check against other NPCs
+                    for (let j = 0; j < updatedNpcs.length; j++) {
+                        if (i === j) continue;
+                        const npc2 = updatedNpcs[j];
+                        
+                        // Skip if already diseased
+                        if (npc2.diseaseHealth?.currentDiseases?.length) continue;
+                        
+                        const distance = Math.hypot(npc1.x - npc2.x, npc1.y - npc2.y);
+                        if (distance <= 2) {
+                            // Base 10% chance at 1 tile, 5% at 2 tiles
+                            let baseChance = distance <= 1 ? 0.10 : 0.05;
+                            
+                            // Modify by disease virality (if available)
+                            const virality = disease.disease.transmissionRate || 1.0;
+                            baseChance *= virality;
+                            
+                            // Modify by target's constitution (higher constitution = lower chance)
+                            const constitution = npc2.stats?.constitution || 10;
+                            if (constitution > 14) baseChance *= 0.7; // Strong constitution
+                            if (constitution < 8) baseChance *= 1.3; // Weak constitution
+                            
+                            if (Math.random() < baseChance) {
+                                updatedNpcs[j] = {
+                                    ...npc2,
+                                    diseaseHealth: {
+                                        currentDiseases: [{
+                                            ...disease,
+                                            contractedDate: Date.now(),
+                                            stage: 'early'
+                                        }],
+                                        exposureHistory: [],
+                                        resistances: {}
+                                    }
+                                };
+                                console.log(`[NPC→NPC Disease Spread] ${npc1.name}'s ${disease.disease.name} spread to ${npc2.name} at distance ${distance.toFixed(1)} tiles (${(baseChance*100).toFixed(1)}% chance)`);
+                            }
+                        }
+                    }
+                }
+                
+                return updatedNpcs;
+            });
+            
+            // Handle animal-to-animal and cross-species spreading
+            setAnimals(prevAnimals => {
+                const updatedAnimals = [...prevAnimals];
+                const currentNpcs = npcs;
+                
+                // Animal-to-animal spreading
+                for (let i = 0; i < updatedAnimals.length; i++) {
+                    const animal1 = updatedAnimals[i];
+                    
+                    // Only process animals near player
+                    if (Math.hypot(animal1.x - controlledIconX, animal1.y - controlledIconY) > SPREAD_RADIUS) continue;
+                    
+                    // Skip if no disease
+                    if (!animal1.diseaseHealth?.currentDiseases?.length) continue;
+                    
+                    const disease = animal1.diseaseHealth.currentDiseases[0];
+                    
+                    // Check against other animals
+                    for (let j = 0; j < updatedAnimals.length; j++) {
+                        if (i === j) continue;
+                        const animal2 = updatedAnimals[j];
+                        
+                        // Skip if already diseased
+                        if (animal2.diseaseHealth?.currentDiseases?.length) continue;
+                        
+                        const distance = Math.hypot(animal1.x - animal2.x, animal1.y - animal2.y);
+                        if (distance <= 2) {
+                            // Base 10% chance at 1 tile for same species, lower for different
+                            const sameSpecies = animal1.speciesName === animal2.speciesName;
+                            let baseChance = distance <= 1 ? (sameSpecies ? 0.10 : 0.05) : (sameSpecies ? 0.05 : 0.02);
+                            
+                            // Modify by disease virality
+                            const virality = disease.disease.transmissionRate || 1.0;
+                            baseChance *= virality;
+                            
+                            if (Math.random() < baseChance) {
+                                updatedAnimals[j] = {
+                                    ...animal2,
+                                    diseaseHealth: {
+                                        currentDiseases: [{
+                                            ...disease,
+                                            contractedDate: Date.now(),
+                                            stage: 'early'
+                                        }],
+                                        exposureHistory: [],
+                                        resistances: {}
+                                    }
+                                };
+                                console.log(`[Animal→Animal Disease Spread] ${animal1.speciesName}'s ${disease.disease.name} spread to ${animal2.speciesName} at distance ${distance.toFixed(1)} tiles (${(baseChance*100).toFixed(1)}% chance)`);
+                            }
+                        }
+                    }
+                    
+                    // Check for cross-species transmission to NPCs
+                    currentNpcs.forEach(npc => {
+                        if (npc.diseaseHealth?.currentDiseases?.length) return; // Skip if already diseased
+                        
+                        const distance = Math.hypot(animal1.x - npc.x, animal1.y - npc.y);
+                        if (distance <= 1.5) {
+                            // Lower chance for cross-species (3% at 1 tile)
+                            let baseChance = distance <= 1 ? 0.03 : 0.015;
+                            
+                            // Modify by disease zoonotic potential (some diseases more likely to jump species)
+                            const virality = disease.disease.transmissionRate || 1.0;
+                            baseChance *= virality * 0.5; // Half effectiveness for cross-species
+                            
+                            if (Math.random() < baseChance) {
+                                // Update NPC through setNpcs
+                                setNpcs(prevNpcs => prevNpcs.map(n => {
+                                    if (n.id === npc.id) {
+                                        console.log(`[Animal→Human Disease Spread] ${animal1.speciesName}'s ${disease.disease.name} jumped to ${npc.name} at distance ${distance.toFixed(1)} tiles (${(baseChance*100).toFixed(1)}% chance)`);
+                                        return {
+                                            ...n,
+                                            diseaseHealth: {
+                                                currentDiseases: [{
+                                                    ...disease,
+                                                    contractedDate: Date.now(),
+                                                    stage: 'early'
+                                                }],
+                                                exposureHistory: [],
+                                                resistances: {}
+                                            }
+                                        };
+                                    }
+                                    return n;
+                                }));
+                            }
+                        }
+                    });
+                }
+                
+                // Check for human-to-animal transmission
+                currentNpcs.forEach(npc => {
+                    if (!npc.diseaseHealth?.currentDiseases?.length) return;
+                    
+                    const disease = npc.diseaseHealth.currentDiseases[0];
+                    
+                    for (let i = 0; i < updatedAnimals.length; i++) {
+                        const animal = updatedAnimals[i];
+                        
+                        if (animal.diseaseHealth?.currentDiseases?.length) continue; // Skip if already diseased
+                        
+                        const distance = Math.hypot(npc.x - animal.x, npc.y - animal.y);
+                        if (distance <= 1.5) {
+                            // Even lower chance for human-to-animal (2% at 1 tile)
+                            let baseChance = distance <= 1 ? 0.02 : 0.01;
+                            
+                            const virality = disease.disease.transmissionRate || 1.0;
+                            baseChance *= virality * 0.3; // Even less effective human-to-animal
+                            
+                            if (Math.random() < baseChance) {
+                                updatedAnimals[i] = {
+                                    ...animal,
+                                    diseaseHealth: {
+                                        currentDiseases: [{
+                                            ...disease,
+                                            contractedDate: Date.now(),
+                                            stage: 'early'
+                                        }],
+                                        exposureHistory: [],
+                                        resistances: {}
+                                    }
+                                };
+                                console.log(`[Human→Animal Disease Spread] ${npc.name}'s ${disease.disease.name} jumped to ${animal.speciesName} at distance ${distance.toFixed(1)} tiles (${(baseChance*100).toFixed(1)}% chance)`);
+                            }
+                        }
+                    }
+                });
+                
+                return updatedAnimals;
+            });
+            
+        }, 10000); // Run every 10 seconds
+
+        return () => clearInterval(diseaseInterval);
+    }, [isAnyModalOpen, playerCharacter, viewMode, controlledIconX, controlledIconY, npcs, animals, setNpcs, setAnimals]);
 
      // Economy Tick (Taxation)
     useEffect(() => {
@@ -390,6 +720,57 @@ const useCoreLoops = () => {
                     setShipDockX(null); setShipDockY(null); showToast("Embarked!");
                 } else if (targetTile.isLand) { setControlledIconX(newLogicalX); setControlledIconY(newLogicalY); } 
                 else { isIconMoving.current = false; }
+            }
+
+            // Disease proximity detection after successful movement
+            if (playerCharacter && playerCharacter.health) {
+                const diseaseService = DiseaseService.getInstance();
+                const currentYear = gameDate.year;
+                
+                // Check for disease exposure from nearby NPCs and animals
+                const nearbyEntities = [...(npcs || []), ...(visibleAnimals || [])].filter(entity => {
+                    const distance = Math.sqrt(Math.pow(entity.x - newLogicalX, 2) + Math.pow(entity.y - newLogicalY, 2));
+                    return distance <= 1.5; // Within proximity range
+                });
+
+                for (const entity of nearbyEntities) {
+                    if (entity.health?.currentDiseases && entity.health.currentDiseases.length > 0) {
+                        const transmissionResult = diseaseService.checkProximityTransmission(
+                            entity,
+                            playerCharacter,
+                            Math.sqrt(Math.pow(entity.x - newLogicalX, 2) + Math.pow(entity.y - newLogicalY, 2)),
+                            currentYear
+                        );
+
+                        // Add narrative hints to the game
+                        if (transmissionResult.narrativeHints.length > 0) {
+                            for (const hint of transmissionResult.narrativeHints) {
+                                addGameLogEntry({
+                                    id: `disease-hint-${Date.now()}-${Math.random()}`,
+                                    message: hint,
+                                    type: 'observation',
+                                    timestamp: formattedTime,
+                                    gameDate: gameDate
+                                });
+                            }
+                        }
+
+                        // If disease was transmitted, update player character
+                        if (transmissionResult.transmitted) {
+                            setPlayerCharacter(prev => prev ? { ...prev, health: playerCharacter.health } : null);
+                            
+                            // Add transmission notification
+                            const transmittedDiseases = transmissionResult.exposures
+                                .filter(exposure => playerCharacter.health?.currentDiseases
+                                    ?.some(disease => disease.disease.id === exposure.diseaseId))
+                                .map(exposure => exposure.diseaseId);
+                                
+                            if (transmittedDiseases.length > 0) {
+                                showToast(`You may have been exposed to disease`, 'warning');
+                            }
+                        }
+                    }
+                }
             }
         };
         moveLoopId.current = requestAnimationFrame(moveLoop);

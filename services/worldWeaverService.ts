@@ -6,6 +6,22 @@
 import { GoogleGenAI } from "@google/genai";
 import { generateMapAreaListForPrompt, isValidMapAreaName } from '../utils/generateMapAreaList';
 import { findZoneForMapArea } from '../utils/mapAreaLookup';
+import { eventService } from './eventService';
+import { llmEventService } from './llmEventService';
+import { GAME_MODES, suggestGameMode } from '../constants/gameData/gameModes';
+import { GameMode, EventArchetype, SpecialNPC } from '../types/eventTypes';
+import { DISEASES } from '../constants/gameData/diseases';
+
+export interface CharacterSpecification {
+  name?: string;
+  age?: number;
+  gender?: 'male' | 'female';
+  profession?: string;
+  health?: 'healthy' | 'average' | 'unhealthy' | 'sickly';
+  socialClass?: 'peasant' | 'commoner' | 'merchant' | 'noble';
+  traits?: string[];
+  disease?: string; // Disease ID like BUBONIC_PLAGUE
+}
 
 export interface WorldWeaverResult {
   success: boolean;
@@ -17,24 +33,79 @@ export interface WorldWeaverResult {
   reasoning?: string;
   suggestion?: string;
   errorMessage?: string;
+  characterSpec?: CharacterSpecification;
+  gameMode?: GameMode;
+  customEvents?: EventArchetype[];
+  specialNPCs?: SpecialNPC[];
 }
 
 // Generate the exact list of valid map areas from the game data
 const MAP_AREAS_LIST = generateMapAreaListForPrompt();
 console.log('[WorldWeaverService] Generated map areas list with', MAP_AREAS_LIST.split('\n').length, 'lines');
 
-const WORLD_WEAVER_PROMPT = `You are WorldWeaver, an AI that converts user prompts into historical game settings.
+// Generate list of available diseases for the prompt
+const DISEASE_LIST = DISEASES.map(d => `- ${d.id}: ${d.name} (${d.severity})`).join('\n');
+console.log('[WorldWeaverService] Generated disease list with', DISEASES.length, 'diseases');
 
-Given ANY user input, try to create a plausible historical setting with:
-1. A specific year (between -3000 and 2020)
-2. A specific map area from the EXACT list below (NO VARIATIONS OR ALTERNATIVES)
+const WORLD_WEAVER_PROMPT = `You are WorldWeaver, an AI that converts user prompts into historical game settings and player characters.
 
-Examples of how to interpret prompts:
+Given ANY user input, extract TWO things:
+1. SETTING: A specific year and map area
+2. CHARACTER: Optional player character specifications (if mentioned)
+
+TIME PERIOD GUIDELINES:
+- Neolithic/Stone Age: -5000 to -3000
+- Bronze Age: -3000 to -1200  
+- Iron Age: -1200 to -500
+- Classical Antiquity: -500 to 500
+- Medieval: 500 to 1453
+- Renaissance: 1453 to 1600
+- Early Modern: 1600 to 1800
+- Industrial: 1800 to 1900
+- Modern: 1900 to 2020
+
+Always try to interpret the prompt creatively to find a valid historical setting.
+
+CHARACTER EXTRACTION RULES:
+- Look for character details like age, gender, name, profession, health status, social class, diseases
+- Examples:
+  - "35 year old female spy" → age: 35, gender: "female", profession: "spy"
+  - "unhealthy peasant named Hans" → health: "unhealthy", socialClass: "peasant", name: "Hans"
+  - "young merchant" → profession: "merchant", traits: ["young"]
+  - "sickly noble woman" → health: "sickly", socialClass: "noble", gender: "female"
+  - "peasant with the plague" → socialClass: "peasant", disease: "BUBONIC_PLAGUE"
+  - "soldier suffering from typhus" → profession: "soldier", disease: "TYPHUS"
+- If NO character is specified, leave characterSpec as null
+
+DISEASE EXTRACTION:
+If the prompt mentions a disease or illness, match it to one of these available diseases:
+${DISEASE_LIST}
+
+Disease matching examples:
+- "plague", "black death", "bubonic plague" → disease: "BUBONIC_PLAGUE"
+- "smallpox", "pox" → disease: "SMALLPOX"
+- "cholera" → disease: "CHOLERA"
+- "typhus", "typhoid" → disease: "TYPHUS"
+- "flu", "influenza", "grippe" → disease: "INFLUENZA"
+- "tuberculosis", "consumption", "TB" → disease: "TUBERCULOSIS"
+- "leprosy", "Hansen's disease" → disease: "LEPROSY"
+- "malaria", "ague", "fever" → disease: "MALARIA"
+- "dysentery", "bloody flux" → disease: "DYSENTERY"
+
+SETTING EXTRACTION:
+Examples of how to interpret prompts for settings:
+- "french revolution" → 1793 "Paris Basin"
 - "sandwich" → 1760s "London" (Earl of Sandwich era)
 - "pirates" → 1715 "Greater Antilles" (Golden Age of Piracy)
 - "robinson crusoe" → 1659 "Lesser Antilles" (uninhabited island)
 - "tea" → 1773 "Boston Harbor" (Boston Tea Party)
 - "gold rush" → 1849 "Sacramento Valley" (California Gold Rush)
+- "neolithic" or "stone age" → -5000 to -3000 (choose appropriate location)
+- "bronze age" → -3000 to -1200 (choose appropriate location)
+- "ancient egypt" → -1500 "Lower Nile Valley" or "Upper Nile Valley"
+- "ancient rome" → 100 "Central Italy"
+- "turkey" or "anatolia" → "Cappadocian Highlands" (for inland Turkey)
+- "mesopotamia" or "babylon" → "Mesopotamia"
 
 CRITICAL REQUIREMENT: You MUST select a map area name that appears EXACTLY in the list below. Do not create variations, do not use similar names, do not use city names that aren't listed. ONLY use the exact names from this list:
 
@@ -55,7 +126,17 @@ Return JSON only:
   "mapArea": "EXACT name from list - COPY AND PASTE, no variations!",
   "explanation": "Brief explanation of the setting and connection to the prompt",
   "reasoning": "1-2 sentences explaining why you chose this specific date and location",
-  "suggestion": "1 sentence suggesting what the player might try doing in this setting"
+  "suggestion": "1 sentence suggesting what the player might try doing in this setting",
+  "characterSpec": {
+    "name": "string or null",
+    "age": number or null,
+    "gender": "male" or "female" or null,
+    "profession": "string or null",
+    "health": "healthy" or "average" or "unhealthy" or "sickly" or null,
+    "socialClass": "peasant" or "commoner" or "merchant" or "noble" or null,
+    "traits": ["array", "of", "traits"] or null,
+    "disease": "DISEASE_ID from list above or null"
+  } or null
 }
 
 If you cannot find a suitable connection or cannot interpret the prompt, return:
@@ -92,6 +173,10 @@ class WorldWeaverService {
       let response = result.text;
       console.log('[WorldWeaverService] Raw LLM response:', response);
       
+      // Track API call with input/output
+      eventService.trackAPICall(fullPrompt, response);
+      console.log('[WorldWeaverService] API call tracked with history');
+      
       // Remove markdown code blocks if present
       response = response.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
       console.log('[WorldWeaverService] Cleaned response:', response);
@@ -119,7 +204,8 @@ class WorldWeaverService {
                 region: zoneRegion.region,
                 explanation: result.explanation,
                 reasoning: result.reasoning,
-                suggestion: result.suggestion
+                suggestion: result.suggestion,
+                characterSpec: result.characterSpec || null
               };
             }
             
@@ -131,7 +217,8 @@ class WorldWeaverService {
           
           console.log('[WorldWeaverService] Valid map area! Returning:', {
             year: result.year,
-            mapArea: result.mapArea
+            mapArea: result.mapArea,
+            characterSpec: result.characterSpec
           });
           
           // Find the zone and region for this valid area
@@ -145,7 +232,8 @@ class WorldWeaverService {
             region: zoneRegion?.region,
             explanation: result.explanation,
             reasoning: result.reasoning,
-            suggestion: result.suggestion
+            suggestion: result.suggestion,
+            characterSpec: result.characterSpec || null
           };
         } else {
           console.log('[WorldWeaverService] Failed with error:', result.errorMessage);
@@ -169,6 +257,169 @@ class WorldWeaverService {
         errorMessage: "Service temporarily unavailable"
       };
     }
+  }
+
+  /**
+   * Generate a complete scenario with game mode, events, and NPCs
+   */
+  async generateScenario(userPrompt: string): Promise<WorldWeaverResult> {
+    console.log('[WorldWeaverService] Generating complete scenario for:', userPrompt);
+    
+    // First, interpret the basic prompt
+    const baseResult = await this.interpretPrompt(userPrompt);
+    
+    if (!baseResult.success || !baseResult.year || !baseResult.mapArea) {
+      return baseResult;
+    }
+
+    try {
+      // Determine the appropriate game mode
+      const gameMode = this.determineGameMode(userPrompt, baseResult.characterSpec);
+      console.log('[WorldWeaverService] Selected game mode:', gameMode.name);
+      
+      // Generate historical context
+      const historicalContext = this.buildHistoricalContext(
+        baseResult.year,
+        baseResult.mapArea,
+        baseResult.characterSpec
+      );
+      
+      // Generate custom events for this scenario
+      const customEvents = await llmEventService.generateCustomEvents(
+        gameMode.id,
+        historicalContext,
+        this.getPlayerContext(baseResult.characterSpec),
+        baseResult.year,
+        baseResult.mapArea
+      );
+      console.log('[WorldWeaverService] Generated', customEvents.length, 'custom events');
+      
+      // Generate special NPCs
+      const specialNPCs = await llmEventService.generateSpecialNPCs(
+        historicalContext,
+        baseResult.year,
+        baseResult.mapArea,
+        2 // Generate 2 special NPCs
+      );
+      console.log('[WorldWeaverService] Generated', specialNPCs.length, 'special NPCs');
+      
+      // Set the game mode in the event service
+      eventService.setGameMode(gameMode);
+      
+      // Set custom events in the event service
+      if (customEvents.length > 0) {
+        eventService.setCustomEventArchetypes(customEvents);
+      }
+      
+      return {
+        ...baseResult,
+        gameMode,
+        customEvents,
+        specialNPCs
+      };
+    } catch (error) {
+      console.error('[WorldWeaverService] Error generating scenario:', error);
+      return baseResult; // Return base result even if enhancement fails
+    }
+  }
+
+  /**
+   * Determine the best game mode based on the prompt
+   */
+  private determineGameMode(prompt: string, characterSpec?: CharacterSpecification): GameMode {
+    const lowerPrompt = prompt.toLowerCase();
+    
+    // Check for mode keywords in prompt
+    if (lowerPrompt.includes('survive') || lowerPrompt.includes('plague') || 
+        lowerPrompt.includes('famine') || lowerPrompt.includes('escape')) {
+      return GAME_MODES.find(m => m.id === 'survival')!;
+    }
+    
+    if (lowerPrompt.includes('explore') || lowerPrompt.includes('discover') || 
+        lowerPrompt.includes('expedition') || lowerPrompt.includes('captain')) {
+      return GAME_MODES.find(m => m.id === 'exploration')!;
+    }
+    
+    if (lowerPrompt.includes('merchant') || lowerPrompt.includes('trade') || 
+        lowerPrompt.includes('business') || lowerPrompt.includes('wealth')) {
+      return GAME_MODES.find(m => m.id === 'commerce')!;
+    }
+    
+    if (lowerPrompt.includes('scholar') || lowerPrompt.includes('research') || 
+        lowerPrompt.includes('study') || lowerPrompt.includes('university')) {
+      return GAME_MODES.find(m => m.id === 'scholarship')!;
+    }
+    
+    if (lowerPrompt.includes('lead') || lowerPrompt.includes('rule') || 
+        lowerPrompt.includes('govern') || lowerPrompt.includes('mayor')) {
+      return GAME_MODES.find(m => m.id === 'leadership')!;
+    }
+    
+    if (lowerPrompt.includes('diplomat') || lowerPrompt.includes('negotiate') || 
+        lowerPrompt.includes('ambassador') || lowerPrompt.includes('peace')) {
+      return GAME_MODES.find(m => m.id === 'diplomacy')!;
+    }
+    
+    if (lowerPrompt.includes('law') || lowerPrompt.includes('judge') || 
+        lowerPrompt.includes('justice') || lowerPrompt.includes('court')) {
+      return GAME_MODES.find(m => m.id === 'legal')!;
+    }
+    
+    // Use character profession to suggest mode
+    if (characterSpec?.profession) {
+      return suggestGameMode(characterSpec.profession);
+    }
+    
+    // Default to livelihood mode for ordinary people
+    return GAME_MODES.find(m => m.id === 'livelihood')!;
+  }
+
+  /**
+   * Build historical context string
+   */
+  private buildHistoricalContext(year: number, location: string, characterSpec?: CharacterSpecification): string {
+    const profession = characterSpec?.profession || 'commoner';
+    const socialClass = characterSpec?.socialClass || 'commoner';
+    
+    let context = `${location} in ${year}`;
+    
+    if (year < 0) {
+      context = `${location} in ${Math.abs(year)} BCE`;
+    }
+    
+    context += `. Player is a ${socialClass} ${profession}`;
+    
+    // Add era-specific context
+    if (year >= 1347 && year <= 1353 && location.includes('Europe')) {
+      context += ' during the Black Death pandemic';
+    } else if (year >= 1845 && year <= 1852 && location.includes('Ireland')) {
+      context += ' during the Great Famine';
+    } else if (year >= 1914 && year <= 1918) {
+      context += ' during World War I';
+    } else if (year >= 1929 && year <= 1939) {
+      context += ' during the Great Depression';
+    }
+    
+    return context;
+  }
+
+  /**
+   * Get player context string
+   */
+  private getPlayerContext(characterSpec?: CharacterSpecification): string {
+    if (!characterSpec) {
+      return 'An ordinary person trying to survive';
+    }
+    
+    const parts = [];
+    
+    if (characterSpec.name) parts.push(characterSpec.name);
+    if (characterSpec.age) parts.push(`age ${characterSpec.age}`);
+    if (characterSpec.gender) parts.push(characterSpec.gender);
+    if (characterSpec.profession) parts.push(characterSpec.profession);
+    if (characterSpec.socialClass) parts.push(`${characterSpec.socialClass} class`);
+    
+    return parts.join(', ') || 'An ordinary person';
   }
 }
 

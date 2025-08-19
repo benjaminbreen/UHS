@@ -275,7 +275,7 @@ const MarketplaceSymbol: React.FC<MarketplaceSymbolProps> = React.memo(({ x, y, 
                                 const stripeWidth = (stallW + size*0.1) / 8;
                                 return (
                                     <rect
-                                        key={`stripe-${stripeIndex}`}
+                                        key={`stripe-${i}-${stripeIndex}`}
                                         x={stallX - size*0.05 + (stripeIndex * stripeWidth)}
                                         y={stallY}
                                         width={stripeWidth}

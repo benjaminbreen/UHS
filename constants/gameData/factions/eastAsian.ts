@@ -11,6 +11,25 @@ const FUTURE_ERA = 'FUTURE_ERA';
 export const EAST_ASIAN_FACTIONS: FactionFile = {
     'EAST_ASIAN': {
         "North China Plain": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Shang Dynasty',
+                dominantPowerDescription: 'Bronze Age civilization along the Yellow River, masters of oracle bone divination and bronze ritual vessels, laying foundations for Chinese culture.',
+                eraContextSentence: 'the dawn of Chinese civilization, where oracle bones speak to ancestors and bronze vessels honor the gods.',
+                allegianceGroups: [
+                    { name: 'Shang Kings', type: 'primary', description: 'Divine rulers with the Mandate of Heaven.' },
+                    { name: 'Zhou Tribes', type: 'secondary', description: 'Western peoples who will overthrow Shang.' },
+                    { name: 'Eastern Yi', type: 'secondary', description: 'Coastal tribes to the east.' }
+                ],
+                structureNames: {
+                    fortress: ['Rammed Earth Walls', 'Royal Tomb', 'Watchtower', 'River Fort'],
+                    quarry: ['Bronze Foundry', 'Jade Workshop', 'Oracle Bone Archive'],
+                    holy_site: ['Ancestral Temple', 'Royal Tomb Complex', 'Divination Hall', 'Sacred Mount'],
+                    palace: ['Royal Palace', 'Bronze Workshop', 'Oracle Chamber'],
+                },
+                courtRoles: {
+                    palace: ['Shang King', 'Oracle Priest', 'Bronze Master', 'Royal Diviner', 'Scribe', 'General']
+                }
+            },
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Han Dynasty',
                 dominantPowerDescription: 'The Han Dynasty establishes the template for Chinese civilization, creating a unified empire with sophisticated administration and cultural achievements.',
@@ -371,6 +390,25 @@ export const EAST_ASIAN_FACTIONS: FactionFile = {
 
         },
         "Japan": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Yayoi Culture',
+                dominantPowerDescription: 'Rice-farming peoples who brought wet-rice agriculture and bronze tools from the continent, transforming the Japanese islands.',
+                eraContextSentence: 'the age of rice and bronze, where shamanic queens commune with the kami and villages grow into chiefdoms.',
+                allegianceGroups: [
+                    { name: 'Yamatai Federation', type: 'primary', description: 'Queen Himiko\'s confederation.' },
+                    { name: 'Jomon Remnants', type: 'secondary', description: 'Indigenous hunter-gatherers.' },
+                    { name: 'Korean Migrants', type: 'secondary', description: 'Continental settlers bringing new technologies.' }
+                ],
+                structureNames: {
+                    fortress: ['Moated Village', 'Hilltop Fort', 'Palisade', 'Watchtower'],
+                    quarry: ['Bronze Workshop', 'Iron Forge', 'Rice Paddy'],
+                    holy_site: ['Sacred Forest', 'Kami Shrine', 'Burial Mound', 'Spirit Gate'],
+                    palace: ['Chieftain Hall', 'Queen\'s Compound', 'Clan Center'],
+                },
+                courtRoles: {
+                    palace: ['Shaman Queen', 'War Chief', 'Rice Master', 'Bronze Smith', 'Oracle']
+                }
+            },
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Yamato State',
                 dominantPowerDescription: 'The Yamato clan consolidates power in central Japan, establishing the foundations of imperial rule and absorbing Chinese cultural influences.',
@@ -490,6 +528,25 @@ export const EAST_ASIAN_FACTIONS: FactionFile = {
 }
         },
         "Korea": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Gojoseon',
+                dominantPowerDescription: 'The legendary first Korean kingdom, founded by Dangun, bridging the Bronze and Iron Ages with distinctive bronze daggers and dolmen tombs.',
+                eraContextSentence: 'the age of Dangun\'s descendants, where bronze daggers mark nobility and massive stones honor the dead.',
+                allegianceGroups: [
+                    { name: 'Gojoseon Kingdom', type: 'primary', description: 'The ancient Korean state.' },
+                    { name: 'Yemaek Tribes', type: 'secondary', description: 'Northern tribal peoples.' },
+                    { name: 'Han Commanderies', type: 'secondary', description: 'Chinese outposts in the northwest.' }
+                ],
+                structureNames: {
+                    fortress: ['Stone Fort', 'Mountain Fortress', 'River Stronghold', 'Walled Town'],
+                    quarry: ['Bronze Foundry', 'Iron Mine', 'Stone Quarry'],
+                    holy_site: ['Dolmen Field', 'Sacred Mountain', 'Ancestor Shrine', 'Sky Altar'],
+                    palace: ['Royal Fortress', 'Bronze Hall', 'King\'s Compound'],
+                },
+                courtRoles: {
+                    palace: ['Dangun King', 'Shaman', 'Bronze Master', 'War Leader', 'Tribute Collector']
+                }
+            },
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Three Kingdoms Period',
                 dominantPowerDescription: 'Korea is divided between Goguryeo, Baekje, and Silla, each developing distinct cultures while competing for dominance.',

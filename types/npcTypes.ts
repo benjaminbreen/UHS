@@ -7,6 +7,7 @@ import { HistoricalEra } from './ambiance';
 import { CulturalZone, Gender, WealthLevel, Appearance } from './characterData'; // Use centralized types
 import { Allegiance } from './structures';
 import { GoalArchetype, GoalTargetType } from './goals';
+import { CharacterHealth } from './diseaseTypes';
 
 export type NpcStats = CharacterStats;
 export type NpcPersonality = CharacterPersonality;
@@ -66,7 +67,7 @@ export interface NpcEntity {
     y: number; // grid y on map
     
     // Core Generated Profile
-    health: number;
+    health: CharacterHealth;
     maxHealth: number;
     stats: NpcStats;
     personality: NpcPersonality;

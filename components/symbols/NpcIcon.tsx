@@ -134,9 +134,47 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
     return elements;
   };
   
+  // Check if NPC has a disease
+  const hasDiseases = npc.diseaseHealth && npc.diseaseHealth.currentDiseases && npc.diseaseHealth.currentDiseases.length > 0;
+  
   return (
-    <g transform={`translate(${baseX}, ${baseY}) scale(${direction === 'left' ? -1 : 1}, 1)`} style={{transformBox: 'fill-box', transformOrigin: 'center'}}>
-      {renderPolishedSprite()}
+    <g transform={`translate(${baseX}, ${baseY})`}>
+      {/* Disease indicator - greenish circle around sick NPCs */}
+      {hasDiseases && (
+        <circle
+          cx={0}
+          cy={0}
+          r={actualSize * 0.8}
+          fill="none"
+          stroke="rgba(50, 200, 50, 0.4)"
+          strokeWidth={2}
+          strokeDasharray="4 2"
+          opacity={0.7}
+          className="animate-pulse"
+        />
+      )}
+      
+      {/* Tooltip trigger area - invisible rect for hover */}
+      <rect
+        x={-actualSize/2}
+        y={-actualSize/2}
+        width={actualSize}
+        height={actualSize}
+        fill="transparent"
+        className="npc-hover-area"
+        data-npc-id={npc.id}
+        data-npc-name={npc.name}
+        data-npc-age={npc.age}
+        data-npc-gender={npc.gender}
+        data-npc-profession={npc.profession}
+        data-npc-class={npc.socialClass}
+        data-npc-sick={hasDiseases ? "true" : "false"}
+        data-npc-disease={hasDiseases ? npc.diseaseHealth.currentDiseases[0].disease.name : ""}
+      />
+      
+      <g transform={`scale(${direction === 'left' ? -1 : 1}, 1)`} style={{transformBox: 'fill-box', transformOrigin: 'center'}}>
+        {renderPolishedSprite()}
+      </g>
     </g>
   );
 });

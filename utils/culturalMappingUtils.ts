@@ -78,15 +78,22 @@ export function getLocationCulturalStyle(location: string, year: number): Cultur
     return { primaryCulture: 'EUROPEAN' };
   }
   
-  // Pacific Coast
+  // Pacific Coast - European contact much later here
   if (lowerLoc.includes('columbia river') || lowerLoc.includes('puget') || lowerLoc.includes('olympic') ||
       lowerLoc.includes('redwood') || lowerLoc.includes('shasta') || lowerLoc.includes('cascade') ||
       lowerLoc.includes('pacific coast') || lowerLoc.includes('pacific northwest') || 
       lowerLoc.includes('oregon coast') || lowerLoc.includes('washington coast')) {
-    if (year < 1492) {
+    if (year < 1790) {  // First sustained European contact in Pacific Northwest
       return { 
         primaryCulture: 'NORTH_AMERICAN_PRE_COLUMBIAN', 
       
+      };
+    } else if (year < 1850) {
+      // Transitional period with both cultures
+      return { 
+        primaryCulture: 'NORTH_AMERICAN_PRE_COLUMBIAN',
+        secondaryCulture: 'EUROPEAN',
+        mixRatio: 0.3
       };
     }
     return { primaryCulture: 'EUROPEAN' };
@@ -394,10 +401,10 @@ export function getLocationCulturalStyle(location: string, year: number): Cultur
     return { primaryCulture: 'MENA' };
   }
   
-  // Caucasus
+  // Caucasus and Black Sea region
   if (lowerLoc.includes('caucasus') || lowerLoc.includes('tbilisi') || lowerLoc.includes('ararat') ||
       lowerLoc.includes('kura river') || lowerLoc.includes('chechen') || lowerLoc.includes('georgia') ||
-      lowerLoc.includes('armenia') || lowerLoc.includes('azerbaijan')) {
+      lowerLoc.includes('armenia') || lowerLoc.includes('azerbaijan') || lowerLoc.includes('black sea')) {
     if (year >= 640) {
       return { primaryCulture: 'MENA', secondaryCulture: 'SLAVIC', mixRatio: 0.3 };
     }

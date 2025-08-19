@@ -256,6 +256,20 @@ export async function generateEncounterDialogue(
           - Charisma: ${target.stats?.charisma || 10}/20 (${target.stats?.charisma > 14 ? 'Very charming - naturally friendly' : target.stats?.charisma > 10 ? 'Personable' : 'Awkward - may be rude or blunt'})
           - Wisdom: ${target.stats?.wisdom || 10}/20 (${target.stats?.wisdom > 14 ? 'Very wise - thoughtful responses' : target.stats?.wisdom > 10 ? 'Sensible' : 'Impulsive - may say foolish things'})
         - **Your Current Activity:** You are ${target.currentActivity || 'going about your day'}.
+        - **Your Household:** ${(() => {
+            const age = target.age || 30;
+            const household = [];
+            // Simple household generation for context
+            if (age > 20 && Math.random() > 0.5) household.push('a spouse');
+            if (age > 25 && Math.random() > 0.6) household.push(`${Math.floor(Math.random() * 3) + 1} children`);
+            if (age < 40 && Math.random() > 0.7) household.push('elderly parents');
+            return household.length > 0 ? `You live with ${household.join(', ')}` : 'You live alone';
+        })()}.
+        - **Your Health:** ${target.health?.currentDiseases?.length > 0 ? 
+            `**CRITICAL: YOU ARE SICK!** You are currently suffering from ${target.health.currentDiseases[0].disease.name}. 
+             Symptoms: ${target.health.currentDiseases[0].disease.symptoms?.map(s => s.description).join(', ') || 'fever, weakness, pain'}.
+             This affects how you feel and speak - you are in pain, tired, and desperate for relief.` : 
+            'You are in good health'}.
         - **Your Memories of the Player:** 
           ${previousSummaries || (target.memory.conversationSummaries && target.memory.conversationSummaries.length > 0 ? target.memory.conversationSummaries.map(s => `- ${s}`).join('\n') : "- You have no significant memories of this person.")}
         
@@ -274,7 +288,13 @@ export async function generateEncounterDialogue(
         ${primarySourceContext}
 
         YOUR TASK AND RULES (MANDATORY):
-        1.  Stay in Character: Respond ONLY with spoken dialogue as a real person would. You should assume background knowledge of the world in the date the game is in, insofar as your character would be aware of it. I.e. someone in 1944 knows who Hitler and Churchill are, regardless of the location or their background. 
+        1.  **IF YOU ARE SICK:** This is the MOST IMPORTANT rule. If your health status shows you have a disease:
+            - You MUST acknowledge your illness in some way. You are suffering and it shows.
+            - Complain about symptoms, cough, mention fever, ask for help, beg for medicine
+            - NEVER say "I'm fine" or "I'm well" if you're sick - this is completely unrealistic
+            - Examples: "Can't you see I'm ill?", "*coughs* Please, I need medicine", "This fever is killing me", "Do you know a healer?"
+            - If asked about your health while sick, ALWAYS mention your illness
+        2.  Stay in Character: Respond ONLY with spoken dialogue as a real person would. You should assume background knowledge of the world in the date the game is in, insofar as your character would be aware of it. I.e. someone in 1944 knows who Hitler and Churchill are, regardless of the location or their background. 
         2.  Know Your World:** You are fully aware of major world events, leaders, and common knowledge for your time period. If someone asks about Xi Jinping in 2030s China, you KNOW who that is. If they ask about climate change in modern times, you understand what they mean. Don't play dumb about things that would be common knowledge.
         3.  **CLASS CONSCIOUSNESS IS PARAMOUNT:** Your social class FUNDAMENTALLY shapes how you interact:
             - **If YOU are higher class than the player:** Be condescending, impatient, or outright dismissive. You might refuse to speak to them at all, demand they address you properly, or threaten consequences or even violence.

@@ -10,6 +10,25 @@ const MODERN_ERA = 'MODERN_ERA';
 export const SOUTH_AMERICAN_FACTIONS: FactionFile = {
     'SOUTH_AMERICAN': {
         "Andes North": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Chavín Culture',
+                dominantPowerDescription: 'Early Andean civilization centered on the Chavín de Huántar temple complex, spreading religious and artistic influence across Peru.',
+                eraContextSentence: 'the time of the jaguar priests, where sacred temples unite the highlands and coast through shared religious visions.',
+                allegianceGroups: [
+                    { name: 'Chavín Cult', type: 'primary', description: 'Religious center of pilgrimage.' },
+                    { name: 'Coastal Fishing Villages', type: 'secondary', description: 'Maritime communities.' },
+                    { name: 'Highland Herders', type: 'secondary', description: 'Llama and alpaca pastoralists.' }
+                ],
+                structureNames: {
+                    fortress: ['Stone Temple', 'Ceremonial Center', 'Highland Fort'],
+                    quarry: ['Obsidian Mine', 'Stone Quarry', 'Gold Stream'],
+                    holy_site: ['Oracle Chamber', 'Sunken Plaza', 'Sacred Gallery', 'Pilgrimage Site'],
+                    palace: ["Priest's Compound", 'Temple Complex', 'Ceremonial Court'],
+                },
+                courtRoles: {
+                    palace: ['High Priest', 'Oracle', 'Temple Guardian', 'Master Sculptor', 'Ritual Specialist']
+                }
+            },
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Moche Civilization',
                 dominantPowerDescription: 'Sophisticated coastal and highland society with advanced metallurgy, irrigation systems, and monumental architecture in the northern Peruvian coast.',

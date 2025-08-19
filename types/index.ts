@@ -25,6 +25,7 @@ export * from './journal'; // NEW: Export journal types
 export * from './knowledge'; // NEW: Export beliefs and technology types
 export * from './societal'; // NEW: Export societal profiles
 export * from './goals'; // NEW: Export goal types
+export * from './diseaseTypes'; // NEW: Export disease types
 
 import { Tile } from './core/tile';
 import { InteriorTile, InteriorEntity } from './interiorMapTypes';

@@ -59,23 +59,63 @@ export function generateNpcName(
         let nameKeyToUse: string | undefined = professionNameKey;
 
         // 1. Check for a region/year specific override first
-        if (!nameKeyToUse && region && REGION_NAME_MAPPING[culturalZone as keyof typeof REGION_NAME_MAPPING]) {
-            const regionRules = REGION_NAME_MAPPING[culturalZone as keyof typeof REGION_NAME_MAPPING][region];
-            if (regionRules) {
-                for (const rule of regionRules) {
-                    const beforeMatch = rule.before ? year < rule.before : true;
-                    const afterMatch = rule.after ? year >= rule.after : true;
-                    if (beforeMatch && afterMatch) {
-                        nameKeyToUse = rule.keys[Math.floor(noise.random() * rule.keys.length)];
-                        break;
+        if (!nameKeyToUse && region) {
+            // For North American regions after colonization, check NORTH_AMERICAN_COLONIAL mappings
+            if (culturalZone === 'NORTH_AMERICAN_PRE_COLUMBIAN' && year > 1600) {
+                const colonialRules = REGION_NAME_MAPPING['NORTH_AMERICAN_COLONIAL']?.[region];
+                if (colonialRules) {
+                    for (const rule of colonialRules) {
+                        const beforeMatch = rule.before ? year < rule.before : true;
+                        const afterMatch = rule.after ? year >= rule.after : true;
+                        if (beforeMatch && afterMatch) {
+                            nameKeyToUse = rule.keys[Math.floor(noise.random() * rule.keys.length)];
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // If not found in colonial mappings or not applicable, check the original cultural zone
+            if (!nameKeyToUse && REGION_NAME_MAPPING[culturalZone as keyof typeof REGION_NAME_MAPPING]) {
+                const regionRules = REGION_NAME_MAPPING[culturalZone as keyof typeof REGION_NAME_MAPPING][region];
+                if (regionRules) {
+                    for (const rule of regionRules) {
+                        const beforeMatch = rule.before ? year < rule.before : true;
+                        const afterMatch = rule.after ? year >= rule.after : true;
+                        if (beforeMatch && afterMatch) {
+                            nameKeyToUse = rule.keys[Math.floor(noise.random() * rule.keys.length)];
+                            break;
+                        }
                     }
                 }
             }
         }
         
-        // 2. Fallback to the broad cultural zone if no specific rule was found
+        // 2. Fallback - check for specific region matching before using broad cultural zone
         if (!nameKeyToUse) {
-            nameKeyToUse = culturalZone;
+            // For East Asian, check specific regions
+            if (culturalZone === 'EAST_ASIAN' && region) {
+                // Map region to specific name set based on region name
+                const regionLower = region.toLowerCase();
+                if (regionLower.includes('south china') || regionLower.includes('guangxi') || regionLower.includes('guangdong') || regionLower.includes('guangzhou')) {
+                    nameKeyToUse = 'CHINESE_CANTONESE';
+                } else if (regionLower.includes('north china') || regionLower.includes('beijing') || regionLower.includes('hebei')) {
+                    nameKeyToUse = 'CHINESE_MANDARIN';
+                } else if (regionLower.includes('japan')) {
+                    nameKeyToUse = 'JAPANESE';
+                } else if (regionLower.includes('korea')) {
+                    nameKeyToUse = 'KOREAN';
+                } else if (regionLower.includes('vietnam')) {
+                    nameKeyToUse = 'VIETNAMESE';
+                } else if (regionLower.includes('thai')) {
+                    nameKeyToUse = 'THAI';
+                } else {
+                    // Default to generic East Asian if no specific match
+                    nameKeyToUse = culturalZone;
+                }
+            } else {
+                nameKeyToUse = culturalZone;
+            }
         }
 
         const normalizedGender = gender === 'Male' ? 'Male' : 'Female';

@@ -89,3 +89,15 @@ export const formatDateWithSeason = (date: GameDate, season: Season): string => 
 
     return `${monthNames[date.month - 1]} ${date.day}, ${date.year} (${capitalizedSeason})`;
 };
+
+/**
+ * Get the season from a game date
+ */
+export function getSeasonFromDate(gameDate: GameDate): 'spring' | 'summer' | 'autumn' | 'winter' {
+  const month = gameDate?.month || 1;
+  
+  if (month >= 3 && month <= 5) return 'spring';
+  if (month >= 6 && month <= 8) return 'summer';
+  if (month >= 9 && month <= 11) return 'autumn';
+  return 'winter';
+}

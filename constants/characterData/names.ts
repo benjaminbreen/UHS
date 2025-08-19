@@ -16,6 +16,40 @@ export interface NameGenerationOptions {
 }
 
 export const CHARACTER_NAMES: Record<string, NameList> = {
+    // === PREHISTORIC UNIVERSAL ===
+    // Proto-Indo-European and Early European (3500-500 BCE)
+    PREHISTORIC_EUROPEAN: {
+        male: ['*Dyēus', '*Perkwunos', '*Welnos', '*Yemos', '*Manu', '*Trito', '*Hdóm', '*Wiros', '*Ghosti', '*Aryo', 'Bjorn', 'Ulf', 'Ragnar', 'Hrolf', 'Gunnar', 'Thorgrim', 'Bran', 'Cormac', 'Finn', 'Daigh', 'Vercingetorix', 'Ambiorix', 'Brennus', 'Calgacus', 'Caratacus', 'Drustan', 'Artos', 'Gwydion', 'Pwyll', 'Pryderi'],
+        female: ['*Diwós', '*Haéusōs', '*Dhéghom', '*Gwena', '*Priya', '*Swesōr', 'Freydis', 'Astrid', 'Sigrid', 'Gudrun', 'Helga', 'Brunhild', 'Brigid', 'Aine', 'Maeve', 'Niamh', 'Rhiannon', 'Branwen', 'Cerridwen', 'Morgana', 'Nimue', 'Boudicca', 'Cartimandua', 'Veleda', 'Aife', 'Scathach'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    PREHISTORIC_MENA: {
+        male: ['Atum', 'Khenti', 'Menes', 'Narmer', 'Scorpion', 'Ka', 'Iry-Hor', 'Abydos', 'Hierakonpolis', 'Naqada', 'Badari', 'Merimde', 'Fayum', 'Omari', 'Maadi', 'Tasian', 'Hamza', 'Yusuf', 'Ibrahim', 'Musa'],
+        female: ['Neithhotep', 'Merneith', 'Herneith', 'Nakhtneith', 'Khenthap', 'Betresh', 'Ahhotep', 'Tetisheri', 'Amenirdis', 'Nitocris', 'Ankhesenamun', 'Nefertiti', 'Hatshepsut', 'Cleopatra', 'Berenice', 'Arsinoe', 'Layla', 'Zahra', 'Fatima', 'Amina'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    // Ancient Chinese & Proto-Mongolic (3000 BCE - 200 CE)
+    PREHISTORIC_ASIAN: {
+        male: ['*Tengri', '*Bayar', '*Temür', '*Batu', '*Börte', 'Yao', 'Shun', 'Yu', 'Tang', 'Wu', 'Zhou', 'Fuxi', 'Shennong', 'Huangdi', 'Zhuanxu', 'Ku', 'Gun', 'Qi', 'Gao', 'Jie', 'Li', 'Pan', 'Geng', 'Xin'],
+        female: ['*Gua', '*Eke', '*Aba', 'Nüwa', 'Leizu', 'Luozu', 'Fufei', 'Ehuang', 'Nüying', 'Changxi', 'Xihe', 'Jiandi', 'Jiangyuan', 'Tushan', 'Nvjiao', 'Moxi', 'Baosi', 'Daji', 'Bao', 'Gui', 'Jiang', 'Ji'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    PREHISTORIC_AFRICAN: {
+        male: ['Aman', 'Kofi', 'Kwame', 'Nkrumah', 'Osei', 'Mensah', 'Adjei', 'Asante', 'Kente', 'Zuberi', 'Jabari', 'Omari', 'Sekou', 'Chike', 'Dume', 'Kato', 'Jengo', 'Baraka', 'Hasani', 'Imara'],
+        female: ['Ama', 'Efua', 'Akosua', 'Adwoa', 'Yaa', 'Afia', 'Abena', 'Nana', 'Makena', 'Asha', 'Khadija', 'Zara', 'Amara', 'Nia', 'Imani', 'Sanaa', 'Dalila', 'Hasina', 'Jumoke', 'Kesia'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    PREHISTORIC_AMERICAN: {
+        male: ['Sky', 'River', 'Stone', 'Bear', 'Wolf', 'Eagle', 'Hawk', 'Thunder', 'Wind', 'Fire', 'Mountain', 'Forest', 'Hunter', 'Warrior', 'Chief', 'Shaman', 'Arrow', 'Spear', 'Shield', 'Drum'],
+        female: ['Moon', 'Star', 'Dawn', 'Rain', 'Snow', 'Flower', 'Willow', 'Rose', 'Sky', 'River', 'Spring', 'Summer', 'Autumn', 'Winter', 'Dove', 'Deer', 'Butterfly', 'Raven', 'Swan', 'Lily'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    PREHISTORIC_OCEANIC: {
+        male: ['Maui', 'Tane', 'Rangi', 'Papa', 'Tangaroa', 'Rongo', 'Tu', 'Tawhiri', 'Haumia', 'Ruaumoko', 'Kupe', 'Tiki', 'Paikea', 'Tinirau', 'Turi', 'Whatonga', 'Hoturapa', 'Pourangahua', 'Tama', 'Rua'],
+        female: ['Hina', 'Pele', 'Namaka', 'Poliahu', 'Lilinoe', 'Waiau', 'Kahoupokane', 'Laka', 'Kapo', 'Hiiaka', 'Sina', 'Taranga', 'Murirangawhenua', 'Rongomaiwahine', 'Wairaka', 'Hinemoa', 'Mahuika', 'Muriranga', 'Para', 'Kui'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    
     // === ANCIENT & CLASSICAL ===
     ANCIENT_GREEK: {
         male: ['Lykos', 'Leon', 'Heron', 'Damon', 'Alexios', 'Nikandros', 'Philippos', 'Apollodoros', 'Dionysios', 'Herakleitos', 'Kleomenes', 'Lysander', 'Menandros', 'Nikias', 'Perikles', 'Sokrates', 'Theophrastos', 'Xenophanes', 'Zenodoros', 'Aristophanes'],
@@ -79,6 +113,28 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
         surname: ['Austin', 'Houston', 'Travis', 'Bowie', 'Crockett', 'Fannin', 'Lamar', 'Burnet', 'Rusk', 'Jones', 'Smith', 'Brown', 'Williams', 'Johnson', 'Davis', 'Miller', 'Wilson', 'Moore', 'Taylor', 'Anderson']
     },
     
+    // === DIVERSE AMERICAN IMMIGRANT NAMES ===
+    JEWISH_ASHKENAZI: {
+        male: ['David', 'Isaac', 'Jacob', 'Abraham', 'Samuel', 'Benjamin', 'Solomon', 'Moses', 'Aaron', 'Joseph', 'Nathan', 'Eli', 'Daniel', 'Michael', 'Gabriel', 'Raphael', 'Simon', 'Reuben', 'Levi', 'Judah'],
+        female: ['Sarah', 'Rebecca', 'Rachel', 'Leah', 'Miriam', 'Esther', 'Ruth', 'Naomi', 'Hannah', 'Deborah', 'Judith', 'Rose', 'Sophie', 'Anna', 'Clara', 'Bella', 'Ida', 'Fanny', 'Minnie', 'Molly'],
+        surname: ['Cohen', 'Levy', 'Goldman', 'Friedman', 'Rosenberg', 'Goldstein', 'Silverman', 'Katz', 'Shapiro', 'Weinstein', 'Klein', 'Schwartz', 'Weiss', 'Hoffman', 'Green', 'Stone', 'Miller', 'Roth', 'Stein', 'Berg']
+    },
+    PUERTO_RICAN: {
+        male: ['Juan', 'Luis', 'Carlos', 'José', 'Miguel', 'Angel', 'Francisco', 'Antonio', 'Manuel', 'Pedro', 'Rafael', 'Roberto', 'Jorge', 'Ricardo', 'Eduardo', 'Alberto', 'Hector', 'Ramón', 'Fernando', 'Diego'],
+        female: ['Maria', 'Carmen', 'Rosa', 'Ana', 'Luz', 'Gloria', 'Isabel', 'Teresa', 'Sonia', 'Laura', 'Patricia', 'Sandra', 'Monica', 'Julia', 'Adriana', 'Beatriz', 'Elena', 'Cristina', 'Dolores', 'Esperanza'],
+        surname: ['Rodriguez', 'Rivera', 'Gonzalez', 'Torres', 'Martinez', 'Diaz', 'Hernandez', 'Lopez', 'Perez', 'Sanchez', 'Ramirez', 'Cruz', 'Morales', 'Ortiz', 'Gomez', 'Reyes', 'Ruiz', 'Flores', 'Santiago', 'Castro']
+    },
+    AFRICAN_AMERICAN: {
+        male: ['William', 'James', 'John', 'Robert', 'George', 'Charles', 'Joseph', 'Thomas', 'Henry', 'Walter', 'Arthur', 'Fred', 'Albert', 'Samuel', 'David', 'Louis', 'Charlie', 'Richard', 'Ernest', 'Roy'],
+        female: ['Mary', 'Ruth', 'Helen', 'Margaret', 'Elizabeth', 'Dorothy', 'Betty', 'Patricia', 'Barbara', 'Shirley', 'Sarah', 'Annie', 'Clara', 'Emma', 'Minnie', 'Rosa', 'Grace', 'Ella', 'Florence', 'Louise'],
+        surname: ['Johnson', 'Williams', 'Brown', 'Jones', 'Davis', 'Smith', 'Jackson', 'White', 'Harris', 'Martin', 'Thompson', 'Robinson', 'Lewis', 'Walker', 'Allen', 'Young', 'King', 'Wright', 'Hill', 'Green']
+    },
+    AZTEC: {
+        male: ['Itzel', 'Cuauhtemoc', 'Moctezuma', 'Tlacaelel', 'Nezahualcoyotl', 'Axayacatl', 'Tizoc', 'Ahuitzotl', 'Chimalpopoca', 'Itzcoatl', 'Huitzilihuitl', 'Acamapichtli', 'Tenoch', 'Xochitl', 'Cipac', 'Coatl', 'Ehecatl', 'Ixtli', 'Ocelotl', 'Tochtli'],
+        female: ['Xochitl', 'Itzel', 'Citlali', 'Tlazohtzin', 'Ixchel', 'Malintzin', 'Quetzali', 'Yaretzi', 'Nenetl', 'Cihuaton', 'Izel', 'Metztli', 'Tonalnan', 'Xilonen', 'Chalchiuhtlicue', 'Coatlicue', 'Itzpapalotl', 'Mayahuel', 'Tlaltecuhtli', 'Tonantzin'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    
     // === SWAHILI COAST ===
     SWAHILI: {
         male: ['Musa', 'Ali', 'Hassan', 'Omar', 'Yusuf', 'Ibrahim', 'Hamza', 'Juma', 'Salim', 'Bakari', 'Hamisi', 'Sefu', 'Zuberi', 'Jabari', 'Rashidi', 'Faraji', 'Daudi', 'Amani', 'Baraka', 'Kipenda'],
@@ -86,6 +142,27 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
         surname: ['bin Said', 'al-Shirazi', 'al-Kilwa', 'bin Hassan', 'al-Mogadishu', 'bin Omar', 'al-Barawi', 'bin Yusuf', 'al-Pemba', 'bin Ali', 'al-Lamu', 'bin Rashid', 'al-Mombasa', 'bin Hamza', 'al-Zanzibar', 'bin Salim', 'al-Pate', 'bin Juma', 'al-Malindi', 'bin Bakari']
     },
     
+    // === EXPANDED MIDDLE EASTERN & NORTH AFRICAN ===
+    MESOPOTAMIAN_ANCIENT: {
+        male: ['Sargon', 'Hammurabi', 'Nebuchadnezzar', 'Ashurbanipal', 'Tiglath', 'Shalmaneser', 'Esarhaddon', 'Sennacherib', 'Marduk', 'Enlil', 'Shamash', 'Nabu', 'Nergal', 'Ninurta', 'Adad', 'Gilgamesh', 'Enkidu', 'Utnapishtim', 'Ziusudra', 'Atrahasis'],
+        female: ['Inanna', 'Ishtar', 'Ereshkigal', 'Ninlil', 'Ninhursag', 'Gula', 'Nisaba', 'Nammu', 'Nanshe', 'Bau', 'Nintud', 'Ninisina', 'Ninkarrak', 'Ninegal', 'Ningal', 'Aya', 'Antu', 'Damkina', 'Shala', 'Tashmetu'],
+        surname: ['of Babylon', 'of Ur', 'of Uruk', 'of Nineveh', 'of Assur', 'of Akkad', 'of Sumer', 'of Eridu', 'of Nippur', 'of Lagash']
+    },
+    LEVANTINE: {
+        male: ['Yusuf', 'Ibrahim', 'Khalil', 'Samir', 'Nabil', 'Faris', 'Tariq', 'Rami', 'Bassam', 'Elias', 'Georges', 'Michel', 'Pierre', 'Antoine', 'Boutros', 'Maroun', 'Charbel', 'Elie', 'Sami', 'Karim'],
+        female: ['Layla', 'Amal', 'Hana', 'Rima', 'Nour', 'Dalia', 'Yasmine', 'Lina', 'Maya', 'Nadine', 'Rita', 'Joelle', 'Carla', 'Miriam', 'Sarah', 'Rebecca', 'Leah', 'Rachel', 'Naomi', 'Esther'],
+        surname: ['Haddad', 'Khoury', 'Saliba', 'Habib', 'Nassar', 'Bishara', 'Sabbagh', 'Mansour', 'Awad', 'Daoud', 'Issa', 'Hadid', 'Najjar', 'Kassis', 'Maalouf', 'Gemayel', 'Aoun', 'Hariri', 'Jumblatt', 'Frangieh']
+    },
+    MAGHREBI: {
+        male: ['Yacine', 'Amine', 'Mehdi', 'Reda', 'Kamel', 'Farid', 'Sofiane', 'Hakim', 'Mourad', 'Djamel', 'Rachid', 'Mustapha', 'Abdel', 'Noureddine', 'Azzedine', 'Brahim', 'Slimane', 'Mansour', 'Tahar', 'Malik'],
+        female: ['Amina', 'Houria', 'Djamila', 'Souad', 'Naima', 'Karima', 'Samira', 'Farida', 'Zohra', 'Hakima', 'Malika', 'Safia', 'Assia', 'Radia', 'Lynda', 'Soraya', 'Nesrine', 'Imane', 'Sabrina', 'Meriem'],
+        surname: ['Benali', 'Boumediene', 'Belkacem', 'Bensaid', 'Ouahabi', 'Zerhouni', 'Bouteflika', 'Bendjelloul', 'Brahimi', 'Mekhloufi', 'Madani', 'Zidane', 'Benzema', 'Mahrez', 'Benatia', 'Slimani', 'Feghouli', 'Boudebouz', 'Belhadj', 'Ramdane']
+    },
+    EGYPTIAN_COPTIC: {
+        male: ['Shenouda', 'Kyrillos', 'Antonios', 'Bishoy', 'Mina', 'Abraam', 'Pishoy', 'Tadros', 'Girgis', 'Mikhail', 'Boulos', 'Markos', 'Philopateer', 'Abanob', 'Karas', 'Roweis', 'Salib', 'Youssef', 'Daoud', 'Moussa'],
+        female: ['Marina', 'Demiana', 'Mariam', 'Susanna', 'Verena', 'Barbara', 'Catherine', 'Rebecca', 'Sarah', 'Theodora', 'Helena', 'Monica', 'Mary', 'Martha', 'Juliana', 'Anastasia', 'Philomena', 'Agatha', 'Agnes', 'Cecilia'],
+        surname: ['Tadros', 'Girgis', 'Mikhail', 'Habib', 'Salib', 'Boutros', 'Youssef', 'Daoud', 'Moussa', 'Elias', 'Hanna', 'Abdelmassih', 'Abdelmalak', 'Abdelshahid', 'Ghobrial', 'Shenouda', 'Basilios', 'Kyrillos', 'Athanasius', 'Gregorios']
+    },
     // === ARABIAN PENINSULA ===
     ARABIAN_HEJAZ: {
         male: ['Muhammad', 'Ahmad', 'Abdullah', 'Ali', 'Umar', 'Uthman', 'Abu Bakr', 'Hassan', 'Hussein', 'Khalid', 'Saad', 'Amr', 'Bilal', 'Hamza', 'Abbas', 'Jafar', 'Talha', 'Zubair', 'Abdul Rahman', 'Abdul Aziz'],
@@ -100,6 +177,22 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
         surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
     },
     
+    // === EXPANDED AFRICAN REGIONS ===
+    ETHIOPIAN_HIGHLAND: {
+        male: ['Tewodros', 'Yohannes', 'Menelik', 'Haile', 'Ras', 'Tekle', 'Zewde', 'Abebe', 'Bekele', 'Tadesse', 'Alemayehu', 'Getachew', 'Mulugeta', 'Kebede', 'Tesfaye', 'Hailu', 'Gebre', 'Wolde', 'Selassie', 'Mariam'],
+        female: ['Taytu', 'Zewditu', 'Menen', 'Seble', 'Almaz', 'Tigist', 'Meseret', 'Aster', 'Bethlehem', 'Marta', 'Rahel', 'Sara', 'Liya', 'Hanna', 'Mariam', 'Kidist', 'Tsehay', 'Workitu', 'Yeshi', 'Zenebech'],
+        surname: ['Wolde', 'Haile', 'Gebre', 'Tekle', 'Tsegaye', 'Alemu', 'Kebede', 'Tadesse', 'Getachew', 'Bekele']
+    },
+    WEST_AFRICAN_SAHEL: {
+        male: ['Sundiata', 'Mansa', 'Kankan', 'Samori', 'Askia', 'Sonni', 'Bakary', 'Mamadou', 'Sekou', 'Modibo', 'Amadou', 'Moussa', 'Boubacar', 'Salif', 'Ousmane', 'Idrissa', 'Lansana', 'Foday', 'Sidi', 'Tierno'],
+        female: ['Sogolon', 'Sassouma', 'Nana', 'Aminata', 'Fatoumata', 'Kadiatou', 'Mariam', 'Aissata', 'Rokia', 'Djenne', 'Oumou', 'Sira', 'Tenin', 'Fanta', 'Kankou', 'Djeneba', 'Ramata', 'Saran', 'Bintou', 'Maimouna'],
+        surname: ['Keita', 'Toure', 'Traore', 'Kone', 'Diallo', 'Coulibaly', 'Cisse', 'Diarra', 'Camara', 'Sangare']
+    },
+    YORUBA: {
+        male: ['Ogun', 'Shango', 'Obatala', 'Orunmila', 'Eshu', 'Ade', 'Babatunde', 'Oluwaseun', 'Ayodeji', 'Olumide', 'Temitope', 'Oluwafemi', 'Adebayo', 'Oluwaseyi', 'Oluwatobi', 'Adewale', 'Oladipo', 'Olukayode', 'Oluwatosin', 'Adedayo'],
+        female: ['Yemoja', 'Oshun', 'Oya', 'Ayomide', 'Folake', 'Olufunke', 'Adunni', 'Ayodele', 'Bolanle', 'Damilola', 'Ebunoluwa', 'Funmilayo', 'Iyabo', 'Jumoke', 'Kemi', 'Lola', 'Mojisola', 'Ngozi', 'Omolara', 'Titilayo'],
+        surname: ['Adeyemi', 'Ogundimu', 'Babajide', 'Oladele', 'Akintola', 'Ogunsanwo', 'Adebisi', 'Ogunleye', 'Adesanya', 'Olowu']
+    },
     // === NUBIAN ===
     NUBIAN: {
         male: ['Taharqa', 'Piye', 'Shabaka', 'Shebitku', 'Tantamani', 'Kashta', 'Alara', 'Anlamani', 'Aspelta', 'Arikamani', 'Arkamani', 'Amanislo', 'Amanineteyerike', 'Teqorideamani', 'Nastasen', 'Harsiotef', 'Amannote', 'Baskakeren', 'Malewiebamani', 'Talakhamani'],
@@ -107,6 +200,22 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
         surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
     },
     
+    // === EXPANDED PERSIAN & CENTRAL ASIAN ===
+    PERSIAN_ANCIENT: {
+        male: ['Cyrus', 'Darius', 'Xerxes', 'Artaxerxes', 'Cambyses', 'Bardiya', 'Hystaspes', 'Gobryas', 'Otanes', 'Megabazus', 'Mardonius', 'Tissaphernes', 'Pharnabazus', 'Datames', 'Mithridates', 'Tiridates', 'Phraates', 'Orodes', 'Vologases', 'Pacorus'],
+        female: ['Atossa', 'Amestris', 'Mandane', 'Cassandane', 'Roxana', 'Stateira', 'Parysatis', 'Amytis', 'Pantea', 'Artemisia', 'Rhodogune', 'Apama', 'Laodice', 'Berenice', 'Cleopatra', 'Eurydice', 'Olympias', 'Thessalonica', 'Arsinoe', 'Stratonice'],
+        surname: ['Achaemenid', 'Arsacid', 'Sassanid', 'of Persepolis', 'of Ecbatana', 'of Susa', 'of Pasargadae', 'of Ctesiphon', 'of Isfahan', 'of Shiraz']
+    },
+    SOGDIAN: {
+        male: ['Divashtich', 'Gurak', 'Tarkhun', 'Karzang', 'Nanai', 'Vakhshuvar', 'Dhuta', 'Nixumat', 'Afrasiab', 'Rustam', 'Bahram', 'Jamshid', 'Farhad', 'Koshvad', 'Mihran', 'Spandiyar', 'Goshtasp', 'Zarathushtra', 'Vishtaspa', 'Jamasp'],
+        female: ['Azarmidokht', 'Purandokht', 'Shirin', 'Golnar', 'Parichehr', 'Shahrzad', 'Gordafarid', 'Rudabeh', 'Tahmineh', 'Manijeh', 'Sudabeh', 'Roudabeh', 'Katayoun', 'Farangis', 'Jarireh', 'Sindokht', 'Arnavaz', 'Shahrnaz', 'Spandaramet', 'Humay'],
+        surname: ['of Samarkand', 'of Bukhara', 'of Khiva', 'of Merv', 'of Balkh', 'of Kashgar', 'of Khotan', 'of Turfan', 'of Ferghana', 'of Chach']
+    },
+    TURKIC_STEPPE: {
+        male: ['Alp', 'Arslan', 'Tugrul', 'Chaghri', 'Sanjar', 'Mahmud', 'Masud', 'Ibrahim', 'Seljuk', 'Danishmend', 'Mengucek', 'Saltuk', 'Artuk', 'Zengi', 'Nur', 'Belek', 'Timur', 'Bayezid', 'Orhan', 'Osman'],
+        female: ['Altun', 'Terken', 'Gevher', 'Melike', 'Hatun', 'Bibi', 'Sati', 'Padishah', 'Khatun', 'Begum', 'Guzel', 'Ayse', 'Fatma', 'Emine', 'Turkan', 'Zubeyde', 'Mihrimah', 'Hurrem', 'Safiye', 'Kosem'],
+        surname: ['Beg', 'Khan', 'Tegin', 'Yabgu', 'Shad', 'Elteber', 'Tarkan', 'Baghatur', 'Boyla', 'Tudun']
+    },
     // === PERSIAN KHORASAN ===
     PERSIAN_KHORASAN: {
         male: ['Ferdowsi', 'Omar', 'Rumi', 'Hafez', 'Saadi', 'Nizam', 'Attar', 'Sanai', 'Rudaki', 'Daqiqi', 'Asadi', 'Anvari', 'Khaqani', 'Nezami', 'Jami', 'Nasir', 'Biruni', 'Avicenna', 'Rhazes', 'Tusi'],
@@ -128,7 +237,31 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
         surname: ['Fernández', 'González', 'Rodríguez', 'López', 'Martínez', 'Sánchez', 'Pérez', 'Gómez', 'García', 'Díaz', 'Vázquez', 'Castro', 'Ponte', 'Saavedra', 'Andrade', 'Ulloa', 'Lemos', 'Osorio', 'Quiroga', 'Ribera']
     },
     
-    // === IMPROVED NATIVE AMERICAN NAMES ===
+    // === IMPROVED NATIVE AMERICAN NAMES WITH REGIONAL SPECIFICITY ===
+    // Pacific Northwest Coast
+    PACIFIC_NORTHWEST_COAST: {
+        male: ['Ksan', 'Haida', 'Tlingit', 'Kwakwaka', 'Tsimshian', 'Nootka', 'Makah', 'Quinault', 'Quileute', 'Skokomish', 'Snoqualmie', 'Duwamish', 'Suquamish', 'Muckleshoot', 'Puyallup', 'Nisqually', 'Cowlitz', 'Chinook', 'Tillamook', 'Siletz'],
+        female: ['Salish', 'Skagit', 'Lummi', 'Samish', 'Swinomish', 'Tulalip', 'Snohomish', 'Stillaguamish', 'Sauk', 'Skykomish', 'Klallam', 'Queets', 'Hoh', 'Ozette', 'Neah', 'Taholah', 'Moclips', 'Copalis', 'Humptulips', 'Wynoochee'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    // California
+    CALIFORNIA_NATIVE: {
+        male: ['Ishi', 'Yahi', 'Yana', 'Wintu', 'Maidu', 'Miwok', 'Yokuts', 'Pomo', 'Wappo', 'Ohlone', 'Esselen', 'Salinan', 'Chumash', 'Tataviam', 'Tongva', 'Luiseño', 'Cahuilla', 'Serrano', 'Chemehuevi', 'Mojave'],
+        female: ['Achomawi', 'Atsugewi', 'Modoc', 'Shasta', 'Karuk', 'Yurok', 'Hupa', 'Tolowa', 'Wiyot', 'Mattole', 'Nongatl', 'Sinkyone', 'Cahto', 'Yuki', 'Patwin', 'Konkow', 'Nisenan', 'Washoe', 'Mono', 'Paiute'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    // Great Basin
+    GREAT_BASIN_NATIVE: {
+        male: ['Shoshone', 'Bannock', 'Paiute', 'Ute', 'Goshute', 'Washoe', 'Numaga', 'Winnemucca', 'Ouray', 'Walkara', 'Pocatello', 'Washakie', 'Tendoy', 'Tahgee', 'Nampa', 'Weiser', 'Bruneau', 'Owyhee', 'Humboldt', 'Reese'],
+        female: ['Sacajawea', 'Porivo', 'Emma', 'Cameahwait', 'Bazil', 'Tourtotte', 'Wadze', 'Wadzewipe', 'Poivier', 'Bourdeau', 'Charbonneau', 'Tabeau', 'Dorion', 'Drouillard', 'Colter', 'Potts', 'Weiser', 'Stuart', 'McKenzie', 'Ogden'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    // Southwest (improved Pueblo)
+    SOUTHWEST_NATIVE: {
+        male: ['Kokopelli', 'Masauwu', 'Tawa', 'Sotuknang', 'Poqanghoya', 'Palongawhoya', 'Muingwa', 'Eototo', 'Aholi', 'Angwusnasomtaka', 'Chowilawu', 'Kwataka', 'Toho', 'Tuwaletstiwa', 'Lomahongyoma', 'Yukiuma', 'Lololoma', 'Tawaquaptewa', 'Sekaquaptewa', 'Honanie'],
+        female: ['Kokyangwuti', 'Hahay', 'Wuhti', 'Tuwapongtumsi', 'Qoqlo', 'Angwushahai', 'Hahai', 'Wupamo', 'Palasowitti', 'Qoqole', 'Sakwap', 'Mana', 'Tihu', 'Poli', 'Senom', 'Tukwinong', 'Hano', 'Sikyatki', 'Awatovi', 'Kawaika'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
     NORTH_AMERICAN_ALGONQUIAN: {
         male: ['Nanabozho', 'Wabigwan', 'Makoons', 'Migizi', 'Giizhig', 'Binesi', 'Makak', 'Waabigwanii', 'Ogichidaa', 'Gichi', 'Migwech', 'Anishinaabe', 'Boozhoo', 'Giwedin', 'Ishkode', 'Manidoo', 'Miigwech', 'Nooko', 'Ozhaawashko', 'Waaboos'],
         female: ['Nokomis', 'Waabigwanii', 'Ogichidaakwe', 'Migizi', 'Giizhigokwe', 'Binesi', 'Makoons', 'Waabigwan', 'Anishinaabekwe', 'Gichigami', 'Ishkodekwe', 'Manidookwe', 'Miigwech', 'Nookookwe', 'Ozhaawashko', 'Waaboos', 'Giiwedin', 'Migwech', 'Boozhoo', 'Wabana'],
@@ -195,6 +328,12 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
         male: ['Alexandros', 'Dimitrios', 'Konstantinos', 'Georgios', 'Ioannis', 'Nikolaos', 'Panagiotis', 'Christos', 'Vasileios', 'Michail', 'Antonios', 'Theodoros', 'Spyridon', 'Andreas', 'Athanasios', 'Stefanos', 'Apostolos', 'Evangelos', 'Eleftherios', 'Charalampos', 'Petros', 'Odysseus', 'Leonidas', 'Lysander', 'Theofilos', 'Aristides', 'Demetrius', 'Kyriakos', 'Socrates', 'Platon'],
         female: ['Maria', 'Eleni', 'Katerina', 'Dimitra', 'Sofia', 'Anastasia', 'Georgia', 'Konstantina', 'Ioanna', 'Vasiliki', 'Paraskevi', 'Chrysoula', 'Antonia', 'Sophia', 'Alexandra', 'Despina', 'Kalliopi', 'Fotini', 'Evangelia', 'Panagiota', 'Theodora', 'Angeliki', 'Irini', 'Stavroula', 'Olympia', 'Penelope', 'Cassandra', 'Helena', 'Athena', 'Aphrodite'],
         surname: ['Papadopoulos', 'Georgiou', 'Dimitriou', 'Konstantinou', 'Ioannou', 'Nikolaou', 'Petrou', 'Andreou', 'Christou', 'Michail', 'Stefanou', 'Karagiannis', 'Vasiliou', 'Oikonomou', 'Antoniou', 'Stavrou', 'Theodossiou', 'Alexandrou', 'Charalambous', 'Evangelou', 'Panayiotou', 'Demetriou', 'Athanassiou', 'Economou', 'Spyrou', 'Kostas', 'Makris', 'Vlachos', 'Pappas', 'Kostopoulos']
+    },
+    // Ancient Celtic (800 BCE - 400 CE)
+    CELTIC_ANCIENT: {
+        male: ['Vercingetorix', 'Ambiorix', 'Indutiomarus', 'Cavarinus', 'Commius', 'Dumnorix', 'Diviciacus', 'Orgetorix', 'Cingetorix', 'Cavarillus', 'Lugotorix', 'Celtillus', 'Gobannitio', 'Convictolitavis', 'Litaviccus', 'Eporedorix', 'Viridomarus', 'Aneroestes', 'Bolgios', 'Brennos'],
+        female: ['Boudica', 'Cartimandua', 'Onomaris', 'Chiomara', 'Camma', 'Eponina', 'Veleda', 'Medb', 'Scathach', 'Aife', 'Brigantia', 'Andraste', 'Sulis', 'Coventina', 'Rosmerta', 'Epona', 'Macha', 'Badb', 'Nemain', 'Morrigan'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
     },
     CELTIC_IRISH: {
         male: ['Seán', 'Liam', 'Conor', 'Cian', 'Aidan', 'Niall', 'Eoin', 'Oisín', 'Tadhg', 'Ruairí', 'Cillian', 'Darragh', 'Fionn', 'Ronan', 'Donnacha', 'Pádraig', 'Cormac', 'Brendan', 'Colm', 'Diarmuid', 'Eamon', 'Fergus', 'Ciarán', 'Lorcan', 'Muiris', 'Rían', 'Séamus', 'Cathal', 'Donal', 'Finn'],
@@ -311,6 +450,12 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
         female: ['Wing', 'Mei', 'Yuk', 'Yan', 'Pui', 'Ling', 'Ka', 'Siu', 'Yee', 'Man', 'Wai', 'Lai', 'Ying', 'Ching', 'Gigi', 'Heidi', 'Joey', 'Karen', 'Maggie', 'Nancy', 'Pauline', 'Queenie', 'Rosanne', 'Shirley', 'Teresa', 'Vivian', 'Wendy', 'Yoyo', 'Zita', 'Ada'],
         surname: ['Chan', 'Leung', 'Wong', 'Li', 'Cheung', 'Lau', 'Ho', 'Mak', 'Ng', 'Ma', 'Lam', 'Fung', 'Chow', 'Yip', 'Tsang', 'Chui', 'Shek', 'Poon', 'Man', 'Lo', 'Yuen', 'Kwan', 'Mok', 'Pang', 'Tang', 'Tse', 'Tsoi', 'Wan', 'Yeung', 'Yiu']
     },
+    // Ancient Korean names (Three Kingdoms period: 57 BCE - 668 CE)
+    KOREAN_ANCIENT: {
+        male: ['Geoseogan', 'Yuri', 'Ilseong', 'Adalla', 'Beolhyu', 'Naehae', 'Jobun', 'Cheomhae', 'Michu', 'Yurye', 'Girim', 'Heulhae', 'Sinmu', 'Naemul', 'Silseong', 'Nulji', 'Jabi', 'Soji', 'Maripgan', 'Beopheung', 'Jinheung', 'Jinji', 'Jinpyeong', 'Seondeok', 'Jindeok'],
+        female: ['Seondeok', 'Jindeok', 'Jinseong', 'Aro', 'Wonhwa', 'Mishil', 'Mojiak', 'Banya', 'Deokmyeong', 'Cheonmyeong', 'Bohwa', 'Seungman', 'Jiso', 'Munhui', 'Oji', 'Seolhwa', 'Yeonhwa', 'Sohwa', 'Hwangok', 'Wolmyeong'],
+        surname: ['Gim', 'Seok', 'Bak', 'Go', 'Buyeo', 'Hae', 'Gyeru', 'So', 'Yeon', 'Myeong', 'Jin', 'Wang', 'Yu', 'Gwon', 'Choe']
+    },
     KOREAN: {
         male: ['Min-jun', 'Seo-jun', 'Do-yun', 'Ha-jun', 'Eun-woo', 'Si-woo', 'Jun-seo', 'Ye-jun', 'Ji-ho', 'In-ho', 'Seung-woo', 'Hyun-woo', 'Jin-woo', 'Tae-hyun', 'Dong-hyun', 'Woo-jin', 'Chan-ho', 'Jae-min', 'Kyung-ho', 'Sang-ho', 'Young-soo', 'Min-ho', 'Joon-ho', 'Sung-min', 'Chang-ho', 'Kwang-soo', 'Hyung-min', 'Dae-hyun', 'Jun-ho', 'Seok-jin'],
         female: ['Ji-hye', 'Seo-yeon', 'Ha-eun', 'Ji-woo', 'Min-seo', 'So-yeon', 'Yoo-jin', 'Chae-won', 'Ga-eun', 'Ye-eun', 'Su-bin', 'Yu-na', 'Hye-jin', 'Eun-ji', 'Da-eun', 'Na-eun', 'Soo-jin', 'Min-ji', 'Ye-jin', 'Hyo-jin', 'Bo-ram', 'Hae-won', 'Ji-min', 'Seo-hyun', 'Yeon-seo', 'Ah-young', 'So-young', 'Hye-won', 'Jin-ah', 'Mi-young'],
@@ -360,6 +505,27 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
     },
 
     // === SOUTH ASIAN SUB-GROUPS ===
+    // === EXPANDED SOUTH ASIAN ===
+    SANSKRIT_CLASSICAL: {
+        male: ['Arjuna', 'Bhima', 'Yudhishthira', 'Nakula', 'Sahadeva', 'Karna', 'Duryodhana', 'Bhishma', 'Drona', 'Krishna', 'Rama', 'Lakshmana', 'Bharata', 'Shatrughna', 'Hanuman', 'Ravana', 'Vibhishana', 'Sugriva', 'Vali', 'Indrajit'],
+        female: ['Draupadi', 'Kunti', 'Gandhari', 'Sita', 'Radha', 'Rukmini', 'Satyabhama', 'Subhadra', 'Mandodari', 'Urmila', 'Satyavati', 'Ambika', 'Ambalika', 'Ganga', 'Savitri', 'Shakuntala', 'Damayanti', 'Lopamudra', 'Arundhati', 'Anasuya'],
+        surname: ['Pandava', 'Kaurava', 'Bharata', 'Ikshvaku', 'Raghu', 'Yadava', 'Vrishni', 'Kuru', 'Puru', 'Anu']
+    },
+    DRAVIDIAN: {
+        male: ['Selvam', 'Murugan', 'Karthik', 'Senthil', 'Kumaran', 'Arun', 'Bala', 'Durai', 'Ganesan', 'Hari', 'Jagan', 'Kannan', 'Mani', 'Nandhan', 'Pandian', 'Rajan', 'Siva', 'Thiru', 'Velan', 'Vimal'],
+        female: ['Kavitha', 'Priya', 'Lakshmi', 'Meera', 'Nithya', 'Oviya', 'Padma', 'Radha', 'Sangeetha', 'Tamil', 'Uma', 'Vani', 'Yamini', 'Anjali', 'Bhavani', 'Chitra', 'Devi', 'Geetha', 'Indira', 'Jaya'],
+        surname: ['Pillai', 'Nair', 'Menon', 'Iyer', 'Iyengar', 'Nadar', 'Reddy', 'Naidu', 'Mudaliar', 'Chettiar']
+    },
+    RAJPUT: {
+        male: ['Prithviraj', 'Rana', 'Maharana', 'Rao', 'Raja', 'Kunwar', 'Thakur', 'Rawat', 'Bhupendra', 'Chandrabhan', 'Durgadas', 'Fateh', 'Gaj', 'Hammir', 'Jai', 'Karan', 'Lakshman', 'Man', 'Narendra', 'Om'],
+        female: ['Padmini', 'Padmavati', 'Mira', 'Gayatri', 'Sanyogita', 'Jaishree', 'Karnavati', 'Durgavati', 'Tarabai', 'Ahilyabai', 'Avantibai', 'Bhagwati', 'Champavati', 'Hansabai', 'Jodhabai', 'Kishori', 'Lilavati', 'Manvati', 'Narbada', 'Roopmati'],
+        surname: ['Sisodia', 'Rathore', 'Chauhan', 'Parmar', 'Solanki', 'Kachwaha', 'Bundela', 'Chandela', 'Gahlot', 'Bhati']
+    },
+    BENGALI: {
+        male: ['Rabindra', 'Debendra', 'Satyendra', 'Jogendra', 'Birendra', 'Surendra', 'Narendra', 'Upendra', 'Mahendra', 'Dhirendra', 'Subrata', 'Sourav', 'Pranab', 'Amartya', 'Buddhadeb', 'Jyoti', 'Mamata', 'Manoj', 'Tapan', 'Utpal'],
+        female: ['Sharmila', 'Aparna', 'Supriya', 'Rituparna', 'Moushumi', 'Konkona', 'Raima', 'Tanushree', 'Bipasha', 'Sushmita', 'Aishwarya', 'Kajol', 'Rani', 'Jaya', 'Sharmistha', 'Ananya', 'Debalina', 'Gayatri', 'Indrani', 'Jayanti'],
+        surname: ['Banerjee', 'Chatterjee', 'Mukherjee', 'Ganguly', 'Bhattacharya', 'Sen', 'Bose', 'Ghosh', 'Roy', 'Das']
+    },
     HINDI: {
         male: ['Arjun', 'Rohan', 'Vikram', 'Ananda', 'Siddhartha', 'Rajesh', 'Suresh', 'Mahesh', 'Ramesh', 'Dinesh', 'Mukesh', 'Rakesh', 'Naresh', 'Hitesh', 'Ganesh', 'Yogesh', 'Umesh', 'Jitesh', 'Kamlesh', 'Lokesh', 'Ravi', 'Anil', 'Sunil', 'Manoj', 'Vinod', 'Pramod', 'Ajay', 'Vijay', 'Sanjay', 'Amitabh'],
         female: ['Priya', 'Anjali', 'Aisha', 'Lakshmi', 'Sita', 'Radha', 'Gita', 'Rita', 'Nita', 'Anita', 'Sunita', 'Mamta', 'Shanti', 'Bharti', 'Shakti', 'Kriti', 'Preeti', 'Neeti', 'Jyoti', 'Aarti', 'Sushma', 'Rekha', 'Meera', 'Geeta', 'Seeta', 'Veena', 'Leela', 'Sheela', 'Heera', 'Kiran'],
@@ -479,6 +645,200 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
         male: ['John', 'William', 'Thomas', 'Robert', 'James', 'Richard', 'Edward', 'Henry', 'Walter', 'Samuel', 'Benjamin', 'Nathaniel', 'Jonathan', 'Daniel', 'David', 'Isaac', 'Jacob', 'Joshua', 'Ezekiel', 'Jeremiah', 'Ebenezer', 'Cornelius', 'Barnabas', 'Gideon', 'Caleb', 'Elijah', 'Josiah', 'Zechariah', 'Obadiah', 'Hezekiah'],
         female: ['Mary', 'Elizabeth', 'Sarah', 'Hannah', 'Rebecca', 'Ruth', 'Esther', 'Rachel', 'Deborah', 'Abigail', 'Martha', 'Lydia', 'Priscilla', 'Susanna', 'Charity', 'Faith', 'Hope', 'Patience', 'Temperance', 'Prudence', 'Mercy', 'Comfort', 'Submit', 'Silence', 'Experience', 'Thankful', 'Deliverance', 'Bathsheba', 'Mehitable', 'Keturah'],
         surname: ['Smith', 'Brown', 'Johnson', 'Williams', 'Jones', 'Miller', 'Davis', 'Wilson', 'Moore', 'Taylor', 'Anderson', 'Thomas', 'Jackson', 'White', 'Harris', 'Martin', 'Thompson', 'Garcia', 'Martinez', 'Robinson', 'Clark', 'Rodriguez', 'Lewis', 'Lee', 'Walker', 'Hall', 'Allen', 'Young', 'Hernandez', 'King']
+    },
+
+    // === MADAGASCAR & INDIAN OCEAN ===
+    MALAGASY_MERINA: {
+        male: ['Andriamanelo', 'Ralambo', 'Andrianampoinimerina', 'Radama', 'Rakoto', 'Rainivoninahitriniony', 'Ratsimandrava', 'Rainilaiarivony', 'Ramaroson', 'Razafy', 'Ratsiraka', 'Raherimanana', 'Rajaobelina', 'Randrianasolo', 'Rasolo', 'Razafindrakoto', 'Ramanantsoa', 'Ratsimamanga', 'Rakotondrabe', 'Rakotoniaina'],
+        female: ['Ranavalona', 'Rasoherina', 'Rasalimo', 'Raketaka', 'Ranoro', 'Rabodo', 'Raharimalala', 'Razanamaro', 'Raveloson', 'Razafy', 'Ratsimbazafy', 'Rasoamanarivo', 'Raharijaona', 'Razanatseheno', 'Rasendrasoa', 'Rasolofonirina', 'Ravelomanantsoa', 'Razanadrakoto', 'Ratsimbaharison', 'Rabemananjara'],
+        surname: ['Andriamahefa', 'Razakandrainy', 'Ramanampisoa', 'Andrianarivelo', 'Rasamoelina', 'Razanakolona', 'Randriamampionona', 'Rabearimanana', 'Andriamampandry', 'Razafindratsima', 'Randriamahaleo', 'Rasoloniaina', 'Andriamamonjy', 'Razafimaharo', 'Randrianasolo', 'Rabekoto', 'Andriamanga', 'Razafindrakoto', 'Randrianary', 'Rasolonjatovo']
+    },
+    MALAGASY_BETSILEO: {
+        male: ['Andriamanalina', 'Rainimaharavo', 'Ramenia', 'Rabetsara', 'Andrianony', 'Rafaralahy', 'Rabeandrianina', 'Razanadrakoto', 'Ramilison', 'Rainitantely', 'Rasolofoson', 'Ratsimbazafy', 'Ramaroson', 'Rabary', 'Andriamanantena', 'Rasoanaivo', 'Randriamanantena', 'Rabemananjara', 'Ratsizafy', 'Ramanampisoa'],
+        female: ['Rasoanandrasana', 'Rabenanahary', 'Rasoamampianina', 'Razanadrakoto', 'Raharimanga', 'Razanamahasoa', 'Ravelomanantsoa', 'Rasolonjatovo', 'Randrianasolo', 'Rabemanantsoa', 'Razafindrakoto', 'Raharinomena', 'Rasolondraibe', 'Razanabahiny', 'Randriamanitra', 'Rabearimanana', 'Razafimaharo', 'Raveloson', 'Rasoanaivo', 'Rabary'],
+        surname: ['Ramanantsoa', 'Razafindralambo', 'Andriamampandry', 'Rasolonjatovo', 'Randriamanantena', 'Rabemanantsoa', 'Razanadrakoto', 'Rabemananjara', 'Andriamanalina', 'Rasoanaivo', 'Razafindrakoto', 'Randriamanitra', 'Rabearimanana', 'Razafimaharo', 'Ravelomanantsoa', 'Rasolofoson', 'Andriamanantena', 'Rabenanahary', 'Razanamahasoa', 'Ramilison']
+    },
+    MALAGASY_SAKALAVA: {
+        male: ['Andriandahifotsy', 'Andriamandisoarivo', 'Andriantompokoindrindra', 'Boina', 'Menabe', 'Andriamasinavalona', 'Andriambolamena', 'Andriamanelo', 'Andriantsitoha', 'Andriantsoly', 'Andriamandresy', 'Andrianampoinimerina', 'Andriantompokoindrindra', 'Andriamanalina', 'Ramaromanompo', 'Ramavo', 'Ramboasalama', 'Raminia', 'Ramonja', 'Randriana'],
+        female: ['Ravahiny', 'Rafohy', 'Rangita', 'Rasoamampianina', 'Ranoro', 'Rabehaza', 'Razanakoto', 'Ravelomanantsoa', 'Rasolofoson', 'Rabetsara', 'Rasoanandrasana', 'Raharimanga', 'Rasoanaivo', 'Randrianasolo', 'Razanadrakoto', 'Rabemanantsoa', 'Rabemananjara', 'Razafindrakoto', 'Raveloson', 'Razafimaharo'],
+        surname: ['Andriambolamena', 'Andriamandisoarivo', 'Andriantompokoindrindra', 'Andriamasinavalona', 'Andriandahifotsy', 'Andrianampoinimerina', 'Andriamanalina', 'Andriamandresy', 'Andriantsitoha', 'Andriantsoly', 'Ramaromanompo', 'Ramboasalama', 'Randrianasolo', 'Razanadrakoto', 'Ravelomanantsoa', 'Rabemananjara', 'Razafindrakoto', 'Rasolofoson', 'Rasoanaivo', 'Rabemanantsoa']
+    },
+
+    // === SOUTHEAST ASIAN SPECIFICS ===
+    VIETNAMESE: {
+        male: ['Nguyen', 'Minh', 'Duc', 'Hoang', 'Quang', 'Huy', 'Tuan', 'Dung', 'Hung', 'Nam', 'Thang', 'Long', 'Son', 'Phong', 'Truong', 'Cuong', 'Hai', 'Viet', 'Bao', 'Thanh', 'Kien', 'Tam', 'Lam', 'Khoa', 'An', 'Tien', 'Dat', 'Loc', 'Binh', 'Hieu'],
+        female: ['Linh', 'Hoa', 'Mai', 'Lan', 'Huong', 'Thuy', 'Nga', 'Yen', 'Ha', 'Phuong', 'Trinh', 'Hong', 'Thu', 'Trang', 'Ly', 'Kim', 'Hang', 'Van', 'Duyen', 'Hien', 'Nhung', 'Tuyet', 'Dieu', 'Quynh', 'Chau', 'Thao', 'Anh', 'My', 'Ngoc', 'Xuan'],
+        surname: ['Nguyen', 'Tran', 'Le', 'Pham', 'Hoang', 'Phan', 'Vu', 'Dang', 'Bui', 'Do', 'Ho', 'Ngo', 'Duong', 'Ly', 'Thai', 'Trinh', 'Dinh', 'Cao', 'Ta', 'Lam', 'Luong', 'Truong', 'Doan', 'Huynh', 'Mai', 'Vo', 'Bach', 'Tong', 'Lac', 'Phung']
+    },
+    THAI: {
+        male: ['Somchai', 'Somsak', 'Surachai', 'Wichai', 'Prasit', 'Narong', 'Sombat', 'Suchart', 'Surin', 'Thanet', 'Wiwat', 'Amnuay', 'Kamon', 'Preecha', 'Chaiwat', 'Bandit', 'Manit', 'Chusak', 'Pichet', 'Pornsak', 'Kamron', 'Boonmee', 'Niran', 'Thawat', 'Kriengsak', 'Bundit', 'Prasert', 'Thana', 'Worawit', 'Sathit'],
+        female: ['Siriporn', 'Malee', 'Suda', 'Wannee', 'Pranee', 'Ratana', 'Pensri', 'Niran', 'Duangjai', 'Somjit', 'Wassana', 'Anchalee', 'Benjawan', 'Chanida', 'Duangporn', 'Janya', 'Kannika', 'Ladda', 'Maneerat', 'Naree', 'Oraphin', 'Piyanut', 'Ratchanee', 'Siriwan', 'Tipawan', 'Uraiwan', 'Wanida', 'Yupa', 'Amporn', 'Boonsri'],
+        surname: ['Srisawat', 'Charoensuk', 'Wongsuwan', 'Thanakit', 'Piyapan', 'Siriporn', 'Kamolpan', 'Ratanachai', 'Prasertporn', 'Wichayaporn', 'Chinawong', 'Suksamran', 'Theerawat', 'Vorachote', 'Charoenrat', 'Amnuayporn', 'Boonchana', 'Sirichai', 'Thanapon', 'Wanichkorn', 'Chalermporn', 'Duangrat', 'Keeratiporn', 'Naruepon', 'Prasertsuk', 'Ratchanee', 'Somchaiporn', 'Thawatchai', 'Wachiraporn', 'Yingyong']
+    },
+    BURMESE: {
+        male: ['Thant', 'Tin', 'Than', 'Htun', 'Win', 'Khin', 'Mya', 'Soe', 'Zaw', 'Htin', 'Kyaw', 'Aung', 'Thet', 'Ye', 'Ko', 'Min', 'Nyi', 'Oo', 'Phyo', 'Pyae', 'Set', 'Thu', 'Wai', 'Yan', 'Zin', 'Kaung', 'Naing', 'Paing', 'Thura', 'Wunna'],
+        female: ['Khin', 'Mya', 'Tin', 'Thant', 'Win', 'Aye', 'Hla', 'May', 'Nwe', 'San', 'Swe', 'Htay', 'Kyi', 'Mar', 'Nan', 'Nu', 'Pwint', 'Su', 'Thandar', 'Yi', 'Cho', 'Ei', 'Htet', 'Kay', 'Lwin', 'Myat', 'Nilar', 'Phyu', 'Sandar', 'Wah'],
+        surname: ['Maung', 'Kyaw', 'Aung', 'Tun', 'Hlaing', 'Oo', 'Thant', 'Win', 'Than', 'Htun', 'Soe', 'Zaw', 'Mya', 'Khin', 'Tin', 'Ye', 'Min', 'Thu', 'Naing', 'Wai', 'Zin', 'Htay', 'Lwin', 'Nyi', 'Phyo', 'Set', 'Thura', 'Wunna', 'Yan', 'Kaung']
+    },
+    KHMER: {
+        male: ['Sovann', 'Pisach', 'Chanthy', 'Rith', 'Makara', 'Vichet', 'Bunroeun', 'Dara', 'Kosal', 'Marady', 'Narith', 'Pheaktra', 'Raksa', 'Samnang', 'Thearith', 'Vanna', 'Watthana', 'Yunos', 'Bophal', 'Chamnan'],
+        female: ['Chenda', 'Davi', 'Kanitha', 'Lyhour', 'Mealea', 'Neary', 'Panha', 'Ravy', 'Sophea', 'Thida', 'Veasna', 'Chantrea', 'Ratana', 'Bopha', 'Phary', 'Sreypov', 'Chamroeun', 'Kolab', 'Pichsamnang', 'Sreypich'],
+        surname: ['Chea', 'Chhun', 'Heng', 'Huy', 'Keo', 'Khem', 'Kong', 'Leng', 'Ly', 'Mao', 'Nhem', 'Ouk', 'Pen', 'Ros', 'Sam', 'Seng', 'Sim', 'Sok', 'Soun', 'Touch', 'Try', 'Vann', 'Vong', 'Yim', 'Yorn', 'Chey', 'Khiev', 'Nget', 'Proeung', 'Roeun']
+    },
+    MALAY: {
+        male: ['Ahmad', 'Abdul', 'Muhammad', 'Ali', 'Hassan', 'Ibrahim', 'Ismail', 'Omar', 'Yusof', 'Zakaria', 'Rahman', 'Salleh', 'Mahmud', 'Sulaiman', 'Rashid', 'Hamid', 'Karim', 'Rahim', 'Latif', 'Halim', 'Razak', 'Aziz', 'Nasir', 'Hakim', 'Farid', 'Nizam', 'Zain', 'Bakar', 'Azman', 'Rosli'],
+        female: ['Siti', 'Fatimah', 'Aminah', 'Khadijah', 'Zainab', 'Hafsah', 'Aishah', 'Maryam', 'Halimah', 'Ruqayyah', 'Safiyyah', 'Ummu', 'Raudhah', 'Wardina', 'Nur', 'Farah', 'Sarah', 'Laila', 'Aisyah', 'Nabila', 'Salma', 'Huda', 'Iman', 'Hidayah', 'Syahirah', 'Alya', 'Syafiqah', 'Widad', 'Zara', 'Qistina'],
+        surname: ['Abdullah', 'Rahman', 'Ibrahim', 'Ahmad', 'Hassan', 'Ali', 'Muhammad', 'Yusof', 'Ismail', 'Omar', 'Zakaria', 'Mahmud', 'Salleh', 'Sulaiman', 'Rashid', 'Hamid', 'Karim', 'Rahim', 'Latif', 'Halim', 'Razak', 'Aziz', 'Nasir', 'Hakim', 'Farid', 'Nizam', 'Zain', 'Bakar', 'Azman', 'Rosli']
+    },
+    INDONESIAN: {
+        male: ['Budi', 'Agus', 'Hendra', 'Dedi', 'Eko', 'Rudi', 'Joko', 'Wahyu', 'Bambang', 'Yudi', 'Andi', 'Indra', 'Yanto', 'Hadi', 'Slamet', 'Tono', 'Dwi', 'Rizki', 'Adi', 'Bayu', 'Dimas', 'Fajar', 'Gilang', 'Heri', 'Irfan', 'Kuncoro', 'Lutfi', 'Maulana', 'Nova', 'Ozi'],
+        female: ['Sri', 'Sari', 'Dewi', 'Ratna', 'Indah', 'Maya', 'Rina', 'Yuni', 'Wati', 'Lestari', 'Fitri', 'Nur', 'Ayu', 'Dian', 'Eka', 'Farida', 'Gita', 'Hani', 'Ika', 'Jihan', 'Kania', 'Lia', 'Mega', 'Nina', 'Olivia', 'Putri', 'Qory', 'Rani', 'Sinta', 'Tyas'],
+        surname: ['Setiawan', 'Gunawan', 'Wijaya', 'Santoso', 'Kurniawan', 'Wibowo', 'Sutrisno', 'Hartono', 'Susanto', 'Pranoto', 'Suryanto', 'Nugroho', 'Darmawan', 'Prabowo', 'Haryanto', 'Sudarsono', 'Raharjo', 'Widodo', 'Iskandar', 'Sugiarto', 'Maulana', 'Permana', 'Suharto', 'Pratama', 'Nurdiansyah', 'Mahendra', 'Kusuma', 'Utomo', 'Syahputra', 'Rahman']
+    },
+
+    // === EASTERN EUROPEAN SPECIFICS ===
+    POLISH: {
+        male: ['Jan', 'Piotr', 'Krzysztof', 'Andrzej', 'Tomasz', 'Pawel', 'Michal', 'Stanislaw', 'Marek', 'Jacek', 'Jerzy', 'Tadeusz', 'Adam', 'Zbigniew', 'Ryszard', 'Kazimierz', 'Henryk', 'Mariusz', 'Dariusz', 'Jaroslaw', 'Wlodzimierz', 'Leszek', 'Bogdan', 'Grzegorz', 'Wojciech', 'Miroslaw', 'Zygmunt', 'Witold', 'Czeslaw', 'Boleslaw'],
+        female: ['Maria', 'Anna', 'Katarzyna', 'Malgorzata', 'Agnieszka', 'Barbara', 'Ewa', 'Elzbieta', 'Krystyna', 'Zofia', 'Teresa', 'Jadwiga', 'Danuta', 'Halina', 'Irena', 'Stanislawa', 'Grazyna', 'Janina', 'Czeslawa', 'Wiesawa', 'Stefania', 'Aleksandra', 'Joanna', 'Helena', 'Urszula', 'Dorota', 'Beata', 'Renata', 'Iwona', 'Bozena'],
+        surname: ['Nowak', 'Kowalski', 'Wisniewski', 'Wojcik', 'Kowalczyk', 'Kaminski', 'Lewandowski', 'Zielinski', 'Szymanski', 'Wozniak', 'Dabrowski', 'Kozlowski', 'Jankowski', 'Mazur', 'Kwiatkowski', 'Krawczyk', 'Kaczmarek', 'Piotrowski', 'Grabowski', 'Nowakowski', 'Pawlowski', 'Michalski', 'Nowicki', 'Adamski', 'Dudek', 'Zajac', 'Wieczorek', 'Jakubowski', 'Jasinski', 'Zawadzki']
+    },
+    CZECH: {
+        male: ['Jan', 'Petr', 'Josef', 'Pavel', 'Tomas', 'Jaroslav', 'Frantisek', 'Miroslav', 'Vaclav', 'Martin', 'Jiri', 'Michal', 'Vladislav', 'Lukas', 'David', 'Jakub', 'Stanislav', 'Ladislav', 'Ondrej', 'Radek', 'Marek', 'Filip', 'Ales', 'Milan', 'Viktor', 'Roman', 'Daniel', 'Adam', 'Matej', 'Vojtech'],
+        female: ['Marie', 'Jana', 'Eva', 'Anna', 'Hana', 'Vera', 'Alena', 'Lenka', 'Kvetoslava', 'Jarmila', 'Ludmila', 'Helena', 'Jirina', 'Božena', 'Zuzana', 'Libuse', 'Milada', 'Vlasta', 'Jaromira', 'Marketa', 'Tereza', 'Katerina', 'Petra', 'Simona', 'Michaela', 'Veronika', 'Barbora', 'Klara', 'Adela', 'Nikola'],
+        surname: ['Novak', 'Svoboda', 'Novotny', 'Dvorak', 'Cerny', 'Prochazka', 'Krejci', 'Horak', 'Nemec', 'Pokorny', 'Pospisil', 'Havel', 'Kadlec', 'Ruzicka', 'Benes', 'Fiala', 'Sedlacek', 'Dolejsi', 'Zeman', 'Nguyen', 'Kucerov', 'Vesely', 'Bartos', 'Kolar', 'Cervenka', 'Urban', 'Brabec', 'Sikora', 'Machacek', 'Tuma']
+    },
+    HUNGARIAN: {
+        male: ['József', 'János', 'László', 'István', 'Ferenc', 'Sándor', 'Gábor', 'Péter', 'Zoltán', 'Attila', 'Tamás', 'Balázs', 'Mihály', 'Tibor', 'András', 'Károly', 'Géza', 'Imre', 'Gyula', 'Béla', 'Árpád', 'Kálmán', 'Ernő', 'Jenő', 'Viktor', 'Dezső', 'Olivér', 'Ákos', 'Csaba', 'Levente'],
+        female: ['Mária', 'Erzsébet', 'Katalin', 'Ilona', 'Éva', 'Anna', 'Margit', 'Judit', 'Andrea', 'Krisztina', 'Ágnes', 'Zsuzsanna', 'Gabriella', 'Mónika', 'Erika', 'Aniko', 'Beatrix', 'Brigitta', 'Csilla', 'Dorottya', 'Eszter', 'Fanni', 'Hajnalka', 'Ildikó', 'Julianna', 'Klára', 'Lívia', 'Noémi', 'Orsolya', 'Réka'],
+        surname: ['Nagy', 'Kovács', 'Tóth', 'Szabó', 'Horváth', 'Varga', 'Kiss', 'Molnár', 'Németh', 'Farkas', 'Balogh', 'Papp', 'Takács', 'Juhász', 'Lakatos', 'Mészáros', 'Oláh', 'Simon', 'Rácz', 'Fekete', 'Szűcs', 'Kerekes', 'Antal', 'Magyar', 'Gál', 'Fülöp', 'Hegedűs', 'Deák', 'Hajdu', 'Vincze']
+    },
+    ROMANIAN: {
+        male: ['Ion', 'Gheorghe', 'Nicolae', 'Vasile', 'Dumitru', 'Petru', 'Constantin', 'Stefan', 'Marin', 'Florin', 'Adrian', 'Mihai', 'Dan', 'Lucian', 'Cristian', 'Alexandru', 'George', 'Marius', 'Daniel', 'Dragos', 'Radu', 'Catalin', 'Bogdan', 'Andrei', 'Sorin', 'Liviu', 'Ionut', 'Viorel', 'Gabriel', 'Cosmin'],
+        female: ['Maria', 'Elena', 'Ioana', 'Ana', 'Mihaela', 'Daniela', 'Cristina', 'Andreea', 'Carmen', 'Lidia', 'Monica', 'Simona', 'Alina', 'Gabriela', 'Diana', 'Roxana', 'Oana', 'Luminita', 'Florentina', 'Adina', 'Camelia', 'Lavinia', 'Raluca', 'Corina', 'Nicoleta', 'Ramona', 'Viorica', 'Florina', 'Lacramioara', 'Georgiana'],
+        surname: ['Popescu', 'Popa', 'Pop', 'Radu', 'Stoica', 'Dragomir', 'Munteanu', 'Dima', 'Georgescu', 'Matei', 'Barbu', 'Nistor', 'Florea', 'Diaconu', 'Toma', 'Stancu', 'Mocanu', 'Grigore', 'Iancu', 'Marinescu', 'Dumitrescu', 'Rusu', 'Cristea', 'Mihai', 'Preda', 'Andrei', 'Nicolae', 'Radulescu', 'Ionescu', 'Constantinescu']
+    },
+    BULGARIAN: {
+        male: ['Ivan', 'Georgi', 'Dimitar', 'Nikolai', 'Petar', 'Stefan', 'Hristo', 'Todor', 'Angel', 'Bozhidar', 'Vasil', 'Asen', 'Kamen', 'Rumen', 'Plamen', 'Lyubomir', 'Zdravko', 'Stanimir', 'Borislav', 'Radoslav', 'Milen', 'Valentin', 'Emil', 'Yordan', 'Krasimir', 'Atanas', 'Kiril', 'Pavel', 'Martin', 'Alexander'],
+        female: ['Maria', 'Elena', 'Svetlana', 'Valentina', 'Nadia', 'Gergana', 'Desislava', 'Tsvetanka', 'Rumiana', 'Milena', 'Zlatka', 'Anelia', 'Daniela', 'Vesela', 'Miglena', 'Radka', 'Teodora', 'Bilyana', 'Petya', 'Galina', 'Iskra', 'Rositsa', 'Boryana', 'Dimitrina', 'Yordanka', 'Kalina', 'Margarita', 'Antonia', 'Silviya', 'Kristina'],
+        surname: ['Ivanov', 'Petrov', 'Dimitrov', 'Georgiev', 'Nikolov', 'Hristov', 'Todorov', 'Angelov', 'Stoyanov', 'Stefanov', 'Vasilev', 'Bozhilov', 'Kamenov', 'Rumenov', 'Plamenov', 'Lyubomirov', 'Zdravkov', 'Stanimirov', 'Borislavov', 'Radoslavov', 'Milenov', 'Valentinov', 'Emilov', 'Yordanov', 'Krasimirov', 'Atanasov', 'Kirilov', 'Pavlov', 'Martinov', 'Alexandrov']
+    },
+    SERBIAN: {
+        male: ['Marko', 'Stefan', 'Nikola', 'Aleksandar', 'Milos', 'Luka', 'Filip', 'Nemanja', 'Dusan', 'Vladimir', 'Petar', 'Milan', 'Jovana', 'Bogdan', 'Dejan', 'Zoran', 'Dragan', 'Goran', 'Sasa', 'Branko', 'Predrag', 'Nebojsa', 'Miroslav', 'Rajko', 'Slobodan', 'Milorad', 'Bojan', 'Darko', 'Srdjan', 'Velimir'],
+        female: ['Ana', 'Marija', 'Jovana', 'Milica', 'Aleksandra', 'Tamara', 'Jelena', 'Nadja', 'Sara', 'Teodora', 'Mina', 'Isidora', 'Andrea', 'Anja', 'Sofija', 'Una', 'Katarina', 'Magdalena', 'Petra', 'Iva', 'Dunja', 'Mila', 'Andjela', 'Lara', 'Nevena', 'Maša', 'Emilija', 'Vanja', 'Kristina', 'Dragana'],
+        surname: ['Jovanovic', 'Petrovic', 'Nikolic', 'Stojanovic', 'Popovic', 'Milosevic', 'Markovic', 'Djordjevic', 'Stankovic', 'Ilic', 'Pavlovic', 'Milenkovic', 'Vasic', 'Tosic', 'Radic', 'Savic', 'Antic', 'Milic', 'Stefanovic', 'Bogdanovic', 'Zivojinovic', 'Mladenovic', 'Andjelkovic', 'Lazic', 'Matic', 'Simic', 'Dimitrijevic', 'Vukovic', 'Radovanovic', 'Jankovic']
+    },
+    CROATIAN: {
+        male: ['Marko', 'Luka', 'Filip', 'David', 'Mateo', 'Petar', 'Antonio', 'Josip', 'Ivan', 'Matej', 'Dario', 'Nikola', 'Lovro', 'Tomislav', 'Kristijan', 'Stjepan', 'Mario', 'Ante', 'Zvonimir', 'Dragan', 'Miljenko', 'Davor', 'Goran', 'Zoran', 'Ivo', 'Branko', 'Mladen', 'Božo', 'Zdravko', 'Franjo'],
+        female: ['Petra', 'Ana', 'Lucija', 'Ema', 'Sara', 'Lana', 'Mia', 'Tea', 'Elena', 'Nika', 'Marija', 'Klara', 'Iva', 'Karin', 'Dora', 'Paula', 'Antonija', 'Karla', 'Marta', 'Nina', 'Lara', 'Anja', 'Barbara', 'Katarina', 'Mirna', 'Vesna', 'Gordana', 'Božica', 'Ljiljana', 'Jadranka'],
+        surname: ['Horvat', 'Kovačić', 'Babić', 'Marić', 'Novak', 'Jurić', 'Knežević', 'Marković', 'Petrović', 'Matić', 'Tomić', 'Kovačević', 'Šimić', 'Božić', 'Blažević', 'Pavić', 'Grgić', 'Radić', 'Pavlović', 'Vuković', 'Lovrić', 'Jukić', 'Zec', 'Šarić', 'Stipić', 'Bilić', 'Cvjetković', 'Dragić', 'Filipović', 'Galić']
+    },
+
+    // === CENTRAL ASIAN SPECIFICS ===
+    KAZAKH: {
+        male: ['Abai', 'Almas', 'Arman', 'Askhat', 'Baurzhan', 'Beibit', 'Damir', 'Dias', 'Dinmukhamed', 'Erlan', 'Galymzhan', 'Kanat', 'Marat', 'Nurasyl', 'Olzhas', 'Rustem', 'Samat', 'Serik', 'Talgat', 'Timur', 'Askar', 'Bakhytzhan', 'Darkhan', 'Eldos', 'Farabi', 'Kairat', 'Maksut', 'Nurlan', 'Saltanat', 'Yerzhan'],
+        female: ['Aida', 'Aigerim', 'Aizhan', 'Akmaral', 'Assel', 'Bakhyt', 'Daniya', 'Gulnara', 'Indira', 'Kamila', 'Karlygash', 'Kundyz', 'Madina', 'Nazgul', 'Raushan', 'Saule', 'Symbat', 'Togzhan', 'Ulbala', 'Zhansaya', 'Ainur', 'Balzhan', 'Dinara', 'Elmira', 'Fariza', 'Gaukhar', 'Kamshat', 'Meruyert', 'Perizat', 'Saltanat'],
+        surname: ['Nazarbayev', 'Tokayev', 'Kasymov', 'Masanov', 'Sarybaev', 'Omarov', 'Zhumabekov', 'Karimov', 'Serikbaev', 'Akhmetov', 'Tursunbaev', 'Kenzhebaev', 'Urazbaev', 'Suleimenov', 'Iskakov', 'Zhakypov', 'Mukanov', 'Berdyev', 'Kozhakhmetov', 'Aydarbaev', 'Kairatuly', 'Alikhanuly', 'Tolegenuly', 'Dauletuly', 'Serikuly', 'Abilkhanuly', 'Kairatovich', 'Serikovich', 'Tolegenovich', 'Dauletovich']
+    },
+    UZBEK: {
+        male: ['Akmal', 'Alisher', 'Aziz', 'Bobur', 'Davron', 'Dilshod', 'Farhod', 'Gulom', 'Hamza', 'Islom', 'Jasur', 'Kamol', 'Laziz', 'Muhammed', 'Nodir', 'Otabek', 'Pulat', 'Ravshan', 'Sanjar', 'Temur', 'Ulugbek', 'Vohid', 'Xasan', 'Yusuf', 'Zafar', 'Abbos', 'Bakhtiyor', 'Doniyor', 'Elbek', 'Feruz'],
+        female: ['Aziza', 'Dilnoza', 'Feruza', 'Gulnoza', 'Hilola', 'Iroda', 'Jamila', 'Kamola', 'Latifa', 'Mavluda', 'Nafisa', 'Ozoda', 'Parvina', 'Roziya', 'Sabina', 'Tanzila', 'Umida', 'Vasila', 'Ximoya', 'Yulduz', 'Zarina', 'Adolat', 'Barno', 'Dilafruz', 'Elmira', 'Fazila', 'Gulchehra', 'Husnora', 'Iqbol', 'Jahongir'],
+        surname: ['Karimov', 'Mirziyoyev', 'Rakhmonov', 'Saidov', 'Toshmatov', 'Umarov', 'Vakhobov', 'Xolmatov', 'Yusupov', 'Zokirov', 'Abdullayev', 'Baxtiyorov', 'Davlatov', 'Erkinov', 'Fayzullayev', 'Gulomov', 'Hakimov', 'Ismoilov', 'Juraev', 'Komilov', 'Latipov', 'Mahmudov', 'Normatov', 'Olimov', 'Pulatov', 'Rustamov', 'Sobirov', 'Turdiev', 'Usmonov', 'Valiyev']
+    },
+    KYRGYZ: {
+        male: ['Adilet', 'Almaz', 'Askar', 'Azamat', 'Bakyt', 'Bektur', 'Dastan', 'Ermek', 'Gulzar', 'Kanybek', 'Manas', 'Nurdin', 'Omurbek', 'Ruslan', 'Sanzhar', 'Taalai', 'Ulan', 'Zhanybek', 'Akylbek', 'Bakirdin', 'Cholpon', 'Daniyar', 'Eldiyar', 'Farkhad', 'Kadyrbek', 'Maksat', 'Nurlan', 'Sanjar', 'Timur', 'Ulanbek'],
+        female: ['Aida', 'Bermet', 'Cholpon', 'Dinara', 'Elnura', 'Gulzat', 'Jyldyz', 'Kanykei', 'Medina', 'Nazgul', 'Perizat', 'Saira', 'Tolkun', 'Umut', 'Zarina', 'Ainagul', 'Baktygul', 'Chynara', 'Elmira', 'Gulnara', 'Kunduz', 'Nurgul', 'Saltanat', 'Venera', 'Zamira', 'Asel', 'Burul', 'Damira', 'Gulsara', 'Kalima'],
+        surname: ['Jeenbekov', 'Atambaev', 'Akayev', 'Bakiyev', 'Isakov', 'Mamatov', 'Orozov', 'Satybaldiev', 'Tashiev', 'Usubaliev', 'Abdyldaev', 'Bakirov', 'Davletov', 'Ergeshov', 'Kasybekov', 'Moldokmatov', 'Nurmatov', 'Osmonov', 'Rayimkulov', 'Sharipov', 'Temirov', 'Urmatov', 'Zulpukarov', 'Aitmatov', 'Beishenaliev', 'Choroev', 'Dzhumakadyrov', 'Esengaliev', 'Kydyraliev', 'Mamytov']
+    },
+    TURKMEN: {
+        male: ['Agamyrat', 'Atamyrat', 'Berdimuhamedow', 'Dovletmyrat', 'Gurbansoltan', 'Maksat', 'Niyazov', 'Oguzhan', 'Serdar', 'Wyacheslav', 'Amangeldy', 'Batyr', 'Dowletgeldi', 'Gurbanmyrat', 'Kerim', 'Meret', 'Oraz', 'Rustam', 'Tachmyrat', 'Yklym', 'Akmyrat', 'Begench', 'Dovrangeldi', 'Gurbanguly', 'Kemal', 'Myrat', 'Orazmyrat', 'Saparmurad', 'Tagamyrat', 'Yazmyrat'],
+        female: ['Akgul', 'Aygul', 'Bibi', 'Gulnar', 'Jamila', 'Leyli', 'Maral', 'Nazik', 'Ogulabat', 'Soltan', 'Altyn', 'Bahar', 'Gozal', 'Jennet', 'Mahri', 'Nargiz', 'Ogulabibi', 'Rahima', 'Shirin', 'Yasmyn', 'Ayna', 'Begul', 'Gulzada', 'Jemile', 'Mambet', 'Nazgul', 'Orazsoltan', 'Sona', 'Turkan', 'Ziba'],
+        surname: ['Berdimuhamedow', 'Niyazov', 'Gurbanguly', 'Atayev', 'Durdyev', 'Geldyev', 'Hojayev', 'Jumaev', 'Kurbanov', 'Mamedov', 'Nuryev', 'Orazov', 'Rejepov', 'Saparmuradov', 'Tachmyradov', 'Yazmuradov', 'Agayev', 'Berdyev', 'Durdymyradov', 'Garayev', 'Ilyasov', 'Kadyrov', 'Muradov', 'Omarov', 'Sadykov', 'Urazov', 'Veliyev', 'Yusupov', 'Charyyev', 'Hojanepesov']
+    },
+
+    // === SPECIFIC PACIFIC ISLANDS ===
+    HAWAIIAN: {
+        male: ['Koa', 'Keoni', 'Kawika', 'Ikaika', 'Akamu', 'Keanu', 'Makoa', 'Kekoa', 'Kahoku', 'Kanoa', 'Kalani', 'Kaleo', 'Keola', 'Kainoa', 'Keawe', 'Kekai', 'Kapono', 'Lopaka', 'Mahina', 'Nalani', 'Pika', 'Tane', 'Ulani', 'Waika', 'Keali', 'Kimo', 'Kaipo', 'Kamal', 'Kanaloa', 'Kamalu'],
+        female: ['Leilani', 'Malia', 'Nalani', 'Mahina', 'Naia', 'Lehua', 'Pua', 'Kalani', 'Noelani', 'Kalea', 'Mele', 'Pikake', 'Lilia', 'Anela', 'Kailani', 'Mailani', 'Kaila', 'Kawena', 'Akela', 'Ailana', 'Eleu', 'Haumea', 'Iolana', 'Kaia', 'Laka', 'Moana', 'Nayeli', 'Olina', 'Palila', 'Ulani'],
+        surname: ['o Koa', 'o Keoni', 'o Kawika', 'o Ikaika', 'o Akamu', 'o Keanu', 'o Makoa', 'o Kekoa', 'o Kahoku', 'o Kanoa', 'o Kalani', 'o Kaleo', 'o Keola', 'o Kainoa', 'o Keawe', 'o Kekai', 'o Kapono', 'o Lopaka', 'o Mahina', 'o Nalani']
+    },
+    TAHITIAN: {
+        male: ['Teiva', 'Marama', 'Pito', 'Terai', 'Hiro', 'Manuarii', 'Pomare', 'Tuahine', 'Teriitearia', 'Mahina', 'Heimana', 'Vaitea', 'Teikihuupoko', 'Teriimana', 'Tehei', 'Teva', 'Tuanaki', 'Raimana', 'Taumalolo', 'Vaite', 'Teiti', 'Heiarii', 'Tuianu', 'Moea', 'Teanua', 'Vaea', 'Ahuarii', 'Teariki', 'Tauatua', 'Terupe'],
+        female: ['Tiare', 'Moea', 'Raina', 'Maeva', 'Vaimiti', 'Terehia', 'Hinanui', 'Tehina', 'Vaiata', 'Maituarii', 'Rava', 'Titaua', 'Tarita', 'Teiva', 'Poehina', 'Vaiana', 'Hinatea', 'Mehiata', 'Teuira', 'Vaitea', 'Tehei', 'Moina', 'Raita', 'Teariki', 'Vahine', 'Poema', 'Marama', 'Heiata', 'Teura', 'Mareva'],
+        surname: ['a Teiva', 'a Marama', 'a Pito', 'a Terai', 'a Hiro', 'a Manuarii', 'a Pomare', 'a Tuahine', 'a Mahina', 'a Heimana', 'a Vaitea', 'a Teriimana', 'a Tehei', 'a Teva', 'a Tuanaki', 'a Raimana', 'a Taumalolo', 'a Vaite', 'a Teiti', 'a Heiarii']
+    },
+    SAMOAN: {
+        male: ['Sione', 'Tavita', 'Paulo', 'Lemi', 'Filipo', 'Ioane', 'Mika', 'Pita', 'Siaki', 'Toma', 'Falaniko', 'Iakopo', 'Mose', 'Siaosi', 'Teleke', 'Uelese', 'Viliami', 'Salesi', 'Tanielu', 'Iosua', 'Simona', 'Lopeti', 'Kalolo', 'Manoa', 'Pauli', 'Setu', 'Tuifua', 'Vaea', 'Alamai', 'Faletau'],
+        female: ['Sina', 'Mele', 'Ana', 'Luisa', 'Mere', 'Salote', 'Talei', 'Vika', 'Elisapeta', 'Katalina', 'Losa', 'Maria', 'Penelopi', 'Silia', 'Teuila', 'Vaofou', 'Adeline', 'Faasisina', 'Ilaisa', 'Leilua', 'Moana', 'Noumea', 'Peka', 'Rosita', 'Taimalelagi', 'Vaitoa', 'Christina', 'Fialelei', 'Lagi', 'Tausala'],
+        surname: ['Tuisamoa', 'Malietoa', 'Mataafa', 'Tamasese', 'Tuimalealiifano', 'Tuiatua', 'Tuivaga', 'Aiono', 'Leaupepe', 'Luamanuvao', 'Namulauulu', 'Papalii', 'Seumanutafa', 'Tanuvasa', 'Tootoovao', 'Tuatagaloa', 'Vaai', 'Afamasaga', 'Faumuina', 'Fuimaono']
+    },
+    TONGAN: {
+        male: ['Tevita', 'Sione', 'Pita', 'Sitiveni', 'Viliami', 'Paula', 'Manu', 'Salote', 'Koli', 'Folau', 'Tevita', 'Finau', 'Latu', 'Moala', 'Pohiva', 'Taumalolo', 'Vea', 'Afeaki', 'Havea', 'Kilikiti', 'Lopeti', 'Mafile', 'Naufahu', 'Palani', 'Sia', 'Taufua', 'Uikelotu', 'Vaipulu', 'Wolfgramm', 'Faka'],
+        female: ['Salote', 'Mele', 'Ana', 'Sela', 'Mere', 'Luisa', 'Ofa', 'Vika', 'Talei', 'Lupe', 'Malia', 'Siutiti', 'Tevita', 'Losaline', 'Pilimilose', 'Seini', 'Telani', 'Vahe', 'Amelia', 'Filomena', 'Kalo', 'Lavinia', 'Makerita', 'Nola', 'Penina', 'Semisi', 'Tupou', 'Unaloto', 'Veiongo', 'Alohalani'],
+        surname: ['Tupou', 'Moala', 'Finau', 'Latu', 'Pohiva', 'Taumalolo', 'Vea', 'Afeaki', 'Havea', 'Kilikiti', 'Lopeti', 'Mafile', 'Naufahu', 'Palani', 'Sia', 'Taufua', 'Uikelotu', 'Vaipulu', 'Wolfgramm', 'Faka', 'Helu', 'Kaho', 'Manu', 'Otai', 'Puloka', 'Taione', 'Vake', 'Aleamotu', 'Fonua', 'Kaufusi']
+    },
+    FIJIAN: {
+        male: ['Jone', 'Ratu', 'Seru', 'Temo', 'Viliame', 'Watisoni', 'Aminiasi', 'Josaia', 'Lemeki', 'Marika', 'Penioni', 'Sakiasi', 'Tomasi', 'Alipate', 'Isoa', 'Kolinio', 'Manasa', 'Neumi', 'Pauliasi', 'Semiti', 'Uraia', 'Viliami', 'Apakuki', 'Ilaisa', 'Kitione', 'Milika', 'Osea', 'Seremaia', 'Tevita', 'Waisea'],
+        female: ['Mere', 'Salote', 'Ana', 'Litia', 'Maria', 'Sala', 'Teresia', 'Adi', 'Bulou', 'Episalote', 'Kesaia', 'Makereta', 'Salanieta', 'Talei', 'Vasiti', 'Alisi', 'Fulori', 'Kelera', 'Lusi', 'Naomi', 'Salote', 'Tokasa', 'Varanisese', 'Asenaca', 'Ilisapeci', 'Loloma', 'Milika', 'Raijeli', 'Sera', 'Una'],
+        surname: ['Bose', 'Dakuwaqa', 'Leweniqila', 'Mataitoga', 'Nailatikau', 'Ratunabuabua', 'Seniloli', 'Tavatavanawai', 'Vuanirewa', 'Waqa', 'Cakobau', 'Ganilau', 'Koroilavesau', 'Mara', 'Qarase', 'Roko', 'Tui', 'Vuki', 'Bolabola', 'Cavuilati']
+    },
+
+    // === NATIVE AMERICAN TRIBAL SPECIFICS ===
+    APACHE: {
+        male: ['Bidziil', 'Cochise', 'Dahkeya', 'Elan', 'Goyahkla', 'Hastiin', 'Illanipi', 'Jacy', 'Klah', 'Kuruk', 'Naiche', 'Nayati', 'Nantan', 'Mangas', 'Chato', 'Taza', 'Nana', 'Loco', 'Juh', 'Alchise', 'Tsela', 'Bodaway', 'Delshay', 'Eskiminzin', 'Nahiossi', 'Naalnish', 'Tsintah', 'Itza-chu', 'Kas-tziden', 'Tse-ne-gat'],
+        female: ['Aiyana', 'Chosposi', 'Dezba', 'Gouyen', 'Huera', 'Ipa', 'Jacali', 'Kachina', 'Lozen', 'Nalin', 'Ooljee', 'Paloma', 'Sonseeahray', 'Tala', 'Unega', 'Dahteste', 'Ishton', 'Siki', 'Zi-yeh', 'Beshad-e', 'Ih-tedda', 'She-gha', 'Ih-na-tah', 'Nah-dos-te', 'Shtsha-she', 'E-clah-heh', 'Dilth-cleyhen', 'Bi-ya-neta', 'Tzoe-ay', 'Nah-de-yole'],
+        surname: ['Chiricahua', 'Mescalero', 'Jicarilla', 'Lipan', 'Western-Apache', 'Plains-Apache', 'White-Mountain', 'San-Carlos', 'Cibecue', 'Tonto']
+    },
+    CHEROKEE: {
+        male: ['Atsila', 'Danuwoa', 'Gola', 'Kanuna', 'Mohe', 'Onacona', 'Salali', 'Tsiyi', 'Waya', 'Yona', 'Aganvdisi', 'Adahy', 'Ahanu', 'Degotoga', 'Gawonii', 'Kanoska', 'Oconostota', 'Ostenaco', 'Attakullakulla', 'Doublehead', 'Pathkiller', 'Tahchee', 'Utsidihi', 'Wohali', 'Yonaguska', 'Tsunu', 'Ganundalegi', 'Sequoyah', 'Junaluska', 'Oosahwee'],
+        female: ['Adsila', 'Agasga', 'Amadahy', 'Awenasa', 'Ayita', 'Galilahi', 'Immookalee', 'Inola', 'Nanye-hi', 'Noya', 'Salali', 'Selu', 'Tayanita', 'Tsula', 'Walela', 'Winona', 'Ghigau', 'Ama', 'Gola', 'Kamama', 'Nidia', 'Oota', 'Sequoia', 'Tala', 'Usdi', 'Wahya', 'Yonah', 'Nvda', 'Svnoyi', 'Agitsi'],
+        surname: ['Aniwaya', 'Anigatogewi', 'Anisahoni', 'Aniwodi', 'Anitsisqua', 'Aniwahya', 'Anikawi', 'Wolf-Clan', 'Deer-Clan', 'Bird-Clan', 'Paint-Clan', 'Blue-Clan', 'Long-Hair-Clan', 'Wild-Potato-Clan']
+    },
+    IROQUOIS_HAUDENOSAUNEE: {
+        male: ['Deganawidah', 'Hiawatha', 'Tadodaho', 'Skenandoa', 'Oronhyatekha', 'Kanonwat', 'Tekarihoga', 'Otsembo', 'Kanonsonnion', 'Ganeodiyo', 'Donehogawa', 'Sganyadaiyoh', 'Kaienke', 'Ronkahrawah', 'Tahamont', 'Kaneeda', 'Soyent', 'Ganunda', 'Kanadagea', 'Oneida', 'Onondaga', 'Cayuga', 'Seneca', 'Mohawk', 'Tuscarora'],
+        female: ['Kateri', 'Onatah', 'Aiyana', 'Kachina', 'Oneida', 'Tekawitha', 'Konwatsi', 'Kahente', 'Kawenaa', 'Katsitsio', 'Otsi', 'Onen', 'Skennen', 'Tewenissa', 'Yakowi', 'Kohana', 'Wenona', 'Kanontiio', 'Onawa', 'Wadewi', 'Awenasa', 'Gawonii', 'Kanessa', 'Ojistah', 'Sequoia'],
+        surname: ['Turtle-Clan', 'Wolf-Clan', 'Bear-Clan', 'Beaver-Clan', 'Deer-Clan', 'Hawk-Clan', 'Snipe-Clan', 'Heron-Clan', 'Eel-Clan']
+    },
+    CREEK_MUSKOGEE: {
+        male: ['Opothleyahola', 'Menawa', 'Chitto', 'Harjo', 'Emathla', 'Yahola', 'Fixico', 'Micco', 'Tustunnuggee', 'Holata', 'Hadjo', 'Chopco', 'Kono', 'Semo', 'Nokose', 'Isfaha', 'Taskigi', 'Hopoithle', 'Apushimataha', 'Takosa'],
+        female: ['Coosa', 'Lowak', 'Talisi', 'Mahila', 'Sehoy', 'Pakana', 'Chehaw', 'Nanih', 'Wakokai', 'Fuswa', 'Hillis', 'Osochi', 'Sawokli', 'Tukabahchi', 'Wetumpka', 'Abihka', 'Atasi', 'Kealedji', 'Kolomi', 'Okchai'],
+        surname: ['Harjo', 'Emathla', 'Yahola', 'Fixico', 'Micco', 'Hadjo', 'Chopco', 'Wind-Clan', 'Bear-Clan', 'Beaver-Clan', 'Bird-Clan', 'Deer-Clan', 'Alligator-Clan', 'Potato-Clan', 'Hickory-Clan']
+    },
+    ALGONQUIAN: {
+        male: ['Metacomet', 'Massasoit', 'Powhatan', 'Pontiac', 'Tecumseh', 'Wabanaki', 'Samoset', 'Squanto', 'Canonicus', 'Miantonomo', 'Uncas', 'Sassacus', 'Paugus', 'Passaconaway', 'Wonalancet', 'Kancamagus', 'Madockawando', 'Bashaba', 'Nanapush', 'Keokuk'],
+        female: ['Pocahontas', 'Wetamoo', 'Awashonks', 'Weetamoo', 'Mononotto', 'Cockacoeske', 'Totopotomoi', 'Nicketti', 'Wunne', 'Askook', 'Namumpum', 'Quaiapen', 'Magnus', 'Matantuck', 'Wootonekanuske', 'Oppussoquionuske', 'Aspenquid', 'Mamanuette', 'Sunksquaw', 'Winema'],
+        surname: ['Wampanoag', 'Narragansett', 'Pequot', 'Mohegan', 'Nipmuc', 'Pocumtuck', 'Pennacook', 'Abenaki', 'Passamaquoddy', 'Micmac', 'Maliseet', 'Lenape', 'Shawnee', 'Ojibwe', 'Potawatomi', 'Menominee', 'Sauk', 'Fox', 'Kickapoo', 'Miami']
+    },
+    PUEBLO: {
+        male: ['Popé', 'Tewa', 'Keres', 'Tiwa', 'Acoma', 'Taos', 'Cochiti', 'Nambe', 'Ohkay', 'Picuris', 'Pojoaque', 'Sandia', 'Tesuque', 'Isleta', 'Laguna', 'Masewa', 'Oyoyewa', 'Poseyemu', 'Montezuma', 'Payatamu'],
+        female: ['Aiyana', 'Kaya', 'Mika', 'Nova', 'Sora', 'Tiva', 'Yara', 'Kiva', 'Mesa', 'Hopi', 'Keres', 'Tewa', 'Butterfly', 'Kachina', 'Kokopelli', 'Selu', 'Corn-Mother', 'Blue-Corn', 'White-Shell', 'Turquoise'],
+        surname: ['Sun-Clan', 'Cloud-Clan', 'Corn-Clan', 'Water-Clan', 'Sky-Clan', 'Earth-Clan', 'Turquoise-Clan', 'Eagle-Clan', 'Bear-Clan', 'Antelope-Clan', 'Coyote-Clan', 'Snake-Clan', 'Badger-Clan', 'Butterfly-Clan', 'Parrot-Clan']
+    },
+    INUIT: {
+        male: ['Nanook', 'Amarok', 'Atka', 'Nukka', 'Tulugaq', 'Qimmiq', 'Siku', 'Akiak', 'Desna', 'Iluq', 'Kallik', 'Malik', 'Nuka', 'Pakak', 'Sesi', 'Taqtu', 'Ukiuk', 'Yuka', 'Toklo', 'Nayuk'],
+        female: ['Sedna', 'Sila', 'Pania', 'Kira', 'Miki', 'Nayuk', 'Suki', 'Uki', 'Yura', 'Aput', 'Atiqtalik', 'Buniq', 'Cupun', 'Ila', 'Kavik', 'Malina', 'Naia', 'Purnaq', 'Sakari', 'Uki'],
+        surname: ['Angakok', 'Tikivik', 'Kakortok', 'Nanuq', 'Sirmiq', 'Tulugaq', 'Umiak', 'Iglu', 'Kayak', 'Tupik', 'Kamik', 'Anorak', 'Mukluk', 'Parka', 'Qiviut']
+    },
+    LAKOTA_SIOUX: {
+        male: ['Tatanka', 'Mahpiya', 'Wanbli', 'Mato', 'Cetan', 'Hehaka', 'Takoda', 'Ohiyesa', 'Akecheta', 'Chayton', 'Enapay', 'Kangee', 'Lootah', 'Nashoba', 'Ogleesha', 'Pahana', 'Shappa', 'Tashunka', 'Wahkan', 'Yahto', 'Chaska', 'Ezhno', 'Hotah', 'Bidziil', 'Kohana'],
+        female: ['Winona', 'Wakanda', 'Talulah', 'Kimama', 'Maka', 'Nina', 'Ojinjintka', 'Ptaysanwee', 'Skawin', 'Tawana', 'Wachiwi', 'Weayaya', 'Winema', 'Zitkala', 'Anpao', 'Chumani', 'Ehawee', 'Hanwi', 'Kimimela', 'Makawee', 'Mitena', 'Nahimana', 'Pakuna', 'Sahkyo', 'Takala'],
+        surname: ['Mato-Tope', 'Wanbli-Waste', 'Tatanka-Iyotanka', 'Mahpiya-Luta', 'Sunkawakan-Ska', 'Hehaka-Sapa', 'Cetan-Maza', 'Kangee-Sunka', 'Tashunka-Witco', 'Wahkan-Tanka', 'Mato-Sapa', 'Wanbli-Gli', 'Tasunka-Kokipa', 'Mahpiya-Icahtagya', 'Ptaysanwee-Win', 'Hanwi-Wi', 'Wachiwi-Win', 'Zitkala-Sha', 'Anpao-Win', 'Maka-Win']
+    },
+
+    // === SURNAME PATTERN IMPLEMENTATIONS ===
+    ICELANDIC: {
+        male: ['Bjorn', 'Erik', 'Magnus', 'Olaf', 'Ragnar', 'Sigurd', 'Thorvald', 'Gunnar', 'Harald', 'Leif', 'Njal', 'Ulf', 'Egil', 'Snorri', 'Hjalti', 'Kettil', 'Orm', 'Skuli', 'Thord', 'Vigfus', 'Ari', 'Einar', 'Grim', 'Halfdan', 'Jon', 'Kjartan', 'Ljot', 'Odd', 'Ref', 'Stein'],
+        female: ['Astrid', 'Bergthora', 'Gudrun', 'Hallgerd', 'Helga', 'Ingrid', 'Jorunn', 'Kristin', 'Ragnhild', 'Sigrid', 'Thora', 'Unn', 'Vigdis', 'Aud', 'Brynhild', 'Dalla', 'Eir', 'Freydis', 'Gro', 'Hild', 'Inga', 'Jora', 'Kari', 'Lif', 'Marta', 'Nanna', 'Oddny', 'Randi', 'Sif', 'Thordis'],
+        surname: ['Bjornsson', 'Eriksson', 'Magnusson', 'Olafsson', 'Ragnarsson', 'Sigurdsson', 'Thorvaldsson', 'Gunnarsson', 'Haraldsson', 'Leifsson', 'Njalsson', 'Ulfsson', 'Egilsson', 'Snorrisson', 'Hjaltisson', 'Kettilsson', 'Ormsson', 'Skulisson', 'Thordsson', 'Vigfusson', 'Arisson', 'Einarsson', 'Grimsson', 'Halfdansson', 'Jonsson', 'Kjartansson', 'Ljotsson', 'Oddsson', 'Refsson', 'Steinsson']
+    },
+    ARABIC_TRADITIONAL: {
+        male: ['Ahmad', 'Muhammad', 'Ali', 'Hassan', 'Hussein', 'Omar', 'Khalid', 'Yusuf', 'Ibrahim', 'Ismail', 'Abdullah', 'Abdul Rahman', 'Mahmoud', 'Saeed', 'Tariq', 'Walid', 'Ziad', 'Nasser', 'Faisal', 'Rashid', 'Hamza', 'Jamal', 'Karim', 'Marwan', 'Nabil', 'Qasim', 'Salim', 'Tamer', 'Wael', 'Yazid'],
+        female: ['Fatima', 'Aisha', 'Khadija', 'Maryam', 'Zainab', 'Layla', 'Amina', 'Safiya', 'Hajar', 'Ruqayya', 'Umm Kulthum', 'Asma', 'Hafsa', 'Sawda', 'Juwayriya', 'Zaynab', 'Maymuna', 'Umm Salama', 'Ramla', 'Safiyya', 'Ramlah', 'Zaynab', 'Umm Habiba', 'Juwayriyah', 'Safiyyah', 'Maymunah', 'Saudah', 'Hafsah', 'Aishah', 'Khadijah'],
+        surname: ['ibn Ahmad', 'ibn Muhammad', 'ibn Ali', 'ibn Hassan', 'ibn Hussein', 'ibn Omar', 'ibn Khalid', 'ibn Yusuf', 'ibn Ibrahim', 'ibn Ismail', 'ibn Abdullah', 'ibn Abdul Rahman', 'ibn Mahmoud', 'ibn Saeed', 'ibn Tariq', 'ibn Walid', 'ibn Ziad', 'ibn Nasser', 'ibn Faisal', 'ibn Rashid', 'al-Hashimi', 'al-Qureshi', 'al-Ansari', 'al-Muhajir', 'al-Tamimi', 'al-Azdi', 'al-Kindi', 'al-Baghdadi', 'al-Dimashqi', 'al-Misri']
+    },
+    MONGOLIAN_TRADITIONAL: {
+        male: ['Temujin', 'Boroldai', 'Jamukha', 'Ong Khan', 'Nilka Sengun', 'Jamuqa', 'Targutai', 'Toghrul', 'Senggum', 'Dai Sechen', 'Yesugei', 'Munlik', 'Charaka', 'Sorgan Shira', 'Chilagun', 'Belgutei', 'Kasar', 'Kachun', 'Temuge', 'Jochi', 'Chagatai', 'Ogedei', 'Tolui', 'Guyuk', 'Mongke', 'Kublai', 'Hulagu', 'Arik Boke', 'Kaidu', 'Nayan'],
+        female: ['Borte', 'Khulan', 'Yesugen', 'Yesui', 'Hoelun', 'Sochigel', 'Qojin', 'Ibaqa', 'Tegulen', 'Al-Altun', 'Dokuz Khatun', 'Sorghaqtani', 'Oghul Qaimish', 'Toregene', 'Altani', 'Bayarmaa', 'Enkhtaivan', 'Gantuya', 'Iderkhangai', 'Jargalan', 'Khulan', 'Mandukhai', 'Naran', 'Oyunaa', 'Purevjav', 'Sarangerel', 'Tuul', 'Uyanga', 'Zolzaya', 'Ariiunaa'],
+        surname: ['of the Blue Wolf clan', 'of the Golden Eagle clan', 'of the White Horse clan', 'of the Grey Wolf clan', 'of the Black Bear clan', 'of the Red Deer clan', 'of the Silver Fox clan', 'of the Iron Mountain clan', 'of the Jade River clan', 'of the Crystal Lake clan', 'Borjigin', 'Merkid', 'Tayichiud', 'Jadaran', 'Khatagin', "Salji'ud", 'Dorben', 'Ikires', 'Oirat', 'Naiman', 'Kerait', 'Tatar', 'Onggirat', 'Hongirad', 'Unggirat', 'Khonggirat', 'Barlas', 'Dughlat', 'Arlat', 'Manghud']
     }
 };
 
@@ -508,7 +868,8 @@ export const REGION_NAME_MAPPING: Record<string, Record<string, Array<{
             { after: 1453, keys: ['GREEK', 'TURKISH'] }
         ],
         "British Isles": [
-            { before: 410, keys: ['CELTIC_IRISH', 'WELSH', 'ANCIENT_ROMAN'] },
+            { before: 100, keys: ['CELTIC_ANCIENT'] },
+            { after: 100, before: 410, keys: ['CELTIC_ANCIENT', 'ANCIENT_ROMAN'] },
             { after: 410, before: 800, keys: ['ENGLISH_ANGLO_SAXON', 'CELTIC_IRISH', 'WELSH', 'SCOTTISH'] },
             { after: 800, before: 1066, keys: ['ENGLISH_ANGLO_SAXON', 'CELTIC_IRISH', 'WELSH', 'SCOTTISH', 'SCANDINAVIAN'] },
             { after: 1066, before: 1300, keys: ['ENGLISH_MEDIEVAL', 'NORMAN_FRENCH', 'SCOTTISH', 'WELSH', 'CELTIC_IRISH'] },
@@ -532,11 +893,34 @@ export const REGION_NAME_MAPPING: Record<string, Record<string, Array<{
         "Eastern Europe": [
             { before: 800, keys: ['SLAVIC_MEDIEVAL', 'BYZANTINE'] },
             { after: 800, before: 1000, keys: ['SLAVIC_MEDIEVAL', 'BYZANTINE', 'RUSSIAN'] },
-            { after: 1000, before: 1500, keys: ['RUSSIAN', 'POLISH', 'HUNGARIAN', 'BOHEMIAN'] },
-            { after: 1500, before: 1918, keys: ['POLISH', 'HUNGARIAN', 'BOHEMIAN', 'GERMAN'] },
-            { after: 1918, before: 1945, keys: ['POLISH_MODERN', 'CZECH_MODERN', 'SLOVAK_MODERN', 'HUNGARIAN_MODERN', 'ROMANIAN'] },
-            { after: 1945, before: 1990, keys: ['POLISH_MODERN', 'CZECH_MODERN', 'SLOVAK_MODERN', 'HUNGARIAN_MODERN', 'EAST_GERMAN', 'YUGOSLAV', 'ROMANIAN'] },
-            { after: 1990, keys: ['POLISH_MODERN', 'CZECH_MODERN', 'SLOVAK_MODERN', 'HUNGARIAN_MODERN', 'ROMANIAN'] }
+            { after: 1000, before: 1500, keys: ['RUSSIAN', 'POLISH', 'HUNGARIAN', 'CZECH'] },
+            { after: 1500, before: 1918, keys: ['POLISH', 'HUNGARIAN', 'CZECH', 'GERMAN'] },
+            { after: 1918, before: 1945, keys: ['POLISH', 'CZECH', 'HUNGARIAN', 'ROMANIAN'] },
+            { after: 1945, before: 1990, keys: ['POLISH', 'CZECH', 'HUNGARIAN', 'ROMANIAN'] },
+            { after: 1990, keys: ['POLISH', 'CZECH', 'HUNGARIAN', 'ROMANIAN'] }
+        ],
+        "Central Europe": [
+            { before: 800, keys: ['FRANKISH_MEROVINGIAN', 'SLAVIC_MEDIEVAL'] },
+            { after: 800, before: 1000, keys: ['FRANKISH_CAROLINGIAN', 'SLAVIC_MEDIEVAL'] },
+            { after: 1000, before: 1500, keys: ['GERMAN', 'CZECH', 'HUNGARIAN'] },
+            { after: 1500, before: 1918, keys: ['GERMAN', 'CZECH', 'HUNGARIAN'] },
+            { after: 1918, keys: ['GERMAN', 'CZECH', 'HUNGARIAN'] }
+        ],
+        "Low Countries": [
+            { before: 800, keys: ['FRANKISH_MEROVINGIAN'] },
+            { after: 800, before: 1000, keys: ['FRANKISH_CAROLINGIAN'] },
+            { after: 1000, before: 1500, keys: ['DUTCH', 'FRENCH'] },
+            { after: 1500, keys: ['DUTCH'] }
+        ],
+        "Ural and Arctic Europe": [
+            { before: 800, keys: ['PREHISTORIC_EUROPEAN'] },
+            { after: 800, keys: ['RUSSIAN'] }
+        ],
+        "Balkans": [
+            { before: 400, keys: ['ANCIENT_GREEK', 'ANCIENT_ROMAN'] },
+            { after: 400, before: 1453, keys: ['BYZANTINE', 'SLAVIC_MEDIEVAL'] },
+            { after: 1453, before: 1918, keys: ['TURKISH', 'SERBIAN', 'BULGARIAN', 'CROATIAN'] },
+            { after: 1918, keys: ['SERBIAN', 'BULGARIAN', 'CROATIAN'] }
         ],
         "Carpathian Foothills": [
             { before: 1000, keys: ['SLAVIC_MEDIEVAL'] },
@@ -551,11 +935,38 @@ export const REGION_NAME_MAPPING: Record<string, Record<string, Array<{
         "Atlantic Coast": [
             { after: 1607, before: 1776, keys: ['NORTH_AMERICAN_COLONIAL', 'ENGLISH', 'DUTCH'] },
             { after: 1776, before: 1840, keys: ['NORTH_AMERICAN_COLONIAL', 'ENGLISH'] },
-            { after: 1840, keys: ['ENGLISH', 'CELTIC_IRISH', 'GERMAN', 'ITALIAN'] }
+            { after: 1840, before: 1920, keys: ['ENGLISH', 'CELTIC_IRISH', 'GERMAN', 'ITALIAN'] },
+            { after: 1920, keys: ['ENGLISH', 'CELTIC_IRISH', 'GERMAN', 'ITALIAN', 'JEWISH_ASHKENAZI', 'PUERTO_RICAN', 'AFRICAN_AMERICAN'] }
+        ],
+        "Northeast Woodlands": [
+            { after: 1624, before: 1776, keys: ['DUTCH', 'ENGLISH', 'NORTH_AMERICAN_COLONIAL'] },
+            { after: 1776, before: 1840, keys: ['ENGLISH', 'NORTH_AMERICAN_COLONIAL'] },
+            { after: 1840, before: 1920, keys: ['ENGLISH', 'CELTIC_IRISH', 'GERMAN', 'ITALIAN', 'DUTCH'] },
+            { after: 1920, keys: ['ENGLISH', 'CELTIC_IRISH', 'GERMAN', 'ITALIAN', 'JEWISH_ASHKENAZI', 'PUERTO_RICAN', 'AFRICAN_AMERICAN', 'CHINESE_CANTONESE'] }
+        ],
+        "Hudson River Valley": [
+            { after: 1624, before: 1664, keys: ['DUTCH', 'NORTH_AMERICAN_ALGONQUIAN'] },
+            { after: 1664, before: 1776, keys: ['ENGLISH', 'DUTCH', 'NORTH_AMERICAN_COLONIAL'] },
+            { after: 1776, before: 1840, keys: ['ENGLISH', 'DUTCH', 'NORTH_AMERICAN_COLONIAL'] },
+            { after: 1840, before: 1920, keys: ['ENGLISH', 'CELTIC_IRISH', 'GERMAN', 'ITALIAN', 'DUTCH'] },
+            { after: 1920, keys: ['ENGLISH', 'CELTIC_IRISH', 'GERMAN', 'ITALIAN', 'JEWISH_ASHKENAZI', 'PUERTO_RICAN', 'AFRICAN_AMERICAN', 'CHINESE_CANTONESE'] }
+        ],
+        "Southeast": [
+            { after: 1607, before: 1776, keys: ['ENGLISH', 'NORTH_AMERICAN_COLONIAL'] },
+            { after: 1776, before: 1865, keys: ['ENGLISH', 'NORTH_AMERICAN_COLONIAL', 'AFRICAN_AMERICAN'] },
+            { after: 1865, keys: ['ENGLISH', 'AFRICAN_AMERICAN', 'NORTH_AMERICAN_COLONIAL'] }
         ],
         "Southwest": [
             { after: 1540, before: 1821, keys: ['SPANISH_CASTILIAN', 'PUEBLO'] },
             { after: 1821, keys: ['SPANISH_LATIN_AMERICAN', 'PUEBLO'] }
+        ],
+        "Valley of Mexico": [
+            { after: 1521, before: 1821, keys: ['SPANISH_CASTILIAN', 'AZTEC'] },
+            { after: 1821, keys: ['SPANISH_LATIN_AMERICAN', 'AZTEC'] }
+        ],
+        "Mexico and Central Highlands": [
+            { after: 1521, before: 1821, keys: ['SPANISH_CASTILIAN', 'AZTEC'] },
+            { after: 1821, keys: ['SPANISH_LATIN_AMERICAN', 'AZTEC'] }
         ],
         "Great Lakes": [
             { after: 1600, before: 1776, keys: ['FRENCH', 'NORTH_AMERICAN_ALGONQUIAN'] },
@@ -567,13 +978,28 @@ export const REGION_NAME_MAPPING: Record<string, Record<string, Array<{
             { keys: ['NORTH_AMERICAN_ALGONQUIAN'] }
         ],
         "Northeast Woodlands": [
-            { keys: ['IROQUOIAN', 'NORTH_AMERICAN_ALGONQUIAN'] }
+            { keys: ['IROQUOIS_HAUDENOSAUNEE', 'NORTH_AMERICAN_ALGONQUIAN'] }
+        ],
+        "Southeast": [
+            { keys: ['CHEROKEE'] }
         ],
         "Southwest": [
-            { keys: ['PUEBLO'] }
+            { keys: ['APACHE', 'PUEBLO'] }
         ],
         "Great Plains": [
-            { keys: ['PLAINS_NATIVE'] }
+            { keys: ['LAKOTA_SIOUX', 'PLAINS_NATIVE'] }
+        ],
+        "Pacific Coast": [
+            { keys: ['PACIFIC_NORTHWEST_COAST'] }
+        ],
+        "Northern California": [
+            { keys: ['CALIFORNIA_NATIVE'] }
+        ],
+        "Central California Coast": [
+            { keys: ['CALIFORNIA_NATIVE'] }
+        ],
+        "Southern California": [
+            { keys: ['CALIFORNIA_NATIVE'] }
         ]
     },
     "EAST_ASIAN": {
@@ -586,7 +1012,8 @@ export const REGION_NAME_MAPPING: Record<string, Record<string, Array<{
             { after: 220, keys: ['CHINESE_CANTONESE', 'VIETNAMESE'] }
         ],
         "Korean Peninsula": [
-            { before: 1392, keys: ['KOREAN'] },
+            { before: 668, keys: ['KOREAN_ANCIENT'] },
+            { after: 668, before: 1392, keys: ['KOREAN_ANCIENT', 'KOREAN'] },
             { after: 1392, keys: ['KOREAN'] }
         ],
         "Japanese Archipelago": [
@@ -594,8 +1021,21 @@ export const REGION_NAME_MAPPING: Record<string, Record<string, Array<{
             { after: 1185, keys: ['JAPANESE'] }
         ],
         "Mongolia": [
-            { before: 1206, keys: ['MONGOLIAN'] },
-            { after: 1206, keys: ['MONGOLIAN'] }
+            { before: 1206, keys: ['MONGOLIAN_TRADITIONAL'] },
+            { after: 1206, keys: ['MONGOLIAN_TRADITIONAL'] }
+        ],
+        "Kazakh Steppes": [
+            { keys: ['KAZAKH'] }
+        ],
+        "Taiwan and East China Sea": [
+            { before: 1600, keys: ['CHINESE_CANTONESE'] },
+            { after: 1600, before: 1895, keys: ['CHINESE_CANTONESE'] },
+            { after: 1895, keys: ['CHINESE_CANTONESE', 'JAPANESE'] }
+        ],
+        "Indochina Interior": [
+            { before: 1000, keys: ['KHMER'] },
+            { after: 1000, before: 1800, keys: ['VIETNAMESE', 'KHMER', 'THAI'] },
+            { after: 1800, keys: ['VIETNAMESE', 'KHMER', 'THAI', 'BURMESE'] }
         ]
     },
     "SOUTH_AMERICAN": {
@@ -660,6 +1100,14 @@ export const REGION_NAME_MAPPING: Record<string, Record<string, Array<{
         "Punjab": [
             { before: 1000, keys: ['PUNJABI'] },
             { after: 1000, keys: ['PUNJABI', 'PERSIAN_FARSI'] }
+        ],
+        "Gangetic Plain": [
+            { before: 1200, keys: ['HINDI', 'SANSKRIT_CLASSICAL'] },
+            { after: 1200, keys: ['HINDI', 'PERSIAN_FARSI'] }
+        ],
+        "Deccan Plateau": [
+            { before: 1300, keys: ['TAMIL', 'DRAVIDIAN'] },
+            { after: 1300, keys: ['TAMIL', 'HINDI'] }
         ]
     },
     "SUB_SAHARAN_AFRICAN": {
@@ -678,17 +1126,28 @@ export const REGION_NAME_MAPPING: Record<string, Record<string, Array<{
         "Southern Africa": [
             { before: 1000, keys: ['ZULU'] },
             { after: 1000, keys: ['ZULU'] }
+        ],
+        "Madagascar and Islands": [
+            { before: 1200, keys: ['MALAGASY_SAKALAVA'] },
+            { after: 1200, before: 1810, keys: ['MALAGASY_SAKALAVA', 'MALAGASY_BETSILEO'] },
+            { after: 1810, keys: ['MALAGASY_MERINA', 'MALAGASY_BETSILEO', 'MALAGASY_SAKALAVA'] }
         ]
     },
     "OCEANIA": {
         "Polynesia": [
-            { keys: ['POLYNESIAN'] }
+            { keys: ['HAWAIIAN', 'TAHITIAN', 'SAMOAN', 'TONGAN'] }
         ],
         "Melanesia": [
-            { keys: ['MELANESIAN'] }
+            { keys: ['FIJIAN', 'MELANESIAN'] }
         ],
         "Australia": [
             { keys: ['ABORIGINAL_AUSTRALIAN'] }
+        ],
+        "Indonesian and Melanesian Islands": [
+            { keys: ['INDONESIAN', 'MALAY'] }
+        ],
+        "Major Seas and Oceans": [
+            { keys: ['POLYNESIAN', 'MELANESIAN'] }
         ]
     }
 };
@@ -698,24 +1157,81 @@ export const REGION_NAME_MAPPING: Record<string, Record<string, Array<{
  */
 export const PERIOD_NAME_MAPPING: Record<string, Record<string, string[]>> = {
     "EUROPEAN": {
-        "antiquity": ['ANCIENT_GREEK', 'ANCIENT_ROMAN'],
+        "prehistoric": ['PREHISTORIC_EUROPEAN'],
+        "antiquity": ['ANCIENT_GREEK', 'ANCIENT_ROMAN', 'CELTIC_IRISH', 'WELSH'],
         "early_medieval": ['FRANKISH_MEROVINGIAN', 'FRANKISH_CAROLINGIAN', 'ENGLISH_ANGLO_SAXON', 'BYZANTINE', 'SLAVIC_MEDIEVAL'],
-        "high_medieval": ['ENGLISH_MEDIEVAL', 'FRENCH_MEDIEVAL', 'NORMAN_FRENCH', 'BYZANTINE', 'SLAVIC_MEDIEVAL', 'HUNGARIAN', 'POLISH'],
-        "late_medieval": ['ENGLISH_MEDIEVAL', 'FRENCH_MEDIEVAL', 'ITALIAN', 'GERMAN', 'SPANISH_CASTILIAN', 'PORTUGUESE'],
-        "renaissance": ['ENGLISH', 'FRENCH', 'ITALIAN', 'GERMAN', 'SPANISH_CASTILIAN', 'PORTUGUESE'],
-        "early_modern": ['ENGLISH', 'FRENCH', 'ITALIAN', 'GERMAN', 'SPANISH_CASTILIAN', 'PORTUGUESE', 'DUTCH', 'SCANDINAVIAN'],
-        "industrial": ['ENGLISH', 'FRENCH', 'ITALIAN', 'GERMAN', 'RUSSIAN', 'SCANDINAVIAN'],
-        "modern": ['ENGLISH', 'FRENCH', 'ITALIAN', 'GERMAN', 'RUSSIAN', 'SCANDINAVIAN', 'GREEK']
+        "high_medieval": ['ENGLISH_MEDIEVAL', 'FRENCH_MEDIEVAL', 'NORMAN_FRENCH', 'BYZANTINE', 'SLAVIC_MEDIEVAL', 'HUNGARIAN', 'POLISH', 'CZECH'],
+        "late_medieval": ['ENGLISH_MEDIEVAL', 'FRENCH_MEDIEVAL', 'ITALIAN', 'GERMAN', 'SPANISH_CASTILIAN', 'PORTUGUESE', 'POLISH', 'CZECH', 'HUNGARIAN'],
+        "renaissance": ['ENGLISH', 'FRENCH', 'ITALIAN', 'GERMAN', 'SPANISH_CASTILIAN', 'PORTUGUESE', 'POLISH', 'CZECH', 'HUNGARIAN'],
+        "early_modern": ['ENGLISH', 'FRENCH', 'ITALIAN', 'GERMAN', 'SPANISH_CASTILIAN', 'PORTUGUESE', 'DUTCH', 'SCANDINAVIAN', 'POLISH', 'CZECH', 'HUNGARIAN', 'ROMANIAN'],
+        "industrial": ['ENGLISH', 'FRENCH', 'ITALIAN', 'GERMAN', 'RUSSIAN', 'SCANDINAVIAN', 'POLISH', 'CZECH', 'HUNGARIAN', 'ROMANIAN', 'BULGARIAN', 'SERBIAN', 'CROATIAN'],
+        "modern": ['ENGLISH', 'FRENCH', 'ITALIAN', 'GERMAN', 'RUSSIAN', 'SCANDINAVIAN', 'GREEK', 'POLISH', 'CZECH', 'HUNGARIAN', 'ROMANIAN', 'BULGARIAN', 'SERBIAN', 'CROATIAN']
     },
     "NORTH_AMERICAN_PRE_COLUMBIAN": {
-        "antiquity": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIAN', 'PUEBLO', 'PLAINS_NATIVE'],
-        "early_medieval": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIAN', 'PUEBLO', 'PLAINS_NATIVE'],
-        "high_medieval": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIAN', 'PUEBLO', 'PLAINS_NATIVE'],
-        "late_medieval": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIAN', 'PUEBLO', 'PLAINS_NATIVE'],
-        "renaissance": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIAN', 'PUEBLO', 'PLAINS_NATIVE'],
-        "early_modern": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIAN', 'PUEBLO', 'PLAINS_NATIVE'],
-        "industrial": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIAN', 'PUEBLO', 'PLAINS_NATIVE'],
-        "modern": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIAN', 'PUEBLO', 'PLAINS_NATIVE']
+        "prehistoric": ['PREHISTORIC_AMERICAN'],
+        "antiquity": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIS_HAUDENOSAUNEE', 'SOUTHWEST_NATIVE', 'PLAINS_NATIVE'],
+        "early_medieval": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIS_HAUDENOSAUNEE', 'APACHE', 'LAKOTA_SIOUX', 'PACIFIC_NORTHWEST_COAST'],
+        "high_medieval": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIS_HAUDENOSAUNEE', 'APACHE', 'LAKOTA_SIOUX', 'CHEROKEE', 'PACIFIC_NORTHWEST_COAST'],
+        "late_medieval": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIS_HAUDENOSAUNEE', 'APACHE', 'LAKOTA_SIOUX', 'CHEROKEE', 'PACIFIC_NORTHWEST_COAST', 'CALIFORNIA_NATIVE'],
+        "renaissance": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIS_HAUDENOSAUNEE', 'APACHE', 'LAKOTA_SIOUX', 'CHEROKEE', 'PACIFIC_NORTHWEST_COAST', 'CALIFORNIA_NATIVE'],
+        "early_modern": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIS_HAUDENOSAUNEE', 'APACHE', 'LAKOTA_SIOUX', 'CHEROKEE', 'PACIFIC_NORTHWEST_COAST', 'CALIFORNIA_NATIVE', 'GREAT_BASIN_NATIVE'],
+        "industrial": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIS_HAUDENOSAUNEE', 'APACHE', 'LAKOTA_SIOUX', 'CHEROKEE'],
+        "modern": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIS_HAUDENOSAUNEE', 'APACHE', 'LAKOTA_SIOUX', 'CHEROKEE']
+    },
+    "MENA": {
+        "prehistoric": ['PREHISTORIC_MENA'],
+        "antiquity": ['MESOPOTAMIAN_ANCIENT', 'EGYPTIAN_COPTIC', 'PERSIAN_ANCIENT'],
+        "early_medieval": ['ARABIAN_HEJAZ', 'LEVANTINE', 'MAGHREBI'],
+        "high_medieval": ['ARABIAN_HEJAZ', 'LEVANTINE', 'MAGHREBI', 'PERSIAN_KHORASAN'],
+        "late_medieval": ['ARABIAN_HEJAZ', 'LEVANTINE', 'MAGHREBI', 'PERSIAN_KHORASAN', 'TURKIC_STEPPE'],
+        "renaissance": ['ARABIAN_HEJAZ', 'LEVANTINE', 'MAGHREBI', 'PERSIAN_KHORASAN', 'TURKIC_STEPPE'],
+        "early_modern": ['ARABIAN_HEJAZ', 'LEVANTINE', 'MAGHREBI', 'PERSIAN_KHORASAN'],
+        "industrial": ['ARABIAN_HEJAZ', 'LEVANTINE', 'MAGHREBI'],
+        "modern": ['ARABIAN_HEJAZ', 'LEVANTINE', 'MAGHREBI']
+    },
+    "SUB_SAHARAN_AFRICAN": {
+        "prehistoric": ['PREHISTORIC_AFRICAN'],
+        "antiquity": ['NUBIAN', 'ETHIOPIAN_HIGHLAND', 'MALAGASY_SAKALAVA'],
+        "early_medieval": ['NUBIAN', 'ETHIOPIAN_HIGHLAND', 'WEST_AFRICAN_SAHEL', 'MALAGASY_SAKALAVA'],
+        "high_medieval": ['NUBIAN', 'ETHIOPIAN_HIGHLAND', 'WEST_AFRICAN_SAHEL', 'YORUBA', 'SWAHILI', 'MALAGASY_SAKALAVA', 'MALAGASY_BETSILEO'],
+        "late_medieval": ['ETHIOPIAN_HIGHLAND', 'WEST_AFRICAN_SAHEL', 'YORUBA', 'SWAHILI', 'RWANDA_BURUNDI', 'MALAGASY_SAKALAVA', 'MALAGASY_BETSILEO'],
+        "renaissance": ['ETHIOPIAN_HIGHLAND', 'WEST_AFRICAN_SAHEL', 'YORUBA', 'SWAHILI', 'RWANDA_BURUNDI', 'MALAGASY_SAKALAVA', 'MALAGASY_BETSILEO', 'MALAGASY_MERINA'],
+        "early_modern": ['ETHIOPIAN_HIGHLAND', 'WEST_AFRICAN_SAHEL', 'YORUBA', 'SWAHILI', 'RWANDA_BURUNDI', 'MALAGASY_MERINA', 'MALAGASY_BETSILEO', 'MALAGASY_SAKALAVA'],
+        "industrial": ['ETHIOPIAN_HIGHLAND', 'WEST_AFRICAN_SAHEL', 'YORUBA', 'SWAHILI', 'MALAGASY_MERINA'],
+        "modern": ['ETHIOPIAN_HIGHLAND', 'WEST_AFRICAN_SAHEL', 'YORUBA', 'SWAHILI', 'MALAGASY_MERINA']
+    },
+    "SOUTH_ASIAN": {
+        "prehistoric": ['PREHISTORIC_ASIAN'],
+        "antiquity": ['SANSKRIT_CLASSICAL', 'DRAVIDIAN'],
+        "early_medieval": ['SANSKRIT_CLASSICAL', 'DRAVIDIAN', 'BENGALI'],
+        "high_medieval": ['RAJPUT', 'DRAVIDIAN', 'BENGALI', 'HINDI'],
+        "late_medieval": ['RAJPUT', 'DRAVIDIAN', 'BENGALI', 'HINDI', 'PUNJABI'],
+        "renaissance": ['RAJPUT', 'DRAVIDIAN', 'BENGALI', 'HINDI', 'PUNJABI'],
+        "early_modern": ['RAJPUT', 'DRAVIDIAN', 'BENGALI', 'HINDI', 'PUNJABI', 'TAMIL'],
+        "industrial": ['BENGALI', 'HINDI', 'PUNJABI', 'TAMIL'],
+        "modern": ['BENGALI', 'HINDI', 'PUNJABI', 'TAMIL']
+    },
+    "EAST_ASIAN": {
+        "prehistoric": ['PREHISTORIC_ASIAN'],
+        "antiquity": ['CHINESE_MANDARIN', 'CHINESE_CANTONESE', 'JAPANESE', 'KOREAN'],
+        "early_medieval": ['CHINESE_MANDARIN', 'CHINESE_CANTONESE', 'JAPANESE', 'KOREAN', 'MONGOLIAN_TRADITIONAL'],
+        "high_medieval": ['CHINESE_MANDARIN', 'CHINESE_CANTONESE', 'JAPANESE', 'KOREAN', 'MONGOLIAN_TRADITIONAL', 'VIETNAMESE', 'THAI'],
+        "late_medieval": ['CHINESE_MANDARIN', 'CHINESE_CANTONESE', 'JAPANESE', 'KOREAN', 'MONGOLIAN_TRADITIONAL', 'VIETNAMESE', 'THAI', 'KHMER', 'BURMESE'],
+        "renaissance": ['CHINESE_MANDARIN', 'CHINESE_CANTONESE', 'JAPANESE', 'KOREAN', 'VIETNAMESE', 'THAI', 'KHMER', 'BURMESE'],
+        "early_modern": ['CHINESE_MANDARIN', 'CHINESE_CANTONESE', 'JAPANESE', 'KOREAN', 'VIETNAMESE', 'THAI', 'KHMER', 'BURMESE', 'MALAY', 'INDONESIAN', 'KAZAKH', 'UZBEK'],
+        "industrial": ['CHINESE_MANDARIN', 'CHINESE_CANTONESE', 'JAPANESE', 'KOREAN', 'VIETNAMESE', 'THAI', 'KAZAKH', 'UZBEK', 'KYRGYZ', 'TURKMEN'],
+        "modern": ['CHINESE_MANDARIN', 'CHINESE_CANTONESE', 'JAPANESE', 'KOREAN', 'VIETNAMESE', 'THAI', 'MALAY', 'INDONESIAN', 'KAZAKH', 'UZBEK', 'KYRGYZ', 'TURKMEN']
+    },
+    "OCEANIA": {
+        "prehistoric": ['PREHISTORIC_OCEANIC'],
+        "antiquity": ['HAWAIIAN', 'TAHITIAN', 'SAMOAN', 'TONGAN', 'FIJIAN', 'ABORIGINAL_AUSTRALIAN'],
+        "early_medieval": ['HAWAIIAN', 'TAHITIAN', 'SAMOAN', 'TONGAN', 'FIJIAN', 'ABORIGINAL_AUSTRALIAN'],
+        "high_medieval": ['HAWAIIAN', 'TAHITIAN', 'SAMOAN', 'TONGAN', 'FIJIAN', 'ABORIGINAL_AUSTRALIAN'],
+        "late_medieval": ['HAWAIIAN', 'TAHITIAN', 'SAMOAN', 'TONGAN', 'FIJIAN', 'ABORIGINAL_AUSTRALIAN'],
+        "renaissance": ['HAWAIIAN', 'TAHITIAN', 'SAMOAN', 'TONGAN', 'FIJIAN', 'ABORIGINAL_AUSTRALIAN'],
+        "early_modern": ['HAWAIIAN', 'TAHITIAN', 'SAMOAN', 'TONGAN', 'FIJIAN', 'ABORIGINAL_AUSTRALIAN', 'MALAY', 'INDONESIAN'],
+        "industrial": ['HAWAIIAN', 'TAHITIAN', 'SAMOAN', 'TONGAN', 'FIJIAN', 'ABORIGINAL_AUSTRALIAN', 'MALAY', 'INDONESIAN'],
+        "modern": ['HAWAIIAN', 'TAHITIAN', 'SAMOAN', 'TONGAN', 'FIJIAN', 'ABORIGINAL_AUSTRALIAN', 'MALAY', 'INDONESIAN']
     }
 };
 
@@ -864,15 +1380,15 @@ export function getCulturalGroupsByZone(zone: CulturalZone): string[] {
     switch (zone) {
         case 'EUROPEAN':
             return groups.filter(g => 
-                ['ANCIENT_GREEK', 'ANCIENT_ROMAN', 'FRANKISH_MEROVINGIAN', 'FRANKISH_CAROLINGIAN', 'NORMAN_FRENCH', 'FRENCH_MEDIEVAL', 'ENGLISH_ANGLO_SAXON', 'ENGLISH_MEDIEVAL', 'ENGLISH', 'SPANISH_CASTILIAN', 'PORTUGUESE', 'ITALIAN', 'FRENCH', 'GERMAN', 'RUSSIAN', 'GREEK', 'CELTIC_IRISH', 'WELSH', 'SCOTTISH', 'DUTCH', 'SCANDINAVIAN', 'BYZANTINE', 'SLAVIC_MEDIEVAL', 'HUNGARIAN', 'POLISH', 'BOHEMIAN', 'ARMENIAN', 'GEORGIAN', 'EUROPEAN'].includes(g)
+                ['ANCIENT_GREEK', 'ANCIENT_ROMAN', 'FRANKISH_MEROVINGIAN', 'FRANKISH_CAROLINGIAN', 'NORMAN_FRENCH', 'FRENCH_MEDIEVAL', 'ENGLISH_ANGLO_SAXON', 'ENGLISH_MEDIEVAL', 'ENGLISH', 'SPANISH_CASTILIAN', 'PORTUGUESE', 'ITALIAN', 'FRENCH', 'GERMAN', 'RUSSIAN', 'GREEK', 'CELTIC_IRISH', 'WELSH', 'SCOTTISH', 'DUTCH', 'SCANDINAVIAN', 'BYZANTINE', 'SLAVIC_MEDIEVAL', 'HUNGARIAN', 'POLISH', 'CZECH', 'ROMANIAN', 'BULGARIAN', 'SERBIAN', 'CROATIAN', 'ICELANDIC', 'BOHEMIAN', 'ARMENIAN', 'GEORGIAN', 'EUROPEAN'].includes(g)
             );
         case 'EAST_ASIAN':
             return groups.filter(g => 
-                ['JAPANESE', 'CHINESE_MANDARIN', 'CHINESE_CANTONESE', 'KOREAN', 'VIETNAMESE', 'THAI', 'MONGOLIAN', 'EAST_ASIAN'].includes(g)
+                ['JAPANESE', 'CHINESE_MANDARIN', 'CHINESE_CANTONESE', 'KOREAN', 'KOREAN_ANCIENT', 'VIETNAMESE', 'THAI', 'BURMESE', 'KHMER', 'MALAY', 'INDONESIAN', 'MONGOLIAN_TRADITIONAL', 'KAZAKH', 'UZBEK', 'KYRGYZ', 'TURKMEN', 'EAST_ASIAN'].includes(g)
             );
         case 'MENA':
             return groups.filter(g => 
-                ['ARABIC_LEVANT', 'PERSIAN_FARSI', 'TURKISH', 'HEBREW', 'BERBER_AMAZIGH', 'MENA'].includes(g)
+                ['ARABIC_LEVANT', 'PERSIAN_FARSI', 'TURKISH', 'HEBREW', 'BERBER_AMAZIGH', 'ARABIC_TRADITIONAL', 'MENA'].includes(g)
             );
         case 'SOUTH_ASIAN':
             return groups.filter(g => 
@@ -880,11 +1396,11 @@ export function getCulturalGroupsByZone(zone: CulturalZone): string[] {
             );
         case 'SUB_SAHARAN_AFRICAN':
             return groups.filter(g => 
-                ['YORUBA', 'SWAHILI', 'AMHARIC', 'ZULU', 'SUB_SAHARAN_AFRICAN'].includes(g)
+                ['YORUBA', 'SWAHILI', 'AMHARIC', 'ZULU', 'MALAGASY_MERINA', 'MALAGASY_BETSILEO', 'MALAGASY_SAKALAVA', 'SUB_SAHARAN_AFRICAN'].includes(g)
             );
         case 'OCEANIA':
             return groups.filter(g => 
-                ['POLYNESIAN', 'MELANESIAN', 'ABORIGINAL_AUSTRALIAN', 'OCEANIA'].includes(g)
+                ['POLYNESIAN', 'MELANESIAN', 'ABORIGINAL_AUSTRALIAN', 'HAWAIIAN', 'TAHITIAN', 'SAMOAN', 'TONGAN', 'FIJIAN', 'OCEANIA'].includes(g)
             );
         case 'SOUTH_AMERICAN':
             return groups.filter(g => 
@@ -892,7 +1408,7 @@ export function getCulturalGroupsByZone(zone: CulturalZone): string[] {
             );
         case 'NORTH_AMERICAN_PRE_COLUMBIAN':
             return groups.filter(g => 
-                ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIAN', 'PUEBLO', 'PLAINS_NATIVE', 'NORTH_AMERICAN_PRE_COLUMBIAN'].includes(g)
+                ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIAN', 'IROQUOIS_HAUDENOSAUNEE', 'PUEBLO', 'PLAINS_NATIVE', 'APACHE', 'CHEROKEE', 'LAKOTA_SIOUX', 'NORTH_AMERICAN_PRE_COLUMBIAN'].includes(g)
             );
         case 'NORTH_AMERICAN_COLONIAL':
             return groups.filter(g => 

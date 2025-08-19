@@ -10,7 +10,13 @@ interface StandingStoneSymbolProps {
 }
 
 const StandingStoneSymbol: React.FC<StandingStoneSymbolProps> = ({ x, y, size, seed, tile }) => {
-    const localRand = (offset = 0) => new ValueNoise(seed + tile.x * 19 + tile.y * 53 + offset).random();
+    // Safety check for undefined tile
+    if (!tile) {
+        console.warn('[StandingStoneSymbol] Tile is undefined, using fallback');
+        return null;
+    }
+    
+    const localRand = (offset = 0) => new ValueNoise(seed + (tile?.x || 0) * 19 + (tile?.y || 0) * 53 + offset).random();
     const stoneColor = "#808080";
     const shadowColor = "#696969";
     const highlightColor = "#A9A9A9";

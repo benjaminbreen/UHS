@@ -11,6 +11,25 @@ const FUTURE_ERA = 'FUTURE_ERA';
 export const SUB_SAHARAN_AFRICAN_FACTIONS: FactionFile = {
     'SUB_SAHARAN_AFRICAN': {
         "Sahel": {
+            [HistoricalEra.PREHISTORY]: {
+                dominantPower: 'Nok Culture',
+                dominantPowerDescription: 'Iron Age peoples creating sophisticated terracotta sculptures and early iron smelting technology, laying foundations for West African civilizations.',
+                eraContextSentence: 'the dawn of iron in Africa, where terracotta heads watch over villages and iron tools transform agriculture.',
+                allegianceGroups: [
+                    { name: 'Nok Settlements', type: 'primary', description: 'Iron-working communities.' },
+                    { name: 'Pastoral Nomads', type: 'secondary', description: 'Cattle herders of the grasslands.' },
+                    { name: 'Forest Peoples', type: 'secondary', description: 'Hunter-gatherers of the southern forests.' }
+                ],
+                structureNames: {
+                    fortress: ['Earth Wall', 'Hill Settlement', 'River Fort'],
+                    quarry: ['Iron Smelter', 'Clay Pit', 'Quarry'],
+                    holy_site: ['Sacred Grove', 'Ancestor Shrine', 'Spirit Rock', 'Terracotta Workshop'],
+                    palace: ["Chief's Compound", 'Council House', 'Iron Master Lodge'],
+                },
+                courtRoles: {
+                    palace: ['Village Chief', 'Iron Master', 'Spirit Keeper', 'Elder', 'Warrior Leader']
+                }
+            },
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Trans-Saharan Trading Peoples',
                 dominantPowerDescription: 'Various Berber and proto-Fulani peoples control the trade routes across the Sahel, facilitating commerce between North and West Africa.',

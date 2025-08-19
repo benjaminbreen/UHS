@@ -21,7 +21,7 @@ type MajorTab = 'map' | 'history' | 'journal';
 
 const MIN_SIDEBAR_WIDTH = 280;
 const MAX_SIDEBAR_WIDTH = 500;
-const DEFAULT_SIDEBAR_WIDTH = 350;
+const DEFAULT_SIDEBAR_WIDTH = 380;
 
 const AnimalListItem = React.memo(({ animal, isSelected, onClick, description }: { animal: AnimalEntity; isSelected: boolean; onClick: (animal: AnimalEntity) => void; description: string; }) => {
     return (
@@ -109,9 +109,19 @@ const LeftSidebar: React.FC = () => {
     const formattedTime = useMemo(() => `${String(gameTimeHours).padStart(2, '0')}:${String(gameTimeMinutes).padStart(2, '0')}`, [gameTimeHours, gameTimeMinutes]);
     
     const formattedFullDate = useMemo(() => {
-      const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
-      const dateObj = new Date(gameDate.year, gameDate.month - 1, gameDate.day);
-      return dateObj.toLocaleDateString(undefined, options);
+      const monthNames = ["January", "February", "March", "April", "May", "June", 
+                          "July", "August", "September", "October", "November", "December"];
+      if (gameDate.month < 1 || gameDate.month > 12) {
+        return "Invalid Date";
+      }
+      
+      // Handle BCE dates (negative years)
+      if (gameDate.year < 0) {
+        return `${monthNames[gameDate.month - 1]} ${gameDate.day}, ${Math.abs(gameDate.year)} BCE`;
+      }
+      
+      // Handle CE dates (positive years) 
+      return `${monthNames[gameDate.month - 1]} ${gameDate.day}, ${gameDate.year}`;
     }, [gameDate]);
 
     // Load source count when era/zone changes

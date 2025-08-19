@@ -197,6 +197,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         },
         "Arctic and Subarctic": {
             "Hudson Bay Lowlands": { name: "Hudson Bay Lowlands", climate: ClimateType.COLD, archetype: MapArchetype.BAY },
+                        "Hudson Bay": { name: "Hudson Bay", climate: ClimateType.TUNDRA, archetype: MapArchetype.OPEN_OCEAN },
             "Bering Strait": { name: "Bering Strait", climate: ClimateType.COLD, archetype: MapArchetype.STRAITS },
             "Yukon River Valley": { name: "Yukon River Valley", climate: ClimateType.COLD, archetype: MapArchetype.RIVER_PORT, riverDirection: 'east-west', economicActivityLevel: 1 },
             "Labrador Coast": { name: "Labrador Coast", climate: ClimateType.COLD, archetype: MapArchetype.BAY },
@@ -212,16 +213,21 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Sierra Madre Oriental": { name: "Sierra Madre Oriental", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false },
             "Isthmus of Tehuantepec": { name: "Isthmus of Tehuantepec", climate: ClimateType.TROPICAL, archetype: MapArchetype.PENINSULA },
             "Lake Texcoco Basin": { name: "Lake Texcoco Basin", climate: ClimateType.TEMPERATE, archetype: MapArchetype.FRESHWATER_LAKE },
-            "Baja California": { name: "Baja California", climate: ClimateType.ARID, archetype: MapArchetype.PENINSULA }
+            "Baja California": { name: "Baja California", climate: ClimateType.ARID, archetype: MapArchetype.PENINSULA },
+            "Sinaloa Coast": { name: "Sinaloa Coast", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.BAY }
         },
         "Central America": {
             "Mayan Lowlands": { name: "Mayan Lowlands", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND, hasLakes: false },
             "Mosquito Coast": { name: "Mosquito Coast", climate: ClimateType.TROPICAL, archetype: MapArchetype.BAY },
-            "Panama Isthmus": { name: "Panama Isthmus", climate: ClimateType.TROPICAL, archetype: MapArchetype.PENINSULA }
+            "Panama Isthmus": { name: "Panama Isthmus", climate: ClimateType.TROPICAL, archetype: MapArchetype.PENINSULA },
+             "Darien Swamp": { name: "Darien Swamp", climate: ClimateType.TROPICAL, archetype: MapArchetype.SWAMP, economicActivityLevel: 0 },
+            
         },
         "The Caribbean": {
             "Greater Antilles": { name: "Greater Antilles", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND },
-            "Lesser Antilles": { name: "Lesser Antilles", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND }
+            "Lesser Antilles": { name: "Lesser Antilles", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND },
+             "Gulf of Mexico": { name: "Gulf of Mexico", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.OPEN_OCEAN },
+            "Caribbean Sea": { name: "Caribbean Sea", climate: ClimateType.TROPICAL, archetype: MapArchetype.OPEN_OCEAN },
         },
         "Northern Rockies": {
             "Bitterroot Range": { name: "Bitterroot Range", climate: ClimateType.COLD, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false },
@@ -780,15 +786,11 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Bay of Bengal": { name: "Bay of Bengal", climate: ClimateType.TROPICAL, archetype: MapArchetype.OPEN_OCEAN },
             
             // American Waters
-            "Gulf of Mexico": { name: "Gulf of Mexico", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.OPEN_OCEAN },
-            "Caribbean Sea": { name: "Caribbean Sea", climate: ClimateType.TROPICAL, archetype: MapArchetype.OPEN_OCEAN },
-            "Hudson Bay": { name: "Hudson Bay", climate: ClimateType.TUNDRA, archetype: MapArchetype.OPEN_OCEAN },
+           
+
             
             // Saharan Interior (for proper trans-Saharan routes)
           
-            // Critical Missing Passages
-            "Darien Swamp": { name: "Darien Swamp", climate: ClimateType.TROPICAL, archetype: MapArchetype.SWAMP, economicActivityLevel: 0 },
-            "Sinaloa Coast": { name: "Sinaloa Coast", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.BAY }
-        }
+   }
     }
 };

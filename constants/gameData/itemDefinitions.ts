@@ -289,19 +289,71 @@ export interface CropDefinition {
 }
 
 export const CROPS_DATA: CropDefinition[] = [
-    { name: 'Wheat', baseId: 'WHEAT', zones: ['EUROPEAN', 'MENA'], climates: [ClimateType.TEMPERATE, ClimateType.ARID, ClimateType.MEDITERRANEAN] },
+    // Old World Grains
+    { name: 'Wheat', baseId: 'WHEAT', zones: ['EUROPEAN', 'MENA', 'SOUTH_ASIAN', 'EAST_ASIAN'], climates: [ClimateType.TEMPERATE, ClimateType.ARID, ClimateType.MEDITERRANEAN] },
     { name: 'Barley', baseId: 'BARLEY', zones: ['EUROPEAN', 'MENA', 'SOUTH_ASIAN'], climates: [ClimateType.TEMPERATE, ClimateType.ARID, ClimateType.COLD, ClimateType.MEDITERRANEAN] },
-    { name: 'Corn (Maize)', baseId: 'CORN', zones: ['NORTH_AMERICAN_PRE_COLUMBIAN', 'SOUTH_AMERICAN'], climates: [ClimateType.TEMPERATE, ClimateType.SEMITROPICAL, ClimateType.TROPICAL], eraEnd: 1492 },
+    { name: 'Rye', baseId: 'RYE', zones: ['EUROPEAN'], climates: [ClimateType.COLD, ClimateType.TEMPERATE] },
+    { name: 'Oats', baseId: 'OATS', zones: ['EUROPEAN'], climates: [ClimateType.COLD, ClimateType.TEMPERATE] },
+    { name: 'Millet', baseId: 'MILLET', zones: ['EAST_ASIAN', 'SUB_SAHARAN_AFRICAN', 'SOUTH_ASIAN'], climates: [ClimateType.ARID, ClimateType.TEMPERATE, ClimateType.TROPICAL] },
+    { name: 'Sorghum', baseId: 'SORGHUM', zones: ['SUB_SAHARAN_AFRICAN', 'MENA'], climates: [ClimateType.ARID, ClimateType.TROPICAL] },
+    
+    // Rice
+    { name: 'Rice', baseId: 'RICE', zones: ['EAST_ASIAN', 'SOUTH_ASIAN', 'OCEANIA'], climates: [ClimateType.TROPICAL, ClimateType.SEMITROPICAL] },
+    { name: 'Wild Rice', baseId: 'WILD_RICE', zones: ['NORTH_AMERICAN_PRE_COLUMBIAN'], climates: [ClimateType.TEMPERATE, ClimateType.COLD] },
+    
+    // Pre-Columbian American Crops (before 1492)
+    { name: 'Maize', baseId: 'CORN', zones: ['NORTH_AMERICAN_PRE_COLUMBIAN', 'SOUTH_AMERICAN'], climates: [ClimateType.TEMPERATE, ClimateType.SEMITROPICAL, ClimateType.TROPICAL], eraEnd: 1492 },
+    { name: 'Three Sisters (Corn, Beans, Squash)', baseId: 'THREE_SISTERS', zones: ['NORTH_AMERICAN_PRE_COLUMBIAN'], climates: [ClimateType.TEMPERATE], eraEnd: 1650 },
+    { name: 'Quinoa', baseId: 'QUINOA', zones: ['SOUTH_AMERICAN'], climates: [ClimateType.COLD, ClimateType.TEMPERATE], eraEnd: 1532 },
+    { name: 'Amaranth', baseId: 'AMARANTH', zones: ['NORTH_AMERICAN_PRE_COLUMBIAN', 'SOUTH_AMERICAN'], climates: [ClimateType.TEMPERATE, ClimateType.TROPICAL], eraEnd: 1521 },
+    { name: 'Beans', baseId: 'BEANS', zones: ['NORTH_AMERICAN_PRE_COLUMBIAN', 'SOUTH_AMERICAN'], climates: [ClimateType.TEMPERATE, ClimateType.TROPICAL], eraEnd: 1492 },
+    { name: 'Squash', baseId: 'SQUASH', zones: ['NORTH_AMERICAN_PRE_COLUMBIAN', 'SOUTH_AMERICAN'], climates: [ClimateType.TEMPERATE, ClimateType.SEMITROPICAL], eraEnd: 1492 },
+    { name: 'Tomato', baseId: 'TOMATO', zones: ['SOUTH_AMERICAN'], climates: [ClimateType.TEMPERATE, ClimateType.SEMITROPICAL], eraEnd: 1521 },
+    { name: 'Cacao', baseId: 'CACAO', zones: ['SOUTH_AMERICAN'], climates: [ClimateType.TROPICAL], eraEnd: 1521 },
+    { name: 'Sunflower', baseId: 'SUNFLOWER', zones: ['NORTH_AMERICAN_PRE_COLUMBIAN'], climates: [ClimateType.TEMPERATE, ClimateType.ARID], eraEnd: 1510 },
+    { name: 'Tobacco', baseId: 'TOBACCO', zones: ['NORTH_AMERICAN_PRE_COLUMBIAN', 'SOUTH_AMERICAN'], climates: [ClimateType.TEMPERATE, ClimateType.TROPICAL], eraEnd: 1560 },
+    
+    // Post-Columbian Exchange Crops
     { name: 'Corn', baseId: 'CORN', zones: ['EUROPEAN', 'SUB_SAHARAN_AFRICAN', 'EAST_ASIAN', 'SOUTH_ASIAN'], climates: [ClimateType.TEMPERATE, ClimateType.SEMITROPICAL], eraStart: 1492 },
-    { name: 'Rice', baseId: 'RICE', zones: ['EAST_ASIAN', 'SOUTH_ASIAN'], climates: [ClimateType.TROPICAL, ClimateType.SEMITROPICAL] },
-    { name: 'Potato', baseId: 'POTATO', zones: ['SOUTH_AMERICAN'], climates: [ClimateType.COLD, ClimateType.TEMPERATE], eraEnd: 1536 },
-    { name: 'Potato', baseId: 'POTATO', zones: ['EUROPEAN'], climates: [ClimateType.COLD, ClimateType.TEMPERATE], eraStart: 1536 },
+    { name: 'Potato', baseId: 'POTATO', zones: ['SOUTH_AMERICAN'], climates: [ClimateType.COLD, ClimateType.TEMPERATE], eraEnd: 1570 },
+    { name: 'Potato', baseId: 'POTATO', zones: ['EUROPEAN'], climates: [ClimateType.COLD, ClimateType.TEMPERATE], eraStart: 1570 },
+    { name: 'Potato', baseId: 'POTATO', zones: ['SOUTH_ASIAN', 'EAST_ASIAN'], climates: [ClimateType.COLD, ClimateType.TEMPERATE], eraStart: 1600 },
+    { name: 'Tomato', baseId: 'TOMATO', zones: ['EUROPEAN', 'MENA'], climates: [ClimateType.MEDITERRANEAN, ClimateType.TEMPERATE], eraStart: 1540 },
+    { name: 'Tobacco', baseId: 'TOBACCO', zones: ['EUROPEAN', 'MENA', 'EAST_ASIAN'], climates: [ClimateType.TEMPERATE, ClimateType.SEMITROPICAL], eraStart: 1560 },
+    
+    // Root Crops
     { name: 'Yam', baseId: 'YAM', zones: ['SUB_SAHARAN_AFRICAN', 'OCEANIA', 'SOUTH_AMERICAN'], climates: [ClimateType.TROPICAL] },
-    { name: 'Olive Grove', baseId: 'OLIVES', zones: ['EUROPEAN', 'MENA'], climates: [ClimateType.TEMPERATE, ClimateType.SEMITROPICAL, ClimateType.MEDITERRANEAN] },
-    { name: 'Vineyard', baseId: 'GRAPES', zones: ['EUROPEAN', 'MENA'], climates: [ClimateType.TEMPERATE, ClimateType.ARID, ClimateType.MEDITERRANEAN] },
-    { name: 'Citrus Orchard', baseId: 'CITRUS', zones: ['EUROPEAN', 'MENA'], climates: [ClimateType.MEDITERRANEAN, ClimateType.SEMITROPICAL] },
+    { name: 'Taro', baseId: 'TARO', zones: ['OCEANIA', 'EAST_ASIAN', 'SUB_SAHARAN_AFRICAN'], climates: [ClimateType.TROPICAL, ClimateType.SEMITROPICAL] },
+    { name: 'Cassava', baseId: 'CASSAVA', zones: ['SOUTH_AMERICAN', 'SUB_SAHARAN_AFRICAN'], climates: [ClimateType.TROPICAL], eraStart: 1500 },
+    { name: 'Sweet Potato', baseId: 'SWEET_POTATO', zones: ['SOUTH_AMERICAN', 'OCEANIA'], climates: [ClimateType.TROPICAL, ClimateType.SEMITROPICAL] },
+    
+    // Tree Crops and Orchards
+    { name: 'Olive Grove', baseId: 'OLIVES', zones: ['EUROPEAN', 'MENA'], climates: [ClimateType.MEDITERRANEAN] },
+    { name: 'Vineyard', baseId: 'GRAPES', zones: ['EUROPEAN', 'MENA'], climates: [ClimateType.TEMPERATE, ClimateType.MEDITERRANEAN] },
+    { name: 'Date Palms', baseId: 'DATES', zones: ['MENA'], climates: [ClimateType.ARID, ClimateType.TROPICAL] },
+    { name: 'Citrus Orchard', baseId: 'CITRUS', zones: ['EUROPEAN', 'MENA', 'EAST_ASIAN'], climates: [ClimateType.MEDITERRANEAN, ClimateType.SEMITROPICAL] },
+    { name: 'Apple Orchard', baseId: 'APPLES', zones: ['EUROPEAN', 'EAST_ASIAN'], climates: [ClimateType.TEMPERATE, ClimateType.COLD] },
+    { name: 'Peach Orchard', baseId: 'PEACHES', zones: ['EAST_ASIAN', 'EUROPEAN'], climates: [ClimateType.TEMPERATE] },
     { name: 'Almond Grove', baseId: 'ALMONDS', zones: ['EUROPEAN', 'MENA'], climates: [ClimateType.MEDITERRANEAN] },
     { name: 'Fig Orchard', baseId: 'FIGS', zones: ['EUROPEAN', 'MENA'], climates: [ClimateType.MEDITERRANEAN, ClimateType.SEMITROPICAL] },
-    { name: 'Cotton', baseId: 'COTTON', zones: ['SOUTH_ASIAN', 'MENA', 'SOUTH_AMERICAN'], climates: [ClimateType.ARID, ClimateType.TROPICAL, ClimateType.SEMITROPICAL] },
-    { name: 'Sugar Cane', baseId: 'SUGAR_CANE', zones: ['SOUTH_ASIAN', 'OCEANIA', 'SUB_SAHARAN_AFRICAN', 'SOUTH_AMERICAN'], climates: [ClimateType.TROPICAL] },
+    { name: 'Coconut Grove', baseId: 'COCONUTS', zones: ['OCEANIA', 'SOUTH_ASIAN', 'SUB_SAHARAN_AFRICAN'], climates: [ClimateType.TROPICAL] },
+    { name: 'Banana Plantation', baseId: 'BANANAS', zones: ['SUB_SAHARAN_AFRICAN', 'SOUTH_ASIAN', 'OCEANIA', 'SOUTH_AMERICAN'], climates: [ClimateType.TROPICAL] },
+    { name: 'Avocado Grove', baseId: 'AVOCADOS', zones: ['SOUTH_AMERICAN'], climates: [ClimateType.SEMITROPICAL, ClimateType.TROPICAL], eraEnd: 1519 },
+    
+    // Fiber and Industrial Crops
+    { name: 'Cotton', baseId: 'COTTON', zones: ['SOUTH_ASIAN', 'MENA', 'SOUTH_AMERICAN', 'SUB_SAHARAN_AFRICAN'], climates: [ClimateType.ARID, ClimateType.TROPICAL, ClimateType.SEMITROPICAL] },
+    { name: 'Flax', baseId: 'FLAX', zones: ['EUROPEAN', 'MENA'], climates: [ClimateType.TEMPERATE, ClimateType.COLD] },
+    { name: 'Hemp', baseId: 'HEMP', zones: ['EUROPEAN', 'EAST_ASIAN'], climates: [ClimateType.TEMPERATE] },
+    { name: 'Silk Mulberry', baseId: 'SILK', zones: ['EAST_ASIAN'], climates: [ClimateType.TEMPERATE, ClimateType.SEMITROPICAL] },
+    { name: 'Indigo', baseId: 'INDIGO', zones: ['SOUTH_ASIAN', 'SUB_SAHARAN_AFRICAN'], climates: [ClimateType.TROPICAL, ClimateType.SEMITROPICAL] },
+    
+    // Sugar and Spices
+    { name: 'Sugar Cane', baseId: 'SUGAR_CANE', zones: ['SOUTH_ASIAN', 'OCEANIA', 'SUB_SAHARAN_AFRICAN'], climates: [ClimateType.TROPICAL] },
+    { name: 'Sugar Cane', baseId: 'SUGAR_CANE', zones: ['SOUTH_AMERICAN'], climates: [ClimateType.TROPICAL], eraStart: 1516 },
+    { name: 'Tea', baseId: 'TEA', zones: ['EAST_ASIAN', 'SOUTH_ASIAN'], climates: [ClimateType.TEMPERATE, ClimateType.SEMITROPICAL] },
+    { name: 'Coffee', baseId: 'COFFEE', zones: ['MENA', 'SUB_SAHARAN_AFRICAN'], climates: [ClimateType.TROPICAL, ClimateType.SEMITROPICAL], eraStart: 1400 },
+    { name: 'Coffee', baseId: 'COFFEE', zones: ['SOUTH_AMERICAN'], climates: [ClimateType.TROPICAL, ClimateType.SEMITROPICAL], eraStart: 1720 },
+    { name: 'Black Pepper', baseId: 'PEPPER', zones: ['SOUTH_ASIAN'], climates: [ClimateType.TROPICAL] },
+    { name: 'Cinnamon', baseId: 'CINNAMON', zones: ['SOUTH_ASIAN'], climates: [ClimateType.TROPICAL] },
+    { name: 'Nutmeg', baseId: 'NUTMEG', zones: ['OCEANIA'], climates: [ClimateType.TROPICAL] },
 ];

@@ -700,8 +700,10 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
         },
         urbanDensity: 'large',
         eraSpecificDensity: {
-          'early_modern': 'large',
-          'modern': 'massive'
+          'RENAISSANCE_EARLY_MODERN': 'large',
+          'INDUSTRIAL_ERA': 'large',
+          'MODERN_ERA': 'massive',
+          'FUTURE_ERA': 'massive'
         },
         populationPeak: 21500000,
         economicFocus: ['government', 'trade', 'manufacturing', 'services']
@@ -758,11 +760,20 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       name: "New York",
       isHistorical: true,
       foundingYear: 1665,
-      description: "The bustling commercial heart of British America, gateway to the continent's riches.",
+      description: "The bustling commercial heart of North America, gateway to the continent's riches.",
       allegianceHistory: {
         1665: "British Empire",
         1776: "United States"
-      }
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: {
+        'RENAISSANCE_EARLY_MODERN': 'small',
+        'INDUSTRIAL_ERA': 'large',
+        'MODERN_ERA': 'massive',
+        'FUTURE_ERA': 'massive'
+      },
+      populationPeak: 8336000,
+      economicFocus: ['finance', 'trade', 'shipping', 'manufacturing', 'services']
     }
   ],
   "Chesapeake Bay": [

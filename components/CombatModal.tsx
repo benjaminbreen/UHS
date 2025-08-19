@@ -316,6 +316,56 @@ const CombatModal: React.FC<CombatModalProps> = ({
                setScreenShake(false);
                if (playerCharacter.health - result.damage <= 0) {
                    addLog("You have been defeated!", 'system');
+                   
+                   // Check if opponent has disease and transmit it upon defeat
+                   const opponentDisease = opponent.diseaseHealth?.currentDiseases?.[0]?.disease || 
+                                          opponent.health?.currentDiseases?.[0]?.disease;
+                   
+                   if (opponentDisease) {
+                       // Always transmit disease when defeated by sick entity
+                       if (!playerCharacter.diseaseHealth) {
+                           playerCharacter.diseaseHealth = {
+                               currentDiseases: [],
+                               immunities: [],
+                               exposureHistory: [],
+                               overallHealthStatus: 'healthy',
+                               lastHealthUpdate: { year: mapData?.timeSlice ? parseInt(mapData.timeSlice) : 1500, month: 1, day: 1 }
+                           };
+                       }
+                       
+                       // Check if player already has this disease
+                       const hasDisease = playerCharacter.diseaseHealth.currentDiseases.some(d => d.disease.id === opponentDisease.id);
+                       
+                       if (!hasDisease) {
+                           const activeDisease = {
+                               disease: opponentDisease,
+                               contractedDate: Date.now(),
+                               stage: 'symptomatic' as const,
+                               daysRemaining: opponentDisease.durationDays,
+                               severity: 0.5
+                           };
+                           
+                           playerCharacter.diseaseHealth.currentDiseases.push(activeDisease);
+                           playerCharacter.diseaseHealth.overallHealthStatus = 'sick';
+                           
+                           // Update player character
+                           onCharacterUpdate(pc => ({
+                               ...pc,
+                               diseaseHealth: playerCharacter.diseaseHealth
+                           }));
+                           
+                           addLog(`In your weakened state, you contracted ${opponentDisease.name}!`, 'system');
+                           console.log(`[DISEASE] Player contracted ${opponentDisease.name} from being defeated by ${opponentName}`);
+                           
+                           // Show disease modal if available
+                           if ((window as any).showDiseaseModal) {
+                               setTimeout(() => {
+                                   (window as any).showDiseaseModal(opponentDisease, playerCharacter);
+                               }, 1000);
+                           }
+                       }
+                   }
+                   
                    setTimeout(onClose, 1500);
                } else {
                    startPlayerTurn();
@@ -397,6 +447,56 @@ const CombatModal: React.FC<CombatModalProps> = ({
             const fleeChance = Math.min(0.8, 0.4 + (playerCharacter.stats.dexterity || 5) * 0.05);
             if(Math.random() < fleeChance) {
                 addLog("Successfully fled!", 'system');
+                
+                // Check if opponent has disease and transmit it
+                const opponentDisease = opponent.diseaseHealth?.currentDiseases?.[0]?.disease || 
+                                       opponent.health?.currentDiseases?.[0]?.disease;
+                
+                if (opponentDisease) {
+                    // Always transmit disease when fleeing from sick entity
+                    if (!playerCharacter.diseaseHealth) {
+                        playerCharacter.diseaseHealth = {
+                            currentDiseases: [],
+                            immunities: [],
+                            exposureHistory: [],
+                            overallHealthStatus: 'healthy',
+                            lastHealthUpdate: { year: mapData?.timeSlice ? parseInt(mapData.timeSlice) : 1500, month: 1, day: 1 }
+                        };
+                    }
+                    
+                    // Check if player already has this disease
+                    const hasDisease = playerCharacter.diseaseHealth.currentDiseases.some(d => d.disease.id === opponentDisease.id);
+                    
+                    if (!hasDisease) {
+                        const activeDisease = {
+                            disease: opponentDisease,
+                            contractedDate: Date.now(),
+                            stage: 'symptomatic' as const,
+                            daysRemaining: opponentDisease.durationDays,
+                            severity: 0.5
+                        };
+                        
+                        playerCharacter.diseaseHealth.currentDiseases.push(activeDisease);
+                        playerCharacter.diseaseHealth.overallHealthStatus = 'sick';
+                        
+                        // Update player character
+                        onCharacterUpdate(pc => ({
+                            ...pc,
+                            diseaseHealth: playerCharacter.diseaseHealth
+                        }));
+                        
+                        addLog(`While escaping, you contracted ${opponentDisease.name}!`, 'system');
+                        console.log(`[DISEASE] Player contracted ${opponentDisease.name} from fleeing ${opponentName}`);
+                        
+                        // Show disease modal if available
+                        if ((window as any).showDiseaseModal) {
+                            setTimeout(() => {
+                                (window as any).showDiseaseModal(opponentDisease, playerCharacter);
+                            }, 1000);
+                        }
+                    }
+                }
+                
                 setTimeout(onClose, 800);
             } else {
                 addLog("Your escape was blocked!", 'system');

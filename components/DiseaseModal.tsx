@@ -1,0 +1,249 @@
+import React, { useState, useEffect } from 'react';
+import { X, Activity, TrendingUp, Heart, AlertTriangle, Zap, BookOpen } from 'lucide-react';
+import { ActiveDisease } from '../types/diseaseTypes';
+import { primarySourceService } from '../services/primarySourceService';
+
+interface DiseaseModalProps {
+  disease: ActiveDisease;
+  isOpen: boolean;
+  onClose: () => void;
+  currentYear?: number;
+  culturalZone?: string;
+}
+
+const DiseaseModal: React.FC<DiseaseModalProps> = ({ 
+  disease, 
+  isOpen, 
+  onClose,
+  currentYear = 1500,
+  culturalZone = 'EUROPEAN'
+}) => {
+  const [primarySource, setPrimarySource] = useState<string>('');
+  const [isLoadingSource, setIsLoadingSource] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && disease) {
+      loadPrimarySource();
+    }
+  }, [isOpen, disease]);
+
+  const loadPrimarySource = async () => {
+    setIsLoadingSource(true);
+    try {
+      // Search for relevant primary sources about this disease
+      const sources = await primarySourceService.searchSources(
+        [disease.disease.name.toLowerCase(), disease.disease.type, 'plague', 'sickness', 'medicine'],
+        culturalZone as any,
+        currentYear
+      );
+      
+      if (sources && sources.length > 0) {
+        const randomSource = sources[Math.floor(Math.random() * sources.length)];
+        setPrimarySource(`"${randomSource.excerpt}" - ${randomSource.author}, ${randomSource.year}`);
+      } else {
+        // Fallback quotes if no sources found
+        const fallbackQuotes = [
+          `"The ${disease.disease.type} ailments spread swiftly through the crowded quarters..." - Anonymous physician`,
+          `"Those afflicted with this malady showed signs of ${disease.disease.symptoms[0]?.description || 'great suffering'}..." - Medieval chronicle`,
+          `"The disease, known to locals as a common affliction, required careful treatment..." - Historical medical text`
+        ];
+        setPrimarySource(fallbackQuotes[Math.floor(Math.random() * fallbackQuotes.length)]);
+      }
+    } catch (error) {
+      console.error('Failed to load primary source:', error);
+      setPrimarySource(`"This ${disease.disease.severity} ${disease.disease.type} disease has been known since ancient times."`);
+    }
+    setIsLoadingSource(false);
+  };
+
+  if (!isOpen || !disease) return null;
+
+  // Generate random virality rating (0-100)
+  const viralityRating = Math.floor(disease.disease.baseTransmissionRate * 100 * (1 + Math.random()));
+  
+  // Map severity to numeric value
+  const severityMap = { mild: 20, moderate: 50, severe: 80, critical: 95 };
+  const severityRating = severityMap[disease.disease.severity] || 50;
+
+  // Get severity color
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'mild': return 'text-green-400';
+      case 'moderate': return 'text-yellow-400';
+      case 'severe': return 'text-orange-400';
+      case 'critical': return 'text-red-400';
+      default: return 'text-gray-400';
+    }
+  };
+
+  // Get virality color
+  const getViralityColor = (rating: number) => {
+    if (rating < 25) return 'text-blue-400';
+    if (rating < 50) return 'text-yellow-400';
+    if (rating < 75) return 'text-orange-400';
+    return 'text-red-400';
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-900 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-700">
+        {/* Header */}
+        <div className="sticky top-0 bg-gray-900 border-b border-gray-700 p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="text-3xl">{disease.disease.badgeIcon}</div>
+            <div>
+              <h2 className="text-xl font-bold text-white">{disease.disease.name}</h2>
+              <p className="text-sm text-gray-400 capitalize">{disease.disease.type} Disease</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-800 rounded-full transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-6">
+          {/* Primary Source Quote */}
+          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+            <div className="flex items-start gap-2 mb-2">
+              <BookOpen className="w-4 h-4 text-blue-400 mt-1" />
+              <h3 className="text-sm font-semibold text-blue-400">Historical Account</h3>
+            </div>
+            {isLoadingSource ? (
+              <p className="text-gray-400 italic">Loading historical source...</p>
+            ) : (
+              <p className="text-gray-300 italic text-sm leading-relaxed">{primarySource}</p>
+            )}
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Severity */}
+            <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className={`w-4 h-4 ${getSeverityColor(disease.disease.severity)}`} />
+                <h3 className="text-sm font-semibold text-gray-300">Severity</h3>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className={`text-2xl font-bold ${getSeverityColor(disease.disease.severity)}`}>
+                  {severityRating}%
+                </span>
+                <span className="text-xs text-gray-500 capitalize">{disease.disease.severity}</span>
+              </div>
+              <div className="mt-2 bg-gray-900 rounded-full h-2 overflow-hidden">
+                <div 
+                  className={`h-full ${disease.disease.severity === 'mild' ? 'bg-green-500' : 
+                             disease.disease.severity === 'moderate' ? 'bg-yellow-500' :
+                             disease.disease.severity === 'severe' ? 'bg-orange-500' : 'bg-red-500'}`}
+                  style={{ width: `${severityRating}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Virality */}
+            <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className={`w-4 h-4 ${getViralityColor(viralityRating)}`} />
+                <h3 className="text-sm font-semibold text-gray-300">Virality</h3>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className={`text-2xl font-bold ${getViralityColor(viralityRating)}`}>
+                  {viralityRating}%
+                </span>
+                <span className="text-xs text-gray-500">Transmission Rate</span>
+              </div>
+              <div className="mt-2 bg-gray-900 rounded-full h-2 overflow-hidden">
+                <div 
+                  className={`h-full ${viralityRating < 25 ? 'bg-blue-500' : 
+                             viralityRating < 50 ? 'bg-yellow-500' :
+                             viralityRating < 75 ? 'bg-orange-500' : 'bg-red-500'}`}
+                  style={{ width: `${viralityRating}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Disease Info */}
+          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+            <div className="flex items-center gap-2 mb-3">
+              <Activity className="w-4 h-4 text-purple-400" />
+              <h3 className="text-sm font-semibold text-gray-300">Disease Information</h3>
+            </div>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Transmission:</span>
+                <span className="text-gray-200 capitalize">{disease.disease.transmissionVector}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Stage:</span>
+                <span className="text-gray-200 capitalize">{disease.stage}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Duration:</span>
+                <span className="text-gray-200">{disease.daysRemaining} days remaining</span>
+              </div>
+              {disease.disease.mortalityRate > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Mortality Rate:</span>
+                  <span className="text-red-400">{(disease.disease.mortalityRate * 100).toFixed(1)}%</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Symptoms */}
+          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+            <div className="flex items-center gap-2 mb-3">
+              <Heart className="w-4 h-4 text-red-400" />
+              <h3 className="text-sm font-semibold text-gray-300">Symptoms</h3>
+            </div>
+            <div className="space-y-2">
+              {disease.disease.symptoms.map((symptom, index) => (
+                <div key={index} className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5" />
+                  <div className="flex-1">
+                    <p className="text-gray-200 text-sm font-medium">{symptom.name}</p>
+                    <p className="text-gray-400 text-xs">{symptom.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Stat Effects */}
+          {disease.disease.statEffects && (
+            <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+              <h3 className="text-sm font-semibold text-gray-300 mb-3">Character Effects</h3>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                {Object.entries(disease.disease.statEffects).map(([stat, value]) => (
+                  value !== 0 && (
+                    <div key={stat} className="flex justify-between bg-gray-900 rounded px-2 py-1">
+                      <span className="text-gray-400 capitalize">{stat}:</span>
+                      <span className={value < 0 ? 'text-red-400' : 'text-green-400'}>
+                        {value > 0 ? '+' : ''}{value}
+                      </span>
+                    </div>
+                  )
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Immunity Info */}
+          {disease.disease.grantsImmunity && (
+            <div className="bg-green-900/20 rounded-lg p-3 border border-green-700/50">
+              <p className="text-green-400 text-xs">
+                Recovery grants immunity for {disease.disease.immunityDuration} days
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default DiseaseModal;

@@ -19,6 +19,7 @@ import RuinModal from './RuinModal';
 import { DevTooltipDisplayData, Tile, PlayerCharacter, BiomeType } from '../types';
 import TimeAwareBackground from './TimeAwareBackground';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES } from '../constants';
+import { useDeviceDetection } from '../utils/deviceUtils';
 
 type ActivePanel = 'farm' | null;
 
@@ -51,6 +52,13 @@ const MapViewport: React.FC = () => {
     } = useGame();
     
     const [activePanel, setActivePanel] = useState<ActivePanel>(null);
+    const [showBottomPanel, setShowBottomPanel] = useState(false);
+    const { isMobile } = useDeviceDetection();
+    
+    // Initialize bottom panel visibility based on device
+    useEffect(() => {
+        setShowBottomPanel(!isMobile);
+    }, [isMobile]);
 
     const handleDevCommandClick = useCallback((data: DevTooltipDisplayData) => {
         let parentTile: Tile | null = null;
@@ -176,13 +184,24 @@ const MapViewport: React.FC = () => {
             </div>
           ) : mapData && (
              <div className="w-full h-full flex flex-col">
-              <div className="flex-1 p-6 min-h-0">
-               <div className="w-full h-full relative shadow-map-frame border-[10px] border-slate-800/[.8] rounded-3xl overflow-hidden bg-slate-900">
+              <div className={`flex-1 ${isMobile ? 'p-2' : 'p-6'} min-h-0`}>
+               <div className={`w-full h-full relative shadow-map-frame ${isMobile ? 'border-4' : 'border-[10px]'} border-slate-800/[.8] ${isMobile ? 'rounded-xl' : 'rounded-3xl'} overflow-hidden bg-slate-900`}>
                 {renderMapContent()}
                </div>
               </div>
               <AmbianceDisplay ambianceText={ambianceText} />
-               <div className="relative shrink-0 h-24">
+              {/* Toggle button for mobile */}
+              {isMobile && actionableTile && (
+                <button
+                  onClick={() => setShowBottomPanel(!showBottomPanel)}
+                  className="fixed bottom-4 right-4 z-40 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-200 flex items-center gap-2"
+                >
+                  <span className="text-lg">{showBottomPanel ? '✕' : '🧭'}</span>
+                  <span className="text-sm font-medium">{showBottomPanel ? 'Hide' : 'Actions'}</span>
+                </button>
+              )}
+              {showBottomPanel && (
+               <div className={`relative shrink-0 ${isMobile ? 'fixed bottom-0 left-0 right-0 z-30 animate-slideUp' : 'h-24'}`}>
                     <BottomPanel 
                         actionableTile={actionableTile} 
                         contextualMessage={contextualMessage} 
@@ -200,6 +219,7 @@ const MapViewport: React.FC = () => {
                     />
                     {panelNotificationItem && <NewItemModal item={panelNotificationItem} onClose={() => setPanelNotificationItem(null)} />}
                 </div>
+              )}
             </div>
           )}
           {activePanel === 'farm' && actionableTile && playerCharacter && mapData && (

@@ -1,0 +1,351 @@
+import React from 'react';
+import { X, User, Calendar, Globe, Trophy, MapPin, Crown, Scroll } from 'lucide-react';
+import { GameDate, HistoricalEra, CulturalZone } from '../types';
+import { PlayerCharacter } from '../types/playerCharacter';
+import { GameMode } from '../types/eventTypes';
+import { HISTORY_GUIDE_DATA } from '../constants/gameData/historyguide';
+import { mapLocationToCulture } from '../utils/mapUtils';
+import { parseDateString, formatDateWithSeason, getSeasonFromDate } from '../utils/dateUtils';
+import { getDetailedHistoricalDescription } from '../utils/historicalPeriodUtils';
+
+interface InitialScenarioModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    playerCharacter: PlayerCharacter;
+    gameDate: GameDate;
+    currentZone: string;
+    currentRegion: string;
+    localArea: string;
+    gameMode: GameMode | null;
+}
+
+// Mode-specific descriptions combining game mode, era, and culture
+function getModeDescription(
+    mode: GameMode | null, 
+    era: HistoricalEra, 
+    culturalZone: CulturalZone,
+    playerCharacter: PlayerCharacter
+): string {
+    if (!mode) return "Begin your historical adventure.";
+    
+    const modeDescriptions: Record<string, Record<HistoricalEra, Record<CulturalZone, string>>> = {
+        survival: {
+            [HistoricalEra.ANTIQUITY]: {
+                EUROPEAN: "Survive in the harsh wilderness of ancient Europe, where Roman legions march distant roads and barbarian tribes control vast forests.",
+                EAST_ASIAN: "Navigate the dangers of ancient China's borderlands, where dynasties rise and fall and bandits roam the mountain passes.",
+                MENA: "Endure the desert's trials in the shadow of great Persian and Babylonian empires.",
+                SOUTH_ASIAN: "Weather monsoons and tigers in the jungles between emerging Hindu kingdoms.",
+                SUB_SAHARAN_AFRICAN: "Face the challenges of the African savanna as great migrations reshape the continent.",
+                NORTH_AMERICAN_PRE_COLUMBIAN: "Survive the untamed wilderness of ancient America, where small bands hunt mammoth and gather wild foods.",
+                SOUTH_AMERICAN: "Navigate the dangers of the Andes and Amazon in an age of emerging civilizations.",
+                OCEANIA: "Master the challenges of island life as Polynesian navigators spread across the Pacific."
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                EUROPEAN: "Survive the Dark Ages, where plague, war, and famine stalk feudal lands.",
+                EAST_ASIAN: "Endure the upheavals of medieval Asia, where Mongol invasions and dynastic wars reshape empires.",
+                MENA: "Weather the storms of Crusades and conquests in the medieval Islamic world.",
+                SOUTH_ASIAN: "Navigate the complex politics and dangers of medieval India's warring sultanates.",
+                SUB_SAHARAN_AFRICAN: "Survive in the great kingdoms of medieval Africa, where trade and warfare shape daily life.",
+                NORTH_AMERICAN_PRE_COLUMBIAN: "Face the challenges of life in the great mound-building civilizations of North America.",
+                SOUTH_AMERICAN: "Endure the trials of life in the shadow of emerging Inca power.",
+                OCEANIA: "Master survival in the sophisticated chiefdoms of Polynesia and Australia."
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                EUROPEAN: "Survive the upheavals of the Renaissance, where plague, war, and religious conflict reshape Europe.",
+                EAST_ASIAN: "Endure the challenges of early modern Asia, where European traders bring new diseases and conflicts.",
+                MENA: "Navigate the declining Ottoman Empire's struggles with plague, war, and European encroachment.",
+                SOUTH_ASIAN: "Survive in Mughal India as European trading companies establish their first footholds.",
+                SUB_SAHARAN_AFRICAN: "Face the disruptions of the early slave trade and European coastal settlements.",
+                NORTH_AMERICAN_PRE_COLUMBIAN: "Survive the catastrophic arrival of European diseases and colonization.",
+                SOUTH_AMERICAN: "Endure the collapse of the Inca Empire and Spanish colonial brutality.",
+                OCEANIA: "Face the first encounters with European explorers and their devastating diseases."
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                EUROPEAN: "Survive industrial Europe's smoke-filled cities, where factory work and urban poverty create new challenges.",
+                EAST_ASIAN: "Navigate the upheavals of forced modernization and foreign intervention in East Asia.",
+                MENA: "Endure the collapse of traditional empires under European colonial pressure.",
+                SOUTH_ASIAN: "Survive under British colonial rule, where famines and exploitation devastate communities.",
+                SUB_SAHARAN_AFRICAN: "Face the brutal realities of the 'Scramble for Africa' and colonial conquest.",
+                NORTH_AMERICAN_PRE_COLUMBIAN: "Survive the Indian Wars and forced relocation to reservations.",
+                SOUTH_AMERICAN: "Navigate the chaos of independence wars and unstable new republics.",
+                OCEANIA: "Endure European colonization and the destruction of traditional ways of life."
+            },
+            [HistoricalEra.MODERN_ERA]: {
+                EUROPEAN: "Survive the 20th century's world wars, economic collapse, and social upheaval.",
+                EAST_ASIAN: "Navigate modern Asia's wars, revolutions, and rapid industrialization.",
+                MENA: "Endure the collapse of empires, world wars, and the struggle for independence.",
+                SOUTH_ASIAN: "Survive partition, independence movements, and the end of colonial rule.",
+                SUB_SAHARAN_AFRICAN: "Face the challenges of decolonization and building new nations.",
+                NORTH_AMERICAN_PRE_COLUMBIAN: "Navigate the modern struggle for indigenous rights and cultural survival.",
+                SOUTH_AMERICAN: "Survive political instability, military coups, and economic crises.",
+                OCEANIA: "Face the challenges of independence and preserving indigenous cultures."
+            }
+        },
+        exploration: {
+            [HistoricalEra.ANTIQUITY]: {
+                EUROPEAN: "Explore the ancient world beyond Rome's borders, where Celtic druids and Germanic tribes guard ancient secrets.",
+                EAST_ASIAN: "Journey through ancient China's vast territories, from the Silk Road to unexplored southern lands.",
+                MENA: "Chart new trade routes across the ancient Persian Empire and beyond to India.",
+                SOUTH_ASIAN: "Discover new kingdoms and trading ports along India's vast coastlines.",
+                SUB_SAHARAN_AFRICAN: "Map the great rivers and kingdoms of ancient Africa, following gold and salt trades.",
+                NORTH_AMERICAN_PRE_COLUMBIAN: "Pioneer new territories as small bands explore the vast American continent.",
+                SOUTH_AMERICAN: "Venture into uncharted Amazonian territories and Andean highlands.",
+                OCEANIA: "Master oceanic navigation as Polynesian explorers find new island homes."
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                EUROPEAN: "Join the Age of Exploration, mapping new trade routes and discovering distant continents.",
+                EAST_ASIAN: "Explore the vast Chinese Empire's frontiers and new maritime trade opportunities.",
+                MENA: "Navigate Ottoman territorial expansions and discover new trade connections.",
+                SOUTH_ASIAN: "Chart Mughal India's internal territories and coastal trading networks.",
+                SUB_SAHARAN_AFRICAN: "Explore Africa's great kingdoms before European colonization changes everything.",
+                NORTH_AMERICAN_PRE_COLUMBIAN: "Pioneer confederate territories as indigenous nations expand their influence.",
+                SOUTH_AMERICAN: "Map the vast Inca road network and explore Amazonian territories.",
+                OCEANIA: "Perfect traditional navigation techniques in the Pacific's golden age of exploration."
+            }
+        },
+        commerce: {
+            [HistoricalEra.MEDIEVAL]: {
+                EUROPEAN: "Build trading networks across medieval Europe, from Venetian spice routes to Hanseatic League connections.",
+                EAST_ASIAN: "Profit from the Silk Road's golden age, trading between Chinese cities and Central Asian kingdoms.",
+                MENA: "Establish profitable ventures in the Islamic world's great commercial centers.",
+                SOUTH_ASIAN: "Trade in medieval India's wealthy port cities and overland caravan routes.",
+                SUB_SAHARAN_AFRICAN: "Prosper in the trans-Saharan gold and salt trade that enriches African kingdoms."
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                EUROPEAN: "Capitalize on Renaissance Europe's expanding global trade networks and banking innovations.",
+                EAST_ASIAN: "Navigate China's complex commercial regulations while building trading empires.",
+                MENA: "Adapt Ottoman trade networks to compete with emerging European maritime commerce.",
+                SOUTH_ASIAN: "Establish profitable enterprises as European trading companies enter Indian markets.",
+                SUB_SAHARAN_AFRICAN: "Develop new trade relationships as European demand transforms African commerce."
+            }
+        },
+        scholarship: {
+            [HistoricalEra.MEDIEVAL]: {
+                EUROPEAN: "Pursue knowledge in medieval Europe's monastery schools and emerging universities.",
+                EAST_ASIAN: "Study in China's imperial academies during a golden age of learning and innovation.",
+                MENA: "Research in the Islamic world's great libraries and centers of learning in Baghdad and Cairo.",
+                SOUTH_ASIAN: "Investigate India's mathematical and astronomical traditions in temple schools.",
+                SUB_SAHARAN_AFRICAN: "Study in centers of Islamic learning like Timbuktu's renowned universities."
+            }
+        },
+        leadership: {
+            [HistoricalEra.MEDIEVAL]: {
+                EUROPEAN: "Lead communities through feudal Europe's challenges of war, plague, and social upheaval.",
+                EAST_ASIAN: "Govern territories in medieval China's complex administrative system.",
+                MENA: "Guide communities through the Islamic world's political and religious complexities.",
+                SOUTH_ASIAN: "Rule wisely in medieval India's diverse and politically fragmented landscape."
+            }
+        },
+        livelihood: {
+            [HistoricalEra.MEDIEVAL]: {
+                EUROPEAN: "Make an honest living as a craftsperson, farmer, or tradesman in medieval Europe's growing towns.",
+                EAST_ASIAN: "Work the land or practice a trade in medieval China's prosperous rural communities.",
+                MENA: "Earn your bread in the Islamic world's bustling markets and agricultural villages.",
+                SOUTH_ASIAN: "Support your family through traditional crafts and farming in medieval India."
+            }
+        }
+    };
+    
+    // Get mode-specific description or fallback to general description
+    const modeDesc = modeDescriptions[mode.id]?.[era]?.[culturalZone];
+    if (modeDesc) return modeDesc;
+    
+    // Fallback to mode context description only (historical context shown separately)
+    const modeContext = getModeContextDescription(mode, playerCharacter);
+    
+    return modeContext;
+}
+
+function getModeContextDescription(mode: GameMode, character: PlayerCharacter): string {
+    const contextMap: Record<string, string> = {
+        survival: `As a ${character.profession}, you must overcome existential threats through resourcefulness and determination.`,
+        exploration: `Your role as a ${character.profession} leads you to discover new territories and opportunities.`,
+        commerce: `Working as a ${character.profession}, you seek to build wealth through trade and business ventures.`,
+        scholarship: `Your position as a ${character.profession} drives you to pursue knowledge and intellectual achievement.`,
+        leadership: `As a ${character.profession}, you must guide others through challenges and crises.`,
+        livelihood: `Your life as a ${character.profession} focuses on honest work and supporting your community.`,
+        diplomacy: `Your role as a ${character.profession} involves navigating complex political relationships.`,
+        legal: `Working as a ${character.profession}, you must uphold justice and navigate legal complexities.`
+    };
+    
+    return contextMap[mode.id] || `Your role as a ${character.profession} shapes your approach to the challenges ahead.`;
+}
+
+function formatEra(era: HistoricalEra): string {
+    const eraNames: Record<HistoricalEra, string> = {
+        [HistoricalEra.PREHISTORY]: "Prehistoric Times",
+        [HistoricalEra.ANTIQUITY]: "Ancient World", 
+        [HistoricalEra.MEDIEVAL]: "Medieval Period",
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: "Early Modern",
+        [HistoricalEra.INDUSTRIAL_ERA]: "Industrial Age",
+        [HistoricalEra.MODERN_ERA]: "Modern Era"
+    };
+    return eraNames[era] || era;
+}
+
+function formatCulturalZone(zone: CulturalZone): string {
+    const zoneNames: Record<CulturalZone, string> = {
+        EUROPEAN: "Europea",
+        EAST_ASIAN: "East Asia", 
+        MENA: "Middle East & North Africa",
+        SOUTH_ASIAN: "Indian Ocean World",
+        SUB_SAHARAN_AFRICAN: "Sub-Saharan Africa",
+        NORTH_AMERICAN_PRE_COLUMBIAN: "Pre-Columbian North America",
+        NORTH_AMERICAN_COLONIAL: "Colonial North America", 
+        SOUTH_AMERICAN: "South America",
+        OCEANIA: "Pacific & Oceania"
+    };
+    return zoneNames[zone] || zone;
+}
+
+const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
+    isOpen,
+    onClose,
+    playerCharacter,
+    gameDate,
+    currentZone, 
+    currentRegion,
+    localArea,
+    gameMode
+}) => {
+    if (!isOpen) return null;
+    
+    const dateInfo = parseDateString(String(gameDate.year));
+    const culturalZone = mapLocationToCulture(currentZone, dateInfo.year) as CulturalZone;
+    const era = dateInfo.era as HistoricalEra;
+    
+    // Try to get a more specific historical description based on the exact year
+    const detailedDescription = getDetailedHistoricalDescription(culturalZone, era, gameDate.year);
+    const historicalContext = detailedDescription || 
+        HISTORY_GUIDE_DATA[culturalZone]?.[era] || 
+        "This is a time of great change and opportunity. The world is full of challenges and adventures waiting to be discovered.";
+    
+    const modeDescription = getModeDescription(gameMode, era, culturalZone, playerCharacter);
+
+    return (
+        <div className="fixed inset-0 bg-black/60 flex items-start justify-center z-50 p-2 ">
+            <div className="bg-gradient-to-br from-slate-900 via-slate-700 to-slate-900 
+                border border-slate-700/50 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] mt-[110px] overflow-y-auto">
+                
+                {/* Header */}
+                <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg">
+                            <Scroll className="w-7 h-7 text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-3xl font-bold text-white mb-1">You are {playerCharacter.name}, and the year is {gameDate.year}</h2>
+                            <p className="text-lg text-slate-300">
+                                {formatEra(era)} • {formatCulturalZone(culturalZone)} • {currentRegion} • {formatDateWithSeason(gameDate, getSeasonFromDate(gameDate))}
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+                    >
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
+
+                <div className="p-4 space-y-4">
+                   
+                    {/* Historical Context */}
+                    <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-700/30">
+                        <div className="flex items-center gap-3 mb-4">
+                            <Globe className="w-6 h-6 text-blue-400" />
+                            <h3 className="text-xl font-semibold text-blue-400"> It is {getSeasonFromDate(gameDate)} in the {localArea}</h3>
+                        </div>
+                        <p className="text-slate-300 leading-relaxed text-base">
+                            {historicalContext}
+                        </p>
+                    </div>
+
+                    {/* Character Info */}
+                    <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-700/30">
+                        <div className="flex items-center gap-1 mb-4">
+                            <User className="w-6 h-6 text-green-400" />
+                            <h3 className="text-xl font-semibold text-green-400">Your Character</h3>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-base">
+                            <div>
+                                <span className="text-slate-400">Name:</span>
+                                <span className="text-white ml-3 font-medium text-lg">{playerCharacter.name}</span>
+                            </div>
+                            <div>
+                                <span className="text-slate-400">Occupation:</span>
+                                <span className="text-white ml-3 font-medium text-lg">{playerCharacter.occupation || playerCharacter.profession || 'Unknown'}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <MapPin className="w-5 h-5 text-slate-400" />
+                                <span className="text-slate-400">Region:</span>
+                                <span className="text-white font-medium text-lg">{currentRegion}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Calendar className="w-5 h-5 text-slate-400" />
+                                <span className="text-slate-400">Date:</span>
+                                <span className="text-white font-medium text-lg">{formatDateWithSeason(gameDate, getSeasonFromDate(gameDate))}</span>
+                            </div>
+                            {playerCharacter.diseaseHealth?.currentDiseases?.length > 0 && (
+                                <div className="sm:col-span-2">
+                                    <span className="text-slate-400">Health:</span>
+                                    {playerCharacter.diseaseHealth.currentDiseases.map((disease, idx) => {
+                                        const isCritical = disease.disease.mortalityRate > 0.3 || disease.severity > 0.7;
+                                        return (
+                                            <span key={idx} className={`ml-3 font-medium text-lg ${isCritical ? 'text-red-500' : 'text-orange-500'}`}>
+                                                Currently suffering from {disease.disease.name}
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Game Mode & Mission */}
+                    {gameMode && (
+                        <div className="bg-slate-800/50 rounded-lg p-5 border border-slate-700/30">
+                           
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <Crown className="w-5 h-5 text-amber-400" />
+                                    <span className="font-semibold text-amber-400 text-lg">{gameMode.name}</span>
+                                </div>
+                                <p className="text-slate-300 leading-relaxed text-base">
+                                    {modeDescription}
+                                </p>
+                                {gameMode.victoryConditions.length > 0 && (
+                                    <div className="mt-4">
+                                        <h4 className="text-sm font-medium text-slate-400 mb-2">Victory Conditions:</h4>
+                                        <div className="space-y-1">
+                                            {gameMode.victoryConditions.slice(0, 3).map((condition, idx) => (
+                                                <div key={idx} className="flex items-center gap-2 text-sm">
+                                                    <div className="w-2 h-2 bg-green-400 rounded-full" />
+                                                    <span className="text-slate-400">{condition.description}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div className="p-5 border-t border-slate-700/50 bg-slate-800/30">
+                    <button
+                        onClick={onClose}
+                        className="w-full px-8 py-4 bg-gradient-to-r from-amber-600 to-amber-700 
+                            hover:from-amber-700 hover:to-amber-800 text-white font-semibold rounded-lg 
+                            transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] text-lg"
+                    >
+                        Begin the Simulation
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default InitialScenarioModal;

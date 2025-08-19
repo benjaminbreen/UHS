@@ -360,7 +360,7 @@ export const PROCEDURAL_CITY_DATA: Record<string, ProceduralCityEntry[]> = {
 
   // Northeast Woodlands
   "Hudson River Valley": [
-    { name: "Mohican Village", description: "A village of the Mohican people by the great river.", eras: [HistoricalEra.RENAISSANCE_EARLY_MODERN] }
+    { name: "Mohican Village", description: "A village of the Mohican people by the great river.", eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL] }
   ],
   "Great Lakes Shoreline": [
     { name: "Ojibwe Village", description: "A village of the Ojibwe people by the great water.", eras: [HistoricalEra.RENAISSANCE_EARLY_MODERN] }
@@ -420,7 +420,6 @@ export const PROCEDURAL_CITY_DATA: Record<string, ProceduralCityEntry[]> = {
 
   // Mexico and Central Highlands
   "Valley of Mexico": [
-    { name: "Tenochtitlan", description: "The great island capital of the Aztec Empire.", eras: [HistoricalEra.RENAISSANCE_EARLY_MODERN] },
     { name: "Teotihuacan", description: "The ancient city of the gods.", eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL] }
   ],
   "Oaxaca Highlands": [
@@ -727,14 +726,17 @@ export const PROCEDURAL_CITY_DATA: Record<string, ProceduralCityEntry[]> = {
 
   // Anatolia
   "Cappadocian Highlands": [
+    { name: "Çatalhöyük", description: "A Neolithic settlement with decorated houses.", eras: [HistoricalEra.PREHISTORY] },
     { name: "Caesarea", description: "A Roman provincial capital in the highlands.", eras: [HistoricalEra.ANTIQUITY] },
     { name: "Kayseriyyah", description: "A Byzantine theme capital.", eras: [HistoricalEra.MEDIEVAL] }
   ],
   "Pontic Coast": [
+    { name: "Neolithic Coastal Camp", description: "An early fishing settlement on the Black Sea coast.", eras: [HistoricalEra.PREHISTORY] },
     { name: "Sinope", description: "An ancient Greek colony on the Black Sea.", eras: [HistoricalEra.ANTIQUITY] },
     { name: "Sinub", description: "A port city on the northern coast.", eras: [HistoricalEra.MEDIEVAL] }
   ],
   "Cilician Plain": [
+    { name: "Tell Tayinat", description: "A prehistoric mound settlement.", eras: [HistoricalEra.PREHISTORY] },
     { name: "Tarsus", description: "The birthplace of the Apostle Paul.", eras: [HistoricalEra.ANTIQUITY] },
     { name: "Adana", description: "A settlement on the fertile plain.", eras: [HistoricalEra.MEDIEVAL] }
   ],
@@ -742,6 +744,7 @@ export const PROCEDURAL_CITY_DATA: Record<string, ProceduralCityEntry[]> = {
     { name: "Cilician Gates", description: "A mountain pass settlement.", eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL] }
   ],
   "Central Plateau": [
+    { name: "Aşıklı Höyük", description: "A Pre-Pottery Neolithic settlement.", eras: [HistoricalEra.PREHISTORY] },
     { name: "Ancyra", description: "A Galatian settlement on the plateau.", eras: [HistoricalEra.ANTIQUITY] },
     { name: "Ankara", description: "A Byzantine fortress town.", eras: [HistoricalEra.MEDIEVAL] }
   ],
@@ -1457,19 +1460,24 @@ export const PROCEDURAL_CITY_DATA: Record<string, ProceduralCityEntry[]> = {
 
   // Polynesia
   "Society Islands": [
-    { name: "Tahitian Marae", description: "A sacred ceremonial site in the Society Islands.", eras: [HistoricalEra.RENAISSANCE_EARLY_MODERN] }
+    { name: "Ancient Marae", description: "An early ceremonial center.", eras: [HistoricalEra.ANTIQUITY] },
+    { name: "Tahitian Marae", description: "A sacred ceremonial site in the Society Islands.", eras: [HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN] }
   ],
   "Marquesas": [
-    { name: "Marquesan Village", description: "A village in the remote Marquesas.", eras: [HistoricalEra.RENAISSANCE_EARLY_MODERN] }
+    { name: "Early Settlement", description: "One of the first Polynesian settlements.", eras: [HistoricalEra.ANTIQUITY] },
+    { name: "Marquesan Village", description: "A village in the remote Marquesas.", eras: [HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN] }
   ],
   "Tuamotu Atolls": [
     { name: "Atoll Settlement", description: "A settlement on a coral atoll.", eras: [HistoricalEra.RENAISSANCE_EARLY_MODERN] }
   ],
   "Samoa Archipelago": [
-    { name: "Samoan Village", description: "A traditional village in Samoa.", eras: [HistoricalEra.RENAISSANCE_EARLY_MODERN] }
+    { name: "Lapita Settlement", description: "An ancient Polynesian settlement.", eras: [HistoricalEra.ANTIQUITY] },
+    { name: "Coastal Village", description: "A traditional coastal fishing village.", eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL] },
+    { name: "Samoan Village", description: "A traditional village in Samoa.", eras: [HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN] }
   ],
   "Tonga Ridge": [
-    { name: "Tongan Settlement", description: "A settlement in the Tongan islands.", eras: [HistoricalEra.RENAISSANCE_EARLY_MODERN] }
+    { name: "Tu'i Tonga Settlement", description: "An early seat of Polynesian power.", eras: [HistoricalEra.ANTIQUITY] },
+    { name: "Tongan Village", description: "A traditional Tongan village.", eras: [HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN] }
   ],
   "Rapa Nui": [
     { name: "Easter Island Settlement", description: "The settlement that built the moai.", eras: [HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN] }

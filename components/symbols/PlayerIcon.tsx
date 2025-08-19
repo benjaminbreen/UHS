@@ -2,7 +2,7 @@
  * components/symbols/PlayerIcon.tsx - Data-driven pixel art character sprite
  */
 import React from 'react';
-import { PlayerCharacter } from '../../types';
+import { PlayerCharacter, OverallHealthStatus } from '../../types';
 
 interface PlayerIconProps {
   x: number;
@@ -23,6 +23,36 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
   
   const { primary: clothingColor, secondary: secondaryColor } = character.appearance.palette;
   
+  // Determine glow color based on disease state
+  let glowColor = '#fbbf24'; // Default amber
+  let glowOpacity = 0.9;
+  
+  if (character.health && typeof character.health === 'object' && 'overallHealthStatus' in character.health) {
+    const diseaseHealth = character.health as any; // TODO: Fix typing once PlayerCharacter is updated
+    switch (diseaseHealth.overallHealthStatus) {
+      case 'critical':
+        glowColor = '#8B0000'; // Dark red with red tinge
+        glowOpacity = 1.0;
+        break;
+      case 'sick':
+        glowColor = '#228B22'; // Sickly green
+        glowOpacity = 0.95;
+        break;
+      case 'mild':
+        glowColor = '#9ACD32'; // Yellow-green
+        glowOpacity = 0.85;
+        break;
+      case 'healthy':
+      default:
+        // Check for any active diseases even if overall status is healthy
+        if (diseaseHealth.currentDiseases && diseaseHealth.currentDiseases.length > 0) {
+          glowColor = '#FFF8DC'; // Pale yellow for minor illness
+          glowOpacity = 0.8;
+        }
+        break;
+    }
+  }
+  
   // Body size variations based on build
   const isBroad = build === 'stocky' || build === 'imposing';
   const bodyWidth = isBroad ? 6.0 : 5.6;
@@ -34,7 +64,7 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
         <filter id={`playerGlow-${character.id}`} x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur in="SourceAlpha" stdDeviation="2.5"/>
           <feOffset dx="0" dy="0" result="offsetblur"/>
-          <feFlood floodColor="#fbbf24" floodOpacity="0.9"/>
+          <feFlood floodColor={glowColor} floodOpacity={glowOpacity}/>
           <feComposite in2="offsetblur" operator="in"/>
           <feMerge>
             <feMergeNode/>

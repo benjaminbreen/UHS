@@ -78,11 +78,8 @@ export function detectCitiesForArea(
                 
                 // Check for era-specific density
                 if (activeCities[0].eraSpecificDensity) {
-                    let eraKey = 'ancient';
-                    if (year >= 1450) eraKey = 'early_modern';
-                    if (year >= 1800) eraKey = 'modern';
-                    if (year < 500) eraKey = 'prehistoric';
-                    else if (year < 1450) eraKey = 'medieval';
+                    // Use the actual HistoricalEra enum value
+                    const eraKey = era;
                     
                     result.cityDensity = activeCities[0].eraSpecificDensity[eraKey] || result.cityDensity;
                 }

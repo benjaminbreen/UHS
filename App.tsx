@@ -3,22 +3,130 @@
  */
 import React from 'react';
 import { UIProvider, useUI } from './contexts/UIContext';
-import { MapProvider } from './contexts/MapContext';
-import { PlayerProvider } from './contexts/PlayerContext';
-import { GameProvider } from './contexts/GameContext';
+import { MapProvider, useMap } from './contexts/MapContext';
+import { PlayerProvider, usePlayer } from './contexts/PlayerContext';
+import { GameProvider, useGame } from './contexts/GameContext';
 import useCoreLoops from './hooks/useCoreLoops';
-import TopNavBar from './components/TopNavBar';
+import { useEventSystem } from './hooks/useEventSystem';
+import TopNavBarPolished from './components/TopNavBarPolished';
 import LeftSidebar from './components/LeftSidebar';
 import MapViewport from './components/MapViewport';
 import RightSidebar from './components/RightSidebar';
 import ModalHub from './components/ModalHub';
 import DebugOverlay from './components/DebugOverlay';
 import FPSCounter from './components/FPSCounter';
+import { EventModal } from './components/EventModal';
+import { EventNotification, EventBadge } from './components/EventNotification';
+import { GameModeSelector } from './components/GameModeSelector';
+import { suggestGameMode } from './constants/gameData/gameModes';
+import InitialScenarioModal from './components/InitialScenarioModal';
+import { eventService } from './services/eventService';
+import QuestRewardNotification from './components/QuestRewardNotification';
 
 const AppContent: React.FC = () => {
     useCoreLoops();
     const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, debugSettings, isTestModeEnabled } = useUI();
+    const { playerCharacter } = usePlayer();
+    const { gameDate, currentZone, currentRegion } = useGame();
+    const { localArea } = useMap();
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState<'left' | 'right' | null>(null);
+    const [showInitialScenarioModal, setShowInitialScenarioModal] = React.useState(false);
+    const [hasShownInitialScenario, setHasShownInitialScenario] = React.useState(false);
+    
+    // Initialize event system
+    const { 
+        currentEvent, 
+        eventHistory, 
+        currentMode,
+        victoryProgress,
+        handleEventChoice, 
+        dismissEvent,
+        setGameMode,
+        resetForNewGame,
+        hasShownInitialEvent 
+    } = useEventSystem();
+    
+    const [showEventModal, setShowEventModal] = React.useState(false);
+    const [showModeSelector, setShowModeSelector] = React.useState(false);
+    const [notificationEvent, setNotificationEvent] = React.useState(currentEvent);
+    
+    // Update notification when new event arrives
+    React.useEffect(() => {
+        if (currentEvent && !showEventModal) {
+            // For initial event, show modal immediately
+            if (!hasShownInitialEvent) {
+                setShowEventModal(true);
+            } else {
+                setNotificationEvent(currentEvent);
+            }
+        }
+    }, [currentEvent, showEventModal, hasShownInitialEvent]);
+    
+    // Reset event system when starting new games, then set game mode
+    React.useEffect(() => {
+        if (playerCharacter) {
+            console.log('[GameMode] New character detected, resetting event system');
+            resetForNewGame();
+            // Reset initial scenario modal state for new character
+            setHasShownInitialScenario(false);
+            
+            // Use character attributes to suggest mode with weighted probability
+            // This happens for EVERY game start, not just World Weaver
+            const mode = suggestGameMode(
+                playerCharacter.occupation,
+                undefined, // location
+                playerCharacter.historicalEra,
+                {
+                    health: playerCharacter.health,
+                    intelligence: playerCharacter.stats.intelligence,
+                    charisma: playerCharacter.stats.charisma,
+                    strength: playerCharacter.stats.strength,
+                    privilege: playerCharacter.socialContext.privilege,
+                    constitution: playerCharacter.stats.constitution
+                }
+            );
+            
+            // Set mode immediately after reset to avoid race condition
+            setGameMode(mode);
+            
+            console.log('═══════════════════════════════════════════════════════');
+            console.log('[GameMode] PROCEDURAL MODE SELECTION FOR ALL GAMES');
+            console.log('═══════════════════════════════════════════════════════');
+            console.log('Selected Mode:', mode.name);
+            console.log('Character:', playerCharacter.name, '|', playerCharacter.occupation);
+            console.log('Era:', playerCharacter.historicalEra);
+            console.log('Character Stats:', {
+                health: playerCharacter.health,
+                intelligence: playerCharacter.stats.intelligence,
+                charisma: playerCharacter.stats.charisma,
+                strength: playerCharacter.stats.strength,
+                privilege: playerCharacter.socialContext.privilege,
+                constitution: playerCharacter.stats.constitution
+            });
+            console.log('Mode Description:', mode.description);
+            console.log('Victory Conditions:', mode.victoryConditions.map(v => v.description));
+            console.log('═══════════════════════════════════════════════════════');
+        }
+    }, [playerCharacter?.name, resetForNewGame, setGameMode]); // Only reset when character name changes (new character)
+    
+    // Show InitialScenarioModal for non-WorldWeaver games (only once per character)
+    React.useEffect(() => {
+        // Only run this check if we haven't shown the modal yet
+        if (!hasShownInitialScenario && playerCharacter && currentMode && gameDate && currentZone && localArea) {
+            // Check if this is NOT a WorldWeaver game (no custom events from LLM)
+            const customEvents = eventService.getCustomEventArchetypes();
+            const isWorldWeaver = customEvents && customEvents.length > 0;
+            
+            // Only show if it's not WorldWeaver and no other modals are open
+            if (!isWorldWeaver && !showEventModal && !currentEvent) {
+                console.log('[InitialScenario] Showing scenario modal for non-WorldWeaver game');
+                console.log('[InitialScenario] Region:', currentRegion, 'LocalArea:', localArea);
+                setShowInitialScenarioModal(true);
+                // Mark as shown immediately to prevent re-triggering
+                setHasShownInitialScenario(true);
+            }
+        }
+    }, [playerCharacter, currentMode, gameDate, currentZone, currentRegion, localArea, hasShownInitialScenario, showEventModal, currentEvent]);
     
     // Handle swipe gestures for mobile sidebars
     React.useEffect(() => {
@@ -77,7 +185,7 @@ const AppContent: React.FC = () => {
     return (
       <div className="bg-slate-900 text-gray-100 flex flex-col h-screen overflow-hidden">
         <div className="relative z-10 flex flex-col h-full">
-            <TopNavBar />
+            <TopNavBarPolished />
             <div className="relative flex-1 flex items-stretch overflow-hidden p-0 sm:p-1 md:p-2 lg:p-3 xl:p-4 gap-0 sm:gap-1 md:gap-2 lg:gap-3 xl:gap-4 h-full max-h-full">
                 {/* Desktop sidebar toggle */}
                 {!isLeftSidebarExpanded && (
@@ -154,6 +262,83 @@ const AppContent: React.FC = () => {
         <DebugOverlay />
         {isTestModeEnabled && debugSettings.showFPS && !debugSettings.logPerformanceMetrics && (
           <FPSCounter position="top-right" />
+        )}
+        
+        {/* Quest Reward Notifications */}
+        <QuestRewardNotification />
+        
+        {/* Event System Components */}
+        {showEventModal && currentEvent && playerCharacter && (
+          <EventModal
+            event={currentEvent}
+            player={playerCharacter}
+            onChoice={(choice) => {
+              handleEventChoice(choice);
+              setShowEventModal(false);
+              setNotificationEvent(null);
+            }}
+            onClose={() => {
+              setShowEventModal(false);
+            }}
+          />
+        )}
+        
+        <EventNotification
+          event={notificationEvent}
+          onOpen={() => {
+            setShowEventModal(true);
+            setNotificationEvent(null);
+          }}
+          onDismiss={() => {
+            dismissEvent();
+            setNotificationEvent(null);
+          }}
+        />
+        
+        <EventBadge
+          hasEvent={!!currentEvent && !showEventModal && !notificationEvent}
+          onClick={() => setShowEventModal(true)}
+        />
+        
+        {/* Victory progress is now shown in the game mode dropdown in TopNavBar */}
+        
+        {/* Mode Selector Modal */}
+        {showModeSelector && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-800 rounded-lg shadow-xl max-w-3xl w-full p-6">
+              <GameModeSelector
+                currentMode={currentMode}
+                onModeSelect={(mode) => {
+                  setGameMode(mode);
+                  setShowModeSelector(false);
+                }}
+              />
+              <button
+                onClick={() => setShowModeSelector(false)}
+                className="mt-4 w-full px-4 py-2 bg-slate-700 hover:bg-slate-600 
+                         text-white rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* Initial Scenario Modal for non-WorldWeaver games */}
+        {showInitialScenarioModal && playerCharacter && gameDate && currentZone && (
+          <InitialScenarioModal
+            isOpen={showInitialScenarioModal}
+            onClose={() => {
+              setShowInitialScenarioModal(false);
+              // Don't need to set hasShownInitialScenario here as it's already set when showing
+            }}
+            playerCharacter={playerCharacter}
+            gameDate={gameDate}
+            currentZone={currentZone}
+            currentRegion={currentRegion || currentZone} // Use actual region, fallback to zone
+            localArea={localArea || 'Unknown Region'} // Use actual localArea from map
+            gameMode={currentMode}
+          />
         )}
       </div>
     );

@@ -7,6 +7,8 @@ import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES } from '../../../constants/index';
 import { ValueNoise } from '../../../utils/noise';
 import { mapLocationToCulture } from '../../../utils/mapUtils';
 import { parseDateString } from '../../../utils/dateUtils';
+import DiseaseService from '../../../services/diseaseService';
+import { HistoricalEra } from '../../../types';
 
 let animalIdCounter = 0;
 
@@ -101,6 +103,32 @@ export function spawnSingleAnimal(
                     perception: Math.max(1, animalData.perception + Math.floor((noise.random() - 0.5) * 4)),
                     luck: Math.max(1, 5 + Math.floor((noise.random() - 0.5) * 6)),
                 };
+                
+                // Initialize disease health with potential disease (25% chance for wild animals)
+                const diseaseService = DiseaseService.getInstance();
+                const shouldHaveDisease = noise.random() < 0.25; // 25% chance for animals
+                
+                let diseaseHealth = undefined;
+                if (shouldHaveDisease) {
+                    // Get context for disease assignment
+                    const dateInfo = parseDateString(mapData.timeSlice || '1650');
+                    const era = dateInfo.era || HistoricalEra.MEDIEVAL;
+                    
+                    diseaseHealth = diseaseService.assignDiseasesToEntity(
+                        { health: undefined } as any,
+                        era,
+                        culturalZone,
+                        dateInfo.year
+                    );
+                    
+                    if (diseaseHealth && diseaseHealth.currentDiseases.length > 0) {
+                        const disease = diseaseHealth.currentDiseases[0].disease;
+                        console.log(`[Animal Disease Spawn] ${chosenSpecies?.name || animalData.name} spawned with ${disease.name} at (${x}, ${y}) - 25% chance`);
+                        if (disease.symptoms && disease.symptoms.length > 0) {
+                            console.log(`  → Symptoms: ${disease.symptoms.join(', ')}`);
+                        }
+                    }
+                }
 
                 return {
                     id: `animal-${animalIdCounter++}`, baseId: animalKey,
@@ -115,7 +143,8 @@ export function spawnSingleAnimal(
                     stats,
                     type: animalData.type,
                     aiState: 'wandering', target: null,
-                    statusEffects: []
+                    statusEffects: [],
+                    diseaseHealth // Add disease health with potential disease
                 };
             }
         }

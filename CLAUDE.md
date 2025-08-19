@@ -3,7 +3,48 @@
 ## Project Overview
 - **Creator**: Benjamin Breen, Historian at UCSC
 - **Purpose**: Educational history simulation game for casual players and history students
-- **Current Phase**: Implementing Primary Source System & World Weaver
+- **Current Phase**: Event System Complete (Phases 1-3) - Procedural & LLM Enhancement
+
+## ✅ COMPLETED: Event System (December 2024)
+
+### Phase 1: Core Infrastructure - COMPLETE
+- ✅ Created comprehensive type system (`types/eventTypes.ts`)
+- ✅ Built event service with trigger evaluation (`services/eventService.ts`)
+- ✅ Implemented event modal UI with stat checks
+- ✅ Added LLM API tracker to navigation bar
+- ✅ Created event notification system (toast + badge)
+
+### Phase 2: Game Modes & Templates - COMPLETE
+- ✅ Defined all 8 historically accurate game modes
+- ✅ Created 3-4 event archetypes per mode (total 28 archetypes)
+- ✅ Built context-aware template system with era/culture variables
+- ✅ Integrated event system into main app
+- ✅ Added mode selector UI with beautiful gradient cards
+- ✅ Implemented victory progress tracking
+
+### Phase 3: LLM Enhancement - COMPLETE
+- ✅ Created LLM event service for custom event generation
+- ✅ Built context service for historically accurate events
+- ✅ Enhanced WorldWeaver to generate complete scenarios:
+  - Auto-selects appropriate game mode
+  - Generates 3 custom events per scenario
+  - Creates 2 special NPCs with historical roles
+- ✅ Integrated custom events with procedural system
+- ✅ Added caching to reduce API calls
+
+### Event System Features Working:
+1. **8 Game Modes**: Survival, Exploration, Commerce, Scholarship, Leadership, Livelihood, Diplomacy, Legal
+2. **Procedural Generation**: Template-based events with historically accurate variables
+3. **LLM Enhancement**: Custom events based on specific historical scenarios
+4. **Special NPCs**: Generated with period-appropriate names, occupations, dialogue
+5. **API Tracking**: Real-time usage monitoring with cost estimates
+6. **Performance**: Optimized with 10-second checks, event caching, minimal re-renders
+
+### Historical Accuracy Examples:
+- Medieval Europe: Trade milk cows, face plague/famine
+- Ancient China: Trade rice/silk, face floods/drought
+- 1847 Ireland: Everything for ship passage, workhouse dilemmas
+- Modern era: Unemployment, recession, technology challenges
 
 ## INCOMPLETE FEATURES - NPC System (Added August 2025)
 
@@ -450,11 +491,237 @@ All requested work has been successfully completed:
 4. ✅ Prevented all structures and NPCs on shoals maps
 5. ✅ Enhanced cliff, mangrove, and salt flat generation priorities
 
+## Event System Implementation - COMPLETED (Latest Session)
+
+### Fixed Critical Issues:
+1. **✅ WorldWeaver Modal Now Shows**: 
+   - Created dedicated `WorldWeaverModal.tsx` component
+   - Replaced generic ExplanationModal with WorldWeaverModal
+   - Shows full scenario details: year, location, game mode, special NPCs, custom events
+   - Beautiful gradient UI with proper information hierarchy
+
+2. **✅ Game Starts with Initial Event**:
+   - Added `generateInitialEvent()` method to EventService
+   - Hook triggers initial event on game load
+   - WorldWeaver scenarios use custom LLM events as initial
+   - Standard games use mode-appropriate procedural events
+   - Modal shows immediately for initial event (no notification toast)
+
+3. **✅ LLM History Tracking**:
+   - Full input/output history stored (last 10 calls)
+   - Expandable panel below API tracker shows complete LLM conversations
+   - Download as .txt file functionality
+   - Scrollable, formatted display with timestamps
+   - Tracks prompts and responses for WorldWeaver, events, and NPC generation
+
+4. **✅ API Call Tracking Enhanced**:
+   - Input/output passed to trackAPICall()
+   - History persisted in localStorage
+   - Session and total call counters
+   - Cost estimation display
+   - Reset functionality
+
+### Technical Implementation:
+- Modified `eventService.ts` to track LLM history and initial events
+- Updated all LLM services to pass input/output to tracking
+- Created `WorldWeaverModal.tsx` for scenario introduction
+- Enhanced `useEventSystem` hook with initial event logic
+- Updated `TopNavBar.tsx` with full LLM history UI
+- Modified `app.tsx` to show initial events immediately
+
+## Quest System Implementation - Latest Session
+
+### Major New Features:
+1. **✅ Location-Based Quest System**:
+   - Created `questService.ts` that ties quests to actual map locations
+   - Quests require visiting specific marketplaces, cities, palaces, holy sites, ruins, or farms
+   - Objectives track player location and progress automatically
+   - Quest markers show on map with primary/secondary indicators
+
+2. **✅ Quests Tab in Navigation**:
+   - Added new "Quests" button in TopNavBar with scroll icon
+   - Beautiful quest panel shows active and completed quests
+   - Categories: main, trade, exploration, social, survival
+   - Shows objectives with checkboxes, rewards, and historical context
+   - "Show on map" buttons for each objective location
+
+3. **✅ Dynamic Quest Generation from Events**:
+   - LLM events now create location-based quests automatically
+   - Analyzes event text to select appropriate locations (e.g., "trade" → marketplace)
+   - Creates multi-step objectives: travel to location → interact → complete task
+   - Tracks progress as player visits actual game locations
+
+4. **✅ Quest-Location Integration**:
+   - Quest objectives tied to existing structures on the map
+   - Automatic progress tracking when player reaches objective locations
+   - Special interactions can be triggered at quest locations
+   - Quest completion gives rewards and updates player stats
+
+### How It Works:
+- When an event is generated (LLM or procedural), it creates a quest
+- Quest analyzes available map structures (marketplaces, cities, etc.)
+- Selects nearest relevant locations as objectives
+- Player must physically travel to these locations
+- Progress tracked automatically as player moves
+- Quests panel shows all active/completed quests with full details
+
+### Technical Implementation:
+- `types/questTypes.ts`: Quest system type definitions
+- `services/questService.ts`: Core quest management and location tracking
+- `components/QuestsPanel.tsx`: UI for viewing and managing quests
+- Modified `eventService.ts` to create quests from events
+- Updated `useEventSystem` hook to track quest progress on movement
+- Added quest button to TopNavBar navigation
+
+## Critical Bug Fixes - Latest Session Continuation
+
+### Fixed Issues:
+1. **✅ Fixed `setGameDate is not a function` Error**:
+   - Added `onMapConfigDateChange` to setGameState interface in `useMapState.ts`
+   - Passed the function through from GameContext via MapContext
+   - Fixed the WorldWeaver year override functionality
+
+2. **✅ WorldWeaver Modal Now Shows Properly**:
+   - Added `pendingScenarioData` state to useMapState to persist modal data through map generation
+   - Modal now shows after map finishes loading (not lost during re-renders)
+   - Fixed for both WorldWeaver AND procedural generation
+
+3. **✅ Modal Shows for ALL Map Generation Types**:
+   - Procedurally generated maps now show intro modal with map type and climate info
+   - "Start New World" button shows welcome modal
+   - "Regenerate Map" button shows map info modal
+   - WorldWeaver scenarios show full detailed modal with all scenario data
+
+### How It Works Now:
+- When generating any map (procedural or WorldWeaver), scenario data is stored
+- After map loads (`isLoading` becomes false), modal automatically shows
+- Procedural maps get simple intro: "Welcome to a new procedurally generated world!"
+- WorldWeaver maps get full details: year, location, character, NPCs, events, game mode
+- Initial events trigger after modal is closed (for immersion)
+
+## COMPREHENSIVE CODE REVIEW - August 15, 2025
+
+### Current Roadmap Status Assessment
+
+#### ✅ **Primary Source System (Phase 1) - COMPLETE**
+**Status**: Successfully implemented with excellent architecture
+- 42 shard files covering all cultural zones/eras
+- Sophisticated caching with IndexedDB
+- Context-aware search with temporal relevance scoring
+- UI fully integrated with search, modals, and keyword highlighting
+- **Ready for Phase 2 expansion**
+
+#### ⚠️ **World Weaver System - BASIC IMPLEMENTATION**
+**Status**: Core functionality exists but limited
+- Basic prompt interpretation working
+- Map area validation integrated
+- **Missing**: Scenario generation, special NPCs, victory conditions
+- File: `services/worldWeaverService.ts` needs expansion
+
+#### ❌ **NPC System - CRITICAL GAPS**
+**Status**: UI exists but backend incomplete
+- Trade negotiation panel: No LLM integration (static responses)
+- Reputation system: UI present but non-functional
+- NPC agency: Cannot initiate interactions
+- Memory persistence: Broken between conversations
+
+### Easy Wins & Low-Hanging Fruit
+
+#### 🎯 **Immediate UI Improvements (< 1 hour each)**
+1. **Add Loading States**: Many async operations lack visual feedback
+2. **Tooltip Enhancements**: Add keyboard shortcuts info to all buttons
+3. **Mobile Touch Targets**: Increase to 44px minimum (accessibility)
+4. **Error Messages**: Replace console.error with user-friendly toasts
+5. **Keyboard Navigation**: Add Tab support for modals and controls
+
+#### 🎮 **Gameplay Quick Fixes**
+1. **Connect Trade LLM**: File `NpcTradeInterface.tsx:100` - Connect to existing LLM service
+2. **Reputation Notifications**: Add visual feedback when reputation changes
+3. **Memory Fix**: Persist NPC memories in localStorage/IndexedDB
+4. **Quest Log**: Add simple todo-style quest tracker in sidebar
+5. **Save/Load States**: Implement basic game state persistence
+
+#### 📚 **Educational Enhancements**
+1. **Source Counter**: Show "3/50 sources discovered" progress
+2. **Historical Accuracy Badge**: Visual indicator when actions align with history
+3. **Learning Objectives**: Add optional tutorial prompts for first-time players
+4. **Citation Helper**: Auto-generate citations for discovered sources
+5. **Time Period Context**: Add era-specific hints and warnings
+
+#### ⚡ **Performance Optimizations**
+1. **Component Splitting**: Break up 1000+ line `MapDisplayOptimized.tsx`
+2. **Lazy Load Shards**: Only load primary source shards when needed
+3. **Safari Blur Fix**: Already implemented conditional blur removal
+4. **Bundle Analysis**: Run webpack-bundle-analyzer to find bloat
+5. **Service Worker**: Enable offline play with cached assets
+
+### Recent Updates Analysis
+
+#### ✅ **Successful Updates**
+- **August 10**: Complete faction/city data for ALL regions
+- **August 7**: Fixed terrain features (estuaries, coral reefs)
+- **August 6**: Mobile controls and responsive design
+- **Safari Performance**: Diagnosed and partially fixed blur issues
+- **Day/Night Cycle**: Visual effects and NPC torch lighting
+- **Map Generation**: Fixed shoals archetype (95% water)
+
+#### ⚠️ **Partial Successes**
+- **Safari Optimizations**: Some fixes caused SVG misalignment, rolled back
+- **NPC Shadows**: Added but could use opacity adjustments
+- **Touch Gestures**: Work but lack visual feedback
+
+#### ❌ **Failed/Incomplete**
+- **NPC Agency**: Still cannot initiate interactions
+- **Trade System**: LLM integration never connected
+- **Assessment Engine**: Not started
+- **World Weaver Scenarios**: Basic implementation only
+
+### Recommended Development Priority
+
+#### **Week 1 - Complete NPC System**
+1. Connect trade negotiation to LLM (2 hours)
+2. Fix reputation system logic (2 hours)
+3. Implement NPC memory persistence (3 hours)
+4. Add NPC-initiated interactions (1 day)
+
+#### **Week 2 - World Weaver MVP**
+1. Scenario generation from prompts (2 days)
+2. Special NPC injection (1 day)
+3. Victory conditions system (1 day)
+4. Integration with primary sources (1 day)
+
+#### **Week 3 - Polish & Performance**
+1. Component code splitting (1 day)
+2. Global error boundaries (3 hours)
+3. Accessibility audit & fixes (2 days)
+4. Mobile UX improvements (2 days)
+
+#### **Week 4 - Educational Features**
+1. Assessment engine foundation (3 days)
+2. Learning objectives system (1 day)
+3. Progress tracking (1 day)
+
+### Technical Debt to Address
+1. **Type Safety**: Remove `any` types in map state
+2. **Dead Code**: Remove unused `MapDisplay.tsx`
+3. **File Organization**: Split mega-components
+4. **Error Handling**: Add try-catch blocks and user feedback
+5. **Testing**: No test coverage currently
+
+### Overall Health Score: 7.5/10
+
+**Strengths**:
+- Excellent primary source implementation
+- Solid service architecture
+- Rich historical content
+- Good performance optimizations
+
+**Weaknesses**:
+- Incomplete NPC features
+- Missing educational assessment
+- Mobile UX needs polish
+- No automated testing
+
+**Trajectory**: Strong foundation with clear path forward. Focus should be on completing partially-implemented features before adding new ones.
+
 ## Next Steps
-1. **Performance Testing**: Test on various devices and connection speeds
-2. **Web Worker Integration**: Consider implementing useMapWorker in useMapState for async map generation
-3. **Additional Mobile Optimizations**:
-   - Reduce texture quality on mobile for better performance
-   - Implement progressive loading for large maps
-   - Add haptic feedback for mobile interactions (if supported)
-4. **Accessibility**: Add keyboard navigation for non-mobile users

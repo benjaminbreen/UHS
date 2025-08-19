@@ -30,7 +30,7 @@ const domesticSentences = { true: ["Years of domestication have left it gentle a
 // --- GENERATOR LOGIC ---
 
 export function generateAnimalDescriptions(animal: AnimalEntity): { short: string; long: string } {
-    const { baseId, age, isDomestic, stats, speciesName } = animal;
+    const { baseId, age, isDomestic, stats, speciesName, health } = animal;
     const animalData = ANIMAL_DATA[baseId];
     const animalName = speciesName.toLowerCase();
 
@@ -49,19 +49,68 @@ export function generateAnimalDescriptions(animal: AnimalEntity): { short: strin
         return list[Math.floor(seededRandom() * list.length)];
     };
     
-    // Short description
+    // Short description - simplified
     const shortDesc = `${getRandomFromPool(aggressionAdjectives, animalData.attack)} ${animalName}`;
 
-    // Long description
-    const sentences = [];
-    sentences.push(getRandomFromPool(ageSentences, age > 20 ? 8 : age > 5 ? 5 : 2));
-    sentences.push(getRandomFromPool(strengthSentences, stats.strength));
-    sentences.push(getRandomFromPool(perceptionSentences, stats.perception));
-    sentences.push(getRandomFromPool(constitutionSentences, stats.strength));
-    sentences.push(getRandomFromPool(agilitySentences, stats.agility));
-    sentences.push(domesticSentences[String(isDomestic) as keyof typeof domesticSentences]);
-
-    const longDescription = [...new Set(sentences)].join(' ');
+    // Long description - only mention notable characteristics
+    const notableTraits = [];
+    
+    // Only mention age if very young or old
+    if (age < 2) {
+        notableTraits.push("A young specimen, still growing into its adult form");
+    } else if (age > 15) {
+        notableTraits.push("An elderly creature showing signs of age");
+    }
+    
+    // Only mention exceptional stats (very high or very low)
+    if (stats.strength >= 8) {
+        notableTraits.push("powerfully built with exceptional strength");
+    } else if (stats.strength <= 3) {
+        notableTraits.push("appears weak and frail");
+    }
+    
+    if (stats.agility >= 8) {
+        notableTraits.push("remarkably agile and nimble");
+    } else if (stats.agility <= 3) {
+        notableTraits.push("moves clumsily");
+    }
+    
+    if (stats.perception >= 8) {
+        notableTraits.push("exceptionally alert and aware");
+    }
+    
+    // Health status
+    const healthPercent = (health / 10) * 100;
+    if (healthPercent < 30) {
+        notableTraits.push("appears injured or unwell");
+    } else if (healthPercent === 100) {
+        notableTraits.push("in perfect health");
+    }
+    
+    // Domestic status only if unusual for the species
+    if (isDomestic && animalData.type === 'Predator') {
+        notableTraits.push("unusually tame for its species");
+    } else if (isDomestic && animalData.type === 'Wild') {
+        notableTraits.push("has been domesticated");
+    }
+    
+    // Create a grammatical sentence
+    let longDescription = "";
+    if (notableTraits.length === 0) {
+        longDescription = "A typical specimen with no particularly notable features.";
+    } else if (notableTraits.length === 1) {
+        longDescription = notableTraits[0].charAt(0).toUpperCase() + notableTraits[0].slice(1) + ".";
+    } else {
+        // Combine traits grammatically
+        const capitalizedFirst = notableTraits[0].charAt(0).toUpperCase() + notableTraits[0].slice(1);
+        if (notableTraits.length === 2) {
+            longDescription = `${capitalizedFirst} and ${notableTraits[1]}.`;
+        } else {
+            const lastTrait = notableTraits.pop();
+            const firstTraits = notableTraits.join(", ");
+            longDescription = `${capitalizedFirst}, ${firstTraits.slice(notableTraits[0].length + 2)}, and ${lastTrait}.`;
+        }
+    }
 
     return { short: shortDesc, long: longDescription };
 }
