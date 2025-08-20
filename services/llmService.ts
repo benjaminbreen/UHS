@@ -348,66 +348,96 @@ export async function generateEncounterDialogue(
         - Don't repeat things you've already said in this conversation
     `;
     
+    // Create a more sophisticated prompt for reputation analysis
+    const reputationPrompt = `
+        ${prompt}
+        
+        ADDITIONALLY, analyze the situation and determine the reputation impact:
+        - Is this NPC discovering an enemy combatant? (-100 reputation)
+        - Is the player threatening violence? (-50 reputation)  
+        - Is this a criminal being discovered? (-75 reputation)
+        - Is the NPC calling for authorities? (-100 reputation)
+        - Is this a dangerous historical situation where the player doesn't belong? (-50 to -100)
+        - Is the player being helpful/kind? (+5 to +20)
+        - Is this a normal conversation? (0 to +/-5)
+        
+        Return JSON with:
+        {
+            "dialogue": "The NPC's response",
+            "reputationChange": number (-100 to +20),
+            "shouldCallAuthorities": boolean,
+            "reasoning": "Brief explanation of reputation change"
+        }
+    `;
+    
     try {
-        // Use standard flash model for better coherence (not lite) to avoid repetition
+        // Use standard flash model for better coherence
         const response = await ai.models.generateContent({ 
             model: 'gemini-2.5-flash', 
-            contents: prompt,
+            contents: reputationPrompt,
             config: {
-                temperature: 0.8, // Add some variety to avoid repetitive responses
-                topP: 0.95
+                temperature: 0.8,
+                topP: 0.95,
+                responseMimeType: "application/json"
             }
         });
-        let npcText = response.text.trim().replace(/"/g, '');
         
-        // Check for accidental repetition in the response itself
-        const sentences = npcText.split(/[.!?]+/).filter(s => s.trim());
-        if (sentences.length >= 2) {
-            // Check if sentences are too similar (likely repetition)
-            const firstSentence = sentences[0].toLowerCase().trim();
-            const secondSentence = sentences[1].toLowerCase().trim();
+        let responseData;
+        try {
+            responseData = JSON.parse(response.text.trim());
+        } catch (parseError) {
+            // Fallback to old behavior if JSON parsing fails
+            console.warn('Failed to parse LLM JSON response, falling back to text analysis');
+            const npcText = response.text.trim().replace(/"/g, '');
             
-            // If the second sentence is very similar to the first, remove it
-            if (secondSentence.includes(firstSentence.substring(0, 10)) || 
-                firstSentence.includes(secondSentence.substring(0, 10))) {
-                // Keep only the first sentence
-                npcText = sentences[0].trim() + (npcText.match(/[.!?]/) ? npcText.match(/[.!?]/)[0] : '.');
+            // Basic text analysis for fallback
+            let reputationChange = 0;
+            let shouldLeave = false;
+            let shouldAttack = false;
+            
+            const lowerText = npcText.toLowerCase();
+            
+            // Check for hostile reactions
+            if (lowerText.includes('guards!') || lowerText.includes('authorities') || 
+                lowerText.includes('arrest') || lowerText.includes('treason')) {
+                shouldAttack = false;
+                shouldLeave = true;
+                reputationChange = -100; // Severe reputation loss for being reported
+            } else if (lowerText.includes('attack') || lowerText.includes('kill you')) {
+                shouldAttack = true;
+                reputationChange = -50;
+            } else if (lowerText.includes('leave') || lowerText.includes('go away')) {
+                shouldLeave = true;
+                reputationChange = -10;
             }
+            
+            return { 
+                text: npcText,
+                reputationChange: reputationChange !== 0 ? reputationChange : undefined,
+                shouldLeave,
+                shouldAttack,
+                shouldCallAuthorities: reputationChange <= -100
+            };
         }
         
-        // Analyze the response for reputation changes and NPC reactions
-        let reputationChange = 0;
-        let shouldLeave = false;
-        let shouldAttack = false;
+        // Successfully parsed JSON response
+        const npcText = responseData.dialogue || responseData.text || '';
+        let reputationChange = responseData.reputationChange || 0;
         
-        const lowerText = npcText.toLowerCase();
+        // Ensure reputation changes are significant when appropriate
+        if (responseData.shouldCallAuthorities) {
+            reputationChange = Math.min(reputationChange, -100);
+        }
         
-        // Check for hostile reactions
-        if (lowerText.includes('guards!') || lowerText.includes('attack') || lowerText.includes('kill you') || 
-            lowerText.includes('draw your weapon') || lowerText.includes('you\'ll pay')) {
-            shouldAttack = true;
-            reputationChange = -20;
-        }
-        // Check for dismissive reactions
-        else if (lowerText.includes('leave me') || lowerText.includes('go away') || lowerText.includes('begone') ||
-                 lowerText.includes('we\'re done') || lowerText.includes('conversation is over')) {
-            shouldLeave = true;
-            reputationChange = -5;
-        }
-        // Check for positive reactions
-        else if (lowerText.includes('thank you') || lowerText.includes('kind of you') || lowerText.includes('appreciate')) {
-            reputationChange = 5;
-        }
-        // Check for very negative reactions
-        else if (lowerText.includes('disgusting') || lowerText.includes('insolent') || lowerText.includes('how dare')) {
-            reputationChange = -10;
-        }
+        console.log(`[NPC Dialogue] Reputation change: ${reputationChange}, Reason: ${responseData.reasoning || 'None provided'}`);
         
         return { 
             text: npcText,
             reputationChange: reputationChange !== 0 ? reputationChange : undefined,
-            shouldLeave,
-            shouldAttack
+            shouldLeave: responseData.shouldCallAuthorities || reputationChange <= -50,
+            shouldAttack: false, // Authorities don't attack, they arrest
+            shouldCallAuthorities: responseData.shouldCallAuthorities || false,
+            reasoning: responseData.reasoning
         };
     } catch (error) {
         console.error("Error generating NPC dialogue:", error);

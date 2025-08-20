@@ -53,27 +53,57 @@ const AppContent: React.FC = () => {
     useCoreLoops();
     const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, debugSettings, isTestModeEnabled } = useUI();
     const { playerCharacter } = usePlayer();
-    const { gameDate, currentZone, currentRegion } = useGame();
+    const { gameDate, currentZone, currentRegion, isLoading } = useGame();
     const { localArea, mapData, onStartNewWorldAtZoneRegion } = useMap();
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState<'left' | 'right' | null>(null);
     const [showInitialScenarioModal, setShowInitialScenarioModal] = React.useState(false);
     const [hasShownInitialScenario, setHasShownInitialScenario] = React.useState(false);
     const [hasInitializedFromURL, setHasInitializedFromURL] = React.useState(false);
+    const [delayInitialMap, setDelayInitialMap] = React.useState(true);
+    const [isGeneratingMap, setIsGeneratingMap] = React.useState(false);
     
     // Store whether we should wait for URL config
     const shouldWaitForURLConfig = React.useMemo(() => {
         return !!(urlConfig.geography?.culturalZone || urlConfig.dateRange);
     }, [urlConfig]);
     
-    // Generate initial world from URL config if present
+    // Add a delay before generating any map to prevent double generation
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            setDelayInitialMap(false);
+        }, 100); // Small delay to let React settle
+        return () => clearTimeout(timer);
+    }, []);
+    
+    // Generate initial world - handles both URL config and default random generation
     React.useEffect(() => {
         // Only run once
-        if (hasInitializedFromURL) return;
+        if (hasInitializedFromURL) {
+            return;
+        }
+        
+        // Wait for delay to prevent double generation
+        if (delayInitialMap) {
+            return;
+        }
+        
+        // Don't generate if already generating or loading
+        if (isGeneratingMap || isLoading) {
+            return;
+        }
+        
+        // Don't generate if we already have a map
+        if (mapData) {
+            return;
+        }
+        
+        console.log('[App] Initiating world generation...');
+        setHasInitializedFromURL(true);
+        setIsGeneratingMap(true);
         
         // If we have URL config, generate based on that
         if (shouldWaitForURLConfig) {
             console.log('[App] Generating initial world from URL config');
-            setHasInitializedFromURL(true);
             
             // Map cultural zone to the actual zone key used in GEOGRAPHICAL_DATA
             const zoneMapping: Record<string, string> = {
@@ -99,8 +129,15 @@ const AppContent: React.FC = () => {
             
             // Start world generation immediately
             onStartNewWorldAtZoneRegion(targetZone, targetRegion, characterSpec);
+        } else {
+            // No URL config - generate a default random map
+            console.log('[App] Generating default random world (no URL config)');
+            onStartNewWorldAtZoneRegion('', ''); // Empty strings will trigger random selection
         }
-    }, [hasInitializedFromURL, shouldWaitForURLConfig, urlConfig, onStartNewWorldAtZoneRegion, currentZone]);
+        
+        // Reset generating flag after a delay
+        setTimeout(() => setIsGeneratingMap(false), 5000);
+    }, [hasInitializedFromURL, delayInitialMap, shouldWaitForURLConfig, urlConfig, onStartNewWorldAtZoneRegion, currentZone, isGeneratingMap, isLoading, mapData]);
     
     // Initialize event system
     const { 

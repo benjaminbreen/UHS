@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './TopNavBarPolished.css'; // For custom animations
 import { 
   Globe, Info, Settings, Shuffle, ChevronDown, Menu, X, Sparkles, 
   Cpu, ScrollText, MapPin, Compass, Activity,
@@ -187,7 +188,12 @@ const TopNavBarPolished: React.FC = () => {
   const handleWorldWeaverSubmit = async () => {
     if (!worldWeaverInput.trim() || isProcessingWorldWeaver) return;
     
+    console.log('[WorldWeaver] Starting generation, setting loading state');
     setIsProcessingWorldWeaver(true);
+    
+    // Force a small delay to ensure the loading state renders
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     try {
       const result = await worldWeaverService.generateScenario(worldWeaverInput);
       
@@ -405,8 +411,24 @@ const TopNavBarPolished: React.FC = () => {
             {!isMobile && (
               <div className="flex-1 max-w-lg mx-4">
                 <div className="relative">
+                  {/* Liquid-like loading animation overlay */}
+                  {isProcessingWorldWeaver && (
+                    <div className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none z-10">
+                      <div 
+                        className="worldweaver-liquid-fill absolute inset-0"
+                        style={{
+                          background: 'linear-gradient(90deg, transparent 0%, rgba(52, 211, 153, 0.3) 50%, transparent 100%)',
+                        }}
+                      />
+                      <div 
+                        className="worldweaver-liquid-rise absolute bottom-0 left-0 right-0 bg-gradient-to-t from-green-400/30 via-green-400/20 to-transparent"
+                      />
+                    </div>
+                  )}
+                  
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Sparkles className={`w-4 h-4 transition-colors ${
+                      isProcessingWorldWeaver ? 'text-green-300 animate-pulse' :
                       worldWeaverFocused ? 'text-green-400' : 'text-gray-500'
                     }`} />
                   </div>
@@ -417,7 +439,7 @@ const TopNavBarPolished: React.FC = () => {
                     onFocus={() => setWorldWeaverFocused(true)}
                     onBlur={() => setTimeout(() => setWorldWeaverFocused(false), 200)}
                     onKeyPress={(e) => e.key === 'Enter' && handleWorldWeaverSubmit()}
-                    placeholder="Create world from text..."
+                    placeholder={isProcessingWorldWeaver ? "Creating your world..." : "Create world from text..."}
                     disabled={isProcessingWorldWeaver}
                     className={`
                       w-full pl-10 pr-4 py-2 text-sm
@@ -425,15 +447,17 @@ const TopNavBarPolished: React.FC = () => {
                       border rounded-lg
                       text-gray-200 placeholder-gray-500
                       transition-all duration-300
-                      ${worldWeaverFocused 
+                      ${isProcessingWorldWeaver 
+                        ? 'border-green-400/50 shadow-lg shadow-green-400/20 animate-pulse' 
+                        : worldWeaverFocused 
                         ? 'border-green-500/50 shadow-lg shadow-green-500/10 ring-1 ring-green-500/20' 
                         : 'border-slate-600/50 hover:border-slate-500/50'
                       }
-                      ${isProcessingWorldWeaver ? 'opacity-50' : ''}
                       focus:outline-none
                     `}
+                    style={isProcessingWorldWeaver ? { animation: 'pulseGlow 2s ease-in-out infinite' } : {}}
                   />
-                  {worldWeaverInput && (
+                  {worldWeaverInput && !isProcessingWorldWeaver && (
                     <button
                       onClick={handleWorldWeaverSubmit}
                       disabled={isProcessingWorldWeaver}
@@ -523,17 +547,38 @@ const TopNavBarPolished: React.FC = () => {
           {isMobile && (
             <div className="mt-2">
               <div className="relative">
+                {/* Liquid-like loading animation overlay */}
+                {isProcessingWorldWeaver && (
+                  <div className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none z-10">
+                    <div 
+                      className="worldweaver-liquid-fill absolute inset-0"
+                      style={{
+                        background: 'linear-gradient(90deg, transparent 0%, rgba(52, 211, 153, 0.3) 50%, transparent 100%)',
+                      }}
+                    />
+                    <div 
+                      className="worldweaver-liquid-rise absolute bottom-0 left-0 right-0 bg-gradient-to-t from-green-400/30 via-green-400/20 to-transparent"
+                    />
+                  </div>
+                )}
+                
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Sparkles className="w-4 h-4 text-gray-500" />
+                  <Sparkles className={`w-4 h-4 transition-colors ${
+                    isProcessingWorldWeaver ? 'text-green-300 animate-pulse' : 'text-gray-500'
+                  }`} />
                 </div>
                 <input
                   type="text"
                   value={worldWeaverInput}
                   onChange={(e) => setWorldWeaverInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleWorldWeaverSubmit()}
-                  placeholder="Create world..."
+                  placeholder={isProcessingWorldWeaver ? "Creating your world..." : "Create world..."}
                   disabled={isProcessingWorldWeaver}
-                  className="w-full pl-10 pr-4 py-2 text-sm bg-slate-800/50 border border-slate-600/50 rounded-lg text-gray-200 placeholder-gray-500 focus:outline-none focus:border-green-500/50"
+                  className={`w-full pl-10 pr-4 py-2 text-sm bg-slate-800/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:outline-none transition-all duration-300 ${
+                    isProcessingWorldWeaver 
+                      ? 'border-green-400/50 shadow-lg shadow-green-400/20' 
+                      : 'border-slate-600/50 focus:border-green-500/50'
+                  }`}
                 />
               </div>
             </div>

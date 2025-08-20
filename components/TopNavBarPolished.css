@@ -1,0 +1,78 @@
+/* WorldWeaver Loading Animations */
+@keyframes liquidFill {
+  0% {
+    background-position: -100% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes liquidRise {
+  0% {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scaleY(0.6);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 0.3;
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(52, 211, 153, 0.3), 0 0 20px rgba(52, 211, 153, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(52, 211, 153, 0.5), 0 0 40px rgba(52, 211, 153, 0.2);
+  }
+}
+
+.worldweaver-liquid-fill {
+  animation: liquidFill 2s ease-in-out infinite;
+  background-size: 200% 100%;
+}
+
+.worldweaver-liquid-rise {
+  animation: liquidRise 2s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+/* Map Fade Transitions */
+@keyframes mapFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes mapFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.map-fade-out {
+  animation: mapFadeOut 1s ease-in-out forwards;
+}
+
+.map-fade-in {
+  animation: mapFadeIn 2s ease-in-out forwards;
+}
+
+.map-loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 50%, transparent 100%);
+  pointer-events: none;
+  z-index: 100;
+}

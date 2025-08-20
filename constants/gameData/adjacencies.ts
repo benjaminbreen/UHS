@@ -6,18 +6,19 @@ import type { AdjacencyData, LiminalSequence } from '../../types';
 export const ADJACENCIES: Record<string, AdjacencyData> = {
   // === EUROPE === 
   // British Isles
-  "London": { N: "York", S: "English Channel", E: "Thames Estuary", W: "Oxfordshire" },
+  "London": { N: "York", S: "Cliffs of Dover", E: "Thames Estuary", W: "Oxfordshire" },
   "Edinburgh": { N: "Norwegian Fjords", S: "Hadrian's Wall", E: "North Sea", W: "Irish Sea" },
   "Dublin": { N: "Irish Sea", S: "Irish Sea", E: "Irish Sea", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
   "York": { N: "Hadrian's Wall", S: "London", E: "Thames Estuary", W: "Irish Sea" },
   "Hadrian's Wall": { N: "Edinburgh", S: "York", E: "North Sea", W: "Irish Sea" },
   "Thames Estuary": { W: "London", E: "Rhine–Meuse Delta", S: "York" },
-  "Oxfordshire": { N: "York", S: "English Channel", E: "London", W: "Irish Sea" },
+  "Oxfordshire": { N: "York", S: "London", E: "London", W: "Irish Sea" },
+   "Cliffs of Dover": { N: "London", E: "Thames Estuary", S: "English Channel", W: "English Channel"  },
   
   // British Waters
   "Irish Sea": { N: "Edinburgh", S: "Dublin", E: "York", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
   "North Sea": { N: "Norwegian Fjords", S: "English Channel", E: "Hamburg Coast", W: "Thames Estuary" },
-  "English Channel": { N: "Thames Estuary", S: "Normandy", E: "Rhine–Meuse Delta", W: "Bay of Biscay" },
+  "English Channel": { N: "Cliffs of Dover", S: "Normandy", E: "Rhine–Meuse Delta", W: "Bay of Biscay" },
 
   // France
   "Paris Basin": { N: "Normandy", S: "Loire Valley", E: "Rhine Valley", W: "Normandy" },
@@ -27,6 +28,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Normandy": { S: "Paris Basin", N: "English Channel", E: "Paris Basin", W: "Bay of Biscay" },
   "Languedoc": { N: "Loire Valley", E: "Marseille Coast", S: "Pyrenees Foothills", W: "Pyrenees Foothills" },
   "Bay of Biscay": { N: "Normandy", S: "Catalonian Hills", E: "Loire Valley", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
+    "Atlantic Ocean": { N: "Irish Sea", S: "LIMINAL_ATLANTIC_TO_AMERICAS", E: "Bay of Biscay", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
 
   // Iberian Peninsula
   "Andalusian Plain": { N: "Toledo Plateau", S: "Strait of Gibraltar", E: "Toledo Plateau" },

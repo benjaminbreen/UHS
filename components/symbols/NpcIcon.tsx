@@ -15,7 +15,7 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
     return null; 
   }
 
-  const { skinColor, hairColor, build, facialHair, footwear, headgear, height } = npc.appearance;
+  const { skinColor, hairColor, build, facialHair, footwear, headgear, height, hairLength, facialHairStyle, jewelry, garment } = npc.appearance;
   const { primary: clothingColor, secondary: secondaryColor, accent: accentColor } = npc.appearance.palette;
 
   // FIX: Convert absolute height in cm to a relative scaling factor to prevent oversized sprites.
@@ -116,13 +116,55 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
       <rect key="right-arm" x={shoulderWidth / 2 - p} y={p * 4 + yOffset + rightArmOffset} width={p * 2} height={p * 5} fill={skinColor} rx={p * 0.3} />
     );
     
-    // Head and Hair
+    // Head
     elements.push(<rect key="head" x={-p * 2.5} y={-p * 1 + yOffset} width={p * 5} height={p * 5} fill={skinColor} rx={p * 0.5} />);
-    if (headgear && (headgear.name === 'None' || headgear.name === 'none')) {
-      elements.push(<rect key="hair" x={-p * 3} y={-p * 1.5 + yOffset} width={p * 6} height={p * 2.5} fill={hairColor} rx={p * 0.3} />);
-    } else {
-        const hatColor = belt && (belt.name === 'none' || belt.name === 'None') ? '#a0522d' : belt?.material || '#a0522d';
-        elements.push(<ellipse key="hat" cx={0} cy={-p * 1.5 + yOffset} rx={p * 3.5} ry={p * 1.5} fill={hatColor} />)
+    
+    // Hair - varied shapes based on hairLength
+    if (!headgear || headgear.name === 'None' || headgear.name === 'none') {
+      if (hairLength === 'bald') {
+        // No hair
+      } else if (hairLength === 'very_short' || hairLength === 'short') {
+        // Short hair - smaller rectangle
+        elements.push(<rect key="hair" x={-p * 2.5} y={-p * 1.5 + yOffset} width={p * 5} height={p * 1.5} fill={hairColor} rx={p * 0.2} />);
+      } else if (hairLength === 'medium') {
+        // Medium hair - standard rectangle
+        elements.push(<rect key="hair" x={-p * 3} y={-p * 1.5 + yOffset} width={p * 6} height={p * 2.5} fill={hairColor} rx={p * 0.3} />);
+      } else if (hairLength === 'long' || hairLength === 'very_long') {
+        // Long hair - flows down
+        elements.push(<rect key="hair" x={-p * 3} y={-p * 1.5 + yOffset} width={p * 6} height={p * 2.5} fill={hairColor} rx={p * 0.3} />);
+        // Hair flowing down sides
+        elements.push(<rect key="hair-long" x={-p * 3} y={p * 1 + yOffset} width={p * 1} height={p * 3} fill={hairColor} rx={p * 0.2} />);
+        elements.push(<rect key="hair-long2" x={p * 2} y={p * 1 + yOffset} width={p * 1} height={p * 3} fill={hairColor} rx={p * 0.2} />);
+      } else {
+        // Default medium hair
+        elements.push(<rect key="hair" x={-p * 3} y={-p * 1.5 + yOffset} width={p * 6} height={p * 2.5} fill={hairColor} rx={p * 0.3} />);
+      }
+    }
+    
+    // Headgear - different shapes for different types
+    if (headgear && headgear.name !== 'None' && headgear.name !== 'none') {
+      const headgearName = headgear.name.toLowerCase();
+      if (headgearName.includes('cap')) {
+        // Simple cap
+        elements.push(<rect key="cap" x={-p * 3} y={-p * 2 + yOffset} width={p * 6} height={p * 1.5} fill={secondaryColor} rx={p * 0.3} />);
+      } else if (headgearName.includes('helmet')) {
+        // Metal helmet
+        elements.push(<rect key="helmet" x={-p * 3} y={-p * 2 + yOffset} width={p * 6} height={p * 2} fill="#a1a1aa" rx={p * 0.2} />);
+        elements.push(<rect key="helmet-shine" x={-p * 2} y={-p * 1.5 + yOffset} width={p * 1} height={p * 0.5} fill="#e5e7eb" />);
+      } else if (headgearName.includes('crown')) {
+        // Crown with points
+        elements.push(<rect key="crown-base" x={-p * 2.5} y={-p * 1.5 + yOffset} width={p * 5} height={p * 1} fill="#fcd34d" />);
+        elements.push(<rect key="crown-point1" x={-p * 2} y={-p * 2 + yOffset} width={p * 1} height={p * 0.5} fill="#fcd34d" />);
+        elements.push(<rect key="crown-point2" x={0} y={-p * 2 + yOffset} width={p * 1} height={p * 0.5} fill="#fcd34d" />);
+        elements.push(<rect key="crown-point3" x={p * 1} y={-p * 2 + yOffset} width={p * 1} height={p * 0.5} fill="#fcd34d" />);
+      } else if (headgearName.includes('turban')) {
+        // Turban - rounded shape
+        elements.push(<ellipse key="turban" cx={0} cy={-p * 1 + yOffset} rx={p * 3.5} ry={p * 2} fill={secondaryColor} />);
+      } else {
+        // Default hat
+        const hatColor = headgear.material?.toLowerCase().includes('leather') ? '#8b4513' : secondaryColor;
+        elements.push(<ellipse key="hat" cx={0} cy={-p * 1.5 + yOffset} rx={p * 3.5} ry={p * 1.5} fill={hatColor} />);
+      }
     }
 
     // Facial Features
@@ -130,6 +172,60 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
         <ellipse key="left-eye" cx={-p * 1} cy={p * 1 + yOffset} rx={p * 0.4} ry={p * 0.3} fill="#000" />,
         <ellipse key="right-eye" cx={p * 1} cy={p * 1 + yOffset} rx={p * 0.4} ry={p * 0.3} fill="#000" />
     );
+    
+    // Facial hair
+    if (facialHair && gender === 'Male') {
+      if (facialHairStyle === 'mustache' || facialHairStyle === 'full_beard') {
+        elements.push(<rect key="mustache" x={-p * 1.5} y={p * 2 + yOffset} width={p * 3} height={p * 0.5} fill={hairColor} />);
+      }
+      if (facialHairStyle === 'goatee' || facialHairStyle === 'full_beard') {
+        elements.push(<rect key="beard" x={-p * 1} y={p * 2.5 + yOffset} width={p * 2} height={p * 1} fill={hairColor} rx={p * 0.2} />);
+      }
+    }
+    
+    // Jewelry
+    if (jewelry && jewelry.length > 0) {
+      jewelry.forEach((item, idx) => {
+        if (item.type === 'necklace') {
+          const necklaceColor = item.material === 'gold' ? '#fcd34d' : '#e5e7eb';
+          elements.push(<rect key={`necklace-${idx}`} x={-p * 1} y={p * 3.5 + yOffset} width={p * 2} height={p * 0.3} fill={necklaceColor} />);
+        } else if (item.type === 'earrings') {
+          const earringColor = item.material === 'gold' ? '#fcd34d' : '#e5e7eb';
+          elements.push(<ellipse key={`earring-l-${idx}`} cx={-p * 2.5} cy={p * 1.5 + yOffset} rx={p * 0.3} ry={p * 0.3} fill={earringColor} />);
+          elements.push(<ellipse key={`earring-r-${idx}`} cx={p * 2.5} cy={p * 1.5 + yOffset} rx={p * 0.3} ry={p * 0.3} fill={earringColor} />);
+        }
+      });
+    }
+    
+    // Equipped weapon
+    if (npc.equippedItems?.main_hand) {
+      const weaponName = npc.equippedItems.main_hand.name.toLowerCase();
+      if (weaponName.includes('sword') || weaponName.includes('blade')) {
+        // Sword at side
+        elements.push(<rect key="sword-blade" x={shoulderWidth / 2 + p * 1.5} y={p * 5 + yOffset} width={p * 0.5} height={p * 6} fill="#a1a1aa" />);
+        elements.push(<rect key="sword-hilt" x={shoulderWidth / 2 + p * 1.2} y={p * 5 + yOffset} width={p * 1.2} height={p * 0.8} fill="#8b4513" />);
+      } else if (weaponName.includes('axe')) {
+        // Axe shape
+        elements.push(<rect key="axe-handle" x={shoulderWidth / 2 + p * 1.5} y={p * 5 + yOffset} width={p * 0.4} height={p * 5} fill="#8b4513" />);
+        elements.push(<rect key="axe-blade" x={shoulderWidth / 2 + p * 1} y={p * 4.5 + yOffset} width={p * 1.5} height={p * 1.5} fill="#a1a1aa" />);
+      } else if (weaponName.includes('staff') || weaponName.includes('stick')) {
+        // Staff/stick
+        elements.push(<rect key="staff" x={shoulderWidth / 2 + p * 1.5} y={p * 3 + yOffset} width={p * 0.6} height={p * 8} fill="#8b4513" />);
+      }
+    }
+    
+    // Simple clothing pattern indicators
+    if (garment && garment.material) {
+      const material = garment.material.toLowerCase();
+      if (material.includes('silk') || material.includes('fine')) {
+        // Add a small shine dot for fine materials
+        elements.push(<ellipse key="shine" cx={0} cy={p * 5 + yOffset} rx={p * 0.3} ry={p * 0.3} fill="rgba(255,255,255,0.5)" />);
+      } else if (material.includes('striped')) {
+        // Add stripe lines
+        elements.push(<rect key="stripe1" x={-bodyWidth / 2} y={p * 4.5 + yOffset} width={bodyWidth} height={p * 0.3} fill={accentColor} opacity={0.7} />);
+        elements.push(<rect key="stripe2" x={-bodyWidth / 2} y={p * 6 + yOffset} width={bodyWidth} height={p * 0.3} fill={accentColor} opacity={0.7} />);
+      }
+    }
 
     return elements;
   };

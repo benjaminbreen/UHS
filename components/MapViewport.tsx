@@ -2,6 +2,7 @@
  * components/MapViewport.tsx - Encapsulates the main content area including map displays.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import './TopNavBarPolished.css'; // Import for map fade animations
 import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
 import { usePlayer } from '../contexts/PlayerContext';
@@ -32,6 +33,9 @@ const MapViewport: React.FC = () => {
         setActiveMiningModal, setActivePoi, debugSettings
     } = useUI();
     
+    const [isMapTransitioning, setIsMapTransitioning] = useState(false);
+    const [mapFadeClass, setMapFadeClass] = useState('');
+    
     const { 
         currentWorldCoords, mapData,
         visibleAnimals, visibleNpcs, deployedVessels, mapAnalysisData, 
@@ -59,6 +63,26 @@ const MapViewport: React.FC = () => {
     useEffect(() => {
         setShowBottomPanel(!isMobile);
     }, [isMobile]);
+    
+    // Handle map transitions with fade effect
+    useEffect(() => {
+        console.log('[MapViewport] Loading state changed:', { isLoading, isMapTransitioning });
+        if (isLoading && !isMapTransitioning) {
+            // Starting to load - fade out
+            console.log('[MapViewport] Starting map fade out');
+            setMapFadeClass('map-fade-out');
+            setIsMapTransitioning(true);
+        } else if (!isLoading && isMapTransitioning) {
+            // Finished loading - fade in
+            console.log('[MapViewport] Starting map fade in');
+            setMapFadeClass('map-fade-in');
+            setTimeout(() => {
+                setIsMapTransitioning(false);
+                setMapFadeClass('');
+                console.log('[MapViewport] Map fade complete');
+            }, 2000); // Match the 2-second fade-in duration
+        }
+    }, [isLoading, isMapTransitioning]);
 
     const handleDevCommandClick = useCallback((data: DevTooltipDisplayData) => {
         let parentTile: Tile | null = null;
@@ -225,10 +249,14 @@ const MapViewport: React.FC = () => {
               </div>
             </div>
           ) : mapData && (
-             <div className="w-full h-full flex flex-col">
+             <div className={`w-full h-full flex flex-col ${mapFadeClass}`}>
               <div className={`flex-1 ${isMobile ? 'p-2' : 'p-6'} min-h-0`}>
                <div className={`w-full h-full relative shadow-map-frame ${isMobile ? 'border-4' : 'border-[10px]'} border-slate-800/[.8] ${isMobile ? 'rounded-xl' : 'rounded-3xl'} overflow-hidden bg-slate-900`}>
                 {renderMapContent()}
+                {/* Loading overlay effect during transitions */}
+                {isMapTransitioning && (
+                  <div className="map-loading-overlay" />
+                )}
                </div>
               </div>
               <AmbianceDisplay ambianceText={ambianceText} />

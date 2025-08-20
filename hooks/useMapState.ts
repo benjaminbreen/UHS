@@ -129,6 +129,7 @@ export const useMapState = (props: useMapStateProps) => {
     const [worldItems, setWorldItems] = useState<Map<string, Item[]>>(new Map());
     const [mapAnalysisData, setMapAnalysisData] = useState<MapAnalysisData | null>(null);
     const [pendingScenarioData, setPendingScenarioData] = useState<any>(null);
+    const [hasGeneratedInitialMap, setHasGeneratedInitialMap] = useState(false);
     
     // Derived State
     const currentMapSeed = useMemo(() => deriveMapSeed(initialGameSeed, currentWorldCoords.x, currentWorldCoords.y), [initialGameSeed, currentWorldCoords]);
@@ -303,49 +304,51 @@ export const useMapState = (props: useMapStateProps) => {
     }, [setPlayerState]);
 
 
-    // Initial world generation
-    useEffect(() => {
-        if (mapData || playerState.playerCharacter) return; // Only run once on initial load
+    // Initial world generation - DISABLED to prevent double generation
+    // All initial map generation is now handled in App.tsx
+    // This effect was causing maps to generate twice on initial load
+    // useEffect(() => {
+    //     if (mapData || playerState.playerCharacter) return; // Only run once on initial load
 
-        setGameState.setIsLoading(true);
-        const { areaDef, region, zone } = _selectRandomMapArea();
+    //     setGameState.setIsLoading(true);
+    //     const { areaDef, region, zone } = _selectRandomMapArea();
 
-        // Use area-specific economicActivityLevel if defined, otherwise use state value
-        const effectiveEconomicLevel = areaDef.economicActivityLevel !== undefined ? areaDef.economicActivityLevel : economicActivityLevel;
+    //     // Use area-specific economicActivityLevel if defined, otherwise use state value
+    //     const effectiveEconomicLevel = areaDef.economicActivityLevel !== undefined ? areaDef.economicActivityLevel : economicActivityLevel;
         
-        const newMapData = proceduralGenerateMap(
-            initialGameSeed, areaDef.archetype, areaDef.climate, generateHarbor, generateLargeCity,
-            areaDef.altitude || userSelectedBaseAltitude, forceVolcanicActivity,
-            zone, region, areaDef.name,
-            String(gameState.gameDate.year), { isAgricultural, isPastoral, economicActivityLevel: effectiveEconomicLevel }, {},
-            areaDef.hasLakes
-        );
+    //     const newMapData = proceduralGenerateMap(
+    //         initialGameSeed, areaDef.archetype, areaDef.climate, generateHarbor, generateLargeCity,
+    //         areaDef.altitude || userSelectedBaseAltitude, forceVolcanicActivity,
+    //         zone, region, areaDef.name,
+    //         String(gameState.gameDate.year), { isAgricultural, isPastoral, economicActivityLevel: effectiveEconomicLevel }, {},
+    //         areaDef.hasLakes
+    //     );
         
-        setMapData(newMapData);
-        setAnimals(newMapData.animals || []);
-        setNpcs(newMapData.npcs || []);
-        setDeployedVessels([]);
-        setLocalArea(areaDef.name);
-        setGameState.setCurrentZone(zone);
-        setGameState.setCurrentRegion(region);
+    //     setMapData(newMapData);
+    //     setAnimals(newMapData.animals || []);
+    //     setNpcs(newMapData.npcs || []);
+    //     setDeployedVessels([]);
+    //     setLocalArea(areaDef.name);
+    //     setGameState.setCurrentZone(zone);
+    //     setGameState.setCurrentRegion(region);
 
-        const charContext = { 
-            date: String(gameState.gameDate.year), 
-            location: zone, 
-            region: region
-        };
-        const newChar = generateCharacter(charContext);
-        setPlayerState.setPlayerCharacter(newChar);
+    //     const charContext = { 
+    //         date: String(gameState.gameDate.year), 
+    //         location: zone, 
+    //         region: region
+    //     };
+    //     const newChar = generateCharacter(charContext);
+    //     setPlayerState.setPlayerCharacter(newChar);
 
-        const initialPos = setPlayerState.findInitialIconPosition(newMapData.tiles, 'ship');
-        if (initialPos) {
-            setPlayerState.setControlledIconX(initialPos.x);
-            setPlayerState.setControlledIconY(initialPos.y);
-            setPlayerState.setPlayerMode(initialPos.mode);
-        }
-        setGameState.setIsLoading(false);
+    //     const initialPos = setPlayerState.findInitialIconPosition(newMapData.tiles, 'ship');
+    //     if (initialPos) {
+    //         setPlayerState.setControlledIconX(initialPos.x);
+    //         setPlayerState.setControlledIconY(initialPos.y);
+    //         setPlayerState.setPlayerMode(initialPos.mode);
+    //     }
+    //     setGameState.setIsLoading(false);
 
-    }, [initialGameSeed, mapData, playerState.playerCharacter, isAgricultural, isPastoral, economicActivityLevel]);
+    // }, [initialGameSeed, mapData, playerState.playerCharacter, isAgricultural, isPastoral, economicActivityLevel]);
 
     // Map transitions based on world coordinates change
     useEffect(() => {
@@ -565,6 +568,18 @@ export const useMapState = (props: useMapStateProps) => {
     }, [mapData, currentMapSeed, userSelectedBaseArchetype, userSelectedBaseClimate, currentWorldCoords, generateAndCacheMapInternal, setPlayerState, playerState.playerMode, setGameState]);
 
     const onStartNewWorldWithCurrentSettings = useCallback((characterSpec?: any) => {
+        // If we already have a map and no explicit character spec, don't regenerate
+        if (mapData && !characterSpec) {
+            console.log('[onStartNewWorldWithCurrentSettings] Map already exists, skipping regeneration');
+            return;
+        }
+        
+        // If we already have a player character and no characterSpec, we're likely being called redundantly
+        if (playerState.playerCharacter && !characterSpec) {
+            console.log('[onStartNewWorldWithCurrentSettings] Player character already exists without new spec, skipping regeneration');
+            return;
+        }
+        
         // Reset the seed manager with a new seed
         seedManager.reset();
         const seedStr = seedManager.getSeed();
@@ -590,8 +605,11 @@ export const useMapState = (props: useMapStateProps) => {
         const effectiveEconomicLevel = areaDef.economicActivityLevel !== undefined ? 
             areaDef.economicActivityLevel : economicActivityLevel;
         
+        // Use the derived map seed that will match currentMapSeed after state updates
+        const mapSeedToUse = deriveMapSeed(newSeed, 0, 0);
+        
         const newMapData = proceduralGenerateMap(
-            newSeed, 
+            mapSeedToUse, 
             areaDef.archetype, 
             areaDef.climate, 
             generateHarbor, 
@@ -718,8 +736,11 @@ export const useMapState = (props: useMapStateProps) => {
         // Use override year if provided, otherwise use current game date
         const yearToUse = overrideYear !== undefined ? overrideYear : gameState.gameDate.year;
         
+        // Use the derived map seed that will match currentMapSeed after state updates
+        const mapSeedToUse = deriveMapSeed(newSeed, 0, 0);
+        
         const newMapData = proceduralGenerateMap(
-            newSeed, 
+            mapSeedToUse, 
             foundAreaDef.archetype, 
             foundAreaDef.climate, 
             generateHarbor, 
@@ -750,7 +771,7 @@ export const useMapState = (props: useMapStateProps) => {
             animals: newAnimals,
             npcs: newNpcs,
             deployedVessels: [],
-            seed: newSeed,
+            seed: mapSeedToUse,
             archetype: foundAreaDef.archetype, 
             climate: foundAreaDef.climate,
             worldX: 0,
@@ -798,7 +819,120 @@ export const useMapState = (props: useMapStateProps) => {
         economicActivityLevel, onStartNewWorldWithCurrentSettings]);
 
     const onStartNewWorldAtZoneRegion = useCallback((targetZone: string, targetRegion: string, characterSpec?: any) => {
-        console.log('[onStartNewWorldAtZoneRegion] Called with zone:', targetZone, 'region:', targetRegion, 'characterSpec:', characterSpec);
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('[onStartNewWorldAtZoneRegion] CALLED');
+        console.log('Zone:', targetZone || '(empty - will randomize)');
+        console.log('Region:', targetRegion || '(empty - will randomize)');
+        console.log('CharacterSpec:', characterSpec);
+        console.log('═══════════════════════════════════════════════════════');
+        
+        // If both zone and region are empty, generate a completely random world
+        if (!targetZone && !targetRegion) {
+            console.log('[onStartNewWorldAtZoneRegion] No zone/region specified, generating random world');
+            // Directly generate a random world without the checks in onStartNewWorldWithCurrentSettings
+            
+            // Reset the seed manager with a new seed
+            seedManager.reset();
+            const seedStr = seedManager.getSeed();
+            let hash = 0;
+            for (let i = 0; i < seedStr.length; i++) {
+                const char = seedStr.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            const newSeed = Math.abs(hash) % 1000000;
+            setInitialGameSeed(newSeed);
+            setMapDataCache(new Map());
+            setCurrentWorldCoords({ x: 0, y: 0 });
+            
+            // Generate a random map area
+            const { areaDef, region, zone } = _selectRandomMapArea();
+            setGameState.setCurrentZone(zone);
+            setGameState.setCurrentRegion(region);
+            setLocalArea(areaDef.name);
+            
+            // Generate the map
+            setGameState.setIsLoading(true);
+            const effectiveEconomicLevel = areaDef.economicActivityLevel !== undefined ? 
+                areaDef.economicActivityLevel : economicActivityLevel;
+            
+            // Use the derived map seed that will match currentMapSeed after state updates
+            const mapSeedToUse = deriveMapSeed(newSeed, 0, 0);
+            
+            const newMapData = proceduralGenerateMap(
+                mapSeedToUse, 
+                areaDef.archetype, 
+                areaDef.climate, 
+                generateHarbor, 
+                generateLargeCity,
+                areaDef.altitude || userSelectedBaseAltitude, 
+                forceVolcanicActivity,
+                zone, 
+                region, 
+                areaDef.name,
+                String(gameState.gameDate.year), 
+                { isAgricultural, isPastoral, economicActivityLevel: effectiveEconomicLevel }, 
+                {},
+                areaDef.hasLakes
+            );
+            
+            // Extract animals and npcs
+            const newAnimals = newMapData.animals || [];
+            const newNpcs = newMapData.npcs || [];
+            delete newMapData.animals;
+            delete newMapData.npcs;
+            
+            setMapData(newMapData);
+            setAnimals(newAnimals);
+            setNpcs(newNpcs);
+            setDeployedVessels([]);
+            
+            // Cache the generated map
+            setMapDataCache(new Map([[`0,0`, { 
+                mapData: newMapData, 
+                animals: newAnimals,
+                npcs: newNpcs,
+                deployedVessels: [],
+                seed: mapSeedToUse,
+                archetype: areaDef.archetype, 
+                climate: areaDef.climate,
+                worldX: 0,
+                worldY: 0,
+                region: region,
+                localArea: areaDef.name
+            }]]));
+            
+            // Generate the player character
+            const charContext = { 
+                date: String(gameState.gameDate.year), 
+                location: zone, 
+                region: region
+            };
+            
+            try {
+                const newChar = characterSpec 
+                    ? generateCharacterWithSpec(charContext, characterSpec)
+                    : generateCharacter(charContext);
+                
+                setPlayerState.setPlayerCharacter(newChar);
+            } catch (error) {
+                console.error('[onStartNewWorldAtZoneRegion] Failed to generate character with spec, falling back to random:', error);
+                // Fallback to random character generation if custom spec fails
+                const fallbackChar = generateCharacter(charContext);
+                setPlayerState.setPlayerCharacter(fallbackChar);
+            }
+            
+            // Set initial player position
+            const initialPos = setPlayerState.findInitialIconPosition(newMapData.tiles, 'ship');
+            if (initialPos) {
+                setPlayerState.setControlledIconX(initialPos.x);
+                setPlayerState.setControlledIconY(initialPos.y);
+                setPlayerState.setPlayerMode(initialPos.mode);
+            }
+            
+            setGameState.setIsLoading(false);
+            return;
+        }
         
         // Find the zone data
         const zoneData = GEOGRAPHICAL_DATA[targetZone];
@@ -837,7 +971,9 @@ export const useMapState = (props: useMapStateProps) => {
         
         // Use the existing onStartNewWorldAtLocation with the selected area
         return onStartNewWorldAtLocation(targetZone, randomArea.name, characterSpec);
-    }, [onStartNewWorldWithCurrentSettings, onStartNewWorldAtLocation]);
+    }, [onStartNewWorldWithCurrentSettings, onStartNewWorldAtLocation, _selectRandomMapArea, 
+        setPlayerState, setGameState, generateHarbor, generateLargeCity, userSelectedBaseAltitude,
+        forceVolcanicActivity, gameState.gameDate.year, isAgricultural, isPastoral, economicActivityLevel]);
 
     const updateStructureData = useCallback((structureId: string, updatedData: Partial<TerrainStructure>) => {
         setMapData(prevMapData => {

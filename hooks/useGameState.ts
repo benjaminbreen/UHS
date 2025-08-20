@@ -63,7 +63,7 @@ export const useGameState = () => {
     const [sunPosition, setSunPosition] = useState<SunPosition>({ dx: 0, dy: 0, blur: 0, opacity: 0, ambientColor: 'rgba(255,255,255,0)', ambientOpacity: 0 });
     
     // Game Flow State
-    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isLoadingFromCache, setIsLoadingFromCache] = useState<boolean>(false);
     const [liminalTravelState, setLiminalTravelState] = useState<LiminalTravelState | null>(null);
     const [moveCount, setMoveCount] = useState(0);

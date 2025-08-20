@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, User, Calendar, Globe, Trophy, MapPin, Crown, Scroll, Link } from 'lucide-react';
 import { GameDate, HistoricalEra, CulturalZone } from '../types';
 import { PlayerCharacter } from '../types/playerCharacter';
@@ -212,6 +212,21 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     gameMode,
     urlConfig
 }) => {
+    // Animation states for stylish fade-in
+    const [isVisible, setIsVisible] = useState(false);
+    const [contentVisible, setContentVisible] = useState(false);
+    
+    useEffect(() => {
+        if (isOpen) {
+            // Start the fade-in animation sequence
+            setTimeout(() => setIsVisible(true), 10);
+            setTimeout(() => setContentVisible(true), 100);
+        } else {
+            setIsVisible(false);
+            setContentVisible(false);
+        }
+    }, [isOpen]);
+    
     if (!isOpen) return null;
     
     const dateInfo = parseDateString(String(gameDate.year));
@@ -241,10 +256,17 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     const modeDescription = getModeDescription(gameMode, era, culturalZone, playerCharacter);
 
     return (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-2 md:p-4">
-            <div className="bg-gradient-to-br from-slate-900 via-slate-700 to-slate-900 
+        <div className={`fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-2 md:p-4 transition-opacity duration-500 ${
+            isVisible ? 'opacity-100' : 'opacity-0'
+        }`}>
+            <div className={`bg-gradient-to-br from-slate-900 via-slate-700 to-slate-900 
                 border border-slate-700/50 rounded-2xl shadow-2xl max-w-5xl w-full 
-                max-h-[95vh] md:max-h-[90vh] md:mt-[8px] overflow-y-auto">
+                max-h-[95vh] md:max-h-[90vh] md:mt-[8px] overflow-y-auto
+                transition-all duration-700 transform ${
+                    contentVisible 
+                        ? 'opacity-100 scale-100 translate-y-0' 
+                        : 'opacity-0 scale-95 translate-y-4'
+                }`}>
                 
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 md:p-5 border-b border-slate-700/50">

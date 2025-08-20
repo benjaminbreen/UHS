@@ -22,7 +22,8 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "North Sea": { name: "North Sea", climate: ClimateType.TEMPERATE, archetype: MapArchetype.OPEN_OCEAN },
             "Baltic Sea": { name: "Baltic Sea", climate: ClimateType.TEMPERATE, archetype: MapArchetype.OPEN_OCEAN },
             "Bay of Biscay": { name: "Bay of Biscay", climate: ClimateType.TEMPERATE, archetype: MapArchetype.OPEN_OCEAN },
-            "English Channel": { name: "English Channel", climate: ClimateType.TEMPERATE, archetype: MapArchetype.STRAITS },
+            "English Channel": { name: "English Channel", climate: ClimateType.TEMPERATE, archetype: MapArchetype.OPEN_OCEAN },
+             "Atlantic Ocean": { name: "Atlantic Ocean", climate: ClimateType.TEMPERATE, archetype: MapArchetype.OPEN_OCEAN },
                
             // Mediterranean
             "Western Mediterranean": { name: "Western Mediterranean", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.OPEN_OCEAN },
@@ -38,7 +39,8 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "York": { name: "York", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, hasLakes: false },
             "Hadrian's Wall": { name: "Hadrian's Wall", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, hasLakes: false },
             "Thames Estuary": { name: "Thames Estuary", climate: ClimateType.TEMPERATE, archetype: MapArchetype.DELTA, deltaOutlet: 'east' },
-            "Oxfordshire": { name: "Oxfordshire", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, hasLakes: false }
+            "Oxfordshire": { name: "Oxfordshire", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, hasLakes: false },
+            "Cliffs of Dover": { name: "Cliffs of Dover", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY },
         },
         "France": {
             "Paris Basin": { name: "Paris Basin", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, altitude: 'low', hasLakes: false },

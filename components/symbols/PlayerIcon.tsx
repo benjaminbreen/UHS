@@ -16,12 +16,12 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
     return null; 
   }
   
-  const { gender } = character;
+  const { gender, equippedItems } = character;
   const {
-    skinColor, hairColor, build, facialHair
+    skinColor, hairColor, build, facialHair, facialHairStyle, hairLength, headgear, jewelry, garment
   } = character.appearance;
   
-  const { primary: clothingColor, secondary: secondaryColor } = character.appearance.palette;
+  const { primary: clothingColor, secondary: secondaryColor, accent: accentColor } = character.appearance.palette;
   
   // Determine glow color based on disease state
   let glowColor = '#fbbf24'; // Default amber
@@ -91,8 +91,51 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
         
         {/* FRONT VIEW (default for now) */}
         <>
-            {/* Hair */}
-            <rect x="-3" y="-7" width="6" height="4" fill={hairColor} />
+            {/* Hair - varied shapes based on hairLength */}
+            {(!headgear || headgear.name === 'None' || headgear.name === 'none') && (
+              <>
+                {hairLength === 'bald' ? null : 
+                 hairLength === 'very_short' || hairLength === 'short' ? (
+                   <rect x="-2.5" y="-7" width="5" height="2.5" fill={hairColor} />
+                 ) : hairLength === 'long' || hairLength === 'very_long' ? (
+                   <>
+                     <rect x="-3" y="-7" width="6" height="4" fill={hairColor} />
+                     {/* Long hair flowing down */}
+                     <rect x="-3.5" y="-3" width="1" height="3" fill={hairColor} />
+                     <rect x="2.5" y="-3" width="1" height="3" fill={hairColor} />
+                   </>
+                 ) : (
+                   /* Medium hair (default) */
+                   <rect x="-3" y="-7" width="6" height="4" fill={hairColor} />
+                 )}
+              </>
+            )}
+            
+            {/* Headgear - different shapes for different types */}
+            {headgear && headgear.name !== 'None' && headgear.name !== 'none' && (
+              <>
+                {headgear.name.toLowerCase().includes('cap') ? (
+                  <rect x="-3" y="-8" width="6" height="2.5" fill={secondaryColor} rx="0.5" />
+                ) : headgear.name.toLowerCase().includes('helmet') ? (
+                  <>
+                    <rect x="-3.5" y="-8" width="7" height="3.5" fill="#a1a1aa" rx="0.3" />
+                    <rect x="-2" y="-7" width="1" height="0.5" fill="#e5e7eb" />
+                  </>
+                ) : headgear.name.toLowerCase().includes('crown') ? (
+                  <>
+                    <rect x="-2.5" y="-7.5" width="5" height="1.5" fill="#fcd34d" />
+                    <rect x="-2" y="-8.5" width="1" height="1" fill="#fcd34d" />
+                    <rect x="0" y="-8.5" width="1" height="1" fill="#fcd34d" />
+                    <rect x="1" y="-8.5" width="1" height="1" fill="#fcd34d" />
+                  </>
+                ) : headgear.name.toLowerCase().includes('turban') ? (
+                  <ellipse cx="0" cy="-6" rx="3.5" ry="2.5" fill={secondaryColor} />
+                ) : (
+                  /* Default hat */
+                  <ellipse cx="0" cy="-6.5" rx="3.5" ry="1.5" fill={secondaryColor} />
+                )}
+              </>
+            )}
             
             {/* Head */}
             <rect x="-2.5" y="-4.5" width="5" height="5" fill={skinColor} />
@@ -122,8 +165,66 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
             <rect x="-1.8" y="9" width="1.8" height="1.2" fill="#654321" />
             <rect x="0" y="9" width="1.8" height="1.2" fill="#654321" />
 
-            {/* Facial hair */}
-            {facialHair && gender === 'Male' && <rect x="-1.5" y="-2" width="3" height="1.2" fill={hairColor} />}
+            {/* Facial hair with styles */}
+            {facialHair && gender === 'Male' && (
+              <>
+                {(facialHairStyle === 'mustache' || facialHairStyle === 'full_beard') && (
+                  <rect x="-1.5" y="-2" width="3" height="0.6" fill={hairColor} />
+                )}
+                {(facialHairStyle === 'goatee' || facialHairStyle === 'full_beard') && (
+                  <rect x="-1" y="-1.5" width="2" height="1.5" fill={hairColor} rx="0.3" />
+                )}
+              </>
+            )}
+            
+            {/* Jewelry */}
+            {jewelry && jewelry.length > 0 && jewelry.map((item, idx) => (
+              <React.Fragment key={`jewelry-${idx}`}>
+                {item.type === 'necklace' && (
+                  <rect x="-1" y="0.5" width="2" height="0.4" fill={item.material === 'gold' ? '#fcd34d' : '#e5e7eb'} />
+                )}
+                {item.type === 'earrings' && (
+                  <>
+                    <circle cx="-2.5" cy="-2.5" r="0.3" fill={item.material === 'gold' ? '#fcd34d' : '#e5e7eb'} />
+                    <circle cx="2.5" cy="-2.5" r="0.3" fill={item.material === 'gold' ? '#fcd34d' : '#e5e7eb'} />
+                  </>
+                )}
+              </React.Fragment>
+            ))}
+            
+            {/* Simple clothing patterns */}
+            {garment && garment.material && (
+              <>
+                {(garment.material.toLowerCase().includes('silk') || garment.material.toLowerCase().includes('fine')) && (
+                  <circle cx="0" cy="2" r="0.3" fill="rgba(255,255,255,0.5)" />
+                )}
+                {garment.material.toLowerCase().includes('striped') && (
+                  <>
+                    <rect x={-bodyWidth/2} y="1" width={bodyWidth} height="0.3" fill={accentColor} opacity="0.7" />
+                    <rect x={-bodyWidth/2} y="2.5" width={bodyWidth} height="0.3" fill={accentColor} opacity="0.7" />
+                  </>
+                )}
+              </>
+            )}
+            
+            {/* Equipped weapon */}
+            {equippedItems?.main_hand && (
+              <>
+                {equippedItems.main_hand.name.toLowerCase().includes('sword') || equippedItems.main_hand.name.toLowerCase().includes('blade') ? (
+                  <>
+                    <rect x="4.5" y="1" width="0.6" height="6" fill="#a1a1aa" />
+                    <rect x="4.2" y="1" width="1.2" height="0.8" fill="#8b4513" />
+                  </>
+                ) : equippedItems.main_hand.name.toLowerCase().includes('axe') ? (
+                  <>
+                    <rect x="4.5" y="1" width="0.5" height="5" fill="#8b4513" />
+                    <rect x="4" y="0.5" width="1.5" height="1.5" fill="#a1a1aa" />
+                  </>
+                ) : (equippedItems.main_hand.name.toLowerCase().includes('staff') || equippedItems.main_hand.name.toLowerCase().includes('stick')) ? (
+                  <rect x="4.5" y="-1" width="0.7" height="8" fill="#8b4513" />
+                ) : null}
+              </>
+            )}
         </>
       </g>
     </g>

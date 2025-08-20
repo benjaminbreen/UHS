@@ -298,45 +298,18 @@ class WorldWeaverService {
       const gameMode = this.determineGameMode(userPrompt, baseResult.characterSpec);
       console.log('[WorldWeaverService] Selected game mode:', gameMode.name);
       
-      // Generate historical context
-      const historicalContext = this.buildHistoricalContext(
-        baseResult.year,
-        baseResult.mapArea,
-        baseResult.characterSpec
-      );
-      
-      // Generate custom events for this scenario
-      const customEvents = await llmEventService.generateCustomEvents(
-        gameMode.id,
-        historicalContext,
-        this.getPlayerContext(baseResult.characterSpec),
-        baseResult.year,
-        baseResult.mapArea
-      );
-      console.log('[WorldWeaverService] Generated', customEvents.length, 'custom events');
-      
-      // Generate special NPCs
-      const specialNPCs = await llmEventService.generateSpecialNPCs(
-        historicalContext,
-        baseResult.year,
-        baseResult.mapArea,
-        2 // Generate 2 special NPCs
-      );
-      console.log('[WorldWeaverService] Generated', specialNPCs.length, 'special NPCs');
-      
       // Set the game mode in the event service
       eventService.setGameMode(gameMode);
       
-      // Set custom events in the event service
-      if (customEvents.length > 0) {
-        eventService.setCustomEventArchetypes(customEvents);
-      }
+      // Skip custom event and NPC generation for now - they're not being used
+      // and are slowing down the WorldWeaver significantly
+      console.log('[WorldWeaverService] Skipping custom event/NPC generation for performance');
       
       return {
         ...baseResult,
         gameMode,
-        customEvents,
-        specialNPCs
+        customEvents: [], // Empty for now
+        specialNPCs: [] // Empty for now
       };
     } catch (error) {
       console.error('[WorldWeaverService] Error generating scenario:', error);

@@ -12,6 +12,8 @@ import { questService } from '../services/questService';
 import { Quest } from '../types/questTypes';
 import { Sparkles, Target, MapPin, Info, AlertTriangle, Heart } from 'lucide-react';
 import { useUI } from '../contexts/UIContext';
+import { useMap } from '../contexts/MapContext';
+import { useGame } from '../contexts/GameContext';
 import DiseaseService from '../services/diseaseService';
 import { 
     attemptTaming, 
@@ -20,6 +22,7 @@ import {
     addToParty,
     calculateAnimalValue 
 } from '../services/animalTamingService';
+import { eventService } from '../services/eventService';
 
 function isNpc(target: EncounterableEntity): target is NpcEntity {
     return 'role' in target;
@@ -136,7 +139,9 @@ interface EncounterModalProps {
 }
 
 const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter, allNpcs, mapData, onClose, onInitiateCombat, onOpenInfo }) => {
-    const { showToast } = useUI();
+    const { showToast, setCurrentEvent } = useUI();
+    const { worldData } = useMap();
+    const { gameDate } = useGame();
     
     const [history, setHistory] = useState<DialogueEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -182,6 +187,154 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
     const diseaseService = DiseaseService.getInstance();
 
     const targetName = isNpc(target) ? target.name : target.speciesName;
+    
+    /**
+     * Trigger arrest scenario when reputation hits zero
+     */
+    const triggerArrestScenario = useCallback(() => {
+        if (!playerCharacter || !worldData) return;
+        
+        // Find nearest city, palace, or fortress
+        const structures = worldData.terrainStructures || [];
+        const playerPos = { x: playerCharacter.x || 0, y: playerCharacter.y || 0 };
+        
+        // Filter for cities, palaces, and fortresses
+        const jailableStructures = structures.filter(s => 
+            s.type === 'city' || 
+            s.type === 'palace' || 
+            s.type === 'fortress' ||
+            s.type === 'urban'
+        );
+        
+        if (jailableStructures.length === 0) {
+            console.log('[JAIL] No suitable structures found for arrest');
+            // Fallback: just show arrest event without teleportation
+            const arrestEvent = {
+                id: 'arrest_wilderness',
+                title: 'Captured by Local Militia!',
+                description: `Your reputation has become so infamous that a militia has been dispatched to apprehend you. You are bound and taken to face justice.`,
+                context: {
+                    era: mapData?.timeSlice || 'medieval',
+                    culturalZone: mapData?.culturalZone || 'european'
+                },
+                outcomes: [
+                    {
+                        buttonText: 'Submit to your fate',
+                        effects: [
+                            { type: 'reputation' as const, value: 30 }, // Reset reputation to 30
+                            { type: 'currency' as const, value: -Math.floor((playerCharacter.currency || 0) / 2) }, // Lose half money
+                            { type: 'health' as const, value: -10 }
+                        ],
+                        historicalNote: 'In this era, criminals faced harsh justice. You spend several days in stocks.'
+                    },
+                    {
+                        buttonText: 'Attempt to escape',
+                        statCheck: { stat: 'dexterity' as const, difficulty: 18 },
+                        successEffects: [
+                            { type: 'reputation' as const, value: -20 }, // Become even more infamous
+                            { type: 'wisdom' as const, value: 1 }
+                        ],
+                        failureEffects: [
+                            { type: 'health' as const, value: -25 },
+                            { type: 'reputation' as const, value: 30 }, // Reset reputation
+                            { type: 'currency' as const, value: -(playerCharacter.currency || 0) } // Lose all money
+                        ],
+                        historicalNote: 'Escaping custody was a serious crime, often punishable by death.'
+                    }
+                ]
+            };
+            
+            setCurrentEvent(arrestEvent);
+            return;
+        }
+        
+        // Find nearest structure
+        let nearestStructure = jailableStructures[0];
+        let minDistance = Number.MAX_VALUE;
+        
+        for (const structure of jailableStructures) {
+            const dx = structure.x - playerPos.x;
+            const dy = structure.y - playerPos.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < minDistance) {
+                minDistance = distance;
+                nearestStructure = structure;
+            }
+        }
+        
+        console.log(`[JAIL] Arresting player and teleporting to ${nearestStructure.type} at (${nearestStructure.x}, ${nearestStructure.y})`);
+        
+        // Teleport player to the structure
+        if (playerCharacter.x !== undefined && playerCharacter.y !== undefined) {
+            playerCharacter.x = nearestStructure.x;
+            playerCharacter.y = nearestStructure.y;
+        }
+        
+        // Create arrest event based on structure type
+        const locationName = nearestStructure.type === 'city' ? 'city jail' :
+                           nearestStructure.type === 'palace' ? 'palace dungeon' :
+                           nearestStructure.type === 'fortress' ? 'fortress prison' :
+                           'local garrison';
+        
+        const arrestEvent = {
+            id: 'arrest_jail',
+            title: 'Arrested and Imprisoned!',
+            description: `The authorities have apprehended you due to your criminal reputation. You are dragged to the ${locationName} to face justice. ${nearestStructure.type === 'palace' ? 'The royal guards show no mercy.' : 'The local constables treat you roughly.'}`,
+            context: {
+                era: mapData?.timeSlice || 'medieval',
+                culturalZone: mapData?.culturalZone || 'european'
+            },
+            outcomes: [
+                {
+                    buttonText: 'Accept your punishment',
+                    effects: [
+                        { type: 'reputation' as const, value: 30 }, // Reset reputation to 30
+                        { type: 'currency' as const, value: -Math.floor((playerCharacter.currency || 0) * 0.75) }, // Lose 75% of money
+                        { type: 'health' as const, value: -15 },
+                        { type: 'fatigue' as const, value: -20 }
+                    ],
+                    historicalNote: `In ${mapData?.timeSlice || 'this era'}, imprisonment often included hard labor and confiscation of assets. You spend a week in the ${locationName}.`
+                },
+                {
+                    buttonText: 'Bribe the guards',
+                    statCheck: { stat: 'charisma' as const, difficulty: 15 },
+                    requiresCurrency: Math.max(50, Math.floor((playerCharacter.currency || 0) * 0.5)),
+                    successEffects: [
+                        { type: 'currency' as const, value: -Math.max(50, Math.floor((playerCharacter.currency || 0) * 0.5)) },
+                        { type: 'reputation' as const, value: 10 } // Small reputation gain for "paying your debt"
+                    ],
+                    failureEffects: [
+                        { type: 'currency' as const, value: -(playerCharacter.currency || 0) }, // Lose all money
+                        { type: 'reputation' as const, value: 30 }, // Reset reputation
+                        { type: 'health' as const, value: -20 }
+                    ],
+                    historicalNote: 'Corruption was common in medieval justice systems, but failed bribes led to harsher punishments.'
+                },
+                {
+                    buttonText: 'Demand trial by combat',
+                    statCheck: { stat: 'strength' as const, difficulty: 16 },
+                    successEffects: [
+                        { type: 'reputation' as const, value: 50 }, // Gain respect
+                        { type: 'health' as const, value: -10 },
+                        { type: 'strength' as const, value: 1 }
+                    ],
+                    failureEffects: [
+                        { type: 'health' as const, value: -30 },
+                        { type: 'reputation' as const, value: 20 }, // Some reset
+                        { type: 'fatigue' as const, value: -30 }
+                    ],
+                    historicalNote: 'Trial by combat was a legitimate legal option in many medieval societies, though risky.'
+                }
+            ]
+        };
+        
+        // Show the arrest event modal
+        setCurrentEvent(arrestEvent);
+        
+        // Force update player position in the UI
+        showToast(`You have been arrested and taken to the ${locationName}!`);
+    }, [playerCharacter, worldData, mapData, setCurrentEvent, showToast]);
     
     // Generate household data once using useMemo
     const npcHousehold = useMemo(() => {
@@ -428,31 +581,57 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
     };
 
     // Check NPC reaction for hostility or desire to leave
-    const checkNpcReaction = (response: { text: string, reputationChange?: number, shouldLeave?: boolean, shouldAttack?: boolean }) => {
+    const checkNpcReaction = (response: { 
+        text: string, 
+        reputationChange?: number, 
+        shouldLeave?: boolean, 
+        shouldAttack?: boolean,
+        shouldCallAuthorities?: boolean,
+        reasoning?: string 
+    }) => {
         // Check for reputation change
         if (response.reputationChange) {
             setReputationChange(response.reputationChange);
             if (playerCharacter) {
-                playerCharacter.mapReputation = Math.max(0, Math.min(100, 
-                    (playerCharacter.mapReputation || 50) + response.reputationChange
-                ));
+                const oldReputation = playerCharacter.mapReputation || 50;
+                const newReputation = Math.max(0, Math.min(100, oldReputation + response.reputationChange));
+                playerCharacter.mapReputation = newReputation;
+                
+                // Log significant reputation changes
+                if (Math.abs(response.reputationChange) >= 50) {
+                    console.log(`[REPUTATION] Major change: ${response.reputationChange} (${response.reasoning || 'No reason provided'})`);
+                }
+                
+                // Check if reputation has hit zero - trigger jail scenario
+                if (newReputation <= 0 && response.shouldCallAuthorities) {
+                    setTimeout(() => {
+                        onClose(history);
+                        // Trigger jail event
+                        triggerArrestScenario();
+                    }, 2000);
+                }
             }
-            // Clear reputation display after 3 seconds
-            setTimeout(() => setReputationChange(null), 3000);
+            // Show reputation change for longer if it's significant
+            const displayDuration = Math.abs(response.reputationChange) >= 50 ? 5000 : 3000;
+            setTimeout(() => setReputationChange(null), displayDuration);
         }
         
-        // Check if NPC wants to leave
-        const leaveKeywords = ['leave me be', 'go away', 'begone', 'I\'m done talking', 'this conversation is over', 'we\'re done here', 'get out of my sight'];
-        const attackKeywords = ['guards!', 'I\'ll kill you', 'you\'ll pay for', 'how dare you', 'insolent', 'draw your weapon'];
-        
-        const lowerText = response.text.toLowerCase();
-        
-        if (response.shouldAttack || attackKeywords.some(keyword => lowerText.includes(keyword))) {
-            // NPC attacks!
+        // Check if NPC wants to call authorities
+        if (response.shouldCallAuthorities) {
+            // NPC is reporting the player!
             setTimeout(() => {
-                onInitiateCombat(target);
-            }, 1500);
-        } else if (response.shouldLeave || leaveKeywords.some(keyword => lowerText.includes(keyword))) {
+                setNpcWantsToLeave(true);
+                // Add warning message
+                const warningEntry: DialogueEntry = { 
+                    speaker: 'system', 
+                    text: '[The authorities are being summoned!]', 
+                    timestamp: new Date() 
+                };
+                setHistory(prev => [...prev, warningEntry]);
+            }, 1000);
+        }
+        // Check if NPC wants to leave
+        else if (response.shouldLeave) {
             // NPC ends conversation
             setNpcWantsToLeave(true);
             setTimeout(() => {
@@ -471,12 +650,40 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
         setPlayerInput('');
         setIsLoading(true);
         
+        // Check for threatening language and apply immediate reputation penalty
+        const threatWords = ['kill', 'murder', 'attack', 'hurt', 'harm', 'destroy', 'beat', 'strike', 'stab', 'slash'];
+        const inputLower = currentInput.toLowerCase();
+        const isThreatening = threatWords.some(word => inputLower.includes(word));
+        
+        if (isThreatening) {
+            // Immediate reputation penalty for threats
+            const threatPenalty = -50;
+            setReputationChange(threatPenalty);
+            if (playerCharacter.mapReputation !== undefined) {
+                const oldReputation = playerCharacter.mapReputation || 50;
+                const newReputation = Math.max(0, oldReputation + threatPenalty);
+                playerCharacter.mapReputation = newReputation;
+                
+                console.log(`[REPUTATION] Threat detected! -50 reputation for threatening language`);
+                
+                // Check if this drops reputation to zero
+                if (newReputation <= 0) {
+                    setTimeout(() => {
+                        onClose(history);
+                        triggerArrestScenario();
+                    }, 2000);
+                    return; // Don't process response if arrested
+                }
+            }
+            setTimeout(() => setReputationChange(null), 5000); // Show for longer
+        }
+        
         try {
             const response = await generateEncounterDialogue(target, newHistory, currentInput, playerCharacter, allNpcs, mapData, useRealLanguage);
             const newNpcEntry: DialogueEntry = { speaker: 'npc', text: response.text, timestamp: new Date() };
             setHistory(prev => [...prev, newNpcEntry]);
             
-            // Check NPC's reaction
+            // Check NPC's reaction (may add additional reputation changes)
             checkNpcReaction(response);
         } catch(e) {
             console.error("Error generating dialogue:", e);
@@ -1234,7 +1441,37 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                             Tame
                         </button>
                     )}
-                    <button onClick={() => onInitiateCombat(target)} className="ff-action-button">Attack</button>
+                    <button 
+                        onClick={() => {
+                            // Apply reputation penalty for attacking
+                            if (isNpc(target) && playerCharacter) {
+                                const attackPenalty = -30; // Less than threats but still significant
+                                setReputationChange(attackPenalty);
+                                if (playerCharacter.mapReputation !== undefined) {
+                                    const oldReputation = playerCharacter.mapReputation || 50;
+                                    const newReputation = Math.max(0, oldReputation + attackPenalty);
+                                    playerCharacter.mapReputation = newReputation;
+                                    console.log(`[REPUTATION] Attack initiated! -30 reputation for unprovoked violence`);
+                                    
+                                    // Show warning
+                                    setTimeout(() => setReputationChange(null), 4000);
+                                    
+                                    // Check if this drops reputation to zero
+                                    if (newReputation <= 0) {
+                                        setTimeout(() => {
+                                            onClose(history);
+                                            triggerArrestScenario();
+                                        }, 2000);
+                                        return; // Don't initiate combat if arrested
+                                    }
+                                }
+                            }
+                            onInitiateCombat(target);
+                        }} 
+                        className="ff-action-button"
+                    >
+                        Attack
+                    </button>
                     <button onClick={handleClose} className="ff-action-button" disabled={npcWantsToLeave}>
                         {npcWantsToLeave ? 'Leaving...' : 'Leave'}
                     </button>
@@ -1243,8 +1480,31 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                 
                 {/* Reputation change indicator */}
                 {reputationChange !== null && (
-                    <div className={`absolute top-20 right-8 animate-in fade-in slide-in-from-right duration-300 font-mono text-sm font-bold ${reputationChange > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {reputationChange > 0 ? '+' : ''}{reputationChange} reputation
+                    <div className={`absolute top-20 right-8 animate-in fade-in slide-in-from-right duration-300 ${
+                        Math.abs(reputationChange) >= 50 ? 'scale-125' : ''
+                    }`}>
+                        <div className={`px-3 py-2 rounded-lg font-bold shadow-lg ${
+                            reputationChange > 0 
+                                ? 'bg-green-900/80 text-green-300 border border-green-500/50' 
+                                : Math.abs(reputationChange) >= 50
+                                    ? 'bg-red-900/90 text-red-300 border-2 border-red-500 animate-pulse'
+                                    : 'bg-red-900/80 text-red-300 border border-red-500/50'
+                        }`}>
+                            <div className="flex items-center gap-2">
+                                {Math.abs(reputationChange) >= 50 && (
+                                    <AlertTriangle className="w-4 h-4" />
+                                )}
+                                <span className="text-lg">
+                                    {reputationChange > 0 ? '+' : ''}{reputationChange}
+                                </span>
+                                <span className="text-sm opacity-90">reputation</span>
+                            </div>
+                            {Math.abs(reputationChange) >= 100 && (
+                                <div className="text-xs mt-1 opacity-80">
+                                    Authorities alerted!
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
                 

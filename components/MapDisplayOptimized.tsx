@@ -229,7 +229,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   debugSettings
 }) => {
   // State management with performance considerations
-  const [zoomLevel, setZoomLevel] = useState(INITIAL_ZOOM_LEVEL);
+  // Start zoomed out for the zoom-in animation
+  const [zoomLevel, setZoomLevel] = useState(INITIAL_ZOOM_LEVEL * 0.7);
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -525,28 +526,99 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     };
   }, [logicalControlledIconX, logicalControlledIconY, onIconAnimationComplete]);
 
-  // Initial camera centering
+  // Reset centering flag when map changes
   useEffect(() => {
-    if (mapData && logicalControlledIconX !== null && logicalControlledIconY !== null && containerRef.current) {
-      if (prevMapDataRef.current !== mapData || !hasCenteredOnCurrentMap.current) {
-        const containerWidth = containerRef.current.clientWidth;
-        const containerHeight = containerRef.current.clientHeight;
+    if (mapData && prevMapDataRef.current !== mapData) {
+      hasCenteredOnCurrentMap.current = false;
+      prevMapDataRef.current = mapData;
+    }
+  }, [mapData]);
+
+  // Initial camera centering with zoom animation
+  useEffect(() => {
+    // Wait for all required data
+    if (!mapData || logicalControlledIconX === null || logicalControlledIconY === null || !containerRef.current) {
+      return;
+    }
+    
+    // Don't recenter if already centered on this map
+    if (hasCenteredOnCurrentMap.current) {
+      return;
+    }
+    
+    // Small delay to ensure container is properly mounted and sized
+    const timeoutId = setTimeout(() => {
+      if (!containerRef.current) return;
+      
+      const containerWidth = containerRef.current.clientWidth;
+      const containerHeight = containerRef.current.clientHeight;
+      
+      // Only center if we have valid container dimensions
+      if (containerWidth > 0 && containerHeight > 0) {
         const iconSvgX = logicalControlledIconX * TILE_SIZE_PX + TILE_SIZE_PX / 2;
         const iconSvgY = logicalControlledIconY * TILE_SIZE_PX + TILE_SIZE_PX / 2;
 
-        const initialPanX = containerWidth / 2 - iconSvgX * INITIAL_ZOOM_LEVEL;
-        const initialPanY = containerHeight / 2 - iconSvgY * INITIAL_ZOOM_LEVEL;
+        // Start with zoomed out view (0.7x)
+        const startZoom = INITIAL_ZOOM_LEVEL * 0.7;
+        const endZoom = INITIAL_ZOOM_LEVEL;
+        
+        // Calculate pan for the final zoom level
+        const finalPanX = containerWidth / 2 - iconSvgX * endZoom;
+        const finalPanY = containerHeight / 2 - iconSvgY * endZoom;
+        
+        // Calculate pan for the initial zoom level
+        const initialPanX = containerWidth / 2 - iconSvgX * startZoom;
+        const initialPanY = containerHeight / 2 - iconSvgY * startZoom;
 
-        setZoomLevel(INITIAL_ZOOM_LEVEL);
+        // Set initial position (zoomed out)
         setPanX(initialPanX);
         setPanY(initialPanY);
         targetPanX.current = initialPanX;
         targetPanY.current = initialPanY;
         
+        // Mark as centered immediately to prevent other effects from interfering
         hasCenteredOnCurrentMap.current = true;
-        prevMapDataRef.current = mapData;
+        
+        // Animate zoom and pan over 2 seconds
+        const animationDuration = 2000;
+        const startTime = performance.now();
+        
+        const animate = () => {
+          const now = performance.now();
+          const elapsed = now - startTime;
+          const progress = Math.min(elapsed / animationDuration, 1);
+          
+          // Easing function for smooth animation
+          const easeInOutCubic = (t: number) => t < 0.5 
+            ? 4 * t * t * t 
+            : 1 - Math.pow(-2 * t + 2, 3) / 2;
+          
+          const easedProgress = easeInOutCubic(progress);
+          
+          // Interpolate zoom
+          const currentZoom = startZoom + (endZoom - startZoom) * easedProgress;
+          setZoomLevel(currentZoom);
+          
+          // Recalculate pan for current zoom level to keep player centered
+          const currentPanX = containerWidth / 2 - iconSvgX * currentZoom;
+          const currentPanY = containerHeight / 2 - iconSvgY * currentZoom;
+          
+          setPanX(currentPanX);
+          setPanY(currentPanY);
+          targetPanX.current = currentPanX;
+          targetPanY.current = currentPanY;
+          
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          }
+        };
+        
+        // Start the animation
+        requestAnimationFrame(animate);
       }
-    }
+    }, 100); // 100ms delay to ensure container is sized
+    
+    return () => clearTimeout(timeoutId);
   }, [mapData, logicalControlledIconX, logicalControlledIconY]);
 
   const throttledOnDevHover = useCallback(rafThrottle(onDevHover, 16), [onDevHover]);
