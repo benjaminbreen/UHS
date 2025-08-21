@@ -7,31 +7,31 @@ type QualityFragment = {
 
 export const AMBIANCE_QUALITY_FRAGMENTS: Record<keyof TileQualities, QualityFragment> = {
   flammability: {
-    high: ["The dry undergrowth crackles underfoot.", "A spark could easily ignite this place.", "The air smells faintly of smoke or tinder."],
-    low: ["Everything feels damp and resistant to fire.", "The area seems naturally protected from flames."],
+    high: ["The dry undergrowth crackles underfoot.", "A spark could easily ignite this place.", "The air smells faintly of smoke."],
+    low: ["It's humid here.", "You hear a sound of water dripping."],
   },
   biodiversity: {
-    high: ["The air buzzes with unseen life.", "A rich tapestry of flora and fauna thrives here.", "Tracks and signs of diverse wildlife are abundant."],
-    low: ["Life seems scarce in this desolate spot.", "Only the hardiest creatures could survive here.", "A stark silence hangs in the air, devoid of animal calls."],
+    high: ["The air buzzes with unseen life.", "A rich tapestry of flora and fauna thrives here.", "Tracks of wildlife are abundant."],
+    low: ["Life seems scarce in this desolate spot.", "Only the hardiest creatures could survive here.", "A stark silence hangs in the air."],
   },
   healthiness: {
-    high: ["The air is clean and invigorating.", "A sense of vitality permeates the surroundings.", "This place feels restorative and pure."],
-    low: ["A faint, unpleasant odor taints the air.", "The environment feels stagnant and unwelcoming.", "There's an undercurrent of unease regarding well-being here."],
+    high: ["The air is clean and invigorating.", "A sense of vitality permeates the surroundings.", "This place is beautiful."],
+    low: ["A faint, unpleasant odor taints the air.", "The environment feels stagnant and unwelcoming.", "You feel a spine-tingling undercurrent of unease."],
   },
   sacrality: {
-    high: ["A profound sense of peace and reverence fills this place.", "Ancient energies seem to linger here.", "One feels a connection to something greater."],
-    low: ["The area feels mundane and unremarkable.", "There's a distinct lack of spiritual resonance.", "This ground holds no special significance."],
+    high: ["A profound sense of peace fills this place.", "You have the distinct sense you are bearing watched.", "It is peaceful here."],
+    low: ["You feel uncomfortable here, for some reason.", "This is a rather unremarkable place."],
   },
   safety: {
-    high: ["It feels remarkably safe here.", "A sense of security and calm prevails.", "One can rest easy in this haven."],
-    low: ["An unsettling feeling of danger lurks nearby.", "Every shadow seems to hide a potential threat.", "Caution is advised in this perilous area."],
+    high: ["It is very tranquil here.", "A sense of calm prevails.", "This would be a good place to camp."],
+    low: ["An unsettling feeling of danger lurks nearby.", "This would not be a good place to linger.", "This area seems perilous."],
   },
   geologicalStress: {
-    high: ["You feel a faint tremor in the ground.", "The land feels unstable, as if under immense pressure.", "The rocks here are fractured and sharp."],
-    low: ["The ground feels solid and ancient.", "The bedrock here is stable and deep."],
+    high: ["You feel a faint tremor in the ground.", "The land feels unstable.", "The rocks here are fractured and sharp."],
+    low: ["The stones here are worn smooth.", "The bedrock here is stable and deep."],
   },
   thermalActivity: {
     high: ["The air shimmers with heat rising from the ground.", "A smell of sulfur hangs in the air.", "The ground is warm to the touch."],
-    low: ["The ground is cool and still.", "There's no hint of geothermal activity here."],
+    low: [""],
   },
 };

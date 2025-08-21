@@ -246,12 +246,28 @@ export function generateClothingPalette(wealthLevel: WealthLevel, era: Historica
         }
     };
     const clothingTier = mapWealthToClothingTier(wealthLevel);
-    const eraData = CLOTHING_DATA[culturalZone]?.[era];
+    
+    // Special handling for North American Colonial zones - use European clothing for modern era
+    let effectiveCulturalZone = culturalZone;
+    if (culturalZone === 'NORTH_AMERICAN_COLONIAL' && 
+        (era === HistoricalEra.INDUSTRIAL_ERA || era === HistoricalEra.MODERN_ERA)) {
+        effectiveCulturalZone = 'EUROPEAN' as CulturalZone;
+    }
+    
+    const eraData = CLOTHING_DATA[effectiveCulturalZone]?.[era];
     const specificClothingSet = eraData?.[clothingTier]?.[gender];
     const palette = specificClothingSet?.palette;
     
     if (!palette || !palette.primary || palette.primary.length === 0) {
-        console.log(`[ClothingPalette] No palette found for ${culturalZone}/${era}/${clothingTier}/${gender}, using fallback`);
+        // Use era-appropriate fallback colors instead of always brown
+        if (era === HistoricalEra.MODERN_ERA || era === HistoricalEra.INDUSTRIAL_ERA) {
+            return { 
+                primary: getRandomFromList(['#000080', '#696969', '#000000'], noise) || '#000080',
+                secondary: getRandomFromList(['#FFFFFF', '#D3D3D3', '#A0522D'], noise) || '#FFFFFF',
+                accent: getRandomFromList(['#DC143C', '#1E90FF', '#32CD32'], noise) || '#1E90FF'
+            };
+        }
+        // Default brown fallback for older eras
         return { primary: '#8B4513', secondary: '#654321', accent: '#D2691E' };
     }
 
@@ -343,7 +359,8 @@ export function generateCompleteOutfit(
     culturalZone: CulturalZone,
     era: HistoricalEra,
     wealthLevel: WealthLevel,
-    gender: Gender
+    gender: Gender,
+    occupation?: string
 ): {
     garment: ClothingPiece;
     headgear: ClothingPiece;
@@ -353,12 +370,58 @@ export function generateCompleteOutfit(
 } {
     const clothingSet = getClothingData(culturalZone, era, wealthLevel, gender);
     
+    // Filter out inappropriate items based on occupation
+    const filterByOccupation = (items: ClothingPiece[], category: string): ClothingPiece[] => {
+        if (!occupation) return items;
+        
+        const occupationLower = occupation.toLowerCase();
+        const isWorkingClass = occupationLower.includes('operator') || 
+                               occupationLower.includes('worker') || 
+                               occupationLower.includes('laborer') ||
+                               occupationLower.includes('clerk') ||
+                               occupationLower.includes('secretary');
+        
+        if (isWorkingClass) {
+            // Filter out luxury items for working class occupations
+            return items.filter(item => {
+                const nameLower = item.name.toLowerCase();
+                const materialLower = item.material.toLowerCase();
+                
+                // Forbidden items for working class
+                const forbidden = ['tiara', 'parure', 'crown', 'diadem', 'jeweled', 
+                                 'diamond', 'emerald', 'ruby', 'sapphire', 'pearl',
+                                 'cocktail dress', 'evening gown', 'ball gown',
+                                 'silk', 'velvet', 'satin', 'ermine', 'gold', 'silver'];
+                
+                return !forbidden.some(f => nameLower.includes(f) || materialLower.includes(f));
+            });
+        }
+        
+        return items;
+    };
+    
+    // Apply filters to each category
+    const filteredGarments = filterByOccupation(clothingSet.garments, 'garment');
+    const filteredHeadgear = filterByOccupation(clothingSet.headgear, 'headgear');
+    const filteredFootwear = filterByOccupation(clothingSet.footwear, 'footwear');
+    const filteredBelts = filterByOccupation(clothingSet.belts, 'belt');
+    const filteredAccessories = filterByOccupation(clothingSet.accessories, 'accessory');
+    
+    // Ensure we have at least one item in each category
+    const safeGetRandom = (filtered: ClothingPiece[], original: ClothingPiece[]) => {
+        if (filtered.length > 0) {
+            return getRandomClothingPiece(filtered);
+        }
+        // Fallback to basic item if all filtered out
+        return { name: 'Simple Cloth', material: 'Cotton' };
+    };
+    
     return {
-        garment: getRandomClothingPiece(clothingSet.garments),
-        headgear: getRandomClothingPiece(clothingSet.headgear),
-        footwear: getRandomClothingPiece(clothingSet.footwear),
-        belt: getRandomClothingPiece(clothingSet.belts),
-        accessory: getRandomClothingPiece(clothingSet.accessories),
+        garment: safeGetRandom(filteredGarments, clothingSet.garments),
+        headgear: safeGetRandom(filteredHeadgear, clothingSet.headgear),
+        footwear: safeGetRandom(filteredFootwear, clothingSet.footwear),
+        belt: safeGetRandom(filteredBelts, clothingSet.belts),
+        accessory: safeGetRandom(filteredAccessories, clothingSet.accessories),
     };
 }
 

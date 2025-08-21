@@ -1,7 +1,7 @@
 /**
  * generation/standardMap/features/RoadAndPathGenerator.ts - Generates paths and roads connecting points of interest.
  */
-import { Tile, BiomeType, PathType, Point, MapData } from '../../../types';
+import { Tile, BiomeType, PathType, Point, MapData, HistoricalEra } from '../../../types';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES, TILE_SIZE_PX } from '../../../constants/index';
 import { ValueNoise } from '../../../utils/noise';
 
@@ -13,11 +13,17 @@ interface AStarNode {
 }
 
 const ROAD_STROKE_COLOR = "#855a40"; 
-const PATH_STROKE_COLOR = "#a67b5b"; 
+const PATH_STROKE_COLOR = "#a67b5b";
+const MODERN_ROAD_COLOR = "#2a2a2a"; // Dark asphalt
+const RAILROAD_COLOR = "#4a4a4a"; // Dark gray for rails
 const ROAD_STROKE_WIDTH_BASE = TILE_SIZE_PX * 0.2;
 const PATH_STROKE_WIDTH_BASE = TILE_SIZE_PX * 0.12;
+const MODERN_ROAD_WIDTH = TILE_SIZE_PX * 0.3;
+const RAILROAD_WIDTH = TILE_SIZE_PX * 0.15;
 const ROAD_OPACITY = 0.65;
 const PATH_OPACITY = 0.55;
+const MODERN_ROAD_OPACITY = 0.85;
+const RAILROAD_OPACITY = 0.75;
 
 let pathIdCounter = 0; // For unique path IDs
 
@@ -271,7 +277,7 @@ function generateSvgDFromPoints(pixelPoints: Point[]): string {
 }
 
 
-export function generateRoadAndPathNetwork(mapData: MapData, noise: ValueNoise): void {
+export function generateRoadAndPathNetwork(mapData: MapData, noise: ValueNoise, era?: HistoricalEra): void {
   console.log("Generating paths and roads...");
   const tiles = mapData.tiles;
   mapData.pathObjects = mapData.pathObjects || [];
@@ -281,6 +287,11 @@ export function generateRoadAndPathNetwork(mapData: MapData, noise: ValueNoise):
   const farms: Tile[] = [];
   const ruins: Tile[] = [];
   const pointsOfInterest: Tile[] = [];
+  const fortresses: Tile[] = [];
+  const mills: Tile[] = [];
+  const mines: Tile[] = [];
+  const factories: Tile[] = [];
+  const lumberCamps: Tile[] = [];
 
   for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
     for (let x = 0; x < MAP_WIDTH_TILES; x++) {
@@ -296,6 +307,33 @@ export function generateRoadAndPathNetwork(mapData: MapData, noise: ValueNoise):
       }
       tile.pathObjectRef = undefined;
     }
+  }
+
+  // Collect structures from terrainStructures
+  if (mapData.terrainStructures) {
+    mapData.terrainStructures.forEach(structure => {
+      const [x, y] = structure.location;
+      if (x >= 0 && x < MAP_WIDTH_TILES && y >= 0 && y < MAP_HEIGHT_TILES) {
+        const tile = tiles[y][x];
+        switch (structure.structureType) {
+          case 'fortress':
+            fortresses.push(tile);
+            break;
+          case 'mill':
+            mills.push(tile);
+            break;
+          case 'mining_colony':
+            mines.push(tile);
+            break;
+          case 'factory':
+            factories.push(tile);
+            break;
+          case 'lumber_camp':
+            lumberCamps.push(tile);
+            break;
+        }
+      }
+    });
   }
 
   // Connect major urban areas and major POIs with roads
@@ -337,6 +375,40 @@ export function generateRoadAndPathNetwork(mapData: MapData, noise: ValueNoise):
       }
     });
   }
+
+  // Connect fortresses, mills, and mines to nearest urban area or major node with roads
+  const industrialNodes = [...fortresses, ...mills, ...mines];
+  industrialNodes.forEach(industrialNode => {
+    let closestTarget: Tile | null = null;
+    let bestDist = Infinity;
+    
+    // Find nearest urban area or palace
+    [...urbanAreas, ...pointsOfInterest.filter(p => p.biome === BiomeType.PALACE)].forEach(target => {
+      const dist = heuristic(industrialNode, target);
+      if (dist < bestDist) {
+        bestDist = dist;
+        closestTarget = target;
+      }
+    });
+    
+    if (closestTarget) {
+      const aStarPath = findPathAStar(industrialNode, closestTarget, tiles, PathType.ROAD, noise);
+      if (aStarPath && aStarPath.length >= 3) {
+        const pixelPoints = tilePathToPixelPoints(aStarPath);
+        const svgD = generateSvgDFromPoints(pixelPoints);
+        if (svgD) {
+          mapData.pathObjects!.push({
+            id: `road-${pathIdCounter++}`,
+            type: PathType.ROAD,
+            svgD,
+            strokeWidth: ROAD_STROKE_WIDTH_BASE,
+            strokeColor: ROAD_STROKE_COLOR,
+            opacity: ROAD_OPACITY,
+          });
+        }
+      }
+    }
+  });
 
   // Connect hamlets and minor POIs to the nearest major node with paths
   const minorNodes = [...hamlets, ...pointsOfInterest.filter(p => p.biome !== BiomeType.PALACE)];
@@ -404,5 +476,92 @@ export function generateRoadAndPathNetwork(mapData: MapData, noise: ValueNoise):
       }
     }
   });
+
+  // Add modern asphalt roads for 20th century and future eras
+  if (era === HistoricalEra.MODERN || era === HistoricalEra.FUTURE_ERA) {
+    // Create grid-like modern roads between urban areas
+    if (urbanAreas.length > 1) {
+      const connectedModernPairs = new Set<string>();
+      
+      // Sort urban areas by x then y for more grid-like connections
+      const sortedUrban = [...urbanAreas].sort((a, b) => {
+        if (Math.abs(a.x - b.x) < 10) return a.y - b.y;
+        return a.x - b.x;
+      });
+      
+      sortedUrban.forEach((city1, idx) => {
+        // Connect to next cities in grid pattern
+        for (let i = idx + 1; i < Math.min(idx + 3, sortedUrban.length); i++) {
+          const city2 = sortedUrban[i];
+          const pairKey = `${city1.x},${city1.y}-${city2.x},${city2.y}`;
+          const pairKeyRev = `${city2.x},${city2.y}-${city1.x},${city1.y}`;
+          
+          if (!connectedModernPairs.has(pairKey) && !connectedModernPairs.has(pairKeyRev)) {
+            // Generate straighter path for modern roads
+            const modernPath = findPathAStar(city1, city2, tiles, PathType.ROAD, noise);
+            if (modernPath && modernPath.length >= 3) {
+              // Less jitter for modern roads - more straight
+              const pixelPoints = modernPath.map(tile => ({
+                x: tile.x * TILE_SIZE_PX + TILE_SIZE_PX / 2,
+                y: tile.y * TILE_SIZE_PX + TILE_SIZE_PX / 2,
+              }));
+              
+              const svgD = generateSvgDFromPoints(pixelPoints);
+              if (svgD) {
+                mapData.pathObjects!.push({
+                  id: `modern-road-${pathIdCounter++}`,
+                  type: PathType.MODERN_ROAD,
+                  svgD,
+                  strokeWidth: MODERN_ROAD_WIDTH,
+                  strokeColor: MODERN_ROAD_COLOR,
+                  opacity: MODERN_ROAD_OPACITY,
+                });
+                connectedModernPairs.add(pairKey);
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+
+  // Add railroads for industrial and modern eras
+  if (era === HistoricalEra.INDUSTRIAL || era === HistoricalEra.MODERN) {
+    // Connect cities to factories, mills, and lumber camps with railroads
+    const railDestinations = [...factories, ...mills, ...lumberCamps];
+    
+    urbanAreas.forEach(city => {
+      // Find nearest industrial sites
+      const nearbyIndustrial = railDestinations
+        .map(dest => ({ tile: dest, dist: heuristic(city, dest) }))
+        .filter(item => item.dist < 30) // Only connect nearby sites
+        .sort((a, b) => a.dist - b.dist)
+        .slice(0, 2); // Connect to 2 nearest industrial sites
+      
+      nearbyIndustrial.forEach(({ tile: industrial }) => {
+        const railPath = findPathAStar(city, industrial, tiles, PathType.ROAD, noise);
+        if (railPath && railPath.length >= 3) {
+          // Railroads are very straight
+          const pixelPoints = railPath.map(tile => ({
+            x: tile.x * TILE_SIZE_PX + TILE_SIZE_PX / 2,
+            y: tile.y * TILE_SIZE_PX + TILE_SIZE_PX / 2,
+          }));
+          
+          const svgD = generateSvgDFromPoints(pixelPoints);
+          if (svgD) {
+            mapData.pathObjects!.push({
+              id: `railroad-${pathIdCounter++}`,
+              type: PathType.RAILROAD,
+              svgD,
+              strokeWidth: RAILROAD_WIDTH,
+              strokeColor: RAILROAD_COLOR,
+              opacity: RAILROAD_OPACITY,
+            });
+          }
+        }
+      });
+    });
+  }
+
   console.log("Path and road generation complete. PathObjects: ", mapData.pathObjects?.length || 0);
 }

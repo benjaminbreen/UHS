@@ -17,7 +17,7 @@ export const CULTURE_ZONES = [
 export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
     "Europe": {
 
-       "European waters": {
+       "European Waters": {
             "Irish Sea": { name: "Irish Sea", climate: ClimateType.TEMPERATE, archetype: MapArchetype.OPEN_OCEAN },
             "North Sea": { name: "North Sea", climate: ClimateType.TEMPERATE, archetype: MapArchetype.OPEN_OCEAN },
             "Baltic Sea": { name: "Baltic Sea", climate: ClimateType.TEMPERATE, archetype: MapArchetype.OPEN_OCEAN },
@@ -110,6 +110,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         "Ural and Arctic Europe": {
             "Ural Mountains": { name: "Ural Mountains", climate: ClimateType.COLD, archetype: MapArchetype.ALL_LAND, altitude: 'high', economicActivityLevel: 1 },
             "White Sea Coast": { name: "White Sea Coast", climate: ClimateType.COLD, archetype: MapArchetype.BAY }
+
         },
         "Low Countries": {
             "Rhine–Meuse Delta": { name: "Rhine–Meuse Delta", climate: ClimateType.TEMPERATE, archetype: MapArchetype.DELTA, deltaOutlet: 'west' },
@@ -126,7 +127,14 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Delos Archipelago": { name: "Delos Archipelago", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.ISLAND },
             "Mount Olympus": { name: "Mount Olympus", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false },
             "Thessalian Plain": { name: "Thessalian Plain", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.ALL_LAND, hasLakes: false }
-        }
+        },
+
+        "Atlantic Islands": {
+            "Iceland": { name: "Iceland", climate: ClimateType.TUNDRA, archetype: MapArchetype.ISLAND, economicActivityLevel: 1 },
+            "Greenland Coast": { name: "Greenland Coast", climate: ClimateType.TUNDRA, archetype: MapArchetype.BAY, economicActivityLevel: 0 },
+            "Azores": { name: "Azores", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ISLAND },
+            "Cape Verde": { name: "Cape Verde", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND }
+        },
     },
     "North America": {
         "Pacific Coast": {
@@ -190,7 +198,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Illinois River Valley": { name: "Illinois River Valley", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT },
             "Driftless Area": { name: "Driftless Area", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, hasLakes: false }
         },
-        "Northeast Woodlands": {
+        "Northeastern Seaboard": {
             "Hudson River Valley": { name: "Hudson River Valley", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT, riverDirection: 'north-south' },
             "Great Lakes Shoreline": { name: "Great Lakes Shoreline", climate: ClimateType.TEMPERATE, archetype: MapArchetype.FRESHWATER_LAKE },
             "Adirondacks": { name: "Adirondacks", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: true },
@@ -199,6 +207,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Mohawk River": { name: "Mohawk River", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT },
             "Long Island": { name: "Long Island", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BARRIER_ISLAND },
             "Cape Cod": { name: "Cape Cod", climate: ClimateType.TEMPERATE, archetype: MapArchetype.PENINSULA },
+            "Green Mountains": { name: "Green Mountains", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: true },
             "Connecticut River Valley": { name: "Connecticut River Valley", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT, riverDirection: 'north-south' }
         },
         "Southeast": {
@@ -211,6 +220,15 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Outer Banks": { name: "Outer Banks", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BARRIER_ISLAND },
             "Chesapeake Bay": { name: "Chesapeake Bay", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY },
             "Florida Keys": { name: "Florida Keys", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND }
+        },
+         "Canada": {
+            "St. Lawrence River": { name: "St. Lawrence River", climate: ClimateType.COLD, archetype: MapArchetype.RIVER_PORT },
+            "Canadian Maritimes": { name: "Canadian Maritimes", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY },
+            "Ontario Shield": { name: "Ontario Shield", climate: ClimateType.COLD, archetype: MapArchetype.ALL_LAND, hasLakes: true },
+            "Canadian Prairies": { name: "Canadian Prairies", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, hasLakes: false },
+            "Canadian Rockies": { name: "Canadian Rockies", climate: ClimateType.COLD, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false },
+            "British Columbia Coast": { name: "British Columbia Coast", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY },
+            "Canadian North": { name: "Canadian North", climate: ClimateType.TUNDRA, archetype: MapArchetype.ALL_LAND, hasLakes: true, economicActivityLevel: 1 }
         },
         "Arctic and Subarctic": {
             "Hudson Bay Lowlands": { name: "Hudson Bay Lowlands", climate: ClimateType.COLD, archetype: MapArchetype.BAY },
@@ -257,7 +275,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         "Atlantic Coast": {
             "Chesapeake Bay": { name: "Chesapeake Bay", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY },
             "Cape Cod": { name: "Cape Cod", climate: ClimateType.TEMPERATE, archetype: MapArchetype.PENINSULA },
-                    "Boston Harbor": { name: "Boston Harbor", climate: ClimateType.TEMPERATE, archetype: MapArchetype.PENINSULA },
+            "Boston Harbor": { name: "Boston Harbor", climate: ClimateType.TEMPERATE, archetype: MapArchetype.PENINSULA },
             "Pine Barrens": { name: "Pine Barrens", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, hasLakes: false },
             "Outer Banks": { name: "Outer Banks", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BARRIER_ISLAND, islandOrientation: 'north-south' },
             "Delaware River Valley": { name: "Delaware River Valley", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT },
@@ -757,12 +775,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
      
             
    
-        "Croatia and Environs": {
-           
-            "Dalmatian Coast": { name: "Dalmatian Coast", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.BAY },
-            "Transylvania": { name: "Transylvania", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false },
-            "Dobruja": { name: "Dobruja", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND }
-        },
+       
         "Indonesian and Melanesian Islands": {
            
             "Sulawesi": { name: "Sulawesi", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND },
@@ -773,6 +786,13 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Chatham Islands": { name: "Chatham Islands", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ISLAND },
             "Gilbert Islands": { name: "Gilbert Islands", climate: ClimateType.TROPICAL, archetype: MapArchetype.ATOLL },
         },
+
+        "Antarctica": {
+        "Antarctic Peninsula": { name: "Antarctic Peninsula", climate: ClimateType.TUNDRA, archetype: MapArchetype.PENINSULA, economicActivityLevel: 0 },
+        "Transantarctic Mountains": { name: "Transantarctic Mountains", climate: ClimateType.TUNDRA, archetype: MapArchetype.ALL_LAND, altitude: 'high', economicActivityLevel: 0 },
+        "East Antarctic Plateau": { name: "East Antarctic Plateau", climate: ClimateType.TUNDRA, archetype: MapArchetype.DESERT, economicActivityLevel: 0 }
+    },
+    
         "Major Seas and Oceans": {
             
             
@@ -790,7 +810,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "South China Sea": { name: "South China Sea", climate: ClimateType.TROPICAL, archetype: MapArchetype.OPEN_OCEAN },
             "Bay of Bengal": { name: "Bay of Bengal", climate: ClimateType.TROPICAL, archetype: MapArchetype.OPEN_OCEAN },
             
-            // American Waters
+       
            
 
             

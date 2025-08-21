@@ -13,6 +13,8 @@ export enum PathType {
   ROAD = 'ROAD',
   PATH = 'PATH',
   FENCE = 'FENCE', // Added for Animal Paddocks
+  MODERN_ROAD = 'MODERN_ROAD', // Asphalt roads for 20th century+
+  RAILROAD = 'RAILROAD', // Railroad tracks for industrial era
 }
 
 /**

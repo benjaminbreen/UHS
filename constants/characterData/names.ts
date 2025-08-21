@@ -18,9 +18,24 @@ export interface NameGenerationOptions {
 export const CHARACTER_NAMES: Record<string, NameList> = {
     // === PREHISTORIC UNIVERSAL ===
     // Proto-Indo-European and Early European (3500-500 BCE)
-    PREHISTORIC_EUROPEAN: {
-        male: ['*Dyēus', '*Perkwunos', '*Welnos', '*Yemos', '*Manu', '*Trito', '*Hdóm', '*Wiros', '*Ghosti', '*Aryo', 'Bjorn', 'Ulf', 'Ragnar', 'Hrolf', 'Gunnar', 'Thorgrim', 'Bran', 'Cormac', 'Finn', 'Daigh', 'Vercingetorix', 'Ambiorix', 'Brennus', 'Calgacus', 'Caratacus', 'Drustan', 'Artos', 'Gwydion', 'Pwyll', 'Pryderi'],
-        female: ['*Diwós', '*Haéusōs', '*Dhéghom', '*Gwena', '*Priya', '*Swesōr', 'Freydis', 'Astrid', 'Sigrid', 'Gudrun', 'Helga', 'Brunhild', 'Brigid', 'Aine', 'Maeve', 'Niamh', 'Rhiannon', 'Branwen', 'Cerridwen', 'Morgana', 'Nimue', 'Boudicca', 'Cartimandua', 'Veleda', 'Aife', 'Scathach'],
+   // Proto-Indo-European (c. 4500-2500 BCE) - The ancestor of most European languages.
+    PREHISTORIC_PROTO_INDO_EUROPEAN: {
+        male: ['Hrewiklewos', 'Gostiregs', 'Wulkwowiros', 'Aryomon', 'Perkwugnatos', 'Supotis', 'Dewostos', 'Tritoneros', 'Monyemos', 'Ekwomedos', 'Wesugenos', 'Dorudekus'],
+        female: ['Awsosdota', 'Diwosdugater', 'Wulkwiya', 'Swaduwena', 'Aryona', 'Gwenaregna', 'Wesutoka', 'Priyagentri', 'Tritogena', 'Sowlya'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+
+    // Proto-Celtic (c. 1000-500 BCE) - Ancestor of Gaulish, Irish, Welsh. Iron Age feel.
+    PREHISTORIC_PROTO_CELTIC: {
+        male: ['Wirorix', 'Catumaros', 'Dumnovalos', 'Brigantagnos', 'Cunobelinos', 'Epomanduos', 'Toutovaldos', 'Vindoviros', 'Ariovestos', 'Bodugnatos', 'Tigernomaglos', 'Segoviros'],
+        female: ['Vindoriga', 'Catubodua', 'Brigantina', 'Eponina', 'Toutavalda', 'Adtreba', 'Rigana', 'Boudica', 'Segovella', 'Vindatreba'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+
+    // Proto-Germanic (c. 500 BCE - 200 CE) - Ancestor of Norse, English, German. Migration Period feel.
+    PREHISTORIC_PROTO_GERMANIC: {
+        male: ['Haþuwulf', 'Audariks', 'Hroþigaiz', 'Sigimer', 'Gudawer', 'Þeudariks', 'Agilhard', 'Wulþuhar', 'Ermanariks', 'Beranhard', 'Hailagamund', 'Harjawald'],
+        female: ['Hildigunþ', 'Hroþirun', 'Swanhild', 'Audagard', 'Merahild', 'Gudalind', 'Brunjohild', 'Fasturun', 'Albigard', 'Sigilind'],
         surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
     },
     PREHISTORIC_MENA: {
@@ -149,8 +164,8 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
         surname: ['of Babylon', 'of Ur', 'of Uruk', 'of Nineveh', 'of Assur', 'of Akkad', 'of Sumer', 'of Eridu', 'of Nippur', 'of Lagash']
     },
     LEVANTINE: {
-        male: ['Yusuf', 'Ibrahim', 'Khalil', 'Samir', 'Nabil', 'Faris', 'Tariq', 'Rami', 'Bassam', 'Elias', 'Georges', 'Michel', 'Pierre', 'Antoine', 'Boutros', 'Maroun', 'Charbel', 'Elie', 'Sami', 'Karim'],
-        female: ['Layla', 'Amal', 'Hana', 'Rima', 'Nour', 'Dalia', 'Yasmine', 'Lina', 'Maya', 'Nadine', 'Rita', 'Joelle', 'Carla', 'Miriam', 'Sarah', 'Rebecca', 'Leah', 'Rachel', 'Naomi', 'Esther'],
+        male: ['Yusuf', 'Ibrahim', 'Khalil', 'Samir', 'Nabil', 'Faris', 'Tariq', 'Rami', 'Bassam', 'Elias', 'Boutros', 'Maroun', 'Charbel', 'Elie', 'Sami', 'Karim'],
+        female: ['Layla', 'Amal', 'Hana', 'Rima', 'Nour', 'Dalia', 'Yasmine', 'Lina', 'Maya', 'Nadine', 'Rita'],
         surname: ['Haddad', 'Khoury', 'Saliba', 'Habib', 'Nassar', 'Bishara', 'Sabbagh', 'Mansour', 'Awad', 'Daoud', 'Issa', 'Hadid', 'Najjar', 'Kassis', 'Maalouf', 'Gemayel', 'Aoun', 'Hariri', 'Jumblatt', 'Frangieh']
     },
     MAGHREBI: {
@@ -461,16 +476,7 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
         female: ['Ji-hye', 'Seo-yeon', 'Ha-eun', 'Ji-woo', 'Min-seo', 'So-yeon', 'Yoo-jin', 'Chae-won', 'Ga-eun', 'Ye-eun', 'Su-bin', 'Yu-na', 'Hye-jin', 'Eun-ji', 'Da-eun', 'Na-eun', 'Soo-jin', 'Min-ji', 'Ye-jin', 'Hyo-jin', 'Bo-ram', 'Hae-won', 'Ji-min', 'Seo-hyun', 'Yeon-seo', 'Ah-young', 'So-young', 'Hye-won', 'Jin-ah', 'Mi-young'],
         surname: ['Kim', 'Lee', 'Park', 'Choi', 'Jeong', 'Kang', 'Cho', 'Yoon', 'Jang', 'Lim', 'Han', 'Oh', 'Seo', 'Shin', 'Kwon', 'Hwang', 'Ahn', 'Song', 'Yoo', 'Hong', 'Jeon', 'Go', 'Moon', 'Yang', 'Baek', 'Heo', 'Nam', 'Shim', 'Ryu', 'Min']
     },
-    VIETNAMESE: {
-        male: ['Anh', 'Duc', 'Huy', 'Minh', 'Quang', 'Tuan', 'Vinh', 'Khang', 'Long', 'Nam', 'Phong', 'Son', 'Tai', 'Thinh', 'Trung', 'Vuong', 'Duy', 'Hai', 'Hung', 'Kien', 'Lam', 'Manh', 'Nghia', 'Phuc', 'Quan', 'Sang', 'Thanh', 'Thong', 'Tien', 'Viet'],
-        female: ['Anh', 'Linh', 'Mai', 'Nga', 'Quynh', 'Thu', 'Trang', 'Yen', 'Ha', 'Hoa', 'Hong', 'Huong', 'Lan', 'My', 'Nhi', 'Phuong', 'Thao', 'Thuy', 'Tram', 'Trinh', 'Van', 'Xuan', 'Bich', 'Cam', 'Diep', 'Giang', 'Khanh', 'Ly', 'Minh', 'Nu'],
-        surname: ['Nguyen', 'Tran', 'Le', 'Pham', 'Hoang', 'Phan', 'Vu', 'Vo', 'Dang', 'Bui', 'Do', 'Ho', 'Ngo', 'Duong', 'Ly', 'Dinh', 'Dao', 'Trinh', 'Ta', 'Mai', 'Lam', 'Truong', 'Cao', 'Tong', 'Luu', 'Huynh', 'Chu', 'To', 'Quach', 'Tieu']
-    },
-    THAI: {
-        male: ['Adisak', 'Anan', 'Apirat', 'Arthit', 'Chaiya', 'Chatchai', 'Decha', 'Jirasak', 'Kamol', 'Kitti', 'Narong', 'Niran', 'Paiboon', 'Pornchai', 'Prasert', 'Sakchai', 'Samart', 'Somchai', 'Surachai', 'Thana', 'Thawat', 'Vichai', 'Virote', 'Wichai', 'Yuttana', 'Amnuay', 'Bancha', 'Chalerm', 'Danai', 'Ekachai'],
-        female: ['Anchalee', 'Apinya', 'Aroonsri', 'Busaba', 'Chanida', 'Duangjai', 'Kanokwan', 'Ladda', 'Malee', 'Namfon', 'Orapan', 'Pensri', 'Ratana', 'Siriwan', 'Suda', 'Sunisa', 'Supatra', 'Suwanna', 'Thipawan', 'Ubon', 'Vimala', 'Waraporn', 'Yupa', 'Chantana', 'Jitra', 'Kulthida', 'Monrudee', 'Nattaya', 'Porntip', 'Rungthip'],
-        surname: ['Chaiyaporn', 'Jitpakdee', 'Kamkaew', 'Lertprasert', 'Mahathamrongkul', 'Nakaprasit', 'Pachariyanon', 'Rattanakosin', 'Siriporn', 'Thanakit', 'Udomsak', 'Vichitvongsa', 'Wongprasert', 'Yamyuen', 'Adunyadech', 'Boonsiri', 'Charoenrat', 'Dechapanichkul', 'Eamranond', 'Fuangfoo', 'Gorananant', 'Hansanit', 'Itthipol', 'Jaturonrassamee']
-    },
+   
     MONGOLIAN: {
         male: ['Batbayar', 'Batmunkh', 'Battulga', 'Bold', 'Chinbat', 'Dorj', 'Erdene', 'Ganbat', 'Munkhbat', 'Otgonbayar', 'Purevdorj', 'Saikhan', 'Temujin', 'Tuguldur', 'Batkhuu', 'Byambaa', 'Gantulga', 'Khashbat', 'Munkhjargal', 'Naranbaatar', 'Ochirbal', 'Sukhbaatar', 'Tsogtbaatar', 'Ulziibayar', 'Zoljargal', 'Altangerel', 'Batsaikhan', 'Chinzorig', 'Dolgorsuren', 'Enkhbayar'],
         female: ['Altantsetseg', 'Battsetseg', 'Bolormaa', 'Enkhjargal', 'Gereltuya', 'Khaliun', 'Mandukhai', 'Narangerel', 'Oyunaa', 'Purevjav', 'Saikhantuya', 'Tsagaan', 'Ulaankhuu', 'Yesuntei', 'Altantuya', 'Bayarmaa', 'Chinbayar', 'Enkhtsetseg', 'Gansukh', 'Iderkhuu', 'Jargalmaa', 'Khongoroo', 'Munkhjin', 'Otgontsetseg', 'Sukhgerel', 'Tugsuu', 'Uranchimeg', 'Urantuya', 'Zolzaya', 'Ankhbayar'],
@@ -501,7 +507,7 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
     BERBER_AMAZIGH: {
         male: ['Amellal', 'Azru', 'Ifri', 'Lmahdi', 'Massinissa', 'Yuba', 'Azalay', 'Itri', 'Tamazight', 'Akli', 'Amyas', 'Azwaw', 'Dihya', 'Gaya', 'Matoub', 'Meziane', 'Mohand', 'Ouali', 'Slimane', 'Youcef', 'Amayas', 'Ameziane', 'Aqvayli', 'Aurassi', 'Azayku', 'Azegzaw', 'Azelmad', 'Azelmat', 'Azemour', 'Azeryul'],
         female: ['Dihya', 'Tafukt', 'Tilelli', 'Yemma', 'Tislit', 'Taqbaylit', 'Thilleli', 'Wardia', 'Yelli', 'Zahra', 'Tasa', 'Tamurt', 'Tafrawt', 'Takfarinas', 'Tamazight', 'Taneqqust', 'Targia', 'Tasekkurt', 'Tawenza', 'Taziri', 'Thiziri', 'Tifawt', 'Tilla', 'Tilleli', 'Tinhinan', 'Tiska', 'Tiziri', 'Ulac', 'Warda', 'Yemma'],
-        surname: ['Amellal', 'Azayku', 'Azegzaw', 'Azelmad', 'Azelmat', 'Azemour', 'Azeryul', 'Azru', 'Ifri', 'Itri', 'Tamazight', 'Tilelli', 'Wardia', 'Zahra', 'Amyas', 'Azwaw', 'Gaya', 'Matoub', 'Meziane', 'Mohand', 'Ouali', 'Slimane', 'Youcef', 'Amayas', 'Ameziane', 'Aqvayli', 'Aurassi', 'Dihya', 'Tafukt', 'Yemma']
+        surname: []
     },
 
     // === SOUTH ASIAN SUB-GROUPS ===
@@ -573,12 +579,12 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
     POLYNESIAN: {
         male: ['Manaia', 'Hemi', 'Tane', 'Rangi', 'Kai', 'Aroha', 'Wiremu', 'Te Koha', 'Mahina', 'Teiva', 'Koa', 'Keoni', 'Nalani', 'Kawika', 'Ikaika', 'Akamu', 'Keanu', 'Makoa', 'Anaru', 'Rawiri', 'Tamati', 'Hoani', 'Pita', 'Rewi', 'Tawhiri', 'Rongo', 'Tama', 'Koru', 'Whai', 'Turi'],
         female: ['Moana', 'Hina', 'Leilani', 'Malia', 'Aroha', 'Kiri', 'Anahera', 'Mere', 'Ngaire', 'Roimata', 'Ataahua', 'Marama', 'Kaia', 'Lani', 'Nalani', 'Mahina', 'Naia', 'Lehua', 'Pua', 'Kalani', 'Noelani', 'Kalea', 'Mele', 'Pikake', 'Tiaré', 'Tiare', 'Raina', 'Moea', 'Haumea', 'Nayeli'],
-        surname: ['(No Surname)', 'Taua', 'Ariki', 'Rangatira', 'Tohunga', 'Kaumatua', 'Tangata', 'Wahine', 'Tamariki', 'Whakapapa', 'Iwi', 'Hapu', 'Marae', 'Hangi', 'Poi', 'Haka', 'Hongi', 'Karakia', 'Mihi', 'Powhiri', 'Whakatohea', 'Ngati', 'Te Ati', 'Ngai', 'Kai', 'Mana', 'Tapu', 'Noa', 'Moko', 'Tikanga']
+        surname: []
     },
     MELANESIAN: {
         male: ['Bani', 'Tavu', 'Kem', 'Wani', 'Nalu', 'Kila', 'Mendi', 'Vanua', 'Tiko', 'Ratu', 'Seru', 'Jone', 'Viliame', 'Epeli', 'Tomasi', 'Aisea', 'Manoa', 'Tevita', 'Salote', 'Rusiate', 'Simione', 'Peni', 'Waisea', 'Iowane', 'Mosese', 'Lasaro', 'Filipe', 'Petero', 'Apisai', 'Isikeli'],
         female: ['Salote', 'Ana', 'Mere', 'Mele', 'Litia', 'Vika', 'Sala', 'Adi', 'Bulou', 'Lavenia', 'Serena', 'Talei', 'Nanise', 'Alanieta', 'Makereta', 'Veniana', 'Arieta', 'Kelera', 'Melaia', 'Raijeli', 'Timoci', 'Vasiti', 'Akanisi', 'Salanieta', 'Laisani', 'Taraivini', 'Vulimila', 'Wainikiti', 'Salome', 'Eta'],
-        surname: ['Tamani', 'Vakatawa', 'Vuki', 'Nailatikau', 'Bainimarama', 'Ratunabuabua', 'Vunibobo', 'Caucau', 'Radradra', 'Matavesi', 'Volavola', 'Kolinisau', 'Vugakoto', 'Nacuqu', 'Nayacalevu', 'Tuitoga', 'Waqaseduadua', 'Goneva', 'Nakawara', 'Talebula', 'Navua', 'Koroi', 'Ravulo', 'Wainiqolo', 'Veikoso', 'Botitu', 'Ratuabu', 'Kubunavanua', 'Seruiratu', 'Tuberi']
+        surname: []
     },
     ABORIGINAL_AUSTRALIAN: {
         male: ['Birrani', 'Darel', 'Jarrah', 'Koori', 'Mandawuy', 'Nullah', 'Tjandrawati', 'Warwick', 'Yurrampi', 'Kirra', 'Bindi', 'Boori', 'Budgeree', 'Cooinda', 'Daku', 'Gidgee', 'Jannali', 'Kiah', 'Lachlan', 'Miro', 'Namatjira', 'Oodgeroo', 'Poolamacca', 'Quandong', 'Tarkine', 'Uluru', 'Wagga', 'Yamba', 'Yarrawarra', 'Bidjigal'],
@@ -590,12 +596,12 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
     ANDEAN_QUECHUA: {
         male: ['Apu', 'Atawallpa', 'Inti', 'Pachakutiq', 'Tupaq', 'Wayna', 'Qhapaq', 'Inka', 'Manco', 'Sayri', 'Thupa', 'Wiraqocha', 'Amaru', 'Challwa', 'Huascar', 'Illapa', 'Kuntur', 'Puma', 'Rumi', 'Sumaq', 'Tayta', 'Ukuku', 'Vicuña', 'Waman', 'Yakana', 'Zara', 'Chaska', 'Huanca', 'Kimsa', 'Lloque'],
         female: ['Coya', 'Killa', 'Mama', 'Ñusta', 'Quispe', 'Sisa', 'Sumaq', 'Tika', 'Urpi', 'Wayna', 'Yaku', 'Chaska', 'Chuya', 'Illa', 'Inti', 'Kusi', 'Phuyupatamanta', 'Qori', 'Raymi', 'Sarita', 'Tanta', 'Umiña', 'Warmi', 'Yana', 'Achik', 'Chakana', 'Hanan', 'Khuya', 'Munay', 'Phaway'],
-        surname: ['Yupanki', 'Wankár', 'Quespi', 'Kondori', 'Waman', 'Amaru', 'Choque', 'Quispe', 'Huanca', 'Mamani', 'Flores', 'Apaza', 'Ccopa', 'Cusipaucar', 'Hancco', 'Inca', 'Llanos', 'Marca', 'Nina', 'Pacco', 'Quiso', 'Ramos', 'Soncco', 'Ttito', 'Vargas', 'Waskar', 'Xerez', 'Yabar', 'Zapana', 'Alanoca']
+        surname: ['Yupanki', 'Wankár', 'Quespi', 'Kondori', 'Waman', 'Amaru', 'Choque', 'Quispe', 'Huanca', 'Mamani', 'Apaza', 'Ccopa', 'Cusipaucar', 'Hancco', 'Inca', 'Llanos', 'Marca', 'Nina', 'Pacco', 'Quiso', 'Soncco', 'Ttito', 'Waskar', 'Xerez', 'Yabar', 'Zapana', 'Alanoca']
     },
     GUARANI: {
         male: ['Arandu', 'Carai', 'Guyrá', 'Jagua', 'Karai', 'Mandu', 'Nande', 'Paraguasu', 'Ruvicha', 'Sepé', 'Tabare', 'Ubiratan', 'Yaci', 'Aimberê', 'Caetano', 'Guaraci', 'Ibiapina', 'Jaci', 'Karim', 'Moacir', 'Peri', 'Rudá', 'Tupã', 'Ubirajara', 'Abeguar', 'Boitatá', 'Cunhambebe', 'Guaraní', 'Iara', 'Jandira'],
         female: ['Iara', 'Jaci', 'Jurema', 'Maiara', 'Potira', 'Raoni', 'Tainá', 'Uiara', 'Yara', 'Aracy', 'Ceci', 'Iracema', 'Janaína', 'Moema', 'Naiá', 'Potyra', 'Rudá', 'Tainá', 'Ubiratã', 'Yacy', 'Açucena', 'Cauã', 'Guaraci', 'Iansan', 'Jandaira', 'Kauê', 'Maíra', 'Naara', 'Piraí', 'Samaúma'],
-        surname: ['Caballero', 'González', 'Rodríguez', 'López', 'Martínez', 'Pérez', 'Sánchez', 'Ramírez', 'Cruz', 'Flores', 'Gómez', 'Morales', 'Vargas', 'Castillo', 'Jiménez', 'Ruiz', 'Díaz', 'Moreno', 'Herrera', 'Medina', 'Aguilar', 'Gutiérrez', 'Contreras', 'Mendoza', 'Ortega', 'Silva', 'Romero', 'Guerrero', 'Vega', 'Noguera']
+        surname: []
     },
 
     // Default fallbacks (broad)
@@ -694,6 +700,11 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
         male: ['Budi', 'Agus', 'Hendra', 'Dedi', 'Eko', 'Rudi', 'Joko', 'Wahyu', 'Bambang', 'Yudi', 'Andi', 'Indra', 'Yanto', 'Hadi', 'Slamet', 'Tono', 'Dwi', 'Rizki', 'Adi', 'Bayu', 'Dimas', 'Fajar', 'Gilang', 'Heri', 'Irfan', 'Kuncoro', 'Lutfi', 'Maulana', 'Nova', 'Ozi'],
         female: ['Sri', 'Sari', 'Dewi', 'Ratna', 'Indah', 'Maya', 'Rina', 'Yuni', 'Wati', 'Lestari', 'Fitri', 'Nur', 'Ayu', 'Dian', 'Eka', 'Farida', 'Gita', 'Hani', 'Ika', 'Jihan', 'Kania', 'Lia', 'Mega', 'Nina', 'Olivia', 'Putri', 'Qory', 'Rani', 'Sinta', 'Tyas'],
         surname: ['Setiawan', 'Gunawan', 'Wijaya', 'Santoso', 'Kurniawan', 'Wibowo', 'Sutrisno', 'Hartono', 'Susanto', 'Pranoto', 'Suryanto', 'Nugroho', 'Darmawan', 'Prabowo', 'Haryanto', 'Sudarsono', 'Raharjo', 'Widodo', 'Iskandar', 'Sugiarto', 'Maulana', 'Permana', 'Suharto', 'Pratama', 'Nurdiansyah', 'Mahendra', 'Kusuma', 'Utomo', 'Syahputra', 'Rahman']
+    },
+    FILIPINO: {
+        male: ['Bayani', 'Datu', 'Lapu', 'Makisig', 'Rajah', 'Juan', 'Jose', 'Miguel', 'Rafael', 'Gabriel', 'Daniel', 'Carlos', 'Antonio', 'Pedro', 'Francisco', 'Manuel', 'Ricardo', 'Eduardo', 'Roberto', 'Alberto', 'Rodrigo', 'Diego', 'Fernando', 'Andres', 'Emilio', 'Ramon', 'Luis', 'Mario', 'Ernesto', 'Alfredo'],
+        female: ['Diwata', 'Tala', 'Mayumi', 'Ligaya', 'Maria', 'Ana', 'Rosa', 'Carmen', 'Teresa', 'Gloria', 'Elena', 'Lucia', 'Isabel', 'Cristina', 'Patricia', 'Josefina', 'Luisa', 'Esperanza', 'Concepcion', 'Remedios', 'Corazon', 'Milagros', 'Felicidad', 'Paz', 'Soledad', 'Rosario', 'Aurora', 'Estrella', 'Angelica', 'Beatriz'],
+        surname: ['dela Cruz', 'Santos', 'Reyes', 'Garcia', 'Mendoza', 'Torres', 'Flores', 'Gonzales', 'Castillo', 'Cruz', 'Morales', 'Rodriguez', 'Lopez', 'Martinez', 'Hernandez', 'Villanueva', 'Santiago', 'Ramos', 'Aquino', 'Bautista', 'Fernandez', 'Gutierrez', 'Valdez', 'Rivera', 'Mercado', 'Dizon', 'Navarro', 'Salazar', 'Domingo', 'Aguilar']
     },
 
     // === EASTERN EUROPEAN SPECIFICS ===
@@ -847,391 +858,559 @@ export const REGION_NAME_MAPPING: Record<string, Record<string, Array<{
     after?: number;
     keys: string[];
 }>>> = {
-    "EUROPEAN": {
-        "Italy": [
-            { before: 476, keys: ['ANCIENT_ROMAN'] },
-            { after: 476, before: 800, keys: ['BYZANTINE', 'ITALIAN'] },
-            { after: 800, keys: ['ITALIAN'] }
-        ],
-        "France": [
-            { before: 486, keys: ['ANCIENT_ROMAN', 'FRANKISH_MEROVINGIAN'] },
-            { after: 486, before: 751, keys: ['FRANKISH_MEROVINGIAN'] },
-            { after: 751, before: 987, keys: ['FRANKISH_CAROLINGIAN'] },
-            { after: 987, before: 1100, keys: ['FRENCH_MEDIEVAL'] },
-            { after: 1100, before: 1450, keys: ['NORMAN_FRENCH', 'FRENCH_MEDIEVAL'] },
-            { after: 1450, keys: ['FRENCH'] }
-        ],
-        "Greece and Aegean": [
-            { before: 146, keys: ['ANCIENT_GREEK'] },
-            { after: 146, before: 330, keys: ['ANCIENT_GREEK', 'ANCIENT_ROMAN'] },
-            { after: 330, before: 1453, keys: ['BYZANTINE', 'GREEK'] },
-            { after: 1453, keys: ['GREEK', 'TURKISH'] }
-        ],
-        "British Isles": [
-            { before: 100, keys: ['CELTIC_ANCIENT'] },
-            { after: 100, before: 410, keys: ['CELTIC_ANCIENT', 'ANCIENT_ROMAN'] },
-            { after: 410, before: 800, keys: ['ENGLISH_ANGLO_SAXON', 'CELTIC_IRISH', 'WELSH', 'SCOTTISH'] },
-            { after: 800, before: 1066, keys: ['ENGLISH_ANGLO_SAXON', 'CELTIC_IRISH', 'WELSH', 'SCOTTISH', 'SCANDINAVIAN'] },
-            { after: 1066, before: 1300, keys: ['ENGLISH_MEDIEVAL', 'NORMAN_FRENCH', 'SCOTTISH', 'WELSH', 'CELTIC_IRISH'] },
-            { after: 1300, keys: ['ENGLISH', 'SCOTTISH', 'WELSH', 'CELTIC_IRISH'] }
-        ],
-        "Iberian Peninsula": [
-            { before: 711, keys: ['SPANISH_CASTILIAN', 'PORTUGUESE', 'ANCIENT_ROMAN'] },
-            { after: 711, before: 1492, keys: ['SPANISH_CASTILIAN', 'PORTUGUESE', 'ARABIC_LEVANT', 'HEBREW', 'BERBER_AMAZIGH'] },
-            { after: 1492, keys: ['SPANISH_CASTILIAN', 'PORTUGUESE'] }
-        ],
-        "Germanic Lands": [
-            { before: 400, keys: ['ANCIENT_ROMAN', 'GERMAN'] },
-            { after: 400, before: 800, keys: ['FRANKISH_MEROVINGIAN', 'GERMAN'] },
-            { after: 800, before: 1000, keys: ['FRANKISH_CAROLINGIAN', 'GERMAN'] },
-            { after: 1000, keys: ['GERMAN'] }
-        ],
-        "Scandinavia": [
-            { before: 1000, keys: ['SCANDINAVIAN'] },
-            { after: 1000, keys: ['SCANDINAVIAN'] }
-        ],
-        "Eastern Europe": [
-            { before: 800, keys: ['SLAVIC_MEDIEVAL', 'BYZANTINE'] },
-            { after: 800, before: 1000, keys: ['SLAVIC_MEDIEVAL', 'BYZANTINE', 'RUSSIAN'] },
-            { after: 1000, before: 1500, keys: ['RUSSIAN', 'POLISH', 'HUNGARIAN', 'CZECH'] },
-            { after: 1500, before: 1918, keys: ['POLISH', 'HUNGARIAN', 'CZECH', 'GERMAN'] },
-            { after: 1918, before: 1945, keys: ['POLISH', 'CZECH', 'HUNGARIAN', 'ROMANIAN'] },
-            { after: 1945, before: 1990, keys: ['POLISH', 'CZECH', 'HUNGARIAN', 'ROMANIAN'] },
-            { after: 1990, keys: ['POLISH', 'CZECH', 'HUNGARIAN', 'ROMANIAN'] }
-        ],
-        "Central Europe": [
-            { before: 800, keys: ['FRANKISH_MEROVINGIAN', 'SLAVIC_MEDIEVAL'] },
-            { after: 800, before: 1000, keys: ['FRANKISH_CAROLINGIAN', 'SLAVIC_MEDIEVAL'] },
-            { after: 1000, before: 1500, keys: ['GERMAN', 'CZECH', 'HUNGARIAN'] },
-            { after: 1500, before: 1918, keys: ['GERMAN', 'CZECH', 'HUNGARIAN'] },
-            { after: 1918, keys: ['GERMAN', 'CZECH', 'HUNGARIAN'] }
-        ],
-        "Low Countries": [
-            { before: 800, keys: ['FRANKISH_MEROVINGIAN'] },
-            { after: 800, before: 1000, keys: ['FRANKISH_CAROLINGIAN'] },
-            { after: 1000, before: 1500, keys: ['DUTCH', 'FRENCH'] },
-            { after: 1500, keys: ['DUTCH'] }
-        ],
-        "Ural and Arctic Europe": [
-            { before: 800, keys: ['PREHISTORIC_EUROPEAN'] },
-            { after: 800, keys: ['RUSSIAN'] }
-        ],
-        "Balkans": [
-            { before: 400, keys: ['ANCIENT_GREEK', 'ANCIENT_ROMAN'] },
-            { after: 400, before: 1453, keys: ['BYZANTINE', 'SLAVIC_MEDIEVAL'] },
-            { after: 1453, before: 1918, keys: ['TURKISH', 'SERBIAN', 'BULGARIAN', 'CROATIAN'] },
-            { after: 1918, keys: ['SERBIAN', 'BULGARIAN', 'CROATIAN'] }
-        ],
-        "Carpathian Foothills": [
-            { before: 1000, keys: ['SLAVIC_MEDIEVAL'] },
-            { after: 1000, before: 1500, keys: ['POLISH', 'HUNGARIAN', 'BOHEMIAN'] },
-            { after: 1500, before: 1918, keys: ['POLISH', 'HUNGARIAN', 'BOHEMIAN', 'GERMAN'] },
-            { after: 1918, before: 1945, keys: ['POLISH_MODERN', 'CZECH_MODERN', 'SLOVAK_MODERN', 'HUNGARIAN_MODERN', 'ROMANIAN'] },
-            { after: 1945, before: 1990, keys: ['POLISH_MODERN', 'CZECH_MODERN', 'SLOVAK_MODERN', 'EAST_GERMAN', 'ROMANIAN'] },
-            { after: 1990, keys: ['POLISH_MODERN', 'CZECH_MODERN', 'SLOVAK_MODERN', 'ROMANIAN'] }
-        ]
-    },
-    "NORTH_AMERICAN_COLONIAL": {
-        "Atlantic Coast": [
-            { after: 1607, before: 1776, keys: ['NORTH_AMERICAN_COLONIAL', 'ENGLISH', 'DUTCH'] },
-            { after: 1776, before: 1840, keys: ['NORTH_AMERICAN_COLONIAL', 'ENGLISH'] },
-            { after: 1840, before: 1920, keys: ['ENGLISH', 'CELTIC_IRISH', 'GERMAN', 'ITALIAN'] },
-            { after: 1920, keys: ['ENGLISH', 'CELTIC_IRISH', 'GERMAN', 'ITALIAN', 'JEWISH_ASHKENAZI', 'PUERTO_RICAN', 'AFRICAN_AMERICAN'] }
-        ],
-        "Northeast Woodlands": [
-            { after: 1624, before: 1776, keys: ['DUTCH', 'ENGLISH', 'NORTH_AMERICAN_COLONIAL'] },
-            { after: 1776, before: 1840, keys: ['ENGLISH', 'NORTH_AMERICAN_COLONIAL'] },
-            { after: 1840, before: 1920, keys: ['ENGLISH', 'CELTIC_IRISH', 'GERMAN', 'ITALIAN', 'DUTCH'] },
-            { after: 1920, keys: ['ENGLISH', 'CELTIC_IRISH', 'GERMAN', 'ITALIAN', 'JEWISH_ASHKENAZI', 'PUERTO_RICAN', 'AFRICAN_AMERICAN', 'CHINESE_CANTONESE'] }
-        ],
-        "Hudson River Valley": [
-            { after: 1624, before: 1664, keys: ['DUTCH', 'NORTH_AMERICAN_ALGONQUIAN'] },
-            { after: 1664, before: 1776, keys: ['ENGLISH', 'DUTCH', 'NORTH_AMERICAN_COLONIAL'] },
-            { after: 1776, before: 1840, keys: ['ENGLISH', 'DUTCH', 'NORTH_AMERICAN_COLONIAL'] },
-            { after: 1840, before: 1920, keys: ['ENGLISH', 'CELTIC_IRISH', 'GERMAN', 'ITALIAN', 'DUTCH'] },
-            { after: 1920, keys: ['ENGLISH', 'CELTIC_IRISH', 'GERMAN', 'ITALIAN', 'JEWISH_ASHKENAZI', 'PUERTO_RICAN', 'AFRICAN_AMERICAN', 'CHINESE_CANTONESE'] }
-        ],
-        "Southeast": [
-            { after: 1607, before: 1776, keys: ['ENGLISH', 'NORTH_AMERICAN_COLONIAL'] },
-            { after: 1776, before: 1865, keys: ['ENGLISH', 'NORTH_AMERICAN_COLONIAL', 'AFRICAN_AMERICAN'] },
-            { after: 1865, keys: ['ENGLISH', 'AFRICAN_AMERICAN', 'NORTH_AMERICAN_COLONIAL'] }
-        ],
-        "Southwest": [
-            { after: 1540, before: 1821, keys: ['SPANISH_CASTILIAN', 'PUEBLO'] },
-            { after: 1821, keys: ['SPANISH_LATIN_AMERICAN', 'PUEBLO'] }
-        ],
-        "Valley of Mexico": [
-            { after: 1521, before: 1821, keys: ['SPANISH_CASTILIAN', 'AZTEC'] },
-            { after: 1821, keys: ['SPANISH_LATIN_AMERICAN', 'AZTEC'] }
-        ],
-        "Mexico and Central Highlands": [
-            { after: 1521, before: 1821, keys: ['SPANISH_CASTILIAN', 'AZTEC'] },
-            { after: 1821, keys: ['SPANISH_LATIN_AMERICAN', 'AZTEC'] }
-        ],
-        "Great Lakes": [
-            { after: 1600, before: 1776, keys: ['FRENCH', 'NORTH_AMERICAN_ALGONQUIAN'] },
-            { after: 1776, keys: ['NORTH_AMERICAN_COLONIAL', 'FRENCH', 'NORTH_AMERICAN_ALGONQUIAN'] }
-        ]
-    },
-    "NORTH_AMERICAN_PRE_COLUMBIAN": {
-        "Atlantic Coast": [
-            { keys: ['NORTH_AMERICAN_ALGONQUIAN'] }
-        ],
-        "Northeast Woodlands": [
-            { keys: ['IROQUOIS_HAUDENOSAUNEE', 'NORTH_AMERICAN_ALGONQUIAN'] }
-        ],
-        "Southeast": [
-            { keys: ['CHEROKEE'] }
-        ],
-        "Southwest": [
-            { keys: ['APACHE', 'PUEBLO'] }
-        ],
-        "Great Plains": [
-            { keys: ['LAKOTA_SIOUX', 'PLAINS_NATIVE'] }
-        ],
+   "EUROPEAN": {
+    // British Isles
+    "British Isles": [
+        { before: -800, keys: ['PREHISTORIC_PROTO_INDO_EUROPEAN'] }, // Deep History: Bronze Age
+        { after: -800, before: 55, keys: ['PREHISTORIC_PROTO_CELTIC', 'CELTIC_ANCIENT'] }, // Iron Age Celts
+        { after: 55, before: 410, keys: ['CELTIC_ANCIENT', 'ANCIENT_ROMAN'] }, // Roman Britain
+        { after: 410, before: 793, keys: ['ENGLISH_ANGLO_SAXON', 'WELSH', 'SCOTTISH', 'CELTIC_IRISH'] },
+        { after: 793, before: 1066, keys: ['ENGLISH_ANGLO_SAXON', 'SCANDINAVIAN', 'WELSH', 'SCOTTISH', 'CELTIC_IRISH'] },
+        { after: 1066, before: 1300, keys: ['ENGLISH_MEDIEVAL', 'NORMAN_FRENCH', 'WELSH', 'SCOTTISH', 'CELTIC_IRISH'] },
+        { after: 1300, keys: ['ENGLISH', 'WELSH', 'SCOTTISH', 'CELTIC_IRISH'] }
+    ],
+    // France (Gaul)
+    "France": [
+        { before: -800, keys: ['PREHISTORIC_PROTO_INDO_EUROPEAN'] }, // Deep History: Bronze Age
+        { after: -800, before: -52, keys: ['PREHISTORIC_PROTO_CELTIC', 'CELTIC_ANCIENT'] }, // Iron Age Gauls
+        { after: -52, before: 486, keys: ['ANCIENT_ROMAN', 'PREHISTORIC_PROTO_GERMANIC'] }, // Roman Gaul & Frankish incursions
+        { after: 486, before: 751, keys: ['FRANKISH_MEROVINGIAN'] },
+        { after: 751, before: 987, keys: ['FRANKISH_CAROLINGIAN'] },
+        { after: 987, before: 1100, keys: ['FRENCH_MEDIEVAL', 'NORMAN_FRENCH'] },
+        { after: 1100, before: 1450, keys: ['FRENCH_MEDIEVAL'] },
+        { after: 1450, keys: ['FRENCH'] }
+    ],
+    // Iberian Peninsula
+    "Iberian Peninsula": [
+        { before: -800, keys: ['PREHISTORIC_PROTO_INDO_EUROPEAN'] }, // Deep History
+        { after: -800, before: -218, keys: ['PREHISTORIC_PROTO_CELTIC', 'CELTIC_ANCIENT'] }, // Celtiberian Iron Age
+        { after: -218, before: 410, keys: ['ANCIENT_ROMAN'] }, // Roman Hispania
+        { after: 410, before: 711, keys: ['ANCIENT_ROMAN', 'GERMAN'] }, // Visigothic period
+        { after: 711, before: 1200, keys: ['SPANISH_CASTILIAN', 'PORTUGUESE', 'GALICIAN', 'MAGHREBI', 'ARABIAN_HEJAZ', 'HEBREW'] },
+        { after: 1200, before: 1492, keys: ['SPANISH_CASTILIAN', 'PORTUGUESE', 'GALICIAN', 'MAGHREBI'] },
+        { after: 1492, keys: ['SPANISH_CASTILIAN', 'PORTUGUESE', 'GALICIAN'] }
+    ],
+     "Galicia": [
+        { before: -25, keys: ['PREHISTORIC_PROTO_CELTIC', 'CELTIC_ANCIENT'] }, // Pre-Roman Gallaeci
+        { after: -25, before: 410, keys: ['ANCIENT_ROMAN'] },
+        { after: 410, before: 711, keys: ['GERMAN'] }, // Suebi & Visigothic
+        { after: 711, keys: ['GALICIAN', 'PORTUGUESE', 'SPANISH_CASTILIAN'] }
+    ],
+    // Italy
+    "Italy": [
+        { before: -753, keys: ['PREHISTORIC_PROTO_INDO_EUROPEAN'] }, // Pre-Roman Italic Tribes
+        { after: -753, before: 476, keys: ['ANCIENT_ROMAN', 'ANCIENT_GREEK'] }, // Roman Republic/Empire
+        { after: 476, before: 774, keys: ['BYZANTINE', 'GERMAN'] }, // Ostrogothic/Lombard
+        { after: 774, before: 1400, keys: ['ITALIAN', 'BYZANTINE', 'NORMAN_FRENCH'] },
+        { after: 1400, keys: ['ITALIAN'] }
+    ],
+    // Germanic Lands
+    "Germanic Lands": [
+        { before: -500, keys: ['PREHISTORIC_PROTO_INDO_EUROPEAN'] }, // Pre-Germanic
+        { after: -500, before: 200, keys: ['PREHISTORIC_PROTO_GERMANIC'] }, // Core Proto-Germanic period
+        { after: 200, before: 486, keys: ['GERMAN', 'ANCIENT_ROMAN'] }, // Migration Period
+        { after: 486, before: 843, keys: ['FRANKISH_MEROVINGIAN', 'FRANKISH_CAROLINGIAN', 'GERMAN'] },
+        { after: 843, before: 1945, keys: ['GERMAN'] },
+        { after: 1945, before: 1990, keys: ['GERMAN', 'EAST_GERMAN', 'TURKISH'] },
+        { after: 1990, keys: ['GERMAN', 'TURKISH'] }
+    ],
+    // Central Europe
+    "Central Europe": [
+        { before: -400, keys: ['PREHISTORIC_PROTO_INDO_EUROPEAN'] },
+        { before: -100, keys: ['PREHISTORIC_PROTO_CELTIC', 'CELTIC_ANCIENT'] }, // Celtic heartland (e.g., Boii)
+        { after: -100, before: 500, keys: ['PREHISTORIC_PROTO_GERMANIC', 'GERMAN'] }, // Germanic migrations
+        { after: 500, before: 900, keys: ['SLAVIC_MEDIEVAL', 'FRANKISH_CAROLINGIAN', 'BOHEMIAN'] }, // Slavic migrations
+        { after: 900, before: 1918, keys: ['GERMAN', 'BOHEMIAN', 'HUNGARIAN', 'POLISH'] },
+        { after: 1918, keys: ['CZECH_MODERN', 'SLOVAK_MODERN', 'HUNGARIAN_MODERN', 'GERMAN'] }
+    ],
+    "Carpathian Foothills": [
+        { before: -100, keys: ['PREHISTORIC_PROTO_CELTIC'] },
+        { after: -100, before: 500, keys: ['PREHISTORIC_PROTO_GERMANIC', 'GERMAN'] },
+        { after: 500, before: 900, keys: ['SLAVIC_MEDIEVAL'] },
+        { after: 900, before: 1526, keys: ['HUNGARIAN', 'POLISH', 'TRANSYLVANIAN'] },
+        { after: 1526, before: 1918, keys: ['HUNGARIAN', 'POLISH', 'TRANSYLVANIAN', 'ROMANIAN', 'GERMAN'] },
+        { after: 1918, keys: ['HUNGARIAN_MODERN', 'POLISH_MODERN', 'SLOVAK_MODERN', 'ROMANIAN'] }
+    ],
+     "Transylvania": [
+        { before: 100, keys: ['CELTIC_ANCIENT'] }, // Dacian/Celtic period
+        { after: 100, before: 900, keys: ['SLAVIC_MEDIEVAL', 'GERMAN'] },
+        { after: 900, before: 1918, keys: ['TRANSYLVANIAN', 'HUNGARIAN', 'ROMANIAN', 'GERMAN'] },
+        { after: 1918, keys: ['ROMANIAN', 'HUNGARIAN_MODERN', 'GERMAN'] }
+    ],
+    // Balkans
+    "Balkans": [
+        { before: -400, keys: ['PREHISTORIC_PROTO_INDO_EUROPEAN'] }, // Paleo-Balkan tribes (Illyrians, Thracians)
+        { after: -400, before: 146, keys: ['ANCIENT_GREEK'] }, // Hellenistic influence
+        { after: 146, before: 600, keys: ['ANCIENT_ROMAN', 'ANCIENT_GREEK'] },
+        { after: 600, before: 1453, keys: ['BYZANTINE', 'SLAVIC_MEDIEVAL', 'SERBIAN', 'BULGARIAN', 'CROATIAN'] },
+        { after: 1453, before: 1912, keys: ['TURKISH', 'GREEK', 'SERBIAN', 'BULGARIAN', 'CROATIAN', 'ROMANIAN'] },
+        { after: 1912, before: 1991, keys: ['YUGOSLAV', 'GREEK', 'BULGARIAN', 'ROMANIAN'] },
+        { after: 1991, keys: ['SERBIAN', 'CROATIAN', 'BULGARIAN', 'GREEK', 'ROMANIAN'] }
+    ],
+    "Croatia and Environs": [
+        { before: -400, keys: ['PREHISTORIC_PROTO_INDO_EUROPEAN'] },
+        { before: -100, keys: ['PREHISTORIC_PROTO_CELTIC'] }, // Illyrian/Celtic tribes
+        { after: -100, before: 395, keys: ['ANCIENT_ROMAN'] },
+        { after: 395, before: 925, keys: ['SLAVIC_MEDIEVAL', 'BYZANTINE'] },
+        { after: 925, before: 1527, keys: ['CROATIAN', 'HUNGARIAN'] },
+        { after: 1527, before: 1918, keys: ['CROATIAN', 'HUNGARIAN', 'GERMAN'] },
+        { after: 1918, before: 1991, keys: ['YUGOSLAV'] },
+        { after: 1991, keys: ['CROATIAN'] }
+    ],
+    // Scandinavia
+    "Scandinavia": [
+        { before: -400, keys: ['PREHISTORIC_PROTO_INDO_EUROPEAN'] },
+        { before: 200, keys: ['PREHISTORIC_PROTO_GERMANIC'] }, // Nordic Bronze Age & Pre-Roman Iron Age
+        { after: 200, before: 793, keys: ['SCANDINAVIAN'] }, // Proto-Norse / Migration Period
+        { after: 793, before: 1100, keys: ['SCANDINAVIAN', 'ICELANDIC'] }, // Viking Age
+        { after: 1100, keys: ['SCANDINAVIAN', 'ICELANDIC'] }
+    ],
+    // Eastern Europe
+    "Eastern Europe": [
+       { before: -100, keys: ['PREHISTORIC_PROTO_INDO_EUROPEAN'] },
+        { before: 500, keys: ['PREHISTORIC_PROTO_GERMANIC'] }, // Gothic and other East Germanic tribes
+        { after: 500, before: 882, keys: ['SLAVIC_MEDIEVAL', 'SCANDINAVIAN', 'BYZANTINE'] },
+        { after: 882, before: 1240, keys: ['RUSSIAN', 'SLAVIC_MEDIEVAL'] }, // Kievan Rus'
+        { after: 1240, before: 1480, keys: ['RUSSIAN', 'MONGOLIAN_TRADITIONAL', 'TURKIC_STEPPE'] }, // Mongol Yoke
+        { after: 1480, before: 1721, keys: ['RUSSIAN', 'POLISH'] },
+        { after: 1721, keys: ['RUSSIAN', 'POLISH_MODERN', 'JEWISH_ASHKENAZI'] }
+    ],
+    // Low Countries
+    "Low Countries": [
+         { before: -400, keys: ['PREHISTORIC_PROTO_INDO_EUROPEAN'] },
+        { before: -58, keys: ['PREHISTORIC_PROTO_CELTIC', 'PREHISTORIC_PROTO_GERMANIC'] }, // Belgae tribes
+        { after: -58, before: 486, keys: ['ANCIENT_ROMAN', 'GERMAN'] },
+        { after: 486, before: 843, keys: ['FRANKISH_MEROVINGIAN', 'FRANKISH_CAROLINGIAN'] },
+        { after: 843, before: 1581, keys: ['DUTCH', 'FRENCH', 'GERMAN'] },
+        { after: 1581, keys: ['DUTCH', 'FRENCH'] }
+    ],
+    // Greece and Aegean
+    "Greece and Aegean": [
+        { before: -1200, keys: ['PREHISTORIC_PROTO_INDO_EUROPEAN'] }, // Represents pre-Mycenaean peoples
+        { after: -1200, before: 146, keys: ['ANCIENT_GREEK'] }, // Mycenaean, Classical, Hellenistic
+        { after: 146, before: 330, keys: ['ANCIENT_GREEK', 'ANCIENT_ROMAN'] },
+        { after: 330, before: 1453, keys: ['BYZANTINE'] },
+        { after: 1453, before: 1821, keys: ['GREEK', 'TURKISH', 'ITALIAN'] },
+        { after: 1821, keys: ['GREEK'] }
+    ],
+    // Ural and Arctic Europe
+    "Ural and Arctic Europe": [
+         { before: 200, keys: ['PREHISTORIC_PROTO_GERMANIC'] }, // Replaces the generic 'EUROPEAN'
+         { after: 200, before: 1200, keys: ['SCANDINAVIAN'] }, // Norse expansion
+         { after: 1200, keys: ['RUSSIAN', 'SCANDINAVIAN'] }
+    ],
+    // European waters (Generic entry for naval encounters etc.)
+    "European waters": [
+        { before: 800, keys: ['ANCIENT_ROMAN', 'ANCIENT_GREEK', 'PREHISTORIC_PROTO_CELTIC'] },
+        { after: 800, keys: ['SCANDINAVIAN', 'ENGLISH', 'FRENCH', 'SPANISH_CASTILIAN', 'ITALIAN', 'GREEK'] }
+    ]
+},
+    "NORTH_AMERICAN": {
+        // Pacific Coast & California
         "Pacific Coast": [
-            { keys: ['PACIFIC_NORTHWEST_COAST'] }
+            { before: 1769, keys: ['PACIFIC_NORTHWEST_COAST', 'CALIFORNIA_NATIVE'] },
+            { after: 1769, before: 1848, keys: ['PACIFIC_NORTHWEST_COAST', 'SPANISH_CASTILIAN', 'RUSSIAN'] },
+            { after: 1848, keys: ['ENGLISH', 'CHINESE_CANTONESE', 'SPANISH_LATIN_AMERICAN', 'PACIFIC_NORTHWEST_COAST'] }
         ],
         "Northern California": [
-            { keys: ['CALIFORNIA_NATIVE'] }
+            { before: 1769, keys: ['CALIFORNIA_NATIVE'] },
+            { after: 1769, before: 1848, keys: ['SPANISH_CASTILIAN', 'RUSSIAN', 'CALIFORNIA_NATIVE'] },
+            { after: 1848, keys: ['ENGLISH', 'TEXAS_ANGLO', 'CHINESE_CANTONESE', 'ITALIAN', 'SPANISH_LATIN_AMERICAN'] }
         ],
         "Central California Coast": [
-            { keys: ['CALIFORNIA_NATIVE'] }
+            { before: 1769, keys: ['CALIFORNIA_NATIVE'] },
+            { after: 1769, before: 1848, keys: ['SPANISH_CASTILIAN', 'CALIFORNIA_NATIVE'] },
+            { after: 1848, keys: ['ENGLISH', 'TEXAS_ANGLO', 'PORTUGUESE', 'FILIPINO', 'SPANISH_LATIN_AMERICAN'] }
         ],
         "Southern California": [
-            { keys: ['CALIFORNIA_NATIVE'] }
-        ]
-    },
-    "EAST_ASIAN": {
-        "North China Plain": [ 
-            { before: 220, keys: ['CHINESE_MANDARIN'] },
-            { after: 220, keys: ['CHINESE_MANDARIN'] }
+            { before: 1769, keys: ['CALIFORNIA_NATIVE'] },
+            { after: 1769, before: 1848, keys: ['SPANISH_CASTILIAN', 'AZTEC', 'CALIFORNIA_NATIVE'] },
+            { after: 1848, keys: ['TEXAS_ANGLO', 'SPANISH_LATIN_AMERICAN', 'AFRICAN_AMERICAN', 'CHINESE_CANTONESE', 'JAPANESE', 'KOREAN'] }
         ],
-        "South China": [ 
-            { before: 220, keys: ['CHINESE_CANTONESE'] },
-            { after: 220, keys: ['CHINESE_CANTONESE', 'VIETNAMESE'] }
+        // Southwest & Great Plains
+        "Southwest": [
+            { before: 1540, keys: ['PUEBLO', 'SOUTHWEST_NATIVE', 'APACHE'] },
+            { after: 1540, before: 1848, keys: ['TEXAS_SPANISH_COLONIAL', 'SPANISH_CASTILIAN', 'PUEBLO', 'APACHE'] },
+            { after: 1848, keys: ['TEXAS_ANGLO', 'SPANISH_LATIN_AMERICAN', 'PUEBLO', 'APACHE'] }
         ],
-        "Korean Peninsula": [
-            { before: 668, keys: ['KOREAN_ANCIENT'] },
-            { after: 668, before: 1392, keys: ['KOREAN_ANCIENT', 'KOREAN'] },
-            { after: 1392, keys: ['KOREAN'] }
+        "Great Plains": [
+            { before: 1700, keys: ['PLAINS_NATIVE', 'LAKOTA_SIOUX', 'APACHE'] },
+            { after: 1700, before: 1860, keys: ['PLAINS_NATIVE', 'LAKOTA_SIOUX', 'FRENCH', 'SPANISH_LATIN_AMERICAN'] },
+            { after: 1860, keys: ['TEXAS_ANGLO', 'GERMAN', 'SCANDINAVIAN', 'PLAINS_NATIVE', 'LAKOTA_SIOUX'] }
         ],
-        "Japanese Archipelago": [
-            { before: 1185, keys: ['JAPANESE'] },
-            { after: 1185, keys: ['JAPANESE'] }
+        // East and Midwest
+        "Mississippi Valley": [
+            { before: 1673, keys: ['CREEK_MUSKOGEE', 'ALGONQUIAN'] }, // Mississippian culture
+            { after: 1673, before: 1803, keys: ['FRENCH', 'CREEK_MUSKOGEE', 'SPANISH_CASTILIAN'] },
+            { after: 1803, keys: ['NORTH_AMERICAN_COLONIAL', 'AFRICAN_AMERICAN', 'GERMAN', 'CELTIC_IRISH'] }
         ],
-        "Mongolia": [
-            { before: 1206, keys: ['MONGOLIAN_TRADITIONAL'] },
-            { after: 1206, keys: ['MONGOLIAN_TRADITIONAL'] }
+        "Northeast Woodlands": [
+            { before: 1600, keys: ['IROQUOIS_HAUDENOSAUNEE', 'ALGONQUIAN'] },
+            { after: 1600, before: 1783, keys: ['NORTH_AMERICAN_COLONIAL', 'FRENCH', 'DUTCH', 'IROQUOIS_HAUDENOSAUNEE'] },
+            { after: 1783, keys: ['ENGLISH', 'FRENCH', 'GERMAN', 'CELTIC_IRISH', 'ITALIAN', 'POLISH'] }
         ],
-        "Kazakh Steppes": [
-            { keys: ['KAZAKH'] }
+        "Southeast": [
+            { before: 1550, keys: ['CHEROKEE', 'CREEK_MUSKOGEE'] },
+            { after: 1550, before: 1783, keys: ['SPANISH_CASTILIAN', 'ENGLISH', 'FRENCH', 'CHEROKEE'] },
+            { after: 1783, keys: ['NORTH_AMERICAN_COLONIAL', 'AFRICAN_AMERICAN', 'ENGLISH', 'SCOTTISH'] }
         ],
-        "Taiwan and East China Sea": [
-            { before: 1600, keys: ['CHINESE_CANTONESE'] },
-            { after: 1600, before: 1895, keys: ['CHINESE_CANTONESE'] },
-            { after: 1895, keys: ['CHINESE_CANTONESE', 'JAPANESE'] }
+        "Atlantic Coast": [
+            { before: 1607, keys: ['ALGONQUIAN'] },
+            { after: 1607, before: 1783, keys: ['NORTH_AMERICAN_COLONIAL', 'ENGLISH', 'DUTCH'] },
+            { after: 1783, before: 1900, keys: ['ENGLISH', 'AFRICAN_AMERICAN', 'CELTIC_IRISH', 'GERMAN'] },
+            { after: 1900, keys: ['ENGLISH', 'AFRICAN_AMERICAN', 'JEWISH_ASHKENAZI', 'ITALIAN', 'PUERTO_RICAN'] }
         ],
-        "Indochina Interior": [
-            { before: 1000, keys: ['KHMER'] },
-            { after: 1000, before: 1800, keys: ['VIETNAMESE', 'KHMER', 'THAI'] },
-            { after: 1800, keys: ['VIETNAMESE', 'KHMER', 'THAI', 'BURMESE'] }
+        // North
+        "Arctic and Subarctic": [
+            { before: 1730, keys: ['INUIT', 'ALGONQUIAN'] },
+            { after: 1730, keys: ['INUIT', 'RUSSIAN', 'FRENCH', 'ENGLISH', 'SCANDINAVIAN'] }
+        ],
+        "Northern Rockies": [
+            { before: 1805, keys: ['GREAT_BASIN_NATIVE', 'PLAINS_NATIVE'] },
+            { after: 1805, keys: ['ENGLISH', 'SCANDINAVIAN', 'GERMAN', 'GREAT_BASIN_NATIVE'] }
+        ],
+        // Mexico & Central America
+        "Mexico and Central Highlands": [
+            { before: 1521, keys: ['AZTEC'] },
+            { after: 1521, before: 1821, keys: ['SPANISH_CASTILIAN', 'AZTEC'] },
+            { after: 1821, keys: ['SPANISH_LATIN_AMERICAN'] }
+        ],
+        "Valley of Mexico": [
+            { before: 1521, keys: ['AZTEC'] },
+            { after: 1521, before: 1821, keys: ['SPANISH_CASTILIAN', 'AZTEC'] },
+            { after: 1821, keys: ['SPANISH_LATIN_AMERICAN'] }
+        ],
+        "Central America": [
+            { before: 1520, keys: ['AZTEC'] }, // proxy for Mayan/etc
+            { after: 1520, before: 1821, keys: ['SPANISH_CASTILIAN'] },
+            { after: 1821, keys: ['SPANISH_LATIN_AMERICAN', 'AFRICAN_AMERICAN'] }
+        ],
+        "The Caribbean": [
+            { before: 1492, keys: ['SOUTH_AMERICAN'] }, // proxy for Taino/Arawak
+            { after: 1492, before: 1898, keys: ['SPANISH_CASTILIAN', 'AFRICAN_AMERICAN', 'FRENCH', 'ENGLISH', 'DUTCH'] },
+            { after: 1898, keys: ['PUERTO_RICAN', 'SPANISH_LATIN_AMERICAN', 'AFRICAN_AMERICAN', 'ENGLISH', 'FRENCH'] }
         ]
     },
     "SOUTH_AMERICAN": {
         "Andes North": [
-            { before: 1532, keys: ['ANDEAN_QUECHUA'] },
-            { after: 1532, keys: ['SPANISH_LATIN_AMERICAN', 'ANDEAN_QUECHUA'] }
+            { before: 1533, keys: ['ANDEAN_QUECHUA'] },
+            { after: 1533, before: 1820, keys: ['SPANISH_CASTILIAN', 'ANDEAN_QUECHUA'] },
+            { after: 1820, keys: ['SPANISH_LATIN_AMERICAN', 'ANDEAN_QUECHUA'] }
+        ],
+        "Andes South": [
+            { before: 1533, keys: ['ANDEAN_QUECHUA'] },
+            { after: 1533, before: 1820, keys: ['SPANISH_CASTILIAN', 'ANDEAN_QUECHUA'] },
+            { after: 1820, keys: ['SPANISH_LATIN_AMERICAN', 'GERMAN', 'ITALIAN', 'ANDEAN_QUECHUA'] }
+        ],
+        "Amazon Basin": [
+            { before: 1541, keys: ['GUARANI', 'ANDEAN_QUECHUA'] },
+            { after: 1541, keys: ['PORTUGUESE_BRAZIL', 'SPANISH_LATIN_AMERICAN', 'GUARANI'] }
+        ],
+        "Gran Chaco and Pampas": [
+            { before: 1536, keys: ['GUARANI'] },
+            { after: 1536, before: 1816, keys: ['SPANISH_CASTILIAN', 'GUARANI'] },
+            { after: 1816, keys: ['SPANISH_LATIN_AMERICAN', 'ITALIAN', 'GERMAN', 'GUARANI'] }
         ],
         "Atlantic Coast": [
             { before: 1500, keys: ['GUARANI'] },
-            { after: 1500, keys: ['PORTUGUESE_BRAZIL', 'GUARANI'] }
+            { after: 1500, before: 1822, keys: ['PORTUGUESE', 'AFRICAN_AMERICAN', 'GUARANI', 'DUTCH'] },
+            { after: 1822, keys: ['PORTUGUESE_BRAZIL', 'AFRICAN_AMERICAN', 'ITALIAN', 'GERMAN', 'JAPANESE'] }
+        ],
+        "Guiana Shield": [
+            { before: 1600, keys: ['GUARANI', 'SOUTH_AMERICAN'] },
+            { after: 1600, keys: ['DUTCH', 'ENGLISH', 'FRENCH', 'AFRICAN_AMERICAN', 'HINDI'] }
         ],
         "Patagonia": [
-            { before: 1520, keys: ['GUARANI'] },
-            { after: 1520, keys: ['SPANISH_LATIN_AMERICAN'] }
+            { before: 1880, keys: ['GUARANI', 'SOUTH_AMERICAN'] },
+            { after: 1880, keys: ['SPANISH_LATIN_AMERICAN', 'WELSH', 'GERMAN'] }
+        ],
+        "Southern Highlands": [
+            { before: 1538, keys: ['ANDEAN_QUECHUA'] },
+            { after: 1538, before: 1825, keys: ['SPANISH_CASTILIAN', 'ANDEAN_QUECHUA'] },
+            { after: 1825, keys: ['SPANISH_LATIN_AMERICAN', 'ANDEAN_QUECHUA'] }
+        ],
+        "Llanos and Orinoco": [
+            { before: 1531, keys: ['SOUTH_AMERICAN'] },
+            { after: 1531, before: 1811, keys: ['SPANISH_CASTILIAN'] },
+            { after: 1811, keys: ['SPANISH_LATIN_AMERICAN'] }
         ]
     },
     "MENA": {
+        "Nile Valley": [
+            { before: 332, keys: ['PREHISTORIC_MENA'] },
+            { after: 332, before: 641, keys: ['ANCIENT_GREEK', 'ANCIENT_ROMAN', 'EGYPTIAN_COPTIC'] },
+            { after: 641, before: 1517, keys: ['ARABIC_LEVANT', 'EGYPTIAN_COPTIC'] },
+            { after: 1517, before: 1882, keys: ['TURKISH', 'ARABIC_LEVANT', 'EGYPTIAN_COPTIC'] },
+            { after: 1882, keys: ['ARABIC_LEVANT', 'EGYPTIAN_COPTIC', 'ENGLISH', 'FRENCH'] }
+        ],
+        "Nubian Corridor": [
+            { before: 785, keys: ['NUBIAN', 'EGYPTIAN_COPTIC'] },
+            { after: 785, keys: ['NUBIAN', 'ARABIAN_HEJAZ'] }
+        ],
         "Levant": [
-            { before: 636, keys: ['BYZANTINE', 'ARAMAIC', 'HEBREW'] },
-            { after: 636, keys: ['ARABIC_LEVANT', 'HEBREW', 'ARMENIAN'] }
-        ],
-        "Persia": [
-            { before: 651, keys: ['PERSIAN_FARSI'] },
-            { after: 651, keys: ['PERSIAN_FARSI', 'ARABIC_LEVANT'] }
-        ],
-        "Persian Khorasan": [
-            { keys: ['PERSIAN_KHORASAN'] }
+            { before: 332, keys: ['MESOPOTAMIAN_ANCIENT', 'HEBREW'] },
+            { after: 332, before: 636, keys: ['ANCIENT_GREEK', 'ANCIENT_ROMAN', 'BYZANTINE', 'HEBREW'] },
+            { after: 636, before: 1099, keys: ['ARABIC_LEVANT', 'LEVANTINE', 'BYZANTINE'] },
+            { after: 1099, before: 1291, keys: ['LEVANTINE', 'ARABIC_LEVANT', 'FRENCH_MEDIEVAL', 'ITALIAN'] }, // Crusader period
+            { after: 1291, before: 1918, keys: ['LEVANTINE', 'ARABIC_LEVANT', 'TURKISH',] },
+            { after: 1918, keys: ['LEVANTINE', 'HEBREW', 'ARABIC_LEVANT'] }
         ],
         "Anatolia": [
-            { before: 1071, keys: ['BYZANTINE', 'ARMENIAN'] },
-            { after: 1071, before: 1453, keys: ['BYZANTINE', 'TURKISH', 'ARMENIAN'] },
-            { after: 1453, keys: ['TURKISH', 'ARMENIAN', 'GREEK'] }
+            { before: 334, keys: ['PERSIAN_ANCIENT', 'ANCIENT_GREEK'] },
+            { after: 334, before: 1071, keys: ['BYZANTINE', 'ARMENIAN', 'GEORGIAN'] },
+            { after: 1071, before: 1453, keys: ['TURKIC_STEPPE', 'BYZANTINE', 'ARMENIAN', 'GREEK'] },
+            { after: 1453, before: 1922, keys: ['TURKISH', 'ARMENIAN', 'GREEK', 'HEBREW'] },
+            { after: 1922, keys: ['TURKISH'] }
         ],
-        "Arabia": [
-            { before: 622, keys: ['ARABIC_LEVANT'] },
-            { after: 622, keys: ['ARABIC_LEVANT'] }
+        "Mesopotamia": [
+            { before: 539, keys: ['MESOPOTAMIAN_ANCIENT'] },
+            { after: 539, before: 633, keys: ['PERSIAN_ANCIENT', 'ANCIENT_GREEK'] },
+            { after: 633, before: 1258, keys: ['ARABIAN_HEJAZ', 'PERSIAN_FARSI'] },
+            { after: 1258, before: 1534, keys: ['MONGOLIAN_TRADITIONAL', 'TURKIC_STEPPE', 'PERSIAN_FARSI'] },
+            { after: 1534, before: 1918, keys: ['TURKISH', 'ARABIC_LEVANT', 'PERSIAN_FARSI'] },
+            { after: 1918, keys: ['ARABIC_LEVANT', 'PERSIAN_FARSI'] }
+        ],
+        "Maghreb": [
+            { before: 146, keys: ['BERBER_AMAZIGH'] },
+            { after: 146, before: 647, keys: ['ANCIENT_ROMAN', 'BERBER_AMAZIGH'] },
+            { after: 647, before: 1500, keys: ['MAGHREBI', 'BERBER_AMAZIGH', 'ARABIAN_HEJAZ'] },
+            { after: 1500, before: 1962, keys: ['MAGHREBI', 'BERBER_AMAZIGH', 'TURKISH', 'FRENCH', 'SPANISH_CASTILIAN'] },
+            { after: 1962, keys: ['MAGHREBI', 'BERBER_AMAZIGH', 'FRENCH'] }
+        ],
+        "Arabian Peninsula": [
+            { before: 622, keys: ['ARABIAN_HEJAZ', 'HEBREW'] },
+            { after: 622, before: 1517, keys: ['ARABIAN_HEJAZ'] },
+            { after: 1517, before: 1918, keys: ['ARABIAN_HEJAZ', 'TURKISH'] },
+            { after: 1918, keys: ['ARABIAN_HEJAZ'] }
         ],
         "Hejaz Mountains": [
-            { keys: ['ARABIAN_HEJAZ'] }
+            { before: 1918, keys: ['ARABIAN_HEJAZ', 'TURKISH'] },
+            { after: 1918, keys: ['ARABIAN_HEJAZ'] }
         ],
-        "Red Sea Coast Yemen": [
-            { keys: ['ARABIC_LEVANT'] }
+        "Persian Plateau": [
+            { before: 651, keys: ['PERSIAN_ANCIENT', 'SOGDIAN'] },
+            { after: 651, before: 1220, keys: ['PERSIAN_FARSI', 'PERSIAN_KHORASAN', 'ARABIAN_HEJAZ'] },
+            { after: 1220, before: 1501, keys: ['PERSIAN_FARSI', 'MONGOLIAN_TRADITIONAL', 'TURKIC_STEPPE'] },
+            { after: 1501, keys: ['PERSIAN_FARSI'] }
         ],
-        "North Africa": [
-            { before: 647, keys: ['BERBER_AMAZIGH', 'BYZANTINE'] },
-            { after: 647, keys: ['ARABIC_LEVANT', 'BERBER_AMAZIGH'] }
-        ]
-    },
-    "SOUTH_ASIAN": {
-        "Northern India": [
-            { before: 1200, keys: ['HINDI'] },
-            { after: 1200, keys: ['HINDI', 'PERSIAN_FARSI'] }
-        ],
-        "Bengal": [
-            { before: 1200, keys: ['BENGALI'] },
-            { after: 1200, keys: ['BENGALI', 'PERSIAN_FARSI'] }
-        ],
-        "Southern India": [
-            { before: 1300, keys: ['TAMIL'] },
-            { after: 1300, keys: ['TAMIL'] }
-        ],
-        "Punjab": [
-            { before: 1000, keys: ['PUNJABI'] },
-            { after: 1000, keys: ['PUNJABI', 'PERSIAN_FARSI'] }
-        ],
-        "Gangetic Plain": [
-            { before: 1200, keys: ['HINDI', 'SANSKRIT_CLASSICAL'] },
-            { after: 1200, keys: ['HINDI', 'PERSIAN_FARSI'] }
-        ],
-        "Deccan Plateau": [
-            { before: 1300, keys: ['TAMIL', 'DRAVIDIAN'] },
-            { after: 1300, keys: ['TAMIL', 'HINDI'] }
+        "Caucasus": [
+            { before: 600, keys: ['ARMENIAN', 'GEORGIAN', 'PERSIAN_ANCIENT', 'ANCIENT_ROMAN'] },
+            { after: 600, before: 1800, keys: ['ARMENIAN', 'GEORGIAN', 'PERSIAN_FARSI', 'TURKISH'] },
+            { after: 1800, keys: ['ARMENIAN', 'GEORGIAN', 'RUSSIAN'] }
         ]
     },
     "SUB_SAHARAN_AFRICAN": {
-        "West Africa": [
-            { before: 1000, keys: ['YORUBA'] },
-            { after: 1000, keys: ['YORUBA'] }
+        "Sahel": [
+            { before: 800, keys: ['WEST_AFRICAN_SAHEL'] },
+            { after: 800, before: 1900, keys: ['WEST_AFRICAN_SAHEL', 'MAGHREBI'] },
+            { after: 1900, keys: ['WEST_AFRICAN_SAHEL', 'FRENCH'] }
         ],
-        "East Africa": [
-            { before: 1000, keys: ['SWAHILI'] },
-            { after: 1000, keys: ['SWAHILI', 'ARABIC_LEVANT'] }
+        "Upper Guinea": [
+            { before: 1500, keys: ['YORUBA', 'WEST_AFRICAN_SAHEL'] },
+            { after: 1500, before: 1960, keys: ['YORUBA', 'PORTUGUESE', 'ENGLISH', 'FRENCH'] },
+            { after: 1960, keys: ['YORUBA', 'WEST_AFRICAN_SAHEL'] }
+        ],
+        "Lower Guinea and Congo Basin": [
+            { before: 1480, keys: ['YORUBA', 'SUB_SAHARAN_AFRICAN'] },
+            { after: 1480, before: 1960, keys: ['YORUBA', 'PORTUGUESE', 'FRENCH', 'DUTCH'] },
+            { after: 1960, keys: ['YORUBA', 'FRENCH'] }
         ],
         "Horn of Africa": [
-            { before: 1000, keys: ['AMHARIC'] },
-            { after: 1000, keys: ['AMHARIC', 'ARABIC_LEVANT'] }
+            { before: 1270, keys: ['ETHIOPIAN_HIGHLAND'] },
+            { after: 1270, before: 1936, keys: ['AMHARIC', 'SWAHILI'] },
+            { after: 1936, keys: ['AMHARIC', 'ITALIAN'] }
+        ],
+        "East African Rift": [
+            { before: 700, keys: ['PREHISTORIC_AFRICAN'] },
+            { after: 700, before: 1880, keys: ['SWAHILI', 'ARABIAN_HEJAZ', 'RWANDA_BURUNDI'] },
+            { after: 1880, keys: ['SWAHILI', 'ENGLISH', 'GERMAN', 'HINDI'] }
+        ],
+        "Swahili Coast": [
+            { before: 700, keys: ['SWAHILI'] },
+            { after: 700, before: 1500, keys: ['SWAHILI', 'ARABIAN_HEJAZ', 'PERSIAN_FARSI'] },
+            { after: 1500, before: 1960, keys: ['SWAHILI', 'PORTUGUESE', 'ARABIAN_HEJAZ', 'ENGLISH'] },
+            { after: 1960, keys: ['SWAHILI'] }
         ],
         "Southern Africa": [
-            { before: 1000, keys: ['ZULU'] },
-            { after: 1000, keys: ['ZULU'] }
+            { before: 1652, keys: ['ZULU', 'SUB_SAHARAN_AFRICAN'] },
+            { after: 1652, before: 1994, keys: ['ZULU', 'DUTCH', 'ENGLISH', 'GERMAN'] },
+            { after: 1994, keys: ['ZULU', 'ENGLISH', 'DUTCH'] }
+        ],
+        "Central Africa": [
+            { before: 1870, keys: ['SUB_SAHARAN_AFRICAN', 'RWANDA_BURUNDI'] },
+            { after: 1870, keys: ['FRENCH', 'PORTUGUESE', 'RWANDA_BURUNDI'] }
+        ],
+        "West African Forests": [
+            { before: 1600, keys: ['YORUBA'] },
+            { after: 1600, before: 1960, keys: ['YORUBA', 'ENGLISH', 'AFRICAN_AMERICAN'] },
+            { after: 1960, keys: ['YORUBA'] }
         ],
         "Madagascar and Islands": [
-            { before: 1200, keys: ['MALAGASY_SAKALAVA'] },
-            { after: 1200, before: 1810, keys: ['MALAGASY_SAKALAVA', 'MALAGASY_BETSILEO'] },
-            { after: 1810, keys: ['MALAGASY_MERINA', 'MALAGASY_BETSILEO', 'MALAGASY_SAKALAVA'] }
+            { before: 1000, keys: ['MALAGASY_SAKALAVA', 'SWAHILI'] },
+            { after: 1000, before: 1817, keys: ['MALAGASY_SAKALAVA', 'MALAGASY_BETSILEO'] },
+            { after: 1817, before: 1897, keys: ['MALAGASY_MERINA', 'MALAGASY_BETSILEO', 'MALAGASY_SAKALAVA'] },
+            { after: 1897, keys: ['MALAGASY_MERINA', 'FRENCH'] }
         ]
-    },
-    "OCEANIA": {
-        "Polynesia": [
-            { keys: ['HAWAIIAN', 'TAHITIAN', 'SAMOAN', 'TONGAN'] }
-        ],
-        "Melanesia": [
-            { keys: ['FIJIAN', 'MELANESIAN'] }
-        ],
-        "Australia": [
-            { keys: ['ABORIGINAL_AUSTRALIAN'] }
-        ],
-        "Indonesian and Melanesian Islands": [
-            { keys: ['INDONESIAN', 'MALAY'] }
-        ],
-        "Major Seas and Oceans": [
-            { keys: ['POLYNESIAN', 'MELANESIAN'] }
-        ]
-    }
-};
-
-/**
- * Enhanced period-specific name mappings for better historical accuracy
- */
-export const PERIOD_NAME_MAPPING: Record<string, Record<string, string[]>> = {
-    "EUROPEAN": {
-        "prehistoric": ['PREHISTORIC_EUROPEAN'],
-        "antiquity": ['ANCIENT_GREEK', 'ANCIENT_ROMAN', 'CELTIC_IRISH', 'WELSH'],
-        "early_medieval": ['FRANKISH_MEROVINGIAN', 'FRANKISH_CAROLINGIAN', 'ENGLISH_ANGLO_SAXON', 'BYZANTINE', 'SLAVIC_MEDIEVAL'],
-        "high_medieval": ['ENGLISH_MEDIEVAL', 'FRENCH_MEDIEVAL', 'NORMAN_FRENCH', 'BYZANTINE', 'SLAVIC_MEDIEVAL', 'HUNGARIAN', 'POLISH', 'CZECH'],
-        "late_medieval": ['ENGLISH_MEDIEVAL', 'FRENCH_MEDIEVAL', 'ITALIAN', 'GERMAN', 'SPANISH_CASTILIAN', 'PORTUGUESE', 'POLISH', 'CZECH', 'HUNGARIAN'],
-        "renaissance": ['ENGLISH', 'FRENCH', 'ITALIAN', 'GERMAN', 'SPANISH_CASTILIAN', 'PORTUGUESE', 'POLISH', 'CZECH', 'HUNGARIAN'],
-        "early_modern": ['ENGLISH', 'FRENCH', 'ITALIAN', 'GERMAN', 'SPANISH_CASTILIAN', 'PORTUGUESE', 'DUTCH', 'SCANDINAVIAN', 'POLISH', 'CZECH', 'HUNGARIAN', 'ROMANIAN'],
-        "industrial": ['ENGLISH', 'FRENCH', 'ITALIAN', 'GERMAN', 'RUSSIAN', 'SCANDINAVIAN', 'POLISH', 'CZECH', 'HUNGARIAN', 'ROMANIAN', 'BULGARIAN', 'SERBIAN', 'CROATIAN'],
-        "modern": ['ENGLISH', 'FRENCH', 'ITALIAN', 'GERMAN', 'RUSSIAN', 'SCANDINAVIAN', 'GREEK', 'POLISH', 'CZECH', 'HUNGARIAN', 'ROMANIAN', 'BULGARIAN', 'SERBIAN', 'CROATIAN']
-    },
-    "NORTH_AMERICAN_PRE_COLUMBIAN": {
-        "prehistoric": ['PREHISTORIC_AMERICAN'],
-        "antiquity": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIS_HAUDENOSAUNEE', 'SOUTHWEST_NATIVE', 'PLAINS_NATIVE'],
-        "early_medieval": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIS_HAUDENOSAUNEE', 'APACHE', 'LAKOTA_SIOUX', 'PACIFIC_NORTHWEST_COAST'],
-        "high_medieval": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIS_HAUDENOSAUNEE', 'APACHE', 'LAKOTA_SIOUX', 'CHEROKEE', 'PACIFIC_NORTHWEST_COAST'],
-        "late_medieval": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIS_HAUDENOSAUNEE', 'APACHE', 'LAKOTA_SIOUX', 'CHEROKEE', 'PACIFIC_NORTHWEST_COAST', 'CALIFORNIA_NATIVE'],
-        "renaissance": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIS_HAUDENOSAUNEE', 'APACHE', 'LAKOTA_SIOUX', 'CHEROKEE', 'PACIFIC_NORTHWEST_COAST', 'CALIFORNIA_NATIVE'],
-        "early_modern": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIS_HAUDENOSAUNEE', 'APACHE', 'LAKOTA_SIOUX', 'CHEROKEE', 'PACIFIC_NORTHWEST_COAST', 'CALIFORNIA_NATIVE', 'GREAT_BASIN_NATIVE'],
-        "industrial": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIS_HAUDENOSAUNEE', 'APACHE', 'LAKOTA_SIOUX', 'CHEROKEE'],
-        "modern": ['NORTH_AMERICAN_ALGONQUIAN', 'IROQUOIS_HAUDENOSAUNEE', 'APACHE', 'LAKOTA_SIOUX', 'CHEROKEE']
-    },
-    "MENA": {
-        "prehistoric": ['PREHISTORIC_MENA'],
-        "antiquity": ['MESOPOTAMIAN_ANCIENT', 'EGYPTIAN_COPTIC', 'PERSIAN_ANCIENT'],
-        "early_medieval": ['ARABIAN_HEJAZ', 'LEVANTINE', 'MAGHREBI'],
-        "high_medieval": ['ARABIAN_HEJAZ', 'LEVANTINE', 'MAGHREBI', 'PERSIAN_KHORASAN'],
-        "late_medieval": ['ARABIAN_HEJAZ', 'LEVANTINE', 'MAGHREBI', 'PERSIAN_KHORASAN', 'TURKIC_STEPPE'],
-        "renaissance": ['ARABIAN_HEJAZ', 'LEVANTINE', 'MAGHREBI', 'PERSIAN_KHORASAN', 'TURKIC_STEPPE'],
-        "early_modern": ['ARABIAN_HEJAZ', 'LEVANTINE', 'MAGHREBI', 'PERSIAN_KHORASAN'],
-        "industrial": ['ARABIAN_HEJAZ', 'LEVANTINE', 'MAGHREBI'],
-        "modern": ['ARABIAN_HEJAZ', 'LEVANTINE', 'MAGHREBI']
-    },
-    "SUB_SAHARAN_AFRICAN": {
-        "prehistoric": ['PREHISTORIC_AFRICAN'],
-        "antiquity": ['NUBIAN', 'ETHIOPIAN_HIGHLAND', 'MALAGASY_SAKALAVA'],
-        "early_medieval": ['NUBIAN', 'ETHIOPIAN_HIGHLAND', 'WEST_AFRICAN_SAHEL', 'MALAGASY_SAKALAVA'],
-        "high_medieval": ['NUBIAN', 'ETHIOPIAN_HIGHLAND', 'WEST_AFRICAN_SAHEL', 'YORUBA', 'SWAHILI', 'MALAGASY_SAKALAVA', 'MALAGASY_BETSILEO'],
-        "late_medieval": ['ETHIOPIAN_HIGHLAND', 'WEST_AFRICAN_SAHEL', 'YORUBA', 'SWAHILI', 'RWANDA_BURUNDI', 'MALAGASY_SAKALAVA', 'MALAGASY_BETSILEO'],
-        "renaissance": ['ETHIOPIAN_HIGHLAND', 'WEST_AFRICAN_SAHEL', 'YORUBA', 'SWAHILI', 'RWANDA_BURUNDI', 'MALAGASY_SAKALAVA', 'MALAGASY_BETSILEO', 'MALAGASY_MERINA'],
-        "early_modern": ['ETHIOPIAN_HIGHLAND', 'WEST_AFRICAN_SAHEL', 'YORUBA', 'SWAHILI', 'RWANDA_BURUNDI', 'MALAGASY_MERINA', 'MALAGASY_BETSILEO', 'MALAGASY_SAKALAVA'],
-        "industrial": ['ETHIOPIAN_HIGHLAND', 'WEST_AFRICAN_SAHEL', 'YORUBA', 'SWAHILI', 'MALAGASY_MERINA'],
-        "modern": ['ETHIOPIAN_HIGHLAND', 'WEST_AFRICAN_SAHEL', 'YORUBA', 'SWAHILI', 'MALAGASY_MERINA']
     },
     "SOUTH_ASIAN": {
-        "prehistoric": ['PREHISTORIC_ASIAN'],
-        "antiquity": ['SANSKRIT_CLASSICAL', 'DRAVIDIAN'],
-        "early_medieval": ['SANSKRIT_CLASSICAL', 'DRAVIDIAN', 'BENGALI'],
-        "high_medieval": ['RAJPUT', 'DRAVIDIAN', 'BENGALI', 'HINDI'],
-        "late_medieval": ['RAJPUT', 'DRAVIDIAN', 'BENGALI', 'HINDI', 'PUNJABI'],
-        "renaissance": ['RAJPUT', 'DRAVIDIAN', 'BENGALI', 'HINDI', 'PUNJABI'],
-        "early_modern": ['RAJPUT', 'DRAVIDIAN', 'BENGALI', 'HINDI', 'PUNJABI', 'TAMIL'],
-        "industrial": ['BENGALI', 'HINDI', 'PUNJABI', 'TAMIL'],
-        "modern": ['BENGALI', 'HINDI', 'PUNJABI', 'TAMIL']
+        "Indus Valley": [
+            { before: 1206, keys: ['SANSKRIT_CLASSICAL', 'PUNJABI'] },
+            { after: 1206, before: 1857, keys: ['PUNJABI', 'PERSIAN_FARSI', 'HINDI'] },
+            { after: 1857, keys: ['PUNJABI', 'HINDI', 'ENGLISH'] }
+        ],
+        "Gangetic Plain": [
+            { before: 1206, keys: ['SANSKRIT_CLASSICAL', 'HINDI'] },
+            { after: 1206, before: 1857, keys: ['HINDI', 'PERSIAN_FARSI', 'RAJPUT'] },
+            { after: 1857, keys: ['HINDI', 'BENGALI', 'ENGLISH'] }
+        ],
+        "Deccan Plateau": [
+            { before: 1347, keys: ['DRAVIDIAN', 'TAMIL'] },
+            { after: 1347, before: 1857, keys: ['TAMIL', 'DRAVIDIAN', 'HINDI', 'PERSIAN_FARSI'] },
+            { after: 1857, keys: ['TAMIL', 'DRAVIDIAN', 'HINDI', 'ENGLISH'] }
+        ],
+        "Himalayas and Northeast": [
+            { keys: ['SANSKRIT_CLASSICAL', 'HINDI', 'BENGALI', 'CHINESE_MANDARIN'] }
+        ],
+        "Central India": [
+            { before: 1200, keys: ['SANSKRIT_CLASSICAL', 'DRAVIDIAN'] },
+            { after: 1200, keys: ['HINDI', 'RAJPUT', 'BENGALI'] }
+        ],
+        "Sri Lanka": [
+            { before: 1505, keys: ['DRAVIDIAN', 'TAMIL', 'SANSKRIT_CLASSICAL'] },
+            { after: 1505, before: 1948, keys: ['TAMIL', 'PORTUGUESE', 'DUTCH', 'ENGLISH'] },
+            { after: 1948, keys: ['TAMIL', 'ENGLISH'] }
+        ],
+        // Southeast Asia
+        "Mainland Southeast Asia": [
+            { before: 1000, keys: ['KHMER', 'BURMESE'] },
+            { after: 1000, before: 1887, keys: ['KHMER', 'VIETNAMESE', 'THAI', 'BURMESE', 'MALAY'] },
+            { after: 1887, keys: ['VIETNAMESE', 'THAI', 'KHMER', 'FRENCH', 'ENGLISH'] }
+        ],
+        "Indochina Interior": [
+            { before: 1893, keys: ['THAI', 'KHMER', 'VIETNAMESE'] },
+            { after: 1893, keys: ['THAI', 'FRENCH', 'VIETNAMESE'] }
+        ],
+        "Maritime Southeast Asia": [
+           { before: 800, keys: ['INDONESIAN', 'VIETNAMESE'] },
+            { before: 1300, keys: ['MALAY', 'INDONESIAN', 'DRAVIDIAN', 'VIETNAMESE'] },
+            { after: 1300, before: 1945, keys: ['MALAY', 'INDONESIAN', 'ARABIC_TRADITIONAL', 'PORTUGUESE', 'DUTCH', 'ENGLISH'] },
+            { after: 1945, keys: ['MALAY', 'INDONESIAN', 'CHINESE_CANTONESE'] }
+        ],
+        "Philippines": [
+            { before: 1565, keys: ['MELANESIAN'] },
+            { after: 1565, before: 1898, keys: ['FILIPINO', 'SPANISH_CASTILIAN'] },
+            { after: 1898, keys: ['FILIPINO', 'ENGLISH', 'SPANISH_LATIN_AMERICAN', 'JAPANESE'] }
+        ],
+        "Taiwan and East China Sea": [
+            { before: 1624, keys: ['CHINESE_CANTONESE', 'POLYNESIAN'] },
+            { after: 1624, before: 1895, keys: ['CHINESE_CANTONESE', 'DUTCH'] },
+            { after: 1895, before: 1945, keys: ['JAPANESE', 'CHINESE_MANDARIN'] },
+            { after: 1945, keys: ['CHINESE_MANDARIN'] }
+        ]
     },
     "EAST_ASIAN": {
-        "prehistoric": ['PREHISTORIC_ASIAN'],
-        "antiquity": ['CHINESE_MANDARIN', 'CHINESE_CANTONESE', 'JAPANESE', 'KOREAN'],
-        "early_medieval": ['CHINESE_MANDARIN', 'CHINESE_CANTONESE', 'JAPANESE', 'KOREAN', 'MONGOLIAN_TRADITIONAL'],
-        "high_medieval": ['CHINESE_MANDARIN', 'CHINESE_CANTONESE', 'JAPANESE', 'KOREAN', 'MONGOLIAN_TRADITIONAL', 'VIETNAMESE', 'THAI'],
-        "late_medieval": ['CHINESE_MANDARIN', 'CHINESE_CANTONESE', 'JAPANESE', 'KOREAN', 'MONGOLIAN_TRADITIONAL', 'VIETNAMESE', 'THAI', 'KHMER', 'BURMESE'],
-        "renaissance": ['CHINESE_MANDARIN', 'CHINESE_CANTONESE', 'JAPANESE', 'KOREAN', 'VIETNAMESE', 'THAI', 'KHMER', 'BURMESE'],
-        "early_modern": ['CHINESE_MANDARIN', 'CHINESE_CANTONESE', 'JAPANESE', 'KOREAN', 'VIETNAMESE', 'THAI', 'KHMER', 'BURMESE', 'MALAY', 'INDONESIAN', 'KAZAKH', 'UZBEK'],
-        "industrial": ['CHINESE_MANDARIN', 'CHINESE_CANTONESE', 'JAPANESE', 'KOREAN', 'VIETNAMESE', 'THAI', 'KAZAKH', 'UZBEK', 'KYRGYZ', 'TURKMEN'],
-        "modern": ['CHINESE_MANDARIN', 'CHINESE_CANTONESE', 'JAPANESE', 'KOREAN', 'VIETNAMESE', 'THAI', 'MALAY', 'INDONESIAN', 'KAZAKH', 'UZBEK', 'KYRGYZ', 'TURKMEN']
+        "Siberia": [
+            { before: 1600, keys: ['PREHISTORIC_ASIAN', 'TURKIC_STEPPE'] },
+            { after: 1600, keys: ['RUSSIAN'] }
+        ],
+        "Kazakh Steppes": [
+            { before: 1200, keys: ['TURKIC_STEPPE', 'SOGDIAN', 'PERSIAN_KHORASAN'] },
+            { after: 1200, before: 1850, keys: ['MONGOLIAN_TRADITIONAL', 'KAZAKH', 'TURKIC_STEPPE'] },
+            { after: 1850, keys: ['KAZAKH', 'RUSSIAN'] }
+        ],
+        "Khorasan": [
+            { before: 651, keys: ['PERSIAN_ANCIENT', 'SOGDIAN'] },
+            { after: 651, before: 1220, keys: ['PERSIAN_KHORASAN', 'TURKIC_STEPPE'] },
+            { after: 1220, keys: ['PERSIAN_KHORASAN', 'MONGOLIAN_TRADITIONAL', 'UZBEK'] }
+        ],
+        "Transoxiana": [
+            { before: 712, keys: ['SOGDIAN', 'PERSIAN_ANCIENT'] },
+            { after: 712, before: 1220, keys: ['PERSIAN_KHORASAN', 'SOGDIAN', 'TURKIC_STEPPE'] },
+            { after: 1220, before: 1873, keys: ['UZBEK', 'MONGOLIAN_TRADITIONAL', 'PERSIAN_FARSI'] },
+            { after: 1873, keys: ['UZBEK', 'KYRGYZ', 'RUSSIAN'] }
+        ],
+        "Central Asian Oases": [
+            { before: 1220, keys: ['SOGDIAN', 'PERSIAN_KHORASAN', 'TURKIC_STEPPE'] },
+            { after: 1220, before: 1873, keys: ['UZBEK', 'TURKMEN', 'MONGOLIAN_TRADITIONAL'] },
+            { after: 1873, keys: ['UZBEK', 'TURKMEN', 'KYRGYZ', 'RUSSIAN'] }
+        ],
+        "Mongolia and Manchuria": [
+            { before: 1206, keys: ['MONGOLIAN', 'TURKIC_STEPPE'] },
+            { after: 1206, before: 1700, keys: ['MONGOLIAN', 'MONGOLIAN_TRADITIONAL'] },
+            { after: 1700, keys: ['MONGOLIAN', 'CHINESE_MANDARIN'] }
+        ],
+        "North China Plain": [
+            { before: 1279, keys: ['CHINESE_MANDARIN'] },
+            { after: 1279, before: 1368, keys: ['MONGOLIAN_TRADITIONAL', 'CHINESE_MANDARIN'] }, // Yuan Dynasty
+            { after: 1368, before: 1644, keys: ['CHINESE_MANDARIN'] }, // Ming Dynasty
+            { after: 1644, before: 1912, keys: ['CHINESE_MANDARIN'] }, // Qing Dynasty (Manchu)
+            { after: 1912, keys: ['CHINESE_MANDARIN'] }
+        ],
+        "South China": [
+            { before: 1900, keys: ['CHINESE_CANTONESE', 'VIETNAMESE'] },
+            { after: 1900, keys: ['CHINESE_CANTONESE', 'ENGLISH', 'PORTUGUESE'] }
+        ],
+        "West China and Tibet": [
+            { keys: ['CHINESE_MANDARIN', 'PREHISTORIC_ASIAN'] }
+        ],
+        "Japan": [
+            { keys: ['JAPANESE'] } // Relatively isolated
+        ],
+        "Korea": [
+            { before: 668, keys: ['KOREAN_ANCIENT'] },
+            { after: 668, before: 1910, keys: ['KOREAN'] },
+            { after: 1910, before: 1945, keys: ['KOREAN', 'JAPANESE'] },
+            { after: 1945, keys: ['KOREAN'] }
+        ]
     },
     "OCEANIA": {
-        "prehistoric": ['PREHISTORIC_OCEANIC'],
-        "antiquity": ['HAWAIIAN', 'TAHITIAN', 'SAMOAN', 'TONGAN', 'FIJIAN', 'ABORIGINAL_AUSTRALIAN'],
-        "early_medieval": ['HAWAIIAN', 'TAHITIAN', 'SAMOAN', 'TONGAN', 'FIJIAN', 'ABORIGINAL_AUSTRALIAN'],
-        "high_medieval": ['HAWAIIAN', 'TAHITIAN', 'SAMOAN', 'TONGAN', 'FIJIAN', 'ABORIGINAL_AUSTRALIAN'],
-        "late_medieval": ['HAWAIIAN', 'TAHITIAN', 'SAMOAN', 'TONGAN', 'FIJIAN', 'ABORIGINAL_AUSTRALIAN'],
-        "renaissance": ['HAWAIIAN', 'TAHITIAN', 'SAMOAN', 'TONGAN', 'FIJIAN', 'ABORIGINAL_AUSTRALIAN'],
-        "early_modern": ['HAWAIIAN', 'TAHITIAN', 'SAMOAN', 'TONGAN', 'FIJIAN', 'ABORIGINAL_AUSTRALIAN', 'MALAY', 'INDONESIAN'],
-        "industrial": ['HAWAIIAN', 'TAHITIAN', 'SAMOAN', 'TONGAN', 'FIJIAN', 'ABORIGINAL_AUSTRALIAN', 'MALAY', 'INDONESIAN'],
-        "modern": ['HAWAIIAN', 'TAHITIAN', 'SAMOAN', 'TONGAN', 'FIJIAN', 'ABORIGINAL_AUSTRALIAN', 'MALAY', 'INDONESIAN']
+        // Australia
+        "Australia – Southeast": [
+            { before: 1788, keys: ['ABORIGINAL_AUSTRALIAN'] },
+            { after: 1788, keys: ['ENGLISH', 'CELTIC_IRISH'] }
+        ],
+        "Australia – Outback and Center": [
+            { before: 1870, keys: ['ABORIGINAL_AUSTRALIAN'] },
+            { after: 1870, keys: ['ENGLISH', 'CELTIC_IRISH', 'ABORIGINAL_AUSTRALIAN'] }
+        ],
+        "Australia – North and Queensland": [
+            { before: 1824, keys: ['ABORIGINAL_AUSTRALIAN'] },
+            { after: 1824, keys: ['ENGLISH', 'CELTIC_IRISH', 'CHINESE_CANTONESE', 'MELANESIAN'] }
+        ],
+        "Australia – West and Desert": [
+            { before: 1829, keys: ['ABORIGINAL_AUSTRALIAN'] },
+            { after: 1829, keys: ['ENGLISH', 'CELTIC_IRISH'] }
+        ],
+        // Pacific Islands
+        "New Zealand": [
+            { before: 1840, keys: ['POLYNESIAN'] },
+            { after: 1840, keys: ['ENGLISH', 'SCOTTISH', 'POLYNESIAN'] }
+        ],
+        "New Guinea and Melanesia": [
+            { before: 1884, keys: ['MELANESIAN'] },
+            { after: 1884, keys: ['MELANESIAN', 'ENGLISH', 'GERMAN', 'DUTCH'] }
+        ],
+        "Polynesia": [
+            { before: 1767, keys: ['TAHITIAN', 'TONGAN', 'SAMOAN', 'POLYNESIAN'] },
+            { after: 1767, keys: ['TAHITIAN', 'SAMOAN', 'TONGAN', 'FRENCH', 'ENGLISH', 'GERMAN'] }
+        ],
+        "Micronesia": [
+            { before: 1668, keys: ['POLYNESIAN', 'MELANESIAN'] },
+            { after: 1668, keys: ['SPANISH_CASTILIAN', 'GERMAN', 'JAPANESE', 'ENGLISH'] }
+        ],
+        "Hawaii and Central Pacific": [
+            { before: 1778, keys: ['HAWAIIAN'] },
+            { after: 1778, keys: ['HAWAIIAN', 'ENGLISH', 'CHINESE_CANTONESE', 'JAPANESE', 'PORTUGUESE', 'FILIPINO'] }
+        ],
+        "Indonesian and Melanesian Islands": [
+            { before: 1512, keys: ['INDONESIAN', 'MALAY', 'MELANESIAN'] },
+            { after: 1512, before: 1949, keys: ['INDONESIAN', 'MALAY', 'MELANESIAN', 'PORTUGUESE', 'DUTCH'] },
+            { after: 1949, keys: ['INDONESIAN', 'MALAY'] }
+        ],
+        "Major Seas and Oceans": [
+            { before: 1500, keys: ['POLYNESIAN', 'MELANESIAN', 'SWAHILI', 'ARABIAN_HEJAZ', 'CHINESE_CANTONESE'] },
+            { after: 1500, keys: ['ENGLISH', 'SPANISH_CASTILIAN', 'PORTUGUESE', 'DUTCH', 'FRENCH', 'POLYNESIAN'] }
+        ]
     }
 };
 

@@ -83,6 +83,7 @@ export interface PlayerCharacter {
 
     inventory: Item[];
     equippedItems: Partial<Record<EquipmentSlot, Item>>;
+    isNaked?: boolean; // Computed: true if no torso item equipped
     
     party: PartyMember[];
     eventLog: GameEvent[];

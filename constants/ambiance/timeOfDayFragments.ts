@@ -5,12 +5,13 @@ export const AMBIANCE_TIMEOFDAY_FRAGMENTS: Record<TimeOfDay, string[]> = {
   Dawn: [
     "The first light of dawn paints the sky.",
     "The world awakens as darkness recedes.",
-    "A cool mist hangs in the early morning air."
+    "A cool mist hangs in the early morning air.",
+    "It is a beautiful dawn."
   ],
   Morning: [
-    "The sun climbs higher, warming the land.",
-    "Morning dew glitters on the ground.",
-    "The day begins with a sense of activity."
+    "The sun climbs higher.",
+    "Morning dew glitters.",
+    "The day begins."
   ],
   Midday: [
     "The sun is high in the sky.",

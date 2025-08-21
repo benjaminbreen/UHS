@@ -7,6 +7,7 @@ import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
 import { usePlayer } from '../contexts/PlayerContext';
 import { useGame } from '../contexts/GameContext';
+import { useEventSystem } from '../hooks/useEventSystem';
 import { MapDisplayOptimized } from './MapDisplayOptimized';
 import { InteriorMapDisplay } from './interiorMap';
 import BeautifulInteriorMapDisplay from './interiorMap/BeautifulInteriorMapDisplay';
@@ -53,12 +54,37 @@ const MapViewport: React.FC = () => {
     const { 
         sunPosition, formattedDate, season, ambianceText, 
         actionableTile, contextualMessage, gameTimeHours, gameTimeMinutes,
-        isLoading, isLoadingFromCache
+        isLoading, isLoadingFromCache, setGameDate, gameDate
     } = useGame();
+    
+    const eventSystem = useEventSystem();
     
     const [activePanel, setActivePanel] = useState<ActivePanel>(null);
     const [showBottomPanel, setShowBottomPanel] = useState(false);
     const { isMobile } = useDeviceDetection();
+    
+    // Function to progress time by months
+    const handleProgressTime = useCallback((months: number) => {
+        if (!gameDate) return;
+        
+        let newMonth = gameDate.month + months;
+        let newYear = gameDate.year;
+        
+        while (newMonth > 12) {
+            newMonth -= 12;
+            newYear += 1;
+        }
+        
+        setGameDate({ ...gameDate, month: newMonth, year: newYear });
+    }, [gameDate, setGameDate]);
+    
+    // Function to show work event
+    const handleShowWorkEvent = useCallback((event: any) => {
+        // For now, we'll show a simple alert since event system doesn't expose triggerEvent
+        // In a real implementation, this would integrate with the event modal system
+        const message = `${event.description}\n\nYou earned ${event.outcomes[0].effects.find((e: any) => e.type === 'currency')?.value || 0} coins!`;
+        alert(message);
+    }, []);
     
     // Initialize bottom panel visibility based on device
     useEffect(() => {
@@ -298,7 +324,20 @@ const MapViewport: React.FC = () => {
             </div>
           )}
           {activePanel === 'farm' && actionableTile && playerCharacter && mapData && (
-            <FarmPanel tile={actionableTile.tile} mapData={mapData} npcs={visibleNpcs} playerCharacter={playerCharacter} onClose={() => setActivePanel(null)} onBuy={onBuyItem} onSell={onSellItem} useLlm={useLlmForDescriptions} season={season} />
+            <FarmPanel 
+              tile={actionableTile.tile} 
+              mapData={mapData} 
+              npcs={visibleNpcs} 
+              playerCharacter={playerCharacter} 
+              onClose={() => setActivePanel(null)} 
+              onBuy={onBuyItem} 
+              onSell={onSellItem} 
+              useLlm={useLlmForDescriptions} 
+              season={season}
+              gameTimeHours={gameTimeHours}
+              onProgressTime={handleProgressTime}
+              onShowEvent={handleShowWorkEvent}
+            />
           )}
         </main>
     );

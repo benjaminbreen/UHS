@@ -4,7 +4,7 @@
 import { Tile, ClimateType, NpcEntity, HistoricalEra, MapData, TerrainStructure, BiomeType, Appearance, Item, EquipmentSlot, ClothingPiece, Point, SocietalProfile } from '../../../types';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES, CulturalZone, STRUCTURE_BLUEPRINTS, PROFESSIONS, ProfessionDefinition, FACTION_DATA, GEOGRAPHICAL_DATA, STARTING_PACKAGES, SOCIETAL_PROFILES } from '../../../constants/index';
 import { ValueNoise } from '../../../utils/noise';
-import { generateBaseProfile, determineSocialRole, generateNpcName, assignBeliefs } from '../../common/npcUtils';
+import { generateBaseProfile, determineSocialRole, generateNpcName, assignBeliefs, generateCompleteOutfit } from '../../common/npcUtils';
 import { parseDateString } from '../../../utils/dateUtils';
 import { generateNpcDescriptions } from '../../../services/npcDescriptionService';
 import { mapLocationToCulture } from '../../../utils/mapUtils';
@@ -64,15 +64,108 @@ function createNpc(
         }
 
         // Constrain wealth level based on social class for realism
-        if (socialClass === 'COMMONER' && (baseProfile.wealthLevel === 'comfortable' || baseProfile.wealthLevel === 'wealthy' || baseProfile.wealthLevel === 'noble')) {
-            baseProfile.wealthLevel = noise.random() > 0.7 ? 'modest' : 'poor';
-        }
-        if ((socialClass === 'ARTISAN' || socialClass === 'MERCHANT') && (baseProfile.wealthLevel === 'poor' || baseProfile.wealthLevel === 'wealthy' || baseProfile.wealthLevel === 'noble')) {
-            baseProfile.wealthLevel = noise.random() > 0.5 ? 'comfortable' : 'modest';
-        }
-        if ((socialClass === 'NOBILITY' || socialClass === 'CLERGY' || socialClass === 'CITIZEN' || socialClass === 'SCHOLAR_OFFICIAL') && (baseProfile.wealthLevel === 'poor')) {
-            baseProfile.wealthLevel = 'modest';
-        }
+        // Map all social class types to appropriate wealth levels
+        const socialClassToWealthLevel = (socialClass: string, noise: ValueNoise) => {
+            const lowerClass = socialClass.toLowerCase();
+            
+            // Working class variants
+            if (lowerClass.includes('working') || lowerClass.includes('laborer') || 
+                lowerClass.includes('worker') || lowerClass === 'working_poor') {
+                return noise.random() > 0.8 ? 'modest' : 'poor';
+            }
+            
+            // Commoners and peasants
+            if (socialClass === 'COMMONER' || lowerClass.includes('peasant')) {
+                return noise.random() > 0.7 ? 'modest' : 'poor';
+            }
+            
+            // Artisans, merchants, skilled workers
+            if (socialClass === 'ARTISAN' || socialClass === 'MERCHANT' || 
+                lowerClass.includes('skilled') || lowerClass.includes('trader')) {
+                return noise.random() > 0.5 ? 'comfortable' : 'modest';
+            }
+            
+            // Upper classes
+            if (socialClass === 'NOBILITY' || socialClass === 'CLERGY' || 
+                socialClass === 'CITIZEN' || socialClass === 'SCHOLAR_OFFICIAL' ||
+                lowerClass.includes('elite') || lowerClass.includes('royal')) {
+                return noise.random() > 0.3 ? 'wealthy' : 'comfortable';
+            }
+            
+            // Default fallback
+            return 'modest';
+        };
+        
+        // Apply the appropriate wealth level
+        baseProfile.wealthLevel = socialClassToWealthLevel(socialClass, noise);
+        
+        // Regenerate clothing with proper wealth level and occupation filtering
+        const clothingPieces = generateCompleteOutfit(
+            context.culturalZone, 
+            context.era, 
+            baseProfile.wealthLevel, 
+            baseProfile.gender,
+            role // Pass the role for occupation-based filtering
+        );
+        
+        // Update appearance with corrected clothing
+        baseProfile.appearance = {
+            ...baseProfile.appearance,
+            ...clothingPieces
+        };
+        
+        // Validate clothing is appropriate for social class
+        const validateClothing = (clothing: typeof clothingPieces, socialClass: string) => {
+            const lowerClass = socialClass.toLowerCase();
+            const isWorkingClass = lowerClass.includes('working') || lowerClass.includes('laborer') || 
+                                  lowerClass === 'commoner' || lowerClass.includes('peasant');
+            
+            if (isWorkingClass) {
+                // Check each clothing piece for inappropriate luxury items
+                const luxuryKeywords = ['tiara', 'parure', 'diamond', 'emerald', 'ruby', 'sapphire', 
+                                       'cocktail dress', 'evening gown', 'silk', 'velvet', 'jeweled'];
+                
+                Object.entries(clothing).forEach(([key, piece]) => {
+                    if (piece && piece.name) {
+                        const nameLower = piece.name.toLowerCase();
+                        const materialLower = (piece.material || '').toLowerCase();
+                        
+                        for (const luxury of luxuryKeywords) {
+                            if (nameLower.includes(luxury) || materialLower.includes(luxury)) {
+                                console.warn(`[NPC Gen] Inappropriate ${key} for ${socialClass}: ${piece.name}`);
+                                // Replace with simpler item
+                                if (key === 'garment') {
+                                    clothing[key as keyof typeof clothing] = { 
+                                        name: baseProfile.gender === 'Female' ? 'Simple Dress' : 'Work Shirt', 
+                                        material: 'Cotton' 
+                                    };
+                                } else if (key === 'accessory') {
+                                    clothing[key as keyof typeof clothing] = { 
+                                        name: 'Simple Pin', 
+                                        material: 'Brass' 
+                                    };
+                                } else if (key === 'headgear') {
+                                    clothing[key as keyof typeof clothing] = { 
+                                        name: baseProfile.gender === 'Female' ? 'Headband' : 'Cap', 
+                                        material: 'Cotton' 
+                                    };
+                                }
+                                break;
+                            }
+                        }
+                    }
+                });
+            }
+            
+            return clothing;
+        };
+        
+        // Apply validation
+        const validatedClothing = validateClothing(clothingPieces, socialClass);
+        baseProfile.appearance = {
+            ...baseProfile.appearance,
+            ...validatedClothing
+        };
 
         const { appearance } = baseProfile;
         

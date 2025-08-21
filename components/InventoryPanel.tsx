@@ -185,6 +185,8 @@ interface InventoryPanelProps {
     playerY?: number | null;
     setShipDockPosition?: (x: number | null, y: number | null) => void;
     setCurrentVessel?: (vessel: Item | null) => void;
+    isDraggable?: boolean; // Only enable drag in Equipment tab
+    onDragStart?: (e: React.DragEvent, item: Item) => void; // Custom drag handler
 }
 
 // Helper function to get quality color
@@ -219,7 +221,7 @@ const getQualityLabel = (quality?: ItemQuality): string => {
     }
 };
 
-const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharacter, onCraft, onInventoryUpdate, deployVesselToMap, playerX, playerY, setShipDockPosition, setCurrentVessel }) => {
+const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharacter, onCraft, onInventoryUpdate, deployVesselToMap, playerX, playerY, setShipDockPosition, setCurrentVessel, isDraggable = false, onDragStart }) => {
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [selectedAnimal, setSelectedAnimal] = useState<TamedAnimal | null>(null);
   const [isAnimalModalOpen, setIsAnimalModalOpen] = useState(false);
@@ -229,6 +231,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
   const tamedAnimals = useMemo(() => loadTamedAnimals(), [animalRefresh]);
 
   const handleItemClick = (item: Item) => {
+      // Only use the selection system for crafting
       setSelectedItemIds(prev => {
           const newSet = new Set(prev);
           if (newSet.has(item.id)) {
@@ -373,6 +376,9 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
               className={`flex items-center gap-2 p-2 transition-all duration-200 border rounded-lg cursor-pointer group hover:bg-slate-700/70
               ${selectedItemIds.has(item.id) ? 'bg-blue-800/50 border-blue-500 ring-1 ring-blue-400/50' : 'bg-slate-700/50 border-slate-600/30'}`}
               onClick={() => handleItemClick(item)}
+              draggable={isDraggable}
+              onDragStart={isDraggable && onDragStart ? (e) => onDragStart(e, item) : undefined}
+              title={isDraggable ? "Drag to equipment slot or click to select" : "Click to select for crafting"}
             >
               <div className="relative flex-shrink-0 w-8 h-8 flex items-center justify-center">
                 <GenerativeItemIcon item={item} size={32} />

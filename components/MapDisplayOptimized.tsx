@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react';
-import { MapData, Tile, BiomeType, ClimateType, DevTooltipDisplayData, AnimalEntity, NpcEntity, VegetationEntity, LensMode, TerrainStructure, Season, PlayerCharacter, HistoricalEra, DeployedVessel } from '../types/index';
+import { MapData, Tile, BiomeType, ClimateType, DevTooltipDisplayData, AnimalEntity, NpcEntity, VegetationEntity, LensMode, TerrainStructure, Season, PlayerCharacter, HistoricalEra, DeployedVessel, PathType } from '../types/index';
 import { loadTamedAnimals, TamedAnimal } from '../services/animalTamingService';
 import { 
     TILE_SIZE_PX as TILE_SIZE_PX_CONST,
@@ -14,6 +14,7 @@ import {
     STRUCTURE_BLUEPRINTS,
     METALS
 } from '../constants/index';
+import { ANIMAL_DATA } from '../constants/gameData/animals';
 import { ValueNoise } from '../utils/noise'; 
 import { interpolateColor, getLensColor, getMineralColor } from '../utils/colorUtils';
 import { parseDateString } from '../utils/dateUtils';
@@ -22,6 +23,7 @@ import { selectBuilding } from '../utils/buildingSelectionSystem';
 import { getLocationCulturalStyle } from '../utils/culturalMappingUtils';
 import { RuinsSymbol, CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol, FishingHutSymbol, SteamSymbol, GovernmentDistrictSymbol, FireflySymbol, MineralGlintSymbol, OasisSymbol } from './symbols';
 import VesselSymbol from './symbols/VesselSymbol';
+import TrainSymbol from './symbols/TrainSymbol';
 import LumberCampSymbol from './symbols/structures/LumberCampSymbol';
 import UrbanSymbol from './symbols/UrbanSymbolSimplified';
 import { getPalaceSymbol } from './symbols/poi/PalaceSymbolsImproved';
@@ -1850,21 +1852,109 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
 
             {/* Paths layer */}
             <g mask="url(#waterMask)">
-              {pathObjects?.map((path) => (
-                <path
-                  key={path.id}
-                  d={path.svgD}
-                  stroke={path.strokeColor}
-                  strokeWidth={path.strokeWidth * Math.max(0.8, Math.min(1.5, zoomLevel))}
-                  fill="none"
-                  opacity={path.opacity * 0.88}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeDasharray={path.strokeDasharray}
-                  className="transition-opacity duration-300"
-                />
-              ))}
+              {pathObjects?.map((path) => {
+                // Special rendering for modern roads and railroads
+                if (path.type === PathType.MODERN_ROAD) {
+                  return (
+                    <g key={path.id}>
+                      {/* Asphalt base */}
+                      <path
+                        d={path.svgD}
+                        stroke={path.strokeColor}
+                        strokeWidth={path.strokeWidth * Math.max(0.8, Math.min(1.5, zoomLevel))}
+                        fill="none"
+                        opacity={path.opacity}
+                        strokeLinecap="square"
+                        strokeLinejoin="miter"
+                      />
+                      {/* White center line */}
+                      <path
+                        d={path.svgD}
+                        stroke="#ffffff"
+                        strokeWidth={path.strokeWidth * 0.05 * Math.max(0.8, Math.min(1.5, zoomLevel))}
+                        fill="none"
+                        opacity={path.opacity * 0.7}
+                        strokeLinecap="square"
+                        strokeLinejoin="miter"
+                        strokeDasharray={`${TILE_SIZE_PX * 0.5} ${TILE_SIZE_PX * 0.3}`}
+                      />
+                    </g>
+                  );
+                } else if (path.type === PathType.RAILROAD) {
+                  return (
+                    <g key={path.id}>
+                      {/* Rail bed */}
+                      <path
+                        d={path.svgD}
+                        stroke="#3a3a3a"
+                        strokeWidth={path.strokeWidth * Math.max(0.8, Math.min(1.5, zoomLevel))}
+                        fill="none"
+                        opacity={path.opacity * 0.5}
+                        strokeLinecap="square"
+                        strokeLinejoin="miter"
+                      />
+                      {/* Rails (dashed to simulate ties) */}
+                      <path
+                        d={path.svgD}
+                        stroke={path.strokeColor}
+                        strokeWidth={path.strokeWidth * 0.7 * Math.max(0.8, Math.min(1.5, zoomLevel))}
+                        fill="none"
+                        opacity={path.opacity}
+                        strokeLinecap="square"
+                        strokeLinejoin="miter"
+                        strokeDasharray={`${TILE_SIZE_PX * 0.15} ${TILE_SIZE_PX * 0.05}`}
+                      />
+                    </g>
+                  );
+                }
+                // Default rendering for regular roads and paths
+                return (
+                  <path
+                    key={path.id}
+                    d={path.svgD}
+                    stroke={path.strokeColor}
+                    strokeWidth={path.strokeWidth * Math.max(0.8, Math.min(1.5, zoomLevel))}
+                    fill="none"
+                    opacity={path.opacity * 0.88}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeDasharray={path.strokeDasharray}
+                    className="transition-opacity duration-300"
+                  />
+                );
+              })}
             </g>
+
+            {/* Animated trains on railroads */}
+            {(() => {
+              const { era } = parseDateString(mapData?.timeSlice || '1650');
+              const hasRailroads = pathObjects?.some(p => p.type === PathType.RAILROAD);
+              
+              if ((era === HistoricalEra.INDUSTRIAL || era === HistoricalEra.MODERN) && hasRailroads) {
+                // Find all railroad paths
+                const railroads = pathObjects?.filter(p => p.type === PathType.RAILROAD) || [];
+                
+                // Spawn 1-2 trains randomly on different railroads
+                const numTrains = Math.min(railroads.length, 1 + (Math.random() > 0.7 ? 1 : 0));
+                const selectedRailroads = railroads
+                  .sort(() => Math.random() - 0.5)
+                  .slice(0, numTrains);
+                
+                return (
+                  <g className="trains-layer">
+                    {selectedRailroads.map((railroad, idx) => (
+                      <TrainSymbol
+                        key={`train-${railroad.id}-${idx}`}
+                        pathData={railroad.svgD}
+                        speed={0.015 + Math.random() * 0.01} // Variable speed
+                        numCars={undefined} // Will be randomized
+                      />
+                    ))}
+                  </g>
+                );
+              }
+              return null;
+            })()}
 
             {/* Vegetation layer */}
             {shouldRenderVegetation && vegetation?.map(veg => {
@@ -2771,7 +2861,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     y={TILE_SIZE_PX/2}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize={TILE_SIZE_PX * 1.2}
+                    fontSize={TILE_SIZE_PX * 1.2 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0)}
                     className={selectedAnimalId === animal.id ? 'animate-ff6-idle-bob' : ''}
                     style={{
                       filter: shouldRenderShadows ? 'drop-shadow(2px 3px 4px rgba(0,0,0,0.8))' : 'none',
@@ -2812,8 +2902,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     <ellipse
                       cx={TILE_SIZE_PX/2}
                       cy={TILE_SIZE_PX/2 + TILE_SIZE_PX * 0.4}
-                      rx={TILE_SIZE_PX * 0.3}
-                      ry={TILE_SIZE_PX * 0.1}
+                      rx={TILE_SIZE_PX * 0.3 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0)}
+                      ry={TILE_SIZE_PX * 0.1 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0)}
                       fill="rgba(0,0,0,0.3)"
                       filter={shouldUseBlurEffects ? "blur(2px)" : "none"}
                     />
@@ -2830,7 +2920,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       y={TILE_SIZE_PX/2}
                       textAnchor="middle"
                       dominantBaseline="central"
-                      fontSize={TILE_SIZE_PX * 0.8}
+                      fontSize={TILE_SIZE_PX * 0.8 * (ANIMAL_DATA[animal.baseId]?.sizeMultiplier || 1.0)}
                       className="animate-ff6-idle-bob"
                       style={{
                         filter: shouldRenderShadows ? 'drop-shadow(2px 3px 4px rgba(0,0,0,0.8))' : 'none',

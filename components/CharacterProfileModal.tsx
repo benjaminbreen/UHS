@@ -617,6 +617,13 @@ const CharacterProfileModal: React.FC<CharacterProfileModalProps> = ({
     isOpen, onClose, character, onRegenerate, isEnhancing, onEquipItem, onUnequipItem, 
     onDropItem, onConsumeItem, date, location 
 }) => {
+    // Debug logging
+    console.log('[CharacterProfileModal] Character prop:', {
+        hasCharacter: !!character,
+        hasEquippedItems: !!character?.equippedItems,
+        equippedItems: character?.equippedItems,
+        characterKeys: character ? Object.keys(character) : [],
+    });
     const { setIsPortraitModalOpen, setPortraitModalCharacter } = useUI();
     const [activeTab, setActiveTab] = useState<'overview' | 'health-stats' | 'equipment' | 'inventory' | 'history' | 'beliefs' | 'household'>('overview');
     const [selectedInventoryItem, setSelectedInventoryItem] = useState<Item | null>(null);
@@ -1262,7 +1269,7 @@ const CharacterProfileModal: React.FC<CharacterProfileModalProps> = ({
                             <div className="flex items-center gap-4">
                                 <div className="w-20 h-20 rounded-full overflow-hidden bg-slate-900 border-2 border-slate-500 shadow-lg shrink-0 flex items-center justify-center">
                                     <div className="transform scale-110">
-                                        <ProceduralPortrait character={character} size={80} />
+                                        <ProceduralPortrait character={character} size={80} useEquippedItems={true} />
                                     </div>
                                 </div>
                                 <div className="min-w-0">

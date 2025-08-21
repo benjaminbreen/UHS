@@ -5061,28 +5061,36 @@ export const getClothingData = (
         wealthLevel === 'poor' || wealthLevel === 'modest' ? 'poor' :
         wealthLevel === 'comfortable' ? 'common' :
         'wealthy';
+    
+    // Special handling for North American Colonial zones - use European clothing for modern era
+    let effectiveCulturalZone = culturalZone;
+    if (culturalZone === 'NORTH_AMERICAN_COLONIAL' && 
+        (era === HistoricalEra.INDUSTRIAL_ERA || era === HistoricalEra.MODERN_ERA)) {
+        effectiveCulturalZone = 'EUROPEAN' as CulturalZone;
+    }
 
     // Try direct lookup first
-    const directData = CLOTHING_DATA[culturalZone]?.[era]?.[simplifiedWealth]?.[gender];
+    const directData = CLOTHING_DATA[effectiveCulturalZone]?.[era]?.[simplifiedWealth]?.[gender];
     if (directData) return directData;
 
     // Fallback strategy 1: Try different wealth levels in same era/culture
     for (const altWealth of WEALTH_PROGRESSION[simplifiedWealth]) {
-        const wealthFallback = CLOTHING_DATA[culturalZone]?.[era]?.[altWealth]?.[gender];
+        const wealthFallback = CLOTHING_DATA[effectiveCulturalZone]?.[era]?.[altWealth]?.[gender];
         if (wealthFallback) return adaptClothingForWealth(wealthFallback, simplifiedWealth);
     }
 
     // Fallback strategy 2: Try similar eras in same culture
     if (ERA_PROGRESSION[era]) {
         for (const altEra of ERA_PROGRESSION[era]) {
-            const eraFallback = CLOTHING_DATA[culturalZone]?.[altEra]?.[simplifiedWealth]?.[gender];
+            const eraFallback = CLOTHING_DATA[effectiveCulturalZone]?.[altEra]?.[simplifiedWealth]?.[gender];
             if (eraFallback) return adaptClothingForEra(eraFallback, era);
         }
     }
 
     // Fallback strategy 3: Try similar cultures in same era
-    if (CULTURAL_SIMILARITY[culturalZone]) {
-        for (const altCulture of CULTURAL_SIMILARITY[culturalZone]!) {
+    const fallbackCulture = culturalZone === 'NORTH_AMERICAN_COLONIAL' ? culturalZone : effectiveCulturalZone;
+    if (CULTURAL_SIMILARITY[fallbackCulture]) {
+        for (const altCulture of CULTURAL_SIMILARITY[fallbackCulture]!) {
             const cultureFallback = CLOTHING_DATA[altCulture]?.[era]?.[simplifiedWealth]?.[gender];
             if (cultureFallback) return adaptClothingForCulture(cultureFallback, culturalZone, era);
         }
@@ -5090,7 +5098,7 @@ export const getClothingData = (
 
     // Fallback strategy 4: Try opposite gender in same context
     const oppositeGender = gender === 'Male' ? 'Female' : 'Male';
-    const genderFallback = CLOTHING_DATA[culturalZone]?.[era]?.[simplifiedWealth]?.[oppositeGender];
+    const genderFallback = CLOTHING_DATA[effectiveCulturalZone]?.[era]?.[simplifiedWealth]?.[oppositeGender];
     if (genderFallback) return adaptClothingForGender(genderFallback, gender);
 
     // Final fallback: Use European Medieval Common as universal base

@@ -114,6 +114,17 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Mount Olympus": { S: "Thessalian Plain", N: "Thracian Plain" },
   "Thessalian Plain": { N: "Mount Olympus", S: "Athens Basin", E: "Delos Archipelago" },
 
+  // === MISSING EUROPEAN REGIONS ===
+  "Galicia": { N: "Bay of Biscay", S: "Lisbon Coast", E: "Toledo Plateau", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
+  "Transylvania": { N: "Carpathian Ridge", S: "Danube Bend", E: "Dnieper River Valley", W: "Carpathian Foothills" },
+  "Dobruja": { N: "Dnieper River Valley", S: "Thracian Plain", E: "Black Sea", W: "Danube Bend" },
+
+  // === ATLANTIC ISLANDS ===
+  "Iceland": { N: "LIMINAL_ARCTIC_OCEAN_TO_NORTH_AMERICA", S: "LIMINAL_ATLANTIC_TO_EUROPE", E: "Norwegian Fjords", W: "Greenland Coast" },
+  "Greenland Coast": { N: "LIMINAL_ARCTIC_OCEAN_TO_NORTH_AMERICA", S: "LIMINAL_ATLANTIC_TO_AMERICAS", E: "Iceland", W: "Labrador Coast" },
+  "Azores": { N: "LIMINAL_ATLANTIC_TO_EUROPE", S: "LIMINAL_ATLANTIC_TO_AFRICA", E: "Lisbon Coast", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
+  "Cape Verde": { N: "Western Sahara Coast", S: "LIMINAL_ATLANTIC_TO_AMERICAS", E: "Gambia River Basin", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
+
   // === CENTRAL ASIA & SIBERIA === 
   // Western Siberia
   "Western Siberia": { S: "Kazakh Steppes", E: "Central Siberia", W: "Ural Mountains", N: "LIMINAL_ARCTIC_OCEAN_TO_NORTH_AMERICA" },
@@ -234,7 +245,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Timor Sea": { N: "Banda Sea", S: "Kimberley", E: "Torres Strait", W: "Central Java" },
 
   // Philippines
-  // Philippines (detailed)
+
   "Luzon Highlands": { N: "Taiwan Strait", S: "Visayan Sea", E: "Philippine Sea", W: "South China Sea" },
   "Visayan Sea": { N: "Luzon Highlands", S: "Mindanao", E: "Philippine Sea", W: "Palawan" },
   "Mindanao": { N: "Visayan Sea", S: "Celebes Sea", E: "Philippine Sea", W: "Sulu Sea" },
@@ -320,13 +331,16 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Blue Ridge Foothills": { N: "Smoky Mountains", S: "Smoky Mountains", E: "Chesapeake Bay" },
 
   // Arctic and Subarctic
-  "Hudson Bay": { N: "LIMINAL_ARCTIC_OCEAN_TO_NORTH_AMERICA", S: "Hudson Bay Lowlands", E: "Labrador Coast", W: "Saskatchewan Prairie" },
-  "Hudson Bay Lowlands": { N: "Hudson Bay", S: "Great Lakes Shoreline", E: "Labrador Coast", W: "Yukon River Valley" },
+  "Hudson Bay": { N: "LIMINAL_ARCTIC_OCEAN_TO_NORTH_AMERICA", S: "Ontario Shield", E: "Labrador Coast", W: "Canadian North" },
+  "Hudson Bay Lowlands": { N: "Hudson Bay", S: "Ontario Shield", E: "Labrador Coast", W: "Canadian North" },
   "Bering Strait": { E: "Yukon River Valley", W: "Arctic Siberia" },
-  "Yukon River Valley": { S: "Puget Sound", E: "Hudson Bay Lowlands", W: "Bering Strait", N: "LIMINAL_ARCTIC_OCEAN_TO_ASIA" },
-  "Labrador Coast": { S: "Champlain Valley", W: "Hudson Bay Lowlands", E: "LIMINAL_NORTH_ATLANTIC_TO_EUROPE", N: "LIMINAL_ARCTIC_OCEAN_TO_EUROPE" },
-  "Mackenzie Delta": { S: "Hudson Bay Lowlands", E: "Hudson Bay Lowlands", W: "Yukon River Valley", N: "LIMINAL_ARCTIC_OCEAN_TO_ASIA" },
+  "Yukon River Valley": { N: "LIMINAL_ARCTIC_OCEAN_TO_ASIA", S: "British Columbia Coast", E: "Canadian North", W: "Bering Strait" },
+  "Labrador Coast": { N: "LIMINAL_ARCTIC_OCEAN_TO_EUROPE", S: "St. Lawrence River", E: "LIMINAL_ATLANTIC_TO_EUROPE", W: "Hudson Bay" },
+  "Mackenzie Delta": { N: "LIMINAL_ARCTIC_OCEAN_TO_ASIA", S: "Canadian North", E: "Canadian North", W: "Yukon River Valley" },
   "Aleutian Islands": { E: "Bering Strait", W: "LIMINAL_PACIFIC_TO_OCEANIA" },
+  "Great Lakes Shoreline": { N: "Ontario Shield", S: "Finger Lakes", E: "Hudson River Valley", W: "Illinois River Valley" },
+  "Adirondacks": { N: "St. Lawrence River", S: "Hudson River Valley", E: "Champlain Valley", W: "Ontario Shield" },
+  "Finger Lakes": { N: "Great Lakes Shoreline", S: "Hudson River Valley", E: "Hudson River Valley", W: "Great Lakes Shoreline" },
 
   // Mexico and Central Highlands
   "Valley of Mexico": { N: "Rio Grande Valley", S: "Oaxaca Highlands", E: "Yucatán Peninsula", W: "Sierra Madre Oriental" },
@@ -366,6 +380,29 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Delaware River Valley": { N: "Cape Cod", S: "Pine Barrens", W: "Hudson River Valley", E: "LIMINAL_ATLANTIC_TO_EUROPE" },
   "Tidewater Region": { N: "Chesapeake Bay", S: "Virginia", E: "LIMINAL_ATLANTIC_TO_EUROPE", W: "Virginia" },
   "Virginia": { N: "Chesapeake Bay", S: "Okefenokee Swamp", E: "Tidewater Region" },
+
+    // MISSING NORTH AMERICAN REGIONS 
+  "Texas Hill Country": { N: "Llano Estacado", S: "Rio Grande Valley", E: "Gulf Coast Texas", W: "Rio Grande Valley" },
+  "Llano Estacado": { N: "Tallgrass Prairie", S: "Texas Hill Country", E: "Tallgrass Prairie", W: "Rio Grande Valley" },
+  "Gulf Coast Texas": { N: "Mississippi Bayou", S: "Gulf of Mexico", E: "Gulf of Mexico", W: "Texas Hill Country" },
+  "Virginia": { N: "Chesapeake Bay", S: "Piedmont Uplands", E: "Tidewater Region", W: "Smoky Mountains" },
+  "Lake Superior Basin": { N: "Hudson Bay Lowlands", S: "Great Lakes Shoreline", E: "Great Lakes Shoreline", W: "Driftless Area" },
+  "Newfoundland Grand Banks": { N: "Labrador Coast", S: "Cape Cod", E: "LIMINAL_ATLANTIC_TO_EUROPE", W: "Champlain Valley" },
+  "Boston Harbor": { S: "Cape Cod", E: "LIMINAL_ATLANTIC_TO_EUROPE", W: "Connecticut River Valley" },
+  "Long Island": { N: "Hudson River Valley", S: "Pine Barrens", E: "Cape Cod", W: "Hudson River Valley" },
+  "Connecticut River Valley": { N: "Champlain Valley", S: "Hudson River Valley", E: "Cape Cod", W: "Adirondacks" },
+  "Florida Keys": { N: "Everglades", S: "Greater Antilles", E: "LIMINAL_ATLANTIC_TO_EUROPE", W: "Gulf of Mexico" },
+
+  // === CANADA ===
+  "St. Lawrence River": { N: "Labrador Coast", S: "Adirondacks", E: "Newfoundland Grand Banks", W: "Ontario Shield" },
+  "Canadian Maritimes": { N: "Newfoundland Grand Banks", S: "Boston Harbor", E: "LIMINAL_ATLANTIC_TO_EUROPE", W: "St. Lawrence River" },
+  "Ontario Shield": { N: "Hudson Bay Lowlands", S: "Great Lakes Shoreline", E: "St. Lawrence River", W: "Canadian Prairies" },
+  "Canadian Prairies": { N: "Canadian North", S: "Tallgrass Prairie", E: "Ontario Shield", W: "Canadian Rockies" },
+  "Canadian Rockies": { N: "Yukon River Valley", S: "Glacier Foothills", E: "Canadian Prairies", W: "British Columbia Coast" },
+  "British Columbia Coast": { N: "Yukon River Valley", S: "Puget Sound", E: "Canadian Rockies", W: "LIMINAL_PACIFIC_TO_EAST_ASIA" },
+  "Canadian North": { N: "Mackenzie Delta", S: "Canadian Prairies", E: "Hudson Bay", W: "Yukon River Valley" },
+  "Green Mountains": { N: "St. Lawrence River", S: "Boston Harbor", E: "Connecticut River Valley", W: "Champlain Valley" },
+
 
   // === SOUTH AMERICA ===
   // Andes North
@@ -465,6 +502,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   // Anatolia
   "Cappadocian Highlands": { N: "Central Plateau", S: "Cilician Plain", E: "Tbilisi Valley", W: "Bosporus Straits" },
   "Pontic Coast": { S: "Central Plateau", E: "Tbilisi Valley", W: "Bosporus Straits", N: "LIMINAL_BLACK_SEA_TO_EUROPE" },
+  "Pontic Steppe": { S: "Pontic Coast", E: "Aral Sea Basin", W: "Steppe Borderlands", N: "Ural Mountains" },
   "Cilician Plain": { N: "Cappadocian Highlands", S: "Mount Lebanon Range", E: "Nineveh Plain" },
   "Tarsus Foothills": { N: "Cappadocian Highlands", S: "Cilician Plain", E: "Zagros Foothills" },
   "Central Plateau": { N: "Pontic Coast", S: "Cappadocian Highlands", E: "Tbilisi Valley", W: "Bosporus Straits" },
@@ -712,50 +750,52 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Volcanoes National Park": { N: "Big Island Highlands", S: "Kauai Valleys", E: "LIMINAL_PACIFIC_TO_NORTH_AMERICA" },
   "Kauai Valleys": { N: "Volcanoes National Park", E: "Maui Slopes", W: "Molokai Channel" },
   "Molokai Channel": { E: "Kauai Valleys", W: "Marshall Islands", S: "Society Islands" },
+
+  
   
   // === NEW AREA ADJACENCIES ===
-  // New North America additions
-  "Long Island": { N: "Hudson River Valley", S: "Pine Barrens", E: "Cape Cod", W: "Hudson River Valley" },
-  "Connecticut River Valley": { N: "Champlain Valley", S: "Hudson River Valley", E: "Cape Cod", W: "Adirondacks" },
-  "Florida Keys": { N: "Everglades", S: "Greater Antilles", E: "LIMINAL_ATLANTIC_TO_EUROPE", W: "Gulf Coast Texas" },
-  "Texas Hill Country": { N: "Llano Estacado", S: "Rio Grande Valley", E: "Gulf Coast Texas", W: "Chihuahuan Desert" },
-  "Llano Estacado": { N: "Platte River Basin", S: "Texas Hill Country", E: "Tallgrass Prairie", W: "Front Range" },
-  "Gulf Coast Texas": { N: "Mississippi Bayou", S: "Gulf of Mexico", E: "Gulf of Mexico", W: "Texas Hill Country" },
-  "Newfoundland Grand Banks": { N: "Labrador Coast", S: "Portland Coast", E: "LIMINAL_ATLANTIC_TO_EUROPE", W: "St. Lawrence River" },
-  "Lake Superior Basin": { N: "Hudson Bay Lowlands", S: "Lake Michigan Shore", E: "Lake Superior Highlands", W: "Saskatchewan Prairie" },
-  
-  // New South America additions
+  // === ANTARCTICA ===
+  "Antarctic Peninsula": { N: "Tierra del Fuego", E: "Transantarctic Mountains", W: "LIMINAL_PACIFIC_TO_OCEANIA", S: "East Antarctic Plateau" },
+  "Transantarctic Mountains": { N: "LIMINAL_INDIAN_OCEAN_TO_OCEANIA", S: "East Antarctic Plateau", E: "East Antarctic Plateau", W: "Antarctic Peninsula" },
+  "East Antarctic Plateau": { N: "Transantarctic Mountains", S: "LIMINAL_PACIFIC_TO_ANTARCTICA", E: "LIMINAL_INDIAN_OCEAN_TO_AFRICA", W: "Antarctic Peninsula" },
+
+
+  // Missing parts
+  // === MISSING SOUTH AMERICAN REGIONS ===
   "Guyana Highlands": { N: "Orinoco Delta", S: "Manaus Region", E: "Essequibo Valley", W: "Rio Negro Junction" },
   "Pantanal Wetlands": { N: "Acre Rainforest", S: "Gran Chaco", E: "São Paulo Plateau", W: "Altiplano" },
-  "Maracaibo Basin": { N: "LIMINAL_GULF_TO_CARIBBEAN", S: "Orinoco Delta", E: "Orinoco Delta", W: "Quito Plateau" },
+  "Maracaibo Basin": { N: "Caribbean Sea", S: "Orinoco Delta", E: "Orinoco Delta", W: "Quito Plateau" },
   
-  // New Africa additions
-  "Swahili Coast": { N: "Somali Steppe", S: "Lake Victoria Basin", E: "LIMINAL_INDIAN_OCEAN_TO_ASIA", W: "Ethiopian Highlands" },
-  "Rwanda Burundi Highlands": { N: "Lake Victoria Basin", S: "Lake Tanganyika Shore", E: "Serengeti Plain", W: "Equatorial Rainforest" },
-  "Okavango Delta": { N: "Zambezi Floodplain", S: "Kalahari Basin", E: "Limpopo Valley", W: "Namibian Desert" },
-  
-  // New Middle East additions
-  "Khuzestan Plain": { N: "Tigris Headwaters", S: "Persian Gulf Coast", E: "Isfahan Basin", W: "Babylonian Plain" },
+  // === MISSING MENA REGIONS ===
   "Khorasan": { N: "Samarkand Region", S: "Isfahan Basin", E: "Balkh Plains", W: "Dasht-e Kavir" },
-  "Hejaz Mountains": { N: "Jordan Valley", S: "Empty Quarter", E: "Nejd Highlands", W: "Red Sea Coast" },
-  "Transoxiana": { N: "Ferghana Valley", S: "Balkh Plains", E: "Kyzylkum Desert", W: "Samarkand Region" },
-  
-  // New Europe additions
-  "Galicia": { N: "Loire Valley", S: "Lisbon Coast", E: "Toledo Plateau", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
-  "Transylvania": { N: "Carpathian Ridge", S: "Danube Bend", E: "Dnieper River Valley", W: "Pannonian Basin" },
-  "Dobruja": { N: "Dnieper River Valley", S: "Thracian Plain", E: "Black Sea Coast", W: "Danube Bend" },
-  
-  // New Asia additions
-  "Hokkaido": { N: "Sakhalin Island", S: "Tohoku Hills", E: "LIMINAL_PACIFIC_TO_AMERICAS", W: "LIMINAL_SEA_OF_JAPAN" },
-  "Sulawesi": { N: "Mindanao", S: "Banda Sea", E: "Celebes Sea", W: "Makassar Strait" },
-  "Andaman Islands": { N: "Bengal Delta", S: "Strait of Malacca", E: "LIMINAL_INDIAN_OCEAN_TO_ASIA", W: "LIMINAL_INDIAN_OCEAN_TO_ASIA" },
-  "Laccadive Islands": { N: "Malabar Coast", S: "LIMINAL_INDIAN_OCEAN_TO_ASIA", E: "LIMINAL_INDIAN_OCEAN_TO_ASIA", W: "LIMINAL_INDIAN_OCEAN_TO_ASIA" },
-  
-  // New Oceania additions
-  "Vanuatu": { N: "Solomon Islands Chain", S: "New Caledonia", E: "LIMINAL_PACIFIC_TO_AMERICAS", W: "Coral Sea Coast" },
-  "New Caledonia": { N: "Vanuatu", S: "LIMINAL_PACIFIC_TO_ANTARCTICA", E: "LIMINAL_PACIFIC_TO_AMERICAS", W: "Great Barrier Reef Coast" },
-  "Chatham Islands": { N: "LIMINAL_PACIFIC_TO_AMERICAS", S: "LIMINAL_PACIFIC_TO_ANTARCTICA", E: "LIMINAL_PACIFIC_TO_AMERICAS", W: "Wellington Coast" },
-  "Gilbert Islands": { N: "Marshall Islands", S: "Tuamotu Atolls", E: "LIMINAL_PACIFIC_TO_AMERICAS", W: "Caroline Islands" }
+  "Transoxiana": { N: "Kyzylkum Desert", S: "Balkh Plains", E: "Ferghana Valley", W: "Samarkand Region" },
+  "Hejaz Mountains": { N: "Dead Sea Shore", S: "Red Sea Coast", E: "Najd Plateau", W: "Red Sea Coast" },
+  "Khuzestan Plain": { N: "Zagros Foothills", S: "Marsh Arab Wetlands", E: "Isfahan Basin", W: "Babylon Region" },
+
+  // === MISSING SUB-SAHARAN AFRICAN REGIONS ===
+  "Central Sahara": { N: "Tripolitania", S: "Timbuktu Basin", E: "Lake Chad", W: "Atlas Mountains" },
+  "Hoggar Mountains": { N: "Atlas Mountains", S: "Gao Region", E: "Lake Chad", W: "Timbuktu Basin" },
+  "Tibesti Mountains": { N: "Tripolitania", S: "Lake Chad", E: "Nubian Desert", W: "Gao Region" },
+  "Swahili Coast": { N: "Somali Steppe", S: "Zambezi Floodplain", E: "LIMINAL_INDIAN_OCEAN_TO_SOUTH_ASIA", W: "Lake Victoria Basin" },
+  "Rwanda Burundi Highlands": { N: "Lake Victoria Basin", S: "Lake Tanganyika Shore", E: "Serengeti Plain", W: "Equatorial Rainforest" },
+  "Okavango Delta": { N: "Zambezi Floodplain", S: "Kalahari Basin", E: "Limpopo Valley", W: "Kalahari Basin" },
+
+  // === MISSING ASIAN & OCEANIAN REGIONS ===
+  "Hokkaido": { N: "Sakhalin Island", S: "Tohoku Hills", E: "LIMINAL_PACIFIC_TO_NORTH_AMERICA", W: "Sea of Japan" },
+  "Sulawesi": { N: "Celebes Sea", S: "Banda Sea", E: "Spice Islands", W: "Makassar Strait" },
+  "Andaman Islands": { N: "Bengal Delta", S: "Strait of Malacca", E: "Tenasserim Coast", W: "Bay of Bengal" },
+  "Laccadive Islands": { N: "Malabar Coast", S: "LIMINAL_INDIAN_OCEAN_TO_AFRICA", E: "Malabar Coast", W: "LIMINAL_ARABIAN_SEA_TO_AFRICA" },
+  "Vanuatu": { N: "Solomon Islands Chain", S: "New Caledonia", E: "Society Islands", W: "Coral Sea Coast" },
+  "New Caledonia": { N: "Vanuatu", S: "LIMINAL_TASMAN_TO_NEW_ZEALAND", E: "Tonga Ridge", W: "Great Barrier Reef Coast" },
+  "Chatham Islands": { N: "LIMINAL_PACIFIC_TO_POLYNESIA", S: "LIMINAL_PACIFIC_TO_SOUTH_AMERICA", E: "LIMINAL_PACIFIC_TO_SOUTH_AMERICA", W: "Wellington Coast" },
+  "Gilbert Islands": { N: "Marshall Islands", S: "Samoa Archipelago", E: "LIMINAL_PACIFIC_TO_NORTH_AMERICA", W: "Caroline Islands" },
+
+  // === MISSING MAJOR SEAS AND OCEANS ===
+  "Black Sea": { N: "Dnieper River Valley", S: "Bosporus", E: "Tbilisi Valley", W: "Thracian Plain" },
+  "Caspian Sea": { N: "Volga Bend", S: "Caspian Foothills", E: "Aral Sea Basin", W: "Caspian Depression" },
+  "Red Sea": { N: "Suez Isthmus", S: "Red Sea Shore", E: "Hijaz Mountains", W: "Eastern Desert Wadis" },
+  "Persian Gulf": { N: "Marsh Arab Wetlands", S: "LIMINAL_ARABIAN_SEA_TO_SOUTH_ASIA", E: "Shiraz Valley", W: "Najd Plateau" },
+  "Arabian Sea": { N: "Sindh River Delta", S: "LIMINAL_INDIAN_OCEAN_TO_AFRICA", E: "Malabar Coast", W: "Hadhramaut Valley" }
 };
 
 export const LIMINAL_SEQUENCES: Record<string, LiminalSequence> = {

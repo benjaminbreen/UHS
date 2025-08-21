@@ -225,17 +225,38 @@ export function proceduralGenerateMap(
             }
             break;
         case MapArchetype.FRESHWATER_LAKE:
-            const baseLakeRadiusRatio = 0.20 + lakeRandomnessNoise.random() * 0.15; 
-            const lakeRadiusBase = mapShortSide * baseLakeRadiusRatio;
+            // Create irregular lake shapes using pure noise-based generation
+            const lakeSize = 0.15 + lakeRandomnessNoise.random() * 0.1; // Lake covers 15-25% of map
             
-            const lakeAngle = Math.atan2(dY_center * MAP_HEIGHT_TILES, dX_center * MAP_WIDTH_TILES);
-            const noiseFrequency = 2.0 + lakeRandomnessNoise.random() * 2.0; 
-            const maxPerturbation = lakeRadiusBase * (0.15 + lakeRandomnessNoise.random() * 0.20); 
-
-            const perturbation = lakeShapeNoise.octaveNoise(Math.cos(lakeAngle) * noiseFrequency, Math.sin(lakeAngle) * noiseFrequency, 3, 0.5, 2.0) * maxPerturbation;
-            const currentLakeRadius = lakeRadiusBase + perturbation;
+            // Use multiple noise layers to create irregular lake shapes
+            // Different frequencies create different features
+            const largeScale = lakeShapeNoise.octaveNoise(
+                x * 0.03 + lakeRandomnessNoise.random() * 10,
+                y * 0.03 + lakeRandomnessNoise.random() * 10,
+                2, 0.6, 2.0
+            );
             
-            const lakeDistPxToCenter = Math.hypot(dX_center * MAP_WIDTH_TILES, dY_center * MAP_HEIGHT_TILES);
+            const mediumScale = lakeShapeNoise.octaveNoise(
+                x * 0.08 + lakeRandomnessNoise.random() * 20,
+                y * 0.08 + lakeRandomnessNoise.random() * 20,
+                2, 0.4, 2.0
+            );
+            
+            const smallScale = lakeShapeNoise.octaveNoise(
+                x * 0.15,
+                y * 0.15,
+                1, 0.3, 2.0
+            );
+            
+            // Combine noise layers with different weights
+            const combinedNoise = largeScale * 0.6 + mediumScale * 0.3 + smallScale * 0.1;
+            
+            // Add a bias toward the center to keep lake somewhat centered
+            const centerBias = Math.max(0, 1 - Math.hypot(dX_center, dY_center) * 3);
+            const lakeValue = combinedNoise + centerBias * 0.4;
+            
+            // Create threshold for lake vs land
+            const lakeThreshold = 0.5 + lakeSize;
 
             const edgeFalloffDist = 5;
             let edgeFalloffFactor = 1.0;
@@ -245,17 +266,19 @@ export function proceduralGenerateMap(
           if (y >= MAP_HEIGHT_TILES - edgeFalloffDist) edgeFalloffFactor *= (MAP_HEIGHT_TILES - 1 - y) / edgeFalloffDist;
             edgeFalloffFactor = Math.max(0, edgeFalloffFactor);
 
-            if (lakeDistPxToCenter < currentLakeRadius * edgeFalloffFactor) {
+            if (lakeValue > lakeThreshold * edgeFalloffFactor) {
+                // This is lake water
+                const depthFactor = Math.min(1, (lakeValue - lakeThreshold) * 2);
                 tiles[y][x] = {
-                    x, y, altitude: ALTITUDE_LEVELS.SEA * (0.2 + lakeRandomnessNoise.random()*0.1), 
+                    x, y, altitude: ALTITUDE_LEVELS.SEA * (0.1 + depthFactor * 0.15), 
                     biome: BiomeType.FRESHWATER_LAKE, isLand: false, isCoast: false,
                     qualities: { flammability: 0, biodiversity: 0, healthiness: 0, sacrality: 0, safety: 0 },
                 };
                 continue; 
             } else { 
-                falloff = 0.85 + ( (lakeDistPxToCenter - currentLakeRadius) / (mapShortSide * 0.5 - currentLakeRadius) ) * 0.15; 
-                falloff = Math.min(1, falloff);
-                landThreshold = LAND_THRESHOLD_BASE - 0.25;
+                // This is land - use normal land generation
+                falloff = 1.0;
+                landThreshold = LAND_THRESHOLD_BASE;
             }
             break;
         case MapArchetype.DELTA: {
@@ -500,6 +523,49 @@ export function proceduralGenerateMap(
     console.log("[Gen] Carving BAY opening channel - END");
   }
 
+
+  // Clean up lake edges for FRESHWATER_LAKE archetype
+  if (archetype === MapArchetype.FRESHWATER_LAKE) {
+    console.log("[Gen] Phase 1.5: Lake edge cleanup - START");
+    // Remove isolated water/land patches to create cleaner lake boundaries
+    for (let pass = 0; pass < 2; pass++) {
+      for (let y = 1; y < MAP_HEIGHT_TILES - 1; y++) {
+        for (let x = 1; x < MAP_WIDTH_TILES - 1; x++) {
+          const tile = tiles[y][x];
+          
+          // Count neighbors of same type
+          let waterNeighbors = 0;
+          let landNeighbors = 0;
+          
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              if (dx === 0 && dy === 0) continue;
+              const neighbor = tiles[y + dy][x + dx];
+              if (neighbor.biome === BiomeType.FRESHWATER_LAKE || !neighbor.isLand) {
+                waterNeighbors++;
+              } else {
+                landNeighbors++;
+              }
+            }
+          }
+          
+          // Convert isolated patches
+          if (tile.biome === BiomeType.FRESHWATER_LAKE && waterNeighbors <= 2) {
+            // Isolated water - convert to land
+            tile.isLand = true;
+            tile.biome = BiomeType.GRASSLAND;
+            tile.altitude = ALTITUDE_LEVELS.BEACH + 0.01;
+          } else if (tile.isLand && tile.biome !== BiomeType.FRESHWATER_LAKE && landNeighbors <= 2 && waterNeighbors >= 6) {
+            // Isolated land surrounded by water - convert to water
+            tile.isLand = false;
+            tile.biome = BiomeType.FRESHWATER_LAKE;
+            tile.altitude = ALTITUDE_LEVELS.SEA * 0.2;
+          }
+        }
+      }
+    }
+    console.log("[Gen] Phase 1.5: Lake edge cleanup - END");
+  }
 
   console.log("[Gen] Phase 2: Altitude and biome assignment - START");
   generateAltitudeAndInitialBiomes(tiles, altitudeNoiseGen, biomeVariationNoise, archetype, altitudeSetting, archetype === MapArchetype.DELTA ? oceanEdgeForDelta : determinedHarborSide, neighboringEdges, hasLakes);
@@ -883,7 +949,7 @@ export function proceduralGenerateMap(
   console.log("[Gen] Phase 11.9: Road and Path Network Generation - START");
   // Only skip road generation if economicActivityLevel is explicitly 0
   if (generationParams?.economicActivityLevel !== 0 || generationParams?.economicActivityLevel === undefined) {
-    generateRoadAndPathNetwork(mapDataObject, roadPathNoise); 
+    generateRoadAndPathNetwork(mapDataObject, roadPathNoise, dateInfo.era as HistoricalEra); 
   }
   console.log("[Gen] Phase 11.9: Road and Path Network Generation - END");
 

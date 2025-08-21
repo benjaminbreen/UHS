@@ -18,8 +18,40 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
   
   const { gender, equippedItems } = character;
   const {
-    skinColor, hairColor, build, facialHair, facialHairStyle, hairLength, headgear, jewelry, garment
+    skinColor, hairColor, build, facialHair, facialHairStyle, hairLength, jewelry
   } = character.appearance;
+  
+  // Debug logging
+  console.log('[PlayerIcon] Equipment Debug:', {
+    hasEquippedItems: !!equippedItems,
+    equippedHead: equippedItems?.head,
+    equippedTorso: equippedItems?.torso,
+    appearanceHeadgear: character.appearance.headgear,
+    appearanceGarment: character.appearance.garment,
+  });
+  
+  // If equippedItems exists, use that (even if slots are empty)
+  // Only fall back to appearance if equippedItems doesn't exist
+  let headgear = null;
+  let garment = null;
+  
+  if (equippedItems !== undefined) {
+    // Use equipped items (may be undefined if nothing equipped)
+    headgear = equippedItems.head;
+    garment = equippedItems.torso;
+  } else {
+    // Fall back to appearance only if equippedItems doesn't exist
+    headgear = character.appearance.headgear;
+    garment = character.appearance.garment;
+  }
+  
+  const isNaked = !garment; // Track if torso is bare
+  
+  console.log('[PlayerIcon] Using:', {
+    headgear: headgear?.name || 'none',
+    garment: garment?.name || 'none (naked)',
+    isNaked,
+  });
   
   const { primary: clothingColor, secondary: secondaryColor, accent: accentColor } = character.appearance.palette;
   
@@ -91,7 +123,7 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
         
         {/* FRONT VIEW (default for now) */}
         <>
-            {/* Hair - better rendering based on hairLength and style */}
+            {/* Hair - improved pixel art rendering with curved edges */}
             {(!headgear || headgear.name === 'None' || headgear.name === 'none' || 
               // Show hair with hats but not with full coverage items
               (!headgear.name.toLowerCase().includes('helmet') && 
@@ -101,20 +133,28 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
                 {hairLength === 'bald' ? null : 
                  hairLength === 'very_short' ? (
                    <>
-                     {/* Very short hair - just around edges */}
-                     <rect x="-2.5" y="-6.5" width="5" height="1" fill={hairColor} />
-                     <rect x="-2.8" y="-5.5" width="0.6" height="2" fill={hairColor} />
-                     <rect x="2.2" y="-5.5" width="0.6" height="2" fill={hairColor} />
+                     {/* Very short hair - pixelated edges */}
+                     <rect x="-2" y="-6.8" width="4" height="0.8" fill={hairColor} />
+                     <rect x="-2.5" y="-6.3" width="5" height="0.5" fill={hairColor} />
+                     <rect x="-2.8" y="-5.8" width="0.6" height="1.5" fill={hairColor} />
+                     <rect x="2.2" y="-5.8" width="0.6" height="1.5" fill={hairColor} />
                    </>
                  ) : hairLength === 'short' ? (
                    <>
-                     <rect x="-2.5" y="-7" width="5" height="2" fill={hairColor} />
-                     <rect x="-2.8" y="-5.5" width="0.8" height="2" fill={hairColor} />
-                     <rect x="2" y="-5.5" width="0.8" height="2" fill={hairColor} />
+                     {/* Short hair with rounded top */}
+                     <rect x="-1.5" y="-7.3" width="3" height="0.3" fill={hairColor} />
+                     <rect x="-2" y="-7" width="4" height="0.5" fill={hairColor} />
+                     <rect x="-2.5" y="-6.5" width="5" height="1.5" fill={hairColor} />
+                     <rect x="-2.8" y="-5" width="0.8" height="1.5" fill={hairColor} />
+                     <rect x="2" y="-5" width="0.8" height="1.5" fill={hairColor} />
                    </>
                  ) : hairLength === 'long' || hairLength === 'very_long' ? (
                    <>
-                     <rect x="-3" y="-7.5" width="6" height="3.5" fill={hairColor} />
+                     {/* Long hair with curved top and flowing sides */}
+                     <rect x="-1.5" y="-7.8" width="3" height="0.3" fill={hairColor} />
+                     <rect x="-2" y="-7.5" width="4" height="0.5" fill={hairColor} />
+                     <rect x="-2.5" y="-7" width="5" height="0.5" fill={hairColor} />
+                     <rect x="-3" y="-6.5" width="6" height="2.5" fill={hairColor} />
                      {/* Long hair flowing down sides */}
                      <rect x="-3.2" y="-4" width="1" height="4" fill={hairColor} />
                      <rect x="2.2" y="-4" width="1" height="4" fill={hairColor} />
@@ -126,11 +166,14 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
                      )}
                    </>
                  ) : (
-                   /* Medium hair (default) */
+                   /* Medium hair with pixel curves */
                    <>
-                     <rect x="-3" y="-7" width="6" height="3" fill={hairColor} />
-                     <rect x="-3" y="-4.5" width="0.8" height="2" fill={hairColor} />
-                     <rect x="2.2" y="-4.5" width="0.8" height="2" fill={hairColor} />
+                     <rect x="-1.5" y="-7.3" width="3" height="0.3" fill={hairColor} />
+                     <rect x="-2" y="-7" width="4" height="0.5" fill={hairColor} />
+                     <rect x="-2.5" y="-6.5" width="5" height="1" fill={hairColor} />
+                     <rect x="-3" y="-5.5" width="6" height="1.5" fill={hairColor} />
+                     <rect x="-3" y="-4" width="0.8" height="1.5" fill={hairColor} />
+                     <rect x="2.2" y="-4" width="0.8" height="1.5" fill={hairColor} />
                    </>
                  )}
               </>
@@ -227,8 +270,15 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
               );
             })()}
             
-            {/* Head - more rounded shape */}
-            <rect x="-2.5" y="-4.5" width="5" height="5" fill={skinColor} rx="0.5" />
+            {/* Head - pixel art curves for less blocky appearance */}
+            {/* Top of head - curved */}
+            <rect x="-1.5" y="-4.8" width="3" height="0.3" fill={skinColor} />
+            <rect x="-2" y="-4.5" width="4" height="0.5" fill={skinColor} />
+            {/* Main head */}
+            <rect x="-2.5" y="-4" width="5" height="3.5" fill={skinColor} />
+            {/* Chin area - narrower for rounded bottom */}
+            <rect x="-2" y="-0.5" width="4" height="0.5" fill={skinColor} />
+            <rect x="-1.5" y="0" width="3" height="0.3" fill={skinColor} />
             
             {/* Eyes */}
             <rect x="-1.5" y="-3.5" width="0.8" height="0.8" fill="#000" />
@@ -242,16 +292,22 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
             {/* Mouth - simple line or shape */}
             <rect x="-0.8" y="-1.5" width="1.6" height="0.3" fill="rgba(0,0,0,0.3)" />
             
-            {/* Body */}
-            <rect x={-bodyWidth/2} y="-0.5" width={bodyWidth} height={bodyHeight} fill={clothingColor} />
+            {/* Body - slightly rounded shoulders */}
+            {/* Render bare skin if no garment, otherwise use clothing color */}
+            <rect x={-bodyWidth/2 + 0.3} y="0.3" width={bodyWidth - 0.6} height="0.3" fill={isNaked ? skinColor : clothingColor} />
+            <rect x={-bodyWidth/2} y="0.6" width={bodyWidth} height={bodyHeight - 0.6} fill={isNaked ? skinColor : clothingColor} />
             
-            {/* Arms */}
-            <rect x="-4.2" y="0" width="1.4" height="4" fill={clothingColor} />
-            <rect x="2.8" y="0" width="1.4" height="4" fill={clothingColor} />
+            {/* Arms - show full arm if naked, otherwise show sleeves */}
+            {/* Left arm */}
+            <rect x="-4.2" y="0.6" width="1.4" height="1.8" fill={isNaked ? skinColor : clothingColor} /> {/* Upper arm/Sleeve */}
+            <rect x="-4" y="2.4" width="1.2" height="1.6" fill={skinColor} /> {/* Forearm */}
+            {/* Right arm */}
+            <rect x="2.8" y="0.6" width="1.4" height="1.8" fill={isNaked ? skinColor : clothingColor} /> {/* Upper arm/Sleeve */}
+            <rect x="2.8" y="2.4" width="1.2" height="1.6" fill={skinColor} /> {/* Forearm */}
             
-            {/* Hands */}
-            <rect x="-4" y="3.8" width="1.2" height="1.2" fill={skinColor} />
-            <rect x="3" y="3.8" width="1.2" height="1.2" fill={skinColor} />
+            {/* Hands - connected to forearms */}
+            <rect x="-4" y="4" width="1.2" height="1" fill={skinColor} />
+            <rect x="2.8" y="4" width="1.2" height="1" fill={skinColor} />
             
             {/* Legs */}
             <rect x="-1.5" y="4" width="1.3" height="5" fill={secondaryColor} />

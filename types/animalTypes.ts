@@ -15,6 +15,7 @@ export interface AnimalData {
   emoji: string;
   type: 'Prey' | 'Predator' | 'Domestic' | 'Ambient' | 'Mythical';
   social: 'solitary' | 'herd'; // NEW: Behavior grouping
+  sizeMultiplier?: number; // Visual size multiplier (1.0 = default, 0.3 = tiny, 2.0 = huge)
   attack: number;
   defense: number;
   maxHealth: number;

@@ -530,6 +530,27 @@ export function generateEnhancedRiverPath(
         if (currentTile.biome === BiomeType.ACTIVE_LAVA || currentTile.biome === BiomeType.ESTUARY || currentTile.biome === BiomeType.CLIFF) break;
 
         const isAtMapEdge = (current.x === 0 || current.x === MAP_WIDTH_TILES - 1 || current.y === 0 || current.y >= MAP_HEIGHT_TILES - 1);
+        // Check if we're very close to a lake - extend river into the lake edge
+        let nearLake = false;
+        let lakeDirection: Point | null = null;
+        if (archetype === MapArchetype.FRESHWATER_LAKE) {
+            // Check surrounding tiles for lake proximity
+            for (let dy = -3; dy <= 3; dy++) {
+                for (let dx = -3; dx <= 3; dx++) {
+                    const checkX = current.x + dx;
+                    const checkY = current.y + dy;
+                    if (checkX >= 0 && checkX < MAP_WIDTH_TILES && checkY >= 0 && checkY < MAP_HEIGHT_TILES) {
+                        if (tiles[checkY][checkX].biome === BiomeType.FRESHWATER_LAKE) {
+                            nearLake = true;
+                            lakeDirection = { x: dx, y: dy };
+                            break;
+                        }
+                    }
+                }
+                if (nearLake) break;
+            }
+        }
+        
         const isWaterTileForTermination = (!currentTile.isLand && waterTerminationBiomes.has(currentTile.biome)) || (currentTile.biome === BiomeType.SHOALS_TILE && !currentTile.isLand);
         
         if (archetype === MapArchetype.RIVER_PORT && isDesignatedWideRiver) {
@@ -537,8 +558,31 @@ export function generateEnhancedRiverPath(
                 successfullyTerminated = true;
                 break;
             }
-        } else if (isWaterTileForTermination) {
-             if (path.length > 0) { 
+        } else if (isWaterTileForTermination || nearLake) {
+            // If near a lake, extend the river to connect
+            if (nearLake && lakeDirection && currentTile.biome !== BiomeType.FRESHWATER_LAKE) {
+                // Create a connection path to the lake
+                const steps = Math.max(Math.abs(lakeDirection.x), Math.abs(lakeDirection.y));
+                for (let step = 1; step <= steps; step++) {
+                    const connectX = current.x + Math.round(lakeDirection.x * step / steps);
+                    const connectY = current.y + Math.round(lakeDirection.y * step / steps);
+                    if (connectX >= 0 && connectX < MAP_WIDTH_TILES && connectY >= 0 && connectY < MAP_HEIGHT_TILES) {
+                        const connectTile = tiles[connectY][connectX];
+                        if (connectTile.biome === BiomeType.FRESHWATER_LAKE) {
+                            // Reached the lake - make connection
+                            successfullyTerminated = true;
+                            break;
+                        } else if (connectTile.isLand && connectTile.biome !== BiomeType.ACTIVE_LAVA && connectTile.biome !== BiomeType.CLIFF) {
+                            // Extend river through land to reach lake
+                            connectTile.biome = BiomeType.RIVER;
+                            connectTile.isLand = false;
+                            connectTile.altitude = Math.max(ALTITUDE_LEVELS.SEA * 0.1, currentTile.altitude - 0.001);
+                        }
+                    }
+                }
+            }
+            
+            if (path.length > 0) { 
                 const prevPathTile = tiles[path[path.length-1].y][path[path.length-1].x];
                 if(prevPathTile.isLand) {
                     prevPathTile.isCoast = true;

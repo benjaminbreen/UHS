@@ -273,24 +273,46 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
       elements.push(<rect key="belt" x={-bodyWidth / 2 - p * 0.5} y={beltY + yOffset} width={bodyWidth + p} height={p * 0.8} fill={beltColor} rx={p * 0.2} />);
     }
     
-    // Arms and Hands - thinner and more proportional
+    // Arms with sleeves - upper arms covered by clothing
     const armWidth = isFemale ? p * 1.5 : p * 1.8;
+    const sleeveLength = p * 2.5; // Halfway down the arm
+    
+    // Left arm - sleeve then skin
     elements.push(
-      <rect key="left-arm" x={-shoulderWidth / 2 - p * 0.8} y={p * 3.5 + yOffset + leftArmOffset} width={armWidth} height={p * 5} fill={skinColor} rx={p * 0.3} />,
-      <rect key="right-arm" x={shoulderWidth / 2 - p * 0.7} y={p * 3.5 + yOffset + rightArmOffset} width={armWidth} height={p * 5} fill={skinColor} rx={p * 0.3} />
+      <rect key="left-sleeve" x={-shoulderWidth / 2 - p * 0.8} y={p * 3.5 + yOffset + leftArmOffset} width={armWidth} height={sleeveLength} fill={clothingColor} rx={p * 0.3} />,
+      <rect key="left-forearm" x={-shoulderWidth / 2 - p * 0.8} y={p * 3.5 + sleeveLength + yOffset + leftArmOffset} width={armWidth} height={p * 2.5} fill={skinColor} rx={p * 0.3} />
     );
     
-    // Head and Neck - more proportional, less gorilla-like
-    const headWidth = isFemale ? p * 3.8 : p * 4.2;  // Reduced from 4.5/5
-    const headHeight = isFemale ? p * 4 : p * 4.2;  // Reduced from 4.8/5
-    const neckWidth = isFemale ? p * 1.5 : p * 1.8;  // Reduced from 1.8/2.2
+    // Right arm - sleeve then skin
+    elements.push(
+      <rect key="right-sleeve" x={shoulderWidth / 2 - p * 0.7} y={p * 3.5 + yOffset + rightArmOffset} width={armWidth} height={sleeveLength} fill={clothingColor} rx={p * 0.3} />,
+      <rect key="right-forearm" x={shoulderWidth / 2 - p * 0.7} y={p * 3.5 + sleeveLength + yOffset + rightArmOffset} width={armWidth} height={p * 2.5} fill={skinColor} rx={p * 0.3} />
+    );
     
-    // Neck - positioned better
+    // Head and Neck - more refined with pixel art curves
+    const headWidth = isFemale ? p * 3.8 : p * 4.2;
+    const headHeight = isFemale ? p * 4 : p * 4.2;
+    const neckWidth = isFemale ? p * 1.5 : p * 1.8;
+    
+    // Neck
     elements.push(<rect key="neck" x={-neckWidth / 2} y={p * 2 + yOffset} width={neckWidth} height={p * 1.5} fill={skinColor} />);
     
-    // Head - more oval for women, squarer for men, positioned higher
-    const headRx = isFemale ? p * 0.8 : p * 0.5;
-    elements.push(<rect key="head" x={-headWidth / 2} y={-p * 1.5 + yOffset} width={headWidth} height={headHeight} fill={skinColor} rx={headRx} />);
+    // Head - use multiple rects to create rounded pixel art appearance
+    // Main head block
+    elements.push(<rect key="head-main" x={-headWidth / 2 + p * 0.3} y={-p * 1.2 + yOffset} width={headWidth - p * 0.6} height={headHeight - p * 0.6} fill={skinColor} />);
+    
+    // Corner pixels for rounding
+    elements.push(
+      // Top corners
+      <rect key="head-top-left" x={-headWidth / 2 + p * 0.6} y={-p * 1.5 + yOffset} width={p * 0.6} height={p * 0.3} fill={skinColor} />,
+      <rect key="head-top-right" x={headWidth / 2 - p * 1.2} y={-p * 1.5 + yOffset} width={p * 0.6} height={p * 0.3} fill={skinColor} />,
+      // Bottom corners
+      <rect key="head-bottom-left" x={-headWidth / 2 + p * 0.6} y={p * 2.2 + yOffset} width={p * 0.6} height={p * 0.3} fill={skinColor} />,
+      <rect key="head-bottom-right" x={headWidth / 2 - p * 1.2} y={p * 2.2 + yOffset} width={p * 0.6} height={p * 0.3} fill={skinColor} />,
+      // Side pixels
+      <rect key="head-left" x={-headWidth / 2} y={-p * 0.9 + yOffset} width={p * 0.3} height={headHeight - p * 1.2} fill={skinColor} />,
+      <rect key="head-right" x={headWidth / 2 - p * 0.3} y={-p * 0.9 + yOffset} width={p * 0.3} height={headHeight - p * 1.2} fill={skinColor} />
+    );
     
     // Hair - simple shapes that show with headgear
     const hasHat = headgearType && headgearType !== 'ornament' && headgearType !== 'circlet';
@@ -327,7 +349,7 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
       }
     }
     
-    // Headgear - render based on category
+    // Headgear - render with pixel art detail
     if (headgearType) {
       const hatColor = headgear.material?.toLowerCase().includes('leather') ? '#8b4513' : 
                        headgear.material?.toLowerCase().includes('gold') ? '#ffd700' : 
@@ -335,7 +357,7 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
       
       switch(headgearType) {
         case 'ornament':
-          // Small jewel or flower - minimal visibility - adjusted position
+          // Small jewel or flower - minimal visibility
           if (headgear.name.toLowerCase().includes('flower')) {
             // Small flower on side of head
             elements.push(<ellipse key="flower" cx={p * 2} cy={-p * 1 + yOffset} rx={p * 0.4} ry={p * 0.4} fill="#ff69b4" />);
@@ -346,7 +368,7 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
           break;
           
         case 'circlet':
-          // Thin band with optional jewel - adjusted position
+          // Thin band with optional jewel
           elements.push(<rect key="circlet-band" x={-p * 2.3} y={-p * 1 + yOffset} width={p * 4.6} height={p * 0.3} fill={hatColor} />);
           if (npc.wealthLevel === 'wealthy' || npc.wealthLevel === 'noble') {
             elements.push(<rect key="circlet-jewel" x={-p * 0.3} y={-p * 1.2 + yOffset} width={p * 0.6} height={p * 0.4} fill="#dc143c" />);
@@ -354,34 +376,59 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
           break;
           
         case 'turban':
-          // Wrapped turban shape - adjusted position
+          // Wrapped turban shape with pixel detail
           elements.push(
-            <ellipse key="turban-main" cx={0} cy={-p * 1 + yOffset} rx={p * 2.8} ry={p * 1.6} fill={hatColor} />,
-            <ellipse key="turban-wrap" cx={0} cy={-p * 0.8 + yOffset} rx={p * 2.4} ry={p * 1.3} fill={hatColor} opacity={0.8} />
+            // Main turban body
+            <rect key="turban-base" x={-p * 2.5} y={-p * 2 + yOffset} width={p * 5} height={p * 1.8} fill={hatColor} />,
+            // Rounded top using pixels
+            <rect key="turban-top1" x={-p * 2} y={-p * 2.5 + yOffset} width={p * 4} height={p * 0.5} fill={hatColor} />,
+            <rect key="turban-top2" x={-p * 1.5} y={-p * 2.8 + yOffset} width={p * 3} height={p * 0.3} fill={hatColor} />,
+            // Center jewel/ornament
+            <rect key="turban-center" x={-p * 0.3} y={-p * 1.5 + yOffset} width={p * 0.6} height={p * 0.5} fill={accentColor} />
           );
           break;
           
         case 'helmet':
-          // Metal helmet covering - adjusted position and size
+          // Metal helmet with pixel art curves
           elements.push(
-            <rect key="helmet" x={-p * 2.3} y={-p * 2.5 + yOffset} width={p * 4.6} height={p * 2.2} fill="#a1a1aa" rx={p * 0.2} />,
-            <rect key="helmet-shine" x={-p * 1.5} y={-p * 2 + yOffset} width={p * 0.8} height={p * 0.4} fill="#e5e7eb" />
+            // Main helmet body
+            <rect key="helmet-main" x={-p * 2.2} y={-p * 1.8 + yOffset} width={p * 4.4} height={p * 2} fill="#a1a1aa" />,
+            // Rounded top
+            <rect key="helmet-top1" x={-p * 2} y={-p * 2.3 + yOffset} width={p * 4} height={p * 0.5} fill="#a1a1aa" />,
+            <rect key="helmet-top2" x={-p * 1.5} y={-p * 2.6 + yOffset} width={p * 3} height={p * 0.3} fill="#a1a1aa" />,
+            // Shine/detail
+            <rect key="helmet-shine" x={-p * 1.5} y={-p * 2 + yOffset} width={p * 0.8} height={p * 0.4} fill="#e5e7eb" />,
+            // Nose guard
+            <rect key="helmet-nose" x={-p * 0.2} y={p * 0.2 + yOffset} width={p * 0.4} height={p * 0.8} fill="#a1a1aa" />
           );
           break;
           
         case 'cap':
-          // Simple cap shape - adjusted position and size
+          // Simple cap with pixel art curves
           elements.push(
-            <ellipse key="cap" cx={0} cy={-p * 1.3 + yOffset} rx={p * 2.3} ry={p * 1} fill={hatColor} />
+            // Main cap body
+            <rect key="cap-main" x={-p * 2.2} y={-p * 1.5 + yOffset} width={p * 4.4} height={p * 1.2} fill={hatColor} />,
+            // Rounded top
+            <rect key="cap-top1" x={-p * 2} y={-p * 2 + yOffset} width={p * 4} height={p * 0.5} fill={hatColor} />,
+            <rect key="cap-top2" x={-p * 1.5} y={-p * 2.3 + yOffset} width={p * 3} height={p * 0.3} fill={hatColor} />,
+            // Brim/fold
+            <rect key="cap-brim" x={-p * 2.3} y={-p * 0.5 + yOffset} width={p * 4.6} height={p * 0.2} fill="rgba(0,0,0,0.2)" />
           );
           break;
           
         case 'hat':
         default:
-          // Generic hat with brim - adjusted position and size
+          // Hat with brim using pixel art style
           elements.push(
-            <ellipse key="hat-crown" cx={0} cy={-p * 1.7 + yOffset} rx={p * 2.2} ry={p * 1.1} fill={hatColor} />,
-            <rect key="hat-brim" x={-p * 3} y={-p * 0.8 + yOffset} width={p * 6} height={p * 0.25} fill={hatColor} />
+            // Crown
+            <rect key="hat-crown-main" x={-p * 2} y={-p * 2 + yOffset} width={p * 4} height={p * 1.5} fill={hatColor} />,
+            // Crown top pixels
+            <rect key="hat-crown-top1" x={-p * 1.8} y={-p * 2.5 + yOffset} width={p * 3.6} height={p * 0.5} fill={hatColor} />,
+            <rect key="hat-crown-top2" x={-p * 1.3} y={-p * 2.8 + yOffset} width={p * 2.6} height={p * 0.3} fill={hatColor} />,
+            // Brim
+            <rect key="hat-brim" x={-p * 3} y={-p * 0.5 + yOffset} width={p * 6} height={p * 0.25} fill={hatColor} />,
+            // Band
+            <rect key="hat-band" x={-p * 2} y={-p * 0.8 + yOffset} width={p * 4} height={p * 0.3} fill="rgba(0,0,0,0.3)" />
           );
           break;
       }

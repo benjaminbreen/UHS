@@ -181,12 +181,44 @@ const EquipmentSlotDisplay: React.FC<{
     onUnequip: (slot: EquipmentSlot) => void;
     onHover: (item: Item | null, action: 'unequip') => void;
     onMouseMove?: (e: React.MouseEvent) => void;
-}> = ({ slot, item, icon, onUnequip, onHover, onMouseMove }) => {
+    onEquipItemToSlot?: (item: Item, slot: EquipmentSlot) => void;
+}> = ({ slot, item, icon, onUnequip, onHover, onMouseMove, onEquipItemToSlot }) => {
+    const [isDragOver, setIsDragOver] = useState(false);
+    
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        setIsDragOver(true);
+    };
+    
+    const handleDragLeave = () => {
+        setIsDragOver(false);
+    };
+    
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragOver(false);
+        
+        const itemData = e.dataTransfer.getData('item');
+        if (!itemData || !onEquipItemToSlot) return;
+        
+        try {
+            const droppedItem = JSON.parse(itemData) as Item;
+            // Call the equip function with the specific slot
+            onEquipItemToSlot(droppedItem, slot);
+        } catch (err) {
+            console.error('Failed to parse dropped item:', err);
+        }
+    };
     return (
         <div 
             className={`aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center p-1 text-center transition-colors
-            ${item ? 'border-slate-500 bg-slate-800/30 hover:border-blue-400' : 'border-slate-700'}`}
+            ${item ? 'border-slate-500 bg-slate-800/30 hover:border-blue-400' : 'border-slate-700'}
+            ${isDragOver ? 'border-green-400 bg-green-900/20' : ''}`}
             onMouseMove={onMouseMove}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
         >
             {item ? (
                 <div 
@@ -213,7 +245,7 @@ const EquipmentSlotDisplay: React.FC<{
 
 interface EquipmentPanelProps {
     character: PlayerCharacter;
-    onEquipItem: (item: Item) => void;
+    onEquipItem: (item: Item, targetSlot?: EquipmentSlot) => void;
     onUnequipItem: (slot: EquipmentSlot) => void;
 }
 
@@ -314,20 +346,20 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({ character, onEquipItem,
         <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 h-full" onMouseMove={handleMouseMove}>
             {/* Left side: Ragdoll */}
             <div className="grid grid-cols-3 gap-3" style={{gridTemplateRows: 'repeat(4, 1fr)'}}>
-                <EquipmentSlotDisplay slot="ring1" icon="💍" item={getEquipmentItem('ring1')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} />
-                <EquipmentSlotDisplay slot="head" icon="👑" item={getEquipmentItem('head')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} />
-                <EquipmentSlotDisplay slot="ring2" icon="💍" item={getEquipmentItem('ring2')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} />
+                <EquipmentSlotDisplay slot="ring1" icon="💍" item={getEquipmentItem('ring1')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} onEquipItemToSlot={onEquipItem} />
+                <EquipmentSlotDisplay slot="head" icon="👑" item={getEquipmentItem('head')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} onEquipItemToSlot={onEquipItem} />
+                <EquipmentSlotDisplay slot="ring2" icon="💍" item={getEquipmentItem('ring2')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} onEquipItemToSlot={onEquipItem} />
                 
-                <EquipmentSlotDisplay slot="amulet" icon="📿" item={getEquipmentItem('amulet')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} />
-                <EquipmentSlotDisplay slot="torso" icon="👕" item={getEquipmentItem('torso')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} />
-                <EquipmentSlotDisplay slot="cloak" icon="🧥" item={getEquipmentItem('cloak')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} />
+                <EquipmentSlotDisplay slot="amulet" icon="📿" item={getEquipmentItem('amulet')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} onEquipItemToSlot={onEquipItem} />
+                <EquipmentSlotDisplay slot="torso" icon="👕" item={getEquipmentItem('torso')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} onEquipItemToSlot={onEquipItem} />
+                <EquipmentSlotDisplay slot="cloak" icon="🧥" item={getEquipmentItem('cloak')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} onEquipItemToSlot={onEquipItem} />
                 
-                <EquipmentSlotDisplay slot="main_hand" icon="⚔️" item={getEquipmentItem('main_hand')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} />
-                <EquipmentSlotDisplay slot="legs" icon="👖" item={getEquipmentItem('legs')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} />
-                <EquipmentSlotDisplay slot="off_hand" icon="🛡️" item={getEquipmentItem('off_hand')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} />
+                <EquipmentSlotDisplay slot="main_hand" icon="⚔️" item={getEquipmentItem('main_hand')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} onEquipItemToSlot={onEquipItem} />
+                <EquipmentSlotDisplay slot="legs" icon="👖" item={getEquipmentItem('legs')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} onEquipItemToSlot={onEquipItem} />
+                <EquipmentSlotDisplay slot="off_hand" icon="🛡️" item={getEquipmentItem('off_hand')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} onEquipItemToSlot={onEquipItem} />
 
-                <EquipmentSlotDisplay slot="belt" icon="🎗️" item={getEquipmentItem('belt')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} />
-                <EquipmentSlotDisplay slot="feet" icon="👢" item={getEquipmentItem('feet')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} />
+                <EquipmentSlotDisplay slot="belt" icon="🎗️" item={getEquipmentItem('belt')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} onEquipItemToSlot={onEquipItem} />
+                <EquipmentSlotDisplay slot="feet" icon="👢" item={getEquipmentItem('feet')} onUnequip={onUnequipItem} onHover={handleItemHover} onMouseMove={handleMouseMove} onEquipItemToSlot={onEquipItem} />
                 <div />
             </div>
 
@@ -335,24 +367,35 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({ character, onEquipItem,
             <div className="flex flex-col gap-4">
                 <div className="flex-grow flex flex-col bg-slate-800/40 p-3 rounded-lg border border-slate-700/50 min-h-0">
                     <h4 className="font-semibold text-lg text-green-300 mb-2 shrink-0 px-1">Equippable Items</h4>
+                    <p className="text-xs text-gray-400 mb-2 px-1">Click to auto-equip or drag to specific slot</p>
                     <div className="flex-1 overflow-y-auto scrollbar-thin pr-2 space-y-2 max-h-[280px]">
-                        {equippableInventory.map(item => (
-                            <div 
-                                key={item.id}
-                                className="flex items-center justify-between p-2 rounded-md bg-slate-900/50 hover:bg-slate-700/50 cursor-pointer"
-                                onMouseEnter={() => handleItemHover(item, 'equip')}
-                                onMouseLeave={() => handleItemHover(null, 'equip')}
-                                onClick={() => onEquipItem(item)}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 flex items-center justify-center">
-                                       <GenerativeItemIcon item={item} size={32} />
+                        {equippableInventory.map(item => {
+                            const handleDragStart = (e: React.DragEvent) => {
+                                e.dataTransfer.effectAllowed = 'move';
+                                e.dataTransfer.setData('item', JSON.stringify(item));
+                            };
+                            
+                            return (
+                                <div 
+                                    key={item.id}
+                                    className="flex items-center justify-between p-2 rounded-md bg-slate-900/50 hover:bg-slate-700/50 cursor-pointer"
+                                    onMouseEnter={() => handleItemHover(item, 'equip')}
+                                    onMouseLeave={() => handleItemHover(null, 'equip')}
+                                    onClick={() => onEquipItem(item)}
+                                    draggable
+                                    onDragStart={handleDragStart}
+                                    title="Click to auto-equip or drag to specific slot"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 flex items-center justify-center">
+                                           <GenerativeItemIcon item={item} size={32} />
+                                        </div>
+                                        <p className="text-sm font-semibold text-white truncate">{item.name}</p>
                                     </div>
-                                    <p className="text-sm font-semibold text-white truncate">{item.name}</p>
+                                    <RarityTag rarity={item.rarity} />
                                 </div>
-                                <RarityTag rarity={item.rarity} />
-                            </div>
-                        ))}
+                            );
+                        })}
                          {equippableInventory.length === 0 && (
                             <p className="text-center text-slate-500 italic py-8 text-sm">No equippable items in inventory.</p>
                         )}

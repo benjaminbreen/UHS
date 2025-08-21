@@ -97,15 +97,28 @@ export const usePlayerState = (props: usePlayerStateProps) => {
         });
     }, [setPlayerCharacter]);
 
-    const handleEquipItem = useCallback((itemToEquip: Item) => {
+    const handleEquipItem = useCallback((itemToEquip: Item, forcedSlot?: EquipmentSlot) => {
         if (!playerCharacter) return;
     
-        const stats = getProceduralItemStats(itemToEquip);
-        const targetSlot = stats.equipmentSlot;
-    
+        // If a specific slot is forced (via drag & drop), use that
+        // Otherwise, get the item's default slot
+        let targetSlot: EquipmentSlot | undefined = forcedSlot;
+        
+        if (!targetSlot) {
+            const stats = getProceduralItemStats(itemToEquip);
+            targetSlot = stats.equipmentSlot;
+        }
+        
         if (!targetSlot) {
             console.log("This item cannot be equipped."); // Can't use toast here
             return;
+        }
+        
+        // Create an improvised version of the item if it doesn't have combat stats
+        let equipItem = { ...itemToEquip };
+        if (forcedSlot && !itemToEquip.wearable && !itemToEquip.wieldable) {
+            // Generate improvised stats for non-combat items
+            equipItem = generateImprovisedStats(equipItem, forcedSlot);
         }
 
         setPlayerCharacter(prev => {
@@ -129,12 +142,67 @@ export const usePlayerState = (props: usePlayerStateProps) => {
                 newInventory = addItemToInventory(newInventory, oldEquippedItem);
             }
             
-            newCharacter.equippedItems = { ...newCharacter.equippedItems, [targetSlot]: { ...itemToEquip, quantity: 1 } };
+            newCharacter.equippedItems = { ...newCharacter.equippedItems, [targetSlot]: { ...equipItem, quantity: 1 } };
             newCharacter.inventory = newInventory;
+            
+            // Update isNaked flag based on torso equipment
+            newCharacter.isNaked = !newCharacter.equippedItems.torso;
             
             return newCharacter;
         });
       }, [playerCharacter]);
+      
+      // Helper function to generate improvised stats for non-combat items
+      const generateImprovisedStats = (item: Item, slot: EquipmentSlot): Item => {
+          const improvisedItem = { ...item };
+          
+          // Mark it as improvised equipment
+          improvisedItem.wearable = slot !== 'main_hand' && slot !== 'off_hand';
+          improvisedItem.wieldable = slot === 'main_hand' || slot === 'off_hand';
+          improvisedItem.equipmentSlot = slot;
+          
+          // Generate basic combat stats based on item properties
+          if (slot === 'main_hand' || slot === 'off_hand') {
+              // Improvised weapon
+              improvisedItem.attack = Math.max(1, Math.floor((item.weight || 1) * 0.5));
+              improvisedItem.defense = 0;
+              
+              // Heavy items do more damage
+              if ((item.weight || 0) > 5) {
+                  improvisedItem.attack += 1;
+              }
+              
+              // Sharp or metal items do more damage
+              if (item.name.toLowerCase().includes('knife') || 
+                  item.name.toLowerCase().includes('blade') ||
+                  item.name.toLowerCase().includes('metal') ||
+                  item.name.toLowerCase().includes('iron')) {
+                  improvisedItem.attack += 2;
+              }
+          } else {
+              // Improvised armor
+              improvisedItem.attack = 0;
+              improvisedItem.defense = Math.max(1, Math.floor((item.weight || 1) * 0.3));
+              
+              // Thick or heavy items provide more defense
+              if ((item.weight || 0) > 3) {
+                  improvisedItem.defense += 1;
+              }
+              
+              // Leather, hide, or metal items provide more defense
+              if (item.name.toLowerCase().includes('leather') || 
+                  item.name.toLowerCase().includes('hide') ||
+                  item.name.toLowerCase().includes('metal') ||
+                  item.name.toLowerCase().includes('iron')) {
+                  improvisedItem.defense += 1;
+              }
+          }
+          
+          // Add improvised tag to description
+          improvisedItem.description = `${item.description || ''} [Improvised ${slot === 'main_hand' || slot === 'off_hand' ? 'weapon' : 'armor'}]`;
+          
+          return improvisedItem;
+      };
       
       const handleUnequipItem = useCallback((slot: EquipmentSlot) => {
         if (!playerCharacter) return;
@@ -149,7 +217,10 @@ export const usePlayerState = (props: usePlayerStateProps) => {
             
             const newInventory = addItemToInventory(prev.inventory, itemToUnequip);
             
-            return { ...prev, inventory: newInventory, equippedItems: newEquippedItems };
+            // Update isNaked flag based on torso equipment
+            const isNaked = !newEquippedItems.torso;
+            
+            return { ...prev, inventory: newInventory, equippedItems: newEquippedItems, isNaked };
         });
       }, [playerCharacter]);
     

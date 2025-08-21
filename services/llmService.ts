@@ -297,17 +297,12 @@ export async function generateEncounterDialogue(
         
         Example 2 - Medieval village 1348, peasant meets wealthy merchant:
         Player: "Good day, I seek lodging"
-        NPC: "Lodging? In these times? Half the village is dead or dying. Try the monastery, if the monks still live."
+        NPC: "Lodging? Half the village is dead. Try the monastery, if the monks still live."
         (Notice: Plague context dominates response, class difference secondary to crisis)
-        
-        Example 3 - Colonial America 1692, farmer meets strange woman with herbs:
-        Player: "I gathered these herbs to help the sick"
-        NPC: "Herbs? Healing? Best be careful with such talk, stranger. They hanged Goody Brown for less."
-        (Notice: Witch trial paranoia shapes response to seemingly innocent action)
-        
-        Example 4 - Roman Britain 125 CE, local merchant meets Germanic tribesman:
+    
+        Example 3 - Roman Britain 125 CE, local merchant meets Germanic tribesman:
         Player: "I come from across the Rhine, seeking trade"
-        NPC: "Germanic? The legions just crushed a rebellion. You're either very brave or very foolish to announce that here."
+        NPC: "Germanic? The legions just crushed a rebellion. You're very foolish to announce that here."
         (Notice: Recent military context makes origin significant)
         
         **NOW YOUR SITUATION:**
@@ -330,7 +325,6 @@ export async function generateEncounterDialogue(
 
         **YOUR CHARACTER CONTEXT:**
         - Class: ${(target.class || 'commoner').toLowerCase()}
-        - Personality: ${target.backstory}
         - Health: ${target.health?.currentDiseases?.length > 0 ? 
             `SICK with ${target.health.currentDiseases[0].disease.name}` : 'Healthy'}
         - Previous interactions with player: ${previousSummaries || target.memory?.conversationSummaries?.join('; ') || 'None - first meeting'}
@@ -339,12 +333,12 @@ export async function generateEncounterDialogue(
         **CONVERSATION HISTORY:**
         ${conversationHistoryText || 'This is your first exchange'}
         
-        ${primarySourceContext}
+
         
         **CRITICAL RULES:**
         - ONLY provide dialogue, no actions or narration
         - Stay in character for your role, age, and social class
-        - Use period-appropriate language and concerns
+        - Use period-appropriate language and concerns. You should know about basic information in the setting and date specified - so someone in 2010 knows about the World Cup, someone in 1889 knows about the Paris world fair, someone in 1860 knows who Lincoln is, etc (even if they aren't American).
         - Don't repeat things you've already said in this conversation
     `;
     
@@ -355,13 +349,13 @@ export async function generateEncounterDialogue(
         ADDITIONALLY, analyze the situation and determine the reputation impact:
         - Is this NPC discovering an enemy combatant? (-100 reputation)
         - Is the player threatening violence? (-50 reputation)  
-        - Is this a criminal being discovered? (-75 reputation)
+        - Is this a dangerous criminal being discovered? (-75 reputation)
         - Is the NPC calling for authorities? (-100 reputation)
-        - Is this a dangerous historical situation where the player doesn't belong? (-50 to -100)
+        - Is this a dangerous historical situation where the player doesn't belong? (-5 to -100)
         - Is the player being helpful/kind? (+5 to +20)
-        - Is this a normal conversation? (0 to +/-5)
+        - Is this a normal conversation? (0 to +/-3)
         
-        Return JSON with:
+        Return PRECISELY this JSON format:
         {
             "dialogue": "The NPC's response",
             "reputationChange": number (-100 to +20),
@@ -376,7 +370,7 @@ export async function generateEncounterDialogue(
             model: 'gemini-2.5-flash', 
             contents: reputationPrompt,
             config: {
-                temperature: 0.8,
+                temperature: 0.7,
                 topP: 0.95,
                 responseMimeType: "application/json"
             }
@@ -434,7 +428,7 @@ export async function generateEncounterDialogue(
         return { 
             text: npcText,
             reputationChange: reputationChange !== 0 ? reputationChange : undefined,
-            shouldLeave: responseData.shouldCallAuthorities || reputationChange <= -50,
+            shouldLeave: responseData.shouldCallAuthorities || reputationChange <= -70,
             shouldAttack: false, // Authorities don't attack, they arrest
             shouldCallAuthorities: responseData.shouldCallAuthorities || false,
             reasoning: responseData.reasoning
@@ -566,15 +560,14 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
         
         **Player's Query:** "${playerQuery}"
 
-        **Important Instructions for Animal Companions:**
-        - If the player mentions "my pet", "my animal", "my companion" or asks about their tamed creatures, you MUST acknowledge and describe their specific tamed animals by name/species
-        - When the player uses "observe" or asks "what do I see", include their tamed animals in the description (e.g., "Your tamed hedgehog scurries beside you, sniffing curiously at the ground")
-        - Describe how the tamed animals behave and react to the environment
-        - Note how NPCs or wild animals react to seeing the player with tamed creatures
-
+        
+       
         **Task:**
         Based on your current persona and the game context, provide a narrative response in the second person ("You..."). If the action is impossible, explain why in a narrative, immersive way. Do not break character or mention being an AI. 
         If the player asks you something that seems like they are toying with you or testing the nature of their world, Adopt the persona of the author Henry James. Respond with a complex, multi-clause sentence, focusing on introspection, consciousness, and the subtle nuances of perception - but sort of funny?
+         - If the player mentions "my pet", "my animal", "my companion" or asks about their tamed creatures, you MUST acknowledge and describe their specific tamed animals by name/species
+        - When the player uses "observe" or asks "what do I see", include their tamed animals in the description (e.g., "Your tamed hedgehog scurries beside you, sniffing curiously at the ground")
+
     `;
     
     try {
@@ -755,7 +748,7 @@ export async function generateUniqueForageItem(context: PlayerContext): Promise<
     `;
 
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.5-flash-lite',
         contents: prompt,
         config: { responseMimeType: "application/json" }
     });
@@ -790,7 +783,7 @@ export async function enhanceCharacterProfile(character: PlayerCharacter, contex
         Your goal is to make the character more compelling.
         1.  Generate a more specific and flavorful **name** that fits the culture and era.
         2.  Generate a more nuanced **profession** based on the stats and context (e.g., instead of "Merchant", maybe "Spice Trader" or "Wool Merchant").
-        3.  Write a compelling 2-paragraph **backstory** that fits their stats and new role. The backstory should hint at their personality and a recent significant event in their life.
+        3.  Write a brief 1-paragraph **backstory** that fits their stats and new role. The backstory should hint at their personality and a recent significant event in their life.
 
         Return ONLY a valid JSON object with the keys: "name", "profession", and "backstory".
         Example response:
@@ -802,7 +795,7 @@ export async function enhanceCharacterProfile(character: PlayerCharacter, contex
     `;
 
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.5-flash-lite',
         contents: prompt,
         config: { responseMimeType: "application/json" }
     });
@@ -886,7 +879,7 @@ export async function generateFarmDetails(
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.5-flash-lite',
             contents: prompt,
             config: { responseMimeType: "application/json" }
         });
@@ -1125,7 +1118,7 @@ export async function generateInternalMonologue(
         
         Task: ${clickPrompts[context.clickCount - 1]}
         
-        Style: Stream-of-consciousness, emotional, personal, raw, sometimes even shocking inner thoughts - fragmentary and strange, with lots of ellipses. rarely sentences or full thoughts, but super authentic to real subjectivity, like something from Virginia Woolf's THE WAVES or Henry James, yet also very much in keeping with the tone, setting, and worldview of the given character in time and place. Fellini-esque, fragmentary, Lynchian. 
+        Style: Stream-of-consciousness, emotional, personal, raw, sometimes even shocking inner thoughts - fragmentary, elliptical, unexpected. rarely sentences or full thoughts, but super authentic to real subjectivity, like something from Virginia Woolf's THE WAVES, yet also very much in keeping with the tone, setting, and worldview of the given character in time and place. Fellini-esque, fragmentary, Lynchian. 
         ${isNpcTarget ? 
             'Show the contrast between their public face and private thoughts. What are they hiding? What do they really want?' :
             'Show animal instincts, sensory perceptions, primal emotions. What does the animal sense or fear?'}

@@ -19,6 +19,13 @@ interface ProceduralPortraitProps {
       charisma: number;
       constitution: number;
     };
+    equippedItems?: { // Add equipped items
+      head?: { name: string; material?: string };
+      torso?: { name: string; material?: string };
+      cloak?: { name: string; material?: string };
+      amulet?: { name: string; material?: string };
+      [key: string]: any;
+    };
     appearance: {
       // Base features
       skinColor: string;
@@ -90,6 +97,7 @@ interface ProceduralPortraitProps {
   className?: string;
   temporaryExpression?: 'smile' | 'surprise' | null;
   onExpressionComplete?: () => void;
+  useEquippedItems?: boolean; // Flag to use equipped items instead of appearance
 }
 
 type AgeGroup = 'young' | 'adult' | 'old';
@@ -99,7 +107,8 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
   size = 192,
   className = '',
   temporaryExpression = null,
-  onExpressionComplete
+  onExpressionComplete,
+  useEquippedItems = true // Default to using equipped items if available
 }) => {
   // ---------- Seeded RNG ----------
   const seededRandom = (seed: number): number => {
@@ -642,9 +651,10 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     };
 
     // Hairline control: reveal some forehead on short hair
-    const revealForehead = hairLen === 'very_short' ? 3 : hairLen === 'short' ? 2 : 0;
+    const revealForehead = hairLen === 'very_short' ? 4 : hairLen === 'short' ? 2 : 0;
 
-    const hairTop = headY - (hairLen === 'very_short' ? 1 : 6); // Adjusted for new head position
+    // Short cropped should cover the whole head but show more forehead
+    const hairTop = headY - (hairLen === 'very_short' ? 3 : 6); // Less height for very_short to cover head
     const thickness = isOld ? 0.7 : isYoung ? 0.95 : 0.85;
 
     for (let layer = 0; layer < 3; layer++) {
@@ -663,8 +673,25 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
             if (x >= headX - 3 + layer && x <= headX + headDim.width + 2 - layer) draw = true;
           }
 
-          // Carve back hairline for short/very_short near the forehead center
-          if (revealForehead > 0 && y < headY + revealForehead) {
+          // For short cropped, show forehead but cover the entire head top and sides
+          if (hairLen === 'very_short') {
+            // Cover the whole head but show forehead
+            if (y >= headY && y < headY + 3) {
+              // Show forehead in the front center area only
+              const frontForehead = headDim.width / 2 - 3;
+              if (Math.abs(x - centerX) < frontForehead) {
+                draw = false; // Show forehead
+              }
+            }
+            // Ensure hair covers the top and sides of head
+            if (y < headY && y >= hairTop) {
+              // Always draw hair on top of head for short cropped
+              if (dist < headDim.width / 2 + 3) {
+                draw = true;
+              }
+            }
+          } else if (revealForehead > 0 && y < headY + revealForehead) {
+            // Regular short hair forehead reveal
             const inner = headDim.width / 2 - 2;
             if (Math.abs(x - centerX) < inner - 1) draw = false;
           }
@@ -1135,6 +1162,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     const thickness = appearance.facialHairThickness || 'medium';
     const beardColor = hasGrayHair ? 'rgb(192,192,192)' : baseHair;
     const beardShadow = createShadow(beardColor, 0.7);
+    const beardDeepShadow = createShadow(beardColor, 0.5);
     const beardHighlight = createHighlight(beardColor, 1.15);
 
     const baseY = headY + Math.floor(headDim.height * 0.63);
@@ -1147,92 +1175,103 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     const chinWidth = Math.floor(headDim.width * 0.55);
 
   if (style === 'full_beard') {
-      // Full, thick beard covering cheeks, jaw, and chin
+      // More solid, blocky full beard with consistent shading
+      // Mustache - solid block first
+      const mustacheY = mouthY - 1;
+      const mustacheThickness = thickness === 'thick' ? 2 : 1;
+      for (let t = 0; t < mustacheThickness; t++) {
+        for (let i = -5; i < 6; i++) {
+          const col = Math.abs(i) <= 1 ? beardHighlight : Math.abs(i) >= 4 ? beardShadow : beardColor;
+          elements.push(<rect key={`fb-m-${t}-${i}`} x={headX + Math.floor(headDim.width / 2) + i} y={mustacheY + t} width="1" height="1" fill={col} className="pixel" />);
+        }
+      }
       
-      // Main beard body - fuller coverage
-      for (let y = -2; y < 18; y++) { // Start higher up on cheeks
+      // Main beard body - solid coverage
+      for (let y = -2; y < 16; y++) {
         const rowY = baseY + y;
         
-        // Shape the beard width - wider at jaw, tapers slightly at bottom
+        // Shape the beard width
         let rowWidth;
         if (y < 2) {
-          // Cheek area - narrower
-          rowWidth = Math.floor(chinWidth * 0.7);
+          rowWidth = Math.floor(chinWidth * 0.8);
         } else if (y < 8) {
-          // Jaw area - widest
-          rowWidth = Math.floor(chinWidth * (0.9 + Math.min(0.2, y / 40)));
+          rowWidth = Math.floor(chinWidth * 1.0);
         } else {
-          // Chin area - slightly tapered
-          rowWidth = Math.floor(chinWidth * (1.0 - (y - 8) / 40));
+          rowWidth = Math.floor(chinWidth * (1.0 - (y - 8) / 30));
         }
         
         const startX = headX + Math.floor((headDim.width - rowWidth) / 2);
 
         for (let x = 0; x < rowWidth; x++) {
-          // Higher density for fuller appearance
-          const centerDist = Math.abs(x - rowWidth / 2) / (rowWidth / 2);
-          const density = thickness === 'thick' ? 0.95 : thickness === 'sparse' ? 0.65 : 0.85;
-          const prob = density * (1 - centerDist * 0.3); // Less falloff at edges
+          // Always draw for solid appearance
+          const xRatio = x / rowWidth;
+          let col = beardColor;
+          // Create depth with consistent shading
+          if (xRatio < 0.15 || xRatio > 0.85) col = beardDeepShadow;
+          else if (xRatio < 0.3 || xRatio > 0.7) col = beardShadow;
+          else if (xRatio > 0.45 && xRatio < 0.55) col = beardHighlight;
+          if (y > 12) col = beardDeepShadow; // Bottom shadow
+          if (y < 1) col = beardShadow; // Top blend
           
-          if (rand(x * 31 + y * 131) < prob) {
-            // Color variation for texture
-            let col = beardColor;
-            if (y < 1) col = beardShadow; // Darker at top blend
-            else if (y > 14) col = beardShadow; // Darker at bottom
-            else if (rand(x * 7 + y * 13) > 0.8) col = beardHighlight; // Random highlights
-            else if (rand(x * 11 + y * 17) < 0.2) col = beardShadow; // Random shadows
-            
-            elements.push(<rect key={`fb-${x}-${y}`} x={startX + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
-          }
+          elements.push(<rect key={`fb-${x}-${y}`} x={startX + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
         }
       }
       
-      // Sideburns connection - thicker and more prominent
-      for (let sy = -6; sy < 5; sy++) {
-        const sideWidth = 2; // Wider sideburns
+      // Solid sideburns connecting to beard
+      for (let sy = -6; sy < 6; sy++) {
+        const sideWidth = sy < -2 ? 2 : sy < 2 ? 3 : 4;
         for (let sx = 0; sx < sideWidth; sx++) {
           const leftX = headX - sx - 1;
           const rightX = headX + headDim.width + sx;
-          
-          if (rand(sy * 17 + sx * 23) < densityBase * 0.8) {
-            const col = sx === 0 ? beardColor : beardShadow;
-            elements.push(<rect key={`sb-l-${sy}-${sx}`} x={leftX} y={baseY + sy} width="1" height="1" fill={col} className="pixel" />);
-          }
-          if (rand((sy + 1) * 19 + sx * 29) < densityBase * 0.8) {
-            const col = sx === 0 ? beardColor : beardShadow;
-            elements.push(<rect key={`sb-r-${sy}-${sx}`} x={rightX} y={baseY + sy} width="1" height="1" fill={col} className="pixel" />);
-          }
+          // Solid sideburns with shading - always draw
+          const col = sx === 0 ? beardColor : sx === 1 ? beardShadow : beardDeepShadow;
+          elements.push(
+            <rect key={`sb-l-${sy}-${sx}`} x={leftX} y={baseY + sy} width="1" height="1" fill={col} className="pixel" />,
+            <rect key={`sb-r-${sy}-${sx}`} x={rightX} y={baseY + sy} width="1" height="1" fill={col} className="pixel" />
+          );
         }
       }
     } else if (style === 'goatee' || style === 'van_dyke') {
-      // chin patch
-      for (let y = 0; y < 7; y++) {
-        const width = Math.max(3, 7 - y);
-        const startX = headX + Math.floor(headDim.width / 2) - Math.floor(width / 2);
-        for (let x = 0; x < width; x++) {
-          if (rand(x * 13 + y * 97) < densityBase) {
-            elements.push(<rect key={`gt-${x}-${y}`} x={startX + x} y={mouthY + 2 + y} width="1" height="1" fill={y < 2 ? beardColor : beardShadow} className="pixel" />);
-          }
-        }
-      }
-      // separate mustache for van dyke; connected for goatee
-      const connect = style === 'goatee';
+      // More solid, blocky goatee with proper shading
+      // Mustache part - solid block
       const my = mouthY - 1;
-      for (let t = 0; t < (thickness === 'thick' ? 2 : 1); t++) {
-        const w = connect ? 6 : 7;
+      const mustacheThickness = thickness === 'thick' ? 2 : 1;
+      for (let t = 0; t < mustacheThickness; t++) {
+        const w = style === 'goatee' ? 8 : 9;
         const mx = headX + Math.floor(headDim.width / 2) - Math.floor(w / 2);
         for (let i = 0; i < w; i++) {
-          if (rand(i * 17 + t * 101) < (densityBase * 0.9)) {
-            elements.push(<rect key={`gt-m-${t}-${i}`} x={mx + i} y={my + t} width="1" height="1" fill={i % 3 === 0 ? beardHighlight : beardColor} className="pixel" />);
-          }
+          // Solid mustache with shading - always draw
+          const col = (i < 2 || i >= w - 2) ? beardShadow : (i === Math.floor(w/2)) ? beardHighlight : beardColor;
+          elements.push(<rect key={`gt-m-${t}-${i}`} x={mx + i} y={my + t} width="1" height="1" fill={col} className="pixel" />);
         }
       }
-      if (connect) {
-        // thin connector lines at mouth corners
-        elements.push(
-          <rect key="gt-conn-l" x={headX + Math.floor(headDim.width / 2) - 3} y={mouthY} width="1" height="1" fill={beardShadow} className="pixel" />,
-          <rect key="gt-conn-r" x={headX + Math.floor(headDim.width / 2) + 3} y={mouthY} width="1" height="1" fill={beardShadow} className="pixel" />
-        );
+      
+      // Chin patch - more solid and triangular
+      for (let y = 0; y < 8; y++) {
+        const width = Math.max(2, 8 - y);
+        const startX = headX + Math.floor(headDim.width / 2) - Math.floor(width / 2);
+        for (let x = 0; x < width; x++) {
+          // Solid chin patch with proper shading - always draw
+          let col = beardColor;
+          if (x === 0 || x === width - 1) col = beardShadow;
+          else if (x === Math.floor(width/2)) col = beardHighlight;
+          else if (y > 5) col = beardDeepShadow;
+          elements.push(<rect key={`gt-${x}-${y}`} x={startX + x} y={mouthY + 2 + y} width="1" height="1" fill={col} className="pixel" />);
+        }
+      }
+      
+      if (style === 'goatee') {
+        // Solid connectors for goatee
+        for (let side = 0; side < 2; side++) {
+          const sideX = side === 0 ? 
+            headX + Math.floor(headDim.width / 2) - 4 :
+            headX + Math.floor(headDim.width / 2) + 3;
+          for (let y = 0; y < 2; y++) {
+            elements.push(
+              <rect key={`gt-conn-${side}-${y}`} x={sideX} y={mouthY + y} width="2" height="1" fill={beardShadow} className="pixel" />
+            );
+          }
+        }
       }
     } else if (style === 'stubble') {
       for (let y = -1; y < 6; y++) {
@@ -1317,18 +1356,39 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
       }
     }
 
-    const garment = appearance.garment;
+    // Debug logging
+    console.log('[Portrait] Garment Debug:', {
+      useEquippedItems,
+      hasEquippedItems: !!character.equippedItems,
+      equippedTorso: character.equippedItems?.torso,
+      appearanceGarment: appearance.garment,
+    });
+    
+    // If we should use equipped items and equippedItems exists, use that (even if slot is empty)
+    // Only fall back to appearance if equippedItems doesn't exist at all
+    let garment = null;
+    if (useEquippedItems && character.equippedItems !== undefined) {
+      // Use equipped torso item (which may be undefined if nothing equipped)
+      garment = character.equippedItems.torso;
+    } else {
+      // Fall back to appearance only if equippedItems doesn't exist
+      garment = appearance.garment;
+    }
+    
+    // If no garment equipped, show bare torso (skip clothing rendering)
+    const isNaked = !garment;
     const clothingColor = appearance.palette.primary;
     const clothingShadow = createShadow(clothingColor, 0.7);
     const clothingDeepShadow = createShadow(clothingColor, 0.5);
     const clothingHighlight = createHighlight(clothingColor, 1.2);
     const accentColor = appearance.palette.accent;
 
-    const material = garment.material.toLowerCase();
+    const material = (garment?.material || '').toLowerCase();
     const hasSheen = ['silk', 'satin', 'velvet'].includes(material);
     const isRough = ['wool', 'burlap', 'hemp'].includes(material);
     const isMetallic = ['mail', 'plate', 'bronze'].includes(material);
 
+    // If naked (no torso equipped), render bare skin instead of clothing
     for (let y = 0; y < bodyHeight; y++) {
       let torsoWidth: number;
       if (y < 10) {
@@ -1346,26 +1406,43 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
 
       const torsoX = 32 - (torsoWidth / 2);
       for (let x = 0; x < torsoWidth + 6; x++) {
-        let col = clothingColor;
+        let col;
         const xr = x / (torsoWidth + 6);
-        if (xr < 0.15) col = clothingHighlight;
-        else if (xr < 0.3) col = createHighlight(clothingColor, 1.1);
-        else if (xr > 0.85) col = clothingDeepShadow;
-        else if (xr > 0.7) col = clothingShadow;
+        
+        if (isNaked) {
+          // Render bare skin
+          col = skinTone;
+          if (xr < 0.15) col = skinHighlight;
+          else if (xr > 0.85) col = skinDeepShadow;
+          else if (xr > 0.7) col = skinShadow;
+          
+          // Add muscle definition for strong characters
+          if (stats.strength >= 7) {
+            if (y > 5 && y < 15 && Math.abs(xr - 0.5) < 0.1) col = createHighlight(col, 1.05);
+            if (y > 15 && y < 25 && (xr > 0.3 && xr < 0.35 || xr > 0.65 && xr < 0.7)) col = createShadow(col, 0.95);
+          }
+        } else {
+          // Render clothing
+          col = clothingColor;
+          if (xr < 0.15) col = clothingHighlight;
+          else if (xr < 0.3) col = createHighlight(clothingColor, 1.1);
+          else if (xr > 0.85) col = clothingDeepShadow;
+          else if (xr > 0.7) col = clothingShadow;
 
-        if (hasSheen && rand(x + y * 100) > 0.7) col = createHighlight(col, 1.15);
-        else if (isRough && rand(x + y * 100) > 0.8) col = createShadow(col, 0.95);
-        else if (isMetallic && Math.sin(x * 0.5 + y * 0.3) > 0.3) col = createHighlight(col, 1.25);
+          if (hasSheen && rand(x + y * 100) > 0.7) col = createHighlight(col, 1.15);
+          else if (isRough && rand(x + y * 100) > 0.8) col = createShadow(col, 0.95);
+          else if (isMetallic && Math.sin(x * 0.5 + y * 0.3) > 0.3) col = createHighlight(col, 1.25);
 
-        if (isWealthy) {
-          if ((x + y) % 12 === 0) col = accentColor;
-          else if ((x - y) % 10 === 0) col = appearance.palette.secondary;
-          if (isNoble && y > 10 && y < 20 && Math.abs(x - torsoWidth / 2) < 5 && ((x + y) % 4 === 0)) col = '#FFD700';
+          if (isWealthy) {
+            if ((x + y) % 12 === 0) col = accentColor;
+            else if ((x - y) % 10 === 0) col = appearance.palette.secondary;
+            if (isNoble && y > 10 && y < 20 && Math.abs(x - torsoWidth / 2) < 5 && ((x + y) % 4 === 0)) col = '#FFD700';
+          }
+
+          if (culturalZone === 'EAST_ASIAN' && y % 8 === 4) col = createShadow(col, 0.9);
+          else if (culturalZone === 'SUB_SAHARAN_AFRICAN' && ((x + y) % 6 < 2)) col = accentColor;
+          else if (culturalZone === 'SOUTH_ASIAN' && isWealthy && (x % 4 === 2 && y % 4 === 2)) col = '#FFD700';
         }
-
-        if (culturalZone === 'EAST_ASIAN' && y % 8 === 4) col = createShadow(col, 0.9);
-        else if (culturalZone === 'SUB_SAHARAN_AFRICAN' && ((x + y) % 6 < 2)) col = accentColor;
-        else if (culturalZone === 'SOUTH_ASIAN' && isWealthy && (x % 4 === 2 && y % 4 === 2)) col = '#FFD700';
 
         elements.push(<rect key={`cl-${y}-${x}`} x={torsoX + x - 3} y={bodyStartY + y} width="1" height="1" fill={col} className="pixel" />);
       }
@@ -1406,19 +1483,38 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     // IMPORTANT: removed the harsh single-pixel "ambient occlusion" stripe that bisected the neck.
 
     return <g key="body">{elements}</g>;
-  }, [appearance.garment, appearance.palette.accent, appearance.palette.primary, appearance.palette.secondary, bodyDim, culturalZone, headDim.height, headDim.width, headX, headY, isNoble, isWealthy, skinShadow, skinTone, stats.strength]);
+  }, [appearance.garment, appearance.palette.accent, appearance.palette.primary, appearance.palette.secondary, bodyDim, culturalZone, headDim.height, headDim.width, headX, headY, isNoble, isWealthy, skinShadow, skinTone, stats.strength, character.equippedItems, useEquippedItems]);
 
   // ----- HEADGEAR (from your original, unchanged except for scoping) -----
   const renderHeadgear = useMemo(() => {
-    const headgear = appearance.headgear;
+    // Debug logging
+    console.log('[Portrait] Headgear Debug:', {
+      useEquippedItems,
+      hasEquippedItems: !!character.equippedItems,
+      equippedHead: character.equippedItems?.head,
+      appearanceHeadgear: appearance.headgear,
+      characterKeys: Object.keys(character),
+    });
+    
+    // If we should use equipped items and equippedItems exists, use that (even if slot is empty)
+    // Only fall back to appearance if equippedItems doesn't exist at all
+    let headgear = null;
+    if (useEquippedItems && character.equippedItems !== undefined) {
+      // Use equipped head item (which may be undefined if nothing equipped)
+      headgear = character.equippedItems.head;
+    } else {
+      // Fall back to appearance only if equippedItems doesn't exist
+      headgear = appearance.headgear;
+    }
+    
     if (!headgear || headgear.name === 'None') return <g key="headgear" />;
 
     const elements: JSX.Element[] = [];
-    const material = headgear.material.toLowerCase();
+    const material = (headgear.material || '').toLowerCase();
     const name = headgear.name.toLowerCase();
     
     // Debug logging
-    console.log(`[Portrait] Rendering headgear: "${name}" (material: ${material})`)
+    console.log(`[Portrait] Rendering headgear: "${name}" (material: ${material}), from equipped: ${useEquippedItems && character.equippedItems?.head ? 'YES' : 'NO'}`)
 
     // Parse color from name first, fall back to material colors
     let headgearColor = appearance.palette.secondary;
@@ -1952,7 +2048,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     }
 
     return <g key="headgear">{elements}</g>;
-  }, [appearance.headgear, isNoble, isWealthy, headDim.width, headX, headY, appearance.palette]);
+  }, [appearance.headgear, isNoble, isWealthy, headDim.width, headX, headY, appearance.palette, character.equippedItems, useEquippedItems]);
 
   // ----- JEWELRY -----
   const renderJewelry = useMemo(() => {

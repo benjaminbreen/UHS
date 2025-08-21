@@ -479,12 +479,40 @@ export function updateCoastlinesAndShallowOceans(
 
         const nonBeachCoastBiomes = new Set([BiomeType.MOUNTAIN, BiomeType.HIGH_PEAK, BiomeType.SNOW, BiomeType.RIVER, BiomeType.MAJOR_RIVER, BiomeType.URBAN, BiomeType.DENSE_CITY, BiomeType.LOW_DENSITY_CITY, BiomeType.HAMLET, BiomeType.WETLANDS, BiomeType.DESERT, BiomeType.JUNGLE, BiomeType.DENSE_FOREST, BiomeType.RIVERBANK, BiomeType.VOLCANIC_ROCK, BiomeType.ACTIVE_LAVA, BiomeType.MANGROVE, BiomeType.RUINS, BiomeType.FARMLAND, BiomeType.ESTUARY, BiomeType.FRESHWATER_LAKE, BiomeType.CLIFF, BiomeType.MARKETPLACE, BiomeType.GOVERNMENT_DISTRICT, BiomeType.HOLY_SITE, BiomeType.PALACE]);
         if (isCoastal && !nonBeachCoastBiomes.has(tile.biome)) {
-            // Check for cliff conditions: high altitude near water
-            if (tile.altitude > ALTITUDE_LEVELS.HILLS_START && featurePlacementNoise.random() < 0.3) {
+            // Check what type of water we're adjacent to
+            let nearLake = false;
+            let nearRiver = false;
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    if (dx === 0 && dy === 0) continue;
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
+                        const neighbor = tiles[ny][nx];
+                        if (neighbor.biome === BiomeType.FRESHWATER_LAKE) nearLake = true;
+                        if (neighbor.biome === BiomeType.RIVER || neighbor.biome === BiomeType.MAJOR_RIVER) nearRiver = true;
+                    }
+                }
+            }
+            
+            if (nearLake || isLakeContext) {
+                // Near freshwater lake - use wetlands or riverbank
+                if (featurePlacementNoise.random() < 0.7) {
+                    tile.biome = BiomeType.WETLANDS;
+                } else {
+                    tile.biome = BiomeType.RIVERBANK;
+                }
+                tile.altitude = Math.max(ALTITUDE_LEVELS.BEACH, Math.min(ALTITUDE_LEVELS.BEACH + 0.02, tile.altitude));
+            } else if (nearRiver) {
+                // Near river - use riverbank
+                tile.biome = BiomeType.RIVERBANK;
+                tile.altitude = Math.max(ALTITUDE_LEVELS.BEACH, Math.min(ALTITUDE_LEVELS.BEACH + 0.02, tile.altitude));
+            } else if (tile.altitude > ALTITUDE_LEVELS.HILLS_START && featurePlacementNoise.random() < 0.3) {
                 // 30% chance to make coastal hills/mountains into cliffs
                 tile.biome = BiomeType.CLIFF;
                 // Keep altitude high for cliffs
             } else {
+                // Ocean coast - use beach
                 tile.biome = BiomeType.BEACH;
                 if (tile.altitude > ALTITUDE_LEVELS.BEACH + 0.02) {
                     tile.altitude = ALTITUDE_LEVELS.BEACH + featurePlacementNoise.random() * 0.01;
@@ -679,8 +707,14 @@ export function generateClimateEnhancedBiomes(tiles: Tile[][], climate: ClimateT
             // Enhanced mangrove generation in tropical/semitropical climates
             if (climate === ClimateType.TROPICAL) {
                 // Much more aggressive mangrove generation for tropical climates
-                if (tile.isCoast && (tile.biome === BiomeType.BEACH || tile.biome === BiomeType.WETLANDS || tile.biome === BiomeType.SHALLOW_OCEAN || tile.biome === BiomeType.GRASSLAND) && 
-                    tile.altitude < ALTITUDE_LEVELS.BEACH + 0.03 && humidVal > MANGROVE_MIN_HUMIDITY * 0.5) { // Much lower humidity threshold
+                // Also generate mangroves in wetlands and near rivers, not just coasts
+                const nearWater = tile.isCoast || tile.biome === BiomeType.WETLANDS || 
+                                  tile.biome === BiomeType.RIVERBANK || tile.biome === BiomeType.SHALLOW_OCEAN;
+                
+                if (nearWater && (tile.biome === BiomeType.BEACH || tile.biome === BiomeType.WETLANDS || 
+                    tile.biome === BiomeType.SHALLOW_OCEAN || tile.biome === BiomeType.GRASSLAND || 
+                    tile.biome === BiomeType.RIVERBANK || tile.biome === BiomeType.SCRUB) && 
+                    tile.altitude < ALTITUDE_LEVELS.BEACH + 0.05 && humidVal > MANGROVE_MIN_HUMIDITY * 0.3) { // Even lower humidity threshold
                     
                     let landNeighbors = 0;
                     let waterNeighbors = 0;
@@ -695,16 +729,23 @@ export function generateClimateEnhancedBiomes(tiles: Tile[][], climate: ClimateT
                         }
                     }
                     
-                    // Place mangroves when there's a mix of land and water
-                    if (landNeighbors >= 1 && waterNeighbors >= 1 && featurePlacementNoise.random() < 0.9) { // 90% chance in tropical
+                    // Place mangroves when there's water nearby
+                    // More lenient conditions for tropical zones
+                    if ((waterNeighbors >= 1 || tile.biome === BiomeType.WETLANDS) && 
+                        featurePlacementNoise.random() < 0.95) { // 95% chance in tropical
                         tile.biome = BiomeType.MANGROVE;
                         tile.isLand = true;
                     }
                 }
-            } else if (climate === ClimateType.SEMITROPICAL && humidVal > MANGROVE_MIN_HUMIDITY * 0.7) {
-                // Moderate mangrove generation for semitropical
-                if (tile.isCoast && (tile.biome === BiomeType.BEACH || tile.biome === BiomeType.WETLANDS || tile.biome === BiomeType.SHALLOW_OCEAN) && 
-                    tile.altitude < ALTITUDE_LEVELS.BEACH + 0.02) {
+            } else if (climate === ClimateType.SEMITROPICAL && humidVal > MANGROVE_MIN_HUMIDITY * 0.5) {
+                // Enhanced mangrove generation for semitropical
+                const nearWater = tile.isCoast || tile.biome === BiomeType.WETLANDS || 
+                                  tile.biome === BiomeType.RIVERBANK;
+                
+                if (nearWater && (tile.biome === BiomeType.BEACH || tile.biome === BiomeType.WETLANDS || 
+                    tile.biome === BiomeType.SHALLOW_OCEAN || tile.biome === BiomeType.GRASSLAND || 
+                    tile.biome === BiomeType.RIVERBANK || tile.biome === BiomeType.SCRUB) && 
+                    tile.altitude < ALTITUDE_LEVELS.BEACH + 0.04) { // Increased altitude threshold
                     let isSheltered = false;
                     let landNeighbors = 0;
                     for(let dy = -1; dy <= 1; dy++){
@@ -716,7 +757,9 @@ export function generateClimateEnhancedBiomes(tiles: Tile[][], climate: ClimateT
                     }
                     if(landNeighbors >= 2) isSheltered = true;
 
-                    if (isSheltered && featurePlacementNoise.random() < 0.8) { // 80% chance in semitropical
+                    // More lenient sheltered conditions for semitropical
+                    if ((isSheltered || tile.biome === BiomeType.WETLANDS || waterNeighbors >= 2) && 
+                        featurePlacementNoise.random() < 0.85) { // 85% chance in semitropical
                         let canPlaceMangrove = true;
                         for(let dy = -MANGROVE_COASTAL_RANGE; dy <= MANGROVE_COASTAL_RANGE; dy++){
                             for(let dx = -MANGROVE_COASTAL_RANGE; dx <= MANGROVE_COASTAL_RANGE; dx++){
@@ -738,10 +781,9 @@ export function generateClimateEnhancedBiomes(tiles: Tile[][], climate: ClimateT
         }
     }
     
-    // Fallback mangrove generation for tropical/semitropical water-related archetypes
-    if ((climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL) && 
-        [MapArchetype.ISLAND, MapArchetype.ATOLL, MapArchetype.PENINSULA, MapArchetype.BAY, 
-         MapArchetype.DELTA, MapArchetype.STRAITS, MapArchetype.FRESHWATER_LAKE].includes(archetype)) {
+    // Enhanced mangrove generation for water-heavy archetypes
+    // Bay, Strait, and Peninsula maps should have more mangroves in tropical/semitropical climates
+    if ((climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL)) {
         
         // Count existing mangroves
         let mangroveCount = 0;
@@ -753,11 +795,36 @@ export function generateClimateEnhancedBiomes(tiles: Tile[][], climate: ClimateT
             }
         }
         
-        // If we have less than 1 mangrove, force generate some
-        if (mangroveCount < 1) {
-            const targetMangroves = climate === ClimateType.TROPICAL ? 
-                3 + Math.floor(featurePlacementNoise.random() * 8) : // 3-10 for tropical
-                1 + Math.floor(featurePlacementNoise.random() * 5);  // 1-5 for semitropical
+        // Determine minimum mangroves based on archetype
+        let minMangroves = 0;
+        let targetMangroves = 0;
+        
+        if ([MapArchetype.BAY, MapArchetype.STRAITS, MapArchetype.PENINSULA].includes(archetype)) {
+            // These archetypes should have lots of mangroves
+            minMangroves = climate === ClimateType.TROPICAL ? 8 : 4;
+            targetMangroves = climate === ClimateType.TROPICAL ? 
+                10 + Math.floor(featurePlacementNoise.random() * 15) : // 10-25 for tropical
+                6 + Math.floor(featurePlacementNoise.random() * 10);   // 6-15 for semitropical
+        } else if ([MapArchetype.ISLAND, MapArchetype.ATOLL, MapArchetype.DELTA, 
+                    MapArchetype.FRESHWATER_LAKE, MapArchetype.RIVER_PORT].includes(archetype)) {
+            // Moderate mangrove generation
+            minMangroves = climate === ClimateType.TROPICAL ? 3 : 1;
+            targetMangroves = climate === ClimateType.TROPICAL ? 
+                5 + Math.floor(featurePlacementNoise.random() * 8) : // 5-12 for tropical
+                3 + Math.floor(featurePlacementNoise.random() * 5);  // 3-7 for semitropical
+        } else if (archetype === MapArchetype.ALL_LAND && humidityNoise) {
+            // Even all-land maps can have mangroves in wetlands
+            const avgHumidity = humidityNoise.octaveNoise(MAP_WIDTH_TILES/2, MAP_HEIGHT_TILES/2, 2, 0.5, 2.0);
+            if (avgHumidity > 0.6) {
+                minMangroves = 0;
+                targetMangroves = climate === ClimateType.TROPICAL ? 
+                    2 + Math.floor(featurePlacementNoise.random() * 4) : // 2-5 for tropical
+                    1 + Math.floor(featurePlacementNoise.random() * 2);  // 1-2 for semitropical
+            }
+        }
+        
+        // Generate mangroves if we're below the minimum
+        if (mangroveCount < minMangroves && targetMangroves > 0) {
             
             let placedMangroves = 0;
             let attempts = 0;
@@ -768,9 +835,21 @@ export function generateClimateEnhancedBiomes(tiles: Tile[][], climate: ClimateT
                 const y = Math.floor(featurePlacementNoise.random() * MAP_HEIGHT_TILES);
                 const tile = tiles[y][x];
                 
-                // Look for coastal tiles that can become mangroves
-                if (tile.isCoast && (tile.biome === BiomeType.BEACH || tile.biome === BiomeType.WETLANDS || 
-                    tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.RIVERBANK)) {
+                // Look for suitable tiles - more lenient for bay/strait/peninsula
+                const canConvert = (archetype === MapArchetype.BAY || archetype === MapArchetype.STRAITS || 
+                                    archetype === MapArchetype.PENINSULA) ?
+                    // Very lenient for water-heavy archetypes
+                    (tile.isCoast || tile.biome === BiomeType.WETLANDS || tile.biome === BiomeType.RIVERBANK || 
+                     tile.biome === BiomeType.SHALLOW_OCEAN) &&
+                    (tile.biome === BiomeType.BEACH || tile.biome === BiomeType.WETLANDS || 
+                     tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.RIVERBANK || 
+                     tile.biome === BiomeType.SCRUB || tile.biome === BiomeType.SHALLOW_OCEAN) &&
+                    tile.altitude < ALTITUDE_LEVELS.BEACH + 0.06 :
+                    // Standard conditions for other archetypes
+                    tile.isCoast && (tile.biome === BiomeType.BEACH || tile.biome === BiomeType.WETLANDS || 
+                                     tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.RIVERBANK);
+                
+                if (canConvert) {
                     
                     // Check for water neighbor
                     let hasWater = false;
