@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { PlayerCharacter, EquipmentSlot, Item, Rarity, Appearance, NpcEntity } from '../types';
 import { useUI } from '../contexts/UIContext';
-import { ProceduralPortrait } from './portraits';
+import { ProceduralPortrait, AnimatedPortrait } from './portraits';
 import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import BeliefsPanel from './BeliefsPanel';
@@ -742,7 +742,7 @@ const CharacterProfileModal: React.FC<CharacterProfileModalProps> = ({
                             >
                                 <div className="aspect-square bg-slate-900/50 rounded-xl border-2 border-slate-700/50 shadow-xl shadow-black/40 overflow-hidden transition-all duration-300 group-hover:scale-105 group-hover:border-blue-500/50 flex items-center justify-center">
                                     <div className="w-full h-full transform scale-110">
-                                        <ProceduralPortrait character={character} size={300} />
+                                        <AnimatedPortrait character={character} size={300} trackChanges={true} />
                                     </div>
                                 </div>
                                 <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none group-hover:from-black/40 transition-colors" />

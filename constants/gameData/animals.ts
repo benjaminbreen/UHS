@@ -190,12 +190,31 @@ export const ANIMAL_DATA: Record<string, AnimalData> = {
         },
         habitat: 'grassland', behaviorProfile: 'deer'
     },
+MULE: {
+        name: 'Mule', emoji: '🫏', type: 'Domestic', social: 'solitary', attack: 1, defense: 2, maxHealth: 15, speed: 1, strength: 2, agility: 1, perception: 1, level: 1,
+        drops: [{ name: 'Meat', chance: 1.0 }, { name: 'Mule Hide', chance: 0.8 }],
+        spawnBiomes: [BiomeType.FARMLAND, BiomeType.GRASSLAND],
+        spawnConditions: { 
+            nearSettlement: true,
+            // Mules were introduced to Americas post-1492
+            zones: ['EUROPEAN', 'MENA', 'SOUTH_ASIAN', 'EAST_ASIAN', 'SUB_SAHARAN_AFRICAN', 'NORTH_AMERICAN_COLONIAL', 'SOUTH_AMERICAN_COLONIAL']
+        },
+        habitat: 'grassland', behaviorProfile: 'deer'
+    },
+
     CHICKEN: {
-        name: 'Chicken', emoji: '🐔', type: 'Domestic', social: 'herd', attack: 1, defense: 0, maxHealth: 3, speed: 6, strength: 1, agility: 4, perception: 2, level: 1,
+        name: 'Chicken', emoji: '🐓', type: 'Domestic', social: 'herd', attack: 1, defense: 0, maxHealth: 3, speed: 6, strength: 1, agility: 4, perception: 2, level: 1,
         drops: [{ name: 'Poultry', chance: 1.0 }, { name: 'Feather', chance: 0.9 }],
         spawnBiomes: [BiomeType.FARMLAND, BiomeType.HAMLET],
         spawnConditions: { nearSettlement: true },
         habitat: 'grassland', behaviorProfile: 'rabbit'
+    },
+     DUCK: {
+        name: 'Duck', emoji: '🦆', type: 'Domestic', social: 'herd', attack: 1, defense: 0, maxHealth: 3, speed: 6, strength: 1, agility: 4, perception: 2, level: 1,
+        drops: [{ name: 'Poultry', chance: 1.0 }, { name: 'Feather', chance: 0.9 }],
+        spawnBiomes: [BiomeType.WETLANDS],
+        spawnConditions: { nearSettlement: true },
+        habitat: 'wetland', behaviorProfile: 'rabbit'
     },
     CAMEL: {
         name: 'Camel', emoji: '🐪', type: 'Domestic', social: 'herd', attack: 2, defense: 3, maxHealth: 20, speed: 6, strength: 7, agility: 5, perception: 5, level: 2,

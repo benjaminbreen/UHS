@@ -7,7 +7,7 @@ import { generateEncounterDialogue } from '../services/encounterService';
 import { summarizeConversation, generateInternalMonologue, generateNpcQuestOffer } from '../services/llmService';
 import { TypewriterText } from '../hooks/useTypewriter';
 import NpcTradeInterface from './NpcTradeInterface';
-import { ProceduralPortrait } from './portraits';
+import { ProceduralPortrait, AnimatedPortrait } from './portraits';
 import { questService } from '../services/questService';
 import { Quest } from '../types/questTypes';
 import { Sparkles, Target, MapPin, Info, AlertTriangle, Heart } from 'lucide-react';
@@ -1633,7 +1633,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
             </div>
             
             {/* Internal Monologue Slide-out Panel */}
-            <div className={`absolute top-0 right-0 h-full bg-gradient-to-l from-slate-900 via-slate-800 to-transparent border-l border-slate-600/50 shadow-2xl transition-all duration-500 ${showMonologue ? 'w-80 translate-x-0' : 'w-0 translate-x-full'} overflow-hidden`}>
+            <div className={`absolute top-0 right-0 h-full bg-gradient-to-l from-slate-900 via-slate-800 to-slate-900/80 border-l border-slate-600/50 shadow-2xl transition-all duration-500 ${showMonologue ? 'w-80 translate-x-0' : 'w-0 translate-x-full'} overflow-hidden`}>
                 <div className="p-4 h-full flex flex-col">
                     {/* Close button */}
                     <button 
@@ -1645,8 +1645,8 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                     
                     {/* Monologue header */}
                     <div className="mb-4">
-                        <h3 className="text-lg font-semibold text-amber-400 mb-1">Inner Thoughts</h3>
-                        <p className="text-xs text-slate-400">
+                        <h3 className="text-xl font-semibold text-amber-400 mb-1">Inner Thoughts</h3>
+                        <p className="text-sm text-slate-400">
                             Click {3 - monologueClickCount} more time{3 - monologueClickCount !== 1 ? 's' : ''} for deeper thoughts
                         </p>
                     </div>
@@ -1654,7 +1654,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                     {/* Portrait */}
                     <div className="mb-4 flex justify-center">
                         {isNpc(target) ? (
-                            <div className="w-24 h-24 rounded-lg overflow-hidden border-2 border-amber-500/50 shadow-lg">
+                            <div className="w-100 h-100 rounded-lg overflow-hidden border-2 border-amber-500/50 shadow-lg">
                                 <ProceduralPortrait character={target as any} size={100} />
                             </div>
                         ) : (
@@ -1669,7 +1669,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-amber-400"></div>
                             </div>
                         ) : (
-                            <div className="text-sm italic text-slate-200 leading-relaxed font-serif">
+                            <div className="text-lg italic text-slate-200 leading-loose font-serif">
                                 <TypewriterText 
                                     text={monologueText} 
                                     speed={30}

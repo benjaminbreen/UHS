@@ -19,6 +19,7 @@ import { executeCrafting } from '../services/craftingService';
 import { parseDateString } from '../utils/dateUtils';
 import { ANIMAL_DATA } from '../constants/index';
 import { isSafari } from '../utils/safariUtils';
+import { TamedAnimal } from '../services/animalTamingService';
 
 export interface VictoryDetails {
     xpGained: number;
@@ -45,6 +46,10 @@ export const useUIState = () => {
     const [isWorldMapModalOpen, setIsWorldMapModalOpen] = useState<boolean>(false);
     const [isCharacterProfileModalOpen, setIsCharacterProfileModalOpen] = useState<boolean>(false);
     const [isMapDetailsModalOpen, setIsMapDetailsModalOpen] = useState<boolean>(false);
+    
+    // Context for narration
+    const [recentNpc, setRecentNpc] = useState<NpcEntity | null>(null);
+    const [recentConversationSummary, setRecentConversationSummary] = useState<string | null>(null);
     const [isLevelUpModalOpen, setIsLevelUpModalOpen] = useState<boolean>(false);
     const [levelUpCharacter, setLevelUpCharacter] = useState<PlayerCharacter | null>(null);
     const [isPortraitModalOpen, setIsPortraitModalOpen] = useState<boolean>(false);
@@ -505,7 +510,12 @@ export const useUIState = () => {
     
     const handleCloseEncounter = useCallback((history: DialogueEntry[]) => {
         if (encounterTarget && isNpc(encounterTarget) && history.length > 1) {
+            // Store recent NPC and conversation for narration context
+            setRecentNpc(encounterTarget);
+            
             summarizeConversation(history).then(({ summary, sentiment }) => {
+                setRecentConversationSummary(summary);
+                
                 setNpcs(prevNpcs => prevNpcs.map(npc => {
                     if (npc.id === encounterTarget.id) {
                         const newSummaries = [...npc.memory.conversationSummaries, summary].slice(-5); // Keep last 5
@@ -525,6 +535,131 @@ export const useUIState = () => {
         setEncounterTarget(null);
         setCombatant(target);
     }, []);
+
+    // Contextual narration handlers
+    const handleCompanionClick = useCallback(async (animal: TamedAnimal) => {
+        console.log('[handleCompanionClick] Called with animal:', animal);
+        if (!playerCharacter || controlledIconX === null || controlledIconY === null) {
+            console.log('[handleCompanionClick] No player character or position, returning');
+            return;
+        }
+        
+        try {
+            const { generateCompanionClickNarration } = await import('../services/llmService');
+            
+            // Get the current tile
+            const currentTile = mapData?.tiles?.[controlledIconY]?.[controlledIconX] || null;
+            
+            // Create a simple context for the narration
+            const context: PlayerContext = {
+                playerCharacter,
+                mapData: mapData || {} as MapData,
+                npcs: [],
+                animals: [],
+                terrainStructures: [],
+                playerX: controlledIconX,
+                playerY: controlledIconY,
+                viewMode: 'standard',
+                interiorContext: null,
+                currentTile,
+                ambianceContext: {
+                    timeOfDay: currentTimeOfDay || 'morning',
+                    climate: mapData?.climate || 'TEMPERATE',
+                    historicalEra: 'MEDIEVAL',
+                    season: 'SPRING',
+                    culturalZone: currentZone || 'EUROPEAN',
+                    currentTile
+                }
+            };
+            
+            const narration = await generateCompanionClickNarration(
+                animal.name,
+                animal.type,
+                animal.loyalty,
+                context
+            );
+            
+            console.log('[handleCompanionClick] Generated narration:', narration);
+            
+            setNarrationHistory(prev => [...prev, { 
+                sender: 'narrator', 
+                text: narration 
+            }]);
+        } catch (error) {
+            console.error('[handleCompanionClick] Error:', error);
+        }
+    }, [playerCharacter, controlledIconX, controlledIconY, mapData, currentZone, currentTimeOfDay, setNarrationHistory]);
+    
+    const handlePlayerClick = useCallback(async () => {
+        console.log('[handlePlayerClick] Called');
+        if (!playerCharacter || controlledIconX === null || controlledIconY === null) {
+            console.log('[handlePlayerClick] No player character or position, returning');
+            return;
+        }
+        
+        try {
+            const { generatePlayerClickNarration } = await import('../services/llmService');
+            
+            // Get the current tile
+            const currentTile = mapData?.tiles?.[controlledIconY]?.[controlledIconX] || null;
+            
+            // Create context for more varied narration
+            const context: PlayerContext = {
+                playerCharacter,
+                mapData: mapData || {} as MapData,
+                npcs: [],
+                animals: [],
+                terrainStructures: [],
+                playerX: controlledIconX,
+                playerY: controlledIconY,
+                viewMode: 'standard',
+                interiorContext: null,
+                currentTile,
+                ambianceContext: {
+                    timeOfDay: currentTimeOfDay || 'morning',
+                    climate: mapData?.climate || 'TEMPERATE',
+                    historicalEra: 'MEDIEVAL',
+                    season: 'SPRING',
+                    culturalZone: currentZone || 'EUROPEAN',
+                    currentTile
+                }
+            };
+            
+            const narration = await generatePlayerClickNarration(
+                playerCharacter,
+                recentNpc,
+                context
+            );
+            
+            console.log('[handlePlayerClick] Generated narration:', narration);
+            
+            setNarrationHistory(prev => [...prev, { 
+                sender: 'narrator', 
+                text: narration 
+            }]);
+        } catch (error) {
+            console.error('[handlePlayerClick] Error:', error);
+        }
+    }, [playerCharacter, controlledIconX, controlledIconY, mapData, recentNpc, recentConversationSummary, currentZone, currentTimeOfDay, setNarrationHistory]);
+    
+    const handleNewAreaEntry = useCallback(async (fromDirection: 'north' | 'south' | 'east' | 'west') => {
+        if (!playerCharacter) return;
+        
+        const { generateNewAreaNarration } = await import('../services/contextualNarrationService');
+        
+        const narration = await generateNewAreaNarration(fromDirection, {
+            playerCharacter,
+            mapData,
+            currentZone,
+            currentRegion: localArea,
+            timeOfDay: currentTimeOfDay
+        });
+        
+        setNarrationHistory(prev => [...prev, { 
+            sender: 'narrator', 
+            text: narration 
+        }]);
+    }, [playerCharacter, mapData, currentZone, localArea, currentTimeOfDay, setNarrationHistory]);
 
     const handleCombatVictory = useCallback((opponent: EncounterableEntity) => {
         const xpGained = 10 * (opponent.stats.level || 1);
@@ -690,6 +825,11 @@ export const useUIState = () => {
         // Actions passed down from Player/Game contexts
         onUseSkill,
         onSend,
+        
+        // Contextual narration handlers
+        handleCompanionClick,
+        handlePlayerClick,
+        handleNewAreaEntry,
         onBuyItem,
         onSellItem
     };

@@ -286,7 +286,7 @@ export async function generateEncounterDialogue(
         - What would genuinely shock or alarm someone in my position at this time and place?
         - What are the real dangers and concerns of my era?
         - How would someone of my social class and profession realistically react?
-        - What would I notice first about this stranger?
+        - What would I notice first about this stranger? (or are they plausibly someone you might know?)
         
         **EXAMPLES OF REALISTIC CONTEXTUAL RESPONSES:**
         
@@ -324,7 +324,7 @@ export async function generateEncounterDialogue(
         3. What would someone of my role/class say in this situation?
         4. How would I realistically respond to what they just said?
         
-        Give 1-2 lines of natural dialogue. Don't repeat previous statements. React authentically.
+        Your initial response should be just a sentence or even a word or two. In subsequent responses give between 1 and 4 lines of natural dialogue. Don't repeat previous statements. React authentically.
 
         ${languageInstruction}
 
@@ -543,13 +543,13 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
         **Overall Ambiance:** ${generateAmbianceText(context.ambianceContext)}
     `;
 
-    const metaKeywords = ['game', 'real', 'simulation', 'exist', 'purpose', 'developer', 'code', 'AI'];
+    const metaKeywords = ['game', 'real', 'simulation', 'exist', 'purpose', 'developer', 'code', 'AI', 'reality', 'app', 'developer'];
     const isMetaQuestion = metaKeywords.some(kw => playerQuery.toLowerCase().includes(kw));
     const isComplexQuery = playerQuery.toLowerCase().includes('what are') || playerQuery.toLowerCase().includes('explain') || playerQuery.length > 50;
     
     let personaInstruction = '';
     if (isMetaQuestion) {
-        personaInstruction = "Adopt the persona of the author Henry James. Respond with long, complex, multi-clause sentences, focusing on introspection, consciousness, and the subtle nuances of perception. Your prose should be dense and analytical, exploring the very nature of the player's query as a construct of observation within this simulated reality.";
+        personaInstruction = "Adopt the persona of the author Henry James. Respond with a complex, multi-clause sentence, focusing on introspection, consciousness, and the subtle nuances of perception. Your prose should be dense and analytical, exploring the very nature of the player's query as a construct of observation within this simulated reality.";
     } else if (isComplexQuery) {
         personaInstruction = "Respond as a knowledgeable and detailed narrator. Provide a thorough, two-paragraph answer that fully explores the player's query within the game's context.";
     } else {
@@ -573,7 +573,8 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
         - Note how NPCs or wild animals react to seeing the player with tamed creatures
 
         **Task:**
-        Based on your current persona and the game context, provide a narrative response in the second person ("You..."). If the action is impossible, explain why in a narrative, immersive way. Do not break character or mention being an AI.
+        Based on your current persona and the game context, provide a narrative response in the second person ("You..."). If the action is impossible, explain why in a narrative, immersive way. Do not break character or mention being an AI. 
+        If the player asks you something that seems like they are toying with you or testing the nature of their world, Adopt the persona of the author Henry James. Respond with a complex, multi-clause sentence, focusing on introspection, consciousness, and the subtle nuances of perception - but sort of funny?
     `;
     
     try {
@@ -610,7 +611,7 @@ export async function generateObservationText(context: PlayerContext): Promise<s
         : '';
 
     const prompt = `
-        You are the narrator for an immersive, text-based, super-historically-accurate educational historical simulation game. Describe what the player character experiences through their senses. Be poetic, evocative, and detailed.
+        You are the narrator for an immersive, text-based, raw and unflinching, super-historically-accurate educational historical simulation game. Describe what the player character experiences through their senses. Be precise, crisp (no purple prose!) yet evocative.
         
         CONTEXT:
         - View: I am in a ${viewMode} view.
@@ -629,6 +630,105 @@ export async function generateObservationText(context: PlayerContext): Promise<s
     
     const response = await ai.models.generateContent({ model: 'gemini-2.5-flash-lite', contents: prompt });
     return response.text;
+}
+
+/**
+ * Generate narration for clicking on companion animal
+ */
+export async function generateCompanionClickNarration(
+    animalName: string,
+    animalType: string,
+    loyalty: number,
+    context: PlayerContext
+): Promise<string> {
+    const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+    
+    // Fallback for undefined values
+    const safeName = animalName || 'Your companion';
+    const safeType = animalType || 'animal';
+    const loyaltyStatus = loyalty > 70 ? 'happy and loyal' : loyalty > 40 ? 'content' : 'anxious';
+    
+    const prompt = `
+        Describe what a companion ${safeType.toLowerCase()} named ${safeName} is doing right now. 
+        The ${safeType} is ${loyaltyStatus}. 
+        Keep it to one short, vivid sentence (max 20 words).
+        Write in third person (e.g., "${safeName} sniffs the ground...").
+    `;
+    
+    try {
+        const response = await ai.models.generateContent({ model: 'gemini-2.5-flash-lite', contents: prompt });
+        const text = response.text.trim();
+        return text || `${safeName} stays close by your side.`;
+    } catch (error) {
+        console.error('Failed to generate companion narration:', error);
+        return `${safeName} stays close by your side.`;
+    }
+}
+
+/**
+ * Generate narration for clicking on player character
+ */
+export async function generatePlayerClickNarration(
+    playerCharacter: any,
+    recentNpc: any | null,
+    context?: PlayerContext
+): Promise<string> {
+    const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+    
+    const healthStatus = playerCharacter.health < playerCharacter.maxHealth * 0.3 ? 'badly wounded' :
+                        playerCharacter.health < playerCharacter.maxHealth * 0.6 ? 'injured' : 'healthy';
+    const fatigueStatus = playerCharacter.fatigue > playerCharacter.maxFatigue * 0.7 ? 'exhausted' :
+                         playerCharacter.fatigue > playerCharacter.maxFatigue * 0.4 ? 'tired' : 'rested';
+    
+    // Randomly choose between different types of observations
+    const observationTypes = [
+        'sensory', // what they see, hear, smell
+        'memory',   // brief memory or association
+        'feeling',  // physical sensation
+        'zen',      // moment of peace or beauty
+        'practical' // immediate concern or plan
+    ];
+    
+    const type = observationTypes[Math.floor(Math.random() * observationTypes.length)];
+    
+    let prompt = `
+        Character: ${playerCharacter.name}, a ${playerCharacter.occupation || playerCharacter.profession || 'traveler'} who is ${healthStatus} and ${fatigueStatus}.
+        ${recentNpc ? `Recently met: ${recentNpc.name}, a ${recentNpc.occupation || recentNpc.role}.` : ''}
+        ${context?.currentTile ? `Location: ${context.currentTile.biome || 'unknown terrain'}` : ''}
+        
+        Generate a brief, fleeting thought or impression, occasioned by the current setting, impressionistic and subjective and entirely, totally, REAL. it should be hyper specific, quotidian, and realistic to the setting - not some frou frou poetic nonsense, but gritty, real, weird stuff. and brief. hyper succinct, like 4-5 to 8-10 words, with ellipsis at end...
+    `;
+    
+    try {
+        const response = await ai.models.generateContent({ model: 'gemini-2.5-flash-lite', contents: prompt });
+        let text = response.text.trim();
+        
+        // Clean up and ensure single sentence
+        const firstSentence = text.split(/[.!?]/)[0];
+        if (firstSentence) {
+            return firstSentence.trim() + '.';
+        }
+        
+        // Fallback phrases that are more varied
+        const fallbacks = [
+            "The wind carries distant sounds.",
+            "I notice the shadows growing longer.",
+            "My boots are wearing thin.",
+            "That cloud looks like rain.",
+            "I should rest soon.",
+            "The air tastes different here.",
+            "Birds scatter from the undergrowth."
+        ];
+        return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+    } catch (error) {
+        console.error('Failed to generate player thought:', error);
+        const fallbacks = [
+            "The path stretches ahead.",
+            "Dust swirls in the afternoon light.",
+            "I adjust my pack and continue."
+        ];
+        return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+    }
 }
 
 /**
@@ -1025,17 +1125,17 @@ export async function generateInternalMonologue(
         
         Task: ${clickPrompts[context.clickCount - 1]}
         
-        Style: Stream-of-consciousness, emotional, personal, raw inner thoughts.
+        Style: Stream-of-consciousness, emotional, personal, raw, sometimes even shocking inner thoughts - fragmentary and strange, with lots of ellipses. rarely sentences or full thoughts, but super authentic to real subjectivity, like something from Virginia Woolf's THE WAVES or Henry James, yet also very much in keeping with the tone, setting, and worldview of the given character in time and place. Fellini-esque, fragmentary, Lynchian. 
         ${isNpcTarget ? 
             'Show the contrast between their public face and private thoughts. What are they hiding? What do they really want?' :
             'Show animal instincts, sensory perceptions, primal emotions. What does the animal sense or fear?'}
         
-        Keep it exactly 2 sentences. Use italics formatting.
+        Keep it exactly 3 sentences. Remember: subconscious mind. Weird, raw, but real. 
     `;
     
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-lite',
+            model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
                 responseMimeType: "application/json",

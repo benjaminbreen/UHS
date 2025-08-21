@@ -5,6 +5,7 @@ import { NpcEntity, NpcStats, NpcPersonality, NpcSocialContext, HistoricalEra, C
 import { PROFESSIONS, CulturalZone, SocialClassMap, ProfessionDefinition, CHARACTER_NAMES, REGION_NAME_MAPPING, RELIGION_DATA, GEOGRAPHICAL_DATA, IDEOLOGIES, PERSONAL_BELIEFS, CLOTHING_DATA, ADJACENCIES, getClothingData, getRandomClothingPiece, FACTION_DATA } from '../../constants/index';
 import { ValueNoise } from '../../utils/noise';
 import { generatePersonalGoal } from '../../services/goalService';
+import { getProfessionContext, getFallbackContext, ProfessionContext } from '../../services/professionContextService';
 
 export function determineReligion(
     culturalZone: CulturalZone,
@@ -250,6 +251,7 @@ export function generateClothingPalette(wealthLevel: WealthLevel, era: Historica
     const palette = specificClothingSet?.palette;
     
     if (!palette || !palette.primary || palette.primary.length === 0) {
+        console.log(`[ClothingPalette] No palette found for ${culturalZone}/${era}/${clothingTier}/${gender}, using fallback`);
         return { primary: '#8B4513', secondary: '#654321', accent: '#D2691E' };
     }
 
@@ -551,7 +553,7 @@ function getFallbackRole(wealth: WealthLevel, gender: Gender): { socialClass: st
 
 export function determineSocialRole(
     profile: Omit<NpcEntity, 'id' | 'name' | 'class' | 'role' | 'descriptions' | 'movement' | 'x' | 'y' | 'emoji' | 'activity' | 'birthplace' | 'workplaceId' | 'workplaceName' | 'ideology' | 'beliefs'>,
-    context: { era: HistoricalEra, culturalZone: CulturalZone, factionData?: FactionData },
+    context: { era: HistoricalEra, culturalZone: CulturalZone, factionData?: FactionData, region?: string, citySize?: number },
     preferredRole?: string,
     structureType?: TerrainStructureType
 ): { socialClass: string, role: string, emoji: string, nameKey?: string } {
@@ -580,8 +582,29 @@ export function determineSocialRole(
 
         if (!eraRoles) return getFallbackRole(profile.wealthLevel, profile.gender);
 
+        // Get the appropriate profession context based on location
+        let professionContext: ProfessionContext | null = null;
+        if (eraForProfessions === HistoricalEra.INDUSTRIAL_ERA) {
+            professionContext = getProfessionContext(
+                context.region,
+                structureType,
+                context.citySize,
+                context.culturalZone,
+                eraForProfessions
+            );
+        }
+
         if (preferredRole) {
             for (const socialClass in eraRoles) {
+                // Skip social classes that don't match our context
+                if (professionContext && socialClass !== professionContext) {
+                    // Check if this socialClass matches our fallback context
+                    const fallback = getFallbackContext(professionContext, eraForProfessions);
+                    if (socialClass !== fallback && socialClass !== 'GENERAL') {
+                        continue;
+                    }
+                }
+                
                 if (eraRoles[socialClass]?.[preferredRole]) {
                     const roleDef = eraRoles[socialClass][preferredRole];
                      if (roleDef.genderBias && profile.gender !== 'Non-binary' && roleDef.genderBias !== profile.gender) {
@@ -595,6 +618,14 @@ export function determineSocialRole(
         const possibleRoles: { socialClass: string, role: string, roleDef: ProfessionDefinition }[] = [];
 
         for (const socialClass in eraRoles) {
+            // Apply context filtering for Industrial Era
+            if (professionContext && socialClass !== professionContext) {
+                // Allow fallback contexts
+                const fallback = getFallbackContext(professionContext, eraForProfessions);
+                if (socialClass !== fallback && socialClass !== 'GENERAL' && socialClass !== 'COMMONER') {
+                    continue;
+                }
+            }
             const rolesInClass = eraRoles[socialClass];
             for (const roleName in rolesInClass) {
                 const roleDef = rolesInClass[roleName];

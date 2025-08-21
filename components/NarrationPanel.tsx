@@ -28,7 +28,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> =
     return (
         <div className="flex flex-col h-full bg-slate-800/60 border border-slate-600/50 rounded-xl overflow-hidden shadow-lg backdrop-blur-sm">
             <div 
-                className="flex-1 min-h-0 p-4 overflow-y-auto text-sm leading-relaxed scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800/50" 
+                className="flex-1 min-h-0 p-3 overflow-y-auto text-sm leading-relaxed scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800/50" 
                 ref={narrationDisplayRef} 
                 role="log" 
                 aria-live="polite"
@@ -53,7 +53,7 @@ const NarrationPanel: React.FC<NarrationPanelProps> =
                                 {msg.sender === 'narrator' && <p className="text-xs text-amber-400 font-semibold mb-2 flex items-center gap-1">
                                     <span>📜</span>Narrator:
                                 </p>}
-                                <p className="leading-relaxed">{msg.text}</p>
+                                <p className="leading-relaxed text-base">{msg.text}</p>
                             </div>
                         ))}
                     </div>
@@ -61,11 +61,11 @@ const NarrationPanel: React.FC<NarrationPanelProps> =
                 {isLoading && (
                     <div className="text-gray-200 bg-slate-800/30 rounded-lg p-3 mt-4 animate-pulse">
                         <p className="text-xs text-amber-400 font-semibold mb-2 flex items-center gap-1">
-                            <span>📜</span>Narrator:
+                            The Narrator:
                         </p>
                         <p className="flex items-center gap-2">
-                            <span className="animate-pulse">●●●</span>
-                            <span className="text-xs text-gray-400">thinking...</span>
+                            <span className="animate-pulse">● ● ●</span>
+                            <span className="text-xs text-gray-400">thinking . . . </span>
                         </p>
                     </div>
                 )}

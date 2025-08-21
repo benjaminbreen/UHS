@@ -3759,7 +3759,7 @@ SOUTH_ASIAN: {
                    { name: 'Odhani', material: 'Plain Cotton' }
                ],
                headgear: [
-                   { name: 'Head Cover', material: 'Cotton' },
+                   { name: 'Head Cloth', material: 'Cotton' },
                    { name: 'None', material: 'None' }
                ],
                footwear: [
@@ -4018,7 +4018,7 @@ SOUTH_ASIAN: {
                    { name: 'Cotton Blouse', material: 'Plain Cotton' }
                ],
                headgear: [
-                   { name: 'Head Cover', material: 'Cotton' },
+                   { name: 'Head Cloth', material: 'Cotton' },
                    { name: 'None', material: 'None' }
                ],
                footwear: [

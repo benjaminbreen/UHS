@@ -30,7 +30,8 @@ const MapViewport: React.FC = () => {
         activeLens, infoModalTarget, panelNotificationItem, setPanelNotificationItem, toastMessage,
         activeMarketplaceModal, setActiveMarketplaceModal, activeCityModal, setActiveCityModal,
         activeRuinModal, setActiveRuinModal, useLlmForDescriptions, handleEncounter, setInfoModalTarget, 
-        setActiveMiningModal, setActivePoi, debugSettings
+        setActiveMiningModal, setActivePoi, debugSettings,
+        handleCompanionClick, handlePlayerClick, handleNewAreaEntry
     } = useUI();
     
     const [isMapTransitioning, setIsMapTransitioning] = useState(false);
@@ -149,7 +150,11 @@ const MapViewport: React.FC = () => {
                     playerCharacter={playerCharacter} 
                     gameTimeHours={gameTimeHours} 
                     gameTimeMinutes={gameTimeMinutes} 
-                    debugSettings={debugSettings} 
+                    debugSettings={debugSettings}
+                    devMode={false}
+                    onPlayerIconClick={handlePlayerClick}
+                    onCompanionClick={handleCompanionClick}
+                    onMapEdgeCrossing={handleNewAreaEntry}
                 />
             );
         }

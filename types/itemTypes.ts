@@ -47,6 +47,7 @@ export interface Item extends ItemDefinition {
     id: string; // Unique instance ID, e.g., 'item-12345'
     quantity: number;
     quality?: ItemQuality; // Quality level for minerals, metals, and crafted items
+    color?: string; // Color of the item (e.g., "Navy", "Crimson", etc.) for clothing
 }
 
 // NEW: For Gemini-powered crafting

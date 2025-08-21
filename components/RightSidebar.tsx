@@ -14,7 +14,7 @@ import NarrationPanel from './NarrationPanel';
 import InventoryPanel from './InventoryPanel';
 import BeliefsPanel from './BeliefsPanel';
 import { getSafariOptimizedClassName } from '../utils/safariUtils';
-import { ProceduralPortrait } from './portraits';
+import { ProceduralPortrait, AnimatedPortrait } from './portraits';
 import { SKILL_DATA, SKILL_BUTTON_ORDER } from '../constants/index';
 import DiseaseService from '../services/diseaseService';
 
@@ -170,9 +170,10 @@ const RightSidebar: React.FC = () => {
                                             <div className="absolute inset-0 z-10 pointer-events-none rounded-full bg-gradient-to-br from-transparent via-transparent to-black/50"></div>
                                             <div className="absolute inset-0 z-10 pointer-events-none rounded-full bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
                                             <div className="flex items-center justify-center w-full h-full">
-                                                <ProceduralPortrait
+                                                <AnimatedPortrait
                                                     character={playerCharacter}
                                                     size={96}
+                                                    trackChanges={true}
                                                 />
                                             </div>
                                             <div className="absolute -inset-1 rounded-full -z-10 blur-sm bg-gradient-to-br from-slate-400/40 to-slate-600/40"></div>
@@ -235,7 +236,7 @@ const RightSidebar: React.FC = () => {
                                     )}
                                 </div>
                             </div>
-                            <div className="space-y-2 mt-3">
+                            <div className="space-y-2 mt-2">
                                 <div>
                                     <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-gray-400">
                                         <span>HEALTH</span>
@@ -261,8 +262,8 @@ const RightSidebar: React.FC = () => {
                         </div>
                     )}
 
-                    <div className="mb-2">
-                        <h4 className="mb-2 mt-2 text-xs tracking-wider text-gray-400 uppercase">Actions</h4>
+                    <div className="mb-0">
+                        <h4 className="mb-2 mt-1 text-xs tracking-wider text-gray-400 uppercase">Actions</h4>
                         <div className="grid grid-cols-4 gap-1.5">
                             {SKILL_BUTTON_ORDER.map(skillId => {
                                  const skill = SKILL_DATA[skillId];
@@ -280,13 +281,13 @@ const RightSidebar: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="flex p-1.5 mx-4 mb-2 bg-slate-800/50 border border-slate-600/50 rounded-xl shrink-0">
-                    <button onClick={() => setActiveTab('narrator')} className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all ${activeTab === 'narrator' ? 'text-white bg-blue-600 shadow-glow-primary' : 'text-slate-400 hover:bg-slate-700/30'}`}>Narrator</button>
-                    <button onClick={() => setActiveTab('inventory')} className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all ${activeTab === 'inventory' ? 'text-white bg-blue-600 shadow-glow-primary' : 'text-slate-400 hover:bg-slate-700/30'}`}>Inventory</button>
-                    <button onClick={() => setActiveTab('beliefs')} className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all ${activeTab === 'beliefs' ? 'text-white bg-blue-600 shadow-glow-primary' : 'text-slate-400 hover:bg-slate-700/30'}`}>Beliefs</button>
+                <div className="flex p-1.5 mx-2 mt-2 mb-2 bg-slate-800/50 border border-slate-600/50 rounded-xl shrink-0">
+                    <button onClick={() => setActiveTab('narrator')} className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeTab === 'narrator' ? 'text-white bg-blue-600 shadow-glow-primary' : 'text-slate-400 hover:bg-slate-700/30'}`}>Narrator</button>
+                    <button onClick={() => setActiveTab('inventory')} className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeTab === 'inventory' ? 'text-white bg-blue-600 shadow-glow-primary' : 'text-slate-400 hover:bg-slate-700/30'}`}>Inventory</button>
+                    <button onClick={() => setActiveTab('beliefs')} className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeTab === 'beliefs' ? 'text-white bg-blue-600 shadow-glow-primary' : 'text-slate-400 hover:bg-slate-700/30'}`}>Beliefs</button>
                 </div>
                 
-                <div className="flex-1 min-h-0 px-4 pb-4">
+                <div className="flex-1 min-h-0 px-3 pb-1">
                     {activeTab === 'narrator' && (
                         <NarrationPanel 
                             narrationHistory={narrationHistory} 

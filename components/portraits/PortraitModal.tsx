@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PlayerCharacter, NpcEntity } from '../../types';
 import { ProceduralPortrait } from './index';
+import AnimatedPortrait from './AnimatedPortrait';
 
 interface PortraitModalProps {
     character: PlayerCharacter | NpcEntity;
@@ -16,7 +17,22 @@ const DetailRow: React.FC<{ label: string; value: string | undefined | boolean }
 
 const PortraitModal: React.FC<PortraitModalProps> = ({ character, onClose }) => {
     const { appearance } = character;
+    const [temporaryExpression, setTemporaryExpression] = useState<'smile' | 'surprise' | null>(null);
+    const [clickCount, setClickCount] = useState(0);
+    
     if (!appearance) return null;
+    
+    // Handle portrait click for testing smile animation
+    const handlePortraitClick = () => {
+        const expressions: Array<'smile' | 'surprise'> = ['smile', 'surprise'];
+        const expression = expressions[clickCount % 2];
+        setTemporaryExpression(expression);
+        setClickCount(prev => prev + 1);
+    };
+    
+    const handleExpressionComplete = () => {
+        setTemporaryExpression(null);
+    };
 
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
@@ -38,9 +54,22 @@ const PortraitModal: React.FC<PortraitModalProps> = ({ character, onClose }) => 
                         <h3 className="text-2xl md:text-3xl font-bold text-white mb-1">{character.name}</h3>
                         <p className="text-sm text-amber-400 capitalize">{'profession' in character ? (character as PlayerCharacter).profession : (character as NpcEntity).role}</p>
                     </div>
-                    <div className="w-full aspect-square bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-xl border-2 border-slate-700/50 shadow-xl shadow-black/40 overflow-hidden flex items-center justify-center">
-                        <div className="w-full h-full transform scale-110">
-                            <ProceduralPortrait character={character} size={500} />
+                    <div 
+                        className="w-full aspect-square bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-xl border-2 border-slate-700/50 shadow-xl shadow-black/40 overflow-hidden flex items-center justify-center cursor-pointer hover:border-blue-500/50 transition-colors group"
+                        onClick={handlePortraitClick}
+                        title="Click to test smile/surprise animation"
+                    >
+                        <div className="w-full h-full transform scale-110 relative">
+                            <ProceduralPortrait 
+                                character={character} 
+                                size={500}
+                                temporaryExpression={temporaryExpression}
+                                onExpressionComplete={handleExpressionComplete}
+                            />
+                            {/* Visual hint for clickability */}
+                            <div className="absolute bottom-2 right-2 bg-black/50 rounded-full px-3 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="text-xs text-white">Click to test expression</span>
+                            </div>
                         </div>
                     </div>
                 </div>

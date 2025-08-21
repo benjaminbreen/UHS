@@ -47,7 +47,17 @@ function createNpc(
 
         const roleToDetermine = preferredRoleOverride || structure?.npcAnchor;
 
-        const { socialClass, role, emoji, nameKey } = determineSocialRole(baseProfile, { era: context.era, culturalZone: context.culturalZone }, roleToDetermine);
+        const { socialClass, role, emoji, nameKey } = determineSocialRole(
+            baseProfile, 
+            { 
+                era: context.era, 
+                culturalZone: context.culturalZone,
+                region: context.region,
+                citySize: structure?.citySize
+            }, 
+            roleToDetermine,
+            structure?.type
+        );
         if (!role) {
             statsTracker.failed++;
             return null;
@@ -71,9 +81,117 @@ function createNpc(
         const newEquippedItems: NpcEntity['equippedItems'] = {};
         const newInventory: Item[] = [];
 
-        const createAndEquip = (slot: EquipmentSlot, piece: ClothingPiece | undefined) => {
+        // Helper function to apply color to items
+        const applyColorToItem = (item: Item, colorHex: string | undefined): Item => {
+            if (!colorHex) return item;
+            
+            const hexToColor: Record<string, string> = {
+                '#000080': 'Navy', '#001f3f': 'Navy', '#0000ff': 'Blue', '#4169e1': 'Royal Blue',
+                '#ff0000': 'Red', '#dc143c': 'Crimson', '#00ff00': 'Green', '#228b22': 'Forest Green',
+                '#ffff00': 'Yellow', '#ffd700': 'Gold', '#800080': 'Purple', '#4b0082': 'Indigo',
+                '#ffa500': 'Orange', '#ff8c00': 'Dark Orange', '#964b00': 'Brown', '#8b4513': 'Saddle Brown',
+                '#000000': 'Black', '#ffffff': 'White', '#c0c0c0': 'Silver', '#808080': 'Gray',
+                '#008080': 'Teal', '#40e0d0': 'Turquoise', '#ff7f50': 'Coral', '#deb887': 'Burlywood',
+                '#d2b48c': 'Tan', '#f5deb3': 'Wheat', '#faebd7': 'Antique White', '#8b7355': 'Burlywood',
+                // Add fallback brown colors
+                '#654321': 'Dark Brown', '#d2691e': 'Chocolate', '#a52a2a': 'Brown',
+                '#704214': 'Dark Brown'
+            };
+            
+            let colorName = '';
+            const colorHexLower = colorHex.toLowerCase();
+            
+            if (hexToColor[colorHexLower]) {
+                colorName = hexToColor[colorHexLower];
+            } else {
+                // Find closest color by RGB distance
+                const hexToRgb = (hex: string) => {
+                    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                    return result ? {
+                        r: parseInt(result[1], 16),
+                        g: parseInt(result[2], 16),
+                        b: parseInt(result[3], 16)
+                    } : null;
+                };
+                
+                const targetRgb = hexToRgb(colorHex);
+                if (targetRgb) {
+                    let minDistance = Infinity;
+                    let closestColor = 'Gray';
+                    
+                    for (const [hex, name] of Object.entries(hexToColor)) {
+                        const rgb = hexToRgb(hex);
+                        if (rgb) {
+                            const distance = Math.sqrt(
+                                Math.pow(targetRgb.r - rgb.r, 2) +
+                                Math.pow(targetRgb.g - rgb.g, 2) +
+                                Math.pow(targetRgb.b - rgb.b, 2)
+                            );
+                            if (distance < minDistance) {
+                                minDistance = distance;
+                                closestColor = name;
+                            }
+                        }
+                    }
+                    colorName = closestColor;
+                }
+            }
+            
+            // Check if color is already in the name
+            const colorWords = ['navy', 'red', 'blue', 'green', 'yellow', 'purple', 'black', 'white', 'gold', 'silver', 
+                               'crimson', 'emerald', 'amber', 'bronze', 'copper', 'ivory', 'ebony', 'maroon', 
+                               'olive', 'teal', 'turquoise', 'coral', 'brown', 'gray', 'grey'];
+            
+            for (const color of colorWords) {
+                if (item.name.toLowerCase().includes(color)) {
+                    return item; // Color already in name
+                }
+            }
+            
+            // Add color to item name if we found one
+            if (colorName) {
+                return {
+                    ...item,
+                    name: `${colorName} ${item.name}`,
+                    originalName: item.name
+                };
+            }
+            
+            return item;
+        };
+
+        const createAndEquip = (slot: EquipmentSlot, piece: ClothingPiece | undefined, colorHex?: string) => {
             if (piece && piece.name && piece.name.toLowerCase() !== 'none' && piece.name.toLowerCase() !== 'barefoot') {
-                const baseId = piece.name.toUpperCase().replace(/ /g, '_');
+                let baseId = piece.name.toUpperCase().replace(/ /g, '_');
+                
+                // Add color prefix if we have one and material isn't its own color
+                if (colorHex) {
+                    const materialColors = ['leather', 'hide', 'fur', 'straw', 'iron', 'steel', 'bronze', 
+                                           'copper', 'brass', 'gold', 'silver', 'wood', 'oak', 'pine', 'bamboo'];
+                    const material = (piece.material || '').toLowerCase();
+                    const hasMaterialColor = materialColors.some(mat => material.includes(mat));
+                    
+                    if (!hasMaterialColor) {
+                        const hexToColor: Record<string, string> = {
+                            '#000080': 'Navy', '#001f3f': 'Navy', '#0000ff': 'Blue', '#4169e1': 'Royal',
+                            '#ff0000': 'Red', '#dc143c': 'Crimson', '#00ff00': 'Green', '#228b22': 'Forest',
+                            '#ffff00': 'Yellow', '#ffd700': 'Gold', '#800080': 'Purple', '#4b0082': 'Indigo',
+                            '#ffa500': 'Orange', '#ff8c00': 'Orange', '#964b00': 'Brown', '#8b4513': 'Brown',
+                            '#000000': 'Black', '#ffffff': 'White', '#c0c0c0': 'Silver', '#808080': 'Gray',
+                            '#008080': 'Teal', '#40e0d0': 'Turquoise', '#ff7f50': 'Coral', '#deb887': 'Tan',
+                            // Add fallback brown colors
+                            '#654321': 'Dark_Brown', '#d2691e': 'Chocolate', '#a52a2a': 'Brown',
+                            '#704214': 'Dark_Brown'
+                        };
+                        
+                        const colorHexLower = colorHex.toLowerCase();
+                        const colorName = hexToColor[colorHexLower];
+                        if (colorName) {
+                            baseId = `${colorName.toUpperCase().replace(/ /g, '_')}_${baseId}`;
+                        }
+                    }
+                }
+                
                 const item = createItemInstance(baseId);
                 if (item) {
                     newEquippedItems[slot] = item;
@@ -81,11 +199,12 @@ function createNpc(
             }
         };
 
-        createAndEquip('head', appearance.headgear);
-        createAndEquip('torso', appearance.garment);
-        createAndEquip('feet', appearance.footwear);
-        createAndEquip('belt', appearance.belt);
-        createAndEquip('amulet', appearance.accessory);
+        // Apply colors from palette to equipped items
+        createAndEquip('head', appearance.headgear, appearance.palette?.secondary);
+        createAndEquip('torso', appearance.garment, appearance.palette?.primary);
+        createAndEquip('feet', appearance.footwear, appearance.palette?.secondary);
+        createAndEquip('belt', appearance.belt, appearance.palette?.accent);
+        createAndEquip('amulet', appearance.accessory, appearance.palette?.accent);
 
         // Add some generic items to inventory from a starting package for flavor
         const startingPackage = STARTING_PACKAGES[role] || STARTING_PACKAGES['Wanderer'];
@@ -209,7 +328,11 @@ function generateCourtNpcs(
                             // Override the role determination to use the specific court role
                             const { socialClass, emoji } = determineSocialRole(
                                 courtNpc, 
-                                contextWithFactionData, 
+                                {
+                                    ...contextWithFactionData,
+                                    region: context.region,
+                                    citySize: structure.citySize
+                                }, 
                                 role, 
                                 structure.structureType
                             );

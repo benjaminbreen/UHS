@@ -206,15 +206,54 @@ export function generateProceduralItemDefinition(baseId: string): ItemDefinition
  * @returns An Item object with a unique instance ID, or null if the definition doesn't exist.
  */
 export function createItemInstance(baseId: string): Item | null {
-    let definition = ITEM_DEFINITIONS[baseId];
-    if (!definition) {
-        definition = generateProceduralItemDefinition(baseId);
+    // Check if the baseId contains a color prefix
+    const colorWords = ['NAVY', 'BLUE', 'ROYAL', 'RED', 'CRIMSON', 'GREEN', 'FOREST', 'YELLOW', 'GOLD', 
+                       'PURPLE', 'ORANGE', 'BROWN', 'BLACK', 'WHITE', 'SILVER', 'GRAY', 'GREY',
+                       'TEAL', 'TURQUOISE', 'CORAL', 'TAN', 'IVORY', 'AMBER', 'BRONZE', 'COPPER',
+                       'DARK_BROWN', 'CHOCOLATE', 'INDIGO', 'WHEAT'];
+    
+    let colorPrefix = '';
+    let cleanBaseId = baseId;
+    
+    // Extract color from baseId if present
+    for (const color of colorWords) {
+        if (baseId.startsWith(color + '_')) {
+            // Handle multi-word colors like DARK_BROWN
+            colorPrefix = color.split('_').map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+            ).join(' ');
+            cleanBaseId = baseId.substring(color.length + 1);
+            break;
+        }
     }
-    return {
+    
+    let definition = ITEM_DEFINITIONS[cleanBaseId] || ITEM_DEFINITIONS[baseId];
+    if (!definition) {
+        console.log(`[ItemCreation] Creating procedural item for: ${baseId}`);
+        definition = generateProceduralItemDefinition(cleanBaseId);
+        console.log(`[ItemCreation] Generated: ${definition.name} (${definition.material})`);
+    }
+    
+    // Create the item instance
+    const item: Item = {
         ...definition,
         id: `item-${itemIdCounter++}-${Date.now()}`,
         quantity: 1,
     };
+    
+    // Add color to the name if we found one, but only for non-material items
+    if (colorPrefix) {
+        const materialColors = ['leather', 'hide', 'fur', 'straw', 'iron', 'steel', 'bronze', 'copper', 
+                               'brass', 'gold', 'silver', 'wood', 'oak', 'pine', 'bamboo'];
+        const material = (item.material || '').toLowerCase();
+        const hasMaterialColor = materialColors.some(mat => material.includes(mat));
+        
+        if (!hasMaterialColor) {
+            item.name = `${colorPrefix} ${item.name}`;
+        }
+    }
+    
+    return item;
 }
 
 /**

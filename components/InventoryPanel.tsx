@@ -5,6 +5,176 @@ import { loadTamedAnimals, TamedAnimal, updateAnimalName } from '../services/ani
 import AnimalCompanionModal from './AnimalCompanionModal';
 import { vesselService } from '../services/vesselService';
 
+// Enhanced tooltip component
+const ItemTooltip: React.FC<{ 
+    item: Item | null;
+    position: { x: number; y: number };
+}> = ({ item, position }) => {
+    if (!item) return null;
+    
+    // Calculate position to be next to cursor
+    const tooltipWidth = 320;
+    const tooltipHeight = 200;
+    const padding = 10;
+    
+    let finalX = position.x + 15;
+    let finalY = position.y - 10;
+    
+    // Adjust if tooltip would go off right edge
+    if (finalX + tooltipWidth > window.innerWidth - padding) {
+        finalX = position.x - tooltipWidth - 15;
+    }
+    
+    // Adjust if tooltip would go off bottom edge
+    if (finalY + tooltipHeight > window.innerHeight - padding) {
+        finalY = position.y - tooltipHeight + 10;
+    }
+    
+    // Adjust if tooltip would go off top edge
+    if (finalY < padding) {
+        finalY = padding;
+    }
+    
+    return (
+        <div 
+            className="fixed z-[9999] pointer-events-none p-4 w-80 text-xs text-white transition-opacity duration-100 bg-slate-900/95 border-2 rounded-lg shadow-2xl border-blue-400 backdrop-blur-sm animate-popIn"
+            style={{ 
+                top: finalY, 
+                left: finalX,
+                transform: 'translateZ(0)'
+            }}
+        >
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-3">
+                {/* Large icon */}
+                <div className="w-16 h-16 flex items-center justify-center bg-slate-800/50 rounded-lg border border-slate-600">
+                    <GenerativeItemIcon item={item} size={64} />
+                </div>
+                
+                {/* Item name and rarity */}
+                <div className="flex-1">
+                    <p className="font-semibold text-white text-sm">{item.name}</p>
+                    {item.rarity && (
+                        <span className={`inline-block mt-1 px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                            item.rarity === 'Common' ? 'bg-slate-600 text-slate-200' :
+                            item.rarity === 'Uncommon' ? 'bg-green-600 text-green-100' :
+                            item.rarity === 'Rare' ? 'bg-blue-600 text-blue-100' :
+                            item.rarity === 'Ultra-rare' ? 'bg-purple-600 text-purple-100' :
+                            item.rarity === 'Unique' ? 'bg-amber-500 text-amber-100' :
+                            'bg-gray-500 text-gray-200'
+                        }`}>
+                            {item.rarity.toUpperCase()}
+                        </span>
+                    )}
+                    {item.quality && (
+                        <span className={`inline-block mt-1 ml-1 px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                            item.quality === 'excellent' ? 'bg-purple-600 text-purple-100' :
+                            item.quality === 'good' ? 'bg-blue-600 text-blue-100' :
+                            item.quality === 'standard' ? 'bg-gray-600 text-gray-200' :
+                            item.quality === 'poor' ? 'bg-orange-600 text-orange-100' :
+                            'bg-gray-500 text-gray-200'
+                        }`}>
+                            {item.quality.toUpperCase()}
+                        </span>
+                    )}
+                </div>
+            </div>
+            
+            {/* Item properties */}
+            <div className="grid grid-cols-2 gap-2 mb-2 text-[11px] text-slate-300">
+                {item.equipmentSlot && (
+                    <div className="flex items-center gap-1">
+                        <span className="text-slate-500">Slot:</span>
+                        <span className="capitalize">{item.equipmentSlot.replace('_', ' ')}</span>
+                    </div>
+                )}
+                {(() => {
+                    // Extract color from item name if present
+                    const colorWords = ['navy', 'blue', 'royal', 'red', 'crimson', 'green', 'forest', 'yellow', 'gold', 
+                                       'purple', 'orange', 'brown', 'black', 'white', 'silver', 'gray', 'grey',
+                                       'teal', 'turquoise', 'coral', 'tan', 'ivory', 'amber', 'bronze', 'copper'];
+                    
+                    // Materials that are their own color - don't need color prefix
+                    const materialColors = ['leather', 'hide', 'fur', 'straw', 'iron', 'steel', 'bronze', 'copper', 
+                                           'brass', 'gold', 'silver', 'wood', 'oak', 'pine', 'bamboo'];
+                    
+                    // Check if item has a material that is its own color
+                    const material = (item.material || '').toLowerCase();
+                    const hasMaterialColor = materialColors.some(mat => material.includes(mat));
+                    
+                    if (!hasMaterialColor) {
+                        // Look for color in the name
+                        const nameLower = item.name.toLowerCase();
+                        for (const color of colorWords) {
+                            if (nameLower.includes(color)) {
+                                // Extract the color word with proper capitalization
+                                const colorIndex = nameLower.indexOf(color);
+                                const extractedColor = item.name.substring(colorIndex, colorIndex + color.length);
+                                return (
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-slate-500">Color:</span>
+                                        <span className="capitalize">{extractedColor}</span>
+                                    </div>
+                                );
+                            }
+                        }
+                    }
+                    return null;
+                })()}
+                {item.value !== undefined && (
+                    <div className="flex items-center gap-1">
+                        <span className="text-slate-500">Value:</span>
+                        <span className="text-yellow-400">{item.value} 🪙</span>
+                    </div>
+                )}
+                {item.weight !== undefined && (
+                    <div className="flex items-center gap-1">
+                        <span className="text-slate-500">Weight:</span>
+                        <span>{item.weight} kg</span>
+                    </div>
+                )}
+                {item.stackable && item.quantity > 1 && (
+                    <div className="flex items-center gap-1">
+                        <span className="text-slate-500">Quantity:</span>
+                        <span className="text-blue-400">{item.quantity}</span>
+                    </div>
+                )}
+                {item.throwable && (
+                    <div className="flex items-center gap-1">
+                        <span className="text-slate-500">Throwable:</span>
+                        <span className="text-green-400">✓</span>
+                    </div>
+                )}
+                {item.wearable && (
+                    <div className="flex items-center gap-1">
+                        <span className="text-slate-500">Wearable:</span>
+                        <span className="text-green-400">✓</span>
+                    </div>
+                )}
+                {item.attack !== undefined && item.attack > 0 && (
+                    <div className="flex items-center gap-1">
+                        <span className="text-slate-500">Attack:</span>
+                        <span className="text-red-400">+{item.attack}</span>
+                    </div>
+                )}
+                {item.defense !== undefined && item.defense > 0 && (
+                    <div className="flex items-center gap-1">
+                        <span className="text-slate-500">Defense:</span>
+                        <span className="text-blue-400">+{item.defense}</span>
+                    </div>
+                )}
+            </div>
+            
+            {/* Description */}
+            {item.description && (
+                <p className="text-[11px] text-slate-400 italic border-t border-slate-700 pt-2">
+                    {item.description}
+                </p>
+            )}
+        </div>
+    );
+};
+
 interface InventoryPanelProps {
     inventory: Item[];
     playerCharacter: PlayerCharacter;
@@ -69,6 +239,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
           return newSet;
       });
   };
+  
   
   const handleCraft = (method: 'COMBINE' | 'DISAGGREGATE') => {
       const selectedItems = inventory.filter(item => selectedItemIds.has(item.id));
@@ -166,24 +337,14 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-slate-800/60 border border-slate-600/50 rounded-xl shadow-lg">
-      <div className="flex-shrink-0 p-3 border-b border-slate-600/50 bg-slate-800/80">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🎒</span>
-            <span className="font-semibold text-gray-200 text-sm">Inventory</span>
-          </div>
-          <span className="px-2 py-1 text-xs font-bold text-blue-100 bg-blue-600/80 rounded-full shadow-sm">
-            {inventory.length + tamedAnimals.length}
-          </span>
-        </div>
-      </div>
+    
       <div className="flex-1 min-h-0 p-2 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800/50">
         <div className="space-y-2">
           {/* Animal Companions Section */}
           {tamedAnimals.length > 0 && (
             <>
-              <div className="px-2 py-1 text-xs font-semibold text-amber-400 border-b border-amber-400/30 mb-2">
-                🐾 Animal Companions
+              <div className="px-2 py-1 text-xs font-semibold tracking-wide text-amber-400 border-b border-amber-400/30 mb-2">
+                ANIMAL COMPANIONS
               </div>
               {tamedAnimals.map(animal => (
                 <div 
@@ -201,8 +362,8 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
                   </div>
                 </div>
               ))}
-              <div className="px-2 py-1 text-xs font-semibold text-gray-400 border-b border-gray-600/30 mb-2 mt-3">
-                📦 Items
+              <div className="px-2 py-1 text-xs font-semibold tracking-wide  text-gray-400 border-b border-gray-600/30 mb-2 mt-3">
+                ITEMS
               </div>
             </>
           )}
@@ -211,7 +372,6 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
               key={item.id} 
               className={`flex items-center gap-2 p-2 transition-all duration-200 border rounded-lg cursor-pointer group hover:bg-slate-700/70
               ${selectedItemIds.has(item.id) ? 'bg-blue-800/50 border-blue-500 ring-1 ring-blue-400/50' : 'bg-slate-700/50 border-slate-600/30'}`}
-              title={item.description}
               onClick={() => handleItemClick(item)}
             >
               <div className="relative flex-shrink-0 w-8 h-8 flex items-center justify-center">

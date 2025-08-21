@@ -263,7 +263,17 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                 const wealth = i % 3 === 0 ? 'comfortable' : 'modest';
 
                 const baseProfile = generateBaseProfile(noise, { era, culturalZone, region: mapData.localArea || '' });
-                const { socialClass } = determineSocialRole(baseProfile, { era, culturalZone }, profession);
+                const { socialClass } = determineSocialRole(
+                    baseProfile, 
+                    { 
+                        era, 
+                        culturalZone,
+                        region: mapData.localArea || '',
+                        citySize: tile.citySize
+                    }, 
+                    profession,
+                    tile.structureType
+                );
                 
                 // Add disease with 33% chance
                 let diseaseStatus = null;

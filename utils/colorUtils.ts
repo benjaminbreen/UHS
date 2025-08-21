@@ -659,17 +659,42 @@ export function formatAppearanceText(piece: (ClothingPiece | Item) | undefined, 
         return 'Nothing Worn';
     }
 
-    const colorName = hexToColorName(colorHex || '#FFFFFF');
     const itemName = piece.name.replace(/_/g, ' ');
     const material = piece.material || 'cloth';
+    
+    // Check if item already has a color in its name
+    const colorWords = ['navy', 'red', 'blue', 'green', 'yellow', 'purple', 'black', 'white', 'gold', 'silver', 
+                       'crimson', 'emerald', 'amber', 'bronze', 'copper', 'ivory', 'ebony', 'maroon', 
+                       'olive', 'teal', 'turquoise', 'coral', 'brown', 'gray', 'grey', 'royal blue',
+                       'forest green', 'dark orange', 'saddle brown', 'burlywood', 'tan', 'wheat', 
+                       'antique white', 'indigo', 'orange'];
+    
+    let hasColor = false;
+    for (const color of colorWords) {
+        if (itemName.toLowerCase().includes(color)) {
+            hasColor = true;
+            break;
+        }
+    }
+    
+    // If item already has color, just format it nicely
+    if (hasColor) {
+        // Check if material is already in the name
+        if (piece.material && itemName.toLowerCase().includes(piece.material.toLowerCase())) {
+            return `A ${itemName}`;
+        }
+        // Add material if not present
+        return `A ${material} ${itemName}`;
+    }
+    
+    // Item doesn't have color, so add it
+    const colorName = hexToColorName(colorHex || '#FFFFFF');
 
     // If the item name already contains the material, just prepend the color.
-    // e.g., name: "Wool Tunic", material: "Wool" -> "A Red Wool Tunic"
     if (piece.material && itemName.toLowerCase().includes(piece.material.toLowerCase())) {
         return `A ${colorName} ${itemName}`;
     }
 
     // Otherwise, construct it fully.
-    // e.g., name: "Cap", material: "Cotton" -> "A White Cotton Cap"
     return `A ${colorName} ${material} ${itemName}`;
 }

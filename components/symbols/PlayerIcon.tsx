@@ -91,60 +91,156 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
         
         {/* FRONT VIEW (default for now) */}
         <>
-            {/* Hair - varied shapes based on hairLength */}
-            {(!headgear || headgear.name === 'None' || headgear.name === 'none') && (
+            {/* Hair - better rendering based on hairLength and style */}
+            {(!headgear || headgear.name === 'None' || headgear.name === 'none' || 
+              // Show hair with hats but not with full coverage items
+              (!headgear.name.toLowerCase().includes('helmet') && 
+               !headgear.name.toLowerCase().includes('hood') &&
+               !headgear.name.toLowerCase().includes('turban'))) && (
               <>
                 {hairLength === 'bald' ? null : 
-                 hairLength === 'very_short' || hairLength === 'short' ? (
-                   <rect x="-2.5" y="-7" width="5" height="2.5" fill={hairColor} />
+                 hairLength === 'very_short' ? (
+                   <>
+                     {/* Very short hair - just around edges */}
+                     <rect x="-2.5" y="-6.5" width="5" height="1" fill={hairColor} />
+                     <rect x="-2.8" y="-5.5" width="0.6" height="2" fill={hairColor} />
+                     <rect x="2.2" y="-5.5" width="0.6" height="2" fill={hairColor} />
+                   </>
+                 ) : hairLength === 'short' ? (
+                   <>
+                     <rect x="-2.5" y="-7" width="5" height="2" fill={hairColor} />
+                     <rect x="-2.8" y="-5.5" width="0.8" height="2" fill={hairColor} />
+                     <rect x="2" y="-5.5" width="0.8" height="2" fill={hairColor} />
+                   </>
                  ) : hairLength === 'long' || hairLength === 'very_long' ? (
                    <>
-                     <rect x="-3" y="-7" width="6" height="4" fill={hairColor} />
-                     {/* Long hair flowing down */}
-                     <rect x="-3.5" y="-3" width="1" height="3" fill={hairColor} />
-                     <rect x="2.5" y="-3" width="1" height="3" fill={hairColor} />
+                     <rect x="-3" y="-7.5" width="6" height="3.5" fill={hairColor} />
+                     {/* Long hair flowing down sides */}
+                     <rect x="-3.2" y="-4" width="1" height="4" fill={hairColor} />
+                     <rect x="2.2" y="-4" width="1" height="4" fill={hairColor} />
+                     {hairLength === 'very_long' && (
+                       <>
+                         <rect x="-3.5" y="0" width="0.8" height="2" fill={hairColor} />
+                         <rect x="2.7" y="0" width="0.8" height="2" fill={hairColor} />
+                       </>
+                     )}
                    </>
                  ) : (
                    /* Medium hair (default) */
-                   <rect x="-3" y="-7" width="6" height="4" fill={hairColor} />
+                   <>
+                     <rect x="-3" y="-7" width="6" height="3" fill={hairColor} />
+                     <rect x="-3" y="-4.5" width="0.8" height="2" fill={hairColor} />
+                     <rect x="2.2" y="-4.5" width="0.8" height="2" fill={hairColor} />
+                   </>
                  )}
               </>
             )}
             
-            {/* Headgear - different shapes for different types */}
-            {headgear && headgear.name !== 'None' && headgear.name !== 'none' && (
-              <>
-                {headgear.name.toLowerCase().includes('cap') ? (
-                  <rect x="-3" y="-8" width="6" height="2.5" fill={secondaryColor} rx="0.5" />
-                ) : headgear.name.toLowerCase().includes('helmet') ? (
-                  <>
-                    <rect x="-3.5" y="-8" width="7" height="3.5" fill="#a1a1aa" rx="0.3" />
-                    <rect x="-2" y="-7" width="1" height="0.5" fill="#e5e7eb" />
-                  </>
-                ) : headgear.name.toLowerCase().includes('crown') ? (
-                  <>
-                    <rect x="-2.5" y="-7.5" width="5" height="1.5" fill="#fcd34d" />
-                    <rect x="-2" y="-8.5" width="1" height="1" fill="#fcd34d" />
-                    <rect x="0" y="-8.5" width="1" height="1" fill="#fcd34d" />
-                    <rect x="1" y="-8.5" width="1" height="1" fill="#fcd34d" />
-                  </>
-                ) : headgear.name.toLowerCase().includes('turban') ? (
-                  <ellipse cx="0" cy="-6" rx="3.5" ry="2.5" fill={secondaryColor} />
-                ) : (
-                  /* Default hat */
-                  <ellipse cx="0" cy="-6.5" rx="3.5" ry="1.5" fill={secondaryColor} />
-                )}
-              </>
-            )}
+            {/* Headgear - better rendering with color parsing */}
+            {headgear && headgear.name !== 'None' && headgear.name !== 'none' && (() => {
+              const name = headgear.name.toLowerCase();
+              
+              // Parse color from name
+              let headgearColor = secondaryColor;
+              const colorMap: Record<string, string> = {
+                'silver-white': '#E8E8E8',
+                'silver': '#C0C0C0',
+                'gold': '#FFD700',
+                'golden': '#FFD700',
+                'black': '#1C1C1C',
+                'white': '#F8F8F8',
+                'red': '#DC143C',
+                'blue': '#4169E1',
+                'green': '#228B22',
+                'brown': '#8B4513',
+                'orchid': '#DA70D6',
+                'crimson': '#DC143C',
+                'azure': '#007FFF',
+                'emerald': '#50C878',
+              };
+              
+              for (const [colorName, colorHex] of Object.entries(colorMap)) {
+                if (name.includes(colorName)) {
+                  headgearColor = colorHex;
+                  break;
+                }
+              }
+              
+              // Material fallbacks
+              if (headgear.material) {
+                const mat = headgear.material.toLowerCase();
+                if (mat.includes('leather') && !name.match(/silver|gold|white|black/)) headgearColor = '#8B4513';
+                else if (mat.includes('straw')) headgearColor = '#F4E68C';
+                else if (mat.includes('felt')) headgearColor = '#708090';
+              }
+              
+              return (
+                <>
+                  {name.includes('cap') || name.includes('beanie') ? (
+                    <>
+                      <rect x="-3" y="-8" width="6" height="3" fill={headgearColor} rx="0.5" />
+                      {/* Add detail line */}
+                      <rect x="-2.5" y="-6" width="5" height="0.3" fill="rgba(0,0,0,0.2)" />
+                    </>
+                  ) : name.includes('helmet') ? (
+                    <>
+                      <rect x="-3.5" y="-8.5" width="7" height="4.5" fill="#a1a1aa" rx="0.3" />
+                      <rect x="-2" y="-7.5" width="1" height="0.5" fill="#e5e7eb" />
+                      {/* Nose guard */}
+                      <rect x="-0.3" y="-4.5" width="0.6" height="1.5" fill="#a1a1aa" />
+                    </>
+                  ) : (name.includes('crown') || name.includes('tiara')) ? (
+                    <>
+                      <rect x="-2.5" y="-7.5" width="5" height="1.5" fill="#fcd34d" />
+                      {/* Crown points */}
+                      <rect x="-2" y="-8.5" width="0.8" height="1" fill="#fcd34d" />
+                      <rect x="-0.4" y="-9" width="0.8" height="1.5" fill="#fcd34d" />
+                      <rect x="1.2" y="-8.5" width="0.8" height="1" fill="#fcd34d" />
+                      {/* Jewel */}
+                      <rect x="-0.3" y="-7.2" width="0.6" height="0.6" fill="#DC143C" />
+                    </>
+                  ) : name.includes('turban') ? (
+                    <>
+                      <ellipse cx="0" cy="-6.5" rx="3.5" ry="2.8" fill={headgearColor} />
+                      {/* Turban jewel */}
+                      <circle cx="0" cy="-6.5" r="0.4" fill="#DC143C" />
+                    </>
+                  ) : name.includes('hood') ? (
+                    <>
+                      {/* Hood shape */}
+                      <path d="M -3.5 -4 Q -3.5 -8, 0 -8.5 Q 3.5 -8, 3.5 -4 L 3 -3 L -3 -3 Z" fill={headgearColor} />
+                      {/* Shadow inside hood */}
+                      <rect x="-2" y="-6" width="4" height="2" fill="rgba(0,0,0,0.3)" />
+                    </>
+                  ) : name.includes('straw') || name.includes('hat') ? (
+                    <>
+                      {/* Wide brim hat */}
+                      <ellipse cx="0" cy="-6" rx="5" ry="0.8" fill={headgearColor} />
+                      {/* Crown */}
+                      <rect x="-2" y="-8" width="4" height="2.5" fill={headgearColor} rx="0.5" />
+                    </>
+                  ) : (
+                    /* Default simple cap */
+                    <rect x="-3" y="-7.5" width="6" height="2" fill={headgearColor} rx="0.3" />
+                  )}
+                </>
+              );
+            })()}
             
-            {/* Head */}
-            <rect x="-2.5" y="-4.5" width="5" height="5" fill={skinColor} />
+            {/* Head - more rounded shape */}
+            <rect x="-2.5" y="-4.5" width="5" height="5" fill={skinColor} rx="0.5" />
             
             {/* Eyes */}
-            <rect x="-1.5" y="-4" width="0.8" height="0.8" fill="#000" />
-            <rect x="0.7" y="-4" width="0.8" height="0.8" fill="#000" />
-            <rect x="-1.3" y="-3.8" width="0.3" height="0.3" fill="#fff" />
-            <rect x="0.9" y="-3.8" width="0.3" height="0.3" fill="#fff" />
+            <rect x="-1.5" y="-3.5" width="0.8" height="0.8" fill="#000" />
+            <rect x="0.7" y="-3.5" width="0.8" height="0.8" fill="#000" />
+            <rect x="-1.3" y="-3.3" width="0.3" height="0.3" fill="#fff" />
+            <rect x="0.9" y="-3.3" width="0.3" height="0.3" fill="#fff" />
+            
+            {/* Nose - simple indication */}
+            <rect x="-0.2" y="-2.5" width="0.4" height="0.6" fill={skinColor} style={{filter: 'brightness(0.9)'}} />
+            
+            {/* Mouth - simple line or shape */}
+            <rect x="-0.8" y="-1.5" width="1.6" height="0.3" fill="rgba(0,0,0,0.3)" />
             
             {/* Body */}
             <rect x={-bodyWidth/2} y="-0.5" width={bodyWidth} height={bodyHeight} fill={clothingColor} />

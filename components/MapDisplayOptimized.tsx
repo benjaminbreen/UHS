@@ -193,6 +193,9 @@ interface MapDisplayOptimizedProps {
     showMemoryUsage: boolean;
     logPerformanceMetrics: boolean;
   };
+  onPlayerIconClick?: () => void;
+  onCompanionClick?: (animal: TamedAnimal) => void;
+  onMapEdgeCrossing?: (direction: 'north' | 'south' | 'east' | 'west') => void;
 }
 
 export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({ 
@@ -226,7 +229,10 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   playerCharacter,
   gameTimeHours,
   gameTimeMinutes,
-  debugSettings
+  debugSettings,
+  onPlayerIconClick,
+  onCompanionClick,
+  onMapEdgeCrossing
 }) => {
   // State management with performance considerations
   // Start zoomed out for the zoom-in animation
@@ -250,6 +256,19 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   const [hoveredNPC, setHoveredNPC] = useState<NpcEntity | null>(null);
   const [hoveredAnimal, setHoveredAnimal] = useState<AnimalEntity | null>(null);
   const [hoveredEntityCoords, setHoveredEntityCoords] = useState<{x: number, y: number} | null>(null);
+  
+  // Debounce timers for hover tooltips
+  const hoverDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const pendingHoverData = useRef<{
+    npc?: NpcEntity | null;
+    animal?: AnimalEntity | null;
+    tile?: Tile | null;
+    poi?: TerrainStructure | null;
+    coords?: { x: number; y: number } | null;
+    structure?: TerrainStructure | null;
+    vegetation?: VegetationEntity | null;
+    deployedVessel?: DeployedVessel | null;
+  }>({});
   
   // Refs for performance
   const containerRef = useRef<HTMLDivElement>(null);
@@ -371,6 +390,15 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       setIsFreePanMode(false);
     }
   }, [logicalControlledIconX, logicalControlledIconY]);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverDebounceTimer.current) {
+        clearTimeout(hoverDebounceTimer.current);
+      }
+    };
+  }, []);
 
   // Refactored smooth camera loop for performance
   useEffect(() => {
@@ -871,6 +899,103 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     return componentInfo;
   };
 
+  // Debounced hover update function
+  const updateHoverStates = useCallback(() => {
+    const data = pendingHoverData.current;
+    
+    if (data.npc !== undefined) {
+      setHoveredNPC(data.npc);
+    }
+    if (data.animal !== undefined) {
+      setHoveredAnimal(data.animal);
+    }
+    if (data.coords) {
+      setHoveredEntityCoords(data.coords);
+    }
+    if (data.tile !== undefined) {
+      setHoveredTile(data.tile);
+      if (data.tile && data.coords) {
+        setHoveredTileCoords(data.coords);
+      } else {
+        setHoveredTileCoords(null);
+      }
+    }
+    if (data.poi !== undefined) {
+      setHoveredPOI(data.poi);
+      if (data.poi && data.coords) {
+        setHoveredPOICoords(data.coords);
+      } else {
+        setHoveredPOICoords(null);
+      }
+    }
+    
+    // Clear pending data
+    pendingHoverData.current = {};
+  }, []);
+
+  // Debounced hover handlers for SVG elements
+  const handleSvgElementMouseEnter = useCallback((element: any, type: 'tile' | 'poi', e: React.MouseEvent) => {
+    if (isDragging) return;
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const coords = { x: rect.left + rect.width / 2, y: rect.top };
+    
+    if (type === 'tile') {
+      // Only set tile for city centers, government districts, and farmland
+      const shouldShowTileTooltip = element && (
+        element.biome === BiomeType.CITY_CENTER ||
+        element.biome === BiomeType.GOVERNMENT_DISTRICT ||
+        element.biome === BiomeType.FARMLAND
+      );
+      
+      if (shouldShowTileTooltip) {
+        pendingHoverData.current = {
+          ...pendingHoverData.current,
+          tile: element,
+          coords: coords
+        };
+      }
+    } else if (type === 'poi') {
+      pendingHoverData.current = {
+        ...pendingHoverData.current,
+        poi: element,
+        coords: coords
+      };
+    }
+    
+    if (hoverDebounceTimer.current) {
+      clearTimeout(hoverDebounceTimer.current);
+    }
+    hoverDebounceTimer.current = setTimeout(() => {
+      updateHoverStates();
+      hoverDebounceTimer.current = null;
+    }, 50);
+  }, [isDragging, updateHoverStates]);
+
+  const handleSvgElementMouseLeave = useCallback((type: 'tile' | 'poi') => {
+    if (type === 'tile') {
+      pendingHoverData.current = {
+        ...pendingHoverData.current,
+        tile: null,
+        coords: null
+      };
+    } else if (type === 'poi') {
+      pendingHoverData.current = {
+        ...pendingHoverData.current,
+        poi: null,
+        coords: null
+      };
+    }
+    
+    if (hoverDebounceTimer.current) {
+      clearTimeout(hoverDebounceTimer.current);
+    }
+    hoverDebounceTimer.current = setTimeout(() => {
+      updateHoverStates();
+      hoverDebounceTimer.current = null;
+    }, 50);
+  }, [updateHoverStates]);
+
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (isDragging && mapData) {
       if (!isFreePanMode) setIsFreePanMode(true);
@@ -902,22 +1027,33 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         const animal = animals?.find(a => a.x === tile.x && a.y === tile.y);
         const deployedVessel = deployedVessels?.find(v => v.x === tile.x && v.y === tile.y);
         
-        // Update hover states for NPCs and animals
-        if (npc !== hoveredNPC) {
-          setHoveredNPC(npc || null);
-          if (npc) {
-            setHoveredEntityCoords({ x: e.clientX, y: e.clientY });
-          }
+        // Only show tile tooltip for specific biomes (city centers, government districts, farms)
+        const shouldShowTileTooltip = tile && (
+          tile.biome === BiomeType.CITY_CENTER ||
+          tile.biome === BiomeType.GOVERNMENT_DISTRICT ||
+          tile.biome === BiomeType.FARMLAND
+        );
+        
+        // Store hover data for debounced update
+        pendingHoverData.current = {
+          npc: npc || null,
+          animal: animal || null,
+          tile: shouldShowTileTooltip ? tile : null,
+          poi: structure && ['holy_site', 'palace', 'ruin', 'mill', 'fortress', 'lumber_camp', 'fishing_hut'].includes(structure.structureType) ? structure : null,
+          coords: { x: e.clientX, y: e.clientY },
+          structure: structure || null,
+          vegetation: vegetation || null,
+          deployedVessel: deployedVessel || null
+        };
+        
+        // Clear existing timer and set new one for debounced update
+        if (hoverDebounceTimer.current) {
+          clearTimeout(hoverDebounceTimer.current);
         }
-        if (animal !== hoveredAnimal) {
-          setHoveredAnimal(animal || null);
-          if (animal) {
-            setHoveredEntityCoords({ x: e.clientX, y: e.clientY });
-          }
-        }
-        if (!npc && !animal) {
-          setHoveredEntityCoords(null);
-        }
+        hoverDebounceTimer.current = setTimeout(() => {
+          updateHoverStates();
+          hoverDebounceTimer.current = null;
+        }, 50); // 50ms debounce delay
         
         // Get component info for the tile
         const componentInfo = getComponentInfoForTile(tile, structure, npc, animal);
@@ -931,13 +1067,30 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           componentInfo: componentInfo || undefined
         });
       } else {
+        // Clear pending data and trigger debounced clear
+        pendingHoverData.current = {
+          npc: null,
+          animal: null,
+          tile: null,
+          poi: null,
+          coords: null,
+          structure: null,
+          vegetation: null,
+          deployedVessel: null
+        };
+        
+        if (hoverDebounceTimer.current) {
+          clearTimeout(hoverDebounceTimer.current);
+        }
+        hoverDebounceTimer.current = setTimeout(() => {
+          updateHoverStates();
+          hoverDebounceTimer.current = null;
+        }, 50);
+        
         throttledOnDevHover(null);
-        setHoveredNPC(null);
-        setHoveredAnimal(null);
-        setHoveredEntityCoords(null);
       }
     }
-  }, [isDragging, lastMousePos, getTileFromMouseEvent, mapData, throttledOnDevHover, isFreePanMode, zoomLevel, npcs, animals]);
+  }, [isDragging, lastMousePos, getTileFromMouseEvent, mapData, throttledOnDevHover, isFreePanMode, zoomLevel, npcs, animals, updateHoverStates]);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     const tile = getTileFromMouseEvent(e);
@@ -2649,7 +2802,12 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 return (
                   <g key={`tamed-${animal.id}`}
                      className="smooth-movement"
-                     transform={`translate(${followX * TILE_SIZE_PX}, ${followY * TILE_SIZE_PX})`}>
+                     transform={`translate(${followX * TILE_SIZE_PX}, ${followY * TILE_SIZE_PX})`}
+                     onClick={() => {
+                       console.log('[MapDisplay] Companion clicked:', animal);
+                       onCompanionClick?.(animal);
+                     }}
+                     style={{ cursor: 'pointer', pointerEvents: 'all' }}>
                     {/* Shadow beneath tamed animal */}
                     <ellipse
                       cx={TILE_SIZE_PX/2}
@@ -2910,11 +3068,19 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         />
                       )
                     ) : playerCharacter && (
-                      <PlayerIcon
-                        x={displayPixelIconX}
-                        y={displayPixelIconY}
-                        character={playerCharacter}
-                      />
+                      <g 
+                        onClick={() => {
+                          console.log('[MapDisplay] Player icon clicked, calling onPlayerIconClick');
+                          onPlayerIconClick?.();
+                        }}
+                        style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                      >
+                        <PlayerIcon
+                          x={displayPixelIconX}
+                          y={displayPixelIconY}
+                          character={playerCharacter}
+                        />
+                      </g>
                     )}
                   </g>
                 </g>

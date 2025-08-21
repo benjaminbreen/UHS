@@ -774,7 +774,7 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
         'MODERN_ERA': 'massive',
         'FUTURE_ERA': 'massive'
       },
-      populationPeak: 9336000,
+      populationPeak: 12336000,
       economicFocus: ['finance', 'trade', 'shipping', 'manufacturing', 'services']
     }
   ],
@@ -826,7 +826,16 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
         1565: "Portuguese Empire",
         1822: "Empire of Brazil",
         1889: "Republic of Brazil"
-      }
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: {
+        'RENAISSANCE_EARLY_MODERN': 'small',
+        'INDUSTRIAL_ERA': 'large',
+        'MODERN_ERA': 'massive',
+        'FUTURE_ERA': 'massive'
+      },
+      populationPeak: 6036000,
+      economicFocus: ['trade', 'shipping', 'manufacturing']
     }
   ],
   "São Paulo Plateau": [
@@ -838,7 +847,16 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       allegianceHistory: {
         1554: "Portuguese Empire",
         1822: "Empire of Brazil"
-      }
+     },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: {
+        'RENAISSANCE_EARLY_MODERN': 'small',
+        'INDUSTRIAL_ERA': 'large',
+        'MODERN_ERA': 'massive',
+        'FUTURE_ERA': 'massive'
+      },
+      populationPeak: 15336000,
+      economicFocus: ['finance', 'trade', 'manufacturing', 'services']
     }
   ],
   "Pampas Grasslands": [
