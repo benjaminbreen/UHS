@@ -162,7 +162,7 @@ export const ANIMAL_DATA: Record<string, AnimalData> = {
         habitat: 'mountain', behaviorProfile: 'deer'
     },
     SHEEP: {
-        name: 'Sheep', emoji: '🐑', type: 'Domestic', social: 'herd', sizeMultiplier: 0.3, attack: 0, defense: 1, maxHealth: 10, speed: 3, strength: 2, agility: 3, perception: 4, level: 1,
+        name: 'Sheep', emoji: '🐑', type: 'Domestic', social: 'herd', sizeMultiplier: 0.6, attack: 0, defense: 1, maxHealth: 10, speed: 3, strength: 2, agility: 3, perception: 4, level: 1,
         drops: [{ name: 'Wool', chance: 0.9 }, { name: 'Mutton', chance: 0.8 }, { name: 'Sheep Hide', chance: 0.7 }],
         spawnBiomes: [BiomeType.GRASSLAND, BiomeType.HILLS, BiomeType.FARMLAND],
         spawnConditions: { 
@@ -172,7 +172,7 @@ export const ANIMAL_DATA: Record<string, AnimalData> = {
         habitat: 'grassland', behaviorProfile: 'deer'
     },
     EAGLE: {
-        name: 'Eagle', emoji: '🦅', type: 'Ambient', social: 'solitary', sizeMultiplier: 0.2, attack: 3, defense: 1, maxHealth: 5, speed: 10, strength: 4, agility: 9, perception: 10, level: 3,
+        name: 'Eagle', emoji: '🦅', type: 'Ambient', social: 'solitary', sizeMultiplier: 0.3, attack: 3, defense: 1, maxHealth: 5, speed: 10, strength: 4, agility: 9, perception: 10, level: 3,
         drops: [{ name: 'Eagle Feather', chance: 0.9 }],
         spawnBiomes: [BiomeType.MOUNTAIN, BiomeType.HIGH_PEAK, BiomeType.CLIFF],
         spawnConditions: { minSacrality: 0.6 },
@@ -210,7 +210,7 @@ MULE: {
         habitat: 'grassland', behaviorProfile: 'rabbit'
     },
      DUCK: {
-        name: 'Duck', emoji: '🦆', type: 'Domestic', social: 'herd', sizeMultiplier: 0.3, attack: 1, defense: 0, maxHealth: 3, speed: 6, strength: 1, agility: 4, perception: 2, level: 1,
+        name: 'Duck', emoji: '🦆', type: 'Domestic', social: 'herd', sizeMultiplier: 0.4, attack: 1, defense: 0, maxHealth: 3, speed: 6, strength: 1, agility: 4, perception: 2, level: 1,
         drops: [{ name: 'Poultry', chance: 1.0 }, { name: 'Feather', chance: 0.9 }],
         spawnBiomes: [BiomeType.WETLANDS],
         spawnConditions: { nearSettlement: true },
@@ -225,7 +225,7 @@ MULE: {
     },
 
     SNAKE: {
-        name: 'Snake', emoji: '🐍', type: 'Predator', social: 'solitary', sizeMultiplier: 0.4, attack: 3, defense: 1, maxHealth: 6, speed: 5, strength: 2, agility: 8, perception: 6, level: 2,
+        name: 'Snake', emoji: '🐍', type: 'Predator', social: 'solitary', sizeMultiplier: 0.5, attack: 3, defense: 1, maxHealth: 6, speed: 5, strength: 2, agility: 8, perception: 6, level: 2,
         drops: [{ name: 'Snake Skin', chance: 0.6 }, { name: 'Venom', chance: 0.3 }],
         spawnBiomes: [BiomeType.DESERT, BiomeType.JUNGLE, BiomeType.WETLANDS, BiomeType.RUINS],
         spawnConditions: { minBiodiversity: 0.7 },
@@ -239,7 +239,7 @@ MULE: {
         habitat: 'forest', behaviorProfile: 'rabbit'
     },
     FISH: {
-        name: 'Fish', emoji: '🐟', type: 'Ambient', social: 'herd', sizeMultiplier: 0.4, attack: 0, defense: 0, maxHealth: 1, speed: 5, strength: 1, agility: 6, perception: 3, level: 1,
+        name: 'Fish', emoji: '🐟', type: 'Ambient', social: 'herd', sizeMultiplier: 0.7, attack: 0, defense: 0, maxHealth: 1, speed: 5, strength: 1, agility: 6, perception: 3, level: 1,
         drops: [{ name: 'FISH_MEAT', chance: 1.0 }],
         spawnBiomes: [BiomeType.SHALLOW_OCEAN, BiomeType.RIVER, BiomeType.MAJOR_RIVER, BiomeType.FRESHWATER_LAKE, BiomeType.ESTUARY],
         spawnConditions: {},
@@ -305,14 +305,14 @@ MULE: {
         habitat: 'grassland', behaviorProfile: 'rabbit'
     },
     HEDGEHOG: {
-        name: 'Hedgehog', emoji: '🦔', type: 'Ambient', social: 'solitary', sizeMultiplier: 0.2, attack: 0, defense: 3, maxHealth: 3, speed: 3, strength: 1, agility: 4, perception: 5, level: 1,
+        name: 'Hedgehog', emoji: '🦔', type: 'Ambient', social: 'solitary', sizeMultiplier: 0.3, attack: 0, defense: 3, maxHealth: 3, speed: 3, strength: 1, agility: 4, perception: 5, level: 1,
         drops: [],
         spawnBiomes: [BiomeType.SCRUB],
         spawnConditions: { zones: ['EUROPEAN', 'MENA'] },
         habitat: 'forest', behaviorProfile: 'rabbit'
     },
     BAT: {
-        name: 'Bat', emoji: '🦇', type: 'Ambient', social: 'herd', sizeMultiplier: 0.1, attack: 0, defense: 1, maxHealth: 2, speed: 8, strength: 1, agility: 10, perception: 6, level: 1,
+        name: 'Bat', emoji: '🦇', type: 'Ambient', social: 'herd', sizeMultiplier: 0.2, attack: 0, defense: 1, maxHealth: 2, speed: 8, strength: 1, agility: 10, perception: 6, level: 1,
         drops: [{ name: 'Bat Guano', chance: 0.2 }],
         spawnBiomes: [BiomeType.RUINS, BiomeType.MOUNTAIN, BiomeType.CLIFF],
         spawnConditions: { minSacrality: 0.4 },
@@ -354,7 +354,7 @@ MULE: {
         habitat: 'forest', behaviorProfile: 'rabbit'
     },
     BADGER: {
-        name: 'Badger', emoji: '🦡', type: 'Prey', social: 'solitary', sizeMultiplier: 0.4, attack: 3, defense: 3, maxHealth: 10, speed: 4, strength: 4, agility: 5, perception: 6, level: 2,
+        name: 'Badger', emoji: '🦡', type: 'Prey', social: 'solitary', sizeMultiplier: 0.5, attack: 3, defense: 3, maxHealth: 10, speed: 4, strength: 4, agility: 5, perception: 6, level: 2,
         drops: [{ name: 'Badger Hide', chance: 0.6 }],
         spawnBiomes: [BiomeType.FOREST, BiomeType.HILLS, BiomeType.GRASSLAND],
         spawnConditions: { zones: ['EUROPEAN', 'NORTH_AMERICAN_PRE_COLUMBIAN'] },
@@ -377,7 +377,7 @@ MULE: {
     },
 
     BUTTERFLY: {
-        name: 'Butterfly', emoji: '🦋', type: 'Ambient', social: 'solitary', sizeMultiplier: 0.1, attack: 0, defense: 0, maxHealth: 1, speed: 4, strength: 0, agility: 9, perception: 5, level: 1,
+        name: 'Butterfly', emoji: '🦋', type: 'Ambient', social: 'solitary', sizeMultiplier: 0.2, attack: 0, defense: 0, maxHealth: 1, speed: 4, strength: 0, agility: 9, perception: 5, level: 1,
         drops: [],
         spawnBiomes: [BiomeType.GRASSLAND, BiomeType.FOREST],
         spawnConditions: { minBiodiversity: 0.9, climate: [ClimateType.TEMPERATE, ClimateType.TROPICAL, ClimateType.SEMITROPICAL] },
@@ -386,23 +386,23 @@ MULE: {
 
     // === COMPANION ANIMALS ===
     DOG: {
-        name: 'Dog', emoji: '🐕', type: 'Domestic', social: 'pack', sizeMultiplier: 0.4, attack: 3, defense: 2, maxHealth: 12, speed: 7, strength: 4, agility: 6, perception: 9, level: 2,
-        drops: [{ name: 'Dog Hide', chance: 0.3 }], // Dogs rarely killed for resources
+        name: 'Dog', emoji: '🐕', type: 'Domestic', social: 'pack', sizeMultiplier: 0.5, attack: 3, defense: 2, maxHealth: 12, speed: 7, strength: 4, agility: 6, perception: 9, level: 2,
+        drops: [{ name: 'Dog Hide', chance: 0.2 }], // Dogs rarely killed for resources
         spawnBiomes: [BiomeType.HAMLET, BiomeType.FARMLAND, BiomeType.VILLAGE],
         spawnConditions: { zones: ['EUROPEAN', 'EAST_ASIAN', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'MENA', 'SUB_SAHARAN_AFRICAN'] },
         habitat: 'grassland', behaviorProfile: 'wolf',
         temperament: 'loyal'
     },
     CAT: {
-        name: 'Cat', emoji: '🐈‍⬛', type: 'Domestic', social: 'solitary', sizeMultiplier: 0.3, attack: 2, defense: 1, maxHealth: 6, speed: 8, strength: 2, agility: 9, perception: 8, level: 1,
-        drops: [{ name: 'Cat Hide', chance: 0.2 }], // Cats rarely killed for resources
+        name: 'Cat', emoji: '🐈‍⬛', type: 'Domestic', social: 'solitary', sizeMultiplier: 0.4, attack: 2, defense: 1, maxHealth: 6, speed: 8, strength: 2, agility: 9, perception: 8, level: 1,
+        drops: [{ name: 'Cat Hide', chance: 0.4 }], // Cats rarely killed for resources
         spawnBiomes: [BiomeType.HAMLET, BiomeType.VILLAGE, BiomeType.FARMLAND],
         spawnConditions: { zones: ['EUROPEAN', 'EAST_ASIAN', 'MENA', 'SUB_SAHARAN_AFRICAN'] },
         habitat: 'grassland', behaviorProfile: 'rabbit',
         temperament: 'independent'
     },
     DONKEY: {
-        name: 'Donkey', emoji: '🫏', type: 'Domestic', social: 'herd', sizeMultiplier: 0.9, attack: 2, defense: 3, maxHealth: 18, speed: 4, strength: 8, agility: 3, perception: 6, level: 2,
+        name: 'Donkey', emoji: '🫏', type: 'Domestic', social: 'herd', sizeMultiplier: 0.8, attack: 2, defense: 3, maxHealth: 18, speed: 4, strength: 8, agility: 3, perception: 6, level: 2,
         drops: [{ name: 'Tough Hide', chance: 0.7 }],
         spawnBiomes: [BiomeType.FARMLAND, BiomeType.HAMLET, BiomeType.DESERT],
         spawnConditions: { zones: ['EUROPEAN', 'MENA', 'SUB_SAHARAN_AFRICAN', 'SOUTH_ASIAN'] },
@@ -410,8 +410,8 @@ MULE: {
         temperament: 'stubborn'
     },
     SQUIRREL: {
-        name: 'Squirrel', emoji: '🐿️', type: 'Prey', social: 'solitary', sizeMultiplier: 0.1, attack: 1, defense: 0, maxHealth: 3, speed: 9, strength: 1, agility: 10, perception: 8, level: 1,
-        drops: [{ name: 'Small Pelt', chance: 0.4 }],
+        name: 'Squirrel', emoji: '🐿️', type: 'Prey', social: 'solitary', sizeMultiplier: 0.3, attack: 1, defense: 0, maxHealth: 3, speed: 9, strength: 1, agility: 10, perception: 8, level: 1,
+        drops: [{ name: 'Small Pelt', chance: 0.9 }],
         spawnBiomes: [BiomeType.FOREST, BiomeType.DENSE_FOREST, BiomeType.HILLS],
         spawnConditions: { zones: ['EUROPEAN', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'EAST_ASIAN'] },
         habitat: 'forest', behaviorProfile: 'rabbit',

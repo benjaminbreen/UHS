@@ -309,6 +309,174 @@ export const CITIES_DATA: { [mapAreaName: string]: CityDefinition[] } = {
       }
     }
   ],
+  "Oxfordshire": [
+    {
+      name: "Oxford",
+      isHistorical: true,
+      foundingYear: 912,
+      description: "A Saxon town that grew into one of the world's most prestigious centers of learning.",
+      allegianceHistory: {
+        912: "Kingdom of Wessex",
+        1066: "Kingdom of England",
+        1707: "United Kingdom"
+      },
+      urbanDensity: 'small',
+      eraSpecificDensity: {
+        'medieval': 'moderate',
+        'modern': 'moderate'
+      },
+      economicFocus: ['education', 'religion', 'publishing', 'trade']
+    }
+  ],
+  "Cape Cod": [
+    {
+      name: "Boston",
+      isHistorical: true,
+      foundingYear: 1630,
+      description: "The Puritan 'City upon a Hill' that became the cradle of the American Revolution.",
+      allegianceHistory: {
+        1630: "Massachusetts Bay Colony (English)",
+        1776: "United States"
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: { 'modern': 'large' },
+      economicFocus: ['shipping', 'trade', 'education', 'rebellion']
+    }
+  ],
+  "Delaware River Valley": [
+    {
+      name: "Philadelphia",
+      isHistorical: true,
+      foundingYear: 1682,
+      description: "The city of brotherly love, the first capital of the United States and a center of enlightenment thought.",
+      allegianceHistory: {
+        1682: "Colony of Pennsylvania (English)",
+        1776: "United States"
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: { 'early_modern': 'large' },
+      economicFocus: ['government', 'trade', 'philosophy', 'medicine']
+    }
+  ],
+  "Lower Mississippi Delta": [
+    {
+      name: "New Orleans",
+      isHistorical: true,
+      foundingYear: 1718,
+      description: "A vibrant crescent city controlling the mouth of the Mississippi, a melting pot of cultures.",
+      allegianceHistory: {
+        1718: "New France",
+        1763: "Spanish Empire",
+        1803: "United States"
+      },
+      urbanDensity: 'moderate',
+      economicFocus: ['shipping', 'trade', 'sugar', 'cotton']
+    }
+  ],
+  "Great Lakes Shoreline": [
+    {
+      name: "Chicago",
+      isHistorical: true,
+      foundingYear: 1833,
+      description: "A frontier fort that became the great industrial and transportation hub of the American Midwest.",
+      allegianceHistory: {
+        1833: "United States"
+      },
+      urbanDensity: 'small',
+      eraSpecificDensity: { 'modern': 'massive' },
+      economicFocus: ['railways', 'meatpacking', 'industry', 'finance']
+    }
+  ],
+  "Cajamarca Highlands": [
+    {
+      name: "Lima",
+      isHistorical: true,
+      foundingYear: 1535,
+      description: "The City of Kings, the proud and wealthy capital of the vast Viceroyalty of Peru.",
+      allegianceHistory: {
+        1535: "Spanish Empire",
+        1821: "Republic of Peru"
+      },
+      urbanDensity: 'large',
+      economicFocus: ['government', 'silver', 'trade', 'education']
+    }
+  ],
+  "St. Lawrence River": [
+    {
+        name: "Quebec City",
+        isHistorical: true,
+        foundingYear: 1608,
+        description: "The Gibraltar of North America, the fortified capital of New France.",
+        allegianceHistory: {
+            1608: "New France",
+            1763: "British Empire",
+            1867: "Canada"
+        },
+        urbanDensity: 'small',
+        eraSpecificDensity: { 'modern': 'moderate' },
+        economicFocus: ['fur_trade', 'military', 'government']
+    }
+  ],
+  "Brandenburg Plain": [
+    {
+      name: "Berlin",
+      isHistorical: true,
+      foundingYear: 1237,
+      description: "A trading town that became the capital of Prussia and a unified German Empire.",
+      allegianceHistory: {
+        1237: "Margraviate of Brandenburg",
+        1415: "Electorate of Brandenburg",
+        1701: "Kingdom of Prussia",
+        1871: "German Empire"
+      },
+      urbanDensity: 'moderate',
+      eraSpecificDensity: { 'modern': 'massive' },
+      economicFocus: ['government', 'military', 'industry', 'science']
+    }
+  ],
+  "Hamburg Coast": [
+    {
+        name: "Hamburg",
+        isHistorical: true,
+        foundingYear: 808,
+        description: "A powerful free city and a leading member of the Hanseatic League, dominating North Sea trade.",
+        allegianceHistory: {
+            808: "Carolingian Empire",
+            1189: "Holy Roman Empire (Free City)",
+            1510: "Hanseatic League"
+        },
+        urbanDensity: 'moderate',
+        eraSpecificDensity: { 'modern': 'large' },
+        economicFocus: ['trade', 'shipping', 'brewing']
+    }
+  ],
+  "Novgorod Woods": [
+    {
+        name: "St. Petersburg",
+        isHistorical: true,
+        foundingYear: 1703,
+        description: "Tsar Peter's window to the West, the magnificent imperial capital built on a swamp.",
+        allegianceHistory: {
+            1703: "Tsardom of Russia",
+            1721: "Russian Empire"
+        },
+        urbanDensity: 'large',
+        economicFocus: ['government', 'navy', 'enlightenment', 'architecture']
+    },
+    {
+        name: "Novgorod",
+        isHistorical: true,
+        foundingYear: 859,
+        description: "A powerful merchant republic of the Rus, and a key eastern outpost of the Hanseatic League.",
+        allegianceHistory: {
+            859: "Novgorod Republic",
+            1478: "Grand Duchy of Moscow"
+        },
+        urbanDensity: 'moderate',
+        economicFocus: ['trade', 'furs', 'wax', 'republicanism']
+    }
+  ],
+  
    "Paris Basin": [
     {
       name: "Lutetia Parisiorum",

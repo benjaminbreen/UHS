@@ -21,13 +21,15 @@ import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { selectBuilding } from '../utils/buildingSelectionSystem';
 import { getLocationCulturalStyle } from '../utils/culturalMappingUtils';
-import { RuinsSymbol, CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol, FishingHutSymbol, SteamSymbol, GovernmentDistrictSymbol, FireflySymbol, MineralGlintSymbol, OasisSymbol } from './symbols';
+import { RuinsSymbol, CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol, FishingHutSymbol, SteamSymbol, GovernmentDistrictSymbol, FireflySymbol, MineralGlintSymbol, OasisSymbol, PlazaSymbol, ParkSymbol, HarborDistrictSymbol, IndustrialDistrictSymbol } from './symbols';
 import VesselSymbol from './symbols/VesselSymbol';
 import TrainSymbol from './symbols/TrainSymbol';
 import LumberCampSymbol from './symbols/structures/LumberCampSymbol';
 import UrbanSymbol from './symbols/UrbanSymbolSimplified';
 import { getPalaceSymbol } from './symbols/poi/PalaceSymbolsImproved';
 import { getHolySiteSymbol } from './symbols/poi/getHolySiteSymbol';
+import SimpleBoatSymbol from './symbols/SimpleBoatSymbol';
+import { simpleBoatService } from '../services/simpleBoatService';
 import { 
   PlantationSymbol, 
   WarehouseSymbol, 
@@ -259,6 +261,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   const [hoveredAnimal, setHoveredAnimal] = useState<AnimalEntity | null>(null);
   const [hoveredEntityCoords, setHoveredEntityCoords] = useState<{x: number, y: number} | null>(null);
   
+  // Simple boat state - just a trigger for re-render
+  const [boatTick, setBoatTick] = useState(0);
+  
   // Debounce timers for hover tooltips
   const hoverDebounceTimer = useRef<NodeJS.Timeout | null>(null);
   const pendingHoverData = useRef<{
@@ -383,6 +388,21 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             width: mapData.width * TILE_SIZE_PX,
             height: mapData.height * TILE_SIZE_PX,
         });
+        
+        // Reset and initialize simple boat service for new map
+        simpleBoatService.reset();
+        simpleBoatService.initialize(mapData);
+        
+        // Update boat position smoothly but infrequently
+        const boatInterval = setInterval(() => {
+          simpleBoatService.update();
+          setBoatTick(prev => prev + 1); // Just trigger a re-render
+        }, 500); // Update twice per second for smoother movement
+        
+        return () => {
+          clearInterval(boatInterval);
+          simpleBoatService.reset(); // Clean up on unmount
+        };
     }
   }, [mapData, isMobile]);
 
@@ -876,6 +896,18 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           break;
         case BiomeType.OASIS:
           componentInfo = { fileName: 'OasisSymbol.tsx', symbolName: 'OasisSymbol' };
+          break;
+        case BiomeType.PLAZA:
+          componentInfo = { fileName: 'PlazaSymbol.tsx', symbolName: 'PlazaSymbol' };
+          break;
+        case BiomeType.PARK:
+          componentInfo = { fileName: 'ParkSymbol.tsx', symbolName: 'ParkSymbol' };
+          break;
+        case BiomeType.HARBOR_DISTRICT:
+          componentInfo = { fileName: 'HarborDistrictSymbol.tsx', symbolName: 'HarborDistrictSymbol' };
+          break;
+        case BiomeType.INDUSTRIAL_DISTRICT:
+          componentInfo = { fileName: 'IndustrialDistrictSymbol.tsx', symbolName: 'IndustrialDistrictSymbol' };
           break;
       }
     }
@@ -1373,7 +1405,22 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     const isDusk = fractionalHour >= 18 && fractionalHour < 21;
     const isDay = fractionalHour >= 8 && fractionalHour < 18;
 
-    return { isNight, isDawn, isDusk, isDay };
+    // Calculate night intensity for components that need it
+    let nightIntensity = 0;
+    if (isNight) {
+      if (fractionalHour >= 20) {
+        // Evening: fade from 0 to 1 between 20:00 and 22:00
+        nightIntensity = Math.min(1, (fractionalHour - 20) / 2);
+      } else if (fractionalHour < 4) {
+        // Night: full intensity
+        nightIntensity = 1;
+      } else {
+        // Early morning: fade from 1 to 0 between 4:00 and 6:00
+        nightIntensity = Math.max(0, 1 - ((fractionalHour - 4) / 2));
+      }
+    }
+
+    return { isNight, isDawn, isDusk, isDay, nightIntensity };
   }, [gameTimeHours, gameTimeMinutes]);
 
   return (
@@ -2017,6 +2064,30 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     elements.push(<HillSymbol key={`hill-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} climate={climate} season={season}/>);
                   } else if(tile.biome === BiomeType.OASIS) {
                     elements.push(<OasisSymbol key={`oasis-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} tileX={tile.x} tileY={tile.y} />);
+                  } else if(tile.biome === BiomeType.PLAZA) {
+                    elements.push(<PlazaSymbol key={`plaza-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} climate={climate} />);
+                  } else if(tile.biome === BiomeType.PARK) {
+                    elements.push(<ParkSymbol key={`park-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} climate={climate} />);
+                  } else if(tile.biome === BiomeType.HARBOR_DISTRICT) {
+                    // Get era and cultural style for harbor district
+                    const { era: harborEra } = parseDateString(formattedDate);
+                    const yearMatch = formattedDate.match(/(\d+)\s*(BC|BCE|AD|CE)?/);
+                    let year = yearMatch ? parseInt(yearMatch[1]) : 0;
+                    if (yearMatch && (yearMatch[2] === 'BC' || yearMatch[2] === 'BCE')) {
+                      year = -year;
+                    }
+                    const harborCulturalStyle = getLocationCulturalStyle(currentLocation, year)?.culturalStyle || 'european';
+                    elements.push(<HarborDistrictSymbol key={`harbor-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} era={harborEra} culturalStyle={harborCulturalStyle} mapTiles={mapData.tiles} />);
+                  } else if(tile.biome === BiomeType.INDUSTRIAL_DISTRICT) {
+                    // Get era and cultural style for industrial district
+                    const { era: industrialEra } = parseDateString(formattedDate);
+                    const yearMatch = formattedDate.match(/(\d+)\s*(BC|BCE|AD|CE)?/);
+                    let year = yearMatch ? parseInt(yearMatch[1]) : 0;
+                    if (yearMatch && (yearMatch[2] === 'BC' || yearMatch[2] === 'BCE')) {
+                      year = -year;
+                    }
+                    const industrialCulturalStyle = getLocationCulturalStyle(currentLocation, year)?.culturalStyle || 'european';
+                    elements.push(<IndustrialDistrictSymbol key={`industrial-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} era={industrialEra} culturalStyle={industrialCulturalStyle} />);
                   } else if(tile.biome === BiomeType.FARMLAND) {
                     elements.push(
                       <g
@@ -2442,7 +2513,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                             tile={tileAtLocation || { x: structure.location[0], y: structure.location[1], elevation: 0 }}
                             date={formattedDate}
                             zone={currentLocation || "Europe"}
-                            nightIntensity={nightIntensity}
+                            nightIntensity={timeOfDayData.nightIntensity}
                           />
                         </g>
                       </g>
@@ -2659,8 +2730,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     // Get cultural zone from structure or default
                     const culturalZone = (structure as any).culturalZone || (structure as any).culture || 'EUROPEAN';
                     
-                    // Use era and cultural zone for proper fortress selection
-                    const FortressComponent = getFortressSymbol('', era, culturalZone);
+                    // Use fortress name, era and cultural zone for proper fortress selection
+                    const FortressComponent = getFortressSymbol(structure.name || '', era, culturalZone);
                     
                     return (
                       <g 
@@ -3176,6 +3247,20 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 </g>
               )}
             </g>
+            
+            {/* Simple NPC Boat - just one, properly sized */}
+            {simpleBoatService.hasBoat() && (() => {
+              const position = simpleBoatService.getBoatPosition();
+              if (!position) return null;
+              return (
+                <SimpleBoatSymbol
+                  key={`boat-${boatTick}`}
+                  x={position.x * TILE_SIZE_PX + TILE_SIZE_PX / 2} // Center on tile
+                  y={position.y * TILE_SIZE_PX + TILE_SIZE_PX / 2} // Center on tile
+                  rotation={position.rotation}
+                />
+              );
+            })()}
 
             {/* Desert dust particles - atmospheric effect (reduced to 1/5th) */}
             {/* Disable on Safari for performance */}

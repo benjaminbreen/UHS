@@ -58,6 +58,28 @@ export function generateFarmland(mapData: MapData, featurePlacementNoise: ValueN
             }
 
             if (nearSettlement) {
+                // Check if this is near a modern city (indicated by ROAD tiles)
+                let nearModernCity = false;
+                const modernCityCheckRadius = 10;
+                for (let dy = -modernCityCheckRadius; dy <= modernCityCheckRadius; dy++) {
+                    for (let dx = -modernCityCheckRadius; dx <= modernCityCheckRadius; dx++) {
+                        const checkX = x + dx;
+                        const checkY = y + dy;
+                        if (checkX >= 0 && checkX < MAP_WIDTH_TILES && checkY >= 0 && checkY < MAP_HEIGHT_TILES) {
+                            if (tiles[checkY][checkX].biome === BiomeType.ROAD) {
+                                nearModernCity = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (nearModernCity) break;
+                }
+                
+                // Skip farmland generation near modern cities
+                if (nearModernCity) {
+                    continue;
+                }
+                
                 let chance = 0.3;
                 if (settlementType === BiomeType.HAMLET) chance = 0.6;
                 if (settlementType === BiomeType.LOW_DENSITY_CITY) chance = 0.4;

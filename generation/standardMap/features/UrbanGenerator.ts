@@ -1,7 +1,7 @@
 /**
  * generation/standardMap/features/UrbanGenerator.ts - Generates urban areas for Standard Maps
  */
-import { Tile, BiomeType, Point, MapArchetype } from '../../../types/index';
+import { Tile, BiomeType, Point, MapArchetype, HistoricalEra } from '../../../types/index';
 import { ValueNoise } from '../../../utils/noise';
 import { 
     MAP_WIDTH_TILES, MAP_HEIGHT_TILES, ALTITUDE_LEVELS,
@@ -23,6 +23,8 @@ const nonBuildableSiteBiomesSet = new Set([
   BiomeType.ACTIVE_LAVA, BiomeType.VOLCANIC_ROCK, BiomeType.SALT_FLATS, BiomeType.HOT_SPRINGS,
   BiomeType.ESTUARY, BiomeType.FRESHWATER_LAKE, BiomeType.CLIFF,
   BiomeType.MARKETPLACE, BiomeType.GOVERNMENT_DISTRICT, BiomeType.CITY_CENTER, // Prevent overwriting new types
+  BiomeType.ROAD, BiomeType.PLAZA, BiomeType.PARK, // Don't build on modern infrastructure
+  BiomeType.HARBOR_DISTRICT, BiomeType.INDUSTRIAL_DISTRICT, // Don't overwrite special districts
 ]);
 
 function isRiverMouth(tiles: Tile[][], x: number, y: number): boolean {
@@ -123,7 +125,178 @@ function selectUrbanClusterCenters(strategicLocations: Array<{point: Point, scor
   return centers;
 }
 
-function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: number, totalClusters: number, generateLargeCity: boolean | undefined, randomNoise: ValueNoise, economicActivityLevel?: number, activeCities?: any[]): void {
+function placeModernCityBlocks(
+  tiles: Tile[][], 
+  center: Point, 
+  clusterRadius: number,
+  tilesToPlace: Array<{biome: BiomeType, priority: number}>,
+  availableTiles: Array<{point: Point, distance: number, score: number}>,
+  placedUrbanTiles: Tile[],
+  randomNoise: ValueNoise,
+  cityData?: any
+): void {
+  // Create a grid-based block system for modern cities
+  const blockSize = 3; // 3x3 tile blocks
+  const streetWidth = 1; // 1 tile wide streets
+  
+  // First, place road tiles in a grid pattern
+  const gridStartX = Math.max(0, center.x - clusterRadius);
+  const gridStartY = Math.max(0, center.y - clusterRadius);
+  const gridEndX = Math.min(MAP_WIDTH_TILES - 1, center.x + clusterRadius);
+  const gridEndY = Math.min(MAP_HEIGHT_TILES - 1, center.y + clusterRadius);
+  
+  // Place horizontal and vertical roads
+  for (let y = gridStartY; y <= gridEndY; y++) {
+    for (let x = gridStartX; x <= gridEndX; x++) {
+      const relX = x - gridStartX;
+      const relY = y - gridStartY;
+      
+      // Check if this should be a road tile (every 4th tile creates grid)
+      const isHorizontalRoad = relY % (blockSize + streetWidth) === blockSize;
+      const isVerticalRoad = relX % (blockSize + streetWidth) === blockSize;
+      
+      if ((isHorizontalRoad || isVerticalRoad) && tiles[y][x].isLand) {
+        // Only place roads on land tiles that aren't water, already urban, or too steep
+        const tile = tiles[y][x];
+        
+        // Check for water bodies
+        const isWater = tile.biome === BiomeType.RIVER || 
+                       tile.biome === BiomeType.MAJOR_RIVER || 
+                       tile.biome === BiomeType.FRESHWATER_LAKE ||
+                       tile.biome === BiomeType.ESTUARY;
+        
+        // Check for steep terrain (avoid placing roads on cliffs)
+        let tooSteep = false;
+        if (x > 0 && x < MAP_WIDTH_TILES - 1 && y > 0 && y < MAP_HEIGHT_TILES - 1) {
+          const neighbors = [
+            tiles[y-1][x], tiles[y+1][x], 
+            tiles[y][x-1], tiles[y][x+1]
+          ];
+          const maxAltDiff = Math.max(...neighbors.map(n => Math.abs(n.altitude - tile.altitude)));
+          tooSteep = maxAltDiff > 0.15 || tile.biome === BiomeType.CLIFF; // Don't place roads on steep slopes or cliffs
+        }
+        
+        if (!nonBuildableSiteBiomesSet.has(tile.biome) && 
+            !isWater &&
+            !tooSteep) {
+          tile.biome = BiomeType.ROAD;
+          tile.population = 0;
+          // Remove this tile from availableTiles to prevent buildings on roads
+          const index = availableTiles.findIndex(t => 
+            t.point.x === x && t.point.y === y
+          );
+          if (index !== -1) {
+            availableTiles.splice(index, 1);
+          }
+        }
+      }
+    }
+  }
+  
+  // Now group remaining tiles into blocks (between roads)
+  const blocks: Array<{
+    x: number,
+    y: number,
+    tiles: Array<{point: Point, distance: number, score: number}>
+  }> = [];
+  
+  // Reuse the grid bounds for block creation
+  const blockStartX = center.x - clusterRadius;
+  const blockStartY = center.y - clusterRadius;
+  const blockEndX = center.x + clusterRadius;
+  const blockEndY = center.y + clusterRadius;
+  
+  for (let blockY = blockStartY; blockY < blockEndY; blockY += blockSize + streetWidth) {
+    for (let blockX = blockStartX; blockX < blockEndX; blockX += blockSize + streetWidth) {
+      const blockTiles: Array<{point: Point, distance: number, score: number}> = [];
+      
+      // Find all available tiles in this block
+      for (const tile of availableTiles) {
+        if (tile.point.x >= blockX && tile.point.x < blockX + blockSize &&
+            tile.point.y >= blockY && tile.point.y < blockY + blockSize) {
+          blockTiles.push(tile);
+        }
+      }
+      
+      if (blockTiles.length > 0) {
+        blocks.push({ x: blockX, y: blockY, tiles: blockTiles });
+      }
+    }
+  }
+  
+  // Sort blocks by distance from center
+  blocks.sort((a, b) => {
+    const distA = Math.sqrt((a.x - center.x) ** 2 + (a.y - center.y) ** 2);
+    const distB = Math.sqrt((b.x - center.x) ** 2 + (b.y - center.y) ** 2);
+    return distA - distB;
+  });
+  
+  // Place urban tiles in blocks
+  let tilesPlaced = 0;
+  let parksPlaced = 0;
+  const maxParks = Math.max(1, Math.floor(tilesToPlace.length / 20)); // 5% parks
+  
+  for (const block of blocks) {
+    if (tilesPlaced >= tilesToPlace.length) break;
+    
+    // Decide if this block should be a park (central blocks have higher chance)
+    const distFromCenter = Math.sqrt((block.x - center.x) ** 2 + (block.y - center.y) ** 2);
+    const parkChance = distFromCenter < clusterRadius * 0.5 ? 0.2 : 0.1;
+    const shouldBePark = parksPlaced < maxParks && randomNoise.random() < parkChance;
+    
+    if (shouldBePark) {
+      // Place a park in this block
+      for (const tileInfo of block.tiles) {
+        const targetTile = tiles[tileInfo.point.y][tileInfo.point.x];
+        targetTile.biome = BiomeType.PARK;
+        targetTile.population = 0; // Parks have no permanent population
+        placedUrbanTiles.push(targetTile);
+      }
+      parksPlaced++;
+      tilesPlaced += block.tiles.length;
+    } else {
+      // Fill block with urban tiles
+      for (const tileInfo of block.tiles) {
+        if (tilesPlaced >= tilesToPlace.length) break;
+        
+        const targetTile = tiles[tileInfo.point.y][tileInfo.point.x];
+        const urbanTile = tilesToPlace[tilesPlaced];
+        
+        targetTile.biome = urbanTile.biome;
+        
+        // Assign population based on biome type
+        if (urbanTile.biome === BiomeType.DENSE_CITY) {
+          targetTile.population = 200 + Math.floor(randomNoise.random() * 300);
+        } else if (urbanTile.biome === BiomeType.LOW_DENSITY_CITY) {
+          targetTile.population = 50 + Math.floor(randomNoise.random() * 150);
+        } else if (urbanTile.biome === BiomeType.HAMLET) {
+          targetTile.population = 10 + Math.floor(randomNoise.random() * 40);
+        }
+        
+        // Assign city name to all urban tiles
+        if (cityData) {
+          targetTile.cityName = cityData.name;
+          targetTile.cityDescription = cityData.description;
+        }
+        
+        placedUrbanTiles.push(targetTile);
+        tilesPlaced++;
+      }
+    }
+  }
+  
+  // Remove used tiles from availableTiles
+  for (const placedTile of placedUrbanTiles) {
+    const index = availableTiles.findIndex(t => 
+      t.point.x === placedTile.x && t.point.y === placedTile.y
+    );
+    if (index !== -1) {
+      availableTiles.splice(index, 1);
+    }
+  }
+}
+
+function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: number, totalClusters: number, generateLargeCity: boolean | undefined, randomNoise: ValueNoise, economicActivityLevel?: number, activeCities?: any[], era?: HistoricalEra): void {
   const isMainCluster = clusterIndex === 0;
   
   // Get population data for this cluster's city
@@ -223,6 +396,13 @@ function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: numb
   
   console.log(`[Urban] Cluster ${clusterIndex}: dense=${denseCityTiles}, low=${lowDensityTiles}, hamlet=${hamletTiles}, radius=${clusterRadius}`);
   
+  // Check if we should use modern block-based layout
+  const useModernBlocks = era === HistoricalEra.INDUSTRIAL_ERA || 
+                          era === HistoricalEra.MODERN_ERA || 
+                          era === HistoricalEra.FUTURE_ERA;
+  
+  console.log(`[Urban] Era check for modern blocks: era=${era}, useModernBlocks=${useModernBlocks}`);
+  
   const tilesToPlace: Array<{biome: BiomeType, priority: number}> = [];
   for (let i = 0; i < denseCityTiles; i++) tilesToPlace.push({ biome: BiomeType.DENSE_CITY, priority: 3 });
   for (let i = 0; i < lowDensityTiles; i++) tilesToPlace.push({ biome: BiomeType.LOW_DENSITY_CITY, priority: 2 });
@@ -250,42 +430,72 @@ function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: numb
   availableTiles.sort((a, b) => b.score - a.score);
   
   const placedUrbanTiles: Tile[] = [];
-  for (const urbanTile of tilesToPlace) {
-    if (availableTiles.length === 0) break;
-    let bestCandidateIndex = -1; let highestScoreForType = -Infinity;
-    for(let i=0; i < availableTiles.length; i++) {
-        const candidate = availableTiles[i]; let currentScore = candidate.score;
-        if (urbanTile.biome === BiomeType.DENSE_CITY) currentScore -= candidate.distance * DENSITY_GRADIENT_FACTOR * 2;
-        else if (urbanTile.biome === BiomeType.HAMLET) currentScore += candidate.distance * DENSITY_GRADIENT_FACTOR;
-        else currentScore -= candidate.distance * DENSITY_GRADIENT_FACTOR * 0.5;
-        if (currentScore > highestScoreForType) { highestScoreForType = currentScore; bestCandidateIndex = i; }
-    }
-    if (bestCandidateIndex !== -1) {
-      const chosenTileInfo = availableTiles[bestCandidateIndex];
-      const targetTile = tiles[chosenTileInfo.point.y][chosenTileInfo.point.x];
-      targetTile.biome = urbanTile.biome;
-      
-      // Assign population based on biome type
-      if (urbanTile.biome === BiomeType.DENSE_CITY) {
-          targetTile.population = 200 + Math.floor(randomNoise.random() * 300);
-      } else if (urbanTile.biome === BiomeType.LOW_DENSITY_CITY) {
-          targetTile.population = 50 + Math.floor(randomNoise.random() * 150);
-      } else if (urbanTile.biome === BiomeType.HAMLET) {
-          targetTile.population = 10 + Math.floor(randomNoise.random() * 40);
+  
+  if (useModernBlocks) {
+    // Modern block-based city layout
+    placeModernCityBlocks(tiles, center, clusterRadius, tilesToPlace, availableTiles, placedUrbanTiles, randomNoise, cityData);
+  } else {
+    // Original organic placement for pre-modern cities
+    for (const urbanTile of tilesToPlace) {
+      if (availableTiles.length === 0) break;
+      let bestCandidateIndex = -1; let highestScoreForType = -Infinity;
+      for(let i=0; i < availableTiles.length; i++) {
+          const candidate = availableTiles[i]; let currentScore = candidate.score;
+          if (urbanTile.biome === BiomeType.DENSE_CITY) currentScore -= candidate.distance * DENSITY_GRADIENT_FACTOR * 2;
+          else if (urbanTile.biome === BiomeType.HAMLET) currentScore += candidate.distance * DENSITY_GRADIENT_FACTOR;
+          else currentScore -= candidate.distance * DENSITY_GRADIENT_FACTOR * 0.5;
+          if (currentScore > highestScoreForType) { highestScoreForType = currentScore; bestCandidateIndex = i; }
       }
+      if (bestCandidateIndex !== -1) {
+        const chosenTileInfo = availableTiles[bestCandidateIndex];
+        const targetTile = tiles[chosenTileInfo.point.y][chosenTileInfo.point.x];
+        targetTile.biome = urbanTile.biome;
+        
+        // Assign population based on biome type
+        if (urbanTile.biome === BiomeType.DENSE_CITY) {
+            targetTile.population = 200 + Math.floor(randomNoise.random() * 300);
+        } else if (urbanTile.biome === BiomeType.LOW_DENSITY_CITY) {
+            targetTile.population = 50 + Math.floor(randomNoise.random() * 150);
+        } else if (urbanTile.biome === BiomeType.HAMLET) {
+            targetTile.population = 10 + Math.floor(randomNoise.random() * 40);
+        }
+        
+        // Assign city name to all urban tiles in cluster
+        if (cityData) {
+            targetTile.cityName = cityData.name;
+            targetTile.cityDescription = cityData.description;
+        }
 
-      placedUrbanTiles.push(targetTile);
-      availableTiles.splice(bestCandidateIndex, 1); 
+        placedUrbanTiles.push(targetTile);
+        availableTiles.splice(bestCandidateIndex, 1); 
+      }
     }
   }
   
-  // Convert some DENSE_CITY to special districts
+  // Convert some DENSE_CITY to special districts based on era and location
   let placedGovDistricts = 0;
   let placedMarketplaces = 0;
+  let placedHarborDistricts = 0;
+  let placedIndustrialDistricts = 0;
+  
   placedUrbanTiles.forEach(tile => {
     if (tile.biome === BiomeType.DENSE_CITY) {
+        // Harbor District - for coastal cities
+        if (placedHarborDistricts < 2 && tile.isCoast && randomNoise.random() < 0.5) {
+            tile.biome = BiomeType.HARBOR_DISTRICT;
+            tile.population = 75 + Math.floor(randomNoise.random() * 125); // Port workers and residents
+            placedHarborDistricts++;
+        }
+        // Industrial District - for industrial/modern era cities
+        else if (placedIndustrialDistricts < 3 && 
+                (era === HistoricalEra.INDUSTRIAL_ERA || era === HistoricalEra.MODERN_ERA) && 
+                randomNoise.random() < 0.4) {
+            tile.biome = BiomeType.INDUSTRIAL_DISTRICT;
+            tile.population = 100 + Math.floor(randomNoise.random() * 200); // Factory workers
+            placedIndustrialDistricts++;
+        }
         // Marketplace chance
-        if (placedMarketplaces < 2 && isNearWaterBody(tiles, tile.x, tile.y, 3) && randomNoise.random() < 0.3) {
+        else if (placedMarketplaces < 2 && isNearWaterBody(tiles, tile.x, tile.y, 3) && randomNoise.random() < 0.3) {
             tile.biome = BiomeType.MARKETPLACE;
             tile.population = 50 + Math.floor(randomNoise.random() * 100); // Markets have transient populations
             placedMarketplaces++;
@@ -296,9 +506,102 @@ function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: numb
             tile.population = 100 + Math.floor(randomNoise.random() * 150); // Admin centers have residents
             placedGovDistricts++;
         }
+    } else if (tile.biome === BiomeType.LOW_DENSITY_CITY) {
+        // Convert some low density areas near water to harbor districts
+        if (placedHarborDistricts < 3 && tile.isCoast && randomNoise.random() < 0.3) {
+            tile.biome = BiomeType.HARBOR_DISTRICT;
+            tile.population = 50 + Math.floor(randomNoise.random() * 100);
+            placedHarborDistricts++;
+        }
+        // Convert some low density areas to industrial in industrial era
+        else if (placedIndustrialDistricts < 5 && 
+                (era === HistoricalEra.INDUSTRIAL_ERA || era === HistoricalEra.MODERN_ERA) && 
+                randomNoise.random() < 0.25) {
+            tile.biome = BiomeType.INDUSTRIAL_DISTRICT;
+            tile.population = 75 + Math.floor(randomNoise.random() * 150);
+            placedIndustrialDistricts++;
+        }
     }
   });
 
+  // Place plazas COMPLETELY surrounding government buildings and palaces (donut pattern)
+  const governmentTiles = placedUrbanTiles.filter(t => 
+    t.biome === BiomeType.GOVERNMENT_DISTRICT || 
+    t.biome === BiomeType.PALACE ||
+    t.biome === BiomeType.CITY_CENTER
+  );
+  
+  governmentTiles.forEach(govTile => {
+    // Convert ALL 8 surrounding tiles to plazas (complete donut)
+    const surroundingPositions = [
+      // Direct adjacents
+      {x: govTile.x - 1, y: govTile.y},     // West
+      {x: govTile.x + 1, y: govTile.y},     // East
+      {x: govTile.x, y: govTile.y - 1},     // North
+      {x: govTile.x, y: govTile.y + 1},     // South
+      // Diagonals
+      {x: govTile.x - 1, y: govTile.y - 1}, // Northwest
+      {x: govTile.x + 1, y: govTile.y - 1}, // Northeast
+      {x: govTile.x - 1, y: govTile.y + 1}, // Southwest
+      {x: govTile.x + 1, y: govTile.y + 1}, // Southeast
+    ];
+    
+    const plazaTiles: Tile[] = [];
+    
+    // First pass: Convert all surrounding tiles to plazas
+    for (const pos of surroundingPositions) {
+      if (pos.x >= 0 && pos.x < MAP_WIDTH_TILES && pos.y >= 0 && pos.y < MAP_HEIGHT_TILES) {
+        const surroundingTile = tiles[pos.y][pos.x];
+        // Convert any urban tile (except special districts) to plaza
+        if ((surroundingTile.biome === BiomeType.DENSE_CITY || 
+             surroundingTile.biome === BiomeType.LOW_DENSITY_CITY ||
+             surroundingTile.biome === BiomeType.HAMLET) &&
+            surroundingTile.biome !== BiomeType.MARKETPLACE &&
+            surroundingTile.biome !== BiomeType.HARBOR_DISTRICT &&
+            surroundingTile.biome !== BiomeType.INDUSTRIAL_DISTRICT) {
+          surroundingTile.biome = BiomeType.PLAZA;
+          surroundingTile.population = 0; // Plazas don't have permanent residents
+          // Keep city name
+          if (cityData) {
+            surroundingTile.cityName = cityData.name;
+            surroundingTile.cityDescription = cityData.description;
+          }
+          plazaTiles.push(surroundingTile);
+        }
+      }
+    }
+    
+    // Second pass: Place parks around the plaza ring (one tile further out)
+    plazaTiles.forEach(plazaTile => {
+      const parkPositions = [
+        {x: plazaTile.x - 1, y: plazaTile.y},
+        {x: plazaTile.x + 1, y: plazaTile.y},
+        {x: plazaTile.x, y: plazaTile.y - 1},
+        {x: plazaTile.x, y: plazaTile.y + 1},
+      ];
+      
+      for (const parkPos of parkPositions) {
+        if (parkPos.x >= 0 && parkPos.x < MAP_WIDTH_TILES && 
+            parkPos.y >= 0 && parkPos.y < MAP_HEIGHT_TILES) {
+          const parkCandidate = tiles[parkPos.y][parkPos.x];
+          // Don't overwrite government buildings, plazas, or special districts
+          if ((parkCandidate.biome === BiomeType.DENSE_CITY || 
+               parkCandidate.biome === BiomeType.LOW_DENSITY_CITY ||
+               parkCandidate.biome === BiomeType.HAMLET) && 
+              randomNoise.random() < 0.3) { // 30% chance for parks
+            parkCandidate.biome = BiomeType.PARK;
+            parkCandidate.population = 0;
+            // Keep city name
+            if (cityData) {
+              parkCandidate.cityName = cityData.name;
+              parkCandidate.cityDescription = cityData.description;
+            }
+          }
+        }
+      }
+    });
+  });
+  
   // After placing all urban tiles for the cluster, check if we should place a city center.
   // ONLY place city centers if we have actual defined cities
   if (isMainCluster && activeCities && activeCities.length > 0 && placedUrbanTiles.some(t => t.biome === BiomeType.DENSE_CITY)) {
@@ -458,10 +761,14 @@ export function generateUrbanAreas(tiles: Tile[][], randomNoise: ValueNoise, arc
   
   if (clusterCount > 0) {
     const clusterCenters = selectUrbanClusterCenters(strategicLocations, clusterCount, randomNoise);
+    // Get era from timeSlice
+    const dateInfo = parseDateString(timeSlice || '1650');
+    const era = dateInfo.era as HistoricalEra;
+    
     clusterCenters.forEach((center, index) => {
       // For areas without cities, only generate small hamlets
       const shouldGenerateLarge = hasCities ? generateLargeCity : false;
-      generateUrbanCluster(tiles, center, index, clusterCenters.length, shouldGenerateLarge, randomNoise, economicActivityLevel, activeCities);
+      generateUrbanCluster(tiles, center, index, clusterCenters.length, shouldGenerateLarge, randomNoise, economicActivityLevel, activeCities, era);
     });
     console.log(`Generated ${clusterCenters.length} urban clusters`);
   }

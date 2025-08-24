@@ -30,3 +30,7 @@ export { default as GovernmentDistrictSymbol } from './GovernmentDistrictSymbol'
 export { default as FireflySymbol } from './FireflySymbol';
 export { default as MineralGlintSymbol } from './MineralGlintSymbol';
 export { default as OasisSymbol } from './OasisSymbol';
+export { default as PlazaSymbol } from './PlazaSymbol';
+export { default as ParkSymbol } from './ParkSymbol';
+export { default as HarborDistrictSymbol } from './HarborDistrictSymbol';
+export { default as IndustrialDistrictSymbol } from './IndustrialDistrictSymbol';

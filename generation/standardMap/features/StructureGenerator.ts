@@ -87,7 +87,12 @@ function findPlacementCandidates(
         BiomeType.ACTIVE_LAVA, BiomeType.FRESHWATER_LAKE, BiomeType.ESTUARY,
         // Don't place over existing points of interest
         BiomeType.RUINS, BiomeType.HOLY_SITE, BiomeType.PALACE, BiomeType.CITY_CENTER, BiomeType.MARKETPLACE,
-        BiomeType.DENSE_CITY, BiomeType.LOW_DENSITY_CITY, BiomeType.HAMLET
+        BiomeType.DENSE_CITY, BiomeType.LOW_DENSITY_CITY, BiomeType.HAMLET,
+        BiomeType.ROAD, // Don't place structures on roads
+        BiomeType.PARK, // Parks should remain clear
+        BiomeType.PLAZA, // Plazas are public spaces
+        BiomeType.HARBOR_DISTRICT, // Harbor districts have their own buildings
+        BiomeType.INDUSTRIAL_DISTRICT // Industrial districts have factories
     ]);
 
     for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
@@ -184,6 +189,32 @@ function findPlacementCandidates(
                     }
                     break;
                 case 'factory': // formerly smelter
+                    // Factories can be near cities or industrial areas
+                    let nearIndustrial = false;
+                    let industrialDistance = 999;
+                    for (let dy = -10; dy <= 10; dy++) {
+                        for (let dx = -10; dx <= 10; dx++) {
+                            const nx = x + dx;
+                            const ny = y + dy;
+                            if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
+                                const dist = Math.hypot(dx, dy);
+                                // Look for cities or existing urban areas
+                                if ((tiles[ny][nx].biome === BiomeType.CITY_CENTER || 
+                                     tiles[ny][nx].biome === BiomeType.DENSE_CITY ||
+                                     tiles[ny][nx].biome === BiomeType.LOW_DENSITY_CITY) && 
+                                    dist < industrialDistance) {
+                                    nearIndustrial = true;
+                                    industrialDistance = dist;
+                                }
+                            }
+                        }
+                    }
+                    // Allow factories within 10 tiles of urban areas
+                    if (nearIndustrial && industrialDistance <= 10) {
+                        isValid = true;
+                        score = 15 - industrialDistance; // Prefer closer to urban areas but allow farther
+                    }
+                    break;
                 case 'government_district':
                     // Government buildings must be very close to city centers
                     let isNearCityCenter = false;
@@ -282,6 +313,7 @@ export function generateTerrainStructures(mapData: MapData, noise: ValueNoise, r
             // City maps can have normal structure counts
             maxToPlace = structureType === 'fishing_hut' ? 2 : 
                         structureType === 'government_district' ? 1 : // Only one government building per city
+                        structureType === 'factory' ? 3 : // Allow multiple factories per city
                         1;
         }
         let placedCount = 0;

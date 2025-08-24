@@ -48,15 +48,10 @@ function generateProceduralFarmDetails(
     const gender = noise.random() > 0.5 ? 'Male' as Gender : 'Female' as Gender;
     const farmerName = generateNpcName(gender, culturalZone, undefined, dateInfo.year, noise);
     
-    const farmNameTemplates = [
-        `${farmerName.split(' ')[1]}'s Folly`,
-        `${tile.cropType || 'Stony'} Fields`,
-        `Blackwood Creek Farm`,
-        `Sunny Slope Vineyard`,
-        `Old Man Willow's Copse`,
-        `Green Valley Homestead`
-    ];
-    const farmName = farmNameTemplates[Math.floor(noise.random() * farmNameTemplates.length)];
+    // Use family name consistently - extract surname from farmer name
+    const nameParts = farmerName.split(' ');
+    const familyName = (nameParts[1] || nameParts[0]);
+    const farmName = `${familyName} Family Farm`;
 
     const economicStatusOptions: FarmDetails['economicStatus'][] = ["humble", "prosperous"];
     const economicStatus = economicStatusOptions[Math.floor(noise.random() * economicStatusOptions.length)];

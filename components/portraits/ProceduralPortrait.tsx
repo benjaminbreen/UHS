@@ -140,7 +140,31 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
   const uniqueId = useMemo(() => 'pp-' + seed.toString(36), [seed]);
 
   // ---------- Extracted Character Data ----------
-  const { age = 30, gender, stats, appearance, wealthLevel, era, culturalZone = 'EUROPEAN' } = character;
+  const { age = 30, gender, stats = {}, appearance = {}, wealthLevel, era, culturalZone = 'EUROPEAN' } = character;
+  
+  // Provide defaults for appearance properties
+  const defaultAppearance = {
+    skinColor: '#f4d1ae',
+    hairColor: '#8B4513',
+    eyeColor: '#5D4E37',
+    hairstyle: 'short',
+    build: 'average' as const,
+    facialHair: false,
+    garment: { name: 'simple tunic', material: 'linen' },
+    headgear: { name: 'none', material: 'none' },
+    palette: {
+      primary: '#8B7355',
+      secondary: '#A0826D',
+      accent: '#D2691E'
+    },
+    hairLength: 'medium' as const,
+    faceShape: 'oval' as const,
+    ...appearance
+  };
+  
+  // Use the merged appearance with defaults
+  const appearanceWithDefaults = defaultAppearance;
+  
   const isFemale = gender === 'Female';
   const isWealthy = wealthLevel === 'wealthy' || wealthLevel === 'noble';
   const isNoble = wealthLevel === 'noble';
@@ -199,9 +223,9 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
   };
 
   // ---------- Head Geometry (with bald/short adjustments) ----------
-  const hairLength = appearance.hairLength || 'medium';
+  const hairLength = appearanceWithDefaults.hairLength || 'medium';
   const headDim = useMemo(() => {
-    const faceShape = appearance.faceShape || 'oval';
+    const faceShape = appearanceWithDefaults.faceShape || 'oval';
     let width = isFemale ? 22 : 26;
     let height = isFemale ? 28 : 30;
 
@@ -211,8 +235,8 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     if (stats.strength >= 8) width += isFemale ? 1 : 3;
     else if (stats.strength <= 3) width -= isFemale ? 0 : 2;
 
-    if (appearance.build === 'imposing') width += 2;
-    if (appearance.build === 'slight') width -= 2;
+    if (appearanceWithDefaults.build === 'imposing') width += 2;
+    if (appearanceWithDefaults.build === 'slight') width -= 2;
 
     // More skull height when hair is missing/very short (fixes "no forehead")
     if (hairLength === 'bald') height += 4;
@@ -223,8 +247,8 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
       case 'square': if (!isFemale) width += 1; break;
       case 'long':   width -= 1; height += 3; break;
     }
-    return { width, height, shape: faceShape as NonNullable<typeof appearance.faceShape> };
-  }, [appearance.build, appearance.faceShape, hairLength, isFemale, isOld, isYoung, stats.strength]);
+    return { width, height, shape: faceShape as NonNullable<typeof appearanceWithDefaults.faceShape> };
+  }, [appearanceWithDefaults.build, appearanceWithDefaults.faceShape, hairLength, isFemale, isOld, isYoung, stats.strength]);
 
   const headX = 32 - (headDim.width / 2);
   const headY = 10; // Moved up by 2 pixels to give more room for head shape
@@ -236,7 +260,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
                  (character.diseaseHealth?.currentDiseases && character.diseaseHealth.currentDiseases.length > 0);
   
   // Add greenish/pale tinge when sick
-  let actualSkinTone = appearance.skinColor;
+  let actualSkinTone = appearanceWithDefaults.skinColor;
   if (isSick) {
     // Parse the hex color and add a greenish/grayish tinge
     const r = parseInt(actualSkinTone.slice(1, 3), 16);
@@ -250,7 +274,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
   }
   
   const skinTone = actualSkinTone;
-  const skinToneType = appearance.skinTone || 'medium';
+  const skinToneType = appearanceWithDefaults.skinTone || 'medium';
   const skinTemperature = getColorTemperature(skinTone);
 
   const skinShadow = createComplementaryShadow(skinTone);
@@ -261,7 +285,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
   const skinSubsurface = createSubsurfaceScattering(skinTone);
   const outlineColor = createShadow(skinTone, 0.45);
 
-  const baseHair = hasGrayHair ? 'rgb(192,192,192)' : appearance.hairColor;
+  const baseHair = hasGrayHair ? 'rgb(192,192,192)' : appearanceWithDefaults.hairColor;
   const hairShadow = createComplementaryShadow(baseHair, 0.6);
   const hairDeepShadow = createComplementaryShadow(baseHair, 0.4);
   const hairHighlight = createHighlight(baseHair, 1.5);
@@ -372,14 +396,14 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
 
   // ---------- Lip Color ----------
   const lipColor = useMemo(() => {
-    if (appearance.lipColor) return appearance.lipColor;
-    const baseLipColors: Record<NonNullable<typeof appearance.skinTone>, string> = {
+    if (appearanceWithDefaults.lipColor) return appearanceWithDefaults.lipColor;
+    const baseLipColors: Record<NonNullable<typeof appearanceWithDefaults.skinTone>, string> = {
       very_pale: '#E8B4B8', pale: '#E0A5A8', fair: '#D89598', light: '#CE8588',
       medium: '#C47578', olive: '#BA6568', tan: '#B05558', dark: '#A64548', very_dark: '#9C3538'
     };
     const base = baseLipColors[skinToneType] || '#C47578';
     return isFemale && isWealthy ? createHighlight(base, 1.2) : base;
-  }, [appearance.lipColor, isFemale, isWealthy, skinToneType]);
+  }, [appearanceWithDefaults.lipColor, isFemale, isWealthy, skinToneType]);
 
   // ---------- Body Dimensions (Enhanced for build types) ----------
   const bodyDim = useMemo(() => {
@@ -405,7 +429,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     }
 
     // More comprehensive build modifications
-    switch (appearance.build) {
+    switch (appearanceWithDefaults.build) {
       case 'athletic': 
         shoulderMod *= 1.1;
         waistMod *= 0.95;
@@ -442,9 +466,9 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     }
     
     // Use actual height from appearance if available
-    if (appearance.height) {
+    if (appearanceWithDefaults.height) {
       const avgHeight = isFemale ? 165 : 175;
-      heightMod *= (appearance.height / avgHeight);
+      heightMod *= (appearanceWithDefaults.height / avgHeight);
     }
 
     if (isFemale) {
@@ -470,7 +494,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
         legLength: Math.floor(14 * heightMod)
       };
     }
-  }, [appearance.build, appearance.height, isFemale, isOld, isYoung, stats.strength]);
+  }, [appearanceWithDefaults.build, appearanceWithDefaults.height, isFemale, isOld, isYoung, stats.strength]);
 
   // ---------- Background (unique IDs) ----------
   const bgGradientId = `bgGradient-${uniqueId}`;
@@ -512,8 +536,8 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
   // ----- HEAD -----
   const renderHead = useMemo(() => {
     const elements: JSX.Element[] = [];
-    const faceShape = appearance.faceShape || 'oval';
-    const jawline = appearance.jawline || 'soft';
+    const faceShape = appearanceWithDefaults.faceShape || 'oval';
+    const jawline = appearanceWithDefaults.jawline || 'soft';
 
     for (let y = 0; y < headDim.height; y++) {
       const relativeY = y / headDim.height;
@@ -597,7 +621,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
           if (x < 3 || x > rowWidth - 4) faceColor = skinSubsurface;
         }
 
-        const cheekbones = appearance.cheekbones || 'average';
+        const cheekbones = appearanceWithDefaults.cheekbones || 'average';
         if (cheekbones !== 'low' && relativeY > 0.4 && relativeY < 0.65) {
           const cheekboneIntensity = cheekbones === 'high' ? 0.12 : 0.08;
           if (Math.abs(xRatio - 0.22) < cheekboneIntensity || Math.abs(xRatio - 0.78) < cheekboneIntensity) {
@@ -609,7 +633,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
             faceColor = createHighlight(faceColor, 1.12); // nose bridge
         }
 
-        const skinTexture = appearance.skinTexture || 'smooth';
+        const skinTexture = appearanceWithDefaults.skinTexture || 'smooth';
         if (skinTexture === 'freckled' && rand(x * 100 + y * 1000) > 0.92) {
           faceColor = createShadow(faceColor, 0.85);
         } else if (skinTexture === 'weathered' && rand(x * 50 + y * 500) > 0.88) {
@@ -630,12 +654,12 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
       // NOTE: removed the solid under-chin strip that was bisecting necks.
     }
     return <g key="head">{elements}</g>;
-  }, [appearance.cheekbones, appearance.faceShape, appearance.jawline, hairLength, headDim.height, headDim.width, headX, headY, hasAgeSpots, hasWrinkles, outlineColor, skinBrightHighlight, skinDeepShadow, skinHighlight, skinMidtone, skinShadow, skinSubsurface, skinTone]);
+  }, [appearanceWithDefaults.cheekbones, appearanceWithDefaults.faceShape, appearanceWithDefaults.jawline, hairLength, headDim.height, headDim.width, headX, headY, hasAgeSpots, hasWrinkles, outlineColor, skinBrightHighlight, skinDeepShadow, skinHighlight, skinMidtone, skinShadow, skinSubsurface, skinTone]);
 
   // ----- HAIR (with hairline for short hair so it doesn't look like a hat) -----
   const renderHair = useMemo(() => {
     const elements: JSX.Element[] = [];
-    const hairTexture = appearance.hairTexture || 'straight';
+    const hairTexture = appearanceWithDefaults.hairTexture || 'straight';
     const hairLen = hairLength;
     if (hairLen === 'bald') return <g key="hair" />;
 
@@ -739,15 +763,15 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     }
 
     return <g key="hair">{elements}</g>;
-  }, [appearance.hairTexture, baseHair, hairBrightHighlight, hairDeepShadow, hairHighlight, hairShadow, headDim.width, headX, headY, hairLength, isOld, isYoung]);
+  }, [appearanceWithDefaults.hairTexture, baseHair, hairBrightHighlight, hairDeepShadow, hairHighlight, hairShadow, headDim.width, headX, headY, hairLength, isOld, isYoung]);
 
   // ----- EYES (animate) -----
   const renderEyes = () => {
     const elements: JSX.Element[] = [];
-    const eyeShape = appearance.eyeShape || 'almond';
-    const eyebrowShape = appearance.eyebrowShape || 'arched';
-    const eyebrowThickness = appearance.eyebrowThickness || 'medium';
-    const eyelashes = appearance.eyelashes || 'medium';
+    const eyeShape = appearanceWithDefaults.eyeShape || 'almond';
+    const eyebrowShape = appearanceWithDefaults.eyebrowShape || 'arched';
+    const eyebrowThickness = appearanceWithDefaults.eyebrowThickness || 'medium';
+    const eyelashes = appearanceWithDefaults.eyelashes || 'medium';
 
     // Lower eyes a bit on bald/very_short to create more forehead
     const eyeRatioBase = hairLength === 'bald' ? 0.42 : hairLength === 'very_short' ? 0.4 : hairLength === 'short' ? 0.36 : 0.35;
@@ -772,6 +796,10 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
       <rect key="socket-r" x={rightEyeX - 3} y={eyeY - 2} width="7" height="1" fill={createComplementaryShadow(skinTone, socketDepth)} className="pixel" />
     );
     
+    // Define eye dimensions first
+    let eyeWidth = 4;
+    let eyeHeight = 2;
+    
     // Add dark bags under eyes when fatigued
     if (isFatigued) {
       elements.push(
@@ -781,9 +809,6 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
         <rect key="bag-r2" x={rightEyeX - 1} y={eyeY + eyeHeight + 2} width="4" height="1" fill={createShadow(skinTone, 0.85)} className="pixel" />
       );
     }
-
-    let eyeWidth = 4;
-    let eyeHeight = 2;
     
     // Make eyes wider for surprise expression
     if (temporaryExpression === 'surprise') {
@@ -820,8 +845,8 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
 
     const irisY = eyeShape === 'round' ? eyeY + 0.5 : eyeY;
     elements.push(
-      <rect key="iris-l" x={leftEyeX + irisOffset} y={irisY} width={irisSize} height={eyeHeight} fill={appearance.eyeColor} className="pixel" />,
-      <rect key="iris-r" x={rightEyeX + irisOffset} y={irisY} width={irisSize} height={eyeHeight} fill={appearance.eyeColor} className="pixel" />
+      <rect key="iris-l" x={leftEyeX + irisOffset} y={irisY} width={irisSize} height={eyeHeight} fill={appearanceWithDefaults.eyeColor} className="pixel" />,
+      <rect key="iris-r" x={rightEyeX + irisOffset} y={irisY} width={irisSize} height={eyeHeight} fill={appearanceWithDefaults.eyeColor} className="pixel" />
     );
 
     const pupilSize = microExpression === 0 ? 1 : 1.5;
@@ -946,7 +971,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     const long = rL < zoneBias.longProb ? 1 : 0;
 
     // baseline from declared noseShape
-    const declared = appearance.noseShape || 'straight';
+    const declared = appearanceWithDefaults.noseShape || 'straight';
     // Map to width/length multipliers
     let widthMul = 1, lengthMul = 1, bump = 0, tipUp = 0;
     switch (declared) {
@@ -1017,12 +1042,12 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     );
 
     return <g key="nose">{elements}</g>;
-  }, [appearance.noseShape, culturalZone, hairLength, headDim.height, headDim.width, headX, headY, isFemale, isOld, skinBrightHighlight, skinDeepShadow, skinHighlight, skinMidtone, skinShadow, skinTone]);
+  }, [appearanceWithDefaults.noseShape, culturalZone, hairLength, headDim.height, headDim.width, headX, headY, isFemale, isOld, skinBrightHighlight, skinDeepShadow, skinHighlight, skinMidtone, skinShadow, skinTone]);
 
   // ----- MOUTH -----
   const renderMouth = useMemo(() => {
     const elements: JSX.Element[] = [];
-    const lipShape = appearance.lipShape || 'medium';
+    const lipShape = appearanceWithDefaults.lipShape || 'medium';
     const mouthX = headX + Math.floor(headDim.width / 2) - 2;
     const mouthY = headY + Math.floor(headDim.height * 0.72);
     
@@ -1152,14 +1177,14 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     }
     elements.push(<rect key="philtrum" x={mouthX + Math.floor(mouthWidth / 2)} y={mouthY - 2} width="1" height="2" fill={skinShadow} className="pixel" />);
     return <g key="mouth">{elements}</g>;
-  }, [appearance.lipShape, headDim.height, headDim.width, headX, headY, lipColor, skinShadow, skinTone, expressionType]);
+  }, [appearanceWithDefaults.lipShape, headDim.height, headDim.width, headX, headY, lipColor, skinShadow, skinTone, expressionType]);
 
   // ----- FACIAL HAIR (clean silhouettes, density falloff near edges) -----
   const renderFacialHair = useMemo(() => {
-    if (!appearance.facialHair || isFemale) return <g key="facial-hair" />;
+    if (!appearanceWithDefaults.facialHair || isFemale) return <g key="facial-hair" />;
     const elements: JSX.Element[] = [];
-    const style = appearance.facialHairStyle || 'full_beard';
-    const thickness = appearance.facialHairThickness || 'medium';
+    const style = appearanceWithDefaults.facialHairStyle || 'full_beard';
+    const thickness = appearanceWithDefaults.facialHairThickness || 'medium';
     const beardColor = hasGrayHair ? 'rgb(192,192,192)' : baseHair;
     const beardShadow = createShadow(beardColor, 0.7);
     const beardDeepShadow = createShadow(beardColor, 0.5);
@@ -1186,9 +1211,12 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
         }
       }
       
-      // Main beard body - solid coverage
+      // Main beard body - with mouth opening
       for (let y = -2; y < 16; y++) {
         const rowY = baseY + y;
+        
+        // Skip the mouth area (y = 0 to 2) in the center
+        const isNearMouth = y >= 0 && y <= 2;
         
         // Shape the beard width
         let rowWidth;
@@ -1203,8 +1231,15 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
         const startX = headX + Math.floor((headDim.width - rowWidth) / 2);
 
         for (let x = 0; x < rowWidth; x++) {
-          // Always draw for solid appearance
           const xRatio = x / rowWidth;
+          
+          // Create opening for mouth in the center
+          if (isNearMouth) {
+            const centerDist = Math.abs(xRatio - 0.5);
+            // Skip pixels in the mouth area (center 30% of width)
+            if (centerDist < 0.15) continue;
+          }
+          
           let col = beardColor;
           // Create depth with consistent shading
           if (xRatio < 0.15 || xRatio > 0.85) col = beardDeepShadow;
@@ -1326,7 +1361,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     }
 
     return <g key="facial-hair">{elements}</g>;
-  }, [appearance.facialHair, appearance.facialHairStyle, appearance.facialHairThickness, baseHair, hasGrayHair, headDim.height, headDim.width, headX, headY, isFemale]);
+  }, [appearanceWithDefaults.facialHair, appearanceWithDefaults.facialHairStyle, appearanceWithDefaults.facialHairThickness, baseHair, hasGrayHair, headDim.height, headDim.width, headX, headY, isFemale]);
 
   // ----- BODY / CLOTHING -----
   const renderBody = useMemo(() => {
@@ -1356,13 +1391,15 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
       }
     }
 
-    // Debug logging
+    // Debug logging - commented out for production
+    /*
     console.log('[Portrait] Garment Debug:', {
       useEquippedItems,
       hasEquippedItems: !!character.equippedItems,
       equippedTorso: character.equippedItems?.torso,
-      appearanceGarment: appearance.garment,
+      appearanceGarment: appearanceWithDefaults.garment,
     });
+    */
     
     // If we should use equipped items and equippedItems exists, use that (even if slot is empty)
     // Only fall back to appearance if equippedItems doesn't exist at all
@@ -1372,16 +1409,16 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
       garment = character.equippedItems.torso;
     } else {
       // Fall back to appearance only if equippedItems doesn't exist
-      garment = appearance.garment;
+      garment = appearanceWithDefaults.garment;
     }
     
     // If no garment equipped, show bare torso (skip clothing rendering)
     const isNaked = !garment;
-    const clothingColor = appearance.palette.primary;
+    const clothingColor = appearanceWithDefaults.palette.primary;
     const clothingShadow = createShadow(clothingColor, 0.7);
     const clothingDeepShadow = createShadow(clothingColor, 0.5);
     const clothingHighlight = createHighlight(clothingColor, 1.2);
-    const accentColor = appearance.palette.accent;
+    const accentColor = appearanceWithDefaults.palette.accent;
 
     const material = (garment?.material || '').toLowerCase();
     const hasSheen = ['silk', 'satin', 'velvet'].includes(material);
@@ -1435,7 +1472,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
 
           if (isWealthy) {
             if ((x + y) % 12 === 0) col = accentColor;
-            else if ((x - y) % 10 === 0) col = appearance.palette.secondary;
+            else if ((x - y) % 10 === 0) col = appearanceWithDefaults.palette.secondary;
             if (isNoble && y > 10 && y < 20 && Math.abs(x - torsoWidth / 2) < 5 && ((x + y) % 4 === 0)) col = '#FFD700';
           }
 
@@ -1464,7 +1501,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
       if (y < 3) {
         const collarWidth = Math.floor(torsoWidth * 0.6);
         const collarX = 32 - (collarWidth / 2);
-        const name = garment.name.toLowerCase();
+        const name = garment?.name?.toLowerCase() || '';
         if (name.includes('robe') || name.includes('dress')) {
           for (let cx = 0; cx < collarWidth; cx++) {
             const vDepth = Math.abs(cx - collarWidth / 2) < y * 2;
@@ -1473,7 +1510,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
         } else if (isWealthy) {
           for (let cx = 0; cx < collarWidth; cx++) {
             elements.push(
-              <rect key={`collar-${y}-${cx}`} x={collarX + cx} y={bodyStartY + y} width="1" height="1" fill={y === 0 ? accentColor : appearance.palette.secondary} className="pixel" />
+              <rect key={`collar-${y}-${cx}`} x={collarX + cx} y={bodyStartY + y} width="1" height="1" fill={y === 0 ? accentColor : appearanceWithDefaults.palette.secondary} className="pixel" />
             );
           }
         }
@@ -1483,18 +1520,20 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     // IMPORTANT: removed the harsh single-pixel "ambient occlusion" stripe that bisected the neck.
 
     return <g key="body">{elements}</g>;
-  }, [appearance.garment, appearance.palette.accent, appearance.palette.primary, appearance.palette.secondary, bodyDim, culturalZone, headDim.height, headDim.width, headX, headY, isNoble, isWealthy, skinShadow, skinTone, stats.strength, character.equippedItems, useEquippedItems]);
+  }, [appearanceWithDefaults.garment, appearanceWithDefaults.palette.accent, appearanceWithDefaults.palette.primary, appearanceWithDefaults.palette.secondary, bodyDim, culturalZone, headDim.height, headDim.width, headX, headY, isNoble, isWealthy, skinShadow, skinTone, stats?.strength, character.equippedItems, useEquippedItems]);
 
   // ----- HEADGEAR (from your original, unchanged except for scoping) -----
   const renderHeadgear = useMemo(() => {
-    // Debug logging
+    // Debug logging - commented out for production
+    /*
     console.log('[Portrait] Headgear Debug:', {
       useEquippedItems,
       hasEquippedItems: !!character.equippedItems,
       equippedHead: character.equippedItems?.head,
-      appearanceHeadgear: appearance.headgear,
+      appearanceHeadgear: appearanceWithDefaults.headgear,
       characterKeys: Object.keys(character),
     });
+    */
     
     // If we should use equipped items and equippedItems exists, use that (even if slot is empty)
     // Only fall back to appearance if equippedItems doesn't exist at all
@@ -1504,7 +1543,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
       headgear = character.equippedItems.head;
     } else {
       // Fall back to appearance only if equippedItems doesn't exist
-      headgear = appearance.headgear;
+      headgear = appearanceWithDefaults.headgear;
     }
     
     if (!headgear || headgear.name === 'None') return <g key="headgear" />;
@@ -1513,11 +1552,11 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     const material = (headgear.material || '').toLowerCase();
     const name = headgear.name.toLowerCase();
     
-    // Debug logging
-    console.log(`[Portrait] Rendering headgear: "${name}" (material: ${material}), from equipped: ${useEquippedItems && character.equippedItems?.head ? 'YES' : 'NO'}`)
+    // Debug logging - commented out for production
+    // console.log(`[Portrait] Rendering headgear: "${name}" (material: ${material}), from equipped: ${useEquippedItems && character.equippedItems?.head ? 'YES' : 'NO'}`)
 
     // Parse color from name first, fall back to material colors
-    let headgearColor = appearance.palette.secondary;
+    let headgearColor = appearanceWithDefaults.palette.secondary;
     
     // Check for color descriptors in the name - PRIORITIZE name colors over material
     const colorMap: Record<string, string> = {
@@ -1587,7 +1626,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
       if (material.includes('leather')) headgearColor = '#8B4513';
       else if (material.includes('metal')) headgearColor = '#C0C0C0';
       else if (material.includes('gold')) headgearColor = '#FFD700';
-      else if (material.includes('silk')) headgearColor = appearance.palette.accent;
+      else if (material.includes('silk')) headgearColor = appearanceWithDefaults.palette.accent;
       else if (material.includes('straw')) headgearColor = '#F4E68C';
       else if (material.includes('felt')) headgearColor = '#708090';
       else if (material.includes('velvet')) headgearColor = '#4B0082';
@@ -1781,7 +1820,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
           }
           if (isWealthy) {
             for (let x = headX + 2; x < headX + headDim.width - 2; x++) {
-              elements.push(<rect key={`tophat-band-${x}`} x={x} y={headY - 5} width="1" height="1" fill={appearance.palette.accent} className="pixel" />);
+              elements.push(<rect key={`tophat-band-${x}`} x={x} y={headY - 5} width="1" height="1" fill={appearanceWithDefaults.palette.accent} className="pixel" />);
             }
           }
           break;
@@ -2048,14 +2087,14 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     }
 
     return <g key="headgear">{elements}</g>;
-  }, [appearance.headgear, isNoble, isWealthy, headDim.width, headX, headY, appearance.palette, character.equippedItems, useEquippedItems]);
+  }, [appearanceWithDefaults.headgear, isNoble, isWealthy, headDim.width, headX, headY, appearanceWithDefaults.palette, character.equippedItems, useEquippedItems]);
 
   // ----- JEWELRY -----
   const renderJewelry = useMemo(() => {
-    if (!appearance.jewelry || appearance.jewelry.length === 0) return <g key="jewelry" />;
+    if (!appearanceWithDefaults.jewelry || appearanceWithDefaults.jewelry.length === 0) return <g key="jewelry" />;
     const elements: JSX.Element[] = [];
 
-    appearance.jewelry.forEach((piece, index) => {
+    appearanceWithDefaults.jewelry.forEach((piece, index) => {
       const material = piece.material;
       const style = piece.style;
 
@@ -2167,14 +2206,14 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     });
 
     return <g key="jewelry">{elements}</g>;
-  }, [appearance.jewelry, headDim.height, headDim.width, headX, headY, isWealthy]);
+  }, [appearanceWithDefaults.jewelry, headDim.height, headDim.width, headX, headY, isWealthy]);
 
   // ----- MARKINGS -----
   const renderMarkings = useMemo(() => {
-    if (!appearance.markings || appearance.markings.length === 0) return <g key="markings" />;
+    if (!appearanceWithDefaults.markings || appearanceWithDefaults.markings.length === 0) return <g key="markings" />;
     const elements: JSX.Element[] = [];
 
-    appearance.markings.forEach((marking, index) => {
+    appearanceWithDefaults.markings.forEach((marking, index) => {
       const markingColor = marking.color;
       switch (marking.type) {
         case 'scar': {
@@ -2239,7 +2278,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     });
 
     return <g key="markings">{elements}</g>;
-  }, [appearance.markings, culturalZone, headDim.height, headDim.width, headX, headY, skinTone, skinHighlight]);
+  }, [appearanceWithDefaults.markings, culturalZone, headDim.height, headDim.width, headX, headY, skinTone, skinHighlight]);
 
   // ========================= SVG =========================
   return (

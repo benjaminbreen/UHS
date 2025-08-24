@@ -441,3 +441,275 @@ Create an immersive historical life simulation where players:
 5. Create unique emergent narratives
 
 The system should feel deep but not overwhelming, educational but not preachy, challenging but not frustrating. Every feature should enhance the core loop of exploration, interaction, and growth.
+
+---
+
+## 🚜 Enhanced Farm System & Livelihood Mode
+
+### 1. NPCToast Component System
+
+#### 1.1 Head Farmer Toast
+**Location**: Bottom of Overview tab in FarmPanel
+**Behavior**: Slides up with contextual messages
+**Triggers**:
+- Warnings about weather/seasons
+- Admonitions for neglecting crops
+- Advice on farming techniques
+- Quest assignments
+- Family news and updates
+
+**Implementation**:
+```typescript
+interface NPCToastProps {
+  character: NPC | FarmFamilyMember;
+  message: string;
+  type: 'advice' | 'warning' | 'quest' | 'news';
+  persistent?: boolean;
+  position: 'bottom' | 'top' | 'side';
+  onAction?: () => void;
+}
+
+// Reusable across farm, urban, and other contexts
+const NPCToast: React.FC<NPCToastProps> = ({ character, message, type }) => {
+  // Slides up with portrait, name, and message
+  // Different styling based on type
+  // Can trigger actions or quests
+}
+```
+
+#### 1.2 Farm Integration Features
+- **Jobs Board Tab**: Replaces Market/Commerce tab
+  - Integrated with quest system
+  - Generates actual trackable quests
+  - Four quest categories:
+    1. **Field Work**: Water crops, plant seeds, weed, harvest (unlocks Field tab)
+    2. **Marketplace Trade**: Buy seeds, sell crops at nearest marketplace
+    3. **Religious Duty**: Bring food offerings to nearest holy site
+    4. **Feudal Obligations**: Deliver tribute/rent to nearest palace
+  
+- **Field Tab Access**: Locked until farmer assigns field work quest
+- **Adoption Mechanic**: Stay >1 year → farmer adopts you → appear on Family tab
+- **Succession Quest**: When head farmer dies → special quest to inherit farm → change profession to FARMER
+
+### 2. Dynamic Urban Tile System
+
+#### 2.1 Context-Dependent Public Buildings
+**Structure**: Each urban tile can have 0-3 public building tabs
+**Examples by Era/Culture**:
+- **1940s Washington State**: Diner (low density), Department Store (high density)
+- **Ancient Rome**: Bakery, Bath House, Taberna
+- **Medieval Cairo**: Souk, Madrasa, Hammam
+- **Victorian London**: Pub, Music Hall, Factory
+- **Edo Japan**: Tea House, Public Bath, Theater
+
+**Data Structure**:
+```typescript
+// constants/urbanBuildings.ts
+interface UrbanBuilding {
+  id: string;
+  name: string;
+  description: string;
+  culturalZone: CulturalZone;
+  eraRange: [number, number];
+  density: 'low' | 'medium' | 'high';
+  npcRole: string; // For LLM persona
+  activities: BuildingActivity[];
+}
+
+const URBAN_BUILDINGS: UrbanBuilding[] = [
+  {
+    id: 'roman-bath',
+    name: 'Thermae',
+    description: 'Public bath house with hot and cold pools',
+    culturalZone: 'EUROPEAN',
+    eraRange: [-100, 400],
+    density: 'high',
+    npcRole: 'bath house attendant in ancient Rome',
+    activities: ['bathe', 'socialize', 'exercise', 'get_massage']
+  },
+  {
+    id: 'american-diner',
+    name: "Joe's Diner",
+    description: 'Chrome and vinyl booth diner',
+    culturalZone: 'NORTH_AMERICAN_COLONIAL',
+    eraRange: [1920, 1960],
+    density: 'low',
+    npcRole: 'waitress at a 1940s American diner',
+    activities: ['eat', 'coffee', 'gossip', 'job_board']
+  }
+  // ... many more
+];
+```
+
+#### 2.2 LLM-Powered Building NPCs
+**System**:
+1. Flash Gemini 2.5 Lite generates custom descriptions
+2. Setting-specific NPCToast with contextual persona
+3. Dynamic quest generation with JSON format
+4. Simple win/lose conditions integrated with game
+
+**Quest Generation Format**:
+```typescript
+interface LLMGeneratedQuest {
+  title: string;
+  description: string;
+  objectives: {
+    type: 'deliver' | 'find' | 'talk' | 'wait' | 'pay';
+    target: string;
+    location?: string;
+    amount?: number;
+  }[];
+  rewards: {
+    currency?: number;
+    items?: string[];
+    reputation?: number;
+  };
+  timeLimit?: number; // in game hours
+  failureConsequence?: string;
+}
+```
+
+#### 2.3 Visual Enhancement
+- **Banner Images**: Potential AI-generated images for each building type
+- **Atmospheric Descriptions**: LLM provides period-appropriate ambiance
+- **Interactive Elements**: NPCToast guides player through building activities
+
+### 3. Three Pillars of Livelihood Mode
+
+#### 3.1 Hunter/Forager System (Existing)
+- Current combat and hunting mechanics
+- Wilderness survival
+- Resource gathering
+
+#### 3.2 Agricultural System (Farm Panel)
+- Crop cultivation with seasonal cycles
+- Animal husbandry
+- Market economics
+- Family management and succession
+
+#### 3.3 Urban Profession System (New)
+- **Service Workers**: Waitress, bathhouse attendant, clerk
+- **Craftspeople**: Blacksmith, potter, weaver
+- **Merchants**: Shopkeeper, trader, money changer
+- **Entertainers**: Musician, actor, storyteller
+- **Professionals**: Scribe, teacher, physician
+
+Each profession accessed through appropriate urban building tabs with:
+- Custom NPCToast guidance
+- Profession-specific quests
+- Skill progression
+- Economic simulation
+- Social reputation
+
+### 4. Implementation Priority
+
+#### Phase 1: NPCToast Foundation (Week 1)
+1. Create reusable NPCToast component
+2. Integrate with FarmPanel Overview tab
+3. Add head farmer personality and dialogue
+4. Connect to quest trigger system
+
+#### Phase 2: Jobs Board Integration (Week 1-2)
+1. Replace Market/Commerce tab with Jobs Board
+2. Create four farm quest templates
+3. Link quests to actual map locations
+4. Implement Field tab unlock mechanism
+
+#### Phase 3: Farm Lifecycle (Week 2)
+1. Add adoption timer (1 year residence)
+2. Implement family member mortality
+3. Create succession quest system
+4. Add profession change to FARMER
+
+#### Phase 4: Urban Building Data (Week 3)
+1. Create comprehensive building database
+2. Map buildings to cultural zones and eras
+3. Design tab UI for urban panel
+4. Define NPC roles and activities
+
+#### Phase 5: LLM Integration (Week 3-4)
+1. Connect Flash Gemini 2.5 Lite for descriptions
+2. Implement quest generation protocol
+3. Create urban NPCToast variants
+4. Test quest completion tracking
+
+#### Phase 6: Visual Polish (Week 4)
+1. Design building-specific UI themes
+2. Add transition animations
+3. Implement AI image generation (optional)
+4. Create atmospheric sound descriptions
+
+### 5. Technical Architecture
+
+#### 5.1 Service Layer
+```typescript
+// services/urbanBuildingService.ts
+class UrbanBuildingService {
+  getBuildingsForTile(tile: Tile, year: number): UrbanBuilding[];
+  generateNPCDialogue(building: UrbanBuilding, context: GameContext): Promise<string>;
+  createBuildingQuest(building: UrbanBuilding, player: PlayerCharacter): Promise<Quest>;
+}
+
+// services/farmQuestService.ts
+class FarmQuestService {
+  generateJobsBoardQuests(farm: Farm, nearbyLocations: MapLocation[]): Quest[];
+  checkAdoptionEligibility(player: PlayerCharacter, farm: Farm): boolean;
+  triggerSuccessionQuest(farm: Farm, deceasedFarmer: FamilyMember): Quest;
+}
+```
+
+#### 5.2 State Management
+```typescript
+interface ExtendedPlayerState {
+  currentBuilding?: UrbanBuilding;
+  farmMembership?: {
+    farmId: string;
+    joinDate: number;
+    role: 'laborer' | 'adopted' | 'owner';
+  };
+  urbanReputation: Record<string, number>; // Building-specific reputation
+  professionProgress: Record<string, number>; // Skill levels by profession
+}
+```
+
+### 6. Educational Value
+
+#### 6.1 Historical Accuracy
+- Authentic building types per era
+- Period-appropriate professions
+- Realistic economic systems
+- Cultural variations in same time period
+
+#### 6.2 Learning Objectives
+- **Economic History**: Understanding pre-industrial economies
+- **Social History**: Daily life in different periods
+- **Labor History**: Evolution of work and professions
+- **Urban History**: Development of public spaces
+
+#### 6.3 Primary Source Integration
+- Building descriptions from historical texts
+- Authentic profession terminology
+- Period recipes and techniques
+- Contemporary accounts of daily life
+
+### 7. Performance Optimization
+
+#### 7.1 Caching Strategy
+- Cache building data per tile for session
+- Store NPC dialogue for 5 minutes
+- Pre-generate quests during idle time
+- Reuse NPCToast component instances
+
+#### 7.2 LLM Optimization
+- Use Flash Gemini 2.5 Lite for speed
+- Batch requests when possible
+- Fallback to template responses
+- Cache personality contexts
+
+### 8. Success Metrics
+
+1. **Engagement**: Players spend 40% of time in livelihood activities
+2. **Variety**: Average player tries 3+ different professions
+3. **Quest Completion**: 70% of assigned quests completed
+4. **Narrative Generation**: 90% positive feedback on LLM content
+5. **Performance**: All interactions respond in <1 second

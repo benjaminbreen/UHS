@@ -41,15 +41,26 @@ export const MINE_MATERIALS: MineMaterial[] = [
   { id: 'zinc', name: 'Zinc', era: [HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA], rarity: 0.6 },
   { id: 'nickel', name: 'Nickel', era: [HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA], rarity: 0.5 },
   
-  // Modern
-  { id: 'uranium', name: 'Uranium', era: [HistoricalEra.MODERN_ERA, HistoricalEra.FUTURE_ERA], rarity: 0.1 },
-  { id: 'bauxite', name: 'Bauxite (Aluminum)', era: [HistoricalEra.MODERN_ERA, HistoricalEra.FUTURE_ERA], rarity: 0.7 },
-  { id: 'lithium', name: 'Lithium', era: [HistoricalEra.MODERN_ERA, HistoricalEra.FUTURE_ERA], rarity: 0.3 },
-  { id: 'rare_earth', name: 'Rare Earth Elements', era: [HistoricalEra.MODERN_ERA, HistoricalEra.FUTURE_ERA], rarity: 0.2 },
+  // Modern (1900-2000) - Coal still dominates, plus copper for electricity
+  { id: 'coal_modern', name: 'Coal', era: [HistoricalEra.MODERN_ERA], rarity: 0.8 }, // Still most common
+  { id: 'copper_modern', name: 'Copper', era: [HistoricalEra.MODERN_ERA], rarity: 0.7 }, // For electrical wiring
+  { id: 'bauxite', name: 'Bauxite (Aluminum)', era: [HistoricalEra.MODERN_ERA, HistoricalEra.FUTURE_ERA], rarity: 0.5 },
+  { id: 'uranium', name: 'Uranium', era: [HistoricalEra.MODERN_ERA, HistoricalEra.FUTURE_ERA], rarity: 0.05 }, // Very rare, post-1945
+  { id: 'lithium', name: 'Lithium', era: [HistoricalEra.MODERN_ERA, HistoricalEra.FUTURE_ERA], rarity: 0.1 }, // Late 20th century
+  { id: 'rare_earth', name: 'Rare Earth Elements', era: [HistoricalEra.MODERN_ERA, HistoricalEra.FUTURE_ERA], rarity: 0.1 },
   
   // Future
   { id: 'helium3', name: 'Helium-3', era: [HistoricalEra.FUTURE_ERA], rarity: 0.05 },
   { id: 'graphene', name: 'Graphene Deposits', era: [HistoricalEra.FUTURE_ERA], rarity: 0.15 },
+  
+  // Regional/Special materials (available across multiple eras)
+  { id: 'salt', name: 'Salt', era: [HistoricalEra.PREHISTORIC, HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA], rarity: 0.6 },
+  { id: 'jade', name: 'Jade', era: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN], rarity: 0.15 }, // Primarily Asia
+  { id: 'diamonds', name: 'Diamonds', era: [HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA], rarity: 0.03 }, // Very rare
+  { id: 'opals', name: 'Opals', era: [HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA], rarity: 0.08 }, // Primarily Australia
+  { id: 'emeralds', name: 'Emeralds', era: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA], rarity: 0.05 }, // South America
+  { id: 'rubies', name: 'Rubies', era: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA], rarity: 0.05 }, // Asia
+  { id: 'sapphires', name: 'Sapphires', era: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA], rarity: 0.05 }, // Asia/Africa
 ];
 
 export const QUARRY_MATERIALS: QuarryMaterial[] = [

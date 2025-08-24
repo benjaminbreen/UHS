@@ -32,6 +32,7 @@ export interface TerrainStructure {
   allegianceGroup?: Allegiance;
   state: StructureState;
   cropType?: string; // For Farm structures
+  fortressType?: string; // For Fortress structures - specific variant type
 
   // --- Linked Data ---
   // For Mining Colonies

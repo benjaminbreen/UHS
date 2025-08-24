@@ -18,7 +18,7 @@ import CombatModal from './CombatModal';
 import VictoryModal from './VictoryModal';
 import CharacterProfileModal from './CharacterProfileModal';
 import AnimalInfoModal from './AnimalInfoModal';
-import TerrainStructureModal from './TerrainStructureModal';
+
 import SettlementInfoModal from './SettlementInfoModal';
 import MiningModal from './MiningModal';
 import PointOfInterestModal from './PointOfInterestModal';
@@ -30,6 +30,8 @@ import PortraitModal from './portraits/PortraitModal';
 import CraftingModal from './CraftingModal';
 import AboutModal from './AboutModal';
 import DevBuildingModeModal from './DevBuildingModeModal';
+import TerrainStructureModal from './TerrainStructureModal';
+
 
 const ModalHub: React.FC = () => {
     const {
@@ -135,8 +137,8 @@ const ModalHub: React.FC = () => {
             )}
             {victoryDetails && <VictoryModal {...victoryDetails} onClose={handleVictoryClose} />}
             {lootModalData && <LootModal opponent={lootModalData.opponent} onTakeItem={handleLooting} onClose={handleCloseLootModal} onTakeCoins={onTakeCoins} />}
-            {structureModalTarget && mapData && <TerrainStructureModal structure={structureModalTarget} mapData={mapData} npcs={npcs} onClose={() => setStructureModalTarget(null)} gameTimeHours={gameTimeHours} season={season} playerCharacter={playerCharacter} currentLocation={currentRegion} formattedDate={gameDate} />}
-            {activeSettlementInfo && mapData && <SettlementInfoModal tile={activeSettlementInfo.tile} mapData={mapData} onClose={() => setActiveSettlementInfo(null)} gameTimeHours={gameTimeHours} season={season} />}
+             {structureModalTarget && mapData && <TerrainStructureModal structure={structureModalTarget} mapData={mapData} npcs={npcs} onClose={() => setStructureModalTarget(null)} gameTimeHours={gameTimeHours} season={season} playerCharacter={playerCharacter} currentLocation={currentRegion} formattedDate={gameDate} />}
+            {activeSettlementInfo && mapData && <SettlementInfoModal tile={activeSettlementInfo.tile} mapData={mapData} npcs={npcs} onClose={() => setActiveSettlementInfo(null)} gameTimeHours={gameTimeHours} season={season} />}
             {activeMiningModal && playerCharacter && <MiningModal structure={activeMiningModal} playerCharacter={playerCharacter} onClose={() => setActiveMiningModal(null)} onMine={() => {}} isMining={false} mineResult={null} />}
             {activePoi && mapData && <PointOfInterestModal structure={activePoi} mapData={mapData} onClose={() => setActivePoi(null)} />}
             {isCharacterProfileModalOpen && playerCharacter && (

@@ -205,7 +205,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Finger Lakes": { name: "Finger Lakes", climate: ClimateType.TEMPERATE, archetype: MapArchetype.FRESHWATER_LAKE },
             "Champlain Valley": { name: "Champlain Valley", climate: ClimateType.TEMPERATE, archetype: MapArchetype.FRESHWATER_LAKE },
             "Mohawk River": { name: "Mohawk River", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT },
-            "Long Island": { name: "Long Island", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BARRIER_ISLAND },
+            "Long Island": { name: "Long Island", climate: ClimateType.TEMPERATE, archetype: MapArchetype.PENINSULA },
             "Cape Cod": { name: "Cape Cod", climate: ClimateType.TEMPERATE, archetype: MapArchetype.PENINSULA },
             "Green Mountains": { name: "Green Mountains", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: true },
             "Connecticut River Valley": { name: "Connecticut River Valley", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT, riverDirection: 'north-south' }
@@ -808,14 +808,50 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Sea of Japan": { name: "Sea of Japan", climate: ClimateType.TEMPERATE, archetype: MapArchetype.OPEN_OCEAN },
             "East China Sea": { name: "East China Sea", climate: ClimateType.SEMITROPICAL, archetype: MapArchetype.OPEN_OCEAN },
             "South China Sea": { name: "South China Sea", climate: ClimateType.TROPICAL, archetype: MapArchetype.OPEN_OCEAN },
-            "Bay of Bengal": { name: "Bay of Bengal", climate: ClimateType.TROPICAL, archetype: MapArchetype.OPEN_OCEAN },
-            
-       
-           
-
-            
-            // Saharan Interior (for proper trans-Saharan routes)
-          
+            "Bay of Bengal": { name: "Bay of Bengal", climate: ClimateType.TROPICAL, archetype: MapArchetype.OPEN_OCEAN }
+        }
+   },
+   
+   // Special Easter Egg Zones - Ethereal Realms
+   "Special": {
+       "Outer Space": {
+           "Outer Space": { 
+               name: "Outer Space", 
+               climate: ClimateType.ARID, // Arid AIR = darkness/stars
+               archetype: MapArchetype.ALL_LAND
+           }
+       },
+       "Unknown": {
+           "Heaven": { 
+               name: "Heaven", 
+               climate: ClimateType.TEMPERATE, // Temperate AIR = fluffy white clouds
+               archetype: MapArchetype.ALL_LAND
+           },
+           "Undersea": { 
+               name: "Undersea ", 
+               climate: ClimateType.TEMPERATE, // For UNDERSEA biome
+               archetype: MapArchetype.ALL_LAND
+           },
+           "Storm": {
+               name: "Storm Realm",
+               climate: ClimateType.TEMPERATE, // Mix of AIR and UNDERSEA
+               archetype: MapArchetype.ALL_LAND
+           }
+       },
+       "Arctic": {
+           "Frozen Wastes": {
+               name: "Frozen Wastes",
+               climate: ClimateType.COLD, // Cold AIR = ice crystals
+               archetype: MapArchetype.ALL_LAND
+           },
+           "Typhoon": {
+               name: "Typhoon", 
+               climate: ClimateType.TROPICAL, // Tropical AIR = hurricanes
+               archetype: MapArchetype.ALL_LAND
+           }
+       }
    }
-    }
 };
+
+// Export geography as an alias for GEOGRAPHICAL_DATA for compatibility
+export const geography = GEOGRAPHICAL_DATA;

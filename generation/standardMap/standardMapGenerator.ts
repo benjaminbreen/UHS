@@ -150,8 +150,17 @@ export function proceduralGenerateMap(
 
       switch (archetype) {
         case MapArchetype.ISLAND:
-          falloff = Math.max(0, 1 - distToCenterRatio * 1.0);
-          landThreshold = LAND_THRESHOLD_BASE - 0.15;
+          // Make islands larger like the example in the screenshot
+          // Use a softer falloff and allow for more irregular shapes
+          const islandNoiseScale = 0.05;
+          const islandShapeNoise = landNoise.octaveNoise(
+            x * islandNoiseScale, 
+            y * islandNoiseScale, 
+            3, 0.5, 2.0
+          );
+          // Make the island extend more toward edges with noise variation
+          falloff = Math.max(0, 1 - distToCenterRatio * 0.6 + islandShapeNoise * 0.3);
+          landThreshold = LAND_THRESHOLD_BASE - 0.25; // Lower threshold for more land
           break;
         case MapArchetype.ATOLL:
             const atollCenterX = MAP_WIDTH_TILES / 2;
@@ -225,60 +234,35 @@ export function proceduralGenerateMap(
             }
             break;
         case MapArchetype.FRESHWATER_LAKE:
-            // Create irregular lake shapes using pure noise-based generation
-            const lakeSize = 0.15 + lakeRandomnessNoise.random() * 0.1; // Lake covers 15-25% of map
+            // Use ALL_LAND approach but guarantee water in center
+            // First, determine if this should be water based on distance from center
+            const lakeRadius = Math.min(MAP_WIDTH_TILES, MAP_HEIGHT_TILES) * 0.2; // 20% of map size
+            const distToCenter = Math.hypot(x - MAP_WIDTH_TILES/2, y - MAP_HEIGHT_TILES/2);
             
-            // Use multiple noise layers to create irregular lake shapes
-            // Different frequencies create different features
-            const largeScale = lakeShapeNoise.octaveNoise(
-                x * 0.03 + lakeRandomnessNoise.random() * 10,
-                y * 0.03 + lakeRandomnessNoise.random() * 10,
-                2, 0.6, 2.0
+            // Create irregular lake shape using noise
+            const lakeNoiseScale = 0.04;
+            const lakeShapeVariation = lakeShapeNoise.octaveNoise(
+                x * lakeNoiseScale,
+                y * lakeNoiseScale,
+                3, 0.5, 2.0
             );
             
-            const mediumScale = lakeShapeNoise.octaveNoise(
-                x * 0.08 + lakeRandomnessNoise.random() * 20,
-                y * 0.08 + lakeRandomnessNoise.random() * 20,
-                2, 0.4, 2.0
-            );
+            // Calculate effective lake radius with noise variation
+            const effectiveLakeRadius = lakeRadius * (1 + lakeShapeVariation * 0.4);
             
-            const smallScale = lakeShapeNoise.octaveNoise(
-                x * 0.15,
-                y * 0.15,
-                1, 0.3, 2.0
-            );
-            
-            // Combine noise layers with different weights
-            const combinedNoise = largeScale * 0.6 + mediumScale * 0.3 + smallScale * 0.1;
-            
-            // Add a bias toward the center to keep lake somewhat centered
-            const centerBias = Math.max(0, 1 - Math.hypot(dX_center, dY_center) * 3);
-            const lakeValue = combinedNoise + centerBias * 0.4;
-            
-            // Create threshold for lake vs land
-            const lakeThreshold = 0.5 + lakeSize;
-
-            const edgeFalloffDist = 5;
-            let edgeFalloffFactor = 1.0;
-            if (x < edgeFalloffDist) edgeFalloffFactor *= x / edgeFalloffDist;
-            if (x >= MAP_WIDTH_TILES - edgeFalloffDist) edgeFalloffFactor *= (MAP_WIDTH_TILES - 1 - x) / edgeFalloffDist;
-            if (y < edgeFalloffDist) edgeFalloffFactor *= y / edgeFalloffDist;
-          if (y >= MAP_HEIGHT_TILES - edgeFalloffDist) edgeFalloffFactor *= (MAP_HEIGHT_TILES - 1 - y) / edgeFalloffDist;
-            edgeFalloffFactor = Math.max(0, edgeFalloffFactor);
-
-            if (lakeValue > lakeThreshold * edgeFalloffFactor) {
-                // This is lake water
-                const depthFactor = Math.min(1, (lakeValue - lakeThreshold) * 2);
+            if (distToCenter < effectiveLakeRadius) {
+                // This is definitely lake water
+                const depthFactor = Math.max(0, 1 - (distToCenter / effectiveLakeRadius));
                 tiles[y][x] = {
-                    x, y, altitude: ALTITUDE_LEVELS.SEA * (0.1 + depthFactor * 0.15), 
+                    x, y, altitude: ALTITUDE_LEVELS.SEA * (0.1 + depthFactor * 0.2), 
                     biome: BiomeType.FRESHWATER_LAKE, isLand: false, isCoast: false,
                     qualities: { flammability: 0, biodiversity: 0, healthiness: 0, sacrality: 0, safety: 0 },
                 };
-                continue; 
-            } else { 
-                // This is land - use normal land generation
-                falloff = 1.0;
-                landThreshold = LAND_THRESHOLD_BASE;
+                continue;
+            } else {
+                // This is land - use ALL_LAND style generation
+                landThreshold = LAND_THRESHOLD_BASE - 0.3; // Strongly favor land
+                falloff = 1.0; // No edge falloff
             }
             break;
         case MapArchetype.DELTA: {
@@ -467,7 +451,7 @@ export function proceduralGenerateMap(
       tiles[y][x] = {
         x, y,
         altitude: 0,
-        biome: isLand ? BiomeType.GRASSLAND : (archetype === MapArchetype.FRESHWATER_LAKE ? BiomeType.FRESHWATER_LAKE : BiomeType.DEEP_OCEAN),
+        biome: isLand ? BiomeType.GRASSLAND : BiomeType.DEEP_OCEAN,
         isLand: isLand,
         isCoast: false,
         qualities: { flammability: 0, biodiversity: 0, healthiness: 0, sacrality: 0, safety: 0 },
@@ -576,18 +560,78 @@ export function proceduralGenerateMap(
   console.log("[Gen] Phase 2.5: Volcanic Complex Generation - END");
 
 
-  console.log("[Gen] Phase 3: Climate-specific biome modifications - START");
-  applyClimateBiomeChanges(tiles, climate, humidityNoise, desertificationNoise, biomeVariationNoise, featurePlacementNoise);
-  console.log("[Gen] Phase 3: Climate-specific biome modifications - END");
-  
-  console.log("[Gen] Phase 3.5: Climate-Enhanced Biome Generation - START");
-  generateClimateEnhancedBiomes(tiles, climate, archetype, temperatureNoise, humidityNoise, featurePlacementNoise);
-  console.log("[Gen] Phase 3.5: Climate-Enhanced Biome Generation - END");
+  // Special handling for ethereal realms - use special biomes
+  if (localArea === 'Heaven') {
+    console.log("[Gen] Special Zone: Heaven - Creating ethereal cloudscape");
+    // Heaven is all AIR tiles (will render as fluffy white clouds in temperate climate)
+    for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+      for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+        tiles[y][x].biome = BiomeType.AIR;
+        tiles[y][x].isLand = true; // Make walkable
+      }
+    }
+  } else if (localArea === 'Outer Space') {
+    console.log("[Gen] Special Zone: Outer Space - Creating cosmic void");
+    // Space is all AIR tiles (will render as darkness/stars in arid climate)
+    for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+      for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+        tiles[y][x].biome = BiomeType.AIR;
+        tiles[y][x].isLand = true; // Make walkable
+      }
+    }
+  } else if (localArea === 'Undersea Kingdom') {
+    console.log("[Gen] Special Zone: Undersea Kingdom - Creating underwater realm");
+    // Undersea is all UNDERSEA tiles
+    for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+      for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+        tiles[y][x].biome = BiomeType.UNDERSEA;
+        tiles[y][x].isLand = true; // Make walkable
+      }
+    }
+  } else if (localArea === 'Storm Realm') {
+    console.log("[Gen] Special Zone: Storm Realm - Creating tempest dimension");
+    // Storm realm mixes AIR and UNDERSEA for a chaotic effect
+    for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+      for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+        // Create swirling patterns of air and water
+        const noise = featurePlacementNoise.octaveNoise(x * 0.1, y * 0.1, 2, 0.5, 2.0);
+        tiles[y][x].biome = noise > 0 ? BiomeType.AIR : BiomeType.UNDERSEA;
+        tiles[y][x].isLand = true; // Make walkable
+      }
+    }
+  } else if (localArea === 'Frozen Wastes') {
+    console.log("[Gen] Special Zone: Frozen Wastes - Creating ice crystal dimension");
+    // Frozen Wastes is AIR in cold climate (ice crystals)
+    for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+      for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+        tiles[y][x].biome = BiomeType.AIR;
+        tiles[y][x].isLand = true;
+      }
+    }
+  } else if (localArea === 'Typhoon Realm') {
+    console.log("[Gen] Special Zone: Typhoon Realm - Creating hurricane dimension");
+    // Typhoon is AIR in tropical climate (hurricane storms)
+    for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+      for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+        tiles[y][x].biome = BiomeType.AIR;
+        tiles[y][x].isLand = true;
+      }
+    }
+  } else {
+    // Normal generation for regular zones
+    console.log("[Gen] Phase 3: Climate-specific biome modifications - START");
+    applyClimateBiomeChanges(tiles, climate, humidityNoise, desertificationNoise, biomeVariationNoise, featurePlacementNoise);
+    console.log("[Gen] Phase 3: Climate-specific biome modifications - END");
+    
+    console.log("[Gen] Phase 3.5: Climate-Enhanced Biome Generation - START");
+    generateClimateEnhancedBiomes(tiles, climate, archetype, temperatureNoise, humidityNoise, featurePlacementNoise);
+    console.log("[Gen] Phase 3.5: Climate-Enhanced Biome Generation - END");
 
 
-  console.log("[Gen] Phase 4: Dense forest generation - START");
-  generateDenseForests(tiles, climate, humidityNoise, biomeVariationNoise, featurePlacementNoise);
-  console.log("[Gen] Phase 4: Dense forest generation - END");
+    console.log("[Gen] Phase 4: Dense forest generation - START");
+    generateDenseForests(tiles, climate, humidityNoise, biomeVariationNoise, featurePlacementNoise);
+    console.log("[Gen] Phase 4: Dense forest generation - END");
+  }
 
   console.log("[Gen] Phase 5: Coastline processing - START");
   updateCoastlinesAndShallowOceans(tiles, featurePlacementNoise, archetype, neighboringEdges);
@@ -851,6 +895,7 @@ export function proceduralGenerateMap(
     region: regionName,
     timeSlice,
     localArea,
+    mapAreaName: localArea, // Add mapAreaName for special rendering detection
     pathObjects: [],
     terrainStructures: [],
     majorCity: localArea ? generateCityInfo(localArea, timeSlice || "1650", dominantPower, seed, culturalZone) : undefined,
@@ -863,8 +908,11 @@ export function proceduralGenerateMap(
   console.log("[Gen] Phase 10: Urban area generation - START");
   console.log(`[Gen] Urban generation check: economicActivityLevel=${generationParams?.economicActivityLevel}, localArea="${localArea}", region="${region}"`);
   
-  // Generate urban areas unless economicActivityLevel is explicitly 0
-  if (generationParams?.economicActivityLevel === 0) {
+  // Skip urban areas in ethereal realms
+  const etherealRealms = ['Outer Space', 'Heaven', 'Undersea Kingdom', 'Storm Realm', 'Frozen Wastes', 'Typhoon Realm'];
+  if (etherealRealms.includes(localArea)) {
+      console.log("[Gen] Skipping urban generation for special zone:", localArea);
+  } else if (generationParams?.economicActivityLevel === 0) {
       console.log("[Gen] Skipping urban generation due to economicActivityLevel = 0");
   } else {
       console.log(`[Gen] Proceeding with urban generation (economicActivityLevel=${generationParams?.economicActivityLevel || 'default'})`);
@@ -877,9 +925,12 @@ export function proceduralGenerateMap(
   mapDataObject.marketplaces = generateMarketplaceNames(mapDataObject);
 
   console.log("[Gen] Phase 10.5: Farmland and Ruins Generation - START");
-  generateFarmland(mapDataObject, featurePlacementNoise, continent, timeSlice, societalProfile);
-  const ruins = generateRuins(tiles, featurePlacementNoise, societalProfile, mapDataObject);
-  if (ruins.length > 0) mapDataObject.terrainStructures!.push(...ruins);
+  // Skip structures in ethereal realms
+  if (!etherealRealms.includes(localArea)) {
+    generateFarmland(mapDataObject, featurePlacementNoise, continent, timeSlice, societalProfile);
+    const ruins = generateRuins(tiles, featurePlacementNoise, societalProfile, mapDataObject);
+    if (ruins.length > 0) mapDataObject.terrainStructures!.push(...ruins);
+  }
   console.log("[Gen] Phase 10.5: Farmland and Ruins Generation - END");
   
   console.log("[Gen] Phase 11: Tile qualities calculation - START");
@@ -903,46 +954,77 @@ export function proceduralGenerateMap(
 
 
   console.log("[Gen] Phase 11.5: POI Generation (Post-Qualities) - START");
-  const palaces = generatePalaces(tiles, featurePlacementNoise, societalProfile, mapDataObject);
-  const holyPlaces = generateHolyPlaces(mapDataObject, featurePlacementNoise, societalProfile);
-  if (palaces.length > 0) mapDataObject.terrainStructures!.push(...palaces);
-  if (holyPlaces.length > 0) mapDataObject.terrainStructures!.push(...holyPlaces);
+  // Skip POIs in ethereal realms
+  if (!etherealRealms.includes(localArea)) {
+    const palaces = generatePalaces(tiles, featurePlacementNoise, societalProfile, mapDataObject);
+    const holyPlaces = generateHolyPlaces(mapDataObject, featurePlacementNoise, societalProfile);
+    if (palaces.length > 0) mapDataObject.terrainStructures!.push(...palaces);
+    if (holyPlaces.length > 0) mapDataObject.terrainStructures!.push(...holyPlaces);
+  }
   console.log("[Gen] Phase 11.5: POI Generation (Post-Qualities) - END");
   
   console.log("[Gen] Phase 11.5b: Terrain Structure Generation - START");
-  // Only skip structure generation if economicActivityLevel is explicitly 0
-  if (generationParams?.economicActivityLevel !== 0 || generationParams?.economicActivityLevel === undefined) {
-    // Check if the map has cities by scanning for city biomes
-    let hasCities = false;
-    for (const row of tiles) {
-      for (const tile of row) {
-        if (tile.biome === BiomeType.CITY_CENTER || 
-            tile.biome === BiomeType.DENSE_CITY || 
-            tile.biome === BiomeType.LOW_DENSITY_CITY) {
-          hasCities = true;
-          break;
+  // Skip structures in ethereal realms
+  if (!etherealRealms.includes(localArea)) {
+    // Only skip structure generation if economicActivityLevel is explicitly 0
+    if (generationParams?.economicActivityLevel !== 0 || generationParams?.economicActivityLevel === undefined) {
+      // Check if the map has cities by scanning for city biomes
+      let hasCities = false;
+      for (const row of tiles) {
+        for (const tile of row) {
+          if (tile.biome === BiomeType.CITY_CENTER || 
+              tile.biome === BiomeType.DENSE_CITY || 
+              tile.biome === BiomeType.LOW_DENSITY_CITY) {
+            hasCities = true;
+            break;
+          }
         }
+        if (hasCities) break;
       }
-      if (hasCities) break;
+      console.log(`[Gen] Map has cities: ${hasCities}`);
+      generateTerrainStructures(mapDataObject, featurePlacementNoise, region, societalProfile, hasCities);
     }
-    console.log(`[Gen] Map has cities: ${hasCities}`);
-    generateTerrainStructures(mapDataObject, featurePlacementNoise, region, societalProfile, hasCities);
+  } else {
+    console.log("[Gen] Skipping all structures for special zone:", localArea);
   }
   console.log("[Gen] Phase 11.5b: Terrain Structure Generation - END");
 
   console.log("[Gen] Phase 11.6: Animal Paddock Generation - START");
-  generateAnimalPaddocks(mapDataObject, featurePlacementNoise, societalProfile);
+  // Skip animal paddocks in ethereal realms
+  if (!etherealRealms.includes(localArea)) {
+    generateAnimalPaddocks(mapDataObject, featurePlacementNoise, societalProfile);
+  } else {
+    console.log("[Gen] Skipping animal paddocks for special zone:", localArea);
+  }
   console.log("[Gen] Phase 11.6: Animal Paddock Generation - END");
 
   console.log("[Gen] Phase 11.7: Vegetation Generation - START");
-  mapDataObject.vegetation = generateVegetation(mapDataObject, vegetationNoise);
+  // Skip vegetation in ethereal realms
+  if (!etherealRealms.includes(localArea)) {
+    mapDataObject.vegetation = generateVegetation(mapDataObject, vegetationNoise);
+  } else {
+    mapDataObject.vegetation = [];
+    console.log("[Gen] Skipping vegetation for special zone:", localArea);
+  }
   console.log("[Gen] Phase 11.7: Vegetation Generation - END");
   
   console.log("[Gen] Phase 11.8: Animal & NPC Spawning - START");
   // Only skip animal/NPC generation if economicActivityLevel is explicitly 0
   if (generationParams?.economicActivityLevel !== 0 || generationParams?.economicActivityLevel === undefined) {
-    mapDataObject.animals = generateAnimalsForMap(mapDataObject, animalNoise);
-    mapDataObject.npcs = generateNpcsForStandardMap(mapDataObject, climate, timeSlice || '1650', continent || 'Europe', npcNoise, region, localArea);
+    // Skip animals in Heaven but keep NPCs
+    if (localArea === 'Heaven') {
+      mapDataObject.animals = [];
+      mapDataObject.npcs = generateNpcsForStandardMap(mapDataObject, climate, timeSlice || '1650', continent || 'Europe', npcNoise, region, localArea);
+      console.log("[Gen] Heaven: Skipping animals, keeping NPCs");
+    } else if (localArea === 'Outer Space' || localArea === 'Undersea Kingdom') {
+      // Skip both in other special zones
+      mapDataObject.animals = [];
+      mapDataObject.npcs = [];
+      console.log("[Gen] Special zone: Skipping both animals and NPCs");
+    } else {
+      mapDataObject.animals = generateAnimalsForMap(mapDataObject, animalNoise);
+      mapDataObject.npcs = generateNpcsForStandardMap(mapDataObject, climate, timeSlice || '1650', continent || 'Europe', npcNoise, region, localArea);
+    }
   }
   console.log("[Gen] Phase 11.8: Animal & NPC Spawning - END");
 

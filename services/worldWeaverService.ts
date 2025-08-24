@@ -166,6 +166,99 @@ class WorldWeaverService {
       };
     }
 
+    // Easter eggs: Check for special zone prompts
+    const lowerPrompt = userPrompt.toLowerCase();
+    
+    // Space keywords
+    const spaceKeywords = ['space', 'cosmos', 'galaxy', 'stars', 'planet', 'alien', 'astronaut', 'moon', 'mars', 'asteroid', 'nebula', 'rocket'];
+    if (spaceKeywords.some(keyword => lowerPrompt.includes(keyword))) {
+      console.log('[WorldWeaverService] Space easter egg triggered!');
+      return {
+        success: true,
+        year: 2150, // Future year for space
+        mapArea: 'Outer Space',
+        explanation: 'Venturing into the cosmic void...',
+        reasoning: 'You have discovered the mysteries of outer space!',
+        suggestion: 'Explore the infinite cosmos, but beware - the edges of space lead to unexpected destinations.',
+        characterSpec: null
+      };
+    }
+    
+    // Heaven keywords
+    const heavenKeywords = ['heaven', 'paradise', 'afterlife', 'celestial', 'angels', 'divine', 'ethereal', 'pearly gates'];
+    if (heavenKeywords.some(keyword => lowerPrompt.includes(keyword))) {
+      console.log('[WorldWeaverService] Heaven easter egg triggered!');
+      return {
+        success: true,
+        year: 1350, // Medieval by default
+        mapArea: 'Heaven',
+        explanation: 'Ascending to the celestial realm...',
+        reasoning: 'You have found the path to Heaven!',
+        suggestion: 'Walk among the clouds in eternal peace. The edges of Heaven lead back to the mortal world.',
+        characterSpec: null
+      };
+    }
+    
+    // Undersea keywords
+    const underseaKeywords = ['undersea', 'underwater', 'atlantis', 'ocean depths', 'submarine', 'deep sea', 'merfolk', 'aquatic kingdom'];
+    if (underseaKeywords.some(keyword => lowerPrompt.includes(keyword))) {
+      console.log('[WorldWeaverService] Undersea Kingdom easter egg triggered!');
+      return {
+        success: true,
+        year: 1500, // Age of exploration
+        mapArea: 'Undersea Kingdom',
+        explanation: 'Descending to the ocean depths...',
+        reasoning: 'You have discovered the legendary undersea realm!',
+        suggestion: 'Explore the glowing blue depths. Swimming off the edge will return you to the surface world.',
+        characterSpec: null
+      };
+    }
+    
+    // Storm Realm keywords
+    const stormKeywords = ['storm', 'tempest', 'maelstrom', 'chaos', 'whirlwind', 'cyclone'];
+    if (stormKeywords.some(keyword => lowerPrompt.includes(keyword))) {
+      console.log('[WorldWeaverService] Storm Realm easter egg triggered!');
+      return {
+        success: true,
+        year: 1600,
+        mapArea: 'Storm Realm',
+        explanation: 'Entering the dimension of eternal storms...',
+        reasoning: 'You have found the chaotic Storm Realm!',
+        suggestion: 'Navigate the swirling winds and waters. The edges lead to random worlds.',
+        characterSpec: null
+      };
+    }
+    
+    // Frozen Wastes keywords
+    const frozenKeywords = ['frozen', 'ice realm', 'crystal dimension', 'arctic void', 'eternal winter'];
+    if (frozenKeywords.some(keyword => lowerPrompt.includes(keyword))) {
+      console.log('[WorldWeaverService] Frozen Wastes easter egg triggered!');
+      return {
+        success: true,
+        year: 1800,
+        mapArea: 'Frozen Wastes',
+        explanation: 'Entering the realm of eternal ice...',
+        reasoning: 'You have discovered the Frozen Wastes!',
+        suggestion: 'Walk among the ice crystals. The edges lead to warmer worlds.',
+        characterSpec: null
+      };
+    }
+    
+    // Typhoon Realm keywords
+    const typhoonKeywords = ['typhoon', 'hurricane', 'tropical storm', 'monsoon'];
+    if (typhoonKeywords.some(keyword => lowerPrompt.includes(keyword))) {
+      console.log('[WorldWeaverService] Typhoon Realm easter egg triggered!');
+      return {
+        success: true,
+        year: 1900,
+        mapArea: 'Typhoon Realm',
+        explanation: 'Entering the realm of endless hurricanes...',
+        reasoning: 'You have found the Typhoon Realm!',
+        suggestion: 'Brave the eternal storms. The edges lead to calmer lands.',
+        characterSpec: null
+      };
+    }
+
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const fullPrompt = WORLD_WEAVER_PROMPT + `\n\nUser prompt: "${userPrompt}"\n\nCreate a historical setting or explain why you cannot.`;

@@ -190,7 +190,7 @@ class MapCanvasRenderer {
       for (let x = 0; x < mapData.width; x++) {
         const tile = mapData.tiles[y][x];
         if (tile.isLand) {
-          const color = getTileRenderColor(tile, mapData.climate, mapData.seed, season);
+          const color = getTileRenderColor(tile, mapData.climate, mapData.seed, season, mapData.mapAreaName);
           const key = `${tile.biome}-${color}`;
           if (!tileBatches.has(key)) {
             tileBatches.set(key, { tiles: [], color });

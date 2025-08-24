@@ -61,7 +61,13 @@ function determineVegetation(tile: Tile, climate: ClimateType, noise: ValueNoise
       BiomeType.DEEP_OCEAN, BiomeType.SHALLOW_OCEAN, BiomeType.RIVER, BiomeType.MAJOR_RIVER,
       BiomeType.ACTIVE_LAVA, BiomeType.SNOW, BiomeType.SALT_FLATS,
       BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.URBAN,
-      BiomeType.MARKETPLACE, BiomeType.GOVERNMENT_DISTRICT, BiomeType.PALACE
+      BiomeType.MARKETPLACE, BiomeType.GOVERNMENT_DISTRICT, BiomeType.PALACE,
+      BiomeType.MANGROVE, // Add MANGROVE to unsuitable biomes since it already has its own tree symbol
+      BiomeType.ROAD, // Prevent vegetation on modern roads
+      BiomeType.PARK, // Parks have their own special vegetation
+      BiomeType.PLAZA, // Plazas are paved public spaces
+      BiomeType.HARBOR_DISTRICT, // Harbor areas are industrial/commercial
+      BiomeType.INDUSTRIAL_DISTRICT // Industrial zones have no vegetation
     ]);
     if (unsuitableBiomes.has(biome)) return null;
 
@@ -177,14 +183,14 @@ function determineVegetation(tile: Tile, climate: ClimateType, noise: ValueNoise
       }
     }
     
-    // WETLANDS/MANGROVE: Water-adapted vegetation
-    if (!baseType && (biome === BiomeType.WETLANDS || biome === BiomeType.MANGROVE)) {
+    // WETLANDS: Water-adapted vegetation (excluding MANGROVE which has its own symbol)
+    if (!baseType && biome === BiomeType.WETLANDS) {
       if (climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL) {
-        if (rand < 0.7) { baseType = 'palm_tree'; symbol = 'palm'; } // Mangroves represented as palms
-        else { baseType = 'generic_bush'; symbol = 'bush'; }
+        if (rand < 0.3) { baseType = 'deciduous_tree'; symbol = 'deciduous'; } // Swamp trees
+        else if (rand < 0.6) { baseType = 'generic_bush'; symbol = 'bush'; }
       } else {
-        if (rand < 0.4) { baseType = 'deciduous_tree'; symbol = 'deciduous'; }
-        else { baseType = 'generic_bush'; symbol = 'bush'; }
+        if (rand < 0.2) { baseType = 'deciduous_tree'; symbol = 'deciduous'; }
+        else if (rand < 0.5) { baseType = 'generic_bush'; symbol = 'bush'; }
       }
     }
     
@@ -351,8 +357,7 @@ export function generateVegetation(mapData: MapData, noise: ValueNoise): Vegetat
       case BiomeType.JUNGLE: return 2.5; // Super dense
       case BiomeType.DENSE_FOREST: return 2.0;
       case BiomeType.FOREST: return 1.5;
-      case BiomeType.WETLANDS:
-      case BiomeType.MANGROVE: return 1.4;
+      case BiomeType.WETLANDS: return 1.4;
       case BiomeType.RIVERBANK: return 1.3; // Water proximity boost
       case BiomeType.OASIS: return 1.2; // Desert oasis density boost
       case BiomeType.GRASSLAND: return 0.3;

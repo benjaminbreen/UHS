@@ -21,15 +21,6 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
     skinColor, hairColor, build, facialHair, facialHairStyle, hairLength, jewelry
   } = character.appearance;
   
-  // Debug logging
-  console.log('[PlayerIcon] Equipment Debug:', {
-    hasEquippedItems: !!equippedItems,
-    equippedHead: equippedItems?.head,
-    equippedTorso: equippedItems?.torso,
-    appearanceHeadgear: character.appearance.headgear,
-    appearanceGarment: character.appearance.garment,
-  });
-  
   // If equippedItems exists, use that (even if slots are empty)
   // Only fall back to appearance if equippedItems doesn't exist
   let headgear = null;
@@ -46,12 +37,6 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
   }
   
   const isNaked = !garment; // Track if torso is bare
-  
-  console.log('[PlayerIcon] Using:', {
-    headgear: headgear?.name || 'none',
-    garment: garment?.name || 'none (naked)',
-    isNaked,
-  });
   
   const { primary: clothingColor, secondary: secondaryColor, accent: accentColor } = character.appearance.palette;
   

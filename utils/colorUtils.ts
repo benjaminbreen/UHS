@@ -301,9 +301,112 @@ function getTileColorVariation(baseColor: string, x: number, y: number, seed: nu
 }
 
 
-export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: number, season?: 'spring' | 'summer' | 'fall' | 'winter'): string => {
+export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: number, season?: 'spring' | 'summer' | 'fall' | 'winter', mapAreaName?: string): string => {
     const currentBiome = tile.biome; 
     const waterColors = CLIMATE_WATER_COLORS[climate];
+    
+    // Special rendering for ethereal biomes (new system)
+    if (tile.biome === BiomeType.AIR) {
+        const noise = new ValueNoise(seed + tile.x * 7 + tile.y * 11);
+        const variation = noise.octaveNoise(tile.x * 0.05, tile.y * 0.05, 2, 0.5, 2.0);
+        
+        // AIR rendering depends on climate
+        switch (climate) {
+            case ClimateType.TEMPERATE:
+                // Fluffy white clouds for Heaven
+                const cloudBrightness = 240 + Math.floor(variation * 15);
+                return `rgb(${cloudBrightness}, ${cloudBrightness}, ${Math.min(255, cloudBrightness + 5)})`;
+                
+            case ClimateType.ARID:
+                // Dark void with stars for Space
+                if (noise.random() > 0.98) {
+                    // Occasional star
+                    const starBrightness = 180 + Math.floor(noise.random() * 75);
+                    return `rgb(${starBrightness}, ${starBrightness}, ${starBrightness})`;
+                }
+                // Deep space darkness
+                const darkness = Math.floor(variation * 15);
+                return `rgb(${darkness}, ${darkness}, ${darkness + 5})`;
+                
+            case ClimateType.COLD:
+                // Ice crystals - pale blue-white
+                const iceBrightness = 220 + Math.floor(variation * 30);
+                const blueShift = 10 + Math.floor(variation * 10);
+                return `rgb(${iceBrightness - blueShift}, ${iceBrightness - 5}, ${Math.min(255, iceBrightness + blueShift)})`;
+                
+            case ClimateType.TROPICAL:
+                // Hurricane storms - dark swirling grays
+                const stormIntensity = 60 + Math.floor(variation * 80);
+                return `rgb(${stormIntensity}, ${stormIntensity + 5}, ${stormIntensity + 10})`;
+                
+            default:
+                // Default ethereal white
+                return `rgb(250, 250, 255)`;
+        }
+    } else if (tile.biome === BiomeType.UNDERSEA) {
+        // Glowing blue gradient for underwater realms
+        const noise = new ValueNoise(seed + tile.x * 13 + tile.y * 17);
+        const depth = noise.octaveNoise(tile.x * 0.03, tile.y * 0.03, 3, 0.6, 2.0);
+        
+        // Glowing blue-green underwater effect
+        const blue = 100 + Math.floor(depth * 100);
+        const green = 50 + Math.floor(depth * 70);
+        const brightness = 30 + Math.floor(depth * 40);
+        return `rgb(${brightness}, ${green}, ${blue})`;
+    }
+    
+    // Legacy special rendering for easter egg zones (keeping for backward compatibility)
+    if (mapAreaName === 'Outer Space') {
+        // Space rendering - deep black with slight variation
+        const noise = new ValueNoise(seed + tile.x * 7 + tile.y * 11);
+        const starChance = noise.random();
+        if (starChance > 0.98) {
+            // Bright star
+            return '#ffffff';
+        } else if (starChance > 0.95) {
+            // Dim star
+            return '#aaaaff';
+        } else {
+            // Deep space with slight color variation
+            const variation = noise.random() * 20;
+            return `rgb(${variation}, ${variation}, ${variation + 10})`;
+        }
+    } else if (mapAreaName === 'Heaven') {
+        // Heaven rendering - pure ethereal glowing white
+        const noise = new ValueNoise(seed + tile.x * 13 + tile.y * 17);
+        const cloudiness = noise.octaveNoise(tile.x * 0.03, tile.y * 0.03, 3, 0.6, 2.0);
+        
+        // Everything is bright and ethereal in Heaven
+        const baseBrightness = 245;
+        const variation = Math.floor(cloudiness * 10);
+        
+        if (tile.isLand) {
+            // Pure glowing white with subtle variations
+            const brightness = Math.min(255, baseBrightness + variation);
+            // Slight pearl/golden tint
+            return `rgb(${brightness}, ${brightness}, ${Math.max(240, brightness - 5)})`;
+        } else {
+            // Even "water" is just slightly dimmer clouds
+            const brightness = Math.min(255, baseBrightness - 5 + variation);
+            // Very subtle blue-white tint for variety
+            return `rgb(${brightness - 5}, ${brightness - 3}, ${brightness})`;
+        }
+    } else if (mapAreaName === 'Undersea Kingdom') {
+        // Undersea rendering - glowing blue depths
+        const noise = new ValueNoise(seed + tile.x * 19 + tile.y * 23);
+        const depth = noise.octaveNoise(tile.x * 0.03, tile.y * 0.03, 2, 0.5, 2.0);
+        if (tile.isLand) {
+            // Coral/underwater terrain - greenish blue
+            const green = 80 + depth * 40;
+            const blue = 120 + depth * 60;
+            return `rgb(${20}, ${green}, ${blue})`;
+        } else {
+            // Glowing blue water
+            const brightness = 40 + depth * 60;
+            const blue = 140 + depth * 80;
+            return `rgb(${brightness}, ${brightness + 20}, ${blue})`;
+        }
+    }
     
     let baseColorHex: string;
     

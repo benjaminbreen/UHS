@@ -151,11 +151,30 @@ export function generateAnimalPaddocks(mapData: MapData, noise: ValueNoise, soci
     const tiles = mapData.tiles;
     const paddocksPlacedAt = new Set<string>();
 
+    // Helper function to check if location is near modern roads
+    const isNearModernRoads = (x: number, y: number, radius: number = 10): boolean => {
+        for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                const checkX = x + dx;
+                const checkY = y + dy;
+                if (checkX >= 0 && checkX < MAP_WIDTH_TILES && checkY >= 0 && checkY < MAP_HEIGHT_TILES) {
+                    if (tiles[checkY][checkX].biome === BiomeType.ROAD) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    };
+    
     const potentialStarts: Tile[] = [];
     for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
         for (let x = 0; x < MAP_WIDTH_TILES; x++) {
             if ([BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY].includes(tiles[y][x].biome)) {
-                potentialStarts.push(tiles[y][x]);
+                // Skip if near modern roads (modern city)
+                if (!isNearModernRoads(x, y)) {
+                    potentialStarts.push(tiles[y][x]);
+                }
             }
         }
     }

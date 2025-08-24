@@ -11,7 +11,8 @@ import {
   ExposureEvent,
   Immunity,
   OverallHealthStatus,
-  DiseaseStage
+  DiseaseStage,
+  DiseaseProgressionStage
 } from '../types/diseaseTypes';
 import { NpcEntity } from '../types/npcTypes';
 import { AnimalEntity } from '../types/animalTypes';
@@ -112,7 +113,7 @@ class DiseaseService {
     currentYear: number
   ): CharacterHealth | undefined {
     // Find the disease by ID
-    const disease = DISEASES.find(d => d.id === diseaseId);
+    const disease = DISEASE_DATABASE.diseases.find(d => d.id === diseaseId);
     
     if (!disease) {
       console.error(`[DiseaseService] Disease ${diseaseId} not found in database`);
@@ -288,7 +289,7 @@ class DiseaseService {
     let mortalityRisk = false;
 
     if (!entity.health?.currentDiseases) {
-      return { progressionEvents, recoveryEvents, mortalityRisk };
+      return { progressionEvents, recoveryEvents, mortalityRisk, isDead };
     }
 
     const updatedDiseases: ActiveDisease[] = [];
@@ -344,7 +345,7 @@ class DiseaseService {
     entity.health.overallHealthStatus = this.calculateOverallHealthStatus(updatedDiseases);
     entity.health.lastHealthUpdate = this.createGameDate(currentYear);
 
-    return { progressionEvents, recoveryEvents, mortalityRisk };
+    return { progressionEvents, recoveryEvents, mortalityRisk, isDead };
   }
 
   /**
@@ -840,6 +841,96 @@ class DiseaseService {
       month: 1,
       day: 1
     };
+  }
+
+  private getCurrentProgressionStage(
+    activeDisease: ActiveDisease,
+    disease: Disease
+  ): DiseaseProgressionStage | null {
+    if (!disease.progressionStages || disease.progressionStages.length === 0) {
+      return null;
+    }
+
+    // Find the current stage based on days since contraction
+    let currentStage: DiseaseProgressionStage | null = null;
+    for (const stage of disease.progressionStages) {
+      if (activeDisease.daysSinceContraction >= stage.day) {
+        currentStage = stage;
+      } else {
+        break;
+      }
+    }
+    return currentStage;
+  }
+
+  private getProgressionStageAtTime(
+    daysElapsed: number,
+    disease: Disease
+  ): DiseaseProgressionStage | null {
+    if (!disease.progressionStages || disease.progressionStages.length === 0) {
+      return null;
+    }
+
+    let stage: DiseaseProgressionStage | null = null;
+    for (const s of disease.progressionStages) {
+      if (daysElapsed >= s.day) {
+        stage = s;
+      } else {
+        break;
+      }
+    }
+    return stage;
+  }
+
+  private generateStageProgressionDescription(
+    entity: PlayerCharacter | NpcEntity | AnimalEntity,
+    disease: Disease,
+    stage: DiseaseProgressionStage
+  ): string {
+    const isPlayer = !('role' in entity);
+    const symptomDesc = stage.symptoms.join(', ');
+    
+    if (isPlayer) {
+      if (stage.severity >= 0.9) {
+        return `Your ${disease.name} has reached a critical stage. You experience ${symptomDesc}.`;
+      } else if (stage.severity >= 0.6) {
+        return `Your ${disease.name} worsens. You now have ${symptomDesc}.`;
+      } else if (stage.severity <= 0.3) {
+        return `Your ${disease.name} seems to be improving. You feel ${symptomDesc}.`;
+      } else {
+        return `Your ${disease.name} progresses. You experience ${symptomDesc}.`;
+      }
+    } else {
+      const entityName = 'name' in entity ? entity.name : entity.id;
+      return `${entityName}'s ${disease.name} has progressed: ${symptomDesc}`;
+    }
+  }
+
+  private applyStageEffects(
+    entity: PlayerCharacter | NpcEntity | AnimalEntity,
+    statModifiers: DiseaseProgressionStage['statModifiers']
+  ): void {
+    if ('stats' in entity && entity.stats && statModifiers) {
+      Object.entries(statModifiers).forEach(([stat, value]) => {
+        if (value !== undefined && stat in entity.stats!) {
+          (entity.stats as any)[stat] = Math.max(1, (entity.stats as any)[stat] + value);
+        }
+      });
+    }
+  }
+
+  private generateDeathEvent(
+    entity: PlayerCharacter | NpcEntity | AnimalEntity,
+    disease: Disease
+  ): string {
+    const isPlayer = !('role' in entity);
+    
+    if (isPlayer) {
+      return `You have succumbed to ${disease.name}. The disease has claimed your life.`;
+    } else {
+      const entityName = 'name' in entity ? entity.name : entity.id;
+      return `${entityName} has died from ${disease.name}`;
+    }
   }
 }
 

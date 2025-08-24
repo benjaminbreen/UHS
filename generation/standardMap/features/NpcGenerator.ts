@@ -595,8 +595,10 @@ export function generateNpcsForStandardMap(
                     });
                     
                     // Generate more workers if we don't have enough
+                    // BUT respect the hard limit of 10 NPCs total
+                    const MAX_NPCS = 10;
                     let workersGenerated = nearbyWorkers.length;
-                    while (workersGenerated < workersNeeded * 0.5) { // Try to get at least half workforce
+                    while (workersGenerated < workersNeeded * 0.5 && npcs.length < MAX_NPCS) { // Respect 10 NPC limit
                         const position = findValidNpcPosition(tiles, npcPositions, noise, factory.location, 10);
                         if (!position) break;
                         
@@ -616,11 +618,13 @@ export function generateNpcsForStandardMap(
         }
         
         // 3. Spawn remaining wandering NPCs
-        const npcCount = calculateNpcCount(tiles, climate, noise, region, mapAreaName, dateInfo.year);
+        // HARD LIMIT: Never exceed 10 NPCs total
+        const MAX_NPCS_TOTAL = 10;
+        const targetNpcCount = Math.min(MAX_NPCS_TOTAL, calculateNpcCount(tiles, climate, noise, region, mapAreaName, dateInfo.year));
         let attempts = 0;
-        const maxAttempts = (npcCount - npcs.length) * 50;
+        const maxAttempts = (targetNpcCount - npcs.length) * 50;
         
-        while (npcs.length < npcCount && attempts < maxAttempts) {
+        while (npcs.length < targetNpcCount && npcs.length < MAX_NPCS_TOTAL && attempts < maxAttempts) {
             attempts++;
             const position = findValidNpcPosition(tiles, npcPositions, noise, null, 15);
             if (!position) continue;
@@ -685,6 +689,12 @@ export function generateNpcsForStandardMap(
 
         // 4. Generate enhanced descriptions for all NPCs
         enhanceNpcDescriptions(npcs);
+        
+        // Final safety check: Ensure we never exceed 10 NPCs
+        if (npcs.length > 10) {
+            console.warn(`[NPC Gen] Generated ${npcs.length} NPCs, trimming to 10 for performance`);
+            npcs = npcs.slice(0, 10);
+        }
         
         logGenerationStats(stats, startTime);
         return npcs;

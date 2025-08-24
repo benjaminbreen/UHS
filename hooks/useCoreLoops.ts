@@ -218,7 +218,7 @@ const useCoreLoops = () => {
             });
         }, 1000);
         return () => clearInterval(clockInterval);
-    }, [setGameTimeMinutes, setGameTimeHours, setGameDate, isAnyModalOpen]);
+    }, [isAnyModalOpen, playerCharacter]); // Remove state setters from dependencies
 
     // Animal AI Tick
     useEffect(() => {
@@ -609,7 +609,7 @@ const useCoreLoops = () => {
         else if (controlledIconY >= MAP_HEIGHT_TILES - BORDER_THRESHOLD) setContextualMessage(`You are near the southern border.`);
         else setContextualMessage(null);
         
-    }, [controlledIconX, controlledIconY, viewMode, visibleAnimals, npcs, mapData, isIconMoving, setActionableTile, setContextualMessage, actionableTile, contextualMessage]);
+    }, [controlledIconX, controlledIconY, viewMode, visibleAnimals, npcs, mapData, isIconMoving]); // Remove state setters and state being set
 
 
     // Keyboard controls
@@ -651,6 +651,7 @@ const useCoreLoops = () => {
             window.removeEventListener('keyup', handleKeyUp);
         };
     }, [viewMode, handleExitInteriorView, interiorMapPlayerPos, onPlayerMove, isAnyModalOpen, combatant, closeAllModals, togglePinnedTooltip]);
+
 
     // Movement loop
     useEffect(() => {
@@ -776,7 +777,7 @@ const useCoreLoops = () => {
         };
         moveLoopId.current = requestAnimationFrame(moveLoop);
         return () => { if (moveLoopId.current) cancelAnimationFrame(moveLoopId.current); };
-    }, [viewMode, mapData, controlledIconX, controlledIconY, isAnyModalOpen, playerMode, shipDockX, shipDockY, handleEncounter, handleInitiateCombat, showToast, addGameLogEntry, gameDate, formattedTime, localArea, handleMapTransition, activeKeys, isIconMoving, pendingIconTransitionInfo, setControlledIconX, setControlledIconY, setIconRotation, setMoveCount, setPlayerMode, setShipDockX, setShipDockY, setVelocity, visibleAnimals, npcs, setAnimals, setPlayerCharacter, setPanelNotificationItem]);
+    }, [viewMode, mapData, controlledIconX, controlledIconY, isAnyModalOpen, playerMode, shipDockX, shipDockY, handleEncounter, handleInitiateCombat, showToast, addGameLogEntry, gameDate, formattedTime, localArea, handleMapTransition, pendingIconTransitionInfo, visibleAnimals, npcs]); // Keep only essential dependencies, remove state setters
 
 };
 

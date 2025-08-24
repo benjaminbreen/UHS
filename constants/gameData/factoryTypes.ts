@@ -323,12 +323,19 @@ export function getFactoryType(
     // Check zone
     if (!factory.allowedZones.includes(zone)) return false;
     
-    // Check region if specified
-    if (factory.allowedRegions && !factory.allowedRegions.includes(region)) return false;
-    
+    // Region is now optional - if specified, it gives priority but doesn't exclude
+    // This allows factories to spawn anywhere in the appropriate zone/era
     return true;
   });
   
+  // If we have region-specific factories, prioritize them
+  const regionSpecific = validTypes.filter(f => 
+    f.allowedRegions && f.allowedRegions.includes(region)
+  );
+  
+  // Use region-specific if available, otherwise use any valid type
+  const finalTypes = regionSpecific.length > 0 ? regionSpecific : validTypes;
+  
   // Return random valid type or null
-  return validTypes.length > 0 ? validTypes[Math.floor(Math.random() * validTypes.length)] : null;
+  return finalTypes.length > 0 ? finalTypes[Math.floor(Math.random() * finalTypes.length)] : null;
 }

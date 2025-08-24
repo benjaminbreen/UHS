@@ -6,6 +6,7 @@ import { MapData, AnimalEntity, NpcEntity, MapAnalysisData, MapArchetype, Climat
 import { proceduralGenerateMap } from '../generation/standardMap/standardMapGenerator';
 import { deriveMapSeed } from '../utils/mapUtils';
 import { findMapAreaDefinition, getNextMapArea } from '../utils/geographyUtils';
+import { geography } from '../constants/gameData/geography';
 import { ValueNoise } from '../utils/noise';
 import {  GEOGRAPHICAL_DATA, MAP_WIDTH_TILES, MAP_HEIGHT_TILES, SOCIETAL_PROFILES } from '../constants/index';
 import { generateCharacter, generateCharacterWithSpec } from '../services/characterGenerator';
@@ -444,6 +445,47 @@ export const useMapState = (props: useMapStateProps) => {
         console.log(`[Map Transition] Initiated. Direction: ${direction}, From: ${localArea}`);
         if (playerState.pendingIconTransitionInfo) {
             console.warn("[Map Transition] Aborted: Icon transition already in progress.");
+            return;
+        }
+        
+        // Special handling for ethereal realms - go to random map area
+        const etherealRealms = ['Outer Space', 'Heaven', 'Undersea Kingdom', 'Storm Realm', 'Frozen Wastes', 'Typhoon Realm'];
+        if (etherealRealms.includes(localArea)) {
+            console.log(`[Ethereal Realm] Leaving ${localArea}, transitioning to random area`);
+            
+            // Get all available map areas except special zones
+            const allAreas: string[] = [];
+            Object.values(geography).forEach(zone => {
+                if (zone && typeof zone === 'object' && !Array.isArray(zone)) {
+                    Object.values(zone).forEach(region => {
+                        if (region && typeof region === 'object' && !Array.isArray(region)) {
+                            Object.values(region).forEach(area => {
+                                if (area && typeof area === 'object' && 'name' in area) {
+                                    const areaName = (area as any).name;
+                                    // Exclude special zones from random selection
+                                    if (areaName !== 'Outer Space' && areaName !== 'Heaven' && areaName !== 'Undersea Kingdom') {
+                                        allAreas.push(areaName);
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+            
+            // Pick a random area
+            const randomArea = allAreas[Math.floor(Math.random() * allAreas.length)];
+            console.log(`[Special Zone] Randomly selected: ${randomArea}`);
+            setLocalArea(randomArea);
+            
+            // Place player at center of new map
+            setPlayerState.setPendingIconTransitionInfo({
+                direction,
+                entryX: Math.floor(MAP_WIDTH_TILES / 2),
+                entryY: Math.floor(MAP_HEIGHT_TILES / 2),
+                fromArea: localArea,
+                toArea: randomArea
+            });
             return;
         }
         

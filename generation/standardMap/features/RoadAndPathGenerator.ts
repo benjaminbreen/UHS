@@ -281,6 +281,11 @@ export function generateRoadAndPathNetwork(mapData: MapData, noise: ValueNoise, 
   console.log("Generating paths and roads...");
   const tiles = mapData.tiles;
   mapData.pathObjects = mapData.pathObjects || [];
+  
+  // Determine if we should use modern grid layout
+  const useModernGrid = era === HistoricalEra.INDUSTRIAL_ERA || 
+                        era === HistoricalEra.MODERN_ERA || 
+                        era === HistoricalEra.FUTURE_ERA;
 
   const urbanAreas: Tile[] = [];
   const hamlets: Tile[] = [];
@@ -336,9 +341,33 @@ export function generateRoadAndPathNetwork(mapData: MapData, noise: ValueNoise, 
     });
   }
 
-  // Connect major urban areas and major POIs with roads
-  const majorNodes = [...urbanAreas, ...pointsOfInterest.filter(p => p.biome === BiomeType.PALACE)];
-  if (majorNodes.length > 1) {
+  // For modern cities, generate grid-based road network first
+  if (useModernGrid && urbanAreas.length > 0) {
+    generateModernCityGrid(urbanAreas, tiles, mapData, noise, era!);
+  }
+  
+  // Function to check if an area already has modern roads (ROAD biome tiles)
+  const hasModernRoads = (tile: Tile, radius: number = 5): boolean => {
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        const checkY = tile.y + dy;
+        const checkX = tile.x + dx;
+        if (checkY >= 0 && checkY < MAP_HEIGHT_TILES && checkX >= 0 && checkX < MAP_WIDTH_TILES) {
+          if (tiles[checkY][checkX].biome === BiomeType.ROAD) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  };
+
+  // Filter out urban areas that already have modern roads
+  const urbanAreasNeedingPaths = urbanAreas.filter(area => !hasModernRoads(area));
+  
+  // Connect major urban areas and major POIs with roads (for pre-modern or inter-city)
+  const majorNodes = [...urbanAreasNeedingPaths, ...pointsOfInterest.filter(p => p.biome === BiomeType.PALACE)];
+  if (majorNodes.length > 1 && !useModernGrid) {
     const connectedPairs = new Set<string>();
     majorNodes.forEach(node1 => {
       const otherNodes = majorNodes
@@ -413,9 +442,13 @@ export function generateRoadAndPathNetwork(mapData: MapData, noise: ValueNoise, 
   // Connect hamlets and minor POIs to the nearest major node with paths
   const minorNodes = [...hamlets, ...pointsOfInterest.filter(p => p.biome !== BiomeType.PALACE)];
   minorNodes.forEach(minorNode => {
+    // Skip if this minor node is near modern roads
+    if (hasModernRoads(minorNode)) return;
+    
     let closestTarget: Tile | null = null;
     let bestDist = Infinity;
 
+    // Use filtered major nodes (excluding modern cities)
     majorNodes.forEach(majorNode => {
         const dist = heuristic(minorNode, majorNode);
         if (dist < bestDist) {
@@ -536,7 +569,7 @@ export function generateRoadAndPathNetwork(mapData: MapData, noise: ValueNoise, 
         .map(dest => ({ tile: dest, dist: heuristic(city, dest) }))
         .filter(item => item.dist < 30) // Only connect nearby sites
         .sort((a, b) => a.dist - b.dist)
-        .slice(0, 2); // Connect to 2 nearest industrial sites
+        .slice(0, 3); // Connect to 3 nearest industrial sites (increased from 2)
       
       nearbyIndustrial.forEach(({ tile: industrial }) => {
         const railPath = findPathAStar(city, industrial, tiles, PathType.ROAD, noise);
@@ -561,7 +594,306 @@ export function generateRoadAndPathNetwork(mapData: MapData, noise: ValueNoise, 
         }
       });
     });
+    
+    // Also connect major cities to each other with railroads
+    if (urbanAreas.length >= 2) {
+      for (let i = 0; i < Math.min(urbanAreas.length - 1, 3); i++) {
+        for (let j = i + 1; j < Math.min(urbanAreas.length, 4); j++) {
+          const city1 = urbanAreas[i];
+          const city2 = urbanAreas[j];
+          const dist = heuristic(city1, city2);
+          
+          // Only connect cities within reasonable distance
+          if (dist > 10 && dist < 40) {
+            const railPath = findPathAStar(city1, city2, tiles, PathType.ROAD, noise);
+            if (railPath && railPath.length >= 3) {
+              const pixelPoints = railPath.map(tile => ({
+                x: tile.x * TILE_SIZE_PX + TILE_SIZE_PX / 2,
+                y: tile.y * TILE_SIZE_PX + TILE_SIZE_PX / 2,
+              }));
+              
+              const svgD = generateSvgDFromPoints(pixelPoints);
+              if (svgD) {
+                mapData.pathObjects!.push({
+                  id: `railroad-intercity-${pathIdCounter++}`,
+                  type: PathType.RAILROAD,
+                  svgD,
+                  strokeWidth: RAILROAD_WIDTH,
+                  strokeColor: RAILROAD_COLOR,
+                  opacity: RAILROAD_OPACITY,
+                });
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
   console.log("Path and road generation complete. PathObjects: ", mapData.pathObjects?.length || 0);
+}
+
+// Generate modern grid-based road network for cities
+function generateModernCityGrid(
+  urbanAreas: Tile[],
+  tiles: Tile[][],
+  mapData: MapData,
+  noise: ValueNoise,
+  era: HistoricalEra
+): void {
+  console.log("[Roads] Generating modern city grid layout");
+  
+  // Find city clusters
+  const cityClusters = findCityClusters(urbanAreas, tiles);
+  
+  cityClusters.forEach(cluster => {
+    const bounds = getClusterBounds(cluster);
+    const gridSpacing = era === HistoricalEra.MODERN_ERA || era === HistoricalEra.FUTURE_ERA ? 4 : 5;
+    const usePaved = era === HistoricalEra.MODERN_ERA || era === HistoricalEra.FUTURE_ERA;
+    
+    // Generate main avenues (boulevards) for the city
+    generateBoulevards(bounds, tiles, mapData, noise, usePaved);
+    
+    // Generate street grid within city bounds
+    generateStreetGrid(bounds, tiles, mapData, noise, gridSpacing, usePaved);
+  });
+}
+
+// Find connected clusters of urban tiles
+function findCityClusters(urbanAreas: Tile[], tiles: Tile[][]): Tile[][] {
+  const visited = new Set<string>();
+  const clusters: Tile[][] = [];
+  
+  urbanAreas.forEach(startTile => {
+    const key = `${startTile.x},${startTile.y}`;
+    if (visited.has(key)) return;
+    
+    const cluster: Tile[] = [];
+    const queue = [startTile];
+    
+    while (queue.length > 0) {
+      const tile = queue.shift()!;
+      const tileKey = `${tile.x},${tile.y}`;
+      if (visited.has(tileKey)) continue;
+      
+      visited.add(tileKey);
+      cluster.push(tile);
+      
+      // Check all adjacent tiles
+      for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          const nx = tile.x + dx;
+          const ny = tile.y + dy;
+          if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
+            const neighbor = tiles[ny][nx];
+            if ((neighbor.biome === BiomeType.DENSE_CITY || 
+                 neighbor.biome === BiomeType.LOW_DENSITY_CITY ||
+                 neighbor.biome === BiomeType.HAMLET) &&
+                !visited.has(`${nx},${ny}`)) {
+              queue.push(neighbor);
+            }
+          }
+        }
+      }
+    }
+    
+    if (cluster.length > 0) clusters.push(cluster);
+  });
+  
+  return clusters;
+}
+
+// Get bounding box for a cluster of tiles
+function getClusterBounds(cluster: Tile[]): { minX: number, maxX: number, minY: number, maxY: number } {
+  let minX = MAP_WIDTH_TILES, maxX = 0;
+  let minY = MAP_HEIGHT_TILES, maxY = 0;
+  
+  cluster.forEach(tile => {
+    minX = Math.min(minX, tile.x);
+    maxX = Math.max(maxX, tile.x);
+    minY = Math.min(minY, tile.y);
+    maxY = Math.max(maxY, tile.y);
+  });
+  
+  // Expand bounds slightly for roads around the city
+  minX = Math.max(0, minX - 2);
+  maxX = Math.min(MAP_WIDTH_TILES - 1, maxX + 2);
+  minY = Math.max(0, minY - 2);
+  maxY = Math.min(MAP_HEIGHT_TILES - 1, maxY + 2);
+  
+  return { minX, maxX, minY, maxY };
+}
+
+// Generate major boulevards/avenues for a city
+function generateBoulevards(
+  bounds: { minX: number, maxX: number, minY: number, maxY: number },
+  tiles: Tile[][],
+  mapData: MapData,
+  noise: ValueNoise,
+  usePaved: boolean
+): void {
+  const width = bounds.maxX - bounds.minX;
+  const height = bounds.maxY - bounds.minY;
+  
+  // Create 2-3 major horizontal boulevards
+  const numHorizontal = width > 20 ? 3 : 2;
+  for (let i = 0; i < numHorizontal; i++) {
+    const y = bounds.minY + Math.floor((height / (numHorizontal + 1)) * (i + 1));
+    const points: Point[] = [];
+    
+    for (let x = bounds.minX; x <= bounds.maxX; x++) {
+      if (tiles[y] && tiles[y][x]) {
+        points.push({
+          x: x * TILE_SIZE_PX + TILE_SIZE_PX / 2,
+          y: y * TILE_SIZE_PX + TILE_SIZE_PX / 2
+        });
+      }
+    }
+    
+    if (points.length > 1) {
+      const svgD = generateSvgDFromPoints(points);
+      mapData.pathObjects!.push({
+        id: `boulevard-h-${pathIdCounter++}`,
+        type: usePaved ? PathType.MODERN_ROAD : PathType.ROAD,
+        svgD,
+        strokeWidth: MODERN_ROAD_WIDTH * 1.5, // Boulevards are wider
+        strokeColor: usePaved ? MODERN_ROAD_COLOR : ROAD_STROKE_COLOR,
+        opacity: usePaved ? MODERN_ROAD_OPACITY : ROAD_OPACITY,
+      });
+    }
+  }
+  
+  // Create 2-3 major vertical boulevards
+  const numVertical = height > 20 ? 3 : 2;
+  for (let i = 0; i < numVertical; i++) {
+    const x = bounds.minX + Math.floor((width / (numVertical + 1)) * (i + 1));
+    const points: Point[] = [];
+    
+    for (let y = bounds.minY; y <= bounds.maxY; y++) {
+      if (tiles[y] && tiles[y][x]) {
+        points.push({
+          x: x * TILE_SIZE_PX + TILE_SIZE_PX / 2,
+          y: y * TILE_SIZE_PX + TILE_SIZE_PX / 2
+        });
+      }
+    }
+    
+    if (points.length > 1) {
+      const svgD = generateSvgDFromPoints(points);
+      mapData.pathObjects!.push({
+        id: `boulevard-v-${pathIdCounter++}`,
+        type: usePaved ? PathType.MODERN_ROAD : PathType.ROAD,
+        svgD,
+        strokeWidth: MODERN_ROAD_WIDTH * 1.5,
+        strokeColor: usePaved ? MODERN_ROAD_COLOR : ROAD_STROKE_COLOR,
+        opacity: usePaved ? MODERN_ROAD_OPACITY : ROAD_OPACITY,
+      });
+    }
+  }
+}
+
+// Generate street grid within city bounds
+function generateStreetGrid(
+  bounds: { minX: number, maxX: number, minY: number, maxY: number },
+  tiles: Tile[][],
+  mapData: MapData,
+  noise: ValueNoise,
+  spacing: number,
+  usePaved: boolean
+): void {
+  // Vertical streets
+  for (let x = bounds.minX; x <= bounds.maxX; x += spacing) {
+    const points: Point[] = [];
+    let hasUrbanTile = false;
+    
+    for (let y = bounds.minY; y <= bounds.maxY; y++) {
+      if (tiles[y] && tiles[y][x]) {
+        const tile = tiles[y][x];
+        // Only add streets where there are urban tiles nearby
+        let nearUrban = false;
+        for (let dx = -1; dx <= 1; dx++) {
+          const checkX = x + dx;
+          if (checkX >= 0 && checkX < MAP_WIDTH_TILES && tiles[y][checkX]) {
+            const checkTile = tiles[y][checkX];
+            if (checkTile.biome === BiomeType.DENSE_CITY || 
+                checkTile.biome === BiomeType.LOW_DENSITY_CITY ||
+                checkTile.biome === BiomeType.HAMLET ||
+                checkTile.biome === BiomeType.MARKETPLACE ||
+                checkTile.biome === BiomeType.GOVERNMENT_DISTRICT) {
+              nearUrban = true;
+              hasUrbanTile = true;
+              break;
+            }
+          }
+        }
+        
+        if (nearUrban) {
+          points.push({
+            x: x * TILE_SIZE_PX + TILE_SIZE_PX / 2,
+            y: y * TILE_SIZE_PX + TILE_SIZE_PX / 2
+          });
+        }
+      }
+    }
+    
+    if (points.length > 2 && hasUrbanTile) {
+      const svgD = generateSvgDFromPoints(points);
+      mapData.pathObjects!.push({
+        id: `street-v-${pathIdCounter++}`,
+        type: usePaved ? PathType.MODERN_ROAD : PathType.ROAD,
+        svgD,
+        strokeWidth: MODERN_ROAD_WIDTH * 0.8, // Streets are narrower than boulevards
+        strokeColor: usePaved ? MODERN_ROAD_COLOR : ROAD_STROKE_COLOR,
+        opacity: usePaved ? MODERN_ROAD_OPACITY * 0.9 : ROAD_OPACITY,
+      });
+    }
+  }
+  
+  // Horizontal streets
+  for (let y = bounds.minY; y <= bounds.maxY; y += spacing) {
+    const points: Point[] = [];
+    let hasUrbanTile = false;
+    
+    for (let x = bounds.minX; x <= bounds.maxX; x++) {
+      if (tiles[y] && tiles[y][x]) {
+        const tile = tiles[y][x];
+        // Only add streets where there are urban tiles nearby
+        let nearUrban = false;
+        for (let dy = -1; dy <= 1; dy++) {
+          const checkY = y + dy;
+          if (checkY >= 0 && checkY < MAP_HEIGHT_TILES && tiles[checkY] && tiles[checkY][x]) {
+            const checkTile = tiles[checkY][x];
+            if (checkTile.biome === BiomeType.DENSE_CITY || 
+                checkTile.biome === BiomeType.LOW_DENSITY_CITY ||
+                checkTile.biome === BiomeType.HAMLET ||
+                checkTile.biome === BiomeType.MARKETPLACE ||
+                checkTile.biome === BiomeType.GOVERNMENT_DISTRICT) {
+              nearUrban = true;
+              hasUrbanTile = true;
+              break;
+            }
+          }
+        }
+        
+        if (nearUrban) {
+          points.push({
+            x: x * TILE_SIZE_PX + TILE_SIZE_PX / 2,
+            y: y * TILE_SIZE_PX + TILE_SIZE_PX / 2
+          });
+        }
+      }
+    }
+    
+    if (points.length > 2 && hasUrbanTile) {
+      const svgD = generateSvgDFromPoints(points);
+      mapData.pathObjects!.push({
+        id: `street-h-${pathIdCounter++}`,
+        type: usePaved ? PathType.MODERN_ROAD : PathType.ROAD,
+        svgD,
+        strokeWidth: MODERN_ROAD_WIDTH * 0.8,
+        strokeColor: usePaved ? MODERN_ROAD_COLOR : ROAD_STROKE_COLOR,
+        opacity: usePaved ? MODERN_ROAD_OPACITY * 0.9 : ROAD_OPACITY,
+      });
+    }
+  }
 }

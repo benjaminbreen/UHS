@@ -791,7 +791,7 @@ export const ModernFortSymbol: React.FC<FortressSymbolProps> = ({ x, y, size, se
   );
 };
 
-// East Asian fortress with improved architecture
+// East Asian fortress with improved architecture (FIXED)
 export const JapaneseFortressSymbol: React.FC<FortressSymbolProps> = ({ x, y, size, seed }) => {
   const uniqueId = `eastfort-${x}-${y}-${seed}`;
   
@@ -821,58 +821,439 @@ export const JapaneseFortressSymbol: React.FC<FortressSymbolProps> = ({ x, y, si
       
       {/* Stone base with proper perspective */}
       <g filter={`url(#shadow-${uniqueId})`}>
-        <polygon points={`${size * 0.25},${size * 0.65} ${size * 0.75},${size * 0.65} ${size * 0.85},${size * 0.55} ${size * 0.35},${size * 0.55}`}
+        {/* Sloped stone foundation walls */}
+        <polygon points={`${size * 0.2},${size * 0.7} ${size * 0.8},${size * 0.7} ${size * 0.75},${size * 0.55} ${size * 0.25},${size * 0.55}`}
                  fill={`url(#japStone-${uniqueId})`} />
         
-        {/* Top of base */}
-        <polygon points={`${size * 0.35},${size * 0.55} ${size * 0.85},${size * 0.55} ${size * 0.8},${size * 0.5} ${size * 0.3},${size * 0.5}`}
-                 fill="#f0f0f0" />
+        {/* Top of foundation */}
+        <polygon points={`${size * 0.25},${size * 0.55} ${size * 0.75},${size * 0.55} ${size * 0.72},${size * 0.52} ${size * 0.28},${size * 0.52}`}
+                 fill="#f5f5f5" />
         
-        {/* Multi-tiered keep */}
+        {/* Multi-tiered tenshu (keep) */}
         {[0, 1, 2].map((tier) => {
-          const tierSize = 1 - tier * 0.15;
-          const tierY = 0.5 - tier * 0.1;
+          const tierSize = 1 - tier * 0.2;
+          const tierY = 0.48 - tier * 0.08;
+          const tierWidth = 0.22 * tierSize;
+          const tierHeight = 0.07;
+          
           return (
             <g key={tier}>
-              {/* Building tier */}
-              <rect x={size * (0.5 - 0.12 * tierSize)} 
-                    y={size * tierY - size * 0.05} 
-                    width={size * 0.24 * tierSize} 
-                    height={size * 0.08} 
-                    fill="#f8f8f8" />
+              {/* White walls with dark trim */}
+              <rect x={size * (0.5 - tierWidth/2)} 
+                    y={size * tierY} 
+                    width={size * tierWidth} 
+                    height={size * tierHeight} 
+                    fill="#fafafa" 
+                    stroke="#3a3a3a" 
+                    strokeWidth="0.5" />
               
-              {/* Curved roof */}
-              <path d={`M ${size * (0.5 - 0.15 * tierSize)} ${size * (tierY - 0.05)}
-                        Q ${size * 0.5} ${size * (tierY - 0.09)}
-                        ${size * (0.5 + 0.15 * tierSize)} ${size * (tierY - 0.05)}`}
-                    fill="#4a4a4a" stroke="#2a2a2a" strokeWidth="0.5" />
+              {/* Traditional curved roof with upturned edges */}
+              <path d={`M ${size * (0.5 - tierWidth * 0.6)} ${size * tierY}
+                        Q ${size * (0.5 - tierWidth * 0.55)} ${size * (tierY - 0.03)}
+                          ${size * (0.5 - tierWidth * 0.5)} ${size * (tierY - 0.02)}
+                        L ${size * (0.5 + tierWidth * 0.5)} ${size * (tierY - 0.02)}
+                        Q ${size * (0.5 + tierWidth * 0.55)} ${size * (tierY - 0.03)}
+                          ${size * (0.5 + tierWidth * 0.6)} ${size * tierY}
+                        Z`}
+                    fill="#2a2a2a" />
               
-              {/* Roof edge detail */}
-              <path d={`M ${size * (0.5 - 0.15 * tierSize)} ${size * (tierY - 0.05)}
-                        Q ${size * 0.5} ${size * (tierY - 0.08)}
-                        ${size * (0.5 + 0.15 * tierSize)} ${size * (tierY - 0.05)}`}
-                    fill="none" stroke="#6a6a6a" strokeWidth="0.3" />
+              {/* Roof ridge decoration */}
+              <line x1={size * (0.5 - tierWidth * 0.5)} 
+                    y1={size * (tierY - 0.02)} 
+                    x2={size * (0.5 + tierWidth * 0.5)} 
+                    y2={size * (tierY - 0.02)}
+                    stroke="#4a4a4a" 
+                    strokeWidth="0.8" />
+              
+              {/* Windows on each floor */}
+              {tier === 0 && [
+                -0.06, -0.02, 0.02, 0.06
+              ].map((offset, i) => (
+                <rect key={i} 
+                      x={size * (0.5 + offset)} 
+                      y={size * (tierY + tierHeight * 0.3)} 
+                      width={size * 0.012} 
+                      height={size * 0.025} 
+                      fill="#1a1a1a" />
+              ))}
             </g>
           );
         })}
         
-        {/* Windows */}
-        {[0.42, 0.5, 0.58].map((xPos, i) => (
+        {/* Stone wall with crenellations */}
+        <rect x={size * 0.15} y={size * 0.65} 
+              width={size * 0.7} height={size * 0.05} 
+              fill="#d8d8d8" />
+        
+        {/* Wall crenellations */}
+        {[0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8].map((xPos, i) => (
           <rect key={i} 
-                x={size * xPos} y={size * 0.42} 
-                width={size * 0.015} height={size * 0.025} 
+                x={size * xPos - size * 0.02} 
+                y={size * 0.64} 
+                width={size * 0.03} 
+                height={size * 0.02} 
+                fill="#d8d8d8" />
+        ))}
+        
+        {/* Main gate with traditional design */}
+        <rect x={size * 0.46} y={size * 0.65} 
+              width={size * 0.08} height={size * 0.05} 
+              fill="#4a3a2a" />
+        <rect x={size * 0.47} y={size * 0.66} 
+              width={size * 0.06} height={size * 0.04} 
+              fill="#2a1a0a" />
+      </g>
+      
+      {/* Golden shachihoko (roof ornament) on top */}
+      <circle cx={size * 0.5} cy={size * 0.24} r={size * 0.015} fill="#d4af37" />
+    </g>
+  );
+};
+
+// Arabic/Islamic fortress with distinctive architecture
+export const IslamicFortressSymbol: React.FC<FortressSymbolProps> = ({ x, y, size, seed }) => {
+  const uniqueId = `islamicfort-${x}-${y}-${seed}`;
+  
+  return (
+    <g transform={`translate(${x}, ${y})`}>
+      <defs>
+        <linearGradient id={`sandstone-${uniqueId}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#f4e4c1" />
+          <stop offset="50%" stopColor="#e8d4a0" />
+          <stop offset="100%" stopColor="#d4b896" />
+        </linearGradient>
+        <filter id={`shadow-${uniqueId}`}>
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+          <feOffset dx="2" dy="3" result="offsetblur"/>
+          <feComponentTransfer>
+            <feFuncA type="linear" slope="0.4"/>
+          </feComponentTransfer>
+          <feMerge>
+            <feMergeNode/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      
+      {/* Shadow */}
+      <FortressShadow cx={size * 0.5} cy={size * 0.72} size={size * 1.1} />
+      
+      {/* Main fortress structure */}
+      <g filter={`url(#shadow-${uniqueId})`}>
+        {/* Outer walls with battered base */}
+        <polygon points={`${size * 0.15},${size * 0.7} ${size * 0.85},${size * 0.7} ${size * 0.8},${size * 0.4} ${size * 0.2},${size * 0.4}`}
+                 fill={`url(#sandstone-${uniqueId})`} />
+        
+        {/* Wall top */}
+        <polygon points={`${size * 0.2},${size * 0.4} ${size * 0.8},${size * 0.4} ${size * 0.75},${size * 0.35} ${size * 0.25},${size * 0.35}`}
+                 fill="#f8e8c8" />
+        
+        {/* Crenellated battlements with pointed merlons */}
+        {[0.25, 0.35, 0.45, 0.55, 0.65, 0.75].map((xPos, i) => (
+          <polygon key={i}
+                   points={`${size * xPos - size * 0.02},${size * 0.4} 
+                            ${size * xPos},${size * 0.36} 
+                            ${size * xPos + size * 0.02},${size * 0.4}`}
+                   fill="#e8d4a0" />
+        ))}
+        
+        {/* Central tower with dome */}
+        <rect x={size * 0.42} y={size * 0.25} 
+              width={size * 0.16} height={size * 0.25} 
+              fill="#f0dcc8" />
+        
+        {/* Dome */}
+        <ellipse cx={size * 0.5} cy={size * 0.25} 
+                 rx={size * 0.1} ry={size * 0.08} 
+                 fill="#6aa84f" />
+        
+        {/* Horseshoe arch gate */}
+        <path d={`M ${size * 0.45} ${size * 0.7}
+                  L ${size * 0.45} ${size * 0.55}
+                  Q ${size * 0.45} ${size * 0.5} ${size * 0.5} ${size * 0.5}
+                  Q ${size * 0.55} ${size * 0.5} ${size * 0.55} ${size * 0.55}
+                  L ${size * 0.55} ${size * 0.7}
+                  Z`}
+              fill="#2a1a0a" />
+        
+        {/* Decorative geometric patterns */}
+        {[0.3, 0.5, 0.7].map((xPos, i) => (
+          <g key={i}>
+            <rect x={size * xPos - size * 0.015} 
+                  y={size * 0.45} 
+                  width={size * 0.03} 
+                  height={size * 0.03} 
+                  fill="none" 
+                  stroke="#c8b490" 
+                  strokeWidth="0.5" />
+            <circle cx={size * xPos} 
+                    cy={size * 0.465} 
+                    r={size * 0.01} 
+                    fill="none" 
+                    stroke="#c8b490" 
+                    strokeWidth="0.3" />
+          </g>
+        ))}
+        
+        {/* Minaret */}
+        <rect x={size * 0.72} y={size * 0.15} 
+              width={size * 0.04} height={size * 0.35} 
+              fill="#e8d4a0" />
+        <polygon points={`${size * 0.72},${size * 0.15} ${size * 0.74},${size * 0.12} ${size * 0.76},${size * 0.15}`}
+                 fill="#6aa84f" />
+        
+        {/* Crescent on minaret */}
+        <path d={`M ${size * 0.74} ${size * 0.1}
+                  Q ${size * 0.735} ${size * 0.095} ${size * 0.74} ${size * 0.09}
+                  Q ${size * 0.745} ${size * 0.095} ${size * 0.74} ${size * 0.1}`}
+              fill="#d4af37" strokeWidth="0" />
+      </g>
+    </g>
+  );
+};
+
+// Byzantine/Eastern Roman fortress
+export const ByzantineFortressSymbol: React.FC<FortressSymbolProps> = ({ x, y, size, seed }) => {
+  const uniqueId = `byzantine-${x}-${y}-${seed}`;
+  
+  return (
+    <g transform={`translate(${x}, ${y})`}>
+      <defs>
+        <linearGradient id={`byzStone-${uniqueId}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#e8d8c8" />
+          <stop offset="50%" stopColor="#d8c8b8" />
+          <stop offset="100%" stopColor="#c8b8a8" />
+        </linearGradient>
+        <pattern id={`byzBrick-${uniqueId}`} x="0" y="0" width={size * 0.1} height={size * 0.05} patternUnits="userSpaceOnUse">
+          <rect width={size * 0.1} height={size * 0.05} fill="#d8c8b8" />
+          <rect x="0" y="0" width={size * 0.095} height={size * 0.045} fill="#e0d0c0" />
+          <rect x="0" y={size * 0.025} width={size * 0.048} height={size * 0.02} fill="#c8b8a8" />
+          <rect x={size * 0.052} y={size * 0.025} width={size * 0.043} height={size * 0.02} fill="#c8b8a8" />
+        </pattern>
+        <filter id={`shadow-${uniqueId}`}>
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+          <feOffset dx="2" dy="3" result="offsetblur"/>
+          <feComponentTransfer>
+            <feFuncA type="linear" slope="0.4"/>
+          </feComponentTransfer>
+          <feMerge>
+            <feMergeNode/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      
+      {/* Shadow */}
+      <FortressShadow cx={size * 0.52} cy={size * 0.72} size={size * 1.2} />
+      
+      {/* Main fortress with distinctive Byzantine architecture */}
+      <g filter={`url(#shadow-${uniqueId})`}>
+        {/* Thick outer walls with brick pattern */}
+        <rect x={size * 0.15} y={size * 0.4} 
+              width={size * 0.7} height={size * 0.32} 
+              fill={`url(#byzBrick-${uniqueId})`} />
+        
+        {/* Wall top */}
+        <polygon points={`${size * 0.15},${size * 0.4} ${size * 0.25},${size * 0.34} ${size * 0.95},${size * 0.34} ${size * 0.85},${size * 0.4}`}
+                 fill="#e8d8c8" />
+        
+        {/* Distinctive round towers at corners */}
+        {[
+          {x: 0.15, y: 0.56},
+          {x: 0.85, y: 0.56},
+          {x: 0.35, y: 0.4},
+          {x: 0.65, y: 0.4}
+        ].map((pos, i) => (
+          <g key={i}>
+            <ellipse cx={size * pos.x} cy={size * pos.y} 
+                     rx={size * 0.08} ry={size * 0.05} 
+                     fill={`url(#byzStone-${uniqueId})`} />
+            <ellipse cx={size * pos.x} cy={size * (pos.y - 0.15)} 
+                     rx={size * 0.06} ry={size * 0.04} 
+                     fill="#d8c8b8" />
+            {/* Dome on tower */}
+            <ellipse cx={size * pos.x} cy={size * (pos.y - 0.15)} 
+                     rx={size * 0.05} ry={size * 0.035} 
+                     fill="#8b4513" />
+          </g>
+        ))}
+        
+        {/* Central palace structure with dome */}
+        <rect x={size * 0.4} y={size * 0.3} 
+              width={size * 0.2} height={size * 0.15} 
+              fill="#e0d0c0" />
+        
+        {/* Large central dome */}
+        <ellipse cx={size * 0.5} cy={size * 0.3} 
+                 rx={size * 0.12} ry={size * 0.09} 
+                 fill="#8b4513" />
+        <ellipse cx={size * 0.5} cy={size * 0.3} 
+                 rx={size * 0.1} ry={size * 0.075} 
+                 fill="#a0522d" />
+        
+        {/* Cross on dome */}
+        <line x1={size * 0.5} y1={size * 0.22} x2={size * 0.5} y2={size * 0.28} 
+              stroke="#d4af37" strokeWidth="1" />
+        <line x1={size * 0.48} y1={size * 0.24} x2={size * 0.52} y2={size * 0.24} 
+              stroke="#d4af37" strokeWidth="1" />
+        
+        {/* Arched windows */}
+        {[0.25, 0.35, 0.5, 0.65, 0.75].map((xPos, i) => (
+          <path key={i}
+                d={`M ${size * xPos - size * 0.01} ${size * 0.55}
+                    L ${size * xPos - size * 0.01} ${size * 0.5}
+                    Q ${size * xPos} ${size * 0.48} ${size * xPos + size * 0.01} ${size * 0.5}
+                    L ${size * xPos + size * 0.01} ${size * 0.55}
+                    Z`}
                 fill="#1a1a1a" />
         ))}
         
-        {/* Defensive walls extending from base */}
-        <rect x={size * 0.15} y={size * 0.68} 
-              width={size * 0.7} height={size * 0.04} 
-              fill="#d0d0d0" stroke="#a0a0a0" strokeWidth="0.5" />
-        
-        {/* Gate */}
-        <rect x={size * 0.47} y={size * 0.68} 
-              width={size * 0.06} height={size * 0.04} 
+        {/* Main gate with rounded arch */}
+        <path d={`M ${size * 0.47} ${size * 0.72}
+                  L ${size * 0.47} ${size * 0.6}
+                  Q ${size * 0.5} ${size * 0.57} ${size * 0.53} ${size * 0.6}
+                  L ${size * 0.53} ${size * 0.72}
+                  Z`}
               fill="#3a2a1a" />
+      </g>
+      
+      {/* Byzantine double-headed eagle banner */}
+      <g transform={`translate(${size * 0.5}, ${size * 0.25})`}>
+        <line x1={0} y1={0} x2={0} y2={-size * 0.1} 
+              stroke="#5a4a3a" strokeWidth="1" />
+        <rect x={0} y={-size * 0.1} width={size * 0.08} height={size * 0.06}
+              fill="#8b0000" opacity="0.9" />
+        <rect x={size * 0.03} y={-size * 0.08} width={size * 0.02} height={size * 0.02}
+              fill="#d4af37" opacity="0.8" />
+      </g>
+    </g>
+  );
+};
+
+// Mongol/Steppe fortress (yurt-style fortified camp)
+export const SteppeFortressSymbol: React.FC<FortressSymbolProps> = ({ x, y, size, seed }) => {
+  const uniqueId = `steppe-${x}-${y}-${seed}`;
+  
+  return (
+    <g transform={`translate(${x}, ${y})`}>
+      <defs>
+        <linearGradient id={`feltGrad-${uniqueId}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#f5f0e8" />
+          <stop offset="50%" stopColor="#e8e0d0" />
+          <stop offset="100%" stopColor="#d8d0c0" />
+        </linearGradient>
+        <filter id={`shadow-${uniqueId}`}>
+          <feGaussianBlur in="SourceAlpha" stdDeviation="1.5"/>
+          <feOffset dx="2" dy="3" result="offsetblur"/>
+          <feComponentTransfer>
+            <feFuncA type="linear" slope="0.3"/>
+          </feComponentTransfer>
+          <feMerge>
+            <feMergeNode/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      
+      {/* Grass patches */}
+      <GrassPatches size={size} seed={seed} />
+      
+      {/* Shadow */}
+      <FortressShadow cx={size * 0.5} cy={size * 0.7} size={size} />
+      
+      {/* Wooden palisade wall */}
+      <g filter={`url(#shadow-${uniqueId})`}>
+        {/* Palisade posts in a circle */}
+        {Array.from({ length: 16 }).map((_, i) => {
+          const angle = (i / 16) * Math.PI * 2;
+          const px = size * 0.5 + Math.cos(angle) * size * 0.35;
+          const py = size * 0.55 + Math.sin(angle) * size * 0.25;
+          return (
+            <rect key={i}
+                  x={px - 1.5} 
+                  y={py - size * 0.1} 
+                  width={3} 
+                  height={size * 0.15} 
+                  fill="#6a5a4a" />
+          );
+        })}
+        
+        {/* Central large yurt (Khan's tent) */}
+        <ellipse cx={size * 0.5} cy={size * 0.55} 
+                 rx={size * 0.18} ry={size * 0.12} 
+                 fill={`url(#feltGrad-${uniqueId})`} />
+        
+        {/* Yurt dome */}
+        <path d={`M ${size * 0.32} ${size * 0.55}
+                  Q ${size * 0.5} ${size * 0.4} ${size * 0.68} ${size * 0.55}`}
+              fill="#e8e0d0" />
+        
+        {/* Decorative bands on yurt */}
+        <ellipse cx={size * 0.5} cy={size * 0.55} 
+                 rx={size * 0.18} ry={size * 0.12} 
+                 fill="none" 
+                 stroke="#8b4513" 
+                 strokeWidth="1" />
+        <ellipse cx={size * 0.5} cy={size * 0.53} 
+                 rx={size * 0.16} ry={size * 0.1} 
+                 fill="none" 
+                 stroke="#a0522d" 
+                 strokeWidth="0.5" />
+        
+        {/* Smoke hole at top */}
+        <ellipse cx={size * 0.5} cy={size * 0.42} 
+                 rx={size * 0.02} ry={size * 0.015} 
+                 fill="#2a2a2a" />
+        
+        {/* Smaller yurts around */}
+        {[
+          {x: 0.25, y: 0.6},
+          {x: 0.75, y: 0.6},
+          {x: 0.35, y: 0.45}
+        ].map((pos, i) => (
+          <g key={i}>
+            <ellipse cx={size * pos.x} cy={size * pos.y} 
+                     rx={size * 0.08} ry={size * 0.05} 
+                     fill="#f0e8d8" />
+            <path d={`M ${size * (pos.x - 0.08)} ${size * pos.y}
+                      Q ${size * pos.x} ${size * (pos.y - 0.06)} 
+                        ${size * (pos.x + 0.08)} ${size * pos.y}`}
+                  fill="#e0d8c8" />
+          </g>
+        ))}
+        
+        {/* Gate opening in palisade */}
+        <rect x={size * 0.47} y={size * 0.7} 
+              width={size * 0.06} height={size * 0.08} 
+              fill="#3a2a1a" />
+      </g>
+      
+      {/* Horse-tail banner (Tugh) */}
+      <g transform={`translate(${size * 0.65}, ${size * 0.35})`}>
+        <line x1={0} y1={0} x2={0} y2={-size * 0.15} 
+              stroke="#4a3a2a" strokeWidth="1.5" />
+        {/* Horse tails */}
+        {[-0.02, 0, 0.02].map((offset, i) => (
+          <path key={i}
+                d={`M ${size * offset} ${-size * 0.15}
+                    Q ${size * (offset + 0.01)} ${-size * 0.12} 
+                      ${size * offset} ${-size * 0.08}`}
+                stroke="#2a1a0a" 
+                strokeWidth="2" 
+                fill="none" />
+        ))}
+      </g>
+      
+      {/* Smoke from central yurt */}
+      <g opacity="0.4">
+        <circle cx={size * 0.5} cy={size * 0.38} r={size * 0.015} fill="#666666">
+          <animate attributeName="cy" 
+                   values={`${size * 0.38};${size * 0.3};${size * 0.22}`}
+                   dur="3s" repeatCount="indefinite" />
+          <animate attributeName="opacity" 
+                   values="0.4;0.2;0"
+                   dur="3s" repeatCount="indefinite" />
+        </circle>
       </g>
     </g>
   );
@@ -882,39 +1263,53 @@ export const JapaneseFortressSymbol: React.FC<FortressSymbolProps> = ({ x, y, si
 export const getFortressSymbol = (fortressType: string, era?: string, culturalZone?: string) => {
   const type = fortressType?.toLowerCase() || '';
   
-  // First check for specific fortress types in the name
-  if (type.includes('hillfort') || type.includes('enclosure')) {
+  // First check for specific fortress types in the name (case-insensitive)
+  // Check exact matches from the generation code first
+  if (type === 'hillfort' || type.includes('hillfort') || type.includes('hill fort') || type.includes('ring fort') || type.includes('enclosure') || type.includes('palisaded')) {
     return HillfortSymbol;
   }
-  if (type.includes('castrum') || type.includes('roman')) {
+  if (type === 'roman fort' || type === 'castrum' || type.includes('castrum') || type.includes('roman')) {
     return CastrumSymbol;
   }
-  if (type.includes('star') || type.includes('bastion')) {
+  if (type === 'star fort' || type.includes('star fort') || type.includes('bastion')) {
     return StarFortSymbol;
   }
-  if (type.includes('presidio') || type.includes('colonial')) {
+  if (type === 'colonial presidio' || type.includes('presidio')) {
     return PresidioSymbol;
   }
-  if (type.includes('castle') || type.includes('keep') || type.includes('citadel')) {
+  if (type === 'medieval castle' || type.includes('medieval') || type.includes('castle') || type.includes('keep') || type.includes('citadel')) {
     return MedievalCastleSymbol;
   }
-  if (type.includes('modern') || type.includes('base') || type.includes('bunker')) {
+  // Modern military installations
+  if (type === 'modern fort' || type.includes('modern') || type.includes('base') || type.includes('bunker') || type.includes('barracks') ||
+      type.includes('nato') || type.includes('station') || type.includes('carabinieri') || type.includes('alpine fortification') ||
+      type.includes('military') || type.includes('airfield') || type.includes('depot')) {
     return ModernFortSymbol;
   }
-  if (type.includes('japanese') || type.includes('tenshu')) {
+  if (type === 'japanese fortress' || type === 'chinese fort' || type.includes('japanese') || type.includes('chinese') || type.includes('tenshu')) {
     return JapaneseFortressSymbol;
+  }
+  if (type.includes('kasbah') || type.includes('ribat') || type.includes("qal'a") || type.includes('islamic')) {
+    return IslamicFortressSymbol;
+  }
+  if (type.includes('byzantine') || type.includes('constantinople')) {
+    return ByzantineFortressSymbol;
+  }
+  if (type.includes('mongol') || type.includes('yurt') || type.includes('steppe') || type.includes('ordu')) {
+    return SteppeFortressSymbol;
   }
   
   // Era and cultural zone based selection
   if (era && culturalZone) {
     const zone = culturalZone.toUpperCase();
+    const eraLower = era.toLowerCase();
     
     // Era-specific fortress selection by culture
-    if (era.includes('prehistoric')) {
+    if (eraLower.includes('prehistoric') || eraLower.includes('prehistory')) {
       return HillfortSymbol; // Universal for prehistoric
     }
     
-    if (era.includes('ancient')) {
+    if (eraLower.includes('ancient') || eraLower.includes('antiquity')) {
       // Ancient era fortresses
       if (zone.includes('ROMAN') || zone.includes('GREEK') || zone.includes('MEDITERRANEAN')) {
         return CastrumSymbol;
@@ -925,7 +1320,7 @@ export const getFortressSymbol = (fortressType: string, era?: string, culturalZo
       return HillfortSymbol; // Default ancient
     }
     
-    if (era.includes('medieval')) {
+    if (eraLower.includes('medieval')) {
       // Medieval era fortresses
       if (zone.includes('EUROPEAN') || zone.includes('BYZANTINE') || zone.includes('SLAVIC')) {
         return MedievalCastleSymbol;
@@ -934,12 +1329,12 @@ export const getFortressSymbol = (fortressType: string, era?: string, culturalZo
         return JapaneseFortressSymbol;
       }
       if (zone.includes('MENA') || zone.includes('SOUTH_ASIAN')) {
-        return StarFortSymbol; // Islamic/Mughal style
+        return IslamicFortressSymbol; // Islamic/Mughal style
       }
       return MedievalCastleSymbol; // Default medieval
     }
     
-    if (era.includes('renaissance') || era.includes('early_modern')) {
+    if (eraLower.includes('renaissance') || eraLower.includes('early_modern')) {
       // Renaissance/Early Modern fortresses
       if (zone.includes('NORTH_AMERICAN_COLONIAL') || zone.includes('SOUTH_AMERICAN')) {
         return PresidioSymbol; // Colonial fortifications
@@ -950,7 +1345,18 @@ export const getFortressSymbol = (fortressType: string, era?: string, culturalZo
       return StarFortSymbol; // Bastion fort is default for this era
     }
     
-    if (era.includes('modern') || era.includes('contemporary')) {
+    if (eraLower.includes('industrial')) {
+      // Industrial era fortresses
+      if (zone.includes('EUROPEAN')) {
+        return StarFortSymbol; // Star forts were still common in 19th century Europe
+      }
+      if (zone.includes('NORTH_AMERICAN')) {
+        return StarFortSymbol; // Civil War era forts
+      }
+      return StarFortSymbol; // Default for industrial
+    }
+    
+    if (eraLower.includes('modern') || eraLower.includes('contemporary')) {
       return ModernFortSymbol; // Universal modern fort
     }
   }
@@ -992,11 +1398,13 @@ export const getFortressSymbol = (fortressType: string, era?: string, culturalZo
   
   // Era-only fallback
   if (era) {
-    if (era.includes('prehistoric')) return HillfortSymbol;
-    if (era.includes('ancient')) return CastrumSymbol;
-    if (era.includes('medieval')) return MedievalCastleSymbol;
-    if (era.includes('renaissance') || era.includes('early_modern')) return StarFortSymbol;
-    if (era.includes('modern') || era.includes('contemporary')) return ModernFortSymbol;
+    const eraLower = era.toLowerCase();
+    if (eraLower.includes('prehistoric') || eraLower.includes('prehistory')) return HillfortSymbol;
+    if (eraLower.includes('ancient') || eraLower.includes('antiquity')) return CastrumSymbol;
+    if (eraLower.includes('medieval')) return MedievalCastleSymbol;
+    if (eraLower.includes('renaissance') || eraLower.includes('early_modern')) return StarFortSymbol;
+    if (eraLower.includes('industrial')) return StarFortSymbol; // Industrial era fortresses
+    if (eraLower.includes('modern') || eraLower.includes('contemporary')) return ModernFortSymbol;
   }
   
   // Final fallback - medieval castle is most recognizable

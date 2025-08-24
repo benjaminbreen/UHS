@@ -1,0 +1,1456 @@
+/**
+ * components/MineColonyBanner.tsx - Animated pixel art banner for mining colonies with material-specific variants
+ */
+import React, { useEffect, useState, useMemo } from 'react';
+import { TerrainStructure, ClimateType, Season, TimeOfDay, BiomeType } from '../types';
+
+interface MineColonyBannerProps {
+  structure: TerrainStructure;
+  era?: string;
+  culturalZone?: string;
+  climate?: ClimateType;
+  season: Season;
+  timeOfDay: TimeOfDay;
+  width?: number;
+  height?: number;
+  seed?: number;
+  adjacentBiomes?: BiomeType[];
+}
+
+// Character types for mines
+interface MineCharacter {
+  id: string;
+  x: number;
+  y: number;
+  direction: 1 | -1;
+  type: 'miner' | 'hauler' | 'overseer' | 'guard' | 'prospector' | 'child_worker';
+  speed: number;
+  carrying?: 'ore' | 'cart' | 'tools' | 'lantern';
+  animFrame?: number;
+}
+
+interface MineVehicle {
+  id: string;
+  x: number;
+  y: number;
+  type: 'mine_cart' | 'ore_wagon' | 'steam_engine' | 'truck' | 'donkey' | 'pit_pony';
+  direction: 1 | -1;
+  speed: number;
+  loaded?: boolean;
+}
+
+// Seeded random
+class SeededRandom {
+  private seed: number;
+  constructor(seed: number) {
+    this.seed = seed;
+  }
+  next(): number {
+    this.seed = (this.seed * 9301 + 49297) % 233280;
+    return this.seed / 233280;
+  }
+  range(min: number, max: number): number {
+    return min + this.next() * (max - min);
+  }
+}
+
+// Clean sky gradients matching TerrainStructureBanner style
+const SKY_GRADIENTS = {
+  dawn: ['#FF9A8B', '#FFCC99', '#FFE5B4'],
+  day: ['#87CEEB', '#98D8E8', '#B8E6F8'],
+  dusk: ['#FF8C42', '#FF6B6B', '#C44569'],
+  night: ['#2C3E50', '#34495E', '#4A6741']
+};
+
+// Determine mine variant based on material and context
+const getMineVariant = (
+  structure: TerrainStructure,
+  era?: string,
+  culturalZone?: string
+): string => {
+  const material = Object.keys(structure.mineralDeposits || {})[0]?.toLowerCase() || 'iron';
+  const year = parseInt(era || '1500');
+  
+  // Material-specific variants
+  if (material === 'gold' || material === 'silver') {
+    if (culturalZone?.includes('american') && year > 1840 && year < 1900) {
+      return 'gold-rush';
+    }
+    if (culturalZone?.includes('south_american') && year > 1500 && year < 1800) {
+      return 'colonial-silver';
+    }
+    return 'precious-metal';
+  }
+  
+  if (material === 'coal' || material === 'coal_modern') {
+    if (year >= 1800 && year < 1950) return 'industrial-coal';
+    return 'modern-coal';
+  }
+  
+  if (material === 'salt') return 'salt-mine';
+  
+  if (['diamonds', 'emeralds', 'rubies', 'sapphires'].includes(material)) {
+    if (culturalZone?.includes('african')) return 'african-diamond';
+    return 'gemstone-mine';
+  }
+  
+  if (material === 'jade') return 'jade-mine';
+  if (material === 'opals') return 'opal-mine';
+  if (material === 'copper' || material === 'tin') return 'ancient-copper';
+  if (material === 'iron') {
+    if (year < 1500) return 'medieval-iron';
+    return 'industrial-iron';
+  }
+  
+  // Era-based fallbacks
+  if (year < 500) return 'ancient-quarry';
+  if (year < 1500) return 'medieval-mine';
+  if (year < 1850) return 'early-industrial';
+  if (year < 1950) return 'industrial-coal';
+  return 'modern-mine';
+};
+
+const MineColonyBanner: React.FC<MineColonyBannerProps> = ({
+  structure,
+  era,
+  culturalZone,
+  climate = ClimateType.TEMPERATE,
+  season,
+  timeOfDay,
+  width = 600,
+  height = 250,
+  seed = 12345,
+  adjacentBiomes = []
+}) => {
+  const [animationFrame, setAnimationFrame] = useState(0);
+  const [characters, setCharacters] = useState<MineCharacter[]>([]);
+  const [vehicles, setVehicles] = useState<MineVehicle[]>([]);
+  const [smokeOffset, setSmokeOffset] = useState(0);
+  const [wheelRotation, setWheelRotation] = useState(0);
+  const [cagePosition, setCagePosition] = useState(0);
+  const [hammerFrame, setHammerFrame] = useState(0);
+  const [cloudOffsets, setCloudOffsets] = useState([0, 0, 0, 0]);
+  
+  // Fixed seed for static elements (mountains)
+  const staticRng = useMemo(() => new SeededRandom(seed), [seed]);
+  // Different seed for animated elements
+  const rng = useMemo(() => new SeededRandom(seed + 1000), [seed]);
+  const variant = getMineVariant(structure, era, culturalZone);
+  const material = Object.keys(structure.mineralDeposits || {})[0]?.toLowerCase() || 'iron';
+  
+  // Get time category for sky
+  const getTimeCategory = (): keyof typeof SKY_GRADIENTS => {
+    switch (timeOfDay) {
+      case 'Dawn': return 'dawn';
+      case 'Dusk': return 'dusk';
+      case 'Night': return 'night';
+      default: return 'day';
+    }
+  };
+  
+  const timeCategory = getTimeCategory();
+  const skyColors = SKY_GRADIENTS[timeCategory];
+  const groundY = height * 0.74; // Ground at 185px for 250px height - much lower
+  const horizonY = height * 0.30; // Horizon at 75px for 250px height - more sky
+  const roadY = groundY + 8; // Road/path for characters to walk on
+  
+  // Initialize characters and vehicles based on variant
+  useEffect(() => {
+    const newCharacters: MineCharacter[] = [];
+    const newVehicles: MineVehicle[] = [];
+    
+    switch (variant) {
+      case 'gold-rush':
+        // California Gold Rush scene - diverse prospectors, Chinese workers
+        for (let i = 0; i < 6; i++) {
+          newCharacters.push({
+            id: `prospector-${i}`,
+            x: rng.range(50, width - 50),
+            y: roadY - 8, // Walk on road
+            direction: rng.next() > 0.5 ? 1 : -1,
+            type: i < 2 ? 'prospector' : 'miner',
+            speed: 0.3 + rng.next() * 0.2,
+            carrying: i % 2 === 0 ? 'tools' : undefined
+          });
+        }
+        // Add mule with supplies
+        newVehicles.push({
+          id: 'mule',
+          x: width * 0.7,
+          y: groundY,
+          type: 'donkey',
+          direction: -1,
+          speed: 0.25,
+          loaded: true
+        });
+        break;
+        
+      case 'industrial-coal':
+        // Victorian coal mine - child workers, pit ponies
+        // Overseer
+        newCharacters.push({
+          id: 'overseer',
+          x: width * 0.5,
+          y: groundY - 10,
+          direction: 1,
+          type: 'overseer',
+          speed: 0.2,
+          carrying: undefined
+        });
+        // Adult miners
+        for (let i = 0; i < 4; i++) {
+          newCharacters.push({
+            id: `miner-${i}`,
+            x: rng.range(100, width - 100),
+            y: groundY + rng.range(-5, 5),
+            direction: rng.next() > 0.5 ? 1 : -1,
+            type: 'miner',
+            speed: 0.25,
+            carrying: i % 2 === 0 ? 'ore' : 'tools'
+          });
+        }
+        // Child workers (historically accurate but tragic)
+        for (let i = 0; i < 2; i++) {
+          newCharacters.push({
+            id: `child-${i}`,
+            x: rng.range(150, width - 150),
+            y: groundY + 5,
+            direction: 1,
+            type: 'child_worker',
+            speed: 0.35,
+            carrying: 'cart'
+          });
+        }
+        // Pit pony
+        newVehicles.push({
+          id: 'pit-pony',
+          x: width * 0.3,
+          y: groundY,
+          type: 'pit_pony',
+          direction: 1,
+          speed: 0.3,
+          loaded: true
+        });
+        // Mine carts on rails
+        newVehicles.push({
+          id: 'cart-1',
+          x: width * 0.6,
+          y: groundY + 5,
+          type: 'mine_cart',
+          direction: -1,
+          speed: 0.4,
+          loaded: true
+        });
+        break;
+        
+      case 'african-diamond':
+        // Diamond mine with heavy security
+        // Armed guards
+        for (let i = 0; i < 2; i++) {
+          newCharacters.push({
+            id: `guard-${i}`,
+            x: i === 0 ? width * 0.2 : width * 0.8,
+            y: groundY - 5,
+            direction: i === 0 ? 1 : -1,
+            type: 'guard',
+            speed: 0.15,
+            carrying: undefined
+          });
+        }
+        // Workers
+        for (let i = 0; i < 5; i++) {
+          newCharacters.push({
+            id: `worker-${i}`,
+            x: rng.range(100, width - 100),
+            y: groundY + rng.range(-5, 10),
+            direction: rng.next() > 0.5 ? 1 : -1,
+            type: 'hauler',
+            speed: 0.2,
+            carrying: 'ore'
+          });
+        }
+        break;
+        
+      case 'salt-mine':
+        // Salt evaporation ponds or underground
+        for (let i = 0; i < 4; i++) {
+          newCharacters.push({
+            id: `salt-worker-${i}`,
+            x: rng.range(80, width - 80),
+            y: groundY + rng.range(-5, 5),
+            direction: rng.next() > 0.5 ? 1 : -1,
+            type: 'miner',
+            speed: 0.25,
+            carrying: i % 2 === 0 ? 'cart' : 'tools'
+          });
+        }
+        // Donkey cart for salt transport
+        newVehicles.push({
+          id: 'salt-cart',
+          x: width * 0.7,
+          y: groundY,
+          type: 'donkey',
+          direction: -1,
+          speed: 0.2,
+          loaded: true
+        });
+        break;
+        
+      case 'medieval-iron':
+        // Medieval iron mine with water wheel
+        for (let i = 0; i < 3; i++) {
+          newCharacters.push({
+            id: `medieval-miner-${i}`,
+            x: rng.range(100, width - 100),
+            y: groundY + rng.range(-5, 5),
+            direction: rng.next() > 0.5 ? 1 : -1,
+            type: 'miner',
+            speed: 0.2,
+            carrying: i === 0 ? 'lantern' : 'ore'
+          });
+        }
+        break;
+        
+      default:
+        // Generic mine workers
+        for (let i = 0; i < 4; i++) {
+          newCharacters.push({
+            id: `worker-${i}`,
+            x: rng.range(100, width - 100),
+            y: groundY + rng.range(-5, 5),
+            direction: rng.next() > 0.5 ? 1 : -1,
+            type: 'miner',
+            speed: 0.3,
+            carrying: i % 3 === 0 ? 'ore' : undefined
+          });
+        }
+    }
+    
+    setCharacters(newCharacters);
+    setVehicles(newVehicles);
+  }, [variant, seed, width, groundY]);
+  
+  // Animation loop
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAnimationFrame(prev => (prev + 1) % 360);
+      setSmokeOffset(prev => (prev + 0.5) % 30);
+      setWheelRotation(prev => (prev + 5) % 360);
+      setCagePosition(prev => {
+        // Oscillate mine cage up and down
+        const newPos = prev + 0.5;
+        return newPos > 20 ? 0 : newPos;
+      });
+      setHammerFrame(prev => (prev + 1) % 20);
+      
+      // Animate clouds at different speeds
+      setCloudOffsets(prev => [
+        (prev[0] + 0.25) % (width + 200), // Slowest
+        (prev[1] + 0.4) % (width + 200),
+        (prev[2] + 0.55) % (width + 200),
+        (prev[3] + 0.35) % (width + 200)  // Different speed
+      ]);
+      
+      // Update character positions
+      setCharacters(prev => prev.map(char => {
+        let newX = char.x + (char.direction * char.speed);
+        let newDirection = char.direction;
+        
+        if (newX < 20 || newX > width - 20) {
+          newDirection *= -1;
+          newX = Math.max(20, Math.min(width - 20, newX));
+        }
+        
+        return { 
+          ...char, 
+          x: newX, 
+          direction: newDirection,
+          animFrame: (char.animFrame || 0) + 1
+        };
+      }));
+      
+      // Update vehicle positions
+      setVehicles(prev => prev.map(vehicle => {
+        let newX = vehicle.x + (vehicle.direction * vehicle.speed);
+        let newDirection = vehicle.direction;
+        
+        if (newX < -50 || newX > width + 50) {
+          newDirection *= -1;
+          newX = Math.max(-50, Math.min(width + 50, newX));
+        }
+        
+        return { ...vehicle, x: newX, direction: newDirection };
+      }));
+    }, 50);
+    
+    return () => clearInterval(interval);
+  }, [width]);
+  
+  // Render mine structure based on variant
+  const renderMineStructure = () => {
+    const centerX = width / 2;
+    
+    switch (variant) {
+      case 'gold-rush':
+        return (
+          <g>
+            {/* River/stream for panning with water effects */}
+            <path d={`M 0 ${groundY + 5} Q ${width * 0.25} ${groundY}, ${width * 0.5} ${groundY + 5} T ${width} ${groundY}`} 
+              fill="#4682B4" opacity="0.6" />
+            <path d={`M 0 ${groundY + 5} Q ${width * 0.25} ${groundY}, ${width * 0.5} ${groundY + 5} T ${width} ${groundY}`} 
+              fill="none" stroke="#5F9EA0" strokeWidth="2" opacity="0.8" />
+            
+            {/* Water ripples */}
+            {Array.from({ length: 5 }, (_, i) => (
+              <ellipse key={`ripple-${i}`}
+                cx={width * 0.3 + i * 60 + Math.sin(animationFrame * 0.05 + i) * 10}
+                cy={groundY + 3}
+                rx="15" ry="3"
+                fill="#87CEEB"
+                opacity={0.3 + 0.2 * Math.sin(animationFrame * 0.1 + i)} />
+            ))}
+            
+            {/* Detailed sluice boxes with wood grain */}
+            <g transform={`translate(${centerX - 80}, ${groundY - 20})`}>
+              <rect x="0" y="0" width="50" height="20" fill="#8B4513" stroke="#654321" strokeWidth="2" />
+              {/* Wood planks */}
+              {[0, 10, 20, 30, 40].map(x => (
+                <line key={x} x1={x} y1="0" x2={x} y2="20" stroke="#654321" strokeWidth="0.5" />
+              ))}
+              {/* Riffles (ridges) inside sluice */}
+              {[5, 10, 15].map(y => (
+                <rect key={y} x="2" y={y} width="46" height="2" fill="#654321" />
+              ))}
+              {/* Water flowing through */}
+              <rect x="2" y="2" width="46" height="16" fill="#4A90E2" opacity="0.5" />
+              {/* Gold particles trapped in riffles */}
+              <circle cx="10" cy="6" r="1" fill="#FFD700" opacity="0.9" />
+              <circle cx="25" cy="11" r="0.8" fill="#FFD700" opacity="0.8" />
+              <circle cx="38" cy="16" r="1.2" fill="#FFD700" opacity="0.95" />
+            </g>
+            
+            {/* Rocker box (cradle) with detail */}
+            <g transform={`translate(${centerX + 20}, ${groundY - 25})`}>
+              <path d={`M 0 25 L 5 5 L 35 5 L 40 25 Z`} 
+                fill="#A0826D" stroke="#654321" strokeWidth="2" />
+              {/* Rocker mechanism */}
+              <rect x="15" y="0" width="10" height="8" fill="#8B4513" stroke="#654321" />
+              <circle cx="20" cy="-2" r="3" fill="#654321" />
+              {/* Handle */}
+              <rect x="18" y="-5" width="4" height="3" fill="#4A4A4A" />
+              {/* Screen on top */}
+              <rect x="7" y="5" width="26" height="2" fill="#4A4A4A" opacity="0.6" />
+              {/* Gravel and gold */}
+              <polygon points="10,10 20,7 30,10" fill="#8B7355" />
+              <circle cx="20" cy="9" r="0.5" fill="#FFD700" />
+            </g>
+            
+            {/* Detailed canvas tents with patches and stakes */}
+            <g transform={`translate(${centerX - 40}, ${groundY})`}>
+              {/* Main tent */}
+              <polygon points="0,0 15,-30 30,0" fill="#F5DEB3" stroke="#8B7355" strokeWidth="2" />
+              {/* Tent flap */}
+              <polygon points="10,0 15,-20 20,0" fill="#D2B48C" />
+              {/* Support pole */}
+              <rect x="14" y="-30" width="2" height="30" fill="#654321" />
+              {/* Guy ropes */}
+              <line x1="15" y1="-28" x2="-5" y2="0" stroke="#8B7355" strokeWidth="1" />
+              <line x1="15" y1="-28" x2="35" y2="0" stroke="#8B7355" strokeWidth="1" />
+              {/* Stakes */}
+              <rect x="-5" y="-2" width="2" height="4" fill="#4A4A4A" />
+              <rect x="33" y="-2" width="2" height="4" fill="#4A4A4A" />
+              {/* Patch on tent */}
+              <rect x="8" y="-15" width="5" height="5" fill="#C4A484" />
+            </g>
+            
+            {/* Second tent with variation */}
+            <g transform={`translate(${centerX + 60}, ${groundY})`}>
+              <polygon points="0,0 12,-25 24,0" fill="#DEB887" stroke="#A0826D" strokeWidth="2" />
+              <polygon points="8,0 12,-18 16,0" fill="#BC9A6A" />
+              <rect x="11" y="-25" width="2" height="25" fill="#654321" />
+            </g>
+            
+            {/* Long tom (extended sluice) with supports */}
+            <g transform={`translate(${centerX - 30}, ${groundY - 12})`}>
+              <rect x="0" y="0" width="80" height="6" fill="#8B4513" stroke="#654321" strokeWidth="1" />
+              {/* Support legs */}
+              <rect x="10" y="6" width="3" height="12" fill="#654321" />
+              <rect x="40" y="6" width="3" height="12" fill="#654321" />
+              <rect x="67" y="6" width="3" height="12" fill="#654321" />
+              {/* Water and sediment */}
+              <rect x="2" y="1" width="76" height="4" fill="#4A90E2" opacity="0.4" />
+              <rect x="2" y="3" width="76" height="2" fill="#8B7355" opacity="0.3" />
+            </g>
+            
+            {/* Mining tools scattered around */}
+            <g transform={`translate(${centerX - 60}, ${groundY - 5})`}>
+              {/* Pickaxe */}
+              <line x1="0" y1="5" x2="8" y2="-3" stroke="#654321" strokeWidth="2" />
+              <path d="M 6 -5 L 10 -3 L 8 -1 L 6 -3 Z" fill="#4A4A4A" />
+            </g>
+            <g transform={`translate(${centerX + 90}, ${groundY - 5})`}>
+              {/* Shovel */}
+              <line x1="0" y1="5" x2="6" y2="-2" stroke="#654321" strokeWidth="2" />
+              <ellipse cx="6" cy="-3" rx="3" ry="4" fill="#4A4A4A" />
+            </g>
+            <g transform={`translate(${centerX - 10}, ${groundY - 3})`}>
+              {/* Gold pan */}
+              <ellipse cx="0" cy="0" rx="8" ry="3" fill="#2C2C2C" />
+              <ellipse cx="0" cy="0" rx="6" ry="2" fill="#4A4A4A" />
+              {/* Gold nuggets in pan */}
+              <circle cx="-2" cy="0" r="0.5" fill="#FFD700" />
+              <circle cx="1" cy="-0.5" r="0.3" fill="#FFD700" />
+            </g>
+            
+            {/* Claim marker sign */}
+            <g transform={`translate(${centerX - 100}, ${groundY - 30})`}>
+              <rect x="0" y="0" width="3" height="30" fill="#654321" />
+              <rect x="-10" y="0" width="23" height="12" fill="#F5DEB3" stroke="#8B7355" />
+              <text x="1.5" y="8" fontSize="6" fill="#4A4A4A" textAnchor="middle" fontFamily="serif">CLAIM #7</text>
+            </g>
+            
+            {/* Gold particles glinting in water */}
+            {Array.from({ length: 8 }, (_, i) => (
+              <circle key={`gold-${i}`} 
+                cx={rng.range(50, width - 50)} 
+                cy={groundY + rng.range(-2, 5)} 
+                r={rng.range(0.5, 1.5)} 
+                fill="#FFD700" 
+                opacity={0.4 + 0.6 * Math.sin(animationFrame * 0.15 + i * 0.8)} />
+            ))}
+          </g>
+        );
+        
+      case 'industrial-coal':
+        return (
+          <g>
+            {/* Main colliery building with Victorian industrial architecture */}
+            <rect x={centerX - 60} y={groundY - 70} width="120" height="70" 
+              fill="#4A4A4A" stroke="#2C2C2C" strokeWidth="2" />
+            
+            {/* Brick pattern on building */}
+            {Array.from({ length: 14 }, (_, row) => (
+              Array.from({ length: 12 }, (_, col) => (
+                <rect key={`brick-${row}-${col}`}
+                  x={centerX - 58 + col * 10}
+                  y={groundY - 68 + row * 5}
+                  width="9" height="4"
+                  fill={row % 2 === col % 2 ? '#8B4513' : '#A0522D'}
+                  stroke="#654321"
+                  strokeWidth="0.5" />
+              ))
+            )).flat()}
+            
+            {/* Industrial windows with metal frames */}
+            {[-40, -20, 0, 20, 40].map(offset => (
+              <g key={`window-${offset}`}>
+                <rect x={centerX + offset - 8} y={groundY - 55} width="16" height="20" 
+                  fill="#2C2C2C" stroke="#1A1A1A" strokeWidth="1" />
+                <rect x={centerX + offset - 7} y={groundY - 54} width="14" height="18" 
+                  fill="#4A5A6A" opacity="0.6" />
+                {/* Window panes */}
+                <line x1={centerX + offset} y1={groundY - 55} x2={centerX + offset} y2={groundY - 35} 
+                  stroke="#1A1A1A" strokeWidth="1" />
+                <line x1={centerX + offset - 8} y1={groundY - 45} x2={centerX + offset + 8} y2={groundY - 45} 
+                  stroke="#1A1A1A" strokeWidth="1" />
+              </g>
+            ))}
+            
+            {/* Elaborate headframe (pit head gear) with detail */}
+            <g transform={`translate(${centerX}, ${groundY})`}>
+              {/* Main A-frame structure */}
+              <path d={`M -30 0 L 0 -80 L 30 0`} 
+                stroke="#1A1A1A" strokeWidth="6" fill="none" />
+              {/* Cross bracing */}
+              <line x1="-20" y1="-20" x2="20" y2="-20" stroke="#2C2C2C" strokeWidth="4" />
+              <line x1="-15" y1="-35" x2="15" y2="-35" stroke="#2C2C2C" strokeWidth="3" />
+              <line x1="-10" y1="-50" x2="10" y2="-50" stroke="#2C2C2C" strokeWidth="3" />
+              <line x1="-5" y1="-65" x2="5" y2="-65" stroke="#2C2C2C" strokeWidth="2" />
+              
+              {/* Diagonal bracing */}
+              <line x1="-25" y1="-10" x2="-10" y2="-30" stroke="#2C2C2C" strokeWidth="2" />
+              <line x1="25" y1="-10" x2="10" y2="-30" stroke="#2C2C2C" strokeWidth="2" />
+              <line x1="-15" y1="-30" x2="-5" y2="-50" stroke="#2C2C2C" strokeWidth="2" />
+              <line x1="15" y1="-30" x2="5" y2="-50" stroke="#2C2C2C" strokeWidth="2" />
+            </g>
+            
+            {/* Winding wheels with spokes and cable */}
+            <g transform={`translate(${centerX}, ${groundY - 80})`}>
+              {/* Outer wheel */}
+              <circle cx="0" cy="0" r="12" fill="#2C2C2C" stroke="#1A1A1A" strokeWidth="2" />
+              <circle cx="0" cy="0" r="10" fill="none" stroke="#1A1A1A" strokeWidth="1" />
+              {/* Spokes */}
+              {Array.from({ length: 12 }, (_, i) => (
+                <line key={`spoke-${i}`}
+                  x1="0" y1="0"
+                  x2={10 * Math.cos((i * 30 + wheelRotation) * Math.PI / 180)}
+                  y2={10 * Math.sin((i * 30 + wheelRotation) * Math.PI / 180)}
+                  stroke="#1A1A1A" strokeWidth="1.5" />
+              ))}
+              {/* Hub */}
+              <circle cx="0" cy="0" r="3" fill="#1A1A1A" />
+            </g>
+            
+            {/* Mine cage with miners inside */}
+            <g transform={`translate(${centerX}, ${groundY - 50 + cagePosition})`}>
+              <rect x="-10" y="0" width="20" height="15" fill="#3A3A3A" stroke="#1A1A1A" strokeWidth="2" />
+              {/* Cage bars */}
+              {[-6, -2, 2, 6].map(x => (
+                <rect key={`bar-${x}`} x={x - 0.5} y="0" width="1" height="15" fill="#1A1A1A" />
+              ))}
+              {/* Miners silhouettes in cage */}
+              <rect x="-7" y="5" width="4" height="8" fill="#1A1A1A" opacity="0.8" />
+              <rect x="-2" y="6" width="4" height="7" fill="#1A1A1A" opacity="0.8" />
+              <rect x="3" y="5" width="4" height="8" fill="#1A1A1A" opacity="0.8" />
+              {/* Cable */}
+              <line x1="0" y1="0" x2="0" y2={-30 - cagePosition} stroke="#1A1A1A" strokeWidth="2" />
+            </g>
+            
+            {/* Large coal heaps with texture */}
+            <g transform={`translate(${centerX - 80}, ${groundY})`}>
+              <polygon points="0,0 20,-25 40,0" fill="#1A1A1A" />
+              <polygon points="5,-5 15,-18 30,-8" fill="#2C2C2C" />
+              {/* Coal chunks */}
+              {Array.from({ length: 8 }, (_, i) => (
+                <rect key={`coal-${i}`}
+                  x={rng.range(5, 35)}
+                  y={rng.range(-20, -2)}
+                  width={rng.range(3, 6)}
+                  height={rng.range(2, 4)}
+                  fill="#0A0A0A"
+                  transform={`rotate(${rng.range(-45, 45)})`} />
+              ))}
+            </g>
+            
+            <g transform={`translate(${centerX + 60}, ${groundY})`}>
+              <polygon points="0,0 15,-20 35,0" fill="#1A1A1A" />
+              <polygon points="8,-3 18,-15 28,-5" fill="#2C2C2C" />
+            </g>
+            
+            {/* Tall industrial chimney with brickwork */}
+            <g transform={`translate(${centerX + 40}, ${groundY - 10})`}>
+              <rect x="0" y="-70" width="15" height="70" fill="#8B4513" stroke="#654321" strokeWidth="1" />
+              {/* Brick bands */}
+              {[-65, -50, -35, -20, -5].map(y => (
+                <rect key={`band-${y}`} x="0" y={y} width="15" height="3" fill="#654321" />
+              ))}
+              {/* Top cap */}
+              <rect x="-2" y="-73" width="19" height="5" fill="#654321" />
+              
+              {/* Thick industrial smoke */}
+              <ellipse cx="7.5" cy={-80 - smokeOffset / 2} 
+                rx="12" ry="8" fill="#2C2C2C" opacity={0.7 - smokeOffset / 100} />
+              <ellipse cx="8" cy={-88 - smokeOffset} 
+                rx="15" ry="10" fill="#3A3A3A" opacity={0.6 - smokeOffset / 120} />
+              <ellipse cx="7" cy={-98 - smokeOffset * 1.5} 
+                rx="18" ry="12" fill="#4A4A4A" opacity={0.5 - smokeOffset / 150} />
+              <ellipse cx="9" cy={-110 - smokeOffset * 2} 
+                rx="22" ry="15" fill="#5A5A5A" opacity={0.4 - smokeOffset / 180} />
+            </g>
+            
+            {/* Railway infrastructure with detail */}
+            <g>
+              {/* Main rails */}
+              <rect x="0" y={groundY + 3} width={width} height="3" fill="#3A3A3A" />
+              <rect x="0" y={groundY + 9} width={width} height="3" fill="#3A3A3A" />
+              
+              {/* Rail ties with wood grain */}
+              {Array.from({ length: Math.floor(width / 25) }, (_, i) => (
+                <g key={`tie-${i}`}>
+                  <rect x={i * 25} y={groundY + 1} width="8" height="13" fill="#654321" />
+                  <line x1={i * 25 + 2} y1={groundY + 1} x2={i * 25 + 2} y2={groundY + 14} 
+                    stroke="#4A3A2A" strokeWidth="0.5" />
+                  <line x1={i * 25 + 5} y1={groundY + 1} x2={i * 25 + 5} y2={groundY + 14} 
+                    stroke="#4A3A2A" strokeWidth="0.5" />
+                </g>
+              ))}
+              
+              {/* Rail spikes */}
+              {Array.from({ length: Math.floor(width / 50) }, (_, i) => (
+                <circle key={`spike-${i}`} cx={i * 50 + 25} cy={groundY + 4} r="1" fill="#1A1A1A" />
+              ))}
+            </g>
+            
+            {/* Engine house detail */}
+            <g transform={`translate(${centerX - 100}, ${groundY - 40})`}>
+              <rect x="0" y="0" width="30" height="40" fill="#6A6A6A" stroke="#4A4A4A" />
+              <polygon points="-2,0 15,-12 32,0" fill="#4A4A4A" />
+              {/* Steam engine flywheel visible through window */}
+              <rect x="8" y="15" width="14" height="14" fill="#1A1A1A" />
+              <circle cx="15" cy="22" r="6" fill="none" stroke="#8B4513" strokeWidth="1" />
+              <line x1="15" y1="22" x2={15 + 6 * Math.cos(wheelRotation * Math.PI / 180)} 
+                y2={22 + 6 * Math.sin(wheelRotation * Math.PI / 180)} 
+                stroke="#8B4513" strokeWidth="2" />
+            </g>
+          </g>
+        );
+        
+      case 'african-diamond':
+        return (
+          <g>
+            {/* Open pit mine */}
+            <ellipse cx={centerX} cy={groundY - 5} rx="80" ry="15" fill="#8B7355" stroke="#654321" strokeWidth="2" />
+            <ellipse cx={centerX} cy={groundY - 5} rx="60" ry="10" fill="#6B5D54" />
+            <ellipse cx={centerX} cy={groundY - 5} rx="40" ry="5" fill="#4A4A4A" />
+            
+            {/* Security compound */}
+            <rect x={centerX - 50} y={groundY - 30} width="100" height="25" fill="#C0C0C0" stroke="#808080" />
+            
+            {/* Guard towers */}
+            <rect x={centerX - 60} y={groundY - 40} width="15" height="40" fill="#8B7355" stroke="#654321" />
+            <polygon points={`${centerX - 62},${groundY - 40} ${centerX - 52.5},${groundY - 45} ${centerX - 45},${groundY - 40}`} fill="#654321" />
+            <rect x={centerX + 45} y={groundY - 40} width="15" height="40" fill="#8B7355" stroke="#654321" />
+            <polygon points={`${centerX + 43},${groundY - 40} ${centerX + 52.5},${groundY - 45} ${centerX + 62},${groundY - 40}`} fill="#654321" />
+            
+            {/* Sorting tables under shade */}
+            <rect x={centerX - 30} y={groundY - 20} width="60" height="3" fill="#8B4513" />
+            <rect x={centerX - 35} y={groundY - 25} width="70" height="2" fill="#D2B48C" stroke="#A0826D" />
+            
+            {/* Diamond sparkles */}
+            {Array.from({ length: 5 }, (_, i) => (
+              <g key={i}>
+                <rect x={centerX - 25 + i * 12} y={groundY - 18} width="2" height="2" 
+                  fill="#E0FFFF" 
+                  opacity={0.3 + 0.7 * Math.sin(animationFrame * 0.15 + i * 0.5)} />
+                <rect x={centerX - 24 + i * 12} y={groundY - 17} width="1" height="1" 
+                  fill="#FFFFFF" 
+                  opacity={0.5 + 0.5 * Math.sin(animationFrame * 0.15 + i * 0.5)} />
+              </g>
+            ))}
+            
+            {/* Barbed wire fence */}
+            <line x1={0} y1={groundY - 35} x2={width} y2={groundY - 35} stroke="#4A4A4A" strokeWidth="1" />
+            {Array.from({ length: 30 }, (_, i) => (
+              <text key={i} x={i * 20} y={groundY - 35} fontSize="8" fill="#4A4A4A">x</text>
+            ))}
+          </g>
+        );
+        
+      case 'salt-mine':
+      case 'tin':
+      case 'copper':
+        const isSalt = variant === 'salt-mine';
+        const isTin = material === 'tin';
+        return (
+          <g>
+            {/* Main mining structure with more detail */}
+            <rect x={centerX - 45} y={groundY - 45} width="90" height="45" 
+              fill={isTin ? '#8B9DC3' : '#A0826D'} 
+              stroke={isTin ? '#6B7C93' : '#806050'} strokeWidth="2" />
+            
+            {/* Industrial roof with ridges */}
+            <polygon points={`${centerX - 50},${groundY - 45} ${centerX},${groundY - 65} ${centerX + 50},${groundY - 45}`} 
+              fill={isTin ? '#6B7C93' : '#8B7355'} stroke={isTin ? '#4B5C73' : '#6B5345'} strokeWidth="2" />
+            
+            {/* Roof details - corrugated metal effect */}
+            {Array.from({ length: 8 }, (_, i) => (
+              <line key={i}
+                x1={centerX - 45 + i * 12}
+                y1={groundY - 45}
+                x2={centerX - 25 + i * 12}
+                y2={groundY - 58}
+                stroke={isTin ? '#4B5C73' : '#6B5345'}
+                strokeWidth="1"
+                opacity="0.5" />
+            ))}
+            
+            {/* Windows with industrial frames */}
+            <rect x={centerX - 35} y={groundY - 35} width="15" height="12" 
+              fill="#87CEEB" stroke="#4A4A4A" strokeWidth="1" opacity="0.7" />
+            <line x1={centerX - 27.5} y1={groundY - 35} x2={centerX - 27.5} y2={groundY - 23} stroke="#4A4A4A" />
+            <line x1={centerX - 35} y1={groundY - 29} x2={centerX - 20} y2={groundY - 29} stroke="#4A4A4A" />
+            
+            <rect x={centerX - 7.5} y={groundY - 35} width="15" height="12" 
+              fill="#87CEEB" stroke="#4A4A4A" strokeWidth="1" opacity="0.7" />
+            <line x1={centerX} y1={groundY - 35} x2={centerX} y2={groundY - 23} stroke="#4A4A4A" />
+            <line x1={centerX - 7.5} y1={groundY - 29} x2={centerX + 7.5} y2={groundY - 29} stroke="#4A4A4A" />
+            
+            <rect x={centerX + 20} y={groundY - 35} width="15" height="12" 
+              fill="#87CEEB" stroke="#4A4A4A" strokeWidth="1" opacity="0.7" />
+            <line x1={centerX + 27.5} y1={groundY - 35} x2={centerX + 27.5} y2={groundY - 23} stroke="#4A4A4A" />
+            <line x1={centerX + 20} y1={groundY - 29} x2={centerX + 35} y2={groundY - 29} stroke="#4A4A4A" />
+            
+            {/* Industrial door */}
+            <rect x={centerX - 10} y={groundY - 20} width="20" height="20" fill="#4A4A4A" stroke="#2C2C2C" strokeWidth="2" />
+            <rect x={centerX - 7} y={groundY - 17} width="14" height="8" fill="#2C2C2C" />
+            <rect x={centerX - 7} y={groundY - 8} width="14" height="8" fill="#2C2C2C" />
+            
+            {/* Chimney with detailed brickwork */}
+            <rect x={centerX + 35} y={groundY - 60} width="12" height="40" 
+              fill="#8B4513" stroke="#654321" strokeWidth="1" />
+            {/* Brick pattern */}
+            {Array.from({ length: 8 }, (_, i) => (
+              <g key={i}>
+                <line x1={centerX + 35} y1={groundY - 60 + i * 5} 
+                  x2={centerX + 47} y2={groundY - 60 + i * 5} 
+                  stroke="#654321" strokeWidth="0.5" />
+                {i % 2 === 0 && (
+                  <line x1={centerX + 41} y1={groundY - 60 + i * 5} 
+                    x2={centerX + 41} y2={groundY - 55 + i * 5} 
+                    stroke="#654321" strokeWidth="0.5" />
+                )}
+              </g>
+            ))}
+            
+            {/* Smoke with better animation */}
+            <ellipse cx={centerX + 41} cy={groundY - 65 - smokeOffset / 2} 
+              rx="8" ry="6" fill="#808080" opacity={0.4 - smokeOffset / 100} />
+            <ellipse cx={centerX + 42} cy={groundY - 70 - smokeOffset} 
+              rx="10" ry="8" fill="#909090" opacity={0.3 - smokeOffset / 120} />
+            <ellipse cx={centerX + 40} cy={groundY - 78 - smokeOffset * 1.5} 
+              rx="12" ry="10" fill="#A0A0A0" opacity={0.2 - smokeOffset / 150} />
+            
+            {/* Material-specific elements */}
+            {isSalt ? (
+              <>
+                {/* Salt evaporation ponds with reflections */}
+                <rect x={centerX - 80} y={groundY - 12} width="35" height="12" 
+                  fill="#B0E2FF" stroke="#87CEEB" strokeWidth="1" />
+                <rect x={centerX - 78} y={groundY - 10} width="31" height="3" 
+                  fill="#E0F6FF" opacity="0.5" />
+                
+                <rect x={centerX + 45} y={groundY - 12} width="35" height="12" 
+                  fill="#B0E2FF" stroke="#87CEEB" strokeWidth="1" />
+                <rect x={centerX + 47} y={groundY - 10} width="31" height="3" 
+                  fill="#E0F6FF" opacity="0.5" />
+                
+                {/* Salt crystals with sparkle */}
+                {Array.from({ length: 6 }, (_, i) => (
+                  <g key={i}>
+                    <rect x={centerX - 75 + i * 25} y={groundY - 8} 
+                      width="4" height="4" fill="#FFFFFF" />
+                    <rect x={centerX - 74 + i * 25} y={groundY - 7} 
+                      width="2" height="2" fill="#F0F8FF" 
+                      opacity={0.5 + 0.5 * Math.sin(animationFrame * 0.1 + i)} />
+                  </g>
+                ))}
+              </>
+            ) : isTin ? (
+              <>
+                {/* Tin ore processing area */}
+                <rect x={centerX - 70} y={groundY - 15} width="25" height="15" 
+                  fill="#708090" stroke="#4A5A6A" strokeWidth="1" />
+                <polygon points={`${centerX - 65},${groundY - 5} ${centerX - 60},${groundY - 10} ${centerX - 55},${groundY - 5}`} 
+                  fill="#C0C0C0" stroke="#808080" />
+                
+                {/* Smelting furnace */}
+                <rect x={centerX + 55} y={groundY - 20} width="20" height="20" 
+                  fill="#4A4A4A" stroke="#2C2C2C" strokeWidth="2" />
+                <rect x={centerX + 60} y={groundY - 15} width="10" height="8" 
+                  fill="#FF4500" opacity="0.7" />
+                <rect x={centerX + 62} y={groundY - 13} width="6" height="4" 
+                  fill="#FFA500" opacity="0.9" />
+              </>
+            ) : (
+              <>
+                {/* Copper ore bins */}
+                <rect x={centerX - 70} y={groundY - 10} width="20" height="10" 
+                  fill="#B87333" stroke="#8B4513" strokeWidth="1" />
+                <polygon points={`${centerX - 65},${groundY - 10} ${centerX - 60},${groundY - 15} ${centerX - 55},${groundY - 10}`} 
+                  fill="#CD7F32" />
+              </>
+            )}
+            
+            {/* Mine cart tracks with perspective */}
+            <line x1={centerX - 100} y1={groundY + 2} x2={centerX + 100} y2={groundY + 2} 
+              stroke="#4A4A4A" strokeWidth="2" />
+            <line x1={centerX - 100} y1={groundY + 6} x2={centerX + 100} y2={groundY + 6} 
+              stroke="#4A4A4A" strokeWidth="2" />
+            {/* Track ties */}
+            {Array.from({ length: 15 }, (_, i) => (
+              <rect key={i} x={centerX - 90 + i * 13} y={groundY + 1} 
+                width="3" height="7" fill="#654321" />
+            ))}
+          </g>
+        );
+        
+      case 'medieval-iron':
+        return (
+          <g>
+            {/* Hillside with exposed rock face */}
+            <path d={`M ${centerX - 80} ${groundY} L ${centerX - 70} ${groundY - 40} L ${centerX - 40} ${groundY - 55} L ${centerX} ${groundY - 50} L ${centerX + 40} ${groundY - 45} L ${centerX + 70} ${groundY - 35} L ${centerX + 80} ${groundY}`} 
+              fill="#8B7D6B" stroke="#6B5D4B" strokeWidth="2" />
+            
+            {/* Rock strata layers */}
+            <line x1={centerX - 70} y1={groundY - 30} x2={centerX + 70} y2={groundY - 25} 
+              stroke="#6B5D4B" strokeWidth="1" opacity="0.5" />
+            <line x1={centerX - 65} y1={groundY - 20} x2={centerX + 65} y2={groundY - 18} 
+              stroke="#7B6D5B" strokeWidth="1" opacity="0.5" />
+            <line x1={centerX - 60} y1={groundY - 10} x2={centerX + 60} y2={groundY - 8} 
+              stroke="#6B5D4B" strokeWidth="1" opacity="0.5" />
+            
+            {/* Stone mine entrance with medieval architecture */}
+            <g transform={`translate(${centerX}, ${groundY})`}>
+              {/* Stone blocks around entrance */}
+              <rect x="-35" y="-45" width="70" height="45" fill="#9B8D7D" stroke="#7B6D5D" strokeWidth="2" />
+              
+              {/* Individual stone blocks */}
+              {[
+                { x: -35, y: -45, w: 15, h: 10 },
+                { x: -20, y: -45, w: 12, h: 10 },
+                { x: -8, y: -45, w: 16, h: 10 },
+                { x: 8, y: -45, w: 14, h: 10 },
+                { x: 22, y: -45, w: 13, h: 10 },
+                { x: -35, y: -35, w: 10, h: 12 },
+                { x: -25, y: -35, w: 14, h: 12 },
+                { x: -11, y: -35, w: 11, h: 12 },
+                { x: 0, y: -35, w: 15, h: 12 },
+                { x: 15, y: -35, w: 10, h: 12 },
+                { x: 25, y: -35, w: 10, h: 12 },
+              ].map((stone, i) => (
+                <rect key={`stone-${i}`} 
+                  x={stone.x} y={stone.y} 
+                  width={stone.w} height={stone.h} 
+                  fill={i % 2 === 0 ? '#8B7D6D' : '#9B8D7D'} 
+                  stroke="#6B5D4D" strokeWidth="0.5" />
+              ))}
+              
+              {/* Gothic arched entrance */}
+              <path d={`M -18 0 L -18 -25 Q -15 -32, -10 -35 Q -5 -37, 0 -38 Q 5 -37, 10 -35 Q 15 -32, 18 -25 L 18 0`} 
+                fill="#1A1A1A" stroke="#0A0A0A" strokeWidth="2" />
+              
+              {/* Timber support beams inside entrance */}
+              <rect x="-16" y="-23" width="4" height="23" fill="#654321" />
+              <rect x="12" y="-23" width="4" height="23" fill="#654321" />
+              <rect x="-16" y="-23" width="32" height="3" fill="#654321" />
+              
+              {/* Cross bracing */}
+              <line x1="-14" y1="-20" x2="-14" y2="0" stroke="#4A3A2A" strokeWidth="1" />
+              <line x1="14" y1="-20" x2="14" y2="0" stroke="#4A3A2A" strokeWidth="1" />
+            </g>
+            
+            {/* Water wheel for mine drainage (larger and more detailed) */}
+            <g transform={`translate(${centerX + 50}, ${groundY - 20})`}>
+              {/* Wheel structure */}
+              <circle cx="0" cy="0" r="18" fill="#8B4513" stroke="#654321" strokeWidth="3" />
+              <circle cx="0" cy="0" r="15" fill="none" stroke="#654321" strokeWidth="1" />
+              <circle cx="0" cy="0" r="5" fill="#654321" />
+              
+              {/* Paddles/buckets */}
+              {Array.from({ length: 12 }, (_, i) => {
+                const angle = (i * 30 + wheelRotation) * Math.PI / 180;
+                const x1 = 5 * Math.cos(angle);
+                const y1 = 5 * Math.sin(angle);
+                const x2 = 18 * Math.cos(angle);
+                const y2 = 18 * Math.sin(angle);
+                return (
+                  <g key={`paddle-${i}`}>
+                    <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#654321" strokeWidth="2" />
+                    <rect x={x2 - 3} y={y2 - 2} width="6" height="4" 
+                      fill="#A0826D" stroke="#654321" 
+                      transform={`rotate(${i * 30 + wheelRotation} ${x2} ${y2})`} />
+                  </g>
+                );
+              })}
+              
+              {/* Axle and supports */}
+              <circle cx="0" cy="0" r="3" fill="#4A4A4A" />
+              <rect x="-2" y="-2" width="4" height="4" fill="#2C2C2C" />
+            </g>
+            
+            {/* Water channel/flume feeding the wheel */}
+            <g>
+              <rect x={centerX + 30} y={groundY - 8} width="40" height="6" 
+                fill="#654321" stroke="#4A3A2A" strokeWidth="1" />
+              <rect x={centerX + 32} y={groundY - 7} width="36" height="4" 
+                fill="#4A90E2" opacity="0.7" />
+              {/* Water flow effect */}
+              {Array.from({ length: 3 }, (_, i) => (
+                <rect key={`flow-${i}`}
+                  x={centerX + 35 + i * 10 + (animationFrame % 10)}
+                  y={groundY - 6}
+                  width="4" height="2"
+                  fill="#87CEEB"
+                  opacity="0.5" />
+              ))}
+            </g>
+            
+            {/* Ore processing area */}
+            <g transform={`translate(${centerX - 60}, ${groundY})`}>
+              {/* Ore pile with iron chunks */}
+              <polygon points="0,0 10,-12 20,0" fill="#4A4A4A" />
+              <polygon points="3,-2 8,-8 15,-3" fill="#5A5A5A" />
+              {/* Iron ore pieces */}
+              {Array.from({ length: 5 }, (_, i) => (
+                <rect key={`ore-${i}`}
+                  x={rng.range(2, 18)}
+                  y={rng.range(-10, -1)}
+                  width={rng.range(2, 4)}
+                  height={rng.range(2, 3)}
+                  fill="#3A3A3A"
+                  transform={`rotate(${rng.range(-30, 30)})`} />
+              ))}
+              
+              {/* Sorting table */}
+              <rect x="-10" y="-8" width="25" height="2" fill="#8B4513" />
+              <rect x="-8" y="-6" width="2" height="6" fill="#654321" />
+              <rect x="11" y="-6" width="2" height="6" fill="#654321" />
+            </g>
+            
+            {/* Windlass (medieval lifting mechanism) with more detail */}
+            <g transform={`translate(${centerX}, ${groundY - 50})`}>
+              {/* Support posts */}
+              <rect x="-12" y="0" width="3" height="12" fill="#654321" />
+              <rect x="9" y="0" width="3" height="12" fill="#654321" />
+              
+              {/* Horizontal beam */}
+              <rect x="-12" y="0" width="24" height="3" fill="#8B4513" />
+              
+              {/* Winding drums */}
+              <ellipse cx="-6" cy="1.5" rx="4" ry="3" fill="#654321" stroke="#4A3A2A" />
+              <ellipse cx="6" cy="1.5" rx="4" ry="3" fill="#654321" stroke="#4A3A2A" />
+              
+              {/* Crank handle */}
+              <rect x="12" y="0" width="8" height="2" fill="#4A4A4A" />
+              <rect x="19" y="-2" width="2" height="6" fill="#4A4A4A" />
+              
+              {/* Rope and bucket */}
+              <line x1="0" y1="3" x2="0" y2="20" stroke="#8B7355" strokeWidth="2" />
+              <rect x="-3" y="20" width="6" height="5" fill="#654321" stroke="#4A3A2A" />
+              {/* Ore in bucket */}
+              <polygon points="-2,21 0,19 2,21" fill="#4A4A4A" />
+            </g>
+            
+            {/* Blacksmith forge nearby for processing */}
+            <g transform={`translate(${centerX - 90}, ${groundY - 25})`}>
+              <rect x="0" y="0" width="25" height="25" fill="#8B7355" stroke="#6B5345" strokeWidth="2" />
+              <polygon points="-3,0 12.5,-10 28,0" fill="#6B5345" />
+              {/* Forge fire glow */}
+              <rect x="8" y="15" width="9" height="6" fill="#FF4500" opacity="0.7" />
+              <rect x="10" y="16" width="5" height="3" fill="#FFA500" opacity="0.9" />
+              {/* Anvil */}
+              <rect x="5" y="10" width="6" height="3" fill="#2C2C2C" />
+              <polygon points="4,10 5,8 11,8 12,10" fill="#1A1A1A" />
+              {/* Hammer */}
+              <rect x={7 + Math.sin(hammerFrame * 0.3) * 2} 
+                y={7 - Math.abs(Math.cos(hammerFrame * 0.3)) * 2} 
+                width="2" height="3" fill="#4A4A4A" />
+            </g>
+            
+            {/* Torch/lantern lights for dark entrance */}
+            {(timeOfDay === 'Night' || timeOfDay === 'Dusk') && (
+              <>
+                <circle cx={centerX - 14} cy={groundY - 15} r="3" fill="#FFD700" opacity="0.8" />
+                <circle cx={centerX - 14} cy={groundY - 15} r="6" fill="#FFA500" opacity="0.3" />
+                <circle cx={centerX + 14} cy={groundY - 15} r="3" fill="#FFD700" opacity="0.8" />
+                <circle cx={centerX + 14} cy={groundY - 15} r="6" fill="#FFA500" opacity="0.3" />
+                {/* Glow from mine entrance */}
+                <ellipse cx={centerX} cy={groundY - 10} rx="15" ry="8" fill="#FFD700" opacity="0.2" />
+              </>
+            )}
+          </g>
+        );
+        
+      default:
+        return (
+          <g>
+            {/* Generic mine entrance */}
+            <rect x={centerX - 35} y={groundY - 30} width="70" height="30" fill="#8B7355" stroke="#654321" />
+            <rect x={centerX - 12} y={groundY - 20} width="24" height="20" fill="#2C2C2C" />
+            <polygon points={`${centerX - 40},${groundY - 30} ${centerX},${groundY - 45} ${centerX + 40},${groundY - 30}`} fill="#654321" />
+          </g>
+        );
+    }
+  };
+  
+  // Render animated character
+  const renderCharacter = (char: MineCharacter) => {
+    let baseColor = '#8B4513';
+    let hatColor = '#4A4A4A';
+    let height = 8;
+    
+    switch (char.type) {
+      case 'overseer':
+        baseColor = '#4A4A4A';
+        hatColor = '#2C2C2C';
+        break;
+      case 'guard':
+        baseColor = '#556B2F';
+        hatColor = '#4A4A4A';
+        break;
+      case 'prospector':
+        baseColor = '#D2691E';
+        hatColor = '#8B4513';
+        break;
+      case 'child_worker':
+        height = 6;
+        baseColor = '#8B7355';
+        hatColor = '#654321';
+        break;
+    }
+    
+    const walkOffset = Math.sin(char.animFrame || 0 * 0.3) * 0.5;
+    
+    return (
+      <g key={char.id} transform={`translate(${char.x}, ${char.y})`}>
+        {/* Body */}
+        <rect x="-2" y={`-${height - 2}`} width="4" height="4" fill={baseColor} />
+        
+        {/* Head */}
+        <rect x="-1.5" y={`-${height}`} width="3" height="2" fill="#FDBCB4" />
+        
+        {/* Hat/Helmet */}
+        {char.type === 'miner' && variant === 'industrial-coal' ? (
+          // Mining helmet with lamp
+          <>
+            <rect x="-2" y={`-${height + 1}`} width="4" height="1" fill="#2C2C2C" />
+            <rect x="-3" y={`-${height + 0.5}`} width="1" height="1" fill="#FFD700" opacity="0.8" />
+          </>
+        ) : (
+          <rect x="-1.5" y={`-${height + 1}`} width="3" height="1" fill={hatColor} />
+        )}
+        
+        {/* Legs - animated walking */}
+        <rect x="-1.5" y="-2" width="1" height="2" fill="#4A4A4A" transform={`translate(0, ${walkOffset})`} />
+        <rect x="0.5" y="-2" width="1" height="2" fill="#4A4A4A" transform={`translate(0, ${-walkOffset})`} />
+        
+        {/* Carrying items */}
+        {char.carrying === 'ore' && (
+          <rect x="-3" y={`-${height - 1}`} width="6" height="2" fill="#4A4A4A" />
+        )}
+        {char.carrying === 'tools' && (
+          <>
+            <line x1="-3" y1={`-${height - 1}`} x2="3" y2={`-${height - 1}`} stroke="#654321" strokeWidth="1" />
+            <rect x="2" y={`-${height - 2}`} width="2" height="3" fill="#808080" />
+          </>
+        )}
+        {char.carrying === 'lantern' && (
+          <>
+            <rect x="3" y={`-${height - 1}`} width="2" height="3" fill="#8B4513" />
+            <circle cx="4" cy={`-${height - 2}`} r="2" fill="#FFD700" opacity="0.6" />
+          </>
+        )}
+        {char.carrying === 'cart' && (
+          <rect x="-4" y="-1" width="3" height="2" fill="#654321" />
+        )}
+      </g>
+    );
+  };
+  
+  // Render vehicles
+  const renderVehicle = (vehicle: MineVehicle) => {
+    switch (vehicle.type) {
+      case 'mine_cart':
+        return (
+          <g key={vehicle.id} transform={`translate(${vehicle.x}, ${vehicle.y})`}>
+            <rect x="-8" y="-6" width="16" height="6" fill="#4A4A4A" stroke="#2C2C2C" />
+            <circle cx="-5" cy="0" r="2" fill="#2C2C2C" />
+            <circle cx="5" cy="0" r="2" fill="#2C2C2C" />
+            {vehicle.loaded && (
+              <polygon points="-6,-6 0,-9 6,-6" fill="#2C2C2C" />
+            )}
+          </g>
+        );
+        
+      case 'pit_pony':
+        return (
+          <g key={vehicle.id} transform={`translate(${vehicle.x}, ${vehicle.y})`}>
+            {/* Small horse for mine work */}
+            <rect x="-8" y="-6" width="5" height="4" fill="#654321" />
+            <rect x="-9" y="-7" width="2" height="2" fill="#654321" />
+            {/* Cart behind */}
+            <rect x="-2" y="-4" width="8" height="4" fill="#4A4A4A" />
+            <circle cx="0" cy="0" r="2" fill="#2C2C2C" />
+            <circle cx="4" cy="0" r="2" fill="#2C2C2C" />
+          </g>
+        );
+        
+      case 'donkey':
+        return (
+          <g key={vehicle.id} transform={`translate(${vehicle.x}, ${vehicle.y})`}>
+            <rect x="-6" y="-5" width="4" height="3" fill="#A0826D" />
+            <rect x="-7" y="-6" width="2" height="1" fill="#A0826D" />
+            {vehicle.loaded && (
+              <>
+                <rect x="-2" y="-6" width="3" height="3" fill="#D4AF37" />
+                <rect x="2" y="-6" width="3" height="3" fill="#D4AF37" />
+              </>
+            )}
+          </g>
+        );
+        
+      case 'steam_engine':
+        return (
+          <g key={vehicle.id} transform={`translate(${vehicle.x}, ${vehicle.y})`}>
+            {/* Small industrial locomotive */}
+            <rect x="-12" y="-10" width="24" height="10" fill="#2C2C2C" />
+            <rect x="-10" y="-12" width="4" height="4" fill="#4A4A4A" />
+            {/* Smoke stack */}
+            <rect x="-6" y="-14" width="3" height="4" fill="#2C2C2C" />
+            <circle cx="-4.5" cy="-16" r="2" fill="#808080" opacity="0.6" />
+            {/* Wheels */}
+            <circle cx="-8" cy="0" r="3" fill="#2C2C2C" />
+            <circle cx="0" cy="0" r="3" fill="#2C2C2C" />
+            <circle cx="8" cy="0" r="3" fill="#2C2C2C" />
+          </g>
+        );
+        
+      default:
+        return null;
+    }
+  };
+  
+  // Render biome-aware atmospheric background
+  const renderBackground = () => {
+    const hasMountains = adjacentBiomes.includes(BiomeType.MOUNTAIN) || adjacentBiomes.includes(BiomeType.HIGH_PEAK);
+    const hasOcean = adjacentBiomes.includes(BiomeType.SHALLOW_OCEAN) || adjacentBiomes.includes(BiomeType.DEEP_OCEAN) || adjacentBiomes.includes(BiomeType.BEACH);
+    const hasForest = adjacentBiomes.includes(BiomeType.FOREST) || adjacentBiomes.includes(BiomeType.DENSE_FOREST) || adjacentBiomes.includes(BiomeType.JUNGLE);
+    const hasDesert = adjacentBiomes.includes(BiomeType.DESERT) || adjacentBiomes.includes(BiomeType.OASIS);
+    const hasHills = adjacentBiomes.includes(BiomeType.HILLS) || true; // Mining often in hills
+    
+    return (
+      <g>
+        {/* Ocean on horizon if nearby */}
+        {hasOcean && (
+          <>
+            <rect x="0" y={horizonY - 5} width={width} height="15" 
+              fill="#87CEEB" opacity="0.25" />
+            <rect x="0" y={horizonY} width={width} height="2" 
+              fill="#5F9EA0" opacity="0.4" />
+          </>
+        )}
+        
+        {/* Layered atmospheric mountains and hills */}
+        {(hasMountains || hasHills) && (
+          <>
+            {/* Distant mountains - very light */}
+            {hasMountains && (
+              <g opacity="0.15">
+                {Array.from({ length: 6 }, (_, i) => {
+                  const mtnRng = new SeededRandom(seed + i * 45);
+                  const x = i * 100 + mtnRng.range(-30, 10);
+                  const w = mtnRng.range(70, 120);
+                  const h = mtnRng.range(25, 45);
+                  return (
+                    <polygon key={`far-mtn-${i}`}
+                      points={`${x},${horizonY + 10} ${x + w/2},${horizonY - h} ${x + w},${horizonY + 10}`}
+                      fill="#D8E5F7" />
+                  );
+                })}
+              </g>
+            )}
+            
+            {/* Mid-range hills */}
+            <g opacity="0.3">
+              {Array.from({ length: 4 }, (_, i) => {
+                const hillRng = new SeededRandom(seed + i * 55 + 1000);
+                const x = i * 150 + hillRng.range(-20, 20);
+                const w = hillRng.range(120, 180);
+                const h = hillRng.range(35, 55);
+                return (
+                  <polygon key={`mid-hill-${i}`}
+                    points={`${x},${groundY - 15} ${x + w/3},${horizonY + h/2} ${x + 2*w/3},${horizonY + h/3} ${x + w},${groundY - 15}`}
+                    fill="#9BAEC8" />
+                );
+              })}
+            </g>
+            
+            {/* Near rolling hills */}
+            <g opacity="0.45">
+              {Array.from({ length: 3 }, (_, i) => {
+                const hillRng = new SeededRandom(seed + i * 65 + 2000);
+                const x = i * 200 + hillRng.range(-10, 40);
+                const w = hillRng.range(180, 280);
+                const h = hillRng.range(20, 35);
+                return (
+                  <ellipse key={`near-hill-${i}`}
+                    cx={x + w/2} cy={groundY - 8}
+                    rx={w/2} ry={h}
+                    fill="#7D95B3" />
+                );
+              })}
+            </g>
+          </>
+        )}
+        
+        {/* Forest in background */}
+        {hasForest && (
+          <>
+            {/* Distant forest line */}
+            <rect x="0" y={groundY - 25} width={width} height="15" 
+              fill="#4A6741" opacity="0.2" />
+            
+            {/* Individual trees */}
+            <g opacity="0.35">
+              {Array.from({ length: 15 }, (_, i) => {
+                const treeRng = new SeededRandom(seed + i * 75 + 3000);
+                const x = treeRng.range(0, width);
+                const h = treeRng.range(18, 28);
+                const y = groundY - h - 3;
+                return (
+                  <g key={`tree-${i}`}>
+                    <rect x={x - 1.5} y={y + h * 0.5} width="3" height={h * 0.5} fill="#3A4D3A" />
+                    <ellipse cx={x} cy={y + h * 0.35} rx={h * 0.2} ry={h * 0.3} fill="#4A6741" />
+                  </g>
+                );
+              })}
+            </g>
+          </>
+        )}
+        
+        {/* Desert landscape */}
+        {hasDesert && (
+          <g opacity="0.25">
+            {Array.from({ length: 5 }, (_, i) => {
+              const duneRng = new SeededRandom(seed + i * 85 + 4000);
+              const x = i * 120 + duneRng.range(-20, 20);
+              return (
+                <ellipse key={`dune-${i}`}
+                  cx={x} cy={groundY - 5}
+                  rx={duneRng.range(50, 80)}
+                  ry={duneRng.range(10, 18)}
+                  fill="#D2B48C" />
+              );
+            })}
+          </g>
+        )}
+      </g>
+    );
+  };
+  
+  // Render animated clouds with different speeds
+  const renderClouds = () => {
+    const cloudConfigs = [
+      { y: 15, size: 1.1, opacity: 0.7 },
+      { y: 22, size: 0.9, opacity: 0.8 },
+      { y: 18, size: 1.0, opacity: 0.75 },
+      { y: 28, size: 0.85, opacity: 0.65 }
+    ];
+    
+    return (
+      <g>
+        {cloudConfigs.map((config, i) => {
+          const cloudX = -100 + cloudOffsets[i];
+          return (
+            <g key={i} opacity={config.opacity}>
+              <rect x={cloudX} y={config.y} 
+                width={16 * config.size} height={8 * config.size} 
+                rx="4" fill="#F1F5F9" />
+              <rect x={cloudX + 8 * config.size} y={config.y - 2 * config.size} 
+                width={20 * config.size} height={8 * config.size} 
+                rx="4" fill="#F1F5F9" />
+              <rect x={cloudX + 4 * config.size} y={config.y + 4 * config.size} 
+                width={12 * config.size} height={6 * config.size} 
+                rx="3" fill="#F1F5F9" />
+            </g>
+          );
+        })}
+      </g>
+    );
+  };
+  
+  return (
+    <svg width={width} height={height} className="w-full" style={{ imageRendering: 'pixelated' }}>
+      {/* Clean sky gradient like TerrainStructureBanner */}
+      <defs>
+        <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={skyColors[0]} />
+          <stop offset="50%" stopColor={skyColors[1]} />
+          <stop offset="100%" stopColor={skyColors[2] || skyColors[1]} />
+        </linearGradient>
+      </defs>
+      
+      {/* Sky with subtle vignette */}
+      <rect x="0" y="0" width={width} height={horizonY} fill="url(#skyGradient)" />
+      
+      {/* Vignette effect */}
+      <defs>
+        <radialGradient id="vignette" cx="50%" cy="0%" r="100%">
+          <stop offset="0%" stopColor="transparent" />
+          <stop offset="60%" stopColor="transparent" />
+          <stop offset="100%" stopColor="#000" stopOpacity="0.12" />
+        </radialGradient>
+      </defs>
+      <rect x="0" y="0" width={width} height={horizonY} fill="url(#vignette)" />
+      
+      {/* Sun/Moon - cleaner style */}
+      {timeCategory === 'night' ? (
+        <g>
+          <circle cx={width - 80} cy="25" r="12" fill="#F7FAFC" />
+          <circle cx={width - 77} cy="22" r="2" fill={skyColors[0]} />
+          <circle cx={width - 82} cy="28" r="1.5" fill={skyColors[0]} />
+          {/* Stars */}
+          {Array.from({ length: 12 }, (_, i) => (
+            <rect
+              key={i}
+              x={20 + i * 45 + rng.range(-10, 10)}
+              y={10 + rng.range(0, 20)}
+              width="2"
+              height="2"
+              fill="#F7FAFC"
+              opacity="0.8"
+            />
+          ))}
+        </g>
+      ) : (
+        <circle cx={width - 80} cy="25" r="15" fill="#FDE047" />
+      )}
+      
+      {/* Clean animated clouds */}
+      {renderClouds()}
+      
+      {/* Biome-aware atmospheric background */}
+      {renderBackground()}
+      
+      {/* Textured ground with depth */}
+      <rect x="0" y={groundY} width={width} height={height - groundY} 
+        fill={variant === 'salt-mine' ? '#E8E8E8' : 
+              variant === 'tin' || variant === 'copper' ? '#9B8365' : '#8B7355'} />
+      
+      {/* Ground texture details */}
+      {Array.from({ length: 20 }, (_, i) => {
+        const texRng = new SeededRandom(seed + i * 95 + 5000);
+        return (
+          <rect key={`tex-${i}`}
+            x={texRng.range(0, width)}
+            y={groundY + texRng.range(2, height - groundY - 2)}
+            width={texRng.range(2, 6)}
+            height="1"
+            fill="#6B5345"
+            opacity={texRng.range(0.1, 0.25)} />
+        );
+      })}
+      
+      {/* Worn mining road/path */}
+      <ellipse cx={width/2} cy={roadY} rx={width} ry="5" 
+        fill="#6B5D4D" opacity="0.35" />
+      <ellipse cx={width/2} cy={roadY} rx={width * 0.7} ry="2.5" 
+        fill="#5B4D3D" opacity="0.5" />
+      
+      {/* Cart tracks in road */}
+      <rect x="0" y={roadY - 0.5} width={width} height="0.5" 
+        fill="#4B3D2D" opacity="0.3" />
+      <rect x="0" y={roadY + 2} width={width} height="0.5" 
+        fill="#4B3D2D" opacity="0.3" />
+      
+      {/* Main mine structure */}
+      {renderMineStructure()}
+      
+      {/* Vehicles (behind characters) */}
+      {vehicles.map(renderVehicle)}
+      
+      {/* Characters */}
+      {characters.map(renderCharacter)}
+      
+      {/* Weather effects */}
+      {season === 'winter' && variant !== 'salt-mine' && (
+        <g opacity="0.6">
+          {Array.from({ length: 15 }, (_, i) => (
+            <circle key={i} 
+              cx={rng.range(0, width)} 
+              cy={(animationFrame * 2 + i * 25) % height} 
+              r="1.5" 
+              fill="#FFFFFF" />
+          ))}
+        </g>
+      )}
+      
+      {/* Underground darkness overlay for deep mines */}
+      {(variant === 'industrial-coal' || variant === 'medieval-iron') && (
+        <rect x="0" y="0" width={width} height={height} fill="#000000" opacity="0.15" />
+      )}
+    </svg>
+  );
+};
+
+export default MineColonyBanner;

@@ -34,10 +34,24 @@ export interface Symptom {
   severity: number; // 0-1, affects stat penalties
 }
 
+export interface DiseaseProgressionStage {
+  day: number; // Day of disease when this stage occurs (can be fractional for hours)
+  symptoms: string[]; // Descriptions of symptoms at this stage
+  severity: number; // 0-1, severity at this stage
+  statModifiers: {
+    health?: number;
+    fatigue?: number;
+    strength?: number;
+    intelligence?: number;
+    charisma?: number;
+    speed?: number;
+  };
+}
+
 export interface Disease {
   id: string;
   name: string;
-  type: DiseaseType;
+  type: DiseaseType | 'nutritional' | 'toxic'; // Added nutritional and toxic types
   severity: DiseaseSeverity;
   
   // Historical constraints
@@ -47,7 +61,7 @@ export interface Disease {
   endYear?: number;    // Eradication/effective control
   
   // Transmission mechanics
-  transmissionVector: TransmissionVector;
+  transmissionVector: TransmissionVector | 'nutritional' | 'foodborne';
   baseTransmissionRate: number; // 0-1, base chance per exposure
   proximityMultiplier: number;  // Multiplier for close contact
   directContactMultiplier: number; // Multiplier for direct interaction
@@ -73,6 +87,9 @@ export interface Disease {
   grantsImmunity: boolean;
   immunityDuration: number; // Days, -1 for permanent immunity
   
+  // Progressive stages (optional) - defines how disease worsens/improves over time
+  progressionStages?: DiseaseProgressionStage[];
+  
   // Narrative and visual elements
   narrativeHints: {
     npcSymptoms: string[];    // "is coughing loudly", "looks feverish"
@@ -88,8 +105,10 @@ export interface ActiveDisease {
   contractedDate: GameDate;
   stage: DiseaseStage;
   daysRemaining: number;
+  daysSinceContraction: number; // Track days for progression stages
   severity: number; // 0-1, modified by constitution and treatment
   sourceEntityId?: string; // ID of NPC/animal that transmitted the disease
+  lastProgressionCheck?: number; // Last time (in hours) progression was checked
 }
 
 export interface Immunity {

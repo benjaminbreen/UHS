@@ -48,4 +48,13 @@ export enum BiomeType {
   MARKETPLACE = 'MARKETPLACE',
   GOVERNMENT_DISTRICT = 'GOVERNMENT_DISTRICT',
   CITY_CENTER = 'CITY_CENTER',
+  PARK = 'PARK', // Modern urban parks and green spaces
+  ROAD = 'ROAD', // Modern paved roads
+  PLAZA = 'PLAZA', // Public squares and gathering spaces
+  HARBOR_DISTRICT = 'HARBOR_DISTRICT', // Port areas with docks and warehouses
+  INDUSTRIAL_DISTRICT = 'INDUSTRIAL_DISTRICT', // Factories and industrial zones
+  
+  // Ethereal realm biomes (only used in special zones)
+  AIR = 'AIR', // Ethereal air - clouds, darkness, storms, or ice based on climate
+  UNDERSEA = 'UNDERSEA', // Glowing underwater realm
 }

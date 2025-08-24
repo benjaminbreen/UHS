@@ -92,8 +92,8 @@ export class FactoryEconomyService {
   ): FactoryWorkforce {
     const nearbyNpcs = npcs.filter(npc => {
       const distance = Math.hypot(
-        npc.location.x - structure.location[0],
-        npc.location.y - structure.location[1]
+        npc.x - structure.location[0],
+        npc.y - structure.location[1]
       );
       return distance < 20; // Within 20 tiles
     });
@@ -138,7 +138,7 @@ export class FactoryEconomyService {
 
     // Age restrictions vary by era
     let minAge = 14; // Default for industrial era
-    if (year < 1850 && factoryType.workingConditions.childLabor) {
+    if (year < 1850 && factoryType.workingConditions?.childLabor) {
       minAge = 8; // Child labor in early industrial period
     } else if (year > 1920) {
       minAge = 16; // Progressive era reforms
@@ -157,8 +157,8 @@ export class FactoryEconomyService {
     }
 
     // Skill requirements
-    if (factoryType.workingConditions.skillRequired === 'skilled' || 
-        factoryType.workingConditions.skillRequired === 'master') {
+    if (factoryType.workingConditions?.skillRequired === 'skilled' || 
+        factoryType.workingConditions?.skillRequired === 'master') {
       // Check if NPC has relevant skills (simplified)
       const hasSkills = (npc.stats?.intelligence || 10) > 12 || 
                        (npc.stats?.dexterity || 10) > 12;
@@ -183,7 +183,7 @@ export class FactoryEconomyService {
     score += (npc.stats?.dexterity || 10) / 3;
 
     // Youth preferred for certain jobs
-    if (factoryType.workingConditions.childLabor && npc.age < 16) {
+    if (factoryType.workingConditions?.childLabor && npc.age < 16) {
       score += 5;
     }
 
@@ -258,7 +258,7 @@ export class FactoryEconomyService {
     if (year > 1945) averageWage *= 2.0; // Post-WWII boom
     
     // Injury rate decreases over time (safety improvements)
-    let injuryRate = factoryType.workingConditions.dangerLevel;
+    let injuryRate = factoryType.workingConditions?.dangerLevel || 0.5;
     if (year > 1900) injuryRate *= 0.8;
     if (year > 1930) injuryRate *= 0.6;
     if (year > 1970) injuryRate *= 0.3;
@@ -475,7 +475,7 @@ export class FactoryEconomyService {
     }
     
     // Child labor reform (after 1870)
-    if (dateInfo.year > 1870 && factoryType.workingConditions.childLabor && Math.random() < 0.05) {
+    if (dateInfo.year > 1870 && factoryType.workingConditions?.childLabor && Math.random() < 0.05) {
       events.push(`Reformers protest child labor at ${structure.name}.`);
     }
     

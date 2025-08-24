@@ -716,7 +716,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                     { name: 'Byzantine Empire', type: 'secondary', description: 'Greek authority in southern ports.' }
                 ],
                 structureNames: {
-                    fortress: ['Rocca', 'Castello', 'Torre', 'City Walls', 'Ghibelline Tower'],
+                    fortress: ['Castello', 'Byzantine Fortress', 'Ghibelline Tower'],
                     mill: ['Water Mill', 'Windmill', 'Olive Press'],
                     holy_site: ['Cathedral', 'Basilica', 'Monastery', 'Shrine', 'Baptistery'],
                     palace: ['Palazzo Comunale', 'Episcopal Palace', 'Signorial Palace'],
@@ -736,8 +736,9 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                             { name: 'Genoan Rivals', type: 'secondary', description: 'Competing maritime republic.' }
                         ],
                         structureNames: {
+                            fortress: ['Byzantine Fortress', 'Ghibelline Tower'],
                             palace: ['Doge\'s Palace', 'Patrician Palazzo', 'Procuratie'],
-                            trading_post: ['Fondaco dei Tedeschi', 'Rialto Market', 'Arsenal']
+                            trading_post: ['Fondaco dei Tedeschi', 'Rialto Market']
                         }
                     },
                     "Florence Hills": {
@@ -771,7 +772,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                     { name: 'French Kingdom', type: 'secondary', description: 'Invading force seeking Milan.' }
                 ],
                 structureNames: {
-                    fortress: ['Trace Italienne', 'Citadel', 'Rocca', 'Star Fort'],
+                    fortress: ['Byzantine Fortress', 'Citadel', 'Star Fort'],
                     mill: ['Water Mill', 'Silk Mill', 'Paper Mill'],
                     holy_site: ['Renaissance Church', 'Baroque Cathedral', 'Pilgrimage Shrine', 'Convent'],
                     palace: ['Palazzo', 'Villa', 'Ducal Residence', 'Cardinal\'s Palace'],
@@ -830,7 +831,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                     mill: ['Silk Mill', 'Cotton Mill', 'Flour Mill'],
                     factory: ['Fiat Works', 'Shipyard', 'Arsenal', 'Railway Workshop'],
                     mining_colony: ['Marble Quarry', 'Sulfur Mine'],
-                    trading_post: ['Railway Station', 'Port Facility', 'Stock Exchange']
+                    trading_post: ['Port Facility', 'Stock Exchange']
                 },
                 mapAreaOverrides: {
                     "Po Valley": {
@@ -866,7 +867,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 structureNames: {
                     fortress: ['Carabinieri Station', 'NATO Base', 'Alpine Fortification'],
                     factory: ['Fiat Mirafiori', 'Olivetti Plant', 'Fashion House', 'Pirelli Works'],
-                    trading_post: ['Autostrada', 'International Airport', 'Container Port', 'Fashion District'],
+                    trading_post: ['Autostrada', 'Container Port', 'Fashion District'],
                     mining_colony: ['ENI Refinery', 'Tech Park']
                 }
             },

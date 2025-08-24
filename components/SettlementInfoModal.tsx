@@ -2,12 +2,13 @@
  * components/SettlementInfoModal.tsx - A detailed informational panel for settlements and farms.
  */
 import React, { useMemo } from 'react';
-import { Tile, MapData, BiomeType, CulturalZone, HistoricalEra, Gender, TimeOfDay } from '../types';
+import { Tile, MapData, BiomeType, CulturalZone, HistoricalEra, Gender, TimeOfDay, NpcEntity } from '../types';
 import { generateNpcName, generateBaseProfile, determineSocialRole } from '../generation/common/npcUtils';
 import { ValueNoise } from '../utils/noise';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { parseDateString } from '../utils/dateUtils';
 import { getSettlementProfessions } from '../services/settlementService';
+import { getFarmState } from '../services/farmService';
 import { ProceduralPortrait } from './portraits';
 import CityBanner, { CitySize } from './CityBanner';
 import FarmBanner from './FarmBanner';
@@ -20,6 +21,7 @@ interface SettlementInfoModalProps {
   onClose: () => void;
   gameTimeHours: number;
   season: Season;
+  npcs?: NpcEntity[];
 }
 
 const DetailRow: React.FC<{ label: string; value: string | number | React.ReactNode; icon?: string }> = ({ label, value, icon }) => (
@@ -32,7 +34,7 @@ const DetailRow: React.FC<{ label: string; value: string | number | React.ReactN
     </div>
 );
 
-const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData, onClose, gameTimeHours, season }) => {
+const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData, onClose, gameTimeHours, season, npcs = [] }) => {
     const { era, culturalZone, year, timeOfDay } = useMemo(() => {
         const parsed = parseDateString(mapData.timeSlice || '1650');
         
@@ -201,7 +203,9 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
         // Families
         let singleFamilyName: string | null = null;
         if (tile.biome === BiomeType.FARMLAND) {
-            singleFamilyName = generateNpcName('Male', culturalZone, undefined, year, noise).split(' ')[1] || 'Stonemason';
+            // Use farmService for farms to ensure consistency
+            const farmState = getFarmState(tile, mapData, npcs);
+            singleFamilyName = farmState.family.familyName.replace(' Family', '');
         }
 
         if(details.population > 0 && !singleFamilyName){
@@ -227,75 +231,113 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
         
         // Inhabitants - Always generate them for settlements with population
         if(details.population > 0 || tile.biome === BiomeType.FARMLAND) {
-             const numInhabitants = 4;
-             // Use settlement professions if available, otherwise use generic ones
-             if (details.settlementProfessions.length === 0) {
-                 // Fallback professions based on biome type and era
-                 if (tile.biome === BiomeType.FARMLAND) {
-                     details.settlementProfessions = ['Farmer', 'Farm Hand', 'Shepherd', 'Miller'];
-                 } else if (tile.biome === BiomeType.MARKETPLACE) {
-                     details.settlementProfessions = ['Merchant', 'Trader', 'Craftsman', 'Guard'];
-                 } else if (tile.biome === BiomeType.HAMLET) {
-                     details.settlementProfessions = ['Farmer', 'Blacksmith', 'Carpenter', 'Laborer'];
-                 } else {
-                     details.settlementProfessions = ['Artisan', 'Merchant', 'Scholar', 'Guard'];
+             // Special handling for farms - use farmService data
+             if (tile.biome === BiomeType.FARMLAND) {
+                 const farmState = getFarmState(tile, mapData, npcs);
+                 
+                 // Convert farm family members to representative inhabitants
+                 farmState.family.members.slice(0, 4).forEach(member => {
+                     // For stats, use member's skills if available or generate new ones
+                     const baseProfile = generateBaseProfile(noise, { era, culturalZone, region: mapData.localArea || '' });
+                     const { socialClass } = determineSocialRole(
+                         baseProfile, 
+                         { 
+                             era, 
+                             culturalZone,
+                             region: mapData.localArea || '',
+                             citySize: tile.citySize
+                         }, 
+                         member.role,
+                         tile.structureType
+                     );
+                     
+                     details.representativeInhabitants.push({ 
+                         name: member.name, 
+                         age: member.age, 
+                         profession: member.role, 
+                         gender: member.gender as Gender, 
+                         wealthLevel: 'modest',
+                         portraitSeed: noise.random() * 1000000,
+                         appearance: member.appearance,
+                         stats: baseProfile.stats,
+                         era: baseProfile.era,
+                         culturalZone: baseProfile.culturalZone,
+                         class: socialClass,
+                         diseaseStatus: null
+                     });
+                 });
+                 
+                 details.settlementProfessions = farmState.family.members.map(m => m.role);
+             } else {
+                 // Original code for non-farm settlements
+                 const numInhabitants = 4;
+                 // Use settlement professions if available, otherwise use generic ones
+                 if (details.settlementProfessions.length === 0) {
+                     // Fallback professions based on biome type and era
+                     if (tile.biome === BiomeType.MARKETPLACE) {
+                         details.settlementProfessions = ['Merchant', 'Trader', 'Craftsman', 'Guard'];
+                     } else if (tile.biome === BiomeType.HAMLET) {
+                         details.settlementProfessions = ['Farmer', 'Blacksmith', 'Carpenter', 'Laborer'];
+                     } else {
+                         details.settlementProfessions = ['Artisan', 'Merchant', 'Scholar', 'Guard'];
+                     }
                  }
-             }
-             
-             for (let i = 0; i < numInhabitants; i++) {
-                const gender = noise.random() > 0.5 ? 'Male' as Gender : 'Female' as Gender;
-                let fullName: string;
-                
-                // Use family names from the families array if available
-                const familyName = details.families.length > 0 
-                    ? details.families[i % details.families.length]
-                    : singleFamilyName;
+                 
+                 for (let i = 0; i < numInhabitants; i++) {
+                    const gender = noise.random() > 0.5 ? 'Male' as Gender : 'Female' as Gender;
+                    let fullName: string;
                     
-                if (familyName) {
-                    const firstName = generateNpcName(gender, culturalZone, undefined, year, noise).split(' ')[0];
-                    fullName = `${firstName} ${familyName}`;
-                } else {
-                    fullName = generateNpcName(gender, culturalZone, undefined, year, noise);
-                }
-                
-                const age = 18 + Math.floor(noise.random() * 55);
-                const profession = details.settlementProfessions[i % details.settlementProfessions.length];
-                const wealth = i % 3 === 0 ? 'comfortable' : 'modest';
+                    // Use family names from the families array if available
+                    const familyName = details.families.length > 0 
+                        ? details.families[i % details.families.length]
+                        : singleFamilyName;
+                        
+                    if (familyName) {
+                        const firstName = generateNpcName(gender, culturalZone, undefined, year, noise).split(' ')[0];
+                        fullName = `${firstName} ${familyName}`;
+                    } else {
+                        fullName = generateNpcName(gender, culturalZone, undefined, year, noise);
+                    }
+                    
+                    const age = 18 + Math.floor(noise.random() * 55);
+                    const profession = details.settlementProfessions[i % details.settlementProfessions.length];
+                    const wealth = i % 3 === 0 ? 'comfortable' : 'modest';
 
-                const baseProfile = generateBaseProfile(noise, { era, culturalZone, region: mapData.localArea || '' });
-                const { socialClass } = determineSocialRole(
-                    baseProfile, 
-                    { 
-                        era, 
-                        culturalZone,
-                        region: mapData.localArea || '',
-                        citySize: tile.citySize
-                    }, 
-                    profession,
-                    tile.structureType
-                );
-                
-                // Add disease with 33% chance
-                let diseaseStatus = null;
-                if (Math.random() < 0.33) {
-                    diseaseStatus = 'Common Cold'; // Simplified for representative inhabitants
+                    const baseProfile = generateBaseProfile(noise, { era, culturalZone, region: mapData.localArea || '' });
+                    const { socialClass } = determineSocialRole(
+                        baseProfile, 
+                        { 
+                            era, 
+                            culturalZone,
+                            region: mapData.localArea || '',
+                            citySize: tile.citySize
+                        }, 
+                        profession,
+                        tile.structureType
+                    );
+                    
+                    // Add disease with 33% chance
+                    let diseaseStatus = null;
+                    if (Math.random() < 0.33) {
+                        diseaseStatus = 'Common Cold'; // Simplified for representative inhabitants
+                    }
+                    
+                    details.representativeInhabitants.push({ 
+                        name: fullName, 
+                        age, 
+                        profession, 
+                        gender, 
+                        wealthLevel: wealth,
+                        portraitSeed: noise.random() * 1000000,
+                        appearance: baseProfile.appearance,
+                        stats: baseProfile.stats,
+                        era: baseProfile.era,
+                        culturalZone: baseProfile.culturalZone,
+                        class: socialClass,
+                        diseaseStatus
+                    });
                 }
-                
-                details.representativeInhabitants.push({ 
-                    name: fullName, 
-                    age, 
-                    profession, 
-                    gender, 
-                    wealthLevel: wealth,
-                    portraitSeed: noise.random() * 1000000,
-                    appearance: baseProfile.appearance,
-                    stats: baseProfile.stats,
-                    era: baseProfile.era,
-                    culturalZone: baseProfile.culturalZone,
-                    class: socialClass,
-                    diseaseStatus
-                });
-            }
+             }
         }
         
         return details;
@@ -343,9 +385,9 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
     const renderBanner = () => {
         switch(tile.biome) {
             case BiomeType.FARMLAND:
-                return <FarmBanner {...bannerProps} cropType={tile.cropType || 'Wheat'} height={150} />;
+                return <FarmBanner {...bannerProps} cropType={tile.cropType || 'Wheat'} height={180} />;
             case BiomeType.MARKETPLACE:
-                return <MarketplaceBanner {...bannerProps} height={150} />;
+                return <MarketplaceBanner {...bannerProps} height={180} tile={tile} mapData={mapData} />;
             case BiomeType.HAMLET:
             case BiomeType.LOW_DENSITY_CITY:
             case BiomeType.DENSE_CITY:

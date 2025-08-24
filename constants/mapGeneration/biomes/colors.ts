@@ -52,6 +52,11 @@ export const BIOME_COLORS: Record<BiomeType, string> = {
   [BiomeType.MARKETPLACE]: '#c0b090',
   [BiomeType.GOVERNMENT_DISTRICT]: '#a0b0c0',
   [BiomeType.CITY_CENTER]: '#d0c0a0',
+  [BiomeType.PARK]: '#5a9a40', // Green park color for modern urban parks
+  [BiomeType.ROAD]: '#505050', // Dark gray for paved roads
+  [BiomeType.PLAZA]: '#c8b88b', // Light stone/brick color for plazas
+  [BiomeType.HARBOR_DISTRICT]: '#7090a0', // Blue-gray for harbor areas
+  [BiomeType.INDUSTRIAL_DISTRICT]: '#8a7060', // Brown-gray for industrial zones
 };
 
 // Helper to make a color slightly darker/richer

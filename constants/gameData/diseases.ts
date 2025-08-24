@@ -490,6 +490,32 @@ export const DISEASES: Disease[] = [
     recoveryChance: 0.01,
     grantsImmunity: false,
     immunityDuration: 0,
+    progressionStages: [
+      {
+        day: 1,
+        symptoms: ['mild fever', 'tingling at bite site'],
+        severity: 0.2,
+        statModifiers: { health: -5, fatigue: 5 }
+      },
+      {
+        day: 3,
+        symptoms: ['anxiety', 'confusion', 'hallucinations'],
+        severity: 0.5,
+        statModifiers: { health: -15, intelligence: -10, charisma: -10 }
+      },
+      {
+        day: 5,
+        symptoms: ['hydrophobia', 'excessive salivation', 'violent spasms'],
+        severity: 0.8,
+        statModifiers: { health: -30, strength: 5, intelligence: -20 }
+      },
+      {
+        day: 7,
+        symptoms: ['paralysis', 'coma', 'respiratory failure'],
+        severity: 1.0,
+        statModifiers: { health: -50, fatigue: 40 }
+      }
+    ],
     narrativeHints: {
       npcSymptoms: ['foams at the mouth', 'shows extreme fear of water', 'displays violent, erratic behavior', 'appears to be in the final stages of rabies'],
       animalSymptoms: ['foams at the mouth', 'behaves aggressively and erratically', 'appears rabid', 'shows no fear of humans'],
@@ -497,6 +523,428 @@ export const DISEASES: Disease[] = [
     },
     badgeIcon: '🐺',
     outlineColor: '#800080'
+  },
+
+  // NUTRITIONAL DEFICIENCY DISEASES
+  {
+    id: 'SCURVY',
+    name: 'Scurvy',
+    type: 'nutritional',
+    severity: 'moderate',
+    availableEras: ['MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL'],
+    availableRegions: ['EUROPEAN', 'NORTH_AMERICAN_COLONIAL'],
+    transmissionVector: 'nutritional',
+    baseTransmissionRate: 0.0, // Not contagious
+    proximityMultiplier: 1.0,
+    directContactMultiplier: 1.0,
+    symptoms: [
+      { id: 'BLEEDING_GUMS', name: 'Bleeding Gums', description: 'Gums bleed easily and teeth loosen', severity: 0.5 },
+      { id: 'JOINT_PAIN', name: 'Joint Pain', description: 'Severe pain in joints and muscles', severity: 0.6 },
+      { id: 'SKIN_LESIONS', name: 'Skin Lesions', description: 'Purple spots and wounds that won\'t heal', severity: 0.7 }
+    ],
+    incubationDays: 60,
+    durationDays: 90,
+    mortalityRate: 0.3,
+    statEffects: {
+      health: -15,
+      fatigue: 20,
+      strength: -10,
+      intelligence: -3,
+      charisma: -8,
+      speed: -5
+    },
+    recoveryChance: 0.9, // High recovery with proper diet
+    grantsImmunity: false,
+    immunityDuration: 0,
+    progressionStages: [
+      {
+        day: 30,
+        symptoms: ['fatigue', 'irritability'],
+        severity: 0.2,
+        statModifiers: { fatigue: 10, charisma: -3 }
+      },
+      {
+        day: 60,
+        symptoms: ['bleeding gums', 'joint pain'],
+        severity: 0.5,
+        statModifiers: { health: -10, strength: -5 }
+      },
+      {
+        day: 80,
+        symptoms: ['teeth falling out', 'old wounds reopening'],
+        severity: 0.8,
+        statModifiers: { health: -20, charisma: -10 }
+      }
+    ],
+    narrativeHints: {
+      npcSymptoms: ['has bleeding gums', 'winces with each step', 'has purple spots on their skin', 'looks malnourished'],
+      animalSymptoms: ['moves stiffly', 'has patchy fur', 'appears weak'],
+      playerSymptoms: ['Your gums bleed when you eat', 'Your joints ache terribly', 'Old scars begin to reopen']
+    },
+    badgeIcon: '🍊',
+    outlineColor: '#FFA500'
+  },
+
+  {
+    id: 'TYPHOID',
+    name: 'Typhoid Fever',
+    type: 'gastrointestinal',
+    severity: 'severe',
+    availableEras: ['ANCIENT', 'MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL', 'MODERN'],
+    availableRegions: ['EUROPEAN', 'EAST_ASIAN', 'MENA', 'NORTH_AMERICAN_COLONIAL', 'SOUTH_ASIAN', 'SOUTH_AMERICAN', 'SUB_SAHARAN_AFRICAN'],
+    transmissionVector: 'waterborne',
+    baseTransmissionRate: 0.25,
+    proximityMultiplier: 1.5,
+    directContactMultiplier: 3.0,
+    symptoms: [
+      { id: 'SUSTAINED_FEVER', name: 'Sustained Fever', description: 'Continuous high fever', severity: 0.7 },
+      { id: 'ROSE_SPOTS', name: 'Rose Spots', description: 'Characteristic rash on trunk', severity: 0.4 },
+      { id: 'DELIRIUM', name: 'Delirium', description: 'Mental confusion and hallucinations', severity: 0.8 }
+    ],
+    incubationDays: 14,
+    durationDays: 28,
+    mortalityRate: 0.25,
+    statEffects: {
+      health: -20,
+      fatigue: 30,
+      strength: -12,
+      intelligence: -8,
+      charisma: -6,
+      speed: -10
+    },
+    recoveryChance: 0.5,
+    grantsImmunity: true,
+    immunityDuration: 1095, // 3 years
+    progressionStages: [
+      {
+        day: 7,
+        symptoms: ['headache', 'muscle aches', 'malaise'],
+        severity: 0.3,
+        statModifiers: { health: -5, fatigue: 10 }
+      },
+      {
+        day: 14,
+        symptoms: ['sustained fever', 'rose spots appear'],
+        severity: 0.6,
+        statModifiers: { health: -15, intelligence: -5 }
+      },
+      {
+        day: 21,
+        symptoms: ['delirium', 'intestinal perforation risk'],
+        severity: 0.9,
+        statModifiers: { health: -25, intelligence: -10 }
+      }
+    ],
+    narrativeHints: {
+      npcSymptoms: ['has a sustained fever', 'shows rose-colored spots on their chest', 'mutters deliriously', 'appears gravely ill'],
+      animalSymptoms: ['appears feverish', 'has diarrhea', 'is lethargic'],
+      playerSymptoms: ['You burn with unrelenting fever', 'Strange spots appear on your chest', 'Your mind wanders in delirium']
+    },
+    badgeIcon: '🌹',
+    outlineColor: '#FF1493'
+  },
+
+  {
+    id: 'SCARLET_FEVER',
+    name: 'Scarlet Fever',
+    type: 'respiratory',
+    severity: 'moderate',
+    availableEras: ['MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL', 'MODERN'],
+    availableRegions: ['EUROPEAN', 'NORTH_AMERICAN_COLONIAL'],
+    transmissionVector: 'airborne',
+    baseTransmissionRate: 0.3,
+    proximityMultiplier: 2.5,
+    directContactMultiplier: 4.0,
+    symptoms: [
+      { id: 'SCARLET_RASH', name: 'Scarlet Rash', description: 'Bright red sandpaper-like rash', severity: 0.5 },
+      { id: 'STRAWBERRY_TONGUE', name: 'Strawberry Tongue', description: 'Red, bumpy tongue', severity: 0.3 },
+      { id: 'HIGH_FEVER', name: 'High Fever', description: 'Sudden high fever', severity: 0.6 }
+    ],
+    incubationDays: 3,
+    durationDays: 10,
+    mortalityRate: 0.1,
+    statEffects: {
+      health: -12,
+      fatigue: 20,
+      strength: -6,
+      intelligence: -3,
+      charisma: -10,
+      speed: -5
+    },
+    recoveryChance: 0.7,
+    grantsImmunity: true,
+    immunityDuration: -1,
+    progressionStages: [
+      {
+        day: 2,
+        symptoms: ['sore throat', 'fever begins'],
+        severity: 0.3,
+        statModifiers: { health: -5, fatigue: 10 }
+      },
+      {
+        day: 4,
+        symptoms: ['scarlet rash spreads', 'strawberry tongue'],
+        severity: 0.6,
+        statModifiers: { health: -10, charisma: -10 }
+      },
+      {
+        day: 7,
+        symptoms: ['skin peeling', 'recovery begins'],
+        severity: 0.4,
+        statModifiers: { health: -5, charisma: -5 }
+      }
+    ],
+    narrativeHints: {
+      npcSymptoms: ['has a bright red rash', 'has a swollen red tongue', 'is feverish', 'their skin is peeling'],
+      animalSymptoms: ['has a fever', 'appears unwell'],
+      playerSymptoms: ['Your skin feels like sandpaper', 'Your tongue is swollen and red', 'You burn with fever']
+    },
+    badgeIcon: '🍓',
+    outlineColor: '#DC143C'
+  },
+
+  {
+    id: 'ERGOTISM',
+    name: 'Ergotism (St. Anthony\'s Fire)',
+    type: 'toxic',
+    severity: 'severe',
+    availableEras: ['MEDIEVAL', 'EARLY_MODERN'],
+    availableRegions: ['EUROPEAN', 'MENA'],
+    transmissionVector: 'foodborne',
+    baseTransmissionRate: 0.0, // Not contagious
+    proximityMultiplier: 1.0,
+    directContactMultiplier: 1.0,
+    symptoms: [
+      { id: 'BURNING_PAIN', name: 'Burning Pain', description: 'Intense burning in limbs', severity: 0.8 },
+      { id: 'HALLUCINATIONS', name: 'Hallucinations', description: 'Vivid hallucinations', severity: 0.7 },
+      { id: 'GANGRENE', name: 'Gangrene', description: 'Limbs turn black and die', severity: 0.9 }
+    ],
+    incubationDays: 2,
+    durationDays: 21,
+    mortalityRate: 0.4,
+    statEffects: {
+      health: -25,
+      fatigue: 15,
+      strength: -10,
+      intelligence: -15,
+      charisma: -12,
+      speed: -15
+    },
+    recoveryChance: 0.4,
+    grantsImmunity: false,
+    immunityDuration: 0,
+    progressionStages: [
+      {
+        day: 2,
+        symptoms: ['tingling in fingers', 'mild nausea'],
+        severity: 0.2,
+        statModifiers: { health: -5, intelligence: -3 }
+      },
+      {
+        day: 7,
+        symptoms: ['burning pain', 'hallucinations begin'],
+        severity: 0.6,
+        statModifiers: { health: -15, intelligence: -10 }
+      },
+      {
+        day: 14,
+        symptoms: ['limbs turning black', 'severe psychosis'],
+        severity: 0.9,
+        statModifiers: { health: -30, intelligence: -20, speed: -20 }
+      }
+    ],
+    narrativeHints: {
+      npcSymptoms: ['screams about burning fire', 'has blackened fingers', 'speaks to invisible demons', 'writhes in agony'],
+      animalSymptoms: ['appears to be in severe pain', 'has blackened extremities'],
+      playerSymptoms: ['Your limbs burn like fire', 'You see demons everywhere', 'Your fingers are turning black']
+    },
+    badgeIcon: '🔥',
+    outlineColor: '#B22222'
+  },
+
+  {
+    id: 'SWEATING_SICKNESS',
+    name: 'Sweating Sickness',
+    type: 'respiratory',
+    severity: 'critical',
+    availableEras: ['EARLY_MODERN'],
+    availableRegions: ['EUROPEAN'],
+    startYear: 1485,
+    endYear: 1551,
+    transmissionVector: 'airborne',
+    baseTransmissionRate: 0.4,
+    proximityMultiplier: 3.0,
+    directContactMultiplier: 5.0,
+    symptoms: [
+      { id: 'PROFUSE_SWEATING', name: 'Profuse Sweating', description: 'Extreme, drenching sweats', severity: 0.8 },
+      { id: 'RAPID_ONSET', name: 'Rapid Onset', description: 'Sudden violent symptoms', severity: 0.9 },
+      { id: 'CARDIAC_SYMPTOMS', name: 'Heart Palpitations', description: 'Irregular heartbeat', severity: 0.7 }
+    ],
+    incubationDays: 1,
+    durationDays: 2,
+    mortalityRate: 0.5,
+    statEffects: {
+      health: -35,
+      fatigue: 40,
+      strength: -20,
+      intelligence: -10,
+      charisma: -15,
+      speed: -25
+    },
+    recoveryChance: 0.4,
+    grantsImmunity: true,
+    immunityDuration: -1,
+    progressionStages: [
+      {
+        day: 0.25, // 6 hours
+        symptoms: ['sudden chills', 'apprehension'],
+        severity: 0.3,
+        statModifiers: { health: -10, fatigue: 15 }
+      },
+      {
+        day: 0.5, // 12 hours
+        symptoms: ['violent sweating', 'delirium', 'rapid pulse'],
+        severity: 0.8,
+        statModifiers: { health: -25, fatigue: 30 }
+      },
+      {
+        day: 1,
+        symptoms: ['exhaustion', 'death or recovery'],
+        severity: 1.0,
+        statModifiers: { health: -40, fatigue: 40 }
+      }
+    ],
+    narrativeHints: {
+      npcSymptoms: ['is drenched in sweat', 'collapses suddenly', 'appears to be dying rapidly', 'sweats profusely'],
+      animalSymptoms: ['is sweating unusually', 'appears distressed'],
+      playerSymptoms: ['You are suddenly drenched in sweat', 'Your heart races wildly', 'You feel death approaching swiftly']
+    },
+    badgeIcon: '💦',
+    outlineColor: '#4682B4'
+  },
+
+  {
+    id: 'LEPROSY',
+    name: 'Leprosy (Hansen\'s Disease)',
+    type: 'contact',
+    severity: 'severe',
+    availableEras: ['ANCIENT', 'MEDIEVAL', 'EARLY_MODERN'],
+    availableRegions: ['EUROPEAN', 'EAST_ASIAN', 'MENA', 'SOUTH_ASIAN', 'SUB_SAHARAN_AFRICAN'],
+    transmissionVector: 'contact',
+    baseTransmissionRate: 0.05, // Very low transmission
+    proximityMultiplier: 1.5,
+    directContactMultiplier: 2.0,
+    symptoms: [
+      { id: 'SKIN_LESIONS', name: 'Skin Lesions', description: 'Disfiguring skin patches', severity: 0.6 },
+      { id: 'NERVE_DAMAGE', name: 'Nerve Damage', description: 'Loss of sensation', severity: 0.7 },
+      { id: 'DEFORMITY', name: 'Deformity', description: 'Progressive disfigurement', severity: 0.8 }
+    ],
+    incubationDays: 1825, // 5 years
+    durationDays: 3650, // 10 years chronic
+    mortalityRate: 0.1,
+    statEffects: {
+      health: -10,
+      fatigue: 10,
+      strength: -5,
+      intelligence: 0,
+      charisma: -20,
+      speed: -3
+    },
+    recoveryChance: 0.05,
+    grantsImmunity: false,
+    immunityDuration: 0,
+    progressionStages: [
+      {
+        day: 365,
+        symptoms: ['pale patches on skin', 'numbness'],
+        severity: 0.2,
+        statModifiers: { charisma: -5 }
+      },
+      {
+        day: 1095,
+        symptoms: ['visible lesions', 'social ostracism'],
+        severity: 0.5,
+        statModifiers: { health: -5, charisma: -15 }
+      },
+      {
+        day: 2190,
+        symptoms: ['severe disfigurement', 'loss of fingers/toes'],
+        severity: 0.8,
+        statModifiers: { health: -10, charisma: -25, strength: -8 }
+      }
+    ],
+    narrativeHints: {
+      npcSymptoms: ['has visible lesions', 'is missing fingers', 'is shunned as a leper', 'wears rags to hide disfigurement'],
+      animalSymptoms: ['has skin lesions', 'appears diseased'],
+      playerSymptoms: ['Pale patches appear on your skin', 'You lose feeling in your extremities', 'People recoil from your appearance']
+    },
+    badgeIcon: '🩹',
+    outlineColor: '#8B7355'
+  },
+
+  {
+    id: 'YELLOW_FEVER',
+    name: 'Yellow Fever',
+    type: 'vector_borne',
+    severity: 'severe',
+    availableEras: ['EARLY_MODERN', 'INDUSTRIAL', 'MODERN'],
+    availableRegions: ['SOUTH_AMERICAN', 'SUB_SAHARAN_AFRICAN', 'NORTH_AMERICAN_COLONIAL'],
+    transmissionVector: 'vector',
+    baseTransmissionRate: 0.25,
+    proximityMultiplier: 1.0,
+    directContactMultiplier: 1.0,
+    symptoms: [
+      { id: 'JAUNDICE', name: 'Jaundice', description: 'Yellowing of skin and eyes', severity: 0.7 },
+      { id: 'BLACK_VOMIT', name: 'Black Vomit', description: 'Vomiting blood', severity: 0.9 },
+      { id: 'HEMORRHAGING', name: 'Hemorrhaging', description: 'Bleeding from multiple sites', severity: 0.8 }
+    ],
+    incubationDays: 5,
+    durationDays: 14,
+    mortalityRate: 0.5,
+    statEffects: {
+      health: -25,
+      fatigue: 30,
+      strength: -12,
+      intelligence: -6,
+      charisma: -10,
+      speed: -10
+    },
+    recoveryChance: 0.4,
+    grantsImmunity: true,
+    immunityDuration: -1,
+    progressionStages: [
+      {
+        day: 3,
+        symptoms: ['fever', 'headache', 'muscle pain'],
+        severity: 0.3,
+        statModifiers: { health: -8, fatigue: 15 }
+      },
+      {
+        day: 5,
+        symptoms: ['brief remission', 'false recovery'],
+        severity: 0.2,
+        statModifiers: { health: -5, fatigue: 10 }
+      },
+      {
+        day: 7,
+        symptoms: ['jaundice appears', 'organ failure begins'],
+        severity: 0.7,
+        statModifiers: { health: -20, charisma: -10 }
+      },
+      {
+        day: 10,
+        symptoms: ['black vomit', 'hemorrhaging'],
+        severity: 0.9,
+        statModifiers: { health: -30, fatigue: 35 }
+      }
+    ],
+    narrativeHints: {
+      npcSymptoms: ['has yellowed skin and eyes', 'vomits black bile', 'bleeds from the nose and gums', 'appears to be dying'],
+      animalSymptoms: ['appears jaundiced', 'is very ill'],
+      playerSymptoms: ['Your skin turns yellow', 'You vomit black blood', 'You bleed from every orifice']
+    },
+    badgeIcon: '🟡',
+    outlineColor: '#FFD700'
   },
 
   // NEW WORLD SPECIFIC DISEASES

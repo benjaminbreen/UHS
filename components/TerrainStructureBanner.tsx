@@ -2,7 +2,16 @@
  * components/TerrainStructureBanner.tsx - Dynamic pixel-art SVG banner for terrain structures
  */
 import React, { useEffect, useState } from 'react';
-import { TerrainStructure, MapData, BiomeType, ClimateType, TimeOfDay, Season, Tile } from '../types';
+import { TerrainStructure, MapData, BiomeType, ClimateType, TimeOfDay, Season, Tile, HistoricalEra } from '../types';
+import { getRegionalIndustries } from '../constants/gameData/economicSectors';
+import LumberCampBanner from './LumberCampBanner';
+import MineColonyBanner from './MineColonyBanner';
+import QuarryBanner from './QuarryBanner';
+import FortressBanner from './FortressBanner';
+import FishingHutBanner from './FishingHutBanner';
+import MarketplaceBanner from './MarketplaceBanner';
+import FactoryBanner from './FactoryBanner';
+import MillBanner from './MillBanner';
 
 interface TerrainStructureBannerProps {
   structure?: TerrainStructure;
@@ -11,6 +20,10 @@ interface TerrainStructureBannerProps {
   height?: number;
   timeOfDay: TimeOfDay;
   season: Season;
+  era?: string;
+  culturalZone?: string;
+  zoomLevel?: number;
+  isRuined?: boolean;
 }
 
 // Enhanced color palettes to match your aesthetic
@@ -78,6 +91,10 @@ const TerrainStructureBanner: React.FC<TerrainStructureBannerProps> = ({
   height = 250,
   timeOfDay,
   season,
+  era,
+  culturalZone,
+  zoomLevel = 1,
+  isRuined = false,
 }) => {
   const [animationFrame, setAnimationFrame] = useState(0);
   const [characters, setCharacters] = useState<Character[]>([]);
@@ -107,11 +124,187 @@ const TerrainStructureBanner: React.FC<TerrainStructureBannerProps> = ({
   const palette = CLIMATE_PALETTES[currentMapData.climate];
   const todCategory = getTimeOfDayCategory(timeOfDay);
   const skyGradient = SKY_COLORS[todCategory];
+  
+  // Get adjacent biomes for specialized banners
+  const adjacentBiomes: BiomeType[] = [];
+  const locX = currentStructure.location[0];
+  const locY = currentStructure.location[1];
+  
+  // Check adjacent tiles
+  if (currentMapData.tiles[locY - 1]?.[locX]) adjacentBiomes.push(currentMapData.tiles[locY - 1][locX].biome);
+  if (currentMapData.tiles[locY + 1]?.[locX]) adjacentBiomes.push(currentMapData.tiles[locY + 1][locX].biome);
+  if (currentMapData.tiles[locY]?.[locX - 1]) adjacentBiomes.push(currentMapData.tiles[locY][locX - 1].biome);
+  if (currentMapData.tiles[locY]?.[locX + 1]) adjacentBiomes.push(currentMapData.tiles[locY][locX + 1].biome);
+  
+  // If this is a lumber camp, use the specialized LumberCampBanner
+  if (currentStructure.structureType === 'lumber_camp') {
+    return (
+      <LumberCampBanner
+        era={era}
+        culturalZone={culturalZone}
+        climate={currentMapData.climate as ClimateType}
+        season={season}
+        timeOfDay={timeOfDay}
+        width={width}
+        height={height}
+        seed={currentMapData.seed}
+        adjacentBiomes={adjacentBiomes}
+      />
+    );
+  }
+  
+  // If this is a mining colony, use the specialized MineColonyBanner
+  if (currentStructure.structureType === 'mining_colony') {
+    return (
+      <MineColonyBanner
+        structure={currentStructure}
+        era={era}
+        culturalZone={culturalZone}
+        climate={currentMapData.climate as ClimateType}
+        season={season}
+        timeOfDay={timeOfDay}
+        width={width}
+        height={height}
+        seed={currentMapData.seed}
+        adjacentBiomes={adjacentBiomes}
+      />
+    );
+  }
+  
+  // If this is a quarry, use the specialized QuarryBanner
+  if (currentStructure.structureType === 'quarry') {
+    return (
+      <QuarryBanner
+        structure={currentStructure}
+        era={era}
+        culturalZone={culturalZone}
+        climate={currentMapData.climate as ClimateType}
+        season={season}
+        timeOfDay={timeOfDay}
+        width={width}
+        height={height}
+        seed={currentMapData.seed}
+        adjacentBiomes={adjacentBiomes}
+        isRuined={isRuined}
+      />
+    );
+  }
+  
+  // If this is a fortress, use the specialized FortressBanner
+  if (currentStructure.structureType === 'fortress') {
+    return (
+      <FortressBanner
+        structure={currentStructure}
+        era={era}
+        culturalZone={culturalZone}
+        climate={currentMapData.climate as ClimateType}
+        season={season}
+        timeOfDay={timeOfDay}
+        width={width}
+        height={height}
+        seed={currentMapData.seed}
+        adjacentBiomes={adjacentBiomes}
+        fortressType={currentStructure.fortressType}
+      />
+    );
+  }
+  
+  // If this is a marketplace, use the specialized MarketplaceBanner
+  if (currentStructure.structureType === 'marketplace') {
+    return (
+      <MarketplaceBanner
+        era={era}
+        culturalZone={culturalZone}
+        climate={currentMapData.climate as ClimateType}
+        season={season}
+        timeOfDay={timeOfDay}
+        width={width}
+        height={height}
+        seed={currentMapData.seed}
+        adjacentBiomes={adjacentBiomes}
+      />
+    );
+  }
+  
+  // If this is a factory, use the specialized FactoryBanner
+  if (currentStructure.structureType === 'factory') {
+    const industries = getRegionalIndustries(mapData?.era || HistoricalEra.MODERN_ERA, mapData?.mapAreaName || 'Unknown');
+    const structureSeed = currentStructure.location[0] * 10000 + currentStructure.location[1];
+    const seededRandom = (min: number, max: number) => {
+        const x = Math.sin(structureSeed) * 10000;
+        return Math.floor((x - Math.floor(x)) * (max - min) + min);
+    };
+    const industryIndex = industries.length > 0 ? seededRandom(0, industries.length - 1) : 0;
+    const industry = industries[industryIndex] || null;
+    
+    return (
+      <FactoryBanner
+        width={width}
+        height={height}
+        climate={currentMapData.climate as ClimateType}
+        season={season}
+        era={era}
+        culturalZone={culturalZone}
+        industryName={industry?.name}
+        isRuined={isRuined}
+      />
+    );
+  }
+  
+  // If this is a mill, use the specialized MillBanner
+  if (currentStructure.structureType === 'mill') {
+    // Determine mill type based on adjacent biomes or location
+    let millType: 'water_mill' | 'windmill' | 'tide_mill' = 'water_mill';
+    
+    // Check if near water for water mill
+    const hasRiver = adjacentBiomes.some(b => b === BiomeType.RIVER || b === BiomeType.MAJOR_RIVER || b === BiomeType.RIVERBANK);
+    const hasCoast = adjacentBiomes.some(b => b === BiomeType.BEACH || b === BiomeType.SHALLOW_OCEAN);
+    
+    if (hasCoast) {
+      millType = 'tide_mill';
+    } else if (!hasRiver && (currentMapData.climate === ClimateType.ARID || currentMapData.climate === ClimateType.MEDITERRANEAN)) {
+      millType = 'windmill';
+    }
+    
+    return (
+      <MillBanner
+        width={width}
+        height={height}
+        climate={currentMapData.climate as ClimateType}
+        season={season}
+        era={era}
+        culturalZone={culturalZone}
+        millType={millType}
+        timeOfDay={timeOfDay}
+        isRuined={isRuined}
+      />
+    );
+  }
+  
+  // If this is a fishing hut, use the specialized FishingHutBanner
+  if (currentStructure.structureType === 'fishing_hut') {
+    return (
+      <FishingHutBanner
+        structure={currentStructure}
+        era={era}
+        culturalZone={culturalZone}
+        climate={currentMapData.climate as ClimateType}
+        season={season}
+        timeOfDay={timeOfDay}
+        width={width}
+        height={height}
+        seed={currentMapData.seed}
+        adjacentBiomes={adjacentBiomes}
+      />
+    );
+  }
 
   // Initialize characters based on structure type and NPC anchor
   useEffect(() => {
     const generateCharacters = () => {
       const newCharacters: Character[] = [];
+      // No characters for ruined structures
+      if (isRuined) return newCharacters;
       const characterCount = currentStructure.state === 'active' ? 3 + Math.floor(rng.next() * 3) : 1;
 
       const characterTypes = {
@@ -143,8 +336,9 @@ const TerrainStructureBanner: React.FC<TerrainStructureBannerProps> = ({
     setCharacters(generateCharacters());
   }, [currentStructure.id, currentMapData.seed]);
 
-  // Animation loop
+  // Animation loop - only animate if not ruined
   useEffect(() => {
+    if (isRuined) return; // No animations for ruined structures
     const interval = setInterval(() => {
       setAnimationFrame(prev => prev + 1);
       
@@ -163,7 +357,7 @@ const TerrainStructureBanner: React.FC<TerrainStructureBannerProps> = ({
     }, 50);
 
     return () => clearInterval(interval);
-  }, [width]);
+  }, [width, isRuined]);
 
   // Render animated sky with parallax clouds
   const renderSky = () => {
@@ -459,11 +653,17 @@ const TerrainStructureBanner: React.FC<TerrainStructureBannerProps> = ({
     );
   };
 
+  // Calculate zoomed viewBox for center-focused zoom
+  const zoomedWidth = width / zoomLevel;
+  const zoomedHeight = height / zoomLevel;
+  const zoomOffsetX = (width - zoomedWidth) / 2;
+  const zoomOffsetY = (height - zoomedHeight) / 2;
+
   return (
     <svg
       width="100%"
       height="100%"
-      viewBox={`0 0 ${width} ${height}`}
+      viewBox={`${zoomOffsetX} ${zoomOffsetY} ${zoomedWidth} ${zoomedHeight}`}
       style={{ imageRendering: 'pixelated' }}
       className="bg-gradient-to-b from-slate-700 to-slate-800 rounded-t-lg"
     >

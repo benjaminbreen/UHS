@@ -37,9 +37,19 @@ export const HandQuernSymbol: React.FC<MillSymbolProps> = ({ x, y, size, seed })
       <ellipse cx={size * 0.5} cy={size * 0.58} rx={size * 0.25} ry={size * 0.18} 
                fill="#8a7a6a" stroke="#6a5a4a" strokeWidth="0.5" />
       
-      {/* Upper grinding stone */}
-      <ellipse cx={size * 0.48} cy={size * 0.5} rx={size * 0.2} ry={size * 0.15} 
-               fill="#a89888" stroke="#7a6a5a" strokeWidth="0.8" />
+      {/* Upper grinding stone - animated rotation */}
+      <g>
+        <animateTransform
+          attributeName="transform"
+          attributeType="XML"
+          type="rotate"
+          from={`0 ${size * 0.48} ${size * 0.5}`}
+          to={`360 ${size * 0.48} ${size * 0.5}`}
+          dur="6s"
+          repeatCount="indefinite"/>
+        <ellipse cx={size * 0.48} cy={size * 0.5} rx={size * 0.2} ry={size * 0.15} 
+                 fill="#a89888" stroke="#7a6a5a" strokeWidth="0.8" />
+      </g>
       
       {/* Handle hole */}
       <circle cx={size * 0.48} cy={size * 0.5} r={size * 0.03} 
@@ -90,10 +100,19 @@ export const AnimalMillSymbol: React.FC<MillSymbolProps> = ({ x, y, size, seed }
       <rect x={size * 0.48} y={size * 0.3} width={size * 0.04} height={size * 0.4} 
             fill="#6a5a4a" stroke="#4a3a2a" strokeWidth="0.5" />
       
-      {/* Rotating beam for animal */}
-      <rect x={size * 0.25} y={size * 0.48} width={size * 0.5} height={size * 0.03} 
-            fill="#7a5a3a" stroke="#5a3a1a" strokeWidth="0.3" 
-            transform={`rotate(${seed % 360} ${size * 0.5} ${size * 0.5})`} />
+      {/* Rotating beam for animal - animated */}
+      <g transform={`rotate(${seed % 360} ${size * 0.5} ${size * 0.5})`}>
+        <animateTransform
+          attributeName="transform"
+          attributeType="XML"
+          type="rotate"
+          from={`${seed % 360} ${size * 0.5} ${size * 0.5}`}
+          to={`${(seed % 360) + 360} ${size * 0.5} ${size * 0.5}`}
+          dur="15s"
+          repeatCount="indefinite"/>
+        <rect x={size * 0.25} y={size * 0.48} width={size * 0.5} height={size * 0.03} 
+              fill="#7a5a3a" stroke="#5a3a1a" strokeWidth="0.3" />
+      </g>
       
       {/* Millstones */}
       <ellipse cx={size * 0.5} cy={size * 0.55} rx={size * 0.18} ry={size * 0.14} 
@@ -154,8 +173,16 @@ export const WaterMillSymbol: React.FC<MillSymbolProps> = ({ x, y, size, seed })
                 L ${size * 0.78 + depth * 0.7} ${size * 0.35 - depth * 0.35} Z`}
             fill="#6a4a2a" stroke="#4a2a0a" strokeWidth="0.3" />
       
-      {/* Water wheel */}
+      {/* Water wheel - animated */}
       <g transform={`rotate(${wheelRotation} ${size * 0.25} ${size * 0.6})`}>
+        <animateTransform
+          attributeName="transform"
+          attributeType="XML"
+          type="rotate"
+          from={`${wheelRotation} ${size * 0.25} ${size * 0.6}`}
+          to={`${wheelRotation + 360} ${size * 0.25} ${size * 0.6}`}
+          dur="8s"
+          repeatCount="indefinite"/>
         <circle cx={size * 0.25} cy={size * 0.6} r={size * 0.22} 
                 fill="none" stroke="#6a4a2a" strokeWidth="2" />
         <circle cx={size * 0.25} cy={size * 0.6} r={size * 0.18} 
@@ -245,8 +272,16 @@ export const WindmillSymbol: React.FC<MillSymbolProps> = ({ x, y, size, seed }) 
                 Q ${size * 0.5} ${size * 0.15} ${size * 0.65} ${size * 0.3}`}
             fill="#7a5a3a" stroke="#5a3a1a" strokeWidth="0.5" />
       
-      {/* Windmill blades */}
+      {/* Windmill blades - animated */}
       <g transform={`rotate(${bladeRotation} ${size * 0.5} ${size * 0.35})`}>
+        <animateTransform
+          attributeName="transform"
+          attributeType="XML"
+          type="rotate"
+          from={`${bladeRotation} ${size * 0.5} ${size * 0.35}`}
+          to={`${bladeRotation + 360} ${size * 0.5} ${size * 0.35}`}
+          dur="10s"
+          repeatCount="indefinite"/>
         {/* Blade arms */}
         {Array.from({ length: 4 }).map((_, i) => {
           const angle = (i / 4) * Math.PI * 2;
@@ -341,11 +376,27 @@ export const SteamMillSymbol: React.FC<MillSymbolProps> = ({ x, y, size, seed })
       <rect x={size * 0.6} y={size * 0.2} width={size * 0.06} height={size * 0.2} 
             fill={`url(#brickGrad-${uniqueId})`} stroke="#584838" strokeWidth="0.8" />
       
-      {/* Smoke */}
-      <ellipse cx={size * 0.29} cy={size * 0.12} rx={size * 0.06} ry={size * 0.03} 
-               fill="rgba(80,80,80,0.4)" />
-      <ellipse cx={size * 0.63} cy={size * 0.18} rx={size * 0.05} ry={size * 0.025} 
-               fill="rgba(80,80,80,0.3)" />
+      {/* Smoke - animated */}
+      <g>
+        <ellipse cx={size * 0.29} cy={size * 0.12} rx={size * 0.06} ry={size * 0.03} 
+                 fill="rgba(80,80,80,0.4)">
+          <animate attributeName="cy" 
+                   values={`${size * 0.12};${size * 0.08};${size * 0.12}`}
+                   dur="3s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" 
+                   values="0.4;0.2;0.4"
+                   dur="3s" repeatCount="indefinite"/>
+        </ellipse>
+        <ellipse cx={size * 0.63} cy={size * 0.18} rx={size * 0.05} ry={size * 0.025} 
+                 fill="rgba(80,80,80,0.3)">
+          <animate attributeName="cy" 
+                   values={`${size * 0.18};${size * 0.14};${size * 0.18}`}
+                   dur="3.5s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" 
+                   values="0.3;0.15;0.3"
+                   dur="3.5s" repeatCount="indefinite"/>
+        </ellipse>
+      </g>
       
       {/* Windows - industrial style */}
       {[0.25, 0.4, 0.55, 0.7].map((xPos, i) => (
@@ -368,11 +419,26 @@ export const SteamMillSymbol: React.FC<MillSymbolProps> = ({ x, y, size, seed })
       <rect x={size * 0.05} y={size * 0.55} width={size * 0.15} height={size * 0.25} 
             fill={`url(#metalGrad-${uniqueId})`} stroke="#484848" strokeWidth="0.8" />
       
-      {/* Flywheel */}
-      <circle cx={size * 0.125} cy={size * 0.67} r={size * 0.05} 
-              fill="none" stroke="#383838" strokeWidth="1.5" />
-      <circle cx={size * 0.125} cy={size * 0.67} r={size * 0.02} 
-              fill="#282828" />
+      {/* Flywheel - animated */}
+      <g>
+        <animateTransform
+          attributeName="transform"
+          attributeType="XML"
+          type="rotate"
+          from={`0 ${size * 0.125} ${size * 0.67}`}
+          to={`360 ${size * 0.125} ${size * 0.67}`}
+          dur="2s"
+          repeatCount="indefinite"/>
+        <circle cx={size * 0.125} cy={size * 0.67} r={size * 0.05} 
+                fill="none" stroke="#383838" strokeWidth="1.5" />
+        {/* Spokes for visual rotation effect */}
+        <line x1={size * 0.125} y1={size * 0.62} x2={size * 0.125} y2={size * 0.72}
+              stroke="#484848" strokeWidth="0.5"/>
+        <line x1={size * 0.075} y1={size * 0.67} x2={size * 0.175} y2={size * 0.67}
+              stroke="#484848" strokeWidth="0.5"/>
+        <circle cx={size * 0.125} cy={size * 0.67} r={size * 0.02} 
+                fill="#282828" />
+      </g>
     </g>
   );
 };
@@ -436,9 +502,13 @@ export const ElectricMillSymbol: React.FC<MillSymbolProps> = ({ x, y, size, seed
       <rect x={size * 0.5} y={size * 0.7} width={size * 0.1} height={size * 0.15} 
             fill="#4a4a4a" stroke="#2a2a2a" strokeWidth="0.5" />
       
-      {/* Electrical equipment */}
+      {/* Electrical equipment - pulsing glow */}
       <rect x={size * 0.7} y={size * 0.35} width={size * 0.08} height={size * 0.08} 
-            fill="#686868" stroke="#484848" strokeWidth="0.5" />
+            fill="#686868" stroke="#484848" strokeWidth="0.5">
+        <animate attributeName="fill" 
+                 values="#686868;#787878;#686868"
+                 dur="2s" repeatCount="indefinite"/>
+      </rect>
       {/* Power lines */}
       <line x1={size * 0.74} y1={size * 0.35} x2={size * 0.74} y2={size * 0.25} 
             stroke="#484848" strokeWidth="0.5" />
@@ -482,9 +552,24 @@ export const TidalMillSymbol: React.FC<MillSymbolProps> = ({ x, y, size, seed })
       <polygon points={`${size * 0.28},${size * 0.35} ${size * 0.5},${size * 0.22} ${size * 0.72},${size * 0.35}`}
                fill="#6a7a8a" stroke="#4a5a6a" strokeWidth="0.5" />
       
-      {/* Horizontal water wheel (under building) */}
-      <ellipse cx={size * 0.5} cy={size * 0.65} rx={size * 0.15} ry={size * 0.08} 
-               fill="none" stroke="#5a4a3a" strokeWidth="1" strokeDasharray="2,1" />
+      {/* Horizontal water wheel (under building) - animated */}
+      <g>
+        <animateTransform
+          attributeName="transform"
+          attributeType="XML"
+          type="rotate"
+          from={`0 ${size * 0.5} ${size * 0.65}`}
+          to={`360 ${size * 0.5} ${size * 0.65}`}
+          dur="12s"
+          repeatCount="indefinite"/>
+        <ellipse cx={size * 0.5} cy={size * 0.65} rx={size * 0.15} ry={size * 0.08} 
+                 fill="none" stroke="#5a4a3a" strokeWidth="1" strokeDasharray="2,1" />
+        {/* Paddle indicators */}
+        <line x1={size * 0.35} y1={size * 0.65} x2={size * 0.65} y2={size * 0.65}
+              stroke="#4a3a2a" strokeWidth="0.5"/>
+        <line x1={size * 0.5} y1={size * 0.57} x2={size * 0.5} y2={size * 0.73}
+              stroke="#4a3a2a" strokeWidth="0.5"/>
+      </g>
       
       {/* Sluice gates */}
       <rect x={size * 0.25} y={size * 0.6} width={size * 0.04} height={size * 0.15} 
@@ -552,13 +637,51 @@ export const SugarMillSymbol: React.FC<MillSymbolProps> = ({ x, y, size, seed })
               stroke="#a88848" strokeWidth="0.3" opacity="0.5" />
       ))}
       
-      {/* Crushing rollers */}
-      <ellipse cx={size * 0.4} cy={size * 0.6} rx={size * 0.06} ry={size * 0.12} 
-               fill="#686868" stroke="#484848" strokeWidth="0.8" />
-      <ellipse cx={size * 0.5} cy={size * 0.6} rx={size * 0.06} ry={size * 0.12} 
-               fill="#686868" stroke="#484848" strokeWidth="0.8" />
-      <ellipse cx={size * 0.6} cy={size * 0.6} rx={size * 0.06} ry={size * 0.12} 
-               fill="#686868" stroke="#484848" strokeWidth="0.8" />
+      {/* Crushing rollers - animated rotation */}
+      <g>
+        <g>
+          <animateTransform
+            attributeName="transform"
+            attributeType="XML"
+            type="rotate"
+            from={`0 ${size * 0.4} ${size * 0.6}`}
+            to={`-360 ${size * 0.4} ${size * 0.6}`}
+            dur="4s"
+            repeatCount="indefinite"/>
+          <ellipse cx={size * 0.4} cy={size * 0.6} rx={size * 0.06} ry={size * 0.12} 
+                   fill="#686868" stroke="#484848" strokeWidth="0.8" />
+          <line x1={size * 0.4} y1={size * 0.48} x2={size * 0.4} y2={size * 0.72}
+                stroke="#585858" strokeWidth="0.3"/>
+        </g>
+        <g>
+          <animateTransform
+            attributeName="transform"
+            attributeType="XML"
+            type="rotate"
+            from={`0 ${size * 0.5} ${size * 0.6}`}
+            to={`360 ${size * 0.5} ${size * 0.6}`}
+            dur="4s"
+            repeatCount="indefinite"/>
+          <ellipse cx={size * 0.5} cy={size * 0.6} rx={size * 0.06} ry={size * 0.12} 
+                   fill="#686868" stroke="#484848" strokeWidth="0.8" />
+          <line x1={size * 0.5} y1={size * 0.48} x2={size * 0.5} y2={size * 0.72}
+                stroke="#585858" strokeWidth="0.3"/>
+        </g>
+        <g>
+          <animateTransform
+            attributeName="transform"
+            attributeType="XML"
+            type="rotate"
+            from={`0 ${size * 0.6} ${size * 0.6}`}
+            to={`-360 ${size * 0.6} ${size * 0.6}`}
+            dur="4s"
+            repeatCount="indefinite"/>
+          <ellipse cx={size * 0.6} cy={size * 0.6} rx={size * 0.06} ry={size * 0.12} 
+                   fill="#686868" stroke="#484848" strokeWidth="0.8" />
+          <line x1={size * 0.6} y1={size * 0.48} x2={size * 0.6} y2={size * 0.72}
+                stroke="#585858" strokeWidth="0.3"/>
+        </g>
+      </g>
       
       {/* Drive beam for animal power */}
       <rect x={size * 0.3} y={size * 0.58} width={size * 0.4} height={size * 0.03} 
@@ -572,7 +695,14 @@ export const SugarMillSymbol: React.FC<MillSymbolProps> = ({ x, y, size, seed })
       <rect x={size * 0.1} y={size * 0.25} width={size * 0.06} height={size * 0.2} 
             fill="#985848" stroke="#684838" strokeWidth="0.5" />
       <ellipse cx={size * 0.13} cy={size * 0.23} rx={size * 0.04} ry={size * 0.02} 
-               fill="rgba(80,80,80,0.4)" />
+               fill="rgba(80,80,80,0.4)">
+        <animate attributeName="cy" 
+                 values={`${size * 0.23};${size * 0.20};${size * 0.23}`}
+                 dur="4s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" 
+                 values="0.4;0.2;0.4"
+                 dur="4s" repeatCount="indefinite"/>
+      </ellipse>
     </g>
   );
 };

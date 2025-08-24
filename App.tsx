@@ -310,7 +310,7 @@ const AppContent: React.FC = () => {
       <div className="bg-slate-900 text-gray-100 flex flex-col h-screen overflow-hidden">
         <div className="relative z-10 flex flex-col h-full">
             <TopNavBarPolished />
-            <div className="relative flex-1 flex items-stretch overflow-hidden p-0 sm:p-1 md:p-2 lg:p-3 xl:p-4 gap-0 sm:gap-1 md:gap-2 lg:gap-3 xl:gap-4 h-full max-h-full">
+            <div className="relative flex-1 flex items-stretch overflow-hidden p-0 sm:p-0 md:p-0 lg:p-1 xl:p-0 gap-0 sm:gap-1 md:gap-2 lg:gap-3 xl:gap-4 h-full max-h-full">
                 {/* Desktop sidebar toggle */}
                 {!isLeftSidebarExpanded && (
                     <button 

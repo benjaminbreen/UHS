@@ -88,55 +88,95 @@ const CoralReefSymbol: React.FC<CoralReefSymbolProps> = React.memo(({ x, y, size
                 <defs>
                     <style>
                         {`
-                            @keyframes dartFish {
-                            0% {
-                                transform: translateX(0) translateY(0) rotate(0deg);
-                                opacity: 0.7;
+                            @keyframes swimCircle {
+                                0% {
+                                    transform: rotate(0deg) translateX(8px) rotate(0deg);
+                                    opacity: 0.8;
+                                }
+                                15% {
+                                    transform: rotate(54deg) translateX(9px) rotate(-54deg);
+                                    opacity: 0.9;
+                                }
+                                25% {
+                                    transform: rotate(90deg) translateX(8px) rotate(-90deg);
+                                    opacity: 0.8;
+                                }
+                                35% {
+                                    transform: rotate(126deg) translateX(7px) rotate(-126deg);
+                                    opacity: 0.7;
+                                }
+                                50% {
+                                    transform: rotate(180deg) translateX(8px) rotate(-180deg);
+                                    opacity: 0.8;
+                                }
+                                65% {
+                                    transform: rotate(234deg) translateX(9px) rotate(-234deg);
+                                    opacity: 0.9;
+                                }
+                                75% {
+                                    transform: rotate(270deg) translateX(8px) rotate(-270deg);
+                                    opacity: 0.8;
+                                }
+                                85% {
+                                    transform: rotate(306deg) translateX(7px) rotate(-306deg);
+                                    opacity: 0.7;
+                                }
+                                100% {
+                                    transform: rotate(360deg) translateX(8px) rotate(-360deg);
+                                    opacity: 0.8;
+                                }
                             }
-                            20% {
-                                transform: translateX(3px) translateY(-2px) rotate(15deg);
-                                opacity: 0.8;
+                            
+                            @keyframes pauseAndSwim {
+                                0%, 10% {
+                                    transform: rotate(0deg) translateX(6px) rotate(0deg);
+                                    opacity: 0.7;
+                                }
+                                20%, 30% {
+                                    transform: rotate(72deg) translateX(7px) rotate(-72deg);
+                                    opacity: 0.8;
+                                }
+                                40% {
+                                    transform: rotate(144deg) translateX(6px) rotate(-144deg);
+                                    opacity: 0.7;
+                                }
+                                50%, 60% {
+                                    transform: rotate(180deg) translateX(5px) rotate(-180deg);
+                                    opacity: 0.6;
+                                }
+                                70%, 80% {
+                                    transform: rotate(252deg) translateX(7px) rotate(-252deg);
+                                    opacity: 0.8;
+                                }
+                                90%, 100% {
+                                    transform: rotate(360deg) translateX(6px) rotate(-360deg);
+                                    opacity: 0.7;
+                                }
                             }
-                            40% {
-                                transform: translateX(5px) translateY(1px) rotate(-10deg);
-                                opacity: 0.9;
-                            }
-                            60% {
-                                transform: translateX(2px) translateY(3px) rotate(5deg);
-                                opacity: 0.8;
-                            }
-                            80% {
-                                transform: translateX(-2px) translateY(2px) rotate(-20deg);
-                                opacity: 0.7;
-                            }
-                            100% {
-                                transform: translateX(0) translateY(0) rotate(0deg);
-                                opacity: 0.7;
-                            }
-                        }
                         `}
                     </style>
                 </defs>
             </g>
         );
 
-        // Add darting arrow-fish - small, fast moving fish that dart in and out
+        // Add swimming fish with circular patterns
         const fishChance = localRand();
-        const numFish = fishChance < 0.8 ? 0 : Math.floor(localRand() * 3) + 1; // 80% chance of no fish, otherwise 1-3
+        const numFish = fishChance < 0.7 ? 0 : Math.floor(localRand() * 3) + 1; // 70% chance of no fish, otherwise 1-3
         
             for(let i = 0; i < numFish; i++) {
-                const fishSize = size * (0.03 + localRand() * 0.02); // Smaller fish
-                const startX = size * 0.3 + localRand() * size * 0.4;
-                const startY = size * 0.3 + localRand() * size * 0.4;
+                const fishSize = size * (0.025 + localRand() * 0.015); // Smaller fish
+                const centerX = size * 0.3 + localRand() * size * 0.4; // Center of circular path
+                const centerY = size * 0.3 + localRand() * size * 0.4;
                 const fishColor = `hsl(${180 + localRand() * 60}, 80%, ${60 + localRand() * 20}%)`; // Brighter tropical colors
-                const fishDuration = 8 + localRand() * 6; // Much slower random walk
+                const fishDuration = 12 + localRand() * 8; // Slower circular motion (12-20s)
                 const fishDelay = localRand() * fishDuration; // Random start times
+                const useAlternateAnimation = localRand() > 0.5; // Mix of continuous and pause-and-swim
                 
-                // Create arrow-shaped fish that dart
+                // Create arrow-shaped fish that swim in circles
                 elements.push(
-                    <g key={`fish-${i}`} transform={`translate(${startX}, ${startY})`} 
+                    <g key={`fish-${i}`} transform={`translate(${centerX}, ${centerY})`} 
                         style={{
-                            animation: `dartFish ${fishDuration}s ease-in-out infinite ${fishDelay}s`,
+                            animation: `${useAlternateAnimation ? 'pauseAndSwim' : 'swimCircle'} ${fishDuration}s ease-in-out infinite ${fishDelay}s`,
                             transformOrigin: 'center center'
                         } as React.CSSProperties}
                     >
