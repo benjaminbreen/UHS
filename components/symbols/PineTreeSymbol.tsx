@@ -36,29 +36,13 @@ const PineTreeSymbol: React.FC<PineTreeSymbolProps> = React.memo(({ seed, season
   
   const trunkX = 12 - trunkWidth / 2;
   const trunkY = 18;
-  const uniqueSeed = Math.round(seed);
-
   const showSnow = season === 'winter' && (climate === ClimateType.COLD || climate === ClimateType.TEMPERATE);
 
   return (
     <g filter="url(#symbolShadow)">
-      <defs>
-        <linearGradient id={`pineGradient1-${uniqueSeed}`} x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="#276749" />
-          <stop offset="100%" stopColor="#22543d" />
-        </linearGradient>
-        <linearGradient id={`pineGradient2-${uniqueSeed}`} x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="#38a169" />
-          <stop offset="100%" stopColor="#2f855a" />
-        </linearGradient>
-        <linearGradient id={`pineGradient3-${uniqueSeed}`} x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="#68d391" />
-          <stop offset="100%" stopColor="#48bb78" />
-        </linearGradient>
-      </defs>
-      <polygon points={`12,${y1} ${p1_x1},${p1_y1} ${p1_x2},${p1_y2}`} fill={`url(#pineGradient1-${uniqueSeed})`} />
-      <polygon points={`12,${y1} ${p2_x1},${p2_y1} ${p2_x2},${p2_y2}`} fill={`url(#pineGradient2-${uniqueSeed})`} />
-      <polygon points={`12,${y1} ${p3_x1},${p3_y1} ${p3_x2},${p3_y2}`} fill={`url(#pineGradient3-${uniqueSeed})`} />
+      <polygon points={`12,${y1} ${p1_x1},${p1_y1} ${p1_x2},${p1_y2}`} fill="#22543d" />
+      <polygon points={`12,${y1} ${p2_x1},${p2_y1} ${p2_x2},${p2_y2}`} fill="#2f855a" />
+      <polygon points={`12,${y1} ${p3_x1},${p3_y1} ${p3_x2},${p3_y2}`} fill="#48bb78" />
       <rect x={trunkX} y={trunkY} width={trunkWidth} height={trunkHeight} fill="#693c24" />
 
       {showSnow && (

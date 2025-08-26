@@ -35,7 +35,7 @@ type CategoryFilter = 'all' | 'food' | 'tool' | 'weapon' | 'luxury' | 'raw_mater
 
 const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   tile, playerCharacter, mapData, npcs, mapAnalysisData, gameTimeHours, season,
-  onClose, onBuy, onSell
+  onClose, onBuy, onSell, weather
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('buy');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
@@ -704,7 +704,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
       <div className={`bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 border-2 border-amber-900/40 rounded-xl shadow-2xl flex flex-col overflow-hidden ${
-        isMobile ? 'w-full h-full rounded-none' : 'w-[85%] max-w-5xl h-[80vh]'
+        isMobile ? 'w-full h-full rounded-none' : 'w-[97%] max-w-8xl h-[72vh]'
       }`}>
         {/* Enhanced header with animated banner */}
         <div className="relative h-36 overflow-hidden shrink-0">

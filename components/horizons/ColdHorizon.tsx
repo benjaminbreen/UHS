@@ -35,6 +35,9 @@ const ColdHorizon: React.FC<ColdHorizonProps> = ({
   weather,
   sky
 }) => {
+  // Helper function for rounding SVG path coordinates
+  const p = (n: number) => Math.round(n * 100) / 100;
+  
   // Helper to blend two hex colors
   const blendHex = (color1: string, color2: string, ratio: number): string => {
     const parseHex = (hex: string) => {
@@ -96,9 +99,6 @@ const ColdHorizon: React.FC<ColdHorizonProps> = ({
     // Variable sky influence based on time of day - STRONG at night
     const skyInfluence = isNight ? 0.85 : isDusk ? 0.45 : isDawn ? 0.40 : 0.15;
     const snowInfluence = isNight ? 0.60 : isTwilight ? 0.25 : 0.10; // Snow gets bluish too at night
-
-    // Helper function for rounding SVG path coordinates
-    const p = (n: number) => Math.round(n * 100) / 100;
 
     // Helper to tint with appropriate sky color
     const tintMountain = (baseColor: string, distance: 'far' | 'mid' | 'near') => {

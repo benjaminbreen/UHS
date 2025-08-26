@@ -25,7 +25,7 @@ const DeciduousTreeSymbol: React.FC<DeciduousTreeSymbolProps> = React.memo(({ se
     let hue, saturation, lightness;
     
     switch (effectiveSeason) {
-      case 'fall':
+      case 'autumn':
         hue = 25 + variation * 30; // Oranges, reds, yellows
         saturation = 70 + variation * 20;
         lightness = 45 + variation * 10;
@@ -67,16 +67,16 @@ const DeciduousTreeSymbol: React.FC<DeciduousTreeSymbolProps> = React.memo(({ se
 
   const baseRadius = isVariant ? 5.5 : 7.5;
   const verticalCompression = 0.6;
-  const layerCount = isVariant ? 3 : 5;
+  const layerCount = isVariant ? 2 : 3; // Reduced from 3/5 to 2/3
 
   if (effectiveSeason !== 'winter') {
     for (let i = 0; i < layerCount; i++) {
       const angle = (i / layerCount) * 2 * Math.PI + localRand() * 0.4;
-      const distance = baseRadius * (0.6 + localRand() * 0.4);
-      const rx = baseRadius * (0.6 + localRand() * 0.3);
+      const distance = baseRadius * (0.5 + localRand() * 0.3);
+      const rx = baseRadius * (0.7 + localRand() * 0.2);
       const ry = rx * verticalCompression;
-      const cx = 12 + Math.cos(angle) * distance * 0.9;
-      const cy = 12 + Math.sin(angle) * distance * 0.7;
+      const cx = 12 + Math.cos(angle) * distance * 0.8;
+      const cy = 12 + Math.sin(angle) * distance * 0.6;
 
       foliage.push({
         cx,
@@ -84,7 +84,7 @@ const DeciduousTreeSymbol: React.FC<DeciduousTreeSymbolProps> = React.memo(({ se
         rx,
         ry,
         color: getFoliageColor(localRand()),
-        opacity: 0.8 + localRand() * 0.15,
+        opacity: 0.85 + localRand() * 0.1,
         z: cy,
         key: `foliage-${i}`
       });
@@ -142,37 +142,21 @@ const DeciduousTreeSymbol: React.FC<DeciduousTreeSymbolProps> = React.memo(({ se
       {foliage
         .sort((a, b) => a.z - b.z)
         .map(layer => (
-          <g key={layer.key}>
-            <ellipse
-              cx={layer.cx + 0.7}
-              cy={layer.cy + 0.7}
-              rx={layer.rx}
-              ry={layer.ry}
-              fill="black"
-              opacity={0.08}
-            />
-            <ellipse
-              cx={layer.cx}
-              cy={layer.cy}
-              rx={layer.rx}
-              ry={layer.ry}
-              fill={layer.color}
-              opacity={layer.opacity}
-            />
-            <ellipse
-              cx={layer.cx - 0.5}
-              cy={layer.cy - 0.6}
-              rx={layer.rx * 0.25}
-              ry={layer.ry * 0.25}
-              fill="rgba(255,255,255,0.1)"
-            />
-          </g>
+          <ellipse
+            key={layer.key}
+            cx={layer.cx}
+            cy={layer.cy}
+            rx={layer.rx}
+            ry={layer.ry}
+            fill={layer.color}
+            opacity={layer.opacity}
+          />
         ))}
         {/* Spring Flowers (only in cold/temperate climates) */}
-        {effectiveSeason === 'spring' && [...Array(5)].map((_, i) => {
+        {effectiveSeason === 'spring' && [...Array(3)].map((_, i) => {
             const flowerX = 12 + (localRand() - 0.5) * baseRadius * 1.5;
             const flowerY = 12 + (localRand() - 0.5) * baseRadius;
-            return <circle key={`flower-${i}`} cx={flowerX} cy={flowerY} r="0.8" fill={localRand() > 0.5 ? '#f9a8d4' : '#c084fc'} opacity="0.9" />;
+            return <circle key={`flower-${i}`} cx={flowerX} cy={flowerY} r="0.6" fill={localRand() > 0.5 ? '#f9a8d4' : '#c084fc'} opacity="0.8" />;
         })}
     </g>
   );

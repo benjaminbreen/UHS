@@ -337,19 +337,19 @@ export function generateVegetation(mapData: MapData, noise: ValueNoise): Vegetat
   const getVegetationLimits = (climate: ClimateType) => {
     switch (climate) {
       case ClimateType.ARID:
-        return { maxTrees: 20, maxNonTrees: 15 }; // No trees, sparse cacti/bushes
+        return { maxTrees: 10, maxNonTrees: 10 }; // No trees, sparse cacti/bushes
       case ClimateType.TROPICAL:
-        return { maxTrees: 100, maxNonTrees: 25 }; // Lush tropical vegetation
+        return { maxTrees: 80, maxNonTrees: 15 }; // Lush tropical vegetation
       case ClimateType.SEMITROPICAL:
-        return { maxTrees: 80, maxNonTrees: 20 };
+        return { maxTrees: 60, maxNonTrees: 20 };
       case ClimateType.TEMPERATE:
-        return { maxTrees: 100, maxNonTrees: 15 };
+        return { maxTrees: 70, maxNonTrees: 10 };
       case ClimateType.COLD:
-        return { maxTrees: 50, maxNonTrees: 2 }; // Sparse northern forests
+        return { maxTrees: 40, maxNonTrees: 2 }; // Sparse northern forests
       case ClimateType.MEDITERRANEAN:
-        return { maxTrees: 70, maxNonTrees: 30 }; // Moderate trees with many herbs/bushes
+        return { maxTrees: 40, maxNonTrees: 25 }; // Moderate trees with many herbs/bushes
       default:
-        return { maxTrees: 50, maxNonTrees: 25 };
+        return { maxTrees: 20, maxNonTrees: 25 };
     }
   };
 

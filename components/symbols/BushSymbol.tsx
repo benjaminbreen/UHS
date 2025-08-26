@@ -24,13 +24,12 @@ const BushSymbol: React.FC<BushSymbolProps> = React.memo(({ seed }) => {
   const { bushType, size, density, rand: localRand } = bushData;
   
   if (bushType < 0.33) {
-    // Rounded leafy bush - enhanced with better depth and shadows
-    const numClusters = 5 + Math.floor(localRand() * 4); // More clusters
+    // Simplified rounded leafy bush - reduced complexity
+    const numClusters = 2 + Math.floor(localRand() * 2); // Reduced from 5-9 to 2-4
     const baseHue = 100 + localRand() * 35;
     const baseColor = `hsl(${baseHue}, ${45 + localRand() * 20}%, ${38 + localRand() * 12}%)`;
     const shadowColor = `hsl(${baseHue - 5}, ${50 + localRand() * 15}%, ${22 + localRand() * 8}%)`;
     const highlightColor = `hsl(${baseHue + 5}, ${35 + localRand() * 15}%, ${55 + localRand() * 10}%)`;
-    const darkShadowColor = `hsl(${baseHue - 10}, ${55 + localRand() * 10}%, ${15 + localRand() * 5}%)`;
     
     const clusters = [];
     for (let i = 0; i < numClusters; i++) {
@@ -42,37 +41,21 @@ const BushSymbol: React.FC<BushSymbolProps> = React.memo(({ seed }) => {
       
       clusters.push(
         <g key={`cluster-${i}`}>
-          {/* Base shadow for depth */}
-          <circle
-            cx={cx + 0.3}
-            cy={cy + 0.4}
-            r={clusterSize * 1.1}
-            fill={darkShadowColor}
-            opacity={density * 0.3}
-          />
-          {/* Main cluster */}
+          {/* Main cluster - removed redundant shadow layers */}
           <circle
             cx={cx}
             cy={cy}
             r={clusterSize}
-            fill={i % 3 === 0 ? baseColor : (i % 3 === 1 ? shadowColor : baseColor)}
+            fill={i % 2 === 0 ? baseColor : shadowColor}
             opacity={density}
           />
-          {/* Highlight */}
+          {/* Single highlight - removed detail highlights */}
           <circle
             cx={cx - clusterSize * 0.35}
             cy={cy - clusterSize * 0.35}
-            r={clusterSize * 0.45}
+            r={clusterSize * 0.35}
             fill={highlightColor}
-            opacity={density * 0.6}
-          />
-          {/* Small detail highlights */}
-          <circle
-            cx={cx + clusterSize * 0.2}
-            cy={cy - clusterSize * 0.15}
-            r={clusterSize * 0.15}
-            fill={highlightColor}
-            opacity={density * 0.4}
+            opacity={density * 0.5}
           />
         </g>
       );
@@ -80,33 +63,16 @@ const BushSymbol: React.FC<BushSymbolProps> = React.memo(({ seed }) => {
     
     return (
       <g>
-        {/* Enhanced ground shadow */}
+        {/* Single ground shadow */}
         <ellipse
           cx="12"
           cy="22.5"
-          rx={size * 1.2}
-          ry={size * 0.35}
-          fill="rgba(0,0,0,0.35)"
+          rx={size * 1.1}
+          ry={size * 0.3}
+          fill="rgba(0,0,0,0.3)"
         />
         
-        {/* Secondary shadow for depth */}
-        <ellipse
-          cx="12"
-          cy="22"
-          rx={size * 0.9}
-          ry={size * 0.25}
-          fill="rgba(0,0,0,0.2)"
-        />
-        
-        {/* Central mass with enhanced shadow */}
-        <circle
-          cx="12.2"
-          cy={20.2 - size * 0.3}
-          r={size * 0.7}
-          fill={darkShadowColor}
-          opacity={density * 0.5}
-        />
-        
+        {/* Central mass - simplified */}
         <circle
           cx="12"
           cy={20 - size * 0.3}
@@ -118,11 +84,10 @@ const BushSymbol: React.FC<BushSymbolProps> = React.memo(({ seed }) => {
         {/* Clusters */}
         {clusters}
         
-        {/* Enhanced branches with varying thickness */}
-        {Array.from({ length: 4 }).map((_, i) => {
-          const branchAngle = (i / 4) * Math.PI * 2 + Math.PI / 8 + localRand() * 0.3;
+        {/* Simplified branches - reduced from 4 to 2 */}
+        {Array.from({ length: 2 }).map((_, i) => {
+          const branchAngle = (i / 2) * Math.PI + localRand() * 0.3;
           const branchLength = size * 0.4;
-          const branchThickness = 0.5 + localRand() * 0.3;
           return (
             <line
               key={`branch-${i}`}
@@ -131,43 +96,26 @@ const BushSymbol: React.FC<BushSymbolProps> = React.memo(({ seed }) => {
               x2={12 + Math.cos(branchAngle) * branchLength}
               y2={20 + Math.sin(branchAngle) * branchLength * 0.6}
               stroke="hsl(25, 40%, 28%)"
-              strokeWidth={branchThickness}
+              strokeWidth="0.6"
               strokeLinecap="round"
-              opacity="0.8"
-            />
-          );
-        })}
-        
-        {/* Texture details */}
-        {Array.from({ length: 3 }).map((_, i) => {
-          const detailX = 12 + (localRand() - 0.5) * size * 0.8;
-          const detailY = 20 - size * 0.3 + (localRand() - 0.5) * size * 0.6;
-          return (
-            <circle
-              key={`detail-${i}`}
-              cx={detailX}
-              cy={detailY}
-              r={0.3 + localRand() * 0.2}
-              fill={highlightColor}
-              opacity={density * 0.3}
+              opacity="0.7"
             />
           );
         })}
       </g>
     );
   } else if (bushType < 0.66) {
-    // Spiky desert shrub - enhanced with more dramatic spikes
-    const numSpikes = 10 + Math.floor(localRand() * 8); // More spikes
+    // Simplified spiky desert shrub
+    const numSpikes = 5 + Math.floor(localRand() * 3); // Reduced from 10-18 to 5-8
     const baseHue = 85 + localRand() * 30;
     const baseColor = `hsl(${baseHue}, ${35 + localRand() * 20}%, ${42 + localRand() * 15}%)`;
     const tipColor = `hsl(${baseHue + 10}, ${30 + localRand() * 15}%, ${60 + localRand() * 10}%)`;
-    const shadowColor = `hsl(${baseHue - 15}, ${40 + localRand() * 15}%, ${25 + localRand() * 8}%)`;
     
     const spikes = [];
     for (let i = 0; i < numSpikes; i++) {
       const angle = (i / numSpikes) * Math.PI * 2 + (localRand() - 0.5) * 0.4;
-      const length = size * (0.7 + localRand() * 0.5); // Longer spikes
-      const thickness = 1.2 - i * 0.06; // More varied thickness
+      const length = size * (0.7 + localRand() * 0.5);
+      const thickness = 1.0 - i * 0.05;
       const baseX = 12 + Math.cos(angle) * 1.2;
       const baseY = 20.5 + Math.sin(angle) * 0.6;
       const tipX = 12 + Math.cos(angle) * length;
@@ -175,18 +123,7 @@ const BushSymbol: React.FC<BushSymbolProps> = React.memo(({ seed }) => {
       
       spikes.push(
         <g key={`spike-${i}`}>
-          {/* Spike shadow */}
-          <line
-            x1={baseX + 0.2}
-            y1={baseY + 0.3}
-            x2={tipX + 0.2}
-            y2={tipY + 0.3}
-            stroke={shadowColor}
-            strokeWidth={thickness * 1.1}
-            strokeLinecap="round"
-            opacity="0.3"
-          />
-          {/* Main spike */}
+          {/* Main spike - removed shadow */}
           <line
             x1={baseX}
             y1={baseY}
@@ -196,50 +133,30 @@ const BushSymbol: React.FC<BushSymbolProps> = React.memo(({ seed }) => {
             strokeWidth={thickness}
             strokeLinecap="round"
           />
-          {/* Spike tip highlight */}
+          {/* Simple tip dot - smaller */}
           <circle
             cx={tipX}
             cy={tipY}
-            r="0.4"
+            r="0.3"
             fill={tipColor}
-            opacity="0.8"
+            opacity="0.7"
           />
-          {/* Small thorns along spike */}
-          {length > size * 0.8 && (
-            <circle
-              key={`thorn-${i}`}
-              cx={baseX + Math.cos(angle) * length * 0.6}
-              cy={baseY - Math.abs(Math.sin(angle)) * length * 0.5}
-              r="0.2"
-              fill={tipColor}
-              opacity="0.6"
-            />
-          )}
         </g>
       );
     }
     
     return (
       <g>
-        {/* Enhanced ground shadow */}
+        {/* Single ground shadow */}
         <ellipse
           cx="12"
           cy="22.5"
-          rx={size * 1.1}
-          ry={size * 0.3}
+          rx={size}
+          ry={size * 0.25}
           fill="rgba(0,0,0,0.3)"
         />
         
-        {/* Central base with more depth */}
-        <ellipse
-          cx="12.1"
-          cy="20.6"
-          rx="2"
-          ry="1.2"
-          fill={shadowColor}
-          opacity="0.6"
-        />
-        
+        {/* Simplified central base */}
         <ellipse
           cx="12"
           cy="20.5"
@@ -251,58 +168,27 @@ const BushSymbol: React.FC<BushSymbolProps> = React.memo(({ seed }) => {
         
         {/* Spikes */}
         {spikes}
-        
-        {/* Base texture */}
-        {Array.from({ length: 3 }).map((_, i) => {
-          const textureX = 12 + (localRand() - 0.5) * 2.5;
-          const textureY = 20.5 + (localRand() - 0.5) * 1.5;
-          return (
-            <circle
-              key={`texture-${i}`}
-              cx={textureX}
-              cy={textureY}
-              r={0.15 + localRand() * 0.1}
-              fill={tipColor}
-              opacity="0.4"
-            />
-          );
-        })}
       </g>
     );
   } else {
-    // Flowering bush - enhanced with more flowers and better depth
-    const numFlowers = 7 + Math.floor(localRand() * 5); // More flowers
+    // Simplified flowering bush
+    const numFlowers = 3 + Math.floor(localRand() * 2); // Reduced from 7-12 to 3-5
     const leafHue = 110 + localRand() * 25;
     const leafColor = `hsl(${leafHue}, ${40 + localRand() * 20}%, ${38 + localRand() * 10}%)`;
-    const leafShadowColor = `hsl(${leafHue - 10}, ${45 + localRand() * 15}%, ${25 + localRand() * 8}%)`;
-    const flowerHue = localRand() > 0.5 ? 300 + localRand() * 60 : localRand() * 60; // Purple/pink or yellow/orange
+    const flowerHue = localRand() > 0.5 ? 300 + localRand() * 60 : localRand() * 60;
     const flowerColor = `hsl(${flowerHue}, ${65 + localRand() * 20}%, ${68 + localRand() * 10}%)`;
     const flowerCenterColor = `hsl(${50 + localRand() * 20}, 75%, 65%)`;
     
     const elements = [];
     
-    // Enhanced leafy base with shadows
-    for (let i = 0; i < 6; i++) {
-      const angle = (i / 6) * Math.PI * 2;
+    // Simplified leafy base - reduced from 6 to 3
+    for (let i = 0; i < 3; i++) {
+      const angle = (i / 3) * Math.PI * 2;
       const leafX = 12 + Math.cos(angle) * size * 0.5;
       const leafY = 20 - size * 0.2 + Math.sin(angle) * size * 0.25;
       const leafSize = size * 0.5 * (0.8 + localRand() * 0.4);
       
-      // Leaf shadow
-      elements.push(
-        <ellipse
-          key={`leaf-shadow-${i}`}
-          cx={leafX + 0.2}
-          cy={leafY + 0.3}
-          rx={leafSize * 1.1}
-          ry={leafSize * 0.7}
-          fill={leafShadowColor}
-          opacity="0.3"
-          transform={`rotate(${angle * 180 / Math.PI} ${leafX + 0.2} ${leafY + 0.3})`}
-        />
-      );
-      
-      // Main leaf
+      // Single leaf - no shadow
       elements.push(
         <ellipse
           key={`leaf-${i}`}
@@ -317,28 +203,17 @@ const BushSymbol: React.FC<BushSymbolProps> = React.memo(({ seed }) => {
       );
     }
     
-    // Enhanced flowers with better detail
+    // Simplified flowers
     for (let i = 0; i < numFlowers; i++) {
       const angle = (i / numFlowers) * Math.PI * 2 + localRand() * 0.6;
       const distance = size * 0.6 * (0.6 + localRand() * 0.4);
       const flowerX = 12 + Math.cos(angle) * distance;
       const flowerY = 20 - size * 0.5 + Math.sin(angle) * distance * 0.6;
-      const flowerSize = 0.8 + localRand() * 0.5; // Larger flowers
+      const flowerSize = 0.8 + localRand() * 0.5;
       
-      // Flower shadow
-      elements.push(
-        <circle
-          key={`flower-shadow-${i}`}
-          cx={flowerX + 0.1}
-          cy={flowerY + 0.2}
-          r={flowerSize * 0.6}
-          fill="rgba(0,0,0,0.2)"
-        />
-      );
-      
-      // Flower petals with more detail
-      for (let j = 0; j < 6; j++) { // More petals
-        const petalAngle = (j / 6) * Math.PI * 2;
+      // Simplified flower - 4 petals instead of 6, no shadows
+      for (let j = 0; j < 4; j++) {
+        const petalAngle = (j / 4) * Math.PI * 2;
         const petalX = flowerX + Math.cos(petalAngle) * flowerSize * 0.45;
         const petalY = flowerY + Math.sin(petalAngle) * flowerSize * 0.45;
         
@@ -356,71 +231,31 @@ const BushSymbol: React.FC<BushSymbolProps> = React.memo(({ seed }) => {
         );
       }
       
-      // Flower center with more detail
+      // Single flower center - no detail layer
       elements.push(
         <circle
           key={`center-${i}`}
           cx={flowerX}
           cy={flowerY}
-          r={flowerSize * 0.3}
+          r={flowerSize * 0.25}
           fill={flowerCenterColor}
           opacity="0.95"
-        />
-      );
-      
-      // Tiny center detail
-      elements.push(
-        <circle
-          key={`center-detail-${i}`}
-          cx={flowerX}
-          cy={flowerY}
-          r={flowerSize * 0.15}
-          fill="hsl(45, 80%, 80%)"
-          opacity="0.8"
         />
       );
     }
     
     return (
       <g>
-        {/* Enhanced ground shadow */}
+        {/* Single ground shadow */}
         <ellipse
           cx="12"
           cy="22.5"
-          rx={size * 1.1}
-          ry={size * 0.3}
+          rx={size}
+          ry={size * 0.25}
           fill="rgba(0,0,0,0.3)"
         />
         
-        {/* Secondary shadow */}
-        <ellipse
-          cx="12"
-          cy="22"
-          rx={size * 0.8}
-          ry={size * 0.2}
-          fill="rgba(0,0,0,0.2)"
-        />
-        
         {elements}
-        
-        {/* Small stems and details */}
-        {Array.from({ length: numFlowers }).map((_, i) => {
-          const stemX = 12 + (localRand() - 0.5) * size * 0.8;
-          const stemY = 20 + (localRand() - 0.5) * size * 0.3;
-          const stemEndY = stemY - size * 0.4;
-          return (
-            <line
-              key={`stem-${i}`}
-              x1={stemX}
-              y1={stemY}
-              x2={stemX + (localRand() - 0.5) * 0.5}
-              y2={stemEndY}
-              stroke="hsl(90, 35%, 35%)"
-              strokeWidth="0.3"
-              opacity="0.6"
-            />
-          );
-        })}
       </g>
     );
   }

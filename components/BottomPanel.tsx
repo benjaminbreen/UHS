@@ -248,7 +248,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
         }
 
         return (
-            <div className="w-full flex flex-col sm:grid sm:grid-cols-[200px_1fr_200px] lg:grid-cols-[300px_1fr_300px] items-center gap-2 sm:gap-6 p-3 sm:p-5 lg:p-7 animate-in slide-in-from-bottom duration-500">
+            <div className="w-full flex flex-col sm:grid sm:grid-cols-[200px_1fr_200px] lg:grid-cols-[300px_1fr_300px] items-center gap-2 sm:gap-6 p-2 sm:p-4 lg:p-5 animate-in slide-in-from-bottom duration-500">
                 <div className="flex justify-center sm:justify-start w-full sm:w-auto">
                     {contextualInfo}
                 </div>
@@ -288,7 +288,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
         };
 
         return (
-             <div className="w-full grid grid-cols-[300px_1fr_300px] items-center gap-4 p-5 mb-1">
+             <div className="w-full grid grid-cols-[300px_1fr_300px] items-center gap-4 p-3 mb-1">
                  <div className="flex justify-start">
                      <button
                          onClick={onToggleAmbientText}

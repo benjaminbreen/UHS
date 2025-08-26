@@ -290,6 +290,66 @@ export function calculateNpcUpdate(
     const workplace = map.terrainStructures?.find(s => s.id === npc.workplaceId);
     let newActivity = npc.activity;
 
+    // --- Palace Noble Special Behavior ---
+    if ((npc as any).behavior?.palaceVisitor) {
+        const behavior = (npc as any).behavior;
+        const palaceLocation = behavior.palaceLocation;
+        
+        // Decrement timer
+        if (behavior.timeUntilPalaceVisit !== undefined) {
+            behavior.timeUntilPalaceVisit--;
+        }
+        
+        // Check if at palace
+        const isAtPalace = Math.hypot(npc.x - palaceLocation[0], npc.y - palaceLocation[1]) <= 0.5;
+        
+        // Palace visiting logic
+        if (behavior.timeUntilPalaceVisit <= 0) {
+            if (isAtPalace) {
+                // Exit palace
+                newActivity = 'leaving_palace';
+                behavior.timeUntilPalaceVisit = 60 + Math.floor(Math.random() * 120); // Stay outside 60-180 ticks
+            } else {
+                // Enter palace
+                newActivity = 'entering_palace';
+                behavior.timeUntilPalaceVisit = 30 + Math.floor(Math.random() * 60); // Stay inside 30-90 ticks
+            }
+        } else if (newActivity === 'entering_palace' && !isAtPalace) {
+            // Move towards palace
+            const allNeighbors = getNeighbors(npc.x, npc.y, map);
+            const walkableNeighbors = allNeighbors.filter(isWalkableForNpc);
+            if (walkableNeighbors.length > 0) {
+                const target = { x: palaceLocation[0], y: palaceLocation[1] };
+                const nextPos = moveTowards({ x: npc.x, y: npc.y }, target, walkableNeighbors);
+                return { 
+                    activity: newActivity, 
+                    x: nextPos.x, 
+                    y: nextPos.y,
+                    behavior: behavior
+                };
+            }
+        } else if (newActivity === 'leaving_palace' && isAtPalace) {
+            // Move away from palace (to the front/south)
+            const allNeighbors = getNeighbors(npc.x, npc.y, map);
+            const walkableNeighbors = allNeighbors.filter(isWalkableForNpc);
+            if (walkableNeighbors.length > 0) {
+                // Prefer moving south (front of palace)
+                const southTile = walkableNeighbors.find(t => t.y > npc.y);
+                const nextPos = southTile || walkableNeighbors[0];
+                newActivity = 'wandering'; // Switch to wandering after leaving
+                return { 
+                    activity: newActivity, 
+                    x: nextPos.x, 
+                    y: nextPos.y,
+                    behavior: behavior
+                };
+            }
+        }
+        
+        // Store updated behavior
+        (npc as any).behavior = behavior;
+    }
+    
     // --- State Transitions based on Schedule ---
     if (npc.homeLocation && workplace) {
         const isAtHome = Math.hypot(npc.x - npc.homeLocation.x, npc.y - npc.homeLocation.y) <= 1.5;
@@ -356,10 +416,17 @@ export function calculateNpcUpdate(
         }
         case 'working':
         case 'idle':
-        case 'wandering': {
-            // Default wandering behavior
+        case 'wandering': 
+        case 'entering_palace':
+        case 'leaving_palace': {
+            // Default wandering behavior (also for palace nobles when not actively entering/leaving)
             let baseTarget: Point | null = null;
-            if (newActivity === 'working' && workplace) {
+            
+            // Palace nobles wander near their palace
+            if ((npc as any).behavior?.palaceVisitor) {
+                const palaceLocation = (npc as any).behavior.palaceLocation;
+                baseTarget = { x: palaceLocation[0], y: palaceLocation[1] + 1 }; // Stay in front
+            } else if (newActivity === 'working' && workplace) {
                 baseTarget = { x: workplace.location[0], y: workplace.location[1] };
             } else if (newActivity === 'idle' && npc.homeLocation) {
                 baseTarget = npc.homeLocation;
@@ -386,7 +453,8 @@ export function calculateNpcUpdate(
             }
 
             if (baseTarget) {
-                const WANDER_RADIUS = newActivity === 'working' ? 4 : 3;
+                // Use custom wander radius for palace nobles, otherwise default
+                const WANDER_RADIUS = (npc as any).wanderRadius || (newActivity === 'working' ? 4 : 3);
                 const distFromAnchor = Math.hypot(npc.x - baseTarget.x, npc.y - baseTarget.y);
                 if (distFromAnchor > WANDER_RADIUS) {
                     nextPos = moveTowards({ x: npc.x, y: npc.y }, baseTarget, walkableNeighbors);

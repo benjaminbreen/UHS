@@ -401,9 +401,10 @@ function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: numb
   console.log(`[Urban] Cluster ${clusterIndex}: dense=${denseCityTiles}, low=${lowDensityTiles}, hamlet=${hamletTiles}, radius=${clusterRadius}`);
   
   // Check if we should use modern block-based layout
-  const useModernBlocks = era === HistoricalEra.INDUSTRIAL_ERA || 
-                          era === HistoricalEra.MODERN_ERA || 
-                          era === HistoricalEra.FUTURE_ERA;
+  // Only use grid layouts for 1800+ (Industrial Era and later)
+  const useModernBlocks = (era === HistoricalEra.INDUSTRIAL_ERA || 
+                           era === HistoricalEra.MODERN_ERA || 
+                           era === HistoricalEra.FUTURE_ERA);
   
   console.log(`[Urban] Era check for modern blocks: era=${era}, useModernBlocks=${useModernBlocks}`);
   
@@ -436,8 +437,8 @@ function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: numb
   const placedUrbanTiles: Tile[] = [];
   
   if (useModernBlocks) {
-    // Modern block-based city layout
-    placeModernCityBlocks(tiles, center, clusterRadius, tilesToPlace, availableTiles, placedUrbanTiles, randomNoise, cityData);
+    // Modern block-based city layout (only for Industrial Era and later - 1800+)
+    placeModernCityBlocks(tiles, center, clusterRadius, tilesToPlace, availableTiles, placedUrbanTiles, randomNoise, cityData, useModernBlocks);
   } else {
     // Original organic placement for pre-modern cities
     for (const urbanTile of tilesToPlace) {
@@ -852,8 +853,11 @@ export function generateUrbanAreas(tiles: Tile[][], randomNoise: ValueNoise, arc
   console.log("[Urban] Phase 10: Urban area generation - START");
   console.log(`[Urban] Parameters: economicActivityLevel=${economicActivityLevel}, year=${year}, localArea="${localAreaName}", region="${regionName}"`);
   
-  const era = getEraFromYear(year);
-  const useModernRoads = era === HistoricalEra.INDUSTRIAL_ERA || era === HistoricalEra.MODERN_ERA || era === HistoricalEra.FUTURE_ERA;
+  // Resolve era once and use it consistently throughout
+  const parsed = timeSlice ? parseDateString(timeSlice) : undefined;
+  const resolvedYear = parsed?.year ?? year ?? 1650;
+  const resolvedEra = parsed?.era ?? getEraFromYear(resolvedYear);
+  const useModernRoads = resolvedEra === HistoricalEra.INDUSTRIAL_ERA || resolvedEra === HistoricalEra.MODERN_ERA || resolvedEra === HistoricalEra.FUTURE_ERA;
   
   // Skip urban generation entirely for SHOALS archetype
   if (archetype === MapArchetype.SHOALS) {
@@ -864,7 +868,7 @@ export function generateUrbanAreas(tiles: Tile[][], randomNoise: ValueNoise, arc
   const strategicLocations = identifyStrategicUrbanLocations(tiles, archetype, harborSide);
   
   // Parse date info to get era
-  const dateInfo = timeSlice ? parseDateString(timeSlice) : { year: year || 1650, era: null as any };
+  const dateInfo = timeSlice ? parseDateString(timeSlice) : { year: year || 1850, era: null as any };
   
   // Use centralized city detection
   const cityDetection = detectCitiesForArea(localAreaName, regionName, year || dateInfo.year, dateInfo.era, true);
@@ -922,14 +926,11 @@ export function generateUrbanAreas(tiles: Tile[][], randomNoise: ValueNoise, arc
   
   if (clusterCount > 0) {
     const clusterCenters = selectUrbanClusterCenters(strategicLocations, clusterCount, randomNoise);
-    // Get era from timeSlice
-    const dateInfo = parseDateString(timeSlice || '1650');
-    const era = dateInfo.era as HistoricalEra;
     
     clusterCenters.forEach((center, index) => {
       // For areas without cities, only generate small hamlets
       const shouldGenerateLarge = hasCities ? generateLargeCity : false;
-      generateUrbanCluster(tiles, center, index, clusterCenters.length, shouldGenerateLarge, randomNoise, economicActivityLevel, activeCities, era);
+      generateUrbanCluster(tiles, center, index, clusterCenters.length, shouldGenerateLarge, randomNoise, economicActivityLevel, activeCities, resolvedEra);
     });
     console.log(`Generated ${clusterCenters.length} urban clusters`);
   }
@@ -1086,12 +1087,13 @@ function addUrbanBoundaryBuffers(tiles: Tile[][]) {
   }
 }
 
-// Connect city centers to government districts with roads
+// Connect city centers to government districts and palaces with roads
 function connectCityCentersToGovernmentDistricts(tiles: Tile[][]) {
   const cityCenters: Tile[] = [];
   const governmentDistricts: Tile[] = [];
+  const palaces: Tile[] = [];
   
-  // Find all city centers and government districts
+  // Find all city centers, government districts, and palaces
   for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
     for (let x = 0; x < MAP_WIDTH_TILES; x++) {
       const tile = tiles[y][x];
@@ -1099,6 +1101,8 @@ function connectCityCentersToGovernmentDistricts(tiles: Tile[][]) {
         cityCenters.push(tile);
       } else if (tile.biome === BiomeType.GOVERNMENT_DISTRICT) {
         governmentDistricts.push(tile);
+      } else if (tile.biome === BiomeType.PALACE) {
+        palaces.push(tile);
       }
     }
   }
@@ -1131,6 +1135,77 @@ function connectCityCentersToGovernmentDistricts(tiles: Tile[][]) {
           // Only convert if not already a special district
           if (tile.isLand && !isHighDensityUrban(tile.biome) && 
               tile.biome !== BiomeType.PLAZA && tile.biome !== BiomeType.PARK) {
+            tile.biome = BiomeType.ROAD;
+            tile.population = 0;
+          }
+        }
+      }
+    }
+  });
+  
+  // Connect each palace to nearest city center and government district
+  palaces.forEach(palace => {
+    // Connect to nearest city center
+    let nearestCityCenter: Tile | null = null;
+    let minCityDistance = Infinity;
+    
+    cityCenters.forEach(cityCenter => {
+      const distance = Math.hypot(cityCenter.x - palace.x, cityCenter.y - palace.y);
+      if (distance < minCityDistance && distance < 20) {
+        minCityDistance = distance;
+        nearestCityCenter = cityCenter;
+      }
+    });
+    
+    // Connect to nearest government district
+    let nearestGovDist: Tile | null = null;
+    let minGovDistance = Infinity;
+    
+    governmentDistricts.forEach(govDist => {
+      const distance = Math.hypot(govDist.x - palace.x, govDist.y - palace.y);
+      if (distance < minGovDistance && distance < 20) {
+        minGovDistance = distance;
+        nearestGovDist = govDist;
+      }
+    });
+    
+    // Create road to city center
+    if (nearestCityCenter) {
+      const dx = nearestCityCenter.x - palace.x;
+      const dy = nearestCityCenter.y - palace.y;
+      const steps = Math.max(Math.abs(dx), Math.abs(dy));
+      
+      for (let i = 1; i < steps; i++) {
+        const x = Math.round(palace.x + (dx * i) / steps);
+        const y = Math.round(palace.y + (dy * i) / steps);
+        
+        if (x >= 0 && x < MAP_WIDTH_TILES && y >= 0 && y < MAP_HEIGHT_TILES) {
+          const tile = tiles[y][x];
+          if (tile.isLand && !isHighDensityUrban(tile.biome) && 
+              tile.biome !== BiomeType.PLAZA && tile.biome !== BiomeType.PARK &&
+              tile.biome !== BiomeType.PALACE && tile.biome !== BiomeType.GOVERNMENT_DISTRICT) {
+            tile.biome = BiomeType.ROAD;
+            tile.population = 0;
+          }
+        }
+      }
+    }
+    
+    // Create road to government district
+    if (nearestGovDist) {
+      const dx = nearestGovDist.x - palace.x;
+      const dy = nearestGovDist.y - palace.y;
+      const steps = Math.max(Math.abs(dx), Math.abs(dy));
+      
+      for (let i = 1; i < steps; i++) {
+        const x = Math.round(palace.x + (dx * i) / steps);
+        const y = Math.round(palace.y + (dy * i) / steps);
+        
+        if (x >= 0 && x < MAP_WIDTH_TILES && y >= 0 && y < MAP_HEIGHT_TILES) {
+          const tile = tiles[y][x];
+          if (tile.isLand && !isHighDensityUrban(tile.biome) && 
+              tile.biome !== BiomeType.PLAZA && tile.biome !== BiomeType.PARK &&
+              tile.biome !== BiomeType.PALACE && tile.biome !== BiomeType.GOVERNMENT_DISTRICT) {
             tile.biome = BiomeType.ROAD;
             tile.population = 0;
           }

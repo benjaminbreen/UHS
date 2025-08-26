@@ -185,16 +185,42 @@ export function getPrimaryDrainageTarget(tiles: Tile[][], archetype: MapArchetyp
   
   if (archetype === MapArchetype.DELTA && oceanEdge !== undefined) {
       const targets: Point[] = [];
+      // For delta, we want to reach the ocean edge - pick multiple points along the edge
       if (oceanEdge === 0) { // South edge is ocean
-          for(let x=0; x < MAP_WIDTH_TILES; x++) if(!tiles[MAP_HEIGHT_TILES-1][x].isLand) targets.push({x, y: MAP_HEIGHT_TILES - 1});
+          // Pick points along the southern edge
+          for(let x = Math.floor(MAP_WIDTH_TILES * 0.2); x < MAP_WIDTH_TILES * 0.8; x += 3) {
+              targets.push({x, y: MAP_HEIGHT_TILES - 1});
+          }
       } else if (oceanEdge === 1) { // North edge is ocean
-          for(let x=0; x < MAP_WIDTH_TILES; x++) if(!tiles[0][x].isLand) targets.push({x, y: 0});
+          for(let x = Math.floor(MAP_WIDTH_TILES * 0.2); x < MAP_WIDTH_TILES * 0.8; x += 3) {
+              targets.push({x, y: 0});
+          }
       } else if (oceanEdge === 2) { // East edge is ocean
-          for(let y=0; y < MAP_HEIGHT_TILES; y++) if(!tiles[y][MAP_WIDTH_TILES-1].isLand) targets.push({x: MAP_WIDTH_TILES-1, y});
+          for(let y = Math.floor(MAP_HEIGHT_TILES * 0.2); y < MAP_HEIGHT_TILES * 0.8; y += 3) {
+              targets.push({x: MAP_WIDTH_TILES-1, y});
+          }
       } else { // West edge is ocean
-          for(let y=0; y < MAP_HEIGHT_TILES; y++) if(!tiles[y][0].isLand) targets.push({x: 0, y});
+          for(let y = Math.floor(MAP_HEIGHT_TILES * 0.2); y < MAP_HEIGHT_TILES * 0.8; y += 3) {
+              targets.push({x: 0, y});
+          }
       }
-      if (targets.length > 0) return targets[Math.floor(Math.random() * targets.length)];
+      if (targets.length > 0) {
+          // For river starting position, pick target based on start location
+          if (riverStart) {
+              // Find closest target to the river start for better pathfinding
+              let closestTarget = targets[0];
+              let minDist = Math.hypot(riverStart.x - targets[0].x, riverStart.y - targets[0].y);
+              for (const target of targets) {
+                  const dist = Math.hypot(riverStart.x - target.x, riverStart.y - target.y);
+                  if (dist < minDist) {
+                      minDist = dist;
+                      closestTarget = target;
+                  }
+              }
+              return closestTarget;
+          }
+          return targets[Math.floor(Math.random() * targets.length)];
+      }
   }
 
   let potentialTargets: Point[] = [];
@@ -530,6 +556,43 @@ export function generateEnhancedRiverPath(
         if (currentTile.biome === BiomeType.ACTIVE_LAVA || currentTile.biome === BiomeType.ESTUARY || currentTile.biome === BiomeType.CLIFF) break;
 
         const isAtMapEdge = (current.x === 0 || current.x === MAP_WIDTH_TILES - 1 || current.y === 0 || current.y >= MAP_HEIGHT_TILES - 1);
+        
+        // For delta archetype, check if we've reached the ocean edge
+        if (archetype === MapArchetype.DELTA && oceanEdge !== undefined) {
+            let reachedOceanEdge = false;
+            if (oceanEdge === 0 && current.y >= MAP_HEIGHT_TILES - 2) { // South ocean
+                reachedOceanEdge = true;
+            } else if (oceanEdge === 1 && current.y <= 1) { // North ocean
+                reachedOceanEdge = true;
+            } else if (oceanEdge === 2 && current.x >= MAP_WIDTH_TILES - 2) { // East ocean
+                reachedOceanEdge = true;
+            } else if (oceanEdge === 3 && current.x <= 1) { // West ocean
+                reachedOceanEdge = true;
+            }
+            
+            if (reachedOceanEdge) {
+                // Ensure connection to ocean by making last few tiles water
+                for (let i = 0; i < 3; i++) {
+                    let finalX = current.x;
+                    let finalY = current.y;
+                    if (oceanEdge === 0) finalY = Math.min(MAP_HEIGHT_TILES - 1, current.y + i);
+                    else if (oceanEdge === 1) finalY = Math.max(0, current.y - i);
+                    else if (oceanEdge === 2) finalX = Math.min(MAP_WIDTH_TILES - 1, current.x + i);
+                    else if (oceanEdge === 3) finalX = Math.max(0, current.x - i);
+                    
+                    if (finalX >= 0 && finalX < MAP_WIDTH_TILES && finalY >= 0 && finalY < MAP_HEIGHT_TILES) {
+                        const finalTile = tiles[finalY][finalX];
+                        if (finalTile.isLand) {
+                            finalTile.biome = BiomeType.ESTUARY;
+                            finalTile.isLand = false;
+                            finalTile.altitude = ALTITUDE_LEVELS.SEA * 0.2;
+                        }
+                    }
+                }
+                successfullyTerminated = true;
+                break;
+            }
+        }
         // Check if we're very close to a lake - extend river into the lake edge
         let nearLake = false;
         let lakeDirection: Point | null = null;

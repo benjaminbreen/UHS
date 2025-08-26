@@ -50,7 +50,7 @@ import {
   ColonialOfficeSymbol,
   RomanForumSymbol
 } from './symbols/government/GovernmentSymbolsImproved';
-import CoastlineOverlay from './CoastlineOverlay';
+// import CoastlineOverlay from './CoastlineOverlay'; // Removed - using context-aware enhancements instead
 import Minimap from './Minimap';
 import MapCanvasPerformance from './MapCanvasPerformance';
 import POIHoverTooltip from './POIHoverTooltip';
@@ -1418,7 +1418,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
 
   // Performance-based rendering decisions with Safari optimizations and debug overrides
   const shouldRenderDetailedSymbols = debugSettings?.reduceSVGComplexity ? false : zoomLevel > 0.8;
-  const shouldRenderVegetation = zoomLevel > 0.5;
+  const shouldRenderVegetation = zoomLevel >= 1.0; // Hide vegetation when zoomed out for performance
   const shouldRenderAnimations = debugSettings?.disableAnimations ? false : zoomLevel > 0.6;
   const shouldUseBlurEffects = debugSettings?.disableBlurEffects ? false : !isSafari; // Completely disable blur effects on Safari for performance
   const shouldRenderParticles = !debugSettings?.disableParticles;
@@ -1829,9 +1829,203 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 />
               ))}
             </mask>
+            
+            {/* Coastal enhancement patterns */}
+            <pattern id="wavePattern" x="0" y="0" width={TILE_SIZE_PX * 2} height={TILE_SIZE_PX} patternUnits="userSpaceOnUse">
+              <path 
+                d={`M 0 ${TILE_SIZE_PX * 0.5} Q ${TILE_SIZE_PX * 0.5} ${TILE_SIZE_PX * 0.3} ${TILE_SIZE_PX} ${TILE_SIZE_PX * 0.5} T ${TILE_SIZE_PX * 2} ${TILE_SIZE_PX * 0.5}`}
+                stroke="rgba(255,255,255,0.15)" 
+                strokeWidth="1" 
+                fill="none"
+              />
+            </pattern>
+            
+            <linearGradient id="beachGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="rgba(255,248,220,0.2)" />
+              <stop offset="100%" stopColor="rgba(255,248,220,0)" />
+            </linearGradient>
+            
+            <linearGradient id="cliffShadow" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="rgba(0,0,0,0.3)" />
+              <stop offset="100%" stopColor="rgba(0,0,0,0)" />
+            </linearGradient>
+            
+            <pattern id="marshPattern" x="0" y="0" width={TILE_SIZE_PX} height={TILE_SIZE_PX} patternUnits="userSpaceOnUse">
+              <circle cx={TILE_SIZE_PX * 0.3} cy={TILE_SIZE_PX * 0.3} r="2" fill="rgba(107,142,35,0.2)" />
+              <circle cx={TILE_SIZE_PX * 0.7} cy={TILE_SIZE_PX * 0.6} r="1.5" fill="rgba(85,107,47,0.2)" />
+              <circle cx={TILE_SIZE_PX * 0.5} cy={TILE_SIZE_PX * 0.8} r="1" fill="rgba(107,142,35,0.15)" />
+            </pattern>
           </defs>
 
-          {noiseGenerators && <CoastlineOverlay mapData={mapData} noise={noiseGenerators.shoreline} disableBlur={debugSettings?.disableBlurEffects} />}
+          {/* Coastline overlay removed - using context-aware enhancements instead */}
+          
+          {/* Coastal enhancements removed - now handled by canvas organic edge rendering */}
+          {false && (
+          <g id="coastal-enhancements" opacity="0.8">
+            {shouldRenderDetailedSymbols && (() => {
+              // Generate organic coastline paths for smoother, more natural edges
+              const coastalPaths = [];
+              const processedTiles = new Set();
+              
+              // Find all coastal tiles and group them into continuous coastlines
+              tiles.forEach((row, y) => {
+                row.forEach((tile, x) => {
+                  const tileKey = `${x},${y}`;
+                  if (processedTiles.has(tileKey) || !tile.isLand) return;
+                  
+                  // Check if this is a coastal tile
+                  let isCoastal = false;
+                  let hasNorthWater = false;
+                  let hasSouthWater = false;
+                  let hasEastWater = false;
+                  let hasWestWater = false;
+                  
+                  if (y > 0 && !tiles[y - 1][x].isLand) { hasNorthWater = true; isCoastal = true; }
+                  if (y < MAP_HEIGHT_TILES - 1 && !tiles[y + 1][x].isLand) { hasSouthWater = true; isCoastal = true; }
+                  if (x > 0 && !tiles[y][x - 1].isLand) { hasWestWater = true; isCoastal = true; }
+                  if (x < MAP_WIDTH_TILES - 1 && !tiles[y][x + 1].isLand) { hasEastWater = true; isCoastal = true; }
+                  
+                  if (!isCoastal) return;
+                  
+                  processedTiles.add(tileKey);
+                  const tileX = x * TILE_SIZE_PX;
+                  const tileY = y * TILE_SIZE_PX;
+                  
+                  // Generate organic edge paths for this coastal tile
+                  const createOrganicEdge = (startX, startY, endX, endY, curveDirection) => {
+                    // Create a bezier curve with natural scalloping
+                    const midX = (startX + endX) / 2;
+                    const midY = (startY + endY) / 2;
+                    
+                    // Add organic variation using sine waves
+                    const variation = Math.sin(x * 0.7 + y * 0.5) * TILE_SIZE_PX * 0.15;
+                    const scallop = Math.cos(x * 1.2 - y * 0.8) * TILE_SIZE_PX * 0.1;
+                    
+                    let controlX = midX;
+                    let controlY = midY;
+                    
+                    if (curveDirection === 'north' || curveDirection === 'south') {
+                      controlX += variation + scallop;
+                      controlY += curveDirection === 'north' ? -TILE_SIZE_PX * 0.2 : TILE_SIZE_PX * 0.2;
+                    } else {
+                      controlY += variation + scallop;
+                      controlX += curveDirection === 'west' ? -TILE_SIZE_PX * 0.2 : TILE_SIZE_PX * 0.2;
+                    }
+                    
+                    return `M ${startX} ${startY} Q ${controlX} ${controlY} ${endX} ${endY}`;
+                  };
+                  
+                  // Apply different effects based on biome type
+                  if (tile.biome === BiomeType.BEACH || tile.biome === BiomeType.RIVERBANK || tile.biome === BiomeType.WETLANDS) {
+                    // Create organic, scalloped edges for soft coastlines
+                    const edges = [];
+                    
+                    if (hasNorthWater) {
+                      const path = createOrganicEdge(tileX, tileY + 4, tileX + TILE_SIZE_PX, tileY + 4, 'north');
+                      edges.push(
+                        <path key="n" d={path} stroke="rgba(255,248,220,0.15)" strokeWidth="2" fill="none" />
+                      );
+                    }
+                    if (hasSouthWater) {
+                      const path = createOrganicEdge(tileX, tileY + TILE_SIZE_PX - 4, tileX + TILE_SIZE_PX, tileY + TILE_SIZE_PX - 4, 'south');
+                      edges.push(
+                        <path key="s" d={path} stroke="rgba(255,248,220,0.15)" strokeWidth="2" fill="none" />
+                      );
+                    }
+                    if (hasWestWater) {
+                      const path = createOrganicEdge(tileX + 4, tileY, tileX + 4, tileY + TILE_SIZE_PX, 'west');
+                      edges.push(
+                        <path key="w" d={path} stroke="rgba(255,248,220,0.12)" strokeWidth="2" fill="none" />
+                      );
+                    }
+                    if (hasEastWater) {
+                      const path = createOrganicEdge(tileX + TILE_SIZE_PX - 4, tileY, tileX + TILE_SIZE_PX - 4, tileY + TILE_SIZE_PX, 'east');
+                      edges.push(
+                        <path key="e" d={path} stroke="rgba(255,248,220,0.12)" strokeWidth="2" fill="none" />
+                      );
+                    }
+                    
+                    if (edges.length > 0) {
+                      coastalPaths.push(
+                        <g key={`coast-${x}-${y}`}>{edges}</g>
+                      );
+                    }
+                  } else if (tile.biome === BiomeType.CLIFF) {
+                    // Straight, sharp edges for cliffs with dark shadows
+                    const cliffEdges = [];
+                    
+                    if (hasNorthWater) {
+                      cliffEdges.push(
+                        <line key="n" x1={tileX} y1={tileY + 2} x2={tileX + TILE_SIZE_PX} y2={tileY + 2} 
+                              stroke="rgba(0,0,0,0.3)" strokeWidth="3" />
+                      );
+                    }
+                    if (hasSouthWater) {
+                      cliffEdges.push(
+                        <line key="s" x1={tileX} y1={tileY + TILE_SIZE_PX - 2} x2={tileX + TILE_SIZE_PX} y2={tileY + TILE_SIZE_PX - 2} 
+                              stroke="rgba(0,0,0,0.3)" strokeWidth="3" />
+                      );
+                    }
+                    if (hasWestWater) {
+                      cliffEdges.push(
+                        <line key="w" x1={tileX + 2} y1={tileY} x2={tileX + 2} y2={tileY + TILE_SIZE_PX} 
+                              stroke="rgba(0,0,0,0.3)" strokeWidth="3" />
+                      );
+                    }
+                    if (hasEastWater) {
+                      cliffEdges.push(
+                        <line key="e" x1={tileX + TILE_SIZE_PX - 2} y1={tileY} x2={tileX + TILE_SIZE_PX - 2} y2={tileY + TILE_SIZE_PX} 
+                              stroke="rgba(0,0,0,0.3)" strokeWidth="3" />
+                      );
+                    }
+                    
+                    if (cliffEdges.length > 0) {
+                      coastalPaths.push(
+                        <g key={`cliff-${x}-${y}`}>{cliffEdges}</g>
+                      );
+                    }
+                  } else if (tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.FOREST) {
+                    // Very subtle organic edges for regular coastlines
+                    const edges = [];
+                    
+                    if (hasNorthWater) {
+                      const path = createOrganicEdge(tileX, tileY + 2, tileX + TILE_SIZE_PX, tileY + 2, 'north');
+                      edges.push(
+                        <path key="n" d={path} stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" fill="none" />
+                      );
+                    }
+                    if (hasSouthWater) {
+                      const path = createOrganicEdge(tileX, tileY + TILE_SIZE_PX - 2, tileX + TILE_SIZE_PX, tileY + TILE_SIZE_PX - 2, 'south');
+                      edges.push(
+                        <path key="s" d={path} stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" fill="none" />
+                      );
+                    }
+                    if (hasWestWater) {
+                      const path = createOrganicEdge(tileX + 2, tileY, tileX + 2, tileY + TILE_SIZE_PX, 'west');
+                      edges.push(
+                        <path key="w" d={path} stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" fill="none" />
+                      );
+                    }
+                    if (hasEastWater) {
+                      const path = createOrganicEdge(tileX + TILE_SIZE_PX - 2, tileY, tileX + TILE_SIZE_PX - 2, tileY + TILE_SIZE_PX, 'east');
+                      edges.push(
+                        <path key="e" d={path} stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" fill="none" />
+                      );
+                    }
+                    
+                    if (edges.length > 0) {
+                      coastalPaths.push(
+                        <g key={`coast-${x}-${y}`}>{edges}</g>
+                      );
+                    }
+                  }
+                });
+              });
+              
+              return coastalPaths;
+            })()}
+          </g>
+          )}
 
           {/* Rendering layers */}
           <g>

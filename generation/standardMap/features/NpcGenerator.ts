@@ -1,7 +1,7 @@
 /**
  * generation/standardMap/features/NpcGenerator.ts - Enhanced NPC generation with portrait integration
  */
-import { Tile, ClimateType, NpcEntity, HistoricalEra, MapData, TerrainStructure, BiomeType, Appearance, Item, EquipmentSlot, ClothingPiece, Point, SocietalProfile } from '../../../types';
+import { Tile, ClimateType, NpcEntity, HistoricalEra, MapData, TerrainStructure, BiomeType, Appearance, Item, EquipmentSlot, ClothingPiece, Point, SocietalProfile, WealthLevel } from '../../../types';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES, CulturalZone, STRUCTURE_BLUEPRINTS, PROFESSIONS, ProfessionDefinition, FACTION_DATA, GEOGRAPHICAL_DATA, STARTING_PACKAGES, SOCIETAL_PROFILES } from '../../../constants/index';
 import { ValueNoise } from '../../../utils/noise';
 import { generateBaseProfile, determineSocialRole, generateNpcName, assignBeliefs, generateCompleteOutfit } from '../../common/npcUtils';
@@ -512,7 +512,96 @@ export function generateNpcsForStandardMap(
         };
         const societalProfile = SOCIETAL_PROFILES[culturalZone]?.[context.era] || SOCIETAL_PROFILES.DEFAULT;
         
-        // 1. Spawn anchored NPCs first
+        // 1. Spawn palace nobles FIRST (before structures)
+        // Find all palace tiles and spawn nobles in front of them
+        const palaceTiles = tiles.flat().filter(tile => tile.biome === BiomeType.PALACE);
+        for (const palaceTile of palaceTiles) {
+            // Spawn an elite noble in front of the palace
+            // Try to spawn to the south (front) of the palace first
+            const spawnOffsets = [
+                { dx: 0, dy: 1 },  // South (front)
+                { dx: -1, dy: 1 }, // Southwest
+                { dx: 1, dy: 1 },  // Southeast
+                { dx: 0, dy: -1 }, // North (back)
+                { dx: -1, dy: 0 }, // West
+                { dx: 1, dy: 0 },  // East
+            ];
+            
+            let spawnPosition = null;
+            for (const offset of spawnOffsets) {
+                const testX = palaceTile.x + offset.dx;
+                const testY = palaceTile.y + offset.dy;
+                
+                // Check if position is valid
+                if (testX >= 0 && testX < tiles[0].length && 
+                    testY >= 0 && testY < tiles.length) {
+                    const testTile = tiles[testY][testX];
+                    const posKey = `${testX},${testY}`;
+                    
+                    // Check if walkable and not occupied
+                    if (testTile.isLand && 
+                        !npcPositions.has(posKey) &&
+                        testTile.biome !== BiomeType.DEEP_OCEAN &&
+                        testTile.biome !== BiomeType.SHALLOW_OCEAN &&
+                        testTile.biome !== BiomeType.RIVER &&
+                        testTile.biome !== BiomeType.MAJOR_RIVER) {
+                        spawnPosition = { x: testX, y: testY };
+                        break;
+                    }
+                }
+            }
+            
+            if (spawnPosition) {
+                // Determine the appropriate noble role based on era and culture
+                let nobleRole = 'Lady'; // Default
+                const nobilityRoles = PROFESSIONS[context.culturalZone]?.[context.era]?.['NOBILITY'];
+                if (nobilityRoles) {
+                    // Pick the highest ranking noble role available
+                    const highRankRoles = Object.keys(nobilityRoles).filter(role => {
+                        const def = nobilityRoles[role];
+                        return def.socialRequirements?.minPrivilege >= 0.6;
+                    });
+                    if (highRankRoles.length > 0) {
+                        nobleRole = highRankRoles[Math.floor(noise.random() * highRankRoles.length)];
+                    }
+                }
+                
+                // Create the palace noble NPC
+                const palaceNoble = createNpc(
+                    spawnPosition.x, 
+                    spawnPosition.y, 
+                    context, 
+                    noise, 
+                    stats, 
+                    undefined, // No structure anchor for now
+                    nobleRole
+                );
+                
+                if (palaceNoble) {
+                    // Set special attributes for palace nobles
+                    palaceNoble.isElite = true;
+                    palaceNoble.homeTile = palaceTile; // Remember the palace
+                    palaceNoble.wanderRadius = 3; // Stay close to palace
+                    palaceNoble.privilege = 0.8 + noise.random() * 0.2; // High privilege
+                    palaceNoble.wealth = 'wealthy' as WealthLevel;
+                    
+                    // Add behavior flags for entering/exiting palace
+                    palaceNoble.behavior = {
+                        ...palaceNoble.behavior,
+                        palaceVisitor: true,
+                        palaceLocation: [palaceTile.x, palaceTile.y],
+                        timeUntilPalaceVisit: 30 + Math.floor(noise.random() * 60) // Visit palace in 30-90 ticks
+                    };
+                    
+                    npcs.push(palaceNoble);
+                    npcPositions.add(`${spawnPosition.x},${spawnPosition.y}`);
+                    stats.successful++;
+                    console.log(`[NPC] Spawned palace noble ${nobleRole} at (${spawnPosition.x}, ${spawnPosition.y})`);
+                }
+            }
+        }
+        
+        // 2. Spawn anchored NPCs for structures
         if (mapData.terrainStructures) {
             for (const structure of mapData.terrainStructures) {
                  if (structure.state !== 'active') continue; // Only spawn at active structures
@@ -643,8 +732,58 @@ export function generateNpcsForStandardMap(
             const position = findValidNpcPosition(tiles, npcPositions, noise, null, 15);
             if (!position) continue;
             
-            const npc = createNpc(position.x, position.y, context, noise, stats); // No structure passed for wanderers
+            // Check proximity to palaces - spawn nobles near palaces, commoners elsewhere
+            let nearPalace = false;
+            let forcedRole: string | undefined = undefined;
+            
+            // Find distance to nearest palace
+            for (const palaceTile of palaceTiles) {
+                const distToPalace = Math.hypot(position.x - palaceTile.x, position.y - palaceTile.y);
+                if (distToPalace < 8) { // Within 8 tiles of a palace
+                    nearPalace = true;
+                    // Force noble/wealthy role near palaces
+                    const nobilityRoles = PROFESSIONS[context.culturalZone]?.[context.era]?.['NOBILITY'];
+                    const merchantRoles = PROFESSIONS[context.culturalZone]?.[context.era]?.['MERCHANT'];
+                    const scholarRoles = PROFESSIONS[context.culturalZone]?.[context.era]?.['CLERGY'];
+                    
+                    const eliteRoles: string[] = [];
+                    if (nobilityRoles) eliteRoles.push(...Object.keys(nobilityRoles));
+                    if (merchantRoles && noise.random() < 0.3) eliteRoles.push(...Object.keys(merchantRoles));
+                    if (scholarRoles && noise.random() < 0.2) eliteRoles.push(...Object.keys(scholarRoles));
+                    
+                    if (eliteRoles.length > 0) {
+                        forcedRole = eliteRoles[Math.floor(noise.random() * eliteRoles.length)];
+                    }
+                    break;
+                }
+            }
+            
+            // If far from palace, prefer common/laborer roles
+            if (!nearPalace && position) {
+                const tile = tiles[position.y][position.x];
+                // Rural or dangerous areas get laborers/farmers
+                if (tile.qualities?.safety < 0.5 || tile.biome === BiomeType.FARMLAND || 
+                    tile.biome === BiomeType.FOREST || tile.biome === BiomeType.HILLS) {
+                    const laborerRoles = PROFESSIONS[context.culturalZone]?.[context.era]?.['LABORER'];
+                    const farmerRoles = PROFESSIONS[context.culturalZone]?.[context.era]?.['FARMER'];
+                    
+                    const commonRoles: string[] = [];
+                    if (laborerRoles) commonRoles.push(...Object.keys(laborerRoles));
+                    if (farmerRoles) commonRoles.push(...Object.keys(farmerRoles));
+                    
+                    if (commonRoles.length > 0 && noise.random() < 0.7) {
+                        forcedRole = commonRoles[Math.floor(noise.random() * commonRoles.length)];
+                    }
+                }
+            }
+            
+            const npc = createNpc(position.x, position.y, context, noise, stats, undefined, forcedRole);
             if (npc) {
+                // Adjust wealth based on proximity to palace
+                if (nearPalace) {
+                    npc.wealth = noise.random() < 0.6 ? 'wealthy' : 'modest';
+                    (npc as any).privilege = 0.5 + noise.random() * 0.5; // Higher privilege near palaces
+                }
                 npcs.push(npc);
                 npcPositions.add(`${position.x},${position.y}`);
             }

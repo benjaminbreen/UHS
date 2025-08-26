@@ -129,14 +129,24 @@ export class WeatherService {
     };
 
     // Get temperature range for climate and season
+    // Default to temperate if climate is undefined or not in CLIMATE_TEMPS
+    let climateData = CLIMATE_TEMPS[climate];
+    let actualClimate = climate;
+    
+    if (!climateData) {
+      console.warn(`[WeatherService] Unknown climate type: ${climate}, defaulting to TEMPERATE`);
+      climateData = CLIMATE_TEMPS[ClimateType.TEMPERATE];
+      actualClimate = ClimateType.TEMPERATE;
+    }
+    
     const isWinter = season === 'winter';
     const isSummer = season === 'summer';
-    const tempRange = isWinter ? CLIMATE_TEMPS[climate].winter : 
-                     isSummer ? CLIMATE_TEMPS[climate].summer :
+    const tempRange = isWinter ? climateData.winter : 
+                     isSummer ? climateData.summer :
                      // Spring/Fall: average of summer and winter
                      [
-                       (CLIMATE_TEMPS[climate].winter[0] + CLIMATE_TEMPS[climate].summer[0]) / 2,
-                       (CLIMATE_TEMPS[climate].winter[1] + CLIMATE_TEMPS[climate].summer[1]) / 2
+                       (climateData.winter[0] + climateData.summer[0]) / 2,
+                       (climateData.winter[1] + climateData.summer[1]) / 2
                      ];
 
     const baseTemp = random(tempRange[0], tempRange[1]);
@@ -147,15 +157,15 @@ export class WeatherService {
     
     // Climate-adjusted precipitation chances
     let precipitationChance = 0.15; // Base 15% chance of precipitation
-    if (climate === ClimateType.TROPICAL) precipitationChance = 0.35; // More rain in tropics
-    else if (climate === ClimateType.ARID) precipitationChance = 0.05; // Very rare in desert
-    else if (climate === ClimateType.MEDITERRANEAN) precipitationChance = season === 'winter' ? 0.30 : 0.10; // Wet winters, dry summers
-    else if (climate === ClimateType.COLD) precipitationChance = 0.25; // More snow/precipitation
-    else if (climate === ClimateType.TEMPERATE) precipitationChance = 0.20; // Moderate rain
+    if (actualClimate === ClimateType.TROPICAL) precipitationChance = 0.35; // More rain in tropics
+    else if (actualClimate === ClimateType.ARID) precipitationChance = 0.05; // Very rare in desert
+    else if (actualClimate === ClimateType.MEDITERRANEAN) precipitationChance = season === 'winter' ? 0.30 : 0.10; // Wet winters, dry summers
+    else if (actualClimate === ClimateType.COLD) precipitationChance = 0.25; // More snow/precipitation
+    else if (actualClimate === ClimateType.TEMPERATE) precipitationChance = 0.20; // Moderate rain
     
     // Seasonal adjustments
     if (season === 'winter') precipitationChance *= 1.3;
-    else if (season === 'summer' && climate !== ClimateType.TROPICAL) precipitationChance *= 0.7;
+    else if (season === 'summer' && actualClimate !== ClimateType.TROPICAL) precipitationChance *= 0.7;
     
     // Pressure affects precipitation chance
     if (isLowPressure) precipitationChance *= 2.0; // Double chance in low pressure
@@ -223,12 +233,12 @@ export class WeatherService {
       }
       
       // Tropical adjustments - more intense rain
-      if (climate === ClimateType.TROPICAL && precipitation === 'rain') {
+      if (actualClimate === ClimateType.TROPICAL && precipitation === 'rain') {
         intensity = Math.min(1.0, intensity * 1.5);
       }
       
       // Desert adjustments - rare but intense when it happens
-      if (climate === ClimateType.ARID && precipitation === 'rain') {
+      if (actualClimate === ClimateType.ARID && precipitation === 'rain') {
         intensity = Math.min(1.0, intensity * 2.0);
       }
     }
@@ -240,9 +250,9 @@ export class WeatherService {
     
     // Humidity based on climate and precipitation
     let baseHumidity = 50;
-    if (climate === ClimateType.TROPICAL) baseHumidity = 75;
-    else if (climate === ClimateType.ARID) baseHumidity = 25;
-    else if (climate === ClimateType.MEDITERRANEAN) baseHumidity = 60;
+    if (actualClimate === ClimateType.TROPICAL) baseHumidity = 75;
+    else if (actualClimate === ClimateType.ARID) baseHumidity = 25;
+    else if (actualClimate === ClimateType.MEDITERRANEAN) baseHumidity = 60;
     
     if (precipitation !== 'none') baseHumidity += 20;
     

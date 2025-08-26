@@ -53,7 +53,9 @@ const RoadSymbol: React.FC<RoadSymbolProps> = React.memo(({
           hasDitches: true
         };
       case HistoricalEra.MEDIEVAL:
+      case (HistoricalEra as any).MEDIEVAL_ERA:
       case HistoricalEra.RENAISSANCE_EARLY_MODERN:
+      case (HistoricalEra as any).RENAISSANCE_ERA:
         return {
           mainColor: '#7a6550', // Dirt/packed earth
           edgeColor: '#5a4530',
@@ -62,6 +64,7 @@ const RoadSymbol: React.FC<RoadSymbolProps> = React.memo(({
           hasDitches: true
         };
       case HistoricalEra.INDUSTRIAL:
+      case (HistoricalEra as any).INDUSTRIAL_ERA:
         return {
           mainColor: '#606060', // Early paved roads
           edgeColor: '#404040',
@@ -70,6 +73,9 @@ const RoadSymbol: React.FC<RoadSymbolProps> = React.memo(({
           hasDitches: true
         };
       case HistoricalEra.MODERN:
+      case (HistoricalEra as any).MODERN_ERA:
+      case HistoricalEra.FUTURE:
+      case (HistoricalEra as any).FUTURE_ERA:
         return {
           mainColor: '#3a3a3a', // Asphalt
           edgeColor: '#2a2a2a',

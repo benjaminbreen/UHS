@@ -221,24 +221,28 @@ function findPlacementCandidates(
                     break;
                 case 'government_district':
                     // Government buildings must be very close to city centers
-                    let isNearCityCenter = false;
-                    let cityDistance = 999;
-                    for (let dy = -5; dy <= 5; dy++) {
-                        for (let dx = -5; dx <= 5; dx++) {
-                            const nx = x + dx;
-                            const ny = y + dy;
-                            if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
-                                const dist = Math.hypot(dx, dy);
-                                if (tiles[ny][nx].biome === BiomeType.CITY_CENTER && dist < cityDistance) {
-                                    isNearCityCenter = true;
-                                    cityDistance = dist;
+                    // BUT not on urban tiles themselves - only on appropriate terrain
+                    if (tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.FOREST || 
+                        tile.biome === BiomeType.RIVERBANK || tile.biome === BiomeType.DIRT) {
+                        let isNearCityCenter = false;
+                        let cityDistance = 999;
+                        for (let dy = -5; dy <= 5; dy++) {
+                            for (let dx = -5; dx <= 5; dx++) {
+                                const nx = x + dx;
+                                const ny = y + dy;
+                                if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
+                                    const dist = Math.hypot(dx, dy);
+                                    if (tiles[ny][nx].biome === BiomeType.CITY_CENTER && dist < cityDistance) {
+                                        isNearCityCenter = true;
+                                        cityDistance = dist;
+                                    }
                                 }
                             }
                         }
-                    }
-                    if (isNearCityCenter && cityDistance <= 5) {
-                        isValid = true;
-                        score = 10 - cityDistance; // Prefer closer to city center
+                        if (isNearCityCenter && cityDistance <= 5) {
+                            isValid = true;
+                            score = 10 - cityDistance; // Prefer closer to city center
+                        }
                     }
                     break;
             }

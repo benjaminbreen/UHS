@@ -141,7 +141,20 @@ export function proceduralGenerateMap(
 
   for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
     for (let x = 0; x < MAP_WIDTH_TILES; x++) {
-      let noiseVal = landNoise.octaveNoise(x * NOISE_SCALE_LANDMASS, y * NOISE_SCALE_LANDMASS, 4, 0.5, 2.0);
+      // Add rotation to noise sampling to break up directional patterns
+      const rotationAngle = (x * 0.13 + y * 0.17) * Math.PI;
+      const cosAngle = Math.cos(rotationAngle);
+      const sinAngle = Math.sin(rotationAngle);
+      const rotatedX = x * cosAngle - y * sinAngle;
+      const rotatedY = x * sinAngle + y * cosAngle;
+      
+      // Sample noise with rotated coordinates to prevent aligned island patterns
+      let noiseVal = landNoise.octaveNoise(rotatedX * NOISE_SCALE_LANDMASS, rotatedY * NOISE_SCALE_LANDMASS, 4, 0.5, 2.0);
+      
+      // Add a second layer with different frequency to further break patterns
+      const noiseVal2 = landNoise.octaveNoise(x * NOISE_SCALE_LANDMASS * 1.3, y * NOISE_SCALE_LANDMASS * 1.3, 2, 0.4, 2.2);
+      noiseVal = noiseVal * 0.7 + noiseVal2 * 0.3;
+      
       let falloff = 1.0;
       let landThreshold = LAND_THRESHOLD_BASE;
       const dX_center = x / MAP_WIDTH_TILES - 0.5;
@@ -153,9 +166,10 @@ export function proceduralGenerateMap(
           // Make islands larger like the example in the screenshot
           // Use a softer falloff and allow for more irregular shapes
           const islandNoiseScale = 0.05;
+          // Apply same rotation to island shape noise for consistency
           const islandShapeNoise = landNoise.octaveNoise(
-            x * islandNoiseScale, 
-            y * islandNoiseScale, 
+            rotatedX * islandNoiseScale, 
+            rotatedY * islandNoiseScale, 
             3, 0.5, 2.0
           );
           // Make the island extend more toward edges with noise variation
@@ -239,11 +253,11 @@ export function proceduralGenerateMap(
             const lakeRadius = Math.min(MAP_WIDTH_TILES, MAP_HEIGHT_TILES) * 0.2; // 20% of map size
             const distToCenter = Math.hypot(x - MAP_WIDTH_TILES/2, y - MAP_HEIGHT_TILES/2);
             
-            // Create irregular lake shape using noise
+            // Create irregular lake shape using noise with rotation
             const lakeNoiseScale = 0.04;
             const lakeShapeVariation = lakeShapeNoise.octaveNoise(
-                x * lakeNoiseScale,
-                y * lakeNoiseScale,
+                rotatedX * lakeNoiseScale,
+                rotatedY * lakeNoiseScale,
                 3, 0.5, 2.0
             );
             
@@ -720,8 +734,28 @@ export function proceduralGenerateMap(
         }
       }
       
-      // Set appropriate altitude for river source
-      tiles[riverStart.y][riverStart.x].altitude = ALTITUDE_LEVELS.GRASSLAND_LOWER_MAX + 0.02 + featurePlacementNoise.random() * 0.03;
+      // Set appropriate altitude for river source - ensure proper gradient for delta
+      // Higher altitude at apex to ensure flow to ocean
+      tiles[riverStart.y][riverStart.x].altitude = ALTITUDE_LEVELS.GRASSLAND_LOWER_MAX + 0.05 + featurePlacementNoise.random() * 0.05;
+      
+      // Create altitude gradient towards ocean to ensure river flow
+      const gradientRadius = 3;
+      for (let dy = -gradientRadius; dy <= gradientRadius; dy++) {
+        for (let dx = -gradientRadius; dx <= gradientRadius; dx++) {
+          const gx = riverStart.x + dx;
+          const gy = riverStart.y + dy;
+          if (gx >= 0 && gx < MAP_WIDTH_TILES && gy >= 0 && gy < MAP_HEIGHT_TILES) {
+            const dist = Math.hypot(dx, dy);
+            if (dist <= gradientRadius && tiles[gy][gx].isLand) {
+              // Set altitude to ensure downward flow
+              tiles[gy][gx].altitude = Math.max(
+                tiles[gy][gx].altitude, 
+                ALTITUDE_LEVELS.GRASSLAND_LOWER_MAX + 0.03 - (dist * 0.005)
+              );
+            }
+          }
+        }
+      }
       
       // Generate the river with extra width for delta
       generateEnhancedRiverPath(tiles, riverStart, featurePlacementNoise, riverMeanderNoise, riverWidthNoise, 
@@ -902,7 +936,7 @@ export function proceduralGenerateMap(
   };
 
   console.log("[Gen] Phase 9.6: Stream Generation - START");
-  generateStreams(mapDataObject, featurePlacementNoise);
+  generateStreams(mapDataObject, featurePlacementNoise, archetype, oceanEdgeForDelta);
   console.log("[Gen] Phase 9.6: Stream Generation - END");
 
   console.log("[Gen] Phase 10: Urban area generation - START");
