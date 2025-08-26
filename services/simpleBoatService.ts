@@ -77,7 +77,7 @@ class SimpleBoatService {
   update(): void {
     if (!this.boat || this.boat.path.length < 2) return;
     
-    const speed = 0.02; // Slow, smooth movement
+    const speed = 0.04; // Doubled speed for faster movement
     
     this.boat.progress += this.boat.forward ? speed : -speed;
     

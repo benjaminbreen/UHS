@@ -1,3 +1,4 @@
+
 /**
  * constants/gameData/factions/european.ts
  * Enhanced faction data for European cultural zones with historical granularity.
@@ -65,6 +66,24 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                             { name: 'Ulster Warriors', type: 'secondary', description: 'The legendary Red Branch warriors.' },
                             { name: 'Munster Kings', type: 'secondary', description: 'Southern Irish dynasties.' }
                         ]
+                    },
+                    "York": {
+                        dominantPower: 'Eboracum Legionary Fortress',
+                        dominantPowerDescription: 'The Roman capital of northern Britain, Eboracum serves as a major legionary base and administrative center.',
+                        allegianceGroups: [
+                            { name: 'Ninth Legion Hispana / Sixth Victrix', type: 'primary', description: 'The Roman legion garrisoning the fortress.' },
+                            { name: 'Brigantian Civitas', type: 'secondary', description: 'The local Celtic tribe, administered from the city.' },
+                            { name: 'Imperial Governor', type: 'secondary', description: 'The Emperor often visited or ruled from Eboracum.' }
+                        ]
+                    },
+                    "Thames Estuary": {
+                        dominantPower: 'Saxon Shore Command',
+                        dominantPowerDescription: 'A series of coastal forts built to defend against Saxon pirates, guarding the approaches to Londinium.',
+                        allegianceGroups: [
+                            { name: 'Classis Britannica', type: 'primary', description: 'The Roman fleet patrolling the channel.' },
+                            { name: 'Saxon Raiders', type: 'rebel', description: 'Germanic pirates staging hit-and-run attacks.' },
+                            { name: 'Romano-British Merchants', type: 'trade_company', description: 'Traders relying on the forts for protection.' }
+                        ]
                     }
                 }
             },
@@ -89,6 +108,15 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                     holy_site: ['Abbot', 'Bishop', 'Prior', 'Keeper of Relics', 'Almoner', 'Cellarer', 'Sacristan']
                 },
                 mapAreaOverrides: {
+                    "London": {
+                        dominantPower: 'City of London Corporation',
+                        dominantPowerDescription: 'A powerful and semi-independent city, growing rich from trade and defending its privileges from the Crown.',
+                        allegianceGroups: [
+                            { name: 'Lord Mayor of London', type: 'primary', description: 'The leader of the city\'s merchant oligarchy.' },
+                            { name: 'The Crown', type: 'secondary', description: 'The monarchy, often in need of London\'s loans.' },
+                            { name: 'Hanseatic League', type: 'trade_company', description: 'German merchants with a trading post at the Steelyard.' }
+                        ]
+                    },
                     "Edinburgh": {
                         dominantPower: 'Kingdom of Scotland',
                         dominantPowerDescription: 'A proud kingdom maintaining independence through alliance with France and fierce resistance to English expansion.',
@@ -99,12 +127,12 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                         ]
                     },
                     "Dublin": {
-                        dominantPower: 'Hiberno-Norman Lords',
-                        dominantPowerDescription: 'Dublin is ruled by Norman invaders who have "gone native," creating a unique fusion of Irish and Norman culture.',
+                        dominantPower: 'Lordship of Ireland',
+                        dominantPowerDescription: 'Centered on the Pale around Dublin, English control is contested by powerful Hiberno-Norman lords and resurgent Gaelic Irish kingdoms.',
                         allegianceGroups: [
-                            { name: 'Earl of Dublin', type: 'primary', description: 'The Anglo-Norman ruler.' },
-                            { name: 'Gaelic Irish', type: 'rebel', description: 'Native Irish resisting foreign rule.' },
-                            { name: 'English Crown', type: 'secondary', description: 'Distant overlord with limited control.' }
+                            { name: 'English Crown', type: 'primary', description: 'Distant overlord ruling from Dublin Castle.' },
+                            { name: 'Hiberno-Norman Lords', type: 'secondary', description: 'Norman invaders who have "gone native".' },
+                            { name: 'Gaelic Irish Clans', type: 'rebel', description: 'Native Irish resisting foreign rule.' }
                         ]
                     }
                 }
@@ -128,6 +156,17 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 },
                 courtRoles: {
                     palace: ['Privy Councillor', 'Master of the Revels', 'Lord Treasurer', 'Captain of the Guard', 'Groom of the Stool']
+                },
+                mapAreaOverrides: {
+                    "Cliffs of Dover": {
+                        dominantPower: 'The Cinque Ports',
+                        dominantPowerDescription: 'A confederation of coastal towns, including Dover, providing ships and men for the crown in exchange for legal and tax exemptions.',
+                        allegianceGroups: [
+                            { name: 'Lord Warden of the Cinque Ports', type: 'primary', description: 'Commander of the confederation\'s fleet and defenses.' },
+                            { name: 'Spanish Armada', type: 'rebel', description: 'The Catholic threat from across the Channel.' },
+                            { name: 'English Crown', type: 'secondary', description: 'Reliant on the ports for naval defense.' }
+                        ]
+                    }
                 }
             },
             [HistoricalEra.INDUSTRIAL_ERA]: {
@@ -158,6 +197,15 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                             { name: 'British Administration', type: 'primary', description: 'The vice-regal government at Dublin Castle.' },
                             { name: 'Irish Parliamentary Party', type: 'secondary', description: 'Advocates for Home Rule through politics.' },
                             { name: 'Fenian Brotherhood', type: 'rebel', description: 'Revolutionary republicans seeking independence.' }
+                        ]
+                    },
+                    "Oxfordshire": {
+                        dominantPower: 'University of Oxford',
+                        dominantPowerDescription: 'A center of academic and theological debate, navigating the challenges of industrialization while preserving ancient traditions.',
+                        allegianceGroups: [
+                            { name: 'University Dons', type: 'primary', description: 'The academic elite governing the colleges.' },
+                            { name: 'Oxford Movement', type: 'religious', description: 'A high-church Anglican revival with national influence.' },
+                            { name: 'Rural Gentry', type: 'secondary', description: 'Landowners whose world is being changed by industry.' }
                         ]
                     }
                 }
@@ -263,7 +311,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 eraContextSentence: "an age of Romanization, where Gallic traditions merge with the structure and culture of the Empire.",
                 allegianceGroups: [
                     { name: 'Roman Empire', type: 'primary', description: 'The governing imperial power.' },
-                    { name: 'Germanic Tribes', type: 'rebel', description: 'Tribes raiding across the Rhine frontier.' },
+                    { name: 'Germanic Tribes', type: 'rising', description: 'Tribes raiding across the Rhine frontier.' },
                     { name: 'Local Gallic Nobility', type: 'secondary', description: 'Gallic elites integrated into the Roman system.' }
                 ],
                 structureNames: {
@@ -330,6 +378,15 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                             { name: 'Count of Toulouse', type: 'primary', description: 'Ruler of the wealthy Occitan lands.' },
                             { name: 'Cathar Believers', type: 'religious', description: 'Dualist Christians deemed heretical by Rome.' },
                             { name: 'Kingdom of Aragon', type: 'secondary', description: 'Trans-Pyrenean influence and ally.' }
+                        ]
+                    },
+                    "Pyrenees Foothills": {
+                        dominantPower: 'Kingdom of Navarre',
+                        dominantPowerDescription: 'A small Basque kingdom straddling the Pyrenees, navigating powerful neighbors France and Aragon.',
+                        allegianceGroups: [
+                            { name: 'Kings of Navarre', type: 'primary', description: 'The ruling house of the strategic mountain passes.' },
+                            { name: 'Basque Clans', type: 'secondary', description: 'The ancient inhabitants of the region, guarding their fueros (liberties).' },
+                            { name: 'Pilgrims of Santiago', type: 'religious', description: 'Travelers crossing the passes on their way to Santiago de Compostela.' }
                         ]
                     }
                 }
@@ -463,14 +520,14 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 }
             },
             [HistoricalEra.MEDIEVAL]: {
-                dominantPower: 'Divided Iberia',
-                dominantPowerDescription: 'The peninsula is divided between the Islamic south and Christian north, creating a unique frontier society of conflict and coexistence.',
-                eraContextSentence: 'an era of three faiths, where Christian, Muslim, and Jewish communities create a unique Iberian culture.',
+                dominantPower: 'Caliphate of Córdoba / Taifa Kingdoms',
+                dominantPowerDescription: 'The peninsula is dominated by the sophisticated Umayyad Caliphate of Córdoba, which later shatters into competing Taifa kingdoms, creating opportunities for the expansion of northern Christian realms.',
+                eraContextSentence: 'an era of three faiths, where Christian, Muslim, and Jewish communities create a unique Iberian culture on a volatile frontier.',
                 allegianceGroups: [
                     { name: 'Umayyad Caliphate of Córdoba', type: 'primary', description: 'The sophisticated Islamic state in the south.' },
                     { name: 'Kingdom of León', type: 'secondary', description: 'A major Christian kingdom in the north.' },
                     { name: 'Kingdom of Castile', type: 'secondary', description: 'An expanding Christian power.' },
-                    { name: 'Taifa Kingdoms', type: 'secondary', description: 'Independent Muslim city-states.' }
+                    { name: 'Taifa Kingdoms', type: 'secondary', description: 'Independent Muslim city-states (post-Caliphate).' }
                 ],
                 structureNames: {
                     fortress: ['Alcázar', 'Alcazaba', 'Castle', 'Atalaya'],
@@ -480,7 +537,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                     trading_post: ['Souk', 'Jewish Quarter', 'Christian Market', 'Silk Exchange']
                 },
                 courtRoles: {
-                    palace: ['Vizier', 'Hajib', 'Mayordomo', 'Alcaide', 'Royal Chronicle'],
+                    palace: ['Vizier', 'Hajib', 'Mayordomo', 'Alcaide', 'Royal Chronicler'],
                     holy_site: ['Imam', 'Bishop', 'Rabbi', 'Qadi', 'Prior']
                 },
                 mapAreaOverrides: {
@@ -509,6 +566,24 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                             { name: 'Count of Portugal', type: 'primary', description: 'Burgundian noble establishing a new realm.' },
                             { name: 'Templar Knights', type: 'religious', description: 'Military order securing the frontier.' },
                             { name: 'Moorish Population', type: 'secondary', description: 'Muslim inhabitants under Christian rule.' }
+                        ]
+                    },
+                    "Ebro Valley": {
+                        dominantPower: 'Crown of Aragon',
+                        dominantPowerDescription: 'The Kingdom of Aragon expands south from the Pyrenees, reconquering the rich Ebro valley from the Taifa of Zaragoza.',
+                        allegianceGroups: [
+                            { name: 'King of Aragon', type: 'primary', description: 'The Christian monarch leading the Reconquista.' },
+                            { name: 'Taifa of Zaragoza', type: 'secondary', description: 'The Muslim state holding the middle Ebro.' },
+                            { name: 'Military Orders', type: 'religious', description: 'Knights Templar and Hospitaller securing the new frontier.' }
+                        ]
+                    },
+                    "Galicia": {
+                        dominantPower: 'Pilgrimage Center of Santiago',
+                        dominantPowerDescription: 'The reputed burial site of St. James transforms Galicia into the destination of the most important pilgrimage in Christendom.',
+                        allegianceGroups: [
+                            { name: 'Archbishop of Santiago de Compostela', type: 'primary', description: 'The powerful spiritual and temporal ruler of the city.' },
+                            { name: 'Kingdom of León-Castile', type: 'secondary', description: 'The secular power protecting the pilgrimage routes.' },
+                            { name: 'Cluniac Monks', type: 'religious', description: 'French order that promoted and organized the pilgrimage.' }
                         ]
                     }
                 }
@@ -551,6 +626,15 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                             { name: 'Spanish Crown', type: 'primary', description: 'The Habsburg monarchy in Madrid.' },
                             { name: 'Catalan Corts', type: 'secondary', description: 'Local parliament defending privileges.' },
                             { name: 'French Agents', type: 'secondary', description: 'Stirring trouble on the frontier.' }
+                        ]
+                    },
+                    "Strait of Gibraltar": {
+                        dominantPower: 'Key to the Mediterranean',
+                        dominantPowerDescription: 'A vital chokepoint contested by Spain, Portugal, and Barbary corsairs, controlling all trade between the Atlantic and Mediterranean.',
+                        allegianceGroups: [
+                            { name: 'Spanish Garrison at Gibraltar', type: 'primary', description: 'The Catholic Monarchs\' fortress controlling the strait.' },
+                            { name: 'Barbary Corsairs', type: 'rebel', description: 'North African pirates raiding shipping from fortified harbors.' },
+                            { name: 'Portuguese Ceuta', type: 'secondary', description: 'A Portuguese stronghold on the African side.' }
                         ]
                     }
                 }
@@ -639,7 +723,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                         allegianceGroups: [
                             { name: 'Armed Forces Movement', type: 'primary', description: 'Progressive officers ending dictatorship.' },
                             { name: 'Communist Party', type: 'secondary', description: 'Organizing workers and peasants.' },
-                            { name: 'Socialist Party', type: 'secondary', description: 'Moderate left seeking European integration.' }
+                            { name: 'Socialist Party', type: 'rising', description: 'Moderate left seeking European integration.' }
                         ]
                     }
                 }
@@ -671,7 +755,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 eraContextSentence: 'the height of imperial glory, when Rome rules from Britain to Mesopotamia.',
                 allegianceGroups: [
                     { name: 'Roman Empire', type: 'primary', description: 'The eternal city and its dominions.' },
-                    { name: 'Germanic Foederati', type: 'mercenary', description: 'Barbarian troops serving Rome.' },
+                    { name: 'Germanic Foederati', type: 'rebel', description: 'Barbarian troops serving Rome.' },
                     { name: 'Eastern Provinces', type: 'secondary', description: 'The wealthy Greek-speaking half.' }
                 ],
                 structureNames: {
@@ -691,7 +775,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                         allegianceGroups: [
                             { name: 'Imperial Court', type: 'primary', description: 'The emperor and his household.' },
                             { name: 'Senatorial Class', type: 'secondary', description: 'Ancient families clinging to prestige.' },
-                            { name: 'Praetorian Guard', type: 'mercenary', description: 'Elite troops who make and unmake emperors.' }
+                            { name: 'Praetorian Guard', type: 'rebel', description: 'Elite troops who make and unmake emperors.' }
                         ]
                     },
                     "Bay of Naples": {
@@ -757,6 +841,15 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                             { name: 'Norman Kings', type: 'primary', description: 'Descendants of northern adventurers.' },
                             { name: 'Arab Emirs', type: 'secondary', description: 'Muslim administrators and scholars.' },
                             { name: 'Greek Nobles', type: 'secondary', description: 'Byzantine aristocracy.' }
+                        ]
+                    },
+                    "Apennine Foothills": {
+                        dominantPower: 'Matilda of Tuscany',
+                        dominantPowerDescription: 'A powerful Countess ruling vast territories from the Apennines, a key player in the Investiture Controversy between Pope and Emperor.',
+                        allegianceGroups: [
+                            { name: 'House of Canossa', type: 'primary', description: 'The dynasty of the powerful Countess Matilda.' },
+                            { name: 'Papal Faction (Guelphs)', type: 'secondary', description: 'Allies supporting the authority of the Pope.' },
+                            { name: 'Imperial Faction (Ghibellines)', type: 'rebel', description: 'Nobles loyal to the Holy Roman Emperor.' }
                         ]
                     }
                 }
@@ -840,7 +933,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                         allegianceGroups: [
                             { name: 'House of Savoy', type: 'primary', description: 'The royal family from Piedmont.' },
                             { name: 'Industrial Bourgeoisie', type: 'trade_company', description: 'Factory owners and bankers.' },
-                            { name: 'Socialist Workers', type: 'rebel', description: 'The growing labor movement.' }
+                            { name: 'Socialist Workers', type: 'rising', description: 'The growing labor movement.' }
                         ]
                     },
                     "Bay of Naples": {
@@ -951,6 +1044,17 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 },
                 courtRoles: {
                     palace: ['War Chief', 'Thing Speaker', 'Skald', 'Champion', 'Seeress']
+                },
+                mapAreaOverrides: {
+                    "Black Forest": {
+                        dominantPower: 'Suebi Tribes',
+                        dominantPowerDescription: 'A dense, dark forest beyond the Rhine, home to fierce Suebian tribes who defy Roman conquest and maintain their ancient traditions.',
+                        allegianceGroups: [
+                            { name: 'Suebian Chieftains', type: 'primary', description: 'Leaders of the Germanic warrior bands.' },
+                            { name: 'Roman Frontier Patrols', type: 'secondary', description: 'Legionaries attempting to control the Rhine frontier.' },
+                            { name: 'Druidic Hermits', type: 'religious', description: 'Keepers of ancient Celtic and Germanic lore.' }
+                        ]
+                    }
                 }
             },
             [HistoricalEra.MEDIEVAL]: {
@@ -959,9 +1063,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 eraContextSentence: 'an era of imperial ambition, where German emperors dream of universal Christian monarchy.',
                 allegianceGroups: [
                     { name: 'Holy Roman Emperor', type: 'primary', description: 'The elected sovereign of the Germans.' },
-                   
-
-{ name: 'Electoral Princes', type: 'secondary', description: 'The seven who choose the emperor.' },
+                    { name: 'Electoral Princes', type: 'secondary', description: 'The seven who choose the emperor.' },
                     { name: 'Duchy of Bavaria', type: 'secondary', description: 'Powerful southern duchy often rivaling the emperor.' },
                     { name: 'Hanseatic League', type: 'trade_company', description: 'Northern merchant cities with quasi-independence.' },
                     { name: 'Slavic Tribes', type: 'rebel', description: 'Pagan peoples resisting German expansion eastward.' }
@@ -1116,7 +1218,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 allegianceGroups: [
                     { name: 'Weimar Coalition', type: 'primary', description: 'Social Democrats, Catholics, and liberals.' },
                     { name: 'Communists', type: 'rebel', description: 'KPD seeking Soviet-style revolution.' },
-                    { name: 'Freikorps/Nazis', type: 'rebel', description: 'Right-wing paramilitaries and Hitler\'s growing movement.' },
+                    { name: 'Freikorps/Nazis', type: 'rising', description: 'Right-wing paramilitaries and Hitler\'s growing movement.' },
                     { name: 'Reparations Commission', type: 'secondary', description: 'Allied powers demanding payment.' }
                 ]
             },
@@ -1274,6 +1376,24 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                             { name: 'Hanseatic Merchants', type: 'trade_company', description: 'Germans controlling Swedish trade.' },
                             { name: 'Finnish Tribes', type: 'secondary', description: 'Eastern subjects being Christianized.' }
                         ]
+                    },
+                    "Gotland": {
+                        dominantPower: 'Hanseatic City of Visby',
+                        dominantPowerDescription: 'The island of Gotland is a major hub for Baltic trade, dominated by the wealthy, fortified city of Visby, a key Hanseatic League member.',
+                        allegianceGroups: [
+                            { name: 'Merchants of Visby', type: 'primary', description: 'The German and Gotlandic elite of the city.' },
+                            { name: 'Victual Brothers', type: 'rebel', description: 'Pirates who later captured the island.' },
+                            { name: 'Kingdom of Sweden', type: 'secondary', description: 'The nominal ruler of the island with little real control.' }
+                        ]
+                    },
+                    "Lapland": {
+                        dominantPower: 'Sámi Peoples',
+                        dominantPowerDescription: 'The indigenous Sámi people live a semi-nomadic life, paying tribute in furs to various Nordic kingdoms but maintaining their own culture.',
+                        allegianceGroups: [
+                            { name: 'Sámi Siidas', type: 'primary', description: 'The family-based Sámi communities.' },
+                            { name: 'Norwegian Tax Collectors', type: 'secondary', description: 'Agents of the western kingdom demanding tribute.' },
+                            { name: 'Novgorodian Merchants', type: 'trade_company', description: 'Traders from the east seeking valuable furs.' }
+                        ]
                     }
                 }
             },
@@ -1402,7 +1522,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 allegianceGroups: [
                     { name: 'Social Democratic Parties', type: 'primary', description: 'Dominant political force.' },
                     { name: 'Labor Unions', type: 'secondary', description: 'Partners in corporatist model.' },
-                    { name: 'New Left', type: 'rebel', description: 'Challenging consensus from the left.' }
+                    { name: 'New Left', type: 'rising', description: 'Challenging consensus from the left.' }
                 ],
                 mapAreaOverrides: {
                     "Norwegian Fjords": {
@@ -1446,7 +1566,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                     { name: 'Kingdom of Poland', type: 'primary', description: 'Western Slavic power accepting Latin Christianity.' },
                     { name: 'Kievan Rus\'', type: 'secondary', description: 'Eastern Slavs under Byzantine influence.' },
                     { name: 'Kingdom of Hungary', type: 'secondary', description: 'Magyar state controlling the middle Danube.' },
-                    { name: 'Mongol Invaders', type: 'rebel', description: 'The steppe terror from the east.' }
+                    { name: 'Mongol Invaders', type: 'rising', description: 'The steppe terror from the east.' }
                 ],
                 structureNames: {
                     fortress: ['Gród', 'Kremlin', 'Stone Castle', 'Wooden Fort', 'Border Tower'],
@@ -1488,7 +1608,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                     { name: 'Polish-Lithuanian Commonwealth', type: 'primary', description: 'The dual state under elected kings.' },
                     { name: 'Ottoman Empire', type: 'secondary', description: 'The southern threat and occasional ally.' },
                     { name: 'Muscovy/Russia', type: 'secondary', description: 'The rising eastern rival.' },
-                    { name: 'Cossacks', type: 'rebel', description: 'Free warriors of the borderlands.' }
+                    { name: 'Cossacks', type: 'rising', description: 'Free warriors of the borderlands.' }
                 ],
                 structureNames: {
                     fortress: ['Bastion Fortress', 'Border Castle', 'Cossack Sich', 'Star Fort'],
@@ -1587,7 +1707,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                     { name: 'Anti-Communist Partisans', type: 'rebel', description: 'Forest fighters slowly being eliminated.' }
                 ],
                 mapAreaOverrides: {
-                    "Carpathian Foothills": {
+                    "Danube Bend": {
                         dominantPower: 'Hungarian Revolution',
                         dominantPowerDescription: 'In 1956, Budapest rises against Soviet rule before tanks crush the dream of freedom.',
                         allegianceGroups: [
@@ -1609,13 +1729,13 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                     { name: 'Democratic Opposition', type: 'rebel', description: 'Dissidents preparing for change.' }
                 ],
                 mapAreaOverrides: {
-                    "Danube Bend": {
-                        dominantPower: 'Goulash Communism',
-                        dominantPowerDescription: 'Hungary\'s "happiest barracks" in the Soviet bloc experiments with market reforms.',
+                    "Carpathian Foothills": {
+                        dominantPower: 'Ceaușescu\'s Romania',
+                        dominantPowerDescription: 'A cult of personality and severe austerity mark the final years of communist rule in Romania, leading to a violent revolution.',
                         allegianceGroups: [
-                            { name: 'Hungarian Socialist Workers Party', type: 'primary', description: 'Kádár\'s pragmatic regime.' },
-                            { name: 'Economic Reformers', type: 'secondary', description: 'Technocrats introducing markets.' },
-                            { name: 'Democratic Opposition', type: 'rebel', description: 'Intellectuals imagining post-communism.' }
+                            { name: 'Ceaușescu Regime', type: 'primary', description: 'The highly repressive state and its Securitate secret police.' },
+                            { name: 'Hungarian Minority', type: 'secondary', description: 'Facing forced assimilation policies.' },
+                            { name: 'Revolutionary Front', type: 'rebel', description: 'The disparate groups that overthrew the regime in 1989.' }
                         ]
                     }
                 }
@@ -1689,7 +1809,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 eraContextSentence: 'an era of migrations and conversions, where Byzantine, Bulgar, and Serb vie for dominance.',
                 allegianceGroups: [
                     { name: 'Byzantine Empire', type: 'primary', description: 'The Greek-speaking Roman successor.' },
-                    { name: 'Bulgarian Empire', type: 'secondary', description: 'Powerful Slavic-Bulgar state.' },
+                    { name: 'Bulgarian Empire', type: 'rising', description: 'Powerful Slavic-Bulgar state.' },
                     { name: 'Serbian Principalities', type: 'secondary', description: 'Emerging Slavic powers.' },
                     { name: 'Croatian Kingdom', type: 'secondary', description: 'Catholic Slavs looking west.' }
                 ],
@@ -1792,7 +1912,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 allegianceGroups: [
                     { name: 'Ottoman Empire', type: 'primary', description: 'The weakening but persistent overlord.' },
                     { name: 'Austria-Hungary', type: 'secondary', description: 'The expanding northern empire.' },
-                    { name: 'Independent Serbia', type: 'rebel', description: 'First among the free Balkan states.' },
+                    { name: 'Independent Serbia', type: 'rising', description: 'First among the free Balkan states.' },
                     { name: 'Kingdom of Greece', type: 'rebel', description: 'Hellas reborn and expanding.' }
                 ],
                 structureNames: {
@@ -1974,6 +2094,15 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                             { name: 'Mongol Scouts', type: 'rebel', description: 'Harbingers of destruction.' },
                             { name: 'Rus Princes', type: 'secondary', description: 'Quarreling and unprepared.' }
                         ]
+                    },
+                    "Carpathian Ridge": {
+                        dominantPower: 'Principality of Galicia–Volhynia',
+                        dominantPowerDescription: 'A powerful Rus\' principality in the Carpathians, serving as a gateway to Central Europe and resisting Mongol dominance.',
+                        allegianceGroups: [
+                            { name: 'Rurikid Princes', type: 'primary', description: 'The rulers of the "Kingdom of Rus".' },
+                            { name: 'Golden Horde', type: 'secondary', description: 'The Mongol overlords demanding tribute.' },
+                            { name: 'Kingdom of Poland', type: 'secondary', description: 'A Catholic neighbor with ambitions on the principality.' }
+                        ]
                     }
                 }
             },
@@ -2083,7 +2212,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 eraContextSentence: 'the end of old Russia, where world war triggers the communist revolution.',
                 allegianceGroups: [
                     { name: 'Provisional Government', type: 'primary', description: 'Liberal democrats failing to control chaos.' },
-                    { name: 'Bolsheviks', type: 'rebel', description: 'Lenin\'s party seizing power.' },
+                    { name: 'Bolsheviks', type: 'rising', description: 'Lenin\'s party seizing power.' },
                     { name: 'White Armies', type: 'rebel', description: 'Anti-Bolshevik forces.' },
                     { name: 'Foreign Intervention', type: 'secondary', description: 'Allied forces supporting Whites.' }
                 ]
@@ -2095,8 +2224,8 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 allegianceGroups: [
                     { name: 'Stalin\'s Regime', type: 'primary', description: 'The totalitarian party-state.' },
                     { name: 'NKVD', type: 'secondary', description: 'The terror apparatus.' },
-                    { name: 'Kulaks', type: 'rebel', description: 'Peasants resisting collectivization.' },
-                    { name: 'Old Bolsheviks', type: 'rebel', description: 'Revolutionary veterans being purged.' }
+                    { name: 'Kulaks', type: 'declining', description: 'Peasants resisting collectivization.' },
+                    { name: 'Old Bolsheviks', type: 'declining', description: 'Revolutionary veterans being purged.' }
                 ],
                 mapAreaOverrides: {
                     "Steppe Borderlands": {
@@ -2170,7 +2299,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 allegianceGroups: [
                     { name: 'Yeltsin\'s Government', type: 'primary', description: 'Weak state losing control.' },
                     { name: 'Oligarchs', type: 'trade_company', description: 'Those who stole the state\'s wealth.' },
-                    { name: 'Communist Opposition', type: 'secondary', description: 'Nostalgic for Soviet times.' },
+                    { name: 'Communist Opposition', type: 'declining', description: 'Nostalgic for Soviet times.' },
                     { name: 'Chechen Separatists', type: 'rebel', description: 'Fighting for independence.' }
                 ],
                 mapAreaOverrides: {
@@ -2214,7 +2343,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                     { name: 'Imperial Authority', type: 'primary', description: 'The elected Emperor and his court.' },
                     { name: 'Electoral Princes', type: 'secondary', description: 'The seven electors who choose the Emperor.' },
                     { name: 'Free Imperial Cities', type: 'trade_company', description: 'Wealthy merchant republics.' },
-                    { name: 'Teutonic Order', type: 'secondary', description: 'Crusading knights expanding eastward.' }
+                    { name: 'Teutonic Order', type: 'rising', description: 'Crusading knights expanding eastward.' }
                 ],
                 structureNames: {
                     fortress: ['Reichsburg', 'Bishop\'s Castle', 'Ordensburg', 'City Walls'],
@@ -2225,6 +2354,26 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 },
                 courtRoles: {
                     palace: ['Imperial Chancellor', 'Arch-Marshal', 'Prince-Elector', 'Hofmeister', 'Imperial Judge']
+                },
+                mapAreaOverrides: {
+                    "Bohemian Plateau": {
+                        dominantPower: 'Kingdom of Bohemia',
+                        dominantPowerDescription: 'A powerful Slavic kingdom within the Holy Roman Empire, with rich silver mines and a distinct identity.',
+                        allegianceGroups: [
+                            { name: 'Přemyslid Dynasty', type: 'primary', description: 'The ruling kings of Bohemia.' },
+                            { name: 'Holy Roman Emperor', type: 'secondary', description: 'The nominal overlord, often a rival.' },
+                            { name: 'German Colonists', type: 'secondary', description: 'Miners and merchants settling in the kingdom.' }
+                        ]
+                    },
+                    "Vienna Basin": {
+                        dominantPower: 'Duchy of Austria',
+                        dominantPowerDescription: 'The Babenberg dukes guard the eastern frontier of the Empire from Vienna, a growing center of trade and culture.',
+                        allegianceGroups: [
+                            { name: 'House of Babenberg', type: 'primary', description: 'The ruling ducal family.' },
+                            { name: 'Kingdom of Hungary', type: 'secondary', description: 'The powerful Magyar kingdom to the east.' },
+                            { name: 'Crusader Armies', type: 'religious', description: 'Knights passing through Vienna on their way to the Holy Land.' }
+                        ]
+                    }
                 }
             },
             [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
@@ -2233,7 +2382,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 eraContextSentence: 'the age of religious warfare, where Protestant princes defy the Catholic Emperor in the name of conscience.',
                 allegianceGroups: [
                     { name: 'Habsburg Emperor', type: 'primary', description: 'Catholic champion defending the old order.' },
-                    { name: 'Protestant Union', type: 'rebel', description: 'Lutheran and Calvinist princes.' },
+                    { name: 'Protestant Union', type: 'rising', description: 'Lutheran and Calvinist princes.' },
                     { name: 'Catholic League', type: 'secondary', description: 'Bavaria and other Catholic states.' },
                     { name: 'Kingdom of France', type: 'secondary', description: 'Catholic power backing Protestants against Habsburg dominance.' }
                 ],
@@ -2242,6 +2391,26 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                     holy_site: ['Lutheran Church', 'Jesuit College', 'Reformed Church', 'Baroque Cathedral'],
                     palace: ['Baroque Palace', 'Residenz', 'Hunting Lodge'],
                     trading_post: ['Counting House', 'Fugger Bank', 'Postal Station']
+                },
+                mapAreaOverrides: {
+                    "Danube Bend": {
+                        dominantPower: 'Ottoman-Habsburg Frontier',
+                        dominantPowerDescription: 'The strategic heart of Hungary, fiercely contested between the Habsburgs and the Ottoman Empire after the Battle of Mohács.',
+                        allegianceGroups: [
+                            { name: 'Ottoman Empire', type: 'primary', description: 'The Turkish forces occupying Buda.' },
+                            { name: 'Habsburg Monarchy', type: 'secondary', description: 'The Austrian power holding the northern and western parts.' },
+                            { name: 'Hungarian Magnates', type: 'secondary', description: 'Nobles playing both sides to preserve their estates.' }
+                        ]
+                    },
+                    "Tatra Mountains": {
+                        dominantPower: 'Polish-Hungarian Borderlands',
+                        dominantPowerDescription: 'A remote but strategic mountain region marking the border between two powerful kingdoms, inhabited by fiercely independent highlanders.',
+                        allegianceGroups: [
+                            { name: 'Kingdom of Poland', type: 'primary', description: 'The northern suzerain power.' },
+                            { name: 'Kingdom of Hungary', type: 'secondary', description: 'The southern suzerain power.' },
+                            { name: 'Highlander Clans', type: 'rebel', description: 'Semi-independent mountain peoples and bandits.' }
+                        ]
+                    }
                 }
             },
             [HistoricalEra.INDUSTRIAL_ERA]: {
@@ -2251,7 +2420,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 allegianceGroups: [
                     { name: 'German Empire', type: 'primary', description: 'The Kaiserreich under Prussian leadership.' },
                     { name: 'Austria-Hungary', type: 'secondary', description: 'Former rival, now ally in the Dual Alliance.' },
-                    { name: 'Social Democrats', type: 'secondary', description: 'Growing workers\' movement.' },
+                    { name: 'Social Democrats', type: 'rising', description: 'Growing workers\' movement.' },
                     { name: 'Catholic Center Party', type: 'secondary', description: 'Defending Church interests against Kulturkampf.' }
                 ],
                 structureNames: {
@@ -2267,8 +2436,8 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 eraContextSentence: 'the phoenix from ashes, where Germany overcomes its dark past to lead European integration.',
                 allegianceGroups: [
                     { name: 'Federal Republic', type: 'primary', description: 'Democratic West Germany, later reunified.' },
-                    { name: 'NATO Alliance', type: 'secondary', description: 'Western military alliance.' },
-                    { name: 'European Union', type: 'secondary', description: 'Economic and political union Germany helps lead.' },
+                    { name: 'NATO Alliance', type: 'rising', description: 'Western military alliance.' },
+                    { name: 'European Union', type: 'rising', description: 'Economic and political union Germany helps lead.' },
                     { name: 'East Germany (until 1990)', type: 'secondary', description: 'Communist state before reunification.' }
                 ],
                 structureNames: {
@@ -2314,6 +2483,26 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 },
                 courtRoles: {
                     palace: ['Chancellor of Burgundy', 'Captain-General', 'Receiver-General', 'Grand Bailiff']
+                },
+                mapAreaOverrides: {
+                    "Flanders Fields": {
+                        dominantPower: 'County of Flanders',
+                        dominantPowerDescription: 'One of the wealthiest regions in Europe due to its powerful cloth towns like Bruges, Ghent, and Ypres, which frequently challenge the authority of their French overlords.',
+                        allegianceGroups: [
+                            { name: 'Flemish Communes', type: 'primary', description: 'The powerful, semi-independent cloth-producing cities.' },
+                            { name: 'Count of Flanders', type: 'secondary', description: 'The nominal ruler, often caught between his cities and the French king.' },
+                            { name: 'Kingdom of France', type: 'secondary', description: 'The feudal overlord seeking to control the region\'s wealth.' }
+                        ]
+                    },
+                    "Scheldt Basin": {
+                        dominantPower: 'Duchy of Brabant',
+                        dominantPowerDescription: 'A rising power in the Low Countries, with its port of Antwerp beginning to challenge Bruges as the primary hub for international trade.',
+                        allegianceGroups: [
+                            { name: 'Duke of Brabant', type: 'primary', description: 'Ruler of a prosperous and strategic duchy.' },
+                            { name: 'City of Antwerp', type: 'trade_company', description: 'A rising port city attracting English and Italian merchants.' },
+                            { name: 'Prince-Bishopric of Liège', type: 'religious', description: 'A powerful and independent ecclesiastical neighbor.' }
+                        ]
+                    }
                 }
             },
             [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
@@ -2322,9 +2511,9 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 eraContextSentence: 'the age of revolt and golden prosperity, where Dutch merchants challenge Spanish might.',
                 allegianceGroups: [
                     { name: 'Dutch Republic', type: 'primary', description: 'The United Provinces winning independence.' },
-                    { name: 'Spanish Crown', type: 'secondary', description: 'Habsburg rulers of the southern provinces.' },
+                    { name: 'Spanish Crown', type: 'declining', description: 'Habsburg rulers of the southern provinces.' },
                     { name: 'Dutch East India Company', type: 'trade_company', description: 'The world\'s first megacorporation.' },
-                    { name: 'House of Orange', type: 'secondary', description: 'Stadholders leading the revolt.' }
+                    { name: 'House of Orange', type: 'rising', description: 'Stadholders leading the revolt.' }
                 ],
                 structureNames: {
                     fortress: ['Star Fort', 'Sea Fort', 'Spanish Citadel', 'Dutch Water Line'],
@@ -2332,6 +2521,17 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                     holy_site: ['Reformed Church', 'Catholic Church', 'Jewish Synagogue', 'Mennonite Meeting House'],
                     palace: ['Stadholder\'s Palace', 'Burgher Mansion', 'Town Hall', 'Exchange'],
                     trading_post: ['VOC Warehouse', 'Stock Exchange', 'Weigh House', 'Fish Market']
+                },
+                mapAreaOverrides: {
+                    "Rhine–Meuse Delta": {
+                        dominantPower: 'Dutch Sea Beggars',
+                        dominantPowerDescription: 'The complex river delta becomes a stronghold for Dutch rebels fighting against Spain, using their knowledge of the waterways to raid and capture key towns.',
+                        allegianceGroups: [
+                            { name: 'Sea Beggars', type: 'primary', description: 'Calvinist privateers and rebels fighting for Dutch independence.' },
+                            { name: 'Spanish Tercios', type: 'secondary', description: 'The elite Spanish army trying to suppress the revolt.' },
+                            { name: 'House of Orange', type: 'secondary', description: 'The noble leaders of the Dutch Revolt.' }
+                        ]
+                    }
                 }
             },
             [HistoricalEra.INDUSTRIAL_ERA]: {
@@ -2365,6 +2565,17 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                     fortress: ['NATO Headquarters', 'EU Quarter', 'Peace Palace'],
                     factory: ['ASML Chip Plant', 'Port Refinery', 'Chemical Complex', 'Biotech Lab'],
                     trading_post: ['Rotterdam Port', 'Schiphol Airport', 'Antwerp Diamond District', 'EU Institutions']
+                },
+                mapAreaOverrides: {
+                    "Ardennes Forest": {
+                        dominantPower: 'Battle of the Bulge',
+                        dominantPowerDescription: 'The dense forest becomes the site of the last major German offensive on the Western Front during World War II, a desperate gamble that ultimately failed.',
+                        allegianceGroups: [
+                            { name: 'Allied Forces', type: 'primary', description: 'American and British troops who endured the surprise attack.' },
+                            { name: 'German Wehrmacht', type: 'secondary', description: 'The attacking German panzer divisions.' },
+                            { name: 'Belgian Resistance', type: 'rebel', description: 'Local fighters aiding the Allied forces.' }
+                        ]
+                    }
                 }
             }
         },
@@ -2405,6 +2616,26 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                     holy_site: ['Orthodox Monastery', 'Byzantine Church', 'Icon Workshop', 'Pilgrimage Site'],
                     palace: ['Governor\'s Palace', 'Theme Headquarters', 'Bishop\'s Residence'],
                     trading_post: ['Venetian Quarter', 'Silk Workshop', 'Harbor Warehouse']
+                },
+                mapAreaOverrides: {
+                    "Athens Basin": {
+                        dominantPower: 'Duchy of Athens',
+                        dominantPowerDescription: 'Following the Fourth Crusade, Athens is ruled by French and Catalan crusader dukes, a strange feudal court set amongst ancient ruins.',
+                        allegianceGroups: [
+                            { name: 'Frankish Dukes', type: 'primary', description: 'The Western European crusader nobility.' },
+                            { name: 'Catalan Company', type: 'mercenary', description: 'A powerful mercenary army that later seized the duchy.' },
+                            { name: 'Greek Orthodox Population', type: 'secondary', description: 'The local subjects under Catholic rule.' }
+                        ]
+                    },
+                    "Peloponnesian Hills": {
+                        dominantPower: 'Despotate of the Morea',
+                        dominantPowerDescription: 'A Byzantine province centered at Mystras, experiencing a last flourishing of Greek culture and art before the Ottoman conquest.',
+                        allegianceGroups: [
+                            { name: 'Byzantine Despots', type: 'primary', description: 'Relatives of the Emperor in Constantinople.' },
+                            { name: 'Venetian Ports', type: 'trade_company', description: 'Venice holds key coastal fortresses like Modon and Coron.' },
+                            { name: 'Ottoman Raiders', type: 'rebel', description: 'Turkish forces raiding deeper into the peninsula.' }
+                        ]
+                    }
                 }
             },
             [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
@@ -2422,6 +2653,26 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                     holy_site: ['Orthodox Monastery', 'Hidden Church', 'Mosque', 'Dervish Lodge'],
                     palace: ['Pasha\'s Palace', 'Bey\'s Mansion', 'Archbishop\'s Residence'],
                     trading_post: ['Bazaar', 'Caravanserai', 'Venetian Factory', 'Jewish Quarter']
+                },
+                mapAreaOverrides: {
+                    "Crete": {
+                        dominantPower: 'Kingdom of Candia (Venice)',
+                        dominantPowerDescription: 'As Venice\'s most important overseas colony, Crete is a bastion of the Renaissance in the Greek world, fiercely defended against the Ottomans.',
+                        allegianceGroups: [
+                            { name: 'Venetian Republic', type: 'primary', description: 'The colonial administration ruling the island.' },
+                            { name: 'Cretan Nobles', type: 'secondary', description: 'The local Greek aristocracy, often rebelling against Venetian rule.' },
+                            { name: 'Ottoman Empire', type: 'secondary', description: 'The encroaching power seeking to conquer the island.' }
+                        ]
+                    },
+                    "Thessalian Plain": {
+                        dominantPower: 'Ottoman Timariots',
+                        dominantPowerDescription: 'The fertile plain is granted by the Sultan to Sipahi cavalrymen (Timariots) in exchange for military service, forming the backbone of Ottoman rural administration.',
+                        allegianceGroups: [
+                            { name: 'Ottoman Sipahis', type: 'primary', description: 'The Turkish feudal cavalry class.' },
+                            { name: 'Greek Peasantry', type: 'secondary', description: 'The Christian population working the land.' },
+                            { name: 'Monasteries of Meteora', type: 'religious', description: 'Orthodox monasteries perched on rock pillars, preserving faith and learning.' }
+                        ]
+                    }
                 }
             },
             [HistoricalEra.INDUSTRIAL_ERA]: {
@@ -2508,6 +2759,26 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                     holy_site: ['Orthodox Monastery', 'Old Believer Chapel', 'Mosque', 'Shaman Sacred Site'],
                     palace: ['Governor\'s Palace', 'Boyar Estate', 'Cossack Ataman House'],
                     trading_post: ['Fur Trading Post', 'Salt Works', 'Iron Works', 'Fair Ground']
+                },
+                mapAreaOverrides: {
+                    "Ural Mountains": {
+                        dominantPower: 'Stroganov Mercantile Empire',
+                        dominantPowerDescription: 'The wealthy Stroganov merchant family is granted vast lands in the Urals by the Tsar to colonize, mine for salt and iron, and push into Siberia.',
+                        allegianceGroups: [
+                            { name: 'Stroganov Merchants', type: 'primary', description: 'The colonizing merchant-barons.' },
+                            { name: 'Cossack Mercenaries', type: 'mercenary', description: 'Hired by the Stroganovs to conquer the Khanate of Sibir.' },
+                            { name: 'Siberian Khanate', type: 'rebel', description: 'The Tatar state resisting Russian expansion.' }
+                        ]
+                    },
+                    "White Sea Coast": {
+                        dominantPower: 'Muscovy Company',
+                        dominantPowerDescription: 'The English Muscovy Company establishes a trading post at Arkhangelsk, giving Russia its first major seaport and a direct trade link to Western Europe.',
+                        allegianceGroups: [
+                            { name: 'English Merchants', type: 'primary', description: 'Traders of the Muscovy Company.' },
+                            { name: 'Tsarist Governors', type: 'secondary', description: 'Officials of Ivan the Terrible overseeing the trade.' },
+                            { name: 'Pomors', type: 'secondary', description: 'Local Russian settlers and sea-traders.' }
+                        ]
+                    }
                 }
             },
             [HistoricalEra.INDUSTRIAL_ERA]: {
@@ -2518,7 +2789,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                     { name: 'Russian Empire', type: 'primary', description: 'The autocratic tsarist state.' },
                     { name: 'Ural Factory Owners', type: 'trade_company', description: 'Industrial magnates.' },
                     { name: 'Old Believers', type: 'secondary', description: 'Religious dissidents in remote areas.' },
-                    { name: 'Worker Movements', type: 'rebel', description: 'Early revolutionaries in factories.' }
+                    { name: 'Worker Movements', type: 'rising', description: 'Early revolutionaries in factories.' }
                 ],
                 structureNames: {
                     fortress: ['Imperial Fort', 'Cossack Barracks', 'Prison Camp'],
@@ -2534,7 +2805,7 @@ export const EUROPEAN_FACTIONS: FactionFile = {
                 allegianceGroups: [
                     { name: 'Russian Federation', type: 'primary', description: 'Post-Soviet state controlling vast resources.' },
                     { name: 'Resource Oligarchs', type: 'trade_company', description: 'Billionaires controlling extraction.' },
-                    { name: 'Indigenous Peoples', type: 'secondary', description: 'Native groups seeking rights.' },
+                    { name: 'Indigenous Peoples', type: 'declining', description: 'Native groups seeking rights.' },
                     { name: 'Environmental Activists', type: 'rebel', description: 'Opposing ecological destruction.' }
                 ],
                 structureNames: {

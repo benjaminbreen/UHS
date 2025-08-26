@@ -169,7 +169,7 @@ const GovernmentBanner: React.FC<GovernmentBannerProps> = ({ type, name, locatio
                 </>
             )}
 
-            <style jsx>{`
+            <style jsx="true">{`
                 @keyframes float {
                     0%, 100% { transform: translateY(0px) rotate(0deg); }
                     50% { transform: translateY(-20px) rotate(5deg); }

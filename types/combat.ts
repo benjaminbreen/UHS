@@ -5,7 +5,7 @@ import { AnimalEntity } from './animalTypes';
 import { NpcEntity } from './npcTypes';
 
 
-export type StatusEffectType = 'poison' | 'burn' | 'stunned' | 'calm' | 'bleeding' | 'defense_down' | 'on_fire' | 'observed' | 'defending';
+export type StatusEffectType = 'poison' | 'burn' | 'stunned' | 'calm' | 'bleeding' | 'defense_down' | 'on_fire' | 'observed' | 'defending' | 'feeling_cold' | 'feeling_hot' | 'feeling_wet';
 
 export interface StatusEffect {
   type: StatusEffectType;

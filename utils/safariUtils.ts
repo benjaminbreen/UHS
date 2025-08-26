@@ -64,3 +64,26 @@ export const getSafariOptimizedFilter = (filter: string | undefined): string | u
   
   return filter;
 };
+
+// Optimize button transitions for better performance
+export const getOptimizedButtonClassName = (baseClassName: string): string => {
+  // Replace transition-all with specific properties for better performance
+  // Remove scale transforms on Safari for smoother hover
+  if (isSafari()) {
+    return baseClassName
+      .replace(/transition-all/g, 'transition-colors')
+      .replace(/duration-300/g, 'duration-150')
+      .replace(/duration-200/g, 'duration-100')
+      .replace(/hover:scale-\d+/g, '') // Remove scale transforms
+      .replace(/transform/g, '') // Remove transform property
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  
+  // For non-Safari browsers, still optimize transitions but keep transforms
+  return baseClassName
+    .replace(/transition-all/g, 'transition-[background-color,border-color,transform]')
+    .replace(/duration-300/g, 'duration-200')
+    .replace(/\s+/g, ' ')
+    .trim();
+};

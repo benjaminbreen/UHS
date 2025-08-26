@@ -391,7 +391,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
                 holy_site: ['High Priest', 'Imam', 'Monk', 'Missionary', 'Temple Administrator']
             }
         },
-        [HistoricalEra.INDUSTRIAL]: {
+        [HistoricalEra.INDUSTRIAL_ERA]: {
             isAgricultural: true,
             isPastoral: false,
             allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site', 'mill', 'factory'],
@@ -405,7 +405,7 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
                 holy_site: ['Head Priest', 'Abbot', 'Bishop', 'Imam']
             }
         },
-        [HistoricalEra.MODERN]: {
+        [HistoricalEra.MODERN_ERA]: {
             isAgricultural: true,
             isPastoral: false,
             allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'mining_colony', 'holy_site', 'mill', 'factory'],
@@ -417,6 +417,136 @@ export const SOCIETAL_PROFILES: Partial<Record<CulturalZone, Partial<Record<Hist
             courtRoles: {
                 palace: ['President', 'Prime Minister', 'Governor', 'Minister', 'Secretary'],
                 holy_site: ['Head Priest', 'Imam', 'Bishop', 'Chief Monk']
+            }
+        }
+    },
+    NORTH_AMERICAN_COLONIAL: {
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+            isAgricultural: true,
+            isPastoral: true,
+            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'holy_site'],
+            allowedMineTypes: ['IRON', 'COAL', 'STONE', 'LEAD', 'COPPER', 'SILVER'],
+            fortressNames: ['Fort', 'Stockade', 'Presidio', 'Colonial Fort'],
+            holyPlaceNames: ['Church', 'Meeting House', 'Mission', 'Chapel'],
+            palaceNames: ["Governor's Mansion", 'Colonial Estate', 'Plantation House'],
+            ruinNames: ['Abandoned Settlement', 'Old Fort', 'Ruined Mission'],
+            courtRoles: {
+                palace: ['Colonial Governor', 'Lieutenant Governor', 'Colonial Secretary', 'Tax Collector', 'Militia Captain'],
+                holy_site: ['Minister', 'Reverend', 'Missionary', 'Church Elder', 'Deacon']
+            }
+        },
+        [HistoricalEra.INDUSTRIAL_ERA]: {
+            isAgricultural: true,
+            isPastoral: true,
+            allowedStructures: ['mill', 'farm', 'fortress', 'lumber_camp', 'fishing_hut', 'marketplace', 'quarry', 'factory', 'mining_colony'],
+            allowedMineTypes: ['IRON', 'COAL', 'STONE', 'LEAD', 'TIN', 'COPPER', 'GOLD', 'SILVER'],
+            fortressNames: ['Fort', 'Arsenal', 'Military Post', 'Cavalry Fort'],
+            holyPlaceNames: ['Church', 'Cathedral', 'Chapel', 'Temple'],
+            palaceNames: ["Governor's Mansion", 'State House', 'Capitol Building'],
+            ruinNames: ['Ghost Town', 'Abandoned Mine', 'Old Homestead', 'Civil War Fort'],
+            courtRoles: {
+                palace: ['Governor', 'Mayor', 'Judge', 'Sheriff', 'Commissioner'],
+                holy_site: ['Bishop', 'Pastor', 'Priest', 'Rabbi', 'Deacon']
+            }
+        },
+        [HistoricalEra.MODERN_ERA]: {
+            isAgricultural: true,
+            isPastoral: false,
+            allowedStructures: ['farm', 'fortress', 'fishing_hut', 'marketplace', 'quarry', 'factory', 'mining_colony'],
+            allowedMineTypes: ['IRON', 'COAL', 'COPPER', 'GOLD', 'SILVER', 'URANIUM', 'OIL'],
+            fortressNames: ['Military Base', 'Air Force Base', 'Naval Base', 'Army Fort'],
+            holyPlaceNames: ['Church', 'Cathedral', 'Synagogue', 'Mosque', 'Temple'],
+            palaceNames: ['State Capitol', 'City Hall', 'Federal Building'],
+            ruinNames: ['Historic Site', 'National Monument', 'Heritage Building'],
+            courtRoles: {
+                palace: ['Governor', 'Senator', 'Mayor', 'City Manager', 'Chief of Staff'],
+                holy_site: ['Bishop', 'Pastor', 'Rabbi', 'Imam', 'Priest']
+            }
+        }
+    },
+    OCEANIA: {
+        [HistoricalEra.PREHISTORY]: {
+            isAgricultural: false,
+            isPastoral: false,
+            allowedStructures: ['fishing_hut', 'encampment'],
+            allowedMineTypes: ['STONE', 'CLAY', 'OCHRE', 'FLINT'],
+            fortressNames: ['Pa', 'Fortified Village'],
+            holyPlaceNames: ['Sacred Site', 'Marae', 'Stone Platform'],
+            palaceNames: ["Chief's Hut", 'Great House'],
+            ruinNames: ['Ancient Camp', 'Old Settlement'],
+            courtRoles: {
+                palace: ['Ariki (Chief)', 'Tohunga (Priest)', 'Rangatira (Noble)', 'Warrior'],
+                holy_site: ['Tohunga', 'Keeper of Lore', 'Sacred Guardian']
+            }
+        },
+        [HistoricalEra.ANTIQUITY]: {
+            isAgricultural: true,
+            isPastoral: false,
+            allowedStructures: ['farm', 'fishing_hut', 'encampment', 'holy_site'],
+            allowedMineTypes: ['STONE', 'CLAY', 'OCHRE', 'JADE'],
+            fortressNames: ['Pa', 'Hill Fort', 'Coastal Fort'],
+            holyPlaceNames: ['Marae', 'Heiau', 'Sacred Grove', 'Stone Platform'],
+            palaceNames: ["Chief's Compound", 'Royal Hale', 'Great House'],
+            ruinNames: ['Ancient Marae', 'Old Pa Site', 'Abandoned Village'],
+            courtRoles: {
+                palace: ["Ali'i (Chief)", 'Kahuna (Priest)', 'Navigator', 'Master Fisherman'],
+                holy_site: ['Kahuna Nui', 'Temple Keeper', 'Sacred Chanter']
+            }
+        },
+        [HistoricalEra.MEDIEVAL]: {
+            isAgricultural: true,
+            isPastoral: false,
+            allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site'],
+            allowedMineTypes: ['STONE', 'CLAY', 'JADE', 'OBSIDIAN'],
+            fortressNames: ['Pa', 'Fortified Village', 'Coastal Stronghold'],
+            holyPlaceNames: ['Marae', 'Heiau', 'Temple Platform', 'Sacred Grove'],
+            palaceNames: ['Royal Compound', "Paramount Chief's Residence", 'Great House'],
+            ruinNames: ['Ancient Temple', 'Ruined Pa', 'Old Marae'],
+            courtRoles: {
+                palace: ['Paramount Chief', 'War Chief', 'High Navigator', 'Royal Genealogist', 'Master Craftsman'],
+                holy_site: ['High Priest', 'Temple Guardian', 'Keeper of Sacred Knowledge', 'Ritual Specialist']
+            }
+        },
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+            isAgricultural: true,
+            isPastoral: true,
+            allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'mill'],
+            allowedMineTypes: ['STONE', 'CLAY', 'JADE', 'GOLD'],
+            fortressNames: ['Pa', 'Colonial Fort', 'Mission Fort'],
+            holyPlaceNames: ['Marae', 'Mission Church', 'Cathedral', 'Chapel'],
+            palaceNames: ['Royal Palace', "Governor's Residence", 'Plantation House'],
+            ruinNames: ['Old Pa', 'Abandoned Mission', 'Ancient Site'],
+            courtRoles: {
+                palace: ['King', 'Queen', 'Colonial Governor', 'Minister', 'Advisor'],
+                holy_site: ['Bishop', 'Missionary', 'Traditional Priest', 'Deacon']
+            }
+        },
+        [HistoricalEra.INDUSTRIAL_ERA]: {
+            isAgricultural: true,
+            isPastoral: true,
+            allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'mill', 'factory', 'quarry'],
+            allowedMineTypes: ['STONE', 'COAL', 'GOLD', 'COPPER', 'PHOSPHATE'],
+            fortressNames: ['Colonial Fort', 'Naval Base', 'Garrison'],
+            holyPlaceNames: ['Church', 'Cathedral', 'Temple', 'Traditional Marae'],
+            palaceNames: ['Royal Palace', "Governor's House", 'Parliament House'],
+            ruinNames: ['Historic Pa', 'Old Mission', 'Colonial Ruins'],
+            courtRoles: {
+                palace: ['Monarch', 'Prime Minister', 'Colonial Administrator', 'Minister', 'Secretary'],
+                holy_site: ['Bishop', 'Minister', 'Traditional Priest', 'Missionary']
+            }
+        },
+        [HistoricalEra.MODERN_ERA]: {
+            isAgricultural: true,
+            isPastoral: true,
+            allowedStructures: ['farm', 'fishing_hut', 'fortress', 'marketplace', 'holy_site', 'factory', 'quarry'],
+            allowedMineTypes: ['GOLD', 'COPPER', 'URANIUM', 'COAL', 'PHOSPHATE', 'BAUXITE'],
+            fortressNames: ['Military Base', 'Naval Base', 'Air Base'],
+            holyPlaceNames: ['Church', 'Cathedral', 'Temple', 'Marae', 'Mosque'],
+            palaceNames: ['Parliament House', 'Government House', 'Presidential Palace'],
+            ruinNames: ['Historic Site', 'Heritage Site', 'Archaeological Site'],
+            courtRoles: {
+                palace: ['Prime Minister', 'President', 'Governor-General', 'Minister', 'Chief of Staff'],
+                holy_site: ['Archbishop', 'Imam', 'Rabbi', 'Traditional Elder', 'Minister']
             }
         }
     }

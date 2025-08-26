@@ -1007,7 +1007,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
                     <h4 className="character-name player-name">{playerCharacter.name}</h4>
                     <div className="character-stats">
                         <div className="stat-line">Lvl: {playerCharacter.level}</div>
-                        <div className="stat-line">HP: {playerCharacter.health}/{playerCharacter.maxHealth}</div>
+                        <div className="stat-line">HP: {Math.ceil(playerCharacter.health)}/{Math.ceil(playerCharacter.maxHealth)}</div>
                     </div>
                     <div className="health-bar-container">
                         <div

@@ -459,7 +459,7 @@ const NpcTradeInterface: React.FC<NpcTradeInterfaceProps> = ({
       </div>
       
       {/* Mobile-specific styles */}
-      <style jsx>{`
+      <style jsx="true">{`
         .trade-interface.mobile .trade-panels {
           max-height: 60vh;
           overflow-y: auto;

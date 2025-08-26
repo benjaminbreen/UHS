@@ -11,6 +11,7 @@ import { mapLocationToCulture } from '../utils/mapUtils';
 import { hexToColorName } from '../utils/colorUtils';
 import { CharacterSpecification } from './worldWeaverService';
 import DiseaseService from './diseaseService';
+import { AttributeBadgeService } from './attributeBadgeService';
 
 let characterIdCounter = 0;
 
@@ -683,6 +684,18 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
         }
     }
     
+    // Generate attribute badges for custom character
+    const attributes = AttributeBadgeService.generateAttributes(
+        partialCharacter as PlayerCharacter,
+        dateInfo.year,
+        context.location
+    );
+    
+    if (attributes.length > 0) {
+        console.log(`[Character Generator] Generated ${attributes.length} attribute badge(s) for custom character:`, 
+            attributes.map(a => `${a.name} (${a.rarity})`).join(', '));
+    }
+    
     const character: PlayerCharacter = {
         ...(partialCharacter as any),
         id: `pc-${characterIdCounter++}`,
@@ -693,6 +706,7 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
         profileImage: 'placeholder.png',
         isLlmEnhanced: false,
         diseaseHealth, // Add disease health with potential disease
+        attributes, // Add generated attribute badges
     };
     
     console.log(`[Character Generator] Generated custom character ${name}, a ${role} with specifications`);
@@ -903,6 +917,18 @@ export function generateCharacter(context: GenerationContext): PlayerCharacter {
         console.log(`[Character Generator] Character spawned healthy (disease chance was ${(diseaseChance * 100).toFixed(1)}%)`);
     }
 
+    // Generate attribute badges based on stats, culture, and era
+    const attributes = AttributeBadgeService.generateAttributes(
+        partialCharacter as PlayerCharacter,
+        dateInfo.year,
+        context.location
+    );
+    
+    if (attributes.length > 0) {
+        console.log(`[Character Generator] Generated ${attributes.length} attribute badge(s):`, 
+            attributes.map(a => `${a.name} (${a.rarity})`).join(', '));
+    }
+
     const character: PlayerCharacter = {
         ...(partialCharacter as any), // Cast to get around Omit typing temporarily
         id: `pc-${characterIdCounter++}`,
@@ -913,6 +939,7 @@ export function generateCharacter(context: GenerationContext): PlayerCharacter {
         profileImage: 'placeholder.png', // This will be replaced by the procedural portrait component
         isLlmEnhanced: false,
         diseaseHealth, // Add disease health with potential disease
+        attributes, // Add generated attribute badges
     };
     
     console.log(`[Character Generator] Generated character ${name}, a ${role} with static portrait seed ${staticPortraitSeed}`);

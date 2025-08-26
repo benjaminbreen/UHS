@@ -1,6 +1,7 @@
-import React from 'react';
-import { Tile, PlayerCharacter, MapData, Season, Item, BiomeType, ActionableTile, TerrainStructure } from '../types';
-import { getSafariOptimizedClassName } from '../utils/safariUtils';
+import React, { useState, useEffect } from 'react';
+import { Tile, PlayerCharacter, MapData, Season, Item, BiomeType, ActionableTile, TerrainStructure, TimeOfDay } from '../types';
+import { getSafariOptimizedClassName, getOptimizedButtonClassName } from '../utils/safariUtils';
+import { weatherService } from '../services/weatherService';
 
 interface BottomPanelProps {
     actionableTile: ActionableTile | null;
@@ -16,12 +17,17 @@ interface BottomPanelProps {
     onEnterFarm: (tile: Tile) => void;
     onEnterMine: (structure: TerrainStructure) => void;
     toastMessage: string | null;
+    season?: Season;
+    timeOfDay?: TimeOfDay;
+    dayOfYear?: number;
+    onToggleAmbientText?: () => void;
+    showAmbientText?: boolean;
 }
 
 const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, icon: string }> = ({ onClick, children, icon }) => (
     <button
         onClick={onClick}
-        className={getSafariOptimizedClassName("group relative px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold rounded-xl shadow-lg text-base transform hover:scale-105 transition-all duration-300 ease-out border border-blue-400/30 backdrop-blur-sm flex items-center justify-center gap-2 overflow-hidden")}
+        className={getOptimizedButtonClassName(getSafariOptimizedClassName("group relative px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold rounded-xl shadow-lg text-base transform hover:scale-105 transition-all duration-300 ease-out border border-blue-400/30 backdrop-blur-sm flex items-center justify-center gap-2 overflow-hidden"))}
         style={{ 
             textShadow: '1px 1px 2px rgba(0,0,0,0.5)', 
             boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3), inset 0 1px 1px rgba(255,255,255,0.2)' 
@@ -71,7 +77,74 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
     onEnterFarm,
     onEnterMine,
     toastMessage,
+    season = 'summer',
+    timeOfDay = 'Day',
+    dayOfYear = 180,
+    onToggleAmbientText,
+    showAmbientText = false,
 }) => {
+    const [weatherDisplay, setWeatherDisplay] = useState<string>('');
+    const [weatherState, setWeatherState] = useState<{ state: string, emoji: string }>({ state: '', emoji: '' });
+    const [useFahrenheit, setUseFahrenheit] = useState<boolean>(false);
+    
+    // Get weather state with emoji
+    const getWeatherStateAndEmoji = (weather: any): { state: string, emoji: string } => {
+        if (weather.special === 'rainbow') return { state: 'Rainbow', emoji: '🌈' };
+        if (weather.special === 'fog') return { state: 'Foggy', emoji: '🌫️' };
+        if (weather.special === 'mist') return { state: 'Misty', emoji: '🌁' };
+        if (weather.special === 'frost') return { state: 'Frosty', emoji: '❄️' };
+        if (weather.special === 'heatwave') return { state: 'Heat Wave', emoji: '🔥' };
+        
+        if (weather.precipitation === 'snow') return { state: 'Snowing', emoji: '🌨️' };
+        if (weather.precipitation === 'rain' && weather.intensity > 0.7) return { state: 'Heavy Rain', emoji: '⛈️' };
+        if (weather.precipitation === 'rain') return { state: 'Rainy', emoji: '🌧️' };
+        if (weather.precipitation === 'drizzle') return { state: 'Drizzle', emoji: '🌦️' };
+        if (weather.precipitation === 'sleet') return { state: 'Sleet', emoji: '🌨️' };
+        
+        if (weather.cloudCover > 0.7) return { state: 'Overcast', emoji: '☁️' };
+        if (weather.cloudCover > 0.3) return { state: 'Partly Cloudy', emoji: '⛅' };
+        if (weather.temperature < 0) return { state: 'Freezing', emoji: '🥶' };
+        if (weather.temperature > 35) return { state: 'Very Hot', emoji: '🥵' };
+        if (weather.humidity > 80) return { state: 'Humid', emoji: '💧' };
+        
+        return { state: 'Clear Skies', emoji: '☀️' };
+    };
+    
+    // Update weather display - stable per map area, updates hourly
+    useEffect(() => {
+        if (mapData) {
+            // Use map center for consistent weather across the map area
+            const mapCenterX = Math.floor(mapData.tiles[0].length / 2);
+            const mapCenterY = Math.floor(mapData.tiles.length / 2);
+            const centerTile = mapData.tiles[mapCenterY][mapCenterX];
+            
+            const weather = weatherService.getWeather(
+                mapData.climate,
+                centerTile.biome,
+                season,
+                timeOfDay,
+                centerTile.altitude || 0.5,
+                dayOfYear,
+                { x: mapCenterX, y: mapCenterY }
+            );
+            
+            // Format temperature and wind speed based on preference
+            const temp = useFahrenheit ? 
+                Math.round(weather.temperature * 9/5 + 32) + '°F' : 
+                Math.round(weather.temperature) + '°C';
+            
+            // Convert wind speed if using Fahrenheit (imperial units)
+            const windSpeed = useFahrenheit ?
+                Math.round(weather.windSpeed * 0.621371) : // Convert km/h to mph
+                Math.round(weather.windSpeed);
+            const windUnit = useFahrenheit ? 'mph' : 'km/h';
+            
+            const windDir = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.floor(weather.windDirection / 45)];
+            
+            setWeatherDisplay(`${temp} • ${windDir} wind ${windSpeed} ${windUnit}`);
+            setWeatherState(getWeatherStateAndEmoji(weather));
+        }
+    }, [mapData, season, timeOfDay, dayOfYear, useFahrenheit]); // Update hourly, not on movement
     
     const renderActionableContent = () => {
         if (!actionableTile) return null;
@@ -175,7 +248,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
         }
 
         return (
-            <div className="w-full flex flex-col sm:grid sm:grid-cols-[200px_1fr_200px] lg:grid-cols-[300px_1fr_300px] items-center gap-2 sm:gap-6 p-2 sm:p-4 lg:p-6 animate-in slide-in-from-bottom duration-500">
+            <div className="w-full flex flex-col sm:grid sm:grid-cols-[200px_1fr_200px] lg:grid-cols-[300px_1fr_300px] items-center gap-2 sm:gap-6 p-3 sm:p-5 lg:p-7 animate-in slide-in-from-bottom duration-500">
                 <div className="flex justify-center sm:justify-start w-full sm:w-auto">
                     {contextualInfo}
                 </div>
@@ -215,31 +288,54 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
         };
 
         return (
-             <div className="w-full grid grid-cols-[280px_1fr_280px] items-center gap-4 p-4">
+             <div className="w-full grid grid-cols-[300px_1fr_300px] items-center gap-4 p-5 mb-1">
                  <div className="flex justify-start">
-                     <LocationDisplay
-                         title="Current Location"
-                         subtitle={locationPhrase}
-                         icon={getBiomeIcon(locationPhrase)}
-                     />
+                     <button
+                         onClick={onToggleAmbientText}
+                         className="transition-transform hover:scale-105"
+                         title="Click to toggle ambient text"
+                     >
+                         <LocationDisplay
+                             title="Current Location"
+                             subtitle={locationPhrase}
+                             icon={getBiomeIcon(locationPhrase)}
+                         />
+                     </button>
                  </div>
                  
                  <div className="flex items-center justify-center">
-                    {/* Central area - could show compass or other navigation aids */}
-                    <div className="text-slate-600 text-center">
-                        <div className="text-4xl mb-2">🧭</div>
-                        <p className="text-sm font-medium">Use arrow keys to explore</p>
-                    </div>
+                    {showAmbientText ? (
+                        <div className="text-slate-400 text-center max-w-md animate-in fade-in duration-300">
+                            <p className="text-sm italic">
+                                {/* This is where ambient text would appear based on current tile */}
+                                The {locationPhrase} stretches before you, alive with possibilities...
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="text-slate-600 text-center">
+                            
+                            <p className="text-sm font-medium">Use arrow keys to explore</p>
+                        </div>
+                    )}
                  </div>
                  
                  <div className="flex justify-end">
                     {contextualMessage ? (
                         <ContextualAlert message={contextualMessage} />
                     ) : (
-                        <div className="text-right text-slate-500 text-sm max-w-xs bg-slate-800/10 rounded-lg px-4 py-3 border border-slate-700/20">
-                            <p className="font-medium">Explore the world</p>
-                            <p className="text-xs mt-1">Discover new locations and opportunities</p>
-                        </div>
+                        <button
+                            onClick={() => setUseFahrenheit(!useFahrenheit)}
+                            className="text-right text-slate-300 text-sm max-w-xs bg-slate-800/30 rounded-lg px-4 py-2 border border-slate-700/30 hover:bg-slate-800/40 transition-colors cursor-pointer"
+                            title="Click to toggle between metric/imperial units"
+                        >
+                            <div className="font-semibold">
+                                {weatherDisplay || 'Loading weather...'}
+                            </div>
+                            <div className="flex items-center justify-end gap-2 mt-0 ">
+                                <span className="text-lg">{weatherState.emoji}</span>
+                                <span className="font-bold text-slate-200">{weatherState.state}</span>
+                            </div>
+                        </button>
                     )}
                  </div>
              </div>
@@ -262,7 +358,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
             {/* Toast message */}
             {toastMessage && (
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full mb-2">
-                    <div className={getSafariOptimizedClassName("px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-sm font-semibold rounded-lg shadow-xl border border-emerald-400/30 backdrop-blur-sm animate-in slide-in-from-bottom duration-300")}>
+                    <div className={getSafariOptimizedClassName("px-6 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-sm font-semibold rounded-lg shadow-xl border border-emerald-400/30 backdrop-blur-sm animate-in slide-in-from-bottom duration-300")}>
                         <div className="flex items-center space-x-2">
                             <span>✓</span>
                             <span>{toastMessage}</span>

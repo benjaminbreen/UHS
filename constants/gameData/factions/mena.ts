@@ -16,7 +16,7 @@ export const MENA_FACTIONS: FactionFile = {
                 eraContextSentence: 'a time before the pharaohs, when the Two Lands are divided and the gods walk among mortals.',
                 allegianceGroups: [
                     { name: 'Upper Egyptian Kings', type: 'primary', description: 'Rulers of the southern Nile valley.' },
-                    { name: 'Lower Egyptian Princes', type: 'secondary', description: 'Delta chieftains of the north.' },
+                    { name: 'Lower Egyptian Princes', type: 'declining', description: 'Delta chieftains of the north.' },
                     { name: 'Nubian Tribes', type: 'secondary', description: 'Southern peoples with gold and ivory.' }
                 ],
                 structureNames: {
@@ -56,7 +56,7 @@ export const MENA_FACTIONS: FactionFile = {
                 eraContextSentence: 'an era of Islamic prosperity, where Cairo becomes a major center of Islamic learning and trade.',
                 allegianceGroups: [
                     { name: 'Fatimid Caliphate', type: 'primary', description: 'The ruling Shia Ismaili caliphate.' },
-                    { name: 'Ayyubid Dynasty', type: 'rebel', description: 'A rising Sunni power that will eventually supplant the Fatimids.' },
+                    { name: 'Ayyubid Dynasty', type: 'rising', description: 'A rising Sunni power that will eventually supplant the Fatimids.' },
                     { name: 'Nubian Kingdoms', type: 'secondary', description: 'Christian kingdoms on the southern border.' },
                     { name: 'Coptic Christians', type: 'secondary', description: 'The indigenous Christian population.' }
                 ],
@@ -78,7 +78,7 @@ export const MENA_FACTIONS: FactionFile = {
                 eraContextSentence: 'an era of Ottoman administration, where Egypt serves as a crucial province linking Africa and Asia.',
                 allegianceGroups: [
                     { name: 'Ottoman Empire', type: 'primary', description: 'The imperial power based in Istanbul.' },
-                    { name: 'Mamluk Beys', type: 'secondary', description: 'The former ruling class, retaining local power.' },
+                    { name: 'Mamluk Beys', type: 'declining', description: 'The former ruling class, retaining local power.' },
                     { name: 'Bedouin Tribes', type: 'rebel', description: 'Nomadic tribes controlling desert routes.' },
                     { name: 'Coptic Communities', type: 'secondary', description: 'The indigenous Christian minority.' }
                 ],
@@ -371,7 +371,7 @@ export const MENA_FACTIONS: FactionFile = {
                 eraContextSentence: 'an era of reform and resistance, as the empire struggles to modernize while preserving tradition.',
                 allegianceGroups: [
                     { name: 'Ottoman Empire', type: 'primary', description: 'The modernizing but struggling empire.' },
-                    { name: 'Young Turks', type: 'rebel', description: 'Reformist movement seeking constitutional government.' },
+                    { name: 'Young Turks', type: 'rising', description: 'Reformist movement seeking constitutional government.' },
                     { name: 'Armenian Revolutionaries', type: 'rebel', description: 'Nationalist groups seeking autonomy or independence.' },
                     { name: 'European Powers', type: 'secondary', description: 'Foreign states with growing economic influence.' }
                 ],
@@ -451,7 +451,7 @@ export const MENA_FACTIONS: FactionFile = {
                 eraContextSentence: 'an age of cavalry and commerce, where Parthian arrows check Roman ambition.',
                 allegianceGroups: [
                     { name: 'Parthian Empire', type: 'primary', description: 'The Arsacid dynasty ruling from Ctesiphon.' },
-                    { name: 'Roman Empire', type: 'rebel', description: 'Western rival seeking to control the region.' },
+                    { name: 'Roman Empire', type: 'declining', description: 'Western rival seeking to control the region.' },
                     { name: 'Arab Kingdoms', type: 'secondary', description: 'Buffer states like Hatra between the empires.' },
                     { name: 'Jewish Exilarchs', type: 'secondary', description: 'Leaders of the ancient Jewish community.' }
                 ],
@@ -920,9 +920,9 @@ export const MENA_FACTIONS: FactionFile = {
                 eraContextSentence: 'an era of Shia power and Persian glory, where Isfahan becomes half the world.',
                 allegianceGroups: [
                     { name: 'Safavid Dynasty', type: 'primary', description: 'Shia empire unifying Iran.' },
-                    { name: 'Ottoman Empire', type: 'rebel', description: 'Sunni rival to the west.' },
+                    { name: 'Ottoman Empire', type: 'secondary', description: 'Sunni rival to the west.' },
                     { name: 'Mughal Empire', type: 'secondary', description: 'Persian-influenced empire in India.' },
-                    { name: 'Qizilbash Tribes', type: 'secondary', description: 'Turkish tribal military elite.' }
+                    { name: 'Qizilbash Tribes', type: 'rising', description: 'Turkish tribal military elite.' }
                 ],
                 structureNames: {
                     fortress: ['Shah\'s Citadel', 'Border Fort', 'Qizilbash Tower'],
@@ -1128,7 +1128,7 @@ export const MENA_FACTIONS: FactionFile = {
                     { name: 'Nationalist Governments', type: 'primary', description: 'New states asserting independence.' },
                     { name: 'Ethnic Militias', type: 'rebel', description: 'Armed groups fighting for territory.' },
                     { name: 'Russian "Peacekeepers"', type: 'secondary', description: 'Moscow maintaining influence through conflict.' },
-                    { name: 'Criminal Networks', type: 'rebel', description: 'Mafias filling the power vacuum.' }
+                    { name: 'Criminal Networks', type: 'rising', description: 'Mafias filling the power vacuum.' }
                 ],
                 structureNames: {
                     fortress: ['Militia Checkpoint', 'Refugee Camp', 'Abandoned Soviet Base'],
@@ -1268,7 +1268,7 @@ export const MENA_FACTIONS: FactionFile = {
                     { name: 'Suez Smart Canal Authority', type: 'primary', description: 'AI-managed waterway corporation.' },
                     { name: 'NEOM Maritime', type: 'trade_company', description: 'Saudi megaproject controlling northern waters.' },
                     { name: 'Climate Pirates', type: 'rebel', description: 'Desperate groups hijacking water shipments.' },
-                    { name: 'Underwater Colony Network', type: 'secondary', description: 'Submarine cities escaping surface heat.' }
+                    
                 ],
                 structureNames: {
                     fortress: ['Drone Port Defense', 'Climate Bunker'],

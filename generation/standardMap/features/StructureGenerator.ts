@@ -92,13 +92,17 @@ function findPlacementCandidates(
         BiomeType.PARK, // Parks should remain clear
         BiomeType.PLAZA, // Plazas are public spaces
         BiomeType.HARBOR_DISTRICT, // Harbor districts have their own buildings
-        BiomeType.INDUSTRIAL_DISTRICT // Industrial districts have factories
+        BiomeType.INDUSTRIAL_DISTRICT, // Industrial districts have factories
+        BiomeType.FARMLAND // SAFEGUARD: Don't place structures on farmland
     ]);
 
     for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
         for (let x = 0; x < MAP_WIDTH_TILES; x++) {
             const tile = tiles[y][x];
             if (!tile.isLand || unplaceableBiomes.has(tile.biome)) continue;
+            
+            // SAFEGUARD: Don't place structures in animal paddocks
+            if (tile.paddockType === 'Livestock') continue;
 
             let score = 0;
             let isValid = false;

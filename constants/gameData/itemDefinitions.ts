@@ -982,9 +982,13 @@ export const CROPS_DATA: CropDefinition[] = [
     // Fiber and Industrial Crops
     { name: 'Cotton', baseId: 'COTTON', zones: ['SOUTH_ASIAN', 'MENA', 'SOUTH_AMERICAN', 'SUB_SAHARAN_AFRICAN'], climates: [ClimateType.ARID, ClimateType.TROPICAL, ClimateType.SEMITROPICAL] },
     { name: 'Flax', baseId: 'FLAX', zones: ['EUROPEAN', 'MENA'], climates: [ClimateType.TEMPERATE, ClimateType.COLD] },
-    { name: 'Hemp', baseId: 'HEMP', zones: ['EUROPEAN', 'EAST_ASIAN'], climates: [ClimateType.TEMPERATE] },
+    { name: 'Hemp', baseId: 'HEMP', zones: ['EUROPEAN', 'EAST_ASIAN', 'SOUTH_ASIAN'], climates: [ClimateType.TEMPERATE, ClimateType.COLD] },
     { name: 'Silk Mulberry', baseId: 'SILK', zones: ['EAST_ASIAN'], climates: [ClimateType.TEMPERATE, ClimateType.SEMITROPICAL] },
-    { name: 'Indigo', baseId: 'INDIGO', zones: ['SOUTH_ASIAN', 'SUB_SAHARAN_AFRICAN'], climates: [ClimateType.TROPICAL, ClimateType.SEMITROPICAL] },
+    { name: 'Indigo', baseId: 'INDIGO', zones: ['SOUTH_ASIAN', 'SUB_SAHARAN_AFRICAN', 'SOUTH_AMERICAN'], climates: [ClimateType.TROPICAL, ClimateType.SEMITROPICAL] },
+    { name: 'Hops', baseId: 'HOPS', zones: ['EUROPEAN'], climates: [ClimateType.TEMPERATE, ClimateType.COLD], eraStart: 800 },
+    { name: 'Madder', baseId: 'MADDER', zones: ['EUROPEAN', 'MENA', 'SOUTH_ASIAN'], climates: [ClimateType.TEMPERATE, ClimateType.MEDITERRANEAN] },
+    { name: 'Woad', baseId: 'WOAD', zones: ['EUROPEAN'], climates: [ClimateType.TEMPERATE], eraEnd: 1600 },
+    { name: 'Opium Poppies', baseId: 'OPIUM', zones: ['MENA', 'SOUTH_ASIAN', 'EAST_ASIAN'], climates: [ClimateType.TEMPERATE, ClimateType.MEDITERRANEAN] },
     
     // Sugar and Spices
     { name: 'Sugar Cane', baseId: 'SUGAR_CANE', zones: ['SOUTH_ASIAN', 'OCEANIA', 'SUB_SAHARAN_AFRICAN'], climates: [ClimateType.TROPICAL] },

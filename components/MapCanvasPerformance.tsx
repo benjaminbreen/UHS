@@ -264,6 +264,12 @@ class MapCanvasRenderer {
     const { x, y } = tile;
     const tileX_base = x * TILE_SIZE_PX;
     const tileY_base = y * TILE_SIZE_PX;
+    
+    // Roads and plazas should have straight edges, no organic variation
+    if (tile.biome === BiomeType.ROAD || tile.biome === BiomeType.PLAZA || tile.biome === BiomeType.PARK) {
+      path.rect(tileX_base, tileY_base, TILE_SIZE_PX, TILE_SIZE_PX);
+      return path;
+    }
 
     const getNeighbor = (nx: number, ny: number): Tile | null => {
       if (nx >= 0 && nx < mapData.width && ny >= 0 && ny < mapData.height) {

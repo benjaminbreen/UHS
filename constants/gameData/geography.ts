@@ -104,7 +104,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Dnieper River Valley": { name: "Dnieper River Valley", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT },
             "Volga Bend": { name: "Volga Bend", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT },
             "Carpathian Ridge": { name: "Carpathian Ridge", climate: ClimateType.COLD, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false },
-            "Steppe Borderlands": { name: "Steppe Borderlands", climate: ClimateType.ARID, archetype: MapArchetype.ALL_LAND, hasLakes: false, economicActivityLevel: 1 },
+            "Steppe Borderlands": { name: "Steppe Borderlands", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, hasLakes: false, economicActivityLevel: 1 },
             "Novgorod Woods": { name: "Novgorod Woods", climate: ClimateType.COLD, archetype: MapArchetype.ALL_LAND, hasLakes: true }
         },
         "Ural and Arctic Europe": {
@@ -832,11 +832,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
                climate: ClimateType.TEMPERATE, // For UNDERSEA biome
                archetype: MapArchetype.ALL_LAND
            },
-           "Storm": {
-               name: "Storm Realm",
-               climate: ClimateType.TEMPERATE, // Mix of AIR and UNDERSEA
-               archetype: MapArchetype.ALL_LAND
-           }
+         
        },
        "Arctic": {
            "Frozen Wastes": {
@@ -844,11 +840,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
                climate: ClimateType.COLD, // Cold AIR = ice crystals
                archetype: MapArchetype.ALL_LAND
            },
-           "Typhoon": {
-               name: "Typhoon", 
-               climate: ClimateType.TROPICAL, // Tropical AIR = hurricanes
-               archetype: MapArchetype.ALL_LAND
-           }
+           
        }
    }
 };

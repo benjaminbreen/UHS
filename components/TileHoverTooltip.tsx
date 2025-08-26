@@ -4,7 +4,8 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Tile, NpcEntity, BiomeType } from '../types';
+import { Tile, NpcEntity, BiomeType, MapData } from '../types';
+import { getFarmState } from '../services/farmService';
 
 interface TileHoverTooltipProps {
   tile: Tile;
@@ -14,6 +15,7 @@ interface TileHoverTooltipProps {
   culturalZone: string;
   era: string;
   visible: boolean;
+  mapData?: MapData;
 }
 
 const TileHoverTooltip: React.FC<TileHoverTooltipProps> = ({
@@ -23,7 +25,8 @@ const TileHoverTooltip: React.FC<TileHoverTooltipProps> = ({
   npcs,
   culturalZone,
   era,
-  visible
+  visible,
+  mapData
 }) => {
   const [opacity, setOpacity] = useState(0);
   
@@ -49,31 +52,70 @@ const TileHoverTooltip: React.FC<TileHoverTooltipProps> = ({
   const getTileInfo = () => {
     switch (tile.biome) {
       case BiomeType.FARMLAND: {
-        // Get the farm structure if it exists
-        const farmStructure = tile.structure;
-        const cropType = tile.cropType || farmStructure?.name || 'grain';
-        const farmer = tileNpcs.find(npc => 
-          npc.role?.toLowerCase().includes('farm') || 
-          npc.profession?.toLowerCase().includes('farm')
-        );
+        // Get actual farm data from farmService if mapData is available
+        let familyName = 'Farm';
+        let headOfHousehold = '';
+        let workers = 1;
+        let economicStatus = '';
         
-        // Generate farm family name from farmer or tile coordinates
-        let familyName = 'Unknown Family';
-        if (farmer) {
-          familyName = farmer.name.split(' ')[1] || farmer.name.split(' ')[0] + ' Family';
-        } else {
-          // Generate deterministic family name based on tile coordinates
-          const seed = tile.x * 31 + tile.y * 37;
-          const familyNames = ['Johnson', 'Smith', 'Brown', 'Davis', 'Miller', 'Wilson', 'Moore', 'Taylor', 'Anderson', 'Thomas', 'Jackson', 'White', 'Harris', 'Martin'];
-          familyName = familyNames[seed % familyNames.length] + ' Family';
+        if (mapData) {
+          try {
+            const farmState = getFarmState(tile, mapData, npcs);
+            // Check if we got valid farm data
+            if (farmState && farmState.family) {
+              familyName = farmState.family.familyName || 'Farm';
+              headOfHousehold = farmState.family.headOfHousehold || '';
+              workers = farmState.workers || 1;
+              economicStatus = farmState.economicStatus || '';
+            }
+          } catch (e) {
+            console.error('Error getting farm state:', e);
+          }
         }
         
+        // If we still don't have a good family name, try to get it from NPCs on this tile
+        if (!familyName || familyName === 'Farm' || familyName === 'Unknown Family' || familyName === ' Family') {
+          const farmer = tileNpcs.find(npc => 
+            npc.role?.toLowerCase().includes('farm') || 
+            npc.profession?.toLowerCase().includes('farm')
+          );
+          if (farmer && farmer.name) {
+            // Just use the farmer's name as-is, like SettlementInfoPanel does
+            familyName = farmer.name;
+          }
+        }
+        
+        const cropType = tile.cropType || tile.structure?.name || 'grain';
+        
+        // Choose icon based on crop type
+        let icon = '🚜';
+        if (cropType.toLowerCase().includes('rice')) icon = '🌾';
+        else if (cropType.toLowerCase().includes('vineyard') || cropType.toLowerCase().includes('grape')) icon = '🍇';
+        else if (cropType.toLowerCase().includes('olive')) icon = '🫒';
+        else if (cropType.toLowerCase().includes('cotton')) icon = '🌿';
+        else if (cropType.toLowerCase().includes('hemp')) icon = '🌿';
+        else if (cropType.toLowerCase().includes('flax')) icon = '🌾';
+        else if (cropType.toLowerCase().includes('tobacco')) icon = '🍃';
+        else if (cropType.toLowerCase().includes('tea')) icon = '🍵';
+        else if (cropType.toLowerCase().includes('coffee')) icon = '☕';
+        else if (cropType.toLowerCase().includes('hops')) icon = '🌿';
+        
+        const statusText = economicStatus ? ` (${economicStatus})` : '';
+        
+        // Format the title based on what we have
+        let title = 'Farm';
+        if (familyName && familyName !== 'Farm') {
+          // If familyName already contains "Farm" or is just a name, use it as-is
+          title = familyName.includes('Farm') ? familyName : `${familyName} Farm`;
+        }
+        title += statusText;
+        
         return {
-          icon: '🚜',
+          icon,
           color: '#8B7355',
-          title: `${familyName} Farm`,
+          title,
           subtitle: `Growing: ${cropType}`,
-          details: farmer ? `Farmer: ${farmer.name}` : `Workers: ${tileNpcs.length || 1}`
+          details: headOfHousehold ? `Head: ${headOfHousehold} | Workers: ${workers}` : `Workers: ${workers}`
         };
       }
       

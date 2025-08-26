@@ -5,21 +5,71 @@
 import React, { useState, useEffect } from 'react';
 import { blendColors } from '../utils/colorUtils';
 
+import { WeatherState } from '../services/weatherService';
+
 interface TimeAwareBackgroundProps {
  gameTimeHours: number;
  gameTimeMinutes: number;
  viewMode?: 'standard' | 'interior';
+ weather?: WeatherState | null;
+ season?: 'spring' | 'summer' | 'fall' | 'winter' | null;
+ climate?: 'temperate' | 'tropical' | 'arid' | 'arctic' | 'mediterranean' | 'continental' | null;
 }
 
-// Enhanced gradient colors for more realistic transitions
-const GRADIENT_COLORS = {
-    DAWN: ['#4a3a69', '#e17b7b'], // Deep purple to warm rose
-    DAY: ['#87ceeb', '#4682b4'],   // Sky blue to steel blue
-    DUSK: ['#8b4a6b', '#cd5c5c'],  // Magenta to indian red
-    TWILIGHT: ['#2d1b69', '#4a1942'], // Deep purple twilight
-    NIGHT: ['#1a202c', '#0d1117'], // More muted, realistic night colors
-    MIDNIGHT: ['#0d1117', '#010409'], // Deeper, more realistic midnight
-    PRE_DAWN: ['#1a202c', '#2d3748'], // Muted pre-dawn colors
+// Base gradient colors
+const BASE_GRADIENT_COLORS = {
+    DAWN: ['#2B3E5C', '#FFB6C1', '#FFE4B5'], // Darker blue at top through light pink to pale peach
+    DAY: ['#4A90E2', '#87CEEB', '#E6F3FF'],   // Clear blue sky gradient
+    DUSK: ['#1F2937', '#FF8C69', '#FFA07A'],   // Dark blue-gray at top through salmon to light salmon
+    TWILIGHT: ['#4B5C8A', '#2E3A5F', '#1a2644'], // Twilight blues
+    NIGHT: ['#0a0e27', '#1a1a3e', '#16213e'], // Deep space blue gradients
+    MIDNIGHT: ['#000814', '#001d3d', '#003566'], // Very deep blues
+    PRE_DAWN: ['#1a1a3e', '#2d3561', '#4a5568'], // Gradual lightening
+};
+
+// Season and climate modifiers
+const getSeasonalColors = (baseColors: typeof BASE_GRADIENT_COLORS, season?: string | null, climate?: string | null) => {
+    let colors = { ...baseColors };
+    
+    // Winter modifications - cooler, more muted tones
+    if (season === 'winter') {
+        if (climate === 'temperate' || climate === 'continental') {
+            colors.DAWN = ['#2A3A4C', '#E6B8C1', '#F0D4C5']; // Cooler pink dawn
+            colors.DAY = ['#5A8AC2', '#9DBEDD', '#E0EBF5'];  // Grayer blue day
+            colors.DUSK = ['#1A2535', '#CC7A69', '#E09080']; // Muted sunset
+        } else if (climate === 'arctic') {
+            colors.DAWN = ['#1F2B3C', '#C8D0E0', '#E0E8F0']; // Very pale dawn
+            colors.DAY = ['#6A8AAA', '#A0C0E0', '#F0F5FA'];  // Bright but cold
+            colors.DUSK = ['#151925', '#9A6A7A', '#C08090']; // Brief, muted dusk
+        }
+    }
+    // Summer modifications - warmer, more vibrant
+    else if (season === 'summer') {
+        if (climate === 'tropical') {
+            colors.DAWN = ['#3A4E6C', '#FFB0D1', '#FFE0C5']; // Vibrant tropical dawn
+            colors.DAY = ['#3A80D2', '#70BEEB', '#D0F3FF'];  // Brilliant blue
+            colors.DUSK = ['#2F3947', '#FF9C79', '#FFB08A']; // Long, colorful sunset
+            colors.TWILIGHT = ['#5B6C9A', '#3E4A7F', '#2a3654']; // Longer twilight
+        } else if (climate === 'mediterranean' || climate === 'arid') {
+            colors.DAWN = ['#3B4E5C', '#FFC6D1', '#FFF4D5']; // Golden dawn
+            colors.DAY = ['#4AA0F2', '#97DEEB', '#F6F9FF'];  // Intense blue
+            colors.DUSK = ['#2F2937', '#FF7C59', '#FFA07A']; // Rich golden hour
+        } else if (climate === 'temperate') {
+            colors.TWILIGHT = ['#5B6CAA', '#3E4A6F', '#2a3644']; // Extended summer twilight
+        }
+    }
+    // Fall modifications - golden and amber tones
+    else if (season === 'fall') {
+        colors.DAWN = ['#3B3E4C', '#FFB6A1', '#FFD4B5']; // Amber dawn
+        colors.DUSK = ['#2F2927', '#FF8C59', '#FFB07A']; // Golden sunset
+    }
+    // Spring modifications - fresh, clear colors
+    else if (season === 'spring') {
+        colors.DAWN = ['#2B4E5C', '#FFC6D1', '#FFE4C5']; // Fresh pink dawn
+        colors.DAY = ['#4AA0E2', '#87DEEB', '#E6F9FF'];  // Crystal clear
+    }
+    
+    return colors;
 };
 
 // Interior-specific neutral colors
@@ -36,7 +86,7 @@ const TIME_POINTS = {
     PRE_DAWN_START: 4, // Pre-dawn glimmer begins
 };
 
-const TimeAwareBackground: React.FC<TimeAwareBackgroundProps> = React.memo(({ gameTimeHours, gameTimeMinutes, viewMode = 'standard' }) => {
+const TimeAwareBackground: React.FC<TimeAwareBackgroundProps> = React.memo(({ gameTimeHours, gameTimeMinutes, viewMode = 'standard', weather, season, climate }) => {
     const [backgroundStyle, setBackgroundStyle] = useState<React.CSSProperties>({});
 
     useEffect(() => {
@@ -117,15 +167,69 @@ const TimeAwareBackground: React.FC<TimeAwareBackgroundProps> = React.memo(({ ga
         // Clamp progress
         progress = Math.max(0, Math.min(1, progress));
 
+        // Get season and climate-adjusted colors
+        const GRADIENT_COLORS = getSeasonalColors(BASE_GRADIENT_COLORS, season, climate);
         const fromGradient = GRADIENT_COLORS[fromKey];
         const toGradient = GRADIENT_COLORS[toKey];
 
+        // Support 3-color gradients for more beautiful transitions
         const startColor = blendColors(fromGradient[0], toGradient[0], progress);
+        const midColor = fromGradient[2] && toGradient[2] 
+            ? blendColors(fromGradient[2], toGradient[2], progress)
+            : blendColors(fromGradient[1], toGradient[1], progress);
         const endColor = blendColors(fromGradient[1], toGradient[1], progress);
 
+        // Check for overcast conditions
+        let gradient;
+        let finalStartColor = startColor;
+        let finalMidColor = midColor;
+        let finalEndColor = endColor;
+        
+        if (weather && weather.cloudCover > 0.7) {
+            // Overcast - gray gradient
+            const grayLevel = Math.floor(140 - weather.cloudCover * 40); // Darker with more clouds
+            finalStartColor = `rgb(${grayLevel}, ${grayLevel}, ${grayLevel + 5})`;
+            finalEndColor = `rgb(${grayLevel + 20}, ${grayLevel + 20}, ${grayLevel + 25})`;
+            finalMidColor = `rgb(${grayLevel + 10}, ${grayLevel + 10}, ${grayLevel + 15})`;
+            gradient = `linear-gradient(180deg, ${finalStartColor} 0%, ${finalEndColor} 100%)`;
+        } else if (weather && weather.precipitation !== 'none') {
+            // Rainy/snowy - darker version of time gradient
+            finalStartColor = blendColors(startColor, '#404040', 0.4);
+            finalMidColor = midColor ? blendColors(midColor, '#505050', 0.4) : finalStartColor;
+            finalEndColor = blendColors(endColor, '#606060', 0.4);
+            gradient = midColor
+                ? `linear-gradient(180deg, ${finalStartColor} 0%, ${finalMidColor} 60%, ${finalEndColor} 100%)`
+                : `linear-gradient(180deg, ${finalStartColor} 0%, ${finalEndColor} 100%)`;
+        } else {
+            // Normal time-based gradient
+            gradient = fromGradient[2] && toGradient[2]
+                ? `linear-gradient(180deg, ${startColor} 0%, ${midColor} 60%, ${endColor} 100%)`
+                : `linear-gradient(180deg, ${startColor} 0%, ${endColor} 100%)`;
+        }
+
+        // Create CSS variables for horizon components to use
+        const cssVars: React.CSSProperties = {
+            // Sky colors (top to bottom)
+            ['--sky-top' as any]: finalStartColor,
+            ['--sky-mid' as any]: finalMidColor || finalStartColor,
+            ['--sky-bottom' as any]: finalEndColor,
+            
+            // Derived colors for atmospheric effects
+            ['--sky-haze-dark' as any]: blendColors(finalMidColor || finalEndColor, '#ffffff', 0.25),
+            ['--sky-haze-light' as any]: blendColors(finalEndColor, '#ffffff', 0.45),
+            ['--sky-water' as any]: blendColors(finalEndColor, '#2a6fb0', 0.35),
+            
+            // Additional derived colors for horizons
+            ['--sky-fog' as any]: blendColors(finalMidColor || finalEndColor, '#d0d0d0', 0.4),
+            ['--sky-mountain-far' as any]: blendColors(finalStartColor, '#4a5568', 0.5),
+            ['--sky-mountain-mid' as any]: blendColors(finalMidColor || finalStartColor, '#2d3748', 0.6),
+            ['--sky-mountain-near' as any]: blendColors(finalEndColor, '#1a202c', 0.7),
+        };
+
         setBackgroundStyle({
-            background: `linear-gradient(160deg, ${startColor} 0%, ${endColor} 100%)`,
-            transition: 'background 3s ease-out'
+            background: gradient,
+            transition: 'background 5s ease-in-out',
+            ...cssVars
         });
     }, [gameTimeHours, gameTimeMinutes, viewMode]);
 
@@ -306,12 +410,6 @@ const TimeAwareBackground: React.FC<TimeAwareBackgroundProps> = React.memo(({ ga
                 )}
             </div>
 
-  <div className="absolute inset-0 pointer-events-none">
-  <div className="absolute bottom-0 left-0 w-full h-full bg-gradient-to-t from-black/60 via-black/30 to-transparent" />
-
-</div>
-
-<div className="absolute inset-0 bg-slate-800/10 pointer-events-none" />
         </div>
     );
 });

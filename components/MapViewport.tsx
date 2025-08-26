@@ -1,7 +1,7 @@
 /**
  * components/MapViewport.tsx - Encapsulates the main content area including map displays.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import './TopNavBarPolished.css'; // Import for map fade animations
 import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
@@ -18,10 +18,16 @@ import FarmPanel from './FarmPanel';
 import MarketplaceModal from './MarketplaceModal';
 import CityModal from './CityModal';
 import RuinModal from './RuinModal';
-import { DevTooltipDisplayData, Tile, PlayerCharacter, BiomeType, DeployedVessel } from '../types';
+import { DevTooltipDisplayData, Tile, PlayerCharacter, BiomeType, DeployedVessel, TimeOfDay } from '../types';
 import TimeAwareBackground from './TimeAwareBackground';
+import HorizonLayer from './HorizonLayer';
+import CloudSystem from './CloudSystem';
+import WeatherEffects from './WeatherEffects';
+import CelestialBodies from './CelestialBodies';
+import { weatherService } from '../services/weatherService';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES } from '../constants';
 import { useDeviceDetection } from '../utils/deviceUtils';
+import { useWeatherEffects } from '../hooks/useWeatherEffects';
 
 type ActivePanel = 'farm' | null;
 
@@ -60,8 +66,35 @@ const MapViewport: React.FC = () => {
     const eventSystem = useEventSystem();
     
     const [activePanel, setActivePanel] = useState<ActivePanel>(null);
-    const [showBottomPanel, setShowBottomPanel] = useState(false);
+    const [showBottomPanel, setShowBottomPanel] = useState(true); // Show by default
+    const [showAmbientText, setShowAmbientText] = useState(false); // Hidden by default
     const { isMobile } = useDeviceDetection();
+    
+    // Get current weather for horizon and particles - stable per map area, updates hourly
+    const currentWeather = useMemo(() => {
+        if (!mapData) return null;
+        
+        // Use map center for consistent weather across the map area
+        const mapCenterX = Math.floor(mapData.tiles[0].length / 2);
+        const mapCenterY = Math.floor(mapData.tiles.length / 2);
+        const centerTile = mapData.tiles[mapCenterY][mapCenterX];
+        
+        // Weather updates every hour, not on movement
+        const hourKey = Math.floor(gameTimeHours);
+        
+        return weatherService.getWeather(
+            mapData.climate,
+            centerTile.biome,
+            season,
+            sunPosition as TimeOfDay || 'Day',
+            centerTile.altitude || 0.5,
+            gameDate?.day || 180,
+            { x: mapCenterX, y: mapCenterY }
+        );
+    }, [mapData, season, sunPosition, gameDate, Math.floor(gameTimeHours)]); // Only update on hour change
+    
+    // Apply weather effects on player
+    useWeatherEffects(currentWeather);
     
     // Function to progress time by months
     const handleProgressTime = useCallback((months: number) => {
@@ -93,21 +126,28 @@ const MapViewport: React.FC = () => {
     
     // Handle map transitions with fade effect
     useEffect(() => {
-        console.log('[MapViewport] Loading state changed:', { isLoading, isMapTransitioning });
         if (isLoading && !isMapTransitioning) {
-            // Starting to load - fade out
-            console.log('[MapViewport] Starting map fade out');
-            setMapFadeClass('map-fade-out');
+            // Starting to load - immediately fade out the map display
+            setMapFadeClass('opacity-0 transition-opacity duration-500');
             setIsMapTransitioning(true);
-        } else if (!isLoading && isMapTransitioning) {
-            // Finished loading - fade in
-            console.log('[MapViewport] Starting map fade in');
-            setMapFadeClass('map-fade-in');
+            
+            // After fade out completes, show background for 2 seconds
             setTimeout(() => {
-                setIsMapTransitioning(false);
-                setMapFadeClass('');
-                console.log('[MapViewport] Map fade complete');
-            }, 2000); // Match the 2-second fade-in duration
+                // Map will be hidden while loading
+            }, 500);
+        } else if (!isLoading && isMapTransitioning) {
+            // Finished loading - wait a moment then fade in
+            setTimeout(() => {
+                setMapFadeClass('opacity-0');
+                // Force reflow
+                setTimeout(() => {
+                    setMapFadeClass('opacity-100 transition-opacity duration-1000');
+                    setTimeout(() => {
+                        setIsMapTransitioning(false);
+                        setMapFadeClass('');
+                    }, 1000);
+                }, 50);
+            }, 500); // Brief pause to appreciate the background
         }
     }, [isLoading, isMapTransitioning]);
 
@@ -270,38 +310,170 @@ const MapViewport: React.FC = () => {
     };
 
     return (
-        <main className="flex-1 flex flex-col bg-transparent relative">
-          <TimeAwareBackground gameTimeHours={gameTimeHours} gameTimeMinutes={gameTimeMinutes} viewMode={viewMode} />
+        <main className="flex-1 flex flex-col bg-transparent relative overflow-hidden">
+          {/* Background layer with all atmospheric effects - behind everything */}
+          <div className="absolute inset-0" style={{ zIndex: 0 }}>
+            <TimeAwareBackground 
+              gameTimeHours={gameTimeHours} 
+              gameTimeMinutes={gameTimeMinutes} 
+              viewMode={viewMode}
+              season={season}
+              climate={mapData?.climate}
+              weather={currentWeather}
+            />
+            
+            {/* Cloud System - only render when there are clouds */}
+            {currentWeather && currentWeather.cloudCover > 0 && (
+              <CloudSystem 
+                weather={currentWeather}
+                timeOfDay={sunPosition as TimeOfDay || 'Day'}
+                windSpeed={currentWeather?.windSpeed || 0}
+              />
+            )}
+            
+            {/* Celestial Bodies - behind map but above background */}
+            <CelestialBodies
+              timeOfDay={sunPosition as TimeOfDay || 'Day'}
+              gameTimeHours={gameTimeHours}
+              gameTimeMinutes={gameTimeMinutes}
+              weather={currentWeather}
+              gameDay={gameDate?.day || 1}
+            />
+            
+            {/* Weather Effects - behind map but above background */}
+            <WeatherEffects
+              weather={currentWeather || { 
+                temperature: 20, feelsLike: 20, humidity: 0.5, 
+                precipitation: 'none', intensity: 0, windSpeed: 0, 
+                windDirection: 0, pressure: 1013, cloudCover: 0.3, 
+                special: null 
+              }}
+            />
+          </div>
           {isLoading ? (
             <div className="absolute inset-0 bg-gray-900/75 flex items-center justify-center z-50 rounded-2xl">
               <div className="text-center text-white">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
-                <p>{isLoadingFromCache ? `Loading map (${currentWorldCoords.x},${currentWorldCoords.y})...` : `Generating new world...`}</p>
+                <div className="relative w-16 h-16 mx-auto mb-4">
+                  {/* Compass-style loading animation */}
+                  <div className="absolute inset-0 border-4 border-slate-600/30 rounded-full"></div>
+                  <div className="absolute inset-0 border-4 border-transparent border-t-blue-400 border-r-cyan-400 rounded-full animate-spin"></div>
+                  <div className="absolute inset-2 border-2 border-transparent border-b-amber-400 border-l-orange-400 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-lg">🧭</span>
+                  </div>
+                </div>
+                <p className="text-sm font-medium tracking-wide">{isLoadingFromCache ? `Loading map (${currentWorldCoords.x},${currentWorldCoords.y})...` : `Generating new world...`}</p>
               </div>
             </div>
           ) : mapData && (
-             <div className={`w-full h-full flex flex-col ${mapFadeClass}`}>
-              <div className={`flex-1 ${isMobile ? 'p-2' : 'p-6'} min-h-0`}>
-               <div className={`w-full h-full relative shadow-map-frame ${isMobile ? 'border-4' : 'border-[10px]'} border-slate-800/[.8] ${isMobile ? 'rounded-xl' : 'rounded-3xl'} overflow-hidden bg-slate-900`}>
-                {renderMapContent()}
-                {/* Loading overlay effect during transitions */}
-                {isMapTransitioning && (
-                  <div className="map-loading-overlay" />
-                )}
-               </div>
+             <div className={`w-full h-full flex flex-col ${mapFadeClass} relative`} style={{ zIndex: 10 }}>
+              {/* Map container */}
+              <div className="flex-1 flex flex-col">
+                {/* Map with border */}
+                <div className={`flex-1 ${isMobile ? 'p-2' : 'p-6'} min-h-0`}>
+                 {/* Outer border with frosted glass effect */}
+                 <div className="w-full h-full relative" style={{
+                   padding: isMobile ? '3px' : '10px',
+                   background: 'linear-gradient(135deg, rgba(40, 50, 70, 0.65), rgba(50, 40, 70, 0.35))',
+                   borderRadius: isMobile ? '20px' : '28px',
+                   boxShadow: `
+                     0 12px 40px rgba(0, 0, 0, 0.5),
+                     inset 0 2px 4px rgba(255, 255, 255, 0.2),
+                     0 0 0 1px rgba(255, 255, 255, 0.08),
+                     0 0 0 2px rgba(100, 120, 160, 0.15)
+                   `,
+                   backdropFilter: 'blur(8px)'
+                 }}>
+                  {/* Inner frame with elegant border */}
+                  <div className={`w-full h-full relative overflow-hidden bg-slate-900`}
+                       style={{
+                         border: `${isMobile ? '2px' : '5px'} solid rgba(31, 41, 59, 0.7)`,
+                         borderRadius: isMobile ? '16px' : '28px',
+                         boxShadow: 'inset 0 4px 12px rgba(0, 0, 0, 0.9), 0 8px 32px rgba(31, 41, 59, 0.9)'
+                       }}>
+                   {renderMapContent()}
+                   
+                   {/* Vignette effect overlay - subtle darkening at edges */}
+                   <div 
+                     className="absolute inset-0 pointer-events-none"
+                     style={{
+                       background: `
+                         radial-gradient(ellipse at center, 
+                           transparent 0%, 
+                           transparent 45%, 
+                           rgba(0, 0, 0, 0.03) 65%, 
+                           rgba(0, 0, 0, 0.06) 80%, 
+                           rgba(0, 0, 0, 0.08) 92%,
+                           rgba(0, 0, 0, 0.12) 100%)
+                       `,
+                       borderRadius: isMobile ? '14px' : '28px',
+                       zIndex: 999
+                     }}
+                   />
+                   
+                   {/* Inner shadow for inset/recessed effect */}
+                   <div 
+                     className="absolute inset-0 pointer-events-none"
+                     style={{
+                       boxShadow: `
+                         inset 0 0 ${isMobile ? '30px' : '60px'} ${isMobile ? '15px' : '30px'} rgba(0, 0, 0, 0.15),
+                         inset 0 ${isMobile ? '2px' : '4px'} ${isMobile ? '8px' : '16px'} rgba(0, 0, 0, 0.3),
+                         inset 0 -${isMobile ? '2px' : '4px'} ${isMobile ? '8px' : '16px'} rgba(0, 0, 0, 0.3),
+                         inset ${isMobile ? '2px' : '4px'} 0 ${isMobile ? '8px' : '16px'} rgba(0, 0, 0, 0.25),
+                         inset -${isMobile ? '2px' : '4px'} 0 ${isMobile ? '8px' : '16px'} rgba(0, 0, 0, 0.25)
+                       `,
+                       borderRadius: isMobile ? '14px' : '23px',
+                       zIndex: 998
+                     }}
+                   />
+                   
+                   {/* Loading overlay effect during transitions */}
+                   {isMapTransitioning && (
+                     <div className="map-loading-overlay" style={{ zIndex: 1000 }} />
+                   )}
+                  </div>
+                 </div>
+                </div>
+                
+                {/* Horizon Layer - between map and bottom panel, bounded by sidebars */}
+                <div className="relative w-full pointer-events-none" style={{ height: '80px', marginTop: '-20px', zIndex: 5 }}>
+                  <HorizonLayer 
+                    climate={mapData.climate}
+                    mapType={mapData.archetype}
+                    timeOfDay={sunPosition as TimeOfDay || 'Day'}
+                    weather={currentWeather || undefined}
+                    width={typeof window !== 'undefined' ? window.innerWidth : 1920}
+                    height={80}
+                    hasWater={mapData.tiles.some(row => row.some(tile => 
+                      tile.biome === BiomeType.OCEAN || 
+                      tile.biome === BiomeType.RIVER ||
+                      tile.biome === BiomeType.LAKE
+                    ))}
+                    hasCities={mapData.tiles.some(row => row.some(tile => 
+                      tile.biome === BiomeType.URBAN || 
+                      tile.biome === BiomeType.DENSE_CITY
+                    ))}
+                    hasVolcano={mapData.tiles.some(row => row.some(tile => 
+                      tile.biome === BiomeType.VOLCANIC
+                    ))}
+                    biomes={Array.from(new Set(mapData.tiles.flat().map(tile => tile.biome)))}
+                  />
+                </div>
               </div>
-              <AmbianceDisplay ambianceText={ambianceText} />
+              
+              {/* Only show ambient text when toggled on */}
+              {showAmbientText && <AmbianceDisplay ambianceText={ambianceText} />}
               {/* Toggle button for mobile */}
               {isMobile && actionableTile && (
                 <button
                   onClick={() => setShowBottomPanel(!showBottomPanel)}
-                  className="fixed bottom-4 right-4 z-40 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-200 flex items-center gap-2"
+                  className="fixed bottom-2 right-4 z-40 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-200 flex items-center gap-2"
                 >
                   <span className="text-lg">{showBottomPanel ? '✕' : '🧭'}</span>
                   <span className="text-sm font-medium">{showBottomPanel ? 'Hide' : 'Actions'}</span>
                 </button>
               )}
-              {showBottomPanel && (
+              {(showBottomPanel || !isMobile) && (
                <div className={`relative shrink-0 ${isMobile ? 'fixed bottom-0 left-0 right-0 z-30 animate-slideUp' : 'h-24'}`}>
                     <BottomPanel 
                         actionableTile={actionableTile} 
@@ -316,7 +488,12 @@ const MapViewport: React.FC = () => {
                         onEnterBuilding={(tile) => onEnterBuilding(tile, mapData)} 
                         onEnterFarm={(tile) => setActivePanel('farm')}
                         onEnterMine={(structure) => setActiveMiningModal(structure)}
-                        toastMessage={toastMessage} 
+                        toastMessage={toastMessage}
+                        season={season}
+                        timeOfDay={sunPosition as TimeOfDay || 'Day'}
+                        dayOfYear={gameDate?.day || 180}
+                        onToggleAmbientText={() => setShowAmbientText(!showAmbientText)}
+                        showAmbientText={showAmbientText}
                     />
                     {panelNotificationItem && <NewItemModal item={panelNotificationItem} onClose={() => setPanelNotificationItem(null)} />}
                 </div>

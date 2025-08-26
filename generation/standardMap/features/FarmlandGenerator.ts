@@ -34,8 +34,17 @@ export function generateFarmland(mapData: MapData, featurePlacementNoise: ValueN
         return;
     }
 
+    // SAFEGUARD: Limit farms to maximum 20 per map
+    const MAX_FARMS = 20;
+    let farmCount = 0;
+
     for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
         for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+            // Stop if we've reached the maximum number of farms
+            if (farmCount >= MAX_FARMS) {
+                console.log(`[Gen] Reached maximum farm limit of ${MAX_FARMS}`);
+                return;
+            }
             const tile = tiles[y][x];
             if (!tile.isLand || tile.biome === BiomeType.ESTUARY || tile.biome === BiomeType.FRESHWATER_LAKE || tile.biome === BiomeType.CLIFF || !(tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.RIVERBANK || tile.biome === BiomeType.STEPPE)) continue;
             if (tile.altitude > FARMLAND_MAX_ALTITUDE) continue;
@@ -90,6 +99,7 @@ export function generateFarmland(mapData: MapData, featurePlacementNoise: ValueN
                     tile.biome = BiomeType.FARMLAND;
                     const chosenCrop = suitableCrops[Math.floor(featurePlacementNoise.random() * suitableCrops.length)];
                     tile.cropType = chosenCrop.name;
+                    farmCount++; // Increment farm counter
                 }
             }
         }

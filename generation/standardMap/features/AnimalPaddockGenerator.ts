@@ -201,20 +201,22 @@ export function generateAnimalPaddocks(mapData: MapData, noise: ValueNoise, soci
             if (paddockArea) {
                 const perimeter = tracePerimeter(paddockArea);
                 if(perimeter.length > 3) {
-                    const { railD, postD } = generateFencePathD(perimeter, noise);
-                    
-                    if(railD) {
-                        mapData.pathObjects?.push({
-                           id: `fence-rail-${fenceIdCounter}`, type: PathType.FENCE, svgD: railD, strokeWidth: FENCE_RAIL_WIDTH,
-                           strokeColor: FENCE_RAIL_COLOR, opacity: FENCE_OPACITY, strokeDasharray: `3 2`
-                        });
-                    }
-                    if(postD) {
-                        mapData.pathObjects?.push({
-                            id: `fence-post-${fenceIdCounter}`, type: PathType.FENCE, svgD: postD, strokeWidth: FENCE_POST_WIDTH,
-                            strokeColor: FENCE_POST_COLOR, opacity: FENCE_OPACITY
-                         });
-                    }
+                    // DISABLED: Old fence rendering via pathObjects
+                    // Now using PaddockSymbol component for better visual representation
+                    // const { railD, postD } = generateFencePathD(perimeter, noise);
+                    // 
+                    // if(railD) {
+                    //     mapData.pathObjects?.push({
+                    //        id: `fence-rail-${fenceIdCounter}`, type: PathType.FENCE, svgD: railD, strokeWidth: FENCE_RAIL_WIDTH,
+                    //        strokeColor: FENCE_RAIL_COLOR, opacity: FENCE_OPACITY, strokeDasharray: `3 2`
+                    //     });
+                    // }
+                    // if(postD) {
+                    //     mapData.pathObjects?.push({
+                    //         id: `fence-post-${fenceIdCounter}`, type: PathType.FENCE, svgD: postD, strokeWidth: FENCE_POST_WIDTH,
+                    //         strokeColor: FENCE_POST_COLOR, opacity: FENCE_OPACITY
+                    //      });
+                    // }
                     
                     fenceIdCounter++;
                     placedPaddocks++;

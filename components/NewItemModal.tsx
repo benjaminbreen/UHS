@@ -11,7 +11,7 @@ interface NewItemModalProps {
 const NewItemModal: React.FC<NewItemModalProps> = ({ item, onClose }) => {
     return (
         <div
-            className={getSafariOptimizedClassName("fixed bottom-0 left-0 right-0 h-[200px] bg-slate-900/95 backdrop-blur-sm z-50 animate-panelSlideUp flex items-center justify-center p-4 border-t-2 border-amber-400/50 shadow-glow-amber")}
+            className={getSafariOptimizedClassName("fixed bottom-0 left-0 right-0 h-[200px] bg-slate-900/95 z-50 animate-panelSlideUp flex items-center justify-center p-4 border-t-2 border-amber-400/50 shadow-glow-amber")}
             onClick={onClose}
         >
             <div className="flex items-center gap-6 text-white text-center">

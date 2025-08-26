@@ -16,8 +16,11 @@ const ROAD_STROKE_COLOR = "#855a40";
 const PATH_STROKE_COLOR = "#a67b5b";
 const MODERN_ROAD_COLOR = "#2a2a2a"; // Dark asphalt
 const RAILROAD_COLOR = "#4a4a4a"; // Dark gray for rails
+// Road width hierarchy
+const MAJOR_ROAD_WIDTH = TILE_SIZE_PX * 0.25;  // Connects cities, palaces, fortresses
 const ROAD_STROKE_WIDTH_BASE = TILE_SIZE_PX * 0.2;
-const PATH_STROKE_WIDTH_BASE = TILE_SIZE_PX * 0.12;
+const MINOR_ROAD_WIDTH = TILE_SIZE_PX * 0.1;   // Connects hamlets
+const PATH_STROKE_WIDTH_BASE = TILE_SIZE_PX * 0.08; // Footpaths
 const MODERN_ROAD_WIDTH = TILE_SIZE_PX * 0.3;
 const RAILROAD_WIDTH = TILE_SIZE_PX * 0.15;
 const ROAD_OPACITY = 0.65;
@@ -315,6 +318,9 @@ export function generateRoadAndPathNetwork(mapData: MapData, noise: ValueNoise, 
   }
 
   // Collect structures from terrainStructures
+  const palaces: Tile[] = [];
+  const governmentDistricts: Tile[] = [];
+  
   if (mapData.terrainStructures) {
     mapData.terrainStructures.forEach(structure => {
       const [x, y] = structure.location;
@@ -336,9 +342,24 @@ export function generateRoadAndPathNetwork(mapData: MapData, noise: ValueNoise, 
           case 'lumber_camp':
             lumberCamps.push(tile);
             break;
+          case 'palace':
+            palaces.push(tile);
+            break;
         }
       }
     });
+  }
+  
+  // Also collect palace and government tiles by biome
+  for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+    for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+      const tile = tiles[y][x];
+      if (tile.biome === BiomeType.PALACE && !palaces.includes(tile)) {
+        palaces.push(tile);
+      } else if (tile.biome === BiomeType.GOVERNMENT_DISTRICT) {
+        governmentDistricts.push(tile);
+      }
+    }
   }
 
   // For modern cities, generate grid-based road network first
@@ -364,6 +385,67 @@ export function generateRoadAndPathNetwork(mapData: MapData, noise: ValueNoise, 
 
   // Filter out urban areas that already have modern roads
   const urbanAreasNeedingPaths = urbanAreas.filter(area => !hasModernRoads(area));
+  
+  // Connect palaces to government districts and cities with major roads (highest priority)
+  if (palaces.length > 0) {
+    palaces.forEach(palace => {
+      // First connect to government districts
+      if (governmentDistricts.length > 0) {
+        const nearbyGovt = governmentDistricts
+          .map(govt => ({ tile: govt, dist: heuristic(palace, govt) }))
+          .filter(item => item.dist < 50) // Connect within reasonable distance
+          .sort((a, b) => a.dist - b.dist);
+        
+        // Connect to up to 2 nearest government districts
+        nearbyGovt.slice(0, 2).forEach(({ tile: govt }) => {
+          const palacePath = findPathAStar(palace, govt, tiles, PathType.ROAD, noise);
+          if (palacePath && palacePath.length >= 2) {
+            const pixelPoints = tilePathToPixelPoints(palacePath);
+            const svgD = generateSvgDFromPoints(pixelPoints);
+            if (svgD) {
+              const pathObject = {
+                id: `palace-road-${pathIdCounter++}`,
+                type: PathType.ROAD,
+                svgD,
+                strokeWidth: MAJOR_ROAD_WIDTH, // Use major road width for palace roads
+                strokeColor: ROAD_STROKE_COLOR,
+                opacity: ROAD_OPACITY * 1.1, // Slightly more prominent
+              };
+              mapData.pathObjects!.push(pathObject);
+              palacePath.forEach(t => tiles[t.y][t.x].pathObjectRef = pathObject);
+            }
+          }
+        });
+      }
+      
+      // Also connect palaces to nearest city with major road
+      if (urbanAreas.length > 0) {
+        const nearestCity = urbanAreas
+          .map(city => ({ tile: city, dist: heuristic(palace, city) }))
+          .sort((a, b) => a.dist - b.dist)[0];
+        
+        if (nearestCity && nearestCity.dist < 40) {
+          const cityPath = findPathAStar(palace, nearestCity.tile, tiles, PathType.ROAD, noise);
+          if (cityPath && cityPath.length >= 2) {
+            const pixelPoints = tilePathToPixelPoints(cityPath);
+            const svgD = generateSvgDFromPoints(pixelPoints);
+            if (svgD) {
+              const pathObject = {
+                id: `palace-city-road-${pathIdCounter++}`,
+                type: PathType.ROAD,
+                svgD,
+                strokeWidth: MAJOR_ROAD_WIDTH, // Major road from palace
+                strokeColor: ROAD_STROKE_COLOR,
+                opacity: ROAD_OPACITY * 1.1,
+              };
+              mapData.pathObjects!.push(pathObject);
+              cityPath.forEach(t => tiles[t.y][t.x].pathObjectRef = pathObject);
+            }
+          }
+        }
+      }
+    });
+  }
   
   // Connect major urban areas and major POIs with roads (for pre-modern or inter-city)
   const majorNodes = [...urbanAreasNeedingPaths, ...pointsOfInterest.filter(p => p.biome === BiomeType.PALACE)];
@@ -439,8 +521,8 @@ export function generateRoadAndPathNetwork(mapData: MapData, noise: ValueNoise, 
     }
   });
 
-  // Connect hamlets and minor POIs to the nearest major node with paths
-  const minorNodes = [...hamlets, ...pointsOfInterest.filter(p => p.biome !== BiomeType.PALACE)];
+  // Connect hamlets and minor POIs to the nearest major node with MINOR roads
+  const minorNodes = [...hamlets, ...pointsOfInterest.filter(p => p.biome !== BiomeType.PALACE && p.biome !== BiomeType.HOLY_SITE)];
   minorNodes.forEach(minorNode => {
     // Skip if this minor node is near modern roads
     if (hasModernRoads(minorNode)) return;
@@ -463,13 +545,15 @@ export function generateRoadAndPathNetwork(mapData: MapData, noise: ValueNoise, 
         const pixelPoints = tilePathToPixelPoints(aStarPath);
         const svgD = generateSvgDFromPoints(pixelPoints);
         if (svgD) {
-           mapData.pathObjects!.push({
-            id: `path-${pathIdCounter++}`,
-            type: PathType.PATH,
+          // Use minor roads for hamlets, not paths
+          const isHamlet = minorNode.biome === BiomeType.HAMLET;
+          mapData.pathObjects!.push({
+            id: isHamlet ? `road-${pathIdCounter++}` : `path-${pathIdCounter++}`,
+            type: isHamlet ? PathType.ROAD : PathType.PATH,
             svgD,
-            strokeWidth: PATH_STROKE_WIDTH_BASE + (noise.random() - 0.5) * PATH_STROKE_WIDTH_BASE * 0.1,
-            strokeColor: PATH_STROKE_COLOR,
-            opacity: PATH_OPACITY,
+            strokeWidth: isHamlet ? MINOR_ROAD_WIDTH : PATH_STROKE_WIDTH_BASE,
+            strokeColor: isHamlet ? ROAD_STROKE_COLOR : PATH_STROKE_COLOR,
+            opacity: isHamlet ? ROAD_OPACITY * 0.9 : PATH_OPACITY,
           });
         }
       }

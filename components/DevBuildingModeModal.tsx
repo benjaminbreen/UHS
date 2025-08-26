@@ -2,8 +2,9 @@
  * components/DevBuildingModeModal.tsx - A simplified reference grid of all map symbols
  * Shows visual representations without complex game logic
  */
-import React from 'react';
-import { BiomeType } from '../types';
+import React, { useState } from 'react';
+import { BiomeType, ClimateType, TimeOfDay } from '../types';
+import HorizonLayer from './HorizonLayer';
 
 // Import all the symbols we want to display - Using the ACTUAL symbols from the game
 import UrbanSymbolSimplified from './symbols/UrbanSymbolSimplified';
@@ -390,6 +391,11 @@ const categoryLabels = {
 };
 
 const DevBuildingModeModal: React.FC<DevBuildingModeModalProps> = ({ isOpen, onClose }) => {
+  // State for horizon preview controls
+  const [selectedClimate, setSelectedClimate] = useState<ClimateType>(ClimateType.TEMPERATE);
+  const [selectedTime, setSelectedTime] = useState<TimeOfDay>('Day');
+  const [hasWater, setHasWater] = useState(false);
+  
   if (!isOpen) return null;
 
   const categorizedSymbols = symbolItems.reduce((acc, item) => {
@@ -429,6 +435,95 @@ const DevBuildingModeModal: React.FC<DevBuildingModeModalProps> = ({ isOpen, onC
           <p className="text-slate-300 mb-6 text-sm">
             Visual reference of all map symbols. Note: These are simplified representations for development purposes.
           </p>
+          
+          {/* Horizon Layer Preview Section */}
+          <div className="mb-8 bg-slate-800/40 border border-slate-700 rounded-lg p-4">
+            <h3 className="text-lg font-semibold text-purple-400 mb-4">Horizon Layer Previews</h3>
+            
+            {/* Controls for testing */}
+            <div className="flex gap-4 mb-4 flex-wrap">
+              <select 
+                className="bg-slate-700 text-white px-3 py-1 rounded"
+                onChange={(e) => setSelectedClimate(e.target.value as ClimateType)}
+                defaultValue={ClimateType.TEMPERATE}
+              >
+                <option value={ClimateType.TEMPERATE}>Temperate</option>
+                <option value={ClimateType.TROPICAL}>Tropical</option>
+                <option value={ClimateType.ARID}>Arid</option>
+                <option value={ClimateType.COLD}>Cold</option>
+                <option value={ClimateType.MEDITERRANEAN}>Mediterranean</option>
+                <option value={ClimateType.SEMITROPICAL}>Semitropical</option>
+              </select>
+              
+              <select 
+                className="bg-slate-700 text-white px-3 py-1 rounded"
+                onChange={(e) => setSelectedTime(e.target.value as TimeOfDay)}
+                defaultValue="Day"
+              >
+                <option value="Dawn">Dawn</option>
+                <option value="Day">Day</option>
+                <option value="Midday">Midday</option>
+                <option value="Dusk">Dusk</option>
+                <option value="Night">Night</option>
+              </select>
+              
+              <label className="flex items-center gap-2 text-white">
+                <input 
+                  type="checkbox" 
+                  onChange={(e) => setHasWater(e.target.checked)}
+                  className="rounded"
+                />
+                Has Water
+              </label>
+            </div>
+            
+            {/* Horizon preview grid */}
+            <div className="grid grid-cols-1 gap-4">
+              {/* Current configuration */}
+              <div className="bg-slate-900/50 border border-slate-600 rounded p-2">
+                <div className="text-xs text-cyan-400 mb-1">
+                  {selectedClimate} - {selectedTime} - {hasWater ? 'Water' : 'Land'}
+                </div>
+                <div className="w-full h-24 bg-gradient-to-b from-slate-700 to-slate-800 rounded relative overflow-hidden">
+                  <HorizonLayer
+                    climate={selectedClimate}
+                    timeOfDay={selectedTime}
+                    hasWater={hasWater}
+                    width={800}
+                    height={96}
+                  />
+                </div>
+              </div>
+              
+              {/* Show all climate variants in a grid */}
+              <div className="mt-4">
+                <h4 className="text-sm font-semibold text-slate-300 mb-2">All Climate Variants:</h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {[
+                    ClimateType.TEMPERATE,
+                    ClimateType.TROPICAL, 
+                    ClimateType.ARID,
+                    ClimateType.COLD,
+                    ClimateType.MEDITERRANEAN,
+                    ClimateType.SEMITROPICAL
+                  ].map(climate => (
+                    <div key={climate} className="bg-slate-900/50 border border-slate-600 rounded p-2">
+                      <div className="text-xs text-cyan-400 mb-1">{climate}</div>
+                      <div className="w-full h-16 bg-gradient-to-b from-slate-700 to-slate-800 rounded relative overflow-hidden">
+                        <HorizonLayer
+                          climate={climate}
+                          timeOfDay={selectedTime}
+                          hasWater={hasWater}
+                          width={300}
+                          height={64}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Symbol Grid by Category */}
           {Object.entries(categorizedSymbols).map(([category, symbols]) => (

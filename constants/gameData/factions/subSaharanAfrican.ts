@@ -923,7 +923,7 @@ export const SUB_SAHARAN_AFRICAN_FACTIONS: FactionFile = {
                 eraContextSentence: 'an age of harmony with nature, where the flood brings life to the desert.',
                 allegianceGroups: [
                     { name: 'San Peoples', type: 'primary', description: 'The indigenous hunter-gatherers.' },
-                    { name: 'Bantu Migrants', type: 'secondary', description: 'Iron-working farmers arriving from the north.' }
+                    { name: 'Bantu Migration', type: 'secondary', description: 'Iron-working farmers arriving from the north.' }
                 ],
                 structureNames: {
                     holy_site: ['Rock Art Site'],
@@ -954,7 +954,6 @@ export const SUB_SAHARAN_AFRICAN_FACTIONS: FactionFile = {
                 dominantPowerDescription: 'Bantu-speaking peoples spread through the Congo Basin, bringing iron technology and agricultural practices to the rainforest.',
                 eraContextSentence: 'an age of migration and iron, as Bantu peoples transform the heart of Africa.',
                 allegianceGroups: [
-                    { name: 'Bantu Peoples', type: 'primary', description: 'The expanding agricultural societies.' },
                     { name: 'Pygmy Groups', type: 'secondary', description: 'Indigenous forest dwellers.' },
                     { name: 'Coastal Traders', type: 'trade_company', description: 'Early maritime merchants.' }
                 ],

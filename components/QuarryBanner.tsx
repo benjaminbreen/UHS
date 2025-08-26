@@ -20,7 +20,18 @@ interface QuarryBannerProps {
 }
 
 // Fixed ground level - matching TerrainStructureBanner exactly
-const GROUND_Y = 110;
+// --- TOP OF FILE: replace the single `const GROUND_Y = 110;` with this block ---
+const HORIZON_SHIFT = 50;         // push horizon down by ~50px (more sky)
+const SKY_BASE = 90;
+const SKY_HEIGHT = SKY_BASE + HORIZON_SHIFT;
+const HORIZON_Y = SKY_HEIGHT;
+
+const GROUND_BASE = 110;
+const GROUND_Y = GROUND_BASE + HORIZON_SHIFT;
+
+const PATH_OFFSET = 40;           // tweak 30–100 to taste
+const PATH_Y = GROUND_Y + PATH_OFFSET;
+
 
 // Seeded random
 class SeededRandom {
@@ -210,7 +221,7 @@ const QuarryBanner: React.FC<QuarryBannerProps> = ({
             <stop offset="100%" stopColor={skyGradient[2] || skyGradient[1]} />
           </linearGradient>
         </defs>
-        <rect x="0" y="0" width={width} height="90" fill="url(#skyGradient)" />
+        <rect x="0" y="0" width={width} height={SKY_HEIGHT} fill="url(#skyGradient)" />
         
         {/* Simple clouds */}
         {[0, 1, 2, 3].map((i) => {
@@ -253,23 +264,23 @@ const QuarryBanner: React.FC<QuarryBannerProps> = ({
     return (
       <g>
         {mountainLayers.map((layer, layerIndex) => {
-          const points = [];
-          for (let i = 0; i <= width + 40; i += 40) {
-            const baseY = 90 - layer.height;
-            const peakY = baseY - staticRng.range(5, 15);
-            const nextBaseY = 90 - layer.height;
-            
-            if (i === 0) points.push(`${i - 20},90`);
-            points.push(`${i},${baseY}`);
-            points.push(`${i + 20},${peakY}`);
-            points.push(`${i + 40},${nextBaseY}`);
-            if (i >= width) points.push(`${width + 20},90`);
-          }
+       const points = [];
+for (let i = 0; i <= width + 40; i += 40) {
+  const baseY = HORIZON_Y - layer.height;
+  const peakY = baseY - staticRng.range(5, 15);
+  const nextBaseY = HORIZON_Y - layer.height;
+
+  if (i === 0) points.push(`${i - 20},${HORIZON_Y}`);
+  points.push(`${i},${baseY}`);
+  points.push(`${i + 20},${peakY}`);
+  points.push(`${i + 40},${nextBaseY}`);
+  if (i >= width) points.push(`${width + 20},${HORIZON_Y}`);
+}
           
           return (
             <polygon
               key={layerIndex}
-              points={points.join(' ') + ` ${width + 20},90 -20,90`}
+              points={points.join(' ') + ` ${width + 20},${HORIZON_Y} -20,${HORIZON_Y}`}
               fill={layer.color}
               opacity={layer.opacity}
             />
@@ -363,10 +374,11 @@ const QuarryBanner: React.FC<QuarryBannerProps> = ({
         ))}
         
         {/* Road/path slightly visible */}
-        <rect x="0" y={GROUND_Y + 8} width={width} height="4" fill="#8B4513" opacity="0.2" />
+       <rect x="0" y={PATH_Y} width={width} height="4" fill="#8B4513" opacity="0.3" />
       </g>
     );
   };
+
   
   // Render quarry (SIMPLIFIED)
   const renderQuarry = () => {
@@ -484,7 +496,7 @@ const QuarryBanner: React.FC<QuarryBannerProps> = ({
           const legOffset = walkCycle * worker.direction;
           
           return (
-            <g key={i} transform={`translate(${worker.x}, ${GROUND_Y + 6})`}>
+            <g key={i} transform={`translate(${worker.x}, ${PATH_Y - 2})`}>
               {/* Body */}
               <rect x="-2" y="-8" width="4" height="6" fill="#8B4513" />
               {/* Head */}

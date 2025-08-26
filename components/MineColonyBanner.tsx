@@ -308,6 +308,8 @@ const MineColonyBanner: React.FC<MineColonyBannerProps> = ({
         
         {/* Main ground extending to bottom */}
         <rect x="0" y={GROUND_Y} width={width} height={height - GROUND_Y} fill="url(#groundGradient)" />
+
+
         
         {/* Rocky ground for mines */}
         {Array.from({ length: width / 12 }, (_, i) => (
@@ -347,6 +349,9 @@ const MineColonyBanner: React.FC<MineColonyBannerProps> = ({
       </g>
     );
   };
+
+  const PATH_OFFSET = 70;                 // tweak between 50–100 to taste
+  const PATH_Y = GROUND_Y + PATH_OFFSET;  // baseline for the walking path & figures
   
   // Render mine
   const renderMine = () => {

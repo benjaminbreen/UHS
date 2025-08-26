@@ -140,11 +140,90 @@ function generateSvgDFromPoints(pixelPoints: Point[]): string {
     return d;
 }
 
+// Add natural meandering to stream paths
+function addNaturalMeandering(points: Point[], noise: ValueNoise): Point[] {
+    return points.map((point, idx) => {
+        // Add gentle sine-wave perturbations for natural curves
+        const frequency = 0.15;
+        const amplitude = TILE_SIZE_PX * 0.3;
+        const offset = noise.random() * Math.PI * 2;
+        
+        // Different frequencies for x and y create more natural patterns
+        const xWave = Math.sin(idx * frequency + offset) * amplitude * 0.7;
+        const yWave = Math.cos(idx * frequency * 0.8 + offset) * amplitude * 0.5;
+        
+        return {
+            x: point.x + xWave,
+            y: point.y + yWave
+        };
+    });
+}
+
+// Calculate stream width based on position along path
+function calculateStreamWidth(progress: number): number {
+    // Exponential growth from source to mouth
+    // Starts very thin (0.03) and grows to wider (0.12)
+    const minWidth = TILE_SIZE_PX * 0.03;
+    const maxWidth = TILE_SIZE_PX * 0.12;
+    
+    // Use exponential curve for more natural widening
+    const widthProgress = Math.pow(progress, 1.5);
+    return minWidth + (maxWidth - minWidth) * widthProgress;
+}
+
+// Generate a clean single-path stream with proper visuals
+function generateCleanStream(path: Tile[], tiles: Tile[][], noise: ValueNoise): {
+    mainPath: { svgD: string; strokeWidth: number; strokeColor: string; opacity: number; };
+    shadowPath?: { svgD: string; strokeWidth: number; strokeColor: string; opacity: number; };
+} | null {
+    if (path.length < 2) return null;
+    
+    // Generate initial pixel points
+    let pixelPoints = tilePathToPixelPoints(path, noise);
+    
+    // Add natural meandering
+    pixelPoints = addNaturalMeandering(pixelPoints, noise);
+    
+    // Generate smooth SVG path
+    const svgD = generateSvgDFromPoints(pixelPoints);
+    if (!svgD) return null;
+    
+    // Calculate average width (weighted toward the end for river mouth)
+    const averageProgress = 0.7; // Bias toward wider
+    const streamWidth = calculateStreamWidth(averageProgress);
+    
+    // Ocean color that matches the rendered appearance
+    // This is darker to match the actual ocean tiles after overlays
+    const oceanColor = '#2b7bb5'; // Deep blue matching rendered ocean
+    
+    return {
+        mainPath: {
+            svgD,
+            strokeWidth: streamWidth,
+            strokeColor: oceanColor,
+            opacity: 0.85
+        },
+        // Subtle shadow for depth (optional)
+        shadowPath: {
+            svgD,
+            strokeWidth: streamWidth + TILE_SIZE_PX * 0.02,
+            strokeColor: 'rgba(0, 0, 0, 0.2)',
+            opacity: 0.4
+        }
+    };
+}
+
 let streamIdCounter = 0;
 
 export function generateStreams(mapData: MapData, noise: ValueNoise) {
     if (!mapData.pathObjects) mapData.pathObjects = [];
     const { tiles, climate } = mapData;
+    
+    // Skip stream generation entirely for arid climates
+    if (climate === ClimateType.ARID) {
+        console.log("[Streams] Skipping stream generation for ARID climate");
+        return;
+    }
 
     const streamSinks: Tile[] = [];
     const streamSources: Tile[] = [];
@@ -200,30 +279,41 @@ export function generateStreams(mapData: MapData, noise: ValueNoise) {
         if (startTile && endTile) {
             const path = findPathForStream(startTile, endTile, tiles);
             if (path && path.length > 2) {
-                // Check if the stream path ends in a water body and trim it
-                const lastTile = path[path.length - 1];
-                if ([BiomeType.RIVER, BiomeType.MAJOR_RIVER, BiomeType.FRESHWATER_LAKE, BiomeType.ESTUARY].includes(lastTile.biome)) {
-                    path.pop();
-                }
-
-                // Ensure path is still valid after trimming
+                // Don't trim the path - let it connect to water
+                // Just ensure path is valid
                 if (path.length < 2) continue;
 
-                const pixelPoints = tilePathToPixelPoints(path, noise);
-                const svgD = generateSvgDFromPoints(pixelPoints);
-
-                // Use the lighter 'SHALLOW' water color for streams
-                const streamColor = CLIMATE_WATER_COLORS[climate]?.SHALLOW || '#38bdf8';
-
-                if (svgD) {
+                // Generate clean single-path stream
+                const streamResult = generateCleanStream(path, tiles, noise);
+                
+                if (streamResult) {
+                    // Add shadow first (renders underneath)
+                    if (streamResult.shadowPath) {
+                        mapData.pathObjects.push({
+                            id: `stream-shadow-${streamIdCounter}`,
+                            type: PathType.PATH,
+                            svgD: streamResult.shadowPath.svgD,
+                            strokeWidth: streamResult.shadowPath.strokeWidth,
+                            strokeColor: streamResult.shadowPath.strokeColor,
+                            opacity: streamResult.shadowPath.opacity,
+                            isStream: true,
+                            renderOrder: -1 // Render first
+                        });
+                    }
+                    
+                    // Add main stream path
                     mapData.pathObjects.push({
-                        id: `stream-${streamIdCounter++}`,
-                        type: PathType.PATH, 
-                        svgD,
-                        strokeWidth: TILE_SIZE_PX * (0.1 + noise.random() * 0.08),
-                        strokeColor: streamColor,
-                        opacity: 0.8,
+                        id: `stream-${streamIdCounter}`,
+                        type: PathType.PATH,
+                        svgD: streamResult.mainPath.svgD,
+                        strokeWidth: streamResult.mainPath.strokeWidth,
+                        strokeColor: streamResult.mainPath.strokeColor,
+                        opacity: streamResult.mainPath.opacity,
+                        isStream: true,
+                        renderOrder: 0
                     });
+                    
+                    streamIdCounter++;
                 }
             }
         }

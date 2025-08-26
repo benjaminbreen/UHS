@@ -17,6 +17,7 @@ import { getFactoryType } from '../../../constants/gameData/factoryTypes';
 import { holySiteEconomyService } from '../../../services/holySiteEconomyService';
 import { getClergyRoles } from '../../../constants/characterData/religionClergyRoles';
 import DiseaseService from '../../../services/diseaseService';
+import { AttributeBadgeService } from '../../../services/attributeBadgeService';
 
 
 let standardNpcIdCounter = 0;
@@ -347,6 +348,18 @@ function createNpc(
             }
         }
         
+        // Generate attribute badges for NPC
+        const attributes = AttributeBadgeService.generateAttributes(
+            { ...baseProfile, name, class: socialClass, profession: role } as any,
+            context.year,
+            context.region
+        );
+        
+        if (attributes.length > 0) {
+            console.log(`[NPC Generator] Generated ${attributes.length} attribute(s) for ${name}:`, 
+                attributes.map(a => `${a.name} (${a.rarity})`).join(', '));
+        }
+        
         const npc: NpcEntity = {
             ...baseProfile,
             id, x, y, name, class: socialClass, role,
@@ -361,6 +374,7 @@ function createNpc(
             inventory: newInventory,
             equippedItems: newEquippedItems,
             diseaseHealth, // Add disease health with potential disease
+            attributes, // Add generated attribute badges
         };
         
         statsTracker.successful++;

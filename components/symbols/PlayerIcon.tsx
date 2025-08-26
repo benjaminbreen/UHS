@@ -88,6 +88,27 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
             <feMergeNode in="SourceGraphic"/>
           </feMerge>
         </filter>
+        
+        {/* Enhanced visibility filter with outline and shadow */}
+        <filter id={`playerOutline-${character.id}`} x="-50%" y="-50%" width="200%" height="200%">
+          {/* Create thick black outline */}
+          <feMorphology operator="dilate" radius="0.5" in="SourceAlpha" result="expanded"/>
+          <feFlood floodColor="#000000" floodOpacity="0.7"/>
+          <feComposite in2="expanded" operator="in" result="outline"/>
+          
+          {/* Add drop shadow */}
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="shadowBlur"/>
+          <feOffset in="shadowBlur" dx="1" dy="2" result="shadow"/>
+          <feFlood floodColor="#000000" floodOpacity="0.5"/>
+          <feComposite in2="shadow" operator="in" result="shadowColored"/>
+          
+          {/* Combine everything */}
+          <feMerge>
+            <feMergeNode in="shadowColored"/>
+            <feMergeNode in="outline"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
         <style>
           {`
             @keyframes pixelBob-${character.id} {
@@ -102,7 +123,7 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
         </style>
       </defs>
       
-      <g className={`pixelBob-${character.id}`} filter={`url(#playerGlow-${character.id})`}>
+      <g className={`pixelBob-${character.id}`} filter={`url(#playerOutline-${character.id})`}>
         {/* Pixel shadow */}
         <rect x="-4" y="8" width="8" height="2" fill="rgba(0,0,0,0.4)" rx="1" />
         

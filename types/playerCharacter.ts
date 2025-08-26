@@ -8,6 +8,7 @@ import { StatusEffect } from './combat';
 import { FamilyMember, LifeEvent } from './npcTypes';
 import { InteriorViewState, Point } from './index';
 import { CharacterHealth } from './diseaseTypes';
+import { AttributeBadge } from './attributeTypes';
 
 export type EquipmentSlot = 'head' | 'torso' | 'legs' | 'feet' | 
                           'main_hand' | 'off_hand' | 
@@ -88,6 +89,7 @@ export interface PlayerCharacter {
     party: PartyMember[];
     eventLog: GameEvent[];
     statusEffects: StatusEffect[];
+    attributes?: AttributeBadge[]; // Character's special attributes/badges
 
     profileImage: string;
     isLlmEnhanced?: boolean;

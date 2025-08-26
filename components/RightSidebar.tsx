@@ -240,21 +240,21 @@ const RightSidebar: React.FC = () => {
                                 <div>
                                     <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-gray-400">
                                         <span>HEALTH</span>
-                                        <span>{playerCharacter.health} / {playerCharacter.maxHealth}</span>
+                                        <span>{Math.ceil(playerCharacter.health)} / {Math.ceil(playerCharacter.maxHealth)}</span>
                                     </div>
                                     <div className="w-full h-1.5 overflow-hidden bg-gray-700 rounded-full shadow-inner"><div className="h-full transition-all duration-500 rounded-full bg-gradient-to-r from-red-500 via-orange-400 to-yellow-400 shadow-sm" style={{ width: `${healthPercent}%` }}></div></div>
                                 </div>
                                 <div>
                                     <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-gray-400">
                                         <span>FATIGUE</span>
-                                        <span>{playerCharacter.fatigue} / {playerCharacter.maxFatigue}</span>
+                                        <span>{Math.ceil(playerCharacter.fatigue)} / {Math.ceil(playerCharacter.maxFatigue)}</span>
                                     </div>
                                     <div className="w-full h-1.5 overflow-hidden bg-gray-700 rounded-full shadow-inner"><div className="h-full transition-all duration-500 rounded-full bg-gradient-to-r from-amber-400 via-amber-600 to-orange-600 shadow-sm" style={{ width: `${fatiguePercent}%` }}></div></div>
                                 </div>
                                 <div>
                                     <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-gray-400">
                                         <span>EXPERIENCE</span>
-                                        <span>{playerCharacter.experience} / {playerCharacter.maxExperience}</span>
+                                        <span>{Math.ceil(playerCharacter.experience)} / {Math.ceil(playerCharacter.maxExperience)}</span>
                                     </div>
                                     <div className="w-full h-1.5 overflow-hidden bg-gray-700 rounded-full shadow-inner"><div className="h-full transition-all duration-500 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full shadow-sm" style={{ width: `${xpPercent}%` }}></div></div>
                                 </div>
@@ -270,10 +270,14 @@ const RightSidebar: React.FC = () => {
                                  if (!skill) return null;
                                  return (
                                     <button key={skillId} onClick={() => onUseSkill(skillId)} 
-                                        className="flex flex-col items-center justify-center p-2 text-md font-semibold text-gray-300 transition-all duration-200 border rounded-lg aspect-square bg-gradient-to-br from-slate-700/80 to-slate-800/60 border-gray-600/50 hover:bg-gradient-to-br hover:from-slate-600/90 hover:to-slate-700/70 hover:border-blue-400/50 hover:text-white hover:shadow-lg hover:-translate-y-1 hover:scale-105"
+                                        className="flex flex-col items-center justify-center px-2 py-1.5 text-md font-semibold text-gray-300 transition-all duration-200 border rounded-lg bg-gradient-to-br from-slate-700/80 to-slate-800/60 border-gray-600/50 hover:bg-gradient-to-br hover:from-slate-600/90 hover:to-slate-700/70 hover:border-blue-400/50 hover:text-white hover:shadow-lg"
+                                        style={{ aspectRatio: '1 / 0.7' }}
                                         title={skill.description}>
-                                        <div className="mb-0.5 text-base">{skill.icon}</div>
-                                        <span className="text-[12px] leading-tight text-center">{skill.name}</span>
+                                        <div className="mb-0.5 text-base" style={{
+                                          filter: 'drop-shadow(0 0 3px rgba(255, 255, 255, 0.3))',
+                                          textShadow: '0 0 8px rgba(255, 255, 255, 0.4)'
+                                        }}>{skill.icon}</div>
+                                        <span className="text-[11px] leading-tight text-center">{skill.name}</span>
                                     </button>
                                 )
                             })}

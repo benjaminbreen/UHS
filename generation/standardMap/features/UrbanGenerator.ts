@@ -133,7 +133,8 @@ function placeModernCityBlocks(
   availableTiles: Array<{point: Point, distance: number, score: number}>,
   placedUrbanTiles: Tile[],
   randomNoise: ValueNoise,
-  cityData?: any
+  cityData?: any,
+  useModernRoads: boolean = true
 ): void {
   // Create a grid-based block system for modern cities
   const blockSize = 3; // 3x3 tile blocks
@@ -179,8 +180,11 @@ function placeModernCityBlocks(
         if (!nonBuildableSiteBiomesSet.has(tile.biome) && 
             !isWater &&
             !tooSteep) {
-          tile.biome = BiomeType.ROAD;
-          tile.population = 0;
+          // Only place ROAD biome tiles in modern/industrial eras
+          if (useModernRoads) {
+            tile.biome = BiomeType.ROAD;
+            tile.population = 0;
+          }
           // Remove this tile from availableTiles to prevent buildings on roads
           const index = availableTiles.findIndex(t => 
             t.point.x === x && t.point.y === y
@@ -524,82 +528,225 @@ function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: numb
     }
   });
 
-  // Place plazas COMPLETELY surrounding government buildings and palaces (donut pattern)
-  const governmentTiles = placedUrbanTiles.filter(t => 
-    t.biome === BiomeType.GOVERNMENT_DISTRICT || 
-    t.biome === BiomeType.PALACE ||
-    t.biome === BiomeType.CITY_CENTER
-  );
+  // 1. Place plazas around harbors (on land side only)
+  const harborTiles = placedUrbanTiles.filter(t => t.biome === BiomeType.HARBOR_DISTRICT);
   
-  governmentTiles.forEach(govTile => {
-    // Convert ALL 8 surrounding tiles to plazas (complete donut)
-    const surroundingPositions = [
-      // Direct adjacents
-      {x: govTile.x - 1, y: govTile.y},     // West
-      {x: govTile.x + 1, y: govTile.y},     // East
-      {x: govTile.x, y: govTile.y - 1},     // North
-      {x: govTile.x, y: govTile.y + 1},     // South
-      // Diagonals
-      {x: govTile.x - 1, y: govTile.y - 1}, // Northwest
-      {x: govTile.x + 1, y: govTile.y - 1}, // Northeast
-      {x: govTile.x - 1, y: govTile.y + 1}, // Southwest
-      {x: govTile.x + 1, y: govTile.y + 1}, // Southeast
-    ];
-    
-    const plazaTiles: Tile[] = [];
-    
-    // First pass: Convert all surrounding tiles to plazas
-    for (const pos of surroundingPositions) {
-      if (pos.x >= 0 && pos.x < MAP_WIDTH_TILES && pos.y >= 0 && pos.y < MAP_HEIGHT_TILES) {
-        const surroundingTile = tiles[pos.y][pos.x];
-        // Convert any urban tile (except special districts) to plaza
-        if ((surroundingTile.biome === BiomeType.DENSE_CITY || 
-             surroundingTile.biome === BiomeType.LOW_DENSITY_CITY ||
-             surroundingTile.biome === BiomeType.HAMLET) &&
-            surroundingTile.biome !== BiomeType.MARKETPLACE &&
-            surroundingTile.biome !== BiomeType.HARBOR_DISTRICT &&
-            surroundingTile.biome !== BiomeType.INDUSTRIAL_DISTRICT) {
-          surroundingTile.biome = BiomeType.PLAZA;
-          surroundingTile.population = 0; // Plazas don't have permanent residents
-          // Keep city name
-          if (cityData) {
-            surroundingTile.cityName = cityData.name;
-            surroundingTile.cityDescription = cityData.description;
-          }
-          plazaTiles.push(surroundingTile);
-        }
-      }
-    }
-    
-    // Second pass: Place parks around the plaza ring (one tile further out)
-    plazaTiles.forEach(plazaTile => {
-      const parkPositions = [
-        {x: plazaTile.x - 1, y: plazaTile.y},
-        {x: plazaTile.x + 1, y: plazaTile.y},
-        {x: plazaTile.x, y: plazaTile.y - 1},
-        {x: plazaTile.x, y: plazaTile.y + 1},
-      ];
-      
-      for (const parkPos of parkPositions) {
-        if (parkPos.x >= 0 && parkPos.x < MAP_WIDTH_TILES && 
-            parkPos.y >= 0 && parkPos.y < MAP_HEIGHT_TILES) {
-          const parkCandidate = tiles[parkPos.y][parkPos.x];
-          // Don't overwrite government buildings, plazas, or special districts
-          if ((parkCandidate.biome === BiomeType.DENSE_CITY || 
-               parkCandidate.biome === BiomeType.LOW_DENSITY_CITY ||
-               parkCandidate.biome === BiomeType.HAMLET) && 
-              randomNoise.random() < 0.3) { // 30% chance for parks
-            parkCandidate.biome = BiomeType.PARK;
-            parkCandidate.population = 0;
-            // Keep city name
+  harborTiles.forEach(harborTile => {
+    // Convert land-side surrounding tiles to plazas
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        const px = harborTile.x + dx;
+        const py = harborTile.y + dy;
+        if (px >= 0 && px < MAP_WIDTH_TILES && py >= 0 && py < MAP_HEIGHT_TILES) {
+          const surroundingTile = tiles[py][px];
+          // Only convert land-based urban tiles to plaza
+          if (surroundingTile.isLand &&
+              (surroundingTile.biome === BiomeType.DENSE_CITY || 
+               surroundingTile.biome === BiomeType.LOW_DENSITY_CITY ||
+               surroundingTile.biome === BiomeType.HAMLET) &&
+              surroundingTile.biome !== BiomeType.MARKETPLACE &&
+              surroundingTile.biome !== BiomeType.INDUSTRIAL_DISTRICT) {
+            surroundingTile.biome = BiomeType.PLAZA;
+            surroundingTile.population = 0;
             if (cityData) {
-              parkCandidate.cityName = cityData.name;
-              parkCandidate.cityDescription = cityData.description;
+              surroundingTile.cityName = cityData.name;
+              surroundingTile.cityDescription = cityData.description;
             }
           }
         }
       }
-    });
+    }
+  });
+
+  // 3. Special handling for PALACES - double park rings with plaza path
+  const palaceTiles = placedUrbanTiles.filter(t => t.biome === BiomeType.PALACE);
+  
+  palaceTiles.forEach(palaceTile => {
+    // First ring (radius 1) - all parks except south (plaza path)
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        const px = palaceTile.x + dx;
+        const py = palaceTile.y + dy;
+        if (px >= 0 && px < MAP_WIDTH_TILES && py >= 0 && py < MAP_HEIGHT_TILES) {
+          const tile = tiles[py][px];
+          if (tile.isLand && !nonBuildableSiteBiomesSet.has(tile.biome)) {
+            // Plaza at 6 o'clock position (south)
+            if (dx === 0 && dy === 1) {
+              tile.biome = BiomeType.PLAZA;
+            } else {
+              // Parks everywhere else
+              tile.biome = BiomeType.PARK;
+            }
+            tile.population = 0;
+            if (cityData) {
+              tile.cityName = cityData.name;
+              tile.cityDescription = cityData.description;
+            }
+          }
+        }
+      }
+    }
+    
+    // Second ring (radius 2) - all parks except south (plaza path)
+    for (let dy = -2; dy <= 2; dy++) {
+      for (let dx = -2; dx <= 2; dx++) {
+        // Skip inner ring and center
+        if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) continue;
+        const px = palaceTile.x + dx;
+        const py = palaceTile.y + dy;
+        if (px >= 0 && px < MAP_WIDTH_TILES && py >= 0 && py < MAP_HEIGHT_TILES) {
+          const tile = tiles[py][px];
+          if (tile.isLand && !nonBuildableSiteBiomesSet.has(tile.biome)) {
+            // Plaza at 6 o'clock position (south)
+            if (dx === 0 && dy === 2) {
+              tile.biome = BiomeType.PLAZA;
+            } else {
+              // Parks everywhere else
+              tile.biome = BiomeType.PARK;
+            }
+            tile.population = 0;
+            if (cityData) {
+              tile.cityName = cityData.name;
+              tile.cityDescription = cityData.description;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // 4. ENHANCED: Place proper concentric rings around government districts and city centers
+  const governmentTiles = placedUrbanTiles.filter(t => 
+    t.biome === BiomeType.GOVERNMENT_DISTRICT || 
+    t.biome === BiomeType.CITY_CENTER
+  );
+  
+  governmentTiles.forEach(govTile => {
+    if (govTile.biome === BiomeType.CITY_CENTER) {
+      // City centers: surrounded by plaza tiles
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const px = govTile.x + dx;
+          const py = govTile.y + dy;
+          if (px >= 0 && px < MAP_WIDTH_TILES && py >= 0 && py < MAP_HEIGHT_TILES) {
+            const surroundingTile = tiles[py][px];
+            if (surroundingTile.isLand && !nonBuildableSiteBiomesSet.has(surroundingTile.biome)) {
+              surroundingTile.biome = BiomeType.PLAZA;
+              surroundingTile.population = 0;
+              if (cityData) {
+                surroundingTile.cityName = cityData.name;
+                surroundingTile.cityDescription = cityData.description;
+              }
+            }
+          }
+        }
+      }
+    } else if (govTile.biome === BiomeType.GOVERNMENT_DISTRICT) {
+      // Government districts: concentric rings (park -> plaza -> road)
+      // First ring (radius 1): parks
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const px = govTile.x + dx;
+          const py = govTile.y + dy;
+          if (px >= 0 && px < MAP_WIDTH_TILES && py >= 0 && py < MAP_HEIGHT_TILES) {
+            const tile = tiles[py][px];
+            if (tile.isLand && !nonBuildableSiteBiomesSet.has(tile.biome)) {
+              tile.biome = BiomeType.PARK;
+              tile.population = 0;
+              if (cityData) {
+                tile.cityName = cityData.name;
+                tile.cityDescription = cityData.description;
+              }
+            }
+          }
+        }
+      }
+      
+      // Second ring (radius 2): plazas
+      for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) continue; // Skip inner ring
+          const px = govTile.x + dx;
+          const py = govTile.y + dy;
+          if (px >= 0 && px < MAP_WIDTH_TILES && py >= 0 && py < MAP_HEIGHT_TILES) {
+            const tile = tiles[py][px];
+            if (tile.isLand && !nonBuildableSiteBiomesSet.has(tile.biome) && 
+                tile.biome !== BiomeType.PARK) {
+              tile.biome = BiomeType.PLAZA;
+              tile.population = 0;
+              if (cityData) {
+                tile.cityName = cityData.name;
+                tile.cityDescription = cityData.description;
+              }
+            }
+          }
+        }
+      }
+      
+      // Third ring (radius 3): roads
+      for (let dy = -3; dy <= 3; dy++) {
+        for (let dx = -3; dx <= 3; dx++) {
+          if (Math.abs(dx) <= 2 && Math.abs(dy) <= 2) continue; // Skip inner rings
+          const px = govTile.x + dx;
+          const py = govTile.y + dy;
+          if (px >= 0 && px < MAP_WIDTH_TILES && py >= 0 && py < MAP_HEIGHT_TILES) {
+            const tile = tiles[py][px];
+            if (tile.isLand && !nonBuildableSiteBiomesSet.has(tile.biome) && 
+                tile.biome !== BiomeType.PARK && tile.biome !== BiomeType.PLAZA) {
+              tile.biome = BiomeType.ROAD;
+              tile.population = 0;
+              if (cityData) {
+                tile.cityName = cityData.name;
+                tile.cityDescription = cityData.description;
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+  
+  // 5. IMPORTANT: Place plazas COMPLETELY surrounding marketplaces (NO parks, only plazas)
+  // This MUST happen AFTER government districts to override any parks they created
+  const marketplaceTiles = placedUrbanTiles.filter(t => t.biome === BiomeType.MARKETPLACE);
+  
+  marketplaceTiles.forEach(marketTile => {
+    // Convert ALL 8 surrounding tiles to plazas (including any parks created by government districts)
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        const px = marketTile.x + dx;
+        const py = marketTile.y + dy;
+        if (px >= 0 && px < MAP_WIDTH_TILES && py >= 0 && py < MAP_HEIGHT_TILES) {
+          const surroundingTile = tiles[py][px];
+          // Convert any urban, park, or other buildable tiles to plaza
+          // Marketplaces should ONLY be surrounded by plazas
+          if (surroundingTile.isLand &&
+              surroundingTile.biome !== BiomeType.MARKETPLACE &&
+              surroundingTile.biome !== BiomeType.HARBOR_DISTRICT &&
+              surroundingTile.biome !== BiomeType.INDUSTRIAL_DISTRICT &&
+              surroundingTile.biome !== BiomeType.GOVERNMENT_DISTRICT &&
+              surroundingTile.biome !== BiomeType.CITY_CENTER &&
+              !surroundingTile.biome.includes('OCEAN') &&
+              !surroundingTile.biome.includes('RIVER') &&
+              surroundingTile.biome !== BiomeType.CLIFF &&
+              surroundingTile.biome !== BiomeType.MOUNTAIN &&
+              surroundingTile.biome !== BiomeType.HIGH_PEAK) {
+            // Override ANY tile (including parks) with plaza
+            surroundingTile.biome = BiomeType.PLAZA;
+            surroundingTile.population = 0;
+            if (cityData) {
+              surroundingTile.cityName = cityData.name;
+              surroundingTile.cityDescription = cityData.description;
+            }
+          }
+        }
+      }
+    }
   });
   
   // After placing all urban tiles for the cluster, check if we should place a city center.
@@ -690,9 +837,23 @@ function isNearDeepWater(tiles: Tile[][], x: number, y: number): boolean {
   return false;
 }
 
+// Helper function to determine historical era from year
+function getEraFromYear(year?: number): HistoricalEra {
+  if (!year) return HistoricalEra.MEDIEVAL; // Default to medieval
+  if (year < 500) return HistoricalEra.ANTIQUITY;
+  if (year < 1450) return HistoricalEra.MEDIEVAL;
+  if (year < 1800) return HistoricalEra.RENAISSANCE_EARLY_MODERN;
+  if (year < 1900) return HistoricalEra.INDUSTRIAL_ERA;
+  if (year < 2000) return HistoricalEra.MODERN_ERA;
+  return HistoricalEra.FUTURE_ERA;
+}
+
 export function generateUrbanAreas(tiles: Tile[][], randomNoise: ValueNoise, archetype: MapArchetype, harborSide?: number, generateLargeCity?: boolean, economicActivityLevel?: number, year?: number, regionName?: string, localAreaName?: string, timeSlice?: string, dominantPower?: string, culturalZone?: string) {
   console.log("[Urban] Phase 10: Urban area generation - START");
   console.log(`[Urban] Parameters: economicActivityLevel=${economicActivityLevel}, year=${year}, localArea="${localAreaName}", region="${regionName}"`);
+  
+  const era = getEraFromYear(year);
+  const useModernRoads = era === HistoricalEra.INDUSTRIAL_ERA || era === HistoricalEra.MODERN_ERA || era === HistoricalEra.FUTURE_ERA;
   
   // Skip urban generation entirely for SHOALS archetype
   if (archetype === MapArchetype.SHOALS) {
@@ -777,6 +938,13 @@ export function generateUrbanAreas(tiles: Tile[][], randomNoise: ValueNoise, arc
   if (!hasCities && hasWaterForFishing(archetype)) {
     generateFishingHuts(tiles, randomNoise);
   }
+  
+  // Post-processing: Add urban boundaries, connect districts, and handle factories
+  addUrbanBoundaryBuffers(tiles);
+  connectCityCentersToGovernmentDistricts(tiles);
+  surroundFactoriesWithRoads(tiles);
+  
+  console.log("[Urban] Post-processing complete: boundaries, connections, and factory roads added");
 }
 
 // Helper function to determine if archetype supports fishing
@@ -840,5 +1008,208 @@ function generateFishingHuts(tiles: Tile[][], randomNoise: ValueNoise) {
   
   if (placedHuts.length > 0) {
     console.log(`[Urban] Generated ${placedHuts.length} fishing huts for non-city coastal map`);
+  }
+}
+
+// Helper function to check if a biome is high-density urban
+function isHighDensityUrban(biome: BiomeType): boolean {
+  return biome === BiomeType.DENSE_CITY || 
+         biome === BiomeType.GOVERNMENT_DISTRICT || 
+         biome === BiomeType.CITY_CENTER ||
+         biome === BiomeType.MARKETPLACE ||
+         biome === BiomeType.INDUSTRIAL_DISTRICT;
+}
+
+// Helper function to check if a biome is any urban type
+function isUrban(biome: BiomeType): boolean {
+  return biome === BiomeType.DENSE_CITY || 
+         biome === BiomeType.LOW_DENSITY_CITY ||
+         biome === BiomeType.HAMLET ||
+         biome === BiomeType.GOVERNMENT_DISTRICT || 
+         biome === BiomeType.CITY_CENTER ||
+         biome === BiomeType.MARKETPLACE ||
+         biome === BiomeType.INDUSTRIAL_DISTRICT ||
+         biome === BiomeType.HARBOR_DISTRICT;
+}
+
+// Helper function to check if a biome is non-urban
+function isNonUrban(biome: BiomeType): boolean {
+  return !isUrban(biome) && 
+         biome !== BiomeType.PLAZA && 
+         biome !== BiomeType.PARK && 
+         biome !== BiomeType.ROAD;
+}
+
+// Add buffer zones between urban and non-urban tiles
+function addUrbanBoundaryBuffers(tiles: Tile[][]) {
+  // Create a copy to track changes
+  const tilesToChange: {x: number, y: number, newBiome: BiomeType}[] = [];
+  
+  for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+    for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+      const tile = tiles[y][x];
+      
+      // Check if this is a high-density urban tile
+      if (isHighDensityUrban(tile.biome)) {
+        // Check all 8 surrounding tiles
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = x + dx;
+            const ny = y + dy;
+            
+            if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
+              const adjacentTile = tiles[ny][nx];
+              
+              // If adjacent to non-urban, non-buffer tile, mark for change to plaza/park
+              if (isNonUrban(adjacentTile.biome) && adjacentTile.isLand) {
+                // Use plaza for immediate adjacency to city centers, park elsewhere
+                const bufferType = tile.biome === BiomeType.CITY_CENTER ? BiomeType.PLAZA : BiomeType.PARK;
+                tilesToChange.push({x: nx, y: ny, newBiome: bufferType});
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // Apply changes
+  tilesToChange.forEach(change => {
+    const tile = tiles[change.y][change.x];
+    tile.biome = change.newBiome;
+    tile.population = 0;
+  });
+  
+  if (tilesToChange.length > 0) {
+    console.log(`[Urban] Added ${tilesToChange.length} buffer tiles at urban boundaries`);
+  }
+}
+
+// Connect city centers to government districts with roads
+function connectCityCentersToGovernmentDistricts(tiles: Tile[][]) {
+  const cityCenters: Tile[] = [];
+  const governmentDistricts: Tile[] = [];
+  
+  // Find all city centers and government districts
+  for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+    for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+      const tile = tiles[y][x];
+      if (tile.biome === BiomeType.CITY_CENTER) {
+        cityCenters.push(tile);
+      } else if (tile.biome === BiomeType.GOVERNMENT_DISTRICT) {
+        governmentDistricts.push(tile);
+      }
+    }
+  }
+  
+  // Connect each city center to nearest government district
+  cityCenters.forEach(cityCenter => {
+    let nearestGovDist: Tile | null = null;
+    let minDistance = Infinity;
+    
+    governmentDistricts.forEach(govDist => {
+      const distance = Math.hypot(govDist.x - cityCenter.x, govDist.y - cityCenter.y);
+      if (distance < minDistance && distance < 15) { // Only connect if reasonably close
+        minDistance = distance;
+        nearestGovDist = govDist;
+      }
+    });
+    
+    if (nearestGovDist) {
+      // Create road path using simple line algorithm
+      const dx = nearestGovDist.x - cityCenter.x;
+      const dy = nearestGovDist.y - cityCenter.y;
+      const steps = Math.max(Math.abs(dx), Math.abs(dy));
+      
+      for (let i = 1; i < steps; i++) {
+        const x = Math.round(cityCenter.x + (dx * i) / steps);
+        const y = Math.round(cityCenter.y + (dy * i) / steps);
+        
+        if (x >= 0 && x < MAP_WIDTH_TILES && y >= 0 && y < MAP_HEIGHT_TILES) {
+          const tile = tiles[y][x];
+          // Only convert if not already a special district
+          if (tile.isLand && !isHighDensityUrban(tile.biome) && 
+              tile.biome !== BiomeType.PLAZA && tile.biome !== BiomeType.PARK) {
+            tile.biome = BiomeType.ROAD;
+            tile.population = 0;
+          }
+        }
+      }
+    }
+  });
+}
+
+// Surround factories with roads and connect to nearest urban area
+function surroundFactoriesWithRoads(tiles: Tile[][]) {
+  const factories: Tile[] = [];
+  const urbanTiles: Tile[] = [];
+  
+  // Find all factories and urban tiles
+  for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+    for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+      const tile = tiles[y][x];
+      if (tile.biome === BiomeType.INDUSTRIAL_DISTRICT) {
+        factories.push(tile);
+      } else if (isUrban(tile.biome) && tile.biome !== BiomeType.INDUSTRIAL_DISTRICT) {
+        urbanTiles.push(tile);
+      }
+    }
+  }
+  
+  factories.forEach(factory => {
+    // Surround factory with roads
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        const nx = factory.x + dx;
+        const ny = factory.y + dy;
+        
+        if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
+          const tile = tiles[ny][nx];
+          if (tile.isLand && isNonUrban(tile.biome)) {
+            tile.biome = BiomeType.ROAD;
+            tile.population = 0;
+          }
+        }
+      }
+    }
+    
+    // Connect to nearest urban tile
+    let nearestUrban: Tile | null = null;
+    let minDistance = Infinity;
+    
+    urbanTiles.forEach(urbanTile => {
+      const distance = Math.hypot(urbanTile.x - factory.x, urbanTile.y - factory.y);
+      if (distance < minDistance && distance < 20) { // Only connect if reasonably close
+        minDistance = distance;
+        nearestUrban = urbanTile;
+      }
+    });
+    
+    if (nearestUrban) {
+      // Create road path
+      const dx = nearestUrban.x - factory.x;
+      const dy = nearestUrban.y - factory.y;
+      const steps = Math.max(Math.abs(dx), Math.abs(dy));
+      
+      for (let i = 1; i < steps; i++) {
+        const x = Math.round(factory.x + (dx * i) / steps);
+        const y = Math.round(factory.y + (dy * i) / steps);
+        
+        if (x >= 0 && x < MAP_WIDTH_TILES && y >= 0 && y < MAP_HEIGHT_TILES) {
+          const tile = tiles[y][x];
+          if (tile.isLand && isNonUrban(tile.biome) && 
+              tile.biome !== BiomeType.PLAZA && tile.biome !== BiomeType.PARK) {
+            tile.biome = BiomeType.ROAD;
+            tile.population = 0;
+          }
+        }
+      }
+    }
+  });
+  
+  if (factories.length > 0) {
+    console.log(`[Urban] Surrounded ${factories.length} factories with roads and connections`);
   }
 }

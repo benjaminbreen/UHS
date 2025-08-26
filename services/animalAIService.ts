@@ -161,10 +161,22 @@ export function calculateAnimalUpdate(
         BiomeType.CITY_CENTER
     ];
     
+    // Create set of occupied tiles by other animals
+    const occupiedTiles = new Set<string>();
+    allAnimals.forEach(otherAnimal => {
+        if (otherAnimal.id !== animal.id) {
+            occupiedTiles.add(`${otherAnimal.x},${otherAnimal.y}`);
+        }
+    });
+
     let walkableNeighbors: Tile[];
 
     if (animalData.habitat === 'aquatic') {
-        walkableNeighbors = allNeighbors.filter(n => !n.isLand && !isNearLand(n.x, n.y, map.tiles, 2));
+        walkableNeighbors = allNeighbors.filter(n => {
+            // Check if tile is occupied by another animal
+            const isOccupied = occupiedTiles.has(`${n.x},${n.y}`);
+            return !n.isLand && !isNearLand(n.x, n.y, map.tiles, 2) && !isOccupied;
+        });
     } else {
         // For land animals, filter out water AND city tiles (unless domestic)
         walkableNeighbors = allNeighbors.filter(n => {
@@ -172,7 +184,22 @@ export function calculateAnimalUpdate(
             // Wild animals (non-domestic) should avoid city tiles
             const isCityTile = cityBiomes.includes(n.biome);
             const canEnterCity = animal.isDomestic || !isCityTile;
-            return isWalkableTerrain && canEnterCity;
+            
+            // Check if tile is occupied by another animal
+            const isOccupied = occupiedTiles.has(`${n.x},${n.y}`);
+            
+            // Domestic animals must stay within paddocks
+            if (animal.isDomestic) {
+                const currentTile = map.tiles[animal.y][animal.x];
+                // If the animal is in a paddock, it can only move to other paddock tiles
+                if (currentTile.paddockType === 'Livestock') {
+                    return isWalkableTerrain && n.paddockType === 'Livestock' && !isOccupied;
+                }
+                // If somehow outside a paddock, try to find one
+                return isWalkableTerrain && n.paddockType === 'Livestock' && !isOccupied;
+            }
+            
+            return isWalkableTerrain && canEnterCity && !isOccupied;
         });
     }
     
@@ -215,16 +242,24 @@ export function calculateAnimalUpdate(
             break;
             
         case 'wandering':
-            const weights = walkableNeighbors.map(n => getTerrainPreference(animal, n, map));
-            const totalWeight = weights.reduce((a, b) => a + b, 0);
-            let random = Math.random() * totalWeight;
-            for (let i = 0; i < walkableNeighbors.length; i++) {
-                random -= weights[i];
-                if (random <= 0) {
-                    nextPos = { x: walkableNeighbors[i].x, y: walkableNeighbors[i].y };
-                    break;
+            // Domestic animals should move much less frequently
+            // Since this is called every 2 seconds, we want movement every 10-15 seconds
+            // That means a 13.3% to 20% chance of movement per tick (2/15 to 2/10)
+            const moveChance = animal.isDomestic ? (0.133 + Math.random() * 0.067) : 1.0; // 13.3% to 20% for domestic, 100% for wild
+            
+            if (Math.random() < moveChance) {
+                const weights = walkableNeighbors.map(n => getTerrainPreference(animal, n, map));
+                const totalWeight = weights.reduce((a, b) => a + b, 0);
+                let random = Math.random() * totalWeight;
+                for (let i = 0; i < walkableNeighbors.length; i++) {
+                    random -= weights[i];
+                    if (random <= 0) {
+                        nextPos = { x: walkableNeighbors[i].x, y: walkableNeighbors[i].y };
+                        break;
+                    }
                 }
             }
+            // If we don't move, stay in the same position
             break;
     }
 

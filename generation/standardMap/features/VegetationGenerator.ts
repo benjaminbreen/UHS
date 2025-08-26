@@ -67,9 +67,13 @@ function determineVegetation(tile: Tile, climate: ClimateType, noise: ValueNoise
       BiomeType.PARK, // Parks have their own special vegetation
       BiomeType.PLAZA, // Plazas are paved public spaces
       BiomeType.HARBOR_DISTRICT, // Harbor areas are industrial/commercial
-      BiomeType.INDUSTRIAL_DISTRICT // Industrial zones have no vegetation
+      BiomeType.INDUSTRIAL_DISTRICT, // Industrial zones have no vegetation
+      BiomeType.FARMLAND // SAFEGUARD: Prevent vegetation on farmland
     ]);
     if (unsuitableBiomes.has(biome)) return null;
+    
+    // SAFEGUARD: Also prevent vegetation in animal paddocks
+    if (tile.paddockType === 'Livestock') return null;
 
     let baseType: VegetationBaseType | null = null;
     let symbol: string | null = null;

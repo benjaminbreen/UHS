@@ -56,6 +56,7 @@ const PlazaSymbol: React.FC<PlazaSymbolProps> = React.memo(({ x, y, size, seed, 
         break;
       
       case ClimateType.TEMPERATE:
+      case ClimateType.TROPICAL:
         // Flagstone pattern
         const flagstones = [
           {x: 0, y: 0, w: 0.4, h: 0.3},
@@ -86,32 +87,46 @@ const PlazaSymbol: React.FC<PlazaSymbolProps> = React.memo(({ x, y, size, seed, 
         });
         break;
       
+      case ClimateType.ARID:
       case ClimateType.SEMITROPICAL:
-      case ClimateType.TROPICAL:
-        // Wavy mosaic pattern (Brazilian style)
-        const wavePoints = [];
-        for (let i = 0; i <= 4; i++) {
-          const waveX = x + (i * size/4);
-          const waveY = y + size/2 + Math.sin(i * Math.PI/2) * size/6;
-          wavePoints.push(`${waveX},${waveY}`);
+        // Inlaid stone pattern matching urban tiles
+        for (let row = 0; row < 3; row++) {
+          for (let col = 0; col < 3; col++) {
+            const stoneX = x + (col * size/3);
+            const stoneY = y + (row * size/3);
+            const isCenter = row === 1 && col === 1;
+            
+            patterns.push(
+              <rect
+                key={`stone-${row}-${col}`}
+                x={stoneX + 1}
+                y={stoneY + 1}
+                width={size/3 - 2}
+                height={size/3 - 2}
+                fill={isCenter ? "#c4a574" : "#d4b896"}
+                stroke="#a08060"
+                strokeWidth="0.8"
+                opacity="0.9"
+              />
+            );
+            
+            // Add decorative corner details
+            if ((row === 0 || row === 2) && (col === 0 || col === 2)) {
+              patterns.push(
+                <circle
+                  key={`detail-${row}-${col}`}
+                  cx={stoneX + size/6}
+                  cy={stoneY + size/6}
+                  r={size * 0.02}
+                  fill="#8a7050"
+                  opacity="0.5"
+                />
+              );
+            }
+          }
         }
-        
-        patterns.push(
-          <g key="mosaic">
-            <rect x={x} y={y} width={size} height={size} fill="#f0f0f0" />
-            <path
-              d={`M ${x} ${y + size/2} ${wavePoints.join(' ')} L ${x + size} ${y + size} L ${x} ${y + size} Z`}
-              fill="#4a4a4a"
-              opacity="0.6"
-            />
-            <path
-              d={`M ${x} ${y} L ${x + size} ${y} L ${x + size} ${y + size/2} ${wavePoints.reverse().join(' ')} Z`}
-              fill="#d0d0d0"
-              opacity="0.7"
-            />
-          </g>
-        );
         break;
+        
       
       default:
         // Simple stone pattern for other climates

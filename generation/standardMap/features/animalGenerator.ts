@@ -55,6 +55,15 @@ export function spawnSingleAnimal(
         for (const animalKey in ANIMAL_DATA) {
             const animalData = ANIMAL_DATA[animalKey];
             
+            // Domestic animals should ONLY spawn in paddocks
+            if (['COW', 'GOAT', 'SHEEP', 'PIG'].includes(animalKey)) {
+                // These animals MUST be in paddocks - no exceptions
+                const isInPaddock = tile.paddockType === 'Livestock';
+                if (!isInPaddock) {
+                    continue;
+                }
+            }
+            
             if (animalData.habitat === 'aquatic' ? (tile.isLand || isNearLand(x, y, mapData.tiles, 2)) : !tile.isLand) continue;
             if (!animalData.spawnBiomes.includes(tile.biome)) continue;
             
@@ -152,6 +161,124 @@ export function spawnSingleAnimal(
     return null; // No animal spawned
 }
 
+/**
+ * Spawns domestic animals specifically in paddocks
+ */
+function spawnDomesticAnimalsInPaddocks(
+    mapData: MapData,
+    noise: ValueNoise,
+    occupiedTiles: Set<string>,
+    culturalZone: CulturalZone,
+    region: string
+): AnimalEntity[] {
+    const paddockAnimals: AnimalEntity[] = [];
+    const paddockTiles: Tile[] = [];
+    
+    // Find all paddock tiles
+    for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+        for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+            const tile = mapData.tiles[y][x];
+            if (tile.paddockType === 'Livestock' && !occupiedTiles.has(`${x},${y}`)) {
+                paddockTiles.push(tile);
+            }
+        }
+    }
+    
+    if (paddockTiles.length === 0) {
+        return paddockAnimals;
+    }
+    
+    // Shuffle paddock tiles
+    paddockTiles.sort(() => noise.random() - 0.5);
+    
+    // List of domestic animals that should spawn in paddocks
+    const paddockAnimalTypes = ['COW', 'GOAT', 'SHEEP', 'PIG'];
+    
+    // Try to spawn 2-5 animals per paddock region
+    const animalsPerPaddock = 2 + Math.floor(noise.random() * 4);
+    const maxAnimals = Math.min(animalsPerPaddock, paddockTiles.length);
+    
+    for (let i = 0; i < maxAnimals && i < paddockTiles.length; i++) {
+        const tile = paddockTiles[i];
+        const animalType = paddockAnimalTypes[Math.floor(noise.random() * paddockAnimalTypes.length)];
+        const animalData = ANIMAL_DATA[animalType];
+        
+        if (!animalData) continue;
+        
+        // Create the animal
+        let speciesList: AnimalSpecies[] | undefined;
+        const speciesDataForAnimal = SPECIES_DATA[animalType];
+        if (speciesDataForAnimal) {
+            if (speciesDataForAnimal[culturalZone]) {
+                speciesList = speciesDataForAnimal[culturalZone];
+            } else if (speciesDataForAnimal[mapData.climate]) {
+                speciesList = speciesDataForAnimal[mapData.climate];
+            } else {
+                speciesList = speciesDataForAnimal['EUROPEAN'] || speciesDataForAnimal[ClimateType.TEMPERATE];
+            }
+        }
+        const chosenSpecies: AnimalSpecies | undefined = speciesList?.[Math.floor(noise.random() * speciesList.length)];
+        
+        const maxHealth = Math.max(1, animalData.maxHealth + Math.floor((noise.random() - 0.5) * 4));
+        const stats = {
+            level: Math.max(1, animalData.level + Math.floor((noise.random() - 0.5) * 2)),
+            attack: Math.max(0, animalData.attack + Math.floor((noise.random() - 0.5) * 3)),
+            defense: Math.max(0, animalData.defense + Math.floor((noise.random() - 0.5) * 3)),
+            speed: Math.max(1, animalData.speed + Math.floor((noise.random() - 0.5) * 4)),
+            strength: Math.max(1, animalData.strength + Math.floor((noise.random() - 0.5) * 4)),
+            agility: Math.max(1, animalData.agility + Math.floor((noise.random() - 0.5) * 4)),
+            perception: Math.max(1, animalData.perception + Math.floor((noise.random() - 0.5) * 4)),
+            luck: Math.max(1, 5 + Math.floor((noise.random() - 0.5) * 6)),
+        };
+        
+        // Domestic animals in paddocks have lower disease chance (10%)
+        const diseaseService = DiseaseService.getInstance();
+        const shouldHaveDisease = noise.random() < 0.10;
+        
+        let diseaseHealth = undefined;
+        if (shouldHaveDisease) {
+            const dateInfo = parseDateString(mapData.timeSlice || '1650');
+            const era = dateInfo.era || HistoricalEra.MEDIEVAL;
+            
+            diseaseHealth = diseaseService.assignDiseasesToEntity(
+                { health: undefined } as any,
+                era,
+                culturalZone,
+                dateInfo.year
+            );
+        }
+        
+        const animal: AnimalEntity = {
+            id: `animal-${animalIdCounter++}`,
+            baseId: animalType,
+            speciesName: chosenSpecies?.name || animalData.name,
+            linnaeanName: chosenSpecies?.linnaeanName || 'N/A',
+            emoji: chosenSpecies?.emoji || animalData.emoji,
+            x: tile.x,
+            y: tile.y,
+            age: 1 + Math.floor(noise.random() * 10),
+            isDomestic: true,
+            health: maxHealth,
+            maxHealth: maxHealth,
+            stats,
+            type: animalData.type,
+            aiState: 'wandering',
+            target: null,
+            statusEffects: [],
+            diseaseHealth
+        };
+        
+        paddockAnimals.push(animal);
+        occupiedTiles.add(`${tile.x},${tile.y}`);
+    }
+    
+    if (paddockAnimals.length > 0) {
+        console.log(`[Gen] Spawned ${paddockAnimals.length} domestic animals in paddocks.`);
+    }
+    
+    return paddockAnimals;
+}
+
 export function generateAnimalsForMap(
   mapData: MapData,
   noise: ValueNoise
@@ -164,6 +291,11 @@ export function generateAnimalsForMap(
     const culturalZone = mapLocationToCulture(mapData.continent || 'Europe', dateInfo.year);
     const region = mapData.localArea || 'Unknown'; // Use localArea as region for specificity
 
+    // First spawn domestic animals in paddocks
+    const paddockAnimals = spawnDomesticAnimalsInPaddocks(mapData, noise, occupiedTiles, culturalZone, region);
+    animals.push(...paddockAnimals);
+
+    // Then spawn wild animals
     while (animals.length < numToSpawn) {
         const newAnimal = spawnSingleAnimal(mapData, noise, occupiedTiles, culturalZone, region);
         if (newAnimal) {

@@ -182,7 +182,7 @@ const RuinModal: React.FC<RuinModalProps> = ({
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
                                 <span className="text-slate-400">Health:</span>
-                                <span className="text-green-400 ml-2">{playerCharacter.health}/{playerCharacter.maxHealth}</span>
+                                <span className="text-green-400 ml-2">{Math.ceil(playerCharacter.health)}/{Math.ceil(playerCharacter.maxHealth)}</span>
                             </div>
                             <div>
                                 <span className="text-slate-400">Gold:</span>

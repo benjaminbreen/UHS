@@ -87,7 +87,17 @@ const CollapsibleSection: React.FC<{ title: string, count: number, children: Rea
     );
 };
 
-const LeftSidebar: React.FC = () => {
+interface LeftSidebarProps {
+    onShowFactionsModal?: (data: any) => void;
+    onShowFactionTooltip?: (data: any, x: number, y: number) => void;
+    onHideFactionTooltip?: () => void;
+}
+
+const LeftSidebar: React.FC<LeftSidebarProps> = ({ 
+    onShowFactionsModal, 
+    onShowFactionTooltip, 
+    onHideFactionTooltip 
+}) => {
     const { 
         activeMapSubTab, setActiveMapSubTab,
         isLeftSidebarExpanded, setIsLeftSidebarExpanded,
@@ -105,8 +115,22 @@ const LeftSidebar: React.FC = () => {
     const [isResizing, setIsResizing] = useState<boolean>(false);
     const resizeStartX = useRef<number>(0);
     const resizeStartWidth = useRef<number>(DEFAULT_SIDEBAR_WIDTH);
+    // Faction modal and tooltip state now handled at App level
   
     const formattedTime = useMemo(() => `${String(gameTimeHours).padStart(2, '0')}:${String(gameTimeMinutes).padStart(2, '0')}`, [gameTimeHours, gameTimeMinutes]);
+    
+    // Get faction data at component level for use in tooltip and modal
+    const factionData = useMemo(() => {
+        if (!currentZone || !currentRegion || !gameDate) return null;
+        try {
+            const dateInfo = parseDateString(gameDate.year.toString());
+            const culturalZoneEnum = mapLocationToCulture(currentZone, dateInfo.year);
+            return FACTION_DATA[culturalZoneEnum as CulturalZone]?.[currentRegion]?.[dateInfo.era as HistoricalEra];
+        } catch (error) {
+            console.error('Error getting faction data:', error);
+            return null;
+        }
+    }, [currentZone, currentRegion, gameDate]);
     
     const formattedFullDate = useMemo(() => {
       const monthNames = ["January", "February", "March", "April", "May", "June", 
@@ -479,9 +503,6 @@ const LeftSidebar: React.FC = () => {
         }
         // ... rest of your existing tab content logic for other tabs
         if (tab === 'overview') {
-            const dateInfo = parseDateString(gameDate.year.toString());
-            const culturalZoneEnum = mapLocationToCulture(currentZone, dateInfo.year);
-            const factionData = FACTION_DATA[culturalZoneEnum as CulturalZone]?.[currentRegion]?.[dateInfo.era as HistoricalEra];
             const { majorCity } = mapData || {};
           
             const getArchetypePhrase = (archetype: MapArchetype): string => {
@@ -522,9 +543,19 @@ const LeftSidebar: React.FC = () => {
                       <Crown className="w-5 h-5" />
                       Dominant Power
                     </h4>
-                    <p className="text-lg font-bold text-amber-400 mb-2">
-                      {dominantPower}
-                    </p>
+                    <div 
+                      className="cursor-pointer hover:bg-white/5 rounded-lg p-2 -mx-2 transition-colors"
+                      onClick={() => onShowFactionsModal?.(factionData)}
+                      onMouseEnter={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        onShowFactionTooltip?.(factionData, rect.right, rect.top);
+                      }}
+                      onMouseLeave={() => onHideFactionTooltip?.()}
+                    >
+                      <p className="text-lg font-bold text-amber-400">
+                        {dominantPower}
+                      </p>
+                    </div>
                     {factionData?.dominantPowerDescription && (
                         <blockquote className="border-l-2 border-amber-600/50 pl-3 italic text-amber-200/80 leading-relaxed text-xs">
                             {factionData.dominantPowerDescription}
@@ -727,6 +758,8 @@ const LeftSidebar: React.FC = () => {
                     )}
                 </div>
             </div>
+            
+            {/* Faction modal and tooltip are now rendered at App level */}
         </div>
     );
 };

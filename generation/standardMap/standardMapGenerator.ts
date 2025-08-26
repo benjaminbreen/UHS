@@ -990,8 +990,12 @@ export function proceduralGenerateMap(
   console.log("[Gen] Phase 11.5b: Terrain Structure Generation - END");
 
   console.log("[Gen] Phase 11.6: Animal Paddock Generation - START");
+  // DISABLED: Old paddock generation that created fence paths
+  // Now using new PaddockSymbol component for better visual representation
   // Skip animal paddocks in ethereal realms
   if (!etherealRealms.includes(localArea)) {
+    // COMMENTED OUT: generateAnimalPaddocks(mapDataObject, featurePlacementNoise, societalProfile);
+    // The new system still uses paddockType on tiles but renders fences differently
     generateAnimalPaddocks(mapDataObject, featurePlacementNoise, societalProfile);
   } else {
     console.log("[Gen] Skipping animal paddocks for special zone:", localArea);

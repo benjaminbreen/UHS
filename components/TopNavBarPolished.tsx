@@ -12,7 +12,7 @@ import { useGame } from '../contexts/GameContext';
 import { MapArchetype, ClimateType, AltitudeSetting, GameDate } from '../types';
 import { PrimarySourceSearch } from './PrimarySourceSearch';
 import { MAP_ARCHETYPE_DESCRIPTIONS, CLIMATE_TYPE_DESCRIPTIONS, CULTURE_ZONES, GEOGRAPHICAL_DATA } from '../constants/index';
-import { getSafariOptimizedClassName } from '../utils/safariUtils';
+import { getSafariOptimizedClassName, getOptimizedButtonClassName } from '../utils/safariUtils';
 import { worldWeaverService } from '../services/worldWeaverService';
 import WorldWeaverModal from './WorldWeaverModal';
 import QuestsPanel from './QuestsPanel';
@@ -299,9 +299,9 @@ const TopNavBarPolished: React.FC = () => {
         <div className="px-2 sm:px-4 py-2">
           {/* Main Navigation Row */}
           <div className="flex items-center justify-between gap-2">
-            {/* Logo and Title - with responsive padding to align with sidebars */}
-            <div className="flex items-center gap-2 flex-shrink-0 px-4 sm:px-6 md:px-7 lg:px-10 xl:px-14">
-              <style jsx>{`
+            {/* Logo and Title - aligned to left */}
+            <div className="flex items-center gap-2 flex-shrink-0 pl-2 pr-4">
+              <style jsx="true">{`
                 @keyframes subtleGlow {
                   0%, 100% { opacity: 0.7; }
                   50% { opacity: 1; }
@@ -446,7 +446,7 @@ const TopNavBarPolished: React.FC = () => {
                       bg-slate-800/50 backdrop-blur-sm
                       border rounded-lg
                       text-gray-200 placeholder-gray-500
-                      transition-all duration-300
+                      transition-colors duration-150
                       ${isProcessingWorldWeaver 
                         ? 'border-green-400/50 shadow-lg shadow-green-400/20 animate-pulse' 
                         : worldWeaverFocused 
@@ -472,8 +472,8 @@ const TopNavBarPolished: React.FC = () => {
               </div>
             )}
 
-            {/* Desktop Navigation Buttons */}
-            <div className="hidden md:flex items-center gap-2 pr-4 sm:pr-6 md:pr-8 lg:pr-12 xl:pr-16">
+            {/* Desktop Navigation Buttons - aligned to right */}
+            <div className="hidden md:flex items-center gap-2 pr-2">
               {/* Primary Source Search */}
               <PrimarySourceSearch />
               
@@ -485,12 +485,12 @@ const TopNavBarPolished: React.FC = () => {
                     <button
                       key={button.id}
                       onClick={() => handleNavAction(button.id)}
-                      className={`
+                      className={getOptimizedButtonClassName(`
                         px-3 py-1.5 text-xs font-medium text-white rounded-md
                         transition-all duration-200 flex items-center gap-1.5
                         ${getButtonColorClasses(button.color)}
                         shadow-sm hover:shadow-md hover:scale-105
-                      `}
+                      `)}
                       title={button.label}
                     >
                       <Icon className="w-4 h-4" />
@@ -509,12 +509,12 @@ const TopNavBarPolished: React.FC = () => {
                     <button
                       key={button.id}
                       onClick={() => handleNavAction(button.id)}
-                      className={`
+                      className={getOptimizedButtonClassName(`
                         relative px-3 py-1.5 text-xs font-medium text-white rounded-md
                         transition-all duration-200 flex items-center gap-1.5
                         ${getButtonColorClasses(button.color, isActive)}
                         shadow-sm hover:shadow-md hover:scale-105
-                      `}
+                      `)}
                       title={button.label}
                     >
                       <Icon className="w-4 h-4" />

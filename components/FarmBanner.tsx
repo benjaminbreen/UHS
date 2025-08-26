@@ -12,7 +12,7 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { HistoricalEra, CulturalZone, ClimateType, Season, TimeOfDay } from '../types';
+import { HistoricalEra, CulturalZone, ClimateType, Season, TimeOfDay, BiomeType } from '../types';
 
 export type Condition = 'humble' | 'prosperous';
 export type CropType = string;
@@ -30,6 +30,8 @@ interface FarmBannerProps {
   timeOfDay?: TimeOfDay;
   farmName?: string;
   farmerName?: string;
+  currentBiome?: BiomeType;  // The biome where the farm is located
+  surroundingBiomes?: BiomeType[];  // Biomes in the surrounding area
 }
 
 /* -------------------------------------------------------------------------- */
@@ -77,12 +79,60 @@ const TIME_PAL = {
   Night: { skyTop: '#0b1628', skyMid: '#0e2139', skyBot: '#0b1628', sun: '#f6f7ff', star: '#d8e8ff', vignette: '#000c' }
 } as const;
 
-const SEASON_PAL = {
-  spring: { ground: '#7b5e3e', path: '#6a5035', grass: '#367b2f', water: '#7ac0ff', tree: '#2a5a2e', bloom: '#ffd6e0' },
-  summer: { ground: '#8e6237', path: '#6e4f33', grass: '#3b8a2f', water: '#66b6ff', tree: '#2f682f', bloom: '#ffd6a6' },
-  fall:   { ground: '#6f4b2e', path: '#5a3f2a', grass: '#3a6a29', water: '#6aa8df', tree: '#2f592a', bloom: '#ffb36b' },
-  winter: { ground: '#9ea4af', path: '#8d92a0', grass: '#4b6a4b', water: '#bfd6f0', tree: '#3b5340', bloom: '#cfe3ff' }
-} as const;
+// Climate-aware seasonal palettes
+const getSeasonPalette = (season: Season, climate: ClimateType) => {
+  // Tropical and semitropical climates have minimal seasonal variation
+  if (climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL) {
+    return {
+      ground: '#8e6237', path: '#6e4f33', grass: '#3b8a2f', 
+      water: '#66b6ff', tree: '#2f682f', bloom: '#ffd6a6',
+      // Tropical has consistent lush greens year-round
+      variation: 0.95 // High consistency
+    };
+  }
+  
+  // Arid climates have dry, dusty colors year-round
+  if (climate === ClimateType.ARID) {
+    const base = {
+      spring: { ground: '#b89968', path: '#9c7d54', grass: '#7a6a3f', water: '#8fc4e0', tree: '#6b5d3a', bloom: '#ffdb9b' },
+      summer: { ground: '#c4a574', path: '#a88960', grass: '#8a7645', water: '#8fc4e0', tree: '#7a6a40', bloom: '#ffe0a6' },
+      fall:   { ground: '#b09560', path: '#947950', grass: '#7a6638', water: '#8fc4e0', tree: '#6b5d36', bloom: '#ffd49b' },
+      winter: { ground: '#a88b58', path: '#8c6f48', grass: '#706035', water: '#8fc4e0', tree: '#635532', bloom: '#f5e0c0' }
+    };
+    return { ...base[season], variation: 0.7 };
+  }
+  
+  // Mediterranean - mild winters without snow
+  if (climate === ClimateType.MEDITERRANEAN) {
+    const base = {
+      spring: { ground: '#7b5e3e', path: '#6a5035', grass: '#367b2f', water: '#7ac0ff', tree: '#2a5a2e', bloom: '#ffd6e0' },
+      summer: { ground: '#9e7647', path: '#8a6238', grass: '#4a7a35', water: '#66b6ff', tree: '#3a6835', bloom: '#ffd6a6' },
+      fall:   { ground: '#8a6640', path: '#765436', grass: '#4a7232', water: '#6aa8df', tree: '#3a6032', bloom: '#ffb36b' },
+      winter: { ground: '#7a5e3e', path: '#6a5035', grass: '#5a7a4a', water: '#7ac0ff', tree: '#4a6040', bloom: '#e0f0ff' } // No snow
+    };
+    return { ...base[season], variation: 0.8 };
+  }
+  
+  // Cold climates have more extreme seasonal changes
+  if (climate === ClimateType.COLD) {
+    const base = {
+      spring: { ground: '#6b5e3e', path: '#5a4530', grass: '#2a6b25', water: '#7ac0ff', tree: '#1a4a20', bloom: '#ffd6e0' },
+      summer: { ground: '#7e5237', path: '#6e4033', grass: '#2b7a25', water: '#66b6ff', tree: '#1f5825', bloom: '#ffd6a6' },
+      fall:   { ground: '#6f4b2e', path: '#5a3f2a', grass: '#3a5a20', water: '#6aa8df', tree: '#2f4920', bloom: '#ffb36b' },
+      winter: { ground: '#e0e4ef', path: '#d0d4e0', grass: '#808a80', water: '#cfe6ff', tree: '#6b7370', bloom: '#ffffff' } // Heavy snow
+    };
+    return { ...base[season], variation: 0.5 };
+  }
+  
+  // Default temperate climate
+  const base = {
+    spring: { ground: '#7b5e3e', path: '#6a5035', grass: '#367b2f', water: '#7ac0ff', tree: '#2a5a2e', bloom: '#ffd6e0' },
+    summer: { ground: '#8e6237', path: '#6e4f33', grass: '#3b8a2f', water: '#66b6ff', tree: '#2f682f', bloom: '#ffd6a6' },
+    fall:   { ground: '#6f4b2e', path: '#5a3f2a', grass: '#3a6a29', water: '#6aa8df', tree: '#2f592a', bloom: '#ffb36b' },
+    winter: { ground: '#9ea4af', path: '#8d92a0', grass: '#4b6a4b', water: '#bfd6f0', tree: '#3b5340', bloom: '#cfe3ff' }
+  };
+  return { ...base[season], variation: 0.6 };
+};
 
 /* -------------------------------------------------------------------------- */
 /* Variant & Growth                                                           */
@@ -101,6 +151,39 @@ const variantFrom = (era: HistoricalEra, zone: CulturalZone) => {
 type GrowthStage = 'seedling' | 'vegetative' | 'fruiting' | 'harvest' | 'fallow' | 'flooded' | 'blossom';
 const growthFor = (cropType: CropType, season: Season, climate: ClimateType): GrowthStage => {
   const c = cropType.toLowerCase();
+  
+  // Tropical and semitropical climates have year-round growing seasons
+  if (climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL) {
+    if (c.includes('rice')) return 'flooded'; // Always flooded in tropical
+    if (['coconut', 'banana', 'palm', 'coffee', 'cacao'].some(k => c.includes(k))) return 'fruiting'; // Always producing
+    if (['sugar', 'cane'].some(k => c.includes(k))) return 'vegetative'; // Always green
+    if (['cotton', 'tobacco'].some(k => c.includes(k))) return 'vegetative';
+    // Most crops are always productive in tropical climates
+    return 'vegetative';
+  }
+  
+  // Arid climates have limited growing seasons
+  if (climate === ClimateType.ARID) {
+    if (c.includes('date') || c.includes('palm')) return season === 'winter' ? 'vegetative' : 'fruiting';
+    if (c.includes('olive')) return season === 'spring' ? 'vegetative' : season === 'fall' ? 'fruiting' : 'harvest';
+    // Most crops struggle in summer heat
+    if (season === 'summer') return 'fallow';
+    if (season === 'winter') return 'vegetative';
+    if (season === 'spring') return 'seedling';
+    return 'harvest';
+  }
+  
+  // Mediterranean climates - mild winters allow some growth
+  if (climate === ClimateType.MEDITERRANEAN) {
+    if (c.includes('olive') || c.includes('grape') || c.includes('citrus')) {
+      if (season === 'winter') return 'vegetative'; // Can grow in mild winter
+      if (season === 'spring') return 'blossom';
+      if (season === 'summer') return 'fruiting';
+      return 'harvest';
+    }
+  }
+  
+  // Default seasonal logic for temperate/cold climates
   if (c.includes('rice')) {
     if (season === 'spring') return 'flooded';
     if (season === 'summer') return 'vegetative';
@@ -165,12 +248,14 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
   height = 220,
   timeOfDay = 'Midday',
   farmName,
-  farmerName
+  farmerName,
+  currentBiome = BiomeType.GRASSLAND,
+  surroundingBiomes = []
 }) => {
   /* Derived settings */
   const rng = useMemo(() => new RNG(seed), [seed]);
   const T = TIME_PAL[(timeOfDay as keyof typeof TIME_PAL) in TIME_PAL ? timeOfDay as keyof typeof TIME_PAL : 'Midday'];
-  const S = SEASON_PAL[season as keyof typeof SEASON_PAL];
+  const S = getSeasonPalette(season, climate);
   const variant = useMemo(() => variantFrom(era, culturalZone), [era, culturalZone]);
   const stage = useMemo(() => growthFor(cropType, season, climate), [cropType, season, climate]);
 
@@ -225,10 +310,14 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
 
   /* ----------------------------- Stable Weather --------------------------- */
   const particlesRef = useRef<Particle[]>([]);
-  const wantSnow   = season === 'winter' && (climate === ClimateType.COLD || climate === ClimateType.TEMPERATE);
-  const wantRain   = (season === 'spring' && climate !== ClimateType.ARID) || (season === 'summer' && climate !== ClimateType.ARID && rng.next() < 0.25);
+  // Snow only in cold climates and cold-temperate winters
+  const wantSnow   = season === 'winter' && climate === ClimateType.COLD;
+  // Mediterranean winters get rain instead of snow, tropical/semitropical have minimal weather variation
+  const wantRain   = (season === 'winter' && climate === ClimateType.MEDITERRANEAN) ||
+                     (season === 'spring' && climate !== ClimateType.ARID && climate !== ClimateType.TROPICAL && climate !== ClimateType.SEMITROPICAL) ||
+                     (season === 'summer' && climate === ClimateType.TROPICAL && rng.next() < 0.3); // Tropical occasional rain
   const wantDust   = climate === ClimateType.ARID && (season === 'summer' || season === 'fall');
-  const wantFirefly= (season === 'summer' && timeOfDay === 'Dusk' && climate !== ClimateType.ARID);
+  const wantFirefly= (season === 'summer' && timeOfDay === 'Dusk' && climate !== ClimateType.ARID && climate !== ClimateType.COLD);
 
   useEffect(() => {
     const rr = new RNG(seed + 99); const ps: Particle[] = [];
@@ -268,22 +357,127 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
 
   /* ------------------------------- Backdrops ------------------------------ */
 
+  // Analyze surrounding biomes to determine background type
+  const backgroundType = useMemo(() => {
+    const biomeCount: Partial<Record<BiomeType, number>> = {};
+    surroundingBiomes.forEach(b => {
+      biomeCount[b] = (biomeCount[b] || 0) + 1;
+    });
+    
+    // Determine dominant surrounding environment
+    if ((biomeCount[BiomeType.FOREST] || 0) + (biomeCount[BiomeType.DENSE_FOREST] || 0) + (biomeCount[BiomeType.JUNGLE] || 0) >= 3) {
+      return 'forest';
+    }
+    if ((biomeCount[BiomeType.MOUNTAIN] || 0) + (biomeCount[BiomeType.HIGH_PEAK] || 0) + (biomeCount[BiomeType.CLIFF] || 0) >= 2) {
+      return 'mountains';
+    }
+    if ((biomeCount[BiomeType.HILLS] || 0) >= 3) {
+      return 'hills';
+    }
+    if ((biomeCount[BiomeType.SNOW] || 0) + (biomeCount[BiomeType.TUNDRA] || 0) >= 2) {
+      return 'snow';
+    }
+    if ((biomeCount[BiomeType.DESERT] || 0) + (biomeCount[BiomeType.SALT_FLATS] || 0) >= 2) {
+      return 'desert';
+    }
+    if ((biomeCount[BiomeType.FARMLAND] || 0) >= 3) {
+      return 'farmland';
+    }
+    if ((biomeCount[BiomeType.STEPPE] || 0) >= 2) {
+      return 'steppe';
+    }
+    if ((biomeCount[BiomeType.WETLANDS] || 0) + (biomeCount[BiomeType.MANGROVE] || 0) >= 2) {
+      return 'wetlands';
+    }
+    // Default to hills if mixed terrain
+    return 'hills';
+  }, [surroundingBiomes]);
+
   const clouds = useMemo(() => {
     const rr = new RNG(seed + 9);
     return Array.from({ length: 4 }, () => ({ x: rr.range(-80, width - 80), y: rr.range(10, 24), w: rr.int(36, 60) }));
   }, [seed, width]);
 
-  const treeLine = useMemo(() => {
+  // Generate background features based on surrounding terrain
+  const backgroundFeatures = useMemo(() => {
     const rr = new RNG(seed + 5);
-    const count = Math.floor(width / 28);
-    return Array.from({ length: count }, (_, i) => {
-      const x = 12 + i * 28 + (i % 2 ? 3 : 0);
-      const h = rr.int(10, 16);
-      const w = rr.int(6, 9);
-      const lean = rr.int(-1, 1);
-      return { x, h, w, lean };
-    });
-  }, [seed, width]);
+    
+    if (backgroundType === 'forest') {
+      // Dense treeline for forest backgrounds
+      const count = Math.floor(width / 18);
+      return Array.from({ length: count }, (_, i) => ({
+        type: 'tree',
+        x: 8 + i * 18 + rr.int(-4, 4),
+        h: rr.int(14, 24),
+        w: rr.int(8, 12),
+        lean: rr.int(-2, 2),
+        variant: rr.int(0, 2)
+      }));
+    }
+    
+    if (backgroundType === 'mountains') {
+      // Mountain peaks with varied heights
+      return Array.from({ length: 5 }, (_, i) => ({
+        type: 'mountain',
+        x: width * (0.1 + i * 0.2) + rr.range(-30, 30),
+        h: rr.int(60, 90),
+        w: rr.int(120, 180),
+        jaggedness: rr.range(0.3, 0.7)
+      }));
+    }
+    
+    if (backgroundType === 'desert') {
+      // Sand dunes
+      return Array.from({ length: 6 }, (_, i) => ({
+        type: 'dune',
+        x: width * (i * 0.18) + rr.range(-20, 20),
+        h: rr.int(20, 35),
+        w: rr.int(80, 120)
+      }));
+    }
+    
+    if (backgroundType === 'snow') {
+      // Snow-covered pines
+      const count = Math.floor(width / 35);
+      return Array.from({ length: count }, (_, i) => ({
+        type: 'pine',
+        x: 15 + i * 35 + rr.int(-5, 5),
+        h: rr.int(16, 26),
+        w: rr.int(10, 14)
+      }));
+    }
+    
+    if (backgroundType === 'farmland') {
+      // Other farm buildings and silos in distance
+      return Array.from({ length: 3 }, (_, i) => ({
+        type: 'farm_building',
+        x: width * (0.25 + i * 0.3) + rr.range(-40, 40),
+        h: rr.int(18, 24),
+        w: rr.int(30, 45)
+      }));
+    }
+    
+    if (backgroundType === 'steppe') {
+      // Sparse, windswept trees
+      const count = Math.floor(width / 60);
+      return Array.from({ length: count }, (_, i) => ({
+        type: 'sparse_tree',
+        x: 30 + i * 60 + rr.int(-10, 10),
+        h: rr.int(8, 14),
+        w: rr.int(5, 8),
+        lean: rr.int(-3, 3)
+      }));
+    }
+    
+    // Default hills with noise
+    return Array.from({ length: 4 }, (_, i) => ({
+      type: 'hill',
+      x: width * (0.15 + i * 0.25) + rr.range(-40, 40),
+      h: rr.int(30, 55),
+      w: rr.int(140, 200),
+      curve: rr.range(0.4, 0.8)
+    }));
+  }, [seed, width, backgroundType]);
 
   /* ------------------------------ Clearing zones -------------------------- */
 
@@ -390,10 +584,12 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
         <stop offset="100%" stopColor={T.skyBot} />
       </linearGradient>
 
-      {/* Subtle vignette */}
+      {/* Subtle vignette - stronger for arid (dust), lighter for tropical (humid) */}
       <radialGradient id={`vig-${seed}`} cx="50%" cy="50%" r="65%">
         <stop offset="70%" stopColor="#0000" />
-        <stop offset="100%" stopColor={T.vignette} />
+        <stop offset="100%" stopColor={climate === ClimateType.ARID ? mix(T.vignette, '#d4a574', 0.2) : 
+                                       climate === ClimateType.TROPICAL ? mix(T.vignette, '#000', -0.3) :
+                                       T.vignette} />
       </radialGradient>
 
       {/* Dither patterns (dark/light) for pixel texture */}
@@ -444,27 +640,130 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
 
   const BiomeDressing = (
     <g>
-      {/* Distant hills */}
-      {[0.24, 0.62, 0.86].map((p, i) => (
-        <ellipse key={i} cx={width * p} cy={HORIZON_Y} rx={180 - i * 28} ry={46 - i * 8} fill={shade(S.ground, -28 - i * 8)} opacity={0.34} />
-      ))}
-      {/* Treeline with slight variety */}
-      <g opacity={0.9}>
-        {treeLine.map((t, i) => {
-          const trunk = climate === ClimateType.ARID ? shade(S.path, -4) : shade(S.tree, -12);
-          const foliage = climate === ClimateType.ARID ? shade(S.ground, -8) : S.tree;
-          const extra = climate === ClimateType.TROPICAL ? shade(S.tree, 8) : shade(S.tree, -6);
+      {/* Render background features based on surrounding terrain */}
+      {backgroundFeatures.map((feature, i) => {
+        if (feature.type === 'hill') {
+          // Randomized hill shapes with noise
+          const hillColor = climate === ClimateType.ARID ? shade(S.ground, -15 - (i % 2) * 10) :
+                           climate === ClimateType.TROPICAL ? shade(S.tree, -18 - (i % 2) * 8) :
+                           shade(S.ground, -20 - (i % 2) * 12);
+          const points = [];
+          const steps = 20;
+          for (let j = 0; j <= steps; j++) {
+            const t = j / steps;
+            const x = feature.x - feature.w/2 + t * feature.w;
+            const heightMod = Math.sin(t * Math.PI) * feature.curve + (Math.sin(t * Math.PI * 3 + i) * 0.15);
+            const y = HORIZON_Y - feature.h * Math.max(0, heightMod);
+            points.push(`${x},${y}`);
+          }
+          points.push(`${feature.x + feature.w/2},${HORIZON_Y}`);
+          points.push(`${feature.x - feature.w/2},${HORIZON_Y}`);
           return (
-            <g key={i} transform={`translate(${t.x + t.lean}, 0)`}>
-              <rect x={0} y={HORIZON_Y - t.h} width={2} height={t.h} fill={trunk} />
-              <rect x={-Math.floor(t.w / 2)} y={HORIZON_Y - t.h - 4} width={t.w} height={4} fill={foliage} />
-              <rect x={-Math.floor(t.w / 2) + 1} y={HORIZON_Y - t.h - 7} width={t.w - 2} height={3} fill={extra} />
+            <polygon key={`hill-${i}`} points={points.join(' ')} 
+              fill={hillColor} opacity={0.35 - i * 0.05} />
+          );
+        }
+        
+        if (feature.type === 'mountain') {
+          // Jagged mountain peaks
+          const mtColor = season === 'winter' || climate === ClimateType.COLD ? '#e0e4ef' : '#6b5d5d';
+          const points = [];
+          const peaks = 5 + Math.floor(feature.jaggedness * 5);
+          const peakRng = new RNG(seed + i * 100); // Stable randomness per mountain
+          for (let j = 0; j <= peaks; j++) {
+            const t = j / peaks;
+            const x = feature.x - feature.w/2 + t * feature.w;
+            const peakHeight = feature.h * (0.6 + peakRng.next() * 0.4 * feature.jaggedness);
+            const y = HORIZON_Y - (j % 2 === 0 ? peakHeight : peakHeight * 0.7);
+            points.push(`${x},${y}`);
+          }
+          points.push(`${feature.x + feature.w/2},${HORIZON_Y}`);
+          points.push(`${feature.x - feature.w/2},${HORIZON_Y}`);
+          return (
+            <polygon key={`mountain-${i}`} points={points.join(' ')} 
+              fill={mtColor} opacity={0.4} />
+          );
+        }
+        
+        if (feature.type === 'tree') {
+          // Dense forest background
+          const trunk = climate === ClimateType.TROPICAL ? shade(S.tree, -8) : shade(S.tree, -12);
+          const foliage = climate === ClimateType.TROPICAL ? shade(S.tree, 10) : S.tree;
+          return (
+            <g key={`tree-${i}`} opacity={0.85}>
+              <rect x={feature.x} y={HORIZON_Y - feature.h} width={3} height={feature.h} fill={trunk} />
+              <ellipse cx={feature.x + 1.5} cy={HORIZON_Y - feature.h} rx={feature.w/2} ry={feature.h/3} fill={foliage} />
+              {feature.variant === 1 && (
+                <ellipse cx={feature.x + 1.5} cy={HORIZON_Y - feature.h + 5} rx={feature.w/2 - 1} ry={feature.h/4} fill={shade(foliage, -8)} />
+              )}
             </g>
           );
-        })}
-      </g>
-      {/* Fog band */}
-      <rect x={0} y={HORIZON_Y + 1} width={width} height={10} fill="#fff" opacity={0.08} />
+        }
+        
+        if (feature.type === 'pine') {
+          // Snow-covered pines
+          const pineColor = season === 'winter' ? '#4a5d4a' : '#2f4a2f';
+          const snowColor = '#ffffff';
+          return (
+            <g key={`pine-${i}`} opacity={0.9}>
+              <polygon points={`${feature.x},${HORIZON_Y - feature.h} ${feature.x - feature.w/2},${HORIZON_Y} ${feature.x + feature.w/2},${HORIZON_Y}`} 
+                fill={pineColor} />
+              {season === 'winter' && (
+                <polygon points={`${feature.x},${HORIZON_Y - feature.h} ${feature.x - feature.w/3},${HORIZON_Y - feature.h/2} ${feature.x + feature.w/3},${HORIZON_Y - feature.h/2}`} 
+                  fill={snowColor} opacity={0.8} />
+              )}
+            </g>
+          );
+        }
+        
+        if (feature.type === 'dune') {
+          // Sand dunes
+          const duneColor = shade('#d4a574', -10 + (i % 2) * 15);
+          const curve = `Q ${feature.x},${HORIZON_Y - feature.h} ${feature.x + feature.w/2},${HORIZON_Y}`;
+          return (
+            <path key={`dune-${i}`} 
+              d={`M ${feature.x - feature.w/2} ${HORIZON_Y} ${curve} L ${feature.x - feature.w/2} ${HORIZON_Y}`}
+              fill={duneColor} opacity={0.4} />
+          );
+        }
+        
+        if (feature.type === 'farm_building') {
+          // Distant farm structures
+          return (
+            <g key={`farm-${i}`} opacity={0.3}>
+              <rect x={feature.x} y={HORIZON_Y - feature.h} width={feature.w} height={feature.h} fill={shade(S.ground, -25)} />
+              <polygon points={`${feature.x - 4},${HORIZON_Y - feature.h} ${feature.x + feature.w/2},${HORIZON_Y - feature.h - 8} ${feature.x + feature.w + 4},${HORIZON_Y - feature.h}`} 
+                fill={shade('#8b4513', -15)} />
+              {/* Silo */}
+              {i === 1 && (
+                <rect x={feature.x + feature.w + 5} y={HORIZON_Y - feature.h - 10} width={6} height={feature.h + 10} fill="#8a909b" />
+              )}
+            </g>
+          );
+        }
+        
+        if (feature.type === 'sparse_tree') {
+          // Windswept steppe trees
+          const trunk = shade(S.path, -8);
+          return (
+            <g key={`sparse-${i}`} opacity={0.7} transform={`translate(${feature.x}, 0) skewX(${feature.lean * 2})`}>
+              <rect x={0} y={HORIZON_Y - feature.h} width={2} height={feature.h} fill={trunk} />
+              <ellipse cx={1} cy={HORIZON_Y - feature.h} rx={feature.w/2} ry={3} fill={shade(S.grass, -20)} />
+            </g>
+          );
+        }
+        
+        return null;
+      })}
+      
+      {/* Fog band - varies by climate and background */}
+      <rect x={0} y={HORIZON_Y + 1} width={width} height={10} 
+        fill={backgroundType === 'desert' ? '#d4a574' : 
+              backgroundType === 'snow' ? '#e0e4ef' :
+              climate === ClimateType.TROPICAL ? '#9fd89f' : '#fff'} 
+        opacity={backgroundType === 'forest' ? 0.15 :
+                backgroundType === 'mountains' ? 0.1 :
+                climate === ClimateType.TROPICAL ? 0.12 : 0.08} />
     </g>
   );
 
@@ -824,8 +1123,28 @@ const FarmBanner: React.FC<FarmBannerProps> = ({
 
   /* ------------------------------ Weather layer --------------------------- */
 
+  // Rain puddles for Mediterranean winters and wet seasons
+  const showPuddles = (season === 'winter' && climate === ClimateType.MEDITERRANEAN) ||
+                      (wantRain && climate !== ClimateType.ARID);
+
   const Weather = (
     <g>
+      {/* Rain puddles on ground */}
+      {showPuddles && (
+        <g opacity={0.4}>
+          {Array.from({ length: 5 }).map((_, i) => {
+            const px = rng.range(100, width - 100);
+            const py = GROUND_Y + rng.range(10, 30);
+            const pw = rng.range(20, 40);
+            const ph = rng.range(3, 6);
+            return (
+              <ellipse key={`puddle-${i}`} cx={px} cy={py} rx={pw} ry={ph} 
+                fill={S.water} opacity={0.5 + Math.sin(tick * 0.02) * 0.1} />
+            );
+          })}
+        </g>
+      )}
+      
       {particlesRef.current.map(p => {
         switch (p.kind) {
           case 'rain':   return <line key={p.id} x1={p.x} y1={p.y - 6} x2={p.x - 3} y2={p.y} stroke="#6B9BD1" strokeWidth={1} opacity={0.6} />;

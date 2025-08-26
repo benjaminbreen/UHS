@@ -3,6 +3,7 @@
  */
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { InteriorEntity, InteriorMapData, PlayerContext, Item, AmbianceContext, PlayerCharacter, Tile, FarmDetails, HistoricalEra, EncounterableEntity, DialogueEntry, Gender, NpcEntity, MapData, GameDate, Appearance, TerrainStructure, isAnimal, isNpc, isStandardTile } from '../types';
+import type { Season } from '../types';
 import { CulturalZone, FACTION_DATA, GEOGRAPHICAL_DATA, ANIMAL_DATA } from '../constants/index';
 import { generateAmbianceText } from "./ambianceGenerator";
 import { generateNpcName } from "../generation/common/npcUtils";
@@ -12,6 +13,7 @@ import { parseDateString } from "../utils/dateUtils";
 import { findNpcFriends } from './socialService';
 import { primarySourceService } from './primarySourceService';
 import { loadTamedAnimals, TamedAnimal } from './animalTamingService';
+import { WeatherService, WeatherState } from './weatherService';
 
 
 const formatAppearance = (character: PlayerCharacter | NpcEntity): string => {
@@ -279,14 +281,66 @@ export async function generateEncounterDialogue(
                      playerInputLower.includes('how') || playerInputLower.includes('why') ||
                      playerInputLower.includes('can you') || playerInputLower.includes('do you');
 
+    // Get current weather for context
+    const weatherService = new WeatherService();
+    const currentWeather = weatherService.getWeather(
+        mapData.climate || 'temperate',
+        target.biome || 'grassland',
+        mapData.season || 'spring',
+        mapData.timeOfDay || 'Day',
+        0.5,
+        180,
+        { x: target.x, y: target.y }
+    );
+    
+    // Build weather context string
+    const weatherContext = (() => {
+        const temp = currentWeather.temperature;
+        const precip = currentWeather.precipitation;
+        const wind = currentWeather.windSpeed;
+        
+        let weatherString = '';
+        
+        // Temperature
+        if (temp < -10) weatherString += 'It is bitterly cold. ';
+        else if (temp < 0) weatherString += 'It is freezing cold. ';
+        else if (temp < 10) weatherString += 'It is quite cold. ';
+        else if (temp > 35) weatherString += 'It is oppressively hot. ';
+        else if (temp > 30) weatherString += 'It is very hot. ';
+        else if (temp > 25) weatherString += 'It is warm. ';
+        
+        // Precipitation
+        if (precip === 'snow') weatherString += 'Snow is falling. ';
+        else if (precip === 'rain' && currentWeather.intensity > 0.7) weatherString += 'It is raining heavily. ';
+        else if (precip === 'rain') weatherString += 'It is raining. ';
+        else if (precip === 'drizzle') weatherString += 'There is a light drizzle. ';
+        else if (precip === 'sleet') weatherString += 'Sleet is falling. ';
+        
+        // Wind
+        if (wind > 50) weatherString += 'Strong winds are blowing. ';
+        else if (wind > 30) weatherString += 'It is quite windy. ';
+        
+        // Special conditions
+        if (currentWeather.special === 'fog') weatherString += 'Thick fog reduces visibility. ';
+        else if (currentWeather.special === 'mist') weatherString += 'A light mist hangs in the air. ';
+        else if (currentWeather.special === 'frost') weatherString += 'Frost covers everything. ';
+        else if (currentWeather.special === 'heatwave') weatherString += 'The heat is almost unbearable. ';
+        
+        return weatherString || 'The weather is mild.';
+    })();
+
     const prompt = `
         You are roleplaying as ${target.name}, a ${target.age}-year-old ${target.role} in ${mapData.timeSlice} ${mapData.localArea}.
+        
+        **CURRENT WEATHER:** ${weatherContext}
+        If the weather is notable (very hot, cold, raining, snowing), you should mention it naturally in your dialogue when relevant.
         
         **CRITICAL INSTRUCTION:** Think like a real person in this exact historical moment. Consider:
         - What would genuinely shock or alarm someone in my position at this time and place?
         - What are the real dangers and concerns of my era?
         - How would someone of my social class and profession realistically react?
         - What would I notice first about this stranger? (or are they plausibly someone you might know?)
+        - How might the current weather affect our interaction or what we talk about?
         
         **EXAMPLES OF REALISTIC CONTEXTUAL RESPONSES:**
         
@@ -355,83 +409,104 @@ export async function generateEncounterDialogue(
         - Is the player being helpful/kind? (+5 to +20)
         - Is this a normal conversation? (0 to +/-3)
         
-        Return PRECISELY this JSON format:
-        {
-            "dialogue": "The NPC's response",
-            "reputationChange": number (-100 to +20),
-            "shouldCallAuthorities": boolean,
-            "reasoning": "Brief explanation of reputation change"
-        }
+        FORMAT YOUR RESPONSE EXACTLY LIKE THIS (no JSON, no code blocks, just these lines):
+        DIALOGUE: [your character's response in 1-4 sentences]
+        REPUTATION: [increase/decrease/none]
+        AMOUNT: [number from 0 to 100]
+        
+        Example responses:
+        DIALOGUE: Guards! There's an enemy spy here! Seize them immediately!
+        REPUTATION: decrease
+        AMOUNT: 100
+        
+        DIALOGUE: Thank you for your kindness, friend. Here, take this bread as thanks.
+        REPUTATION: increase
+        AMOUNT: 15
+        
+        DIALOGUE: The rain's getting worse. Better find shelter before the roads turn to mud.
+        REPUTATION: none
+        AMOUNT: 0
     `;
     
     try {
-        // Use standard flash model for better coherence
+        // Use flash-lite with delimiter format for speed
         const response = await ai.models.generateContent({ 
-            model: 'gemini-2.5-flash', 
+            model: 'gemini-2.5-flash-lite', 
             contents: reputationPrompt,
             config: {
-                temperature: 0.7,
-                topP: 0.95,
-                responseMimeType: "application/json"
+                temperature: 0.5,
+                topP: 0.95
             }
         });
         
-        let responseData;
+        // Parse the delimiter-based response
+        const responseText = response.text.trim();
+        console.log('[NPC Dialogue] Raw response:', responseText);
+        
+        let dialogueText = '';
+        let reputationChange = 0;
+        
         try {
-            responseData = JSON.parse(response.text.trim());
-        } catch (parseError) {
-            // Fallback to old behavior if JSON parsing fails
-            console.warn('Failed to parse LLM JSON response, falling back to text analysis');
-            const npcText = response.text.trim().replace(/"/g, '');
+            // Extract dialogue
+            const dialogueMatch = responseText.match(/DIALOGUE:\s*(.+?)(?:\n|REPUTATION:|$)/si);
+            dialogueText = dialogueMatch?.[1]?.trim() || responseText;
             
-            // Basic text analysis for fallback
-            let reputationChange = 0;
-            let shouldLeave = false;
-            let shouldAttack = false;
+            // Extract reputation change
+            const reputationMatch = responseText.match(/REPUTATION:\s*(increase|decrease|none)/i);
+            const amountMatch = responseText.match(/AMOUNT:\s*(\d+)/i);
             
-            const lowerText = npcText.toLowerCase();
-            
-            // Check for hostile reactions
-            if (lowerText.includes('guards!') || lowerText.includes('authorities') || 
-                lowerText.includes('arrest') || lowerText.includes('treason')) {
-                shouldAttack = false;
-                shouldLeave = true;
-                reputationChange = -100; // Severe reputation loss for being reported
-            } else if (lowerText.includes('attack') || lowerText.includes('kill you')) {
-                shouldAttack = true;
-                reputationChange = -50;
-            } else if (lowerText.includes('leave') || lowerText.includes('go away')) {
-                shouldLeave = true;
-                reputationChange = -10;
+            if (reputationMatch && amountMatch) {
+                const direction = reputationMatch[1].toLowerCase();
+                const amount = parseInt(amountMatch[1]) || 0;
+                
+                if (direction === 'increase') {
+                    reputationChange = Math.min(amount, 20); // Cap positive at 20
+                } else if (direction === 'decrease') {
+                    reputationChange = -Math.min(amount, 100); // Cap negative at -100
+                }
             }
             
-            return { 
-                text: npcText,
-                reputationChange: reputationChange !== 0 ? reputationChange : undefined,
-                shouldLeave,
-                shouldAttack,
-                shouldCallAuthorities: reputationChange <= -100
-            };
+            // Clean up dialogue text - remove any stray format markers
+            dialogueText = dialogueText
+                .replace(/REPUTATION:.*/i, '')
+                .replace(/AMOUNT:.*/i, '')
+                .replace(/```.*?```/gs, '')
+                .trim();
+        } catch (parseError) {
+            // Fallback if parsing fails
+            console.warn('Failed to parse LLM response, using fallback');
+            dialogueText = responseText.replace(/DIALOGUE:|REPUTATION:|AMOUNT:/gi, '').trim();
+            
+            // Use basic text analysis for reputation as fallback
+            const lowerText = dialogueText.toLowerCase();
+            if (lowerText.includes('guards!') || lowerText.includes('authorities') || 
+                lowerText.includes('arrest') || lowerText.includes('treason')) {
+                reputationChange = -100;
+            } else if (lowerText.includes('attack') || lowerText.includes('kill you')) {
+                reputationChange = -50;  
+            } else if (lowerText.includes('leave') || lowerText.includes('go away')) {
+                reputationChange = -10;
+            } else if (lowerText.includes('thank you') || lowerText.includes('grateful')) {
+                reputationChange = 10;
+            }
         }
         
-        // Successfully parsed JSON response
-        const npcText = responseData.dialogue || responseData.text || '';
-        let reputationChange = responseData.reputationChange || 0;
+        // Process the parsed response
+        const npcText = dialogueText;
         
-        // Ensure reputation changes are significant when appropriate
-        if (responseData.shouldCallAuthorities) {
-            reputationChange = Math.min(reputationChange, -100);
-        }
+        // Determine additional flags based on reputation change
+        const shouldCallAuthorities = reputationChange <= -100;
+        const shouldLeave = shouldCallAuthorities || reputationChange <= -70;
+        const shouldAttack = false; // Authorities don't attack, they arrest
         
-        console.log(`[NPC Dialogue] Reputation change: ${reputationChange}, Reason: ${responseData.reasoning || 'None provided'}`);
+        console.log(`[NPC Dialogue] Final dialogue: "${npcText}", Reputation change: ${reputationChange}`);
         
         return { 
             text: npcText,
             reputationChange: reputationChange !== 0 ? reputationChange : undefined,
-            shouldLeave: responseData.shouldCallAuthorities || reputationChange <= -70,
-            shouldAttack: false, // Authorities don't attack, they arrest
-            shouldCallAuthorities: responseData.shouldCallAuthorities || false,
-            reasoning: responseData.reasoning
+            shouldLeave,
+            shouldAttack,
+            shouldCallAuthorities
         };
     } catch (error) {
         console.error("Error generating NPC dialogue:", error);

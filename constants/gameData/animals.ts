@@ -162,7 +162,7 @@ export const ANIMAL_DATA: Record<string, AnimalData> = {
         habitat: 'mountain', behaviorProfile: 'deer'
     },
     SHEEP: {
-        name: 'Sheep', emoji: '🐑', type: 'Domestic', social: 'herd', sizeMultiplier: 0.6, attack: 0, defense: 1, maxHealth: 10, speed: 3, strength: 2, agility: 3, perception: 4, level: 1,
+        name: 'Sheep', emoji: '🐑', type: 'Domestic', social: 'herd', sizeMultiplier: 0.5, attack: 0, defense: 1, maxHealth: 10, speed: 3, strength: 2, agility: 3, perception: 4, level: 1,
         drops: [{ name: 'Wool', chance: 0.9 }, { name: 'Mutton', chance: 0.8 }, { name: 'Sheep Hide', chance: 0.7 }],
         spawnBiomes: [BiomeType.GRASSLAND, BiomeType.HILLS, BiomeType.FARMLAND],
         spawnConditions: { 
@@ -418,7 +418,7 @@ MULE: {
         temperament: 'playful'
     },
     PIG: {
-        name: 'Pig', emoji: '🐖', type: 'Domestic', social: 'herd', sizeMultiplier: 0.8, attack: 1, defense: 1, maxHealth: 12, speed: 3, strength: 4, agility: 2, perception: 3, level: 1,
+        name: 'Pig', emoji: '🐖', type: 'Domestic', social: 'herd', sizeMultiplier: 0.5, attack: 1, defense: 1, maxHealth: 12, speed: 3, strength: 4, agility: 2, perception: 3, level: 1,
         drops: [{ name: 'Pork', chance: 1.0 }, { name: 'Pig Hide', chance: 0.6 }],
         spawnBiomes: [BiomeType.FARMLAND, BiomeType.HAMLET],
         spawnConditions: { zones: ['EUROPEAN', 'EAST_ASIAN', 'SUB_SAHARAN_AFRICAN'] },

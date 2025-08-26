@@ -365,10 +365,12 @@ function generateFarmFamily(
   year: number,
   era: HistoricalEra
 ): FarmFamily {
-  // Generate family surname with proper region
+  // Generate family head name with proper region
   const headName = generateNpcName('Male', culturalZone, region, year, noise);
-  const nameParts = headName.split(' ');
-  const familyName = (nameParts[1] || nameParts[0]) + ' Family';
+  
+  // For family name, just use the head's name as-is
+  // This matches how SettlementInfoPanel displays "Prominent Families"
+  const familyName = headName;
   
   // Generate family members
   const members: FarmFamilyMember[] = [];
@@ -404,7 +406,7 @@ function generateFarmFamily(
   const spouseAge = 30 + Math.floor(noise.random() * 20);
   members.push({
     id: `farmer_${tile.x}_${tile.y}_1`,
-    name: spouseName.split(' ')[0] + ' ' + nameParts[1],
+    name: spouseName,
     age: spouseAge,
     role: 'Farmer',
     gender: 'Female',
@@ -435,7 +437,7 @@ function generateFarmFamily(
     
     members.push({
       id: `farmer_${tile.x}_${tile.y}_${i + 2}`,
-      name: childName.split(' ')[0] + ' ' + nameParts[1],
+      name: childName,
       age,
       role: age < 16 ? 'Child' : age > 60 ? 'Elder' : 'Laborer',
       gender,

@@ -1,3 +1,4 @@
+
 /**
  * constants/gameData/factions/northAmericanColonial.ts
  * Comprehensive faction data for North American cultural zones.
@@ -103,6 +104,281 @@ export const NORTH_AMERICAN_COLONIAL_FACTIONS: FactionFile = {
                 structureNames: {
                     factory: ['Tech Campus', 'Climate Adaptation Infrastructure', 'Wildfire Defense System'],
                     trading_post: ['Digital Commerce Hub', 'Climate Refugee Processing Center']
+                }
+            }
+        },
+        "Northern California": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Californian Indigenous Peoples',
+                dominantPowerDescription: 'Diverse hunter-gatherer societies like the Miwok, Pomo, and Ohlone thrive on acorns, fish, and game, developing complex social structures.',
+                eraContextSentence: 'an age of oak and salmon, where hundreds of tribelets build a rich and complex world.',
+                allegianceGroups: [
+                    { name: 'Miwok Peoples', type: 'primary', description: 'Dominant group of the Central Valley and Sierra foothills.' },
+                    { name: 'Ohlone Peoples', type: 'secondary', description: 'Coastal groups of the San Francisco Bay area.' },
+                    { name: 'Pomo Peoples', type: 'secondary', description: 'Skilled basket makers of the northern coast ranges.' }
+                ],
+                structureNames: {
+                    fortress: ['Fortified Village', 'Hilltop Refuge'],
+                    factory: ['Acorn Processing Site', 'Basket Weaving Center'],
+                    holy_site: ['Sacred Grove', 'Ceremonial Roundhouse'],
+                    palace: ['Headman\'s Dwelling', 'Council Lodge']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Regional Tribal Confederacies',
+                dominantPowerDescription: 'Inter-tribal trade and diplomacy flourish, with complex networks for obsidian, shells, and other goods connecting the coast to the interior.',
+                eraContextSentence: 'an era of trade and tradition, where ancient pathways connect diverse peoples and cultures.',
+                allegianceGroups: [
+                    { name: 'Bay Area Confederacies', type: 'primary', description: 'Alliances of Ohlone and Miwok villages.' },
+                    { name: 'Interior Valley Tribes', type: 'secondary', description: 'Patwin and Nisenan peoples of the Sacramento Valley.' },
+                    { name: 'Northern Coastal Tribes', type: 'secondary', description: 'Yurok and Karuk peoples.' }
+                ],
+                structureNames: {
+                    trading_post: ['Obsidian Trade Hub', 'Shell Bead Market']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Spanish Empire / Russian Colonialism',
+                dominantPowerDescription: 'The Spanish establish missions along the coast while Russian fur traders build a presence at Fort Ross, disrupting native life.',
+                eraContextSentence: 'an era of missions and forts, where Spanish and Russian empires encroach upon ancient tribal lands.',
+                allegianceGroups: [
+                    { name: 'Spanish Empire', type: 'primary', description: 'Mission system centered in the Bay Area.' },
+                    { name: 'Russian-American Company', type: 'secondary', description: 'Fur trading outpost at Fort Ross.' },
+                    { name: 'Californian Native Peoples', type: 'rebel', description: 'Resistance and adaptation to colonial pressures.' },
+                    { name: 'Mexican Republic', type: 'secondary', description: 'Inherits control from Spain after 1821.' }
+                ],
+                structureNames: {
+                    fortress: ['Spanish Presidio', 'Fort Ross'],
+                    factory: ['Mission Workshop', 'Sea Otter Hunting Post'],
+                    holy_site: ['Mission Dolores', 'Native Sacred Site']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'United States',
+                dominantPowerDescription: 'The Gold Rush triggers a massive influx of settlers, leading to California statehood, the genocide of native peoples, and rapid development.',
+                eraContextSentence: 'an era of gold fever and statehood, where a tidal wave of humanity reshapes the land forever.',
+                allegianceGroups: [
+                    { name: 'United States', type: 'primary', description: 'State and federal government.' },
+                    { name: 'Gold Rush Miners', type: 'secondary', description: 'The "Forty-Niners" from around the world.' },
+                    { name: 'Railroad Barons', type: 'trade_company', description: 'Builders of the transcontinental railroad.' },
+                    { name: 'Surviving Native Tribes', type: 'rebel', description: 'Remnants of indigenous populations resisting annihilation.' }
+                ],
+                structureNames: {
+                    fortress: ['US Army Fort', 'Vigilante Committee Headquarters'],
+                    factory: ['Hydraulic Mine', 'Lumber Mill', 'Railroad Yard'],
+                    trading_post: ['Mining Supply Town', 'San Francisco Port', 'Railroad Depot']
+                }
+            },
+            [MODERN_ERA]: {
+                dominantPower: 'United States',
+                dominantPowerDescription: 'The region becomes a global center of technology, counter-culture, and finance, centered on the San Francisco Bay Area.',
+                eraContextSentence: 'an era of silicon and innovation, where Bay Area visionaries change the world.',
+                allegianceGroups: [
+                    { name: 'United States', type: 'primary', description: 'Federal and state governments.' },
+                    { name: 'Tech Industry (Silicon Valley)', type: 'trade_company', description: 'Dominant global technology corporations.' },
+                    { name: 'Counter-Culture Movements', type: 'secondary', description: 'Social and political activists.' },
+                    { name: 'Agricultural Corporations', type: 'trade_company', description: 'Industrial farming in the Central Valley.' }
+                ],
+                structureNames: {
+                    fortress: ['Naval Base Alameda', 'Presidio of San Francisco (former)'],
+                    factory: ['Tech Campus', 'Skyscraper Financial District', 'Winery'],
+                    trading_post: ['San Francisco International Airport', 'Port of Oakland', 'Venture Capital Hub']
+                }
+            },
+            [FUTURE_ERA]: {
+                dominantPower: 'United States',
+                dominantPowerDescription: 'Northern California grapples with extreme wealth inequality, catastrophic wildfires, and political battles over resources and technology\'s role in society.',
+                eraContextSentence: 'an era of fire and code, where technological utopias clash with climate dystopias.',
+                allegianceGroups: [
+                    { name: 'United States Federal Government', type: 'primary', description: 'Often in conflict with state policies.' },
+                    { name: 'Big Tech Corporations', type: 'trade_company', description: 'Increasingly powerful quasi-governmental entities.' },
+                    { name: 'Climate Resilience Movement', type: 'secondary', description: 'Groups focused on wildfire and sea-level rise adaptation.' },
+                    { name: 'Secessionist Movements', type: 'rebel', description: 'Groups advocating for regional independence.' }
+                ],
+                structureNames: {
+                    factory: ['AI Development Center', 'Wildfire Defense Grid', 'Managed Retreat Zone'],
+                    trading_post: ['Global Tech Hub', 'Climate Data Analysis Center']
+                }
+            }
+        },
+        "Central California Coast": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Chumash and Salinan Peoples',
+                dominantPowerDescription: 'Sophisticated maritime cultures thrive, with the Chumash developing advanced plank canoes (tomols) for fishing and trade.',
+                eraContextSentence: 'an age of sea and coast, where the Chumash people build a civilization from the ocean\'s bounty.',
+                allegianceGroups: [
+                    { name: 'Chumash Peoples', type: 'primary', description: 'Dominant maritime society.' },
+                    { name: 'Salinan Peoples', type: 'secondary', description: 'Inland and coastal groups to the north.' },
+                    { name: 'Esselen Peoples', type: 'secondary', description: 'Tribes of the Big Sur coast.' }
+                ],
+                structureNames: {
+                    fortress: ['Coastal Village', 'Hilltop Settlement'],
+                    factory: ['Tomol Building Site', 'Shell Bead Workshop'],
+                    trading_post: ['Coastal Trading Village', 'Inland Trade Route']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Chumash Chiefdoms',
+                dominantPowerDescription: 'Large, densely populated villages are governed by chiefs, participating in a wide-ranging trade network connecting the coast, islands, and interior.',
+                eraContextSentence: 'an era of powerful chiefs, where tomol canoes ply the waters of a thriving coastal economy.',
+                allegianceGroups: [
+                    { name: 'Coastal Chumash Chiefdoms', type: 'primary', description: 'Hierarchical societies along the Santa Barbara Channel.' },
+                    { name: 'Interior Chumash', type: 'secondary', description: 'Groups in the inland valleys.' },
+                    { name: 'Neighboring Tribes', type: 'secondary', description: 'Salinan and Yokuts trading partners.' }
+                ],
+                structureNames: {
+                    palace: ['Chief\'s Residence', 'Ceremonial Dance Ground']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Spanish Empire',
+                dominantPowerDescription: 'Spanish colonization establishes missions and the presidio at Monterey, which becomes the capital of Alta California.',
+                eraContextSentence: 'an era of cross and crown, where Monterey stands as the capital of Spain\'s California colony.',
+                allegianceGroups: [
+                    { name: 'Spanish Empire', type: 'primary', description: 'Colonial administration centered in Monterey.' },
+                    { name: 'Missionized Native Peoples', type: 'secondary', description: 'Chumash and Salinan populations under mission control.' },
+                    { name: 'Mexican Republic', type: 'secondary', description: 'Assumes control after 1821.' }
+                ],
+                structureNames: {
+                    fortress: ['Presidio of Monterey', 'Mission Compound'],
+                    factory: ['Mission Farm', 'Cattle Ranch'],
+                    trading_post: ['Colonial Port of Monterey', 'El Camino Real stop']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'United States',
+                dominantPowerDescription: 'Following American acquisition, the region develops an economy based on agriculture, fishing, and cattle ranching.',
+                eraContextSentence: 'an era of fields and fisheries, where the Salinas Valley becomes the nation\'s salad bowl.',
+                allegianceGroups: [
+                    { name: 'United States', type: 'primary', description: 'State and local governments.' },
+                    { name: 'Agricultural Barons', type: 'trade_company', description: 'Large landowners in the Salinas Valley.' },
+                    { name: 'Fishing Industry', type: 'trade_company', description: 'Whaling and sardine canning in Monterey.' }
+                ],
+                structureNames: {
+                    factory: ['Sardine Cannery', 'Industrial Farm', 'Cattle Ranch'],
+                    trading_post: ['Fishing Wharf', 'Railroad Depot']
+                }
+            },
+            [MODERN_ERA]: {
+                dominantPower: 'United States',
+                dominantPowerDescription: 'The region becomes a major center for tourism, agriculture, and marine science, with a strong military presence.',
+                eraContextSentence: 'an era of tourism and science, where coastal beauty drives a modern economy.',
+                allegianceGroups: [
+                    { name: 'United States', type: 'primary', description: 'Federal, state, and local governments.' },
+                    { name: 'Tourism Industry', type: 'trade_company', description: 'Hotels, resorts, and attractions.' },
+                    { name: 'Agribusiness', type: 'trade_company', description: 'Large-scale agriculture.' },
+                    { name: 'Scientific Community', type: 'secondary', description: 'Marine research institutions.' }
+                ],
+                structureNames: {
+                    fortress: ['Fort Hunter Liggett', 'Naval Postgraduate School'],
+                    factory: ['Winery', 'Artichoke Farm', 'Marine Research Lab'],
+                    trading_post: ['Tourist Resort', 'Agricultural Shipping Hub']
+                }
+            },
+            [FUTURE_ERA]: {
+                dominantPower: 'United States',
+                dominantPowerDescription: 'The Central Coast faces critical challenges from sea-level rise, water shortages for agriculture, and increasing wildfire threats.',
+                eraContextSentence: 'an era of rising tides and thirsty fields, where communities struggle to balance nature and economy.',
+                allegianceGroups: [
+                    { name: 'United States Government', type: 'primary', description: 'Managing climate and resource conflicts.' },
+                    { name: 'Water Management Agencies', type: 'secondary', description: 'Controlling scarce water resources.' },
+                    { name: 'Environmental Protection Groups', type: 'secondary', description: 'Advocating for conservation and managed retreat.' },
+                    { name: 'Agricultural Technology Firms', type: 'trade_company', description: 'Developing drought-resistant farming methods.' }
+                ],
+                structureNames: {
+                    factory: ['Desalination Plant', 'Coastal Retreat Project', 'Agri-Tech Research Center'],
+                    trading_post: ['Water Rights Market', 'Climate Adaptation Hub']
+                }
+            }
+        },
+        "Southern California": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Tongva and Kumeyaay Peoples',
+                dominantPowerDescription: 'Complex hunter-gatherer societies establish large villages and trade networks between the coast and the inland deserts.',
+                eraContextSentence: 'an age of coastal villages, where the Tongva and Kumeyaay peoples master a sun-drenched landscape.',
+                allegianceGroups: [
+                    { name: 'Tongva Peoples', type: 'primary', description: 'Dominant group of the Los Angeles Basin.' },
+                    { name: 'Kumeyaay Peoples', type: 'secondary', description: 'Tribes of the San Diego region.' },
+                    { name: 'Chumash Peoples', type: 'secondary', description: 'Coastal groups to the north.' }
+                ],
+                structureNames: {
+                    fortress: ['Large Village', 'Coastal Settlement'],
+                    factory: ['Shell Fishhook Workshop', 'Oak Grove Processing'],
+                    trading_post: ['Coastal-Inland Trade Route', 'Island Trade Ferry']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Regional Chiefdoms',
+                dominantPowerDescription: 'The population grows, and social complexity increases, with powerful chiefs managing trade, resources, and ritual.',
+                eraContextSentence: 'an era of powerful chiefs, where coastal societies flourish before the arrival of outsiders.',
+                allegianceGroups: [
+                    { name: 'Tongva Chiefdoms', type: 'primary', description: 'Alliances centered on major villages like Yaanga.' },
+                    { name: 'Kumeyaay Bands', type: 'secondary', description: 'Independent but related groups.' }
+                ],
+                structureNames: {
+                    palace: ['Chief\'s Dwelling Complex', 'Ceremonial Plaza']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Spanish Empire',
+                dominantPowerDescription: 'Spain establishes missions at San Diego and Los Angeles, creating the foundation for the region\'s major cities.',
+                eraContextSentence: 'an era of pueblos and missions, where Spain lays the groundwork for a new California.',
+                allegianceGroups: [
+                    { name: 'Spanish Empire', type: 'primary', description: 'Colonial rule through missions, pueblos, and presidios.' },
+                    { name: 'Pueblo de Los Ángeles', type: 'secondary', description: 'The nascent civilian settlement.' },
+                    { name: 'Native Resistance', type: 'rebel', description: 'Indigenous revolts against Spanish domination.' }
+                ],
+                structureNames: {
+                    fortress: ['Presidio of San Diego', 'Mission San Gabriel Arcángel'],
+                    factory: ['Cattle Rancho', 'Mission Vineyard'],
+                    holy_site: ['Catholic Mission Church', 'Native Sacred Site']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'United States',
+                dominantPowerDescription: 'After the Mexican-American War, the region experiences land booms, the discovery of oil, and the birth of the Hollywood film industry.',
+                eraContextSentence: 'an era of oil, oranges, and celluloid, where a new American dream is born under the California sun.',
+                allegianceGroups: [
+                    { name: 'United States', type: 'primary', description: 'State and federal authority.' },
+                    { name: 'Land Speculators', type: 'trade_company', description: 'Promoters of the region\'s growth.' },
+                    { name: 'Oil Barons', type: 'trade_company', description: 'Early petroleum industry leaders.' },
+                    { name: 'Early Film Studios', type: 'trade_company', description: 'The founders of Hollywood.' }
+                ],
+                structureNames: {
+                    fortress: ['Coastal Artillery Fort', 'Army Post'],
+                    factory: ['Oil Derrick', 'Citrus Packing House', 'Movie Studio'],
+                    trading_post: ['Port of Los Angeles', 'Railroad Terminus']
+                }
+            },
+            [MODERN_ERA]: {
+                dominantPower: 'United States',
+                dominantPowerDescription: 'Southern California becomes a sprawling megalopolis, driven by the aerospace, defense, and entertainment industries.',
+                eraContextSentence: 'an era of freeways and suburbs, where Southern California becomes a global cultural and economic powerhouse.',
+                allegianceGroups: [
+                    { name: 'United States', type: 'primary', description: 'Federal, state, and local governments.' },
+                    { name: 'Entertainment Industry', type: 'trade_company', description: 'Hollywood studios and media giants.' },
+                    { name: 'Aerospace & Defense Contractors', type: 'trade_company', description: 'Major suppliers for the military-industrial complex.' },
+                    { name: 'Diverse Immigrant Communities', type: 'secondary', description: 'Populations from around the world, especially Latin America and Asia.' }
+                ],
+                structureNames: {
+                    fortress: ['Naval Base San Diego', 'Edwards Air Force Base', 'Marine Corps Base Camp Pendleton'],
+                    factory: ['Movie Studio Backlot', 'Aerospace Plant', 'Suburban Development'],
+                    trading_post: ['Los Angeles International Airport (LAX)', 'Container Port Complex', 'Freeway Interchange']
+                }
+            },
+            [FUTURE_ERA]: {
+                dominantPower: 'United States',
+                dominantPowerDescription: 'The region faces an existential crisis due to extreme water shortages, wildfires, and immense social stratification, leading to political instability.',
+                eraContextSentence: 'an era of drought and division, where the California dream is threatened by environmental limits and social fractures.',
+                allegianceGroups: [
+                    { name: 'United States Government', type: 'primary', description: 'Struggling to manage cascading crises.' },
+                    { name: 'Water Authorities', type: 'secondary', description: 'Powerful entities rationing a dwindling resource.' },
+                    { name: 'Private Security Forces', type: 'rebel', description: 'Protecting wealthy enclaves from social unrest.' },
+                    { name: 'Climate Migrant Communities', type: 'secondary', description: 'Populations displaced by fire and drought.' }
+                ],
+                structureNames: {
+                    factory: ['Water Recycling Plant', 'Gated Community Fortress', 'Firefighting Super-Hub'],
+                    trading_post: ['Border Checkpoint', 'Resource Rationing Center']
                 }
             }
         },
@@ -398,15 +674,15 @@ export const NORTH_AMERICAN_COLONIAL_FACTIONS: FactionFile = {
                 }
             }
         },
-        "Northeast Woodlands": {
+        "Northeastern Seaboard": {
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Woodland Cultures',
-                dominantPowerDescription: 'Forest peoples develop sophisticated societies based on hunting, gathering, and early agriculture.',
-                eraContextSentence: 'an age of forest wisdom, where woodland peoples master the secrets of the eastern forests.',
+                dominantPowerDescription: 'Forest peoples develop sophisticated societies based on hunting, gathering, and early agriculture in the forests and along the coasts.',
+                eraContextSentence: 'an age of forest wisdom, where woodland peoples master the secrets of the eastern forests and shores.',
                 allegianceGroups: [
-                    { name: 'Eastern Woodland Peoples', type: 'primary', description: 'Various Algonquian and Iroquoian groups.' },
-                    { name: 'Coastal Peoples', type: 'secondary', description: 'Maritime-adapted communities.' },
-                    { name: 'Interior Mountain Peoples', type: 'secondary', description: 'Highland hunting groups.' }
+                    { name: 'Eastern Algonquian Peoples', type: 'primary', description: 'Various coastal and riverine groups.' },
+                    { name: 'Early Iroquoian Groups', type: 'secondary', description: 'Inland peoples of the Great Lakes region.' },
+                    { name: 'Maritime Archaic Peoples', type: 'secondary', description: 'Coastal hunting and fishing groups.' }
                 ],
                 structureNames: {
                     fortress: ['Hilltop Village', 'Fortified Settlement'],
@@ -418,11 +694,11 @@ export const NORTH_AMERICAN_COLONIAL_FACTIONS: FactionFile = {
             },
             [HistoricalEra.MEDIEVAL]: {
                 dominantPower: 'Iroquois Confederacy',
-                dominantPowerDescription: 'The Five Nations create a sophisticated democratic confederation while agricultural villages flourish throughout the region.',
+                dominantPowerDescription: 'The Five Nations (Haudenosaunee) create a sophisticated democratic confederation while agricultural villages flourish throughout the region.',
                 eraContextSentence: 'an era of the Great Peace, where the Iroquois Confederacy brings unity to the eastern woodlands.',
                 allegianceGroups: [
                     { name: 'Iroquois Confederacy', type: 'primary', description: 'Five Nations democratic alliance.' },
-                    { name: 'Algonquian Peoples', type: 'secondary', description: 'Various eastern woodland tribes.' },
+                    { name: 'Algonquian Peoples', type: 'secondary', description: 'Various eastern woodland tribes, often rivals of the Iroquois.' },
                     { name: 'Huron Confederacy', type: 'secondary', description: 'Northern Iroquoian confederation.' }
                 ],
                 structureNames: {
@@ -436,29 +712,29 @@ export const NORTH_AMERICAN_COLONIAL_FACTIONS: FactionFile = {
             },
             [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
                 dominantPower: 'British Colonial Empire',
-                dominantPowerDescription: 'English colonization creates permanent settlements while the Iroquois maintain power as crucial allies.',
-                eraContextSentence: 'an era of two worlds meeting, where English colonists and Iroquois diplomats reshape the continent.',
+                dominantPowerDescription: 'English, Dutch, and French colonization creates permanent settlements while the Iroquois maintain power as crucial allies and rivals.',
+                eraContextSentence: 'an era of new beginnings and conflict, where European colonists and Native diplomats reshape the continent.',
                 allegianceGroups: [
-                    { name: 'British Empire', type: 'primary', description: 'Colonial government and settlers.' },
-                    { name: 'Iroquois Confederacy', type: 'secondary', description: 'Native American diplomatic power.' },
+                    { name: 'British Empire', type: 'primary', description: 'Colonial government and settlers in New England and Mid-Atlantic.' },
+                    { name: 'Iroquois Confederacy', type: 'secondary', description: 'Native American diplomatic and military power.' },
                     { name: 'French Empire', type: 'secondary', description: 'Rival colonial power to the north.' },
-                    { name: 'Dutch Empire', type: 'secondary', description: 'Trading presence in the Hudson Valley.' }
+                    { name: 'Dutch Republic', type: 'secondary', description: 'Trading presence in the Hudson Valley (New Netherland).' }
                 ],
                 structureNames: {
-                    fortress: ['Colonial Fort', 'Frontier Stockade'],
-                    factory: ['Colonial Mill', 'Ironworks'],
-                    trading_post: ['Colonial Trading Post', 'Fur Trading Center'],
+                    fortress: ['Colonial Fort (e.g., Fort Ticonderoga)', 'Frontier Stockade'],
+                    factory: ['Colonial Mill', 'Shipyard', 'Ironworks'],
+                    trading_post: ['Colonial Port (e.g., Boston, New York)', 'Fur Trading Center'],
                     holy_site: ['Puritan Meetinghouse', 'Anglican Church', 'Native Council Fire']
                 }
             },
             [HistoricalEra.INDUSTRIAL_ERA]: {
                 dominantPower: 'United States',
-                dominantPowerDescription: 'The region becomes the industrial and financial heart of the expanding nation, with massive cities and factory complexes.',
+                dominantPowerDescription: 'The region becomes the industrial and financial heart of the expanding nation, with massive cities, factory complexes, and waves of immigration.',
                 eraContextSentence: 'an era of steam and steel, where the Northeast forges the industrial destiny of America.',
                 allegianceGroups: [
                     { name: 'United States', type: 'primary', description: 'Federal and state governments.' },
                     { name: 'Industrial Capitalists', type: 'trade_company', description: 'Factory owners and financial magnates.' },
-                    { name: 'Immigrant Communities', type: 'secondary', description: 'European immigrants providing labor.' },
+                    { name: 'European Immigrant Communities', type: 'secondary', description: 'Irish, German, Italian, and other immigrants providing labor.' },
                     { name: 'Labor Organizations', type: 'rebel', description: 'Early labor unions and worker movements.' }
                 ],
                 structureNames: {
@@ -469,7 +745,7 @@ export const NORTH_AMERICAN_COLONIAL_FACTIONS: FactionFile = {
             },
             [MODERN_ERA]: {
                 dominantPower: 'United States',
-                dominantPowerDescription: 'The Northeast remains the political and financial center of America while transitioning from manufacturing to services and technology.',
+                dominantPowerDescription: 'The Northeast remains the political, financial, and cultural center of America while transitioning from manufacturing to services and technology.',
                 eraContextSentence: 'an era of global influence, where decisions in Manhattan and Washington shape the world.',
                 allegianceGroups: [
                     { name: 'United States Federal Government', type: 'primary', description: 'Political center in Washington DC.' },
@@ -478,16 +754,16 @@ export const NORTH_AMERICAN_COLONIAL_FACTIONS: FactionFile = {
                     { name: 'Organized Crime', type: 'rebel', description: 'Mafia and crime syndicates.' }
                 ],
                 structureNames: {
-                    fortress: ['Pentagon', 'Naval Academy', 'West Point'],
+                    fortress: ['The Pentagon', 'Naval Academy', 'West Point'],
                     factory: ['Financial District', 'University Campus', 'Tech Research Center'],
                     trading_post: ['International Airport', 'Financial Exchange', 'Port Authority'],
-                    palace: ['White House', 'Capitol Building', 'Federal Reserve']
+                    palace: ['The White House', 'U.S. Capitol Building', 'Federal Reserve']
                 }
             },
             [FUTURE_ERA]: {
                 dominantPower: 'United States',
-                dominantPowerDescription: 'The Northeast remains the center of American power but faces increasing political instability, infrastructure decay, and climate-related migration pressures.',
-                eraContextSentence: 'an era of crumbling empire, where the centers of power struggle with internal division and external pressure.',
+                dominantPowerDescription: 'The Northeast remains the center of American power but faces increasing political instability, infrastructure decay, and climate-related pressures from sea-level rise.',
+                eraContextSentence: 'an era of crumbling empire, where the centers of power struggle with internal division and rising tides.',
                 allegianceGroups: [
                     { name: 'United States Federal Government', type: 'primary', description: 'Increasingly dysfunctional federal authority.' },
                     { name: 'Financial Corporations', type: 'trade_company', description: 'Wall Street maintaining global influence despite domestic chaos.' },
@@ -495,7 +771,7 @@ export const NORTH_AMERICAN_COLONIAL_FACTIONS: FactionFile = {
                     { name: 'International Allies', type: 'secondary', description: 'Foreign governments concerned about American stability.' }
                 ],
                 structureNames: {
-                    factory: ['Failing Infrastructure Complex', 'Political Crisis Center', 'Financial Fortress'],
+                    factory: ['Failing Infrastructure Complex', 'Political Crisis Center', 'Sea Wall Project'],
                     trading_post: ['International Crisis Management Hub', 'Political Refugee Processing']
                 }
             }
@@ -599,6 +875,100 @@ export const NORTH_AMERICAN_COLONIAL_FACTIONS: FactionFile = {
                 }
             }
         },
+        "Canada": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'First Nations',
+                dominantPowerDescription: 'A vast and diverse population of indigenous peoples, from Iroquoian farmers in the east to Algonquian hunters of the Shield and Plains bison hunters.',
+                eraContextSentence: 'an age of countless nations, where peoples live in balance with a vast and challenging land.',
+                allegianceGroups: [
+                    { name: 'Algonquian Peoples', type: 'primary', description: 'Widespread hunter-gatherers of the boreal forest.' },
+                    { name: 'Iroquoian Peoples', type: 'secondary', description: 'Agriculturalists of the Great Lakes region.' },
+                    { name: 'Plains First Nations', type: 'secondary', description: 'Bison-hunting cultures of the prairies.' }
+                ],
+                structureNames: {
+                    fortress: ['Fortified Village', 'Seasonal Camp'],
+                    factory: ['Tool Workshop', 'Hide Processing Site'],
+                    trading_post: ['River Confluence Market', 'Trail Rendezvous']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Indigenous Confederacies',
+                dominantPowerDescription: 'Sophisticated political entities like the Huron-Wendat and Iroquois Confederacies emerge, while Norse explorers make brief contact in the east.',
+                eraContextSentence: 'an era of confederacies and councils, where powerful First Nations govern their territories.',
+                allegianceGroups: [
+                    { name: 'Huron-Wendat Confederacy', type: 'primary', description: 'Powerful Iroquoian confederacy in the Great Lakes.' },
+                    { name: 'Iroquois Confederacy', type: 'secondary', description: 'The Five Nations south of the St. Lawrence.' },
+                    { name: 'Norse Explorers', type: 'secondary', description: 'Brief settlements in Newfoundland (Vinland).' }
+                ],
+                structureNames: {
+                    fortress: ['Palisaded Longhouse Village', 'Defensive Earthwork'],
+                    palace: ['Council Longhouse', 'Chief\'s Residence']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'French and British Colonial Competition',
+                dominantPowerDescription: 'France establishes New France along the St. Lawrence, driven by the fur trade, while Britain founds the Hudson\'s Bay Company and seizes Acadia.',
+                eraContextSentence: 'an era of fur and faith, where European empires compete for control of the continent\'s northern half.',
+                allegianceGroups: [
+                    { name: 'French Empire (New France)', type: 'primary', description: 'Colonial power centered in Quebec.' },
+                    { name: 'British Empire (Hudson\'s Bay Company)', type: 'secondary', description: 'Fur trading monopoly controlling the north.' },
+                    { name: 'First Nations Allies', type: 'secondary', description: 'Indigenous groups allied with European powers.' },
+                    { name: 'Iroquois Confederacy', type: 'rebel', description: 'Independent power playing empires against each other.' }
+                ],
+                structureNames: {
+                    fortress: ['Stone Fort (e.g., Quebec City)', 'Hudson\'s Bay Company Fort'],
+                    factory: ['Fur Trading Post', 'Seigneurial Farm'],
+                    trading_post: ['Voyageur Canoe Depot', 'Coastal Fishing Station']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'Dominion of Canada',
+                dominantPowerDescription: 'Following British conquest, the colonies unite in Confederation (1867) and expand westward via the railway, suppressing native and Metis resistance.',
+                eraContextSentence: 'an era of steel rails and dominion, where a new nation is forged from sea to sea.',
+                allegianceGroups: [
+                    { name: 'Dominion of Canada', type: 'primary', description: 'The newly formed semi-independent nation within the British Empire.' },
+                    { name: 'British Empire', type: 'secondary', description: 'The overarching imperial power.' },
+                    { name: 'Metis Nation', type: 'rebel', description: 'Led by Louis Riel in resistance to Canadian expansion.' },
+                    { name: 'Canadian Pacific Railway', type: 'trade_company', description: 'The corporation binding the country together.' }
+                ],
+                structureNames: {
+                    fortress: ['RCMP Fort', 'Militia Barracks', 'Coastal Defense Battery'],
+                    factory: ['Grain Elevator', 'Lumber Mill', 'Textile Factory'],
+                    trading_post: ['Railway Station', 'Prairie Town', 'Great Lakes Port']
+                }
+            },
+            [MODERN_ERA]: {
+                dominantPower: 'Canada',
+                dominantPowerDescription: 'Canada comes of age as a fully independent nation, playing a significant role in world affairs and developing a resource-based economy and social safety net.',
+                eraContextSentence: 'an era of middle power, where Canada defines its identity through multiculturalism, peacekeeping, and resource wealth.',
+                allegianceGroups: [
+                    { name: 'Government of Canada', type: 'primary', description: 'The federal parliamentary democracy.' },
+                    { name: 'United States', type: 'secondary', description: 'Dominant neighbor and trading partner.' },
+                    { name: 'Quebec Separatist Movement', type: 'rebel', description: 'Advocates for Quebec\'s independence.' },
+                    { name: 'Resource Corporations', type: 'trade_company', description: 'Oil, mining, and forestry companies.' }
+                ],
+                structureNames: {
+                    fortress: ['Canadian Forces Base', 'NORAD Station'],
+                    factory: ['Oil Sands Plant', 'Hydroelectric Dam', 'Automotive Assembly Plant'],
+                    trading_post: ['International Airport', 'St. Lawrence Seaway Lock', 'Trans-Canada Highway Hub']
+                }
+            },
+            [FUTURE_ERA]: {
+                dominantPower: 'Canada',
+                dominantPowerDescription: 'As the Arctic melts, Canada faces challenges to its sovereignty and environment, while potentially becoming a global refuge from climate change and political instability.',
+                eraContextSentence: 'an era of melting borders, where Canada navigates the opportunities and perils of a warming world.',
+                allegianceGroups: [
+                    { name: 'Government of Canada', type: 'primary', description: 'Asserting Arctic sovereignty and managing climate migration.' },
+                    { name: 'Indigenous Governments', type: 'secondary', description: 'First Nations with increasing autonomy and land control.' },
+                    { name: 'International Powers', type: 'secondary', description: 'Nations contesting Arctic shipping routes.' },
+                    { name: 'Climate Migrants', type: 'secondary', description: 'Populations moving north to escape worse climate impacts.' }
+                ],
+                structureNames: {
+                    factory: ['Arctic Deepwater Port', 'Climate Adaptation Research Center', 'Freshwater Export Facility'],
+                    trading_post: ['Northern Sea Route Toll Station', 'Climate Refugee Processing Center']
+                }
+            }
+        },
         "Arctic and Subarctic": {
             [HistoricalEra.ANTIQUITY]: {
                 dominantPower: 'Arctic Peoples',
@@ -693,18 +1063,20 @@ export const NORTH_AMERICAN_COLONIAL_FACTIONS: FactionFile = {
         },
         "Mexico and Central Highlands": {
             [HistoricalEra.ANTIQUITY]: {
-                dominantPower: 'Olmec Culture',
-                dominantPowerDescription: 'The Olmec develop Mesoamerica\'s first complex civilization with monumental architecture and sophisticated art.',
-                eraContextSentence: 'an age of colossal heads and jade, where the Olmec create the foundation of Mesoamerican civilization.',
+                dominantPower: 'Teotihuacan Civilization',
+                dominantPowerDescription: 'The great city of Teotihuacan dominates Mesoamerica, building monumental pyramids and influencing cultures from the Maya to the Zapotec.',
+                eraContextSentence: 'an age of gods and pyramids, where the city of Teotihuacan casts its shadow over all of Mesoamerica.',
                 allegianceGroups: [
-                    { name: 'Olmec Centers', type: 'primary', description: 'La Venta and other major ceremonial centers.' },
-                    { name: 'Regional Chiefdoms', type: 'secondary', description: 'Smaller communities in Olmec sphere.' },
-                    { name: 'Highland Peoples', type: 'secondary', description: 'Mountain valley agricultural groups.' }
+                    { name: 'Teotihuacan', type: 'primary', description: 'The dominant metropolis of the Classic Period.' },
+                    { name: 'Olmec Precursors', type: 'secondary', description: 'The foundational "mother culture" of Mesoamerica.' },
+                    { name: 'Zapotec Civilization', type: 'secondary', description: 'Rival power centered at Monte Albán.' }
                 ],
                 structureNames: {
-                    fortress: ['Ceremonial Center', 'Elite Compound'],
-                    holy_site: ['Colossal Head Plaza', 'Sacred Ballcourt'],
-                    palace: ['Elite Platform', 'Ruler\'s Complex']
+                    fortress: ['Citadel', 'Fortified Palace Compound'],
+                    factory: ['Obsidian Workshop', 'Mass Pottery Production'],
+                    holy_site: ['Pyramid of the Sun', 'Pyramid of the Moon'],
+                    palace: ['Palace of Quetzalpapalotl', 'Avenue of the Dead Complex'],
+                    trading_post: ['Great Compound Market', 'Foreign Merchant Barrio']
                 }
             },
             [HistoricalEra.MEDIEVAL]: {
@@ -715,7 +1087,7 @@ export const NORTH_AMERICAN_COLONIAL_FACTIONS: FactionFile = {
                     { name: 'Aztec Empire', type: 'primary', description: 'Triple Alliance centered on Tenochtitlan.' },
                     { name: 'Tributary States', type: 'secondary', description: 'Conquered peoples paying tribute.' },
                     { name: 'Independent Enemies', type: 'rebel', description: 'Unconquered peoples like Tlaxcala.' },
-                    { name: 'Maya City-States', type: 'secondary', description: 'Sophisticated civilization to the southeast.' }
+                    { name: 'Post-Classic Maya City-States', type: 'secondary', description: 'Declining but still sophisticated civilization to the southeast.' }
                 ],
                 structureNames: {
                     fortress: ['Tenochtitlan Fortifications', 'Military Garrison'],
@@ -764,7 +1136,7 @@ export const NORTH_AMERICAN_COLONIAL_FACTIONS: FactionFile = {
             },
             [MODERN_ERA]: {
                 dominantPower: 'Mexico',
-                dominantPowerDescription: 'Mexico modernizes and industrializes while maintaining complex relationships with the United States and managing internal social challenges.',
+                dominantPowerDescription: 'Mexico modernizes and industrializes while managing complex relationships with the United States and internal social challenges.',
                 eraContextSentence: 'an era of revolution and growth, where Mexico becomes a major regional power while preserving its cultural identity.',
                 allegianceGroups: [
                     { name: 'Mexican Government', type: 'primary', description: 'Federal republic with strong presidency.' },
@@ -791,6 +1163,188 @@ export const NORTH_AMERICAN_COLONIAL_FACTIONS: FactionFile = {
                 structureNames: {
                     factory: ['Border Security Complex', 'Climate Refugee Processing Center', 'Cartel Territory'],
                     trading_post: ['Cross-Border Trade Hub', 'Migrant Services Center']
+                }
+            }
+        },
+        "Central America": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Pre-Classic Maya Civilization',
+                dominantPowerDescription: 'Early Maya city-states emerge in the lowlands, developing sophisticated writing, calendars, and monumental architecture.',
+                eraContextSentence: 'an age of emerging kings, where the foundations of Maya civilization are laid among the jungle pyramids.',
+                allegianceGroups: [
+                    { name: 'Early Maya City-States', type: 'primary', description: 'Centers like El Mirador and Nakbe.' },
+                    { name: 'Olmec Influence', type: 'secondary', description: 'Cultural inheritance from the earlier Gulf Coast civilization.' },
+                    { name: 'Isthmian Cultures', type: 'secondary', description: 'Peoples of the Panama and Costa Rica region.' }
+                ],
+                structureNames: {
+                    fortress: ['Ceremonial Complex', 'Early Pyramid'],
+                    holy_site: ['Stela with Glyphs', 'Early Ballcourt']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Classic Maya Civilization',
+                dominantPowerDescription: 'A network of powerful, warring city-states like Tikal, Calakmul, and Copan reaches its artistic and intellectual peak before a mysterious decline.',
+                eraContextSentence: 'an era of divine kings and jungle cities, where Maya civilization blossoms in a landscape of war and ritual.',
+                allegianceGroups: [
+                    { name: 'Tikal Hegemony', type: 'primary', description: 'One of the two major Maya superpowers.' },
+                    { name: 'Calakmul Hegemony (Snake Kingdom)', type: 'rebel', description: 'The primary rival to Tikal.' },
+                    { name: 'Independent City-States', type: 'secondary', description: 'Cities like Copan and Palenque navigating between the superpowers.' }
+                ],
+                structureNames: {
+                    fortress: ['Fortified City Center', 'Royal Acropolis'],
+                    holy_site: ['Great Temple-Pyramid', 'Astronomical Observatory'],
+                    palace: ['Royal Palace Complex', 'Court of Captives']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Spanish Empire',
+                dominantPowerDescription: 'Spanish conquistadors subdue the fragmented post-classic Maya and other indigenous groups, incorporating the region into the Viceroyalty of New Spain.',
+                eraContextSentence: 'an era of conquest and resistance, where the Spanish impose their rule over the remnants of Maya glory.',
+                allegianceGroups: [
+                    { name: 'Spanish Empire', type: 'primary', description: 'Colonial administration under the Captaincy General of Guatemala.' },
+                    { name: 'Resistant Maya Kingdoms', type: 'rebel', description: 'Groups like the Itza kingdom of Tayasal that held out for centuries.' },
+                    { name: 'Encomienda Landowners', type: 'secondary', description: 'Spanish lords granted control over native labor.' }
+                ],
+                structureNames: {
+                    fortress: ['Colonial Fort', 'Walled City of Campeche'],
+                    factory: ['Cacao Plantation', 'Indigo Works'],
+                    holy_site: ['Catholic Church built on Maya temple', 'Mission']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'Central American Republics / US Influence',
+                dominantPowerDescription: 'After independence, the region fractures into unstable republics dominated by landed elites and increasingly, the economic power of US fruit companies.',
+                eraContextSentence: 'an era of "banana republics", where foreign corporations wield more power than local governments.',
+                allegianceGroups: [
+                    { name: 'Conservative Elites', type: 'primary', description: 'Landed aristocracy controlling the new republics.' },
+                    { name: 'Liberal Reformers', type: 'rebel', description: 'Groups attempting to modernize and reduce church power.' },
+                    { name: 'United Fruit Company', type: 'trade_company', description: 'A powerful US corporation that dominated regional politics.' },
+                    { name: 'British Empire', type: 'secondary', description: 'Colonial presence in Belize and the Mosquito Coast.' }
+                ],
+                structureNames: {
+                    factory: ['Banana Plantation', 'Coffee Finca', 'Railroad Line'],
+                    trading_post: ['Company Port', 'Railroad Terminus']
+                }
+            },
+            [MODERN_ERA]: {
+                dominantPower: 'United States (Hegemon)',
+                dominantPowerDescription: 'The region becomes a Cold War battleground, with the US backing right-wing dictatorships against socialist movements, leading to decades of civil war.',
+                eraContextSentence: 'an era of civil war and intervention, where the Cold War is fought hot in the jungles and cities.',
+                allegianceGroups: [
+                    { name: 'US-Backed Dictatorships', type: 'primary', description: 'Authoritarian regimes in Guatemala, El Salvador, Nicaragua (pre-1979).' },
+                    { name: 'Leftist Guerrillas', type: 'rebel', description: 'Groups like the FMLN and Sandinistas fighting for revolution.' },
+                    { name: 'United States (CIA)', type: 'secondary', description: 'Covertly funding and training anti-communist forces.' },
+                    { name: 'Panamanian Government', type: 'secondary', description: 'Managing the Panama Canal after the handover.' }
+                ],
+                structureNames: {
+                    fortress: ['Military Base', 'Counter-Insurgency School', 'Panama Canal Zone'],
+                    factory: ['Maquiladora (Assembly Plant)', 'Offshore Bank'],
+                    trading_post: ['Panama Canal', 'International Airport']
+                }
+            },
+            [FUTURE_ERA]: {
+                dominantPower: 'Fragmented States',
+                dominantPowerDescription: 'Ravaged by climate change (droughts and hurricanes), gang violence, and political instability, the region becomes a major source of global migration.',
+                eraContextSentence: 'an era of exodus, where climate and violence force millions to flee north, leaving fragile states behind.',
+                allegianceGroups: [
+                    { name: 'Struggling National Governments', type: 'primary', description: 'Governments with limited control outside of capitals.' },
+                    { name: 'Transnational Gangs (Maras)', type: 'rebel', description: 'Criminal organizations that act as de facto governments.' },
+                    { name: 'Climate Migrants', type: 'secondary', description: 'Masses of people fleeing environmental disaster.' },
+                    { name: 'Foreign Aid Organizations', type: 'secondary', description: 'NGOs providing essential services.' }
+                ],
+                structureNames: {
+                    factory: ['Abandoned Farmland', 'Humanitarian Aid Center', 'Gang-Controlled Territory'],
+                    trading_post: ['Migrant Caravan Staging Ground', 'Remittance Office']
+                }
+            }
+        },
+        "The Caribbean": {
+            [HistoricalEra.ANTIQUITY]: {
+                dominantPower: 'Arawak (Taíno) Peoples',
+                dominantPowerDescription: 'Agricultural peoples migrating from South America establish villages across the Greater Antilles, developing a sophisticated culture based on cassava farming.',
+                eraContextSentence: 'an age of canoes and cassava, where the Taíno people spread across the islands of the sea.',
+                allegianceGroups: [
+                    { name: 'Taíno Peoples', type: 'primary', description: 'The dominant Arawakan-speaking groups of the Greater Antilles.' },
+                    { name: 'Island Caribs', type: 'secondary', description: 'Migrating groups expanding into the Lesser Antilles.' }
+                ],
+                structureNames: {
+                    fortress: ['Village with Palisade', 'Coastal Settlement'],
+                    holy_site: ['Ballcourt (Batey)', 'Cave with Petroglyphs']
+                }
+            },
+            [HistoricalEra.MEDIEVAL]: {
+                dominantPower: 'Taíno Chiefdoms',
+                dominantPowerDescription: 'Complex, hierarchical chiefdoms emerge, particularly on Hispaniola and Puerto Rico, with powerful leaders (caciques) ruling over large populations.',
+                eraContextSentence: 'an era of powerful caciques, where Taíno society reaches its peak just before the world changes.',
+                allegianceGroups: [
+                    { name: 'Taíno Chiefdoms', type: 'primary', description: 'The five major chiefdoms of Hispaniola and others.' },
+                    { name: 'Carib Warriors', type: 'rebel', description: 'Expanding peoples of the Lesser Antilles, often raiding the Taíno.' }
+                ],
+                structureNames: {
+                    palace: ['Cacique\'s Village (Yucayeque)', 'Ceremonial Plaza']
+                }
+            },
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+                dominantPower: 'Spanish Empire / Age of Piracy',
+                dominantPowerDescription: 'Spanish colonization decimates the indigenous population and establishes the first European colonies in the Americas, which soon become a battleground for pirates and rival empires.',
+                eraContextSentence: 'an era of gold, sugar, and pirates, where the Caribbean becomes the treasure chest and battleground of European empires.',
+                allegianceGroups: [
+                    { name: 'Spanish Empire', type: 'primary', description: 'The first and largest colonial power in the region.' },
+                    { name: 'Buccaneers and Privateers', type: 'rebel', description: 'Based in Tortuga and Port Royal, preying on Spanish shipping.' },
+                    { name: 'British, French, and Dutch Empires', type: 'secondary', description: 'Competing powers seizing islands for sugar plantations.' },
+                    { name: 'Enslaved Africans', type: 'rebel', description: 'Forcibly brought to work the sugar plantations.' }
+                ],
+                structureNames: {
+                    fortress: ['Spanish Fort (e.g., El Morro)', 'Pirate Haven (e.g., Port Royal)'],
+                    factory: ['Sugar Plantation', 'Silver Smelter'],
+                    trading_post: ['Treasure Fleet Port (Havana)', 'Slave Market']
+                }
+            },
+            [HistoricalEra.INDUSTRIAL_ERA]: {
+                dominantPower: 'European Colonial Empires',
+                dominantPowerDescription: 'The Haitian Revolution sends shockwaves through the region as sugar colonies reach peak profitability, followed by the long process of slave emancipation.',
+                eraContextSentence: 'an era of revolution and sugar kings, where the dream of freedom clashes with the brutal reality of the plantation.',
+                allegianceGroups: [
+                    { name: 'British Empire', type: 'primary', description: 'Dominant naval power with key sugar islands like Jamaica and Barbados.' },
+                    { name: 'French Empire', type: 'secondary', description: 'Loses its most valuable colony, Haiti, but retains others.' },
+                    { name: 'Republic of Haiti', type: 'rebel', description: 'The first independent Black republic, born from a slave revolt.' },
+                    { name: 'Spanish Empire', type: 'secondary', description: 'Clings to Cuba and Puerto Rico, the last major slave societies.' }
+                ],
+                structureNames: {
+                    fortress: ['Naval Base', 'Colonial Garrison'],
+                    factory: ['Sugar Mill', 'Rum Distillery', 'Tobacco Plantation'],
+                    trading_post: ['Sugar Port', 'Coaling Station']
+                }
+            },
+            [MODERN_ERA]: {
+                dominantPower: 'United States (Hegemon)',
+                dominantPowerDescription: 'After the Spanish-American War, the US becomes the dominant power. The 20th century sees decolonization, the Cuban Revolution, and the rise of tourism.',
+                eraContextSentence: 'an era of American influence and independence, where islands navigate the currents of the Cold War and mass tourism.',
+                allegianceGroups: [
+                    { name: 'United States', type: 'primary', description: 'The regional hegemon, with direct control or strong influence.' },
+                    { name: 'Independent Caribbean Nations', type: 'secondary', description: 'Newly independent states of the British Commonwealth and elsewhere.' },
+                    { name: 'Communist Cuba', type: 'rebel', description: 'A key Cold War adversary of the United States.' },
+                    { name: 'Tourism Industry', type: 'trade_company', description: 'The dominant economic driver for many islands.' }
+                ],
+                structureNames: {
+                    fortress: ['Guantanamo Bay Naval Base', 'National Army Barracks'],
+                    factory: ['Tourist Resort', 'Cruise Ship Terminal', 'Offshore Financial Center'],
+                    trading_post: ['International Airport', 'Container Port']
+                }
+            },
+            [FUTURE_ERA]: {
+                dominantPower: 'Climate and Economic Vulnerability',
+                dominantPowerDescription: 'The Caribbean faces an existential threat from sea-level rise and increasingly powerful hurricanes, while economies remain dependent on fragile tourism.',
+                eraContextSentence: 'an era of rising seas and stronger storms, where island nations fight for their very existence against a changing climate.',
+                allegianceGroups: [
+                    { name: 'Caribbean Community (CARICOM)', type: 'primary', description: 'Regional bloc attempting to coordinate a response.' },
+                    { name: 'International Lenders (IMF/World Bank)', type: 'secondary', description: 'Holding significant power over indebted island economies.' },
+                    { name: 'Climate Disaster Agencies', type: 'secondary', description: 'International groups responding to increasingly frequent disasters.' },
+                    { name: 'Foreign Powers (e.g., China)', type: 'trade_company', description: 'Offering infrastructure investment in exchange for influence.' }
+                ],
+                structureNames: {
+                    factory: ['Disaster-Resilient Infrastructure', 'Abandoned Coastal Resort', 'Renewable Energy Project'],
+                    trading_post: ['Humanitarian Aid Distribution Hub', 'Climate Finance Negotiation Center']
                 }
             }
         },
@@ -885,103 +1439,6 @@ export const NORTH_AMERICAN_COLONIAL_FACTIONS: FactionFile = {
                 structureNames: {
                     factory: ['Emergency Mining Operation', 'Climate Refugee Settlement', 'Militia Compound'],
                     trading_post: ['Resource Export Hub', 'Survivalist Supply Center']
-                }
-            }
-        },
-        "Atlantic Coast": {
-            [HistoricalEra.ANTIQUITY]: {
-                dominantPower: 'Eastern Woodland Peoples',
-                dominantPowerDescription: 'Diverse hunter-gatherer societies develop along the Atlantic coast, exploiting both marine and terrestrial resources.',
-                eraContextSentence: 'an age of shell and forest, where coastal peoples master the meeting of land and sea.',
-                allegianceGroups: [
-                    { name: 'Coastal Peoples', type: 'primary', description: 'Maritime-adapted communities.' },
-                    { name: 'Interior Forest Peoples', type: 'secondary', description: 'Woodland hunter-gatherers.' },
-                    { name: 'River Valley Peoples', type: 'secondary', description: 'Communities along major rivers.' }
-                ],
-                structureNames: {
-                    fortress: ['Coastal Village', 'Shell Midden Settlement'],
-                    factory: ['Shell Tool Workshop', 'Fish Processing Site'],
-                    trading_post: ['Coastal Trading Ground', 'River Mouth Market'],
-                    holy_site: ['Sacred Mound', 'Ancestor Shell Ring']
-                }
-            },
-            [HistoricalEra.MEDIEVAL]: {
-                dominantPower: 'Atlantic Woodland Cultures',
-                dominantPowerDescription: 'Agricultural societies flourish along the coast while maintaining extensive trade networks with inland peoples.',
-                eraContextSentence: 'an era of three sisters and trade, where coastal farmers connect forest to sea.',
-                allegianceGroups: [
-                    { name: 'Coastal Agricultural Peoples', type: 'primary', description: 'Farming communities along the coast.' },
-                    { name: 'Interior Trading Partners', type: 'secondary', description: 'Woodland peoples participating in trade.' },
-                    { name: 'Northern Confederations', type: 'secondary', description: 'Iroquoian and Algonquian alliances.' }
-                ],
-                structureNames: {
-                    fortress: ['Palisaded Coastal Town', 'Fortified Village'],
-                    trading_post: ['Intertribal Trading Center', 'Coastal Exchange']
-                }
-            },
-            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
-                dominantPower: 'British Colonial Empire',
-                dominantPowerDescription: 'English colonization establishes permanent settlements, creating a new society while displacing indigenous peoples.',
-                eraContextSentence: 'an era of two worlds colliding, where English planters create new societies on ancient shores.',
-                allegianceGroups: [
-                    { name: 'British Empire', type: 'primary', description: 'Colonial government and English settlers.' },
-                    { name: 'Native American Confederations', type: 'rebel', description: 'Indigenous resistance to colonization.' },
-                    { name: 'Dutch Empire', type: 'secondary', description: 'Rival colonial power in Mid-Atlantic.' },
-                    { name: 'African Enslaved Peoples', type: 'rebel', description: 'Forced laborers resisting bondage.' }
-                ],
-                structureNames: {
-                    fortress: ['Colonial Fort', 'Plantation House', 'Blockhouse'],
-                    factory: ['Tobacco Plantation', 'Rice Plantation', 'Naval Stores'],trading_post: ['Colonial Port', 'Tobacco Wharf', 'Slave Market'],
-                    holy_site: ['Anglican Church', 'Puritan Meetinghouse', 'Catholic Mission']
-                }
-            },
-            [HistoricalEra.INDUSTRIAL_ERA]: {
-                dominantPower: 'United States',
-                dominantPowerDescription: 'American independence transforms the Atlantic Coast into the commercial and political heart of the new republic.',
-                eraContextSentence: 'an era of new nationhood, where former colonies become the foundation of American power.',
-                allegianceGroups: [
-                    { name: 'United States', type: 'primary', description: 'The new federal republic.' },
-                    { name: 'British Empire', type: 'secondary', description: 'Former colonial master and ongoing rival.' },
-                    { name: 'Merchant Capitalists', type: 'trade_company', description: 'Commercial elites driving economic growth.' },
-                    { name: 'Enslaved African Americans', type: 'rebel', description: 'Continuing resistance to bondage.' }
-                ],
-                structureNames: {
-                    fortress: ['Coastal Defense Fort', 'Naval Base', 'Harbor Fort'],
-                    factory: ['Textile Mill', 'Shipyard', 'Iron Works', 'Cotton Mill'],
-                    trading_post: ['Commercial Port', 'Railroad Terminal', 'Custom House'],
-                    palace: ['State Capitol', 'Federal Building', 'Merchant Mansion']
-                }
-            },
-            [MODERN_ERA]: {
-                dominantPower: 'United States',
-                dominantPowerDescription: 'The Atlantic Coast becomes the global center of American financial and political power, with massive cities dominating the economy.',
-                eraContextSentence: 'an era of global dominance, where the Atlantic corridor commands world finance and politics.',
-                allegianceGroups: [
-                    { name: 'United States Federal Government', type: 'primary', description: 'Center of American political power.' },
-                    { name: 'Wall Street Financial Sector', type: 'trade_company', description: 'Global financial center.' },
-                    { name: 'Academic Elite', type: 'secondary', description: 'Ivy League and major universities.' },
-                    { name: 'Organized Crime', type: 'rebel', description: 'Mafia and criminal syndicates.' }
-                ],
-                structureNames: {
-                    fortress: ['Pentagon', 'Naval Station', 'Air Base'],
-                    factory: ['Financial District', 'Corporate Headquarters', 'Media Complex'],
-                    trading_post: ['International Airport', 'Container Port', 'Stock Exchange'],
-                    palace: ['White House', 'Capitol Building', 'Federal Reserve']
-                }
-            },
-            [FUTURE_ERA]: {
-                dominantPower: 'United States',
-                dominantPowerDescription: 'The Atlantic Coast faces increasing climate disasters and political instability while remaining the center of declining American hegemony.',
-                eraContextSentence: 'an era of imperial twilight, where the centers of power confront rising seas and falling legitimacy.',
-                allegianceGroups: [
-                    { name: 'United States Federal Government', type: 'primary', description: 'Increasingly dysfunctional federal authority.' },
-                    { name: 'Financial Corporations', type: 'trade_company', description: 'Wall Street maintaining influence despite domestic chaos.' },
-                    { name: 'Climate Refugee Populations', type: 'secondary', description: 'Internal migrants from climate disasters.' },
-                    { name: 'Political Extremist Networks', type: 'rebel', description: 'Groups challenging federal authority.' }
-                ],
-                structureNames: {
-                    factory: ['Flood Barrier System', 'Financial Fortress', 'Climate Crisis Center'],
-                    trading_post: ['International Crisis Hub', 'Refugee Processing Center']
                 }
             }
         }

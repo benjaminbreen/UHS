@@ -8,6 +8,7 @@ import { CulturalZone, Gender, WealthLevel, Appearance } from './characterData';
 import { Allegiance } from './structures';
 import { GoalArchetype, GoalTargetType } from './goals';
 import { CharacterHealth } from './diseaseTypes';
+import { AttributeBadge } from './attributeTypes';
 
 export type NpcStats = CharacterStats;
 export type NpcPersonality = CharacterPersonality;
@@ -121,6 +122,7 @@ export interface NpcEntity {
     ideology: string; // ID of the character's primary Ideology
     beliefs: { beliefId: string; conviction: number }[]; // NEW: Beliefs system
     homeLocation?: Point;
+    attributes?: AttributeBadge[]; // Character's special attributes/badges
 
     // Memory & Reputation
     memory: NpcMemory;

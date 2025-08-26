@@ -385,14 +385,14 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
     const renderBanner = () => {
         switch(tile.biome) {
             case BiomeType.FARMLAND:
-                return <FarmBanner {...bannerProps} cropType={tile.cropType || 'Wheat'} height={180} />;
+                return <FarmBanner {...bannerProps} cropType={tile.cropType || 'Wheat'} height={240} />;
             case BiomeType.MARKETPLACE:
-                return <MarketplaceBanner {...bannerProps} height={180} tile={tile} mapData={mapData} />;
+                return <MarketplaceBanner {...bannerProps} height={260} tile={tile} mapData={mapData} />;
             case BiomeType.HAMLET:
             case BiomeType.LOW_DENSITY_CITY:
             case BiomeType.DENSE_CITY:
             case BiomeType.CITY_CENTER:
-                 return <CityBanner {...bannerProps} size={population > 500 ? 'big_city' : 'smaller_city'} height={150} />;
+                 return <CityBanner {...bannerProps} size={population > 500 ? 'big_city' : 'smaller_city'} height={240} />;
             default:
                 return <div className="w-full h-[150px] bg-slate-700" />;
         }
@@ -402,7 +402,7 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="bg-modal-bg-gradient border border-slate-600 rounded-2xl shadow-glow-primary-lg w-full max-w-4xl flex flex-col animate-popIn" style={{maxHeight: '90vh'}} onClick={e => e.stopPropagation()}>
-                 <header className="relative w-full h-[150px] rounded-t-xl overflow-hidden shrink-0">
+                 <header className="relative w-full h-[260px] rounded-t-xl overflow-hidden shrink-0">
                     {renderBanner()}
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/50 to-transparent"></div>
                     <div className="absolute bottom-0 left-0 p-4 text-white">

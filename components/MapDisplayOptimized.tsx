@@ -63,6 +63,45 @@ const INITIAL_ZOOM_LEVEL = 2;
 
 type PlayerMode = 'ship' | 'onFoot';
 
+// Helper function to get bounding box of an SVG path for viewport culling
+function getPathBounds(svgD: string): { minX: number, minY: number, maxX: number, maxY: number } | null {
+  const numbers = svgD.match(/[\d.-]+/g);
+  if (!numbers || numbers.length < 2) return null;
+  
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (let i = 0; i < numbers.length - 1; i += 2) {
+    const x = parseFloat(numbers[i]);
+    const y = parseFloat(numbers[i + 1]);
+    if (!isNaN(x) && !isNaN(y)) {
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+  }
+  
+  return { minX, minY, maxX, maxY };
+}
+
+// Simple check if path crosses water (for bridge rendering)
+function pathCrossesWater(pathD: string, tiles: Tile[][]): boolean {
+  const numbers = pathD.match(/[\d.-]+/g);
+  if (!numbers || numbers.length < 2) return false;
+  
+  for (let i = 0; i < numbers.length - 1; i += 2) {
+    const x = Math.floor(parseFloat(numbers[i]) / TILE_SIZE_PX_CONST);
+    const y = Math.floor(parseFloat(numbers[i + 1]) / TILE_SIZE_PX_CONST);
+    
+    if (x >= 0 && x < MAP_WIDTH_TILES && y >= 0 && y < MAP_HEIGHT_TILES) {
+      const tile = tiles[y][x];
+      if (tile.biome === BiomeType.RIVER || tile.biome === BiomeType.MAJOR_RIVER) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 // Enhanced memoized components for better performance
 const MemoizedDustEffect = memo<{x: number, y: number, size: number, seed: number}>(({ x, y, size, seed }) => {
     const localRand = useMemo(() => new ValueNoise(seed + x * 73 + y * 97).random, [seed, x, y]);
@@ -1765,6 +1804,18 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               </feMerge>
             </filter>
             
+            {/* Stream rendering filter for better water appearance */}
+            <filter id="streamFilter">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="0.5" result="blur" />
+              <feOffset in="blur" dx="1" dy="1" result="offsetBlur" />
+              <feFlood flood-color="#000000" flood-opacity="0.2" />
+              <feComposite in2="offsetBlur" operator="in" result="shadow" />
+              <feMerge>
+                <feMergeNode in="shadow" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            
             {/* Water mask for paths */}
             <mask id="waterMask">
               {tiles.flat().map((tile) => (
@@ -1897,80 +1948,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 </foreignObject>
             )}
 
-            {/* Paths layer */}
-            <g mask="url(#waterMask)">
-              {pathObjects?.map((path) => {
-                // Special rendering for modern roads and railroads
-                if (path.type === PathType.MODERN_ROAD) {
-                  return (
-                    <g key={path.id}>
-                      {/* Asphalt base */}
-                      <path
-                        d={path.svgD}
-                        stroke={path.strokeColor}
-                        strokeWidth={path.strokeWidth * Math.max(0.8, Math.min(1.5, zoomLevel))}
-                        fill="none"
-                        opacity={path.opacity}
-                        strokeLinecap="square"
-                        strokeLinejoin="miter"
-                      />
-                      {/* White center line */}
-                      <path
-                        d={path.svgD}
-                        stroke="#ffffff"
-                        strokeWidth={path.strokeWidth * 0.05 * Math.max(0.8, Math.min(1.5, zoomLevel))}
-                        fill="none"
-                        opacity={path.opacity * 0.7}
-                        strokeLinecap="square"
-                        strokeLinejoin="miter"
-                        strokeDasharray={`${TILE_SIZE_PX * 0.5} ${TILE_SIZE_PX * 0.3}`}
-                      />
-                    </g>
-                  );
-                } else if (path.type === PathType.RAILROAD) {
-                  return (
-                    <g key={path.id}>
-                      {/* Rail bed */}
-                      <path
-                        d={path.svgD}
-                        stroke="#3a3a3a"
-                        strokeWidth={path.strokeWidth * Math.max(0.8, Math.min(1.5, zoomLevel))}
-                        fill="none"
-                        opacity={path.opacity * 0.5}
-                        strokeLinecap="square"
-                        strokeLinejoin="miter"
-                      />
-                      {/* Rails (dashed to simulate ties) */}
-                      <path
-                        d={path.svgD}
-                        stroke={path.strokeColor}
-                        strokeWidth={path.strokeWidth * 0.7 * Math.max(0.8, Math.min(1.5, zoomLevel))}
-                        fill="none"
-                        opacity={path.opacity}
-                        strokeLinecap="square"
-                        strokeLinejoin="miter"
-                        strokeDasharray={`${TILE_SIZE_PX * 0.15} ${TILE_SIZE_PX * 0.05}`}
-                      />
-                    </g>
-                  );
-                }
-                // Default rendering for regular roads and paths
-                return (
-                  <path
-                    key={path.id}
-                    d={path.svgD}
-                    stroke={path.strokeColor}
-                    strokeWidth={path.strokeWidth * Math.max(0.8, Math.min(1.5, zoomLevel))}
-                    fill="none"
-                    opacity={path.opacity * 0.88}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeDasharray={path.strokeDasharray}
-                    className="transition-opacity duration-300"
-                  />
-                );
-              })}
-            </g>
+            {/* Old paths layer removed - now rendered after terrain features */}
 
             {/* Animated trains on railroads */}
             {(() => {
@@ -2003,48 +1981,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               return null;
             })()}
 
-            {/* Vegetation layer */}
-            {shouldRenderVegetation && vegetation?.map(veg => {
-              const renderX = veg.x * TILE_SIZE_PX;
-              const renderY = veg.y * TILE_SIZE_PX;
-              
-              const symbolComponents: Record<string, React.FC<any>> = {
-                'pine': PineTreeSymbol,
-                'palm': PalmTreeSymbol,
-                'deciduous': DeciduousTreeSymbol,
-                'cactus': CactusSymbol,
-                'bush': BushSymbol,
-              };
-              
-              const SymbolComponent = symbolComponents[veg.symbol];
-
-              if (SymbolComponent) {
-                return (
-                  <g key={veg.id} 
-                     transform={`translate(${renderX}, ${renderY}) scale(${TILE_SIZE_PX / 24})`}>
-                    <SymbolComponent seed={seed + veg.x * 13 + veg.y * 31} season={season} climate={climate} />
-                  </g>
-                );
-              }
-              return (
-                <text
-                  key={veg.id}
-                  x={renderX + TILE_SIZE_PX / 2}
-                  y={renderY + TILE_SIZE_PX / 1.5}
-                  fontSize={TILE_SIZE_PX * 1.5}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  style={{ 
-                    filter: shouldRenderShadows ? 'drop-shadow(2px 3px 4px rgba(0,0,0,0.7))' : 'none', 
-                    pointerEvents: 'none'
-                  }}
-                >
-                  {veg.symbol}
-                </text>
-              );
-            })}
+            {/* Vegetation layer - MOVED TO AFTER ROADS/PATHS */}
             
-            {/* Terrain features layer (farms, cliffs, etc - rendered BELOW urban symbols) */}
+            {/* Terrain features layer (farms, cliffs, etc - rendered BELOW roads, but EXCLUDING hills which render above) */}
             {shouldRenderDetailedSymbols && (
               <g filter="url(#symbolShadow)">
                 {tiles.flat().map((tile) => {
@@ -2053,15 +1992,14 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   const tileSeed = seed + tile.x * 31 + tile.y * 37;
                   const elements = [];
                   
-                  // Only render terrain features in this pass
+                  // Only render non-hill terrain features in this pass
                   if(tile.biome === BiomeType.CLIFF) {
                     elements.push(<CliffSymbol key={`cliff-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} />);
                   } else if(tile.biome === BiomeType.MANGROVE) {
                     elements.push(<MangroveSymbol key={`mangrove-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />);
                   } else if(tile.biome === BiomeType.SALT_FLATS) {
                     elements.push(<SaltFlatsSymbol key={`saltflats-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />);
-                  } else if(tile.biome === BiomeType.HILLS) {
-                    elements.push(<HillSymbol key={`hill-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} climate={climate} season={season}/>);
+                  // HILLS MOVED TO AFTER ROADS
                   } else if(tile.biome === BiomeType.OASIS) {
                     elements.push(<OasisSymbol key={`oasis-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} tileX={tile.x} tileY={tile.y} />);
                   } else if(tile.biome === BiomeType.PLAZA) {
@@ -2138,6 +2076,210 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 })}
               </g>
             )}
+            
+            {/* Roads and paths layer - rendered ABOVE terrain features like parks/plazas */}
+            <g mask="url(#waterMask)">
+              {pathObjects?.map((path) => {
+                // Viewport culling for performance
+                const pathBounds = getPathBounds(path.svgD);
+                if (pathBounds) {
+                  const buffer = TILE_SIZE_PX * 2;
+                  const viewLeft = -panX / zoomLevel - buffer;
+                  const viewRight = (-panX + (containerRef.current?.clientWidth || 800)) / zoomLevel + buffer;
+                  const viewTop = -panY / zoomLevel - buffer;
+                  const viewBottom = (-panY + (containerRef.current?.clientHeight || 600)) / zoomLevel + buffer;
+                  
+                  // Skip if path is completely outside viewport
+                  if (pathBounds.maxX < viewLeft || pathBounds.minX > viewRight || 
+                      pathBounds.maxY < viewTop || pathBounds.minY > viewBottom) {
+                    return null;
+                  }
+                }
+                
+                // Check if path crosses water for bridge rendering
+                // But exclude streams/rivers which are already water paths
+                // Streams have IDs like 'stream-0', 'stream-1' etc
+                const isStreamPath = path.id && path.id.startsWith('stream-');
+                
+                // Also check if the path color looks like water (blue/cyan shades)
+                const isWaterColoredPath = path.strokeColor && (
+                  path.strokeColor.match(/#[0-9a-f]*[89abcdef][0-9a-f]*f/i) || // Blue-ish hex colors
+                  path.strokeColor.includes('blue') ||
+                  path.strokeColor.includes('cyan') ||
+                  parseInt(path.strokeColor?.slice(-2), 16) > 200 // High blue component
+                );
+                
+                const isWaterPath = isStreamPath || isWaterColoredPath;
+                const crossesWater = !isWaterPath && pathCrossesWater(path.svgD, tiles);
+                
+                // Special rendering for modern roads and railroads
+                if (path.type === PathType.MODERN_ROAD) {
+                  return (
+                    <g key={path.id}>
+                      {/* Asphalt base */}
+                      <path
+                        d={path.svgD}
+                        stroke={path.strokeColor}
+                        strokeWidth={path.strokeWidth * Math.max(0.8, Math.min(1.5, zoomLevel))}
+                        fill="none"
+                        opacity={path.opacity}
+                        strokeLinecap="square"
+                        strokeLinejoin="miter"
+                      />
+                      {/* White center line */}
+                      <path
+                        d={path.svgD}
+                        stroke="#ffffff"
+                        strokeWidth={path.strokeWidth * 0.05 * Math.max(0.8, Math.min(1.5, zoomLevel))}
+                        fill="none"
+                        opacity={path.opacity * 0.7}
+                        strokeLinecap="square"
+                        strokeLinejoin="miter"
+                        strokeDasharray={`${TILE_SIZE_PX * 0.5} ${TILE_SIZE_PX * 0.3}`}
+                      />
+                    </g>
+                  );
+                } else if (path.type === PathType.RAILROAD) {
+                  return (
+                    <g key={path.id}>
+                      {/* Rail bed */}
+                      <path
+                        d={path.svgD}
+                        stroke="#3a3a3a"
+                        strokeWidth={path.strokeWidth * Math.max(0.8, Math.min(1.5, zoomLevel))}
+                        fill="none"
+                        opacity={path.opacity * 0.5}
+                        strokeLinecap="square"
+                        strokeLinejoin="miter"
+                      />
+                      {/* Rails (dashed to simulate ties) */}
+                      <path
+                        d={path.svgD}
+                        stroke={path.strokeColor}
+                        strokeWidth={path.strokeWidth * 0.7 * Math.max(0.8, Math.min(1.5, zoomLevel))}
+                        fill="none"
+                        opacity={path.opacity}
+                        strokeLinecap="square"
+                        strokeLinejoin="miter"
+                        strokeDasharray={`${TILE_SIZE_PX * 0.15} ${TILE_SIZE_PX * 0.05}`}
+                      />
+                    </g>
+                  );
+                }
+                
+                // Default rendering for regular roads and paths with simple bridges
+                if (crossesWater) {
+                  // Render a simple bridge
+                  return (
+                    <g key={path.id}>
+                      {/* Bridge shadow */}
+                      <path
+                        d={path.svgD}
+                        stroke="rgba(0, 0, 0, 0.3)"
+                        strokeWidth={path.strokeWidth * 1.3 * Math.max(0.8, Math.min(1.5, zoomLevel))}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        transform="translate(2, 3)"
+                      />
+                      {/* Bridge deck - darker brown */}
+                      <path
+                        d={path.svgD}
+                        stroke="#6B4423"
+                        strokeWidth={path.strokeWidth * 1.1 * Math.max(0.8, Math.min(1.5, zoomLevel))}
+                        fill="none"
+                        opacity={0.95}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      {/* Bridge planks */}
+                      <path
+                        d={path.svgD}
+                        stroke="#8B5A3C"
+                        strokeWidth={path.strokeWidth * 0.9 * Math.max(0.8, Math.min(1.5, zoomLevel))}
+                        fill="none"
+                        opacity={0.9}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeDasharray="4 2"
+                      />
+                    </g>
+                  );
+                }
+                
+                // Regular path rendering (with special filter for streams)
+                return (
+                  <path
+                    key={path.id}
+                    d={path.svgD}
+                    stroke={path.strokeColor}
+                    strokeWidth={path.strokeWidth * Math.max(0.8, Math.min(1.5, zoomLevel))}
+                    fill="none"
+                    opacity={path.opacity * 0.88}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeDasharray={path.strokeDasharray}
+                    filter={isStreamPath ? "url(#streamFilter)" : undefined}
+                    className="transition-opacity duration-300"
+                  />
+                );
+              })}
+            </g>
+            
+            {/* Hills and Vegetation layer - rendered ABOVE roads/streams so they don't appear cut over */}
+            {/* Hills */}
+            {shouldRenderDetailedSymbols && (
+              <g filter="url(#symbolShadow)">
+                {tiles.flat().map((tile) => {
+                  if (tile.biome !== BiomeType.HILLS) return null;
+                  const symbolX = tile.x * TILE_SIZE_PX;
+                  const symbolY = tile.y * TILE_SIZE_PX;
+                  const tileSeed = seed + tile.x * 31 + tile.y * 37;
+                  return <HillSymbol key={`hill-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} climate={climate} season={season}/>;
+                })}
+              </g>
+            )}
+            
+            {/* Vegetation (trees, bushes, etc) */}
+            {shouldRenderVegetation && vegetation?.map(veg => {
+              const renderX = veg.x * TILE_SIZE_PX;
+              const renderY = veg.y * TILE_SIZE_PX;
+              
+              const symbolComponents: Record<string, React.FC<any>> = {
+                'pine': PineTreeSymbol,
+                'palm': PalmTreeSymbol,
+                'deciduous': DeciduousTreeSymbol,
+                'cactus': CactusSymbol,
+                'bush': BushSymbol,
+              };
+              
+              const SymbolComponent = symbolComponents[veg.symbol];
+
+              if (SymbolComponent) {
+                return (
+                  <g key={veg.id} 
+                     transform={`translate(${renderX}, ${renderY}) scale(${TILE_SIZE_PX / 24})`}>
+                    <SymbolComponent seed={seed + veg.x * 13 + veg.y * 31} season={season} climate={climate} />
+                  </g>
+                );
+              }
+              return (
+                <text
+                  key={veg.id}
+                  x={renderX + TILE_SIZE_PX / 2}
+                  y={renderY + TILE_SIZE_PX / 1.5}
+                  fontSize={TILE_SIZE_PX * 1.5}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  style={{ 
+                    filter: shouldRenderShadows ? 'drop-shadow(2px 3px 4px rgba(0,0,0,0.7))' : 'none', 
+                    pointerEvents: 'none'
+                  }}
+                >
+                  {veg.symbol}
+                </text>
+              );
+            })}
             
             {/* Urban and structure symbols layer (rendered ABOVE terrain features) */}
             {shouldRenderDetailedSymbols && (

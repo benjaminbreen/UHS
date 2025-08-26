@@ -1,8 +1,195 @@
 /**
- * components/CityBanner.tsx - Pixel-art city banner matching TerrainStructureBanner aesthetic
+ * components/CityBanner.tsx
+ * Culture+Era-aware, weather/time integrated pixel-art city banner
+ * - Static RNG via useMemo (stable per seed + key props)
+ * - Accurate archetypes per CulturalZone × HistoricalEra
+ * - Time-of-day + weather affect sky, lights, and FX
  */
-import React, { useEffect, useState, useMemo } from 'react';
-import { HistoricalEra, CulturalZone, ClimateType as Climate, Season, MapData, TimeOfDay } from '../types';
+
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  HistoricalEra,
+  CulturalZone,
+  ClimateType,
+  Season,
+  MapData,
+  TimeOfDay,
+} from '../types';
+import { WeatherState } from '../services/weatherService';
+
+/* ---------------------------------- RNG ---------------------------------- */
+
+class SeededRandom {
+  private seed: number;
+  constructor(seed: number) {
+    this.seed = seed || 1;
+  }
+  next() {
+    // LCG (good enough for visuals)
+    this.seed = (this.seed * 1664525 + 1013904223) % 4294967296;
+    return (this.seed >>> 0) / 4294967296;
+  }
+  range(min: number, max: number) {
+    return min + this.next() * (max - min);
+  }
+  int(min: number, max: number) {
+    return Math.floor(this.range(min, max + 1));
+  }
+  pick<T>(arr: readonly T[]): T {
+    return arr[this.int(0, arr.length - 1)];
+  }
+}
+
+const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+const blend = (hex1: string, hex2: string, t: number) => {
+  const parse = (h: string) => {
+    const s = h.replace('#', '');
+    const n = s.length === 3 ? parseInt(s.split('').map(c => c + c).join(''), 16) : parseInt(s, 16);
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  };
+  const a = parse(hex1), b = parse(hex2);
+  const r = Math.round(lerp(a.r, b.r, t));
+  const g = Math.round(lerp(a.g, b.g, t));
+  const c = Math.round(lerp(a.b, b.b, t));
+  return `rgb(${r}, ${g}, ${c})`;
+};
+
+/* ------------------------------ Sky palettes ------------------------------ */
+/** top → mid → bottom (warm near horizon) */
+const SKY = {
+  DAWN: ['#0a0e27', '#4B5C8A', '#FFB6C1'],
+  DAY: ['#1a3a7a', '#4A90E2', '#E6F3FF'],
+  DUSK: ['#16213e', '#2E3A5F', '#FF8C69'],
+  NIGHT: ['#000814', '#001d3d', '#003566'],
+} as const;
+
+function timeKey(t: TimeOfDay | undefined) {
+  switch (t) {
+    case 'Night': return 'NIGHT';
+    case 'Dusk':  return 'DUSK';
+    case 'Dawn':  return 'DAWN';
+    default:      return 'DAY';
+  }
+}
+
+/* ----------------------------- Ground palettes ---------------------------- */
+
+const CLIMATE_PALETTE: Record<ClimateType, { ground: string; veg: string; accent: string; dry?: string }> = {
+  [ClimateType.COLD]: { ground: '#8BA3B1', veg: '#456B7A', accent: '#5D8193' },
+  [ClimateType.TEMPERATE]: { ground: '#86EFAC', veg: '#22C55E', accent: '#166534', dry: '#b0c79f' },
+  [ClimateType.MEDITERRANEAN]: { ground: '#b7c08f', veg: '#5a8f5f', accent: '#8a6e3d', dry: '#d6c79c' },
+  [ClimateType.ARID]: { ground: '#D8C199', veg: '#A98C66', accent: '#C08A4B', dry: '#E2CFAC' },
+  [ClimateType.SEMITROPICAL]: { ground: '#7ED6A4', veg: '#2FAE66', accent: '#0E7A4B', dry: '#a9e3be' },
+  [ClimateType.TROPICAL]: { ground: '#6EE7B7', veg: '#059669', accent: '#047857', dry: '#98f0cf' },
+};
+
+/* -------------------------- Culture style accents ------------------------- */
+
+const CULTURE_ACCENT: Record<CulturalZone, { roof: string; trim: string; banner: string }> = {
+  EUROPEAN: { roof: '#8B0000', trim: '#6b4a2f', banner: '#B91C1C' },
+  EAST_ASIAN: { roof: '#8B0000', trim: '#FFD700', banner: '#E11D48' },
+  SOUTH_ASIAN: { roof: '#C2410C', trim: '#FFD700', banner: '#D97706' },
+  MENA: { roof: '#C4A484', trim: '#4169E1', banner: '#1D4ED8' },
+  SUB_SAHARAN_AFRICAN: { roof: '#8B5A2B', trim: '#F59E0B', banner: '#EA580C' },
+  NORTH_AMERICAN_PRE_COLUMBIAN: { roof: '#8B5A2B', trim: '#A9753A', banner: '#2563EB' },
+  NORTH_AMERICAN_COLONIAL: { roof: '#6B7280', trim: '#9CA3AF', banner: '#2563EB' },
+  SOUTH_AMERICAN: { roof: '#8B4513', trim: '#32CD32', banner: '#10B981' },
+  OCEANIA: { roof: '#8B4513', trim: '#20B2AA', banner: '#06B6D4' },
+};
+
+/* ----------------------- Era buckets & archetype map ---------------------- */
+
+type EraBucket = 'ancient' | 'medieval' | 'early_modern' | 'industrial' | 'modern';
+const eraBucket = (era: HistoricalEra): EraBucket => {
+  switch (era) {
+    case HistoricalEra.INDUSTRIAL_ERA: return 'industrial';
+    case HistoricalEra.MODERN_ERA: return 'modern';
+    case HistoricalEra.RENAISSANCE_EARLY_MODERN: return 'early_modern';
+    case HistoricalEra.MEDIEVAL: return 'medieval';
+    case HistoricalEra.ANTIQUITY:
+    case HistoricalEra.PREHISTORY:
+    default: return 'ancient';
+  }
+};
+
+type Archetype =
+  | 'mud_hut'              // round/rectangular mud with thatch
+  | 'adobe_compound'       // flat-roof adobe clusters
+  | 'thatch_longhouse'     // timber/thatch long house
+  | 'pueblo_terrace'       // terraced adobe/pueblo
+  | 'timber_house'         // half-timber
+  | 'stone_gable'          // stone with gable roof
+  | 'tile_rowhouse'        // tiled roof rowhouses
+  | 'dome_sanctum'         // domed shrine/masjid style
+  | 'pagoda_roof'          // east asian curved roof
+  | 'stilt_house'          // stilted coastal/tropical
+  | 'warehouse'            // early-modern/industrial store
+  | 'factory_stack'        // industrial smokestack
+  | 'row_tenement'         // brick tenement
+  | 'apartment_block'      // modern mid-rise
+  | 'office_tower';        // modern high-rise
+
+const RULES: Record<EraBucket, Partial<Record<CulturalZone, readonly Archetype[]>>> = {
+  ancient: {
+    SUB_SAHARAN_AFRICAN: ['mud_hut', 'adobe_compound', 'thatch_longhouse'],
+    MENA: ['adobe_compound', 'dome_sanctum', 'stone_gable'],
+    EAST_ASIAN: ['pagoda_roof', 'timber_house'],
+    SOUTH_ASIAN: ['dome_sanctum', 'tile_rowhouse', 'adobe_compound'],
+    EUROPEAN: ['stone_gable', 'timber_house'],
+    NORTH_AMERICAN_PRE_COLUMBIAN: ['thatch_longhouse', 'pueblo_terrace', 'stilt_house'],
+    SOUTH_AMERICAN: ['adobe_compound', 'stilt_house', 'pueblo_terrace'],
+    OCEANIA: ['stilt_house', 'thatch_longhouse'],
+    NORTH_AMERICAN_COLONIAL: ['timber_house', 'stone_gable'], // rare case (if misaligned time slice)
+  },
+  medieval: {
+    SUB_SAHARAN_AFRICAN: ['mud_hut', 'adobe_compound', 'thatch_longhouse'],
+    MENA: ['adobe_compound', 'dome_sanctum', 'tile_rowhouse'],
+    EAST_ASIAN: ['pagoda_roof', 'timber_house', 'tile_rowhouse'],
+    SOUTH_ASIAN: ['dome_sanctum', 'tile_rowhouse'],
+    EUROPEAN: ['stone_gable', 'timber_house', 'tile_rowhouse'],
+    NORTH_AMERICAN_PRE_COLUMBIAN: ['thatch_longhouse', 'pueblo_terrace', 'stilt_house'],
+    SOUTH_AMERICAN: ['adobe_compound', 'stilt_house', 'pueblo_terrace'],
+    OCEANIA: ['stilt_house', 'thatch_longhouse'],
+    NORTH_AMERICAN_COLONIAL: ['timber_house', 'stone_gable'], // again, safeguard
+  },
+  early_modern: {
+    SUB_SAHARAN_AFRICAN: ['mud_hut', 'adobe_compound'],
+    MENA: ['tile_rowhouse', 'dome_sanctum', 'warehouse'],
+    EAST_ASIAN: ['tile_rowhouse', 'pagoda_roof', 'warehouse'],
+    SOUTH_ASIAN: ['tile_rowhouse', 'dome_sanctum'],
+    EUROPEAN: ['stone_gable', 'tile_rowhouse', 'warehouse'],
+    NORTH_AMERICAN_PRE_COLUMBIAN: ['pueblo_terrace', 'thatch_longhouse'],
+    NORTH_AMERICAN_COLONIAL: ['timber_house', 'tile_rowhouse', 'warehouse'],
+    SOUTH_AMERICAN: ['adobe_compound', 'tile_rowhouse'],
+    OCEANIA: ['stilt_house', 'timber_house'],
+  },
+  industrial: {
+    SUB_SAHARAN_AFRICAN: ['adobe_compound', 'tile_rowhouse'],
+    MENA: ['tile_rowhouse', 'warehouse', 'factory_stack'],
+    EAST_ASIAN: ['tile_rowhouse', 'warehouse', 'factory_stack'],
+    SOUTH_ASIAN: ['tile_rowhouse', 'warehouse', 'factory_stack'],
+    EUROPEAN: ['tile_rowhouse', 'row_tenement', 'factory_stack'],
+    NORTH_AMERICAN_PRE_COLUMBIAN: ['pueblo_terrace'], // conservative
+    NORTH_AMERICAN_COLONIAL: ['row_tenement', 'warehouse', 'factory_stack'],
+    SOUTH_AMERICAN: ['tile_rowhouse', 'warehouse'],
+    OCEANIA: ['tile_rowhouse', 'warehouse'],
+  },
+  modern: {
+    SUB_SAHARAN_AFRICAN: ['tile_rowhouse', 'apartment_block'],
+    MENA: ['apartment_block', 'row_tenement'],
+    EAST_ASIAN: ['apartment_block', 'office_tower'],
+    SOUTH_ASIAN: ['apartment_block', 'row_tenement'],
+    EUROPEAN: ['apartment_block', 'office_tower'],
+    NORTH_AMERICAN_PRE_COLUMBIAN: ['pueblo_terrace'], // avoid towers
+    NORTH_AMERICAN_COLONIAL: ['apartment_block', 'office_tower'],
+    SOUTH_AMERICAN: ['apartment_block', 'row_tenement'],
+    OCEANIA: ['apartment_block'],
+  },
+};
+
+/* --------------------------------- Props ---------------------------------- */
 
 export type Condition = 'humble' | 'prosperous';
 export type ElevationLevel = 'low' | 'normal' | 'high';
@@ -12,7 +199,7 @@ interface CityBannerProps {
   era: HistoricalEra;
   culturalZone: CulturalZone;
   condition: Condition;
-  climate: Climate;
+  climate: ClimateType;
   season: Season;
   nextToWater?: boolean;
   harbor?: boolean;
@@ -23,422 +210,546 @@ interface CityBannerProps {
   width?: number;
   height?: number;
   mapData?: MapData;
+  weather?: WeatherState | null;
 }
 
-// Enhanced color palettes matching TerrainStructureBanner
-const SKY_COLORS: Record<string, string[]> = {
-  dawn: ['#FF9A8B', '#A8E6CF', '#FFD3BA'],
-  day: ['#87CEEB', '#98D8E8', '#B8E6B8'],
-  dusk: ['#FF8C42', '#FF6B6B', '#C44569'],
-  night: ['#2C3E50', '#34495E', '#4A6741']
-};
-
-const CLIMATE_PALETTES: Record<string, { ground: string, vegetation: string, accent: string }> = {
-  [Climate.COLD]: { ground: '#A8E6A3', vegetation: '#4A7C59', accent: '#6B9080' },
-  [Climate.TEMPERATE]: { ground: '#86EFAC', vegetation: '#22C55E', accent: '#16A34A' },
-  [Climate.ARID]: { ground: '#D2B48C', vegetation: '#8B7355', accent: '#CD853F' },
-  [Climate.SEMITROPICAL]: { ground: '#6EE7B7', vegetation: '#32CD32', accent: '#228B22' },
-  [Climate.TROPICAL]: { ground: '#6EE7B7', vegetation: '#059669', accent: '#047857' }
-};
-
-// Cultural building colors
-const CULTURAL_COLORS: Record<CulturalZone, { primary: string, secondary: string, accent: string }> = {
-  'EUROPEAN': { primary: '#8B4513', secondary: '#654321', accent: '#DC143C' },
-  'EAST_ASIAN': { primary: '#8B0000', secondary: '#DC143C', accent: '#FFD700' },
-  'SOUTH_ASIAN': { primary: '#FF6347', secondary: '#FF8C00', accent: '#FFD700' },
-  'MENA': { primary: '#DEB887', secondary: '#F4A460', accent: '#4169E1' },
-  'SUB_SAHARAN_AFRICAN': { primary: '#8B4513', secondary: '#D2691E', accent: '#FF8C00' },
-  'NORTH_AMERICAN_PRE_COLUMBIAN': { primary: '#8B4513', secondary: '#A0522D', accent: '#FF6347' },
-  'NORTH_AMERICAN_COLONIAL': { primary: '#8B4513', secondary: '#A0522D', accent: '#4169E1' },
-  'SOUTH_AMERICAN': { primary: '#CD853F', secondary: '#DEB887', accent: '#32CD32' },
-  'OCEANIA': { primary: '#8B4513', secondary: '#D2691E', accent: '#20B2AA' }
-};
-
-// Character animation data
-interface Character {
-  id: string;
-  x: number;
-  y: number;
-  direction: 1 | -1;
-  type: 'noble' | 'merchant' | 'worker' | 'guard' | 'child' | 'clergy';
-  color: string;
-  speed: number;
-}
-
-// Seeded random number generator
-class SeededRandom {
-  private seed: number;
-
-  constructor(seed: number) {
-    this.seed = seed;
-  }
-
-  next(): number {
-    this.seed = (this.seed * 9301 + 49297) % 233280;
-    return this.seed / 233280;
-  }
-
-  range(min: number, max: number): number {
-    return min + this.next() * (max - min);
-  }
-}
-
-const getTimeOfDayCategory = (time?: TimeOfDay): 'dawn' | 'day' | 'dusk' | 'night' => {
-  if (!time) return 'day';
-  switch (time) {
-    case 'Dawn': return 'dawn';
-    case 'Dusk': return 'dusk';
-    case 'Night': return 'night';
-    case 'Morning':
-    case 'Midday':
-    case 'Afternoon':
-    default: return 'day';
-  }
-};
+/* -------------------------------- Component -------------------------------- */
 
 const CityBanner: React.FC<CityBannerProps> = ({
-  era, culturalZone, condition, climate, season, nextToWater, harbor,
-  elevationLevel = 'normal', size = 'smaller_city', timeOfDay = 'day' as TimeOfDay,
-  seed, width = 900, height = 220, mapData
+  era,
+  culturalZone,
+  condition,
+  climate,
+  season,
+  nextToWater,
+  harbor,
+  elevationLevel = 'normal',
+  size = 'smaller_city',
+  timeOfDay = 'Day' as TimeOfDay,
+  seed,
+  width = 900,
+  height = 220,
+  mapData,
+  weather,
 }) => {
-  const [animationFrame, setAnimationFrame] = useState(0);
-  const [characters, setCharacters] = useState<Character[]>([]);
-  
-  const rng = new SeededRandom(seed);
-  const cityInfo = mapData?.majorCity;
-  
-  const palette = CLIMATE_PALETTES[climate];
-  const todCategory = getTimeOfDayCategory(timeOfDay);
-  const skyGradient = SKY_COLORS[todCategory];
-  const culturalColors = CULTURAL_COLORS[culturalZone];
-
-  // Initialize characters based on city type
+  const [frame, setFrame] = useState(0);
   useEffect(() => {
-    const generateCharacters = () => {
-      const newCharacters: Character[] = [];
-      const characterCount = size === 'big_city' ? 8 + Math.floor(rng.next() * 4) : 4 + Math.floor(rng.next() * 3);
+    const id = setInterval(() => setFrame(f => f + 1), 60);
+    return () => clearInterval(id);
+  }, []);
 
-      const characterTypes = condition === 'prosperous' 
-        ? ['noble', 'merchant', 'merchant', 'guard', 'clergy', 'worker']
-        : ['worker', 'worker', 'worker', 'merchant', 'guard'];
+  /* ---------------------------- Derived palettes --------------------------- */
 
-      const colors = {
-        'noble': '#4B0082',
-        'merchant': '#8B4513',
-        'worker': '#654321',
-        'guard': '#2F4F4F',
-        'child': '#8B7355',
-        'clergy': '#000000'
-      };
+  const sky = useMemo(() => {
+    const k = timeKey(timeOfDay);
+    let [top, mid, bottom] = SKY[k as keyof typeof SKY];
+    const cc = clamp(weather?.cloudCover ?? 0, 0, 1);
+    // Slight overcast tint
+    if (cc > 0.05) {
+      const gray = '#6e7f94';
+      top = blend(top, gray, cc * 0.35);
+      mid = blend(mid, gray, cc * 0.25);
+      bottom = blend(bottom, gray, cc * 0.18);
+    }
+    if (weather?.precipitation && weather.precipitation !== 'none') {
+      top = blend(top, '#1f2937', 0.2);
+      mid = blend(mid, '#1f2937', 0.12);
+    }
+    return { top, mid, bottom, isNight: k === 'NIGHT' };
+  }, [timeOfDay, weather]);
 
-      for (let i = 0; i < characterCount; i++) {
-        const type = characterTypes[i % characterTypes.length] as Character['type'];
-        newCharacters.push({
-          id: `char-${i}`,
-          x: rng.range(100, width - 100),
-          y: height * 0.7 + rng.range(-5, 5),
-          direction: rng.next() > 0.5 ? 1 : -1,
-          type,
-          color: colors[type],
-          speed: 0.3 + rng.range(0, 0.4)
-        });
-      }
+  const ground = useMemo(() => {
+    const base = CLIMATE_PALETTE[climate] || CLIMATE_PALETTE[ClimateType.TEMPERATE];
+    let g = base.ground, v = base.veg;
+    if (season === 'Autumn') {
+      v = blend(v, '#b45309', 0.35);
+      g = blend(g, '#d6b37e', 0.15);
+    }
+    if (season === 'Winter') {
+      g = blend(g, '#dfe7ef', 0.5);
+      v = blend(v, '#9fb4be', 0.4);
+    }
+    if (climate === ClimateType.ARID || weather?.special === 'heatwave') g = base.dry || g;
+    return { ground: g, veg: v, accent: base.accent };
+  }, [climate, season, weather]);
 
-      return newCharacters;
-    };
+  const culture = CULTURE_ACCENT[culturalZone];
 
-    setCharacters(generateCharacters());
-  }, [seed, size, condition]);
+  const nightiness = useMemo(() => {
+    switch (timeOfDay) {
+      case 'Night': return 1;
+      case 'Dusk': return 0.75;
+      case 'Dawn': return 0.45;
+      default: return 0.12;
+    }
+  }, [timeOfDay]);
 
-  // Animation loop
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setAnimationFrame(prev => prev + 1);
-      
-      setCharacters(prev => prev.map(char => {
-        let newX = char.x + (char.direction * char.speed);
-        let newDirection: 1 | -1 = char.direction;
+  const lightIntensity = clamp(
+    nightiness *
+      (weather?.precipitation && weather.precipitation !== 'none' ? 0.85 : 1) *
+      (weather?.special === 'fog' || weather?.special === 'mist' ? 0.85 : 1),
+    0, 1
+  );
 
-        // Bounce off edges
-        if (newX <= 50 || newX >= width - 50) {
-          newDirection = char.direction === 1 ? -1 : 1;
-          newX = char.x + (newDirection * char.speed);
-        }
+  /* --------------------------- Stable layout (RNG) ------------------------- */
 
-        return { ...char, x: newX, direction: newDirection };
-      }));
-    }, 50);
+  const layout = useMemo(() => {
+    const rng = new SeededRandom(seed);
+    const baseY = height * 0.65;
 
-    return () => clearInterval(interval);
-  }, [width]);
+    // Stars
+    const skyKey = timeKey(timeOfDay);
+    const nightFactor = skyKey === 'NIGHT' ? 1 : skyKey === 'DUSK' ? 0.35 : skyKey === 'DAWN' ? 0.2 : 0;
+    const cc = clamp(weather?.cloudCover ?? 0, 0, 1);
+    const starOpacity = clamp(nightFactor * (1 - cc) * 0.9, 0, 1);
+    const starCount = Math.floor(lerp(6, 22, starOpacity));
+    const stars = Array.from({ length: starCount }, () => ({
+      x: rng.range(10, width - 10),
+      y: rng.range(8, height * 0.42),
+      r: rng.range(0.8, 1.7),
+      phase: rng.range(0, Math.PI * 2),
+    }));
 
-  // Render animated sky with parallax clouds (matching TerrainStructureBanner)
-  const renderSky = () => {
-    const cloudOffset = (animationFrame * 0.1) % (width + 100);
-    
+    // Clouds
+    const cloudCount = Math.max(1, Math.round(lerp(1, 6, cc)) + (skyKey === 'DAY' ? 1 : 0));
+    const clouds = Array.from({ length: cloudCount }, () => ({
+      x0: rng.range(-120, width - 40),
+      y: 18 + rng.range(-6, 12),
+      scale: lerp(0.7, 1.22, rng.range(0, 1)),
+      speed: lerp(0.08, 0.35, rng.range(0, 1)),
+    }));
+
+    // Mountains
+    const mountainSeeds = [rng.int(0, 9999), rng.int(0, 9999), rng.int(0, 9999)];
+
+    // Buildings
+    const density = (size === 'big_city' ? 1 : 0.7) * (condition === 'prosperous' ? 1.1 : 0.9);
+    const total = Math.round((size === 'big_city' ? 11 : 7) * density);
+    const foreground = Math.floor(total / 2);
+
+    const bucket = eraBucket(era);
+    const allowed = (RULES[bucket][culturalZone] ?? ['tile_rowhouse']) as readonly Archetype[];
+
+    const bg = Array.from({ length: total }, (_, i) => {
+      const x = (width / (total + 1)) * (i + 1) + rng.range(-15, 15);
+      const bw = 26 + rng.range(0, 18);
+      const bh = 30 + rng.range(0, 26);
+      const type = rng.pick(allowed);
+      return { x, bw, bh, y: baseY, type };
+    });
+
+    const fg = Array.from({ length: foreground }, (_, i) => {
+      const x = (width / (foreground + 1)) * (i + 1);
+      const bw = 34 + rng.range(0, 22);
+      const bh = 42 + rng.range(0, 30);
+      const type = rng.pick(allowed);
+      const hasChimney = (bucket === 'industrial' || bucket === 'modern') && ['row_tenement', 'apartment_block', 'tile_rowhouse', 'warehouse'].includes(type) && rng.next() > 0.5;
+      return { x, bw, bh, y: baseY, type, hasChimney };
+    });
+
+    // People
+    const peopleN = Math.floor(lerp(3, 8, density));
+    const people = Array.from({ length: peopleN }, (_, i) => ({
+      baseX: ((width / (peopleN + 1)) * (i + 1)) % width,
+      dir: rng.next() > 0.5 ? 1 : -1,
+      phase: rng.range(0, 1000),
+      tint: rng.range(0, 1),
+    }));
+
+    // Lamps
+    const lampCount = Math.floor(lerp(4, 8, density));
+    const lamps = Array.from({ length: lampCount }, (_, i) => ({
+      x: (width / (lampCount + 1)) * (i + 1) + rng.range(-8, 8),
+      y: baseY + 6,
+    }));
+
+    // Boat (if harbor/water)
+    const boat = { x: width * 0.25 + 40 + rng.range(-4, 4), wobble: rng.range(0, Math.PI * 2) };
+
+    return { baseY, stars, clouds, mountainSeeds, bg, fg, people, lamps, boat };
+  }, [seed, width, height, timeOfDay, weather?.cloudCover, era, culturalZone, size, condition]);
+
+  /* -------------------------------- Renderers ------------------------------ */
+
+  const makeId = (s: string) => `${s}-${seed}`;
+
+  const renderSky = () => (
+    <g>
+      <defs>
+        <linearGradient id={makeId('sky')} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={sky.top} />
+          <stop offset="60%" stopColor={sky.mid} />
+          <stop offset="100%" stopColor={sky.bottom} />
+        </linearGradient>
+        <radialGradient id={makeId('horizon')} cx="50%" cy="100%" r="65%">
+          <stop offset="0%" stopColor={blend(sky.bottom, '#ffd9a8', 0.25)} stopOpacity="0.6" />
+          <stop offset="60%" stopOpacity="0" />
+        </radialGradient>
+        <filter id={makeId('star-blur')}><feGaussianBlur stdDeviation="0.35" /></filter>
+      </defs>
+
+      <rect x="0" y="0" width={width} height={height * 0.65} fill={`url(#${makeId('sky')})`} />
+      {/* sun/moon */}
+      {sky.isNight ? (
+        <g>
+          <circle cx={width - 75} cy={26} r={12} fill="#eef2ff" />
+          <circle cx={width - 72} cy={23} r="2" fill={sky.top} opacity="0.5" />
+        </g>
+      ) : (
+        <circle cx={width - 75} cy={26} r={15} fill="#fde047" />
+      )}
+
+      {/* stars (twinkle; positions are static) */}
+      {layout.stars.map((s, i) => (
+        <circle
+          key={i}
+          cx={s.x}
+          cy={s.y}
+          r={s.r}
+          fill="#fff"
+          opacity={clamp(0.25 + 0.75 * (0.5 + 0.5 * Math.sin(s.phase + frame * 0.05)), 0, 1)}
+          filter={`url(#${makeId('star-blur')})`}
+        />
+      ))}
+
+      {/* clouds */}
+      {layout.clouds.map((c, i) => {
+        const x = ((c.x0 + frame * c.speed + width + 240) % (width + 240)) - 120;
+        const o = lerp(0.25, 0.75, clamp(1 - (weather?.precipitation ? 0.5 : 0) - (weather?.special === 'fog' ? 0.4 : 0), 0, 1));
+        return (
+          <g key={i} transform={`translate(${x},${c.y}) scale(${c.scale})`} opacity={o}>
+            <rect x={0} y={0} width="28" height="12" rx="4" fill="#eef2f7" />
+            <rect x={10} y={-3} width="34" height="12" rx="5" fill="#eef2f7" />
+            <rect x={8} y={6} width="22" height="8" rx="4" fill="#eef2f7" />
+          </g>
+        );
+      })}
+
+      {/* horizon glow */}
+      <rect x="0" y="0" width={width} height={height * 0.65} fill={`url(#${makeId('horizon')})`} opacity={timeOfDay === 'Day' ? 0.15 : 0.55} />
+    </g>
+  );
+
+  const renderMountains = () => {
+    const baseY = layout.baseY;
+    const elev = elevationLevel === 'high' ? 1.2 : elevationLevel === 'low' ? 0.7 : 1;
+    const layers = [
+      { color: blend(sky.top, '#4a5568', 0.25), o: 0.25, h: 44 * elev, seed: layout.mountainSeeds[0] },
+      { color: blend(sky.top, '#2d3748', 0.35), o: 0.35, h: 36 * elev, seed: layout.mountainSeeds[1] },
+      { color: blend(sky.top, '#1f2937', 0.45), o: 0.5,  h: 28 * elev, seed: layout.mountainSeeds[2] },
+    ];
     return (
       <g>
-        {/* Sky gradient */}
-        <defs>
-          <linearGradient id={`skyGradient-${seed}`} x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor={skyGradient[0]} />
-            <stop offset="50%" stopColor={skyGradient[1]} />
-            <stop offset="100%" stopColor={skyGradient[2] || skyGradient[1]} />
-          </linearGradient>
-        </defs>
-        <rect x="0" y="0" width={width} height={height * 0.65} fill={`url(#skyGradient-${seed})`} />
-        
-        {/* Sun/Moon */}
-        {todCategory === 'night' ? (
+        {layers.map((L, li) => {
+          const step = 40;
+          const rng = new SeededRandom(L.seed);
+          const pts: string[] = [];
+          for (let x = -20; x <= width + 20; x += step) {
+            const y = baseY - L.h + Math.sin((x + li * 13) * 0.04) * 6 + rng.range(-3, 3);
+            pts.push(`${x},${y}`);
+          }
+          const poly = `${-20},${baseY} ${pts.join(' ')} ${width + 20},${baseY}`;
+          return <polygon key={li} points={poly} fill={L.color} opacity={L.o} />;
+        })}
+      </g>
+    );
+  };
+
+  /* ----------------------------- Buildings ----------------------------- */
+
+  // A tiny rim/glint toward the horizon to sell the pixel-art lighting
+  const rim = (x: number, y: number, w: number, h: number, color: string, a = 0.55) => (
+    <>
+      <rect x={x - w / 2} y={y - 2} width={w} height="2" fill={color} opacity={a} style={{ mixBlendMode: 'screen' as any }} />
+      <rect x={x - w / 2} y={y - h} width="1" height={h} fill={color} opacity={a * 0.4} style={{ mixBlendMode: 'screen' as any }} />
+      <rect x={x + w / 2 - 1} y={y - h} width="1" height={h} fill={color} opacity={a * 0.25} style={{ mixBlendMode: 'screen' as any }} />
+    </>
+  );
+
+  const warmRim = blend(sky.bottom, '#ffd9a8', 0.45);
+  const roofSnow = season === 'Winter' ? clamp(0.6 - (weather?.precipitation === 'rain' ? 0.3 : 0), 0, 0.6) : 0;
+
+  const draw = (type: Archetype, x: number, y: number, w: number, h: number, isBG = false) => {
+    const wallBase = isBG ? blend(culture.trim, '#2e2a24', 0.06) : blend(culture.trim, '#2e2a24', 0.02);
+    const stroke = '#4b3b2a';
+    const base = (
+      <>
+        <rect x={x - w / 2} y={y - h} width={w} height={h} fill={wallBase} stroke={stroke} strokeWidth="1" />
+        {rim(x, y, w, h, warmRim, 0.5)}
+      </>
+    );
+    switch (type) {
+      case 'mud_hut':
+        return (
           <g>
-            <circle cx={width - 80} cy="25" r="12" fill="#F7FAFC" />
-            <circle cx={width - 77} cy="22" r="2" fill={skyGradient[0]} />
-            <circle cx={width - 82} cy="28" r="1.5" fill={skyGradient[0]} />
-            {/* Stars */}
-            {Array.from({ length: 12 }, (_, i) => (
+            {base}
+            <ellipse cx={x} cy={y - h} rx={w / 2 + 2} ry={h / 3} fill={blend('#8b5a2b', culture.roof, 0.4)} />
+            {roofSnow > 0 && <ellipse cx={x} cy={y - h - 1} rx={w / 2 + 2} ry={h / 3.2} fill="#fff" opacity={roofSnow} />}
+            <rect x={x - 3} y={y - 12} width="6" height="12" fill="#3b2a1a" />
+          </g>
+        );
+      case 'adobe_compound':
+        return (
+          <g>
+            {base}
+            <rect x={x - w / 2} y={y - h - 2} width={w} height="2" fill={culture.roof} />
+            {roofSnow > 0 && <rect x={x - w / 2} y={y - h - 3} width={w} height="2" fill="#fff" opacity={roofSnow} />}
+            <rect x={x - 4} y={y - 12} width="8" height="12" fill="#4a3725" />
+          </g>
+        );
+      case 'thatch_longhouse':
+        return (
+          <g>
+            {base}
+            <polygon points={`${x - w / 2},${y - h} ${x},${y - h - 10} ${x + w / 2},${y - h}`} fill={blend('#8b5a2b', culture.roof, 0.2)} />
+            {roofSnow > 0 && <polygon points={`${x - w / 2},${y - h} ${x},${y - h - 10} ${x + w / 2},${y - h}`} fill="#fff" opacity={roofSnow} />}
+            <rect x={x - 4} y={y - 12} width="8" height="12" fill="#3b2a1a" />
+          </g>
+        );
+      case 'pueblo_terrace':
+        return (
+          <g>
+            {base}
+            {/* stepped terraces */}
+            <rect x={x - w / 2} y={y - h - 2} width={w * 0.6} height="2" fill={culture.roof} />
+            <rect x={x - w / 2 + 3} y={y - h + 6} width={w * 0.5} height="2" fill={culture.roof} opacity="0.8" />
+            {roofSnow > 0 && <rect x={x - w / 2} y={y - h - 3} width={w * 0.6} height="2" fill="#fff" opacity={roofSnow} />}
+          </g>
+        );
+      case 'timber_house':
+        return (
+          <g>
+            {base}
+            <polygon points={`${x - w / 2 - 2},${y - h} ${x},${y - h / 3} ${x + w / 2 + 2},${y - h}`} fill={culture.roof} />
+            {roofSnow > 0 && <polygon points={`${x - w / 2 - 2},${y - h} ${x},${y - h / 3} ${x + w / 2 + 2},${y - h}`} fill="#fff" opacity={roofSnow} />}
+            <rect x={x - 4} y={y - 12} width="8" height="12" fill="#2c1810" />
+          </g>
+        );
+      case 'stone_gable':
+        return (
+          <g>
+            {base}
+            <polygon points={`${x - w / 2 - 2},${y - h} ${x},${y - h / 2} ${x + w / 2 + 2},${y - h}`} fill={culture.roof} />
+            {roofSnow > 0 && <polygon points={`${x - w / 2 - 2},${y - h} ${x},${y - h / 2} ${x + w / 2 + 2},${y - h}`} fill="#fff" opacity={roofSnow} />}
+            <rect x={x - 4} y={y - 12} width="8" height="12" fill="#2c1810" />
+          </g>
+        );
+      case 'tile_rowhouse':
+        return (
+          <g>
+            {base}
+            <rect x={x - w / 2} y={y - h - 2} width={w} height="2" fill={culture.roof} />
+            {roofSnow > 0 && <rect x={x - w / 2} y={y - h - 3} width={w} height="2" fill="#fff" opacity={roofSnow} />}
+          </g>
+        );
+      case 'dome_sanctum':
+        return (
+          <g>
+            {base}
+            <ellipse cx={x} cy={y - h} rx={w / 3} ry={h / 5} fill={culture.roof} />
+            {roofSnow > 0 && <ellipse cx={x} cy={y - h - 1} rx={w / 3.2} ry={h / 6} fill="#fff" opacity={roofSnow} />}
+          </g>
+        );
+      case 'pagoda_roof':
+        return (
+          <g>
+            {base}
+            <path d={`M ${x - w / 2 - 4} ${y - h} Q ${x} ${y - h - 12} ${x + w / 2 + 4} ${y - h}`} fill={culture.roof} />
+            <rect x={x - w / 2 - 4} y={y - h - 2} width={w + 8} height="2" fill={culture.trim} />
+            {roofSnow > 0 && <rect x={x - w / 2 - 3} y={y - h - 2} width={w + 6} height="2" fill="#fff" opacity={roofSnow} />}
+          </g>
+        );
+      case 'stilt_house':
+        return (
+          <g>
+            {base}
+            <rect x={x - w / 2} y={y} width="2" height="6" fill="#5a4322" />
+            <rect x={x + w / 2 - 2} y={y} width="2" height="6" fill="#5a4322" />
+            <polygon points={`${x - w / 2},${y - h} ${x},${y - h - 8} ${x + w / 2},${y - h}`} fill={culture.roof} />
+          </g>
+        );
+      case 'warehouse':
+        return (
+          <g>
+            {base}
+            <rect x={x - w / 2} y={y - h - 2} width={w} height="2" fill={blend(culture.roof, '#6b7280', 0.3)} />
+            <rect x={x - 6} y={y - 14} width="12" height="14" fill="#374151" />
+          </g>
+        );
+      case 'factory_stack':
+        return (
+          <g>
+            {base}
+            <rect x={x + w / 3} y={y - h - 15} width="4" height="16" fill="#4b5563" />
+          </g>
+        );
+      case 'row_tenement':
+        return (
+          <g>
+            {base}
+            <rect x={x - w / 2} y={y - h - 2} width={w} height="2" fill={blend('#6b7280', culture.roof, 0.3)} />
+          </g>
+        );
+      case 'apartment_block':
+        return (
+          <g>
+            {base}
+            <rect x={x - w / 2} y={y - h - 2} width={w} height="2" fill={blend('#6b7280', culture.roof, 0.4)} />
+          </g>
+        );
+      case 'office_tower':
+        return (
+          <g>
+            {base}
+            <rect x={x - w / 2} y={y - h - 4} width={w} height="4" fill={blend('#6b7280', culture.roof, 0.6)} />
+          </g>
+        );
+    }
+  };
+
+  const windows = (x: number, y: number, w: number, h: number, rows = 2) => {
+    if (lightIntensity <= 0.05) return null;
+    const warm = '#ffd27a';
+    const perRow = 2;
+    const cells: JSX.Element[] = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < perRow; c++) {
+        const wx = x - w / 2 + 6 + c * (w - 12 - 6) / (perRow - 1);
+        const wy = y - h + 9 + r * 10;
+        const lit = (r + c) % 2 === 0; // deterministic
+        const fill = lit ? warm : '#1c1c1c';
+        cells.push(
+          <g key={`${r}-${c}`}>
+            <rect x={wx} y={wy} width="6" height="8" fill={fill} />
+            {lit && (
+              <rect
+                x={wx - 1} y={wy - 1} width="8" height="10"
+                fill={warm} opacity={0.45 * lightIntensity}
+                style={{ mixBlendMode: 'screen' as any }}
+              />
+            )}
+          </g>
+        );
+      }
+    }
+    return <>{cells}</>;
+  };
+
+  const renderDistricts = () => (
+    <g>
+      {layout.bg.map((b, i) => (
+        <g key={`bg-${i}`} opacity={0.68}>
+          {draw(b.type, b.x, b.y, b.bw, b.bh, true)}
+        </g>
+      ))}
+      {layout.fg.map((b, i) => (
+        <g key={`fg-${i}`}>
+          {draw(b.type, b.x, b.y, b.bw, b.bh, false)}
+          {windows(b.x, b.y, b.bw, b.bh, 2)}
+          {/* door */}
+          <rect x={b.x - 4} y={b.y - 12} width="8" height="12" fill="#2c1810" />
+          {/* chimney smoke */}
+          {b.hasChimney && (
+            <g opacity={timeOfDay === 'Day' ? 0.4 : 0.55}>
+              {Array.from({ length: 4 }, (_, k) => {
+                const t = (frame + k * 15) * 0.02;
+                const dir = ((weather?.windDirection ?? 270) - 90) * (Math.PI / 180);
+                const dx = Math.cos(dir) * t * 6;
+                const dy = Math.sin(dir) * t * 3 - 6;
+                return (
+                  <circle
+                    key={k}
+                    cx={b.x + b.bw / 3 + 2 + dx}
+                    cy={b.y - b.bh - 10 + dy}
+                    r={2 + (k % 2)}
+                    fill="#cbd5e1"
+                    opacity={0.35}
+                  />
+                );
+              })}
+            </g>
+          )}
+        </g>
+      ))}
+    </g>
+  );
+
+  const renderGround = () => {
+    const y = layout.baseY;
+    return (
+      <g>
+        <rect x="0" y={y} width={width} height={height - y} fill={ground.ground} />
+        {Array.from({ length: Math.floor(width / 8) }, (_, i) => (
+          <rect key={i} x={i * 8} y={y - 3 + ((i * 7) % 3) - 1} width="2" height="4" fill={ground.veg} opacity="0.7" />
+        ))}
+        <rect x="0" y={y + 8} width={width} height="6" fill="#6b7280" opacity="0.7" />
+        {Array.from({ length: Math.floor(width / 10) }, (_, i) => (
+          <rect key={`c-${i}`} x={i * 10 + 1} y={y + 9} width="8" height="4" fill="#9ca3af" opacity="0.85" />
+        ))}
+        {nextToWater && (
+          <g>
+            <rect x="0" y={height * 0.84} width={width} height={height * 0.16} fill="#3b82f6" />
+            {Array.from({ length: Math.floor(width / 28) }, (_, i) => (
               <rect
                 key={i}
-                x={20 + i * 70 + rng.range(-10, 10)}
-                y={10 + rng.range(0, 20)}
-                width="2"
+                x={i * 28 + ((frame / 6 + i * 7) % 8)}
+                y={height * 0.84 - 2 + (Math.sin((frame + i * 13) * 0.05) * 1)}
+                width="14"
                 height="2"
-                fill="#F7FAFC"
+                fill="#93c5fd"
                 opacity="0.8"
               />
             ))}
+            {harbor && (
+              <g transform={`translate(${layout.boat.x + Math.sin(frame * 0.03 + layout.boat.wobble) * 6}, ${height * 0.835 + Math.sin(frame * 0.04 + layout.boat.wobble) * 1.5})`}>
+                <rect x={-8} y={0} width="16" height="4" fill="#2c1810" />
+                <rect x={0} y={-10} width="2" height="10" fill="#2c1810" />
+                <path d={`M 2 -8 Q ${2 + (weather?.windSpeed ?? 10) * 0.3} -10, ${2 + (weather?.windSpeed ?? 10) * 0.25} -6 L 2 -6 Z`} fill={culture.banner} />
+              </g>
+            )}
           </g>
-        ) : (
-          <circle cx={width - 80} cy="25" r="15" fill="#FDE047" />
         )}
-        
-        {/* Animated clouds */}
-        {Array.from({ length: 4 }, (_, i) => {
-          const cloudX = -100 + cloudOffset + i * 180;
-          const cloudY = 20 + rng.range(-5, 10);
-          return (
-            <g key={i} opacity="0.8">
-              <rect x={cloudX} y={cloudY} width="16" height="8" rx="4" fill="#F1F5F9" />
-              <rect x={cloudX + 8} y={cloudY - 2} width="20" height="8" rx="4" fill="#F1F5F9" />
-              <rect x={cloudX + 4} y={cloudY + 4} width="12" height="6" rx="3" fill="#F1F5F9" />
-            </g>
-          );
-        })}
       </g>
     );
   };
 
-  // Render layered mountain background (matching TerrainStructureBanner)
-  const renderMountains = () => {
-    const mountainLayers = [
-      { color: '#8B9DC3', opacity: 0.3, height: 40, offset: 0 },
-      { color: '#6B8CAF', opacity: 0.5, height: 35, offset: 20 },
-      { color: '#4A6B8A', opacity: 0.7, height: 30, offset: 40 }
-    ];
-
+  const renderLamps = () => {
+    if (lightIntensity <= 0.1) return null;
+    const lampGlow = '#ffcc66';
     return (
       <g>
-        {mountainLayers.map((layer, layerIndex) => {
-          const points = [];
-          for (let i = 0; i <= width + 40; i += 40) {
-            const baseY = height * 0.65 - layer.height;
-            const peakY = baseY - rng.range(5, 15);
-            const nextBaseY = height * 0.65 - layer.height;
-            
-            if (i === 0) points.push(`${i - 20},${height * 0.65}`);
-            points.push(`${i},${baseY}`);
-            points.push(`${i + 20},${peakY}`);
-            points.push(`${i + 40},${nextBaseY}`);
-            if (i >= width) points.push(`${width + 20},${height * 0.65}`);
-          }
-          
-          return (
-            <polygon
-              key={layerIndex}
-              points={points.join(' ') + ` ${width + 20},${height * 0.65} -20,${height * 0.65}`}
-              fill={layer.color}
-              opacity={layer.opacity}
-            />
-          );
-        })}
+        {layout.lamps.map((L, i) => (
+          <g key={i}>
+            <rect x={L.x - 1} y={L.y - 18} width="2" height="18" fill="#374151" />
+            <circle cx={L.x} cy={L.y - 18} r="3" fill={lampGlow} />
+            <circle cx={L.x} cy={L.y - 18} r={10} fill={lampGlow} opacity={0.65 * lightIntensity} style={{ mixBlendMode: 'screen' as any }} />
+            <rect x={L.x - 12} y={L.y - 6} width={24} height="3" fill={lampGlow} opacity={0.25 * lightIntensity} style={{ mixBlendMode: 'screen' as any }} />
+          </g>
+        ))}
       </g>
     );
   };
 
-  // Render pixel-art buildings
-  const renderBuildings = () => {
-    const buildings: JSX.Element[] = [];
-    const buildingCount = size === 'big_city' ? 10 : 6;
-    
-    // Background buildings (smaller, less detailed)
-    for (let i = 0; i < buildingCount; i++) {
-      const buildingX = (width / (buildingCount + 1)) * (i + 1) + rng.range(-20, 20);
-      const buildingHeight = 30 + rng.range(0, 25);
-      const buildingWidth = 25 + rng.range(0, 15);
-      const buildingY = height * 0.65;
-      
-      buildings.push(
-        <g key={`bg-building-${i}`} opacity="0.6">
-          {/* Base building */}
-          <rect 
-            x={buildingX - buildingWidth/2} 
-            y={buildingY - buildingHeight} 
-            width={buildingWidth} 
-            height={buildingHeight} 
-            fill={culturalColors.primary}
-            stroke="#654321"
-            strokeWidth="1"
-          />
-          
-          {/* Simple roof based on culture */}
-          {culturalZone === 'EAST_ASIAN' ? (
-            <polygon
-              points={`${buildingX - buildingWidth/2 - 3},${buildingY - buildingHeight} ${buildingX},${buildingY - buildingHeight - 10} ${buildingX + buildingWidth/2 + 3},${buildingY - buildingHeight}`}
-              fill={culturalColors.secondary}
-            />
-          ) : (
-            <polygon
-              points={`${buildingX - buildingWidth/2},${buildingY - buildingHeight} ${buildingX},${buildingY - buildingHeight - 8} ${buildingX + buildingWidth/2},${buildingY - buildingHeight}`}
-              fill="#8B0000"
-            />
-          )}
-        </g>
-      );
-    }
-    
-    // Foreground buildings (larger, more detailed)
-    for (let i = 0; i < buildingCount / 2; i++) {
-      const buildingX = (width / (buildingCount / 2 + 1)) * (i + 1);
-      const buildingHeight = 40 + rng.range(0, 30);
-      const buildingWidth = 35 + rng.range(0, 20);
-      const buildingY = height * 0.65;
-      
-      buildings.push(
-        <g key={`fg-building-${i}`}>
-          {/* Base building */}
-          <rect 
-            x={buildingX - buildingWidth/2} 
-            y={buildingY - buildingHeight} 
-            width={buildingWidth} 
-            height={buildingHeight} 
-            fill={culturalColors.primary}
-            stroke="#654321"
-            strokeWidth="1"
-          />
-          
-          {/* Windows */}
-          {Array.from({ length: 2 }, (_, w) => (
-            <rect
-              key={w}
-              x={buildingX - buildingWidth/2 + 6 + w * 12}
-              y={buildingY - buildingHeight + 10}
-              width="6"
-              height="8"
-              fill={todCategory === 'night' ? '#FFD700' : '#1C1C1C'}
-            />
-          ))}
-          
-          {/* Door */}
-          <rect 
-            x={buildingX - 4} 
-            y={buildingY - 12} 
-            width="8" 
-            height="12" 
-            fill="#2C1810" 
-          />
-          
-          {/* Roof */}
-          {renderRoofByEra(buildingX, buildingY - buildingHeight, buildingWidth, buildingHeight)}
-          
-          {/* Era-specific details */}
-          {era === HistoricalEra.INDUSTRIAL_ERA && (
-            <rect 
-              x={buildingX + buildingWidth/4} 
-              y={buildingY - buildingHeight - 15} 
-              width="4" 
-              height="15" 
-              fill="#4A4A4A" 
-            />
-          )}
-        </g>
-      );
-    }
-    
-    return buildings;
-  };
-
-  // Render roof based on era and culture
-  const renderRoofByEra = (x: number, y: number, width: number, height: number) => {
-    if (culturalZone === 'EAST_ASIAN' && (era === HistoricalEra.ANTIQUITY)) {
-      // Pagoda style
-      return (
-        <g>
-          <polygon
-            points={`${x - width/2 - 5},${y} ${x},${y - 12} ${x + width/2 + 5},${y}`}
-            fill={culturalColors.secondary}
-          />
-          <rect x={x - width/2 - 5} y={y - 2} width={width + 10} height="2" fill={culturalColors.accent} />
-        </g>
-      );
-    } else if (culturalZone === 'MENA') {
-      // Dome
-      return (
-        <ellipse cx={x} cy={y} rx={width/3} ry={height/6} fill={culturalColors.accent} />
-      );
-    } else if (era === HistoricalEra.MEDIEVAL || era === HistoricalEra.RENAISSANCE_EARLY_MODERN) {
-      // Steep European roof
-      return (
-        <polygon
-          points={`${x - width/2 - 2},${y} ${x},${y - height/3} ${x + width/2 + 2},${y}`}
-          fill="#8B0000"
-        />
-      );
-    } else {
-      // Default triangular roof
-      return (
-        <polygon
-          points={`${x - width/2},${y} ${x},${y - 10} ${x + width/2},${y}`}
-          fill="#8B0000"
-        />
-      );
-    }
-  };
-
-  // Render animated pixel people (matching TerrainStructureBanner style)
-  const renderCharacters = () => {
+  const renderPeople = () => {
+    const rowY = height * 0.70;
+    const speed = 0.4;
     return (
       <g>
-        {characters.map((char) => {
-          const walkCycle = Math.floor(animationFrame / 8) % 2;
-          const legOffset = walkCycle * char.direction;
-          
+        {layout.people.map((p, i) => {
+          const x = (p.baseX + (frame + p.phase) * speed * p.dir + width * 2) % width;
+          const walk = Math.floor((frame + i) / 8) % 2;
+          const coat = p.tint > 0.5 ? culture.trim : blend(culture.trim, '#000', 0.2);
           return (
-            <g key={char.id} transform={`translate(${char.x}, ${char.y})`}>
-              {/* Body */}
-              <rect x="-2" y="-8" width="4" height="6" fill={char.color} />
-              {/* Head */}
-              <rect x="-1.5" y="-10" width="3" height="2" fill="#FFDBAC" />
-              {/* Legs */}
-              <rect x={-1.5 + legOffset} y="-2" width="1" height="4" fill="#654321" />
-              <rect x={0.5 - legOffset} y="-2" width="1" height="4" fill="#654321" />
-              {/* Arms */}
-              <rect x="-3" y="-6" width="1" height="3" fill="#FFDBAC" />
-              <rect x="2" y="-6" width="1" height="3" fill="#FFDBAC" />
-              
-              {/* Character type specific accessories */}
-              {char.type === 'guard' && (
-                <>
-                  <rect x="-1" y="-11" width="2" height="1" fill="#C0C0C0" />
-                  <rect x="2" y="-7" width="1" height="4" fill="#8B4513" />
-                </>
-              )}
-              {char.type === 'noble' && (
-                <rect x="-1" y="-11" width="2" height="1" fill="#FFD700" />
-              )}
-              {char.type === 'merchant' && (
-                <rect x="-4" y="-6" width="8" height="2" fill="#8B4513" />
-              )}
-              {char.type === 'clergy' && (
-                <rect x="-2" y="-8" width="4" height="6" fill="#000000" />
+            <g key={i} transform={`translate(${x}, ${rowY})`}>
+              <rect x="-2" y="-8" width="4" height="6" fill={coat} />
+              <rect x="-1.5" y="-10" width="3" height="2" fill="#ffdbac" />
+              <rect x={-1.5 + walk * p.dir} y="-2" width="1" height="4" fill="#4b3b2a" />
+              <rect x={0.5 - walk * p.dir} y="-2" width="1" height="4" fill="#4b3b2a" />
+              {lightIntensity > 0.5 && i % 4 === 0 && (
+                <g>
+                  <circle cx="4" cy="-4" r="2" fill="#ffcc66" />
+                  <circle cx="4" cy="-4" r="6" fill="#ffcc66" opacity={0.5 * lightIntensity} style={{ mixBlendMode: 'screen' as any }} />
+                </g>
               )}
             </g>
           );
@@ -447,89 +758,102 @@ const CityBanner: React.FC<CityBannerProps> = ({
     );
   };
 
-  // Ground and grass (matching TerrainStructureBanner)
-  const renderGround = () => {
+  const renderWeatherFX = () => {
+    const precip = weather?.precipitation ?? 'none';
+    const intensity = clamp(weather?.intensity ?? 0, 0, 1);
+    const drops = Math.floor(lerp(10, 120, intensity));
+    const wind = weather?.windSpeed ?? 12;
+    const dirRad = (((weather?.windDirection ?? 270) - 90) * Math.PI) / 180;
+    const dx = Math.cos(dirRad) * 8;
+    const dy = Math.sin(dirRad) * 6;
+
     return (
       <g>
-        {/* Ground */}
-        <rect x="0" y="110" width={width} height="40" fill={palette.ground} />
-        
-        {/* Grass detail */}
-        {Array.from({ length: width / 8 }, (_, i) => (
-          <rect
-            key={i}
-            x={i * 8 + rng.range(-2, 2)}
-            y={108 + rng.range(-2, 2)}
-            width="2"
-            height="4"
-            fill={palette.vegetation}
-            opacity="0.6"
-          />
-        ))}
-        
-        {/* Cobblestone path for cities */}
-        <rect x="0" y="118" width={width} height="6" fill="#696969" opacity="0.7" />
-        {Array.from({ length: width / 10 }, (_, i) => (
-          <rect
-            key={`cobble-${i}`}
-            x={i * 10 + 1}
-            y={118 + 1}
-            width="8"
-            height="4"
-            fill="#808080"
-            opacity="0.8"
-          />
-        ))}
-        
-        {/* Water if harbor */}
-        {nextToWater && (
-          <rect x="0" y={height * 0.85} width={width} height={height * 0.15} fill="#4A90E2" opacity="0.8" />
+        {(precip === 'rain' || precip === 'drizzle') && (
+          <g opacity={lerp(0.25, 0.75, intensity)}>
+            {Array.from({ length: drops }, (_, i) => (
+              <rect
+                key={i}
+                x={(i * 17 + (frame * (2 + wind * 0.04))) % width}
+                y={(i * 29 + frame * 4) % (height * 0.65)}
+                width="1"
+                height={precip === 'drizzle' ? 6 : 10}
+                fill="#9fb4be"
+                transform={`translate(${dx * 0.4}, ${dy * 0.4})`}
+              />
+            ))}
+          </g>
+        )}
+        {(precip === 'snow' || precip === 'sleet') && (
+          <g opacity={lerp(0.35, 0.9, intensity)}>
+            {Array.from({ length: Math.floor(drops * 0.7) }, (_, i) => (
+              <circle
+                key={i}
+                cx={(i * 23 + (frame * (1 + wind * 0.03))) % width}
+                cy={(i * 19 + frame * 2) % (height * 0.65)}
+                r={precip === 'sleet' ? 1 : 1.5}
+                fill="#ffffff"
+                opacity="0.9"
+              />
+            ))}
+          </g>
+        )}
+        {(weather?.special === 'fog' || weather?.special === 'mist') && (
+          <g opacity={weather.special === 'fog' ? 0.6 : 0.4}>
+            <defs>
+              <linearGradient id={makeId('fog')} x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="rgba(220,230,240,0.0)" />
+                <stop offset="100%" stopColor="rgba(220,230,240,0.9)" />
+              </linearGradient>
+            </defs>
+            <rect x="0" y={height * 0.5} width={width} height={height * 0.5} fill={`url(#${makeId('fog')})`} />
+          </g>
         )}
       </g>
     );
   };
 
-  // Special features for historical cities
+  /* ------------------------------- Specials ------------------------------- */
   const renderHistoricalFeatures = () => {
-    if (!cityInfo?.isHistorical) return null;
-    
-    const features: JSX.Element[] = [];
-    
-    // Venice canals
-    if (cityInfo.name?.includes('Venice')) {
-      features.push(
-        <g key="venice-canals" opacity="0.7">
-          <rect x={width * 0.3} y={height * 0.78} width="60" height="8" fill="#4682B4" />
-          <rect x={width * 0.6} y={height * 0.78} width="60" height="8" fill="#4682B4" />
-          {/* Gondola */}
-          <rect x={width * 0.32} y={height * 0.77} width="20" height="4" fill="#2C1810" />
-          <rect x={width * 0.36} y={height * 0.75} width="2" height="8" fill="#4A4A4A" />
+    const info = mapData?.majorCity;
+    if (!info?.isHistorical) return null;
+    const yWater = height * 0.84;
+
+    // Venice canals (lightweight flourish)
+    if (/venice/i.test(info.name || '')) {
+      return (
+        <g opacity="0.7">
+          <rect x={width * 0.3} y={yWater - 8} width="60" height="8" fill="#4682B4" />
+          <rect x={width * 0.6} y={yWater - 8} width="60" height="8" fill="#4682B4" />
+          <rect x={width * 0.32} y={yWater - 9} width="20" height="4" fill="#2C1810" />
+          <rect x={width * 0.36} y={yWater - 11} width="2" height="8" fill="#4A4A4A" />
         </g>
       );
     }
-    
-    return features;
+    return null;
   };
+
+  /* --------------------------------- SVG ---------------------------------- */
 
   return (
     <svg
       width="100%"
       height="100%"
       viewBox={`0 0 ${width} ${height}`}
-      style={{ imageRendering: 'pixelated' }}
-      className="bg-gradient-to-b from-slate-700 to-slate-800 rounded-t-lg"
+      style={{ imageRendering: 'pixelated', isolation: 'isolate' }}
+      className="rounded-t-lg"
+      aria-label="CityBanner"
     >
       {renderSky()}
       {renderMountains()}
-      {renderBuildings()}
+      {renderDistricts()}
       {renderGround()}
+      {renderLamps()}
+      {renderPeople()}
+      {renderWeatherFX()}
       {renderHistoricalFeatures()}
-      {renderCharacters()}
-      
-      {/* Night overlay */}
-      {todCategory === 'night' && (
-        <rect x="0" y="0" width={width} height={height} fill="#000033" opacity="0.2" />
-      )}
+      {/* gentle vignette at night (subtle, non-bleaching) */}
+      {sky.isNight && <rect x="0" y="0" width={width} height={height} fill="#000814" opacity={0.06 + (weather?.cloudCover ?? 0) * 0.06} />}
     </svg>
   );
 };

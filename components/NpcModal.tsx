@@ -12,6 +12,8 @@ import DiseaseModal from './DiseaseModal';
 import { ActiveDisease } from '../types/diseaseTypes';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { useGame } from '../contexts/GameContext';
+import { AttributeBadgeList } from './AttributeBadge';
+import AttributeModal from './AttributeModal';
 
 interface NpcModalProps {
   npc: NpcEntity | PlayerCharacter;
@@ -107,6 +109,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
   const [activeTab, setActiveTab] = useState<NpcModalTab>('overview');
   const [selectedDisease, setSelectedDisease] = useState<ActiveDisease | null>(null);
   const [isDiseaseModalOpen, setIsDiseaseModalOpen] = useState(false);
+  const [showAttributeModal, setShowAttributeModal] = useState(false);
   const { terrainStructures, mapData } = useMap();
   const { gameDate, currentZone } = useGame();
 
@@ -361,11 +364,22 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
         {/* Header */}
         <div className="flex-shrink-0 p-4 flex justify-between items-start gap-4 border-b border-gray-700">
             <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-700 border-2 border-gray-600 shadow-lg flex-shrink-0">
+                <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-700 border-2 border-gray-600 shadow-lg flex-shrink-0">
                     <ProceduralPortrait
                         character={npc}
                         size={64}
                     />
+                    {/* Attribute badges */}
+                    {npc.attributes && npc.attributes.length > 0 && (
+                        <div className="absolute -top-1 -left-1 z-20">
+                            <AttributeBadgeList
+                                badges={npc.attributes}
+                                maxDisplay={2}
+                                size="small"
+                                onBadgeClick={() => setShowAttributeModal(true)}
+                            />
+                        </div>
+                    )}
                 </div>
                 <div className="flex-1">
                     <h3 className="text-2xl font-bold text-blue-300">{targetName}</h3>
@@ -449,6 +463,16 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
           }}
           currentYear={gameDate.year}
           culturalZone={mapLocationToCulture(currentZone, gameDate.year)}
+        />
+      )}
+      
+      {/* Attribute Modal */}
+      {showAttributeModal && npc.attributes && (
+        <AttributeModal
+          isOpen={showAttributeModal}
+          onClose={() => setShowAttributeModal(false)}
+          attributes={npc.attributes}
+          characterName={npc.name}
         />
       )}
     </div>

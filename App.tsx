@@ -26,6 +26,8 @@ import QuestRewardNotification from './components/QuestRewardNotification';
 import { parseURLConfig, URLGameConfig } from './services/urlConfigService';
 import { SeedManager } from './services/seedService';
 import { useURLGameConfig } from './hooks/useURLGameConfig';
+import FactionsModal from './components/FactionsModal';
+import FactionTooltip from './components/FactionTooltip';
 
 const AppContent: React.FC = () => {
     const location = useLocation();
@@ -155,6 +157,12 @@ const AppContent: React.FC = () => {
     const [showEventModal, setShowEventModal] = React.useState(false);
     const [showModeSelector, setShowModeSelector] = React.useState(false);
     const [notificationEvent, setNotificationEvent] = React.useState(currentEvent);
+    
+    // Faction modal and tooltip state
+    const [showFactionsModal, setShowFactionsModal] = React.useState(false);
+    const [showFactionTooltip, setShowFactionTooltip] = React.useState(false);
+    const [factionTooltipPosition, setFactionTooltipPosition] = React.useState({ x: 0, y: 0 });
+    const [factionData, setFactionData] = React.useState<any>(null);
     
     // Update notification when new event arrives
     React.useEffect(() => {
@@ -310,7 +318,7 @@ const AppContent: React.FC = () => {
       <div className="bg-slate-900 text-gray-100 flex flex-col h-screen overflow-hidden">
         <div className="relative z-10 flex flex-col h-full">
             <TopNavBarPolished />
-            <div className="relative flex-1 flex items-stretch overflow-hidden p-0 sm:p-0 md:p-0 lg:p-1 xl:p-0 gap-0 sm:gap-1 md:gap-2 lg:gap-3 xl:gap-4 h-full max-h-full">
+            <div className="relative flex-1 flex items-stretch overflow-hidden p-0 sm:p-0 md:p-0 lg:p-1 xl:p-0 gap-0 sm:gap-1 md:gap-1 lg:gap-1 xl:gap-1 h-full max-h-full">
                 {/* Desktop sidebar toggle */}
                 {!isLeftSidebarExpanded && (
                     <button 
@@ -365,7 +373,18 @@ const AppContent: React.FC = () => {
                         <div className="sm:hidden absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(null)} />
                     )}
                     <div className={`${mobileMenuOpen === 'left' ? 'absolute left-0 top-0 h-full animate-slideInLeft sidebar-content' : 'h-full'} max-w-[85vw] sm:max-w-none overflow-y-auto`}>
-                        <LeftSidebar />
+                        <LeftSidebar 
+                    onShowFactionsModal={(data) => {
+                        setFactionData(data);
+                        setShowFactionsModal(true);
+                    }}
+                    onShowFactionTooltip={(data, x, y) => {
+                        setFactionData(data);
+                        setFactionTooltipPosition({ x, y });
+                        setShowFactionTooltip(true);
+                    }}
+                    onHideFactionTooltip={() => setShowFactionTooltip(false)}
+                />
                     </div>
                 </div>
                 
@@ -446,6 +465,29 @@ const AppContent: React.FC = () => {
               </button>
             </div>
           </div>
+        )}
+        
+        {/* Faction Modal */}
+        {showFactionsModal && factionData && (
+          <FactionsModal
+            onClose={() => setShowFactionsModal(false)}
+            currentZone={localArea}
+            currentRegion={currentRegion}
+            dominantPower={factionData.dominantPower}
+            dominantPowerDescription={factionData.dominantPowerDescription}
+            allegianceGroups={factionData.allegianceGroups}
+            gameYear={gameDate?.year}
+          />
+        )}
+        
+        {/* Faction Tooltip */}
+        {showFactionTooltip && factionData && (
+          <FactionTooltip
+            dominantPower={factionData.dominantPower || "Local Tribes"}
+            allegianceGroups={factionData.allegianceGroups || []}
+            x={factionTooltipPosition.x}
+            y={factionTooltipPosition.y}
+          />
         )}
         
         {/* Initial Scenario Modal for non-WorldWeaver games */}

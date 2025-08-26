@@ -442,6 +442,24 @@ export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: numbe
         [BiomeType.BEACH]: '#f4e6d0',      // Sandy white beach
     };
 
+    // Early return for roads - special handling to avoid terrain effects
+    if (currentBiome === BiomeType.ROAD) {
+        // Roads get slightly different colors based on era/climate but no altitude effects
+        const roadBaseColor = BIOME_COLORS[BiomeType.ROAD] || '#505050';
+        if (climate === ClimateType.ARID) {
+            return getTileColorVariation('#6a5a4a', tile.x, tile.y, seed, 0.03); // Dusty road
+        } else if (climate === ClimateType.COLD && season === 'winter') {
+            return getTileColorVariation('#707070', tile.x, tile.y, seed, 0.02); // Snow-covered road
+        }
+        return getTileColorVariation(roadBaseColor, tile.x, tile.y, seed, 0.02); // Less variation for roads
+    }
+    
+    // Plaza tiles - consistent stone color
+    if (currentBiome === BiomeType.PLAZA) {
+        const plazaBaseColor = BIOME_COLORS[BiomeType.PLAZA] || '#c8b88b';
+        return getTileColorVariation(plazaBaseColor, tile.x, tile.y, seed, 0.03);
+    }
+    
     // Early return for water tiles
     if (currentBiome === BiomeType.RIVER) return waterColors.RIVER;
     if (currentBiome === BiomeType.MAJOR_RIVER) return waterColors.MAJOR_RIVER;

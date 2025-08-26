@@ -8,13 +8,20 @@ interface BushSymbolProps {
   seed: number;
 }
 
-const BushSymbol: React.FC<BushSymbolProps> = ({ seed }) => {
-  const localRand = React.useMemo(() => new ValueNoise(seed).random, [seed]);
+const BushSymbol: React.FC<BushSymbolProps> = React.memo(({ seed }) => {
+  // Pre-calculate all random values once
+  const bushData = React.useMemo(() => {
+    const noise = new ValueNoise(seed);
+    const rand = () => noise.random();
+    return {
+      bushType: rand(),
+      size: 4.5 + rand() * 3,
+      density: 0.7 + rand() * 0.3,
+      rand // Pass the random function for use in render
+    };
+  }, [seed]);
   
-  // Bush type variations - enhanced sizing
-  const bushType = localRand();
-  const size = 4.5 + localRand() * 3; // Increased from 3 + localRand() * 2
-  const density = 0.7 + localRand() * 0.3; // Slightly increased density
+  const { bushType, size, density, rand: localRand } = bushData;
   
   if (bushType < 0.33) {
     // Rounded leafy bush - enhanced with better depth and shadows
@@ -41,8 +48,7 @@ const BushSymbol: React.FC<BushSymbolProps> = ({ seed }) => {
             cy={cy + 0.4}
             r={clusterSize * 1.1}
             fill={darkShadowColor}
-            opacity={density * 0.4}
-            filter="blur(0.8px)"
+            opacity={density * 0.3}
           />
           {/* Main cluster */}
           <circle
@@ -80,8 +86,7 @@ const BushSymbol: React.FC<BushSymbolProps> = ({ seed }) => {
           cy="22.5"
           rx={size * 1.2}
           ry={size * 0.35}
-          fill="rgba(0,0,0,0.5)"
-          filter="blur(1.2px)"
+          fill="rgba(0,0,0,0.35)"
         />
         
         {/* Secondary shadow for depth */}
@@ -90,8 +95,7 @@ const BushSymbol: React.FC<BushSymbolProps> = ({ seed }) => {
           cy="22"
           rx={size * 0.9}
           ry={size * 0.25}
-          fill="rgba(0,0,0,0.3)"
-          filter="blur(0.6px)"
+          fill="rgba(0,0,0,0.2)"
         />
         
         {/* Central mass with enhanced shadow */}
@@ -100,8 +104,7 @@ const BushSymbol: React.FC<BushSymbolProps> = ({ seed }) => {
           cy={20.2 - size * 0.3}
           r={size * 0.7}
           fill={darkShadowColor}
-          opacity={density * 0.6}
-          filter="blur(0.4px)"
+          opacity={density * 0.5}
         />
         
         <circle
@@ -181,8 +184,7 @@ const BushSymbol: React.FC<BushSymbolProps> = ({ seed }) => {
             stroke={shadowColor}
             strokeWidth={thickness * 1.1}
             strokeLinecap="round"
-            opacity="0.4"
-            filter="blur(0.3px)"
+            opacity="0.3"
           />
           {/* Main spike */}
           <line
@@ -225,8 +227,7 @@ const BushSymbol: React.FC<BushSymbolProps> = ({ seed }) => {
           cy="22.5"
           rx={size * 1.1}
           ry={size * 0.3}
-          fill="rgba(0,0,0,0.45)"
-          filter="blur(1px)"
+          fill="rgba(0,0,0,0.3)"
         />
         
         {/* Central base with more depth */}
@@ -236,8 +237,7 @@ const BushSymbol: React.FC<BushSymbolProps> = ({ seed }) => {
           rx="2"
           ry="1.2"
           fill={shadowColor}
-          opacity="0.7"
-          filter="blur(0.3px)"
+          opacity="0.6"
         />
         
         <ellipse
@@ -297,9 +297,8 @@ const BushSymbol: React.FC<BushSymbolProps> = ({ seed }) => {
           rx={leafSize * 1.1}
           ry={leafSize * 0.7}
           fill={leafShadowColor}
-          opacity="0.4"
+          opacity="0.3"
           transform={`rotate(${angle * 180 / Math.PI} ${leafX + 0.2} ${leafY + 0.3})`}
-          filter="blur(0.4px)"
         />
       );
       
@@ -333,8 +332,7 @@ const BushSymbol: React.FC<BushSymbolProps> = ({ seed }) => {
           cx={flowerX + 0.1}
           cy={flowerY + 0.2}
           r={flowerSize * 0.6}
-          fill="rgba(0,0,0,0.3)"
-          filter="blur(0.3px)"
+          fill="rgba(0,0,0,0.2)"
         />
       );
       
@@ -391,8 +389,7 @@ const BushSymbol: React.FC<BushSymbolProps> = ({ seed }) => {
           cy="22.5"
           rx={size * 1.1}
           ry={size * 0.3}
-          fill="rgba(0,0,0,0.4)"
-          filter="blur(1.2px)"
+          fill="rgba(0,0,0,0.3)"
         />
         
         {/* Secondary shadow */}
@@ -401,8 +398,7 @@ const BushSymbol: React.FC<BushSymbolProps> = ({ seed }) => {
           cy="22"
           rx={size * 0.8}
           ry={size * 0.2}
-          fill="rgba(0,0,0,0.25)"
-          filter="blur(0.6px)"
+          fill="rgba(0,0,0,0.2)"
         />
         
         {elements}
@@ -428,6 +424,6 @@ const BushSymbol: React.FC<BushSymbolProps> = ({ seed }) => {
       </g>
     );
   }
-};
+});
 
-export default React.memo(BushSymbol);
+export default BushSymbol;

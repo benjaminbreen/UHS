@@ -71,8 +71,7 @@ const CactusSymbol: React.FC<CactusSymbolProps> = ({ seed }) => {
           cy="22"
           rx={mainWidth * 1.2}
           ry={mainWidth * 0.3}
-          fill="rgba(0,0,0,0.3)"
-          filter="blur(1px)"
+          fill="rgba(0,0,0,0.25)"
         />
         
         {/* Main trunk */}
@@ -171,8 +170,7 @@ const CactusSymbol: React.FC<CactusSymbolProps> = ({ seed }) => {
           cy="22"
           rx={radius * 1.3}
           ry={radius * 0.4}
-          fill="rgba(0,0,0,0.3)"
-          filter="blur(1px)"
+          fill="rgba(0,0,0,0.25)"
         />
         
         {/* Main body */}
@@ -278,8 +276,7 @@ const CactusSymbol: React.FC<CactusSymbolProps> = ({ seed }) => {
             cy={pad.y + 0.3}
             rx={pad.width/2}
             ry={pad.height/2}
-            fill="rgba(0,0,0,0.2)"
-            filter="blur(0.5px)"
+            fill="rgba(0,0,0,0.15)"
           />
           
           {/* Main pad */}

@@ -17,7 +17,7 @@ const FireflySymbol: React.FC<FireflySymbolProps> = React.memo(({ x, y, size, se
   
   // Generate multiple fireflies with different animation timings
   const fireflies = React.useMemo(() => {
-    const count = 3 + Math.floor(noise.random() * 4); // 3-6 fireflies per tile
+    const count = 1 + Math.floor(noise.random() * 3); // 3-6 fireflies per tile
     return Array.from({ length: count }, (_, i) => {
       const offsetX = (noise.random() - 0.5) * size * 0.8;
       const offsetY = (noise.random() - 0.5) * size * 0.8;

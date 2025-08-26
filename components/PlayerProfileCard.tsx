@@ -1,9 +1,11 @@
 /**
  * components/PlayerProfileCard.tsx - Reusable player profile display component
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { PlayerCharacter } from '../types';
 import { AnimatedPortrait } from './portraits';
+import { AttributeBadgeList } from './AttributeBadge';
+import AttributeModal from './AttributeModal';
 
 interface PlayerProfileCardProps {
   playerCharacter: PlayerCharacter;
@@ -26,6 +28,8 @@ const PlayerProfileCard: React.FC<PlayerProfileCardProps> = ({
   onUseSkill,
   onProfileClick 
 }) => {
+  const [showAttributeModal, setShowAttributeModal] = useState(false);
+  
   const healthPercent = useMemo(() => (playerCharacter.health / playerCharacter.maxHealth) * 100, [playerCharacter.health, playerCharacter.maxHealth]);
   const fatiguePercent = useMemo(() => (playerCharacter.fatigue / playerCharacter.maxFatigue) * 100, [playerCharacter.fatigue, playerCharacter.maxFatigue]);
   const xpPercent = useMemo(() => (playerCharacter.experience / playerCharacter.maxExperience) * 100, [playerCharacter.experience, playerCharacter.maxExperience]);
@@ -34,7 +38,51 @@ const PlayerProfileCard: React.FC<PlayerProfileCardProps> = ({
   const statusInfo = useMemo(() => {
     if (!playerCharacter) return { text: 'Feeling okay', hasDisease: false, diseaseName: null };
     
-    // Check for active diseases first (highest priority)
+    // Check for weather effects first (highest priority for immediate danger)
+    const weatherEffects = playerCharacter.statusEffects?.filter(e => 
+      ['feeling_cold', 'feeling_hot', 'feeling_wet'].includes(e.type)
+    ) || [];
+    
+    if (weatherEffects.length > 0) {
+      const coldEffect = weatherEffects.find(e => e.type === 'feeling_cold');
+      const hotEffect = weatherEffects.find(e => e.type === 'feeling_hot');
+      const wetEffect = weatherEffects.find(e => e.type === 'feeling_wet');
+      
+      if (coldEffect) {
+        return { 
+          text: '❄️ Feeling cold', 
+          hasDisease: false, 
+          diseaseName: null,
+          isWeatherEffect: true 
+        };
+      }
+      if (hotEffect && wetEffect) {
+        return { 
+          text: '🌡️💧 Hot and humid', 
+          hasDisease: false, 
+          diseaseName: null,
+          isWeatherEffect: true 
+        };
+      }
+      if (hotEffect) {
+        return { 
+          text: '🌡️ Feeling hot', 
+          hasDisease: false, 
+          diseaseName: null,
+          isWeatherEffect: true 
+        };
+      }
+      if (wetEffect) {
+        return { 
+          text: '💧 Feeling wet', 
+          hasDisease: false, 
+          diseaseName: null,
+          isWeatherEffect: true 
+        };
+      }
+    }
+    
+    // Check for active diseases (second priority)
     if (playerCharacter.diseaseHealth && playerCharacter.diseaseHealth.currentDiseases) {
       const diseaseHealth = playerCharacter.diseaseHealth;
       if (diseaseHealth.currentDiseases && diseaseHealth.currentDiseases.length > 0) {
@@ -85,7 +133,7 @@ const PlayerProfileCard: React.FC<PlayerProfileCardProps> = ({
           className={`flex items-start gap-3 ${onProfileClick ? 'cursor-pointer' : ''}`}
           onClick={onProfileClick}
         >
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 relative">
             <div className="w-24 h-24 rounded-full overflow-hidden relative border-2 border-slate-600 shadow-2xl bg-gradient-to-br from-slate-700 to-slate-800">
               <div className="absolute inset-0 z-10 pointer-events-none rounded-full bg-gradient-to-br from-transparent via-transparent to-black/50"></div>
               <div className="absolute inset-0 z-10 pointer-events-none rounded-full bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
@@ -98,6 +146,18 @@ const PlayerProfileCard: React.FC<PlayerProfileCardProps> = ({
               </div>
               <div className="absolute -inset-1 rounded-full -z-10 blur-sm bg-gradient-to-br from-slate-400/40 to-slate-600/40"></div>
             </div>
+            
+            {/* Attribute badges */}
+            {playerCharacter.attributes && playerCharacter.attributes.length > 0 && (
+              <div className="absolute -top-1 -left-1 z-20">
+                <AttributeBadgeList
+                  badges={playerCharacter.attributes}
+                  maxDisplay={3}
+                  size="small"
+                  onBadgeClick={() => setShowAttributeModal(true)}
+                />
+              </div>
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between mb-3">
@@ -160,7 +220,7 @@ const PlayerProfileCard: React.FC<PlayerProfileCardProps> = ({
           <div>
             <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-gray-400">
               <span>HEALTH</span>
-              <span>{playerCharacter.health} / {playerCharacter.maxHealth}</span>
+              <span>{Math.ceil(playerCharacter.health)} / {Math.ceil(playerCharacter.maxHealth)}</span>
             </div>
             <div className="w-full h-1.5 overflow-hidden bg-gray-700 rounded-full shadow-inner">
               <div className="h-full transition-all duration-500 rounded-full bg-gradient-to-r from-red-500 via-orange-400 to-yellow-400 shadow-sm" 
@@ -170,7 +230,7 @@ const PlayerProfileCard: React.FC<PlayerProfileCardProps> = ({
           <div>
             <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-gray-400">
               <span>FATIGUE</span>
-              <span>{playerCharacter.fatigue} / {playerCharacter.maxFatigue}</span>
+              <span>{Math.ceil(playerCharacter.fatigue)} / {Math.ceil(playerCharacter.maxFatigue)}</span>
             </div>
             <div className="w-full h-1.5 overflow-hidden bg-gray-700 rounded-full shadow-inner">
               <div className="h-full transition-all duration-500 rounded-full bg-gradient-to-r from-amber-400 via-amber-600 to-orange-600 shadow-sm" 
@@ -180,7 +240,7 @@ const PlayerProfileCard: React.FC<PlayerProfileCardProps> = ({
           <div>
             <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-gray-400">
               <span>EXPERIENCE</span>
-              <span>{playerCharacter.experience} / {playerCharacter.maxExperience}</span>
+              <span>{Math.ceil(playerCharacter.experience)} / {Math.ceil(playerCharacter.maxExperience)}</span>
             </div>
             <div className="w-full h-1.5 overflow-hidden bg-gray-700 rounded-full shadow-inner">
               <div className="h-full transition-all duration-500 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full shadow-sm" 
@@ -202,16 +262,30 @@ const PlayerProfileCard: React.FC<PlayerProfileCardProps> = ({
                 <button 
                   key={skillId} 
                   onClick={() => onUseSkill(skillId)} 
-                  className="flex flex-col items-center justify-center p-2 text-md font-semibold text-gray-300 transition-all duration-200 border rounded-lg aspect-square bg-gradient-to-br from-slate-700/80 to-slate-800/60 border-gray-600/50 hover:bg-gradient-to-br hover:from-slate-600/90 hover:to-slate-700/70 hover:border-blue-400/50 hover:text-white hover:shadow-lg hover:-translate-y-1 hover:scale-105"
+                  className="flex flex-col items-center justify-center px-2 py-1.5 text-md font-semibold text-gray-300 transition-all duration-200 border rounded-lg bg-gradient-to-br from-slate-700/80 to-slate-800/60 border-gray-600/50 hover:bg-gradient-to-br hover:from-slate-600/90 hover:to-slate-700/70 hover:border-blue-400/50 hover:text-white hover:shadow-lg"
+                  style={{ aspectRatio: '1 / 0.7' }}
                   title={skill.description}
                 >
-                  <div className="mb-0.5 text-base">{skill.icon}</div>
-                  <span className="text-[12px] leading-tight text-center">{skill.name}</span>
+                  <div className="mb-0.5 text-base" style={{
+                    filter: 'drop-shadow(0 0 3px rgba(255, 255, 255, 0.3))',
+                    textShadow: '0 0 8px rgba(255, 255, 255, 0.4)'
+                  }}>{skill.icon}</div>
+                  <span className="text-[11px] leading-tight text-center">{skill.name}</span>
                 </button>
               );
             })}
           </div>
         </div>
+      )}
+      
+      {/* Attribute Modal */}
+      {showAttributeModal && playerCharacter.attributes && (
+        <AttributeModal
+          isOpen={showAttributeModal}
+          onClose={() => setShowAttributeModal(false)}
+          attributes={playerCharacter.attributes}
+          characterName={playerCharacter.name}
+        />
       )}
     </div>
   );

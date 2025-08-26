@@ -1,7 +1,7 @@
 /**
  * components/TerrainStructureModal.tsx - Enhanced modal for terrain structures with larger banner display
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { TerrainStructure, MapData, Tile, BiomeType, Season, TimeOfDay, NpcEntity, HistoricalEra } from '../types';
 import { calculatePrices } from '../services/economyService';
 import { STRUCTURE_BLUEPRINTS } from '../constants/index';
@@ -9,6 +9,7 @@ import { getPrimaryIndustry, getRegionalIndustries, IndustryData } from '../cons
 import TerrainStructureBanner from './TerrainStructureBanner';
 import GovernmentDistrictModal from './GovernmentDistrictModal';
 import { getFactionData } from '../constants/gameData/factionIcons';
+import FactionsModal from './FactionsModal';
 
 // Helper to find the nearest urban center to a given point.
 const findNearestUrbanSettlement = (startPoint: [number, number], tiles: Tile[][]): { tile: Tile, distance: number } | null => {
@@ -84,6 +85,9 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
     currentLocation, 
     formattedDate 
 }) => {
+    // State for factions modal
+    const [showFactionsModal, setShowFactionsModal] = useState(false);
+    
     // Parse era from formatted date
     const getEraFromDate = (dateInput?: any): string => {
         if (!dateInput) return '1500';
@@ -350,14 +354,14 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="relative w-full max-w-5xl h-[70vh] flex flex-col ff-panel animate-popIn">
+            <div className="relative w-full max-w-5xl h-[80vh] flex flex-col ff-panel animate-popIn">
                 {/* Enhanced Banner Header - Full Height */}
-                <header className="relative h-[350px] rounded-t-lg overflow-hidden">
+                <header className="relative h-[340px] rounded-t-lg overflow-hidden">
                     <TerrainStructureBanner
                         structure={structure}
                         mapData={mapData}
-                        width={1080}
-                        height={350}
+                        width={1180}
+                        height={340}
                         timeOfDay={timeOfDay}
                         season={season}
                         era={era}
@@ -379,10 +383,14 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
                             </div>
                         </div>
                         
-                        {/* Faction Badge */}
+                        {/* Faction Badge - Clickable */}
                         {allegianceGroup && allegianceGroup !== 'Independent' && (
-                            <div className="flex items-center gap-3 bg-black/60 backdrop-blur-sm rounded-lg px-4 py-3 border-2" 
-                                 style={{ borderColor: factionData.color }}>
+                            <div 
+                                className="flex items-center gap-3 bg-black/60 backdrop-blur-sm rounded-lg px-4 py-3 border-2 cursor-pointer hover:bg-black/80 transition-all" 
+                                style={{ borderColor: factionData.color }}
+                                onClick={() => setShowFactionsModal(true)}
+                                title="Click for more faction information"
+                            >
                                 <div className="flex flex-col items-end">
                                     <span className="text-xs text-slate-400 uppercase tracking-wider mb-1">Allegiance</span>
                                     <h3 className="text-xl font-bold font-cinzel" 
@@ -577,6 +585,17 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
                     </button>
                 </footer>
             </div>
+            
+            {/* Factions Modal */}
+            {showFactionsModal && (
+                <FactionsModal
+                    onClose={() => setShowFactionsModal(false)}
+                    currentZone={mapData?.localArea}
+                    currentRegion={mapData?.region}
+                    dominantPower={allegianceGroup}
+                    allegianceGroups={[]} // Could be expanded to include other local powers
+                />
+            )}
         </div>
     );
 };

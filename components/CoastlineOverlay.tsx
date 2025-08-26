@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
 import { MapData } from '../types';
 import { ValueNoise } from '../utils/noise';
 import { TILE_SIZE_PX } from '../constants/index';
@@ -44,16 +44,10 @@ const chaikinCurve = (points: PixelPoint[], iterations: number): PixelPoint[] =>
 
 
 const CoastlineOverlay: React.FC<CoastlineOverlayProps> = ({ mapData, noise, disableBlur = false }) => {
-    // Detect Safari for automatic performance optimization
-    const [isSafari, setIsSafari] = useState(false);
-    
-    useEffect(() => {
-        const safari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-        setIsSafari(safari);
-    }, []);
+    // Removed Safari-specific detection - treating all browsers the same now
     
     // Determine if we should use blur effects
-    const shouldUseBlur = !disableBlur && !isSafari;
+    const shouldUseBlur = !disableBlur;
     const coastlinePaths = useMemo(() => {
         if (!mapData || !mapData.tiles) return null;
 
@@ -240,7 +234,7 @@ const CoastlineOverlay: React.FC<CoastlineOverlayProps> = ({ mapData, noise, dis
                     <path
                         d={coastlinePaths.fullPathD}
                         stroke="rgba(84, 57, 34, 0.15)"
-                        strokeWidth={TILE_SIZE_PX * 0.08}
+                        strokeWidth={TILE_SIZE_PX * 0.07}
                         fill="none"
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -253,7 +247,7 @@ const CoastlineOverlay: React.FC<CoastlineOverlayProps> = ({ mapData, noise, dis
                     <path
                         d={coastlinePaths.fullPathD}
                         stroke={`url(#water-gradient-${uniqueId})`}
-                        strokeWidth={TILE_SIZE_PX * 0.8}
+                        strokeWidth={TILE_SIZE_PX * 0.5}
                         fill="none"
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -264,7 +258,7 @@ const CoastlineOverlay: React.FC<CoastlineOverlayProps> = ({ mapData, noise, dis
                     <path
                         d={coastlinePaths.fullPathD}
                         stroke={`url(#sand-gradient-${uniqueId})`}
-                        strokeWidth={TILE_SIZE_PX * 0.5}
+                        strokeWidth={TILE_SIZE_PX * 0.2}
                         fill="none"
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -275,7 +269,7 @@ const CoastlineOverlay: React.FC<CoastlineOverlayProps> = ({ mapData, noise, dis
                     <path
                         d={coastlinePaths.fullPathD}
                         stroke="rgba(255, 255, 255, 0.7)"
-                        strokeWidth={TILE_SIZE_PX * 0.12}
+                        strokeWidth={TILE_SIZE_PX * 0.1}
                         fill="none"
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -286,7 +280,7 @@ const CoastlineOverlay: React.FC<CoastlineOverlayProps> = ({ mapData, noise, dis
                     <path
                         d={coastlinePaths.fullPathD}
                         stroke="rgba(84, 57, 34, 0.25)"
-                        strokeWidth={TILE_SIZE_PX * 0.06}
+                        strokeWidth={TILE_SIZE_PX * 0.05}
                         fill="none"
                         strokeLinecap="round"
                         strokeLinejoin="round"

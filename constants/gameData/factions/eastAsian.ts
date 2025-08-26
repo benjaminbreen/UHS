@@ -17,7 +17,7 @@ export const EAST_ASIAN_FACTIONS: FactionFile = {
                 eraContextSentence: 'the dawn of Chinese civilization, where oracle bones speak to ancestors and bronze vessels honor the gods.',
                 allegianceGroups: [
                     { name: 'Shang Kings', type: 'primary', description: 'Divine rulers with the Mandate of Heaven.' },
-                    { name: 'Zhou Tribes', type: 'secondary', description: 'Western peoples who will overthrow Shang.' },
+                    { name: 'Zhou Tribes', type: 'rising', description: 'Western peoples who will overthrow Shang.' },
                     { name: 'Eastern Yi', type: 'secondary', description: 'Coastal tribes to the east.' }
                 ],
                 structureNames: {
@@ -81,7 +81,7 @@ export const EAST_ASIAN_FACTIONS: FactionFile = {
                     { name: 'Ming Dynasty', type: 'primary', description: 'The native Han Chinese imperial government.' },
                     { name: 'Mongol Remnants', type: 'rebel', description: 'The Northern Yuan and other Mongol groups.' },
                     { name: 'Japanese Pirates (Wokou)', type: 'rebel', description: 'Pirates raiding the coastlines.' },
-                    { name: 'Manchu Tribes', type: 'secondary', description: 'A rising power to the northeast.' }
+                    { name: 'Manchu Tribes', type: 'rising', description: 'A rising power to the northeast.' }
                 ],
                 structureNames: {
                     fortress: ['Forbidden City', 'Great Wall Fortress', 'City Garrison', 'Imperial Guard Post', 'Coastal Defense'],
@@ -223,7 +223,7 @@ export const EAST_ASIAN_FACTIONS: FactionFile = {
                 eraContextSentence: 'an era of rebellion and reform, where South China becomes the center of resistance to traditional authority.',
                 allegianceGroups: [
                     { name: 'Qing Dynasty', type: 'primary', description: 'The imperial government.' },
-                    { name: 'Taiping Heavenly Kingdom', type: 'rebel', description: 'A massive rebellion aiming to overthrow the Qing.' },
+                    { name: 'Taiping Heavenly Kingdom', type: 'rising', description: 'A massive rebellion aiming to overthrow the Qing.' },
                     { name: 'British Empire', type: 'trade_company', description: 'The dominant Western power, controlling Hong Kong.' },
                     { name: 'Guangdong Merchants', type: 'secondary', description: 'Powerful merchant groups in Canton.' }
                 ],
@@ -438,7 +438,7 @@ export const EAST_ASIAN_FACTIONS: FactionFile = {
                 allegianceGroups: [
                     { name: 'Kamakura Shogunate', type: 'primary', description: 'The military government led by the Minamoto clan.' },
                     { name: 'Imperial Court', type: 'secondary', description: 'The traditional but powerless imperial government.' },
-                    { name: 'Taira Clan Remnants', type: 'rebel', description: 'Survivors of the defeated Taira.' },
+                    { name: 'Taira Clan Remnants', type: 'declining', description: 'Survivors of the defeated Taira.' },
                     { name: 'Buddhist Monasteries', type: 'secondary', description: 'Powerful religious institutions with warrior monks.' }
                 ],
                 structureNames: {
@@ -480,7 +480,7 @@ export const EAST_ASIAN_FACTIONS: FactionFile = {
                 eraContextSentence: 'an era of dramatic transformation, where Japan races to join the modern world.',
                 allegianceGroups: [
                     { name: 'Meiji Government', type: 'primary', description: 'The modernizing imperial government.' },
-                    { name: 'Former Samurai', type: 'rebel', description: 'Displaced warrior class opposing change.' },
+                    { name: 'Former Samurai', type: 'declining', description: 'Displaced warrior class opposing change.' },
                     { name: 'Western Powers', type: 'secondary', description: 'European and American advisors and traders.' },
                     { name: 'Peasant Uprisings', type: 'rebel', description: 'Rural resistance to modernization.' }
                 ],
@@ -577,7 +577,7 @@ export const EAST_ASIAN_FACTIONS: FactionFile = {
                     { name: 'Goryeo Dynasty', type: 'primary', description: 'The unified Korean kingdom.' },
                     { name: 'Mongol Empire', type: 'secondary', description: 'Powerful northern empire demanding submission.' },
                     { name: 'Song Dynasty', type: 'secondary', description: 'Chinese ally and cultural influence.' },
-                    { name: 'Military Officers', type: 'rebel', description: 'Military strongmen challenging royal authority.' }
+                    { name: 'Military Officers', type: 'rising', description: 'Military strongmen challenging royal authority.' }
                 ],
                 structureNames: {
                     fortress: ['Royal Palace Fortress', 'Mountain Citadel', 'Coastal Defense', 'Border Watch'],
@@ -802,7 +802,7 @@ export const EAST_ASIAN_FACTIONS: FactionFile = {
                 eraContextSentence: 'an era of nomadic empires, where Mongol power extends into the northern forests.',
                 allegianceGroups: [
                     { name: 'Golden Horde', type: 'primary', description: 'Mongol khanate controlling western Siberia.' },
-                    { name: 'Sibir Khanate', type: 'secondary', description: 'Turkic successor state.' },
+                    { name: 'Sibir Khanate', type: 'declining', description: 'Turkic successor state.' },
                     { name: 'Independent Tribes', type: 'rebel', description: 'Various groups maintaining independence.' },
                     { name: 'Russian Principalities', type: 'secondary', description: 'Emerging power from the west.' }
                 ],
@@ -959,7 +959,7 @@ export const EAST_ASIAN_FACTIONS: FactionFile = {
                 allegianceGroups: [
                     { name: 'Russian Empire', type: 'primary', description: 'Conquering European empire.' },
                     { name: 'Local Islamic Leaders', type: 'secondary', description: 'Traditional authorities under Russian rule.' },
-                    { name: 'Basmachi Resistance', type: 'rebel', description: 'Islamic resistance to Russian and later Soviet rule.' },
+                    { name: 'Basmachi Resistance', type: 'rising', description: 'Islamic resistance to Russian and later Soviet rule.' },
                     { name: 'Jadid Reformers', type: 'secondary', description: 'Muslim modernization movement.' }
                 ],
                 structureNames: {
@@ -978,7 +978,7 @@ export const EAST_ASIAN_FACTIONS: FactionFile = {
                     { name: 'Soviet Union', type: 'primary', description: 'Communist central government.' },
                     { name: 'Local Communist Parties', type: 'secondary', description: 'Regional Soviet authorities.' },
                     { name: 'Islamic Underground', type: 'rebel', description: 'Hidden religious resistance.' },
-                    { name: 'Independence Movements', type: 'rebel', description: 'National liberation groups emerging in late Soviet era.' }
+                    { name: 'Independence Movements', type: 'rising', description: 'National liberation groups emerging in late Soviet era.' }
                 ],
                 structureNames: {
                     fortress: ['Military Base', 'Border Guard Station', 'Strategic Facility'],
@@ -1187,7 +1187,7 @@ export const EAST_ASIAN_FACTIONS: FactionFile = {
                 allegianceGroups: [
                     { name: 'Tibetan Government', type: 'primary', description: 'Traditional theocratic administration.' },
                     { name: 'Qing Dynasty', type: 'secondary', description: 'Nominal Chinese suzerain.' },
-                    { name: 'British Empire', type: 'secondary', description: 'Imperial power seeking influence from India.' },
+                    { name: 'British Empire', type: 'rising', description: 'Imperial power seeking influence from India.' },
                     { name: 'Russian Empire', type: 'secondary', description: 'Competing imperial influence.' }
                 ],
                 structureNames: {
@@ -1206,7 +1206,7 @@ export const EAST_ASIAN_FACTIONS: FactionFile = {
                     { name: 'People\'s Republic of China', type: 'primary', description: 'Communist central government.' },
                     { name: 'Tibet Autonomous Region Government', type: 'secondary', description: 'Regional administration.' },
                     { name: 'Tibetan Buddhist Monasteries', type: 'secondary', description: 'Religious institutions under state oversight.' },
-                    { name: 'Dalai Lama Government-in-Exile', type: 'rebel', description: 'Exiled traditional government in India.' }
+                    { name: 'Dalai Lama Government-in-Exile', type: 'declining', description: 'Exiled traditional government in India.' }
                 ],
                 structureNames: {
                     fortress: ['Military Base', 'Border Guard Station', 'Strategic Outpost'],

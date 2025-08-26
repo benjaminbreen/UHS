@@ -1,5 +1,5 @@
 /**
- * components/symbols/IndustrialDistrictSymbol.tsx - Renders industrial districts with era-specific factories
+ * components/symbols/IndustrialDistrictSymbol.tsx - Industrial districts with proper isometric 3D rendering
  */
 import React, { useMemo } from 'react';
 import { Tile, HistoricalEra } from '../../types';
@@ -13,436 +13,380 @@ interface IndustrialDistrictSymbolProps {
   tile: Tile;
   era?: HistoricalEra;
   culturalStyle?: string;
+  nightIntensity?: number;
 }
 
 const IndustrialDistrictSymbol: React.FC<IndustrialDistrictSymbolProps> = React.memo(({ 
-  x, y, size, seed, tile, era, culturalStyle 
+  x, y, size, seed, tile, era, culturalStyle, nightIntensity = 0 
 }) => {
+  const rng = new ValueNoise(seed + tile.x * 41 + tile.y * 43);
+  const uniqueId = `industrial-district-${tile.x}-${tile.y}`;
+  
+  // Pre-calculate random values
   const staticValues = useMemo(() => {
     const localRand = (offset = 0) => new ValueNoise(seed + tile.x * 41 + tile.y * 43 + offset).random();
     return {
-      chimneyCount: Math.floor(localRand(0) * 3) + 1, // 1-3 chimneys
-      buildingArrangement: Math.floor(localRand(1) * 3), // layout pattern
-      hasRailway: localRand(2) < 0.6 && era !== HistoricalEra.MEDIEVAL_ERA, // 60% chance if post-medieval
-      hasTanks: localRand(3) < 0.4 && (era === HistoricalEra.INDUSTRIAL_ERA || era === HistoricalEra.MODERN_ERA),
-      smokeIntensity: localRand(4) * 0.5 + 0.3, // 0.3-0.8 opacity
+      chimneyCount: era === HistoricalEra.INDUSTRIAL_ERA ? 2 + Math.floor(localRand(0) * 2) : 1, // 2-3 for industrial, 1 for modern
+      hasCog: localRand(1) < 0.6 && era === HistoricalEra.INDUSTRIAL_ERA, // 60% chance for industrial era
+      cogRotation: localRand(2) * 360,
+      smokeOffset1: localRand(3) * 10 - 5,
+      smokeOffset2: localRand(4) * 10 - 5,
       windowPattern: Math.floor(localRand(5) * 3),
+      buildingHeight: 0.5 + localRand(6) * 0.2, // Height variation
+      roofVariant: Math.floor(localRand(7) * 2),
     };
   }, [seed, tile.x, tile.y, era]);
 
-  const elements: JSX.Element[] = [];
-
-  // Base ground
-  elements.push(
-    <rect
-      key="base"
-      x={x}
-      y={y}
-      width={size}
-      height={size}
-      fill="#7a6a5a"
-      opacity="0.9"
-    />
-  );
-
-  const renderIndustrialFeatures = () => {
-    const features: JSX.Element[] = [];
-    
-    if (era === HistoricalEra.MEDIEVAL_ERA || era === HistoricalEra.RENAISSANCE_ERA) {
-      // Early industrial - workshops, mills, forges
-      
-      // Workshop buildings
-      for (let i = 0; i < 2; i++) {
-        const bldgX = x + size * (0.15 + i * 0.4);
-        const bldgY = y + size * 0.3;
-        
-        features.push(
-          <g key={`workshop-${i}`}>
-            {/* Building base */}
-            <rect
-              x={bldgX}
-              y={bldgY}
-              width={size * 0.3}
-              height={size * 0.4}
-              fill="#b09070"
-              stroke="#907050"
-              strokeWidth="1"
-            />
-            {/* Roof */}
-            <polygon
-              points={`${bldgX},${bldgY} ${bldgX + size * 0.15},${bldgY - size * 0.08} ${bldgX + size * 0.3},${bldgY}`}
-              fill="#6a5040"
-              stroke="#4a3020"
-              strokeWidth="0.5"
-            />
-            {/* Workshop door */}
-            <rect
-              x={bldgX + size * 0.12}
-              y={bldgY + size * 0.25}
-              width={size * 0.06}
-              height={size * 0.15}
-              fill="#4a3020"
-            />
-            {/* Forge chimney (if first building) */}
-            {i === 0 && (
-              <>
-                <rect
-                  x={bldgX + size * 0.25}
-                  y={bldgY - size * 0.12}
-                  width={size * 0.03}
-                  height={size * 0.12}
-                  fill="#5a4a3a"
-                />
-                {/* Smoke */}
-                <ellipse
-                  cx={bldgX + size * 0.265}
-                  cy={bldgY - size * 0.15}
-                  rx={size * 0.02}
-                  ry={size * 0.03}
-                  fill="#808080"
-                  opacity="0.4"
-                />
-              </>
-            )}
-          </g>
-        );
-      }
-      
-      // Water wheel (for mills)
-      if (culturalStyle === 'european') {
-        features.push(
-          <g key="waterwheel">
-            <circle
-              cx={x + size * 0.85}
-              cy={y + size * 0.5}
-              r={size * 0.08}
-              fill="none"
-              stroke="#6a4a2a"
-              strokeWidth="2"
-            />
-            {/* Wheel spokes */}
-            {[0, 45, 90, 135].map(angle => {
-              const rad = (angle * Math.PI) / 180;
-              return (
-                <line
-                  key={`spoke-${angle}`}
-                  x1={x + size * 0.85}
-                  y1={y + size * 0.5}
-                  x2={x + size * 0.85 + Math.cos(rad) * size * 0.08}
-                  y2={y + size * 0.5 + Math.sin(rad) * size * 0.08}
-                  stroke="#6a4a2a"
-                  strokeWidth="1"
-                />
-              );
-            })}
-          </g>
-        );
-      }
-      
-    } else if (era === HistoricalEra.INDUSTRIAL_ERA) {
-      // Classic industrial revolution - brick factories with smokestacks
-      
-      // Main factory building
-      const factoryX = x + size * 0.1;
-      const factoryY = y + size * 0.3;
-      
-      features.push(
-        <g key="main-factory">
-          {/* Factory base */}
-          <rect
-            x={factoryX}
-            y={factoryY}
-            width={size * 0.5}
-            height={size * 0.4}
-            fill="#8a5040"
-            stroke="#6a3020"
-            strokeWidth="1"
-          />
-          {/* Brick pattern */}
-          {[0, 0.1, 0.2, 0.3].map((yOff, i) => (
-            <line
-              key={`brick-h-${i}`}
-              x1={factoryX}
-              y1={factoryY + size * yOff}
-              x2={factoryX + size * 0.5}
-              y2={factoryY + size * yOff}
-              stroke="#6a3020"
-              strokeWidth="0.5"
-              opacity="0.3"
-            />
-          ))}
-          {[0, 0.125, 0.25, 0.375].map((xOff, i) => (
-            <line
-              key={`brick-v-${i}`}
-              x1={factoryX + size * xOff}
-              y1={factoryY}
-              x2={factoryX + size * xOff}
-              y2={factoryY + size * 0.4}
-              stroke="#6a3020"
-              strokeWidth="0.5"
-              opacity="0.2"
-            />
-          ))}
-          {/* Saw-tooth roof */}
-          {[0, 0.1, 0.2, 0.3, 0.4].map((xOff, i) => (
-            <polygon
-              key={`roof-${i}`}
-              points={`${factoryX + size * xOff},${factoryY} ${factoryX + size * (xOff + 0.05)},${factoryY - size * 0.05} ${factoryX + size * (xOff + 0.1)},${factoryY}`}
-              fill="#4a3a2a"
-              stroke="#2a1a0a"
-              strokeWidth="0.5"
-            />
-          ))}
-          {/* Windows */}
-          {[0.05, 0.15, 0.25, 0.35, 0.45].map((xOff, i) => (
-            <rect
-              key={`window-${i}`}
-              x={factoryX + size * xOff}
-              y={factoryY + size * 0.1}
-              width={size * 0.04}
-              height={size * 0.08}
-              fill="#404040"
-              opacity="0.7"
-            />
-          ))}
-        </g>
-      );
-      
-      // Smokestacks with heavy smoke
-      for (let i = 0; i < staticValues.chimneyCount; i++) {
-        const chimneyX = x + size * (0.2 + i * 0.25);
-        const chimneyY = y + size * 0.15;
-        
-        features.push(
-          <g key={`chimney-${i}`}>
-            {/* Chimney */}
-            <rect
-              x={chimneyX - size * 0.03}
-              y={chimneyY}
-              width={size * 0.06}
-              height={size * 0.25}
-              fill="#5a4030"
-              stroke="#3a2010"
-              strokeWidth="1"
-            />
-            {/* Chimney top */}
-            <rect
-              x={chimneyX - size * 0.035}
-              y={chimneyY}
-              width={size * 0.07}
-              height={size * 0.02}
-              fill="#3a2010"
-            />
-            {/* Heavy industrial smoke */}
-            <ellipse
-              cx={chimneyX}
-              cy={chimneyY - size * 0.05}
-              rx={size * 0.04}
-              ry={size * 0.06}
-              fill="#2a2a2a"
-              opacity={staticValues.smokeIntensity}
-            />
-            <ellipse
-              cx={chimneyX + size * 0.02}
-              cy={chimneyY - size * 0.1}
-              rx={size * 0.05}
-              ry={size * 0.08}
-              fill="#3a3a3a"
-              opacity={staticValues.smokeIntensity * 0.7}
-            />
-            <ellipse
-              cx={chimneyX + size * 0.04}
-              cy={chimneyY - size * 0.18}
-              rx={size * 0.06}
-              ry={size * 0.1}
-              fill="#4a4a4a"
-              opacity={staticValues.smokeIntensity * 0.5}
-            />
-          </g>
-        );
-      }
-      
-      // Railway siding
-      if (staticValues.hasRailway) {
-        features.push(
-          <g key="railway">
-            <line x1={x} y1={y + size * 0.85} x2={x + size} y2={y + size * 0.85} stroke="#404040" strokeWidth="2" />
-            <line x1={x} y1={y + size * 0.9} x2={x + size} y2={y + size * 0.9} stroke="#404040" strokeWidth="2" />
-            {/* Rail ties */}
-            {[0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9].map((xOff, i) => (
-              <line
-                key={`tie-${i}`}
-                x1={x + size * xOff}
-                y1={y + size * 0.83}
-                x2={x + size * xOff}
-                y2={y + size * 0.92}
-                stroke="#5a3a1a"
-                strokeWidth="1"
-              />
-            ))}
-          </g>
-        );
-      }
-      
-      // Storage tanks
-      if (staticValues.hasTanks) {
-        features.push(
-          <g key="tanks">
-            {[0.7, 0.82].map((xOff, i) => (
-              <g key={`tank-${i}`}>
-                <ellipse
-                  cx={x + size * xOff}
-                  cy={y + size * 0.6}
-                  rx={size * 0.05}
-                  ry={size * 0.08}
-                  fill="#6a6a6a"
-                  stroke="#4a4a4a"
-                  strokeWidth="1"
-                />
-                <ellipse
-                  cx={x + size * xOff}
-                  cy={y + size * 0.52}
-                  rx={size * 0.05}
-                  ry={size * 0.02}
-                  fill="#7a7a7a"
-                />
-              </g>
-            ))}
-          </g>
-        );
-      }
-      
-    } else {
-      // Modern/Future era - cleaner factories, tech industry
-      
-      // Modern factory complex
-      features.push(
-        <g key="modern-factory">
-          {/* Main building */}
-          <rect
-            x={x + size * 0.1}
-            y={y + size * 0.3}
-            width={size * 0.6}
-            height={size * 0.35}
-            fill="#c0c0c0"
-            stroke="#909090"
-            strokeWidth="1"
-          />
-          {/* Glass facade */}
-          {[0.15, 0.25, 0.35, 0.45, 0.55].map((xOff, i) => (
-            <rect
-              key={`glass-${i}`}
-              x={x + size * xOff}
-              y={y + size * 0.35}
-              width={size * 0.08}
-              height={size * 0.25}
-              fill="#6bb6ff"
-              opacity="0.6"
-            />
-          ))}
-          {/* Modern flat roof */}
-          <rect
-            x={x + size * 0.1}
-            y={y + size * 0.28}
-            width={size * 0.6}
-            height={size * 0.02}
-            fill="#a0a0a0"
-          />
-          {/* Solar panels on roof (future era) */}
-          {era === HistoricalEra.FUTURE_ERA && (
-            <>
-              {[0.15, 0.25, 0.35, 0.45, 0.55].map((xOff, i) => (
-                <rect
-                  key={`solar-${i}`}
-                  x={x + size * xOff}
-                  y={y + size * 0.26}
-                  width={size * 0.08}
-                  height={size * 0.02}
-                  fill="#1a237e"
-                  opacity="0.8"
-                />
-              ))}
-            </>
-          )}
-        </g>
-      );
-      
-      // Clean smokestacks (fewer, less smoke)
-      if (staticValues.chimneyCount > 0 && era !== HistoricalEra.FUTURE_ERA) {
-        const chimneyX = x + size * 0.75;
-        features.push(
-          <g key="modern-chimney">
-            <rect
-              x={chimneyX - size * 0.02}
-              y={y + size * 0.1}
-              width={size * 0.04}
-              height={size * 0.2}
-              fill="#909090"
-              stroke="#707070"
-              strokeWidth="1"
-            />
-            {/* Minimal smoke */}
-            <ellipse
-              cx={chimneyX}
-              cy={y + size * 0.08}
-              rx={size * 0.02}
-              ry={size * 0.03}
-              fill="#e0e0e0"
-              opacity="0.3"
-            />
-          </g>
-        );
-      }
-      
-      // Parking lot
-      features.push(
-        <g key="parking">
-          <rect
-            x={x + size * 0.1}
-            y={y + size * 0.7}
-            width={size * 0.4}
-            height={size * 0.2}
-            fill="#505050"
-            stroke="#303030"
-            strokeWidth="0.5"
-          />
-          {/* Parking lines */}
-          {[0.15, 0.25, 0.35].map((xOff, i) => (
-            <line
-              key={`parking-${i}`}
-              x1={x + size * xOff}
-              y1={y + size * 0.7}
-              x2={x + size * xOff}
-              y2={y + size * 0.9}
-              stroke="#f0f0f0"
-              strokeWidth="0.5"
-            />
-          ))}
-        </g>
-      );
-      
-      // Loading dock
-      features.push(
-        <rect
-          key="loading-dock"
-          x={x + size * 0.52}
-          y={y + size * 0.75}
-          width={size * 0.15}
-          height={size * 0.1}
-          fill="#808080"
-          stroke="#606060"
-          strokeWidth="0.5"
-        />
-      );
-    }
-    
-    return features;
+  const isModern = era === HistoricalEra.MODERN_ERA || era === HistoricalEra.FUTURE_ERA;
+  const isIndustrial = era === HistoricalEra.INDUSTRIAL_ERA;
+  
+  // Color schemes based on era
+  const colors = isModern ? {
+    building: '#9a9a9a',      // Gray concrete
+    buildingDark: '#707070',
+    buildingShadow: '#505050',
+    roof: '#606060',
+    roofDark: '#404040',
+    window: 'rgba(100, 150, 200, 0.8)',
+    windowDark: 'rgba(20, 30, 40, 0.9)',
+    chimney: '#808080',
+    chimneyDark: '#606060',
+    smoke: 'rgba(200, 200, 200, 0.3)',
+    trim: '#b0b0b0',
+    ground: '#787878'
+  } : {
+    building: `hsl(15, 45%, ${50 + rng.random() * 8}%)`,  // Red brick
+    buildingDark: 'hsl(15, 45%, 35%)',
+    buildingShadow: 'hsl(15, 45%, 28%)',
+    roof: 'hsl(210, 8%, 42%)',
+    roofDark: 'hsl(210, 8%, 32%)',
+    window: 'rgba(20, 30, 40, 0.9)',
+    windowDark: 'rgba(10, 15, 20, 0.95)',
+    chimney: 'hsl(15, 35%, 40%)',
+    chimneyDark: 'hsl(15, 35%, 30%)',
+    smoke: 'rgba(60, 60, 60, 0.6)',
+    trim: 'hsl(20, 15%, 65%)',
+    ground: '#7a6a5a'
   };
 
-  // Add industrial features
-  elements.push(...renderIndustrialFeatures());
+  // Isometric dimensions matching IndustrialBuilding3D
+  const depth = size * 0.3;
+  const buildingWidth = size * 0.7;
+  const buildingHeight = size * staticValues.buildingHeight;
+  const buildingX = x + size * 0.15;
+  const buildingY = y + size * 0.2;
 
-  return <>{elements}</>;
+  return (
+    <g filter="url(#symbolShadow)">
+      <defs>
+        {/* Brick pattern for industrial era */}
+        {!isModern && (
+          <pattern id={`brick-${uniqueId}`} patternUnits="userSpaceOnUse" width="12" height="6">
+            <rect width="12" height="6" fill={colors.trim}/>
+            <rect width="11.5" height="2.5" x="0.25" y="0.25" fill={colors.building}/>
+            <rect width="11.5" height="2.5" x="0.25" y="3.25" fill={colors.building}/>
+          </pattern>
+        )}
+        
+        {/* Gradient for roof */}
+        <linearGradient id={`roofGrad-${uniqueId}`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor={colors.roof} />
+          <stop offset="100%" stopColor={colors.roofDark} />
+        </linearGradient>
+
+        {/* Animated smoke */}
+        <filter id={`smoke-${uniqueId}`}>
+          <feTurbulence baseFrequency="0.02" numOctaves="2" result="turbulence" seed={seed}>
+            <animate attributeName="baseFrequency" 
+              values="0.02;0.025;0.02" 
+              dur="4s" 
+              repeatCount="indefinite"/>
+          </feTurbulence>
+          <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="3" />
+        </filter>
+
+        {/* Animated cog/wheel - much smaller */}
+        {staticValues.hasCog && (
+          <g id={`cog-${uniqueId}`}>
+            <circle r="3" fill="none" stroke={colors.buildingDark} strokeWidth="0.8"/>
+            {[0, 60, 120, 180, 240, 300].map(angle => (
+              <rect
+                key={angle}
+                x="-0.8"
+                y="-4"
+                width="1.6"
+                height="8"
+                fill={colors.buildingDark}
+                transform={`rotate(${angle})`}
+              />
+            ))}
+            <circle r="1.2" fill={colors.buildingShadow}/>
+          </g>
+        )}
+      </defs>
+
+      {/* Ground shadow */}
+      <ellipse
+        cx={x + size/2}
+        cy={y + size - size * 0.05}
+        rx={size * 0.45}
+        ry={size * 0.12}
+        fill="rgba(0,0,0,0.3)"
+      />
+
+      {/* Main building - front face */}
+      <rect
+        x={buildingX}
+        y={buildingY}
+        width={buildingWidth}
+        height={buildingHeight}
+        fill={isModern ? colors.building : `url(#brick-${uniqueId})`}
+        stroke={colors.buildingShadow}
+        strokeWidth="0.5"
+      />
+
+      {/* 3D right side */}
+      <path
+        d={`M ${buildingX + buildingWidth} ${buildingY}
+            L ${buildingX + buildingWidth + depth} ${buildingY - depth * 0.4}
+            L ${buildingX + buildingWidth + depth} ${buildingY + buildingHeight - depth * 0.4}
+            L ${buildingX + buildingWidth} ${buildingY + buildingHeight} Z`}
+        fill={colors.buildingDark}
+        stroke={colors.buildingShadow}
+        strokeWidth="0.3"
+      />
+
+      {/* 3D roof */}
+      <path
+        d={`M ${buildingX} ${buildingY}
+            L ${buildingX + depth} ${buildingY - depth * 0.4}
+            L ${buildingX + buildingWidth + depth} ${buildingY - depth * 0.4}
+            L ${buildingX + buildingWidth} ${buildingY} Z`}
+        fill={`url(#roofGrad-${uniqueId})`}
+        stroke={colors.roofDark}
+        strokeWidth="0.5"
+      />
+
+      {/* Industrial windows in organized rows */}
+      {[0, 1].map(row => (
+        <g key={`window-row-${row}`}>
+          {[0, 1, 2, 3].map(col => {
+            const winX = buildingX + buildingWidth * (0.12 + col * 0.2);
+            const winY = buildingY + buildingHeight * (0.25 + row * 0.4);
+            const winW = buildingWidth * 0.12;
+            const winH = buildingHeight * 0.25;
+            
+            return (
+              <g key={`window-${row}-${col}`}>
+                <rect
+                  x={winX}
+                  y={winY}
+                  width={winW}
+                  height={winH}
+                  fill={colors.window}
+                  stroke={colors.trim}
+                  strokeWidth="0.3"
+                />
+                {/* Window panes */}
+                <line x1={winX + winW/2} y1={winY} x2={winX + winW/2} y2={winY + winH}
+                  stroke={colors.trim} strokeWidth="0.3" opacity="0.7"/>
+                <line x1={winX} y1={winY + winH/2} x2={winX + winW} y2={winY + winH/2}
+                  stroke={colors.trim} strokeWidth="0.3" opacity="0.7"/>
+              </g>
+            );
+          })}
+        </g>
+      ))}
+
+      {/* Smokestacks with proper 3D */}
+      {Array.from({ length: staticValues.chimneyCount }).map((_, i) => {
+        const chimneyX = buildingX + buildingWidth * (0.25 + i * 0.3);
+        const chimneyY = buildingY - size * 0.15;
+        const chimneyWidth = isModern ? size * 0.06 : size * 0.1;
+        const chimneyHeight = size * 0.35;
+        
+        return (
+          <g key={`chimney-${i}`}>
+            {/* Chimney body */}
+            <rect
+              x={chimneyX}
+              y={chimneyY}
+              width={chimneyWidth}
+              height={chimneyHeight}
+              fill={colors.chimney}
+              stroke={colors.chimneyDark}
+              strokeWidth="0.5"
+            />
+            {/* Chimney 3D side */}
+            <path
+              d={`M ${chimneyX + chimneyWidth} ${chimneyY}
+                  L ${chimneyX + chimneyWidth + chimneyWidth * 0.3} ${chimneyY - chimneyWidth * 0.2}
+                  L ${chimneyX + chimneyWidth + chimneyWidth * 0.3} ${chimneyY + chimneyHeight - chimneyWidth * 0.2}
+                  L ${chimneyX + chimneyWidth} ${chimneyY + chimneyHeight} Z`}
+              fill={colors.chimneyDark}
+            />
+            {/* Chimney top */}
+            <path
+              d={`M ${chimneyX} ${chimneyY}
+                  L ${chimneyX + chimneyWidth * 0.3} ${chimneyY - chimneyWidth * 0.2}
+                  L ${chimneyX + chimneyWidth + chimneyWidth * 0.3} ${chimneyY - chimneyWidth * 0.2}
+                  L ${chimneyX + chimneyWidth} ${chimneyY} Z`}
+              fill={colors.chimneyDark}
+            />
+            
+            {/* Animated smoke plumes - factory style */}
+            {[0, 1, 2].map((j) => (
+              <circle
+                key={`smoke-${i}-${j}`}
+                cx={chimneyX + chimneyWidth/2}
+                cy={chimneyY - size * 0.02}
+                r={size * 0.03}
+                fill={colors.smoke}
+              >
+                <animate attributeName="cy" 
+                  values={`${chimneyY - size * 0.02};${chimneyY - size * 0.12};${chimneyY - size * 0.25}`}
+                  dur={`${4 + j * 0.8}s`}
+                  begin={`${j * 0.5}s`}
+                  repeatCount="indefinite" />
+                <animate attributeName="r" 
+                  values={`${size * 0.03};${size * 0.06};${size * 0.09}`}
+                  dur={`${4 + j * 0.8}s`}
+                  begin={`${j * 0.5}s`}
+                  repeatCount="indefinite" />
+                <animate attributeName="opacity" 
+                  values="0.7;0.4;0"
+                  dur={`${4 + j * 0.8}s`}
+                  begin={`${j * 0.5}s`}
+                  repeatCount="indefinite" />
+              </circle>
+            ))}
+          </g>
+        );
+      })}
+
+      {/* Animated cog/wheel on industrial era buildings - smaller and better positioned */}
+      {staticValues.hasCog && isIndustrial && (
+        <g transform={`translate(${buildingX + buildingWidth * 0.85}, ${buildingY + buildingHeight * 0.3})`}>
+          <use href={`#cog-${uniqueId}`}>
+            <animateTransform
+              attributeName="transform"
+              type="rotate"
+              from="0 0 0"
+              to="360 0 0"
+              dur="12s"
+              repeatCount="indefinite"/>
+          </use>
+        </g>
+      )}
+
+      {/* Industrial fence around perimeter */}
+      <g>
+        {/* Fence posts */}
+        {[0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9].map((offset, idx) => {
+          const postX = buildingX - size * 0.05 + (buildingWidth + size * 0.1) * offset;
+          return (
+            <rect
+              key={`fence-post-${idx}`}
+              x={postX}
+              y={buildingY + buildingHeight - size * 0.02}
+              width={size * 0.015}
+              height={size * 0.08}
+              fill={colors.buildingDark}
+            />
+          );
+        })}
+        {/* Horizontal fence rails */}
+        <rect
+          x={buildingX - size * 0.05}
+          y={buildingY + buildingHeight}
+          width={buildingWidth + size * 0.1}
+          height={size * 0.008}
+          fill={colors.buildingDark}
+          opacity="0.8"
+        />
+        <rect
+          x={buildingX - size * 0.05}
+          y={buildingY + buildingHeight + size * 0.03}
+          width={buildingWidth + size * 0.1}
+          height={size * 0.008}
+          fill={colors.buildingDark}
+          opacity="0.8"
+        />
+        {/* Fence gate */}
+        <rect
+          x={buildingX + buildingWidth * 0.35}
+          y={buildingY + buildingHeight - size * 0.02}
+          width={buildingWidth * 0.3}
+          height={size * 0.08}
+          fill="none"
+          stroke={colors.buildingDark}
+          strokeWidth="1"
+          strokeDasharray="3,2"
+        />
+      </g>
+      
+      {/* Factory entrance */}
+      <rect
+        x={buildingX + buildingWidth * 0.4}
+        y={buildingY + buildingHeight * 0.65}
+        width={buildingWidth * 0.2}
+        height={buildingHeight * 0.35}
+        fill={colors.windowDark}
+        stroke={colors.buildingDark}
+        strokeWidth="0.5"
+      />
+
+      {/* Loading dock on side */}
+      <rect
+        x={buildingX + buildingWidth}
+        y={buildingY + buildingHeight * 0.7}
+        width={depth * 0.8}
+        height={buildingHeight * 0.2}
+        fill={colors.buildingDark}
+        stroke={colors.buildingShadow}
+        strokeWidth="0.3"
+      />
+
+      {/* Night lighting for modern era */}
+      {nightIntensity > 0.2 && isModern && (
+        <>
+          {/* Window lights */}
+          {[0, 1].map(row => 
+            [0, 1, 2, 3].map(col => {
+              if (new ValueNoise(seed + row * 10 + col).random() > 0.4) {
+                const winX = buildingX + buildingWidth * (0.12 + col * 0.2);
+                const winY = buildingY + buildingHeight * (0.25 + row * 0.4);
+                const winW = buildingWidth * 0.12;
+                const winH = buildingHeight * 0.25;
+                
+                return (
+                  <rect
+                    key={`light-${row}-${col}`}
+                    x={winX}
+                    y={winY}
+                    width={winW}
+                    height={winH}
+                    fill="rgba(255, 240, 180, 0.8)"
+                    opacity={nightIntensity * 0.7}
+                  />
+                );
+              }
+              return null;
+            })
+          )}
+          {/* Street light */}
+          <circle
+            cx={buildingX - size * 0.1}
+            cy={buildingY + buildingHeight * 0.3}
+            r={size * 0.08}
+            fill="rgba(255, 240, 180, 0.4)"
+            opacity={nightIntensity * 0.5}
+            filter="blur(4px)"
+          />
+        </>
+      )}
+    </g>
+  );
 });
 
 export default IndustrialDistrictSymbol;

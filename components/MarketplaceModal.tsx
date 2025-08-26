@@ -14,6 +14,7 @@ import { mapLocationToCulture } from '../utils/mapUtils';
 import { loadTamedAnimals, removeFromParty, TamedAnimal } from '../services/animalTamingService';
 import { loadFactionData } from '../utils/dataLoader';
 import { AllegianceGroup } from '../constants/gameData/factions/types';
+import { WeatherState } from '../services/weatherService';
 
 interface MarketplaceModalProps {
   tile: Tile;
@@ -26,6 +27,7 @@ interface MarketplaceModalProps {
   onClose: () => void;
   onBuy: (itemBaseId: string, price: number) => void;
   onSell: (item: Item, price: number) => void;
+  weather?: WeatherState | null;
 }
 
 type TabType = 'buy' | 'sell' | 'trade' | 'info';
@@ -700,32 +702,32 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   };
   
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
       <div className={`bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 border-2 border-amber-900/40 rounded-xl shadow-2xl flex flex-col overflow-hidden ${
         isMobile ? 'w-full h-full rounded-none' : 'w-[85%] max-w-5xl h-[80vh]'
       }`}>
         {/* Enhanced header with animated banner */}
         <div className="relative h-36 overflow-hidden shrink-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-900/50 z-10"></div>
-          <MarketplaceBanner
-            era={era}
-            culturalZone={culturalZone}
-            condition={marketConditionDesc.includes('Thriving') ? 'prosperous' : 
-                      marketConditionDesc.includes('Bustling') ? 'prosperous' :
-                      marketConditionDesc.includes('Growing') ? 'humble' : 'humble'}
-            climate={mapData.climate}
-            season={season}
-            tile={tile}
-            mapData={mapData}
-            timeOfDay={gameTimeHours < 6 ? 'Dawn' : 
-                      gameTimeHours < 12 ? 'Morning' :
-                      gameTimeHours < 18 ? 'Midday' : 
-                      gameTimeHours < 21 ? 'Evening' : 'Night'}
-            seed={mapData.seed}
-            width={1400}
-            height={144}
-            mapData={mapData}
-          />
+     
+            <MarketplaceBanner
+              era={era}
+              culturalZone={culturalZone}
+              condition={marketConditionDesc.includes('Thriving') || marketConditionDesc.includes('Bustling') ? 'prosperous' : 'humble'}
+              climate={mapData.climate}
+              season={season}
+              tile={tile}
+              mapData={mapData}
+              timeOfDay={gameTimeHours < 6 ? 'Dawn' : gameTimeHours < 12 ? 'Morning' : gameTimeHours < 18 ? 'Midday' : gameTimeHours < 21 ? 'Evening' : 'Night'}
+              seed={mapData.seed}
+              width={1400}
+              height={144}
+              weather={weather}
+            />
+    
+
+          {/* Optional, super-subtle vignette that WON’T darken the banner */}
+          <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-transparent via-transparent to-black/10" />
+
           <button
             onClick={onClose}
             className="absolute top-3 right-3 w-10 h-10 bg-red-600/80 hover:bg-red-500 text-white rounded-full flex items-center justify-center font-bold text-xl shadow-lg hover:scale-110 transition-all z-20"
@@ -734,6 +736,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             ×
           </button>
         </div>
+
         
         {/* Enhanced marketplace header with better typography */}
         <div className="p-4 bg-gradient-to-r from-slate-800/90 via-slate-800/70 to-slate-800/90 border-b border-amber-900/30 backdrop-blur-sm">

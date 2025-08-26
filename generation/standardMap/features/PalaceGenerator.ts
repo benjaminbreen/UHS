@@ -137,6 +137,32 @@ export function generatePalaces(tiles: Tile[][], featurePlacementNoise: ValueNoi
             
             generatedPalaces.push(palaceStructure);
             tile.structure = palaceStructure;
+            
+            // Create single park ring around palace (no plaza)
+            // Ring radius 1 - all parks
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    if (dx === 0 && dy === 0) continue; // Skip center (palace itself)
+                    const px = tile.x + dx;
+                    const py = tile.y + dy;
+                    if (px >= 0 && px < MAP_WIDTH_TILES && py >= 0 && py < MAP_HEIGHT_TILES) {
+                        const surroundingTile = tiles[py][px];
+                        if (surroundingTile.isLand && 
+                            surroundingTile.biome !== BiomeType.RIVER && 
+                            surroundingTile.biome !== BiomeType.MAJOR_RIVER &&
+                            surroundingTile.biome !== BiomeType.SHALLOW_OCEAN &&
+                            surroundingTile.biome !== BiomeType.DEEP_OCEAN &&
+                            surroundingTile.biome !== BiomeType.FRESHWATER_LAKE &&
+                            surroundingTile.biome !== BiomeType.ESTUARY &&
+                            surroundingTile.biome !== BiomeType.CLIFF &&
+                            surroundingTile.biome !== BiomeType.PALACE &&
+                            surroundingTile.biome !== BiomeType.HOLY_SITE) {
+                            // All surrounding tiles become parks
+                            surroundingTile.biome = BiomeType.PARK;
+                        }
+                    }
+                }
+            }
         }
     }
     return generatedPalaces;
