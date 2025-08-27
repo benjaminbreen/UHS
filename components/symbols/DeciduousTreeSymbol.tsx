@@ -18,7 +18,7 @@ const DeciduousTreeSymbol: React.FC<DeciduousTreeSymbolProps> = React.memo(({ se
   const isVariant = localRand() < 0.4; // 40% chance of showing the smaller tree variant
 
   // Only apply seasonal variations for cold and temperate climates
-  const useSeasonalVariation = !climate || climate === 'cold' || climate === 'temperate';
+  const useSeasonalVariation = !climate || climate === ClimateType.COLD || climate === ClimateType.TEMPERATE;
   const effectiveSeason = useSeasonalVariation ? season : 'summer';
 
   const getFoliageColor = (variation: number) => {

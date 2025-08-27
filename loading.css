@@ -199,7 +199,7 @@
 
 /* Smooth NPC and animal movement */
 .smooth-movement {
-  transition: transform 0.4s ease-in-out;
+  transition: transform 0.25s linear;
 }
 
 @keyframes swooping-motion {

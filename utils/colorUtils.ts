@@ -305,6 +305,10 @@ export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: numbe
     const currentBiome = tile.biome; 
     const waterColors = CLIMATE_WATER_COLORS[climate];
     
+    // Winter-specific colors for cold climates
+    const isWinterInColdClimate = climate === ClimateType.COLD && season === 'winter';
+    const shouldApplyWinterColors = isWinterInColdClimate && tile.isLand;
+    
     // Special rendering for ethereal biomes (new system)
     if (tile.biome === BiomeType.AIR) {
         const noise = new ValueNoise(seed + tile.x * 7 + tile.y * 11);
@@ -412,13 +416,27 @@ export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: numbe
     
     // Arid mapping - amber-scrub hills, dry yellow-green-brown grasslands
     const aridMapping: Partial<Record<BiomeType, string>> = {
-        [BiomeType.HILLS]: '#b0a860',      // Amber version of scrub color
+        [BiomeType.HILLS]: '#b2884d',      // Amber version of scrub color
         [BiomeType.MOUNTAIN]: '#b0a49c',
         [BiomeType.SCRUB]: '#c2b280',
         [BiomeType.GRASSLAND]: season === 'winter' ? '#a89668' :  // Slightly greener in winter
                                season === 'spring' ? '#b8a470' :   // Dry yellow-green-brown
                                season === 'summer' ? '#c0a668' :   // More brown/yellow in summer
                                '#b8a268',                          // Fall - dry yellow-brown
+    };
+    
+    // Winter colors for cold climates - snow-covered or frozen variations
+    const winterColdMapping: Partial<Record<BiomeType, string>> = {
+        [BiomeType.GRASSLAND]: '#e8f0f8',     // Snow-covered grass (light blue-white)
+        [BiomeType.RIVERBANK]: '#d8e8f0',     // Frozen/snowy riverbank
+        [BiomeType.FOREST]: '#c8dce8',        // Snow-dusted forest floor
+        [BiomeType.DENSE_FOREST]: '#b8ccd8',  // Deeper snow in dense forest
+        [BiomeType.HILLS]: '#d0dce4',         // Snow-covered hills
+        [BiomeType.SCRUB]: '#dce4ec',         // Frozen scrubland
+        [BiomeType.WETLANDS]: '#c8d8e0',      // Frozen wetlands
+        [BiomeType.STEPPE]: '#e0e8f0',        // Snow-covered steppe
+        [BiomeType.FARMLAND]: '#dce8f4',      // Snow-covered fields
+        [BiomeType.OASIS]: '#c0d4e0',         // Frozen oasis (rare but possible)
     };
     
     // Mediterranean-specific colors - realistic seasonal variation (green winter, golden summer)
@@ -498,8 +516,10 @@ export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: numbe
     }
     
     // Now handle land tiles with climate and seasonal variations
-    // Apply climate and seasonal color mappings - check arid/mediterranean FIRST
-    if (climate === ClimateType.ARID && aridMapping[currentBiome]) {
+    // Apply climate and seasonal color mappings - check winter in cold climate FIRST
+    if (shouldApplyWinterColors && winterColdMapping[currentBiome]) {
+        baseColorHex = winterColdMapping[currentBiome]!;
+    } else if (climate === ClimateType.ARID && aridMapping[currentBiome]) {
         baseColorHex = aridMapping[currentBiome]!;
     } else if (climate === ClimateType.MEDITERRANEAN && mediterraneanMapping[currentBiome]) {
         baseColorHex = mediterraneanMapping[currentBiome]!;
@@ -572,10 +592,15 @@ export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: numbe
         BiomeType.BEACH, BiomeType.SNOW, BiomeType.HIGH_PEAK, BiomeType.URBAN, 
         BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, 
         BiomeType.RUINS, BiomeType.CLIFF, BiomeType.PALACE,
-        BiomeType.HOLY_SITE, BiomeType.ACTIVE_LAVA, BiomeType.FARMLAND,
+        BiomeType.HOLY_SITE, BiomeType.ACTIVE_LAVA,
         BiomeType.MARKETPLACE, BiomeType.GOVERNMENT_DISTRICT, BiomeType.CITY_CENTER,
     ];
-    if (fixedColorBiomes.includes(currentBiome) && !(climate === ClimateType.ARID && aridMapping[currentBiome])) {
+    // Check if we should skip altitude adjustments
+    const shouldSkipAltitude = fixedColorBiomes.includes(currentBiome) && 
+        !(climate === ClimateType.ARID && aridMapping[currentBiome]) &&
+        !(shouldApplyWinterColors && winterColdMapping[currentBiome]);
+        
+    if (shouldSkipAltitude) {
         baseColorHex = BIOME_COLORS[currentBiome];
     } else if (tile.isLand) {
         let tier = 0; 
@@ -609,6 +634,25 @@ export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: numbe
     }
     
     let finalColorHex = getTileColorVariation(baseColorHex, tile.x, tile.y, seed);
+
+    // Add subtle blue shadows and variation to winter tiles
+    if (shouldApplyWinterColors && winterColdMapping[currentBiome]) {
+        // Add subtle bluish shadow variations for depth
+        const noise = new ValueNoise(seed + tile.x * 17 + tile.y * 23);
+        const shadowNoise = noise.noise(tile.x * 0.1, tile.y * 0.1);
+        
+        // Apply subtle blue shadow based on noise
+        if (shadowNoise < 0.3) {
+            const rgb = hexToRgb(finalColorHex);
+            if (rgb) {
+                // Slightly reduce red/green, enhance blue for shadow effect
+                rgb.r = Math.max(0, rgb.r - 5);
+                rgb.g = Math.max(0, rgb.g - 5);
+                rgb.b = Math.min(255, rgb.b + 3);
+                finalColorHex = rgbToString(rgb);
+            }
+        }
+    }
 
     // Make arid climates warmer and more saturated
     if (climate === ClimateType.ARID) {

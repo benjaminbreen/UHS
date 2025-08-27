@@ -26,10 +26,10 @@ export const BIOME_COLORS: Record<BiomeType, string> = {
   [BiomeType.LOW_DENSITY_CITY]: '#A9A9A9', // DarkGray for buildings/roads
   [BiomeType.DENSE_CITY]: '#808080', // Gray for dense structures
   [BiomeType.URBAN]: '#ef4444', // Legacy
-  [BiomeType.JUNGLE]: '#10b981', // emerald-500
+  [BiomeType.JUNGLE]: '#22a33e', // emerald-500
   [BiomeType.DESERT]: '#fde68a', 
-  [BiomeType.OASIS]: '#4ade80',   
-  [BiomeType.WETLANDS]: '#d3c9a6', 
+  [BiomeType.OASIS]: '#bfc478',   
+  [BiomeType.WETLANDS]: '#bdbd93', 
   [BiomeType.REEF]: '#20B2AA',     
   [BiomeType.SCRUB]: '#9ca550', // More olive
   // New Biome Colors
@@ -57,6 +57,19 @@ export const BIOME_COLORS: Record<BiomeType, string> = {
   [BiomeType.PLAZA]: '#c8b88b', // Light stone/brick color for plazas
   [BiomeType.HARBOR_DISTRICT]: '#7090a0', // Blue-gray for harbor areas
   [BiomeType.INDUSTRIAL_DISTRICT]: '#8a7060', // Brown-gray for industrial zones
+  // Additional biomes for completeness
+  [BiomeType.ICE]: '#e5e7eb', // Light gray-white for ice
+  [BiomeType.SAND_DUNES]: '#fbbf24', // Sandy yellow
+  [BiomeType.SAVANNA]: '#ca8a04', // Golden brown savanna
+  [BiomeType.MEADOW]: '#84cc16', // Bright green meadow
+  [BiomeType.RAINFOREST]: '#15803d', // Deep jungle green
+  [BiomeType.BAMBOO]: '#84cc16', // Bamboo green
+  [BiomeType.SWAMP]: '#047857', // Dark swamp green
+  [BiomeType.UNDERSEA]: '#172554', // Deep underwater blue
+  [BiomeType.AIR]: '#dbeafe', // Light sky blue
+  [BiomeType.PADDOCK]: '#bef264', // Light green for animal paddocks
+  [BiomeType.HARBOR]: '#94a3b8', // Harbor gray-blue
+  [BiomeType.SHOALS]: '#67e8f9', // Light cyan for shoals
 };
 
 // Helper to make a color slightly darker/richer

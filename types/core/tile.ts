@@ -76,6 +76,7 @@ export interface Tile {
   pathObjectRef?: PathObject; // For pathfinding cost calculation
   // Optional properties for new features
   ruinType?: string; // For Ruins
+  culturalZone?: string; // Cultural zone for culture-specific rendering
   palaceType?: string; // For Palaces
   holyPlaceType?: string; // For Holy Places
   holyPlaceReligion?: string; // Specific religion of this holy place

@@ -1,6 +1,14 @@
 /**
  * components/CelestialBodies.tsx - Dynamic sun, moon, and planets positioning
  * Renders celestial bodies with gothic arch path and realistic planets
+ * — Upgrades:
+ *   • Seasonal (month-based) arch height/tilt for sun & moon
+ *   • Physically-plausible moon phase mask with sun-relative terminator angle
+ *   • Stable seeded starfield w/ gentle twinkle and density falloff near horizon
+ *   • Optional faint Milky Way band on clear nights
+ *   • Cloud cover dims stars/planets/sun; horizon glow & extinction near horizon
+ *   • Unique SVG mask ids to avoid collisions
+ *   • Soft, performance-friendly effects (no heavy layout thrash)
  */
 
 import React, { useMemo } from 'react';
@@ -21,536 +29,651 @@ interface CelestialBodiesProps {
   gameMonth?: number;
 }
 
+/* ------------------------------- Utilities -------------------------------- */
+
+const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+/** Simple fast seeded RNG (Mulberry32) */
+function mulberry32(seed: number) {
+  return function () {
+    let t = (seed += 0x6D2B79F5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Convert HEX (#rrggbb) to rgba() string with alpha; passthrough for hsla/rgba */
+function colorWithAlpha(col: string, alpha: number) {
+  if (!col) return `rgba(255,255,255,${alpha})`;
+  if (col.startsWith('rgba(') || col.startsWith('hsla(')) return col;
+  if (col.startsWith('hsl(')) {
+    const [h, s, l] = col
+      .slice(col.indexOf('(') + 1, col.indexOf(')'))
+      .split(',')
+      .map((p) => p.trim());
+    return `hsla(${h}, ${s}, ${l}, ${alpha})`;
+  }
+  // HEX
+  let hex = col.replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map((c) => c + c).join('');
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+/** Gothic-arch inspired path with adjustable peak height & shoulder steepness */
+function gothicArchXY(
+  progress01: number, // 0 sunrise/east → 1 sunset/west
+  width: number,
+  height: number,
+  eastX = 0.92,
+  westX = 0.08,
+  horizonY = 0.86,
+  peakY = 0.22,
+  shoulder = 0.78 // <1 = steeper shoulders, >1 = softer
+) {
+  const t = clamp(progress01, 0, 1);
+  const x = width * lerp(eastX, westX, t);
+  // Gothic arch: sin^k for steep sides + high crown
+  const s = Math.sin(Math.PI * t);
+  const arch = Math.pow(s, shoulder);
+  const y = height * lerp(horizonY, peakY, arch);
+  return { x, y };
+}
+
+/* ------------------------------- Component -------------------------------- */
+
 const CelestialBodies: React.FC<CelestialBodiesProps> = ({
   timeOfDay,
   gameTimeHours,
   gameTimeMinutes,
-  width = window.innerWidth,
-  height = window.innerHeight,
+  width = typeof window !== 'undefined' ? window.innerWidth : 1280,
+  height = typeof window !== 'undefined' ? window.innerHeight : 720,
   weather = null,
   gameDay = 1,
   gameMonth = 1
 }) => {
-  // Calculate sun/moon position based on time with gothic arch path
+  const totalMinutes = gameTimeHours * 60 + gameTimeMinutes;
+  const isRaining = weather?.precipitation === 'rain';
+  const isSnowing = weather?.precipitation === 'snow' || weather?.precipitation === 'sleet';
+  const cloudIntensity = clamp(weather?.cloudCover ?? 0, 0, 1);
+  const precipIntensity = clamp(weather?.intensity ?? 0, 0, 1);
+
+  // Seasonal tilt: higher summer arches, lower winter arches (Northern hemi vibe)
+  const month01 = ((gameMonth % 12) + 12) % 12 / 12; // 0..1
+  const seasonalLift = 0.12 * Math.cos((month01 - 0.5) * 2 * Math.PI); // -0.12..+0.12
+  const horizonY = 0.865;
+  const peakYSun = clamp(0.22 - seasonalLift, 0.14, 0.28);
+  const peakYMoon = clamp(0.26 + seasonalLift * 0.6, 0.18, 0.34);
+  const shoulder = 0.78;
+
+  /* ----------------------- Sun/Moon positions & states ---------------------- */
   const celestialPosition = useMemo(() => {
-    const totalMinutes = gameTimeHours * 60 + gameTimeMinutes;
-    const dayProgress = totalMinutes / (24 * 60);
-    
-    // Sun rises at 6 AM, sets at 6 PM (simplified)
-    // Moon rises at 6 PM, sets at 6 AM
-    const sunriseTime = 6 * 60;  // 6 AM in minutes
-    const sunsetTime = 18 * 60;  // 6 PM in minutes
+    const sunriseTime = 6 * 60;
+    const sunsetTime = 18 * 60;
     const dayDuration = sunsetTime - sunriseTime;
-    
+
     let sunVisible = false;
     let moonVisible = false;
     let sunPosition = { x: 0, y: 0 };
     let moonPosition = { x: 0, y: 0 };
-    let moonPhase = 0; // 0 = new, 0.5 = full, 1 = new again
-    
-    // Calculate realistic moon phase based on game day (29.5 day cycle)
+    let moonPhase = 0; // 0=new → 0.5=full → 1=new
+    let sunNearHorizon = false;
+    let moonNearHorizon = false;
+    let sunHorizonProgress = 1;
+    let moonHorizonProgress = 1;
+
+    // Lunar phase (29.5-day synodic cycle)
     const lunarCycle = 29.5;
-    const dayInCycle = (gameDay % lunarCycle) / lunarCycle;
-    
-    // Create realistic moon phases:
-    // 0 = new moon, 0.25 = first quarter, 0.5 = full moon, 0.75 = last quarter
-    if (dayInCycle < 0.5) {
-      // Waxing: new moon to full moon
-      moonPhase = dayInCycle * 2; // 0 to 1
-    } else {
-      // Waning: full moon to new moon  
-      moonPhase = 2 - (dayInCycle * 2); // 1 to 0
-    }
-    
+    const dayInCycle = ((gameDay % lunarCycle) + lunarCycle) % lunarCycle;
+    moonPhase = dayInCycle <= lunarCycle / 2 ? dayInCycle / (lunarCycle / 2) : 1 - (dayInCycle - lunarCycle / 2) / (lunarCycle / 2);
+
+    // Sun
     if (totalMinutes >= sunriseTime && totalMinutes <= sunsetTime) {
-      // Sun is visible during day
       sunVisible = true;
-      const sunProgress = (totalMinutes - sunriseTime) / dayDuration;
-      
-      // Gothic arch path for sun
-      // Starts at bottom RIGHT (east), rises to peak above map, sets at bottom LEFT (west)
-      const angle = sunProgress * Math.PI;
-      
-      // X position: moves from RIGHT (east, 95%) to LEFT (west, 5%) of screen
-      const xPos = width * (0.95 - sunProgress * 0.9);
-      
-      // Y position: gothic arch - high peak in middle
-      let yPos;
-      if (sunProgress < 0.5) {
-        // Rising: bottom left to top center
-        const riseProgress = sunProgress * 2;
-        yPos = height * (0.85 - riseProgress * 0.65); // From 85% to 20% of height
-      } else {
-        // Setting: top center to bottom right
-        const setProgress = (sunProgress - 0.5) * 2;
-        yPos = height * (0.2 + setProgress * 0.65); // From 20% back to 85%
-      }
-      
-      sunPosition = { x: xPos, y: yPos };
+      const sunProgress = (totalMinutes - sunriseTime) / dayDuration; // 0..1
+      sunPosition = gothicArchXY(sunProgress, width, height, 0.92, 0.08, horizonY, peakYSun, shoulder);
+
+      const horizonThreshold = height * 0.72;
+      sunNearHorizon = sunPosition.y > horizonThreshold;
+      sunHorizonProgress = sunNearHorizon ? 1 - (sunPosition.y - horizonThreshold) / (height * 0.16) : 1;
+      sunHorizonProgress = clamp(sunHorizonProgress, 0, 1);
     }
-    
-    // Moon calculation with same gothic arch
+
+    // Moon: opposite window (6pm→6am)
     if (totalMinutes < sunriseTime || totalMinutes > sunsetTime) {
       moonVisible = true;
-      let moonProgress;
-      
-      if (totalMinutes > sunsetTime) {
-        // Evening/night
-        moonProgress = (totalMinutes - sunsetTime) / (24 * 60 - sunsetTime + sunriseTime);
-      } else {
-        // Early morning
-        moonProgress = (totalMinutes + (24 * 60 - sunsetTime)) / (24 * 60 - sunsetTime + sunriseTime);
-      }
-      
-      // Gothic arch path for moon (also rises from east/right, sets in west/left)
-      const xPos = width * (0.95 - moonProgress * 0.9);
-      
-      let yPos;
-      if (moonProgress < 0.5) {
-        const riseProgress = moonProgress * 2;
-        yPos = height * (0.85 - riseProgress * 0.65);
-      } else {
-        const setProgress = (moonProgress - 0.5) * 2;
-        yPos = height * (0.2 + setProgress * 0.65);
-      }
-      
-      moonPosition = { x: xPos, y: yPos };
+      const nightLen = 24 * 60 - dayDuration; // 12h
+      const tNight =
+        totalMinutes > sunsetTime
+          ? (totalMinutes - sunsetTime) / nightLen
+          : (totalMinutes + (24 * 60 - sunsetTime)) / nightLen;
+      moonPosition = gothicArchXY(tNight, width, height, 0.92, 0.08, horizonY, peakYMoon, shoulder);
+
+      const horizonThreshold = height * 0.72;
+      moonNearHorizon = moonPosition.y > horizonThreshold;
+      moonHorizonProgress = moonNearHorizon ? 1 - (moonPosition.y - horizonThreshold) / (height * 0.16) : 1;
+      moonHorizonProgress = clamp(moonHorizonProgress, 0, 1);
     }
-    
-    return { sunVisible, moonVisible, sunPosition, moonPosition, moonPhase };
-  }, [gameTimeHours, gameTimeMinutes, width, height]);
-  
-  // Calculate planet positions based on month and time
+
+    return {
+      sunVisible,
+      moonVisible,
+      sunPosition,
+      moonPosition,
+      moonPhase,
+      sunNearHorizon,
+      moonNearHorizon,
+      sunHorizonProgress,
+      moonHorizonProgress
+    };
+  }, [totalMinutes, width, height, horizonY, peakYSun, peakYMoon, shoulder, gameDay]);
+
+  // Terminator angle for the moon (phase shading direction relative to sun)
+  const moonTerminatorAngleDeg = useMemo(() => {
+    if (!celestialPosition.sunVisible && !celestialPosition.moonVisible) return 0;
+    // Use vector from moon → sun; terminator is approx perpendicular to this
+    const dx = celestialPosition.sunPosition.x - celestialPosition.moonPosition.x;
+    const dy = celestialPosition.sunPosition.y - celestialPosition.moonPosition.y;
+    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+    return angle + 90; // perpendicular
+  }, [celestialPosition.sunVisible, celestialPosition.moonVisible, celestialPosition.sunPosition, celestialPosition.moonPosition]);
+
+  /* -------------------------- Planets along ecliptic ------------------------ */
   const planetPositions = useMemo(() => {
     if (timeOfDay !== 'Night' && timeOfDay !== 'Dusk') return [];
-    
-    const planets = [];
-    const baseY = height * 0.15; // Upper portion of sky
-    
-    // Venus - visible in evening/morning, bright cream color
-    const venusMonth = (gameMonth + 3) % 12;
-    if (venusMonth < 6) {
-      planets.push({
-        name: 'Venus',
-        x: width * (0.3 + (venusMonth / 12) * 0.4),
-        y: baseY + Math.sin(venusMonth * Math.PI / 6) * 50,
-        size: 4,
-        color: '#FFFACD', // Light yellow cream
-        glow: '#FFFACD'
-      });
-    }
-    
-    // Mars - reddish, smaller
-    const marsMonth = (gameMonth + 7) % 12;
-    if (marsMonth < 8) {
-      planets.push({
-        name: 'Mars',
-        x: width * (0.5 + (marsMonth / 12) * 0.3),
-        y: baseY + 30 + Math.sin(marsMonth * Math.PI / 4) * 40,
-        size: 3,
-        color: '#CD5C5C', // Indian red
-        glow: '#FF6347'
-      });
-    }
-    
-    // Jupiter - small but bright, yellowish
-    const jupiterMonth = gameMonth % 12;
-    if (jupiterMonth > 2 && jupiterMonth < 10) {
-      planets.push({
-        name: 'Jupiter',
-        x: width * (0.6 + (jupiterMonth / 12) * 0.2),
-        y: baseY + 60 + Math.sin(jupiterMonth * Math.PI / 8) * 30,
-        size: 2,
-        color: '#FFD700', // Gold
-        glow: '#FFFF99'
-      });
-    }
-    
-    // Saturn - pale yellow, very small
-    const saturnMonth = (gameMonth + 5) % 12;
-    if (saturnMonth > 4 && saturnMonth < 11) {
-      planets.push({
-        name: 'Saturn',
-        x: width * (0.4 + (saturnMonth / 12) * 0.4),
-        y: baseY + 80 + Math.sin(saturnMonth * Math.PI / 6) * 25,
-        size: 1.5,
-        color: '#F0E68C', // Khaki
-        glow: '#FFFACD'
-      });
-    }
-    
-    return planets;
-  }, [gameMonth, timeOfDay, width, height]);
-  
-  // Weather affects visibility
-  const isRaining = weather?.precipitation === 'rain';
-  const isSnowing = weather?.precipitation === 'snow' || weather?.precipitation === 'sleet';
-  const cloudIntensity = weather?.cloudCover || 0;
-  
-  // Get dynamic sun colors based on exact time and weather
-  const getSunColors = useMemo(() => {
-    if (isRaining) return { core: '#e0e0e0', glow: '#d0d0d0' }; // Dim white during rain
-    if (isSnowing) return { core: '#f0f0f0', glow: '#e0e0e0' }; // Hidden during snow
-    
-    const totalMinutes = gameTimeHours * 60 + gameTimeMinutes;
-    
-    // Sunrise: 6-8 AM (360-480 minutes)
-    if (totalMinutes >= 360 && totalMinutes < 480) {
-      const progress = (totalMinutes - 360) / 120;
-      // Deep red → orange → gold
-      if (progress < 0.5) {
-        return { 
-          core: '#ff4500', // Deep orange-red
-          glow: '#ff6347'  // Tomato
-        };
-      } else {
-        return { 
-          core: '#ff8c00', // Dark orange
-          glow: '#ffa500'  // Orange
-        };
-      }
-    }
-    
-    // Morning: 8-10 AM
-    if (totalMinutes >= 480 && totalMinutes < 600) {
-      return { 
-        core: '#ffb347', // Peach
-        glow: '#ffd700'  // Gold
-      };
-    }
-    
-    // Midday: 10 AM - 3 PM
-    if (totalMinutes >= 600 && totalMinutes < 900) {
-      return { 
-        core: '#ffd700', // Gold
-        glow: '#ffeb3b'  // Bright yellow
-      };
-    }
-    
-    // Late afternoon: 3-5 PM (900-1020 minutes)
-    if (totalMinutes >= 900 && totalMinutes < 1020) {
-      return { 
-        core: '#ffb347', // Peach
-        glow: '#ffd700'  // Gold
-      };
-    }
-    
-    // Sunset: 5-6:30 PM (1020-1110 minutes) - Beautiful gradual transition
-    if (totalMinutes >= 1020 && totalMinutes < 1110) {
-      const progress = (totalMinutes - 1020) / 90;
-      if (progress < 0.33) {
-        return { 
-          core: '#ff9966', // Light salmon
-          glow: '#ffb347'  // Peach
-        };
-      } else if (progress < 0.66) {
-        return { 
-          core: '#ff6347', // Tomato
-          glow: '#ff8c69'  // Salmon
-        };
-      } else {
-        return { 
-          core: '#ff4500', // Orange-red (final sunset)
-          glow: '#ff6347'  // Tomato
-        };
-      }
-    }
-    
-    // Default
-    return { 
-      core: '#ffd700', 
-      glow: '#ffeb3b' 
+    const planets: { name: string; x: number; y: number; size: number; color: string; glow: string; opacity?: number }[] = [];
+    const bandY = height * 0.18; // base ecliptic height
+    const eclipticAmp = height * 0.06 * (1 + 0.3 * Math.cos(month01 * 2 * Math.PI));
+
+    // Helper to place a body along ecliptic-ish band from east→west
+    const place = (t: number, offset = 0) => {
+      const x = width * lerp(0.82, 0.18, clamp(t + offset, 0, 1));
+      const y = bandY + Math.sin((t + offset) * Math.PI) * eclipticAmp;
+      return { x, y };
     };
-  }, [gameTimeHours, gameTimeMinutes, isRaining, isSnowing]);
-  
-  // Moon with beautiful white-yellow core and blue atmospheric glow
-  const moonColor = '#fffacd'; // Light yellow-white
-  const moonGlowColor = '#4169e1'; // Royal blue for atmospheric glow
-  const starVisibility = timeOfDay === 'Night' ? 1 : 
-                        timeOfDay === 'Dusk' ? 0.3 : 
-                        timeOfDay === 'Dawn' ? 0.2 : 0;
-  
+
+    // Visibility damping by clouds
+    const vis = clamp(1 - cloudIntensity * 0.85, 0, 1);
+
+    // Venus (evening star half the year; bright)
+    if (((gameMonth + 3) % 12) < 6) {
+      const p = place(0.28, 0.05);
+      planets.push({ name: 'Venus', x: p.x, y: p.y, size: 4, color: '#FFF8DC', glow: '#FFFACD', opacity: vis });
+    }
+
+    // Mars (rusty)
+    if (((gameMonth + 7) % 12) < 8) {
+      const p = place(0.52, -0.03);
+      planets.push({ name: 'Mars', x: p.x, y: p.y, size: 3, color: '#D2691E', glow: '#FF7F50', opacity: vis });
+    }
+
+    // Jupiter (bright gold)
+    if (gameMonth % 12 > 2 && gameMonth % 12 < 10) {
+      const p = place(0.65, 0.02);
+      planets.push({ name: 'Jupiter', x: p.x, y: p.y, size: 2.5, color: '#FFD700', glow: '#FFF6A6', opacity: vis });
+    }
+
+    // Saturn (paler)
+    if (((gameMonth + 5) % 12) > 4 && ((gameMonth + 5) % 12) < 11) {
+      const p = place(0.38, -0.06);
+      planets.push({ name: 'Saturn', x: p.x, y: p.y, size: 2, color: '#F0E68C', glow: '#FFF8C6', opacity: vis });
+    }
+
+    return planets;
+  }, [timeOfDay, gameMonth, width, height, month01, cloudIntensity]);
+
+  /* ------------------------------ Sun coloring ------------------------------ */
+  const getSunColors = useMemo(() => {
+    // Weather dims overall intensity
+    const weatherDim = isRaining || isSnowing ? 0.6 : 1;
+    // Clouds dim further (nonlinearly)
+    const cloudDim = 1 - 0.75 * cloudIntensity;
+    const dim = weatherDim * cloudDim;
+
+    const t = totalMinutes;
+
+    const base = (core: string, glow: string) => ({
+      core,
+      glow,
+      dim
+    });
+
+    // Sunrise 6:00–8:00
+    if (t >= 360 && t < 480) {
+      const p = (t - 360) / 120;
+      return p < 0.5 ? base('#FF5A36', '#FF7A50') : base('#FF9A2F', '#FFB347');
+    }
+    // Morning 8:00–10:00
+    if (t >= 480 && t < 600) return base('#FFC266', '#FFD24D');
+    // Midday 10:00–15:00
+    if (t >= 600 && t < 900) return base('#FFD54D', '#FFEB3B');
+    // Late afternoon 15:00–17:00
+    if (t >= 900 && t < 1020) return base('#FFC266', '#FFD24D');
+    // Sunset 17:00–18:30
+    if (t >= 1020 && t < 1110) {
+      const p = (t - 1020) / 90;
+      if (p < 0.33) return base('#FF9E7A', '#FFC08F');
+      if (p < 0.66) return base('#FF6B4A', '#FF8E6C');
+      return base('#FF4D2E', '#FF6A49');
+    }
+    // Default
+    return base('#FFD54D', '#FFEB7A');
+  }, [totalMinutes, isRaining, isSnowing, cloudIntensity]);
+
+  /* ---------------------------- Moon coloring/glow -------------------------- */
+  const baseMoonColor = '#FFF7D6';
+  const moonColor = celestialPosition.moonNearHorizon
+    ? `hsl(30, ${70 + (1 - celestialPosition.moonHorizonProgress) * 20}%, ${85 - (1 - celestialPosition.moonHorizonProgress) * 10}%)`
+    : baseMoonColor;
+  const moonGlowColor = celestialPosition.moonNearHorizon
+    ? `hsl(20, 60%, ${60 - (1 - celestialPosition.moonHorizonProgress) * 10}%)`
+    : '#6FA8FF';
+
+  /* ----------------------------- Stable starfield --------------------------- */
+  const starVisibilityBase = timeOfDay === 'Night' ? 1 : timeOfDay === 'Dusk' ? 0.35 : timeOfDay === 'Dawn' ? 0.25 : 0;
+  const starVisibility = clamp(starVisibilityBase * (1 - cloudIntensity * 0.9), 0, 1);
+  const starSeed = Math.floor((gameMonth + 1) * 1000 + gameDay * 17);
+  const stars = useMemo(() => {
+    if (starVisibility <= 0) return [];
+    const rng = mulberry32(starSeed);
+    const count = Math.round(80 + 80 * (1 - cloudIntensity)); // 80–160
+    const arr: { x: number; y: number; s: number; tw: number; o: number }[] = [];
+    for (let i = 0; i < count; i++) {
+      const x = Math.floor(rng() * width);
+      const y = Math.floor(rng() * height * 0.45);
+      const size = 0.6 + Math.pow(rng(), 2) * 1.4; // bias small
+      const twinkle = 2 + rng() * 3; // 2–5s
+      const nearHorizon = y / (height * 0.45);
+      const opacity = 0.45 + (1 - nearHorizon) * 0.55; // fade near horizon
+      arr.push({ x, y, s: size, tw: twinkle, o: opacity });
+    }
+    return arr;
+  }, [width, height, starVisibility, cloudIntensity, starSeed]);
+
+  // Unique mask id so multiple components don’t clash
+  const moonMaskId = useMemo(() => `moon-phase-mask-${gameMonth}-${gameDay}`, [gameMonth, gameDay]);
+
   return (
     <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
-      {/* Sun - hidden during snow, dimmed during rain */}
+      {/* Faint Milky Way band on clear nights */}
+      {timeOfDay === 'Night' && starVisibility > 0.6 && cloudIntensity < 0.2 && (
+        <div
+          aria-hidden
+          className="absolute"
+          style={{
+            left: 0,
+            top: 0,
+            width,
+            height,
+            opacity: 0.18 * (1 - cloudIntensity),
+            background: `radial-gradient(ellipse at 40% 20%, ${colorWithAlpha('#CDE2FF', 0.16)} 0%, ${colorWithAlpha(
+              '#CDE2FF',
+              0.06
+            )} 30%, transparent 70%)`,
+            transform: `rotate(-18deg) translateY(-8%)`,
+            filter: 'blur(6px)'
+          }}
+        />
+      )}
+
+      {/* ------------------------------- SUN -------------------------------- */}
       {celestialPosition.sunVisible && !isSnowing && (
         <div
-          className="absolute transition-all duration-[3000ms] ease-in-out"
+          className="absolute transition-transform duration-[2600ms] ease-in-out"
           style={{
             left: `${celestialPosition.sunPosition.x}px`,
             top: `${celestialPosition.sunPosition.y}px`,
             transform: 'translate(-50%, -50%)',
-            opacity: isRaining ? 0.3 : 1 // Very dim during rain
+            opacity: isRaining ? 0.45 : getSunColors.dim
           }}
         >
+          {/* Horizon extinction bands (only near horizon, clearer when not raining) */}
+          {celestialPosition.sunNearHorizon && !isRaining && (
+            <>
+              <div
+                aria-hidden
+                className="absolute"
+                style={{
+                  width: `${160 + (1 - celestialPosition.sunHorizonProgress) * 110}px`,
+                  height: '4px',
+                  background: `linear-gradient(90deg, transparent, ${colorWithAlpha(getSunColors.core, 0.28)}, transparent)`,
+                  left: '50%',
+                  top: '46%',
+                  transform: 'translate(-50%, -50%)',
+                  filter: 'blur(1px)',
+                  opacity: (1 - celestialPosition.sunHorizonProgress) * 0.9
+                }}
+              />
+              <div
+                aria-hidden
+                className="absolute"
+                style={{
+                  width: `${130 + (1 - celestialPosition.sunHorizonProgress) * 90}px`,
+                  height: '3px',
+                  background: `linear-gradient(90deg, transparent, ${colorWithAlpha(getSunColors.glow, 0.22)}, transparent)`,
+                  left: '50%',
+                  top: '54%',
+                  transform: 'translate(-50%, -50%)',
+                  filter: 'blur(1px)',
+                  opacity: (1 - celestialPosition.sunHorizonProgress) * 0.6
+                }}
+              />
+            </>
+          )}
+
           {/* Sun glow */}
           <div
+            aria-hidden
             className="absolute"
             style={{
-              width: isRaining ? '80px' : '120px',
-              height: isRaining ? '80px' : '120px',
-              background: `radial-gradient(circle, ${getSunColors.glow}33 0%, transparent 70%)`,
-              transform: 'translate(-50%, -50%)',
+              width:
+                celestialPosition.sunNearHorizon ? `${130 + (1 - celestialPosition.sunHorizonProgress) * 100}px` : `${Math.max(110, width * 0.09)}px`,
+              height:
+                celestialPosition.sunNearHorizon ? `${110 + (1 - celestialPosition.sunHorizonProgress) * 70}px` : `${Math.max(110, width * 0.09)}px`,
+              background: celestialPosition.sunNearHorizon
+                ? `radial-gradient(ellipse, ${colorWithAlpha(getSunColors.glow, 0.32)} 0%, ${colorWithAlpha(
+                    getSunColors.core,
+                    0.12
+                  )} 45%, transparent 70%)`
+                : `radial-gradient(circle, ${colorWithAlpha(getSunColors.glow, 0.28)} 0%, transparent 68%)`,
               left: '50%',
               top: '50%',
-              filter: isRaining ? 'blur(30px)' : 'blur(20px)'
+              transform: 'translate(-50%, -50%)',
+              filter: `blur(${20 + (1 - (celestialPosition.sunHorizonProgress || 1)) * 16}px)`
             }}
           />
+
           {/* Sun core */}
           <div
+            aria-hidden
             style={{
-              width: isRaining ? '30px' : '40px',
-              height: isRaining ? '30px' : '40px',
-              borderRadius: '50%',
-              background: isRaining 
-                ? `radial-gradient(circle, ${getSunColors.core} 0%, ${getSunColors.core}66 70%, transparent 100%)`
-                : `radial-gradient(circle, ${getSunColors.core} 0%, ${getSunColors.core}dd 70%, ${getSunColors.glow}aa 100%)`,
-              boxShadow: isRaining 
-                ? `0 0 20px ${getSunColors.core}44`
-                : `0 0 40px ${getSunColors.core}88, 0 0 80px ${getSunColors.glow}44`
+              width: celestialPosition.sunNearHorizon ? `${44 + (1 - celestialPosition.sunHorizonProgress) * 24}px` : '44px',
+              height: celestialPosition.sunNearHorizon ? `${40 + (1 - celestialPosition.sunHorizonProgress) * 14}px` : '44px',
+              borderRadius: celestialPosition.sunNearHorizon ? '50% / 45%' : '50%',
+              background: `radial-gradient(ellipse, ${getSunColors.core} 0%, ${getSunColors.core}ee 62%, ${colorWithAlpha(
+                getSunColors.glow,
+                0.78
+              )} 86%, ${colorWithAlpha(getSunColors.glow, 0.55)} 100%)`,
+              boxShadow: `0 0 ${celestialPosition.sunNearHorizon ? 56 : 40}px ${colorWithAlpha(
+                getSunColors.core,
+                0.6
+              )}, 0 0 ${celestialPosition.sunNearHorizon ? 110 : 80}px ${colorWithAlpha(getSunColors.glow, 0.4)}`
             }}
           />
-          {/* Sun rays - hidden during rain */}
-          {!isRaining && (timeOfDay === 'Dawn' || timeOfDay === 'Dusk') ? (
+
+          {/* Gentle rays at dawn/dusk (hidden in rain) */}
+          {!isRaining && (timeOfDay === 'Dawn' || timeOfDay === 'Dusk') && (
             <svg
+              aria-hidden
               width="200"
               height="200"
               viewBox="0 0 200 200"
-              style={{
-                position: 'absolute',
-                left: '-80px',
-                top: '-80px',
-                opacity: 0.3
-              }}
+              style={{ position: 'absolute', left: '-80px', top: '-80px', opacity: 0.28 * getSunColors.dim }}
             >
-              {[0, 30, 60, 90, 120, 150].map(angle => (
+              {[0, 30, 60, 90, 120, 150].map((angle) => (
                 <line
                   key={angle}
                   x1="100"
                   y1="100"
-                  x2={100 + Math.cos(angle * Math.PI / 180) * 100}
-                  y2={100 + Math.sin(angle * Math.PI / 180) * 100}
-                  stroke={getSunColors.glow}
+                  x2={100 + Math.cos((angle * Math.PI) / 180) * 100}
+                  y2={100 + Math.sin((angle * Math.PI) / 180) * 100}
+                  stroke={colorWithAlpha(getSunColors.glow, 0.6)}
                   strokeWidth="2"
-                  opacity="0.5"
+                  opacity="0.6"
                 />
               ))}
             </svg>
-          ) : null}
+          )}
         </div>
       )}
-      
-      {/* Moon - Simple flat crescent/phase */}
+
+      {/* -------------------------------- MOON ------------------------------- */}
       {celestialPosition.moonVisible && (
         <div
-          className="absolute transition-all duration-[3000ms] ease-in-out"
+          className="absolute transition-transform duration-[2600ms] ease-in-out"
           style={{
             left: `${celestialPosition.moonPosition.x}px`,
             top: `${celestialPosition.moonPosition.y}px`,
             transform: 'translate(-50%, -50%)'
           }}
         >
-          {/* Very subtle glow */}
+          {/* Horizon bands for moon */}
+          {celestialPosition.moonNearHorizon && (
+            <>
+              <div
+                aria-hidden
+                className="absolute"
+                style={{
+                  width: `${80 + (1 - celestialPosition.moonHorizonProgress) * 60}px`,
+                  height: '2px',
+                  background: `linear-gradient(90deg, transparent, ${colorWithAlpha(moonColor, 0.12)}, transparent)`,
+                  left: '50%',
+                  top: '45%',
+                  transform: 'translate(-50%, -50%)',
+                  filter: 'blur(1px)',
+                  opacity: 1 - celestialPosition.moonHorizonProgress
+                }}
+              />
+              <div
+                aria-hidden
+                className="absolute"
+                style={{
+                  width: `${60 + (1 - celestialPosition.moonHorizonProgress) * 40}px`,
+                  height: '2px',
+                  background: `linear-gradient(90deg, transparent, ${colorWithAlpha(moonGlowColor, 0.1)}, transparent)`,
+                  left: '50%',
+                  top: '55%',
+                  transform: 'translate(-50%, -50%)',
+                  filter: 'blur(1px)',
+                  opacity: (1 - celestialPosition.moonHorizonProgress) * 0.5
+                }}
+              />
+            </>
+          )}
+
+          {/* Moon glow */}
           <div
+            aria-hidden
             className="absolute"
             style={{
-              width: '50px',
-              height: '50px',
-              background: `radial-gradient(circle, ${moonColor}10 0%, transparent 60%)`,
-              transform: 'translate(-50%, -50%)',
+              width: celestialPosition.moonNearHorizon ? `${52 + (1 - celestialPosition.moonHorizonProgress) * 40}px` : '52px',
+              height: celestialPosition.moonNearHorizon ? `${52 + (1 - celestialPosition.moonHorizonProgress) * 22}px` : '52px',
+              background: celestialPosition.moonNearHorizon
+                ? `radial-gradient(ellipse, ${colorWithAlpha(moonGlowColor, 0.18)} 0%, ${colorWithAlpha(
+                    moonColor,
+                    0.07
+                  )} 40%, transparent 72%)`
+                : `radial-gradient(circle, ${colorWithAlpha(moonColor, 0.1)} 0%, transparent 60%)`,
               left: '50%',
               top: '50%',
-              filter: 'blur(10px)'
+              transform: 'translate(-50%, -50%)',
+              filter: `blur(${12 + (1 - (celestialPosition.moonHorizonProgress || 1)) * 12}px)`
             }}
           />
-          {/* Moon using SVG for clean phase rendering */}
-          <svg 
-            width="30" 
-            height="30" 
+
+          {/* Moon w/ realistic phase & rotated terminator */}
+          <svg
+            width={celestialPosition.moonNearHorizon ? `${32 + (1 - celestialPosition.moonHorizonProgress) * 16}` : '32'}
+            height={celestialPosition.moonNearHorizon ? `${32 + (1 - celestialPosition.moonHorizonProgress) * 10}` : '32'}
             viewBox="0 0 30 30"
             style={{
-              position: 'relative'
+              position: 'relative',
+              filter: `drop-shadow(0 0 ${10 + (1 - (celestialPosition.moonHorizonProgress || 1)) * 16}px ${colorWithAlpha(
+                moonGlowColor,
+                0.28
+              )})`
             }}
           >
             <defs>
-              <mask id="moon-phase-mask">
+              <mask id={moonMaskId}>
                 <rect x="0" y="0" width="30" height="30" fill="black" />
                 <circle cx="15" cy="15" r="14" fill="white" />
-                {/* Create the phase shadow */}
-                {celestialPosition.moonPhase < 0.5 ? (
-                  // Waxing (new to full)
-                  celestialPosition.moonPhase < 0.25 ? (
-                    // Crescent (new to first quarter)
-                    <ellipse 
-                      cx={15 + 15 * (1 - celestialPosition.moonPhase * 4)} 
-                      cy="15" 
-                      rx={14 * (1 - celestialPosition.moonPhase * 4)}
-                      ry="14" 
-                      fill="black" 
-                    />
-                  ) : (
-                    // Gibbous (first quarter to full)
-                    <ellipse 
-                      cx={15 - 15 * ((celestialPosition.moonPhase - 0.25) * 4)} 
-                      cy="15" 
-                      rx={14 * ((celestialPosition.moonPhase - 0.25) * 4)}
-                      ry="14" 
-                      fill="black" 
-                    />
-                  )
-                ) : celestialPosition.moonPhase > 0.5 ? (
-                  // Waning (full to new)
-                  celestialPosition.moonPhase < 0.75 ? (
-                    // Gibbous (full to last quarter)
-                    <ellipse 
-                      cx={15 + 15 * ((celestialPosition.moonPhase - 0.5) * 4)} 
-                      cy="15" 
-                      rx={14 * ((celestialPosition.moonPhase - 0.5) * 4)}
-                      ry="14" 
-                      fill="black" 
-                    />
-                  ) : (
-                    // Crescent (last quarter to new)
-                    <ellipse 
-                      cx={15 - 15 * (1 - (celestialPosition.moonPhase - 0.75) * 4)} 
-                      cy="15" 
-                      rx={14 * (1 - (celestialPosition.moonPhase - 0.75) * 4)}
-                      ry="14" 
-                      fill="black" 
-                    />
-                  )
-                ) : null}
+                {/* Phase shadow rotated by terminator angle */}
+                <g transform={`rotate(${moonTerminatorAngleDeg}, 15, 15)`}>
+                  {celestialPosition.moonPhase < 0.5 ? (
+                    // Waxing crescent → full
+                    celestialPosition.moonPhase < 0.25 ? (
+                      <ellipse
+                        cx={15 + 15 * (1 - celestialPosition.moonPhase * 4)}
+                        cy="15"
+                        rx={14 * (1 - celestialPosition.moonPhase * 4)}
+                        ry="14"
+                        fill="black"
+                      />
+                    ) : (
+                      <ellipse
+                        cx={15 - 15 * ((celestialPosition.moonPhase - 0.25) * 4)}
+                        cy="15"
+                        rx={14 * ((celestialPosition.moonPhase - 0.25) * 4)}
+                        ry="14"
+                        fill="black"
+                      />
+                    )
+                  ) : celestialPosition.moonPhase > 0.5 ? (
+                    celestialPosition.moonPhase < 0.75 ? (
+                      <ellipse
+                        cx={15 + 15 * ((celestialPosition.moonPhase - 0.5) * 4)}
+                        cy="15"
+                        rx={14 * ((celestialPosition.moonPhase - 0.5) * 4)}
+                        ry="14"
+                        fill="black"
+                      />
+                    ) : (
+                      <ellipse
+                        cx={15 - 15 * (1 - (celestialPosition.moonPhase - 0.75) * 4)}
+                        cy="15"
+                        rx={14 * (1 - (celestialPosition.moonPhase - 0.75) * 4)}
+                        ry="14"
+                        fill="black"
+                      />
+                    )
+                  ) : null}
+                </g>
               </mask>
             </defs>
-            {/* Simple flat moon */}
-            <circle 
-              cx="15" 
-              cy="15" 
-              r="14" 
-              fill={moonColor}
-              mask="url(#moon-phase-mask)"
-            />
-            {/* Very subtle crater hints */}
-            <circle 
-              cx="11" 
-              cy="12" 
-              r="1.5" 
-              fill="#e0e0e0"
-              opacity="0.2"
-              mask="url(#moon-phase-mask)"
-            />
-            <circle 
-              cx="18" 
-              cy="16" 
-              r="1" 
-              fill="#e0e0e0"
-              opacity="0.15"
-              mask="url(#moon-phase-mask)"
-            />
-            <circle 
-              cx="14" 
-              cy="19" 
-              r="0.8" 
-              fill="#e0e0e0"
-              opacity="0.15"
-              mask="url(#moon-phase-mask)"
-            />
+
+            {/* Lit disc */}
+            <circle cx="15" cy="15" r="14" fill={moonColor} mask={`url(#${moonMaskId})`} />
+            {/* Gentle limb shading */}
+            <radialGradient id="moonShade">
+              <stop offset="60%" stopColor={colorWithAlpha('#000', 0)} />
+              <stop offset="100%" stopColor={colorWithAlpha('#000', 0.18)} />
+            </radialGradient>
+            <circle cx="15" cy="15" r="14" fill="url(#moonShade)" mask={`url(#${moonMaskId})`} />
+
+            {/* Subtle craters */}
+            {[
+              { cx: 11, cy: 12, r: 1.5, o: 0.18 },
+              { cx: 18, cy: 16, r: 1.0, o: 0.15 },
+              { cx: 14, cy: 19, r: 0.9, o: 0.14 }
+            ].map((c, i) => (
+              <circle key={i} cx={c.cx} cy={c.cy} r={c.r} fill="#E6E6E6" opacity={c.o} mask={`url(#${moonMaskId})`} />
+            ))}
           </svg>
         </div>
       )}
-      
-      {/* Planets during night/dusk */}
-      {planetPositions.map((planet, i) => (
+
+      {/* ------------------------------ PLANETS ------------------------------- */}
+      {planetPositions.map((p, i) => (
         <div
-          key={`planet-${planet.name}-${i}`}
+          key={`planet-${p.name}-${i}`}
           className="absolute"
           style={{
-            left: `${planet.x}px`,
-            top: `${planet.y}px`,
-            transform: 'translate(-50%, -50%)'
+            left: `${p.x}px`,
+            top: `${p.y}px`,
+            transform: 'translate(-50%, -50%)',
+            opacity: clamp((p.opacity ?? 1) * (timeOfDay === 'Dusk' ? 0.85 : 1), 0, 1)
           }}
-          title={planet.name}
+          title={p.name}
         >
-          {/* Planet glow */}
           <div
+            aria-hidden
             className="absolute"
             style={{
-              width: `${planet.size * 4}px`,
-              height: `${planet.size * 4}px`,
-              background: `radial-gradient(circle, ${planet.glow}20 0%, transparent 70%)`,
-              transform: 'translate(-50%, -50%)',
+              width: `${p.size * 4}px`,
+              height: `${p.size * 4}px`,
+              background: `radial-gradient(circle, ${colorWithAlpha(p.glow, 0.18)} 0%, transparent 70%)`,
               left: '50%',
               top: '50%',
+              transform: 'translate(-50%, -50%)',
               filter: 'blur(2px)'
             }}
           />
-          {/* Planet core */}
           <div
+            aria-hidden
             style={{
-              width: `${planet.size}px`,
-              height: `${planet.size}px`,
+              width: `${p.size}px`,
+              height: `${p.size}px`,
               borderRadius: '50%',
-              background: planet.color,
-              boxShadow: `0 0 ${planet.size * 2}px ${planet.glow}40`
+              background: p.color,
+              boxShadow: `0 0 ${p.size * 2}px ${colorWithAlpha(p.glow, 0.35)}`
             }}
           />
         </div>
       ))}
-      
-      {/* Additional stars during night */}
+
+      {/* -------------------------------- STARS ------------------------------- */}
       {starVisibility > 0 && (
         <div className="absolute inset-0 pointer-events-none" style={{ opacity: starVisibility, zIndex: 0 }}>
-          {Array.from({ length: 40 }, (_, i) => {
-            const x = (i * 37 + 100) % width;
-            const y = (i * 53 + 50) % (height * 0.4); // Spread across more of the sky
-            const size = 0.5 + (i % 3) * 0.5; // Smaller stars
-            const twinkle = i % 4 === 0;
-            
-            return (
-              <div
-                key={`star-${i}`}
-                className={twinkle ? 'animate-pulse' : ''}
-                style={{
-                  position: 'absolute',
-                  left: `${x}px`,
-                  top: `${y}px`,
-                  width: `${size}px`,
-                  height: `${size}px`,
-                  borderRadius: '50%',
-                  background: '#ffffff',
-                  boxShadow: `0 0 ${size * 2}px rgba(255, 255, 255, 0.8)`
-                }}
-              />
-            );
-          })}
+          {stars.map((st, i) => (
+            <div
+              key={`star-${i}`}
+              aria-hidden
+              style={{
+                position: 'absolute',
+                left: `${st.x}px`,
+                top: `${st.y}px`,
+                width: `${st.s}px`,
+                height: `${st.s}px`,
+                borderRadius: '50%',
+                background: '#FFFFFF',
+                opacity: st.o,
+                animation: `twinkle ${st.tw}s ease-in-out infinite`,
+                boxShadow: `0 0 ${st.s * 2}px rgba(255,255,255,0.85)`
+              }}
+            />
+          ))}
+          <style jsx="true">{`
+            @keyframes twinkle {
+              0% { transform: scale(1); opacity: 0.7; }
+              50% { transform: scale(1.15); opacity: 1; }
+              100% { transform: scale(1); opacity: 0.7; }
+            }
+          `}</style>
         </div>
       )}
-      
-      {/* Enhanced snowflakes - more abundant and smaller */}
+
+      {/* ------------------------------- SNOW -------------------------------- */}
       {isSnowing && (
         <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 2 }}>
-          {Array.from({ length: 150 }, (_, i) => {
-            const x = Math.random() * width;
-            const startY = -20;
-            const size = 1 + Math.random() * 2; // Smaller: 1-3px instead of 2-6px
-            const duration = 8 + Math.random() * 12; // 8-20s fall time
-            const delay = Math.random() * duration;
-            const drift = 20 + Math.random() * 40; // Horizontal drift
-            
+          {Array.from({ length: Math.round(120 + 120 * precipIntensity) }, (_, i) => {
+            // spread and drift; random but stable enough per render
+            const rng = mulberry32(starSeed + i * 13);
+            const x = rng() * width;
+            const startY = -20 - rng() * 60;
+            const size = 0.8 + rng() * 2.2;
+            const duration = 8 + rng() * 12;
+            const delay = rng() * duration;
+            const drift = 20 + rng() * 40;
             return (
               <div
                 key={`snow-${i}`}
-                className="absolute animate-snow-fall"
+                className="absolute"
                 style={{
                   left: `${x}px`,
                   top: `${startY}px`,
                   width: `${size}px`,
                   height: `${size}px`,
                   borderRadius: '50%',
-                  background: 'rgba(255, 255, 255, 0.9)',
-                  boxShadow: `0 0 ${size}px rgba(255, 255, 255, 0.5)`,
+                  background: 'rgba(255,255,255,0.9)',
+                  boxShadow: `0 0 ${size}px rgba(255,255,255,0.5)`,
                   animation: `snowfall ${duration}s linear infinite`,
                   animationDelay: `${delay}s`,
+                  // @ts-ignore – CSS var assignment
                   '--drift': `${drift}px`
                 } as React.CSSProperties}
               />
@@ -558,20 +681,10 @@ const CelestialBodies: React.FC<CelestialBodiesProps> = ({
           })}
           <style jsx="true">{`
             @keyframes snowfall {
-              0% {
-                transform: translateY(0) translateX(0);
-                opacity: 0;
-              }
-              10% {
-                opacity: 1;
-              }
-              90% {
-                opacity: 1;
-              }
-              100% {
-                transform: translateY(${height + 40}px) translateX(var(--drift));
-                opacity: 0;
-              }
+              0%   { transform: translateY(0) translateX(0);   opacity: 0; }
+              10%  { opacity: 1; }
+              90%  { opacity: 1; }
+              100% { transform: translateY(${height + 40}px) translateX(var(--drift)); opacity: 0; }
             }
           `}</style>
         </div>

@@ -20,7 +20,7 @@ const HillSymbol: React.FC<HillSymbolProps> = React.memo(({ x, y, size, seed, ti
     const localRand = (offset: number = 0) => new ValueNoise(seed + tile.x * 29 + tile.y * 37 + offset).random();
     const elements: JSX.Element[] = [];
 
-    let baseColor = getTileRenderColor(tile, climate, seed);
+    let baseColor = getTileRenderColor(tile, climate, seed, season);
 
     if (season === 'summer' && (climate === ClimateType.ARID || climate === ClimateType.SEMITROPICAL)) {
         baseColor = shadeColorHSL(baseColor, 1.0, 0.8, 0.05); // More tan/dry

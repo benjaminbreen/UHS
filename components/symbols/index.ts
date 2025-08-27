@@ -37,3 +37,4 @@ export { default as IndustrialDistrictSymbol } from './IndustrialDistrictSymbol'
 export { default as PaddockSymbol } from './PaddockSymbol';
 export { default as RoadSymbol } from './RoadSymbol';
 export { default as RiverSymbol } from './RiverSymbol';
+export { default as LavaSymbol } from './LavaSymbol';

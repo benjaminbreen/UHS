@@ -31,7 +31,11 @@ import { useWeatherEffects } from '../hooks/useWeatherEffects';
 
 type ActivePanel = 'farm' | null;
 
-const MapViewport: React.FC = () => {
+interface MapViewportProps {
+  mapVisible?: boolean;
+}
+
+const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
     const {
         handleDevHover, setTileInfoModalProps, setStructureModalTarget, setActiveSettlementInfo,
         activeLens, infoModalTarget, panelNotificationItem, setPanelNotificationItem, toastMessage,
@@ -195,6 +199,7 @@ const MapViewport: React.FC = () => {
                     onPoiClick={setActivePoi} 
                     onSettlementClick={(tile: Tile) => setActiveSettlementInfo({ tile })} 
                     onVesselClick={handleVesselClick}
+                    onPlayerMove={onPlayerMove}
                     activeLens={activeLens} 
                     logicalControlledIconX={controlledIconX} 
                     logicalControlledIconY={controlledIconY} 
@@ -366,7 +371,17 @@ const MapViewport: React.FC = () => {
               </div>
             </div>
           ) : mapData && (
-             <div className={`w-full h-full flex flex-col ${mapFadeClass} relative`} style={{ zIndex: 10 }}>
+             <div 
+               className={`w-full h-full flex flex-col ${mapFadeClass} relative transition-all`} 
+               style={{ 
+                 zIndex: 10,
+                 opacity: mapVisible ? 1 : 0,
+                 transform: mapVisible ? 'scale(1)' : 'scale(0.95)',
+                 transition: 'opacity 1.5s ease-out, transform 1.5s ease-out',
+                 transitionDelay: mapVisible ? '0s' : '0.5s',
+                 pointerEvents: mapVisible ? 'auto' : 'none'
+               }}
+             >
               {/* Map container */}
               <div className="flex-1 flex flex-col">
                 {/* Map with border */}
@@ -391,7 +406,17 @@ const MapViewport: React.FC = () => {
                          borderRadius: isMobile ? '16px' : '28px',
                          boxShadow: 'inset 0 4px 12px rgba(0, 0, 0, 0.9), 0 8px 32px rgba(31, 41, 59, 0.9)'
                        }}>
-                   {renderMapContent()}
+                   <div 
+                     className="transition-opacity"
+                     style={{ 
+                       width: '100%', 
+                       height: '100%',
+                       opacity: mapVisible ? 1 : 0,
+                       transition: 'opacity 0.6s ease-out'
+                     }}
+                   >
+                     {renderMapContent()}
+                   </div>
                    
                    {/* Vignette effect overlay - subtle darkening at edges */}
                    <div 

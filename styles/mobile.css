@@ -1,0 +1,270 @@
+/**
+ * styles/mobile.css
+ * Mobile-specific styles and safe area handling
+ */
+
+/* Safe area variables */
+:root {
+  --sat: env(safe-area-inset-top);
+  --sar: env(safe-area-inset-right);
+  --sab: env(safe-area-inset-bottom);
+  --sal: env(safe-area-inset-left);
+}
+
+/* Prevent overscroll and bounce on iOS */
+html {
+  position: fixed;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  position: fixed;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Mobile app container */
+.mobile-app {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  overflow: hidden;
+}
+
+/* Mobile viewport adjustments */
+.mobile-viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  touch-action: pan-x pan-y pinch-zoom;
+}
+
+/* Hide desktop controls on mobile */
+@media (max-width: 768px) and (hover: none) {
+  .desktop-only {
+    display: none !important;
+  }
+  
+  .zoom-controls,
+  .keyboard-hints,
+  .hover-tooltips {
+    display: none !important;
+  }
+}
+
+/* Mobile modals */
+.mobile-modal {
+  position: fixed;
+  top: max(env(safe-area-inset-top), 60px);
+  bottom: max(env(safe-area-inset-bottom), 60px);
+  left: 5vw;
+  right: 5vw;
+  max-width: 400px;
+  margin: auto;
+  background: rgba(20, 20, 20, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-modal-header {
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mobile-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-modal-footer {
+  padding: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Touch targets */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Landscape adjustments */
+@media (orientation: landscape) and (max-height: 500px) {
+  .mobile-header {
+    padding-top: max(env(safe-area-inset-top), 10px);
+    min-height: 32px;
+  }
+  
+  .mobile-quick-stats {
+    height: 44px;
+  }
+  
+  .mobile-controls {
+    bottom: max(env(safe-area-inset-bottom), 10px);
+    transform: scale(0.8);
+  }
+  
+  .mobile-sidebar {
+    height: 90vh;
+  }
+}
+
+/* iPhone specific adjustments */
+@supports (padding: max(0px)) {
+  /* iPhone X and later */
+  @media only screen 
+    and (device-width: 375px) 
+    and (device-height: 812px) 
+    and (-webkit-device-pixel-ratio: 3) {
+    .mobile-app {
+      padding-top: 44px;
+      padding-bottom: 34px;
+    }
+  }
+  
+  /* iPhone 12/13/14 Pro */
+  @media only screen 
+    and (device-width: 390px) 
+    and (device-height: 844px) 
+    and (-webkit-device-pixel-ratio: 3) {
+    .mobile-app {
+      padding-top: 47px;
+      padding-bottom: 34px;
+    }
+  }
+  
+  /* iPhone 12/13/14 Pro Max */
+  @media only screen 
+    and (device-width: 428px) 
+    and (device-height: 926px) 
+    and (-webkit-device-pixel-ratio: 3) {
+    .mobile-app {
+      padding-top: 47px;
+      padding-bottom: 34px;
+    }
+  }
+  
+  /* iPhone 14 Pro (Dynamic Island) */
+  @media only screen 
+    and (device-width: 393px) 
+    and (device-height: 852px) 
+    and (-webkit-device-pixel-ratio: 3) {
+    .mobile-app {
+      padding-top: 59px;
+      padding-bottom: 34px;
+    }
+  }
+  
+  /* iPhone 14 Pro Max (Dynamic Island) */
+  @media only screen 
+    and (device-width: 430px) 
+    and (device-height: 932px) 
+    and (-webkit-device-pixel-ratio: 3) {
+    .mobile-app {
+      padding-top: 59px;
+      padding-bottom: 34px;
+    }
+  }
+}
+
+/* PWA adjustments */
+@media (display-mode: standalone) {
+  .mobile-app {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Performance optimizations for mobile */
+@media (max-width: 768px) {
+  /* Disable expensive effects */
+  .blur-filter,
+  .drop-shadow {
+    filter: none !important;
+  }
+  
+  /* Simplify animations */
+  * {
+    animation-duration: 0.2s !important;
+    transition-duration: 0.2s !important;
+  }
+  
+  /* Use GPU acceleration */
+  .mobile-viewport canvas {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+}
+
+/* Scrollbar styling for mobile */
+.mobile-scrollable {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.mobile-scrollable::-webkit-scrollbar {
+  display: none;
+}
+
+/* Prevent text selection */
+.mobile-no-select {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Glass morphism for mobile */
+.mobile-glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Loading states */
+.mobile-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.mobile-loading::after {
+  content: '⚔️';
+  font-size: 48px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}

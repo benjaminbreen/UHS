@@ -16,28 +16,43 @@ export function generateRuins(tiles: Tile[][], featurePlacementNoise: ValueNoise
         return []; // Don't generate ruins if none are defined for the culture/era
     }
 
-    // Check if this area has defined cities
-    let hasCities = false;
+    // Get historical context
     const mapAreaName = mapData?.localArea;
     const year = mapData?.timeSlice ? parseInt(mapData.timeSlice) : 1650;
+    const culturalZone = mapData?.culturalZone || 'EUROPEAN';
+    const era = mapData?.era || 'MEDIEVAL';
     
+    // Calculate historically accurate ruin density
+    let ruinDensity = 1.0; // Base density
+    
+    // Historical factors that increase ruins
+    if (year > 1500) ruinDensity += 0.5; // More accumulated history
+    if (year > 1000) ruinDensity += 0.3;
+    if (year > 0) ruinDensity += 0.2;
+    
+    // Regional factors
+    if (culturalZone === 'MENA' || culturalZone === 'EUROPEAN') {
+        ruinDensity += 0.5; // Ancient civilizations
+    }
+    if (culturalZone === 'MESOAMERICAN' || culturalZone === 'SOUTH_AMERICAN') {
+        ruinDensity += 0.4; // Pre-Columbian sites
+    }
+    
+    // Check for declined cities (these become ruins)
+    let declinedCities: any[] = [];
     if (mapAreaName && year) {
         try {
             const { CITIES_DATA } = require('../../../constants/gameData/cities');
             const areaCities = CITIES_DATA[mapAreaName] || [];
-            const activeCities = areaCities.filter((city: any) => 
-                year >= city.foundingYear && (!city.declineYear || year <= city.declineYear)
+            
+            // Find cities that have declined before current year
+            declinedCities = areaCities.filter((city: any) => 
+                city.declineYear && year > city.declineYear
             );
             
-            if (activeCities.length > 0) {
-                hasCities = true;
-            } else {
-                // Check procedural cities
-                const { PROCEDURAL_CITY_DATA } = require('../../../constants/gameData/proceduralCityData');
-                const proceduralCities = PROCEDURAL_CITY_DATA[mapAreaName] || [];
-                if (proceduralCities.length > 0) {
-                    hasCities = true;
-                }
+            if (declinedCities.length > 0) {
+                ruinDensity += declinedCities.length * 0.3;
+                console.log(`[Ruins] Found ${declinedCities.length} declined cities that will become ruins`);
             }
         } catch (error) {
             console.log(`[Ruins] Could not load city data for ${mapAreaName}`);
@@ -52,18 +67,11 @@ export function generateRuins(tiles: Tile[][], featurePlacementNoise: ValueNoise
     ];
 
     let ruinsPlaced = 0;
-    let maxRuins = 1 + Math.floor(featurePlacementNoise.random() * 2);
+    // Historically accurate ruin count (0-8 based on density)
+    let maxRuins = Math.floor(ruinDensity * (1 + featurePlacementNoise.random() * 3));
+    maxRuins = Math.min(maxRuins, 8); // Cap at 8 ruins
     
-    // Areas without cities are more likely to have ruins (abandoned places)
-    if (!hasCities) {
-        if (featurePlacementNoise.random() < 0.4) {
-            maxRuins = 1; // 40% chance of a single ruin
-            console.log(`[Ruins] No cities defined for ${mapAreaName}, may spawn 1 ruin`);
-        } else {
-            maxRuins = 0; // 60% chance of no ruins
-            console.log(`[Ruins] No cities defined for ${mapAreaName}, skipping ruins generation`);
-        }
-    }
+    console.log(`[Ruins] Planning to generate up to ${maxRuins} ruins (density: ${ruinDensity.toFixed(1)})`)
 
     for (let attempts = 0; attempts < MAP_WIDTH_TILES * MAP_HEIGHT_TILES * 0.1 && ruinsPlaced < maxRuins; attempts++) {
         const x = Math.floor(featurePlacementNoise.random() * MAP_WIDTH_TILES);
@@ -90,8 +98,39 @@ export function generateRuins(tiles: Tile[][], featurePlacementNoise: ValueNoise
 
         if (featurePlacementNoise.random() < RUIN_BASE_CHANCE * 100) { 
             tile.biome = BiomeType.RUINS;
-            const ruinName = ruinTypes[Math.floor(featurePlacementNoise.random() * ruinTypes.length)];
+            
+            // Select appropriate ruin type based on era and region
+            let selectedRuinIndex = Math.floor(featurePlacementNoise.random() * ruinTypes.length);
+            
+            // If we have a declined city nearby, use its name
+            let ruinName = ruinTypes[selectedRuinIndex];
+            let constructionYear = year - 200 - Math.floor(featurePlacementNoise.random() * 500);
+            
+            // Calculate historically accurate construction year based on era
+            if (era === 'PREHISTORY') {
+                constructionYear = -3000 - Math.floor(featurePlacementNoise.random() * 2000);
+            } else if (era === 'ANTIQUITY') {
+                constructionYear = -500 - Math.floor(featurePlacementNoise.random() * 500);
+            } else if (era === 'MEDIEVAL') {
+                constructionYear = 500 + Math.floor(featurePlacementNoise.random() * 500);
+            } else if (era === 'RENAISSANCE_EARLY_MODERN') {
+                constructionYear = 1400 + Math.floor(featurePlacementNoise.random() * 200);
+            } else if (era === 'INDUSTRIAL_ERA') {
+                constructionYear = 1800 + Math.floor(featurePlacementNoise.random() * 100);
+            }
+            
+            // Check if this location is near a declined city
+            for (const city of declinedCities) {
+                const dist = Math.abs(tile.x - x) + Math.abs(tile.y - y);
+                if (dist < 5) {
+                    ruinName = `Ruins of ${city.name}`;
+                    constructionYear = city.foundingYear;
+                    break;
+                }
+            }
+            
             tile.ruinType = ruinName;
+            tile.culturalZone = culturalZone; // Store for rendering
 
             const blueprint = STRUCTURE_BLUEPRINTS['ruin'];
             const ruinStructure: TerrainStructure = {
@@ -102,7 +141,9 @@ export function generateRuins(tiles: Tile[][], featurePlacementNoise: ValueNoise
                 economicRole: blueprint.economicRole,
                 npcAnchor: blueprint.npcAnchor,
                 state: 'ruined',
-                constructionYear: -500 - Math.floor(featurePlacementNoise.random() * 2000), // Ancient
+                constructionYear: constructionYear,
+                culturalZone: culturalZone, // Add cultural zone
+                era: era, // Add era
                 dimensions: {
                     height: 10 + Math.floor(featurePlacementNoise.random() * 15)
                 }

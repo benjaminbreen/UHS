@@ -181,7 +181,8 @@ export function generateAltitudeAndInitialBiomes(
 
         tile.altitude = Math.max(0, Math.min(1, tile.altitude));
 
-        if (tile.altitude < ALTITUDE_LEVELS.BEACH) tile.biome = BiomeType.BEACH;
+        // Don't automatically assign BEACH just based on altitude - wait for coastal detection
+        if (tile.altitude < ALTITUDE_LEVELS.BEACH) tile.biome = BiomeType.GRASSLAND; // Temporarily assign low-lying areas as grassland
         else if (tile.altitude < ALTITUDE_LEVELS.GRASSLAND_UPPER_MAX) tile.biome = BiomeType.GRASSLAND;
         else if (tile.altitude < ALTITUDE_LEVELS.FOREST_UPPER_MAX) {
             if (tile.altitude >= ALTITUDE_LEVELS.HILLS_START && tile.altitude <= ALTITUDE_LEVELS.HILLS_MAX) tile.biome = BiomeType.HILLS; // Potential HILLS
@@ -650,7 +651,7 @@ export function generateVolcanicComplex(tiles: Tile[][], temperatureNoise: Value
                             (tile.isLand && tile.biome !== BiomeType.ACTIVE_LAVA && !nonVolcanicRockBiomes.has(tile.biome) && tile.altitude >= ALTITUDE_LEVELS.HILLS_START);
 
                         if (canBeVolcanicRock) {
-                            if (featurePlacementNoise.random() < (1 - dist / rockRadius) * (archetype === MapArchetype.ATOLL ? 0.4 : 0.8)) {
+                            if (featurePlacementNoise.random() < (1 - dist / rockRadius) * (archetype === MapArchetype.ATOLL ? 0.2 : 0.4)) {
                                 tile.biome = BiomeType.VOLCANIC_ROCK;
                                 if (archetype === MapArchetype.ATOLL && !tile.isLand) { 
                                     tile.isLand = featurePlacementNoise.random() < 0.3;
@@ -1256,7 +1257,7 @@ export function generateSpecialTerrainTiles(
             }
         }
         // Very rare volcanic/shoal features
-        if (featurePlacementNoise.random() < 0.03) { // Low chance
+        if (featurePlacementNoise.random() < 0.01) { // Very low chance
             const featureX = Math.floor(featurePlacementNoise.random() * MAP_WIDTH_TILES);
             const featureY = Math.floor(featurePlacementNoise.random() * MAP_HEIGHT_TILES);
             if (tiles[featureY][featureX].biome === BiomeType.DEEP_OCEAN || tiles[featureY][featureX].biome === BiomeType.SHALLOW_OCEAN) {
@@ -1323,10 +1324,10 @@ export function generateSpecialTerrainTiles(
                 }
             }
             const thermalVal = thermalNoise.noise(x * NOISE_SCALE_THERMAL, y * NOISE_SCALE_THERMAL);
-            if ((nearVolcano || nearMountain) && thermalVal > 0.65 && featurePlacementNoise.random() < 0.05) {
+            if ((nearVolcano || nearMountain) && thermalVal > 0.65 && featurePlacementNoise.random() < 0.02) { // Reduced from 0.05 to 0.02
                 tile.biome = BiomeType.HOT_SPRINGS;
-                tile.isLand = false;
-                tile.altitude = Math.max(ALTITUDE_LEVELS.SEA, tile.altitude * 0.5);
+                tile.isLand = true; // Changed to land tile
+                tile.altitude = Math.max(ALTITUDE_LEVELS.GRASSLAND_LOWER_MIN, tile.altitude * 0.8);
             }
         }
     }

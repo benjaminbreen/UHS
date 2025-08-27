@@ -300,7 +300,7 @@ function placeModernCityBlocks(
   }
 }
 
-function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: number, totalClusters: number, generateLargeCity: boolean | undefined, randomNoise: ValueNoise, economicActivityLevel?: number, activeCities?: any[], era?: HistoricalEra): void {
+function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: number, totalClusters: number, generateLargeCity: boolean | undefined, randomNoise: ValueNoise, economicActivityLevel?: number, activeCities?: any[], era?: HistoricalEra, useRoadBiomeTiles?: boolean): void {
   const isMainCluster = clusterIndex === 0;
   
   // Get population data for this cluster's city
@@ -698,8 +698,11 @@ function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: numb
             const tile = tiles[py][px];
             if (tile.isLand && !nonBuildableSiteBiomesSet.has(tile.biome) && 
                 tile.biome !== BiomeType.PARK && tile.biome !== BiomeType.PLAZA) {
-              tile.biome = BiomeType.ROAD;
-              tile.population = 0;
+              // Only place road biome tiles in appropriate eras
+              if (useRoadBiomeTiles) {
+                tile.biome = BiomeType.ROAD;
+                tile.population = 0;
+              }
               if (cityData) {
                 tile.cityName = cityData.name;
                 tile.cityDescription = cityData.description;
@@ -857,7 +860,16 @@ export function generateUrbanAreas(tiles: Tile[][], randomNoise: ValueNoise, arc
   const parsed = timeSlice ? parseDateString(timeSlice) : undefined;
   const resolvedYear = parsed?.year ?? year ?? 1650;
   const resolvedEra = parsed?.era ?? getEraFromYear(resolvedYear);
-  const useModernRoads = resolvedEra === HistoricalEra.INDUSTRIAL_ERA || resolvedEra === HistoricalEra.MODERN_ERA || resolvedEra === HistoricalEra.FUTURE_ERA;
+  
+  // Road biome tiles only appear with proper urban planning (varies by region but generally 1800+)
+  // Before that, roads are just visual paths overlaid on existing terrain
+  const useRoadBiomeTiles = (resolvedYear >= 1800 && resolvedEra !== HistoricalEra.MEDIEVAL && resolvedEra !== HistoricalEra.RENAISSANCE_EARLY_MODERN) || 
+                            resolvedEra === HistoricalEra.INDUSTRIAL_ERA || 
+                            resolvedEra === HistoricalEra.MODERN_ERA || 
+                            resolvedEra === HistoricalEra.FUTURE_ERA;
+  
+  // Modern asphalt roads only in 20th century+
+  const useModernRoads = resolvedYear >= 1920 || resolvedEra === HistoricalEra.MODERN_ERA || resolvedEra === HistoricalEra.FUTURE_ERA;
   
   // Skip urban generation entirely for SHOALS archetype
   if (archetype === MapArchetype.SHOALS) {
@@ -930,7 +942,7 @@ export function generateUrbanAreas(tiles: Tile[][], randomNoise: ValueNoise, arc
     clusterCenters.forEach((center, index) => {
       // For areas without cities, only generate small hamlets
       const shouldGenerateLarge = hasCities ? generateLargeCity : false;
-      generateUrbanCluster(tiles, center, index, clusterCenters.length, shouldGenerateLarge, randomNoise, economicActivityLevel, activeCities, resolvedEra);
+      generateUrbanCluster(tiles, center, index, clusterCenters.length, shouldGenerateLarge, randomNoise, economicActivityLevel, activeCities, resolvedEra, useRoadBiomeTiles);
     });
     console.log(`Generated ${clusterCenters.length} urban clusters`);
   }
@@ -943,7 +955,7 @@ export function generateUrbanAreas(tiles: Tile[][], randomNoise: ValueNoise, arc
   // Post-processing: Add urban boundaries, connect districts, and handle factories
   addUrbanBoundaryBuffers(tiles);
   connectCityCentersToGovernmentDistricts(tiles);
-  surroundFactoriesWithRoads(tiles);
+  surroundFactoriesWithRoads(tiles, useRoadBiomeTiles);
   
   console.log("[Urban] Post-processing complete: boundaries, connections, and factory roads added");
 }
@@ -1088,7 +1100,7 @@ function addUrbanBoundaryBuffers(tiles: Tile[][]) {
 }
 
 // Connect city centers to government districts and palaces with roads
-function connectCityCentersToGovernmentDistricts(tiles: Tile[][]) {
+function connectCityCentersToGovernmentDistricts(tiles: Tile[][], useRoadBiomeTiles: boolean) {
   const cityCenters: Tile[] = [];
   const governmentDistricts: Tile[] = [];
   const palaces: Tile[] = [];
@@ -1135,8 +1147,11 @@ function connectCityCentersToGovernmentDistricts(tiles: Tile[][]) {
           // Only convert if not already a special district
           if (tile.isLand && !isHighDensityUrban(tile.biome) && 
               tile.biome !== BiomeType.PLAZA && tile.biome !== BiomeType.PARK) {
-            tile.biome = BiomeType.ROAD;
-            tile.population = 0;
+            // Only place road biome tiles in appropriate eras
+            if (useRoadBiomeTiles) {
+              tile.biome = BiomeType.ROAD;
+              tile.population = 0;
+            }
           }
         }
       }
@@ -1184,8 +1199,11 @@ function connectCityCentersToGovernmentDistricts(tiles: Tile[][]) {
           if (tile.isLand && !isHighDensityUrban(tile.biome) && 
               tile.biome !== BiomeType.PLAZA && tile.biome !== BiomeType.PARK &&
               tile.biome !== BiomeType.PALACE && tile.biome !== BiomeType.GOVERNMENT_DISTRICT) {
-            tile.biome = BiomeType.ROAD;
-            tile.population = 0;
+            // Only place road biome tiles in appropriate eras
+            if (useRoadBiomeTiles) {
+              tile.biome = BiomeType.ROAD;
+              tile.population = 0;
+            }
           }
         }
       }
@@ -1206,8 +1224,11 @@ function connectCityCentersToGovernmentDistricts(tiles: Tile[][]) {
           if (tile.isLand && !isHighDensityUrban(tile.biome) && 
               tile.biome !== BiomeType.PLAZA && tile.biome !== BiomeType.PARK &&
               tile.biome !== BiomeType.PALACE && tile.biome !== BiomeType.GOVERNMENT_DISTRICT) {
-            tile.biome = BiomeType.ROAD;
-            tile.population = 0;
+            // Only place road biome tiles in appropriate eras
+            if (useRoadBiomeTiles) {
+              tile.biome = BiomeType.ROAD;
+              tile.population = 0;
+            }
           }
         }
       }
@@ -1216,7 +1237,7 @@ function connectCityCentersToGovernmentDistricts(tiles: Tile[][]) {
 }
 
 // Surround factories with roads and connect to nearest urban area
-function surroundFactoriesWithRoads(tiles: Tile[][]) {
+function surroundFactoriesWithRoads(tiles: Tile[][], useRoadBiomeTiles: boolean) {
   const factories: Tile[] = [];
   const urbanTiles: Tile[] = [];
   
@@ -1243,8 +1264,11 @@ function surroundFactoriesWithRoads(tiles: Tile[][]) {
         if (nx >= 0 && nx < MAP_WIDTH_TILES && ny >= 0 && ny < MAP_HEIGHT_TILES) {
           const tile = tiles[ny][nx];
           if (tile.isLand && isNonUrban(tile.biome)) {
-            tile.biome = BiomeType.ROAD;
-            tile.population = 0;
+            // Only place road biome tiles in appropriate eras
+            if (useRoadBiomeTiles) {
+              tile.biome = BiomeType.ROAD;
+              tile.population = 0;
+            }
           }
         }
       }
@@ -1276,8 +1300,11 @@ function surroundFactoriesWithRoads(tiles: Tile[][]) {
           const tile = tiles[y][x];
           if (tile.isLand && isNonUrban(tile.biome) && 
               tile.biome !== BiomeType.PLAZA && tile.biome !== BiomeType.PARK) {
-            tile.biome = BiomeType.ROAD;
-            tile.population = 0;
+            // Only place road biome tiles in appropriate eras
+            if (useRoadBiomeTiles) {
+              tile.biome = BiomeType.ROAD;
+              tile.population = 0;
+            }
           }
         }
       }

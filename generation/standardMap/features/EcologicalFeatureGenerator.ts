@@ -105,8 +105,8 @@ export function generateOases(tiles: Tile[][], climate: ClimateType, randomNoise
                     } if (tooClose) break;
                 }
                 if (tooClose) continue;
-                tile.biome = BiomeType.OASIS; tile.isLand = false; 
-                tile.altitude = ALTITUDE_LEVELS.SEA * 0.7 + randomNoise.random() * 0.01; 
+                tile.biome = BiomeType.OASIS; tile.isLand = true; // Changed to land tile
+                tile.altitude = ALTITUDE_LEVELS.GRASSLAND_LOWER_MIN + randomNoise.random() * 0.02; 
             }
         }
     }

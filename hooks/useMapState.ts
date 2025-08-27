@@ -241,7 +241,8 @@ export const useMapState = (props: useMapStateProps) => {
 
 
     const _selectRandomMapArea = useCallback(() => {
-        const zones = Object.keys(GEOGRAPHICAL_DATA);
+        // Filter out "Special" zone - it's only for WorldWeaver easter eggs
+        const zones = Object.keys(GEOGRAPHICAL_DATA).filter(zone => zone !== "Special");
         const randomZoneName = zones[Math.floor(Math.random() * zones.length)];
         const regionsInZone = GEOGRAPHICAL_DATA[randomZoneName];
         const regionNames = Object.keys(regionsInZone);
@@ -255,7 +256,7 @@ export const useMapState = (props: useMapStateProps) => {
         // Use area-specific economicActivityLevel if provided, otherwise fall back to state value
         const effectiveEconomicLevel = areaEconomicActivityLevel !== undefined ? areaEconomicActivityLevel : economicActivityLevel;
         const generationParams: MapGenerationParams = { isAgricultural, isPastoral, economicActivityLevel: effectiveEconomicLevel };
-        const newMap = proceduralGenerateMap( seedToUse, archetypeToUse, climateToUse,  generateHarbor, generateLargeCity,  altitudeOverride || userSelectedBaseAltitude, forceVolcanicActivity, zoneToUse, regionToUse, localAreaToUse, String(gameState.gameDate.year), generationParams, neighboringEdges, hasLakes ); 
+        const newMap = proceduralGenerateMap( seedToUse, archetypeToUse, climateToUse,  generateHarbor, generateLargeCity,  altitudeOverride || userSelectedBaseAltitude, forceVolcanicActivity, zoneToUse, regionToUse, localAreaToUse, String(gameState.gameDate.year), generationParams, neighboringEdges, hasLakes, undefined, undefined, undefined ); 
         const newAnimals = newMap.animals || []; const newNpcs = newMap.npcs || [];
         delete newMap.animals; delete newMap.npcs;
         const newCacheEntry = { mapData: newMap, animals: newAnimals, npcs: newNpcs, deployedVessels: [], seed: seedToUse, archetype: archetypeToUse, climate: climateToUse, worldX, worldY, region: regionToUse, localArea: localAreaToUse };
@@ -664,7 +665,10 @@ export const useMapState = (props: useMapStateProps) => {
             String(gameState.gameDate.year), 
             { isAgricultural, isPastoral, economicActivityLevel: effectiveEconomicLevel }, 
             {},
-            areaDef.hasLakes
+            areaDef.hasLakes,
+            areaDef.riverDirection,
+            areaDef.bayOutlet,
+            areaDef.deltaOutlet
         );
         
         // Extract animals and npcs
@@ -795,7 +799,10 @@ export const useMapState = (props: useMapStateProps) => {
             String(yearToUse), 
             { isAgricultural, isPastoral, economicActivityLevel: effectiveEconomicLevel }, 
             {},
-            foundAreaDef.hasLakes
+            foundAreaDef.hasLakes,
+            foundAreaDef.riverDirection,
+            foundAreaDef.bayOutlet,
+            foundAreaDef.deltaOutlet
         );
         
         // Extract animals and npcs before setting map data
@@ -915,7 +922,10 @@ export const useMapState = (props: useMapStateProps) => {
                 String(gameState.gameDate.year), 
                 { isAgricultural, isPastoral, economicActivityLevel: effectiveEconomicLevel }, 
                 {},
-                areaDef.hasLakes
+                areaDef.hasLakes,
+                areaDef.riverDirection,
+                areaDef.bayOutlet,
+                areaDef.deltaOutlet
             );
             
             // Extract animals and npcs

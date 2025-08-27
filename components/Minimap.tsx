@@ -142,21 +142,89 @@ const Minimap: React.FC<MinimapProps> = ({ mapData, playerX, playerY, zoomLevel,
   const minimapContent = useMemo(() => {
      return mapData.tiles.flat().map((tile) => {
         let color = '#1e3a8a'; // Default deep ocean
-        if (tile.isLand) {
-          switch (tile.biome) {
-            case BiomeType.FOREST: case BiomeType.DENSE_FOREST: color = '#166534'; break;
-            case BiomeType.MOUNTAIN: case BiomeType.HIGH_PEAK: color = '#6b7280'; break;
-            case BiomeType.DESERT: color = '#d97706'; break;
-            case BiomeType.DENSE_CITY: case BiomeType.LOW_DENSITY_CITY: color = '#dc2626'; break;
-            case BiomeType.GRASSLAND: color = '#65a30d'; break;
-            case BiomeType.BEACH: color = '#fbbf24'; break;
-            case BiomeType.VOLCANIC_ROCK: color = '#374151'; break;
-            default: color = '#84cc16';
-          }
-        } else if (tile.biome === BiomeType.SHALLOW_OCEAN) {
-          color = '#38bdf8';
-        } else if ([BiomeType.RIVER, BiomeType.MAJOR_RIVER].includes(tile.biome)) {
-          color = '#60a5fa';
+        
+        // Comprehensive biome color mapping
+        switch (tile.biome) {
+          // Water biomes
+          case BiomeType.DEEP_OCEAN: color = '#294aa6'; break;
+          case BiomeType.SHALLOW_OCEAN: color = '#38b8f8'; break;
+          case BiomeType.RIVER: color = '#38b8f8'; break;
+          case BiomeType.MAJOR_RIVER: color = '#3b82f6'; break;
+          case BiomeType.FRESHWATER_LAKE: color = '#38b8f8'; break;
+          case BiomeType.ESTUARY: color = '#4ea1f5'; break;
+          case BiomeType.REEF: color = '#3ed2f0'; break;
+          case BiomeType.HOT_SPRINGS: color = '#f0abfc'; break;
+          
+          // Cold biomes
+          case BiomeType.TUNDRA: color = '#e0e7ff'; break;
+          case BiomeType.SNOW: color = '#f8fafc'; break;
+          case BiomeType.ICE: color = '#e5e7eb'; break;
+          
+          // Forest biomes
+          case BiomeType.FOREST: color = '#166534'; break;
+          case BiomeType.DENSE_FOREST: color = '#14532d'; break;
+          case BiomeType.JUNGLE: color = '#064e3b'; break;
+          case BiomeType.BAMBOO: color = '#84cc16'; break;
+          
+          // Arid biomes
+          case BiomeType.DESERT: color = '#d97706'; break;
+          case BiomeType.SAND_DUNES: color = '#fbbf24'; break;
+          case BiomeType.SCRUB: color = '#a16207'; break;
+          case BiomeType.SAVANNA: color = '#ca8a04'; break;
+          case BiomeType.STEPPE: color = '#eab308'; break;
+          
+          // Grasslands
+          case BiomeType.GRASSLAND: color = '#65a30d'; break;
+          case BiomeType.MEADOW: color = '#84cc16'; break;
+          case BiomeType.RAINFOREST: color = '#15803d'; break;
+          
+          // Wetlands
+          case BiomeType.WETLANDS: color = '#059669'; break;
+          case BiomeType.SWAMP: color = '#047857'; break;
+          case BiomeType.MANGROVE: color = '#10b981'; break;
+          case BiomeType.SALT_FLATS: color = '#d4d4d8'; break;
+          
+          // Mountain biomes
+          case BiomeType.MOUNTAIN: color = '#6b7280'; break;
+          case BiomeType.HIGH_PEAK: color = '#4b5563'; break;
+          case BiomeType.HILLS: color = '#65a30d'; break;
+          case BiomeType.CLIFF: color = '#525252'; break;
+          
+          // Volcanic biomes
+          case BiomeType.VOLCANIC_ROCK: color = '#374151'; break;
+          case BiomeType.VOLCANIC_SOIL: color = '#1f2937'; break;
+          
+          // Beach and coastal
+          case BiomeType.BEACH: color = '#fbbf24'; break;
+          case BiomeType.RIVERBANK: color = '#fde047'; break;
+          
+          // Urban biomes
+          case BiomeType.DENSE_CITY: color = '#dc2626'; break;
+          case BiomeType.LOW_DENSITY_CITY: color = '#ef4444'; break;
+          case BiomeType.CITY_CENTER: color = '#b91c1c'; break;
+          case BiomeType.HAMLET: color = '#f87171'; break;
+          case BiomeType.GOVERNMENT_DISTRICT: color = '#991b1b'; break;
+          case BiomeType.MARKETPLACE: color = '#f97316'; break;
+          case BiomeType.PLAZA: color = '#e4d5b7'; break;
+          case BiomeType.PARK: color = '#86efac'; break;
+          case BiomeType.ROAD: color = '#737373'; break;
+          
+          // Agricultural
+          case BiomeType.FARMLAND: color = '#a3e635'; break;
+          case BiomeType.PADDOCK: color = '#bef264'; break;
+          
+          // Special biomes
+          case BiomeType.RUINS: color = '#a8a29e'; break;
+          case BiomeType.PALACE: color = '#fcd34d'; break;
+          case BiomeType.OASIS: color = '#34d399'; break;
+          case BiomeType.SHOALS: color = '#67e8f9'; break;
+          case BiomeType.HARBOR: color = '#94a3b8'; break;
+          
+          // Ethereal/Special realms
+          case BiomeType.AIR: color = '#dbeafe'; break;
+          case BiomeType.UNDERSEA: color = '#172554'; break;
+          
+          default: color = '#84cc16'; // Fallback green
         }
         
         const rectSize = TILE_SIZE_PX;

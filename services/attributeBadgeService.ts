@@ -66,10 +66,10 @@ export class AttributeBadgeService {
    */
   private static rollBadgeCount(max: number): number {
     const roll = Math.random();
-    if (roll < 0.4) return 0; // 40% have no badges
-    if (roll < 0.7) return 1; // 30% have 1 badge
-    if (roll < 0.9) return Math.min(2, max); // 20% have 2 badges
-    return Math.min(3, max); // 10% have 3 badges
+    if (roll < 0.15) return 0; // 15% have no badges (reduced from 40%)
+    if (roll < 0.50) return 1; // 35% have 1 badge  
+    if (roll < 0.80) return Math.min(2, max); // 30% have 2 badges
+    return Math.min(3, max); // 20% have 3 badges
   }
   
   /**

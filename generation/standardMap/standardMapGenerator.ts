@@ -78,7 +78,10 @@ export function proceduralGenerateMap(
   timeSlice?: string,
   generationParams?: MapGenerationParams, // NEW
   neighboringEdges?: NeighboringEdges,
-  hasLakes?: boolean
+  hasLakes?: boolean,
+  riverDirection?: 'east-west' | 'north-south',
+  bayOutlet?: 'north' | 'south' | 'east' | 'west',
+  deltaOutlet?: 'north' | 'south' | 'east' | 'west'
 ): MapData {
   console.log(`[Gen] Starting map generation - Seed: ${seed}, Archetype: ${archetype}, Climate: ${climate}`);
   
@@ -123,7 +126,16 @@ export function proceduralGenerateMap(
 
   const tiles: Tile[][] = Array(MAP_HEIGHT_TILES).fill(null).map(() => Array(MAP_WIDTH_TILES).fill(null));
 
-  const oceanEdgeForDelta = (archetype === MapArchetype.DELTA) ? (seed % 4) : undefined;
+  let oceanEdgeForDelta: number | undefined = undefined;
+  if (archetype === MapArchetype.DELTA) {
+    if (deltaOutlet) {
+      // Use deltaOutlet property if specified (0=south, 1=north, 2=east, 3=west)
+      oceanEdgeForDelta = deltaOutlet === 'south' ? 0 : deltaOutlet === 'north' ? 1 : deltaOutlet === 'east' ? 2 : 3;
+    } else {
+      // Fall back to seed-based random selection
+      oceanEdgeForDelta = seed % 4;
+    }
+  }
   let determinedHarborSide: number | undefined = undefined;
   if (archetype === MapArchetype.ALL_LAND || archetype === MapArchetype.PENINSULA || archetype === MapArchetype.BAY) {
     determinedHarborSide = Math.floor(featurePlacementNoise.random() * 4);
@@ -231,7 +243,15 @@ export function proceduralGenerateMap(
             const openingWidth = mapShortSide * BAY_OPENING_WIDTH_FACTOR * (1.0 + bayShapeNoise.random() * 0.5); 
 
             let inOpening = false;
-            const openingEdge_bay = determinedHarborSide !== undefined ? determinedHarborSide : Math.floor(bayShapeNoise.random() * 4);
+            let openingEdge_bay: number;
+            if (bayOutlet) {
+                // Use bayOutlet property if specified
+                openingEdge_bay = bayOutlet === 'west' ? 0 : bayOutlet === 'east' ? 1 : bayOutlet === 'north' ? 2 : 3;
+            } else if (determinedHarborSide !== undefined) {
+                openingEdge_bay = determinedHarborSide;
+            } else {
+                openingEdge_bay = Math.floor(bayShapeNoise.random() * 4);
+            }
 
             if (openingEdge_bay === 0 && x < MAP_WIDTH_TILES * 0.15 && Math.abs(y - bayCenterY_bay) < openingWidth / 1.5) inOpening = true;
             else if (openingEdge_bay === 1 && x > MAP_WIDTH_TILES * 0.85 && Math.abs(y - bayCenterY_bay) < openingWidth / 1.5) inOpening = true;
@@ -363,42 +383,95 @@ export function proceduralGenerateMap(
             break;
         }
         case MapArchetype.STRAITS: {
+            // Determine strait direction - north-south or east-west
             const straitAxis = (seed % 2 === 0) ? 'vertical' : 'horizontal';
-            const straitWidth = (straitAxis === 'vertical' ? MAP_WIDTH_TILES : MAP_HEIGHT_TILES) * (0.2 + featurePlacementNoise.random() * 0.15);
-            const straitCenter = (straitAxis === 'vertical' ? MAP_WIDTH_TILES : MAP_HEIGHT_TILES) / 2 + (featurePlacementNoise.random() - 0.5) * 8;
             
-            let distFromStraitCenter;
+            // Create two large landmasses on opposite sides with a navigable channel between
             if (straitAxis === 'vertical') {
-                distFromStraitCenter = Math.abs(x - straitCenter);
+                // Vertical strait - landmasses on left and right
+                const straitCenterX = MAP_WIDTH_TILES * (0.45 + featurePlacementNoise.random() * 0.1);
+                const straitWidth = MAP_WIDTH_TILES * (0.12 + featurePlacementNoise.random() * 0.08); // 12-20% width
+                
+                // Add some meandering to the strait using noise
+                const meander = altitudeNoise.noise(x * 0.05, y * 0.03) * 8;
+                const adjustedCenterX = straitCenterX + meander;
+                const distFromCenter = Math.abs(x - adjustedCenterX);
+                
+                // Create the main channel
+                if (distFromCenter < straitWidth / 2) {
+                    // Water channel with varying width
+                    const widthVariation = 1 + altitudeNoise.noise(x * 0.1, y * 0.05) * 0.3;
+                    if (distFromCenter < (straitWidth * widthVariation) / 2) {
+                        falloff = 0.1; // Deep water
+                        landThreshold = 0.9;
+                    }
+                } else {
+                    // Solid landmasses on either side
+                    falloff = 1.0;
+                    landThreshold = LAND_THRESHOLD_BASE - 0.4;
+                }
+                
+                // Add small islands in the strait (10% chance per tile in strait)
+                if (distFromCenter < straitWidth / 2 && featurePlacementNoise.random() < 0.02) {
+                    falloff = 0.8;
+                    landThreshold = 0.3;
+                }
             } else {
-                distFromStraitCenter = Math.abs(y - straitCenter);
+                // Horizontal strait - landmasses on top and bottom
+                const straitCenterY = MAP_HEIGHT_TILES * (0.45 + featurePlacementNoise.random() * 0.1);
+                const straitWidth = MAP_HEIGHT_TILES * (0.12 + featurePlacementNoise.random() * 0.08);
+                
+                // Add meandering
+                const meander = altitudeNoise.noise(x * 0.03, y * 0.05) * 8;
+                const adjustedCenterY = straitCenterY + meander;
+                const distFromCenter = Math.abs(y - adjustedCenterY);
+                
+                // Create the main channel
+                if (distFromCenter < straitWidth / 2) {
+                    // Water channel with varying width
+                    const widthVariation = 1 + altitudeNoise.noise(x * 0.05, y * 0.1) * 0.3;
+                    if (distFromCenter < (straitWidth * widthVariation) / 2) {
+                        falloff = 0.1; // Deep water
+                        landThreshold = 0.9;
+                    }
+                } else {
+                    // Solid landmasses on either side
+                    falloff = 1.0;
+                    landThreshold = LAND_THRESHOLD_BASE - 0.4;
+                }
+                
+                // Add small islands (2% chance)
+                if (distFromCenter < straitWidth / 2 && featurePlacementNoise.random() < 0.02) {
+                    falloff = 0.8;
+                    landThreshold = 0.3;
+                }
             }
-
-            // Default to land, then carve water. This ensures landmasses connect to edges.
-            falloff = 1.0;
-            landThreshold = LAND_THRESHOLD_BASE - 0.3;
-
-            // Carve the strait
-            if (distFromStraitCenter < straitWidth / 2) {
-                falloff = 0; // Water
-                landThreshold = 1.0;
+            
+            // Add a secondary narrower channel (30% chance)
+            if (featurePlacementNoise.random() < 0.3) {
+                const secondaryOffset = (straitAxis === 'vertical' ? MAP_WIDTH_TILES : MAP_HEIGHT_TILES) * 0.25;
+                const secondaryCenter = (straitAxis === 'vertical' ? MAP_WIDTH_TILES : MAP_HEIGHT_TILES) / 2 + 
+                                       (featurePlacementNoise.random() > 0.5 ? secondaryOffset : -secondaryOffset);
+                const secondaryWidth = (straitAxis === 'vertical' ? MAP_WIDTH_TILES : MAP_HEIGHT_TILES) * 0.05;
+                
+                const distFromSecondary = straitAxis === 'vertical' ? 
+                    Math.abs(x - secondaryCenter) : 
+                    Math.abs(y - secondaryCenter);
+                    
+                if (distFromSecondary < secondaryWidth / 2) {
+                    falloff = Math.min(falloff, 0.2);
+                    landThreshold = Math.max(landThreshold, 0.8);
+                }
             }
             break;
         }
         case MapArchetype.RIVER_PORT:
-          const riverCorridorCenterY = MAP_HEIGHT_TILES / 2;
-          const riverCorridorHalfWidth = MAP_HEIGHT_TILES * RIVER_PORT_WATER_CORRIDOR_RATIO / 2;
-          const distFromRiverCenter = Math.abs(y - riverCorridorCenterY);
-          
-          if (distFromRiverCenter > riverCorridorHalfWidth + 2) { 
-            noiseVal = 1.0; falloff = 1.0;
-            landThreshold = LAND_THRESHOLD_BASE - 0.2; 
-          } else if (distFromRiverCenter > riverCorridorHalfWidth) { 
-            noiseVal *= 0.7; landThreshold = LAND_THRESHOLD_BASE - 0.1;
-          } else { 
-            noiseVal *= 0.8; falloff = 0.8; 
-            landThreshold = LAND_THRESHOLD_BASE - 0.15; 
-          }
+          // For river port, we want a clean continuous river channel
+          // The river will be added later as MAJOR_RIVER tiles
+          // For now, just ensure everything is land except the edges
+          noiseVal = 1.0; 
+          falloff = 1.0;
+          landThreshold = -0.5; // Ensure everything is land initially
           break;
         case MapArchetype.SWAMP:
           // Swamps are all land with many rivers and small lakes
@@ -664,9 +737,128 @@ export function proceduralGenerateMap(
   let mainRiverPortSource: Point | null = null;
 
   if (archetype === MapArchetype.RIVER_PORT) {
-    mainRiverPortSource = findEdgeRiverSource(tiles, featurePlacementNoise, determinedHarborSide !== undefined ? determinedHarborSide : 0); 
-    if (mainRiverPortSource) {
-        generateEnhancedRiverPath(tiles, mainRiverPortSource, featurePlacementNoise, riverMeanderNoise, riverWidthNoise, archetype, determinedHarborSide, false, true, undefined, hasLakes); 
+    // Create a clean continuous river channel with more organic edges
+    // Determine orientation based on riverDirection property, harbor side, or random
+    let orientation: 'horizontal' | 'vertical';
+    if (riverDirection) {
+      orientation = riverDirection === 'east-west' ? 'horizontal' : 'vertical';
+    } else if (determinedHarborSide !== undefined) {
+      orientation = (determinedHarborSide % 2 === 0) ? 'horizontal' : 'vertical';
+    } else {
+      orientation = featurePlacementNoise.random() > 0.5 ? 'horizontal' : 'vertical';
+    }
+    
+    const riverWidth = 3 + Math.floor(featurePlacementNoise.random() * 4); // 3-6 tiles wide
+    const riverHalfWidth = Math.floor(riverWidth / 2);
+    
+    if (orientation === 'horizontal') {
+      // East-West river
+      const riverCenterY = MAP_HEIGHT_TILES / 2;
+      
+      // Track river edge variations for organic shape
+      const northEdgeOffsets: number[] = [];
+      const southEdgeOffsets: number[] = [];
+      
+      // Generate smooth edge variations
+      let northWiggle = 0;
+      let southWiggle = 0;
+      for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+        // North edge variation
+        northWiggle += (riverMeanderNoise.random() - 0.5) * 0.8;
+        northWiggle = Math.max(-1.5, Math.min(1.5, northWiggle));
+        northEdgeOffsets[x] = Math.round(northWiggle);
+        
+        // South edge variation (independent of north)
+        southWiggle += (riverMeanderNoise.random() - 0.5) * 0.8;
+        southWiggle = Math.max(-1.5, Math.min(1.5, southWiggle));
+        southEdgeOffsets[x] = Math.round(southWiggle);
+      }
+      
+      // Apply river with organic edges
+      for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+        const northOffset = northEdgeOffsets[x];
+        const southOffset = southEdgeOffsets[x];
+        
+        // Calculate actual river bounds at this x position
+        const minY = riverCenterY - riverHalfWidth + northOffset;
+        const maxY = riverCenterY + riverHalfWidth + southOffset;
+        
+        for (let y = minY; y <= maxY; y++) {
+          if (y >= 0 && y < MAP_HEIGHT_TILES) {
+            tiles[y][x].biome = BiomeType.MAJOR_RIVER;
+            tiles[y][x].isLand = false;
+            tiles[y][x].altitude = -0.1;
+          }
+        }
+      }
+      
+      // Add slight center channel meander for more natural look
+      let centerMeander = 0;
+      for (let x = 0; x < MAP_WIDTH_TILES; x++) {
+        centerMeander += (riverMeanderNoise.random() - 0.5) * 0.3;
+        centerMeander = Math.max(-1, Math.min(1, centerMeander));
+        const offsetY = Math.round(centerMeander);
+        
+        // Add a deeper channel in the center
+        const y = riverCenterY + offsetY;
+        if (y >= 0 && y < MAP_HEIGHT_TILES) {
+          tiles[y][x].altitude = -0.2; // Slightly deeper center
+        }
+      }
+    } else {
+      // North-South river
+      const riverCenterX = MAP_WIDTH_TILES / 2;
+      
+      // Track river edge variations for organic shape
+      const westEdgeOffsets: number[] = [];
+      const eastEdgeOffsets: number[] = [];
+      
+      // Generate smooth edge variations
+      let westWiggle = 0;
+      let eastWiggle = 0;
+      for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+        // West edge variation
+        westWiggle += (riverMeanderNoise.random() - 0.5) * 0.8;
+        westWiggle = Math.max(-1.5, Math.min(1.5, westWiggle));
+        westEdgeOffsets[y] = Math.round(westWiggle);
+        
+        // East edge variation (independent of west)
+        eastWiggle += (riverMeanderNoise.random() - 0.5) * 0.8;
+        eastWiggle = Math.max(-1.5, Math.min(1.5, eastWiggle));
+        eastEdgeOffsets[y] = Math.round(eastWiggle);
+      }
+      
+      // Apply river with organic edges
+      for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+        const westOffset = westEdgeOffsets[y];
+        const eastOffset = eastEdgeOffsets[y];
+        
+        // Calculate actual river bounds at this y position
+        const minX = riverCenterX - riverHalfWidth + westOffset;
+        const maxX = riverCenterX + riverHalfWidth + eastOffset;
+        
+        for (let x = minX; x <= maxX; x++) {
+          if (x >= 0 && x < MAP_WIDTH_TILES) {
+            tiles[y][x].biome = BiomeType.MAJOR_RIVER;
+            tiles[y][x].isLand = false;
+            tiles[y][x].altitude = -0.1;
+          }
+        }
+      }
+      
+      // Add slight center channel meander for more natural look
+      let centerMeander = 0;
+      for (let y = 0; y < MAP_HEIGHT_TILES; y++) {
+        centerMeander += (riverMeanderNoise.random() - 0.5) * 0.3;
+        centerMeander = Math.max(-1, Math.min(1, centerMeander));
+        const offsetX = Math.round(centerMeander);
+        
+        // Add a deeper channel in the center
+        const x = riverCenterX + offsetX;
+        if (x >= 0 && x < MAP_WIDTH_TILES) {
+          tiles[y][x].altitude = -0.2; // Slightly deeper center
+        }
+      }
     }
   } 
   
@@ -849,7 +1041,8 @@ export function proceduralGenerateMap(
   let primaryWideRiverDesignated = (archetype === MapArchetype.RIVER_PORT && mainRiverPortSource !== null) || archetype === MapArchetype.DELTA;
 
   allRiverSources.forEach(source => {
-      if (archetype === MapArchetype.RIVER_PORT && mainRiverPortSource && source.x === mainRiverPortSource.x && source.y === mainRiverPortSource.y) {
+      // Skip all river generation for RIVER_PORT - we've already created the main channel
+      if (archetype === MapArchetype.RIVER_PORT) {
           return; 
       }
 

@@ -19,7 +19,7 @@ interface ProceduralPortraitProps {
       charisma: number;
       constitution: number;
     };
-    equippedItems?: { // Add equipped items
+    equippedItems?: {
       head?: { name: string; material?: string };
       torso?: { name: string; material?: string };
       cloak?: { name: string; material?: string };
@@ -86,6 +86,9 @@ interface ProceduralPortraitProps {
         size: 'small' | 'medium' | 'large';
         pattern?: string;
       }>;
+      // Some builds used height in the original body calc (keep permissive)
+      // @ts-ignore
+      height?: number;
     };
     wealthLevel: 'poor' | 'modest' | 'comfortable' | 'wealthy' | 'noble';
     class?: string;
@@ -95,9 +98,20 @@ interface ProceduralPortraitProps {
   };
   size?: number;
   className?: string;
-  temporaryExpression?: 'smile' | 'surprise' | null;
+
+  /** NEW: expanded expression set */
+  temporaryExpression?:
+    | 'smile'
+    | 'surprise'
+    | 'approve'
+    | 'scowl'
+    | 'sad'
+    | 'smirk'
+    | 'concern'
+    | null;
+
   onExpressionComplete?: () => void;
-  useEquippedItems?: boolean; // Flag to use equipped items instead of appearance
+  useEquippedItems?: boolean;
 }
 
 type AgeGroup = 'young' | 'adult' | 'old';
@@ -108,7 +122,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
   className = '',
   temporaryExpression = null,
   onExpressionComplete,
-  useEquippedItems = true // Default to using equipped items if available
+  useEquippedItems = true
 }) => {
   // ---------- Seeded RNG ----------
   const seededRandom = (seed: number): number => {
@@ -141,7 +155,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
 
   // ---------- Extracted Character Data ----------
   const { age = 30, gender, stats = {}, appearance = {}, wealthLevel, era, culturalZone = 'EUROPEAN' } = character;
-  
+
   // Provide defaults for appearance properties
   const defaultAppearance = {
     skinColor: '#f4d1ae',
@@ -161,10 +175,9 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     faceShape: 'oval' as const,
     ...appearance
   };
-  
-  // Use the merged appearance with defaults
+
   const appearanceWithDefaults = defaultAppearance;
-  
+
   const isFemale = gender === 'Female';
   const isWealthy = wealthLevel === 'wealthy' || wealthLevel === 'noble';
   const isNoble = wealthLevel === 'noble';
@@ -177,7 +190,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
   const hasGrayHair = isOld && rand(201) > 0.3;
   const hasAgeSpots = isOld && rand(202) > 0.5;
 
-  // ---------- Color Utilities (robust for #hex or rgb(...)) ----------
+  // ---------- Color Utilities ----------
   type RGB = { r: number; g: number; b: number };
   const clamp = (n: number, lo = 0, hi = 255) => Math.max(lo, Math.min(hi, n));
   const toRGB = (color: string): RGB => {
@@ -197,7 +210,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
   const createShadow = (color: string, amount = 0.8): string => {
     const { r, g, b } = toRGB(color);
     return rgbStr({ r: r * amount, g: g * amount, b: b * amount });
-    };
+  };
   const createHighlight = (color: string, amount = 1.2): string => {
     const { r, g, b } = toRGB(color);
     return rgbStr({ r: r * amount, g: g * amount, b: b * amount });
@@ -222,7 +235,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     return 'neutral';
   };
 
-  // ---------- Head Geometry (with bald/short adjustments) ----------
+  // ---------- Head Geometry ----------
   const hairLength = appearanceWithDefaults.hairLength || 'medium';
   const headDim = useMemo(() => {
     const faceShape = appearanceWithDefaults.faceShape || 'oval';
@@ -238,7 +251,6 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     if (appearanceWithDefaults.build === 'imposing') width += 2;
     if (appearanceWithDefaults.build === 'slight') width -= 2;
 
-    // More skull height when hair is missing/very short (fixes "no forehead")
     if (hairLength === 'bald') height += 4;
     if (hairLength === 'very_short') height += 2;
 
@@ -251,28 +263,24 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
   }, [appearanceWithDefaults.build, appearanceWithDefaults.faceShape, hairLength, isFemale, isOld, isYoung, stats.strength]);
 
   const headX = 32 - (headDim.width / 2);
-  const headY = 10; // Moved up by 2 pixels to give more room for head shape
+  const headY = 10;
 
   // ---------- Skin/Hair Palette ----------
-  // Check if character is sick for skin tone adjustments
-  const isSick = (character.health !== undefined && character.maxHealth !== undefined && 
-                  (character.health / character.maxHealth) < 0.6) ||
-                 (character.diseaseHealth?.currentDiseases && character.diseaseHealth.currentDiseases.length > 0);
-  
-  // Add greenish/pale tinge when sick
+  const isSick =
+    (character.health !== undefined && character.maxHealth !== undefined && (character.health / character.maxHealth) < 0.6) ||
+    (character.diseaseHealth?.currentDiseases && character.diseaseHealth.currentDiseases.length > 0);
+
   let actualSkinTone = appearanceWithDefaults.skinColor;
   if (isSick) {
-    // Parse the hex color and add a greenish/grayish tinge
     const r = parseInt(actualSkinTone.slice(1, 3), 16);
     const g = parseInt(actualSkinTone.slice(3, 5), 16);
     const b = parseInt(actualSkinTone.slice(5, 7), 16);
-    // Reduce red slightly, keep green, reduce blue for sickly appearance
     const sickR = Math.max(0, r - 15);
     const sickG = g;
     const sickB = Math.max(0, b - 10);
     actualSkinTone = `#${sickR.toString(16).padStart(2, '0')}${sickG.toString(16).padStart(2, '0')}${sickB.toString(16).padStart(2, '0')}`;
   }
-  
+
   const skinTone = actualSkinTone;
   const skinToneType = appearanceWithDefaults.skinTone || 'medium';
   const skinTemperature = getColorTemperature(skinTone);
@@ -291,64 +299,87 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
   const hairHighlight = createHighlight(baseHair, 1.5);
   const hairBrightHighlight = createHighlight(baseHair, 1.8);
 
-  // ---------- Expression ----------
+    // ---------- Expression Core ----------
   // initial gaze (seeded)
   const initialGazeRoll = rand(51);
   const initialGazeDirection: 0 | 1 | 2 = initialGazeRoll > 0.95 ? 2 : initialGazeRoll > 0.9 ? 0 : 1;
   const [gazeDirection, setGazeDirection] = useState<0 | 1 | 2>(initialGazeDirection);
 
+  // Base mood from stats (kept)
   let baseExpressionType = Math.floor(rand(52) * 5);
   let microExpression = Math.floor(rand(53) * 3);
   if (stats.charisma >= 8) { baseExpressionType = 1; microExpression = 1; }
   else if (stats.charisma <= 2) { baseExpressionType = 3; microExpression = 2; }
   else if (stats.intelligence >= 8) { baseExpressionType = 4; microExpression = 0; }
-  
-  // Override with temporary expression if provided
+
+  // Numeric map used by mouth renderer:
+  // 0: neutral, 1: smile (family), 2: frown (family), 3: neutral-ish, 4: pursed/concern
   let expressionType = baseExpressionType;
-  if (temporaryExpression === 'smile') {
-    expressionType = 1; // smile
-  } else if (temporaryExpression === 'surprise') {
-    expressionType = 0; // neutral with wide eyes (we'll modify eyes later)
+
+  // Convenience flags (used by eyes/brows/mouth)
+  const expr = temporaryExpression;
+  const exprIsSmirk = expr === 'smirk';
+  const exprIsApprove = expr === 'approve';
+  const exprIsSurprised = expr === 'surprise';
+  const exprIsScowl = expr === 'scowl';
+  const exprIsSad = expr === 'sad';
+  const exprIsConcern = expr === 'concern';
+  const exprIsSmileFamily = expr === 'smile' || exprIsApprove || exprIsSmirk;
+
+  if (expr) {
+    switch (expr) {
+      case 'smile':
+      case 'approve':
+      case 'smirk':
+        expressionType = 1; // smile family
+        break;
+      case 'scowl':
+      case 'sad':
+        expressionType = 2; // frown family
+        break;
+      case 'concern':
+        expressionType = 4; // pursed/concern
+        break;
+      case 'surprise':
+        expressionType = 0; // eyes widen; mouth neutral (handled in eyes)
+        break;
+    }
   }
-  
-  // Handle temporary expression timer
+
+  // Temporary expression timer (unchanged)
   useEffect(() => {
     if (temporaryExpression && onExpressionComplete) {
-      const timer = setTimeout(() => {
-        onExpressionComplete();
-      }, 2000); // 2 second duration for temporary expressions
-      
+      const timer = setTimeout(() => onExpressionComplete(), 2000);
       return () => clearTimeout(timer);
     }
   }, [temporaryExpression, onExpressionComplete]);
 
-  // ---------- Blink Animation (rarer, more randomized) ----------
-  const [blinkProgress, setBlinkProgress] = useState(0); // 0=open, 1=closed
+
+  // ---------- Blink / Gaze Animation (unchanged) ----------
+  const [blinkProgress, setBlinkProgress] = useState(0);
   const animRef = useRef<number | null>(null);
   const nextBlinkTimeout = useRef<number | null>(null);
   const nextGazeTimeout = useRef<number | null>(null);
 
-  // helper seeded jitter
-  const jitter = (min: number, max: number) => min + (max - min) * (0.5 + (Math.sin(seed * 13.37 + (performance.now?.() || 0) / 1e4) * 0.5));
+  const jitter = (min: number, max: number) =>
+    min + (max - min) * (0.5 + (Math.sin(seed * 13.37 + (performance.now?.() || 0) / 1e4) * 0.5));
 
   useEffect(() => {
-    // Blink less often: base window ~7–18s, with rare long gaps up to ~40s.
     const pickBlinkDelay = () => {
       const r = rand(Math.floor((performance.now?.() || 0)) % 10007);
-      const base = 7000 + r * 11000; // 7–18s
-      // 1 in ~8 chance to push into 20–40s to avoid robotic regularity
+      const base = 7000 + r * 11000;
       return (r > 0.875) ? base + 20000 * r : base + jitter(-500, 500);
     };
 
     let closing = true;
     let start = 0;
-    const duration = 120 + Math.floor(80 * rand(777)); // 120–200ms
+    const duration = 120 + Math.floor(80 * rand(777));
 
     const step = (t: number) => {
       if (!start) start = t;
       const elapsed = t - start;
       let p = Math.min(1, elapsed / duration);
-      if (!closing) p = 1 - p; // opening
+      if (!closing) p = 1 - p;
       setBlinkProgress(p);
       if (elapsed < duration) {
         animRef.current = requestAnimationFrame(step);
@@ -367,21 +398,19 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
       }
     };
 
-    const initialDelay = 2000 + Math.floor(rand(999) * 4000); // 2–6s first blink
+    const initialDelay = 2000 + Math.floor(rand(999) * 4000);
     nextBlinkTimeout.current = window.setTimeout(() => {
       animRef.current = requestAnimationFrame(step);
     }, initialDelay);
 
-    // Very rare gaze shifts (every 2–5 minutes), seeded
     const scheduleGaze = () => {
       const r = rand(123456 + Math.floor((performance.now?.() || 0) / 1e4));
-      const delay = 120000 + r * 180000; // 2–5 minutes
+      const delay = 120000 + r * 180000;
       nextGazeTimeout.current = window.setTimeout(() => {
-        // 90% center, 5% left, 5% right on each change
         const roll = rand(98765 + (performance.now?.() || 0));
         const dir: 0 | 1 | 2 = roll > 0.95 ? 2 : roll > 0.9 ? 0 : 1;
         setGazeDirection(dir);
-        scheduleGaze(); // reschedule
+        scheduleGaze();
       }, delay);
     };
     scheduleGaze();
@@ -391,7 +420,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
       if (nextBlinkTimeout.current) clearTimeout(nextBlinkTimeout.current);
       if (nextGazeTimeout.current) clearTimeout(nextGazeTimeout.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOld, isYoung, stats.constitution]);
 
   // ---------- Lip Color ----------
@@ -405,7 +434,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     return isFemale && isWealthy ? createHighlight(base, 1.2) : base;
   }, [appearanceWithDefaults.lipColor, isFemale, isWealthy, skinToneType]);
 
-  // ---------- Body Dimensions (Enhanced for build types) ----------
+  // ---------- Body Dimensions ----------
   const bodyDim = useMemo(() => {
     const baseHeadWidth = isFemale ? 22 : 26;
     let strengthMod = 1;
@@ -418,7 +447,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     let waistMod = 1;
     let hipMod = 1;
     let heightMod = 1;
-    
+
     if (isYoung) {
       shoulderMod *= 0.85;
       heightMod *= 0.95;
@@ -428,23 +457,22 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
       heightMod *= 0.98;
     }
 
-    // More comprehensive build modifications
     switch (appearanceWithDefaults.build) {
-      case 'athletic': 
+      case 'athletic':
         shoulderMod *= 1.1;
         waistMod *= 0.95;
         break;
-      case 'slight': 
+      case 'slight':
         shoulderMod *= 0.85;
         waistMod *= 0.9;
         hipMod *= 0.9;
         break;
-      case 'imposing': 
+      case 'imposing':
         shoulderMod *= 1.25;
         waistMod *= 1.1;
         heightMod *= 1.1;
         break;
-      case 'stocky': 
+      case 'stocky':
         shoulderMod *= 1.2;
         waistMod *= 1.15;
         hipMod *= 1.1;
@@ -464,10 +492,12 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
         shoulderMod *= 1.05;
         break;
     }
-    
-    // Use actual height from appearance if available
+
+    // Optional height support (kept from your original usage)
+    // @ts-ignore
     if (appearanceWithDefaults.height) {
       const avgHeight = isFemale ? 165 : 175;
+      // @ts-ignore
       heightMod *= (appearanceWithDefaults.height / avgHeight);
     }
 
@@ -496,7 +526,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     }
   }, [appearanceWithDefaults.build, appearanceWithDefaults.height, isFemale, isOld, isYoung, stats.strength]);
 
-  // ---------- Background (unique IDs) ----------
+  // ---------- Background ----------
   const bgGradientId = `bgGradient-${uniqueId}`;
   const textureId = `texture-${uniqueId}`;
 
@@ -545,21 +575,16 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
 
       switch (faceShape) {
         case 'oval':
-          // Smooth sine-based curve for natural head shape
           widthMultiplier = Math.sin(Math.max(0, Math.min(1, relativeY)) * Math.PI) * 0.95 + 0.05;
-          // Slightly narrower at the very top for realistic skull shape
           if (relativeY < 0.05) widthMultiplier *= (0.7 + relativeY * 6);
           break;
         case 'round':
-          // Circular shape using circle equation
           const roundness = Math.sqrt(Math.max(0, 1 - Math.pow((relativeY - 0.5) * 2, 2)));
           widthMultiplier = roundness * 0.95 + 0.05;
           if (relativeY < 0.05) widthMultiplier *= (0.75 + relativeY * 5);
           break;
         case 'square':
-          // More angular but still smooth transitions
           if (relativeY < 0.2) {
-            // Smooth curve at top using cosine
             widthMultiplier = 0.85 + 0.15 * Math.cos((relativeY / 0.2 - 1) * Math.PI);
           } else if (relativeY > 0.8) {
             widthMultiplier = jawline === 'square' ? 0.96 : 0.9;
@@ -568,12 +593,10 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
           }
           break;
         case 'long':
-          // Elongated oval shape
           widthMultiplier = Math.sin(Math.max(0, Math.min(1, relativeY)) * Math.PI) * 0.85 + 0.15;
           if (relativeY < 0.05) widthMultiplier *= (0.65 + relativeY * 7);
           break;
         case 'heart':
-          // Wider at forehead, tapers to chin
           if (relativeY < 0.3) {
             widthMultiplier = Math.sin(Math.max(0, Math.min(1, relativeY / 0.3)) * Math.PI * 0.5) * 0.95 + 0.05;
           } else {
@@ -588,7 +611,6 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
           break;
       }
 
-      // Slightly fuller upper skull for bald/very_short
       if (hairLength === 'bald' || hairLength === 'very_short') {
         if (relativeY < 0.2) widthMultiplier *= 1.02;
       }
@@ -596,7 +618,6 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
       const rowWidth = Math.max(6, Math.floor(headDim.width * widthMultiplier));
       const startX = headX + Math.floor((headDim.width - rowWidth) / 2);
 
-      // Outer depth outline + inner outline
       elements.push(
         <rect key={`outline-outer-l-${y}`} x={startX - 2} y={headY + y} width="1" height="1" fill={createShadow(outlineColor, 0.7)} className="pixel" />,
         <rect key={`outline-outer-r-${y}`} x={startX + rowWidth + 1} y={headY + y} width="1" height="1" fill={createShadow(outlineColor, 0.7)} className="pixel" />,
@@ -608,7 +629,6 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
         let faceColor = skinTone;
         const xRatio = x / rowWidth;
 
-        // Key light from top-left
         if (xRatio < 0.15) faceColor = skinBrightHighlight;
         else if (xRatio < 0.25) faceColor = skinHighlight;
         else if (xRatio < 0.4) faceColor = createHighlight(skinTone, 1.08);
@@ -616,7 +636,6 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
         else if (xRatio > 0.75) faceColor = skinShadow;
         else if (xRatio > 0.6) faceColor = skinMidtone;
 
-        // Subsurface near edges (ears/temples)
         if (relativeY > 0.3 && relativeY < 0.5) {
           if (x < 3 || x > rowWidth - 4) faceColor = skinSubsurface;
         }
@@ -630,7 +649,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
         }
 
         if (relativeY > 0.25 && relativeY < 0.65 && Math.abs(x - rowWidth / 2) < 2) {
-            faceColor = createHighlight(faceColor, 1.12); // nose bridge
+          faceColor = createHighlight(faceColor, 1.12); // nose bridge
         }
 
         const skinTexture = appearanceWithDefaults.skinTexture || 'smooth';
@@ -650,13 +669,11 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
 
         elements.push(<rect key={`face-${y}-${x}`} x={startX + x} y={headY + y} width="1" height="1" fill={faceColor} className="pixel" />);
       }
-
-      // NOTE: removed the solid under-chin strip that was bisecting necks.
     }
     return <g key="head">{elements}</g>;
   }, [appearanceWithDefaults.cheekbones, appearanceWithDefaults.faceShape, appearanceWithDefaults.jawline, hairLength, headDim.height, headDim.width, headX, headY, hasAgeSpots, hasWrinkles, outlineColor, skinBrightHighlight, skinDeepShadow, skinHighlight, skinMidtone, skinShadow, skinSubsurface, skinTone]);
 
-  // ----- HAIR (with hairline for short hair so it doesn't look like a hat) -----
+  // ----- HAIR -----
   const renderHair = useMemo(() => {
     const elements: JSX.Element[] = [];
     const hairTexture = appearanceWithDefaults.hairTexture || 'straight';
@@ -674,11 +691,9 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
       }
     };
 
-    // Hairline control: reveal some forehead on short hair
     const revealForehead = hairLen === 'very_short' ? 4 : hairLen === 'short' ? 2 : 0;
 
-    // Short cropped should cover the whole head but show more forehead
-    const hairTop = headY - (hairLen === 'very_short' ? 3 : 6); // Less height for very_short to cover head
+    const hairTop = headY - (hairLen === 'very_short' ? 3 : 6);
     const thickness = isOld ? 0.7 : isYoung ? 0.95 : 0.85;
 
     for (let layer = 0; layer < 3; layer++) {
@@ -689,33 +704,27 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
           let draw = false;
           let col = layer === 0 ? hairDeepShadow : layer === 1 ? baseHair : hairHighlight;
 
-          if (y < headY + 2) { // Adjusted to cover the more rounded top
+          if (y < headY + 2) {
             const topProgress = (headY + 2 - y) / (headY + 2 - hairTop);
-            const allowed = (headDim.width / 2 + 4) * thickness * (1 - topProgress * 0.4); // More gradual taper
+            const allowed = (headDim.width / 2 + 4) * thickness * (1 - topProgress * 0.4);
             if (dist < allowed - layer) draw = true;
           } else if (y < headY + 8 - layer) {
             if (x >= headX - 3 + layer && x <= headX + headDim.width + 2 - layer) draw = true;
           }
 
-          // For short cropped, show forehead but cover the entire head top and sides
           if (hairLen === 'very_short') {
-            // Cover the whole head but show forehead
             if (y >= headY && y < headY + 3) {
-              // Show forehead in the front center area only
               const frontForehead = headDim.width / 2 - 3;
               if (Math.abs(x - centerX) < frontForehead) {
-                draw = false; // Show forehead
+                draw = false;
               }
             }
-            // Ensure hair covers the top and sides of head
             if (y < headY && y >= hairTop) {
-              // Always draw hair on top of head for short cropped
               if (dist < headDim.width / 2 + 3) {
                 draw = true;
               }
             }
           } else if (revealForehead > 0 && y < headY + revealForehead) {
-            // Regular short hair forehead reveal
             const inner = headDim.width / 2 - 2;
             if (Math.abs(x - centerX) < inner - 1) draw = false;
           }
@@ -765,7 +774,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     return <g key="hair">{elements}</g>;
   }, [appearanceWithDefaults.hairTexture, baseHair, hairBrightHighlight, hairDeepShadow, hairHighlight, hairShadow, headDim.width, headX, headY, hairLength, isOld, isYoung]);
 
-  // ----- EYES (animate) -----
+  // ----- EYES (with expression tweaks) -----
   const renderEyes = () => {
     const elements: JSX.Element[] = [];
     const eyeShape = appearanceWithDefaults.eyeShape || 'almond';
@@ -773,7 +782,6 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     const eyebrowThickness = appearanceWithDefaults.eyebrowThickness || 'medium';
     const eyelashes = appearanceWithDefaults.eyelashes || 'medium';
 
-    // Lower eyes a bit on bald/very_short to create more forehead
     const eyeRatioBase = hairLength === 'bald' ? 0.42 : hairLength === 'very_short' ? 0.4 : hairLength === 'short' ? 0.36 : 0.35;
     const eyeY = headY + Math.floor(headDim.height * eyeRatioBase);
 
@@ -782,25 +790,23 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     const leftEyeX = centerX - eyeSpacing - 2;
     const rightEyeX = centerX + eyeSpacing - 1;
 
-    // Sockets
-    // Add fatigue indicators - dark bags under eyes when tired
-    const isFatigued = character.fatigue !== undefined && character.maxFatigue !== undefined && 
-                       (character.fatigue / character.maxFatigue) < 0.4;
-    const isSick = (character.health !== undefined && character.maxHealth !== undefined && 
-                    (character.health / character.maxHealth) < 0.6) ||
-                   (character.diseaseHealth?.currentDiseases && character.diseaseHealth.currentDiseases.length > 0);
-    
+    const isFatigued =
+      character.fatigue !== undefined && character.maxFatigue !== undefined &&
+      (character.fatigue / character.maxFatigue) < 0.4;
+
+    const isIll =
+      (character.health !== undefined && character.maxHealth !== undefined && (character.health / character.maxHealth) < 0.6) ||
+      (character.diseaseHealth?.currentDiseases && character.diseaseHealth.currentDiseases.length > 0);
+
     const socketDepth = eyeShape === 'hooded' ? 0.55 : (isFatigued ? 0.45 : 0.7);
     elements.push(
       <rect key="socket-l" x={leftEyeX - 3} y={eyeY - 2} width="7" height="1" fill={createComplementaryShadow(skinTone, socketDepth)} className="pixel" />,
       <rect key="socket-r" x={rightEyeX - 3} y={eyeY - 2} width="7" height="1" fill={createComplementaryShadow(skinTone, socketDepth)} className="pixel" />
     );
-    
-    // Define eye dimensions first
+
     let eyeWidth = 4;
     let eyeHeight = 2;
-    
-    // Add dark bags under eyes when fatigued
+
     if (isFatigued) {
       elements.push(
         <rect key="bag-l1" x={leftEyeX - 2} y={eyeY + eyeHeight + 1} width="6" height="1" fill={createShadow(skinTone, 0.75)} className="pixel" />,
@@ -809,19 +815,19 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
         <rect key="bag-r2" x={rightEyeX - 1} y={eyeY + eyeHeight + 2} width="4" height="1" fill={createShadow(skinTone, 0.85)} className="pixel" />
       );
     }
-    
-    // Make eyes wider for surprise expression
-    if (temporaryExpression === 'surprise') {
+
+    // Surprise: widen eyes a bit (mouth stays neutral by design)
+    if (exprIsSurprised) {
       eyeWidth += 1;
       eyeHeight += 1;
     }
-    
+
     switch (eyeShape) {
-      case 'round': eyeWidth = 4; eyeHeight = 3; break;
-      case 'narrow': eyeWidth = 3; eyeHeight = 2; break;
-      case 'wide': eyeWidth = 5; eyeHeight = 2; break;
+      case 'round': eyeWidth = Math.max(eyeWidth, 4); eyeHeight = Math.max(eyeHeight, 3); break;
+      case 'narrow': eyeWidth = Math.max(eyeWidth, 3); eyeHeight = Math.min(eyeHeight, 2); break;
+      case 'wide': eyeWidth = Math.max(eyeWidth, 5); break;
       case 'hooded':
-        eyeHeight = 2;
+        eyeHeight = Math.min(eyeHeight, 2);
         elements.push(
           <rect key="hood-l" x={leftEyeX - 1} y={eyeY - 1} width="5" height="1" fill={createShadow(skinTone, 0.95)} className="pixel" />,
           <rect key="hood-r" x={rightEyeX - 1} y={eyeY - 1} width="5" height="1" fill={createShadow(skinTone, 0.95)} className="pixel" />
@@ -829,15 +835,12 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
         break;
     }
 
-    // Bloodshot or yellowish eyes when sick
-    const eyeWhiteColor = isSick ? 'rgb(255,250,240)' : 
-                          stats.constitution >= 8 ? 'rgb(255,255,255)' : 'rgb(250,250,250)';
+    const eyeWhiteColor = isIll ? 'rgb(255,250,240)' : (stats.constitution >= 8 ? 'rgb(255,255,255)' : 'rgb(250,250,250)');
     elements.push(
       <rect key="eye-white-l" x={leftEyeX} y={eyeY} width={eyeWidth} height={eyeHeight} fill={eyeWhiteColor} className="pixel" />,
       <rect key="eye-white-r" x={rightEyeX} y={eyeY} width={eyeWidth} height={eyeHeight} fill={eyeWhiteColor} className="pixel" />
     );
 
-    // Iris + pupils
     let irisSize = 2;
     let irisOffset = 1;
     if (gazeDirection === 0) irisOffset = 0;
@@ -855,47 +858,88 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
       <rect key="pupil-r" x={rightEyeX + irisOffset + 0.5} y={irisY + 0.5} width={pupilSize} height={pupilSize} fill="rgb(0,0,0)" className="pixel" />
     );
 
-    if (stats.constitution >= 6 || microExpression === 1) {
+    // Shine: also show for approve/smile/smirk to feel friendly
+    if (stats.constitution >= 6 || microExpression === 1 || exprIsSmileFamily) {
       elements.push(
         <rect key="shine-l" x={leftEyeX + irisOffset} y={irisY} width="1" height="1" fill="rgb(255,255,255)" opacity={0.6} className="pixel" />,
         <rect key="shine-r" x={rightEyeX + irisOffset} y={irisY} width="1" height="1" fill="rgb(255,255,255)" opacity={0.6} className="pixel" />
       );
     }
 
-    // Brows
+    // ---------- BROWS ----------
     const browColor = hasGrayHair ? 'rgb(169,169,169)' : baseHair;
-    // Lift eyebrows when smiling (and make them slightly more arched)
-    const isSmiling = temporaryExpression === 'smile' || expressionType === 1;
+
+    const isSmiling = exprIsSmileFamily || expressionType === 1;
     const browLift = isSmiling ? 2 : 0;
-    const browY = eyeY - 3 - (microExpression === 2 ? 1 : 0) - browLift;
+    const scowlDrop = exprIsScowl ? 2 : 0;
+    const concernDrop = exprIsConcern ? 1 : 0;
+
+    // Allow asymmetric lift for smirk (lift right a bit)
+    const smirkRightLift = exprIsSmirk ? 1 : 0;
+    const smirkLeftLift = 0;
+
+    const browYBase = eyeY - 3 - (microExpression === 2 ? 1 : 0);
+    const browYLeft = browYBase - browLift + scowlDrop + concernDrop - smirkLeftLift;
+    const browYRight = browYBase - browLift + scowlDrop + concernDrop - smirkRightLift;
+
     const browT = eyebrowThickness === 'thick' ? 2 : eyebrowThickness === 'bushy' ? 3 : 1;
+
     for (let t = 0; t < browT; t++) {
       switch (eyebrowShape) {
         case 'straight':
           elements.push(
-            <rect key={`brow-l-${t}`} x={leftEyeX - 1} y={browY - t} width="5" height="1" fill={browColor} className="pixel" />,
-            <rect key={`brow-r-${t}`} x={rightEyeX - 1} y={browY - t} width="5" height="1" fill={browColor} className="pixel" />
-          ); break;
+            <rect key={`brow-l-${t}`} x={leftEyeX - 1} y={browYLeft - t} width="5" height="1" fill={browColor} className="pixel" />,
+            <rect key={`brow-r-${t}`} x={rightEyeX - 1} y={browYRight - t} width="5" height="1" fill={browColor} className="pixel" />
+          );
+          break;
         case 'arched':
           for (let x = 0; x < 5; x++) {
             const arch = x < 3 ? x * 0.5 : (4 - x) * 0.5;
+            const lY = browYLeft - t - arch;
+            const rY = browYRight - t - arch;
             elements.push(
-              <rect key={`brow-l-${t}-${x}`} x={leftEyeX - 1 + x} y={browY - t - arch} width="1" height="1" fill={browColor} className="pixel" />,
-              <rect key={`brow-r-${t}-${x}`} x={rightEyeX - 1 + x} y={browY - t - arch} width="1" height="1" fill={browColor} className="pixel" />
+              <rect key={`brow-l-${t}-${x}`} x={leftEyeX - 1 + x} y={lY - (exprIsSad ? (x <= 2 ? 1 : 0) : 0)} width="1" height="1" fill={browColor} className="pixel" />,
+              <rect key={`brow-r-${t}-${x}`} x={rightEyeX - 1 + x} y={rY - (exprIsSad ? (x >= 2 ? 1 : 0) : 0)} width="1" height="1" fill={browColor} className="pixel" />
             );
-          } break;
+          }
+          break;
         case 'angular':
           for (let x = 0; x < 5; x++) {
             const angleY = x < 3 ? 0 : x - 3;
+            const lY = browYLeft - t + angleY - (exprIsSad ? 1 : 0);
+            const rY = browYRight - t - angleY - (exprIsSad ? 1 : 0);
             elements.push(
-              <rect key={`brow-l-${t}-${x}`} x={leftEyeX - 1 + x} y={browY - t + angleY} width="1" height="1" fill={browColor} className="pixel" />,
-              <rect key={`brow-r-${t}-${x}`} x={rightEyeX - 1 + x} y={browY - t - angleY} width="1" height="1" fill={browColor} className="pixel" />
+              <rect key={`brow-l-${t}-${x}`} x={leftEyeX - 1 + x} y={lY} width="1" height="1" fill={browColor} className="pixel" />,
+              <rect key={`brow-r-${t}-${x}`} x={rightEyeX - 1 + x} y={rY} width="1" height="1" fill={browColor} className="pixel" />
             );
-          } break;
+          }
+          break;
+        default:
+          elements.push(
+            <rect key={`brow-l-def-${t}`} x={leftEyeX - 1} y={browYLeft - t} width="5" height="1" fill={browColor} className="pixel" />,
+            <rect key={`brow-r-def-${t}`} x={rightEyeX - 1} y={browYRight - t} width="5" height="1" fill={browColor} className="pixel" />
+          );
       }
     }
 
-    // Lashes (subtle)
+    // Extra brow/forehead detail for scowl/concern: small furrow between brows
+    if (exprIsScowl || exprIsConcern) {
+      elements.push(
+        <rect key="furrow-1" x={centerX - 1} y={browYBase - 1} width="2" height="1" fill={createShadow(skinTone, 0.7)} className="pixel" />,
+        <rect key="furrow-2" x={centerX - 1} y={browYBase} width="2" height="1" fill={createShadow(skinTone, 0.8)} className="pixel" />
+      );
+    }
+
+    // Subtle droop for sadness: add faint top lid
+    if (exprIsSad) {
+      const lidColorTop = createShadow(skinTone, 0.94);
+      elements.push(
+        <rect key="sad-lid-l" x={leftEyeX - 1} y={eyeY - 1} width={eyeWidth + 2} height={1} fill={lidColorTop} className="pixel" />,
+        <rect key="sad-lid-r" x={rightEyeX - 1} y={eyeY - 1} width={eyeWidth + 2} height={1} fill={lidColorTop} className="pixel" />
+      );
+    }
+
+    // Lashes
     if (isFemale && eyelashes !== 'short') {
       const lashTop = createShadow(browColor, 0.7);
       elements.push(
@@ -921,7 +965,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
       );
     }
 
-    // ----- Blinking eyelids (overlay) -----
+    // Blinking eyelids
     if (blinkProgress > 0) {
       const lidH = Math.max(1, Math.floor((eyeHeight + 2) * blinkProgress));
       const lidColorTop = createShadow(skinTone, 0.92);
@@ -943,16 +987,14 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     return <g key="eyes">{elements}</g>;
   };
 
-  // ----- NOSE (more variety + length toward philtrum; mild cultural weighting) -----
+  // ----- NOSE -----
   const renderNose = useMemo(() => {
     const elements: JSX.Element[] = [];
-    
-    // Check if character is sick for red nose
-    const isSick = (character.health !== undefined && character.maxHealth !== undefined && 
-                    (character.health / character.maxHealth) < 0.6) ||
-                   (character.diseaseHealth?.currentDiseases && character.diseaseHealth.currentDiseases.length > 0);
-    
-    // cultural weighting (very mild; all shapes possible everywhere)
+
+    const isIll =
+      (character.health !== undefined && character.maxHealth !== undefined && (character.health / character.maxHealth) < 0.6) ||
+      (character.diseaseHealth?.currentDiseases && character.diseaseHealth.currentDiseases.length > 0);
+
     const zoneBias = (() => {
       switch (culturalZone) {
         case 'MENA': return { longProb: 0.35, broadProb: 0.25 };
@@ -964,15 +1006,12 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
       }
     })();
 
-    // pick param set
     const rW = rand(901) + (isOld ? 0.05 : 0) + (isFemale ? -0.02 : 0);
     const rL = rand(902) + (isOld ? 0.08 : 0);
     const wide = rW < zoneBias.broadProb ? 1 : 0;
     const long = rL < zoneBias.longProb ? 1 : 0;
 
-    // baseline from declared noseShape
     const declared = appearanceWithDefaults.noseShape || 'straight';
-    // Map to width/length multipliers
     let widthMul = 1, lengthMul = 1, bump = 0, tipUp = 0;
     switch (declared) {
       case 'aquiline': bump = 1; lengthMul += 0.2; break;
@@ -984,202 +1023,202 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     if (long) lengthMul += 0.15;
 
     const noseX = headX + Math.floor(headDim.width / 2) - 1;
-    // anchor nose so it ends above philtrum
     const mouthY = headY + Math.floor(headDim.height * 0.72);
     const eyeY = headY + Math.floor(headDim.height * (hairLength === 'bald' ? 0.42 : hairLength === 'very_short' ? 0.4 : hairLength === 'short' ? 0.36 : 0.35));
 
-    const noseStartY = eyeY + 4; // just below eyes
-    const maxLenToPhiltrum = Math.max(3, mouthY - 2 - noseStartY); // stop ~2px above upper lip
+    const noseStartY = eyeY + 4;
+    const maxLenToPhiltrum = Math.max(3, mouthY - 2 - noseStartY);
     const noseLen = Math.min(maxLenToPhiltrum, Math.round((5 + (long ? 2 : 0) + (isOld ? 1 : 0)) * lengthMul));
     const noseWidth = Math.max(3, Math.round((declared === 'broad' ? 4 : 3) * widthMul));
 
-    // bridge
     for (let i = 0; i < Math.max(1, noseLen - 2); i++) {
       elements.push(
         <rect key={`nbh-${i}`} x={noseX + 1} y={noseStartY - 1 + i} width="1" height="1" fill={i < 2 ? skinHighlight : skinMidtone} className="pixel" />
       );
     }
-    // subtle bump or straight
     if (bump) {
       elements.push(
         <rect key="bump-1" x={noseX + 1} y={noseStartY + Math.floor(noseLen / 3)} width="2" height="1" fill={skinTone} className="pixel" />
       );
     }
 
-    // main body
     elements.push(
       <rect key="nose-body" x={noseX} y={noseStartY} width={noseWidth - 1} height={noseLen} fill={skinTone} className="pixel" />
     );
 
-    // side shading + rim light
     elements.push(
       <rect key="nose-side-l" x={noseX - 1} y={noseStartY + 1} width="1" height={Math.max(2, noseLen - 1)} fill={skinShadow} className="pixel" />,
       <rect key="nose-side-r" x={noseX + noseWidth - 1} y={noseStartY + 1} width="1" height={Math.max(1, noseLen - 2)} fill={skinHighlight} className="pixel" />
     );
 
-    // tip + nostrils
     const tipY = noseStartY + noseLen - 1;
     const tipHL = tipUp ? skinHighlight : skinBrightHighlight;
-    
-    // Red nose when sick
-    if (isSick) {
-      // Add reddish areas around nose tip and nostrils
+
+    if (isIll) {
       elements.push(
         <rect key="red-nose-tip" x={noseX + Math.floor(noseWidth / 2) - 1} y={tipY} width="2" height="1" fill="rgba(255, 120, 120, 0.6)" className="pixel" />,
         <rect key="red-nose-area" x={noseX} y={tipY - 1} width={noseWidth} height="2" fill="rgba(255, 140, 140, 0.3)" className="pixel" />
       );
     }
-    
+
     elements.push(
-      <rect key="nose-tip" x={noseX + Math.floor(noseWidth / 2) - 1} y={tipY} width="2" height="1" fill={isSick ? "rgba(255, 180, 180, 0.8)" : tipHL} className="pixel" />
+      <rect key="nose-tip" x={noseX + Math.floor(noseWidth / 2) - 1} y={tipY} width="2" height="1" fill={isIll ? "rgba(255, 180, 180, 0.8)" : tipHL} className="pixel" />
     );
 
     const nostrilY = Math.min(tipY + (tipUp ? 0 : 1), mouthY - 2);
     elements.push(
       <rect key="nostril-l" x={noseX} y={nostrilY} width="1" height="1" fill={skinDeepShadow} className="pixel" />,
       <rect key="nostril-r" x={noseX + noseWidth - 2} y={nostrilY} width="1" height="1" fill={skinDeepShadow} className="pixel" />,
-      <rect key="subnasal-shadow" x={noseX + 1} y={nostrilY + 1} width={Math.max(1, noseWidth - 3)} height="1" fill={isSick ? "rgba(255, 160, 160, 0.4)" : skinShadow} className="pixel" />
+      <rect key="subnasal-shadow" x={noseX + 1} y={nostrilY + 1} width={Math.max(1, noseWidth - 3)} height="1" fill={isIll ? "rgba(255, 160, 160, 0.4)" : skinShadow} className="pixel" />
     );
 
     return <g key="nose">{elements}</g>;
   }, [appearanceWithDefaults.noseShape, culturalZone, hairLength, headDim.height, headDim.width, headX, headY, isFemale, isOld, skinBrightHighlight, skinDeepShadow, skinHighlight, skinMidtone, skinShadow, skinTone]);
 
-  // ----- MOUTH -----
+    // ----- MOUTH (expression-driven, with proper smile/smirk/frown/pursed) -----
   const renderMouth = useMemo(() => {
     const elements: JSX.Element[] = [];
     const lipShape = appearanceWithDefaults.lipShape || 'medium';
-    const mouthX = headX + Math.floor(headDim.width / 2) - 2;
+
+    // Mouth anchor
+    const mouthX = headX + Math.floor(headDim.width / 2);
     const mouthY = headY + Math.floor(headDim.height * 0.72);
-    
-    // Check if tired or sick for downturned mouth
-    const isFatigued = character.fatigue !== undefined && character.maxFatigue !== undefined && 
-                       (character.fatigue / character.maxFatigue) < 0.4;
-    const isSick = (character.health !== undefined && character.maxHealth !== undefined && 
-                    (character.health / character.maxHealth) < 0.6) ||
-                   (character.diseaseHealth?.currentDiseases && character.diseaseHealth.currentDiseases.length > 0);
-    
-    // Paler lips when sick
-    const actualLipColor = isSick ? createShadow(lipColor, 0.85) : lipColor;
+
+    const isFatigued =
+      character.fatigue !== undefined && character.maxFatigue !== undefined &&
+      (character.fatigue / character.maxFatigue) < 0.4;
+
+    const isIll =
+      (character.health !== undefined && character.maxHealth !== undefined && (character.health / character.maxHealth) < 0.6) ||
+      (character.diseaseHealth?.currentDiseases && character.diseaseHealth.currentDiseases.length > 0);
+
+    const baseLip = appearanceWithDefaults.lipColor || ((): string => {
+      const map: Record<NonNullable<typeof appearanceWithDefaults.skinTone>, string> = {
+        very_pale: '#E8B4B8', pale: '#E0A5A8', fair: '#D89598', light: '#CE8588',
+        medium: '#C47578', olive: '#BA6568', tan: '#B05558', dark: '#A64548', very_dark: '#9C3538'
+      };
+      return map[appearanceWithDefaults.skinTone || 'medium'] || '#C47578';
+    })();
+
+    const actualLipColor = isIll ? createShadow(baseLip, 0.85) : baseLip;
     const upperLipColor = createShadow(actualLipColor, 0.85);
     const lowerLipColor = actualLipColor;
-    const lipHL = createHighlight(actualLipColor, 1.3);
-    const lipShadow = createShadow(actualLipColor, 0.7);
+    const lipHL = createHighlight(actualLipColor, 1.25);
+    const lipShadow = createShadow(actualLipColor, 0.75);
 
-    // Override expression if tired or sick - downturned mouth
+    // Ensure temporary smile wins over "tired auto-frown"
     let actualExpressionType = expressionType;
-    if (isFatigued || isSick) {
-      actualExpressionType = 2; // frown expression
-    }
-    
-    let mouthWidth = actualExpressionType === 1 ? 6 : actualExpressionType === 3 ? 3 : 5;
-
-    switch (lipShape) {
-      case 'thin':
-        elements.push(
-          <rect key="mouth-upper-thin" x={mouthX} y={mouthY} width={mouthWidth} height="1" fill={upperLipColor} className="pixel" />,
-          <rect key="mouth-lower-thin" x={mouthX} y={mouthY + 1} width={mouthWidth} height="1" fill={lowerLipColor} className="pixel" />
-        ); break;
-      case 'full':
-        elements.push(
-          <rect key="mouth-upper-full1" x={mouthX} y={mouthY - 1} width={mouthWidth} height="1" fill={createHighlight(upperLipColor, 1.1)} className="pixel" />,
-          <rect key="mouth-upper-full2" x={mouthX - 1} y={mouthY} width={mouthWidth + 2} height="1" fill={upperLipColor} className="pixel" />,
-          <rect key="mouth-lower-full1" x={mouthX - 1} y={mouthY + 1} width={mouthWidth + 2} height="2" fill={lowerLipColor} className="pixel" />,
-          <rect key="mouth-lower-full2" x={mouthX} y={mouthY + 3} width={mouthWidth} height="1" fill={createShadow(lowerLipColor, 0.9)} className="pixel" />
-        ); break;
-      case 'bow':
-        elements.push(
-          <rect key="mouth-bow-peak1" x={mouthX + 1} y={mouthY - 1} width="1" height="1" fill={upperLipColor} className="pixel" />,
-          <rect key="mouth-bow-peak2" x={mouthX + 3} y={mouthY - 1} width="1" height="1" fill={upperLipColor} className="pixel" />,
-          <rect key="mouth-bow-dip" x={mouthX + 2} y={mouthY} width="1" height="1" fill={createHighlight(upperLipColor, 1.1)} className="pixel" />,
-          <rect key="mouth-upper-bow" x={mouthX} y={mouthY} width={mouthWidth} height="1" fill={upperLipColor} className="pixel" />,
-          <rect key="mouth-lower-bow" x={mouthX} y={mouthY + 1} width={mouthWidth} height="2" fill={lowerLipColor} className="pixel" />
-        ); break;
-      case 'wide':
-        mouthWidth = 7;
-        elements.push(
-          <rect key="mouth-upper-wide" x={mouthX - 1} y={mouthY} width={mouthWidth} height="1" fill={upperLipColor} className="pixel" />,
-          <rect key="mouth-lower-wide" x={mouthX - 1} y={mouthY + 1} width={mouthWidth} height="1" fill={lowerLipColor} className="pixel" />
-        ); break;
-      default:
-        elements.push(
-          <rect key="mouth-upper" x={mouthX} y={mouthY} width={mouthWidth} height="1" fill={upperLipColor} className="pixel" />,
-          <rect key="mouth-lower" x={mouthX} y={mouthY + 1} width={mouthWidth} height="2" fill={lowerLipColor} className="pixel" />
-        );
+    if ((isFatigued || isIll) && actualExpressionType !== 1) {
+      actualExpressionType = 2;
     }
 
-    switch (actualExpressionType) {
-      case 1:
-        // ENHANCED SMILE - lift corners and curve mouth
-        // Clear the normal mouth first by overwriting with skin color in smile area
-        for (let i = 0; i < mouthWidth; i++) {
-          elements.push(
-            <rect key={`clear-mouth-${i}`} x={mouthX + i} y={mouthY} width="1" height="3" fill={skinTone} className="pixel" />
-          );
-        }
-        
-        // Draw curved smile shape
-        // Center of mouth stays at normal position
-        const smileCurve = [
-          { x: -1, y: -1 }, // Left corner lifted
-          { x: 0, y: 0 },
-          { x: 1, y: 1 },
-          { x: 2, y: 1 },
-          { x: 3, y: 1 },
-          { x: 4, y: 0 },
-          { x: 5, y: -1 }, // Right corner lifted
-        ];
-        
-        // Draw the smile curve
-        smileCurve.forEach((point, i) => {
-          if (i < mouthWidth + 2) {
-            // Upper lip of smile
-            elements.push(
-              <rect key={`smile-upper-${i}`} x={mouthX - 1 + point.x} y={mouthY + point.y} width="1" height="1" fill={upperLipColor} className="pixel" />
-            );
-            // Lower lip of smile
-            elements.push(
-              <rect key={`smile-lower-${i}`} x={mouthX - 1 + point.x} y={mouthY + point.y + 1} width="1" height="1" fill={lowerLipColor} className="pixel" />
-            );
+    // Width baseline + tweaks by lip shape
+    let halfW = 3; // 7px total by default (center + 3 left + 3 right)
+    if (lipShape === 'wide') halfW = 4;
+    if (lipShape === 'thin') halfW = Math.max(2, halfW);
+
+    // Helper to plot a pixel relative to mouth center
+    const px = (dx: number, dy: number, fill: string) => {
+      elements.push(
+        <rect key={`m-${dx}-${dy}-${fill}`} x={mouthX + dx} y={mouthY + dy} width="1" height="1" fill={fill} className="pixel" />
+      );
+    };
+
+    // Draw curve for each expression
+    // For each dx in [-halfW..+halfW], return vertical offset dy for the "center line" of the mouth
+    const curve = (dx: number): number => {
+      const t = dx / halfW; // -1..1
+      switch (actualExpressionType) {
+        case 1: // SMILE family
+          // gentle upturned ends; smirk lifts the right side more
+          if (exprIsSmirk) {
+            const rightLift = Math.round(1.5 * (t > 0 ? t : 0));
+            return (t < -0.6 ? 0 : t < -0.2 ? 0 : t < 0.2 ? 0 : 1) - rightLift; // raise right corner
           }
-        });
-        
-        // Add dimples at the lifted corners
-        elements.push(
-          <rect key="dimple-l" x={mouthX - 2} y={mouthY - 1} width="1" height="2" fill={createShadow(skinTone, 0.88)} className="pixel" />,
-          <rect key="dimple-r" x={mouthX + mouthWidth + 1} y={mouthY - 1} width="1" height="2" fill={createShadow(skinTone, 0.88)} className="pixel" />
-        );
-        
-        // Add slight cheek lift effect
-        elements.push(
-          <rect key="cheek-l" x={mouthX - 3} y={mouthY - 2} width="2" height="1" fill={createHighlight(skinTone, 1.05)} className="pixel" />,
-          <rect key="cheek-r" x={mouthX + mouthWidth + 1} y={mouthY - 2} width="2" height="1" fill={createHighlight(skinTone, 1.05)} className="pixel" />
-        );
-        break;
-      case 2:
-        elements.push(
-          <rect key="frown-l" x={mouthX - 1} y={mouthY + 2} width="1" height="1" fill={skinShadow} className="pixel" />,
-          <rect key="frown-r" x={mouthX + mouthWidth} y={mouthY + 2} width="1" height="1" fill={skinShadow} className="pixel" />
-        );
-        // Add deeper frown lines when very tired or sick
-        if (isFatigued && isSick) {
-          elements.push(
-            <rect key="deep-frown-l" x={mouthX - 2} y={mouthY + 3} width="1" height="1" fill={createShadow(skinTone, 0.85)} className="pixel" />,
-            <rect key="deep-frown-r" x={mouthX + mouthWidth + 1} y={mouthY + 3} width="1" height="1" fill={createShadow(skinTone, 0.85)} className="pixel" />
-          );
-        }
-        break;
-      case 4:
-        elements.push(<rect key="pursed-center" x={mouthX + Math.floor(mouthWidth / 2) - 1} y={mouthY} width="2" height="1" fill={lipShadow} className="pixel" />); break;
+          return Math.round(-1.2 * (1 - Math.abs(t))); // up (negative dy)
+        case 2: // FROWN family
+          return Math.round(1.2 * (1 - Math.abs(t)));  // down (positive dy)
+        case 4: // PURSED/CONCERN
+          return (Math.abs(dx) <= 1) ? 0 : (Math.abs(dx) === halfW ? 0 : 0);
+        default: // NEUTRAL / SURPRISE keeps neutral mouth here
+          return 0;
+      }
+    };
+
+    // First, lightly clear the mouth area so curves don't clash with previous straight bars
+    // (small skin-tone patch behind the mouth)
+    for (let y = -2; y <= 3; y++) {
+      for (let x = -halfW - 1; x <= halfW + 1; x++) {
+        px(x, y, skinTone);
+      }
     }
 
+    // Upper/lower lip rendering based on curve
+    for (let dx = -halfW; dx <= halfW; dx++) {
+      const cy = curve(dx);
+
+      // Upper lip pixel
+      px(dx, cy, upperLipColor);
+
+      // Lower lip: thicker for full/bow shapes
+      px(dx, cy + 1, lowerLipColor);
+      if (lipShape === 'full' || lipShape === 'bow') {
+        if (actualExpressionType !== 4) px(dx, cy + 2, createShadow(lowerLipColor, 0.9));
+      }
+    }
+
+    // Expression-specific details
+    if (actualExpressionType === 1) {
+      // Smile dimples (both for smile/approve; single on raised side for smirk)
+      if (exprIsSmirk) {
+        px(halfW + 2, -1, createShadow(skinTone, 0.88));
+      } else {
+        px(-halfW - 2, -1, createShadow(skinTone, 0.88));
+        px(halfW + 2, -1, createShadow(skinTone, 0.88));
+      }
+      // Cheek lift highlights
+      px(-halfW - 1, -2, createHighlight(skinTone, 1.05));
+      px(halfW + 1, -2, createHighlight(skinTone, 1.05));
+    } else if (actualExpressionType === 2) {
+      // Extra corner shadows for deeper scowl
+      if (temporaryExpression === 'scowl') {
+        px(-halfW - 1, 3, createShadow(skinTone, 0.82));
+        px(halfW + 1, 3, createShadow(skinTone, 0.82));
+      }
+    } else if (actualExpressionType === 4) {
+      // Pursed center shadow
+      px(0, 0, lipShadow);
+      px(0, 1, lipShadow);
+    }
+
+    // Subtle highlight on lower lip center (not for 'thin')
     if (lipShape !== 'thin') {
-      elements.push(<rect key="lip-highlight" x={mouthX + Math.floor(mouthWidth / 2) - 1} y={mouthY + 1} width="2" height="1" fill={lipHL} className="pixel" />);
+      px(0, 1, lipHL);
     }
-    elements.push(<rect key="philtrum" x={mouthX + Math.floor(mouthWidth / 2)} y={mouthY - 2} width="1" height="2" fill={skinShadow} className="pixel" />);
-    return <g key="mouth">{elements}</g>;
-  }, [appearanceWithDefaults.lipShape, headDim.height, headDim.width, headX, headY, lipColor, skinShadow, skinTone, expressionType]);
 
-  // ----- FACIAL HAIR (clean silhouettes, density falloff near edges) -----
+    // Philtrum
+    px(0, -2, createShadow(skinTone, 0.78));
+
+    return <g key="mouth">{elements}</g>;
+  }, [
+    appearanceWithDefaults.lipShape,
+    appearanceWithDefaults.lipColor,
+    appearanceWithDefaults.skinTone,
+    character.fatigue,
+    character.maxFatigue,
+    character.health,
+    character.maxHealth,
+    character.diseaseHealth,
+    expressionType,
+    temporaryExpression,
+    headDim.height,
+    headDim.width,
+    headX,
+    headY,
+    skinTone
+  ]);
+
+  // ----- FACIAL HAIR (unchanged) -----
   const renderFacialHair = useMemo(() => {
     if (!appearanceWithDefaults.facialHair || isFemale) return <g key="facial-hair" />;
     const elements: JSX.Element[] = [];
@@ -1193,15 +1232,10 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     const baseY = headY + Math.floor(headDim.height * 0.63);
     const mouthY = headY + Math.floor(headDim.height * 0.72);
 
-    // helper: falloff from centerline (softer edges)
-    const falloff = (dx: number, max: number) => Math.max(0, 1 - Math.abs(dx) / max);
-
     const densityBase = thickness === 'thick' ? 0.85 : thickness === 'sparse' ? 0.45 : 0.65;
     const chinWidth = Math.floor(headDim.width * 0.55);
 
-  if (style === 'full_beard') {
-      // More solid, blocky full beard with consistent shading
-      // Mustache - solid block first
+    if (style === 'full_beard') {
       const mustacheY = mouthY - 1;
       const mustacheThickness = thickness === 'thick' ? 2 : 1;
       for (let t = 0; t < mustacheThickness; t++) {
@@ -1210,55 +1244,36 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
           elements.push(<rect key={`fb-m-${t}-${i}`} x={headX + Math.floor(headDim.width / 2) + i} y={mustacheY + t} width="1" height="1" fill={col} className="pixel" />);
         }
       }
-      
-      // Main beard body - with mouth opening
       for (let y = -2; y < 16; y++) {
         const rowY = baseY + y;
-        
-        // Skip the mouth area (y = 0 to 2) in the center
         const isNearMouth = y >= 0 && y <= 2;
-        
-        // Shape the beard width
         let rowWidth;
-        if (y < 2) {
-          rowWidth = Math.floor(chinWidth * 0.8);
-        } else if (y < 8) {
-          rowWidth = Math.floor(chinWidth * 1.0);
-        } else {
-          rowWidth = Math.floor(chinWidth * (1.0 - (y - 8) / 30));
-        }
-        
+        if (y < 2) rowWidth = Math.floor(chinWidth * 0.8);
+        else if (y < 8) rowWidth = Math.floor(chinWidth * 1.0);
+        else rowWidth = Math.floor(chinWidth * (1.0 - (y - 8) / 30));
+
         const startX = headX + Math.floor((headDim.width - rowWidth) / 2);
 
         for (let x = 0; x < rowWidth; x++) {
           const xRatio = x / rowWidth;
-          
-          // Create opening for mouth in the center
           if (isNearMouth) {
             const centerDist = Math.abs(xRatio - 0.5);
-            // Skip pixels in the mouth area (center 30% of width)
             if (centerDist < 0.15) continue;
           }
-          
           let col = beardColor;
-          // Create depth with consistent shading
           if (xRatio < 0.15 || xRatio > 0.85) col = beardDeepShadow;
           else if (xRatio < 0.3 || xRatio > 0.7) col = beardShadow;
           else if (xRatio > 0.45 && xRatio < 0.55) col = beardHighlight;
-          if (y > 12) col = beardDeepShadow; // Bottom shadow
-          if (y < 1) col = beardShadow; // Top blend
-          
+          if (y > 12) col = beardDeepShadow;
+          if (y < 1) col = beardShadow;
           elements.push(<rect key={`fb-${x}-${y}`} x={startX + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
         }
       }
-      
-      // Solid sideburns connecting to beard
       for (let sy = -6; sy < 6; sy++) {
         const sideWidth = sy < -2 ? 2 : sy < 2 ? 3 : 4;
         for (let sx = 0; sx < sideWidth; sx++) {
           const leftX = headX - sx - 1;
           const rightX = headX + headDim.width + sx;
-          // Solid sideburns with shading - always draw
           const col = sx === 0 ? beardColor : sx === 1 ? beardShadow : beardDeepShadow;
           elements.push(
             <rect key={`sb-l-${sy}-${sx}`} x={leftX} y={baseY + sy} width="1" height="1" fill={col} className="pixel" />,
@@ -1267,26 +1282,20 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
         }
       }
     } else if (style === 'goatee' || style === 'van_dyke') {
-      // More solid, blocky goatee with proper shading
-      // Mustache part - solid block
       const my = mouthY - 1;
       const mustacheThickness = thickness === 'thick' ? 2 : 1;
       for (let t = 0; t < mustacheThickness; t++) {
         const w = style === 'goatee' ? 8 : 9;
         const mx = headX + Math.floor(headDim.width / 2) - Math.floor(w / 2);
         for (let i = 0; i < w; i++) {
-          // Solid mustache with shading - always draw
           const col = (i < 2 || i >= w - 2) ? beardShadow : (i === Math.floor(w/2)) ? beardHighlight : beardColor;
           elements.push(<rect key={`gt-m-${t}-${i}`} x={mx + i} y={my + t} width="1" height="1" fill={col} className="pixel" />);
         }
       }
-      
-      // Chin patch - more solid and triangular
       for (let y = 0; y < 8; y++) {
         const width = Math.max(2, 8 - y);
         const startX = headX + Math.floor(headDim.width / 2) - Math.floor(width / 2);
         for (let x = 0; x < width; x++) {
-          // Solid chin patch with proper shading - always draw
           let col = beardColor;
           if (x === 0 || x === width - 1) col = beardShadow;
           else if (x === Math.floor(width/2)) col = beardHighlight;
@@ -1294,11 +1303,9 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
           elements.push(<rect key={`gt-${x}-${y}`} x={startX + x} y={mouthY + 2 + y} width="1" height="1" fill={col} className="pixel" />);
         }
       }
-      
       if (style === 'goatee') {
-        // Solid connectors for goatee
         for (let side = 0; side < 2; side++) {
-          const sideX = side === 0 ? 
+          const sideX = side === 0 ?
             headX + Math.floor(headDim.width / 2) - 4 :
             headX + Math.floor(headDim.width / 2) + 3;
           for (let y = 0; y < 2; y++) {
@@ -1309,14 +1316,71 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
         }
       }
     } else if (style === 'stubble') {
-      for (let y = -1; y < 6; y++) {
-        const rowWidth = Math.floor(chinWidth * (0.6 + Math.min(1, (y + 1) / 7)));
-        const startX = headX + Math.floor(headDim.width / 2) - Math.floor(rowWidth / 2);
-        for (let x = 0; x < rowWidth; x++) {
-          if (rand(x * 11 + y * 137) < densityBase * 0.5) {
-            elements.push(<rect key={`stb-${x}-${y}`} x={startX + x} y={baseY + y} width="1" height="1" fill={beardShadow} className="pixel" />);
+           // STUBBLE = soft tonal darkening along jaw + above lip (no black dots)
+      {
+        const density = thickness === 'thick' ? 1.0 : thickness === 'sparse' ? 0.6 : 0.8;
+
+        // 1) Above-lip shadow (short, centered)
+        const centerX = headX + Math.floor(headDim.width / 2);
+        const moustW = 8;
+        const moustY = mouthY - 1; // just above upper lip
+        for (let i = -Math.floor(moustW / 2); i <= Math.floor(moustW / 2); i++) {
+          // Dither skip to keep it soft
+          const skip = ((i + moustY) % 2) !== 0 && density < 0.9;
+          if (!skip) {
+            elements.push(
+              <rect
+                key={`stubble-m-${i}`}
+                x={centerX + i}
+                y={moustY}
+                width="1"
+                height="1"
+                fill={createShadow(skinTone, 0.88)}
+                className="pixel"
+              />
+            );
           }
         }
+
+        // 2) Jaw band: a curved, softly darkened region from under lip to chin
+        // Use skin-tone shadows, slightly stronger at edges to imply hair density
+        const chinWidth = Math.floor(headDim.width * 0.55);
+        const startY = baseY - 1;          // just below the mouth line
+        const endY = baseY + 8;            // fade out toward the neck
+        for (let y = startY; y <= endY; y++) {
+          const t = (y - startY) / (endY - startY); // 0..1
+          const rowW = Math.floor(chinWidth * (0.65 + 0.35 * Math.min(1, t * 1.4)));
+          const rowX = headX + Math.floor(headDim.width / 2) - Math.floor(rowW / 2);
+
+          // Shade ramp: darker near the sides & chin, lighter near the center
+          for (let x = 0; x < rowW; x++) {
+            const xr = x / Math.max(1, rowW - 1); // 0..1 across the band
+            // Center stays a bit lighter; edges a bit darker
+            const edgeBoost = 0.86 - 0.06 * Math.abs(0.5 - xr) * 2; // ~0.80..0.86
+            // Vertical fade: stronger near top/middle, fades out by endY
+            const vFade = 0.86 + (1 - t) * 0.06; // ~0.86..0.92
+            const amount = Math.max(0.80, Math.min(0.92, Math.min(edgeBoost, vFade)));
+
+            // light blue-noise dither so it doesn't look painted
+            const noise = rand(x * 917 + y * 613);
+            const shouldDraw = noise < density; // thicker -> more coverage
+            if (shouldDraw) {
+              elements.push(
+                <rect
+                  key={`stubble-j-${x}-${y}`}
+                  x={rowX + x}
+                  y={y}
+                  width="1"
+                  height="1"
+                  fill={createShadow(skinTone, amount)}
+                  className="pixel"
+                />
+              );
+            }
+          }
+        }
+      
+
       }
     } else if (style === 'mutton_chops') {
       for (let y = -8; y < 4; y++) {
@@ -1339,10 +1403,9 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
         }
       }
     } else if (style === 'mustache') {
-      // Standalone mustache
       const my = mouthY - 1;
       for (let t = 0; t < (thickness === 'thick' ? 2 : 1); t++) {
-        const w = 8; // Wider than goatee mustache
+        const w = 8;
         const mx = headX + Math.floor(headDim.width / 2) - Math.floor(w / 2);
         for (let i = 0; i < w; i++) {
           if (rand(i * 17 + t * 101) < (densityBase * 0.95)) {
@@ -1351,7 +1414,6 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
           }
         }
       }
-      // Add some thickness under the nose
       const centerX = headX + Math.floor(headDim.width / 2);
       for (let dx = -3; dx <= 3; dx++) {
         if (rand(dx * 23) < densityBase * 0.8) {
@@ -1517,577 +1579,438 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
       }
     }
 
-    // IMPORTANT: removed the harsh single-pixel "ambient occlusion" stripe that bisected the neck.
+    
 
     return <g key="body">{elements}</g>;
   }, [appearanceWithDefaults.garment, appearanceWithDefaults.palette.accent, appearanceWithDefaults.palette.primary, appearanceWithDefaults.palette.secondary, bodyDim, culturalZone, headDim.height, headDim.width, headX, headY, isNoble, isWealthy, skinShadow, skinTone, stats?.strength, character.equippedItems, useEquippedItems]);
 
-  // ----- HEADGEAR (from your original, unchanged except for scoping) -----
+    // ----- HEADGEAR (improved) -----
   const renderHeadgear = useMemo(() => {
-    // Debug logging - commented out for production
-    /*
-    console.log('[Portrait] Headgear Debug:', {
-      useEquippedItems,
-      hasEquippedItems: !!character.equippedItems,
-      equippedHead: character.equippedItems?.head,
-      appearanceHeadgear: appearanceWithDefaults.headgear,
-      characterKeys: Object.keys(character),
-    });
-    */
-    
-    // If we should use equipped items and equippedItems exists, use that (even if slot is empty)
-    // Only fall back to appearance if equippedItems doesn't exist at all
-    let headgear = null;
+    // Choose source (equipped vs appearance) without changing your prop contract
+    let headItem: { name: string; material?: string } | null = null;
     if (useEquippedItems && character.equippedItems !== undefined) {
-      // Use equipped head item (which may be undefined if nothing equipped)
-      headgear = character.equippedItems.head;
+      headItem = character.equippedItems.head ?? null;
     } else {
-      // Fall back to appearance only if equippedItems doesn't exist
-      headgear = appearanceWithDefaults.headgear;
+      headItem = appearanceWithDefaults.headgear ?? null;
     }
-    
-    if (!headgear || headgear.name === 'None') return <g key="headgear" />;
+
+    if (!headItem || !headItem.name || headItem.name.toLowerCase() === 'none') {
+      return <g key="headgear" />;
+    }
 
     const elements: JSX.Element[] = [];
-    const material = (headgear.material || '').toLowerCase();
-    const name = headgear.name.toLowerCase();
-    
-    // Debug logging - commented out for production
-    // console.log(`[Portrait] Rendering headgear: "${name}" (material: ${material}), from equipped: ${useEquippedItems && character.equippedItems?.head ? 'YES' : 'NO'}`)
+    const name = (headItem.name || '').toLowerCase();
+    const material = (headItem.material || '').toLowerCase();
 
-    // Parse color from name first, fall back to material colors
-    let headgearColor = appearanceWithDefaults.palette.secondary;
-    
-    // Check for color descriptors in the name - PRIORITIZE name colors over material
-    const colorMap: Record<string, string> = {
-      // Basic colors
-      'navy': '#000080',
-      'red': '#DC143C',
-      'crimson': '#DC143C',
-      'scarlet': '#FF2400',
-      'blue': '#4169E1',
-      'azure': '#007FFF',
-      'navy': '#000080',
-      'green': '#228B22',
-      'emerald': '#50C878',
-      'forest': '#0B6623',
-      'yellow': '#FFD700',
-      'gold': '#FFD700',
-      'golden': '#FFD700',
-      'purple': '#800080',
-      'violet': '#8B00FF',
-      'indigo': '#4B0082',
-      'pink': '#FFC0CB',
-      'rose': '#FF007F',
-      'orange': '#FF8C00',
-      'brown': '#8B4513',
-      'tan': '#D2B48C',
-      'black': '#1C1C1C',
-      'white': '#F8F8F8',
-      'gray': '#808080',
-      'grey': '#808080',
-      'silver': '#C0C0C0',
-      // Compound colors
-      'silver-white': '#E8E8E8',
-      'golden-brown': '#B8860B',
-      'dark brown': '#654321',
-      'light brown': '#A0826D',
-      'dark green': '#006400',
-      'light green': '#90EE90',
-      'dark blue': '#00008B',
-      'light blue': '#ADD8E6',
-      'orchid': '#DA70D6',
-      'ruby': '#E0115F',
-      'sapphire': '#0F52BA',
-      'amethyst': '#9966CC',
-      'jade': '#00A86B',
-      'ivory': '#FFFFF0',
-      'pearl': '#FFF8DC',
-      'obsidian': '#0C0C0C',
-      'copper': '#B87333',
-      'bronze': '#CD7F32',
-      'brass': '#B5A642',
-      'platinum': '#E5E4E2',
+    const centerX = headX + Math.floor(headDim.width / 2);
+    const topY = headY - 1;
+
+    // Helpers
+    const nameContains = (...keywords: string[]) => keywords.some(k => name.includes(k));
+
+    const resolveHeadgearColor = (): string => {
+      // 1) explicit color tokens in the name
+      const tokens: Array<[string, string]> = [
+        ['navy', '#000080'], ['crimson', '#DC143C'], ['scarlet', '#FF2400'], ['red', '#DC143C'],
+        ['blue', '#4169E1'], ['azure', '#007FFF'], ['green', '#228B22'], ['emerald', '#50C878'],
+        ['forest', '#0B6623'], ['gold', '#FFD700'], ['yellow', '#FFD700'], ['purple', '#800080'],
+        ['violet', '#8B00FF'], ['indigo', '#4B0082'], ['pink', '#FFC0CB'], ['orange', '#FF8C00'],
+        ['brown', '#8B4513'], ['tan', '#D2B48C'], ['black', '#1C1C1C'], ['white', '#F8F8F8'],
+        ['gray', '#808080'], ['grey', '#808080'], ['silver', '#C0C0C0'], ['bronze', '#CD7F32'],
+        ['brass', '#B5A642'], ['copper', '#B87333'], ['obsidian', '#0C0C0C'], ['ivory', '#FFFFF0'],
+        ['pearl', '#FFF8DC'], ['jade', '#00A86B'], ['sapphire', '#0F52BA'], ['amethyst', '#9966CC'],
+        ['ruby', '#E0115F'],
+      ];
+      const tok = tokens.find(([t]) => name.includes(t));
+      if (tok) return tok[1];
+
+      // 2) material defaults
+      if (material.includes('leather')) return '#8B4513';
+      if (material.includes('felt')) return '#6D6D75';
+      if (material.includes('wool')) return '#A0A0A8';
+      if (material.includes('linen') || material.includes('cotton')) return '#E8E2D1';
+      if (material.includes('silk') || material.includes('velvet') || material.includes('satin')) return appearanceWithDefaults.palette.accent;
+      if (material.includes('gold')) return '#FFD700';
+      if (material.includes('bronze')) return '#CD7F32';
+      if (material.includes('brass')) return '#B5A642';
+      if (material.includes('iron') || material.includes('steel') || material.includes('mail') || material.includes('plate') || material.includes('metal')) return '#C0C0C0';
+      if (material.includes('straw') || material.includes('bamboo') || material.includes('reed') || material.includes('sedge')) return '#D4A76A';
+
+      // 3) fallback to palette
+      return appearanceWithDefaults.palette.secondary;
     };
-    
-    // Check if any color name appears in the headgear name
-    let colorFound = false;
-    for (const [colorName, colorHex] of Object.entries(colorMap)) {
-      if (name.includes(colorName)) {
-        headgearColor = colorHex;
-        colorFound = true;
-        break;
+
+    const base = resolveHeadgearColor();
+    const shade = createShadow(base, 0.82);
+    const deep = createShadow(base, 0.65);
+    const hl = createHighlight(base, 1.18);
+
+    // ========= SHAPES =========
+
+    // CROWNS / CIRCLETS / DIadems / WREATHS
+    if (nameContains('crown', 'circlet', 'tiara', 'coronet', 'diadem', 'laurel')) {
+      const isLaurel = name.includes('laurel');
+      const gold = '#FFD700';
+      const wreath = isLaurel ? '#3E8E41' : gold;
+
+      // Band along the top of forehead
+      for (let x = headX; x < headX + headDim.width; x++) {
+        elements.push(
+          <rect key={`crown-band-${x}`} x={x} y={headY - 2} width="1" height="2" fill={wreath} className="pixel" />
+        );
+        if (!isLaurel && ((x - headX) % 4 === 2) && (isNoble || nameContains('jeweled', 'gem', 'ruby', 'emerald', 'sapphire', 'pearl', 'diamond'))) {
+          // small in-band jewels
+          let jewel = '#DC143C';
+          if (name.includes('emerald')) jewel = '#50C878';
+          else if (name.includes('sapphire')) jewel = '#0F52BA';
+          else if (name.includes('diamond')) jewel = '#E0FFFF';
+          else if (name.includes('pearl')) jewel = '#FFF8DC';
+          elements.push(<rect key={`crown-jewel-${x}`} x={x} y={headY - 1} width="1" height="1" fill={jewel} className="pixel" />);
+        }
       }
-    }
-    
-    // ONLY use material colors as fallback if NO color found in name
-    if (!colorFound) {
-      // Material fallbacks - only apply if no color specified
-      if (material.includes('leather')) headgearColor = '#8B4513';
-      else if (material.includes('metal')) headgearColor = '#C0C0C0';
-      else if (material.includes('gold')) headgearColor = '#FFD700';
-      else if (material.includes('silk')) headgearColor = appearanceWithDefaults.palette.accent;
-      else if (material.includes('straw')) headgearColor = '#F4E68C';
-      else if (material.includes('felt')) headgearColor = '#708090';
-      else if (material.includes('velvet')) headgearColor = '#4B0082';
-      else if (material.includes('cotton')) headgearColor = '#F5F5DC';
-      else if (material.includes('wool')) headgearColor = '#D3D3D3';
-      else if (material.includes('linen')) headgearColor = '#FAF0E6';
-    }
 
-    const centerX = headX + headDim.width / 2;
-    
-    // Helper function to check if name contains any of the keywords
-    const nameContains = (...keywords: string[]) => {
-      return keywords.some(keyword => name.includes(keyword));
-    };
-
-    // Check if headgear has jewels or diamonds in name
-    const hasJewels = nameContains('jewel', 'jeweled', 'jewelled', 'diamond', 'gem', 'gemstone', 'ruby', 'emerald', 'sapphire', 'pearl');
-    
-    // CROWNS, CIRCLETS, TIARAS, CORONETS, DIADEMS
-    if (nameContains('crown', 'circlet', 'tiara', 'coronet', 'diadem', 'laurel wreath')) {
-      const crownStyle = (isNoble || hasJewels) ? 'ornate' : 'simple';
-      if (crownStyle === 'ornate') {
-        for (let x = headX - 1; x < headX + headDim.width + 1; x++) {
-          elements.push(
-            <rect key={`crown-band-${x}`} x={x} y={headY - 2} width="1" height="3" fill="#FFD700" className="pixel" />
-          );
-          if ((x - headX) % 4 === 2) {
-            // Use different jewel colors based on name
-            let jewelColor = "#DC143C"; // Default ruby
-            if (name.includes('diamond')) jewelColor = "#E0FFFF";
-            else if (name.includes('emerald')) jewelColor = "#50C878";
-            else if (name.includes('sapphire')) jewelColor = "#0F52BA";
-            else if (name.includes('pearl')) jewelColor = "#FFF8DC";
-            
+      // Points (skip for circlet)
+      if (!nameContains('circlet', 'wreath')) {
+        const points = 5;
+        for (let i = 0; i < points; i++) {
+          const px = headX + 1 + Math.floor(i * ((headDim.width - 2) / (points - 1)));
+          const ph = i === Math.floor(points / 2) ? 7 : i === 0 || i === points - 1 ? 4 : 5 + (i % 2);
+          for (let h = 0; h < ph; h++) {
             elements.push(
-              <rect key={`crown-jewel-band-${x}`} x={x} y={headY - 1} width="1" height="1" fill={jewelColor} className="pixel" />
+              <rect key={`crown-pt-${i}-${h}`} x={px} y={headY - 3 - h} width="1" height="1" fill={createHighlight(gold, 1 - h * 0.03)} className="pixel" />
             );
           }
-        }
-        for (let i = 0; i < 5; i++) {
-          const pointX = headX + 2 + i * Math.floor(headDim.width / 5);
-          const pointHeight = i === 2 ? 8 : i === 1 || i === 3 ? 6 : 4;
-          for (let h = 0; h < pointHeight; h++) {
-            elements.push(
-              <rect key={`crown-point-${i}-${h}`} x={pointX} y={headY - 2 - h} width="2" height="1" fill="#FFD700" className="pixel" />
-            );
-          }
-          elements.push(
-            <rect key={`crown-top-jewel-${i}`} x={pointX} y={headY - 2 - pointHeight} width="2" height="1" fill={i === 2 ? "#4169E1" : "#DC143C"} className="pixel" />
-          );
-        }
-      } else {
-        for (let x = headX; x < headX + headDim.width; x++) {
-          const height = Math.abs(x - centerX) < 2 ? 5 : 3;
-          for (let h = 0; h < height; h++) {
-            elements.push(
-              <rect key={`crown-simple-${x}-${h}`} x={x} y={headY - 2 - h} width="1" height="1" fill={headgearColor} className="pixel" />
-            );
+          // top jewel on middle point if fancy
+          if (i === Math.floor(points / 2) && (isNoble || isWealthy)) {
+            elements.push(<rect key="crown-top-j" x={px} y={headY - 3 - ph} width="1" height="1" fill="#0F52BA" className="pixel" />);
           }
         }
       }
-    // TURBANS, PAGRI, SAFA
-    } else if (nameContains('turban', 'pagri', 'safa', 'peta')) {
-      const turbanLayers = isWealthy ? 3 : 2;
-      for (let layer = 0; layer < turbanLayers; layer++) {
-        const layerSize = 6 - layer;
-        for (let y = -4 - layer; y < 7 - layer; y++) {
-          for (let x = -layerSize; x < layerSize; x++) {
-            const dist = Math.sqrt(x * x + (y * 0.8) * (y * 0.8));
-            if (dist < layerSize) {
-              const wrapPattern = (x + y + layer) % 3 === 0;
-              const color = wrapPattern ? createShadow(headgearColor, 0.85) : headgearColor;
-              elements.push(<rect key={`turban-${layer}-${x}-${y}`} x={centerX + x} y={headY + y} width="1" height="1" fill={color} className="pixel" />);
+
+      // Laurel leaves detail
+      if (isLaurel) {
+        for (let i = 0; i < headDim.width; i += 3) {
+          const lx = headX + i;
+          elements.push(
+            <rect key={`leaf-${i}-a`} x={lx} y={headY - 3} width="2" height="1" fill={createHighlight('#2E7D32', 1.05)} className="pixel" />,
+            <rect key={`leaf-${i}-b`} x={lx + 1} y={headY - 4} width="1" height="1" fill={'#2E7D32'} className="pixel" />
+          );
+        }
+      }
+    }
+
+    // TURBANS / PAGRI / SAFA
+    else if (nameContains('turban', 'pagri', 'safa', 'peta')) {
+      const layers = isWealthy ? 3 : 2;
+      for (let layer = 0; layer < layers; layer++) {
+        const radius = Math.floor((headDim.width / 2) + 3 - layer);
+        for (let y = headY - 5 - layer; y <= headY + 2 - layer; y++) {
+          for (let x = centerX - radius; x <= centerX + radius; x++) {
+            const dx = Math.abs(x - centerX);
+            const dy = Math.abs(y - (headY - 2));
+            const inside = dx + Math.floor(dy * 0.9) <= radius;
+            if (inside) {
+              const fold = ((x + y + layer) % 4 === 0);
+              const col = fold ? shade : base;
+              elements.push(<rect key={`turban-${layer}-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
             }
           }
         }
       }
+      // Aigrette / jewel for wealthy
       if (isWealthy) {
         elements.push(
-          <rect key="turban-jewel-setting" x={centerX - 2} y={headY - 1} width="4" height="3" fill="#FFD700" className="pixel" />,
-          <rect key="turban-jewel-center" x={centerX - 1} y={headY} width="2" height="1" fill="#DC143C" className="pixel" />
+          <rect key="turb-j-base" x={centerX - 2} y={headY - 1} width="4" height="2" fill="#FFD700" className="pixel" />,
+          <rect key="turb-j-gem" x={centerX - 1} y={headY} width="2" height="1" fill="#DC143C" className="pixel" />
         );
-        for (let f = 0; f < 8; f++) {
-          elements.push(
-            <rect key={`turban-feather-${f}`} x={centerX + 5 + Math.floor(f / 4)} y={headY - 8 + f} width="1" height="1" fill={f % 2 === 0 ? "#228B22" : "#32CD32"} className="pixel" />
-          );
+        for (let f = 0; f < 7; f++) {
+          elements.push(<rect key={`turb-feather-${f}`} x={centerX + 5 + Math.floor(f / 3)} y={headY - 7 + f} width="1" height="1" fill={f % 2 === 0 ? createHighlight('#2E7D32', 1.1) : '#2E7D32'} className="pixel" />);
         }
       }
-    // VEILS, WRAPS, COVERINGS (hijab, keffiyeh, dupatta, etc)
-    } else if (nameContains('veil', 'hijab', 'keffiyeh', 'dupatta', 'gele', 'mantilla', 'ghoonghat', 'head cloth', 'head cover', 'head wrap', 'headwrap', 'kerchief', 'scarf', 'coif', 'bonnet')) {
-      const isFullCovering = nameContains('hijab', 'dupatta', 'gele', 'mantilla', 'ghoonghat');
-      const coverageDepth = isFullCovering ? 12 : 8;
-      
-      // Render as draped fabric with varying coverage
-      for (let y = headY - 4; y < headY + coverageDepth; y++) {
+    }
+
+    // VEILS / HIJAB / WRAPS / SCARF / DUPATTA / MANTILLA
+    else if (nameContains('veil', 'hijab', 'keffiyeh', 'dupatta', 'gele', 'mantilla', 'ghoonghat', 'head wrap', 'headwrap', 'kerchief', 'scarf', 'coif', 'bonnet')) {
+      const fullCover = nameContains('hijab', 'dupatta', 'gele', 'mantilla', 'ghoonghat');
+      const depth = fullCover ? 12 : 8;
+
+      for (let y = headY - 4; y < headY + depth; y++) {
         for (let x = headX - 5; x < headX + headDim.width + 5; x++) {
-          const distFromCenter = Math.abs(x - centerX);
-          const faceArea = y > headY && y < headY + headDim.height - 2 && distFromCenter < headDim.width / 2 - 1;
-          
-          if (!faceArea && distFromCenter < headDim.width / 2 + 4) {
-            const foldPattern = Math.sin(y * 0.3) * 2;
-            const shadowed = (y - headY) % 3 === 0 || distFromCenter > headDim.width / 2 + 2;
-            elements.push(<rect key={`veil-${x}-${y}`} x={x} y={y} width="1" height="1" fill={shadowed ? createShadow(headgearColor, 0.85) : headgearColor} className="pixel" />);
+          const dx = Math.abs(x - centerX);
+          const faceOpen = (y > headY) && (y < headY + headDim.height - 2) && (dx < headDim.width / 2 - 1);
+          if (!faceOpen && dx < headDim.width / 2 + 4) {
+            const shadow = (y - headY) % 3 === 0 || dx > headDim.width / 2 + 2;
+            elements.push(<rect key={`veil-${x}-${y}`} x={x} y={y} width="1" height="1" fill={shadow ? shade : base} className="pixel" />);
           }
         }
       }
-      // Add decorative edge for wealthy characters
       if (isWealthy) {
         for (let x = headX - 4; x < headX + headDim.width + 4; x++) {
           if (Math.abs(x - centerX) > headDim.width / 2 - 2) {
-            elements.push(<rect key={`veil-edge-${x}`} x={x} y={headY + coverageDepth - 1} width="1" height="1" fill="#FFD700" className="pixel" />);
+            elements.push(<rect key={`veil-trim-${x}`} x={x} y={headY + depth - 1} width="1" height="1" fill="#FFD700" className="pixel" />);
           }
         }
       }
-    // HOODS, WIMPLES
-    } else if (nameContains('hood', 'wimple')) {
+    }
+
+    // HOODS / WIMPLE
+    else if (nameContains('hood', 'wimple')) {
       const hoodDepth = name.includes('wimple') ? 12 : 10;
-      
-      // Enhanced hood with better depth and shadowing
       for (let y = headY - 6; y < headY + hoodDepth; y++) {
         for (let x = headX - 6; x < headX + headDim.width + 6; x++) {
-          const distFromCenter = Math.abs(x - centerX);
-          const distFromTop = y - (headY - 6);
-          
-          // Create hood opening shape - narrower at top, wider at bottom
-          const hoodWidth = headDim.width / 2 + 2 + Math.min(4, distFromTop * 0.3);
-          const faceArea = y > headY && y < headY + headDim.height - 2 && distFromCenter < headDim.width / 2 - 1;
-          
-          if (!faceArea && distFromCenter < hoodWidth) {
-            // Create depth with multiple shadow layers
-            const depthFromEdge = hoodWidth - distFromCenter;
-            const isDeepShadow = depthFromEdge < 2 || y < headY - 2;
-            const isMidShadow = depthFromEdge < 4 || distFromTop < 3;
-            
-            // Add fold patterns for realism
-            const foldPattern = Math.sin((y + x * 0.5) * 0.3) * 1.5;
-            const hasFold = Math.abs(foldPattern) > 1;
-            
-            let pixelColor = headgearColor;
-            if (isDeepShadow || hasFold) {
-              pixelColor = createShadow(headgearColor, 0.7);
-            } else if (isMidShadow) {
-              pixelColor = createShadow(headgearColor, 0.85);
-            }
-            
-            // Inner hood lining shadow for depth
-            if (distFromCenter > hoodWidth - 2 && y > headY - 2) {
-              pixelColor = createShadow(headgearColor, 0.6);
-            }
-            
-            elements.push(<rect key={`hood-${x}-${y}`} x={x} y={y} width="1" height="1" fill={pixelColor} className="pixel" />);
+          const dx = Math.abs(x - centerX);
+          const dTop = y - (headY - 6);
+          const hoodW = headDim.width / 2 + 2 + Math.min(4, dTop * 0.3);
+          const faceOpen = y > headY && y < headY + headDim.height - 2 && dx < headDim.width / 2 - 1;
+          if (!faceOpen && dx < hoodW) {
+            const depthFromEdge = hoodW - dx;
+            const isDeep = depthFromEdge < 2 || y < headY - 2;
+            const isMid = depthFromEdge < 4 || dTop < 3;
+            let col = base;
+            if (isDeep) col = deep;
+            else if (isMid) col = shade;
+            // inner rim
+            if (dx > hoodW - 2 && y > headY - 2) col = createShadow(base, 0.6);
+            elements.push(<rect key={`hood-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
           }
         }
       }
-      
-      // Add inner shadow rim for more depth
-      for (let y = headY - 2; y < headY + headDim.height; y++) {
-        const rimX = headX - 4;
-        const rimX2 = headX + headDim.width + 3;
-        elements.push(
-          <rect key={`hood-rim-l-${y}`} x={rimX} y={y} width="1" height="1" fill={createShadow(headgearColor, 0.5)} className="pixel" />,
-          <rect key={`hood-rim-r-${y}`} x={rimX2} y={y} width="1" height="1" fill={createShadow(headgearColor, 0.5)} className="pixel" />
-        );
-      }
+      // subtle golden trim for wealthy
       if (isWealthy) {
         for (let y = headY + 2; y < headY + headDim.height - 2; y++) {
-          const trimX = headX + Math.floor((headDim.width - 2) * (1 - (y - headY) / headDim.height));
           elements.push(
-            <rect key={`hood-trim-l-${y}`} x={trimX - 1} y={y} width="1" height="1" fill="#FFD700" className="pixel" />,
-            <rect key={`hood-trim-r-${y}`} x={headX + headDim.width - trimX + headX + 1} y={y} width="1" height="1" fill="#FFD700" className="pixel" />
+            <rect key={`hood-trim-l-${y}`} x={headX - 3} y={y} width="1" height="1" fill="#FFD700" className="pixel" />,
+            <rect key={`hood-trim-r-${y}`} x={headX + headDim.width + 2} y={y} width="1" height="1" fill="#FFD700" className="pixel" />
           );
         }
       }
-    // HATS AND CAPS (expanded categories)
-    } else if (nameContains('hat', 'cap', 'beret', 'fez', 'fedora', 'homburg', 'chullo', 'kufi', 'gandhi', 'topi', 'pith', 'snapback', 'petasos', 'chaperon', 'barbette')) {
-      const hatStyle = name.includes('top') ? 'top' : 
-                      name.includes('beret') ? 'beret' : 
-                      name.includes('fez') || name.includes('kufi') ? 'fez' : 
-                      nameContains('fedora', 'homburg', 'pith') ? 'brimmed' :
-                      nameContains('chullo') ? 'knit' :
-                      'generic';
+    }
+
+    // HELMETS (metallic)
+    else if (nameContains('helmet', 'helm', 'spangenhelm', 'salet', 'sallet', 'great helm', 'norman', 'knight')) {
+      const metal =
+        material.includes('bronze') ? '#CD7F32' :
+        material.includes('brass') ? '#B5A642' :
+        '#AEB4B8';
+
+      // Shell
+      for (let y = headY - 3; y < headY + headDim.height - 3; y++) {
+        for (let x = headX - 2; x < headX + headDim.width + 2; x++) {
+          const dx = Math.abs(x - centerX);
+          const faceOpen = y > headY + 2 && y < headY + headDim.height - 4 && dx < headDim.width / 2 - 3;
+          if (!faceOpen) {
+            const edge = dx < 2 || x === headX - 2 || x === headX + headDim.width + 1;
+            const col = edge ? createHighlight(metal, 1.22) : metal;
+            elements.push(<rect key={`helm-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+      }
+
+      // Nose guard for Norman/knight
+      if (nameContains('norman', 'knight', 'nasal')) {
+        for (let y = headY + 2; y < headY + 10; y++) {
+          elements.push(<rect key={`nasal-${y}`} x={centerX} y={y} width="2" height="1" fill={createShadow(metal, 0.9)} className="pixel" />);
+        }
+      }
+
+      // Crest/plume for nobles
+      if (isNoble) {
+        for (let p = 0; p < 10; p++) {
+          elements.push(<rect key={`plume-${p}`} x={centerX + Math.sin(p * 0.3) * 2} y={headY - 5 - p} width="2" height="1" fill={p % 2 === 0 ? '#DC143C' : '#8B0000'} className="pixel" />);
+        }
+      }
+    }
+
+    // HATS & CAPS (beret, fez/kufi, brimmed, knit/chullo, generic cap)
+    else if (nameContains('hat', 'cap', 'beret', 'fez', 'kufi', 'fedora', 'homburg', 'chullo', 'beanie', 'tuque', 'pith', 'snapback', 'petasos', 'chaperon')) {
+      const hatStyle =
+        name.includes('top') ? 'top' :
+        name.includes('beret') ? 'beret' :
+        (name.includes('fez') || name.includes('kufi')) ? 'fez' :
+        (nameContains('fedora', 'homburg', 'pith', 'petasos')) ? 'brimmed' :
+        (nameContains('chullo', 'beanie', 'tuque')) ? 'knit' :
+        'generic';
+
       switch (hatStyle) {
-        case 'top':
+        case 'top': {
+          // Tall crown
           for (let y = headY - 10; y < headY - 2; y++) {
             for (let x = headX + 2; x < headX + headDim.width - 2; x++) {
-              elements.push(<rect key={`tophat-crown-${x}-${y}`} x={x} y={y} width="1" height="1" fill="#000000" className="pixel" />);
+              elements.push(<rect key={`tophat-${x}-${y}`} x={x} y={y} width="1" height="1" fill="#000000" className="pixel" />);
             }
           }
+          // Brim
           for (let x = headX - 4; x < headX + headDim.width + 4; x++) {
             elements.push(<rect key={`tophat-brim-${x}`} x={x} y={headY - 2} width="1" height="2" fill="#000000" className="pixel" />);
           }
+          // Band
           if (isWealthy) {
             for (let x = headX + 2; x < headX + headDim.width - 2; x++) {
               elements.push(<rect key={`tophat-band-${x}`} x={x} y={headY - 5} width="1" height="1" fill={appearanceWithDefaults.palette.accent} className="pixel" />);
             }
           }
           break;
-        case 'beret':
-          for (let y = headY - 3; y < headY + 4; y++) {
-            for (let x = headX - 3; x < headX + headDim.width + 3; x++) {
-              const distFromCenter = Math.abs(x - centerX);
-              const beretShape = distFromCenter < headDim.width / 2 + 3 - Math.abs(y - headY);
-              if (beretShape) {
+        }
+        case 'beret': {
+          for (let y = headY - 4; y < headY + 2; y++) {
+            for (let x = headX - 2; x < headX + headDim.width + 3; x++) {
+              const dx = Math.abs(x - centerX);
+              const shape = dx < headDim.width / 2 + 3 - Math.max(0, (y - headY));
+              if (shape) {
                 const tilt = x > centerX ? -1 : 0;
-                elements.push(<rect key={`beret-${x}-${y}`} x={x} y={y + tilt} width="1" height="1" fill={headgearColor} className="pixel" />);
+                elements.push(<rect key={`beret-${x}-${y}`} x={x} y={y + tilt} width="1" height="1" fill={base} className="pixel" />);
               }
             }
           }
           break;
-        case 'fez':
-          for (let y = headY - 6; y < headY + 1; y++) {
+        }
+        case 'fez': {
+          for (let y = headY - 6; y < headY; y++) {
             for (let x = headX + 3; x < headX + headDim.width - 3; x++) {
-              elements.push(<rect key={`fez-${x}-${y}`} x={x} y={y} width="1" height="1" fill="#8B0000" className="pixel" />);
+              elements.push(<rect key={`fez-${x}-${y}`} x={x} y={y} width="1" height="1" fill={createShadow('#8B0000', 0.95)} className="pixel" />);
             }
           }
           for (let t = 0; t < 4; t++) {
             elements.push(<rect key={`fez-tassel-${t}`} x={centerX} y={headY - 6 - t} width="1" height="1" fill="#000000" className="pixel" />);
           }
           break;
-        case 'brimmed':
-          // Fedora/Homburg style with brim
+        }
+        case 'brimmed': {
+          // Crown
           for (let y = headY - 5; y < headY; y++) {
             for (let x = headX; x < headX + headDim.width; x++) {
-              elements.push(<rect key={`fedora-crown-${x}-${y}`} x={x} y={y} width="1" height="1" fill={headgearColor} className="pixel" />);
+              elements.push(<rect key={`fed-crown-${x}-${y}`} x={x} y={y} width="1" height="1" fill={base} className="pixel" />);
             }
           }
-          // Wide brim
+          // Brim
           for (let x = headX - 3; x < headX + headDim.width + 3; x++) {
-            elements.push(<rect key={`fedora-brim-${x}`} x={x} y={headY} width="1" height="1" fill={createShadow(headgearColor, 0.85)} className="pixel" />);
+            elements.push(<rect key={`fed-brim-${x}`} x={x} y={headY} width="1" height="1" fill={shade} className="pixel" />);
           }
           break;
-        case 'knit':
-          // Chullo/knit cap with ear flaps
-          for (let y = headY - 6; y < headY + 2; y++) {
+        }
+        case 'knit': {
+          for (let y = headY - 6; y < headY + 1; y++) {
             for (let x = headX - 2; x < headX + headDim.width + 2; x++) {
               const knit = (x + y) % 2 === 0;
-              elements.push(<rect key={`knit-${x}-${y}`} x={x} y={y} width="1" height="1" fill={knit ? headgearColor : createShadow(headgearColor, 0.9)} className="pixel" />);
+              elements.push(<rect key={`knit-${x}-${y}`} x={x} y={y} width="1" height="1" fill={knit ? base : shade} className="pixel" />);
+            }
+          }
+          // optional ear flaps for chullo
+          if (name.includes('chullo')) {
+            for (let f = 0; f < 4; f++) {
+              elements.push(
+                <rect key={`flap-l-${f}`} x={headX - 1} y={headY + f} width="1" height="1" fill={shade} className="pixel" />,
+                <rect key={`flap-r-${f}`} x={headX + headDim.width} y={headY + f} width="1" height="1" fill={shade} className="pixel" />
+              );
             }
           }
           break;
-        default:
-          // Better cap rendering - proper baseball cap style
-          // Crown of cap (rounded top)
+        }
+        default: {
+          // Generic cap with visor
           for (let y = 0; y < 7; y++) {
-            const width = y < 3 ? headDim.width - 2 + y : headDim.width + 2;
-            const startX = centerX - Math.floor(width / 2);
-            for (let x = 0; x < width; x++) {
-              // Add slight rounding at top
-              if (y === 0 && (x === 0 || x === width - 1)) continue;
-              elements.push(
-                <rect key={`cap-crown-${y}-${x}`} x={startX + x} y={headY - 6 + y} width="1" height="1" fill={headgearColor} className="pixel" />
-              );
+            const w = y < 3 ? headDim.width - 2 + y : headDim.width + 2;
+            const sx = centerX - Math.floor(w / 2);
+            for (let x = 0; x < w; x++) {
+              if (y === 0 && (x === 0 || x === w - 1)) continue; // slight rounding
+              elements.push(<rect key={`cap-c-${y}-${x}`} x={sx + x} y={headY - 6 + y} width="1" height="1" fill={base} className="pixel" />);
             }
           }
-          
-          // Visor/brim (always present on caps)
+          // Visor
           for (let y = 0; y < 2; y++) {
             for (let x = headX - 1; x < headX + headDim.width + 1; x++) {
-              elements.push(
-                <rect key={`cap-visor-${y}-${x}`} x={x} y={headY + y} width="1" height="1" fill={createShadow(headgearColor, 0.75)} className="pixel" />
-              );
+              elements.push(<rect key={`cap-v-${y}-${x}`} x={x} y={headY + y} width="1" height="1" fill={createShadow(base, 0.75)} className="pixel" />);
             }
           }
-          
-          // Button on top
-          elements.push(
-            <rect key="cap-button" x={centerX - 1} y={headY - 7} width="2" height="1" fill={createShadow(headgearColor, 0.85)} className="pixel" />
-          );
-      }
-    // HAIR ORNAMENTS AND DECORATIONS
-    } else if (nameContains('flower', 'garland', 'lei', 'hairpiece', 'hairpin', 'tikka', 'maang', 'passa', 'rakhdi', 'sheesh', 'comb', 'hair')) {
-      // Render decorative elements in hair
-      if (nameContains('flower', 'garland', 'lei')) {
-        // Flowers in hair
-        for (let i = 0; i < 3; i++) {
-          const flowerX = headX + 2 + i * Math.floor(headDim.width / 3);
-          const flowerY = headY - 2;
-          // Flower petals
-          elements.push(
-            <rect key={`flower-${i}-c`} x={flowerX} y={flowerY} width="2" height="2" fill="#FF69B4" className="pixel" />,
-            <rect key={`flower-${i}-l`} x={flowerX - 1} y={flowerY} width="1" height="1" fill="#FFB6C1" className="pixel" />,
-            <rect key={`flower-${i}-r`} x={flowerX + 2} y={flowerY} width="1" height="1" fill="#FFB6C1" className="pixel" />,
-            <rect key={`flower-${i}-t`} x={flowerX} y={flowerY - 1} width="2" height="1" fill="#FFB6C1" className="pixel" />
-          );
+          // Top button
+          elements.push(<rect key="cap-btn" x={centerX - 1} y={headY - 7} width="2" height="1" fill={shade} className="pixel" />);
         }
-      } else if (nameContains('tikka', 'maang', 'passa')) {
-        // Forehead jewelry
+      }
+    }
+
+    // STRAW / CONICAL (rice hat, sedge hat)
+    else if (nameContains('straw', 'rice hat', 'conical', 'bamboo hat', 'sedge hat', 'coolie')) {
+      const straw = '#D4A76A';
+      const strawDark = createShadow(straw, 0.78);
+
+      // Conical crown
+      const crownHeight = 8;
+      for (let i = 0; i < crownHeight; i++) {
+        const rowY = headY - 6 - i;
+        const rowW = headDim.width + 6 - i * 2;
+        const sx = centerX - Math.floor(rowW / 2);
+        for (let x = 0; x < rowW; x++) {
+          const col = (x % 4 === 1) ? strawDark : straw;
+          elements.push(<rect key={`cone-${i}-${x}`} x={sx + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
+        }
+      }
+
+      // Super-wide brim (very visible)
+      const brimExtra = 12;
+      for (let y = 0; y < 2; y++) {
+        for (let x = headX - brimExtra; x < headX + headDim.width + brimExtra; x++) {
+          const col = (x % 3 === 0) ? strawDark : straw;
+          elements.push(<rect key={`straw-brim-${y}-${x}`} x={x} y={headY + y} width="1" height="1" fill={col} className="pixel" />);
+        }
+      }
+      // Radial ties detail beneath brim
+      for (let r = -10; r <= 10; r += 5) {
         elements.push(
-          <rect key="tikka-chain" x={centerX - 1} y={headY - 1} width="2" height="1" fill="#FFD700" className="pixel" />,
-          <rect key="tikka-pendant" x={centerX - 1} y={headY + 2} width="2" height="2" fill="#DC143C" className="pixel" />
-        );
-      } else if (nameContains('comb', 'hairpin')) {
-        // Decorative comb/pin
-        const combX = headX + headDim.width - 3;
-        elements.push(
-          <rect key="comb-base" x={combX} y={headY - 2} width="3" height="1" fill={material.includes('jewel') ? '#FFD700' : '#C0C0C0'} className="pixel" />
-        );
-        if (material.includes('jewel')) {
-          elements.push(<rect key="comb-jewel" x={combX + 1} y={headY - 3} width="1" height="1" fill="#DC143C" className="pixel" />);
-        }
-      }
-    // HEADBANDS AND BANDS
-    } else if (nameContains('headband', 'band', 'fascinator', 'hennin')) {
-      // Simple band across forehead
-      for (let x = headX - 1; x < headX + headDim.width + 1; x++) {
-        elements.push(<rect key={`band-${x}`} x={x} y={headY} width="1" height="2" fill={headgearColor} className="pixel" />);
-      }
-      if (material.includes('jewel') || material.includes('pearl')) {
-        // Add jewels/decorations
-        for (let i = 0; i < 3; i++) {
-          const jewelX = headX + 2 + i * Math.floor((headDim.width - 2) / 3);
-          elements.push(<rect key={`band-jewel-${i}`} x={jewelX} y={headY} width="1" height="1" fill="#DC143C" className="pixel" />);
-        }
-      }
-      if (nameContains('feather')) {
-        // Add feathers
-        for (let f = 0; f < 5; f++) {
-          elements.push(<rect key={`feather-${f}`} x={centerX + 3} y={headY - 2 - f} width="1" height="1" fill={f % 2 === 0 ? "#8B4513" : "#D2691E"} className="pixel" />);
-        }
-      }
-    // HELMETS
-    } else if (nameContains('helmet')) {
-      const helmetMaterial = material.includes('plate') ? '#C0C0C0' : material.includes('bronze') ? '#CD7F32' : '#A0A0A0';
-      for (let y = headY - 4; y < headY + headDim.height - 2; y++) {
-        for (let x = headX - 2; x < headX + headDim.width + 2; x++) {
-          const distFromCenter = Math.abs(x - centerX);
-          const faceArea = y > headY + 2 && y < headY + headDim.height - 4 && distFromCenter < headDim.width / 2 - 3;
-          if (!faceArea) {
-            const edgeHighlight = distFromCenter < 2 || x === headX - 2;
-            elements.push(<rect key={`helmet-${x}-${y}`} x={x} y={y} width="1" height="1" fill={edgeHighlight ? createHighlight(helmetMaterial, 1.3) : helmetMaterial} className="pixel" />);
-          }
-        }
-      }
-      if (name.includes('norman') || name.includes('knight')) {
-               for (let y = headY + 2; y < headY + 10; y++) {
-          elements.push(<rect key={`nose-guard-${y}`} x={centerX} y={y} width="2" height="1" fill={helmetMaterial} className="pixel" />);
-        }
-      }
-      if (isNoble) {
-        for (let p = 0; p < 10; p++) {
-          const plumeX = centerX + Math.sin(p * 0.3) * 2;
-          elements.push(<rect key={`plume-${p}`} x={plumeX} y={headY - 5 - p} width="2" height="1" fill={p % 2 === 0 ? "#DC143C" : "#8B0000"} className="pixel" />);
-        }
-      }
-    // SUNGLASSES (modern touch)
-    } else if (nameContains('sunglasses', 'glasses', 'spectacles')) {
-      // Render sunglasses
-      const eyeY = headY + Math.floor(headDim.height * 0.35);
-      const leftLensX = headX + Math.floor(headDim.width * 0.25) - 2;
-      const rightLensX = headX + Math.floor(headDim.width * 0.75) - 2;
-      
-      // Lenses
-      for (let x = 0; x < 4; x++) {
-        for (let y = 0; y < 3; y++) {
-          elements.push(
-            <rect key={`lens-l-${x}-${y}`} x={leftLensX + x} y={eyeY + y} width="1" height="1" fill="#000000" opacity="0.8" className="pixel" />,
-            <rect key={`lens-r-${x}-${y}`} x={rightLensX + x} y={eyeY + y} width="1" height="1" fill="#000000" opacity="0.8" className="pixel" />
-          );
-        }
-      }
-      // Bridge
-      for (let x = leftLensX + 4; x < rightLensX; x++) {
-        elements.push(<rect key={`bridge-${x}`} x={x} y={eyeY + 1} width="1" height="1" fill="#333333" className="pixel" />);
-      }
-    // STRAW HAT - Wide brimmed agricultural hat
-    } else if (nameContains('straw', 'rice hat', 'conical', 'bamboo hat', 'sedge hat')) {
-      // Much larger, more visible straw hat
-      const strawColor = '#D4A76A'; // More visible wheat/straw color
-      const darkStraw = createShadow(strawColor, 0.8);
-      
-      // VERY wide and thick brim - make it super obvious
-      // First layer - outermost brim
-      for (let x = headX - 16; x < headX + headDim.width + 16; x++) {
-        elements.push(
-          <rect key={`straw-brim-outer-${x}`} x={x} y={headY + 2} width="1" height="1" fill={darkStraw} className="pixel" />
-        );
-      }
-      
-      // Second layer - main brim (thicker)
-      for (let x = headX - 14; x < headX + headDim.width + 14; x++) {
-        elements.push(
-          <rect key={`straw-brim-main-${x}`} x={x} y={headY + 1} width="1" height="2" fill={strawColor} className="pixel" />
-        );
-      }
-      
-      // Third layer - inner brim with texture
-      for (let x = headX - 12; x < headX + headDim.width + 12; x++) {
-        const isWeave = x % 3 === 0;
-        elements.push(
-          <rect key={`straw-brim-inner-${x}`} x={x} y={headY} width="1" height="2" fill={isWeave ? darkStraw : strawColor} className="pixel" />
-        );
-      }
-      
-      // Larger, more prominent conical crown
-      for (let y = 0; y < 14; y++) {
-        const width = Math.floor((14 - y) * 2.5);
-        const startX = centerX - Math.floor(width / 2);
-        for (let x = 0; x < width; x++) {
-          // Add woven texture
-          const isWeave = (x + y) % 2 === 0;
-          const color = isWeave ? strawColor : darkStraw;
-          elements.push(
-            <rect key={`straw-crown-${y}-${x}`} x={startX + x} y={headY - 12 + y} width="1" height="1" fill={color} className="pixel" />
-          );
-        }
-      }
-      
-      // Strong shadow under brim for depth
-      for (let x = headX - 8; x < headX + headDim.width + 8; x++) {
-        elements.push(
-          <rect key={`straw-shadow-${x}`} x={x} y={headY + 3} width="1" height="2" fill={createShadow(skinTone, 0.6)} className="pixel" />
-        );
-      }
-    // DEFAULT FALLBACK - Better generic hat/cap
-    } else {
-      // Check if it's meant to be a hat based on name
-      const isHat = nameContains('hat', 'cap', 'beret', 'beanie', 'bonnet');
-      
-      if (isHat || material.includes('felt') || material.includes('wool')) {
-        // Render a better hat shape
-        // Crown
-        for (let y = 0; y < 6; y++) {
-          const width = headDim.width - Math.floor(y / 2);
-          const startX = headX + Math.floor((headDim.width - width) / 2);
-          for (let x = 0; x < width; x++) {
-            elements.push(
-              <rect key={`hat-crown-${y}-${x}`} x={startX + x} y={headY - 5 + y} width="1" height="1" fill={headgearColor} className="pixel" />
-            );
-          }
-        }
-        // Small brim if it's a hat
-        if (nameContains('hat')) {
-          for (let x = headX - 2; x < headX + headDim.width + 2; x++) {
-            elements.push(
-              <rect key={`hat-brim-${x}`} x={x} y={headY + 1} width="1" height="1" fill={createShadow(headgearColor, 0.8)} className="pixel" />
-            );
-          }
-        }
-      } else {
-        // Simple headband or cloth
-        elements.push(<rect key="default-band" x={headX - 1} y={headY - 1} width={headDim.width + 2} height="3" fill={headgearColor} className="pixel" />);
-      }
-      
-      // Add jewels if mentioned in name for any generic headgear
-      if (hasJewels) {
-        const jewelX = centerX - 1;
-        let jewelColor = "#DC143C";
-        if (name.includes('diamond')) jewelColor = "#E0FFFF";
-        else if (name.includes('emerald')) jewelColor = "#50C878";
-        else if (name.includes('sapphire')) jewelColor = "#0F52BA";
-        else if (name.includes('pearl')) jewelColor = "#FFF8DC";
-        elements.push(
-          <rect key="default-jewel-center" x={jewelX} y={headY - 2} width="2" height="2" fill={jewelColor} className="pixel" />,
-          <rect key="default-jewel-sparkle1" x={jewelX - 1} y={headY - 2} width="1" height="1" fill="#FFFFFF" opacity="0.6" className="pixel" />,
-          <rect key="default-jewel-sparkle2" x={jewelX + 2} y={headY - 2} width="1" height="1" fill="#FFFFFF" opacity="0.6" className="pixel" />
+          <rect key={`straw-tie-${r}`} x={centerX + r} y={headY + 1} width="1" height="2" fill={strawDark} className="pixel" />
         );
       }
     }
 
+    // HAIR ORNAMENTS / TIKKA / FLOWERS / COMB
+    else if (nameContains('flower', 'garland', 'lei', 'hairpiece', 'hairpin', 'tikka', 'maang', 'passa', 'rakhdi', 'sheesh', 'comb')) {
+      if (nameContains('flower', 'garland', 'lei')) {
+        for (let i = 0; i < 3; i++) {
+          const fx = headX + 2 + i * Math.floor(headDim.width / 3);
+          const fy = headY - 2;
+          elements.push(
+            <rect key={`flower-${i}-c`} x={fx} y={fy} width="2" height="2" fill="#FF69B4" className="pixel" />,
+            <rect key={`flower-${i}-l`} x={fx - 1} y={fy} width="1" height="1" fill={createHighlight('#FF69B4', 1.1)} className="pixel" />,
+            <rect key={`flower-${i}-t`} x={fx} y={fy - 1} width="2" height="1" fill={createHighlight('#FF69B4', 1.1)} className="pixel" />
+          );
+        }
+      } else if (nameContains('tikka', 'maang', 'passa')) {
+        elements.push(
+          <rect key="tikka-chain" x={centerX - 1} y={headY - 1} width="2" height="1" fill="#FFD700" className="pixel" />,
+          <rect key="tikka-pendant" x={centerX - 1} y={headY + 2} width="2" height="2" fill="#DC143C" className="pixel" />
+        );
+      } else {
+        const cx = headX + headDim.width - 3;
+        const metal = material.includes('gold') ? '#FFD700' : '#C0C0C0';
+        elements.push(<rect key="comb-base" x={cx} y={headY - 2} width="3" height="1" fill={metal} className="pixel" />);
+        if (nameContains('jewel')) elements.push(<rect key="comb-gem" x={cx + 1} y={headY - 3} width="1" height="1" fill="#DC143C" className="pixel" />);
+      }
+    }
+
+    // Otherwise, simple band as a safe default
+    else {
+      for (let x = headX; x < headX + headDim.width; x++) {
+        elements.push(<rect key={`band-${x}`} x={x} y={topY} width="1" height="2" fill={base} className="pixel" />);
+        if ((x - headX) % 5 === 0) {
+          elements.push(<rect key={`band-hl-${x}`} x={x} y={topY} width="1" height="1" fill={hl} className="pixel" />);
+        }
+      }
+    }
+
     return <g key="headgear">{elements}</g>;
-  }, [appearanceWithDefaults.headgear, isNoble, isWealthy, headDim.width, headX, headY, appearanceWithDefaults.palette, character.equippedItems, useEquippedItems]);
+  }, [
+    useEquippedItems,
+    character.equippedItems,
+    appearanceWithDefaults.headgear,
+    appearanceWithDefaults.palette.accent,
+    appearanceWithDefaults.palette.secondary,
+    headDim.width,
+    headDim.height,
+    headX,
+    headY,
+    isWealthy,
+    isNoble,
+  ]);
+
 
   // ----- JEWELRY -----
   const renderJewelry = useMemo(() => {

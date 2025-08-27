@@ -99,7 +99,7 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
           {/* Add drop shadow */}
           <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="shadowBlur"/>
           <feOffset in="shadowBlur" dx="1" dy="2" result="shadow"/>
-          <feFlood floodColor="#000000" floodOpacity="0.5"/>
+          <feFlood floodColor="#000000" floodOpacity="0.8"/>
           <feComposite in2="shadow" operator="in" result="shadowColored"/>
           
           {/* Combine everything */}
@@ -123,7 +123,8 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
         </style>
       </defs>
       
-      <g className={`pixelBob-${character.id}`} filter={`url(#playerOutline-${character.id})`}>
+      <g className={`pixelBob-${character.id}`}>
+        {/* Temporarily removed filter for performance: filter={`url(#playerOutline-${character.id})`} */}
         {/* Pixel shadow */}
         <rect x="-4" y="8" width="8" height="2" fill="rgba(0,0,0,0.4)" rx="1" />
         

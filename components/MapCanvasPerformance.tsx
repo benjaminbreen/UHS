@@ -1,8 +1,11 @@
 /**
  * MapCanvasPerformance - Optimized canvas rendering component
- * - Batched coastline halo (fast)
+ * - Eliminates repeated NW corner "mini-islands" via endpoint taper + per-edge jitter
+ * - Batched coastline halo (fast) with nicer blending
+ * - Device-pixel-ratio aware drawing for crisp output
+ * - Subtle pattern alpha jitter to avoid moiré/banding
  * - Edge tiles no longer treated as water
- * - Organic/scalloped shoreline + subtle shallow-water overlay
+ * - Organic/scalloped shoreline + shallow-water overlay
  */
 
 import React, { useRef, useEffect, useMemo } from 'react';
@@ -19,12 +22,12 @@ const NOISE_SCALE_COASTLINE_PERTURB = 0.2;
 const COASTLINE_PERTURB_AMOUNT = TILE_SIZE_PX * 0.25;
 /** Adds subtle scalloping along water edges */
 const SCALLOP_FREQ = 5.0;               // how many scallops per edge
-const SCALLOP_AMPL = TILE_SIZE_PX * 0.04;
+const SCALLOP_AMPL = TILE_SIZE_PX * 0.05;
 
 /** Shallow-water halo controls (drawn into water only; land covers inner half) */
-const HALO_BASE_WIDTH = TILE_SIZE_PX * 0.6;   // starting width (px)
-const HALO_STEPS = 3;                         // number of feathered strokes
-const HALO_DECAY = 0.4;                      // alpha decay per step
+const HALO_BASE_WIDTH = TILE_SIZE_PX * 0.4;   // starting width (px)
+const HALO_STEPS = 4;                         // number of feathered strokes
+const HALO_DECAY = 0.4;                       // alpha decay per step
 
 type OceanPalette = {
   deep: string;
@@ -40,38 +43,38 @@ function getOceanPalette(climate: ClimateType): OceanPalette {
   let p: OceanPalette = {
     deep: '#2563eb',
     mid: '#1e40af',
-    shallowTint: 'rgba(34, 197, 194, 0.18)',
-    foam: 'rgba(255,255,255,0.10)',
-    haloNear: 'rgba(94, 234, 212, 0.18)',
-    haloFar: 'rgba(59, 130, 246, 0.00)',
+    shallowTint: 'rgba(34, 197, 194, 0.34)',
+    foam: 'rgba(255,255,255,0.2)',
+    haloNear: 'rgba(94, 234, 212, 0.2)',
+    haloFar: 'rgba(59, 130, 246, 0.05)',
   };
 
   if (climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL) {
     p = {
       deep: '#1e40af',
       mid: '#1e3a8a',
-      shallowTint: 'rgba(34, 211, 238, 0.25)',
-      foam: 'rgba(255,255,255,0.10)',
-      haloNear: 'rgba(45, 212, 191, 0.22)',
-      haloFar: 'rgba(56, 189, 248, 0.00)',
+      shallowTint: 'rgba(34, 211, 238, 0.4)',
+      foam: 'rgba(255,255,255,0.2)',
+      haloNear: 'rgba(45, 212, 191, 0.24)',
+      haloFar: 'rgba(56, 189, 248, 0.05)',
     };
   } else if (climate === ClimateType.ARID) {
     p = {
       deep: '#1e3a8a',
       mid: '#172554',
-      shallowTint: 'rgba(14, 165, 233, 0.22)',
-      foam: 'rgba(255,255,255,0.09)',
-      haloNear: 'rgba(56, 189, 248, 0.18)',
-      haloFar: 'rgba(37, 99, 235, 0.00)',
+      shallowTint: 'rgba(14, 165, 233, 0.52)',
+      foam: 'rgba(255,255,255,0.19)',
+      haloNear: 'rgba(56, 189, 248, 0.48)',
+      haloFar: 'rgba(37, 99, 235, 0.15)',
     };
   } else if (climate === ClimateType.COLD) {
     p = {
       deep: '#1e3a8a',
       mid: '#172554',
-      shallowTint: 'rgba(148, 163, 184, 0.20)',
-      foam: 'rgba(200,220,240,0.10)',
+      shallowTint: 'rgba(148, 163, 184, 0.4)',
+      foam: 'rgba(200,220,240,0.21)',
       haloNear: 'rgba(148, 163, 184, 0.17)',
-      haloFar: 'rgba(30, 58, 138, 0.00)',
+      haloFar: 'rgba(30, 58, 138, 0.05)',
     };
   }
   return p;
@@ -90,6 +93,16 @@ interface MapCanvasProps {
   season?: 'spring' | 'summer' | 'fall' | 'winter';
 }
 
+/** Small integer hash → [0,1) for stable per-tile jitter */
+function hashToUnit(x: number, y: number, seed: number) {
+  // 32-bit mix (x,y,seed)
+  let h = (x | 0) * 374761393 + ((y | 0) ^ (seed | 0)) * 668265263;
+  h = (h ^ (h >>> 13)) * 1274126177;
+  h ^= h >>> 16;
+  // Convert to [0,1). >>>0 ensures unsigned
+  return (h >>> 0) / 4294967296;
+}
+
 class MapCanvasRenderer {
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
@@ -101,6 +114,28 @@ class MapCanvasRenderer {
   // Optional caching for the batched coastline path
   private cachedCoastPath: Path2D | null = null;
   private cachedCoastSeed: number | null = null;
+
+  // ---- Helpers for anti-corner-bulge + per-edge variation ----
+  private static TAU = Math.PI * 2;
+
+  /** 0 at endpoints, 1 at mid-edge; power>1 narrows the active mid */
+  private endTaper(t: number, power = 1.25) {
+    t = Math.max(0, Math.min(1, t));
+    return Math.pow(Math.sin(Math.PI * t), power);
+  }
+
+  /** Tiny, stable, per-edge jitter so scallop phase/freq isn't aligned */
+  private edgeJitter(noise: ValueNoise, x: number, y: number, edgeIdx: number) {
+    const phase = noise.noise(
+      (x + 0.5) * 0.37 + edgeIdx * 3.11,
+      (y + 0.5) * 0.37 - edgeIdx * 2.71
+    ) * MapCanvasRenderer.TAU;
+    const freq  = 1 + 0.25 * noise.noise(
+      (x + 18) * 0.2 + edgeIdx,
+      (y - 11) * 0.2 - edgeIdx
+    );
+    return { phase, freq };
+  }
 
   setCanvas(canvas: HTMLCanvasElement | null) {
     this.canvas = canvas;
@@ -161,8 +196,13 @@ class MapCanvasRenderer {
   ) {
     if (!this.canvas || !this.ctx) return;
 
-    this.canvas.width = canvasSize.width;
-    this.canvas.height = canvasSize.height;
+    // Device-pixel-ratio scaling for crisp output
+    const dpr = (window.devicePixelRatio || 1);
+    this.canvas.width = Math.max(1, Math.floor(canvasSize.width * dpr));
+    this.canvas.height = Math.max(1, Math.floor(canvasSize.height * dpr));
+    this.canvas.style.width = `${canvasSize.width}px`;
+    this.canvas.style.height = `${canvasSize.height}px`;
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // Coordinates now in CSS px
 
     this.ctx.imageSmoothingEnabled = !disableSmoothing;
     if (!disableSmoothing && 'imageSmoothingQuality' in this.ctx) {
@@ -175,42 +215,45 @@ class MapCanvasRenderer {
       shoreline: new ValueNoise(mapData.seed + 300),
     };
 
-    this.renderOceanBackground(mapData);
-    this.renderShoals(mapData);
+    this.renderOceanBackground(mapData, canvasSize);
+    this.renderShoals(mapData, canvasSize);
     this.renderCoastlineHalo(mapData, noise);     // batched + fast
-    this.renderLandTiles(mapData, patterns, noise, season);
+    this.renderLandTiles(mapData, patterns, noise, season, canvasSize);
 
     if (isNight && playerX !== undefined && playerY !== undefined) {
       this.renderPlayerCenteredVignette(playerX, playerY, canvasSize);
     }
   }
 
-  private renderOceanBackground(mapData: MapData) {
-    if (!this.canvas || !this.ctx) return;
+  private renderOceanBackground(mapData: MapData, canvasSize: { width: number; height: number }) {
+    if (!this.ctx) return;
     const p = getOceanPalette(mapData.climate);
 
+    // Fill deep ocean
     this.ctx.fillStyle = p.deep;
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
 
+    // Mild depth gradient (CSS px coords after DPR transform)
     const depthGradient = this.ctx.createRadialGradient(
-      this.canvas.width / 2,
-      this.canvas.height / 2,
+      canvasSize.width / 2,
+      canvasSize.height / 2,
       0,
-      this.canvas.width / 2,
-      this.canvas.height / 2,
-      Math.max(this.canvas.width, this.canvas.height) * 0.8
+      canvasSize.width / 2,
+      canvasSize.height / 2,
+      Math.max(canvasSize.width, canvasSize.height) * 0.8
     );
     depthGradient.addColorStop(0, p.shallowTint);
-    depthGradient.addColorStop(0.35, 'rgba(37, 99, 235, 0.16)');
+    depthGradient.addColorStop(0.35, 'rgba(37, 99, 235, 0.26)');
     depthGradient.addColorStop(0.75, 'rgba(30, 58, 138, 0.10)');
     depthGradient.addColorStop(1, 'transparent');
     this.ctx.fillStyle = depthGradient;
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
   }
 
-  private renderShoals(mapData: MapData) {
+  private renderShoals(mapData: MapData, canvasSize: { width: number; height: number }) {
     if (!this.ctx) return;
 
+    // Simple LOD: skip obvious off-canvas tiles (coordinates are in map space starting at 0,0)
     for (let y = 0; y < mapData.height; y++) {
       for (let x = 0; x < mapData.width; x++) {
         const tile = mapData.tiles[y][x];
@@ -218,7 +261,12 @@ class MapCanvasRenderer {
 
         const tileX = x * TILE_SIZE_PX;
         const tileY = y * TILE_SIZE_PX;
-        const g = this.ctx.createRadialGradient(
+
+        if (tileX > canvasSize.width || tileY > canvasSize.height || (tileX + TILE_SIZE_PX) < 0 || (tileY + TILE_SIZE_PX) < 0) {
+          continue;
+        }
+
+        const g = this.ctx!.createRadialGradient(
           tileX + TILE_SIZE_PX / 2,
           tileY + TILE_SIZE_PX / 2,
           0,
@@ -231,8 +279,8 @@ class MapCanvasRenderer {
         g.addColorStop(0.85, 'rgba(94, 234, 212, 0.04)');
         g.addColorStop(1, 'transparent');
 
-        this.ctx.fillStyle = g;
-        this.ctx.fillRect(
+        this.ctx!.fillStyle = g;
+        this.ctx!.fillRect(
           tileX - TILE_SIZE_PX * 0.5,
           tileY - TILE_SIZE_PX * 0.5,
           TILE_SIZE_PX * 2,
@@ -255,33 +303,20 @@ class MapCanvasRenderer {
 
     const addEdge = (x: number, y: number, dir: 'top' | 'right' | 'bottom' | 'left') => {
       const baseX = x * size,
-        baseY = y * size;
+            baseY = y * size;
 
       const segments = 4; // enough for smoothness but cheap
+      const edgeIdx = dir === 'top' ? 0 : dir === 'right' ? 1 : dir === 'bottom' ? 2 : 3;
+      const { phase, freq } = this.edgeJitter(noiseGenerators.shoreline, x, y, edgeIdx);
+
       for (let i = 0; i <= segments; i++) {
         const t = i / segments;
 
-        let bx = 0,
-          by = 0,
-          isH = false;
-        if (dir === 'top') {
-          bx = baseX + size * t;
-          by = baseY;
-          isH = true;
-        }
-        if (dir === 'bottom') {
-          bx = baseX + size * (1 - t);
-          by = baseY + size;
-          isH = true;
-        }
-        if (dir === 'right') {
-          bx = baseX + size;
-          by = baseY + size * t;
-        }
-        if (dir === 'left') {
-          bx = baseX;
-          by = baseY + size * (1 - t);
-        }
+        let bx = 0, by = 0, isH = false;
+        if (dir === 'top')    { bx = baseX + size * t;        by = baseY;           isH = true; }
+        if (dir === 'bottom') { bx = baseX + size * (1 - t);  by = baseY + size;    isH = true; }
+        if (dir === 'right')  { bx = baseX + size;            by = baseY + size*t;  }
+        if (dir === 'left')   { bx = baseX;                   by = baseY + size*(1 - t); }
 
         // canonical t for noise direction
         const tCanon = dir === 'bottom' || dir === 'left' ? 1 - t : t;
@@ -292,14 +327,20 @@ class MapCanvasRenderer {
         const sampleX = isH ? x + tCanon : Math.min(x, nx) + 1;
         const sampleY = isH ? Math.min(y, ny) + 1 : y + tCanon;
 
-        let perturb =
-          noiseGenerators.shoreline.noise(
-            (sampleX + mapData.seed) * NOISE_SCALE_COASTLINE_PERTURB,
-            (sampleY + mapData.seed) * NOISE_SCALE_COASTLINE_PERTURB
-          ) * COASTLINE_PERTURB_AMOUNT;
+        let perturbNoise = noiseGenerators.shoreline.noise(
+          (sampleX + mapData.seed) * NOISE_SCALE_COASTLINE_PERTURB,
+          (sampleY + mapData.seed) * NOISE_SCALE_COASTLINE_PERTURB
+        );
 
-        // small scallop perpendicular to edge
-        perturb += Math.sin(tCanon * Math.PI * SCALLOP_FREQ + (x + y) * 0.4) * SCALLOP_AMPL;
+        // Fade perturbation at the ends so corners stay pinned
+        const endT = this.endTaper(tCanon, 1.2);
+
+        let perturb = perturbNoise * COASTLINE_PERTURB_AMOUNT * endT;
+
+        // Edge-specific scallop with phase/freq jitter, also tapered at ends
+        perturb += Math.sin(
+          tCanon * Math.PI * SCALLOP_FREQ * freq + phase
+        ) * SCALLOP_AMPL * endT;
 
         const px = isH ? bx : bx + perturb;
         const py = isH ? by + perturb : by;
@@ -337,13 +378,14 @@ class MapCanvasRenderer {
     const coast = this.cachedCoastPath!;
 
     this.ctx.save();
-    this.ctx.globalCompositeOperation = 'lighter'; // fastest & subtle
+    // Softer than 'lighter' and prevents additive blowout
+    this.ctx.globalCompositeOperation = 'lighten';
     this.ctx.lineJoin = 'round';
     this.ctx.lineCap = 'round';
 
-    let alpha = 0.70; // start subtle; decays per step
+    let alpha = 0.95; // start subtle; decays per step
     for (let i = 0; i < HALO_STEPS; i++) {
-      const w = HALO_BASE_WIDTH * (1 + i * 0.8);
+      const w = HALO_BASE_WIDTH * (1 + i * 0.9);
       this.ctx.globalAlpha = alpha;
       this.ctx.strokeStyle = pal.haloNear;
       this.ctx.lineWidth = w;
@@ -352,8 +394,8 @@ class MapCanvasRenderer {
     }
 
     // very thin foam highlight at the edge
-    this.ctx.globalAlpha = 0.9;
-    this.ctx.lineWidth = Math.max(1, TILE_SIZE_PX * 0.2);
+    this.ctx.globalAlpha = 0.99;
+    this.ctx.lineWidth = Math.max(1, TILE_SIZE_PX * 0.1);
     this.ctx.strokeStyle = pal.foam;
     this.ctx.stroke(coast);
 
@@ -364,7 +406,8 @@ class MapCanvasRenderer {
     mapData: MapData,
     patterns: any,
     noiseGenerators: any,
-    season?: 'spring' | 'summer' | 'fall' | 'winter'
+    season: 'spring' | 'summer' | 'fall' | 'winter' | undefined,
+    canvasSize: { width: number; height: number }
   ) {
     if (!this.ctx) return;
 
@@ -386,52 +429,60 @@ class MapCanvasRenderer {
       tiles.forEach((tile) => {
         const organicPath = this.generateOrganicLandPath(tile, mapData, noiseGenerators);
 
-        // Base fill + subtle shadow
-        this.ctx.save();
-        this.ctx.shadowColor = 'rgba(0,0,0,0.25)';
-        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-        this.ctx.shadowBlur = isSafari ? 1.5 : 2.5;
-        this.ctx.shadowOffsetX = 1.2;
-        this.ctx.shadowOffsetY = 1.2;
-        this.ctx.fillStyle = color;
-        this.ctx.fill(organicPath);
-        this.ctx.restore();
-
-        // Texture overlay
-        const terrainPattern = patterns.terrain.get(tile.biome);
-        if (terrainPattern) {
-          let patternOpacity = 0.12;
-          if ([BiomeType.DESERT, BiomeType.GRASSLAND, BiomeType.BEACH, BiomeType.SCRUB].includes(tile.biome)) {
-            patternOpacity = 0.42;
-          } else if ([BiomeType.SNOW, BiomeType.TUNDRA, BiomeType.HILLS].includes(tile.biome)) {
-            patternOpacity = 0.32;
-          } else if ([BiomeType.FOREST, BiomeType.DENSE_FOREST, BiomeType.JUNGLE].includes(tile.biome)) {
-            patternOpacity = 0.25;
-          } else if ([BiomeType.MOUNTAIN, BiomeType.HIGH_PEAK, BiomeType.VOLCANIC_ROCK].includes(tile.biome)) {
-            patternOpacity = 0.35;
-          }
-          this.ctx.globalAlpha = patternOpacity;
-          this.ctx.fillStyle = terrainPattern;
-          this.ctx.fill(organicPath);
-          this.ctx.globalAlpha = 1.0;
-        }
-
-        // Ambient occlusion vignette
+        // Cull obviously off-canvas polygons (cheap bbox test)
         const tileX = tile.x * TILE_SIZE_PX;
         const tileY = tile.y * TILE_SIZE_PX;
-        const g = this.ctx.createRadialGradient(
+        if (tileX > canvasSize.width || tileY > canvasSize.height || (tileX + TILE_SIZE_PX) < 0 || (tileY + TILE_SIZE_PX) < 0) {
+          return;
+        }
+
+        // Base fill + subtle shadow
+        this.ctx!.save();
+        this.ctx!.shadowColor = 'rgba(0,0,0,0.15)';
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        this.ctx!.shadowBlur = isSafari ? 1.5 : 2.5;
+        this.ctx!.shadowOffsetX = isSafari ? 0.8 : 1.2;
+        this.ctx!.shadowOffsetY = isSafari ? 0.8 : 1.2;
+        this.ctx!.fillStyle = color;
+        this.ctx!.fill(organicPath);
+        this.ctx!.restore();
+
+        // Texture overlay with tiny jitter to avoid moiré/banding
+        const terrainPattern = patterns.terrain.get(tile.biome);
+        if (terrainPattern) {
+          let patternOpacity = 0.25;
+          if ([BiomeType.DESERT, BiomeType.GRASSLAND, BiomeType.BEACH, BiomeType.SCRUB].includes(tile.biome)) {
+            patternOpacity = 0.45;
+          } else if ([BiomeType.SNOW, BiomeType.TUNDRA, BiomeType.HILLS].includes(tile.biome)) {
+            patternOpacity = 0.22;
+          } else if ([BiomeType.FOREST, BiomeType.DENSE_FOREST, BiomeType.JUNGLE].includes(tile.biome)) {
+            patternOpacity = 0.35;
+          } else if ([BiomeType.MOUNTAIN, BiomeType.HIGH_PEAK, BiomeType.VOLCANIC_ROCK].includes(tile.biome)) {
+            patternOpacity = 0.4;
+          }
+          // ±0.02 jitter, seeded per tile
+          const jitter = hashToUnit(tile.x, tile.y, mapData.seed) * 0.04 - 0.02;
+          const finalAlpha = Math.max(0, Math.min(1, patternOpacity + jitter));
+          this.ctx!.globalAlpha = finalAlpha;
+          this.ctx!.fillStyle = terrainPattern;
+          this.ctx!.fill(organicPath);
+          this.ctx!.globalAlpha = 1;
+        }
+
+        // Ambient occlusion vignette (gentler)
+        const g = this.ctx!.createRadialGradient(
           tileX + TILE_SIZE_PX / 2,
           tileY + TILE_SIZE_PX / 2,
-          TILE_SIZE_PX * 0.2,
+          TILE_SIZE_PX * 0.8,
           tileX + TILE_SIZE_PX / 2,
           tileY + TILE_SIZE_PX / 2,
-          TILE_SIZE_PX * 0.85
+          TILE_SIZE_PX * 0.94
         );
         g.addColorStop(0, 'transparent');
-        g.addColorStop(0.75, 'rgba(0,0,0,0.01)');
-        g.addColorStop(1, 'rgba(0,0,0,0.18)');
-        this.ctx.fillStyle = g;
-        this.ctx.fill(organicPath);
+        g.addColorStop(0.75, 'rgba(0,0,0,0.24)');
+        g.addColorStop(1, 'rgba(0,0,0,0.31)'); // was 0.18
+        this.ctx!.fillStyle = g;
+        this.ctx!.fill(organicPath);
       });
     });
     this.ctx.restore();
@@ -444,6 +495,7 @@ class MapCanvasRenderer {
     const tileX = x * TILE_SIZE_PX;
     const tileY = y * TILE_SIZE_PX;
 
+    // Handle urban biomes (roads, plazas, parks) as hard rectangles
     if ([BiomeType.ROAD, BiomeType.PLAZA, BiomeType.PARK].includes(tile.biome)) {
       path.rect(tileX, tileY, TILE_SIZE_PX, TILE_SIZE_PX);
       return path;
@@ -452,26 +504,14 @@ class MapCanvasRenderer {
     const getNeighbor = (nx: number, ny: number): Tile | null =>
       nx >= 0 && nx < mapData.width && ny >= 0 && ny < mapData.height ? mapData.tiles[ny][nx] : null;
 
-    const getFractalNoise = (px: number, py: number) => {
-      let value = 0;
-      let amplitude = 0.9;
-      let frequency = 1.5;
-      for (let i = 0; i < 3; i++) {
-        value += noiseGenerators.shoreline.noise(px * frequency, py * frequency) * amplitude;
-        amplitude *= 0.5;
-        frequency *= 2;
-      }
-      return value;
-    };
+    path.moveTo(tileX, tileY); // start at top-left
 
     const edges = [
-      { x1: tileX, y1: tileY, x2: tileX + TILE_SIZE_PX, y2: tileY, nx: 0, ny: -1, edgeName: 'top' },
-      { x1: tileX + TILE_SIZE_PX, y1: tileY, x2: tileX + TILE_SIZE_PX, y2: tileY + TILE_SIZE_PX, nx: 1, ny: 0, edgeName: 'right' },
-      { x1: tileX + TILE_SIZE_PX, y1: tileY + TILE_SIZE_PX, x2: tileX, y2: tileY + TILE_SIZE_PX, nx: 0, ny: 1, edgeName: 'bottom' },
-      { x1: tileX, y1: tileY + TILE_SIZE_PX, x2: tileX, y2: tileY, nx: -1, ny: 0, edgeName: 'left' },
+      { x1: tileX, y1: tileY, x2: tileX + TILE_SIZE_PX, y2: tileY, nx: 0, ny: -1, edgeName: 'top' as const },
+      { x1: tileX + TILE_SIZE_PX, y1: tileY, x2: tileX + TILE_SIZE_PX, y2: tileY + TILE_SIZE_PX, nx: 1, ny: 0, edgeName: 'right' as const },
+      { x1: tileX + TILE_SIZE_PX, y1: tileY + TILE_SIZE_PX, x2: tileX, y2: tileY + TILE_SIZE_PX, nx: 0, ny: 1, edgeName: 'bottom' as const },
+      { x1: tileX, y1: tileY + TILE_SIZE_PX, x2: tileX, y2: tileY, nx: -1, ny: 0, edgeName: 'left' as const },
     ];
-
-    path.moveTo(edges[0].x1, edges[0].y1);
 
     edges.forEach((edge) => {
       const neighbor = getNeighbor(x + edge.nx, y + edge.ny);
@@ -482,6 +522,9 @@ class MapCanvasRenderer {
         path.lineTo(edge.x2, edge.y2);
       } else {
         const segments = 4;
+        const edgeIdx = edge.edgeName === 'top' ? 0 : edge.edgeName === 'right' ? 1 : edge.edgeName === 'bottom' ? 2 : 3;
+        const { phase, freq } = this.edgeJitter(noiseGenerators.shoreline, x, y, edgeIdx);
+
         for (let i = 0; i <= segments; i++) {
           const t = i / segments;
           const baseX = edge.x1 + (edge.x2 - edge.x1) * t;
@@ -503,13 +546,23 @@ class MapCanvasRenderer {
             noiseSampleY = y + tCanon;
           }
 
-          let perturb =
-            getFractalNoise(
-              (noiseSampleX + mapData.seed) * NOISE_SCALE_COASTLINE_PERTURB,
-              (noiseSampleY + mapData.seed) * NOISE_SCALE_COASTLINE_PERTURB
-            ) * COASTLINE_PERTURB_AMOUNT;
+          // Multi-octave shoreline noise (fractal)
+          let f = 0, amp = 0.9, fq = 1.5;
+          for (let o = 0; o < 4; o++) {
+            f += noiseGenerators.shoreline.noise(
+              (noiseSampleX + mapData.seed) * NOISE_SCALE_COASTLINE_PERTURB * fq,
+              (noiseSampleY + mapData.seed) * NOISE_SCALE_COASTLINE_PERTURB * fq
+            ) * amp;
+            amp *= 0.4; fq *= 2;
+          }
 
-          perturb += Math.sin(tCanon * Math.PI * SCALLOP_FREQ + (x + y) * 0.4) * SCALLOP_AMPL;
+          // Taper to zero at endpoints so corners are anchored
+          const endT = this.endTaper(tCanon, 1.2);
+
+          let perturb = f * COASTLINE_PERTURB_AMOUNT * endT;
+
+          // Per-edge phase/freq jitter (breaks “same NW nub”)
+          perturb += Math.sin(tCanon * Math.PI * SCALLOP_FREQ * freq + phase) * SCALLOP_AMPL * endT;
 
           const px = isH ? baseX : baseX + perturb;
           const py = isH ? baseY + perturb : baseY;
@@ -528,7 +581,7 @@ class MapCanvasRenderer {
     playerY: number,
     canvasSize: { width: number; height: number }
   ) {
-    if (!this.canvas || !this.ctx) return;
+    if (!this.ctx) return;
 
     this.ctx.save();
 
@@ -581,6 +634,7 @@ export const MapCanvasPerformance = React.forwardRef<HTMLCanvasElement, MapCanva
     const rendererRef = useRef<MapCanvasRenderer>(new MapCanvasRenderer());
 
     const patterns = useTilePatterns({ mapData });
+    // Recompute patterns when seed changes (stable otherwise)
     const memoizedPatterns = useMemo(() => patterns, [mapData.seed]);
 
     useEffect(() => {
@@ -614,17 +668,18 @@ export const MapCanvasPerformance = React.forwardRef<HTMLCanvasElement, MapCanva
           left: 0,
           transform: `translate(${panX}px, ${panY}px) scale(${zoomLevel})`,
           transformOrigin: '0 0',
-          imageRendering: zoomLevel > 3 ? 'crisp-edges' : 'auto',
+          imageRendering: zoomLevel >= 3 ? 'pixelated' : 'auto',
           filter:
             mapData.climate === ClimateType.TROPICAL ||
             mapData.climate === ClimateType.SEMITROPICAL ||
             mapData.climate === ClimateType.ARID
-              ? 'contrast(1.00) saturate(1.01) brightness(1.00) hue-rotate(-0deg)'
+              ? 'contrast(1.02) saturate(1.05) brightness(1.00) hue-rotate(0deg)'
               : mapData.climate === ClimateType.COLD
-              ? 'contrast(1) saturate(1) brightness(1) hue-rotate(-0deg)'
+              ? 'contrast(1) saturate(1) brightness(1.05) hue-rotate(0deg)'
               : 'contrast(1.0) saturate(1.0) brightness(1.0)',
           transition: 'filter 0.1s ease-out',
           willChange: 'transform',
+          contain: 'strict', // reduce layout/paint spill
         }}
       />
     );

@@ -33,7 +33,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Tyrrhenian Sea": { name: "Tyrrhenian Sea", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.OPEN_OCEAN },
              },
         "British Isles": {
-            "London": { name: "London", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT },
+            "London": { name: "London", climate: ClimateType.TEMPERATE, archetype: MapArchetype.RIVER_PORT, riverDirection: 'east-west'},
             "Edinburgh": { name: "Edinburgh", climate: ClimateType.TEMPERATE, archetype: MapArchetype.PENINSULA },
             "Dublin": { name: "Dublin", climate: ClimateType.TEMPERATE, archetype: MapArchetype.BAY },
             "York": { name: "York", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ALL_LAND, hasLakes: false },
@@ -833,13 +833,6 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
                archetype: MapArchetype.ALL_LAND
            },
          
-       },
-       "Arctic": {
-           "Frozen Wastes": {
-               name: "Frozen Wastes",
-               climate: ClimateType.COLD, // Cold AIR = ice crystals
-               archetype: MapArchetype.ALL_LAND
-           },
            
        }
    }

@@ -1,6 +1,18 @@
 /**
- * components/WeatherEffects.tsx - Dynamic weather particle effects
- * Performant CSS-based animations for rain, snow, and atmospheric effects
+ * components/WeatherEffects.tsx - Dynamic weather particle & atmosphere effects
+ * High-performance CSS animations integrated with WeatherService.fx and CloudSystem
+ *
+ * Features (backward compatible):
+ *  - Rain/drizzle with droplet sizing from fx.dropletSize, lens-sheen, gust lines
+ *  - Snow with flake sizing from fx.flakeSize, sway & spin, visibility-aware density
+ *  - Heatwave shimmer & ground mirage (fx.heatShimmer or special === 'heatwave')
+ *  - Wind-blown leaves (fx.leavesActivity or wind heuristics)
+ *  - Airborne particles: dust/sand (dry & windy) or pollen (warm, calm) via fx.airborneParticles
+ *  - Fog/mist/haze layering using fx.fogDensity / fx.hazeDensity + special
+ *  - Frost sparkle field (special === 'frost')
+ *  - Rainbow (special === 'rainbow' or fx.rainbowProbability)
+ *  - Puddle ripples using fx.surfaceWetnessNow (snapshot)
+ *  - Lightning flash frequency scaled by fx.lightningProbability
  */
 
 import React, { useMemo, useEffect, useRef } from 'react';
@@ -16,11 +28,10 @@ interface WeatherEffectsProps {
 class ParticlePool {
   private particles: HTMLDivElement[] = [];
   private activeCount = 0;
-  
+
   constructor(private maxParticles: number, private className: string) {}
-  
+
   init(container: HTMLElement) {
-    // Create particle pool
     for (let i = 0; i < this.maxParticles; i++) {
       const particle = document.createElement('div');
       particle.className = this.className;
@@ -31,140 +42,307 @@ class ParticlePool {
       this.particles.push(particle);
     }
   }
-  
+
   activate(count: number, configureFn: (particle: HTMLDivElement, index: number) => void) {
     const toActivate = Math.min(count, this.maxParticles);
-    
-    // Activate particles
     for (let i = 0; i < toActivate; i++) {
-      const particle = this.particles[i];
-      configureFn(particle, i);
-      particle.style.display = 'block';
+      const p = this.particles[i];
+      configureFn(p, i);
+      p.style.display = 'block';
     }
-    
-    // Deactivate unused particles
     for (let i = toActivate; i < this.activeCount; i++) {
       this.particles[i].style.display = 'none';
     }
-    
     this.activeCount = toActivate;
   }
-  
+
   cleanup() {
-    this.particles.forEach(p => p.remove());
+    this.particles.forEach((p) => p.remove());
     this.particles = [];
     this.activeCount = 0;
   }
 }
 
-const WeatherEffects: React.FC<WeatherEffectsProps> = ({ 
-  weather, 
-  width = window.innerWidth, 
-  height = window.innerHeight 
+const WeatherEffects: React.FC<WeatherEffectsProps> = ({
+  weather,
+  width = typeof window !== 'undefined' ? window.innerWidth : 1920,
+  height = typeof window !== 'undefined' ? window.innerHeight : 1080
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Pools
   const rainPoolRef = useRef<ParticlePool | null>(null);
   const snowPoolRef = useRef<ParticlePool | null>(null);
-  
-  // Initialize particle pools
+  const leafPoolRef = useRef<ParticlePool | null>(null);
+  const airPoolRef = useRef<ParticlePool | null>(null);
+
+  // Shorthands / safe fallbacks
+  const fx = weather.fx;
+  const clamp = (v: number, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+
+  // Initialize pools once
   useEffect(() => {
     if (!containerRef.current) return;
-    
-    // Create pools
-    rainPoolRef.current = new ParticlePool(150, 'rain-particle');
-    snowPoolRef.current = new ParticlePool(100, 'snow-particle');
-    
-    // Initialize pools
+    rainPoolRef.current = new ParticlePool(260, 'rain-particle');
+    snowPoolRef.current = new ParticlePool(180, 'snow-particle');
+    leafPoolRef.current = new ParticlePool(120, 'leaf-particle');
+    airPoolRef.current = new ParticlePool(160, 'air-particle');
+
     rainPoolRef.current.init(containerRef.current);
     snowPoolRef.current.init(containerRef.current);
-    
+    leafPoolRef.current.init(containerRef.current);
+    airPoolRef.current.init(containerRef.current);
+
     return () => {
       rainPoolRef.current?.cleanup();
       snowPoolRef.current?.cleanup();
+      leafPoolRef.current?.cleanup();
+      airPoolRef.current?.cleanup();
     };
   }, []);
-  
-  // Update particles based on weather
+
+  // Update particles whenever weather/size changes
   useEffect(() => {
     if (!containerRef.current) return;
-    
-    // Rain particles
+
+    const wind = weather.windSpeed ?? 0;
+    const windDir = weather.windDirection ?? 0;
+    const windX = Math.cos((windDir * Math.PI) / 180) * wind;
+    const windShear = Math.min(160, Math.max(-160, windX * 6));
+    const intensity = clamp(weather.intensity ?? 0);
+
+    // RAIN / DRIZZLE
     if (weather.precipitation === 'rain' || weather.precipitation === 'drizzle') {
-      const particleCount = Math.floor(
-        weather.intensity * (weather.precipitation === 'rain' ? 150 : 50)
-      );
-      
-      rainPoolRef.current?.activate(particleCount, (particle, i) => {
+      const sizeFactor = fx?.dropletSize ?? (weather.precipitation === 'drizzle' ? 0.25 : 0.7);
+      const base = weather.precipitation === 'rain' ? 220 : 80;
+      const count = Math.floor(intensity * base);
+
+      rainPoolRef.current?.activate(count, (particle) => {
         const x = Math.random() * width;
-        const delay = Math.random() * 5; // Increased from 2
-        const duration = 2.5 + Math.random() * 1.5; // Much slower: 2.5-4s instead of 0.5-1s
-        const windOffset = weather.windSpeed * 2;
-        
+        const startY = -20 - Math.random() * 80;
+        const dropW = clamp(0.8 + sizeFactor * 2, 0.8, 3);
+        const dropH = clamp(8 + sizeFactor * 16, 8, 24);
+        const duration = 1.2 + Math.random() * 1.4; // cinematic but not too slow
+        const delay = Math.random() * 3.0;
+
+        particle.style.setProperty('--fall-y', `${height + 50}px`);
+        particle.style.setProperty('--wind-offset', `${windShear.toFixed(1)}px`);
+
         particle.style.left = `${x}px`;
-        particle.style.top = '-20px';
-        particle.style.width = weather.precipitation === 'rain' ? '2px' : '1px';
-        particle.style.height = weather.precipitation === 'rain' ? '15px' : '8px';
-        particle.style.background = 'linear-gradient(to bottom, transparent, rgba(150, 180, 220, 0.6))';
-        particle.style.animation = `rain-fall ${duration}s linear ${delay}s infinite`;
-        particle.style.transform = `rotate(${windOffset}deg)`;
+        particle.style.top = `${startY}px`;
+        particle.style.width = `${dropW}px`;
+        particle.style.height = `${dropH}px`;
+        particle.style.borderRadius = '2px';
+        particle.style.background =
+          'linear-gradient(to bottom, rgba(185,205,240,0.06), rgba(155,185,230,0.75))';
+        particle.style.opacity = String(0.55 + Math.random() * 0.45);
+        particle.style.animation = `rain-fall ${duration}s linear ${delay}s infinite, rain-tilt ${
+          1.8 + Math.random() * 1.2
+        }s ease-in-out ${Math.random().toFixed(2)}s infinite alternate`;
+
+        const visualTilt = Math.max(-16, Math.min(16, windX * 0.6));
+        particle.style.transform = `rotate(${visualTilt}deg) translateZ(0)`;
       });
     } else {
       rainPoolRef.current?.activate(0, () => {});
     }
-    
-    // Snow particles
+
+    // SNOW
     if (weather.precipitation === 'snow') {
-      const particleCount = Math.floor(weather.intensity * 100);
-      
-      snowPoolRef.current?.activate(particleCount, (particle, i) => {
+      const flakeK = fx?.flakeSize ?? (0.3 + intensity * 0.7);
+      const count = Math.floor(intensity * 150 * clamp(weather.visibility ?? 1)); // fewer when visibility is low anyway
+
+      snowPoolRef.current?.activate(count, (particle) => {
         const x = Math.random() * width;
-        const size = 2 + Math.random() * 4;
-        const delay = Math.random() * 10; // Increased from 5
-        const duration = 8 + Math.random() * 4; // Much slower: 8-12s instead of 3-5s
-        const drift = -20 + Math.random() * 40 + weather.windSpeed;
-        
+        const startY = -20 - Math.random() * 60;
+        const size = clamp(1 + flakeK * 3, 1, 4.5);
+        const duration = 9 + Math.random() * 6;
+        const delay = Math.random() * 9;
+        const sway = Math.min(28, 10 + Math.abs(windX) * 1.2);
+        const spin = Math.random() < 0.5;
+
+        particle.style.setProperty('--fall-y', `${height + 40}px`);
+        particle.style.setProperty('--drift', `${(windX * 2.8).toFixed(1)}px`);
+        particle.style.setProperty('--sway', `${sway.toFixed(1)}px`);
+        particle.style.setProperty('--spinDir', spin ? '1' : '-1');
+
         particle.style.left = `${x}px`;
-        particle.style.top = '-20px';
+        particle.style.top = `${startY}px`;
         particle.style.width = `${size}px`;
         particle.style.height = `${size}px`;
         particle.style.borderRadius = '50%';
-        particle.style.background = 'rgba(255, 255, 255, 0.8)';
-        particle.style.boxShadow = '0 0 2px rgba(255, 255, 255, 0.5)';
-        particle.style.animation = `snow-fall ${duration}s linear ${delay}s infinite`;
-        particle.style.setProperty('--drift', `${drift}px`);
+        particle.style.background = 'rgba(255,255,255,0.95)';
+        particle.style.boxShadow = '0 0 2px rgba(255,255,255,0.55)';
+        particle.style.animation = `snow-fall ${duration}s linear ${delay}s infinite, snow-sway ${
+          5 + Math.random() * 3
+        }s ease-in-out ${Math.random().toFixed(2)}s infinite alternate, snow-spin ${
+          14 + Math.random() * 10
+        }s linear ${Math.random() * 6}s infinite`;
       });
     } else {
       snowPoolRef.current?.activate(0, () => {});
     }
+
+    // LEAVES (windy & visible)
+    const leavesActivity = fx?.leavesActivity ?? clamp((weather.windSpeed - 10) / 60);
+    const showLeaves = leavesActivity > 0.05 && weather.precipitation === 'none' && (weather.visibility ?? 1) > 0.5;
+    if (showLeaves) {
+      const count = Math.min(120, Math.floor(leavesActivity * 120));
+      const leafPalette = ['#9E6A3A', '#C58B35', '#7AA45A', '#B26E5D', '#8C7A4B'];
+
+      leafPoolRef.current?.activate(count, (particle) => {
+        const x = Math.random() * width;
+        const startY = Math.random() * (height * 0.25) - 60;
+        const w = 6 + Math.random() * 8;
+        const h = 3 + Math.random() * 5;
+        const dx = windX * (12 + Math.random() * 14) + (Math.random() * 160 - 80);
+        const dy = height + 60 + Math.random() * 120;
+        const dur = 6 + Math.random() * 4;
+        const delay = Math.random() * 3;
+
+        particle.style.setProperty('--leaf-dx', `${dx}px`);
+        particle.style.setProperty('--leaf-dy', `${dy}px`);
+        particle.style.setProperty('--leaf-dx-half', `${dx * 0.55}px`);
+        particle.style.setProperty('--leaf-dy-half', `${dy * 0.55}px`);
+        particle.style.setProperty('--leaf-rotMid', `${(Math.random() * 260 - 130).toFixed(1)}deg`);
+        particle.style.setProperty('--leaf-rotEnd', `${(Math.random() * 540 - 270).toFixed(1)}deg`);
+
+        particle.style.left = `${x}px`;
+        particle.style.top = `${startY}px`;
+        particle.style.width = `${w}px`;
+        particle.style.height = `${h}px`;
+        particle.style.borderRadius = '40% 60% 50% 50% / 50% 40% 60% 50%';
+        const col = leafPalette[(Math.random() * leafPalette.length) | 0];
+        particle.style.background = `linear-gradient(135deg, ${col}, rgba(0,0,0,0.25))`;
+        particle.style.boxShadow = '0 0 1px rgba(0,0,0,0.25)';
+        particle.style.opacity = String(0.75 + Math.random() * 0.25);
+        particle.style.animation = `leaf-move ${dur}s ease-in ${delay}s infinite`;
+      });
+    } else {
+      leafPoolRef.current?.activate(0, () => {});
+    }
+
+    // AIRBORNE PARTICLES (dust/sand or pollen)
+    const ap = fx?.airborneParticles;
+    const showDust = ap && (ap.type === 'dust' || ap.type === 'sand');
+    const showPollen = ap && ap.type === 'pollen';
+    if ((showDust || showPollen) && weather.precipitation === 'none') {
+      const count = Math.floor((ap!.density ?? 0.4) * 120);
+      airPoolRef.current?.activate(count, (particle) => {
+        const x = Math.random() * width;
+        const baseY = height * (showDust ? (0.08 + Math.random() * 0.5) : (0.15 + Math.random() * 0.5));
+        const dx = showDust ? windX * (8 + Math.random() * 18) : (Math.random() * 40 - 20);
+        const dy = showDust ? (10 + Math.random() * 40) : -(30 + Math.random() * 60);
+        const size = showDust ? 0.8 + Math.random() * 1.6 : 1 + Math.random() * 2;
+        const dur = showDust ? 7 + Math.random() * 5 : 9 + Math.random() * 6;
+        const delay = Math.random() * 3.5;
+
+        particle.style.setProperty('--air-dx', `${dx.toFixed(1)}px`);
+        particle.style.setProperty('--air-dy', `${dy.toFixed(1)}px`);
+        particle.style.left = `${x}px`;
+        particle.style.top = `${baseY}px`;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        particle.style.borderRadius = '50%';
+        particle.style.background = showDust ? 'rgba(194, 164, 120, 0.75)' : 'rgba(230, 240, 150, 0.9)';
+        particle.style.boxShadow = showDust
+          ? '0 0 1px rgba(194,164,120,0.6)'
+          : '0 0 2px rgba(230,240,150,0.6)';
+        particle.style.opacity = String(showDust ? (0.35 + Math.random() * 0.3) : (0.55 + Math.random() * 0.35));
+        particle.style.animation = `air-drift ${dur}s ease-in-out ${delay}s infinite`;
+      });
+    } else {
+      airPoolRef.current?.activate(0, () => {});
+    }
   }, [weather, width, height]);
-  
-  // Fog effect
+
+  // Fog / mist / haze: derive layered opacities
   const fogLayers = useMemo(() => {
-    if (weather.special !== 'fog' && weather.special !== 'mist') return null;
-    
-    const opacity = weather.special === 'fog' ? 0.6 : 0.3;
-    const layers = weather.special === 'fog' ? 3 : 2;
-    
+    const isFog = weather.special === 'fog';
+    const isMist = weather.special === 'mist';
+    const fogDensity = weather.fx?.fogDensity ?? (isFog ? 0.6 : isMist ? 0.34 : 0);
+    const hazeDensity = weather.fx?.hazeDensity ?? 0;
+
+    const layers =
+      fogDensity > 0
+        ? 2 + (fogDensity > 0.5 ? 1 : 0)
+        : hazeDensity > 0.1
+        ? 1
+        : 0;
+
+    if (layers === 0) return null;
+
     return Array.from({ length: layers }, (_, i) => ({
-      opacity: opacity * (1 - i * 0.2),
-      animationDuration: `${20 + i * 10}s`,
-      animationDelay: `${i * 2}s`
+      opacity:
+        fogDensity > 0
+          ? fogDensity * (1 - i * 0.22)
+          : hazeDensity * (0.22 + (i === 0 ? 0.15 : 0.08)),
+      duration: 24 + i * 10,
+      delay: i * 1.4,
+      scale: 1.15 + i * 0.05
     }));
-  }, [weather.special]);
-  
-  // Rainbow effect
-  const showRainbow = weather.special === 'rainbow';
-  
+  }, [weather.special, weather.fx?.fogDensity, weather.fx?.hazeDensity]);
+
+  // Overlays
+  const showHeat = weather.special === 'heatwave' || (weather.fx?.heatShimmer ?? 0) > 0.15;
+  const showRainbow = weather.special === 'rainbow' || (weather.fx?.rainbowProbability ?? 0) > 0.55;
+  const showFrost = weather.special === 'frost';
+  const lightningProb = weather.fx?.lightningProbability ?? 0;
+  const showLightning = (weather.precipitation === 'rain' || weather.precipitation === 'drizzle') && lightningProb > 0.2;
+  const showGusts = (weather.windSpeed ?? 0) > 12 && (weather.precipitation === 'rain' || weather.precipitation === 'drizzle');
+
+  const wetness = clamp(weather.fx?.surfaceWetnessNow ?? 0);
+  const showPuddles = wetness > 0.35;
+
   return (
     <>
-      {/* Weather particles container */}
-      <div 
+      {/* Particle container */}
+      <div
         ref={containerRef}
         className="absolute inset-0 pointer-events-none overflow-hidden"
         style={{ zIndex: 3 }}
       />
-      
-      {/* Fog layers */}
+
+      {/* Lens sheen for heavier rain */}
+      {(weather.precipitation === 'rain' || weather.precipitation === 'drizzle') && (weather.intensity ?? 0) > 0.6 && (
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            zIndex: 3,
+            opacity: Math.min(0.35, (weather.intensity ?? 0) * 0.45),
+            background:
+              'repeating-linear-gradient( -14deg, rgba(220,230,255,0.05), rgba(220,230,255,0.05) 2px, rgba(220,230,255,0.0) 4px )',
+            filter: 'blur(0.2px)'
+          }}
+        />
+      )}
+
+      {/* Wind gust lines behind rain */}
+      {showGusts && (
+        <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 3 }}>
+          {Array.from({ length: 6 }, (_, i) => (
+            <div
+              key={`gust-${i}`}
+              className="absolute"
+              style={{
+                left: `${(i * 137) % width}px`,
+                top: `${((i * 97) % (height * 0.6)) + height * 0.1}px`,
+                width: '28vw',
+                maxWidth: '420px',
+                height: '2px',
+                background:
+                  'linear-gradient(90deg, rgba(200,220,255,0), rgba(200,220,255,0.25), rgba(200,220,255,0))',
+                transform: `rotate(${(Math.atan2(weather.windSpeed ?? 0, 100) * 180) / Math.PI - 10}deg)`,
+                opacity: 0.35,
+                animation: `wind-gust ${3 + Math.random() * 2}s ease-in-out ${Math.random() * 2}s infinite`
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Fog / mist / haze layering */}
       {fogLayers && (
         <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 2 }}>
           {fogLayers.map((layer, i) => (
@@ -172,81 +350,254 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
               key={`fog-${i}`}
               className="absolute inset-0"
               style={{
-                background: `radial-gradient(ellipse at center, 
-                  rgba(200, 200, 200, ${layer.opacity}) 0%, 
-                  rgba(200, 200, 200, ${layer.opacity * 0.5}) 50%, 
-                  transparent 100%)`,
-                animation: `fog-drift ${layer.animationDuration} ease-in-out ${layer.animationDelay} infinite alternate`,
-                transform: 'scale(1.2)'
+                background: `
+                  radial-gradient(ellipse at 50% ${80 + i * 6}%, rgba(200,200,200,${layer.opacity}) 0%, rgba(200,200,200,${
+                  layer.opacity * 0.6
+                }) 35%, rgba(200,200,200,${layer.opacity * 0.24}) 58%, transparent 75%),
+                  linear-gradient(to top, rgba(210,210,210,${layer.opacity * 0.25}) 0%, rgba(210,210,210,0) 45%)
+                `,
+                mixBlendMode: 'soft-light',
+                transform: `scale(${layer.scale}) translateX(${i % 2 ? '-6%' : '6%'})`,
+                animation: `fog-drift ${layer.duration}s ease-in-out ${layer.delay}s infinite alternate`
               }}
             />
           ))}
         </div>
       )}
-      
-      {/* Rainbow */}
+
+      {/* Heatwave shimmer and mirage (lower band) */}
+      {showHeat && (
+        <>
+          <div
+            aria-hidden
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              zIndex: 2,
+              opacity: clamp((weather.fx?.heatShimmer ?? 0.4) * 0.6 + 0.2),
+              background:
+                'repeating-linear-gradient(0deg, rgba(255,255,255,0), rgba(255,255,255,0) 8px, rgba(255,230,180,0.06) 12px, rgba(255,255,255,0) 16px)',
+              animation: 'heat-shimmer 6s ease-in-out infinite',
+              filter: 'blur(0.6px)'
+            }}
+          />
+          <div
+            aria-hidden
+            className="absolute pointer-events-none"
+            style={{
+              left: 0,
+              right: 0,
+              bottom: '6%',
+              height: '16%',
+              zIndex: 2,
+              background:
+                'radial-gradient(ellipse at 50% 0%, rgba(255,225,170,0.10), rgba(255,225,170,0.05) 45%, transparent 70%)',
+              filter: 'blur(2px)',
+              animation: 'mirage 5.5s ease-in-out infinite'
+            }}
+          />
+        </>
+      )}
+
+      {/* Frost sparkles near ground */}
+      {showFrost && (
+        <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{ height: '40%', zIndex: 2, opacity: 0.9 }}>
+          {Array.from({ length: 90 }, (_, i) => {
+            const x = (i * 73) % width;
+            const y = height * 0.65 + ((i * 97) % Math.floor(height * 0.12));
+            const d = 1 + (i % 3);
+            return (
+              <div
+                key={`frost-${i}`}
+                className="absolute"
+                style={{
+                  left: `${x}px`,
+                  top: `${y}px`,
+                  width: `${d}px`,
+                  height: `${d}px`,
+                  borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.95)',
+                  boxShadow: '0 0 3px rgba(180,220,255,0.8)',
+                  animation: `sparkle ${2 + (i % 5) * 0.4}s ease-in-out ${((i * 0.13) % 2).toFixed(2)}s infinite`
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* Rainbow (double arc) */}
       {showRainbow && (
-        <div 
+        <div
           className="absolute pointer-events-none"
           style={{
-            top: '20%',
-            right: '10%',
-            width: '400px',
-            height: '200px',
-            zIndex: 2
+            top: '18%',
+            right: '8%',
+            width: Math.min(480, Math.max(320, width * 0.35)),
+            height: Math.min(260, Math.max(180, height * 0.22)),
+            zIndex: 2,
+            filter: 'blur(0.2px)'
           }}
         >
-          <svg width="100%" height="100%" viewBox="0 0 400 200">
+          <svg width="100%" height="100%" viewBox="0 0 400 240">
             <defs>
-              <linearGradient id="rainbow-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="rgba(255, 0, 0, 0.4)" />
-                <stop offset="16.66%" stopColor="rgba(255, 127, 0, 0.4)" />
-                <stop offset="33.33%" stopColor="rgba(255, 255, 0, 0.4)" />
-                <stop offset="50%" stopColor="rgba(0, 255, 0, 0.4)" />
-                <stop offset="66.66%" stopColor="rgba(0, 0, 255, 0.4)" />
-                <stop offset="83.33%" stopColor="rgba(75, 0, 130, 0.4)" />
-                <stop offset="100%" stopColor="rgba(148, 0, 211, 0.4)" />
+              <linearGradient id="rainbow-grad-1" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="rgba(255, 0, 0, 0.55)" />
+                <stop offset="16.66%" stopColor="rgba(255, 127, 0, 0.55)" />
+                <stop offset="33.33%" stopColor="rgba(255, 255, 0, 0.55)" />
+                <stop offset="50%" stopColor="rgba(0, 255, 0, 0.55)" />
+                <stop offset="66.66%" stopColor="rgba(0, 0, 255, 0.55)" />
+                <stop offset="83.33%" stopColor="rgba(75, 0, 130, 0.55)" />
+                <stop offset="100%" stopColor="rgba(148, 0, 211, 0.55)" />
               </linearGradient>
+              <linearGradient id="rainbow-grad-2" x1="100%" y1="0%" x2="0%" y2="0%">
+                <stop offset="0%" stopColor="rgba(255, 0, 0, 0.25)" />
+                <stop offset="16.66%" stopColor="rgba(255, 127, 0, 0.25)" />
+                <stop offset="33.33%" stopColor="rgba(255, 255, 0, 0.25)" />
+                <stop offset="50%" stopColor="rgba(0, 255, 0, 0.25)" />
+                <stop offset="66.66%" stopColor="rgba(0, 0, 255, 0.25)" />
+                <stop offset="83.33%" stopColor="rgba(75, 0, 130, 0.25)" />
+                <stop offset="100%" stopColor="rgba(148, 0, 211, 0.25)" />
+              </linearGradient>
+              <filter id="rainbow-bloom" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="2" />
+              </filter>
             </defs>
-            <path
-              d="M 50 200 A 150 150 0 0 1 350 200"
-              stroke="url(#rainbow-gradient)"
-              strokeWidth="20"
-              fill="none"
-              opacity="0.6"
-            />
-            <path
-              d="M 70 200 A 130 130 0 0 1 330 200"
-              stroke="url(#rainbow-gradient)"
-              strokeWidth="15"
-              fill="none"
-              opacity="0.4"
-            />
+            <path d="M 40 230 A 170 170 0 0 1 360 230" stroke="url(#rainbow-grad-1)" strokeWidth="18" fill="none" opacity="0.75" filter="url(#rainbow-bloom)" />
+            <path d="M 60 230 A 150 150 0 0 1 340 230" stroke="url(#rainbow-grad-2)" strokeWidth="14" fill="none" opacity="0.45" filter="url(#rainbow-bloom)" />
           </svg>
         </div>
       )}
-      
+
+      {/* Puddle ripples (subtle, near bottom) */}
+      {showPuddles && (
+        <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{ height: '18%', zIndex: 2, opacity: clamp(0.25 + wetness * 0.45) }}>
+          {Array.from({ length: 12 }, (_, i) => {
+            const w = 80 + (i % 4) * 30;
+            const l = (i * 11.3) % width;
+            const d = 3 + (i % 3);
+            return (
+              <div
+                key={`puddle-${i}`}
+                className="absolute"
+                style={{
+                  left: `${l}px`,
+                  bottom: `${(i % 3) * 6}px`,
+                  width: `${w}px`,
+                  height: `${w / 4}px`,
+                  borderRadius: '50%',
+                  background: 'radial-gradient(ellipse at center, rgba(200,220,255,0.15) 0%, rgba(200,220,255,0.05) 50%, rgba(200,220,255,0) 70%)',
+                  filter: 'blur(1px)',
+                  animation: `ripple ${4 + d}s ease-out ${(i % 5) * 0.7}s infinite`
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* Lightning flash (frequency scaled by probability) */}
+      {showLightning && (
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            zIndex: 4,
+            animation: `lightning-flash ${3 + (1 - clamp(lightningProb)) * 3}s ease-in-out ${Math.random() * 2}s infinite`,
+            background: 'radial-gradient(circle at 60% 20%, rgba(255,255,255,0.6), rgba(255,255,255,0) 40%)',
+            mixBlendMode: 'screen',
+            opacity: 0
+          }}
+        />
+      )}
+
       {/* CSS animations */}
       <style jsx="true">{`
+        /* RAIN */
         @keyframes rain-fall {
-          to {
-            transform: translateY(${height + 20}px) translateX(var(--wind-offset, 0));
-          }
+          0%   { transform: translate3d(0, 0, 0); }
+          100% { transform: translate3d(var(--wind-offset, 0), var(--fall-y, ${height + 50}px), 0); }
         }
-        
+        @keyframes rain-tilt {
+          0%   { filter: drop-shadow(0 0 0 rgba(255,255,255,0)); }
+          100% { filter: drop-shadow(0 0 2px rgba(255,255,255,0.15)); }
+        }
+
+        /* SNOW */
         @keyframes snow-fall {
-          to {
-            transform: translateY(${height + 20}px) translateX(var(--drift, 0));
-          }
+          0%   { transform: translate3d(0, 0, 0); }
+          100% { transform: translate3d(var(--drift, 0), var(--fall-y, ${height + 40}px), 0); }
         }
-        
+        @keyframes snow-sway {
+          0%   { margin-left: calc(var(--sway, 16px) * -1); }
+          100% { margin-left: calc(var(--sway, 16px)); }
+        }
+        @keyframes snow-spin {
+          0%   { transform: rotate(0deg); }
+          100% { transform: rotate(calc(360deg * var(--spinDir, 1))); }
+        }
+
+        /* LEAVES */
+        @keyframes leaf-move {
+          0%   { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 0; }
+          10%  { opacity: 0.9; }
+          50%  { transform: translate3d(var(--leaf-dx-half, 100px), var(--leaf-dy-half, 200px), 0) rotate(var(--leaf-rotMid, 120deg)); }
+          100% { transform: translate3d(var(--leaf-dx, 200px), var(--leaf-dy, 400px), 0) rotate(var(--leaf-rotEnd, 300deg)); opacity: 0; }
+        }
+
+        /* AIR (dust/sand/pollen) */
+        @keyframes air-drift {
+          0%   { transform: translate3d(0, 0, 0); opacity: 0; }
+          10%  { opacity: 0.7; }
+          90%  { opacity: 0.7; }
+          100% { transform: translate3d(var(--air-dx, 40px), var(--air-dy, -50px), 0); opacity: 0; }
+        }
+
+        /* FOG / HAZE */
         @keyframes fog-drift {
-          0% {
-            transform: translateX(-10%) scale(1.2);
-          }
-          100% {
-            transform: translateX(10%) scale(1.2);
-          }
+          0%   { transform: translateX(-6%) scale(1.2); }
+          100% { transform: translateX(6%)  scale(1.2); }
+        }
+
+        /* GUSTS */
+        @keyframes wind-gust {
+          0%   { opacity: 0; transform: translateX(-10%) scaleX(0.9); }
+          20%  { opacity: 0.45; }
+          50%  { opacity: 0.35; transform: translateX(10%)  scaleX(1.0); }
+          80%  { opacity: 0.15; }
+          100% { opacity: 0; transform: translateX(24%)  scaleX(1.05); }
+        }
+
+        /* HEATWAVE */
+        @keyframes heat-shimmer {
+          0%   { background-position: 0 0; }
+          50%  { background-position: 0 8px; }
+          100% { background-position: 0 0; }
+        }
+        @keyframes mirage {
+          0%   { transform: scaleY(1.0); opacity: 0.55; }
+          50%  { transform: scaleY(1.06); opacity: 0.75; }
+          100% { transform: scaleY(1.0); opacity: 0.55; }
+        }
+
+        /* FROST */
+        @keyframes sparkle {
+          0%, 100% { opacity: 0.1; }
+          50%      { opacity: 1; }
+        }
+
+        /* PUDDLES */
+        @keyframes ripple {
+          0%   { transform: scale(0.95); opacity: 0.4; }
+          60%  { opacity: 0.2; }
+          100% { transform: scale(1.05); opacity: 0.0; }
+        }
+
+        /* LIGHTNING */
+        @keyframes lightning-flash {
+          0%, 96%, 100% { opacity: 0; }
+          97% { opacity: 0.9; }
+          98% { opacity: 0.1; }
+          99% { opacity: 0.6; }
         }
       `}</style>
     </>

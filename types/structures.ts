@@ -57,4 +57,8 @@ export interface TerrainStructure {
   // For factory subtypes
   factorySubtype?: string;
   factorySymbolType?: 'plantation' | 'warehouse' | 'manufactory' | 'mill' | 'refinery' | 'factory19th' | 'factory20th';
+  
+  // For ruins - culture and era specific rendering
+  culturalZone?: string;
+  era?: string;
 }

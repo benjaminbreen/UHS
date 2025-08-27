@@ -7,6 +7,11 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react';
 import { MapData, Tile, BiomeType, ClimateType, DevTooltipDisplayData, AnimalEntity, NpcEntity, VegetationEntity, LensMode, TerrainStructure, Season, PlayerCharacter, HistoricalEra, DeployedVessel, PathType } from '../types/index';
 import { loadTamedAnimals, TamedAnimal } from '../services/animalTamingService';
+import { isMobileDevice } from '../utils/deviceUtils';
+import MobileControls from './mobile/MobileControls';
+import MobileHeader from './mobile/MobileHeader';
+import MobileQuickStats from './mobile/MobileQuickStats';
+import MobileSidebar from './mobile/MobileSidebar';
 import { 
     TILE_SIZE_PX as TILE_SIZE_PX_CONST,
     MAP_WIDTH_TILES, 
@@ -21,7 +26,8 @@ import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { selectBuilding } from '../utils/buildingSelectionSystem';
 import { getLocationCulturalStyle } from '../utils/culturalMappingUtils';
-import { RuinsSymbol, CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol, FishingHutSymbol, SteamSymbol, GovernmentDistrictSymbol, FireflySymbol, MineralGlintSymbol, OasisSymbol, PlazaSymbol, ParkSymbol, HarborDistrictSymbol, IndustrialDistrictSymbol } from './symbols';
+import { CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol, FishingHutSymbol, SteamSymbol, GovernmentDistrictSymbol, FireflySymbol, MineralGlintSymbol, OasisSymbol, PlazaSymbol, ParkSymbol, HarborDistrictSymbol, IndustrialDistrictSymbol, PaddockSymbol, LavaSymbol } from './symbols';
+import RuinsSymbolNew from './symbols/ruins/RuinsSymbolNew';
 import VesselSymbol from './symbols/VesselSymbol';
 import TrainSymbol from './symbols/TrainSymbol';
 import LumberCampSymbol from './symbols/structures/LumberCampSymbol';
@@ -58,7 +64,7 @@ import TileHoverTooltip from './TileHoverTooltip';
 import { getSafariOptimizedClassName, getSafariOptimizedStyle } from '../utils/safariUtils';
 
 const TILE_SIZE_PX = TILE_SIZE_PX_CONST;
-const ICON_ANIMATION_DURATION = 200;
+const ICON_ANIMATION_DURATION = 200; // Back to 200ms for smoother, more controlled animation
 const INITIAL_ZOOM_LEVEL = 2;
 
 type PlayerMode = 'ship' | 'onFoot';
@@ -189,8 +195,11 @@ const rafThrottle = <T extends (...args: any[]) => any>(
   };
 };
 
-// Optimized easing functions
-const easeInOutCubic = (t: number): number => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+// Optimized easing function - linear for most predictable movement
+const easeInOutCubic = (t: number): number => {
+  // Using linear interpolation for consistent, predictable movement
+  return t;
+};
 
 interface MapDisplayOptimizedProps {
   mapData: MapData | null;
@@ -203,6 +212,7 @@ interface MapDisplayOptimizedProps {
   onPoiClick: (poi: TerrainStructure) => void;
   onSettlementClick: (tile: Tile) => void;
   onVesselClick?: (vessel: DeployedVessel) => void;
+  onPlayerMove?: (dx: number, dy: number) => void;
   activeLens: LensMode;
   logicalControlledIconX: number | null; 
   logicalControlledIconY: number | null; 
@@ -252,6 +262,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   onPoiClick,
   onSettlementClick,
   onVesselClick,
+  onPlayerMove,
   activeLens, 
   logicalControlledIconX, 
   logicalControlledIconY,
@@ -581,12 +592,24 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           }
 
           const elapsedTime = currentTime - animationStartTime.current;
+          
+          // If we detect a large frame skip (>50ms), just snap to position
+          if (elapsedTime > ICON_ANIMATION_DURATION + 50) {
+            setDisplayPixelIconX(targetPixelX);
+            setDisplayPixelIconY(targetPixelY);
+            animationFrameId.current = null;
+            animationStartTime.current = null;
+            onIconAnimationComplete();
+            return;
+          }
+          
           const progress = Math.min(elapsedTime / ICON_ANIMATION_DURATION, 1);
           const easedProgress = easeInOutCubic(progress);
 
           const newX = animationStartX.current + (targetPixelX - animationStartX.current) * easedProgress;
           const newY = animationStartY.current + (targetPixelY - animationStartY.current) * easedProgress;
           
+          // Direct state updates for immediate response
           setDisplayPixelIconX(newX);
           setDisplayPixelIconY(newY);
 
@@ -846,7 +869,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           componentInfo = { fileName: 'FortressSymbols.tsx', symbolName: 'FortressSymbol' };
           break;
         case 'ruin':
-          componentInfo = { fileName: 'RuinsSymbol.tsx', symbolName: 'RuinsSymbol' };
+          componentInfo = { fileName: 'ruins/RuinsSymbolNew.tsx', symbolName: 'RuinsSymbolNew' };
           break;
         case 'quarry':
           componentInfo = { fileName: 'QuarrySymbol.tsx', symbolName: 'getQuarrySymbol' };
@@ -1417,7 +1440,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   }, [mapData, zoomLevel, isMobile, mobileNavSpeed]);
 
   // Performance-based rendering decisions with Safari optimizations and debug overrides
-  const shouldRenderDetailedSymbols = debugSettings?.reduceSVGComplexity ? false : zoomLevel > 0.8;
+  const shouldRenderDetailedSymbols = debugSettings?.reduceSVGComplexity ? false : zoomLevel > 0.;
   const shouldRenderVegetation = zoomLevel >= 1.0; // Hide vegetation when zoomed out for performance
   const shouldRenderAnimations = debugSettings?.disableAnimations ? false : zoomLevel > 0.6;
   const shouldUseBlurEffects = debugSettings?.disableBlurEffects ? false : !isSafari; // Completely disable blur effects on Safari for performance
@@ -1464,7 +1487,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
 
   return (
     <div className="relative w-full h-full overflow-hidden rounded-3xl">
-      {/* Enhanced zoom controls */}
+      {/* Enhanced zoom controls - hide on mobile */}
+      {!isMobile && (
       <div className="absolute top-6 left-6 z-30 flex flex-col space-y-2">
         <button 
           onClick={zoomIn} 
@@ -1488,237 +1512,37 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           <span className="text-xl transition-transform group-hover:scale-110">⌂</span>
         </button>
       </div>
-
-      {/* Mobile Direction Controls */}
-      {isMobile && (
-        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center space-y-1">
-          {/* Control mode toggle */}
-          <div className="flex items-center space-x-1 mb-2 bg-gray-900/90 rounded-lg p-1">
-            <button
-              onClick={() => setMobileControlMode('player')}
-              className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
-                mobileControlMode === 'player' 
-                  ? 'bg-green-600 text-white' 
-                  : 'bg-gray-700/80 text-gray-300'
-              }`}
-            >
-              👤 Move
-            </button>
-            <button
-              onClick={() => setMobileControlMode('camera')}
-              className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
-                mobileControlMode === 'camera' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-700/80 text-gray-300'
-              }`}
-            >
-              📷 View
-            </button>
-          </div>
-          {/* Up button */}
-          <button
-            onClick={() => {
-              if (mobileControlMode === 'camera') {
-                panMap('up');
-              } else {
-                // Simulate ArrowUp key press for player movement
-                const event = new KeyboardEvent('keydown', { key: 'ArrowUp' });
-                window.dispatchEvent(event);
-                setTimeout(() => {
-                  const upEvent = new KeyboardEvent('keyup', { key: 'ArrowUp' });
-                  window.dispatchEvent(upEvent);
-                }, 100);
-              }
-            }}
-            onTouchStart={(e) => { 
-              e.preventDefault(); 
-              if (mobileControlMode === 'camera') {
-                panMap('up');
-              } else {
-                const event = new KeyboardEvent('keydown', { key: 'ArrowUp' });
-                window.dispatchEvent(event);
-              }
-            }}
-            onTouchEnd={(e) => {
-              if (mobileControlMode === 'player') {
-                const event = new KeyboardEvent('keyup', { key: 'ArrowUp' });
-                window.dispatchEvent(event);
-              }
-            }}
-            className={getSafariOptimizedClassName(`group w-14 h-14 flex items-center justify-center rounded-full border-2 ${
-              mobileControlMode === 'player' 
-                ? 'border-green-400/50 bg-green-900/80 active:bg-green-600/80' 
-                : 'border-blue-400/50 bg-blue-900/80 active:bg-blue-600/80'
-            } text-white shadow-xl transition-all duration-150 backdrop-blur-sm active:scale-95`)}
-            aria-label={mobileControlMode === 'player' ? "Move Up" : "Pan Up"}
-          >
-            <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
-            </svg>
-          </button>
-          
-          {/* Middle row with left, center, right */}
-          <div className="flex items-center space-x-1">
-            {/* Left button */}
-            <button
-              onClick={() => {
-                if (mobileControlMode === 'camera') {
-                  panMap('left');
-                } else {
-                  const event = new KeyboardEvent('keydown', { key: 'ArrowLeft' });
-                  window.dispatchEvent(event);
-                  setTimeout(() => {
-                    const upEvent = new KeyboardEvent('keyup', { key: 'ArrowLeft' });
-                    window.dispatchEvent(upEvent);
-                  }, 100);
-                }
-              }}
-              onTouchStart={(e) => { 
-                e.preventDefault(); 
-                if (mobileControlMode === 'camera') {
-                  panMap('left');
-                } else {
-                  const event = new KeyboardEvent('keydown', { key: 'ArrowLeft' });
-                  window.dispatchEvent(event);
-                }
-              }}
-              onTouchEnd={(e) => {
-                if (mobileControlMode === 'player') {
-                  const event = new KeyboardEvent('keyup', { key: 'ArrowLeft' });
-                  window.dispatchEvent(event);
-                }
-              }}
-              className={getSafariOptimizedClassName(`group w-14 h-14 flex items-center justify-center rounded-full border-2 ${
-                mobileControlMode === 'player' 
-                  ? 'border-green-400/50 bg-green-900/80 active:bg-green-600/80' 
-                  : 'border-blue-400/50 bg-blue-900/80 active:bg-blue-600/80'
-              } text-white shadow-xl transition-all duration-150 backdrop-blur-sm active:scale-95`)}
-              aria-label={mobileControlMode === 'player' ? "Move Left" : "Pan Left"}
-            >
-              <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            
-            {/* Center/Reset button */}
-            <button
-              onClick={resetZoomAndCenter}
-              onTouchStart={(e) => { e.preventDefault(); resetZoomAndCenter(); }}
-              className={getSafariOptimizedClassName("group w-14 h-14 flex items-center justify-center rounded-full border-2 border-amber-400/50 bg-amber-900/80 text-amber-200 shadow-xl transition-all duration-150 backdrop-blur-sm active:bg-amber-600/80 active:scale-95")}
-              aria-label="Center on Player"
-            >
-              <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
-                <circle cx="12" cy="12" r="3" fill="white"/>
-              </svg>
-            </button>
-            
-            {/* Right button */}
-            <button
-              onClick={() => {
-                if (mobileControlMode === 'camera') {
-                  panMap('right');
-                } else {
-                  const event = new KeyboardEvent('keydown', { key: 'ArrowRight' });
-                  window.dispatchEvent(event);
-                  setTimeout(() => {
-                    const upEvent = new KeyboardEvent('keyup', { key: 'ArrowRight' });
-                    window.dispatchEvent(upEvent);
-                  }, 100);
-                }
-              }}
-              onTouchStart={(e) => { 
-                e.preventDefault(); 
-                if (mobileControlMode === 'camera') {
-                  panMap('right');
-                } else {
-                  const event = new KeyboardEvent('keydown', { key: 'ArrowRight' });
-                  window.dispatchEvent(event);
-                }
-              }}
-              onTouchEnd={(e) => {
-                if (mobileControlMode === 'player') {
-                  const event = new KeyboardEvent('keyup', { key: 'ArrowRight' });
-                  window.dispatchEvent(event);
-                }
-              }}
-              className={getSafariOptimizedClassName(`group w-14 h-14 flex items-center justify-center rounded-full border-2 ${
-                mobileControlMode === 'player' 
-                  ? 'border-green-400/50 bg-green-900/80 active:bg-green-600/80' 
-                  : 'border-blue-400/50 bg-blue-900/80 active:bg-blue-600/80'
-              } text-white shadow-xl transition-all duration-150 backdrop-blur-sm active:scale-95`)}
-              aria-label={mobileControlMode === 'player' ? "Move Right" : "Pan Right"}
-            >
-              <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-          
-          {/* Down button */}
-          <button
-            onClick={() => {
-              if (mobileControlMode === 'camera') {
-                panMap('down');
-              } else {
-                const event = new KeyboardEvent('keydown', { key: 'ArrowDown' });
-                window.dispatchEvent(event);
-                setTimeout(() => {
-                  const upEvent = new KeyboardEvent('keyup', { key: 'ArrowDown' });
-                  window.dispatchEvent(upEvent);
-                }, 100);
-              }
-            }}
-            onTouchStart={(e) => { 
-              e.preventDefault(); 
-              if (mobileControlMode === 'camera') {
-                panMap('down');
-              } else {
-                const event = new KeyboardEvent('keydown', { key: 'ArrowDown' });
-                window.dispatchEvent(event);
-              }
-            }}
-            onTouchEnd={(e) => {
-              if (mobileControlMode === 'player') {
-                const event = new KeyboardEvent('keyup', { key: 'ArrowDown' });
-                window.dispatchEvent(event);
-              }
-            }}
-            className={getSafariOptimizedClassName(`group w-14 h-14 flex items-center justify-center rounded-full border-2 ${
-              mobileControlMode === 'player' 
-                ? 'border-green-400/50 bg-green-900/80 active:bg-green-600/80' 
-                : 'border-blue-400/50 bg-blue-900/80 active:bg-blue-600/80'
-            } text-white shadow-xl transition-all duration-150 backdrop-blur-sm active:scale-95`)}
-            aria-label={mobileControlMode === 'player' ? "Move Down" : "Pan Down"}
-          >
-            <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-        </div>
       )}
 
-      {/* Mobile Zoom Controls - positioned differently on mobile */}
+      {/* Mobile Controls - New simplified D-pad */}
       {isMobile && (
-        <div className="absolute bottom-16 right-2 z-30 flex flex-col space-y-1">
-          <button 
-            onClick={zoomIn}
-            onTouchStart={(e) => { e.preventDefault(); zoomIn(); }}
-            className={getSafariOptimizedClassName("group w-16 h-16 flex items-center justify-center rounded-full border-2 border-green-400/50 bg-green-900/80 text-3xl font-bold text-white shadow-xl transition-all duration-150 backdrop-blur-sm active:bg-green-600/80 active:scale-95")}
-            aria-label="Zoom In"
-          >
-            <span className="text-4xl leading-none pb-1">+</span>
-          </button>
-          <button 
-            onClick={zoomOut}
-            onTouchStart={(e) => { e.preventDefault(); zoomOut(); }}
-            className={getSafariOptimizedClassName("group w-16 h-16 flex items-center justify-center rounded-full border-2 border-red-400/50 bg-red-900/80 text-3xl font-bold text-white shadow-xl transition-all duration-150 backdrop-blur-sm active:bg-red-600/80 active:scale-95")}
-            aria-label="Zoom Out"
-          >
-            <span className="text-4xl leading-none pb-1">−</span>
-          </button>
-        </div>
+        <MobileControls 
+          onMove={(direction) => {
+            // Simulate keyboard events for the movement system
+            const keyMap = {
+              'up': 'ArrowUp',
+              'down': 'ArrowDown',
+              'left': 'ArrowLeft',
+              'right': 'ArrowRight'
+            };
+            
+            const key = keyMap[direction];
+            if (key) {
+              // Dispatch keyboard events to trigger the existing movement system
+              const downEvent = new KeyboardEvent('keydown', { key, bubbles: true });
+              window.dispatchEvent(downEvent);
+              
+              // Release the key after a short delay to allow movement
+              setTimeout(() => {
+                const upEvent = new KeyboardEvent('keyup', { key, bubbles: true });
+                window.dispatchEvent(upEvent);
+              }, 100);
+            }
+          }}
+        />
       )}
+      
+      
 
       {/* Enhanced minimap - hide on very small mobile screens */}
       {(!isMobile || window.innerWidth > 480) && (
@@ -2247,7 +2071,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   } else if(tile.biome === BiomeType.HOT_SPRINGS) {
                     elements.push(<SteamSymbol key={`hotspring-steam-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} intensity="heavy" />);
                   } else if(tile.biome === BiomeType.VOLCANIC_ROCK) {
-                    if ((tile.x + tile.y + Math.floor(seed/10)) % 8 === 0) {
+                    if ((tile.x + tile.y + Math.floor(seed/10)) % 12 === 0) {
                       elements.push(<SteamSymbol key={`volcanic-steam-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} intensity="light" />);
                     }
                   }
@@ -2271,7 +2095,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               </g>
             )}
             
-            {/* Roads and paths layer - rendered ABOVE terrain features like parks/plazas */}
+            {/* Roads and paths layer - rendered BELOW buildings but ABOVE terrain */}
             <g mask="url(#waterMask)">
               {pathObjects?.map((path) => {
                 // Viewport culling for performance
@@ -2430,6 +2254,57 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   const symbolY = tile.y * TILE_SIZE_PX;
                   const tileSeed = seed + tile.x * 31 + tile.y * 37;
                   return <HillSymbol key={`hill-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} climate={climate} season={season}/>;
+                })}
+              </g>
+            )}
+            
+            {/* Lava tiles - dramatic animated effect */}
+            {shouldRenderDetailedSymbols && (
+              <g>
+                {tiles.flat().map((tile) => {
+                  if (tile.biome !== BiomeType.ACTIVE_LAVA) return null;
+                  const lavaX = tile.x * TILE_SIZE_PX;
+                  const lavaY = tile.y * TILE_SIZE_PX;
+                  const lavaSeed = seed + tile.x * 47 + tile.y * 53;
+                  return (
+                    <LavaSymbol 
+                      key={`lava-${tile.x}-${tile.y}`}
+                      x={lavaX}
+                      y={lavaY}
+                      size={TILE_SIZE_PX}
+                      seed={lavaSeed}
+                    />
+                  );
+                })}
+              </g>
+            )}
+            
+            {/* Animal Paddocks (fences) */}
+            {shouldRenderDetailedSymbols && (
+              <g>
+                {tiles.flat().map((tile) => {
+                  if (tile.paddockType !== 'Livestock') return null;
+                  const symbolX = tile.x * TILE_SIZE_PX;
+                  const symbolY = tile.y * TILE_SIZE_PX;
+                  
+                  // Get adjacent tiles to determine which fences to draw
+                  const adjacentTiles = {
+                    north: tile.y > 0 ? tiles[tile.y - 1][tile.x] : undefined,
+                    south: tile.y < MAP_HEIGHT_TILES - 1 ? tiles[tile.y + 1][tile.x] : undefined,
+                    east: tile.x < MAP_WIDTH_TILES - 1 ? tiles[tile.y][tile.x + 1] : undefined,
+                    west: tile.x > 0 ? tiles[tile.y][tile.x - 1] : undefined,
+                  };
+                  
+                  return (
+                    <PaddockSymbol 
+                      key={`paddock-${tile.x}-${tile.y}`} 
+                      x={symbolX} 
+                      y={symbolY} 
+                      size={TILE_SIZE_PX} 
+                      tile={tile} 
+                      adjacentTiles={adjacentTiles}
+                    />
+                  );
                 })}
               </g>
             )}
@@ -2649,7 +2524,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         }}
                         style={{ cursor: 'pointer' }}
                       >
-                        <RuinsSymbol x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} />
+                        <RuinsSymbolNew x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} climate={climate} />
                         {hoveredPOI?.id === ruinStructure?.id && (
                           <rect
                             x={symbolX}
@@ -3510,44 +3385,20 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               {/* Controlled Player/Ship Icon with glow effect */}
               {displayPixelIconX !== null && displayPixelIconY !== null && (
                 <g>
-                  {/* Enhanced glowing halo for player when on foot */}
+                  {/* Simple player indicator ring - removed animations and blur for performance */}
                   {playerMode === 'onFoot' && playerCharacter && (
-                    <>
-                      {/* Outer glow ring */}
-                      <circle
-                        cx={displayPixelIconX}
-                        cy={displayPixelIconY}
-                        r={TILE_SIZE_PX * 0.8}
-                        fill="none"
-                        stroke="rgba(255, 215, 0, 0.3)"
-                        strokeWidth="3"
-                        opacity="0.8"
-                        className="animate-pulse"
-                      />
-                      {/* Inner glow ring */}
-                      <circle
-                        cx={displayPixelIconX}
-                        cy={displayPixelIconY}
-                        r={TILE_SIZE_PX * 0.6}
-                        fill="none"
-                        stroke="rgba(255, 255, 100, 0.5)"
-                        strokeWidth="2"
-                        opacity="0.9"
-                        className="animate-pulse"
-                        style={{ animationDelay: '0.5s' }}
-                      />
-                      {/* Radial glow */}
-                      <circle
-                        cx={displayPixelIconX}
-                        cy={displayPixelIconY}
-                        r={TILE_SIZE_PX * 0.5}
-                        fill="rgba(255, 255, 150, 0.15)"
-                        filter={shouldUseBlurEffects ? "blur(8px)" : "none"}
-                      />
-                    </>
+                    <circle
+                      cx={displayPixelIconX}
+                      cy={displayPixelIconY}
+                      r={TILE_SIZE_PX * 0.7}
+                      fill="none"
+                      stroke="rgba(255, 223, 150, 0.4)"
+                      strokeWidth="2"
+                      opacity="0.6"
+                    />
                   )}
                   
-                  <g filter="url(#glow)">
+                  <g>
                     {playerMode === 'ship' ? (
                       currentVessel ? (
                         <VesselSymbol 

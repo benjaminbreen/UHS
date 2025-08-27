@@ -15,6 +15,9 @@ import { loadTamedAnimals, removeFromParty, TamedAnimal } from '../services/anim
 import { loadFactionData } from '../utils/dataLoader';
 import { AllegianceGroup } from '../constants/gameData/factions/types';
 import { WeatherState } from '../services/weatherService';
+import { ProceduralPortrait } from './portraits';
+import { AttributeBadgeList } from './AttributeBadge';
+import { generateNpcGreeting, generateNpcResponse, generateNpcMonologue, createDialogueContext } from '../services/npcDialogueService';
 
 interface MarketplaceModalProps {
   tile: Tile;
@@ -30,7 +33,7 @@ interface MarketplaceModalProps {
   weather?: WeatherState | null;
 }
 
-type TabType = 'buy' | 'sell' | 'trade' | 'info';
+type TabType = 'buy' | 'sell' | 'trade' | 'people' | 'info';
 type CategoryFilter = 'all' | 'food' | 'tool' | 'weapon' | 'luxury' | 'raw_material' | 'manufactured';
 
 const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
@@ -47,9 +50,24 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   const [tamedAnimals, setTamedAnimals] = useState<TamedAnimal[]>([]);
   const [marketplaceName, setMarketplaceName] = useState<string>('Marketplace');
   const [marketAllegiance, setMarketAllegiance] = useState<AllegianceGroup | null>(null);
+  const [selectedNpc, setSelectedNpc] = useState<NpcEntity | null>(null);
+  const [npcDialogue, setNpcDialogue] = useState<string>('');
+  const [npcDialogueLoading, setNpcDialogueLoading] = useState(false);
+  const [npcMonologue, setNpcMonologue] = useState<string>('');
+  const [monologueVisible, setMonologueVisible] = useState(false);
+  const [portraitClickCounts, setPortraitClickCounts] = useState<Record<string, number>>({});
   
   // Detect mobile
   const isMobile = useMemo(() => window.innerWidth <= 768, []);
+  
+  // Filter representative inhabitants (non-merchant NPCs in the area)
+  const inhabitantsNpcs = useMemo(() => {
+    return npcs.filter(npc => 
+      !npc.role?.toLowerCase().includes('merchant') &&
+      !npc.role?.toLowerCase().includes('trader') &&
+      !npc.role?.toLowerCase().includes('vendor')
+    ).slice(0, 8); // Show up to 8 inhabitants
+  }, [npcs]);
   
   // Parse era and culture
   const { era, culturalZone } = useMemo(() => {
@@ -298,6 +316,57 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       marketConditions.supply.set(item.baseId, currentSupply + 1);
     }
   }, [onSell, marketConditions]);
+
+  // Handle NPC greeting/interaction
+  const handleNpcClick = useCallback(async (npc: NpcEntity) => {
+    setSelectedNpc(npc);
+    setNpcDialogueLoading(true);
+    setNpcDialogue('');
+    
+    try {
+      const context = createDialogueContext(mapData, {
+        isMarketplace: true,
+        timeOfDay: gameTimeHours < 6 ? 'dawn' : gameTimeHours < 12 ? 'morning' : gameTimeHours < 18 ? 'midday' : gameTimeHours < 21 ? 'evening' : 'night',
+        season: season.toLowerCase()
+      });
+      
+      const response = await generateNpcGreeting(npc, context, playerCharacter);
+      setNpcDialogue(response.text);
+    } catch (error) {
+      console.error('Failed to generate NPC dialogue:', error);
+      setNpcDialogue("Good day to you, traveler.");
+    } finally {
+      setNpcDialogueLoading(false);
+    }
+  }, [mapData, gameTimeHours, season, playerCharacter]);
+
+  // Handle portrait click for monologue
+  const handlePortraitClick = useCallback(async (npc: NpcEntity) => {
+    const currentCount = (portraitClickCounts[npc.id] || 0) + 1;
+    setPortraitClickCounts(prev => ({ ...prev, [npc.id]: currentCount }));
+    
+    if (currentCount <= 3) { // Allow up to 3 clicks
+      try {
+        const context = createDialogueContext(mapData, {
+          isMarketplace: true,
+          timeOfDay: gameTimeHours < 6 ? 'dawn' : gameTimeHours < 12 ? 'morning' : gameTimeHours < 18 ? 'midday' : gameTimeHours < 21 ? 'evening' : 'night',
+          season: season.toLowerCase()
+        });
+        
+        const monologue = await generateNpcMonologue(npc, context, currentCount);
+        setNpcMonologue(monologue);
+        setMonologueVisible(true);
+        
+        // Auto-hide monologue after 4 seconds
+        setTimeout(() => setMonologueVisible(false), 4000);
+      } catch (error) {
+        console.error('Failed to generate NPC monologue:', error);
+        setNpcMonologue("I have much on my mind these days...");
+        setMonologueVisible(true);
+        setTimeout(() => setMonologueVisible(false), 4000);
+      }
+    }
+  }, [portraitClickCounts, mapData, gameTimeHours, season]);
   
   // Market condition description
   const marketConditionDesc = useMemo(() => {
@@ -698,6 +767,129 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             </div>
           </div>
         );
+        
+      case 'people':
+        return (
+          <div className="flex flex-col h-full">
+            <div className="p-4 bg-gradient-to-b from-slate-800/90 to-slate-900/50 border-b border-amber-900/30">
+              <h3 className="text-lg font-semibold text-blue-300 mb-1">Representative Inhabitants</h3>
+              <p className="text-sm text-amber-200/60">Local people you might encounter at the marketplace</p>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-900/20 to-slate-900/40">
+              {inhabitantsNpcs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-amber-200/50">
+                  <span className="text-4xl mb-3">👻</span>
+                  <p className="text-lg">No inhabitants nearby</p>
+                  <p className="text-sm mt-1">The marketplace seems quiet today</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {inhabitantsNpcs.map((npc, index) => (
+                    <div
+                      key={npc.id}
+                      className="group p-4 bg-gradient-to-r from-slate-800/80 to-slate-900/60 border border-blue-700/30 rounded-lg hover:border-blue-600/50 hover:shadow-lg hover:shadow-blue-900/20 transition-all backdrop-blur-sm"
+                    >
+                      <div className="flex items-center gap-4">
+                        {/* Portrait */}
+                        <div 
+                          className="relative flex-shrink-0 w-16 h-16 rounded-full overflow-hidden bg-slate-700/50 border-2 border-blue-600/30 hover:border-blue-400/60 transition-all cursor-pointer hover:scale-105"
+                          onClick={() => handlePortraitClick(npc)}
+                          title="Click for inner thoughts..."
+                        >
+                          <ProceduralPortrait
+                            character={npc}
+                            size={64}
+                          />
+                          {/* Attribute badges */}
+                          {npc.attributes && npc.attributes.length > 0 && (
+                            <div className="absolute -top-1 -left-1 z-20">
+                              <AttributeBadgeList
+                                badges={npc.attributes}
+                                maxDisplay={1}
+                                size="small"
+                              />
+                            </div>
+                          )}
+                          {/* Click hint */}
+                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span className="text-xs text-white font-medium">💭</span>
+                          </div>
+                        </div>
+                        
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-semibold text-amber-50 truncate">{npc.name}</h4>
+                            <span className="text-amber-200/40">•</span>
+                            <span className="text-sm text-amber-200/60">{npc.age} years</span>
+                          </div>
+                          <p className="text-sm text-blue-300 capitalize mb-2">{npc.role}</p>
+                          
+                          {/* Additional info badges */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              npc.wealthLevel === 'wealthy' ? 'bg-purple-900/40 text-purple-300 border border-purple-700/50' :
+                              npc.wealthLevel === 'poor' ? 'bg-red-900/40 text-red-300 border border-red-700/50' :
+                              'bg-slate-700/40 text-slate-300 border border-slate-600/50'
+                            }`}>
+                              {npc.wealthLevel || 'modest'} class
+                            </span>
+                            <span className="text-xs px-2 py-0.5 bg-cyan-900/40 text-cyan-300 rounded-full border border-cyan-700/50">
+                              {npc.religion || 'local faith'}
+                            </span>
+                            {npc.personality && (
+                              <span className="text-xs px-2 py-0.5 bg-yellow-900/40 text-yellow-300 rounded-full border border-yellow-700/50">
+                                {npc.personality.split(',')[0].trim()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Interaction button */}
+                        <button
+                          onClick={() => handleNpcClick(npc)}
+                          disabled={npcDialogueLoading && selectedNpc?.id === npc.id}
+                          className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:from-slate-600 disabled:to-slate-700 text-white rounded-md font-medium transition-all transform hover:scale-105 shadow-md shadow-blue-900/30 disabled:cursor-not-allowed"
+                        >
+                          {npcDialogueLoading && selectedNpc?.id === npc.id ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                              <span>...</span>
+                            </div>
+                          ) : (
+                            'Greet'
+                          )}
+                        </button>
+                      </div>
+                      
+                      {/* Dialogue display */}
+                      {selectedNpc?.id === npc.id && npcDialogue && (
+                        <div className="mt-4 p-3 bg-slate-900/40 rounded-md border-l-4 border-blue-500">
+                          <p className="text-sm text-amber-100 italic">"{npcDialogue}"</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Monologue overlay */}
+            {monologueVisible && (
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
+                <div className="bg-black/90 backdrop-blur-sm rounded-lg px-6 py-4 border border-blue-500/50 shadow-2xl max-w-md">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-blue-400">💭</span>
+                    <span className="text-xs text-blue-300 uppercase tracking-wide">Inner Thoughts</span>
+                  </div>
+                  <p className="text-amber-100 italic text-center font-serif leading-relaxed">
+                    {npcMonologue}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        );
     }
   };
   
@@ -777,6 +969,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             { id: 'buy', label: 'Browse Wares', icon: '🛒' },
             { id: 'sell', label: 'Sell Goods', icon: '💰' },
             { id: 'trade', label: 'Merchants', icon: '🤝' },
+            { id: 'people', label: 'People', icon: '👥' },
             { id: 'info', label: 'Market Info', icon: '📜' }
           ].map(tab => (
             <button
@@ -787,6 +980,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   ? tab.id === 'buy' ? 'bg-gradient-to-t from-emerald-900/30 to-transparent text-emerald-400 border-b-2 border-emerald-400' :
                     tab.id === 'sell' ? 'bg-gradient-to-t from-amber-900/30 to-transparent text-amber-400 border-b-2 border-amber-400' :
                     tab.id === 'trade' ? 'bg-gradient-to-t from-purple-900/30 to-transparent text-purple-400 border-b-2 border-purple-400' :
+                    tab.id === 'people' ? 'bg-gradient-to-t from-blue-900/30 to-transparent text-blue-400 border-b-2 border-blue-400' :
                     'bg-gradient-to-t from-cyan-900/30 to-transparent text-cyan-400 border-b-2 border-cyan-400'
                   : 'text-amber-200/60 hover:text-amber-200 hover:bg-slate-700/30'
               }`}

@@ -13,6 +13,10 @@ import TopNavBarPolished from './components/TopNavBarPolished';
 import LeftSidebar from './components/LeftSidebar';
 import MapViewport from './components/MapViewport';
 import RightSidebar from './components/RightSidebar';
+import { isMobileDevice } from './utils/deviceUtils';
+import MobileHeader from './components/mobile/MobileHeader';
+import MobileQuickStats from './components/mobile/MobileQuickStats';
+import MobileSidebar from './components/mobile/MobileSidebar';
 import ModalHub from './components/ModalHub';
 import DebugOverlay from './components/DebugOverlay';
 import FPSCounter from './components/FPSCounter';
@@ -58,11 +62,14 @@ const AppContent: React.FC = () => {
     const { gameDate, currentZone, currentRegion, isLoading } = useGame();
     const { localArea, mapData, onStartNewWorldAtZoneRegion } = useMap();
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState<'left' | 'right' | null>(null);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
     const [showInitialScenarioModal, setShowInitialScenarioModal] = React.useState(false);
+    const isMobile = isMobileDevice();
     const [hasShownInitialScenario, setHasShownInitialScenario] = React.useState(false);
     const [hasInitializedFromURL, setHasInitializedFromURL] = React.useState(false);
     const [delayInitialMap, setDelayInitialMap] = React.useState(true);
     const [isGeneratingMap, setIsGeneratingMap] = React.useState(false);
+    const [mapVisible, setMapVisible] = React.useState(true); // Easter egg state
     
     // Store whether we should wait for URL config
     const shouldWaitForURLConfig = React.useMemo(() => {
@@ -317,7 +324,18 @@ const AppContent: React.FC = () => {
     return (
       <div className="bg-slate-900 text-gray-100 flex flex-col h-screen overflow-hidden">
         <div className="relative z-10 flex flex-col h-full">
-            <TopNavBarPolished />
+            {/* Desktop Navigation */}
+            {!isMobile && <TopNavBarPolished />}
+            
+            {/* Mobile Header */}
+            {isMobile && playerCharacter && (
+                <MobileHeader
+                    currentDate={gameDate.year}
+                    location={`${currentZone || 'Unknown'} - ${currentRegion || ''}`}
+                    player={playerCharacter}
+                    onMenuClick={() => setMobileSidebarOpen(true)}
+                />
+            )}
             <div className="relative flex-1 flex items-stretch overflow-hidden p-0 sm:p-0 md:p-0 lg:p-1 xl:p-0 gap-0 sm:gap-1 md:gap-1 lg:gap-1 xl:gap-1 h-full max-h-full">
                 {/* Desktop sidebar toggle */}
                 {!isLeftSidebarExpanded && (
@@ -384,11 +402,12 @@ const AppContent: React.FC = () => {
                         setShowFactionTooltip(true);
                     }}
                     onHideFactionTooltip={() => setShowFactionTooltip(false)}
+                    onToggleMapVisibility={() => setMapVisible(!mapVisible)}
                 />
                     </div>
                 </div>
                 
-                <MapViewport />
+                <MapViewport mapVisible={mapVisible} />
                 
                 {/* Right Sidebar with mobile overlay and slide animation */}
                 <div className={`${mobileMenuOpen === 'right' ? 'fixed inset-0 z-30 sm:relative sm:inset-auto sm:flex' : 'hidden sm:flex'} sm:h-full`}>

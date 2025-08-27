@@ -21,7 +21,7 @@ interface PaddockSymbolProps {
 const PaddockSymbol: React.FC<PaddockSymbolProps> = React.memo(({ x, y, size, tile, adjacentTiles }) => {
   if (tile.paddockType !== 'Livestock') return null;
 
-  const fenceColor = '#8B4513'; // Saddle brown
+  const fenceColor = '#664126'; // Saddle brown
   const postColor = '#654321'; // Dark brown
   const fenceWidth = 2;
   const postSize = 3;
