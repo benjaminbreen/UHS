@@ -5,6 +5,7 @@
  */
 import React, { useMemo } from 'react';
 import { PlayerCharacter, NpcEntity, Appearance, Item } from '../../types';
+import { getItemArchetypeMax } from '../../constants/items/baseSprites';
 
 type Animation = 'idle' | 'attacking' | 'item' | 'damaged' | 'defending' | 'fleeing';
 
@@ -57,6 +58,7 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
 
     const mainHandItem = equippedItems?.main_hand;
     const offHandItem = equippedItems?.off_hand;
+    const armorItem = equippedItems?.armor || equippedItems?.chest;
 
     const animationClasses: Record<Animation, string> = {
         idle: 'animate-sprite-idle-bob',
@@ -98,6 +100,9 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
     
     const renderWeapon = (item: Item) => {
         const name = item.name.toLowerCase();
+        const archetype = getItemArchetypeMax(name);
+        
+        // Check for specific weapon types first
         if (name.includes('sword') || name.includes('blade')) {
             return (
                 <g>
@@ -119,6 +124,96 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
         if (name.includes('stick') || name.includes('club') || name.includes('mace')) {
             return <Pixel x={10} y={-8} w={1.5} h={12} color="#8b4513" />;
         }
+        
+        // Use baseSprites archetype for additional weapon types
+        if (name.includes('claw') || archetype?.includes('CLAW')) {
+            // Render claws attached to hand
+            return (
+                <g>
+                    <Pixel x={10} y={0} w={1} h={3} color="#d4d4d8" />
+                    <Pixel x={11} y={0} w={1} h={3} color="#d4d4d8" />
+                    <Pixel x={12} y={0} w={1} h={3} color="#d4d4d8" />
+                    <Pixel x={10} y={-1} w={3} h={1} color="#e4e4e7" />
+                </g>
+            );
+        }
+        if (name.includes('spear') || archetype?.includes('SPEAR')) {
+            return (
+                <g>
+                    <Pixel x={10} y={-12} w={1} h={15} color="#8b4513" />
+                    <Pixel x={9} y={-13} w={3} h={2} color="#a1a1aa" />
+                    <Pixel x={10} y={-14} w={1} h={1} color="#e5e5e5" />
+                </g>
+            );
+        }
+        if (name.includes('hammer') || archetype?.includes('HAMMER')) {
+            return (
+                <g>
+                    <Pixel x={10} y={-6} w={1} h={9} color="#8b4513" />
+                    <Pixel x={8} y={-8} w={5} h={4} color="#52525b" />
+                    <Pixel x={9} y={-9} w={3} h={1} color="#71717a" />
+                </g>
+            );
+        }
+        if (name.includes('dagger') || name.includes('knife') || archetype?.includes('DAGGER')) {
+            return (
+                <g>
+                    <Pixel x={10} y={-2} w={1} h={5} color="#c0c0c0" />
+                    <Pixel x={9} y={3} w={3} h={1} color="#8b4513" />
+                    <Pixel x={10} y={-3} w={1} h={1} color="#e5e5e5" />
+                </g>
+            );
+        }
+        if (name.includes('bow') || archetype?.includes('BOW')) {
+            return (
+                <g>
+                    {/* Bow curve */}
+                    <path d="M 8,-8 Q 6,0 8,8" fill="none" stroke="#8b4513" strokeWidth="1.5"/>
+                    {/* Bow string */}
+                    <line x1="8" y1="-8" x2="8" y2="8" stroke="#d4d4d8" strokeWidth="0.5"/>
+                    {/* Arrow */}
+                    <Pixel x={10} y={0} w={8} h={1} color="#8b4513" />
+                    <Pixel x={18} y={0} w={2} h={1} color="#a1a1aa" />
+                </g>
+            );
+        }
+        if (name.includes('staff') || archetype?.includes('STAFF')) {
+            return (
+                <g>
+                    <Pixel x={10} y={-10} w={1.5} h={18} color="#8b4513" />
+                    <ellipse cx="10.75" cy="-10" rx="2" ry="2" fill="#60a5fa" opacity="0.6"/>
+                </g>
+            );
+        }
+        if (name.includes('whip') || archetype?.includes('WHIP')) {
+            return (
+                <g>
+                    <path d="M 10,2 Q 12,-2 10,-6 Q 8,-10 10,-14" fill="none" stroke="#8b4513" strokeWidth="1"/>
+                    <Pixel x={9} y={2} w={2} h={2} color="#52525b" />
+                </g>
+            );
+        }
+        if (name.includes('crossbow') || archetype?.includes('CROSSBOW')) {
+            return (
+                <g>
+                    <Pixel x={8} y={0} w={7} h={1} color="#8b4513" />
+                    <Pixel x={10} y={-2} w={1} h={4} color="#8b4513" />
+                    <line x1="8" y1="0" x2="15" y2="0" stroke="#d4d4d8" strokeWidth="0.5"/>
+                    <Pixel x={15} y={0} w={3} h={1} color="#52525b" />
+                </g>
+            );
+        }
+        
+        // Fallback for any unrecognized weapon - show a generic weapon indicator
+        if (archetype && archetype !== 'GENERIC') {
+            return (
+                <g>
+                    <Pixel x={10} y={-4} w={1} h={7} color="#8b7355" />
+                    <Pixel x={9} y={3} w={3} h={1} color="#52525b" />
+                </g>
+            );
+        }
+        
         return null;
     };
 
@@ -142,7 +237,7 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
 
                     {/* Back Arm */}
                     <g transform="translate(14, 15)">
-                        {offHandItem?.name.toLowerCase().includes('shield') && renderShield()}
+                        {offHandItem && (offHandItem.name.toLowerCase().includes('shield') || getItemArchetypeMax(offHandItem.name)?.includes('SHIELD')) && renderShield()}
                     </g>
                     <Pixel x={16} y={15} w={2} h={7} color={clothingShadow} />
                     <Pixel x={16} y={22} w={2} h={3} color={skinShadow} />
@@ -162,6 +257,83 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
                     {(garment.material?.toLowerCase().includes('plate') || garment.material?.toLowerCase().includes('chainmail')) && (
                         <rect x={20 - bodyWidth/2 + 1} y={16} width={1.5} height={torsoHeight-2} fill="#e5e7eb" opacity="0.4" />
                     )}
+                    
+                    {/* Armor/Hide Overlays based on baseSprites archetypes */}
+                    {armorItem && (() => {
+                        const armorName = armorItem.name.toLowerCase();
+                        const armorArchetype = getItemArchetypeMax(armorItem.name);
+                        
+                        // Bear hide or fur armor
+                        if (armorName.includes('bear') || armorName.includes('hide') || armorArchetype?.includes('HIDE') || armorArchetype?.includes('FUR')) {
+                            return (
+                                <g>
+                                    {/* Fur texture over torso */}
+                                    <rect x={20 - bodyWidth/2} y={15} width={bodyWidth} height={torsoHeight} fill="#8B4513" opacity="0.7" />
+                                    <rect x={20 - bodyWidth/2} y={15} width={bodyWidth} height={1} fill="#654321" opacity="0.8" />
+                                    <rect x={20 - bodyWidth/2} y={17} width={bodyWidth} height={1} fill="#654321" opacity="0.6" />
+                                    <rect x={20 - bodyWidth/2} y={19} width={bodyWidth} height={1} fill="#654321" opacity="0.5" />
+                                    {/* Fur shoulders */}
+                                    <rect x={20 - shoulderWidth/2} y={14} width={shoulderWidth} height={2} fill="#8B4513" opacity="0.6" />
+                                </g>
+                            );
+                        }
+                        // Leather armor
+                        if (armorName.includes('leather') || armorArchetype?.includes('LEATHER')) {
+                            return (
+                                <g>
+                                    <rect x={20 - bodyWidth/2 + 0.5} y={15.5} width={bodyWidth - 1} height={torsoHeight - 1} fill="#654321" opacity="0.6" />
+                                    <rect x={20 - bodyWidth/2 + 1} y={16} width={bodyWidth - 2} height={1} fill="#8B4513" opacity="0.4" />
+                                    <rect x={20 - bodyWidth/2 + 1} y={18} width={bodyWidth - 2} height={1} fill="#8B4513" opacity="0.4" />
+                                </g>
+                            );
+                        }
+                        // Scale or bone armor
+                        if (armorName.includes('scale') || armorName.includes('bone') || armorArchetype?.includes('SCALE') || armorArchetype?.includes('BONE')) {
+                            return (
+                                <g>
+                                    {/* Scale pattern */}
+                                    {[0, 1, 2, 3].map(row => (
+                                        <g key={row}>
+                                            {[0, 1, 2].map(col => (
+                                                <rect 
+                                                    key={col} 
+                                                    x={20 - bodyWidth/2 + col * 2} 
+                                                    y={16 + row * 2} 
+                                                    width={1.5} 
+                                                    height={1.5} 
+                                                    fill={armorName.includes('bone') ? '#F5F5DC' : '#A9A9A9'} 
+                                                    opacity="0.7" 
+                                                />
+                                            ))}
+                                        </g>
+                                    ))}
+                                </g>
+                            );
+                        }
+                        // Cloth/fabric armor like robes
+                        if (armorName.includes('robe') || armorName.includes('cloth') || armorArchetype?.includes('ROBE')) {
+                            return (
+                                <g>
+                                    <rect x={20 - bodyWidth/2 - 1} y={15} width={bodyWidth + 2} height={torsoHeight + legHeight/2} 
+                                          fill={armorItem.archetype?.includes('magic') ? '#4B0082' : '#2F4F4F'} opacity="0.5" />
+                                    <rect x={20 - bodyWidth/2} y={15} width={1} height={torsoHeight + legHeight/2} fill="#1C1C1C" opacity="0.3" />
+                                </g>
+                            );
+                        }
+                        // Shell or carapace armor
+                        if (armorName.includes('shell') || armorName.includes('carapace') || armorArchetype?.includes('SHELL')) {
+                            return (
+                                <g>
+                                    <ellipse cx="20" cy={15 + torsoHeight/2} rx={bodyWidth/2 + 1} ry={torsoHeight/2} 
+                                             fill="#556B2F" opacity="0.7" />
+                                    <ellipse cx="20" cy={15 + torsoHeight/2} rx={bodyWidth/2} ry={torsoHeight/2 - 1} 
+                                             fill="#6B8E23" opacity="0.5" />
+                                </g>
+                            );
+                        }
+                        
+                        return null;
+                    })()}
 
                     {/* Head */}
                     <g transform="translate(0, 0)">
@@ -181,6 +353,24 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
                                 {headgear.name.toLowerCase().includes('cap') && <rect x={20 - headSize.w/2 - 1} y={15 - headSize.h - 2} width={headSize.w + 2} height={2} fill={secondaryColor} />}
                                 {headgear.name.toLowerCase().includes('helmet') && <rect x={20 - headSize.w/2 - 1} y={15 - headSize.h - 2} width={headSize.w + 2} height={3} fill={'#a1a1aa'} />}
                                 {headgear.name.toLowerCase().includes('crown') && <rect x={20 - headSize.w/2} y={15 - headSize.h - 2} width={headSize.w} height={2} fill={'#fcd34d'} />}
+                                {/* Additional headgear from baseSprites */}
+                                {(() => {
+                                    const headArchetype = getItemArchetypeMax(headgear.name);
+                                    if (headgear.name.toLowerCase().includes('turban') || headArchetype?.includes('TURBAN')) {
+                                        return <ellipse cx="20" cy={15 - headSize.h} rx={headSize.w/2 + 1} ry={3} fill={secondaryColor || '#4B0082'} />;
+                                    }
+                                    if (headgear.name.toLowerCase().includes('hood') || headArchetype?.includes('HOOD')) {
+                                        return (
+                                            <g>
+                                                <rect x={20 - headSize.w/2 - 2} y={15 - headSize.h - 1} width={headSize.w + 4} height={headSize.h} 
+                                                      fill={secondaryColor || '#2F2F2F'} opacity="0.8" />
+                                                <rect x={20 - headSize.w/2} y={15 - headSize.h + 1} width={headSize.w} height={headSize.h - 2} 
+                                                      fill={skinColor} />
+                                            </g>
+                                        );
+                                    }
+                                    return null;
+                                })()}
                             </g>
                         )}
 

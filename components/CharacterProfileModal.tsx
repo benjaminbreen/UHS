@@ -556,7 +556,7 @@ const CharacterProfileModal: React.FC<Props> = ({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
-        className="ff-panel w-full max-w-7xl h-[92vh] flex flex-col text-slate-200"
+        className="ff-panel w-full max-w-7xl h-[93vh] flex flex-col text-slate-200"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -565,11 +565,11 @@ const CharacterProfileModal: React.FC<Props> = ({
             <div className="absolute inset-0 bg-[radial-gradient(1200px_300px_at_50%_-40%,rgba(59,130,246,.25),transparent)] pointer-events-none" />
             <div className="flex items-center justify-between px-5 py-4 bg-slate-900/65 border-b-2 border-slate-700">
               <div className="flex items-center gap-4">
-                <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-slate-600 shadow-lg bg-slate-800">
-                  <AnimatedPortrait character={character} size={64} trackChanges />
+                <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-slate-600 shadow-lg bg-slate-800">
+                  <AnimatedPortrait character={character} size={44} trackChanges />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="text-xl md:text-2xl font-bold text-white truncate">{character.name}</h2>
+                  <h2 className="text-xl md:text-3xl font-bold text-white truncate">{character.name}</h2>
                   <div className="flex flex-wrap items-center gap-2 mt-1">
                     <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-xs font-semibold capitalize border border-amber-400/40 flex items-center gap-1">
                       <Shield className="w-3.5 h-3.5" />
@@ -689,7 +689,7 @@ const CharacterProfileModal: React.FC<Props> = ({
             {/* Tabs */}
             <div className="shrink-0 flex border-b-2 border-slate-700 bg-slate-800/60 overflow-x-auto">
               <TabBtn label="Overview" active={active === 'overview'} onClick={() => setActive('overview')} Icon={Home} />
-              <TabBtn label="Health & Stats" active={active === 'health'} onClick={() => setActive('health')} Icon={Activity} />
+              <TabBtn label="Stats" active={active === 'health'} onClick={() => setActive('health')} Icon={Activity} />
               <TabBtn label="Equipment" active={active === 'equipment'} onClick={() => setActive('equipment')} Icon={Sword} />
               <TabBtn label="Inventory" active={active === 'inventory'} onClick={() => setActive('inventory')} Icon={Backpack} />
               <TabBtn label="Beliefs" active={active === 'beliefs'} onClick={() => setActive('beliefs')} Icon={Sparkles} />

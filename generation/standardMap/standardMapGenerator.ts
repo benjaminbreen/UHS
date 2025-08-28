@@ -47,7 +47,8 @@ import {
   generateStreams,
   generateTerrainStructures,
   generateMineralDeposits,
-} from './features'; 
+} from './features';
+import { generateBridges, addBridgesToMap } from './features/BridgeGenerator'; 
 
 import { calculateTileQualities } from './qualities/tileQualityCalculator'; 
 import { generateCityInfo } from '../../services/cityNameGenerator';
@@ -393,14 +394,14 @@ export function proceduralGenerateMap(
                 const straitWidth = MAP_WIDTH_TILES * (0.12 + featurePlacementNoise.random() * 0.08); // 12-20% width
                 
                 // Add some meandering to the strait using noise
-                const meander = altitudeNoise.noise(x * 0.05, y * 0.03) * 8;
+                const meander = altitudeNoiseGen.noise(x * 0.05, y * 0.03) * 8;
                 const adjustedCenterX = straitCenterX + meander;
                 const distFromCenter = Math.abs(x - adjustedCenterX);
                 
                 // Create the main channel
                 if (distFromCenter < straitWidth / 2) {
                     // Water channel with varying width
-                    const widthVariation = 1 + altitudeNoise.noise(x * 0.1, y * 0.05) * 0.3;
+                    const widthVariation = 1 + altitudeNoiseGen.noise(x * 0.1, y * 0.05) * 0.3;
                     if (distFromCenter < (straitWidth * widthVariation) / 2) {
                         falloff = 0.1; // Deep water
                         landThreshold = 0.9;
@@ -422,14 +423,14 @@ export function proceduralGenerateMap(
                 const straitWidth = MAP_HEIGHT_TILES * (0.12 + featurePlacementNoise.random() * 0.08);
                 
                 // Add meandering
-                const meander = altitudeNoise.noise(x * 0.03, y * 0.05) * 8;
+                const meander = altitudeNoiseGen.noise(x * 0.03, y * 0.05) * 8;
                 const adjustedCenterY = straitCenterY + meander;
                 const distFromCenter = Math.abs(y - adjustedCenterY);
                 
                 // Create the main channel
                 if (distFromCenter < straitWidth / 2) {
                     // Water channel with varying width
-                    const widthVariation = 1 + altitudeNoise.noise(x * 0.05, y * 0.1) * 0.3;
+                    const widthVariation = 1 + altitudeNoiseGen.noise(x * 0.05, y * 0.1) * 0.3;
                     if (distFromCenter < (straitWidth * widthVariation) / 2) {
                         falloff = 0.1; // Deep water
                         landThreshold = 0.9;
@@ -1109,7 +1110,7 @@ export function proceduralGenerateMap(
   applyClimateTransitions(tiles, climate, localArea);
   console.log("[Gen] Phase 9.75: Climate-Aware Map Stitching - END");
 
-  const mapDataObject: MapData = { 
+  let mapDataObject: MapData = { 
     width: MAP_WIDTH_TILES, 
     height: MAP_HEIGHT_TILES, 
     tiles, 
@@ -1123,6 +1124,8 @@ export function proceduralGenerateMap(
     timeSlice,
     localArea,
     mapAreaName: localArea, // Add mapAreaName for special rendering detection
+    culturalZone, // Add culturalZone for ruin generation
+    era: dateInfo.era, // Add era for ruin generation
     pathObjects: [],
     terrainStructures: [],
     majorCity: localArea ? generateCityInfo(localArea, timeSlice || "1650", dominantPower, seed, culturalZone) : undefined,
@@ -1265,6 +1268,23 @@ export function proceduralGenerateMap(
     generateRoadAndPathNetwork(mapDataObject, roadPathNoise, dateInfo.era as HistoricalEra); 
   }
   console.log("[Gen] Phase 11.9: Road and Path Network Generation - END");
+  
+  // Generate bridges at water crossings
+  console.log("[Gen] Phase 11.10: Bridge Generation - START");
+  if (mapDataObject.pathObjects && mapDataObject.pathObjects.length > 0) {
+    const bridges = generateBridges(
+      mapDataObject.tiles,
+      mapDataObject.pathObjects,
+      culturalZone,
+      dateInfo.era as HistoricalEra
+    );
+    
+    if (bridges.length > 0) {
+      mapDataObject = addBridgesToMap(mapDataObject, bridges);
+      console.log(`[Gen] Generated ${bridges.length} bridges at water crossings`);
+    }
+  }
+  console.log("[Gen] Phase 11.10: Bridge Generation - END");
 
   // Desert water restrictions: small lakes and oases only
   if (climate === ClimateType.ARID) {

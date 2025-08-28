@@ -1,13 +1,16 @@
 /**
  * components/horizons/TropicalHorizon.tsx
  *
- * High-quality pixel-art inspired tropical horizon with strong depth cues:
+ * Pixel-art inspired tropical horizon with subtle animated polish:
  * - Progressive bottom banding that blends into the bottom panel slate
  * - Very-far hazy islands → far jungle ridges → mid canopy → near treeline
  * - Foreground palms + understory silhouettes (seeded + stable)
- * - Multiple fog/haze banks between layers (time-of-day colored)
- * - Night palette drifts into deep blues and purples
+ * - Multi fog/haze banks between layers (time-of-day colored)
  * - Optional water glints/ripples near the bottom
+ * - NEW: Rain puddles with ripple rings + raindrop splashes
+ * - NEW: Wind-reactive palm sway (respects prefers-reduced-motion)
+ * - NEW: Lightning flash (rare), rainbow hint, warm-night fireflies
+ * - NEW: Uses WeatherService fx.hazeDensity/fogDensity for a soft overlay
  */
 
 import React, { useMemo } from "react";
@@ -30,12 +33,20 @@ interface TropicalHorizonProps {
     hazeDark: string;
     hazeLight: string;
     water: string;
-    fog: string;
     mountainFar: string;
     mountainMid: string;
     mountainNear: string;
   };
 }
+
+/* ----------------------------- Small utilities ----------------------------- */
+
+const prefersReducedMotion = (): boolean => {
+  if (typeof window === 'undefined' || !('matchMedia' in window)) return false;
+  try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; }
+};
+
+const WINDY_KMH = 18;
 
 const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
   timeOfDay,
@@ -185,9 +196,9 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
     });
     let d = `M 0 ${height} L 0 ${pts[0].y.toFixed(1)}`;
     for (let i = 1; i < pts.length; i++) {
-      const p = pts[i - 1], c = pts[i];
-      const cx = (p.x + c.x) / 2;
-      const cy = (p.y + c.y) / 2 + (rng(100 + i + phase) - 0.5) * amp * 0.16;
+      const p0 = pts[i - 1], c = pts[i];
+      const cx = (p0.x + c.x) / 2;
+      const cy = (p0.y + c.y) / 2 + (rng(100 + i + phase) - 0.5) * amp * 0.16;
       d += ` Q ${cx.toFixed(1)} ${cy.toFixed(1)}, ${c.x.toFixed(1)} ${c.y.toFixed(1)}`;
     }
     d += ` L ${width} ${height} Z`;
@@ -208,12 +219,12 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
   };
 
   // ---------- stamps ----------
-  const TinyPalm: React.FC<{ x: number; baseY: number; h: number }> = ({ x, baseY, h }) => {
+  const TinyPalm: React.FC<{ x: number; baseY: number; h: number; className?: string; style?: React.CSSProperties }> = ({ x, baseY, h, className, style }) => {
     const w = Math.max(1.5, h * 0.08);
     const tipX = x + h * 0.08 * (rng(Math.floor(x)) - 0.5);
     const tipY = baseY - h;
     return (
-      <g shapeRendering="crispEdges">
+      <g shapeRendering="crispEdges" className={className} style={style}>
         <rect x={x - w / 2} y={baseY - h} width={w} height={h} fill={P.palmMid} />
         {[-1.6, -0.8, 0, 0.8, 1.6].map((a, i) => (
           <path
@@ -228,17 +239,19 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
     );
   };
 
-  const Palm: React.FC<{ x: number; baseY: number; h: number; lean?: number }> = ({
+  const Palm: React.FC<{ x: number; baseY: number; h: number; className?: string; style?: React.CSSProperties; lean?: number }> = ({
     x,
     baseY,
     h,
+    className,
+    style,
     lean = (rng(700 + Math.floor(x)) - 0.5) * 1.2,
   }) => {
     const w = Math.max(2, h * 0.10);
     const tipX = x + h * 0.12 + lean * h * 0.1;
     const tipY = baseY - h;
     return (
-      <g shapeRendering="crispEdges">
+      <g shapeRendering="crispEdges" className={className} style={style}>
         <rect x={x - w / 2} y={baseY - h} width={w} height={h} fill={P.palmDark} />
         {/* fronds as chunky strokes for pixel vibe */}
         {[-2.1, -1.2, -0.3, 0.6, 1.5].map((a, i) => (
@@ -271,6 +284,7 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
     return Array.from({ length: n }).map((_, i) => ({
       x: width * (0.04 + (i / (n - 1)) * 0.92 + (rng(1010 + i) - 0.5) * 0.02),
       h: height * (0.04 + rng(1020 + i) * 0.02),
+      delay: 0.2 + rng(1030 + i) * 1.2
     }));
   }, [rng, width, height]);
 
@@ -293,6 +307,7 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
     return xs.map((x, i) => ({
       x,
       h: height * (0.22 + rng(1220 + i) * 0.1),
+      delay: 0.1 + rng(1230 + i) * 1.2
     }));
   }, [rng, width, height]);
 
@@ -301,6 +316,7 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
     return Array.from({ length: n }).map((_, i) => ({
       x: width * (0.06 + (i / (n - 1)) * 0.88 + (rng(1310 + i) - 0.5) * 0.02),
       h: height * (0.10 + rng(1320 + i) * 0.06),
+      delay: 0.15 + rng(1330 + i) * 1.2
     }));
   }, [rng, width, height]);
 
@@ -311,6 +327,37 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
     const h = height * (0.16 + rng(1402) * 0.05);
     return { x, w, h };
   }, [rng, width, height, hasVolcano]);
+
+  // ---------- weather flags & derived ----------
+  const fx = weather?.fx;
+  const isRain = weather?.precipitation === 'rain' && (weather.intensity ?? 0) > 0;
+  const isDrizzle = weather?.precipitation === 'drizzle' && (weather.intensity ?? 0) > 0;
+  const windy = (weather?.windSpeed ?? 0) >= WINDY_KMH;
+  const windDirRad = ((weather?.windDirection ?? 0) * Math.PI) / 180;
+  const windX = Math.cos(windDirRad);
+
+  const droplet = fx?.dropletSize ?? (isRain ? 0.65 : isDrizzle ? 0.35 : 0);
+  const showRainbow = (fx?.rainbowProbability ?? 0) > 0.45 && (isDawn || isDusk);
+  const showLightning = (fx?.lightningProbability ?? 0) > 0.25;
+  const hazeOverlay = Math.max(fx?.hazeDensity ?? 0, fx?.fogDensity ?? 0);
+
+  const reduceMotion = prefersReducedMotion();
+
+  // ---------- scoped CSS for sway/flash ----------
+  const css = useMemo(() => {
+    const cls = `.TH-${uid}`;
+    return `
+      ${cls} .sway { animation: TH-${uid}-sway 3.6s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+      @keyframes TH-${uid}-sway { from { transform: translateX(0px); } to { transform: translateX(var(--sway-x, 1px)); } }
+
+      ${cls} .flash { animation: TH-${uid}-flash 3.2s steps(1, end) infinite; }
+      @keyframes TH-${uid}-flash { 0%{opacity:0} 5%{opacity:0} 6%{opacity:.35} 7%{opacity:0} 100%{opacity:0} }
+
+      ${cls} .firefly { animation: TH-${uid}-fly 2.6s ease-in-out infinite; }
+      @keyframes TH-${uid}-fly { 0%{opacity:0; transform: translate(0,0)} 40%{opacity:.9} 100%{opacity:0; transform: translate(6px,-4px)} }
+    `;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid]);
 
   // ---------- ids ----------
   const ids = {
@@ -327,7 +374,25 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
     topfade: `${uid}-topfade`,
     topmask: `${uid}-topmask`,
     panelFeather: `${uid}-panelFeather`,
+    rainbow: `${uid}-rainbow`,
   };
+
+  /* -------------------- Puddles + ripple/splash layout -------------------- */
+  const puddles = useMemo(() => {
+    if (!(isRain || isDrizzle)) return [] as { cx:number; cy:number; rx:number; ry:number; id:string; delay:number; dur:number }[];
+    const count = 12;
+    return Array.from({ length: count }).map((_, i) => {
+      const x = (i + 1) / (count + 1);
+      const cx = p(width * x + Math.sin(i * 17.3) * 15);
+      const cy = p(height * (0.83 + Math.sin(i * 9.7) * 0.04));
+      const rx = p(12 + (weather!.intensity || 0) * 12 + (i % 3) * 6);
+      const ry = p(3 + (weather!.intensity || 0) * 3);
+      const delay = 0.3 + (rng(4200 + i) * (isDrizzle ? 2.6 : 1.6));
+      const dur = (isDrizzle ? 1.8 : 1.0) + (rng(4300 + i) * (isDrizzle ? 0.9 : 0.5));
+      return { cx, cy, rx, ry, id: `${uid}-tpud-${i}`, delay, dur };
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRain, isDrizzle, width, height, weather?.intensity, uid]);
 
   return (
     <svg
@@ -343,34 +408,37 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
         imageRendering: "pixelated",
       }}
       shapeRendering="crispEdges"
+      className={`TH-${uid}`}
     >
+      {/* Scoped CSS (disabled if reduced motion) */}
+      <style>{reduceMotion ? '' : css}</style>
+
       <defs>
         {/* Top fade gradient for smooth transition to background */}
         <linearGradient id={ids.topfade} x1="0" y1="0" x2="0" y2="1">
-  <stop offset="0%"   stopColor="white" stopOpacity="0" />
-  <stop offset="45%"  stopColor="white" stopOpacity=".3" />     {/* keep top ~45% invisible */}
-  <stop offset="70%"  stopColor="white" stopOpacity="0.58" />  {/* barely reveal */}
-  <stop offset="85%"  stopColor="white" stopOpacity="0.92" />
-  <stop offset="100%" stopColor="white" stopOpacity="0.99" />
-</linearGradient>
+          <stop offset="0%"   stopColor="white" stopOpacity="0" />
+          <stop offset="45%"  stopColor="white" stopOpacity=".3" />
+          <stop offset="70%"  stopColor="white" stopOpacity="0.58" />
+          <stop offset="85%"  stopColor="white" stopOpacity="0.92" />
+          <stop offset="100%" stopColor="white" stopOpacity="0.99" />
+        </linearGradient>
 
-{/* Mask for jagged top transition (pushed down + weakened) */}
-<mask id={ids.topmask}>
-  <rect x="0" y="0" width={width} height={height} fill={`url(#${ids.topfade})`} />
-  {/* Lower the ridge and reduce its influence so top bands vanish */}
-  <path d={ridgePath(height * 0.36, height * 0.06, 12, 999)} fill="white" opacity="0.25" />
-</mask>
+        {/* Mask for jagged top transition */}
+        <mask id={ids.topmask}>
+          <rect x="0" y="0" width={width} height={height} fill={`url(#${ids.topfade})`} />
+          <path d={ridgePath(height * 0.36, height * 0.06, 12, 999)} fill="white" opacity="0.25" />
+        </mask>
 
         {/* progressive bottom bands that merge into the panel */}
-        <linearGradient id={ids.band1} x1="0" y1={yBand0} x2="0" y2={height}>
+        <linearGradient id={ids.band1} x1="0" y1={height - bandH} x2="0" y2={height}>
           <stop offset="0%" stopColor={P.band1} />
           <stop offset="100%" stopColor={P.band0} />
         </linearGradient>
-        <linearGradient id={ids.band2} x1="0" y1={yBand1} x2="0" y2={yBand0}>
+        <linearGradient id={ids.band2} x1="0" y1={height - bandH * 2} x2="0" y2={height - bandH}>
           <stop offset="0%" stopColor={P.band2} />
           <stop offset="100%" stopColor={P.band1} />
         </linearGradient>
-        <linearGradient id={ids.band3} x1="0" y1={yBand2} x2="0" y2={yBand1}>
+        <linearGradient id={ids.band3} x1="0" y1={height - bandH * 3} x2="0" y2={height - bandH * 2}>
           <stop offset="0%" stopColor={P.band3} />
           <stop offset="100%" stopColor={P.band2} />
         </linearGradient>
@@ -417,6 +485,23 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
           <stop offset="0%" stopColor={P.water} stopOpacity="0.18" />
           <stop offset="100%" stopColor={P.water} stopOpacity="0" />
         </linearGradient>
+
+        {/* Rainbow gradient */}
+        <linearGradient id={ids.rainbow} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#ff0000" />
+          <stop offset="20%" stopColor="#ffa500" />
+          <stop offset="40%" stopColor="#ffff00" />
+          <stop offset="60%" stopColor="#00ff00" />
+          <stop offset="80%" stopColor="#0000ff" />
+          <stop offset="100%" stopColor="#8b00ff" />
+        </linearGradient>
+
+        {/* Ripple clip paths for each puddle */}
+        {puddles.map((pd, i) => (
+          <clipPath key={`pclip-${i}`} id={pd.id}>
+            <ellipse cx={pd.cx} cy={pd.cy} rx={pd.rx} ry={pd.ry} />
+          </clipPath>
+        ))}
       </defs>
 
       {/* Masked group to softly fade into the sky */}
@@ -451,11 +536,16 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
           <path d={ridgePath(yFar + 3, height * 0.11, 10 + ((rng(43) * 2) | 0), 8)} fill={P.far2} opacity={0.85} />
         </g>
 
-        {/* tiny palms sprinkled on far ridge */}
+        {/* tiny palms sprinkled on far ridge (sway in wind) */}
         <g opacity={0.9}>
-          {farPalms.map((p, i) => (
-            <TinyPalm key={i} x={p.x} baseY={yFar - 2} h={p.h} />
-          ))}
+          {farPalms.map((pp, i) => {
+            const swayPx = windy ? Math.max(1, Math.min(2, Math.abs(windX) * 2)) : 0;
+            const style: React.CSSProperties = reduceMotion || !windy ? {} : {
+              ['--sway-x' as any]: `${swayPx * (windX >= 0 ? 1 : -1)}px`,
+              animationDelay: `${pp.delay}s`
+            };
+            return <TinyPalm key={i} x={pp.x} baseY={yFar - 2} h={pp.h} className={!reduceMotion && windy ? 'sway' : undefined} style={style} />;
+          })}
         </g>
 
         {/* Fog band between far and mid */}
@@ -473,11 +563,16 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
         {/* NEAR treeline shelf */}
         <path d={canopyPath(yNear, height * 0.06, 46, 17)} fill={P.near} opacity={0.98} />
 
-        {/* row of small/medium palms on the near shelf */}
+        {/* row of small/medium palms on the near shelf (sway) */}
         <g opacity={0.98}>
-          {nearRowPalms.map((p, i) => (
-            <Palm key={i} x={p.x} baseY={yNear} h={p.h} />
-          ))}
+          {nearRowPalms.map((pp, i) => {
+            const swayPx = windy ? Math.max(1, Math.min(3, Math.abs(windX) * 3)) : 0;
+            const style: React.CSSProperties = reduceMotion || !windy ? {} : {
+              ['--sway-x' as any]: `${swayPx * (windX >= 0 ? 1 : -1)}px`,
+              animationDelay: `${pp.delay}s`
+            };
+            return <Palm key={i} x={pp.x} baseY={yNear} h={pp.h} className={!reduceMotion && windy ? 'sway' : undefined} style={style} />;
+          })}
         </g>
 
         {/* VOLCANO (optional, tucked into the mid distance) */}
@@ -505,11 +600,16 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
           ))}
         </g>
 
-        {/* FOREGROUND feature palms (1–3 larger silhouettes) */}
+        {/* FOREGROUND feature palms (1–3 larger silhouettes, sway) */}
         <g opacity={0.98}>
-          {fgPalms.map((p, i) => (
-            <Palm key={i} x={p.x} baseY={yFG} h={p.h} />
-          ))}
+          {fgPalms.map((pp, i) => {
+            const swayPx = windy ? Math.max(1, Math.min(4, Math.abs(windX) * 4)) : 0;
+            const style: React.CSSProperties = reduceMotion || !windy ? {} : {
+              ['--sway-x' as any]: `${swayPx * (windX >= 0 ? 1 : -1)}px`,
+              animationDelay: `${pp.delay}s`
+            };
+            return <Palm key={i} x={pp.x} baseY={yFG} h={pp.h} className={!reduceMotion && windy ? 'sway' : undefined} style={style} />;
+          })}
         </g>
 
         {/* Optional water sheen + glints near the bottom */}
@@ -535,9 +635,8 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
       {/* Water on sides for island/bay/peninsula maps - BEFORE panel feather */}
       {hasWater && (
         <>
-          {/* Left water - tropical lagoon style - more defined */}
+          {/* Left water */}
           <g>
-            {/* Darker water base */}
             <path
               d={`
                 M 0 ${p(height * 0.65)}
@@ -548,7 +647,6 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
               fill={blendHex(P.water, '#1a4d6b', 0.3)}
               opacity="0.95"
             />
-            {/* Lighter water overlay */}
             <path
               d={`
                 M 0 ${p(height * 0.70)}
@@ -559,7 +657,6 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
               fill={P.water}
               opacity="0.85"
             />
-            {/* Tropical water shimmer */}
             <path
               d={`M 0 ${p(height * 0.73)} Q ${p(width * 0.11)} ${p(height * 0.72)}, ${p(width * 0.19)} ${p(height * 0.73)}`}
               stroke={P.waterHi}
@@ -583,9 +680,8 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
             />
           </g>
           
-          {/* Right water - more visible and defined */}
+          {/* Right water */}
           <g>
-            {/* Darker water base */}
             <path
               d={`
                 M ${width} ${p(height * 0.65)}
@@ -596,7 +692,6 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
               fill={blendHex(P.water, '#1a4d6b', 0.3)}
               opacity="0.95"
             />
-            {/* Lighter water overlay */}
             <path
               d={`
                 M ${width} ${p(height * 0.70)}
@@ -607,7 +702,6 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
               fill={P.water}
               opacity="0.85"
             />
-            {/* Tropical water shimmer */}
             <path
               d={`M ${width} ${p(height * 0.73)} Q ${p(width * 0.89)} ${p(height * 0.72)}, ${p(width * 0.81)} ${p(height * 0.73)}`}
               stroke={P.waterHi}
@@ -636,30 +730,54 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
       {/* Feather panel color upward to erase any seam */}
       <rect x="0" y={height - bandH * 2.8} width={width} height={bandH * 2.8} fill={`url(#${ids.panelFeather})`} opacity="0.7" />
 
-      {/* Weather effects overlay */}
-      {weather && weather.precipitation === 'rain' && weather.intensity > 0 && (
-        <g opacity={0.4 + weather.intensity * 0.4}>
-          {/* Tropical rain puddles - larger and more numerous */}
-          {[...Array(12)].map((_, i) => {
-            const x = (i + 1) / 13;
-            const pudX = p(width * x + Math.sin(i * 17.3) * 15);
-            const pudY = p(height * (0.83 + Math.sin(i * 9.7) * 0.04));
-            const pudW = p(12 + weather.intensity * 12 + (i % 3) * 6);
-            const pudH = p(3 + weather.intensity * 3);
-            
-            return (
-              <ellipse
-                key={`tropical-pud-${i}`}
-                cx={pudX}
-                cy={pudY}
-                rx={pudW}
-                ry={pudH}
-                fill={P.water}
-                opacity={0.6 + weather.intensity * 0.3}
-              />
-            );
-          })}
-          
+      {/* ---------------------------- Weather overlays ---------------------------- */}
+
+      {/* Rain puddles + wet sheen + ripple rings + SPLASHES */}
+      {(isRain || isDrizzle) && (
+        <g opacity={0.4 + (weather!.intensity || 0) * 0.4}>
+          {puddles.map((pd, i) => (
+            <g key={`tropical-pud-${i}`}>
+              {/* puddle fill */}
+              <ellipse cx={pd.cx} cy={pd.cy} rx={pd.rx} ry={pd.ry} fill={P.water} opacity={0.6 + (weather!.intensity || 0) * 0.3} />
+              {/* specular line */}
+              <path d={`M ${p(pd.cx - pd.rx * 0.6)} ${p(pd.cy)} L ${p(pd.cx + pd.rx * 0.6)} ${p(pd.cy)}`} stroke={P.waterHi} strokeWidth="1" opacity="0.35" />
+
+              {/* RINGS (inside clip) */}
+              {!reduceMotion && (
+                <g clipPath={`url(#${pd.id})`}>
+                  {[0, 1].map((k) => {
+                    const baseDelay = pd.delay + k * (isDrizzle ? 0.9 : 0.5);
+                    const maxR = Math.max(2, Math.min(pd.rx, 10 + droplet * 10));
+                    return (
+                      <circle key={`ring-${k}`} cx={pd.cx} cy={pd.cy} r="0" fill="none" stroke={P.waterHi} strokeWidth="1" vectorEffect="non-scaling-stroke" opacity="0">
+                        <animate attributeName="r" values={`0; ${maxR}`} dur={`${pd.dur}s`} begin={`${baseDelay}s`} repeatCount="indefinite" />
+                        <animate attributeName="opacity" values="0;0.85;0" keyTimes="0;0.2;1" dur={`${pd.dur}s`} begin={`${baseDelay}s`} repeatCount="indefinite" />
+                      </circle>
+                    );
+                  })}
+                </g>
+              )}
+
+              {/* SPLASH DROPS (two beads that pop up & fall back) */}
+              {!reduceMotion && (
+                <>
+                  {[ -3, 3 ].map((dx, k) => {
+                    const baseDelay = pd.delay + k * 0.2;
+                    const apex = pd.cy - pd.ry - (6 + droplet * 6);
+                    const start = pd.cy - pd.ry * 0.2;
+                    const dur = 0.55 + droplet * 0.15;
+                    return (
+                      <circle key={`bead-${k}`} cx={pd.cx + dx} cy={start} r={1} fill={P.waterHi} opacity="0">
+                        <animate attributeName="cy" values={`${start}; ${apex}; ${start}`} dur={`${dur}s`} begin={`${baseDelay}s; ${baseDelay + pd.dur}s`} repeatCount="indefinite" />
+                        <animate attributeName="opacity" values="0;1;0" dur={`${dur}s`} begin={`${baseDelay}s; ${baseDelay + pd.dur}s`} repeatCount="indefinite" />
+                      </circle>
+                    );
+                  })}
+                </>
+              )}
+            </g>
+          ))}
+
           {/* Wet jungle floor */}
           <rect 
             x="0" 
@@ -667,29 +785,52 @@ const TropicalHorizon: React.FC<TropicalHorizonProps> = ({
             width={width} 
             height={p(height * 0.22)} 
             fill={P.water} 
-            opacity={0.2 + weather.intensity * 0.25}
+            opacity={0.2 + (weather!.intensity || 0) * 0.25}
           />
-          
-          {/* Rain streaks on palms - disabled until palm data is available */}
-          {/* TODO: Add palm tree foreground data structure for rain effects */}
         </g>
       )}
 
-      {/* Snow overlay - very rare in tropics but possible at elevation */}
-      {weather && weather.precipitation === 'snow' && weather.intensity > 0 && hasVolcano && (
-        <g opacity={0.3 + weather.intensity * 0.2}>
-          {/* Light frost on volcano peaks only */}
+      {/* Rainbow hint at drizzle during dawn/dusk */}
+      {showRainbow && (
+        <path
+          d={`M ${p(width * 0.18)} ${p(yFar - 4)} A ${p(width * 0.45)} ${p(height * 0.30)} 0 0 1 ${p(width * 0.82)} ${p(yFar - 4)}`}
+          fill="none"
+          stroke={`url(#${ids.rainbow})`}
+          strokeWidth="2"
+          opacity="0.28"
+        />
+      )}
+
+      {/* Lightning flicker (rare) */}
+      {showLightning && !reduceMotion && (
+        <>
           <path
-            d={`
-              M ${p(width * 0.4)} ${p(height * 0.45)}
-              L ${p(width * 0.5)} ${p(height * 0.30)}
-              L ${p(width * 0.6)} ${p(height * 0.45)}
-              Z
-            `}
-            fill="#F9FAFB"
-            opacity={0.5 + weather.intensity * 0.4}
-          />
+            d={`M ${p(width * 0.64)} ${p(yVeryFar - 10)} L ${p(width * 0.60)} ${p(yVeryFar - 2)} L ${p(width * 0.66)} ${p(yVeryFar - 2)} L ${p(width * 0.62)} ${p(yVeryFar + 6)}`}
+            stroke="#EAF0FF"
+            strokeWidth="2"
+            fill="none"
+            opacity="0.0"
+          >
+            <animate attributeName="opacity" values="0;1;0" dur="0.18s" begin={`${0.8 + rng(7100) * 3}s`} repeatCount="indefinite" />
+          </path>
+          <rect x="0" y="0" width={width} height={height} fill="#EAF0FF" opacity="0" className="flash" style={{ animationDelay: `${rng(7200) * 2.5}s` }} />
+        </>
+      )}
+
+      {/* Warm-night fireflies (optional hint from WeatherService) */}
+      {(isNight && (fx?.fireflyProbability ?? 0) > 0.2 && !reduceMotion) && (
+        <g>
+          {Array.from({ length: 8 }).map((_, i) => {
+            const x = p(width * (0.12 + rng(9000 + i) * 0.76));
+            const y = p(yFG - 4 - rng(9010 + i) * 12);
+            return <circle key={`ff-${i}`} className="firefly" cx={x} cy={y} r="1.5" fill="rgba(255,255,160,0.9)" style={{ animationDelay: `${rng(9020 + i) * 2.2}s` }} />;
+          })}
         </g>
+      )}
+
+      {/* Soft global haze/fog veil if present */}
+      {hazeOverlay > 0.05 && (
+        <rect x="0" y="0" width={width} height={height} fill={isNight ? P.fogDense : P.fogSoft} opacity={Math.min(0.25, 0.12 + hazeOverlay * 0.3)} />
       )}
     </svg>
   );

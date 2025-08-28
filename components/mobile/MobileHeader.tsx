@@ -138,7 +138,7 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({
             <span>Food</span>
           </div>
           <div style={statStyle}>
-            <span style={statValueStyle}>💰 {player.gold.toFixed(0)}</span>
+            <span style={statValueStyle}>💰 {(player.gold || 0).toFixed(0)}</span>
             <span>Gold</span>
           </div>
           <div style={statStyle}>

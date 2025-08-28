@@ -177,7 +177,15 @@ const PointOfInterestModal: React.FC<PointOfInterestModalProps> = ({ structure, 
                                         <span className="text-lg">📍</span> Status
                                     </h4>
                                     <DetailRow label="State" value={state} />
-                                    <DetailRow label="Allegiance" value={allegianceGroup || 'Unaligned'} />
+                                    {structureType !== 'ruin' && (
+                                        <DetailRow label="Allegiance" value={allegianceGroup || 'Unaligned'} />
+                                    )}
+                                    {structureType === 'ruin' && structure.customData && (
+                                        <>
+                                            <DetailRow label="Original Era" value={structure.customData.originalEra || 'Unknown'} />
+                                            <DetailRow label="Architecture" value={structure.customData.style || 'Unknown'} />
+                                        </>
+                                    )}
                                     {structureType === 'holy_site' && (
                                         <DetailRow label="Wealth Level" value={`${holySiteWealth}/10`} />
                                     )}
@@ -269,14 +277,63 @@ const PointOfInterestModal: React.FC<PointOfInterestModalProps> = ({ structure, 
                                     }}
                                 />
                             </div>
+                        ) : structure.structureType === 'ruin' ? (
+                            // Ruins have different interactions
+                            <div className="pt-4">
+                                <h4 className="font-semibold text-lg text-amber-300 mb-3">🏛️ Exploration Options</h4>
+                                <div className="space-y-3">
+                                    <div className="p-3 bg-slate-800/40 rounded-lg border border-slate-700/50">
+                                        <p className="text-sm text-slate-300 mb-2">
+                                            {structure.customData?.description || 
+                                             `These ruins date back approximately ${structure.customData?.age || '500'} years. ` +
+                                             `The ${structure.customData?.material || 'stone'} construction suggests ${structure.customData?.originalStructureType || 'ancient'} origins.`}
+                                        </p>
+                                    </div>
+                                    <div className="bg-yellow-900/20 border border-yellow-600/30 rounded-lg p-3">
+                                        <p className="text-xs text-yellow-200 flex items-center gap-2">
+                                            <span>⚠️</span>
+                                            <span>To explore these ruins, move your character to this tile and select "Enter Ruins"</span>
+                                        </p>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-center text-slate-500 mt-3 italic">
+                                    Age: ~{structure.customData?.age || Math.floor(Math.random() * 800 + 200)} years • 
+                                    Material: {structure.customData?.material || 'weathered stone'}
+                                </p>
+                            </div>
+                        ) : structure.structureType === 'palace' ? (
+                            // Palace interactions
+                            <div className="pt-4">
+                                <h4 className="font-semibold text-lg text-purple-300 mb-3">👑 Court Actions</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button className="ff-action-button">Seek Royal Audience</button>
+                                    <button className="ff-action-button">Offer Tribute</button>
+                                    <button className="ff-action-button">Request Patronage</button>
+                                    <button className="ff-action-button">Court Gossip</button>
+                                </div>
+                                <p className="text-xs text-center text-slate-500 mt-3 italic">(Influence and reputation affect available options)</p>
+                            </div>
+                        ) : structure.structureType === 'fortress' ? (
+                            // Fortress interactions
+                            <div className="pt-4">
+                                <h4 className="font-semibold text-lg text-red-300 mb-3">⚔️ Military Actions</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button className="ff-action-button">Request Garrison Aid</button>
+                                    <button className="ff-action-button">Enlist as Mercenary</button>
+                                    <button className="ff-action-button">Trade Military Supplies</button>
+                                    <button className="ff-action-button">Gather Intelligence</button>
+                                </div>
+                                <p className="text-xs text-center text-slate-500 mt-3 italic">(Military structures may require proper credentials)</p>
+                            </div>
                         ) : (
+                            // Generic fallback for other structures
                             <div className="pt-4">
                                 <h4 className="font-semibold text-lg text-blue-300 mb-3">Actions</h4>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <button className="ff-action-button">Seek Audience</button>
-                                    <button className="ff-action-button">Offer Tribute</button>
                                     <button className="ff-action-button">Investigate</button>
-                                    <button className="ff-action-button">Listen for Rumors</button>
+                                    <button className="ff-action-button">Trade</button>
+                                    <button className="ff-action-button">Gather Information</button>
+                                    <button className="ff-action-button">Rest</button>
                                 </div>
                                 <p className="text-xs text-center text-slate-500 mt-3 italic">(More actions will be available through the quest system.)</p>
                             </div>

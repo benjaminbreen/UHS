@@ -9,6 +9,8 @@ import { parseDateString, formatDateWithSeason, getSeasonFromDate } from '../uti
 import { getDetailedHistoricalDescription } from '../utils/historicalPeriodUtils';
 import { URLGameConfig } from '../services/urlConfigService';
 import { SeedManager } from '../services/seedService';
+import PopulationChart from './charts/PopulationChart';
+import MiniLocationMap from './charts/MiniLocationMap';
 
 interface InitialScenarioModalProps {
     isOpen: boolean;
@@ -293,28 +295,30 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                     </button>
                 </div>
 
-                <div className="p-3 md:p-4 space-y-3 md:space-y-4">
-                   
-                    {/* Historical Context */}
-                    <div className="bg-slate-800/50 rounded-lg p-3 md:p-4 border border-slate-700/30">
-                        <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-4">
-                            <Globe className="w-5 h-5 md:w-6 md:h-6 text-blue-400 shrink-0" />
-                            <h3 className="text-base md:text-xl font-semibold text-blue-400 break-words">
-                                It is {getSeasonFromDate(gameDate)} in the {localArea}
-                            </h3>
-                        </div>
-                        <p className="text-slate-300 leading-relaxed text-sm md:text-base">
-                            {historicalContext}
-                        </p>
-                    </div>
+                <div className="p-3 md:p-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 md:gap-4">
+                        {/* Left Column - Main Content (3/5) */}
+                        <div className="lg:col-span-3 space-y-3 md:space-y-4">
+                            {/* Historical Context */}
+                            <div className="bg-slate-800/50 rounded-lg p-3 md:p-4 border border-slate-700/30">
+                                <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-4">
+                                    <Globe className="w-5 h-5 md:w-6 md:h-6 text-blue-400 shrink-0" />
+                                    <h3 className="text-base md:text-xl font-semibold text-blue-400 break-words">
+                                        It is {getSeasonFromDate(gameDate)} in the {localArea}
+                                    </h3>
+                                </div>
+                                <p className="text-slate-300 leading-relaxed text-sm md:text-base">
+                                    {historicalContext}
+                                </p>
+                            </div>
 
-                    {/* Character Info */}
-                    <div className="bg-slate-800/50 rounded-lg p-3 md:p-6 border border-slate-700/30">
-                        <div className="flex items-center gap-2 mb-2 md:mb-3">
-                            <User className="w-5 h-5 md:w-6 md:h-6 text-green-400" />
-                            <h3 className="text-base md:text-xl font-semibold text-green-400">Your Character</h3>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-1 text-sm md:text-base">
+                            {/* Character Info */}
+                            <div className="bg-slate-800/50 rounded-lg p-3 md:p-6 border border-slate-700/30">
+                                <div className="flex items-center gap-2 mb-2 md:mb-3">
+                                    <User className="w-5 h-5 md:w-6 md:h-6 text-green-400" />
+                                    <h3 className="text-base md:text-xl font-semibold text-green-400">Your Character</h3>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-1 text-sm md:text-base">
                             <div className="col-span-1 sm:col-span-2 md:col-span-1">
                                 <span className="text-slate-400 text-xs md:text-base">Name:</span>
                                 <span className="text-white ml-2 md:ml-3 font-medium text-sm md:text-base break-words">
@@ -327,18 +331,24 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                     {playerCharacter.occupation || playerCharacter.profession || 'Unknown'}
                                 </span>
                             </div>
+                            <div className="col-span-1 sm:col-span-2 md:col-span-1">
+                                <span className="text-slate-400 text-xs md:text-base">Social Class:</span>
+                                <span className="text-white ml-2 md:ml-3 font-medium text-sm md:text-base break-words">
+                                    {playerCharacter.class ? 
+                                        playerCharacter.class
+                                            .replace(/_/g, ' ')
+                                            .split(' ')
+                                            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                                            .join(' ') 
+                                        : 'Common'}
+                                </span>
+                            </div>
                             <div className="flex items-center gap-1 md:gap-2 col-span-1 sm:col-span-2 md:col-span-1">
                                 <MapPin className="w-4 h-4 md:w-5 md:h-5 text-slate-400 shrink-0" />
                                 <span className="text-slate-400 text-xs md:text-base">Region:</span>
                                 <span className="text-white font-medium text-sm md:text-base break-words">{currentRegion}</span>
                             </div>
-                            <div className="flex items-center gap-1 md:gap-2 col-span-1 sm:col-span-2 md:col-span-1">
-                                <Calendar className="w-4 h-4 md:w-5 md:h-5 text-slate-400 shrink-0" />
-                                <span className="text-slate-400 text-xs md:text-base">Date:</span>
-                                <span className="text-white font-medium text-sm md:text-base break-words">
-                                    {formatDateWithSeason(gameDate, getSeasonFromDate(gameDate))}
-                                </span>
-                            </div>
+                          
                             {playerCharacter.diseaseHealth?.currentDiseases?.length > 0 && (
                                 <div className="col-span-1 sm:col-span-2">
                                     <span className="text-slate-400 text-xs md:text-base">Health:</span>
@@ -367,16 +377,16 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                                     {modeDescription}
                                 </p>
                                 {gameMode.victoryConditions.length > 0 && (
-                                    <div className="mt-2 md:mt-4">
-                                        <h4 className="text-xs md:text-sm font-medium text-slate-400 mb-1 md:mb-2">Victory Conditions:</h4>
-                                        <div className="space-y-0.5 md:space-y-1">
+                                    <div className="mt-2 md:mt-3">
+                                        <span className="text-xs md:text-sm font-medium text-slate-400">Victory Conditions: </span>
+                                        <span className="text-xs md:text-sm text-green-400">
                                             {gameMode.victoryConditions.slice(0, 3).map((condition, idx) => (
-                                                <div key={idx} className="flex items-start gap-1.5 md:gap-2 text-xs md:text-sm">
-                                                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-400 rounded-full mt-1 shrink-0" />
-                                                    <span className="text-slate-400">{condition.description}</span>
-                                                </div>
+                                                <span key={idx}>
+                                                    {idx > 0 && ' • '}
+                                                    {condition.description}
+                                                </span>
                                             ))}
-                                        </div>
+                                        </span>
                                     </div>
                                 )}
                             </div>
@@ -431,6 +441,28 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                         <p className="text-xs md:text-sm text-slate-400 mt-2">
                             This seed ensures the same world generation for all players who use it.
                         </p>
+                    </div>
+                        </div>
+
+                        {/* Right Column - Charts (2/5) */}
+                        <div className="lg:col-span-2 space-y-3 md:space-y-4">
+                            {/* Population Chart */}
+                            <PopulationChart
+                                currentYear={gameDate.year}
+                                region={currentRegion}
+                                culturalZone={culturalZone.toString()}
+                            />
+                            
+                            {/* Mini Location Map */}
+                            <MiniLocationMap
+                                continent={currentZone === 'North America' || currentZone === 'Central America' ? 'northAmerica' : 
+                                         currentZone === 'Europe' ? 'europe' :
+                                         currentZone === 'Asia' ? 'asia' :
+                                         currentZone === 'Africa' ? 'africa' : 'northAmerica'}
+                                region={currentRegion}
+                                mapSeed={gameSeed}
+                            />
+                        </div>
                     </div>
                 </div>
 

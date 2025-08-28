@@ -6,19 +6,52 @@ import { Tile, ClimateType } from '../../types';
 import { ValueNoise } from '../../utils/noise';
 import { shadeColorHSL } from '../../utils/colorUtils';
 
-interface RuinsSymbolProps { x: number; y: number; size: number; seed: number; tile: Tile; }
+interface RuinsSymbolProps { 
+  x: number; 
+  y: number; 
+  size: number; 
+  seed: number; 
+  tile: Tile;
+  climate?: ClimateType;
+  nightIntensity?: number;
+}
 
 // Simplified helper for demo purposes
 const getTileRenderColor = (tile: Tile, climate: ClimateType) => tile.isLand ? "#70A050" : "#3b82f6";
 
-const RuinsSymbol: React.FC<RuinsSymbolProps> = ({ x, y, size, seed, tile }) => {
+const RuinsSymbol: React.FC<RuinsSymbolProps> = ({ x, y, size, seed, tile, climate = ClimateType.TEMPERATE, nightIntensity = 0 }) => {
     const localRand = () => new ValueNoise(seed + tile.x * 11 + tile.y * 37).random();
     const elements: JSX.Element[] = [];
     
-    const ruinStyles = ['Temple', 'Fort', 'Village', 'Watchtower', 'Shrine', 'Castle', 'Classical', 'Burial Mound'];
-    const ruinStyle = tile.ruinType || ruinStyles[Math.floor(localRand() * ruinStyles.length)];
-    const baseColor = "#a9a9a9"; // DarkGray
-    const strokeColor = "#696969"; // DimGray
+    // Use tile data if available, otherwise fallback to random
+    const material = tile.ruinMaterial || 'stone';
+    const style = tile.ruinStyle || 'tower';
+    const culturalZone = tile.culturalZone || 'EUROPEAN';
+    
+    // Material-based colors
+    const materialColors: Record<string, { base: string; shadow: string; highlight: string }> = {
+      'sandstone': { base: '#D4A574', shadow: '#A67C52', highlight: '#E8C89F' },
+      'red stone': { base: '#A0522D', shadow: '#704214', highlight: '#CD853F' },
+      'mudbrick': { base: '#BC9A6A', shadow: '#8B7355', highlight: '#D4B896' },
+      'adobe': { base: '#C19A6B', shadow: '#8B6914', highlight: '#DEB887' },
+      'stone': { base: '#a9a9a9', shadow: '#696969', highlight: '#C0C0C0' },
+      'granite': { base: '#7C7B78', shadow: '#555555', highlight: '#9C9B98' },
+      'marble': { base: '#F0E8E0', shadow: '#C0C0C0', highlight: '#FFFFFF' },
+      'limestone': { base: '#E3DAC9', shadow: '#C0B09A', highlight: '#F5F5DC' },
+    };
+    
+    const colors = materialColors[material] || materialColors['stone'];
+    const baseColor = nightIntensity > 0 ? shadeColorHSL(colors.base, -nightIntensity * 0.5) : colors.base;
+    const strokeColor = colors.shadow;
+    const highlightColor = colors.highlight;
+    
+    // Map old style names to new ones
+    const ruinStyle = style === 'temple' ? 'Classical' :
+                     style === 'fortress' || style === 'keep' ? 'Castle' :
+                     style === 'tower' || style === 'minaret' ? 'Watchtower' :
+                     style === 'pagoda' ? 'Temple' :
+                     style === 'pyramid' ? 'Fort' :
+                     tile.ruinType || 'Fort';
     
     // Base rubble shadow
     elements.push(

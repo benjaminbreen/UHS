@@ -7,7 +7,7 @@ export type TerrainStructureType =
     'fortress' | 'mill' | 'mining_colony' | 'lumber_camp' | 
     'fishing_hut' | 'farm' | 'marketplace' | 'factory' | 
     'government_district' | 'city_center' |
-    'encampment' | 'quarry' | 'holy_site' | 'palace' | 'ruin';
+    'encampment' | 'quarry' | 'holy_site' | 'palace' | 'ruin' | 'bridge';
 
 // The economic role a structure plays in the simulation.
 export type EconomicRole = 'extraction' | 'processing' | 'defensive' | 'commerce' | 'subsistence';
@@ -61,4 +61,7 @@ export interface TerrainStructure {
   // For ruins - culture and era specific rendering
   culturalZone?: string;
   era?: string;
+  
+  // For bridges and other custom structures
+  customData?: any;
 }

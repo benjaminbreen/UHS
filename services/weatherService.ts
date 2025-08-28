@@ -1,12 +1,22 @@
 /**
  * services/weatherService.ts - Dynamic weather simulation system
  * Calculates realistic weather conditions based on climate, season, altitude, and time
- * 
- * Update notes:
- * - Preserves existing API: no removals/renames of fields or unions.
- * - Adds optional WeatherFx "fx" bundle with display-friendly cues (heat shimmer, leaves, particles, etc.).
- * - Improves seeded randomness to be stable per day yet varied between calls.
- * - Keeps caching and existing logic; only augments applyModifiers with fx computation.
+ *
+ * Update notes (seasonal visuals):
+ * - Adds OPTIONAL FX hints for seasonal blossoms/leaves without breaking API:
+ *    fx.blossoms?: {
+ *      type: 'cherry' | 'jacaranda';
+ *      activity: number;           // 0–1 intensity for blowing petals
+ *      palette: string[];          // suggested petal colors
+ *      sizeRange: [number, number] // suggested petal size in px-ish units (UI-scaled)
+ *    }
+ *    fx.leavesActivity: number;    // 0–1; now 0 outside autumn for T/M/C climates
+ *    fx.leafPalette?: string[];    // suggested autumn leaf colors when applicable
+ *    fx.fireflyProbability?: number; // 0–1; warm summer nights (optional)
+ *    fx.auroraProbability?: number;  // 0–1; rare clear winter nights in cold climates
+ *
+ * - Unifies the "windy" threshold used across dust/sand & blossom/leaf heuristics.
+ * - Keeps all existing fields & behavior intact unless noted; only adds optional hints.
  */
 
 import { ClimateType, BiomeType, Season, TimeOfDay } from '../types';
@@ -16,7 +26,7 @@ type AirParticle = 'dust' | 'sand' | 'pollen' | 'smoke' | 'ash';
 
 export interface WeatherFx {
   heatShimmer: number;            // 0–1
-  leavesActivity: number;         // 0–1
+  leavesActivity: number;         // 0–1  (now season-aware; 0 outside autumn for T/M/C)
   airborneParticles?: { type: AirParticle; density: number }; // Optional
   lightningProbability: number;   // 0–1
   fogDensity: number;             // 0–1
@@ -26,6 +36,17 @@ export interface WeatherFx {
   dropletSize: number;            // 0–1 (drizzle small → storm larger)
   flakeSize: number;              // 0–1 (powder small → fat flakes)
   insolation: number;             // 0–1 (sun energy at ground)
+
+  /** NEW: seasonal flourishes (optional) */
+  blossoms?: {
+    type: 'cherry' | 'jacaranda';
+    activity: number;             // 0–1
+    palette: string[];            // suggested petal colors
+    sizeRange: [number, number];  // UI can interpret as px (before scaling)
+  };
+  leafPalette?: string[];         // suggested autumn colors when leavesActivity > 0
+  fireflyProbability?: number;    // 0–1 warm summer nights hint
+  auroraProbability?: number;     // 0–1 rare clear winter nights in cold climates
 }
 
 export interface WeatherState {
@@ -48,17 +69,22 @@ export interface WeatherState {
   fx?: WeatherFx;
 }
 
-// Base temperature ranges by climate (Celsius)
+/* ------------------------------ Tuning constants ------------------------------ */
+
+/** Unified "windy" threshold for visual heuristics (km/h). Keep in sync with UI. */
+const WINDY_KMH = 18;
+
+/** Base temperature ranges by climate (Celsius) */
 const CLIMATE_TEMPS: Record<ClimateType, { summer: [number, number], winter: [number, number] }> = {
-  [ClimateType.TROPICAL]: { summer: [25, 35], winter: [22, 30] },
-  [ClimateType.SEMITROPICAL]: { summer: [22, 32], winter: [12, 22] },
+  [ClimateType.TROPICAL]:      { summer: [25, 35], winter: [22, 30] },
+  [ClimateType.SEMITROPICAL]:  { summer: [22, 32], winter: [12, 22] },
   [ClimateType.MEDITERRANEAN]: { summer: [20, 30], winter: [8, 18] },
-  [ClimateType.TEMPERATE]: { summer: [15, 28], winter: [-5, 10] },
-  [ClimateType.COLD]: { summer: [5, 20], winter: [-25, -5] },
-  [ClimateType.ARID]: { summer: [25, 45], winter: [5, 25] }
+  [ClimateType.TEMPERATE]:     { summer: [15, 28], winter: [-5, 10] },
+  [ClimateType.COLD]:          { summer: [5, 20],  winter: [-25, -5] },
+  [ClimateType.ARID]:          { summer: [25, 45], winter: [5, 25] }
 };
 
-// Time of day temperature modifiers (Celsius)
+/** Time of day temperature modifiers (Celsius) */
 const TIME_TEMP_MODIFIERS: Record<TimeOfDay, number> = {
   Dawn: -3,
   Day: 2,
@@ -67,7 +93,7 @@ const TIME_TEMP_MODIFIERS: Record<TimeOfDay, number> = {
   Night: -5
 };
 
-// Biome microclimate adjustments
+/** Biome microclimate adjustments */
 const BIOME_MODIFIERS = {
   temperature: {
     [BiomeType.DESERT]: 5,
@@ -100,6 +126,13 @@ const BIOME_MODIFIERS = {
 
 // Utilities
 const clamp = (v: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
+const between = (v: number, lo: number, hi: number) => v >= lo && v <= hi;
+
+// Season helpers (tolerant of 'autumn'|'fall')
+const isSpring = (s: Season) => s === 'spring';
+const isSummer = (s: Season) => s === 'summer';
+const isWinter = (s: Season) => s === 'winter';
+const isAutumn = (s: Season) => s === 'autumn' || (s as unknown as string) === 'fall';
 
 export class WeatherService {
   private weatherCache: Map<string, { weather: WeatherState, timestamp: number }> = new Map();
@@ -170,10 +203,10 @@ export class WeatherService {
       actualClimate = ClimateType.TEMPERATE;
     }
 
-    const isWinter = season === 'winter';
-    const isSummer = season === 'summer';
-    const tempRange = isWinter ? climateData.winter :
-                     isSummer ? climateData.summer :
+    const _isWinter = isWinter(season);
+    const _isSummer = isSummer(season);
+    const tempRange = _isWinter ? climateData.winter :
+                     _isSummer ? climateData.summer :
                      [
                        (climateData.winter[0] + climateData.summer[0]) / 2,
                        (climateData.winter[1] + climateData.summer[1]) / 2
@@ -186,99 +219,69 @@ export class WeatherService {
     const isLowPressure = pressure < 1010;
 
     // Climate-adjusted precipitation chances
-    let precipitationChance = 0.15; // Base 15% chance of precipitation
-    if (actualClimate === ClimateType.TROPICAL) precipitationChance = 0.35; // More rain in tropics
-    else if (actualClimate === ClimateType.ARID) precipitationChance = 0.05; // Very rare in desert
-    else if (actualClimate === ClimateType.MEDITERRANEAN) precipitationChance = season === 'winter' ? 0.30 : 0.10; // Wet winters, dry summers
-    else if (actualClimate === ClimateType.COLD) precipitationChance = 0.25; // More snow/precipitation
-    else if (actualClimate === ClimateType.TEMPERATE) precipitationChance = 0.20; // Moderate rain
+    let precipitationChance = 0.15; // Base 15% chance
+    if (actualClimate === ClimateType.TROPICAL) precipitationChance = 0.35;
+    else if (actualClimate === ClimateType.ARID) precipitationChance = 0.05;
+    else if (actualClimate === ClimateType.MEDITERRANEAN) precipitationChance = isWinter(season) ? 0.30 : 0.10;
+    else if (actualClimate === ClimateType.COLD) precipitationChance = 0.25;
+    else if (actualClimate === ClimateType.TEMPERATE) precipitationChance = 0.20;
 
     // Seasonal adjustments
-    if (season === 'winter') precipitationChance *= 1.3;
-    else if (season === 'summer' && actualClimate !== ClimateType.TROPICAL) precipitationChance *= 0.7;
+    if (_isWinter) precipitationChance *= 1.3;
+    else if (_isSummer && actualClimate !== ClimateType.TROPICAL) precipitationChance *= 0.7;
 
     // Pressure affects precipitation chance
-    if (isLowPressure) precipitationChance *= 2.0; // Double chance in low pressure
-    else precipitationChance *= 0.5; // Half chance in high pressure
+    if (isLowPressure) precipitationChance *= 2.0; // Double in low pressure
+    else precipitationChance *= 0.5;               // Half in high pressure
 
     // Determine if precipitation occurs
     const willPrecipitate = rand01() < precipitationChance;
 
-    // Cloud cover logic - more variety
+    // Cloud cover logic
     let cloudCover: number;
     if (willPrecipitate) {
-      // Precipitation requires substantial clouds
       cloudCover = random(0.6, 1.0);
     } else if (isLowPressure) {
-      // Low pressure often brings clouds but not always
-      const cloudRoll = rand01();
-      if (cloudRoll < 0.3) cloudCover = random(0, 0.2); // 30% chance of mostly clear
-      else if (cloudRoll < 0.7) cloudCover = random(0.3, 0.6); // 40% chance of partly cloudy
-      else cloudCover = random(0.7, 0.9); // 30% chance of mostly cloudy
+      const roll = rand01();
+      cloudCover = roll < 0.3 ? random(0, 0.2) : roll < 0.7 ? random(0.3, 0.6) : random(0.7, 0.9);
     } else {
-      // High pressure usually means clear skies
-      const cloudRoll = rand01();
-      if (cloudRoll < 0.6) cloudCover = random(0, 0.15); // 60% chance of clear/sunny
-      else if (cloudRoll < 0.9) cloudCover = random(0.2, 0.4); // 30% chance of partly cloudy
-      else cloudCover = random(0.5, 0.7); // 10% chance of cloudy
+      const roll = rand01();
+      cloudCover = roll < 0.6 ? random(0, 0.15) : roll < 0.9 ? random(0.2, 0.4) : random(0.5, 0.7);
     }
 
-    // Precipitation logic
+    // Precipitation type & intensity
     let precipitation: WeatherState['precipitation'] = 'none';
     let intensity = 0;
 
     if (willPrecipitate) {
-      // Determine precipitation type based on temperature and climate
       if (baseTemp < -2) {
         precipitation = 'snow';
         intensity = random(0.2, 0.8);
       } else if (baseTemp < 2) {
-        // Near freezing - could be snow, sleet, or freezing rain
-        const precipType = rand01();
-        if (precipType < 0.4) {
-          precipitation = 'snow';
-          intensity = random(0.1, 0.6);
-        } else if (precipType < 0.7) {
-          precipitation = 'sleet';
-          intensity = random(0.3, 0.7);
-        } else {
-          precipitation = 'rain'; // Freezing rain
-          intensity = random(0.2, 0.5);
-        }
+        const t = rand01();
+        if (t < 0.4) { precipitation = 'snow';  intensity = random(0.1, 0.6); }
+        else if (t < 0.7) { precipitation = 'sleet'; intensity = random(0.3, 0.7); }
+        else { precipitation = 'rain'; intensity = random(0.2, 0.5); } // freezing rain
       } else {
-        // Above freezing - rain or drizzle
-        if (cloudCover > 0.8 && isLowPressure) {
-          // Heavy clouds and low pressure = heavier rain
-          precipitation = 'rain';
-          intensity = random(0.4, 0.9);
-        } else if (cloudCover > 0.6) {
-          // Moderate clouds = regular rain
-          precipitation = 'rain';
-          intensity = random(0.2, 0.6);
-        } else {
-          // Light clouds = drizzle
-          precipitation = 'drizzle';
-          intensity = random(0.1, 0.3);
-        }
+        if (cloudCover > 0.8 && isLowPressure) { precipitation = 'rain'; intensity = random(0.4, 0.9); }
+        else if (cloudCover > 0.6)             { precipitation = 'rain'; intensity = random(0.2, 0.6); }
+        else                                   { precipitation = 'drizzle'; intensity = random(0.1, 0.3); }
       }
 
-      // Tropical adjustments - more intense rain
+      // Tropical adjustments
       if (actualClimate === ClimateType.TROPICAL && precipitation === 'rain') {
         intensity = Math.min(1.0, intensity * 1.5);
       }
-
-      // Desert adjustments - rare but intense when it happens
+      // Desert adjustments
       if (actualClimate === ClimateType.ARID && precipitation === 'rain') {
         intensity = Math.min(1.0, intensity * 2.0);
       }
     }
 
     // Wind based on pressure gradient
-    const windSpeed = isLowPressure ?
-      random(15, 45) :
-      random(5, 20);
+    const windSpeed = isLowPressure ? random(15, 45) : random(5, 20);
 
-    // Humidity based on climate and precipitation
+    // Humidity baseline
     let baseHumidity = 50;
     if (actualClimate === ClimateType.TROPICAL) baseHumidity = 75;
     else if (actualClimate === ClimateType.ARID) baseHumidity = 25;
@@ -373,11 +376,11 @@ export class WeatherService {
     // Generate description
     modified.description = this.generateDescription(modified);
 
-    // ---------------- FX ANNOTATIONS (OPTIONAL, DISPLAY-ORIENTED) ----------------
+    /* ---------------- FX ANNOTATIONS (OPTIONAL, DISPLAY-ORIENTED) ---------------- */
     const isDay = params.timeOfDay === 'Day' || params.timeOfDay === 'Midday';
     const isTwilight = params.timeOfDay === 'Dawn' || params.timeOfDay === 'Dusk';
 
-    // Insolation (sun energy) ~ daylight and cloud cover and temperature
+    // Insolation (sun energy) ~ daylight, cloud cover, temperature
     const daylightFactor = params.timeOfDay === 'Night' ? 0.08 : isTwilight ? 0.6 : 1.0;
     const insolation = clamp(daylightFactor * (1 - modified.cloudCover) * clamp((modified.temperature - 5) / 35));
 
@@ -400,18 +403,75 @@ export class WeatherService {
       (modified.temperature - 32) / 14 * (1 - modified.humidity / 100) * (0.6 + 0.4 * insolation)
     );
 
-    // Leaves activity ~ wind and vegetation presence
+    // Vegetation factor (for leaves/blossoms)
     const vegFactor =
       (params.biome === BiomeType.FOREST || params.biome === BiomeType.DENSE_FOREST || params.biome === BiomeType.JUNGLE)
-        ? 1 : (params.biome === BiomeType.URBAN || params.biome === BiomeType.DENSE_CITY) ? 0.25 : 0.6;
-    const leavesActivity = clamp((modified.windSpeed - 10) / 30) * vegFactor;
+        ? 1
+        : (params.biome === BiomeType.URBAN || params.biome === BiomeType.DENSE_CITY)
+          ? 0.25
+          : 0.6;
 
-    // Airborne particles: dust/sand vs pollen (do not change enums; just hints)
+    // Windiness (shared heuristic)
+    const windy = modified.windSpeed >= WINDY_KMH;
+
+    // ---------------- Seasonal blossoms & leaves ----------------
+    // Default leavesActivity: season-aware (0 outside autumn for temperate/med/cold)
+    let leavesActivity = 0;
+    let leafPalette: string[] | undefined;
+
+    const inLeafClimates = (
+      params.climate === ClimateType.TEMPERATE ||
+      params.climate === ClimateType.MEDITERRANEAN ||
+      params.climate === ClimateType.COLD
+    );
+
+    const inBlossomCherryClimates = inLeafClimates;
+    const inBlossomJacarandaClimates = params.climate === ClimateType.SEMITROPICAL;
+
+    // Autumn leaves (temperate/med/cold) only in autumn/fall
+    if (inLeafClimates && isAutumn(params.season) && modified.precipitation === 'none' && (modified.visibility ?? 1) > 0.5) {
+      leavesActivity = clamp(((modified.windSpeed - WINDY_KMH) / 35) * vegFactor);
+      // Rich autumn palette
+      leafPalette = ['#C43E2F', '#E07A2E', '#E3A018', '#9E6A3A', '#7A4F2C', '#B26E5D'];
+    }
+
+    // Spring blossoms
+    let blossoms: WeatherFx['blossoms'] | undefined;
+
+    // Only in spring, clear enough, and windy enough to blow petals
+    const canBlossom = isSpring(params.season)
+      && modified.precipitation === 'none'
+      && (modified.visibility ?? 1) > 0.6
+      && windy
+      && vegFactor > 0.5;
+
+    if (canBlossom && inBlossomCherryClimates) {
+      // Cherry blossoms: pale pinks/whites
+      const palette = ['#FBE7EF', '#F8CFE0', '#F4BBD0', '#F0A6C1', '#FFFFFF'];
+      const activity = clamp(((modified.windSpeed - WINDY_KMH) / 28) * vegFactor);
+      blossoms = {
+        type: 'cherry',
+        activity,
+        palette,
+        sizeRange: [3, 7]
+      };
+    } else if (canBlossom && inBlossomJacarandaClimates) {
+      // Jacaranda blossoms: lavenders/violets
+      const palette = ['#C7A0E8', '#B57EDC', '#9F6ED1', '#8F5BC7', '#E6D7F7'];
+      const activity = clamp(((modified.windSpeed - WINDY_KMH) / 28) * vegFactor);
+      blossoms = {
+        type: 'jacaranda',
+        activity,
+        palette,
+        sizeRange: [3, 7]
+      };
+    }
+
+    // Airborne particles: dust/sand vs pollen
     let airborneParticles: WeatherFx['airborneParticles'];
     const dry = modified.humidity < 40;
     const warm = modified.temperature > 18;
     const calm = modified.windSpeed < 10;
-    const windy = modified.windSpeed > 12;
     const aridBiome =
       params.climate === ClimateType.ARID || params.biome === BiomeType.DESERT || params.biome === BiomeType.TUNDRA;
 
@@ -419,12 +479,20 @@ export class WeatherService {
       const sandy = params.biome === BiomeType.DESERT;
       airborneParticles = {
         type: sandy ? 'sand' : 'dust',
-        density: clamp(0.2 + (modified.windSpeed - 12) / 30 + (1 - modified.humidity / 100))
+        density: clamp(0.2 + (modified.windSpeed - WINDY_KMH) / 30 + (1 - modified.humidity / 100))
       };
-    } else if (modified.precipitation === 'none' && warm && calm && vegFactor > 0.8 && modified.cloudCover < 0.7) {
+    } else if (
+      modified.precipitation === 'none' &&
+      isSpring(params.season) &&
+      warm &&
+      calm &&
+      vegFactor > 0.8 &&
+      modified.cloudCover < 0.7
+    ) {
+      // Spring pollen stronger
       airborneParticles = {
         type: 'pollen',
-        density: clamp(0.2 + (modified.humidity / 100) * 0.4 + (insolation * 0.4))
+        density: clamp(0.35 + (modified.humidity / 100) * 0.35 + (insolation * 0.4))
       };
     }
 
@@ -455,6 +523,33 @@ export class WeatherService {
       (modified.precipitation === 'drizzle' && modified.intensity < 0.35 && modified.cloudCover < 0.7 && (isTwilight || (isDay && insolation > 0.6)))
         ? 0.6 : 0;
 
+    // Delightful extras (optional to render)
+    let fireflyProbability = 0;
+    if (
+      isSummer(params.season) &&
+      params.climate !== ClimateType.ARID &&
+      params.timeOfDay === 'Night' &&
+      modified.temperature > 18 &&
+      modified.humidity > 55 &&
+      modified.windSpeed < 12 &&
+      modified.precipitation === 'none'
+    ) {
+      fireflyProbability = clamp(0.2 + (modified.humidity - 55) / 60 + (modified.temperature - 18) / 30);
+    }
+
+    let auroraProbability = 0;
+    if (
+      isWinter(params.season) &&
+      params.climate === ClimateType.COLD &&
+      params.timeOfDay === 'Night' &&
+      modified.cloudCover < 0.25 &&
+      modified.precipitation === 'none' &&
+      modified.temperature < -5
+    ) {
+      auroraProbability = 0.05; // rare hint
+    }
+
+    // Finalize FX bundle
     modified.fx = {
       heatShimmer,
       leavesActivity,
@@ -466,7 +561,11 @@ export class WeatherService {
       surfaceWetnessNow,
       dropletSize,
       flakeSize,
-      insolation
+      insolation,
+      ...(leafPalette ? { leafPalette } : {}),
+      ...(blossoms ? { blossoms } : {}),
+      ...(fireflyProbability ? { fireflyProbability } : {}),
+      ...(auroraProbability ? { auroraProbability } : {})
     };
 
     return modified;
@@ -533,7 +632,7 @@ export class WeatherService {
     if (weather.temperature < 3 &&
         weather.cloudCover < 0.3 &&
         weather.windSpeed < 10 &&
-        params.season === 'winter') {
+        isWinter(params.season)) {
       return 'frost';
     }
 
@@ -549,38 +648,22 @@ export class WeatherService {
     // Convert temperature to Fahrenheit for thresholds
     const tempF = weather.temperature * 9/5 + 32;
 
-    // Cold: Below 20°F (-6.7°C)
-    if (tempF < 20) {
-      return 'cold';
-    }
+    if (tempF < 20) return 'cold';       // Below 20°F (-6.7°C)
+    if (tempF > 75) return 'hot';        // Above 75°F (23.9°C)
+    if (weather.humidity > 70) return 'humid';
 
-    // Hot: Above 75°F (23.9°C)
-    if (tempF > 75) {
-      return 'hot';
-    }
-
-    // Humid: Humidity above 70%
-    if (weather.humidity > 70) {
-      return 'humid';
-    }
-
-    // Otherwise comfortable
     return 'comfortable';
   }
 
   private generateDescription(weather: WeatherState): string {
     const parts: string[] = [];
 
-    // Add condition status first if it's notable
-    if (weather.condition === 'cold') {
-      parts.push('Cold');
-    } else if (weather.condition === 'hot') {
-      parts.push('Hot');
-    } else if (weather.condition === 'humid') {
-      parts.push('Humid');
-    }
+    // Condition
+    if (weather.condition === 'cold') parts.push('Cold');
+    else if (weather.condition === 'hot') parts.push('Hot');
+    else if (weather.condition === 'humid') parts.push('Humid');
 
-    // Sky conditions
+    // Sky
     if (weather.cloudCover < 0.2) parts.push('Clear');
     else if (weather.cloudCover < 0.5) parts.push('Partly cloudy');
     else if (weather.cloudCover < 0.8) parts.push('Mostly cloudy');
@@ -593,14 +676,14 @@ export class WeatherService {
       parts.push(`${intensityWord} ${weather.precipitation}`);
     }
 
-    // Special conditions
+    // Special
     if (weather.special === 'fog') parts.push('Foggy');
     else if (weather.special === 'mist') parts.push('Misty');
     else if (weather.special === 'rainbow') parts.push('Rainbow visible');
     else if (weather.special === 'frost') parts.push('Frosty');
     else if (weather.special === 'heatwave') parts.push('Heatwave');
 
-    // Wind (fix ordering: check very windy first)
+    // Wind (check very windy first)
     if (weather.windSpeed > 50) parts.push('Very windy');
     else if (weather.windSpeed > 30) parts.push('Windy');
 

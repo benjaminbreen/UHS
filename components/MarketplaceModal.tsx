@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Tile, PlayerCharacter, Item, MapData, MapAnalysisData, Season, HistoricalEra, ClimateType, CulturalZone, TimeOfDay, NpcEntity, TerrainStructure } from '../types';
+import { Tile, PlayerCharacter, Item, MapData, MapAnalysisData, Season, HistoricalEra, ClimateType, CulturalZone, TimeOfDay, NpcEntity, TerrainStructure, BiomeType } from '../types';
 import { ITEM_DEFINITIONS, ANIMAL_DATA } from '../constants/index';
 import { tradeService, TradeGood, MarketConditions } from '../services/tradeService';
 import MarketplaceBanner, { Condition } from './MarketplaceBanner';
@@ -14,7 +14,7 @@ import { mapLocationToCulture } from '../utils/mapUtils';
 import { loadTamedAnimals, removeFromParty, TamedAnimal } from '../services/animalTamingService';
 import { loadFactionData } from '../utils/dataLoader';
 import { AllegianceGroup } from '../constants/gameData/factions/types';
-import { WeatherState } from '../services/weatherService';
+import { WeatherState, weatherService } from '../services/weatherService';
 import { ProceduralPortrait } from './portraits';
 import { AttributeBadgeList } from './AttributeBadge';
 import { generateNpcGreeting, generateNpcResponse, generateNpcMonologue, createDialogueContext } from '../services/npcDialogueService';
@@ -76,6 +76,37 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     const parsedCulture = mapLocationToCulture(mapData.continent || 'Europe', dateInfo.year);
     return { era: parsedEra as HistoricalEra, culturalZone: parsedCulture };
   }, [mapData.timeSlice, mapData.continent]);
+  
+  // Convert gameTimeHours to proper TimeOfDay literal
+  const timeOfDay = useMemo((): TimeOfDay => {
+    if (gameTimeHours < 6) return 'Dawn';
+    else if (gameTimeHours < 10) return 'Morning';
+    else if (gameTimeHours < 14) return 'Midday';
+    else if (gameTimeHours < 17) return 'Afternoon';
+    else if (gameTimeHours < 21) return 'Dusk';
+    else return 'Night';
+  }, [gameTimeHours]);
+  
+  // Compute weather if not provided
+  const computedWeather = useMemo(() => {
+    if (weather) return weather;
+    
+    // Get a reasonable default biome if tile doesn't have one (shouldn't happen)
+    const biome = tile.biome || BiomeType.GRASSLAND;
+    const climate = mapData.climate || ClimateType.TEMPERATE;
+    const altitude = tile.altitude || 0.5;
+    const dayOfYear = 180; // Default to middle of year
+    
+    return weatherService.getWeather(
+      climate,
+      biome,
+      season,
+      timeOfDay,
+      altitude,
+      dayOfYear,
+      { x: tile.x, y: tile.y }
+    );
+  }, [weather, tile, mapData.climate, season, timeOfDay]);
   
   // Initialize market conditions and faction data
   useEffect(() => {
@@ -326,7 +357,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     try {
       const context = createDialogueContext(mapData, {
         isMarketplace: true,
-        timeOfDay: gameTimeHours < 6 ? 'dawn' : gameTimeHours < 12 ? 'morning' : gameTimeHours < 18 ? 'midday' : gameTimeHours < 21 ? 'evening' : 'night',
+        timeOfDay: timeOfDay.toLowerCase(),
         season: season.toLowerCase()
       });
       
@@ -338,7 +369,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     } finally {
       setNpcDialogueLoading(false);
     }
-  }, [mapData, gameTimeHours, season, playerCharacter]);
+  }, [mapData, timeOfDay, season, playerCharacter]);
 
   // Handle portrait click for monologue
   const handlePortraitClick = useCallback(async (npc: NpcEntity) => {
@@ -349,7 +380,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       try {
         const context = createDialogueContext(mapData, {
           isMarketplace: true,
-          timeOfDay: gameTimeHours < 6 ? 'dawn' : gameTimeHours < 12 ? 'morning' : gameTimeHours < 18 ? 'midday' : gameTimeHours < 21 ? 'evening' : 'night',
+          timeOfDay: timeOfDay.toLowerCase(),
           season: season.toLowerCase()
         });
         
@@ -366,7 +397,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         setTimeout(() => setMonologueVisible(false), 4000);
       }
     }
-  }, [portraitClickCounts, mapData, gameTimeHours, season]);
+  }, [portraitClickCounts, mapData, timeOfDay, season]);
   
   // Market condition description
   const marketConditionDesc = useMemo(() => {
@@ -435,7 +466,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   {marketInventory.map((good, index) => (
                     <div
                       key={`${good.itemId}-${index}`}
-                      className="group bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-slate-700/50 rounded-lg p-4 hover:border-amber-600/50 hover:shadow-lg hover:shadow-amber-900/20 transition-all duration-200 backdrop-blur-sm"
+                      className="group bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-slate-700/50 rounded-md p-4 hover:border-amber-600/50 hover:shadow-lg hover:shadow-amber-900/20 transition-all duration-200 backdrop-blur-sm"
                     >
                       <div className="flex justify-between items-start mb-3">
                         <div>
@@ -895,7 +926,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className={`bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 border-2 border-amber-900/40 rounded-xl shadow-2xl flex flex-col overflow-hidden ${
+      <div className={`bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 border-2 border-amber-900/40 rounded-md shadow-2xl flex flex-col overflow-hidden ${
         isMobile ? 'w-full h-full rounded-none' : 'w-[97%] max-w-8xl h-[72vh]'
       }`}>
         {/* Enhanced header with animated banner */}
@@ -909,16 +940,16 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               season={season}
               tile={tile}
               mapData={mapData}
-              timeOfDay={gameTimeHours < 6 ? 'Dawn' : gameTimeHours < 12 ? 'Morning' : gameTimeHours < 18 ? 'Midday' : gameTimeHours < 21 ? 'Evening' : 'Night'}
+              timeOfDay={timeOfDay}
               seed={mapData.seed}
               width={1400}
               height={144}
-              weather={weather}
+              weather={computedWeather}
             />
     
 
           {/* Optional, super-subtle vignette that WON’T darken the banner */}
-          <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-transparent via-transparent to-black/10" />
+          <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-transparent via-transparent to-black/0" />
 
           <button
             onClick={onClose}

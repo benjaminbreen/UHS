@@ -2,7 +2,7 @@
  * components/symbols/FarmSymbol.tsx - Renders visually distinct farmland based on crop type.
  */
 import React from 'react';
-import { Tile } from '../../types/index';
+import { Tile, ClimateType, Season } from '../../types/index';
 import { ValueNoise } from '../../utils/noise';
 
 interface FarmSymbolProps {
@@ -11,10 +11,53 @@ interface FarmSymbolProps {
   size: number;
   seed: number;
   tile: Tile;
+  climate?: ClimateType;
+  season?: Season;
 }
 
-const FarmSymbol: React.FC<FarmSymbolProps> = React.memo(({ x, y, size, tile }) => {
+const FarmSymbol: React.FC<FarmSymbolProps> = React.memo(({ x, y, size, tile, climate, season }) => {
     const { cropType } = tile;
+    
+    // Determine if we should apply seasonal effects
+    const applySeasonalEffects = climate && season && (
+        climate === ClimateType.COLD || 
+        climate === ClimateType.TEMPERATE || 
+        climate === ClimateType.MEDITERRANEAN ||
+        climate === ClimateType.ARID
+    );
+    
+    // Get seasonal color modifiers
+    const getSeasonalColors = () => {
+        if (!applySeasonalEffects) return { opacity: 1, filter: 'none', soilColor: '#8B7355' };
+        
+        if (climate === ClimateType.ARID) {
+            // Arid climates: faded in fall/winter
+            if (season === 'winter' || season === 'fall') {
+                return { opacity: 0.6, filter: 'sepia(0.3)', soilColor: '#D2B48C' };
+            }
+            return { opacity: 0.85, filter: 'none', soilColor: '#C19A6B' };
+        }
+        
+        // Cold, Temperate, Mediterranean seasonal changes
+        switch (season) {
+            case 'winter':
+                // Fallow/dormant fields in winter
+                return { opacity: 0.4, filter: 'grayscale(0.7)', soilColor: '#654321', showFallow: true };
+            case 'spring':
+                // Young growth in spring
+                return { opacity: 0.9, filter: 'brightness(1.2) saturate(1.2)', soilColor: '#8B7355' };
+            case 'summer':
+                // Full growth in summer (default appearance)
+                return { opacity: 1, filter: 'none', soilColor: '#8B7355' };
+            case 'fall':
+                // Harvest time - golden/brown tints
+                return { opacity: 0.95, filter: 'sepia(0.2) hue-rotate(-10deg)', soilColor: '#A0826D' };
+            default:
+                return { opacity: 1, filter: 'none', soilColor: '#8B7355' };
+        }
+    };
+    
+    const seasonalStyle = getSeasonalColors();
 
     const renderVineyard = () => (
         <>
@@ -524,63 +567,132 @@ const FarmSymbol: React.FC<FarmSymbolProps> = React.memo(({ x, y, size, tile }) 
             ))}
         </>
     );
-
+    
+    // Render fallow field for winter in cold/temperate climates
+    const renderFallowField = () => (
+        <>
+            {/* Bare soil with furrows */}
+            <rect x={x} y={y} width={size} height={size} fill={seasonalStyle.soilColor} />
+            {[...Array(8)].map((_, i) => (
+                <line 
+                    key={`furrow-${i}`}
+                    x1={x} 
+                    y1={y + i * (size / 8) + 2}
+                    x2={x + size} 
+                    y2={y + i * (size / 8) + 2}
+                    stroke="#4A3C28" 
+                    strokeWidth="0.5" 
+                    opacity="0.6"
+                />
+            ))}
+            {/* Some stubble or dried remnants */}
+            {[...Array(5)].map((_, i) => (
+                <rect 
+                    key={`stubble-${i}`}
+                    x={x + (i * size / 5) + (size / 10)} 
+                    y={y + (size / 2) - 1}
+                    width="1" 
+                    height="3" 
+                    fill="#8B7355" 
+                    opacity="0.4"
+                />
+            ))}
+        </>
+    );
+    
+    // Check if we should show fallow field in winter
+    if (seasonalStyle.showFallow && 
+        cropType !== 'Vineyard' && 
+        cropType !== 'Olive Grove' && 
+        !cropType?.includes('Orchard') && 
+        !cropType?.includes('Grove')) {
+        // Annual crops show as fallow in winter
+        return (
+            <g opacity={seasonalStyle.opacity} filter={seasonalStyle.filter}>
+                {renderFallowField()}
+            </g>
+        );
+    }
+    
+    let fieldContent;
     switch (cropType) {
         // Tree Crops and Orchards
         case 'Vineyard':
-            return renderVineyard();
+            fieldContent = renderVineyard();
+            break;
         case 'Olive Grove':
-            return renderOliveGrove();
+            fieldContent = renderOliveGrove();
+            break;
         case 'Coconut Grove':
-            return renderCoconutGrove();
+            fieldContent = renderCoconutGrove();
+            break;
         case 'Banana Plantation':
-            return renderBananaPlantation();
+            fieldContent = renderBananaPlantation();
+            break;
         case 'Date Palms':
-            return renderDatePalms();
+            fieldContent = renderDatePalms();
+            break;
         case 'Citrus Orchard':
-            return renderCitrusOrchard();
+            fieldContent = renderCitrusOrchard();
+            break;
         case 'Apple Orchard':
-            return renderAppleOrchard();
+            fieldContent = renderAppleOrchard();
+            break;
         case 'Peach Orchard':
-            return renderPeachOrchard();
+            fieldContent = renderPeachOrchard();
+            break;
         case 'Almond Grove':
-            return renderAlmondGrove();
+            fieldContent = renderAlmondGrove();
+            break;
         case 'Fig Orchard':
-            return renderFigOrchard();
+            fieldContent = renderFigOrchard();
+            break;
         case 'Avocado Grove':
-            return renderAvocadoGrove();
+            fieldContent = renderAvocadoGrove();
+            break;
         
         // Fiber and Industrial Crops
         case 'Hemp':
-            return renderHempField();
+            fieldContent = renderHempField();
+            break;
         case 'Flax':
-            return renderFlaxField();
+            fieldContent = renderFlaxField();
+            break;
         case 'Hops':
-            return renderHopsField();
+            fieldContent = renderHopsField();
+            break;
         case 'Silk Mulberry':
-            return renderSilkMulberry();
+            fieldContent = renderSilkMulberry();
+            break;
         case 'Cotton':
-            return renderGenericField('#FFFAFA', '#F0F8FF'); // Snow, AliceBlue
+            fieldContent = renderGenericField('#FFFAFA', '#F0F8FF'); // Snow, AliceBlue
+            break;
         
         // Dye Plants
         case 'Indigo':
         case 'Madder':
         case 'Woad':
-            return renderIndigoField();
+            fieldContent = renderIndigoField();
+            break;
         
         // Drug Crops
         case 'Opium Poppies':
-            return renderPoppyField();
+            fieldContent = renderPoppyField();
+            break;
         case 'Tobacco':
-            return renderTobaccoField();
+            fieldContent = renderTobaccoField();
+            break;
         case 'Cacao':
-            return renderCoffeeField(); // Similar appearance
+            fieldContent = renderCoffeeField(); // Similar appearance
+            break;
         
         // Beverage Crops
         case 'Tea':
-            return renderTeaField();
+            fieldContent = renderTeaField();
+            break;
         case 'Coffee':
-            return renderCoffeeField();
+            fieldContent = renderCoffeeField();
+            break;
         
         // Grain Crops
         case 'Wheat':
@@ -589,49 +701,72 @@ const FarmSymbol: React.FC<FarmSymbolProps> = React.memo(({ x, y, size, tile }) 
         case 'Oats':
         case 'Millet':
         case 'Sorghum':
-            return renderGenericField('#DAA520', '#B8860B'); // GoldenRod, DarkGoldenRod
+            fieldContent = renderGenericField('#DAA520', '#B8860B'); // GoldenRod, DarkGoldenRod
+            break;
         case 'Rice':
-            return renderRiceField();
+            fieldContent = renderRiceField();
+            break;
         
         // American Crops
         case 'Three Sisters':
-            return renderThreeSisters();
+            fieldContent = renderThreeSisters();
+            break;
         case 'Maize':
         case 'Corn':
-            return renderMaizeField();
+            fieldContent = renderMaizeField();
+            break;
         case 'Sunflower':
-            return renderGenericField('#FFD700', '#FFA500'); // Gold, Orange
+            fieldContent = renderGenericField('#FFD700', '#FFA500'); // Gold, Orange
+            break;
         case 'Tomato':
-            return renderGenericField('#FF6347', '#8FBC8F'); // Tomato red, green leaves
+            fieldContent = renderGenericField('#FF6347', '#8FBC8F'); // Tomato red, green leaves
+            break;
         
         // Root Crops
         case 'Potato':
         case 'Potatoes':
-            return renderRootCropField('#556B2F'); // Dark olive green leaves
+            fieldContent = renderRootCropField('#556B2F'); // Dark olive green leaves
+            break;
         case 'Sweet Potato':
         case 'Sweet Potatoes':
-            return renderRootCropField('#8FBC8F'); // Light green leaves
+            fieldContent = renderRootCropField('#8FBC8F'); // Light green leaves
+            break;
         case 'Yam':
         case 'Yams':
-            return renderRootCropField('#228B22'); // Forest green leaves
+            fieldContent = renderRootCropField('#228B22'); // Forest green leaves
+            break;
         case 'Taro':
-            return renderRootCropField('#2E8B57'); // Sea green leaves
+            fieldContent = renderRootCropField('#2E8B57'); // Sea green leaves
+            break;
         case 'Cassava':
-            return renderRootCropField('#6B8E23'); // Olive drab leaves
+            fieldContent = renderRootCropField('#6B8E23'); // Olive drab leaves
+            break;
         
         // Sugar and Spices
         case 'Sugar Cane':
-            return renderGenericField('#90EE90', '#3CB371'); // LightGreen, MediumSeaGreen
+            fieldContent = renderGenericField('#90EE90', '#3CB371'); // LightGreen, MediumSeaGreen
+            break;
         case 'Black Pepper':
-            return renderSpiceField('#000000'); // Black peppercorns
+            fieldContent = renderSpiceField('#000000'); // Black peppercorns
+            break;
         case 'Cinnamon':
-            return renderSpiceField('#D2691E'); // Cinnamon brown
+            fieldContent = renderSpiceField('#D2691E'); // Cinnamon brown
+            break;
         case 'Nutmeg':
-            return renderSpiceField('#8B4513'); // Saddle brown
+            fieldContent = renderSpiceField('#8B4513'); // Saddle brown
+            break;
         
         default:
-            return renderGenericField('#DAA520', '#B8860B');
+            fieldContent = renderGenericField('#DAA520', '#B8860B');
+            break;
     }
+    
+    // Apply seasonal effects
+    return (
+        <g opacity={seasonalStyle.opacity} filter={seasonalStyle.filter}>
+            {fieldContent}
+        </g>
+    );
 });
 
 export default FarmSymbol;

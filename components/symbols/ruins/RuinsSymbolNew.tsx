@@ -38,14 +38,47 @@ const RuinsSymbolNew: React.FC<RuinsSymbolNewProps> = ({
   const currentYear = 1650; // Default for now
   const ruinAge = Math.max(50, currentYear - constructionYear);
   
+  // Check if we have a custom architectural style from enhanced ruin generation
+  const customArchStyle = tile.structure?.customData?.architecturalStyle;
+  
   // Get architecture details
   const architecture = getRuinArchitecture(culturalZone, era, climate, ruinAge);
+  
+  // Override with custom style if available
+  if (customArchStyle) {
+    architecture.style = customArchStyle;
+  }
+  
+  // Also use custom material if available
+  const customMaterial = tile.structure?.customData?.material || tile.ruinMaterial;
+  if (customMaterial) {
+    // Map our material names to the architecture service materials
+    const materialMapping: Record<string, string> = {
+      'sandstone': 'sandstone',
+      'red stone': 'sandstone',
+      'mudbrick': 'mud_brick',
+      'adobe': 'adobe',
+      'stone': 'stone',
+      'granite': 'granite',
+      'basalt': 'volcanic_rock',
+      'timber': 'wood',
+      'brick': 'fired_brick',
+      'marble': 'marble',
+      'limestone': 'limestone',
+      'laterite': 'fired_brick',
+      'coral stone': 'coral',
+      'volcanic rock': 'volcanic_rock',
+    };
+    const mappedMaterial = materialMapping[customMaterial] || 'stone';
+    architecture.materials = [mappedMaterial as any, ...architecture.materials.slice(1)];
+  }
   
   // Select appropriate symbol component based on architecture style
   const renderRuin = () => {
     const props = {
       x, y, size, seed, tile,
-      preservationLevel: architecture.preservationLevel
+      preservationLevel: architecture.preservationLevel,
+      material: customMaterial // Pass custom material if available
     };
     
     switch (architecture.style) {

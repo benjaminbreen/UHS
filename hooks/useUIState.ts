@@ -93,6 +93,7 @@ export const useUIState = () => {
     const [activeMarketplaceModal, _setActiveMarketplaceModal] = useState<{ tile: Tile } | null>(null);
     const [activeCityModal, _setActiveCityModal] = useState<{ tile: Tile } | null>(null);
     const [activeRuinModal, setActiveRuinModal] = useState<{ tile: Tile } | null>(null);
+    const [inRuinRoguelike, setInRuinRoguelike] = useState(false);
     const [activeMiningModal, setActiveMiningModal] = useState<TerrainStructure | null>(null);
     const [interactionModalData, setInteractionModalData] = useState<any>(null); // For container loot
     const [encounterTarget, setEncounterTarget] = useState<EncounterableEntity | null>(null);
@@ -136,10 +137,10 @@ export const useUIState = () => {
     const isAnyModalOpen = useMemo(() =>
         isSettingsModalOpen || isAboutModalOpen || isWorldMapModalOpen || isCharacterProfileModalOpen || isMapDetailsModalOpen ||
         !!tileInfoModalProps || !!infoModalTarget || !!structureModalTarget || !!activeSettlementInfo ||
-        !!interactionModalData || isSkillsModalOpen || !!encounterTarget || !!combatant || !!victoryDetails || !!lootModalData || !!activeMarketplaceModal || !!activeCityModal || isLevelUpModalOpen || isPortraitModalOpen || isCraftingModalOpen || !!activeMiningModal || !!activePoi,
+        !!interactionModalData || isSkillsModalOpen || !!encounterTarget || !!combatant || !!victoryDetails || !!lootModalData || !!activeMarketplaceModal || !!activeCityModal || isLevelUpModalOpen || isPortraitModalOpen || isCraftingModalOpen || !!activeMiningModal || !!activePoi || !!activeRuinModal,
         [isSettingsModalOpen, isAboutModalOpen, isWorldMapModalOpen, isCharacterProfileModalOpen, isMapDetailsModalOpen,
          tileInfoModalProps, infoModalTarget, structureModalTarget, activeSettlementInfo,
-         interactionModalData, isSkillsModalOpen, encounterTarget, combatant, victoryDetails, lootModalData, activeMarketplaceModal, activeCityModal, isLevelUpModalOpen, isPortraitModalOpen, isCraftingModalOpen, activeMiningModal, activePoi]
+         interactionModalData, isSkillsModalOpen, encounterTarget, combatant, victoryDetails, lootModalData, activeMarketplaceModal, activeCityModal, isLevelUpModalOpen, isPortraitModalOpen, isCraftingModalOpen, activeMiningModal, activePoi, activeRuinModal]
     );
 
     // Handlers
@@ -803,6 +804,7 @@ export const useUIState = () => {
         isPortraitModalOpen, portraitModalCharacter,
         isCraftingModalOpen, craftingModalData,
         activePoi,
+        inRuinRoguelike,
         
         // Handlers
         handleDevHover, handleCondenseTooltip, togglePinnedTooltip,
@@ -813,7 +815,7 @@ export const useUIState = () => {
         setIsSkillsModalOpen, setIsMapDetailsModalOpen,
         handleEncounter, handleCloseEncounter, handleInitiateCombat,
         setCombatant, handleCombatVictory, setVictoryDetails, setIsCharacterProfileModalOpen,
-        closeAllModals, setActiveMarketplaceModal, setActiveCityModal, setActiveRuinModal, setActiveMiningModal,
+        closeAllModals, setActiveMarketplaceModal, setActiveCityModal, setActiveRuinModal, setActiveMiningModal, setInRuinRoguelike,
         setIsLeftSidebarExpanded, setActiveMapSubTab, setActiveLens, showToast, setPanelNotificationItem,
         handleLooting, handleCloseLootModal, onTakeCoins,
         handleVictoryClose,

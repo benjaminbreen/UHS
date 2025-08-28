@@ -22,27 +22,40 @@ interface BottomPanelProps {
     dayOfYear?: number;
     onToggleAmbientText?: () => void;
     showAmbientText?: boolean;
+    inRuinRoguelike?: boolean;
+    isRuinModalOpen?: boolean;
+    onExitRuin?: () => void;
 }
 
-const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, icon: string }> = ({ onClick, children, icon }) => (
-    <button
-        onClick={onClick}
-        className={getOptimizedButtonClassName(getSafariOptimizedClassName("group relative px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold rounded-xl shadow-lg text-base transform hover:scale-105 transition-all duration-300 ease-out border border-blue-400/30 backdrop-blur-sm flex items-center justify-center gap-2 overflow-hidden"))}
-        style={{ 
-            textShadow: '1px 1px 2px rgba(0,0,0,0.5)', 
-            boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3), inset 0 1px 1px rgba(255,255,255,0.2)' 
-        }}
-    >
-        {/* Animated background effect */}
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-400/0 via-blue-300/20 to-blue-400/0 transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-700 ease-out" />
-        
-        <span className="text-xl relative z-10 drop-shadow-lg">{icon}</span>
-        <span className="relative z-10 font-semibold">{children}</span>
-        
-        {/* Glow effect */}
-        <div className="absolute inset-0 rounded-xl bg-blue-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm" />
-    </button>
-);
+const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, icon: string, variant?: 'blue' | 'red' }> = ({ onClick, children, icon, variant = 'blue' }) => {
+    const isRed = variant === 'red';
+    const baseClass = isRed 
+        ? "group relative px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold rounded-xl shadow-lg text-base transform hover:scale-105 transition-all duration-300 ease-out border border-red-400/30 backdrop-blur-sm flex items-center justify-center gap-2 overflow-hidden"
+        : "group relative px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold rounded-xl shadow-lg text-base transform hover:scale-105 transition-all duration-300 ease-out border border-blue-400/30 backdrop-blur-sm flex items-center justify-center gap-2 overflow-hidden";
+    const boxShadowColor = isRed ? 'rgba(239, 68, 68, 0.3)' : 'rgba(59, 130, 246, 0.3)';
+    const glowColor = isRed ? 'from-red-400/0 via-red-300/20 to-red-400/0' : 'from-blue-400/0 via-blue-300/20 to-blue-400/0';
+    const glowBg = isRed ? 'bg-red-400/20' : 'bg-blue-400/20';
+
+    return (
+        <button
+            onClick={onClick}
+            className={getOptimizedButtonClassName(getSafariOptimizedClassName(baseClass))}
+            style={{ 
+                textShadow: '1px 1px 2px rgba(0,0,0,0.5)', 
+                boxShadow: `0 8px 32px ${boxShadowColor}, inset 0 1px 1px rgba(255,255,255,0.2)`
+            }}
+        >
+            {/* Animated background effect */}
+            <div className={`absolute inset-0 bg-gradient-to-r ${glowColor} transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-700 ease-out`} />
+            
+            <span className="text-xl relative z-10 drop-shadow-lg">{icon}</span>
+            <span className="relative z-10 font-semibold">{children}</span>
+            
+            {/* Glow effect */}
+            <div className={`absolute inset-0 rounded-xl ${glowBg} opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm`} />
+        </button>
+    );
+};
 
 const LocationDisplay: React.FC<{ title: string; subtitle: string; icon?: string }> = ({ title, subtitle, icon }) => (
     <div className={getSafariOptimizedClassName("flex items-center space-x-3 bg-slate-800/40 rounded-lg px-3 py-2 border border-slate-700/50 backdrop-blur-sm")}>
@@ -82,6 +95,9 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
     dayOfYear = 180,
     onToggleAmbientText,
     showAmbientText = false,
+    inRuinRoguelike = false,
+    isRuinModalOpen = false,
+    onExitRuin,
 }) => {
     const [weatherDisplay, setWeatherDisplay] = useState<string>('');
     const [weatherState, setWeatherState] = useState<{ state: string, emoji: string }>({ state: '', emoji: '' });
@@ -204,11 +220,19 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                 );
                 break;
             case 'ruin':
-                buttonText = 'Explore Ruins';
-                buttonIcon = '🏚️';
-                locationIcon = '🏛️';
-                onClickAction = () => onEnterRuin(tile);
-                helperText = "Investigate the ancient ruins and uncover forgotten treasures.";
+                if (inRuinRoguelike || isRuinModalOpen) {
+                    buttonText = 'Exit Ruins';
+                    buttonIcon = '🚪';
+                    locationIcon = '🏛️';
+                    onClickAction = onExitRuin || (() => {});
+                    helperText = "Return to the surface from the underground exploration.";
+                } else {
+                    buttonText = 'Explore Ruins';
+                    buttonIcon = '🏚️';
+                    locationIcon = '🏛️';
+                    onClickAction = () => onEnterRuin(tile);
+                    helperText = "Investigate the ancient ruins and uncover forgotten treasures.";
+                }
                 contextualInfo = (
                     <LocationDisplay
                         title="Ancient Ruins"
@@ -254,7 +278,11 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                 </div>
                 
                 <div className="flex items-center justify-center">
-                    <ActionButton onClick={onClickAction} icon={buttonIcon}>
+                    <ActionButton 
+                        onClick={onClickAction} 
+                        icon={buttonIcon}
+                        variant={(inRuinRoguelike || isRuinModalOpen) && type === 'ruin' ? 'red' : 'blue'}
+                    >
                         {buttonText}
                     </ActionButton>
                 </div>

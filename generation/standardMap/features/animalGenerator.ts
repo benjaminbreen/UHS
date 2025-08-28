@@ -113,9 +113,9 @@ export function spawnSingleAnimal(
                     luck: Math.max(1, 5 + Math.floor((noise.random() - 0.5) * 6)),
                 };
                 
-                // Initialize disease health with potential disease (25% chance for wild animals)
+                // Initialize disease health with 50% chance for animals (increased from 25%)
                 const diseaseService = DiseaseService.getInstance();
-                const shouldHaveDisease = noise.random() < 0.25; // 25% chance for animals
+                const shouldHaveDisease = noise.random() < 0.5; // 50% chance for animals
                 
                 let diseaseHealth = undefined;
                 if (shouldHaveDisease) {
@@ -231,9 +231,9 @@ function spawnDomesticAnimalsInPaddocks(
             luck: Math.max(1, 5 + Math.floor((noise.random() - 0.5) * 6)),
         };
         
-        // Domestic animals in paddocks have lower disease chance (10%)
+        // Domestic animals in paddocks have same disease chance as wild (50%)
         const diseaseService = DiseaseService.getInstance();
-        const shouldHaveDisease = noise.random() < 0.10;
+        const shouldHaveDisease = noise.random() < 0.5;
         
         let diseaseHealth = undefined;
         if (shouldHaveDisease) {

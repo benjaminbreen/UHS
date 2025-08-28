@@ -225,11 +225,13 @@ class DiseaseService {
     const symptomDescriptions: string[] = [];
     let transmitted = false;
 
-    if (!sourceEntity.health?.currentDiseases) {
+    // Check both health and diseaseHealth fields (NPCs use health, animals use diseaseHealth)
+    const healthData = sourceEntity.health || (sourceEntity as any).diseaseHealth;
+    if (!healthData?.currentDiseases) {
       return { transmitted: false, exposures: [], symptomDescriptions: [] };
     }
 
-    for (const activeDisease of sourceEntity.health.currentDiseases) {
+    for (const activeDisease of healthData.currentDiseases) {
       const disease = this.diseaseCache.get(activeDisease.disease.id);
       if (!disease) continue;
 
@@ -271,6 +273,130 @@ class DiseaseService {
     }
 
     return { transmitted, exposures, symptomDescriptions };
+  }
+
+  /**
+   * Check for terrain-based disease transmission
+   */
+  public checkTerrainTransmission(
+    terrain: string,
+    playerCharacter: PlayerCharacter,
+    currentYear: number
+  ): {
+    transmitted: boolean;
+    disease?: Disease;
+    message?: string;
+  } {
+    let transmissionChance = 0;
+    let diseaseId = '';
+    let message = '';
+
+    // Wetlands - Malaria (25% chance)
+    if (terrain === 'wetlands' || terrain === 'swamp' || terrain === 'marsh') {
+      transmissionChance = 0.25;
+      diseaseId = 'malaria';
+      message = 'The humid, mosquito-infested wetlands have given you malaria!';
+    }
+    // Urban areas - Smallpox or Plague (10% chance)
+    else if (terrain === 'city' || terrain === 'urban' || terrain === 'city_center') {
+      transmissionChance = 0.1;
+      // 50/50 chance of smallpox or plague
+      diseaseId = Math.random() < 0.5 ? 'smallpox' : 'plague';
+      message = `The crowded, unsanitary city conditions have given you ${diseaseId}!`;
+    }
+
+    if (transmissionChance > 0 && Math.random() < transmissionChance) {
+      // Check if already has this disease
+      if (playerCharacter.health?.currentDiseases?.some(d => d.disease.id === diseaseId)) {
+        return { transmitted: false };
+      }
+
+      const disease = this.diseaseCache.get(diseaseId);
+      if (!disease) {
+        // Create the disease if it doesn't exist
+        const newDisease = this.createDiseaseForTerrain(diseaseId, currentYear);
+        this.diseaseCache.set(diseaseId, newDisease);
+        
+        if (playerCharacter.health) {
+          const activeDisease = this.createActiveDisease(newDisease, currentYear);
+          playerCharacter.health.currentDiseases = playerCharacter.health.currentDiseases || [];
+          playerCharacter.health.currentDiseases.push(activeDisease);
+          playerCharacter.health.overallHealthStatus = this.calculateOverallHealthStatus(
+            playerCharacter.health.currentDiseases
+          );
+        }
+        
+        return { transmitted: true, disease: newDisease, message };
+      }
+
+      if (playerCharacter.health) {
+        const activeDisease = this.createActiveDisease(disease, currentYear);
+        playerCharacter.health.currentDiseases = playerCharacter.health.currentDiseases || [];
+        playerCharacter.health.currentDiseases.push(activeDisease);
+        playerCharacter.health.overallHealthStatus = this.calculateOverallHealthStatus(
+          playerCharacter.health.currentDiseases
+        );
+      }
+
+      return { transmitted: true, disease, message };
+    }
+
+    return { transmitted: false };
+  }
+
+  private createDiseaseForTerrain(diseaseId: string, currentYear: number): Disease {
+    const diseaseTemplates: Record<string, Disease> = {
+      malaria: {
+        id: 'malaria',
+        name: 'Malaria',
+        type: 'parasitic',
+        severity: 0.7,
+        baseTransmissionRate: 0.3,
+        proximityMultiplier: 0.1,
+        directContactMultiplier: 0.5,
+        transmissionVector: 'vector',
+        symptoms: ['fever', 'chills', 'fatigue', 'sweating'],
+        complications: ['organ_failure', 'cerebral_malaria'],
+        mortalityRate: 0.15,
+        baseDuration: 14,
+        badgeIcon: '🦟',
+        historicalPrevalence: { ancient: 0.4, medieval: 0.4, earlyModern: 0.3, industrial: 0.2, modern: 0.1 }
+      },
+      smallpox: {
+        id: 'smallpox',
+        name: 'Smallpox',
+        type: 'viral',
+        severity: 0.9,
+        baseTransmissionRate: 0.8,
+        proximityMultiplier: 0.6,
+        directContactMultiplier: 0.9,
+        transmissionVector: 'airborne',
+        symptoms: ['fever', 'rash', 'pustules', 'scarring'],
+        complications: ['blindness', 'encephalitis'],
+        mortalityRate: 0.3,
+        baseDuration: 21,
+        badgeIcon: '🦠',
+        historicalPrevalence: { ancient: 0.3, medieval: 0.4, earlyModern: 0.5, industrial: 0.3, modern: 0 }
+      },
+      plague: {
+        id: 'plague',
+        name: 'Bubonic Plague',
+        type: 'bacterial',
+        severity: 0.95,
+        baseTransmissionRate: 0.6,
+        proximityMultiplier: 0.4,
+        directContactMultiplier: 0.7,
+        transmissionVector: 'vector',
+        symptoms: ['fever', 'buboes', 'chills', 'weakness'],
+        complications: ['sepsis', 'pneumonic_plague'],
+        mortalityRate: 0.5,
+        baseDuration: 7,
+        badgeIcon: '☠️',
+        historicalPrevalence: { ancient: 0.2, medieval: 0.6, earlyModern: 0.3, industrial: 0.1, modern: 0.01 }
+      }
+    };
+
+    return diseaseTemplates[diseaseId] || diseaseTemplates.plague;
   }
 
   /**
@@ -620,13 +746,17 @@ class DiseaseService {
       return { transmitted: false };
     }
 
-    // Calculate transmission chance
+    // GUARANTEED TRANSMISSION for direct contact (talking to NPCs/animals)
+    if (contactType === 'direct_contact') {
+      const newDisease = this.createActiveDisease(disease, 2024); // TODO: Use actual current year
+      return { transmitted: true, newDisease };
+    }
+
+    // Calculate transmission chance for proximity only
     let transmissionChance = disease.baseTransmissionRate * exposureStrength;
 
     if (contactType === 'proximity') {
       transmissionChance *= disease.proximityMultiplier;
-    } else if (contactType === 'direct_contact') {
-      transmissionChance *= disease.directContactMultiplier;
     }
 
     // Apply target's constitution modifier

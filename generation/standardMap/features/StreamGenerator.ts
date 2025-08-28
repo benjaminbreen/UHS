@@ -199,10 +199,16 @@ function movementCost(
   const fromD = distToWater[from.y][from.x];
   const toD = distToWater[to.y][to.x];
 
+  // Strongly penalize uphill movement - water doesn't flow uphill!
   if (dh > 0.002) {
-    cost += 4000 * dh;
-    if (toD >= fromD) cost += 6; // don't climb if not helping
+    // Make uphill nearly impossible unless absolutely necessary
+    cost += 10000 * dh; // Increased from 4000
+    if (toD >= fromD) cost += 20; // Increased from 6
+  } else if (dh < -0.1) {
+    // Waterfalls! Strong preference for steep downhill
+    cost *= 0.1; // Strong bonus for steep drops
   } else {
+    // Gentle downhill is preferred
     cost += 400 * dh; // downhill reward (negative)
   }
 
@@ -210,8 +216,42 @@ function movementCost(
     if (toD < fromD) cost *= 0.2;
     else if (toD > fromD) cost *= 4.0;
   }
+  
+  // Penalize running parallel to water - streams should join water quickly!
+  if (fromD === 1 && toD === 1) {
+    // We're moving along the edge of water without entering
+    // Check if we could enter water from current position
+    let canEnterWater = false;
+    for (const [dx, dy] of D8) {
+      const nx = from.x + dx, ny = from.y + dy;
+      if (inBounds(nx, ny)) {
+        const neighbor = tiles[ny][nx];
+        if (!neighbor.isLand || isSinkBiome(neighbor.biome)) {
+          canEnterWater = true;
+          break;
+        }
+      }
+    }
+    
+    if (canEnterWater) {
+      // Heavily penalize continuing along the edge when water is available
+      cost += 50;
+    }
+  }
 
-  if (to.biome === BiomeType.HILLS) cost += 6;
+  // Mountains should strongly discourage streams - they flow around, not through
+  if (to.biome === BiomeType.MOUNTAIN) {
+    // If altitude is very high, make it nearly impossible
+    if (to.altitude > 0.8) return Infinity;
+    // Otherwise add massive cost to encourage routing around
+    cost += 100 + (to.altitude * 200);
+  }
+  
+  // Hills also add cost based on altitude
+  if (to.biome === BiomeType.HILLS) {
+    cost += 6 + (to.altitude * 10);
+  }
+  
   if (to.biome === BiomeType.FOREST || to.biome === BiomeType.DENSE_FOREST) cost += 3;
   if (to.biome === BiomeType.DESERT) cost += 12;
 
@@ -225,7 +265,16 @@ function turnPenalty(prev: Tile | null, cur: Tile, nxt: Tile): number {
   const magA = Math.hypot(ax, ay) || 1, magB = Math.hypot(bx, by) || 1;
   const cos = Math.max(-1, Math.min(1, (ax*bx + ay*by) / (magA*magB)));
   const angle = Math.acos(cos);
-  return 0.25 * (angle / Math.PI); // 0..0.25
+  
+  // Encourage slight meandering, but penalize sharp turns
+  if (angle < 0.2) {
+    // Nearly straight - add small penalty to encourage natural curves
+    return 0.05;
+  } else if (angle > 2.5) {
+    // Very sharp turn - heavily penalize
+    return 2.0 * (angle / Math.PI);
+  }
+  return 0.5 * (angle / Math.PI); // Increased from 0.25
 }
 
 // A* with closed set and anti-reversal

@@ -1822,7 +1822,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     }
 
     // HATS & CAPS (beret, fez/kufi, brimmed, knit/chullo, generic cap)
-    else if (nameContains('hat', 'cap', 'beret', 'fez', 'kufi', 'fedora', 'homburg', 'chullo', 'beanie', 'tuque', 'pith', 'snapback', 'petasos', 'chaperon')) {
+    else if (nameContains('cap', 'beret', 'fez', 'kufi', 'fedora', 'homburg', 'chullo', 'beanie', 'tuque', 'pith', 'snapback', 'petasos', 'chaperon')) {
       const hatStyle =
         name.includes('top') ? 'top' :
         name.includes('beret') ? 'beret' :
@@ -1929,37 +1929,67 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     }
 
     // STRAW / CONICAL (rice hat, sedge hat)
-    else if (nameContains('straw', 'rice hat', 'conical', 'bamboo hat', 'sedge hat', 'coolie')) {
-      const straw = '#D4A76A';
-      const strawDark = createShadow(straw, 0.78);
+else if (nameContains('straw', 'rice hat', 'conical', 'bamboo hat', 'sedge hat', 'coolie')) {
+  const straw = '#D4A76A';
+  const strawDark = createShadow(straw, 0.78);
 
-      // Conical crown
-      const crownHeight = 8;
-      for (let i = 0; i < crownHeight; i++) {
-        const rowY = headY - 6 - i;
-        const rowW = headDim.width + 6 - i * 2;
-        const sx = centerX - Math.floor(rowW / 2);
-        for (let x = 0; x < rowW; x++) {
-          const col = (x % 4 === 1) ? strawDark : straw;
-          elements.push(<rect key={`cone-${i}-${x}`} x={sx + x} y={rowY} width="1" height="1" fill={col} className="pixel" />);
-        }
-      }
+  // --- Brim settings ---
+  const brimY = headY;            // top of the brim
+  const brimThickness = 2;        // 2px brim
+  const brimExtra = Math.floor(headDim.width / 2) + 8; // how far brim sticks out
 
-      // Super-wide brim (very visible)
-      const brimExtra = 12;
-      for (let y = 0; y < 2; y++) {
-        for (let x = headX - brimExtra; x < headX + headDim.width + brimExtra; x++) {
-          const col = (x % 3 === 0) ? strawDark : straw;
-          elements.push(<rect key={`straw-brim-${y}-${x}`} x={x} y={headY + y} width="1" height="1" fill={col} className="pixel" />);
-        }
-      }
-      // Radial ties detail beneath brim
-      for (let r = -10; r <= 10; r += 5) {
-        elements.push(
-          <rect key={`straw-tie-${r}`} x={centerX + r} y={headY + 1} width="1" height="2" fill={strawDark} className="pixel" />
-        );
-      }
+  // --- Crown: start ONE pixel above the brim so it touches it ---
+  // (this was headY - 6 - i, which created the floating gap)
+  const crownHeight = 7;
+  const crownBaseWidth = headDim.width + 4;
+
+  for (let i = 0; i < crownHeight; i++) {
+    const rowY = brimY - 1 - i;                      // << key change
+    const rowW = Math.max(3, crownBaseWidth - i * 2);
+    const sx = centerX - Math.floor(rowW / 2);
+
+    for (let x = 0; x < rowW; x++) {
+      // subtle straw hatching so it doesn't look like a flat plate
+      const hatch = ((sx + x + rowY) % 5) === 0;
+      const col = hatch ? strawDark : straw;
+      elements.push(
+        <rect key={`straw-crown-${i}-${x}`} x={sx + x} y={rowY} width="1" height="1" fill={col} className="pixel" />
+      );
     }
+  }
+
+  // --- Brim: slightly wider on the top row, a touch darker underneath ---
+  for (let t = 0; t < brimThickness; t++) {
+    const y = brimY + t;
+    const innerLeft  = headX - 1;
+    const innerRight = headX + headDim.width + 1;
+    const left  = innerLeft  - (brimExtra - t);
+    const right = innerRight + (brimExtra - t);
+
+    for (let x = left; x < right; x++) {
+      const baseCol = ((x + y) % 4 === 1) ? strawDark : straw;
+      const col = t === 0 ? baseCol : createShadow(baseCol, 0.92); // underside darker
+      elements.push(
+        <rect key={`straw-brim-${t}-${x}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />
+      );
+    }
+  }
+
+  // A narrow darker band just above the brim helps the join read cleanly
+  for (let x = headX; x < headX + headDim.width; x++) {
+    elements.push(
+      <rect key={`straw-band-${x}`} x={x} y={brimY - 2} width="1" height="1" fill={strawDark} className="pixel" />
+    );
+  }
+
+  // Optional tiny “ties” under the brim (short + centered so they don’t look like bars)
+  for (let r = -6; r <= 6; r += 6) {
+    elements.push(
+      <rect key={`straw-tie-${r}`} x={centerX + r} y={brimY + 1} width="1" height="1" fill={strawDark} className="pixel" />
+    );
+  }
+}
+
 
     // HAIR ORNAMENTS / TIKKA / FLOWERS / COMB
     else if (nameContains('flower', 'garland', 'lei', 'hairpiece', 'hairpin', 'tikka', 'maang', 'passa', 'rakhdi', 'sheesh', 'comb')) {
@@ -2010,7 +2040,6 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     isWealthy,
     isNoble,
   ]);
-
 
   // ----- JEWELRY -----
   const renderJewelry = useMemo(() => {

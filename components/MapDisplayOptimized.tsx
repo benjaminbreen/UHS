@@ -26,7 +26,7 @@ import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { selectBuilding } from '../utils/buildingSelectionSystem';
 import { getLocationCulturalStyle } from '../utils/culturalMappingUtils';
-import { CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol, FishingHutSymbol, SteamSymbol, GovernmentDistrictSymbol, FireflySymbol, MineralGlintSymbol, OasisSymbol, PlazaSymbol, ParkSymbol, HarborDistrictSymbol, IndustrialDistrictSymbol, PaddockSymbol, LavaSymbol } from './symbols';
+import { CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol, FishingHutSymbol, SteamSymbol, GovernmentDistrictSymbol, FireflySymbol, MineralGlintSymbol, OasisSymbol, PlazaSymbol, ParkSymbol, HarborDistrictSymbol, IndustrialDistrictSymbol, PaddockSymbol, LavaSymbol, MountainSymbol, SnowSymbol, BridgeSymbol } from './symbols';
 import RuinsSymbolNew from './symbols/ruins/RuinsSymbolNew';
 import VesselSymbol from './symbols/VesselSymbol';
 import TrainSymbol from './symbols/TrainSymbol';
@@ -1518,12 +1518,12 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       {isMobile && (
         <MobileControls 
           onMove={(direction) => {
-            // Simulate keyboard events for the movement system
+            // Map direction names from MobileControls to keyboard keys
             const keyMap = {
-              'up': 'ArrowUp',
-              'down': 'ArrowDown',
-              'left': 'ArrowLeft',
-              'right': 'ArrowRight'
+              'north': 'ArrowUp',
+              'south': 'ArrowDown',
+              'west': 'ArrowLeft',
+              'east': 'ArrowRight'
             };
             
             const key = keyMap[direction];
@@ -2061,7 +2061,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         }}
                         style={{ cursor: 'pointer' }}
                       >
-                        <FarmSymbol tile={tile} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} />
+                        <FarmSymbol tile={tile} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} climate={climate} season={season} />
                       </g>
                     );
                   } else if(tile.biome === BiomeType.ESTUARY) {
@@ -2244,6 +2244,31 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               })}
             </g>
             
+            {/* Bridges - render after roads but before other structures */}
+            {shouldRenderDetailedSymbols && terrainStructures && (
+              <g id="bridges-layer">
+                {terrainStructures
+                  .filter(structure => structure.structureType === 'bridge')
+                  .map(bridge => {
+                    const bridgeData = bridge.customData as any;
+                    if (!bridgeData) return null;
+                    
+                    return (
+                      <BridgeSymbol
+                        key={bridge.id}
+                        startX={bridgeData.start.x}
+                        startY={bridgeData.start.y}
+                        endX={bridgeData.end.x}
+                        endY={bridgeData.end.y}
+                        type={bridgeData.type}
+                        style={bridgeData.style}
+                        width={bridgeData.width}
+                      />
+                    );
+                  })}
+              </g>
+            )}
+            
             {/* Hills and Vegetation layer - rendered ABOVE roads/streams so they don't appear cut over */}
             {/* Hills */}
             {shouldRenderDetailedSymbols && (
@@ -2254,6 +2279,76 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   const symbolY = tile.y * TILE_SIZE_PX;
                   const tileSeed = seed + tile.x * 31 + tile.y * 37;
                   return <HillSymbol key={`hill-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} climate={climate} season={season}/>;
+                })}
+              </g>
+            )}
+            
+            {/* Mountains */}
+            {shouldRenderDetailedSymbols && (
+              <g filter="url(#symbolShadow)">
+                {tiles.flat().map((tile) => {
+                  if (tile.biome !== BiomeType.MOUNTAIN) return null;
+                  const symbolX = tile.x * TILE_SIZE_PX;
+                  const symbolY = tile.y * TILE_SIZE_PX;
+                  const tileSeed = seed + tile.x * 47 + tile.y * 53;
+                  const altitude = tile.altitude || 0.7; // Use tile altitude if available
+                  return <MountainSymbol key={`mountain-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} altitude={altitude} climate={climate} season={season} />;
+                })}
+              </g>
+            )}
+            
+            {/* Snow and seasonal riverbank snow */}
+            {shouldRenderDetailedSymbols && (
+              <g>
+                {tiles.flat().map((tile) => {
+                  // Regular snow tiles
+                  if (tile.biome === BiomeType.SNOW) {
+                    const symbolX = tile.x * TILE_SIZE_PX;
+                    const symbolY = tile.y * TILE_SIZE_PX;
+                    const tileSeed = seed + tile.x * 59 + tile.y * 61;
+                    return <SnowSymbol key={`snow-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} gameTime={gameTimeHours} />;
+                  }
+                  
+                  // Riverbank tiles in cold climates get seasonal snow
+                  if (tile.biome === BiomeType.RIVERBANK && 
+                      (climate === ClimateType.TEMPERATE || climate === ClimateType.CONTINENTAL || climate === ClimateType.ARCTIC)) {
+                    // Winter = full snow, Spring/Fall = dusting of snow
+                    const shouldHaveSnow = (season === 'Winter') || 
+                                          (season === 'Spring' && Math.random() > 0.5) || 
+                                          (season === 'Fall' && Math.random() > 0.3);
+                    
+                    if (shouldHaveSnow) {
+                      const symbolX = tile.x * TILE_SIZE_PX;
+                      const symbolY = tile.y * TILE_SIZE_PX;
+                      const tileSeed = seed + tile.x * 71 + tile.y * 73;
+                      
+                      // Light snow overlay for riverbanks (semi-transparent)
+                      return (
+                        <g key={`riverbank-snow-${tile.x}-${tile.y}`}>
+                          <rect 
+                            x={symbolX} 
+                            y={symbolY} 
+                            width={TILE_SIZE_PX} 
+                            height={TILE_SIZE_PX}
+                            fill="rgba(250, 250, 255, 0.2)"
+                            opacity={season === 'Winter' ? 0.6 : 0.3}
+                          />
+                          {/* Occasional sparkle on winter riverbanks */}
+                          {season === 'Winter' && Math.random() > 0.8 && (
+                            <circle
+                              cx={symbolX + TILE_SIZE_PX / 2}
+                              cy={symbolY + TILE_SIZE_PX / 2}
+                              r="1"
+                              fill="white"
+                              opacity="0.8"
+                            />
+                          )}
+                        </g>
+                      );
+                    }
+                  }
+                  
+                  return null;
                 })}
               </g>
             )}

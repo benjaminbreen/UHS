@@ -1,8 +1,8 @@
 /**
  * components/SettlementInfoModal.tsx - A detailed informational panel for settlements and farms.
  */
-import React, { useMemo } from 'react';
-import { Tile, MapData, BiomeType, CulturalZone, HistoricalEra, Gender, TimeOfDay, NpcEntity } from '../types';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import { Tile, MapData, BiomeType, CulturalZone, HistoricalEra, Gender, TimeOfDay, NpcEntity, PlayerCharacter } from '../types';
 import { generateNpcName, generateBaseProfile, determineSocialRole } from '../generation/common/npcUtils';
 import { ValueNoise } from '../utils/noise';
 import { mapLocationToCulture } from '../utils/mapUtils';
@@ -14,6 +14,8 @@ import CityBanner, { CitySize } from './CityBanner';
 import FarmBanner from './FarmBanner';
 import MarketplaceBanner, { Condition } from './MarketplaceBanner';
 import { Season, ClimateType } from '../types';
+import { generateNpcGreeting, createDialogueContext } from '../services/npcDialogueService';
+import { usePortraitExpression, mapRepDeltaToExpr } from '../hooks/usePortraitExpression';
 
 interface SettlementInfoModalProps {
   tile: Tile;
@@ -22,6 +24,7 @@ interface SettlementInfoModalProps {
   gameTimeHours: number;
   season: Season;
   npcs?: NpcEntity[];
+  playerCharacter?: PlayerCharacter;
 }
 
 const DetailRow: React.FC<{ label: string; value: string | number | React.ReactNode; icon?: string }> = ({ label, value, icon }) => (
@@ -34,7 +37,15 @@ const DetailRow: React.FC<{ label: string; value: string | number | React.ReactN
     </div>
 );
 
-const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData, onClose, gameTimeHours, season, npcs = [] }) => {
+const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData, onClose, gameTimeHours, season, npcs = [], playerCharacter }) => {
+    // Portrait expression management
+    const { expr: portraitExpr, flash: flashPortrait, clear: clearPortrait } = usePortraitExpression();
+    
+    // Dialogue state
+    const [selectedNpcId, setSelectedNpcId] = useState<string | null>(null);
+    const [dialogueText, setDialogueText] = useState<string>('');
+    const [dialogueVisible, setDialogueVisible] = useState(false);
+    const [dialogueLoading, setDialogueLoading] = useState(false);
     const { era, culturalZone, year, timeOfDay } = useMemo(() => {
         const parsed = parseDateString(mapData.timeSlice || '1650');
         
@@ -70,6 +81,83 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
 
         return { era: parsed.era as HistoricalEra, culturalZone: culture, year: parsed.year, timeOfDay: tod };
     }, [mapData.timeSlice, mapData.continent, mapData.localArea, gameTimeHours]);
+    
+    // Handle NPC click for dialogue
+    const handleNpcClick = useCallback(async (npc: any) => {
+        // Clear previous dialogue
+        if (selectedNpcId === npc.name) {
+            // Clicking same NPC again - clear dialogue
+            setDialogueVisible(false);
+            setSelectedNpcId(null);
+            clearPortrait();
+            return;
+        }
+        
+        setSelectedNpcId(npc.name);
+        setDialogueLoading(true);
+        setDialogueVisible(false);
+        
+        // Flash a greeting expression
+        flashPortrait('smile');
+        
+        try {
+            // Convert our settlement inhabitant to NPC format for dialogue service
+            const npcEntity: NpcEntity = {
+                id: `settlement-${npc.name}`,
+                name: npc.name,
+                age: npc.age,
+                role: npc.profession,
+                gender: npc.gender,
+                wealthLevel: npc.wealthLevel || 'modest',
+                culturalZone: npc.culturalZone || culturalZone,
+                personality: 'friendly, welcoming',
+                religion: 'local traditions',
+                family: [],
+                personalGoal: { description: `Work as a ${npc.profession}`, completed: false },
+                attributes: [],
+                reputation: 50,
+                appearance: npc.appearance || {},
+                stats: npc.stats || { strength: 10, dexterity: 10, constitution: 10, intelligence: 10, wisdom: 10, charisma: 10 },
+                currentLocation: { x: tile.x, y: tile.y }
+            };
+            
+            if (playerCharacter) {
+                const context = createDialogueContext(mapData, {
+                    isMarketplace: tile.biome === BiomeType.MARKETPLACE,
+                    timeOfDay: timeOfDay.toLowerCase(),
+                    season: season.toLowerCase()
+                });
+                
+                const response = await generateNpcGreeting(npcEntity, context, playerCharacter);
+                setDialogueText(response.text);
+                setDialogueVisible(true);
+                
+                // Auto-hide after 10 seconds
+                setTimeout(() => {
+                    setDialogueVisible(false);
+                    setSelectedNpcId(null);
+                }, 10000);
+            } else {
+                // Fallback without player character
+                setDialogueText(`"Greetings, traveler. I am ${npc.name}, a ${npc.profession} in this settlement."`);
+                setDialogueVisible(true);
+                setTimeout(() => {
+                    setDialogueVisible(false);
+                    setSelectedNpcId(null);
+                }, 10000);
+            }
+        } catch (error) {
+            console.error('Failed to generate NPC dialogue:', error);
+            setDialogueText(`"Good day to you."`);
+            setDialogueVisible(true);
+            setTimeout(() => {
+                setDialogueVisible(false);
+                setSelectedNpcId(null);
+            }, 10000);
+        } finally {
+            setDialogueLoading(false);
+        }
+    }, [selectedNpcId, flashPortrait, clearPortrait, culturalZone, tile, timeOfDay, season, mapData, playerCharacter]);
 
     const { name, description, economicProfile, population, families, allegianceString, settlementProfessions, representativeInhabitants } = useMemo(() => {
         const noise = new ValueNoise(tile.x * 17 + tile.y * 31 + mapData.seed);
@@ -452,24 +540,55 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                             <div className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
                                 <h4 className="font-semibold text-lg text-cyan-400 mb-3 flex items-center gap-2"><span className="text-xl">👤</span> Representative Inhabitants</h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {representativeInhabitants.map((p, i) => (
-                                        <div key={i} className="bg-slate-900/50 p-3 rounded-md text-center flex items-center gap-4 border border-slate-700/50">
-                                             <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-slate-600 shrink-0 bg-slate-700">
-                                                <ProceduralPortrait
-                                                    character={p as any}
-                                                    size={64}
-                                                />
-                                             </div>
-                                             <div className="text-left">
-                                                 <p className="font-bold text-sm text-white">{p.name}</p>
-                                                 <p className="text-xs text-slate-400">{p.age}, {p.profession}</p>
-                                                 {p.diseaseStatus && (
-                                                     <p className="text-xs text-orange-500 font-medium">{p.diseaseStatus}</p>
-                                                 )}
-                                             </div>
-                                        </div>
-                                    ))}
+                                    {representativeInhabitants.map((p, i) => {
+                                        const isSelected = selectedNpcId === p.name;
+                                        return (
+                                            <div 
+                                                key={i} 
+                                                className={`bg-slate-900/50 p-3 rounded-md text-center flex items-center gap-4 border transition-all cursor-pointer hover:bg-slate-800/70 hover:border-cyan-400/50 ${
+                                                    isSelected 
+                                                        ? 'border-cyan-400 bg-slate-800/70 shadow-cyan-400/25 shadow-md' 
+                                                        : 'border-slate-700/50'
+                                                }`}
+                                                onClick={() => handleNpcClick(p)}
+                                                title="Click to speak with this person"
+                                            >
+                                                 <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-slate-600 shrink-0 bg-slate-700">
+                                                    <ProceduralPortrait
+                                                        character={p as any}
+                                                        size={64}
+                                                        temporaryExpression={isSelected ? portraitExpr : null}
+                                                        onExpressionComplete={clearPortrait}
+                                                    />
+                                                 </div>
+                                                 <div className="text-left">
+                                                     <p className="font-bold text-sm text-white">{p.name}</p>
+                                                     <p className="text-xs text-slate-400">{p.age}, {p.profession}</p>
+                                                     {p.diseaseStatus && (
+                                                         <p className="text-xs text-orange-500 font-medium">{p.diseaseStatus}</p>
+                                                     )}
+                                                     {dialogueLoading && isSelected && (
+                                                         <p className="text-xs text-cyan-400 animate-pulse">Speaking...</p>
+                                                     )}
+                                                 </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
+                                
+                                {/* Dialogue Display Area */}
+                                {dialogueVisible && dialogueText && (
+                                    <div className={`mt-4 p-4 bg-gradient-to-r from-amber-900/30 to-orange-900/30 border border-amber-700/50 rounded-lg transition-all duration-500 ${
+                                        dialogueVisible ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-2'
+                                    }`}>
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-2 h-2 bg-amber-400 rounded-full mt-2 animate-pulse"></div>
+                                            <div className="text-amber-100 text-sm leading-relaxed italic">
+                                                "{dialogueText}"
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                          )}
                    </div>

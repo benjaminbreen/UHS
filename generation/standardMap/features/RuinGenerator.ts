@@ -1,12 +1,13 @@
 /**
  * generation/standardMap/features/RuinGenerator.ts - Generates ruins for Standard Maps
  */
-import { Tile, BiomeType, TerrainStructure, SocietalProfile } from '../../../types/index';
+import { Tile, BiomeType, TerrainStructure, SocietalProfile, HistoricalEra, ClimateType } from '../../../types/index';
 import { ValueNoise } from '../../../utils/noise';
 import { 
     MAP_WIDTH_TILES, MAP_HEIGHT_TILES, ALTITUDE_LEVELS,
     RUIN_BASE_CHANCE, RUIN_ANTI_CLUSTERING_RADIUS, STRUCTURE_BLUEPRINTS
 } from '../../../constants/index';
+import { generateEnhancedRuin, getRuinArchitecturalStyle } from '../../../services/ruinsService';
 
 let ruinIdCounter = 0;
 
@@ -99,53 +100,65 @@ export function generateRuins(tiles: Tile[][], featurePlacementNoise: ValueNoise
         if (featurePlacementNoise.random() < RUIN_BASE_CHANCE * 100) { 
             tile.biome = BiomeType.RUINS;
             
-            // Select appropriate ruin type based on era and region
-            let selectedRuinIndex = Math.floor(featurePlacementNoise.random() * ruinTypes.length);
+            // Generate enhanced ruin using the new system
+            const region = mapData?.region || mapData?.localArea || 'Generic';
+            const climate = mapData?.climate || ClimateType.TEMPERATE;
+            const currentEra = mapData?.era || HistoricalEra.MEDIEVAL;
             
-            // If we have a declined city nearby, use its name
-            let ruinName = ruinTypes[selectedRuinIndex];
-            let constructionYear = year - 200 - Math.floor(featurePlacementNoise.random() * 500);
+            const enhancedRuin = generateEnhancedRuin(
+                culturalZone,
+                region,
+                currentEra as HistoricalEra,
+                year,
+                climate,
+                featurePlacementNoise
+            );
             
-            // Calculate historically accurate construction year based on era
-            if (era === 'PREHISTORY') {
-                constructionYear = -3000 - Math.floor(featurePlacementNoise.random() * 2000);
-            } else if (era === 'ANTIQUITY') {
-                constructionYear = -500 - Math.floor(featurePlacementNoise.random() * 500);
-            } else if (era === 'MEDIEVAL') {
-                constructionYear = 500 + Math.floor(featurePlacementNoise.random() * 500);
-            } else if (era === 'RENAISSANCE_EARLY_MODERN') {
-                constructionYear = 1400 + Math.floor(featurePlacementNoise.random() * 200);
-            } else if (era === 'INDUSTRIAL_ERA') {
-                constructionYear = 1800 + Math.floor(featurePlacementNoise.random() * 100);
-            }
+            // Check if this location is near a declined city (override the generated name)
+            let finalRuinName = enhancedRuin.name;
+            let constructionYear = year - enhancedRuin.age;
             
-            // Check if this location is near a declined city
             for (const city of declinedCities) {
                 const dist = Math.abs(tile.x - x) + Math.abs(tile.y - y);
                 if (dist < 5) {
-                    ruinName = `Ruins of ${city.name}`;
+                    finalRuinName = `Ruins of ${city.name}`;
                     constructionYear = city.foundingYear;
                     break;
                 }
             }
             
-            tile.ruinType = ruinName;
-            tile.culturalZone = culturalZone; // Store for rendering
+            // Store enhanced ruin data on tile for rendering
+            tile.ruinType = finalRuinName;
+            tile.culturalZone = culturalZone;
+            tile.ruinMaterial = enhancedRuin.material;
+            tile.ruinStyle = enhancedRuin.style;
+            
+            // Get the architectural style that maps to the existing ruin symbols
+            const architecturalStyle = getRuinArchitecturalStyle(enhancedRuin, culturalZone, currentEra as HistoricalEra);
 
             const blueprint = STRUCTURE_BLUEPRINTS['ruin'];
             const ruinStructure: TerrainStructure = {
                 id: `ruin-${ruinIdCounter++}`,
                 structureType: 'ruin',
-                name: ruinName,
+                name: finalRuinName,
                 location: [tile.x, tile.y],
                 economicRole: blueprint.economicRole,
                 npcAnchor: blueprint.npcAnchor,
                 state: 'ruined',
                 constructionYear: constructionYear,
-                culturalZone: culturalZone, // Add cultural zone
-                era: era, // Add era
+                culturalZone: culturalZone,
+                era: enhancedRuin.originalEra,
                 dimensions: {
                     height: 10 + Math.floor(featurePlacementNoise.random() * 15)
+                },
+                customData: {
+                    enhancedRuin,
+                    description: enhancedRuin.description,
+                    age: enhancedRuin.age,
+                    material: enhancedRuin.material,
+                    style: enhancedRuin.style,
+                    architecturalStyle: architecturalStyle, // This is what RuinsSymbolNew expects
+                    originalStructureType: enhancedRuin.originalStructureType
                 }
             };
 

@@ -10,6 +10,7 @@ import TerrainStructureBanner from './TerrainStructureBanner';
 import GovernmentDistrictModal from './GovernmentDistrictModal';
 import { getFactionData } from '../constants/gameData/factionIcons';
 import FactionsModal from './FactionsModal';
+import RuinStructureModal from './RuinStructureModal';
 
 // Helper to find the nearest urban center to a given point.
 const findNearestUrbanSettlement = (startPoint: [number, number], tiles: Tile[][]): { tile: Tile, distance: number } | null => {
@@ -122,6 +123,23 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
                 currentLocation={currentLocation}
                 formattedDate={formattedDate}
                 onClose={onClose}
+            />
+        );
+    }
+    
+    // Special handling for ruins
+    if (structure.structureType === 'ruin') {
+        return (
+            <RuinStructureModal
+                structure={structure}
+                mapData={mapData}
+                npcs={npcs}
+                onClose={onClose}
+                gameTimeHours={gameTimeHours}
+                season={season}
+                playerCharacter={playerCharacter}
+                currentLocation={currentLocation}
+                formattedDate={formattedDate}
             />
         );
     }

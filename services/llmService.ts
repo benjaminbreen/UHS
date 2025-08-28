@@ -141,7 +141,7 @@ export async function generateEncounterDialogue(
             const isPredator = animalData?.type === 'Predator';
             
             let remarkability = 'somewhat unusual';
-            if (isDomestic) remarkability = 'not too unusual but still noteworthy';
+            if (isDomestic) remarkability = 'not too noteworthy';
             if (isExotic) remarkability = 'VERY UNUSUAL and eye-catching';
             if (isPredator) remarkability = 'DANGEROUS and alarming';
             
@@ -149,8 +149,8 @@ export async function generateEncounterDialogue(
         }).join(', ');
         
         return `
-        - **IMPORTANT - TAMED ANIMALS WITH THEM:** The player has ${animalDescriptions} following them
-        - **YOU MUST REACT TO THIS:** This is ${tamedAnimals.length === 1 ? 'an unusual sight' : 'a very unusual sight'} that demands comment
+        - The player has ${animalDescriptions} following them
+     
         `;
     };
     
@@ -169,104 +169,99 @@ export async function generateEncounterDialogue(
         }
     }
     
-    // Get historical context from primary sources
-    let primarySourceContext = '';
+    // Get specific historical context for better NPC knowledge
+    let historicalContext = '';
+    let specificHistoricalEvents = [];
     try {
         const dateInfo = parseDateString(String(mapData.timeSlice));
         const culturalZone = mapLocationToCulture(mapData.localArea, dateInfo.year);
         
-        // Calculate NPC birth year based on current year and age
-        const currentYear = dateInfo.year;
-        const npcBirthYear = currentYear - (target.age || 30);
+        // Generate specific historical events for this time/place
+        const historicalEventsPrompt = `
+            List 3 specific historical events or conditions affecting ${mapData.localArea} in ${dateInfo.year}.
+            Be extremely specific and accurate. Format as short bullet points.
+            Examples:
+            - The Black Death has killed half the population in the last 2 years
+            - Mongol raiders attacked villages along the northern border last month
+            - The harvest failed due to excessive rains this autumn
+        `;
         
-        // Preload and get sources most relevant to when the NPC was born/lived
+        try {
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const eventResponse = await ai.models.generateContent({ 
+                model: 'gemini-2.5-flash-lite', 
+                contents: historicalEventsPrompt 
+            });
+            const events = eventResponse.text.split('\n').filter(line => line.trim().startsWith('-'));
+            specificHistoricalEvents = events.slice(0, 3);
+        } catch (err) {
+            console.error('Failed to generate historical events:', err);
+        }
+        
+        // Also get primary sources for additional context
         await primarySourceService.preloadContext(dateInfo.era as HistoricalEra, culturalZone as CulturalZone);
         const relevantSources = await primarySourceService.getTemporallyRelevantSources(
-            npcBirthYear, 
-            3, // Get top 3 most relevant sources
+            dateInfo.year - (target.age || 30), 
+            2,
             dateInfo.era as HistoricalEra, 
             culturalZone as CulturalZone
         );
         
-        if (relevantSources.length > 0) {
-            primarySourceContext = `
-        
-        **HISTORICAL CONTEXT FROM PRIMARY SOURCES:**
-        ${relevantSources.map(source => `
-        From "${source.title}" (${source.author}, ${Math.abs(source.year)} ${source.year < 0 ? 'BCE' : 'CE'}):
-        "${source.excerpt}"
-        `).join('\n')}
-        
-        This historical context should subtly inform your worldview and speech patterns, but don't quote these sources directly unless specifically asked about them.`;
+        if (specificHistoricalEvents.length > 0) {
+            historicalContext = `
+                **SPECIFIC CURRENT EVENTS YOU KNOW ABOUT:**
+                ${specificHistoricalEvents.join('\n                ')}
+                
+                Use these specific events in your dialogue when relevant.
+                If asked about "raids" or "problems", reference these actual events.
+            `;
+        } else if (relevantSources.length > 0) {
+            const themes = relevantSources.map(s => {
+                const excerpt = s.excerpt.toLowerCase();
+                if (excerpt.includes('war') || excerpt.includes('battle')) return 'ongoing conflicts';
+                if (excerpt.includes('trade') || excerpt.includes('merchant')) return 'trade disruptions';
+                if (excerpt.includes('plague') || excerpt.includes('disease')) return 'disease outbreaks';
+                if (excerpt.includes('famine') || excerpt.includes('hunger')) return 'food shortages';
+                return 'political tensions';
+            });
+            
+            historicalContext = `**Known current events:** ${[...new Set(themes)].join(', ')}.\n                Reference these when discussing problems or news.`;
         }
     } catch (error) {
-        console.error('Error fetching primary sources for NPC dialogue:', error);
+        console.error('Error fetching historical context:', error);
     }
 
-    const languageInstruction = useRealLanguage 
-        ? `**CRITICAL LANGUAGE DIRECTIVE:** 
-        You MUST respond in the historically and linguistically accurate language for your character based on:
-        - Year: ${mapData.timeSlice}
-        - Location: ${mapData.localArea}, ${mapData.continent || 'Unknown Region'}
-        - Cultural Zone: ${target.culturalZone}
-        - Your Class/Role: ${target.class} ${target.role}
+    // Get appropriate historical language if enabled
+    let languageInstruction = '';
+    if (useRealLanguage) {
+        const { getLanguageForCharacter } = await import('../constants/gameData/languages');
+        const dateInfo = parseDateString(String(mapData.timeSlice));
+        const historicalLanguage = getLanguageForCharacter(
+            target.culturalZone,
+            dateInfo.year,
+            mapData.localArea,
+            mapData.continent
+        );
         
-        **SPECIFIC LANGUAGE REQUIREMENTS:**
-        
-        ANCIENT LANGUAGES (Pre-500 CE):
-        - Mesopotamia/Babylon (3000-500 BCE): Use Akkadian or Sumerian phrases
-        - Egypt (3000 BCE-300 CE): Use Ancient Egyptian/Coptic phrases
-        - Greece (800 BCE-300 CE): Use Ancient Greek (transliterated)
-        - Rome/Italy (500 BCE-500 CE): Use Classical Latin
-        - India (1500 BCE-500 CE): Use Sanskrit or Prakrit
-        - China (1000 BCE-500 CE): Use Classical Chinese
-        - Celtic Europe (500 BCE-500 CE): Use Proto-Celtic or Gaulish approximations
-        - Germania (100 BCE-500 CE): Use Proto-Germanic reconstructions
-        - Americas (Pre-1492):
-          - Mesoamerica: Use Nahuatl (Aztec), Maya, or other regional languages
-          - Andes: Use Quechua or Aymara
-          - North America Pacific Coast (including Columbia River): Use Chinook Jargon or approximate Coast Salish/Chinookan languages
-          - North America Plains: Use proto-Siouan or proto-Algonquian
-        - Indus Valley (3000-1500 BCE): Use speculative Proto-Dravidian reconstructions
-        
-        MEDIEVAL LANGUAGES (500-1500 CE):
-        - England (500-1100): Use Old English (Anglo-Saxon)
-        - England (1100-1400): Use Middle English (like Chaucer)
-        - France (800-1300): Use Old French
-        - Iberia (700-1200): Mix Arabic with Old Spanish/Portuguese
-        - Scandinavia (800-1300): Use Old Norse
-        - Russia (900-1400): Use Old Church Slavonic
-        - Japan (800-1600): Use Classical Japanese (with appropriate keigo)
-        - Middle East (600-1500): Use Classical Arabic or Persian
-        - Mongolia/Steppes (1200-1400): Use Middle Mongolian
-        
-        EARLY MODERN (1500-1800):
-        - Use period-appropriate Early Modern versions of languages
-        - Include archaic grammar, vocabulary, and spelling
-
-        ANY OTHER LANGUAGE: given the specific setting, do your best to provide dialogue in the most historically authentic language you know of, even if its a reach. If you are roleplaying as someone in 5000 BCE in Europe, start speaking in Proto-Indo-European, and so forth. Fill in the blanks and use all your knowledge. 
-        
-        **LINGUISTIC AUTHENTICITY RULES:**
-        1. Use actual words and phrases from the target language - do NOT use modern versions
-        2. For reconstructed/extinct languages, use approximations, but never switch to english. 
-        3. Include appropriate honorifics, titles, and social markers
-        4. Use a wide range of words, expressions, rhetorical tones, and styles, and be voluble and realistic. 
-        5. Do NOT provide translations or explanations
-        6. If the exact language is unknown (like pre-Columbian Columbia River), make your best scholarly approximation based on linguistic reconstruction
-        7. NEVER default to English - always attempt the historical language
-        
-        **EXAMPLES OF CORRECT RESPONSES:**
-        - Roman merchant, 100 CE: "Salve, amice. Quid mercari vis hodie?"
-        - Viking trader, 900 CE: "Hvat viltu kaupa, útlendingr?"
-        - Aztec priest, 1400 CE: "Tlein ticnequi, teotl tlacatl?"
-        - Medieval English peasant, 1350 CE: "What woldest thou, gode sire?"
-        - Japanese samurai, 1580 CE: "Nanigoto de gozaru ka, tabi no kata?"
-        - Chinookan fisher, Columbia River, 10 CE: "Ikta mika tikéh?" (Chinook Jargon approximation)
-        - Ancient Egyptian scribe, 1350 BCE: "ỉw.k m-ḫd ỉḫ.t" (hieroglyphic transliteration)
-        - Sumerian merchant, 2500 BCE: "ana šu-ka damgar" 
-        
-        **YOUR RESPONSE MUST BE ENTIRELY IN THE APPROPRIATE HISTORICAL LANGUAGE.**`
-        : `**Language Rules:** Respond in English.`;
+        languageInstruction = historicalLanguage 
+            ? `**LANGUAGE DIRECTIVE:**
+            You MUST respond in ${historicalLanguage.name} (${historicalLanguage.nativeName || historicalLanguage.id}).
+            ${historicalLanguage.llmPrompt || ''}
+            
+            **LINGUISTIC AUTHENTICITY RULES:**
+            1. Use actual words and phrases from the target language - do NOT use modern versions
+            2. For reconstructed/extinct languages, use approximations, but never switch to English
+            3. Include appropriate honorifics, titles, and social markers
+            4. Use a wide range of words, expressions, rhetorical tones, and styles, and be voluble and realistic
+            5. Do NOT provide translations or explanations
+            6. If the exact language is unknown, make your best scholarly approximation based on linguistic reconstruction
+            7. NEVER default to English - always attempt the historical language
+            
+            YOUR RESPONSE MUST BE ENTIRELY IN ${historicalLanguage.name.toUpperCase()}.`
+            : `**LANGUAGE:** Respond in historically appropriate language for ${mapData.timeSlice} ${mapData.localArea}.`;
+    } else {
+        languageInstruction = `**Language:** Respond in modern English.`;
+    }
 
 
     // Analyze player input for urgency and context
@@ -280,6 +275,19 @@ export async function generateEncounterDialogue(
                      playerInputLower.includes('what') || playerInputLower.includes('who') ||
                      playerInputLower.includes('how') || playerInputLower.includes('why') ||
                      playerInputLower.includes('can you') || playerInputLower.includes('do you');
+    
+    // Analyze conversation patterns
+    const isConfused = playerInputLower.length < 15 && (playerInputLower.includes('what') || 
+                       playerInputLower === 'huh' || playerInputLower === 'what?' || 
+                       playerInputLower.includes('tell me') || playerInputLower.includes('explain'));
+    
+    const askedForMoreInfo = playerInputLower.includes('more') || playerInputLower.includes('else') ||
+                             playerInputLower.includes('tell me') || playerInputLower.includes('go on') ||
+                             playerInputLower.includes('continue') || playerInputLower.includes('details');
+    
+    // Track what topics have been mentioned
+    const previousTopics = conversationHistoryText.toLowerCase();
+    const hasDiscussedTopic = (topic: string) => previousTopics.includes(topic);
 
     // Get current weather for context
     const weatherService = new WeatherService();
@@ -293,54 +301,96 @@ export async function generateEncounterDialogue(
         { x: target.x, y: target.y }
     );
     
-    // Build weather context string
+    // Build condensed weather context
     const weatherContext = (() => {
         const temp = currentWeather.temperature;
-        const precip = currentWeather.precipitation;
-        const wind = currentWeather.windSpeed;
+        const conditions = [];
         
-        let weatherString = '';
+        // Temperature (one word)
+        if (temp < 0) conditions.push('Freezing');
+        else if (temp > 30) conditions.push('Very hot');
+        else if (temp > 25) conditions.push('Warm');
+        else if (temp < 10) conditions.push('Cold');
         
-        // Temperature
-        if (temp < -10) weatherString += 'It is bitterly cold. ';
-        else if (temp < 0) weatherString += 'It is freezing cold. ';
-        else if (temp < 10) weatherString += 'It is quite cold. ';
-        else if (temp > 35) weatherString += 'It is oppressively hot. ';
-        else if (temp > 30) weatherString += 'It is very hot. ';
-        else if (temp > 25) weatherString += 'It is warm. ';
+        // Precipitation (if any)
+        if (currentWeather.precipitation) {
+            conditions.push(currentWeather.precipitation);
+        }
         
-        // Precipitation
-        if (precip === 'snow') weatherString += 'Snow is falling. ';
-        else if (precip === 'rain' && currentWeather.intensity > 0.7) weatherString += 'It is raining heavily. ';
-        else if (precip === 'rain') weatherString += 'It is raining. ';
-        else if (precip === 'drizzle') weatherString += 'There is a light drizzle. ';
-        else if (precip === 'sleet') weatherString += 'Sleet is falling. ';
+        // Special conditions (if notable)
+        if (currentWeather.special === 'fog' || currentWeather.special === 'heatwave') {
+            conditions.push(currentWeather.special);
+        }
         
-        // Wind
-        if (wind > 50) weatherString += 'Strong winds are blowing. ';
-        else if (wind > 30) weatherString += 'It is quite windy. ';
-        
-        // Special conditions
-        if (currentWeather.special === 'fog') weatherString += 'Thick fog reduces visibility. ';
-        else if (currentWeather.special === 'mist') weatherString += 'A light mist hangs in the air. ';
-        else if (currentWeather.special === 'frost') weatherString += 'Frost covers everything. ';
-        else if (currentWeather.special === 'heatwave') weatherString += 'The heat is almost unbearable. ';
-        
-        return weatherString || 'The weather is mild.';
+        return conditions.length > 0 ? conditions.join('. ') + '.' : 'Mild weather.';
     })();
 
-    const prompt = `
-        You are roleplaying as ${target.name}, a ${target.age}-year-old ${target.role} in ${mapData.timeSlice} ${mapData.localArea}.
+    // Determine personality-driven response style
+    const personalityStyle = (() => {
+        const npc = target as NpcEntity;
+        const courage = npc.personality?.courage || 5;
+        const compassion = npc.personality?.compassion || 5;
+        const greed = npc.personality?.greed || 5;
         
-        **CURRENT WEATHER:** ${weatherContext}
-        If the weather is notable (very hot, cold, raining, snowing), you should mention it naturally in your dialogue when relevant.
+        let style = [];
+        if (courage < 3) style.push('fearful and cautious about dangers');
+        if (courage > 7) style.push('bold and direct in speech');
+        if (compassion > 7) style.push('concerned for others\' wellbeing');
+        if (compassion < 3) style.push('dismissive of others\' problems');
+        if (greed > 7) style.push('always considering profit and loss');
+        
+        return style.length > 0 ? `Your personality traits: ${style.join(', ')}` : '';
+    })();
+    
+    const prompt = `
+        You are roleplaying as ${target.name}, a ${target.age}-year-old ${target.role} in ${mapData.timeSlice} ${mapData.localArea}. To roleplay effectively, imagine this npc as a real person with a detailed, realistic backtstory appropriate to the setting. They won't share everything (who does?) but they might drop hints. Consider whether the npc and the player might realistically already be acquainted - if so, invent a backstory for that relationship. If not, respond to them as a complete stranger.
+        
+        **CONVERSATION INTELLIGENCE RULES:**
+        1. INFORMATION PROGRESSION - Never repeat the same information:
+           - First mention: Brief acknowledgment or hint
+           - Second question: Add ONE new specific detail
+           - Third question: Provide fuller context with 2-3 details
+           - Further questions: Share complete information or admit you've told all you know
+        
+        2. CONVERSATION AWARENESS:
+           - If player seems confused (short responses, "what?", "huh?"), CLARIFY don't repeat
+           - If player asks for more info, ADD NEW DETAILS don't restate
+           - If discussing urgent matters, VOLUNTEER critical info
+           - Recognize when player is struggling to understand and ADJUST your explanation
+        
+        3. NATURAL DIALOGUE FLOW:
+           - Start with 1-2 clear sentences that establish context (not cryptic fragments) - but they should also be authentic to how a real person would think and act in this setting
+           - Build naturally on what was just said
+           - Show emotional responses appropriate to the topic
+           - If discussing dangers, show appropriate concern/urgency
+        
+        4. PERSONALITY-DRIVEN RESPONSES:
+           ${personalityStyle}
+           - Let your personality affect HOW you share information
+           - Fearful NPCs might whisper about dangers
+           - Compassionate NPCs will ensure strangers understand warnings or simply say something friendly
+           - Greedy NPCs might hint at rewards for information
+        
+        **CURRENT SITUATION:**
+        Weather: ${weatherContext}
+        ${historicalContext}
+        Player seems: ${isConfused ? 'confused and needs clarification' : askedForMoreInfo ? 'interested and wants details' : 'engaged in conversation'}
         
         **CRITICAL INSTRUCTION:** Think like a real person in this exact historical moment. Consider:
-        - What would genuinely shock or alarm someone in my position at this time and place?
-        - What are the real dangers and concerns of my era?
+        - What specific events (raids, plagues, wars, love affairs, feuds, or anything that makes sense in the setting) are happening RIGHT NOW that everyone knows about?
+        - What would genuinely shock or alarm someone in my position?
+        - What are the real, immediate dangers people face daily?
         - How would someone of my social class and profession realistically react?
-        - What would I notice first about this stranger? (or are they plausibly someone you might know?)
-        - How might the current weather affect our interaction or what we talk about?
+        - What would I notice first about this stranger?
+        
+        **INFORMATION SHARING PROTOCOL:**
+        When discussing current events or dangers:
+        1. First mention: Name something historically accurate to the setting - never generic, hyper specific/authentic/realistic.
+        2. Second mention: Add more detail, such as exactly when or where an event happened ("just last week", "three days ago")
+        3. Third mention: Add specific consequences, again rooted directly in the SPECIFIC historical setting
+        4. Fourth mention: Add what people are doing about it 
+        
+        NEVER use vague terms like "them", "it", "the situation" - BE SPECIFIC.
         
         **EXAMPLES OF REALISTIC CONTEXTUAL RESPONSES:**
         
@@ -364,16 +414,39 @@ export async function generateEncounterDialogue(
         You see: ${playerCharacter.name}, appearing to be a ${playerCharacter.profession}
         They just said: "${playerInput}"
         
-        Previous interaction: ${conversationHistoryText || 'This is your first exchange'}
+        **DIALOGUE CONTEXT ANALYSIS:**
+        - This is exchange #${conversationHistoryText ? conversationHistoryText.split('\n').length + 1 : 1} in our conversation
+        - Player's input length: ${playerInput.length} characters (${playerInput.length < 20 ? 'very short - might be confused' : 'engaged'})
+        - Player is asking: ${isAsking ? 'YES - provide helpful answer' : 'NO - respond naturally'}
+        - Player seems confused: ${isConfused ? 'YES - CLARIFY and EXPLAIN' : 'NO'}
+        - Player wants more info: ${askedForMoreInfo ? 'YES - ADD NEW DETAILS' : 'NO'}
         
-        **YOUR TASK:**
-        Respond as a real person would in this exact historical moment. Consider:
-        1. What about this person would immediately stand out in my time/place?
-        2. What recent events or current dangers would shape my reaction?
-        3. What would someone of my role/class say in this situation?
-        4. How would I realistically respond to what they just said?
+        **YOUR RESPONSE GUIDELINES:**
+        ${conversationHistoryText ? 
+            `- You've already discussed this topic - ADD NEW INFORMATION, don't repeat
+        - If player is still asking about the same thing, they need MORE SPECIFIC DETAILS
+        - Build on what you've said before, don't restart the explanation` : 
+            `- First interaction: Give 1-2 clear, contextual sentences (not cryptic fragments)
+        - Establish who you are and what's happening
+        - If discussing dangers/urgent matters, show appropriate concern`}
         
-        Your initial response should be just a sentence or even a word or two. In subsequent responses give between 1 and 4 lines of natural dialogue. Don't repeat previous statements. React authentically.
+        **CRITICAL: **
+        ${isConfused ? 
+            `The player seems CONFUSED. Don't just repeat yourself - EXPLAIN DIFFERENTLY:
+        - Use simpler words
+        - Give specific examples
+        - Provide concrete details (names, places, times)
+        - Show patience and understanding` : ''}
+        
+        ${askedForMoreInfo ? 
+            `The player wants MORE INFORMATION. Provide NEW DETAILS:
+        - WHO specifically is involved?
+        - WHEN did this happen?
+        - WHERE exactly?
+        - WHAT are the consequences?
+        - HOW does this affect them?` : ''}
+        
+        Respond with 1-4 lines of natural dialogue. Show your personality. Be helpful if discussing dangers.
 
         ${languageInstruction}
 
@@ -381,8 +454,21 @@ export async function generateEncounterDialogue(
         - Class: ${(target.class || 'commoner').toLowerCase()}
         - Health: ${target.health?.currentDiseases?.length > 0 ? 
             `SICK with ${target.health.currentDiseases[0].disease.name}` : 'Healthy'}
-        - Previous interactions with player: ${previousSummaries || target.memory?.conversationSummaries?.join('; ') || 'None - first meeting'}
+        - Personality: ${target.personality ? `Greed: ${target.personality.greed}/10, Courage: ${target.personality.courage}/10, Compassion: ${target.personality.compassion}/10` : 'Average'}
+        - Special Traits: ${target.attributes?.map(a => a.name).join(', ') || 'None notable'}
+        - Current Goal: ${target.personalGoal?.description || 'Just getting by'}
+        - Family: ${target.family?.length > 0 ? target.family.map(f => `${f.relation}: ${f.name}`).join(', ') : 'Lives alone'}
+        - Wealth: ${target.wealthLevel || 'modest'} (${target.currency || 0} coins)
+        - Religion: ${target.religion || 'Local beliefs'} ${target.beliefs?.length > 0 ? `(believes in ${target.beliefs[0].beliefId})` : ''}
+        - Previous interactions: ${previousSummaries || target.memory?.conversationSummaries?.join('; ') || 'None - first meeting'}
         - Player's reputation: ${playerCharacter.mapReputation}/100
+        
+        **WHAT YOU SEE ON THE PLAYER:**
+        - Appearance: ${formatAppearance(playerCharacter)}
+        - Clothing: ${playerCharacter.appearance?.garment?.name || 'common clothes'} (${playerCharacter.appearance?.garment?.material || 'simple fabric'})
+        - Equipment: ${playerCharacter.equippedItems?.weapon ? `Armed with ${playerCharacter.equippedItems.weapon.name}` : 'Unarmed'}
+        - Health: ${playerCharacter.health?.currentDiseases?.length > 0 ? `VISIBLY ILL with ${playerCharacter.health.currentDiseases[0].disease.name}` : 'Appears healthy'}
+        ${getTamedAnimalsContext()}
         
         **CONVERSATION HISTORY:**
         ${conversationHistoryText || 'This is your first exchange'}
@@ -392,8 +478,12 @@ export async function generateEncounterDialogue(
         **CRITICAL RULES:**
         - ONLY provide dialogue, no actions or narration
         - Stay in character for your role, age, and social class
-        - Use period-appropriate language and concerns. You should know about basic information in the setting and date specified - so someone in 2010 knows about the World Cup, someone in 1889 knows about the Paris world fair, someone in 1860 knows who Lincoln is, etc (even if they aren't American).
-        - Don't repeat things you've already said in this conversation
+        - Know about major events of your time (wars, plagues, discoveries, people)
+        - NEVER repeat the same information - always add something new
+        - If discussing immediate dangers, be PROACTIVE with warnings
+        - If the player is confused after multiple exchanges, CHANGE YOUR APPROACH
+        - Show appropriate emotional responses (fear about raids, worry about disease, etc.)
+        - Your personality (courage/compassion/greed) should color HOW you speak
     `;
     
     // Create a more sophisticated prompt for reputation analysis
@@ -434,7 +524,7 @@ export async function generateEncounterDialogue(
             model: 'gemini-2.5-flash-lite', 
             contents: reputationPrompt,
             config: {
-                temperature: 0.5,
+                temperature: 0.9,
                 topP: 0.95
             }
         });

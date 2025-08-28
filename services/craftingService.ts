@@ -76,7 +76,9 @@ export async function executeCrafting(method: 'COMBINE' | 'DISAGGREGATE', items:
         
         CREATE MULTIPLE ITEMS when disaggregating (typically 2-10 items). Use stackable:true for small similar items.
         ALWAYS consume the original item and create logical component items.` : `
+        
         COMBINATION RULES:
+        - ALMOST ALL items can be combined in some way. It's just that many combinations will result in something silly or stupid. But some are valuable! Be creative and practical. Assume that water can be added to any combination, it is not a required item. You can make a soup out of anything, for instance. 
         - Consider if items can logically work together
         - Materials + tools = crafted items
         - Similar materials can be combined
@@ -104,7 +106,7 @@ export async function executeCrafting(method: 'COMBINE' | 'DISAGGREGATE', items:
     
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.5-flash-lite',
             contents: prompt,
             config: {
                 responseMimeType: "application/json",

@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
 import { Item } from '../../types';
+// Import baseSprites mappings as a fallback/reference system
+import { ITEM_ARCHETYPES_MAX, getItemArchetypeMax } from '../../constants/items/baseSprites';
 
 interface GenerativeItemIconProps {
   item: Item;
@@ -8,6 +10,9 @@ interface GenerativeItemIconProps {
 }
 
 const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48, className = '' }) => {
+
+  const scaleToFit = 1.15;                      // tweak 1.10–1.18 if needed
+  const offset = (size - size * scaleToFit) / 2;
   
   // Enhanced color extraction with navy and more colors
   const getItemColor = (): { primary: string; secondary: string; accent: string } => {
@@ -183,6 +188,7 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
       const b = Math.min(255, (num & 0x0000ff) + Math.round(255 * percent));
       return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
     };
+
     
     return {
       primary: primaryColor,
@@ -321,7 +327,7 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
       if (name.includes('flour')) return 'flour';
       
       // Prepared food
-      if (name.includes('meat') || name.includes('pork') || name.includes('beef') || name.includes('chicken')) return 'meat';
+      if (name.includes('meat') || name.includes('pork') || name.includes('beef') || name.includes('mutton') || name.includes('chicken')) return 'meat';
       if (name.includes('fish') || name.includes('salmon') || name.includes('cod')) return 'fish';
       if (name.includes('cheese') || name.includes('dairy')) return 'cheese';
       if (name.includes('soup') || name.includes('stew')) return 'soup';
@@ -421,6 +427,75 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
     if (name.includes('flute') || name.includes('pipe') || name.includes('whistle')) return 'flute';
     if (name.includes('drum')) return 'drum';
     if (name.includes('bell')) return 'bell';
+if (name.includes('broom')) return 'broom';
+if (name.includes('coal')) return 'coal';
+if (name.includes('clay')) return 'clay';
+if (name.includes('smartphone') || name.includes('cell phone') || name.includes('mobile phone')) return 'smartphone';
+if (name.includes('flashlight')) return 'flashlight'; // (kept separate from medieval 'torch')
+if (name.includes('syringe') || name.includes('needle') && cat.includes('medical')) return 'syringe';
+
+// Edibles / processing
+if (name.includes('chip')) return 'chips';            // gourd chips, root chips, etc.
+if (name.includes('seed')) return 'seeds';            // gourd seeds, pumpkin seeds
+if (name.includes('dust')) return 'dust';             // flour dust, spice dust
+if (name.includes('crumb')) return 'crumbs';          // baking crumbs, bread crumbs
+
+// Wood forms
+if (name.includes('log')) return 'log';               // paper birch log, oak log
+
+
+// === WEAPONS ===
+// Place this ABOVE the existing 'dagger' check so 'knife' doesn't get routed to 'dagger'
+if (name.includes('knife')) return 'knife';
+
+// (Keep: dagger/dirk/stiletto -> 'dagger' as you already have)
+
+// === WRITING / STATIONERY ===
+if (name.includes('ink pot') || name.includes('inkpot')) return 'ink_pot';
+if (name.includes('quill')) return 'quill'; // you already match this via tools section, safe to duplicate
+
+// === SHARPENING ===
+if (name.includes('whetstone')) return 'whetstone';
+
+// === TEXTILES ===
+if (name.includes('spindle')) return 'spindle';
+
+// === STONEWORK ===
+// Put before generic 'chisel' to prefer this specialized art when 'stone' is mentioned
+if (name.includes('stone chisel') || (name.includes('chisel') && name.includes('stone'))) return 'stone_chisel';
+
+// === THIEVERY ===
+if (name.includes('lockpick') || name.includes('lock pick')) return 'lockpick';
+
+// === MUSIC ===
+if (name.includes('drum')) return 'drum';
+
+// === TIMEPIECE ===
+if (name.includes('pocket watch') || name.includes('pocketwatch')) return 'pocket_watch';
+
+// === CONTAINERS ===
+if (name.includes('gourd flask') || (name.includes('gourd') && name.includes('flask'))) return 'gourd_flask';
+if (name.includes('leather bag')) return 'leather_bag';
+if (name.includes('purse')) return 'purse';
+// (Your existing logic already handles 'bag'/'sack'/'pouch' and 'map')
+
+// === APPAREL / CULTURAL ===
+if (name.includes('poncho')) return 'poncho';
+if (name.includes('sari')) return 'sari';
+// You already have veil logic; just ensure:
+if (name.includes('veil')) return 'veil';
+
+// === MATERIALS / PIGMENTS ===
+if (name.includes('ochre')) return 'ochre';
+if (name.includes('vine')) return 'vine';
+if (name.includes('shell') || name.includes('cowrie')) return 'shell';
+if (name.includes('ivory tusk') || (name.includes('tusk') && name.includes('ivory'))) return 'ivory_tusk';
+
+// === FOODS ===
+// You already route 'cheese' in your Food & Drink section:
+if (name.includes('cheese')) return 'cheese';
+
+
     
     return 'generic';
   };
@@ -430,7 +505,8 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
     const category = getItemCategory();
     const colors = getItemColor();
     const pixelSize = size / 24; // 24x24 pixel grid for higher resolution
-    
+
+ 
     // Helper to create a pixel (slightly larger to avoid gaps)
     const px = (x: number, y: number, color: string, opacity: number = 1) => 
       `<rect x="${x * pixelSize - 0.5}" y="${y * pixelSize - 0.5}" width="${pixelSize + 1}" height="${pixelSize + 1}" fill="${color}" opacity="${opacity}" stroke="none"/>`;
@@ -627,6 +703,34 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
           [6,6],[7,6],[8,6],[9,6],[10,6],
           [6,10],[7,10],[8,10],[9,10],[10,10],
         ], colors.secondary);
+        break;
+        
+      case 'flail':
+      case 'whip':
+        svgContent = pixels([
+          // Handle (bottom)
+          [12,16],[12,17],[12,18],[12,19],[12,20],
+          [11,20],[13,20],
+        ], '#8B4513') +
+        pixels([
+          // Chain/rope connection
+          [12,15],[11,14],[10,13],[9,12],
+          [8,11],[7,10],
+        ], '#696969') +
+        pixels([
+          // Main flail head (threshing stick)
+          [4,8],[5,8],[6,8],[7,8],[8,8],
+          [4,9],[5,9],[6,9],[7,9],[8,9],
+        ], '#D4A76A') +
+        pixels([
+          // Second flail stick (connected)
+          [3,5],[4,5],[5,5],[6,5],
+          [3,6],[4,6],[5,6],[6,6],
+        ], '#C19A6B') +
+        pixels([
+          // Leather joint
+          [6,7],[7,7],
+        ], '#5C4033');
         break;
         
       case 'hat':
@@ -885,6 +989,445 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
           [10,10],[11,10],[12,10],[13,10],[14,10],
         ], colors.accent || '#9370DB', 0.7);
         break;
+        
+      case 'grain':
+        svgContent = pixels([
+          // Wheat stalk
+          [12,18],[12,17],[12,16],[12,15],[12,14],[12,13],[12,12],[12,11],[12,10],[12,9],
+        ], '#8B7355') +
+        pixels([
+          // Wheat grains left side
+          [10,4],[10,5],[10,6],[10,7],[10,8],
+          [9,5],[9,6],[9,7],
+        ], '#D4A76A') +
+        pixels([
+          // Wheat grains right side
+          [14,4],[14,5],[14,6],[14,7],[14,8],
+          [15,5],[15,6],[15,7],
+        ], '#D4A76A') +
+        pixels([
+          // Center grains
+          [12,3],[12,4],[12,5],[12,6],[12,7],[12,8],
+          [11,4],[11,5],[11,6],[11,7],
+          [13,4],[13,5],[13,6],[13,7],
+        ], '#F4E4BC') +
+        pixels([
+          // Leaves
+          [11,10],[13,10],
+          [10,11],[14,11],
+        ], '#6B8E23');
+        break;
+
+              // ---------- NEW CASES ----------
+
+      case 'scale': {
+        // Two-pan balance scale
+        svgContent =
+          pixels(
+            // Base
+            [[10,16],[11,16],[12,16],[13,16]],
+            colors.secondary || '#6B6B6B'
+          ) +
+          pixels(
+            // Pillar
+            [[12,7],[12,8],[12,9],[12,10],[12,11],[12,12],[12,13],[12,14],[12,15]],
+            colors.primary || '#B8860B'
+          ) +
+          pixels(
+            // Crossbeam
+            [[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8]],
+            colors.primary || '#B8860B'
+          ) +
+          pixels(
+            // Left chain
+            [[9,9],[9,10],[9,11]],
+            colors.secondary || '#8F8F8F'
+          ) +
+          pixels(
+            // Right chain
+            [[15,9],[15,10],[15,11]],
+            colors.secondary || '#8F8F8F'
+          ) +
+          pixels(
+            // Left pan
+            [[8,12],[9,12],[10,12],[8,13],[9,13],[10,13]],
+            colors.primary || '#C9A23A'
+          ) +
+          pixels(
+            // Right pan
+            [[14,12],[15,12],[16,12],[14,13],[15,13],[16,13]],
+            colors.primary || '#C9A23A'
+          ) +
+          pixels(
+            // Highlights
+            [[12,8],[10,12],[15,12]],
+            '#FFF1A6', 0.5
+          );
+        break;
+      }
+
+      case 'quill': {
+        // Feather quill + ink pot
+        svgContent =
+          pixels(
+            // Ink pot
+            [[7,14],[8,14],[9,14],[7,15],[9,15],[7,16],[8,16],[9,16]],
+            '#2B2B2B'
+          ) +
+          pixels(
+            // Pot shine
+            [[8,14]],
+            '#5A5A5A', 0.6
+          ) +
+          pixels(
+            // Feather shaft
+            [[10,10],[11,9],[12,8],[13,7],[14,6]],
+            '#C7C7C7'
+          ) +
+          pixels(
+            // Feather barbs
+            [[10,11],[11,10],[12,9],[13,8],[11,11],[12,10],[13,9]],
+            '#F5F5F5'
+          ) +
+          pixels(
+            // Nib into pot
+            [[9,13]],
+            '#3A3A3A'
+          );
+        break;
+      }
+
+      case 'soap': {
+        // Bar of soap with bubbles
+        svgContent =
+          pixels(
+            // Bar
+            [[10,9],[11,9],[12,9],[13,9],
+             [9,10],[14,10],
+             [9,11],[14,11],
+             [10,12],[11,12],[12,12],[13,12]],
+            '#EAF7FF'
+          ) +
+          pixels(
+            // Rounded corners shading
+            [[9,10],[14,11],[10,9],[13,12]],
+            '#D3ECFA', 0.6
+          ) +
+          pixels(
+            // Bubbles
+            [[15,9],[8,11],[14,8]],
+            '#CFEAFC', 0.8
+          );
+        break;
+      }
+
+      case 'broom': {
+        // Straw broom with wooden handle
+        svgContent =
+          pixels(
+            // Handle (diagonal)
+            [[8,5],[9,6],[10,7],[11,8],[12,9],[13,10],[14,11],[15,12]],
+            '#8B6F47'
+          ) +
+          pixels(
+            // Ferrule/binding
+            [[14,12],[15,13]],
+            '#5C4033'
+          ) +
+          pixels(
+            // Bristles
+            [[15,13],[16,13],[17,13],
+             [15,14],[16,14],[17,14],
+             [15,15],[16,15],[17,15]],
+            '#C9A25A'
+          ) +
+          pixels(
+            // Bristle shading
+            [[16,14],[16,15]],
+            '#A98545', 0.7
+          );
+        break;
+      }
+
+      case 'coal': {
+        // Lumps of coal
+        svgContent =
+          pixels(
+            // Main lumps
+            [[9,10],[10,10],[11,10],
+             [8,11],[9,11],[10,11],[11,11],[12,11],
+             [9,12],[10,12],[11,12]],
+            '#1F1F1F'
+          ) +
+          pixels(
+            // Highlights
+            [[10,10],[12,11]],
+            '#3A3A3A', 0.6
+          ) +
+          pixels(
+            // Dust bits
+            [[13,12],[8,13]],
+            '#2A2A2A'
+          );
+        break;
+      }
+
+      case 'clay': {
+        // Raw clay lump
+        svgContent =
+          pixels(
+            // Body
+            [[9,9],[10,9],[11,9],
+             [8,10],[9,10],[10,10],[11,10],[12,10],
+             [9,11],[10,11],[11,11]],
+            '#B2733B'
+          ) +
+          pixels(
+            // Soft indent/highlight
+            [[10,10],[11,9]],
+            '#D9A070', 0.45
+          ) +
+          pixels(
+            // Damp shadow
+            [[9,11]],
+            '#8F5A2E', 0.5
+          );
+        break;
+      }
+
+      case 'prayer_beads': {
+        // Loop with a tassel
+        svgContent =
+          pixels(
+            // Bead loop
+            [[9,6],[10,6],[11,6],
+             [8,7],[12,7],
+             [8,8],[12,8],
+             [8,9],[12,9],
+             [9,10],[10,10],[11,10]],
+            colors.primary || '#B5651D'
+          ) +
+          pixels(
+            // Tassel
+            [[10,11],[10,12],[10,13],[9,14],[10,14],[11,14]],
+            colors.accent || '#D4AF37'
+          ) +
+          pixels(
+            // Highlights on beads
+            [[10,6],[9,10]],
+            '#F5DEB3', 0.45
+          );
+        break;
+      }
+
+      case 'smartphone': {
+        // Modern phone: bezel + screen + camera
+        svgContent =
+          pixels(
+            // Body
+            [
+              [9,5],[10,5],[11,5],[12,5],[13,5],
+              [9,6],[13,6],
+              [9,7],[13,7],
+              [9,8],[13,8],
+              [9,9],[13,9],
+              [9,10],[13,10],
+              [9,11],[13,11],
+              [9,12],[13,12],
+              [9,13],[13,13],
+              [9,14],[13,14],
+              [9,15],[13,15],
+              [9,16],[13,16],
+              [9,17],[13,17],
+              [9,18],[13,18],
+              [9,19],[10,19],[11,19],[12,19],[13,19]
+            ],
+            '#1E1E1E'
+          ) +
+          pixels(
+            // Screen
+            [
+              [10,6],[11,6],[12,6],
+              [10,7],[11,7],[12,7],
+              [10,8],[11,8],[12,8],
+              [10,9],[11,9],[12,9],
+              [10,10],[11,10],[12,10],
+              [10,11],[11,11],[12,11],
+              [10,12],[11,12],[12,12],
+              [10,13],[11,13],[12,13],
+              [10,14],[11,14],[12,14],
+              [10,15],[11,15],[12,15],
+              [10,16],[11,16],[12,16],
+              [10,17],[11,17],[12,17],
+              [10,18],[11,18],[12,18]
+            ],
+            '#2A2E39'
+          ) +
+          pixels(
+            // Camera/ear
+            [[11,6]],
+            '#4A4F5C'
+          ) +
+          pixels(
+            // Home bar
+            [[11,18]],
+            '#6C7383', 0.6
+          );
+        break;
+      }
+
+      case 'flute': {
+        // Side flute with finger holes
+        svgContent =
+          pixels(
+            // Body
+            [[6,10],[7,10],[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],[17,10]],
+            colors.primary || '#C4B08A'
+          ) +
+          pixels(
+            // Holes
+            [[8,10],[10,10],[12,10],[14,10],[16,10]],
+            '#7A6A4C'
+          ) +
+          pixels(
+            // Mouthpiece accent
+            [[6,10]],
+            '#A18E6D', 0.8
+          );
+        break;
+      }
+
+      case 'flashlight': {
+        // Hand torch with light cone
+        svgContent =
+          pixels(
+            // Head
+            [[7,10],[8,10],[9,10],[7,11],[8,11],[9,11],[7,12],[8,12],[9,12]],
+            '#5A5A5A'
+          ) +
+          pixels(
+            // Body
+            [[10,11],[11,11],[12,11],[13,11],[14,11]],
+            '#3C3C3C'
+          ) +
+          pixels(
+            // Tail cap
+            [[15,11]],
+            '#2B2B2B'
+          ) +
+          pixels(
+            // Grip band
+            [[12,10],[12,12]],
+            '#707070'
+          ) +
+          pixels(
+            // Beam
+            [[6,10],[6,11],[6,12],[5,10],[5,11],[5,12],[4,11]],
+            '#FFF3B0', 0.35
+          );
+        break;
+      }
+
+      case 'syringe': {
+        // Medical syringe
+        svgContent =
+          pixels(
+            // Barrel
+            [[9,10],[10,10],[11,10],[12,10],[13,10],
+             [9,11],[13,11],
+             [9,12],[13,12]],
+            '#EDEDED'
+          ) +
+          pixels(
+            // Graduations
+            [[11,10],[12,11]],
+            '#CFCFCF'
+          ) +
+          pixels(
+            // Plunger
+            [[8,11],[7,11]],
+            '#D6D6D6'
+          ) +
+          pixels(
+            // Needle hub
+            [[14,11]],
+            '#B0B6BC'
+          ) +
+          pixels(
+            // Needle
+            [[15,11],[16,11]],
+            '#9BA1A5'
+          ) +
+          pixels(
+            // Med fluid hint
+            [[10,12]],
+            colors.accent || '#8ED1F7', 0.7
+          );
+        break;
+      }
+
+      // ---------- SMARTER WOODEN BOWL ----------
+      // Replace your existing 'bowl' case with this improved version.
+      case 'bowl': {
+        const isWood =
+          (item.material || '').toLowerCase().includes('wood') ||
+          (item.name || '').toLowerCase().includes('wooden');
+
+        if (isWood) {
+          // Wooden bowl variant
+          svgContent =
+            pixels(
+              // Lip
+              [[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10]],
+              '#8B6F47'
+            ) +
+            pixels(
+              // Inner
+              [[9,11],[10,11],[11,11],[12,11],[13,11]],
+              '#C19A6B'
+            ) +
+            pixels(
+              // Outer
+              [[8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12]],
+              '#A2774E'
+            ) +
+            pixels(
+              // Base
+              [[10,13],[11,13],[12,13]],
+              '#825E3D'
+            ) +
+            pixels(
+              // Wood grain hints
+              [[10,11],[12,12]],
+              '#6C4A2F', 0.5
+            );
+        } else {
+          // Default ceramic bowl (unchanged logic if you had it before)
+          svgContent =
+            pixels(
+              // Lip
+              [[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10]],
+              '#B7B7B7'
+            ) +
+            pixels(
+              // Inner
+              [[9,11],[10,11],[11,11],[12,11],[13,11]],
+              '#E6E6E6'
+            ) +
+            pixels(
+              // Outer
+              [[8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12]],
+              '#CFCFCF'
+            ) +
+            pixels(
+              // Base
+              [[10,13],[11,13],[12,13]],
+              '#A8A8A8'
+            );
+        }
+        break;
+      }
+
         
       case 'bread':
         // Warm, crusty bread with golden tones
@@ -1458,10 +2001,2125 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
           [9,17],[10,17],[11,17],[12,17],[13,17],[14,17],[15,17],
         ], colors.primary);
         break;
+
+              case 'bottle': {
+        // Tall glass bottle with cork + colored liquid
+        svgContent =
+          pixels(
+            // Cork
+            [[11,2],[12,2],[13,2],[11,3],[12,3],[13,3]],
+            '#8B6F47'
+          ) +
+          pixels(
+            // Neck (glass)
+            [[11,4],[12,4],[13,4],[11,5],[12,5],[13,5]],
+            '#E0F7FA', 0.75
+          ) +
+          pixels(
+            // Shoulder outline
+            [[10,6],[11,6],[12,6],[13,6],[14,6]],
+            '#E0F7FA', 0.6
+          ) +
+          pixels(
+            // Body outline
+            [
+              [9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],
+              [9,8],[15,8],
+              [9,9],[15,9],
+              [9,10],[15,10],
+              [9,11],[15,11],
+              [9,12],[15,12],
+              [9,13],[15,13],
+              [10,14],[11,14],[12,14],[13,14],[14,14]
+            ],
+            '#E0F7FA', 0.55
+          ) +
+          pixels(
+            // Liquid (uses accent)
+            [
+              [10,11],[11,11],[12,11],[13,11],[14,11],
+              [10,12],[11,12],[12,12],[13,12],[14,12],
+              [10,13],[11,13],[12,13],[13,13],[14,13]
+            ],
+            colors.accent || '#8FD3FF', 0.95
+          ) +
+          pixels(
+            // Shine
+            [[10,8],[10,9],[11,8]],
+            '#FFFFFF', 0.35
+          );
+        break;
+      }
+
+      case 'barrel': {
+        // Classic barrel with hoops and staves
+        svgContent =
+          pixels(
+            // Top ellipse lip
+            [[8,4],[9,4],[10,4],[11,4],[12,4],[13,4],[14,4]],
+            '#A0522D'
+          ) +
+          pixels(
+            // Body (wood)
+            [
+              [7,5],[8,5],[9,5],[10,5],[11,5],[12,5],[13,5],[14,5],[15,5],
+              [7,6],[15,6],
+              [7,7],[15,7],
+              [7,8],[15,8],
+              [7,9],[15,9],
+              [7,10],[15,10],
+              [7,11],[15,11],
+              [7,12],[15,12],
+              [7,13],[15,13],
+              [8,14],[9,14],[10,14],[11,14],[12,14],[13,14],[14,14]
+            ],
+            colors.primary || '#CD853F'
+          ) +
+          pixels(
+            // Hoops (metal bands)
+            [
+              [7,6],[8,6],[9,6],[10,6],[11,6],[12,6],[13,6],[14,6],[15,6],
+              [7,10],[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],
+              [7,13],[8,13],[9,13],[10,13],[11,13],[12,13],[13,13],[14,13],[15,13]
+            ],
+            colors.secondary || '#6B6B6B'
+          ) +
+          pixels(
+            // Wood highlights
+            [[9,7],[11,8],[13,9],[11,12]],
+            '#F5DEB3', 0.35
+          );
+        break;
+      }
+
+      case 'chest': {
+        // Loot chest with metal trim + lock
+        svgContent =
+          pixels(
+            // Lid
+            [
+              [6,5],[7,5],[8,5],[9,5],[10,5],[11,5],[12,5],[13,5],[14,5],
+              [5,6],[6,6],[7,6],[8,6],[9,6],[10,6],[11,6],[12,6],[13,6],[14,6],[15,6]
+            ],
+            colors.primary || '#B87333'
+          ) +
+          pixels(
+            // Base
+            [
+              [5,7],[15,7],
+              [5,8],[15,8],
+              [5,9],[15,9],
+              [5,10],[15,10],
+              [6,11],[14,11],
+              [7,12],[13,12]
+            ],
+            colors.primary || '#B87333'
+          ) +
+          pixels(
+            // Front panel fill
+            [
+              [6,8],[7,8],[8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],
+              [6,9],[7,9],[8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],
+              [6,10],[7,10],[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10]
+            ],
+            '#CD853F'
+          ) +
+          pixels(
+            // Metal trims
+            [[5,7],[15,7],[5,11],[15,11]],
+            colors.secondary || '#8B6F47'
+          ) +
+          pixels(
+            // Lock
+            [[10,9],[11,9],[10,10],[11,10],[10,11],[11,11]],
+            '#D4AF37'
+          ) +
+          pixels(
+            // Keyhole
+            [[10,10]],
+            '#3A2E1E'
+          );
+        break;
+      }
+
+      case 'spear': {
+        // Long shaft with leaf spearhead
+        svgContent =
+          pixels(
+            // Spearhead
+            [[12,3],[11,4],[12,4],[13,4],[11,5],[12,5],[13,5],[12,6]],
+            colors.secondary || '#C0C0C0'
+          ) +
+          pixels(
+            // Shaft
+            [
+              [12,7],[12,8],[12,9],[12,10],[12,11],[12,12],
+              [12,13],[12,14],[12,15],[12,16],[12,17],[12,18],[12,19]
+            ],
+            colors.primary || '#8B6F47'
+          ) +
+          pixels(
+            // Binding below head
+            [[11,7],[12,7],[13,7]],
+            '#5C4033'
+          );
+        break;
+      }
+
+      case 'hammer':
+      case 'mace':
+      case 'club': {
+        // Wood handle + metal (hammer) or studded (mace) head
+        const headMetal = colors.secondary || '#8E8E8E';
+        const stud = category === 'mace';
+        svgContent =
+          pixels(
+            // Handle
+            [
+              [12,10],[12,11],[12,12],[12,13],[12,14],[12,15],[12,16],[12,17],[12,18],[12,19]
+            ],
+            colors.primary || '#8B4513'
+          ) +
+          pixels(
+            // Head block
+            [[10,7],[11,7],[12,7],[13,7],[14,7],[10,8],[11,8],[12,8],[13,8],[14,8]],
+            headMetal
+          ) +
+          (stud
+            ? pixels(
+                // Studs for mace
+                [[11,7],[13,7],[11,8],[13,8]],
+                '#DADADA'
+              )
+            : pixels(
+                // Hammer face highlight
+                [[14,7]],
+                '#DADADA', 0.8
+              )) +
+          pixels(
+            // Ferrule
+            [[11,9],[12,9],[13,9]],
+            '#5C4033'
+          );
+        break;
+      }
+
+      case 'sickle':
+      case 'scythe': {
+        // Curved blade + wooden grip (scaled to icon)
+        svgContent =
+          pixels(
+            // Handle
+            [[8,14],[9,14],[10,15],[11,16],[12,17],[13,18]],
+            colors.primary || '#8B6F47'
+          ) +
+          pixels(
+            // Blade spine
+            [[9,8],[10,8],[11,8],[12,9],[13,10],[13,11],[12,12],[11,13],[10,13]],
+            colors.secondary || '#A0A0A0'
+          ) +
+          pixels(
+            // Blade edge (brighter)
+            [[10,7],[11,7],[12,8],[13,9],[14,10],[14,11],[13,12],[12,13]],
+            '#EDEDED'
+          ) +
+          pixels(
+            // Grip wrap
+            [[9,14],[10,15]],
+            '#5C4033'
+          );
+        break;
+      }
+
+      case 'key': {
+        // Old key: bow + stem + teeth
+        svgContent =
+          pixels(
+            // Bow ring
+            [[7,9],[8,8],[9,8],[10,8],[11,9],[10,10],[9,10],[8,10]],
+            colors.secondary || '#B5A642'
+          ) +
+          pixels(
+            // Stem
+            [[12,9],[13,9],[14,9],[15,9]],
+            colors.secondary || '#B5A642'
+          ) +
+          pixels(
+            // Teeth
+            [[16,9],[16,10],[15,10]],
+            colors.secondary || '#B5A642'
+          ) +
+          pixels(
+            // Shine
+            [[9,8],[13,9]],
+            '#FFFACD', 0.6
+          );
+        break;
+      }
+
+
+      case 'basket': {
+        // Woven basket with rim + weave pattern
+        svgContent =
+          pixels(
+            // Rim
+            [[7,7],[8,7],[9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7]],
+            '#A56B2A'
+          ) +
+          pixels(
+            // Body
+            [
+              [6,8],[7,8],[8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],[16,8],
+              [6,9],[16,9],
+              [6,10],[16,10],
+              [6,11],[16,11],
+              [7,12],[8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12]
+            ],
+            colors.primary || '#C6924C'
+          ) +
+          pixels(
+            // Weave pattern
+            [[7,9],[9,9],[11,9],[13,9],[15,9],[8,10],[10,10],[12,10],[14,10],[7,11],[9,11],[11,11],[13,11],[15,11]],
+            '#8C5A25', 0.8
+          ) +
+          pixels(
+            // Highlights
+            [[8,8],[12,8],[10,12]],
+            '#F0D3A5', 0.35
+          );
+        break;
+      }
+
+      case 'arrow': {
+        // Quiver with visible arrows (covers 'arrow'/'bolt'/'quiver')
+        svgContent =
+          pixels(
+            // Arrows fletching tops
+            [[9,4],[11,4],[13,4]],
+            colors.accent || '#D4AF37'
+          ) +
+          pixels(
+            // Arrow shafts inside
+            [[9,5],[9,6],[11,5],[11,6],[13,5],[13,6]],
+            '#B08D57'
+          ) +
+          pixels(
+            // Quiver body
+            [
+              [8,7],[9,7],[10,7],[11,7],[12,7],[13,7],[14,7],
+              [8,8],[14,8],
+              [8,9],[14,9],
+              [8,10],[14,10],
+              [8,11],[14,11],
+              [8,12],[14,12],
+              [9,13],[10,13],[11,13],[12,13],[13,13]
+            ],
+            colors.primary || '#8B4513'
+          ) +
+          pixels(
+            // Strap
+            [[7,11],[8,12],[9,13]],
+            '#5C4033'
+          ) +
+          pixels(
+            // Rim highlight
+            [[9,7],[13,7]],
+            '#EED5B7', 0.5
+          );
+        break;
+      }
+
+        case 'hammer':
+        svgContent = pixels([ // Handle
+            [11,10],[11,11],[11,12],[11,13],[11,14],[11,15],[11,16],[11,17],[11,18],[11,19],
+            [12,10],[12,11],[12,12],[12,13],[12,14],[12,15],[12,16],[12,17],[12,18],[12,19],
+            [13,10],[13,11],[13,12],[13,13],[13,14],[13,15],[13,16],[13,17],[13,18],[13,19],
+        ], colors.primary) + pixels([ // Hammer Head
+            [7,5],[8,5],[9,5],[10,5],[11,5],[12,5],[13,5],[14,5],[15,5],[16,5],[17,5],
+            [7,6],[8,6],[9,6],[10,6],[11,6],[12,6],[13,6],[14,6],[15,6],[16,6],[17,6],
+            [7,7],[8,7],[9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],[16,7],[17,7],
+            [7,8],[8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],[16,8],[17,8],
+            [8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],
+        ], colors.secondary) + pixels([ // Metallic Sheen/Highlight
+            [8,6],[9,6],[10,6],[11,6],[12,6],[13,6],[14,6],[15,6],[16,6],
+        ], colors.accent) + pixels([ // Peen (back of hammer)
+            [5,7],[6,7],
+        ], colors.secondary);
+        break;
+
+        
+    case 'pot': // Also for Jar
+        svgContent = pixels([ // Rim
+            [8,5],[9,5],[10,5],[11,5],[12,5],[13,5],[14,5],[15,5],
+        ], colors.secondary) + pixels([ // Body
+            [7,6],[8,6],[9,6],[10,6],[11,6],[12,6],[13,6],[14,6],[15,6],[16,6],
+            [7,7],[8,7],[9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],[16,7],
+            [7,8],[8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],[16,8],
+            [7,9],[8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],
+            [8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],
+            [8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],
+            [9,12],[10,12],[11,12],[12,12],[13,12],[14,12],
+        ], colors.primary) + pixels([ // Highlight
+            [9,7],[10,7],[11,7],
+        ], colors.accent, 0.7);
+        break;
+
+    case 'bottle': // Also for Vial
+        svgContent = pixels([ // Cork
+            [11,4],[12,4],[13,4],
+        ], colors.secondary) + pixels([ // Body (glass)
+            [10,5],[11,5],[12,5],[13,5],[14,5],
+            [10,6],[11,6],[12,6],[13,6],[14,6],
+            [9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],
+            [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],
+            [9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],
+            [9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],
+            [9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],
+            [10,12],[11,12],[12,12],[13,12],[14,12],
+        ], colors.accent, 0.4) + pixels([ // Shine/Highlight
+            [10,6],[11,6],
+            [10,7],[10,8],
+        ], '#FFFFFF', 0.5);
+        break;
+
+    case 'anvil':
+        svgContent = pixels([ // Main Body
+            [6,10],[7,10],[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],[17,10],
+            [6,11],[7,11],[8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],[16,11],[17,11],
+            [7,12],[8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],[16,12],
+            [9,13],[10,13],[11,13],[12,13],[13,13],[14,13],
+            [9,14],[10,14],[11,14],[12,14],[13,14],[14,14],
+        ], colors.secondary) + pixels([ // Horn (pointy end)
+            [18,10],[19,10],[20,10],
+            [18,11],[19,11],
+        ], colors.secondary) + pixels([ // Top flat surface
+            [5,9],[6,9],[7,9],[8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],[17,9],[18,9],
+        ], colors.primary) + pixels([ // Highlight on top
+            [6,9],[7,9],[8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],[17,9],
+        ], colors.accent, 0.6) + pixels([ // Base
+            [8,15],[9,15],[10,15],[11,15],[12,15],[13,15],[14,15],[15,15],
+            [7,16],[8,16],[9,16],[10,16],[11,16],[12,16],[13,16],[14,16],[15,16],[16,16],
+        ], colors.secondary);
+        break;
+
+    case 'wood': // Log
+        svgContent = pixels([ // Log body
+            [6,8],[7,7],[8,6],[9,6],[10,6],[11,6],[12,6],[13,6],[14,6],[15,7],[16,8],
+            [6,9],[7,8],[8,7],[9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,8],[16,9],
+            [6,10],[7,9],[8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,9],[16,10],
+            [6,11],[7,10],[8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,10],[16,11],
+            [6,12],[7,11],[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,11],[16,12],
+            [6,13],[7,12],[8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,12],[16,13],
+            [7,13],[8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,13],
+            [8,13],[9,13],[10,13],[11,13],[12,13],[13,13],[14,13],
+        ], colors.primary) + pixels([ // Cut end (lighter)
+            [7,8],[8,8],[7,9],[8,9],[7,10],[8,10],[7,11],[8,11],[7,12],
+        ], colors.accent) + pixels([ // Rings on cut end
+            [7,9],[7,11],
+        ], colors.secondary) + pixels([ // Bark texture
+            [10,8],[13,9],[11,11],[14,12],
+        ], colors.secondary, 0.7);
+        break;
+
+    case 'stone':
+        svgContent = pixels([ // Main rock shape
+            [9,7],[10,7],[11,7],[12,7],[13,7],[14,7],
+            [8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],
+            [7,9],[8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],
+            [7,10],[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],
+            [7,11],[8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],[16,11],
+            [8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],
+            [9,13],[10,13],[11,13],[12,13],[13,13],[14,13],
+        ], colors.primary) + pixels([ // Shadow
+            [8,12],[9,13],[10,13],[11,13],[12,13],[13,13],[14,13],[14,12],[15,12],
+        ], colors.secondary, 0.8) + pixels([ // Highlight
+            [10,8],[11,8],[12,8], [9,9],[10,9],
+        ], colors.accent, 0.7);
+        break;
+
+    case 'leather': // Also for Hide
+        svgContent = pixels([ // Main hide shape
+            [12,5],[13,6],[14,6],[15,7],[16,8],[16,9],[15,10],[14,11],[14,12],[13,13],[12,14],[11,14],
+            [10,13],[9,12],[8,12],[7,11],[6,10],[6,9],[7,8],[8,7],[9,7],[10,6],[11,5],
+        ], colors.secondary) + pixels([ // Inner hide color
+            [12,6],[13,7],[14,7],[15,8],[15,9],[14,10],[13,11],[13,12],[12,13],[11,13],
+            [10,12],[9,11],[8,11],[7,10],[7,9],[8,8],[9,8],[10,7],[11,6],
+            [11,7],[12,7],[13,8],[14,8],[14,9],[13,10],[12,11],[12,12],[11,12],[10,11],[9,10],[9,9],[10,8],
+            [11,8],[12,8],[13,9],[12,9],[11,9],[10,9],[11,10],[12,10],
+        ], colors.primary) + pixels([ // Texture/Highlight
+            [10,8],[11,9],[13,8],
+        ], colors.accent, 0.5);
+        break;
+
+    case 'cloth': // Folded fabric
+        svgContent = pixels([ // Bottom layer
+            [6,14],[7,14],[8,14],[9,14],[10,14],[11,14],[12,14],[13,14],[14,14],[15,14],[16,14],[17,14],
+        ], colors.secondary) + pixels([ // Middle layer
+            [6,11],[7,11],[8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],[16,11],[17,11],
+            [6,12],[7,12],[8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],[16,12],[17,12],
+            [6,13],[7,13],[8,13],[9,13],[10,13],[11,13],[12,13],[13,13],[14,13],[15,13],[16,13],[17,13],
+        ], colors.primary) + pixels([ // Top layer
+            [6,8],[7,8],[8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],[16,8],[17,8],
+            [6,9],[7,9],[8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],[17,9],
+            [6,10],[7,10],[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],[17,10],
+        ], colors.accent);
+        break;
+
+    case 'feather':
+        svgContent = pixels([ // Quill/Rachis
+            [16,18],[15,17],[14,16],[13,15],[12,14],[11,13],[10,12],[9,11],[8,10],[7,9],
+        ], colors.secondary) + pixels([ // Barbs (main body)
+            [10,9],[11,10],[12,11],[13,12],[14,13],[15,14],[16,15],[17,16],[18,17],
+            [9,9],[10,10],[11,11],[12,12],[13,13],[14,14],[15,15],[16,16],[17,17],
+            [8,8],[9,8],[10,8],[11,9],[12,10],[13,11],[14,12],[15,13],[16,14],[17,15],
+            [6,8],[7,8],[8,7],[9,7],[10,7],[11,8],[12,9],[13,10],[14,11],[15,12],
+            [6,7],[7,6],[8,6],[9,6],[10,6],[11,7],[12,8],[13,9],[14,10],
+        ], colors.primary) + pixels([ // Lighter tips/highlight
+            [6,7],[7,6],[8,6],[9,6],
+        ], colors.accent, 0.6);
+        break;
+
+    case 'gem': // Also for Crystal
+        svgContent = pixels([ // Main body
+            [12,6],[10,7],[11,7],[12,7],[13,7],[14,7],
+            [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],
+            [8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],
+            [9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],
+            [10,11],[11,11],[12,11],[13,11],[14,11],
+            [11,12],[12,12],[13,12],
+            [12,13],
+        ], colors.accent) + pixels([ // Darker facets
+            [12,6],[10,8],[14,8],[9,9],[15,9],[11,10],[13,10],[12,12],
+        ], colors.secondary, 0.7) + pixels([ // Shine
+            [10,8],[11,8],
+        ], '#FFFFFF', 0.8);
+        break;
+        
+    case 'meat':
+        svgContent = pixels([ // Meat part
+            [8,7],[9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],
+            [7,8],[8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],[16,8],
+            [7,9],[8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],[17,9],
+            [7,10],[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],[17,10],
+            [8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],[16,11],
+            [9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],
+        ], colors.primary) + pixels([ // Fat/Bone
+            [10,9],[11,9],[10,10],[9,10],
+            [8,8],[9,8],[8,9],
+            [14,8],[15,8],[16,8],[15,9],[16,9],
+            [13,10],[14,10],[15,10],[14,11],[15,11],
+            [12,12],[13,12],
+        ], colors.accent) + pixels([ // Darker outline/sear
+            [8,7],[15,7],[7,8],[16,8],[7,10],[17,10],[9,12],[15,12],
+        ], colors.secondary);
+        break;
+
+    case 'fish':
+        svgContent = pixels([ // Body
+            [7,10],[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],
+            [8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],
+        ], colors.primary) + pixels([ // Tail
+            [17,9],[18,8],[19,7],
+            [17,11],[18,12],[19,13],
+        ], colors.primary) + pixels([ // Head
+            [6,9],[7,9],
+        ], colors.primary) + pixels([ // Fins and shadow
+            [10,9],[11,9],[12,9],[13,9],
+            [10,12],[11,12],[12,12],
+        ], colors.secondary) + pixels([ // Eye and shine
+            [7,9],
+            [10,10],[12,10],
+        ], colors.accent);
+        break;
+
+    case 'fruit':
+        svgContent = pixels([ // Main fruit body
+            [9,7],[10,7],[11,7],[12,7],[13,7],[14,7],
+            [8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],
+            [7,9],[8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],
+            [7,10],[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],
+            [7,11],[8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],[16,11],
+            [8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],
+            [9,13],[10,13],[11,13],[12,13],[13,13],[14,13],
+        ], colors.primary) + pixels([ // Stem
+            [11,6],[12,5],[13,5],
+        ], colors.secondary) + pixels([ // Highlight
+            [9,8],[10,8],[10,9],
+        ], colors.accent, 0.8) + pixels([ // Shadow
+            [10,13],[11,13],[12,13],[13,13],[14,13],
+        ], colors.secondary, 0.5);
+        break;
+
+    case 'herb': // Herb bundle
+        svgContent = pixels([ // Tie/cord
+            [10,13],[11,13],[12,13],[13,13],
+        ], colors.accent) + pixels([ // Stems
+            [11,14],[12,14],[11,15],[12,15],[12,16],
+        ], colors.secondary) + pixels([ // Leaves
+            [10,7],[11,6],[12,6],[13,7],
+            [9,8],[10,8],[11,7],[12,7],[13,8],[14,8],
+            [8,9],[9,9],[10,9],[11,8],[12,8],[13,9],[14,9],[15,9],
+            [8,10],[9,10],[10,10],[11,9],[12,9],[13,10],[14,10],[15,10],
+            [8,11],[9,11],[10,11],[11,10],[12,10],[13,11],[14,11],[15,11],
+            [9,12],[10,12],[11,11],[12,11],[13,12],[14,12],
+            [10,13],[11,12],[12,12],[13,13],
+        ], colors.primary);
+        break;
+
+    case 'trousers':
+        svgContent = pixels([ // Waistband
+            [7,6],[8,6],[9,6],[10,6],[11,6],[12,6],[13,6],[14,6],[15,6],[16,6],[17,6],
+        ], colors.secondary) + pixels([ // Left leg
+            [7,7],[8,7],[9,7],[10,7],[11,7],
+            [7,8],[8,8],[9,8],[10,8],[11,8],
+            [7,9],[8,9],[9,9],[10,9],[11,9],
+            [7,10],[8,10],[9,10],[10,10],[11,10],
+            [7,11],[8,11],[9,11],[10,11],[11,11],
+            [7,12],[8,12],[9,12],[10,12],[11,12],
+            [7,13],[8,13],[9,13],[10,13],[11,13],
+            [7,14],[8,14],[9,14],[10,14],[11,14],
+        ], colors.primary) + pixels([ // Right leg
+            [13,7],[14,7],[15,7],[16,7],[17,7],
+            [13,8],[14,8],[15,8],[16,8],[17,8],
+            [13,9],[14,9],[15,9],[16,9],[17,9],
+            [13,10],[14,10],[15,10],[16,10],[17,10],
+            [13,11],[14,11],[15,11],[16,11],[17,11],
+            [13,12],[14,12],[15,12],[16,12],[17,12],
+            [13,13],[14,13],[15,13],[16,13],[17,13],
+            [13,14],[14,14],[15,14],[16,14],[17,14],
+        ], colors.primary) + pixels([ // Crotch shadow & center line
+            [12,7],[12,8],[12,9],[12,10],[12,11],[12,12],[12,13],[12,14],
+        ], colors.secondary) + pixels([ // Highlight on thighs
+            [8,8],[9,8],
+            [15,8],[16,8],
+        ], colors.accent, 0.4);
+        break;
+
+    case 'sandals':
+        svgContent = pixels([ // Sole
+            [6,13],[7,13],[8,13],[9,13],[10,13],[11,13],[12,13],[13,13],[14,13],[15,13],[16,13],[17,13],
+            [7,14],[8,14],[9,14],[10,14],[11,14],[12,14],[13,14],[14,14],[15,14],[16,14],
+        ], colors.secondary) + pixels([ // Straps
+            [8,10],[9,11],[10,12],
+            [15,10],[14,11],[13,12],
+            [9,9],[10,9],[11,9],[12,9],[13,9],[14,9],
+        ], colors.primary);
+        break;
+
+    case 'cloak':
+        svgContent = pixels([ // Clasp
+            [11,6],[12,6],[13,6],
+        ], colors.accent) + pixels([ // Main fabric
+            [8,5],[9,5],[10,5],[11,5],[12,5],[13,5],[14,5],[15,5],[16,5],
+            [7,6],[8,6],[9,6],[10,6],[14,6],[15,6],[16,6],[17,6],
+            [7,7],[8,7],[9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],[16,7],[17,7],
+            [6,8],[7,8],[8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],[16,8],[17,8],[18,8],
+            [6,9],[7,9],[8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],[17,9],[18,9],
+            [6,10],[7,10],[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],[17,10],[18,10],
+            [6,11],[7,11],[8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],[16,11],[17,11],[18,11],
+            [7,12],[8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],[16,12],[17,12],
+            [7,13],[8,13],[9,13],[10,13],[11,13],[12,13],[13,13],[14,13],[15,13],[16,13],[17,13],
+            [8,14],[9,14],[10,14],[11,14],[12,14],[13,14],[14,14],[15,14],[16,14],
+        ], colors.primary) + pixels([ // Folds/shadows
+            [11,8],[12,8],[13,8],
+            [10,9],[11,9],[12,9],[13,9],[14,9],
+            [10,10],[11,10],[12,10],[13,10],[14,10],
+            [11,11],[12,11],[13,11],
+        ], colors.secondary, 0.7);
+        break;
+
+    case 'rope':
+        svgContent = pixels([ // Main coil shape
+            [12,6],[13,6],[14,6],[15,7],[16,8],[16,9],[16,10],[16,11],[15,12],[14,13],[13,14],[12,14],
+            [11,14],[10,13],[9,12],[8,11],[8,10],[8,9],[8,8],[9,7],[10,6],[11,6],
+        ], colors.primary) + pixels([ // Rope texture lines
+            [14,7],[15,8],[15,9],[15,10],[15,11],[14,12],[13,13],[12,13],[11,13],[10,12],[9,11],[9,10],[9,9],[9,8],[10,7],[11,7],[12,7],[13,7],
+        ], colors.secondary) + pixels([ // Center hole
+            [12,8],[13,8],[13,9],[13,10],[12,11],[11,11],[10,10],[10,9],[11,8],
+        ], 'transparent');
+        break;
+
+    case 'turban':
+        svgContent = pixels([ // Main body
+            [7,8],[8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],[16,8],[17,8],
+            [7,9],[8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],[17,9],
+            [8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],
+            [8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],[16,11],
+            [9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],
+        ], colors.primary) + pixels([ // Folds/shadows
+            [8,10],[16,10],[10,12],[14,12],
+            [7,9],[17,9],
+        ], colors.secondary) + pixels([ // Jewel
+            [11,9],[12,9],[13,9],
+            [12,10],
+        ], colors.accent);
+        break;
+
+              case 'bone': {
+        // Smart: render 'bear claw' when name mentions "claw"
+        if (name.includes('claw')) {
+          // Curved talon with keratin shine + shadow
+          svgContent =
+            pixels(
+              // Talon curve (outer edge)
+              [[9,6],[10,6],[11,7],[12,8],[13,9],[14,10],[14,11],[13,12],[12,13]],
+              '#D9C7A6'
+            ) +
+            pixels(
+              // Inner edge (darker keratin)
+              [[10,7],[11,8],[12,9],[13,10],[13,11],[12,12]],
+              '#BCA783'
+            ) +
+            pixels(
+              // Base/root
+              [[9,9],[9,10],[9,11]],
+              '#8B6F47'
+            ) +
+            pixels(
+              // Shine
+              [[11,7],[12,8]],
+              '#FFFFFF', 0.35
+            );
+        } else {
+          // Generic long bone
+          svgContent =
+            pixels(
+              // Heads
+              [[8,6],[9,6],[10,6],[7,7],[11,7],[7,8],[11,8],[8,9],[9,9],[10,9]],
+              '#E6DECC'
+            ) +
+            pixels(
+              // Shaft
+              [[9,7],[9,8]],
+              '#D5C9AE'
+            ) +
+            pixels(
+              // Light shading
+              [[10,7],[10,8]],
+              '#C3B89C', 0.4
+            );
+        }
+        break;
+      }
+
+      case 'leather': {
+        // Smart: render 'bear hide' pelt when name mentions hide/pelt (esp. bear)
+        const pelt = name.includes('hide') || name.includes('pelt');
+        if (pelt) {
+          const fur = name.includes('bear') ? '#5A452D' : (colors.primary || '#8B6F47');
+          svgContent =
+            pixels(
+              // Ragged pelt silhouette
+              [
+                [7,6],[8,6],[9,6],[10,6],[11,6],[12,6],[13,6],
+                [6,7],[7,7],[13,7],[14,7],
+                [6,8],[8,8],[9,8],[11,8],[13,8],[14,8],
+                [6,9],[7,9],[8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],
+                [7,10],[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],
+                [8,11],[9,11],[10,11],[11,11],[12,11],
+                [9,12],[10,12],[11,12]
+              ],
+              fur
+            ) +
+            pixels(
+              // Lighter belly patch
+              [[9,9],[10,9],[11,9],[10,10]],
+              '#B3956B', 0.5
+            ) +
+            pixels(
+              // Edge tufts
+              [[6,8],[14,8],[6,9],[14,9]],
+              '#3F2F1D', 0.5
+            );
+        } else {
+          // Folded leather scrap
+          svgContent =
+            pixels(
+              [[8,7],[9,7],[10,7],[11,7],[12,7],
+               [8,8],[12,8],
+               [8,9],[12,9],
+               [9,10],[10,10],[11,10]],
+              colors.primary || '#8B6F47'
+            ) +
+            pixels(
+              [[10,8],[11,8]],
+              '#5C4033', 0.6
+            ) +
+            pixels(
+              [[9,7],[11,7]],
+              '#E2C9A3', 0.35
+            );
+        }
+        break;
+      }
+
+      case 'herb': {
+        // Herb bundle with twine if name mentions 'bundle'
+        const bundle = name.includes('bundle') || name.includes('束');
+        svgContent =
+          pixels(
+            // Stems
+            [[9,12],[10,12],[11,12],[12,12],[13,12]],
+            '#6B8E23'
+          ) +
+          pixels(
+            // Leaves cluster
+            [
+              [8,9],[9,9],[10,9],[11,9],
+              [8,10],[9,10],[10,10],[11,10],[12,10],
+              [9,11],[10,11],[11,11],[12,11]
+            ],
+            colors.primary || '#4E8A4F'
+          ) +
+          (bundle
+            ? pixels(
+                // Twine tie
+                [[9,12],[10,13],[11,13],[12,13]],
+                '#8B6F47'
+              )
+            : '') +
+          pixels(
+            // Highlights
+            [[9,9],[11,10]],
+            '#CFE9CF', 0.35
+          );
+        break;
+      }
+
+      case 'bandage': {
+        // Rolled gauze bandage with loose tail
+        svgContent =
+          pixels(
+            // Roll
+            [
+              [8,9],[9,9],[10,9],[11,9],
+              [8,10],[11,10],
+              [8,11],[11,11],
+              [8,12],[11,12],
+              [8,13],[9,13],[10,13],[11,13]
+            ],
+            '#F0EDE6'
+          ) +
+          pixels(
+            // Spiral
+            [[9,10],[10,11],[9,12]],
+            '#D8D3C8'
+          ) +
+          pixels(
+            // Tail
+            [[12,12],[13,12],[14,12],[15,12]],
+            '#EFEAE0'
+          ) +
+          pixels(
+            // Shadow
+            [[10,13],[11,12]],
+            '#BFB9AE', 0.35
+          );
+        break;
+      }
+
+      case 'sextant': {
+        // Small brass sextant
+        svgContent =
+          pixels(
+            // Frame arc
+            [[7,12],[8,11],[9,10],[10,9],[11,8],[12,7],[13,6]],
+            '#B8860B'
+          ) +
+          pixels(
+            // Cross-brace
+            [[10,9],[10,10],[10,11]],
+            '#A2740A'
+          ) +
+          pixels(
+            // Sight/arm
+            [[12,9],[13,9],[14,9],[15,9]],
+            '#CFA12C'
+          ) +
+          pixels(
+            // Knob
+            [[9,12]],
+            '#E7C75A'
+          ) +
+          pixels(
+            // Highlights
+            [[12,7],[13,6]],
+            '#FFF1A6', 0.5
+          );
+        break;
+      }
+
+      case 'amphora': {
+        // Classical amphora with twin handles
+        svgContent =
+          pixels(
+            // Neck & lip
+            [[11,4],[12,4],[13,4],[10,5],[11,5],[12,5],[13,5],[14,5]],
+            colors.secondary || '#A0522D'
+          ) +
+          pixels(
+            // Body
+            [
+              [9,6],[10,6],[11,6],[12,6],[13,6],[14,6],
+              [8,7],[15,7],
+              [8,8],[15,8],
+              [8,9],[15,9],
+              [9,10],[14,10],
+              [10,11],[13,11],
+              [11,12],[12,12]
+            ],
+            colors.primary || '#CD853F'
+          ) +
+          pixels(
+            // Handles
+            [[8,7],[7,8],[7,9],[15,7],[16,8],[16,9]],
+            colors.primary || '#CD853F'
+          ) +
+          pixels(
+            // Shine
+            [[11,7],[10,9]],
+            '#F5DEB3', 0.35
+          );
+        break;
+      }
+
+      case 'gem': {
+        // Faceted gemstone (diamond cut)
+        const body = colors.accent || '#6EC1FF';
+        svgContent =
+          pixels(
+            // Crown
+            [[10,6],[11,6],[12,6],[13,6]],
+            body
+          ) +
+          pixels(
+            // Top facets
+            [[9,7],[10,7],[11,7],[12,7],[13,7],[14,7]],
+            body
+          ) +
+          pixels(
+            // Girdle
+            [[8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8]],
+            body
+          ) +
+          pixels(
+            // Pavilion
+            [[10,9],[11,9],[12,9],[13,9],[11,10],[12,10],[12,11]],
+            '#4FA8E8'
+          ) +
+          pixels(
+            // Sparkles
+            [[10,7],[13,8]],
+            '#FFFFFF', 0.6
+          );
+        break;
+      }
+
+      case 'incense': {
+        // Stick incense in a small holder with smoke
+        svgContent =
+          pixels(
+            // Holder
+            [[9,15],[10,15],[11,15],[12,15],[13,15]],
+            '#8B6F47'
+          ) +
+          pixels(
+            // Ash bed
+            [[10,14],[11,14],[12,14]],
+            '#B0A89A'
+          ) +
+          pixels(
+            // Stick
+            [[11,9],[12,10],[13,11],[14,12]],
+            '#7A3E1E'
+          ) +
+          pixels(
+            // Ember tip
+            [[15,13]],
+            '#FF5A3A'
+          ) +
+          pixels(
+            // Smoke wisps
+            [[11,7],[12,6],[12,5],[11,4]],
+            '#EDEDED', 0.5
+          );
+        break;
+      }
+
+      case 'whetstone': {
+        // Oval stone with bevel + tiny spark
+        svgContent =
+          pixels(
+            // Stone body
+            [
+              [8,10],[9,10],[10,10],[11,10],[12,10],[13,10],
+              [8,11],[13,11],
+              [8,12],[13,12],
+              [8,13],[13,13],
+              [9,14],[10,14],[11,14],[12,14]
+            ],
+            '#9AA3A8'
+          ) +
+          pixels(
+            // Bevel
+            [[9,11],[12,13]],
+            '#7E878C', 0.6
+          ) +
+          pixels(
+            // Spark
+            [[14,11]],
+            '#FFD700', 0.8
+          );
+        break;
+      }
+
+      case 'bucket': {
+        // Wooden bucket with band and wire handle
+        svgContent =
+          pixels(
+            // Rim
+            [[8,6],[9,6],[10,6],[11,6],[12,6],[13,6],[14,6]],
+            '#8B6F47'
+          ) +
+          pixels(
+            // Body
+            [
+              [7,7],[8,7],[9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],
+              [7,8],[15,8],
+              [7,9],[15,9],
+              [7,10],[15,10],
+              [8,11],[14,11]
+            ],
+            colors.primary || '#B9824E'
+          ) +
+          pixels(
+            // Metal band
+            [[7,9],[8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9]],
+            colors.secondary || '#6B6B6B'
+          ) +
+          pixels(
+            // Wire handle
+            [[8,6],[9,5],[10,5],[11,5],[12,5],[13,6]],
+            '#A0A0A0'
+          ) +
+          pixels(
+            // Highlights
+            [[9,7],[12,8]],
+            '#F0D5B0', 0.35
+          );
+        break;
+      }
+
+      case 'spice': {
+        // Small spice pouch spilling grains
+        svgContent =
+          pixels(
+            // Pouch
+            [
+              [8,8],[9,8],[10,8],[11,8],[12,8],
+              [7,9],[13,9],
+              [7,10],[13,10],
+              [8,11],[12,11],
+              [9,12],[10,12],[11,12]
+            ],
+            colors.primary || '#9C6B3E'
+          ) +
+          pixels(
+            // Cord
+            [[8,9],[9,9],[10,9],[11,9],[12,9]],
+            '#5C4033'
+          ) +
+          pixels(
+            // Spilled grains
+            [[13,11],[14,12],[12,12],[13,13]],
+            colors.accent || '#C26828'
+          ) +
+          pixels(
+            // Highlights
+            [[10,8],[8,10]],
+            '#F0D5B0', 0.35
+          );
+        break;
+      }
+
+      case 'salt': {
+        // Cone of salt crystals with a pinch
+        svgContent =
+          pixels(
+            // Cone
+            [
+              [11,6],
+              [10,7],[11,7],[12,7],
+              [9,8],[10,8],[11,8],[12,8],[13,8],
+              [9,9],[10,9],[11,9],[12,9],[13,9],
+              [10,10],[11,10],[12,10]
+            ],
+            '#F5F7FA'
+          ) +
+          pixels(
+            // Sparkle crystals
+            [[8,10],[14,10],[11,6]],
+            '#DDE6EE'
+          ) +
+          pixels(
+            // Pinch
+            [[15,9],[16,10]],
+            '#FFFFFF', 0.8
+          );
+        break;
+      }
+
+      case 'flour': {
+        // Sack of flour with light dusting
+        svgContent =
+          pixels(
+            // Sack body
+            [
+              [8,7],[9,7],[10,7],[11,7],[12,7],[13,7],
+              [7,8],[14,8],
+              [7,9],[14,9],
+              [7,10],[14,10],
+              [8,11],[13,11],
+              [9,12],[10,12],[11,12],[12,12]
+            ],
+            '#B88A55'
+          ) +
+          pixels(
+            // Sack rim
+            [[8,7],[9,7],[10,7],[11,7],[12,7],[13,7]],
+            '#8B6F47'
+          ) +
+          pixels(
+            // Flour top
+            [[8,8],[9,8],[10,8],[11,8],[12,8],[13,8]],
+            '#F6F2EA'
+          ) +
+          pixels(
+            // Dust
+            [[9,12],[12,12]],
+            '#ECE5D7', 0.6
+          );
+        break;
+      }
+
+      case 'sugar': {
+        // Sugar cubes + scoop
+        svgContent =
+          pixels(
+            // Cubes
+            [[9,9],[10,9],[9,10],[10,10],[12,8],[13,8],[12,9],[13,9]],
+            '#FAFAFA'
+          ) +
+          pixels(
+            // Shadows
+            [[10,10],[13,9]],
+            '#DADADA', 0.6
+          ) +
+          pixels(
+            // Scoop
+            [[7,12],[8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12]],
+            '#A0A6AB'
+          ) +
+          pixels(
+            // Handle
+            [[6,12],[5,11],[4,11]],
+            '#8B6F47'
+          );
+        break;
+      }
+
+      case 'oil': {
+        // Jug with droplet
+        svgContent =
+          pixels(
+            // Jug body
+            [
+              [10,7],[11,7],[12,7],
+              [9,8],[13,8],
+              [9,9],[13,9],
+              [9,10],[13,10],
+              [10,11],[11,11],[12,11]
+            ],
+            colors.primary || '#C08C3A'
+          ) +
+          pixels(
+            // Handle
+            [[13,8],[14,9],[13,10]],
+            colors.primary || '#C08C3A'
+          ) +
+          pixels(
+            // Oil droplet
+            [[15,12],[15,13],[15,14],[14,15],[16,15]],
+            '#E3C15A'
+          ) +
+          pixels(
+            // Shine
+            [[10,8],[11,9]],
+            '#F5DEB3', 0.4
+          );
+        break;
+      }
+
+      case 'vegetable': {
+        // Carrot with greens
+        svgContent =
+          pixels(
+            // Greens
+            [[10,6],[11,6],[12,6],[9,7],[13,7],[10,7],[12,7]],
+            '#5FAE4C'
+          ) +
+          pixels(
+            // Carrot body
+            [
+              [10,8],[11,8],[12,8],
+              [10,9],[11,9],[12,9],
+              [10,10],[11,10],
+              [10,11]
+            ],
+            '#F28C28'
+          ) +
+          pixels(
+            // Ridges
+            [[11,9],[10,10]],
+            '#D0711E'
+          );
+        break;
+      }
+
+      case 'fruit': {
+        // Apple with leaf
+        svgContent =
+          pixels(
+            // Apple
+            [
+              [10,7],[11,7],[12,7],
+              [9,8],[10,8],[11,8],[12,8],[13,8],
+              [9,9],[10,9],[11,9],[12,9],[13,9],
+              [10,10],[11,10],[12,10]
+            ],
+            '#D94A4A'
+          ) +
+          pixels(
+            // Stem
+            [[11,6]],
+            '#6B3E1E'
+          ) +
+          pixels(
+            // Leaf
+            [[12,6],[13,6]],
+            '#5FAE4C'
+          ) +
+          pixels(
+            // Highlight
+            [[10,8]],
+            '#FFFFFF', 0.35
+          );
+        break;
+      }
+
+      case 'fish': {
+        // Side-view fish
+        svgContent =
+          pixels(
+            // Body
+            [
+              [8,9],[9,9],[10,9],[11,9],[12,9],[13,9],
+              [9,10],[10,10],[11,10],[12,10],
+              [8,11],[9,11],[10,11],[11,11],[12,11],[13,11]
+            ],
+            '#8EC5D6'
+          ) +
+          pixels(
+            // Tail
+            [[14,10],[15,9],[15,11]],
+            '#7BB5C8'
+          ) +
+          pixels(
+            // Eye
+            [[9,10]],
+            '#2B2B2B'
+          ) +
+          pixels(
+            // Belly
+            [[10,11],[11,11]],
+            '#DDEFF5'
+          );
+        break;
+      }
+
+      case 'meat': {
+        // Ham shank
+        svgContent =
+          pixels(
+            // Meat body
+            [
+              [8,8],[9,8],[10,8],[11,8],[12,8],
+              [8,9],[12,9],
+              [8,10],[12,10],
+              [9,11],[10,11],[11,11]
+            ],
+            '#C55B5B'
+          ) +
+          pixels(
+            // Marbling
+            [[9,9],[11,10]],
+            '#ECA6A6', 0.6
+          ) +
+          pixels(
+            // Bone
+            [[13,9],[14,9]],
+            '#F1E9D7'
+          );
+        break;
+      }
+
+      case 'cheese': {
+        // Wedge of cheese
+        svgContent =
+          pixels(
+            // Wedge
+            [
+              [9,8],[10,8],[11,8],[12,8],
+              [9,9],[12,9],
+              [9,10],[12,10],
+              [9,11],[10,11],[11,11]
+            ],
+            '#F2D35A'
+          ) +
+          pixels(
+            // Holes
+            [[10,9],[11,10]],
+            '#DDBB38'
+          ) +
+          pixels(
+            // Rim
+            [[12,8],[12,9],[12,10]],
+            '#E4C148'
+          );
+        break;
+      }
+
+      case 'soup': {
+        // Steaming bowl of soup
+        svgContent =
+          pixels(
+            // Bowl
+            [[8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12]],
+            '#8B6F47'
+          ) +
+          pixels(
+            // Liquid
+            [[9,11],[10,11],[11,11],[12,11],[13,11],[14,11]],
+            colors.accent || '#D49D5A'
+          ) +
+          pixels(
+            // Steam
+            [[10,9],[11,8],[12,9],[13,8]],
+            '#EDEDED', 0.5
+          ) +
+          pixels(
+            // Bowl base
+            [[10,13],[11,13],[12,13],[13,13]],
+            '#6F5535'
+          );
+        break;
+      }
+
+      case 'bowl': {
+        // Empty ceramic bowl
+        svgContent =
+          pixels(
+            // Lip
+            [[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10]],
+            '#B7B7B7'
+          ) +
+          pixels(
+            // Inner
+            [[9,11],[10,11],[11,11],[12,11],[13,11]],
+            '#E6E6E6'
+          ) +
+          pixels(
+            // Outer
+            [[8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12]],
+            '#CFCFCF'
+          ) +
+          pixels(
+            // Base
+            [[10,13],[11,13],[12,13]],
+            '#A8A8A8'
+          );
+        break;
+      }
+
+      case 'cup': {
+        // Goblet/cup
+        svgContent =
+          pixels(
+            // Cup
+            [[10,7],[11,7],[12,7],
+             [9,8],[13,8],
+             [9,9],[13,9],
+             [10,10],[11,10],[12,10]],
+            '#D3C7A3'
+          ) +
+          pixels(
+            // Stem
+            [[11,11],[11,12]],
+            '#B7AA82'
+          ) +
+          pixels(
+            // Foot
+            [[10,13],[11,13],[12,13]],
+            '#B7AA82'
+          ) +
+          pixels(
+            // Shine
+            [[10,8]],
+            '#FFFFFF', 0.4
+          );
+        break;
+      }
+
+      case 'pot': {
+        // Clay pot / jar
+        svgContent =
+          pixels(
+            // Neck & rim
+            [[10,6],[11,6],[12,6],[9,7],[13,7]],
+            '#8B5A2B'
+          ) +
+          pixels(
+            // Body
+            [
+              [8,8],[9,8],[10,8],[11,8],[12,8],[13,8],
+              [7,9],[14,9],
+              [7,10],[14,10],
+              [8,11],[13,11],
+              [9,12],[12,12],
+            ],
+            colors.primary || '#B27639'
+          ) +
+          pixels(
+            // Highlight
+            [[10,9],[11,10]],
+            '#E6C2A0', 0.35
+          );
+        break;
+      }
+
+      case 'shovel': {
+        // Spade with handle
+        svgContent =
+          pixels(
+            // Blade
+            [[11,7],[12,7],[10,8],[11,8],[12,8],[13,8],[11,9],[12,9]],
+            '#A0A6AB'
+          ) +
+          pixels(
+            // Shaft
+            [[12,10],[12,11],[12,12],[12,13],[12,14],[12,15],[12,16],[12,17]],
+            '#8B6F47'
+          ) +
+          pixels(
+            // Grip
+            [[12,6],[11,6],[13,6]],
+            '#5C4033'
+          );
+        break;
+      }
+
+      case 'hoe': {
+        // Hoe head + handle
+        svgContent =
+          pixels(
+            // Head
+            [[11,8],[12,8],[13,8],[14,8]],
+            '#9BA1A5'
+          ) +
+          pixels(
+            // Handle
+            [[10,9],[10,10],[10,11],[10,12],[10,13],[10,14],[10,15]],
+            '#986C3E'
+          ) +
+          pixels(
+            // Ferrule
+            [[11,9]],
+            '#6B4A2C'
+          );
+        break;
+      }
+
+      case 'rake': {
+        // Rake head + handle
+        svgContent =
+          pixels(
+            // Head bar
+            [[10,8],[11,8],[12,8],[13,8],[14,8]],
+            '#9BA1A5'
+          ) +
+          pixels(
+            // Tines
+            [[10,9],[11,9],[12,9],[13,9],[14,9]],
+            '#9BA1A5'
+          ) +
+          pixels(
+            // Handle
+            [[12,10],[12,11],[12,12],[12,13],[12,14],[12,15]],
+            '#8B6F47'
+          );
+        break;
+      }
+
+      case 'chisel': {
+        // Metal chisel with wooden handle
+        svgContent =
+          pixels(
+            // Blade
+            [[10,8],[11,8],[12,8]],
+            '#AEB3B7'
+          ) +
+          pixels(
+            // Neck
+            [[11,9]],
+            '#8F9499'
+          ) +
+          pixels(
+            // Handle
+            [[11,10],[11,11],[11,12],[11,13]],
+            '#9C6B3E'
+          ) +
+          pixels(
+            // Cap
+            [[11,14]],
+            '#6B4A2C'
+          );
+        break;
+      }
+
+      case 'tongs': {
+        // Blacksmith tongs
+        svgContent =
+          pixels(
+            // Jaws
+            [[10,8],[11,8],[13,8],[14,8]],
+            '#7A7F84'
+          ) +
+          pixels(
+            // Arms crossing
+            [[11,9],[12,10],[13,11],[11,11],[12,10]],
+            '#7A7F84'
+          ) +
+          pixels(
+            // Handles
+            [[10,12],[9,13],[8,14],[14,12],[15,13],[16,14]],
+            '#7A7F84'
+          ) +
+          pixels(
+            // Pivot
+            [[12,10]],
+            '#B9BDC0'
+          );
+        break;
+      }
+
+      case 'bellows': {
+        // Forge bellows with nozzle
+        svgContent =
+          pixels(
+            // Body (leather)
+            [
+              [8,10],[9,10],[10,10],[11,10],
+              [8,11],[11,11],
+              [8,12],[11,12],
+              [9,13],[10,13]
+            ],
+            colors.primary || '#8B6F47'
+          ) +
+          pixels(
+            // Wood sides
+            [[7,10],[12,10],[7,11],[12,11],[7,12],[12,12]],
+            '#6B4A2C'
+          ) +
+          pixels(
+            // Nozzle
+            [[13,11],[14,11]],
+            '#9BA1A5'
+          ) +
+          pixels(
+            // Rivets
+            [[7,11],[12,11]],
+            '#D4D4D4'
+          );
+        break;
+      }
+
+      /* ===================== NEW ICON CASES ===================== */
+
+// 1) KNIFE (distinct from dagger)
+case 'knife': {
+  // Slim, single-edged utility knife
+  svgContent =
+    pixels( // Blade edge (bright)
+      [[12,6],[13,6],[14,6],[15,6]],
+      '#EDEDED'
+    ) +
+    pixels( // Spine (darker)
+      [[12,7],[13,7],[14,7]],
+      '#BFC3C7'
+    ) +
+    pixels( // Tang/bolster
+      [[11,8]],
+      '#9BA1A5'
+    ) +
+    pixels( // Handle scales
+      [[10,8],[9,8],[8,8]],
+      colors.primary || '#8B4513'
+    ) +
+    pixels( // Pins
+      [[9,8]],
+      '#E6D5B8', 0.7
+    );
+  break;
+}
+
+// 2) INK POT
+case 'ink_pot': {
+  svgContent =
+    pixels( // Body
+      [[9,10],[10,10],[11,10],[12,10],[13,10],
+       [9,11],[13,11],
+       [9,12],[13,12],
+       [10,13],[11,13],[12,13]],
+      '#1F1F1F'
+    ) +
+    pixels( // Neck/rim
+      [[10,9],[11,9],[12,9]],
+      '#2B2B2B'
+    ) +
+    pixels( // Shine
+      [[10,10],[10,11]],
+      '#5C5C5C', 0.45
+    ) +
+    pixels( // Ink droplet
+      [[14,13]],
+      '#101016'
+    );
+  break;
+}
+
+// 3) WHETSTONE  (skip if you already added mine earlier)
+case 'whetstone': {
+  svgContent =
+    pixels(
+      [[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],
+       [8,11],[13,11],
+       [8,12],[13,12],
+       [8,13],[13,13],
+       [9,14],[10,14],[11,14],[12,14]],
+      '#9AA3A8'
+    ) +
+    pixels([[9,11],[12,13]], '#7E878C', 0.6) +
+    pixels([[14,11]], '#FFD700', 0.8);
+  break;
+}
+
+// 4) SPINDLE
+case 'spindle': {
+  svgContent =
+    pixels( // Shaft
+      [[12,5],[12,6],[12,7],[12,8],[12,9],[12,10],[12,11],[12,12],[12,13],[12,14]],
+      colors.primary || '#8B6F47'
+    ) +
+    pixels( // Whorl
+      [[11,9],[12,9],[13,9],[11,10],[13,10],[11,11],[12,11],[13,11]],
+      '#B08D57'
+    ) +
+    pixels( // Tip & highlights
+      [[12,4]], '#6B4A2C') +
+    pixels([[11,10]], '#EED5B7', 0.5);
+  break;
+}
+
+// 5) STONE CHISEL (distinct from metal chisel)
+case 'stone_chisel': {
+  svgContent =
+    pixels( // Wide stone blade
+      [[10,7],[11,7],[12,7],[13,7],[14,7],
+       [11,8],[12,8],[13,8]],
+      '#A8AAA9'
+    ) +
+    pixels( // Neck
+      [[12,9]],
+      '#8D9194'
+    ) +
+    pixels( // Wooden handle
+      [[12,10],[12,11],[12,12],[12,13]],
+      '#9C6B3E'
+    ) +
+    pixels([[12,14]], '#6B4A2C'); // Cap
+  break;
+}
+
+// 6) LOCKPICK
+case 'lockpick': {
+  svgContent =
+    pixels( // Pick
+      [[8,12],[9,12],[10,12],[11,12],[12,12],[13,12]],
+      '#AEB3B7'
+    ) +
+    pixels( // Hook tip
+      [[14,11]],
+      '#D4D7DA'
+    ) +
+    pixels( // Tension wrench (angled)
+      [[9,14],[10,13],[11,12],[12,11]],
+      '#8F9499'
+    ) +
+    pixels([[8,14]], '#C6CACE', 0.7);
+  break;
+}
+
+// 7) DRUM
+case 'drum': {
+  svgContent =
+    pixels( // Rim
+      [[8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8]],
+      '#8B6F47'
+    ) +
+    pixels( // Skin
+      [[9,9],[10,9],[11,9],[12,9],[13,9],
+       [9,10],[13,10],
+       [9,11],[13,11],
+       [10,12],[11,12],[12,12]],
+      '#EAD8B0'
+    ) +
+    pixels( // Lacing
+      [[9,10],[10,11],[12,11],[13,10]],
+      '#6B4A2C'
+    ) +
+    pixels( // Shadow
+      [[10,12],[12,12]],
+      '#C7B48A', 0.5
+    );
+  break;
+}
+
+// 8) POCKET WATCH
+case 'pocket_watch': {
+  svgContent =
+    pixels( // Case ring
+      [[11,5]],
+      '#C9A23A'
+    ) +
+    pixels( // Case
+      [[9,6],[10,6],[11,6],[12,6],[13,6],
+       [8,7],[14,7],
+       [8,8],[14,8],
+       [8,9],[14,9],
+       [9,10],[10,10],[11,10],[12,10],[13,10]],
+      '#B8860B'
+    ) +
+    pixels( // Face
+      [[9,7],[10,7],[11,7],[12,7],[13,7],
+       [9,8],[13,8],
+       [9,9],[13,9],
+       [10,10],[11,10],[12,10]],
+      '#F5F5DC'
+    ) +
+    pixels( // Hands
+      [[11,8],[12,8],[11,9]],
+      '#2B2B2B'
+    ) +
+    pixels( // Shine
+      [[10,7]],
+      '#FFF1A6', 0.5
+    );
+  break;
+}
+
+// 9) GOURD FLASK (variant; separate from generic 'gourd')
+case 'gourd_flask': {
+  svgContent =
+    pixels( // Stopper
+      [[12,3],[12,4]],
+      '#6B4423'
+    ) +
+    pixels( // Neck
+      [[11,5],[12,5],[13,5]],
+      '#DEB887'
+    ) +
+    pixels( // Body
+      [[10,6],[11,6],[12,6],[13,6],[14,6],
+       [10,7],[14,7],
+       [10,8],[14,8],
+       [11,9],[12,9],[13,9]],
+      '#D2691E'
+    ) +
+    pixels( // Strap
+      [[14,6],[15,7],[15,8]],
+      '#5C4033'
+    ) +
+    pixels( // Highlight
+      [[11,7],[12,8]],
+      '#F4A460', 0.5
+    );
+  break;
+}
+
+// 10) LEATHER BAG (distinct look from generic bag)
+case 'leather_bag': {
+  svgContent =
+    pixels( // Flap
+      [[8,7],[9,7],[10,7],[11,7],[12,7],[13,7]],
+      '#8B6F47'
+    ) +
+    pixels( // Body
+      [[7,8],[13,8],
+       [7,9],[13,9],
+       [7,10],[13,10],
+       [8,11],[12,11],
+       [9,12],[10,12],[11,12]],
+      colors.primary || '#A07448'
+    ) +
+    pixels( // Strap
+      [[13,7],[14,8],[14,9],[13,10]],
+      '#5C4033'
+    ) +
+    pixels( // Clasp
+      [[10,9]],
+      '#D4AF37'
+    );
+  break;
+}
+
+// 11) PURSE
+case 'purse': {
+  svgContent =
+    pixels( // Mouth with clasp
+      [[10,7],[11,7],[12,7]],
+      '#C9A23A'
+    ) +
+    pixels( // Body
+      [[9,8],[10,8],[11,8],[12,8],[13,8],
+       [9,9],[13,9],
+       [9,10],[13,10],
+       [10,11],[11,11],[12,11]],
+      colors.primary || '#B87333'
+    ) +
+    pixels([[11,7]], '#FFF1A6', 0.5); // Clasp shine
+  break;
+}
+
+// 12) PONCHO
+case 'poncho': {
+  svgContent =
+    pixels( // Neck opening
+      [[11,6]],
+      '#2B2B2B'
+    ) +
+    pixels( // Body block
+      [[8,7],[9,7],[10,7],[11,7],[12,7],[13,7],
+       [7,8],[14,8],
+       [7,9],[14,9],
+       [7,10],[14,10],
+       [8,11],[13,11]],
+      colors.primary || '#9C5C3A'
+    ) +
+    pixels( // Pattern band
+      [[7,9],[8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9]],
+      colors.accent || '#D4AF37', 0.9
+    ) +
+    pixels( // Fringe
+      [[8,12],[9,12],[10,12],[11,12],[12,12],[13,12]],
+      '#6B3F27'
+    );
+  break;
+}
+
+// 13) SARI
+case 'sari': {
+  svgContent =
+    pixels( // Drape silhouette
+      [[9,6],[10,6],[11,6],
+       [8,7],[12,7],
+       [8,8],[12,8],
+       [8,9],[12,9],
+       [9,10],[11,10],
+       [10,11]],
+      colors.primary || '#8B008B'
+    ) +
+    pixels( // Border
+      [[8,8],[12,8],[9,10],[11,10]],
+      colors.accent || '#FFD700'
+    ) +
+    pixels( // Highlight fold
+      [[10,7],[10,9]],
+      '#FFC6FF', 0.35
+    );
+  break;
+}
+
+// 14) VEIL
+case 'veil': {
+  svgContent =
+    pixels( // Head band
+      [[10,6],[11,6],[12,6]],
+      colors.secondary || '#A0A0A0'
+    ) +
+    pixels( // Sheer drape
+      [[9,7],[10,7],[11,7],[12,7],[13,7],
+       [9,8],[13,8],
+       [9,9],[13,9],
+       [10,10],[11,10],[12,10]],
+      '#EAEAF5', 0.6
+    ) +
+    pixels( // Shine
+      [[10,8]],
+      '#FFFFFF', 0.3
+    );
+  break;
+}
+
+// 15) OCHRE LUMP
+case 'ochre': {
+  svgContent =
+    pixels(
+      [[9,10],[10,10],[11,10],
+       [8,11],[9,11],[10,11],[11,11],[12,11],
+       [9,12],[10,12]],
+      '#C26E2D'
+    ) +
+    pixels([[10,11],[11,10]], '#E39A5A', 0.5);
+  break;
+}
+
+// 16) VINE
+case 'vine': {
+  svgContent =
+    pixels( // Curving stem
+      [[8,12],[9,11],[10,10],[11,9],[12,8],[13,7]],
+      '#2E7D32'
+    ) +
+    pixels( // Leaves
+      [[9,12],[11,10],[12,9]],
+      '#4CAF50'
+    ) +
+    pixels( // Tendril tip
+      [[14,7]],
+      '#66BB6A', 0.7
+    );
+  break;
+}
+
+// 17) SHELL (cowrie-like)
+case 'shell': {
+  svgContent =
+    pixels( // Body
+      [[10,7],[11,7],[12,7],
+       [9,8],[13,8],
+       [9,9],[13,9],
+       [10,10],[11,10],[12,10]],
+      '#FFF4E1'
+    ) +
+    pixels( // Slit
+      [[11,8],[11,9]],
+      '#C2A27E'
+    ) +
+    pixels( // Rim shade
+      [[10,7],[12,7]],
+      '#E8D3B3', 0.6
+    );
+  break;
+}
+
+// 18) IVORY TUSK
+case 'ivory_tusk': {
+  svgContent =
+    pixels( // Curve
+      [[8,12],[9,11],[10,10],[11,9],[12,8],[13,7]],
+      '#FFFFF0'
+    ) +
+    pixels( // Shadow side
+      [[9,11],[10,10],[11,9]],
+      '#E8E2CF', 0.6
+    );
+  break;
+}
+
+// 19) CHEESE  (skip if already added earlier)
+case 'cheese': {
+  svgContent =
+    pixels(
+      [[9,8],[10,8],[11,8],[12,8],
+       [9,9],[12,9],
+       [9,10],[12,10],
+       [9,11],[10,11],[11,11]],
+      '#F2D35A'
+    ) +
+    pixels([[10,9],[11,10]], '#DDBB38') +
+    pixels([[12,8],[12,9],[12,10]], '#E4C148');
+  break;
+}
+
+      // ---------- FORAGING & CRAFTING ----------
+
+      case 'chips': {
+        // Crisp shards (uses accent to tint e.g., gourd chips)
+        svgContent =
+          pixels(
+            // Big shards
+            [[8,9],[9,9],[10,9],[9,10],[10,10],
+             [12,8],[13,8],[14,8],[13,9],
+             [11,12],[12,12],[12,13],
+             [15,11],[16,11],[16,12]],
+            colors.accent || '#E3983A'
+          ) +
+          pixels(
+            // Smalls / crumbs
+            [[7,11],[11,10],[14,10],[15,13]],
+            '#F5D2A1', 0.75
+          ) +
+          pixels(
+            // Shadow hint
+            [[9,11],[13,9],[12,14]],
+            '#A76A2A', 0.35
+          );
+        break;
+      }
+
+      case 'seeds': {
+        // Little seed pile (almond/pepita shaped)
+        svgContent =
+          pixels(
+            // Bodies
+            [[9,11],[10,11],[12,10],[13,10],[11,12],[12,12],[13,12],[14,11]],
+            colors.primary || '#B98B49'
+          ) +
+          pixels(
+            // Highlights
+            [[10,11],[12,10],[13,12]],
+            '#EED5B7', 0.5
+          ) +
+          pixels(
+            // Scatter
+            [[8,12],[15,11]],
+            colors.secondary || '#8E6A37'
+          );
+        break;
+      }
+
+      case 'dust': {
+        // Soft powder mound (flour dust, ground herbs, etc.)
+        svgContent =
+          pixels(
+            // Mound
+            [[9,12],[10,12],[11,12],[12,12],[13,12],
+             [10,11],[11,11],[12,11],
+             [11,10]],
+            '#EFEAE0'
+          ) +
+          pixels(
+            // Grain sparkle / clumps
+            [[10,11],[12,12],[13,12]],
+            '#D9D2C5', 0.6
+          ) +
+          pixels(
+            // Airy motes
+            [[14,10],[8,11]],
+            '#FFFFFF', 0.35
+          );
+        break;
+      }
+
+      case 'crumbs': {
+        // Chunky crumbs (baking crumbs, crust bits)
+        svgContent =
+          pixels(
+            // Cubes
+            [[9,11],[10,11],[12,10],[13,10],[12,12],[13,12]],
+            '#D9B47B'
+          ) +
+          pixels(
+            // Darker pieces
+            [[11,12],[14,11]],
+            '#B7874E'
+          ) +
+          pixels(
+            // Highlights
+            [[10,11],[12,10]],
+            '#F3D7AD', 0.45
+          );
+        break;
+      }
+
+      case 'log': {
+        // Short log; auto-variants for birch vs generic
+        const isBirch =
+          (item.name || '').toLowerCase().includes('birch') ||
+          (item.material || '').toLowerCase().includes('birch');
+        const bark = isBirch ? '#ECE7E2' : '#7A542E';
+        const barkShade = isBirch ? '#B8B3AE' : '#5A3E23';
+        const endFace = isBirch ? '#E9E4DF' : '#A87443';
+
+        svgContent =
+          pixels(
+            // Body
+            [
+              [6,9],[7,9],[8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],[17,9],
+              [6,10],[17,10],
+              [6,11],[17,11],
+              [6,12],[17,12],
+              [6,13],[7,13],[8,13],[9,13],[10,13],[11,13],[12,13],[13,13],[14,13],[15,13],[16,13],[17,13]
+            ],
+            bark
+          ) +
+          pixels(
+            // Ends (cut rings)
+            [[5,10],[5,11],[18,10],[18,11]],
+            endFace
+          ) +
+          (isBirch
+            ? pixels(
+                // Birch lenticels/stripes
+                [[8,10],[10,10],[12,10],[14,10],[16,10],[9,12],[11,12],[13,12],[15,12]],
+                barkShade, 0.8
+              )
+            : pixels(
+                // Regular bark texture
+                [[8,10],[11,10],[14,10],[9,12],[12,12],[15,12]],
+                barkShade, 0.5
+              )) +
+          pixels(
+            // Highlights
+            [[8,9],[12,9],[14,13]],
+            '#F5DEB3', isBirch ? 0.25 : 0.2
+          );
+        break;
+      }
+
+
+
         
       default:
-        // Generic item (warm wooden crate)
-        svgContent = pixels([
+        // Check if baseSprites has a mapping for this item
+        const baseSpriteArchetype = getItemArchetypeMax(name);
+        
+        // Log items that have baseSprite mappings we haven't implemented yet
+        if (baseSpriteArchetype && !['GENERIC', 'BOX', 'CRATE'].includes(baseSpriteArchetype)) {
+          console.log(`Item '${name}' has baseSprite archetype: ${baseSpriteArchetype} (not yet implemented in GenerativeItemIcon)`);
+        }
+        
+        // Generic item (warm wooden crate) - with golden corner if baseSprite mapping exists
+        svgContent = (
+          // Add a subtle indicator if baseSprites has a specific mapping
+          baseSpriteArchetype && !['GENERIC', 'BOX', 'CRATE'].includes(baseSpriteArchetype) ? 
+          pixels([
+            // Small golden star in corner showing baseSprite exists
+            [6,6],[7,5],[8,6],
+            [6,7],[7,7],[8,7],
+            [7,8],
+          ], '#FFD700', 0.4) : ''
+        ) + pixels([
           // Top face (lighter wood)
           [8,5],[9,5],[10,5],[11,5],[12,5],[13,5],[14,5],[15,5],[16,5],
           [7,6],[8,6],[9,6],[10,6],[11,6],[12,6],[13,6],[14,6],[15,6],[16,6],
@@ -1511,16 +4169,19 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
     return svgContent;
   }, [item, size]);
 
-  return (
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox={`0 0 ${size} ${size}`}
-      className={className}
-      style={{ imageRendering: 'pixelated' }}
-      dangerouslySetInnerHTML={{ __html: renderIcon }}
-    />
-  );
+ return (
+  <svg
+    width={size}
+    height={size}
+    viewBox={`0 0 ${size} ${size}`}
+    className={className}
+    style={{ imageRendering: 'pixelated', shapeRendering: 'crispEdges' }}
+    dangerouslySetInnerHTML={{
+      __html: `<g transform="translate(${offset},${offset}) scale(${scaleToFit})">${renderIcon}</g>`
+    }}
+  />
+);
+
 };
 
 export default GenerativeItemIcon;

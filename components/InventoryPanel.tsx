@@ -223,15 +223,17 @@ const getQualityLabel = (quality?: ItemQuality): string => {
 
 const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharacter, onCraft, onInventoryUpdate, deployVesselToMap, playerX, playerY, setShipDockPosition, setCurrentVessel, isDraggable = false, onDragStart }) => {
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
+  const [selectedAnimalIds, setSelectedAnimalIds] = useState<Set<string>>(new Set());
   const [selectedAnimal, setSelectedAnimal] = useState<TamedAnimal | null>(null);
   const [isAnimalModalOpen, setIsAnimalModalOpen] = useState(false);
+  // Removed isActionMode - now always in selection mode
   
   // Load tamed animals with forced refresh when modal closes
   const [animalRefresh, setAnimalRefresh] = useState(0);
   const tamedAnimals = useMemo(() => loadTamedAnimals(), [animalRefresh]);
 
   const handleItemClick = (item: Item) => {
-      // Only use the selection system for crafting
+      // Always allow selection for crafting
       setSelectedItemIds(prev => {
           const newSet = new Set(prev);
           if (newSet.has(item.id)) {
@@ -246,12 +248,81 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
   
   const handleCraft = (method: 'COMBINE' | 'DISAGGREGATE') => {
       const selectedItems = inventory.filter(item => selectedItemIds.has(item.id));
-      onCraft(selectedItems, method);
-      setSelectedItemIds(new Set());
+      
+      // Handle animal disaggregation into meat items
+      if (selectedAnimalIds.size > 0 && method === 'DISAGGREGATE') {
+          const selectedAnimals = tamedAnimals.filter(animal => selectedAnimalIds.has(animal.id));
+          
+          selectedAnimals.forEach(animal => {
+              // Create meat items based on animal type
+              const meatItems: Item[] = [];
+              const meatName = getMeatNameForAnimal(animal.speciesName);
+              const meatQuantity = getMeatQuantityForAnimal(animal.speciesName);
+              
+              for (let i = 0; i < meatQuantity; i++) {
+                  meatItems.push({
+                      id: `${meatName}-${Date.now()}-${i}`,
+                      baseId: meatName.toUpperCase().replace(' ', '_'),
+                      name: meatName,
+                      description: `Fresh meat from a ${animal.speciesName}`,
+                      emoji: '🥩',
+                      rarity: 'Common' as const,
+                      value: Math.floor(animal.value / meatQuantity),
+                      weight: 2,
+                      wearable: false,
+                      stackable: true,
+                      quantity: 1,
+                      sustenance: 10,
+                      category: 'Food',
+                      material: 'Organic'
+                  });
+              }
+              
+              // Add meat items to inventory
+              meatItems.forEach(item => inventory.push(item));
+              
+              // Remove animal from tamed animals (save to localStorage)
+              const allAnimals = loadTamedAnimals();
+              const updatedAnimals = allAnimals.filter(a => a.id !== animal.id);
+              localStorage.setItem('tamedAnimals', JSON.stringify(updatedAnimals));
+          });
+          
+          // Refresh animals list and clear selection
+          setAnimalRefresh(prev => prev + 1);
+          setSelectedAnimalIds(new Set());
+          onInventoryUpdate?.();
+      } else {
+          // Normal item crafting
+          onCraft(selectedItems, method);
+          setSelectedItemIds(new Set());
+      }
+  };
+  
+  const getMeatNameForAnimal = (species: string): string => {
+      const lowerSpecies = species.toLowerCase();
+      if (lowerSpecies.includes('cow') || lowerSpecies.includes('cattle')) return 'Beef';
+      if (lowerSpecies.includes('pig') || lowerSpecies.includes('swine')) return 'Pork';
+      if (lowerSpecies.includes('chicken') || lowerSpecies.includes('hen')) return 'Poultry';
+      if (lowerSpecies.includes('sheep') || lowerSpecies.includes('lamb')) return 'Mutton';
+      if (lowerSpecies.includes('goat')) return 'Goat Meat';
+      if (lowerSpecies.includes('deer') || lowerSpecies.includes('elk')) return 'Venison';
+      if (lowerSpecies.includes('rabbit') || lowerSpecies.includes('hare')) return 'Rabbit Meat';
+      return 'Meat';
+  };
+  
+  const getMeatQuantityForAnimal = (species: string): number => {
+      const lowerSpecies = species.toLowerCase();
+      if (lowerSpecies.includes('cow') || lowerSpecies.includes('cattle')) return 8;
+      if (lowerSpecies.includes('pig') || lowerSpecies.includes('swine')) return 6;
+      if (lowerSpecies.includes('sheep') || lowerSpecies.includes('goat')) return 4;
+      if (lowerSpecies.includes('deer') || lowerSpecies.includes('elk')) return 5;
+      if (lowerSpecies.includes('chicken') || lowerSpecies.includes('hen')) return 2;
+      if (lowerSpecies.includes('rabbit') || lowerSpecies.includes('hare')) return 2;
+      return 3;
   };
 
-  const canCombine = selectedItemIds.size >= 2;
-  const canDisaggregate = selectedItemIds.size === 1;
+  const canCombine = selectedItemIds.size >= 2 || (selectedItemIds.size >= 1 && selectedAnimalIds.size >= 1);
+  const canDisaggregate = selectedItemIds.size === 1 || selectedAnimalIds.size === 1;
   
   // Check if selected items contain vessels for deployment
   const selectedItems = inventory.filter(item => selectedItemIds.has(item.id));
@@ -349,22 +420,46 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
               <div className="px-2 py-1 text-xs font-semibold tracking-wide text-amber-400 border-b border-amber-400/30 mb-2">
                 ANIMAL COMPANIONS
               </div>
-              {tamedAnimals.map(animal => (
-                <div 
-                  key={`animal-${animal.id}`}
-                  className="flex items-center gap-2 p-2 bg-amber-900/20 border border-amber-600/30 rounded-lg cursor-pointer hover:bg-amber-900/30 hover:border-amber-500/50 transition-all"
-                  onClick={() => handleAnimalClick(animal)}
-                  title="Click to view companion details"
-                >
-                  <div className="text-sm flex-shrink-0">{animal.emoji}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-amber-200 text-sm truncate">
-                      {animal.name || animal.speciesName}
-                    </p>
-                    <p className="text-xs text-amber-300/70">Loyalty: {animal.loyalty}% • Value: {animal.value} coins</p>
+              {tamedAnimals.map(animal => {
+                const isSelected = selectedAnimalIds.has(animal.id);
+                return (
+                  <div 
+                    key={`animal-${animal.id}`}
+                    className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all ${
+                      isSelected 
+                        ? 'bg-amber-700/40 border-2 border-amber-400 shadow-lg shadow-amber-500/20' 
+                        : 'bg-amber-900/20 border border-amber-600/30 hover:bg-amber-900/30 hover:border-amber-500/50'
+                    }`}
+                    onClick={() => {
+                      // Toggle selection for crafting
+                      const newSelected = new Set(selectedAnimalIds);
+                      if (isSelected) {
+                        newSelected.delete(animal.id);
+                        handleAnimalClick(animal); // Also show details when deselecting
+                      } else {
+                        newSelected.add(animal.id);
+                      }
+                      setSelectedAnimalIds(newSelected);
+                    }}
+                    title="Click to select/deselect for crafting or view details"
+                  >
+                    <input 
+                      type="checkbox" 
+                      checked={isSelected}
+                      onChange={() => {}}
+                      className="mr-1"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <div className="text-sm flex-shrink-0">{animal.emoji}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-amber-200 text-sm truncate">
+                        {animal.name || animal.speciesName}
+                      </p>
+                      <p className="text-xs text-amber-300/70">Loyalty: {animal.loyalty}% • Value: {animal.value} coins</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               <div className="px-2 py-1 text-xs font-semibold tracking-wide  text-gray-400 border-b border-gray-600/30 mb-2 mt-3">
                 ITEMS
               </div>
@@ -378,8 +473,15 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
               onClick={() => handleItemClick(item)}
               draggable={isDraggable}
               onDragStart={isDraggable && onDragStart ? (e) => onDragStart(e, item) : undefined}
-              title={isDraggable ? "Drag to equipment slot or click to select" : "Click to select for crafting"}
+              title={isDraggable ? "Drag to equipment slot or click to select" : "Click to select/deselect for crafting"}
             >
+              <input 
+                type="checkbox" 
+                checked={selectedItemIds.has(item.id)}
+                onChange={() => {}}
+                className="mr-1"
+                onClick={(e) => e.stopPropagation()}
+              />
               <div className="relative flex-shrink-0 w-8 h-8 flex items-center justify-center">
                 <GenerativeItemIcon item={item} size={32} />
                 {item.stackable && item.quantity > 1 && (
@@ -407,35 +509,38 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
           ))}
         </div>
       </div>
-      <div className="flex-shrink-0 p-2 border-t border-slate-600/50 bg-slate-800/80 flex gap-1">
-          {canDeploy ? (
-            <button
-                onClick={handleVesselDeploy}
-                className="ff-action-button flex-1 text-xs px-2 py-1 bg-blue-600/80 hover:bg-blue-700 border-blue-500"
-                title="Deploy vessel for sea travel"
-            >
-                🚤 Deploy Vessel
-            </button>
-          ) : (
-            <>
-              <button
-                  onClick={() => handleCraft('COMBINE')}
-                  disabled={!canCombine}
-                  className="ff-action-button flex-1 text-xs px-2 py-1"
-                  title="Combine 2 or more selected items"
-              >
-                  Combine
-              </button>
-              <button
-                  onClick={() => handleCraft('DISAGGREGATE')}
-                  disabled={!canDisaggregate}
-                  className="ff-action-button flex-1 text-xs px-2 py-1"
-                  title="Break down 1 selected item"
-              >
-                  Disaggregate
-              </button>
-            </>
-          )}
+      {/* Crafting Controls - Always Visible */}
+      <div className="flex-shrink-0 p-2 border-t border-slate-600/50 bg-slate-800/80">
+          <div className="flex gap-1">
+              {canDeploy ? (
+                <button
+                    onClick={handleVesselDeploy}
+                    className="ff-action-button flex-1 text-xs px-2 py-1 bg-blue-600/80 hover:bg-blue-700 border-blue-500"
+                    title="Deploy vessel for sea travel"
+                >
+                    🚤 Deploy Vessel
+                </button>
+              ) : (
+                <>
+                  <button
+                      onClick={() => handleCraft('COMBINE')}
+                      disabled={!canCombine}
+                      className="ff-action-button flex-1 text-xs px-2 py-1"
+                      title="Combine selected items/animals"
+                  >
+                      Combine
+                  </button>
+                  <button
+                      onClick={() => handleCraft('DISAGGREGATE')}
+                      disabled={!canDisaggregate}
+                      className="ff-action-button flex-1 text-xs px-2 py-1"
+                      title="Break down selected item/animal"
+                  >
+                      Disaggregate
+                  </button>
+                </>
+              )}
+          </div>
       </div>
       
       {/* Animal Companion Modal */}

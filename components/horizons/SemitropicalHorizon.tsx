@@ -1,198 +1,213 @@
 /**
  * components/horizons/SemitropicalHorizon.tsx
  *
- * Semitropical horizon — clearer bands, readable greenery, distant purple hills.
- * - Stronger silhouettes (near & mid) with pixel rim-lights
- * - Far violet mountain band (semi-translucent) to suggest depth
- * - User-space fade mask for seamless blend into TimeAwareBackground
- * - Panel seam feather; optional water sheen + a few sky-tinted puddles
- * - Pixel-art friendly (crisp edges, dithers, chunky shapes)
+ * Semitropical horizon — WEATHER++ edition
+ * - Clearer banding (violet far hills → mangroves → palms)
+ * - Full weather feature parity:
+ *    • Rain: angled animated streaks, rippling puddles, wet ground sheen, lightning
+ *    • Snow: rare but supported; drifting flakes + ridge/roof accumulation
+ *    • Fog/Mist/Haze: density-aware bands from Weather.fx
+ *    • Wind: palm/banana frond sway, whitecaps, airborne dust/pollen
+ *    • Seasonal flourishes: jacaranda/cherry blossoms (fx.blossoms), leaf fall, fireflies, rainbow hint
+ *    • City niceties: window glow w/ flicker at night/dusk (isUrban)
+ *
+ * Drop-in with other WEATHER+ horizons: accepts WeatherState from services/weatherService.
  */
 
-import React, { useMemo } from "react";
-import { TimeOfDay } from "../../types";
-
-type WeatherLite =
-  | null
-  | {
-      precipitation: "none" | "rain" | "snow" | "sleet" | "hail";
-      cloudCover?: number; // 0..1
-      intensity?: number;  // 0..1
-    };
+import React, { useMemo } from 'react';
+import { TimeOfDay } from '../../types';
+import { WeatherState } from '../../services/weatherService';
 
 interface SemitropicalHorizonProps {
   timeOfDay: TimeOfDay;
   width: number;
   height: number;
   hasWater?: boolean;
+  hasLagoon?: boolean;   // shallow central water pocket
+  isUrban?: boolean;
   bottomPanelColor?: string;
   seed?: number;
-  weather?: WeatherLite;
+  weather?: WeatherState;
   sky?: {
     top: string;
     mid: string;
     bottom: string;
-    hazeDark: string;
-    hazeLight: string;
-    water: string;
-    fog: string;
-    mountainFar: string;
-    mountainMid: string;
-    mountainNear: string;
+    hazeDark?: string;
+    hazeLight?: string;
+    water?: string;
   };
 }
 
-/* ------------------------------- Utils ------------------------------- */
-const clamp = (n: number, a = 0, b = 255) => Math.min(b, Math.max(a, n));
+/* --------------------------------- Utils --------------------------------- */
+
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+const p = (n: number) => Math.round(n);
+
 const hexToRgb = (hex: string) => {
-  const n = parseInt(hex.replace("#", ""), 16);
+  const n = parseInt(hex.replace('#', ''), 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255] as const;
 };
 const rgbToHex = (r: number, g: number, b: number) =>
-  `#${((1 << 24) + ((clamp(r) << 16) | (clamp(g) << 8) | clamp(b))).toString(16).slice(1)}`;
+  `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 const blendHex = (a: string, b: string, t: number) => {
   const [ar, ag, ab] = hexToRgb(a);
   const [br, bg, bb] = hexToRgb(b);
+  const u = clamp01(t);
   return rgbToHex(
-    Math.round(ar + (br - ar) * t),
-    Math.round(ag + (bg - ag) * t),
-    Math.round(ab + (bb - ab) * t)
+    Math.round(ar + (br - ar) * u),
+    Math.round(ag + (bg - ag) * u),
+    Math.round(ab + (bb - ab) * u)
   );
 };
 
-// mulberry-ish RNG
-const makeRng = (seed: number) => {
-  let t = seed >>> 0;
-  return (bump = 1) => {
-    t += 0x6d2b79f5 + bump;
-    let x = t;
-    x = Math.imul(x ^ (x >>> 15), 1 | x);
-    x ^= x + Math.imul(x ^ (x >>> 7), 61 | x);
-    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+// rng
+const mulberry32 = (a: number) => {
+  return () => {
+    let t = (a += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 };
 
+const WINDY_KMH = 18;
+
 /* -------------------------------- Component ------------------------------- */
+
 const SemitropicalHorizon: React.FC<SemitropicalHorizonProps> = ({
   timeOfDay,
   width,
   height,
-  hasWater = false,
-  bottomPanelColor = "#1f2937",
+  hasWater = true,
+  hasLagoon = true,
+  isUrban = false,
+  bottomPanelColor = '#132125',
   seed,
-  weather = null,
+  weather,
   sky,
 }) => {
-  /* ---- IDs / RNG ---- */
-  const uid = useMemo(() => `semi-${Math.random().toString(36).slice(2, 9)}`, []);
-  const baseSeed = useMemo(() => {
-    if (typeof seed === "number") return seed >>> 0;
-    const s =
+  /* RNG (stable per visual state) */
+  const rng = useMemo(() => {
+    const base =
+      (seed ?? 0) ^
       (width | 0) ^
-      ((height | 0) << 7) ^
-      Array.from(String(timeOfDay)).reduce((a, c) => a + c.charCodeAt(0), 0);
-    return (s >>> 0) || 8129;
-  }, [seed, width, height, timeOfDay]);
-  const rng = useMemo(() => makeRng(baseSeed), [baseSeed]);
+      ((height | 0) << 5) ^
+      Array.from(String(timeOfDay)).reduce((a, c) => a + c.charCodeAt(0), 0) ^
+      Math.round((weather?.windSpeed ?? 0) * 7) ^
+      Math.round((weather?.intensity ?? 0) * 199);
+    return mulberry32(base >>> 0);
+  }, [seed, width, height, timeOfDay, weather?.windSpeed, weather?.intensity]);
 
-  /* ---- time flags ---- */
-  const tod = String(timeOfDay).toLowerCase();
-  const isNight = tod.includes("night");
-  const isDawn = tod.includes("dawn");
-  const isDusk = tod.includes("dusk") || tod.includes("even");
+  const isNight = timeOfDay === 'Night';
+  const isDawn = timeOfDay === 'Dawn';
+  const isDusk = timeOfDay === 'Dusk';
+  const isMid = timeOfDay === 'Midday';
 
-  /* ---- palette derived from sky (but with stronger land contrast) ---- */
+  const getSky = () => {
+    if (sky) {
+      return {
+        skyTop: sky.top,
+        skyMid: sky.mid,
+        skyBottom: sky.bottom,
+        hazeDark: sky.hazeDark ?? '#98A9C6',
+        hazeLight: sky.hazeLight ?? '#CFE0F2',
+        water: sky.water ?? '#4F7CA6',
+      };
+    }
+    return {
+      skyTop: '#5AA7E6',
+      skyMid: '#8CCBF3',
+      skyBottom: '#DDEFFF',
+      hazeDark: '#98A9C6',
+      hazeLight: '#CFE0F2',
+      water: '#4F7CA6',
+    };
+  };
+  const { skyTop, skyMid, skyBottom, hazeDark, hazeLight, water: waterBase } = getSky();
+
+  /* Palette (semisaturated jade/teal greens + violet hills) */
   const P = useMemo(() => {
-    const sTop = sky?.top || "#5AA7E6";
-    const sMid = sky?.mid || "#8CCBF3";
-    const sBot = sky?.bottom || "#DDEFFF";
-    const hazeL = sky?.hazeLight || "#CFE0F2";
-    const hazeD = sky?.hazeDark || "#98A9C6";
-    const sWater = sky?.water || "#4F7CA6";
-    const skyInfluence = isNight ? 0.65 : isDusk ? 0.35 : isDawn ? 0.32 : 0.18;
+    const skyInfluence = isNight ? 0.70 : isDusk ? 0.38 : isDawn ? 0.32 : 0.20;
 
-    // land bands: keep GREEN and saturated enough to read over water/sky
-    const farGreen   = blendHex("#6AA58C", sTop, skyInfluence * 0.5);
-    const midGreen   = blendHex("#42856F", sMid, skyInfluence * 0.45);
-    const nearGreen  = blendHex("#2F6F5E", sBot, skyInfluence * 0.35);
-    const nearDark   = blendHex("#1E4E45", sBot, skyInfluence * 0.25);
+    const farViolet = blendHex('#6E5AA8', skyTop, 0.28);
+    const farGreen  = blendHex('#67A08A', skyTop, skyInfluence * 0.3);
+    const midGreen  = blendHex('#3D816B', skyMid, skyInfluence * 0.26);
+    const nearGreen = blendHex('#2A6C5B', skyBottom, skyInfluence * 0.2);
+    const darkBand  = blendHex('#164842', skyBottom, skyInfluence * 0.15);
 
-    // distant violet range (semi-translucent)
-    const violetBase = "#6e5aa8";
-    const farViolet  = blendHex(violetBase, sTop, 0.35); // hint of sky
-
-    const water      = isNight ? blendHex(sWater, "#0B2035", 0.35) : sWater;
-    const waterHi    = blendHex(sWater, "#FFFFFF", isNight ? 0.3 : 0.55);
+    const water     = isNight ? blendHex(waterBase, '#0A1A2B', 0.35) : waterBase;
+    const waterHi   = blendHex(waterBase, '#FFFFFF', isNight ? 0.28 : 0.55);
 
     return {
-      farViolet,
-      far: farGreen,
-      mid: midGreen,
-      near: nearGreen,
-      nearDark,
-      trunk: blendHex("#5A4230", sBot, skyInfluence * 0.2),
-      leafD: blendHex("#206949", sBot, skyInfluence * 0.2),
-      leafL: blendHex("#2E8C6B", sBot, skyInfluence * 0.15),
-      reed: blendHex("#47A07A", sBot, skyInfluence * 0.1),
-      moss: blendHex("#8EB7A4", sMid, 0.15),
-      haze1: hazeL,
-      haze2: blendHex(hazeD, hazeL, 0.6),
-      water,
-      waterHi,
-      rim: blendHex(hazeL, "#FFFFFF", 0.6),
-      band0: bottomPanelColor,
-      band1: blendHex(bottomPanelColor, sWater, 0.18),
-      band2: blendHex(bottomPanelColor, sWater, 0.35),
-      vign: "rgba(0,0,0,0.18)",
+      farViolet, farGreen, midGreen, nearGreen, darkBand,
+      trunk: blendHex('#5A4230', skyBottom, skyInfluence * 0.1),
+      leafDark: blendHex('#1E6B51', skyBottom, skyInfluence * 0.1),
+      leafLight: blendHex('#2F8D71', skyBottom, skyInfluence * 0.1),
+      reed: blendHex('#3FA989', skyBottom, 0.08),
+      hazeL: hazeLight,
+      hazeD: hazeDark,
+      water, waterHi,
+      windowGlow: 'rgba(255,224,170,0.85)',
+      rain: '#9ec9ff',
+      snow: '#F4F7FB',
+      snowBlue: '#E9F2FF',
+      pollen: '#EBD37A',
+      dust: '#B79563',
+      firefly: '#FFE87A',
+      rim: blendHex(hazeLight, '#FFFFFF', 0.55),
+      panel0: bottomPanelColor,
+      vign: 'rgba(0,0,0,0.18)',
     };
-  }, [sky, bottomPanelColor, isNight, isDawn, isDusk]);
+  }, [isNight, isDusk, isDawn, skyTop, skyMid, skyBottom, hazeDark, hazeLight, waterBase, bottomPanelColor]);
 
-  /* ---- layout ---- */
-  const bandH = Math.max(14, height * 0.085);
-  const yBand0 = height - bandH;
-  const yBand1 = height - bandH * 2;
-  const yBand2 = height - bandH * 3;
+  /* Layout bands */
+  const compact = height < 110;
+  const yVF   = p(height * (compact ? 0.16 : 0.14));
+  const yFar  = p(height * (compact ? 0.26 : 0.24));
+  const yMid  = p(height * (compact ? 0.42 : 0.38));
+  const yNear = p(height * (compact ? 0.58 : 0.56));
+  const yTree = p(height * (compact ? 0.68 : 0.66));
+  const yFG   = p(height * (compact ? 0.78 : 0.75));
+  const yFeather = p(height * 0.88);
 
-  const yVF  = height * 0.14; // very far violet range
-  const yFar = height * 0.25;
-  const yMid = height * 0.40;
-  const yNear = height * 0.58;
-  const yTree = height * 0.70;
-  const yFG = height * 0.78;
-
-  /* ---- builders ---- */
-  const ridgePath = (yBase: number, amp: number, anchors = 12, phase = 0) => {
-    const xs: number[] = [];
-    for (let i = 0; i < anchors; i++) xs.push((i / (anchors - 1)) * width);
-    const pts = xs.map((x, i) => {
-      const swing = 0.65 + (rng(50 + i + phase) - 0.5) * 0.9;
-      const y = Math.max(0, yBase - amp * swing);
-      return { x, y };
-    });
-    let d = `M 0 ${height} L 0 ${pts[0].y.toFixed(1)}`;
-    for (let i = 1; i < pts.length; i++) {
-      const p = pts[i - 1], c = pts[i];
-      const cx = (p.x + c.x) / 2;
-      const cy = (p.y + c.y) / 2 + (rng(100 + i + phase) - 0.5) * amp * 0.16;
-      d += ` Q ${cx.toFixed(1)} ${cy.toFixed(1)}, ${c.x.toFixed(1)} ${c.y.toFixed(1)}`;
+  const ridgePath = (yBase: number, amp: number, kinks = 12, jitter = 0.7) => {
+    const xs = Array.from({ length: kinks }, (_, i) => (i / (kinks - 1)) * width);
+    let d = `M 0 ${height} L 0 ${yBase}`;
+    for (let i = 1; i < xs.length; i++) {
+      const x0 = xs[i - 1];
+      const x1 = xs[i];
+      const cx = (x0 + x1) / 2;
+      const dy = amp * (0.35 + rng() * 0.65);
+      const cy = yBase - amp * (0.35 + rng() * 0.65) + (rng() - 0.5) * amp * 0.15 * jitter;
+      d += ` Q ${p(cx)} ${p(cy)}, ${p(x1)} ${p(yBase - dy)}`;
     }
     d += ` L ${width} ${height} Z`;
     return d;
   };
 
-  /* ---- plant stamps ---- */
+  const sampleXs = (count: number, minGapPx: number) => {
+    const xs: number[] = [];
+    let safety = 0;
+    while (xs.length < count && safety++ < 400) {
+      const x = width * (0.04 + Math.random() * 0.92); // not seeded; avoids “samey” rows when many re-renders
+      if (xs.every(px => Math.abs(px - x) > minGapPx)) xs.push(x);
+    }
+    return xs.sort((a, b) => a - b);
+  };
+
+  /* Flora stamps (palmetto, banana, mangrove/yucca-ish) */
   const Palmetto: React.FC<{ x: number; baseY: number; h: number; dark?: boolean }> = ({ x, baseY, h, dark }) => {
-    const stem = dark ? P.nearDark : P.trunk;
-    const leaf = dark ? P.nearDark : P.leafD;
+    const stem = dark ? P.darkBand : P.trunk;
+    const leaf = dark ? P.darkBand : P.leafDark;
     const cy = baseY - h * 0.06;
     const r = h * 0.22;
     return (
       <g shapeRendering="crispEdges">
-        <rect x={x - h * 0.02} y={baseY - h * 0.25} width={h * 0.04} height={h * 0.25} fill={stem} />
+        <rect x={p(x - h * 0.02)} y={p(baseY - h * 0.25)} width={p(h * 0.04)} height={p(h * 0.25)} fill={stem} />
         {[-40, -20, 0, 20, 40].map((a, i) => {
           const rad = (a * Math.PI) / 180;
           return (
-            <line key={i} x1={x} y1={cy} x2={x + Math.cos(rad) * r} y2={cy - Math.sin(rad) * r} stroke={leaf} strokeWidth={dark ? 3 : 2} />
+            <line key={i} x1={p(x)} y1={p(cy)} x2={p(x + Math.cos(rad) * r)} y2={p(cy - Math.sin(rad) * r)} stroke={leaf} strokeWidth={dark ? 3 : 2} />
           );
         })}
       </g>
@@ -200,19 +215,19 @@ const SemitropicalHorizon: React.FC<SemitropicalHorizonProps> = ({
   };
 
   const Banana: React.FC<{ x: number; baseY: number; h: number; dark?: boolean }> = ({ x, baseY, h, dark }) => {
-    const stem = dark ? P.nearDark : P.trunk;
-    const leaf = dark ? P.nearDark : P.leafL;
+    const stem = dark ? P.darkBand : P.trunk;
+    const leaf = dark ? P.darkBand : P.leafLight;
     return (
       <g shapeRendering="crispEdges">
-        <rect x={x - h * 0.015} y={baseY - h * 0.30} width={h * 0.03} height={h * 0.30} fill={stem} />
+        <rect x={p(x - h * 0.015)} y={p(baseY - h * 0.30)} width={p(h * 0.03)} height={p(h * 0.30)} fill={stem} />
         {[-24, -12, 0, 12, 24].map((ang, i) => (
           <path
             key={i}
-            d={`M ${x} ${baseY - h * 0.25}
-               L ${x + Math.cos((ang*Math.PI)/180) * h * 0.26}
-                 ${baseY - h * 0.25 - Math.sin((ang*Math.PI)/180) * h * 0.18}
-               L ${x + Math.cos((ang*Math.PI)/180) * h * 0.16}
-                 ${baseY - h * 0.25 - Math.sin((ang*Math.PI)/180) * h * 0.10} Z`}
+            d={`M ${p(x)} ${p(baseY - h * 0.25)}
+               L ${p(x + Math.cos((ang*Math.PI)/180) * h * 0.26)}
+                 ${p(baseY - h * 0.25 - Math.sin((ang*Math.PI)/180) * h * 0.18)}
+               L ${p(x + Math.cos((ang*Math.PI)/180) * h * 0.16)}
+                 ${p(baseY - h * 0.25 - Math.sin((ang*Math.PI)/180) * h * 0.10)} Z`}
             fill={leaf}
           />
         ))}
@@ -220,72 +235,100 @@ const SemitropicalHorizon: React.FC<SemitropicalHorizonProps> = ({
     );
   };
 
-  const Yucca: React.FC<{ x: number; baseY: number; h: number; dark?: boolean }> = ({ x, baseY, h, dark }) => {
-    const stem = dark ? P.nearDark : P.trunk;
-    const blade = dark ? P.nearDark : P.leafD;
-    const blades = 7;
-    return (
-      <g shapeRendering="crispEdges">
-        <rect x={x - h * 0.01} y={baseY - h * 0.10} width={h * 0.02} height={h * 0.10} fill={stem} />
-        {Array.from({ length: blades }).map((_, i) => {
-          const a = -50 + (100 / (blades - 1)) * i;
-          const rad = (a * Math.PI) / 180;
-          const len = h * (0.26 + (i % 2 ? 0.04 : 0));
-          return (
-            <line key={i} x1={x} y1={baseY - h * 0.10} x2={x + Math.cos(rad) * len} y2={baseY - h * 0.10 - Math.sin(rad) * len} stroke={blade} strokeWidth={dark ? 3 : 2} />
-          );
-        })}
-      </g>
-    );
+  const Mangrove: React.FC<{ x: number; baseY: number; w: number; h: number; dark?: boolean }> = ({ x, baseY, w, h, dark }) => {
+    const fill = dark ? P.darkBand : blendHex(P.midGreen, '#10251f', 0.15);
+    return <rect x={p(x - w / 2)} y={p(baseY - h)} width={p(w)} height={p(h)} fill={fill} />;
   };
 
-  /* ---- placements ---- */
+  /* Flora placements */
   const midPlants = useMemo(() => {
-    const n = 20 + ((rng(900) * 8) | 0);
+    const n = 18 + ((rng() * 8) | 0);
     return Array.from({ length: n }).map((_, i) => ({
-      x: width * (0.02 + rng(901 + i) * 0.96),
-      h: height * (0.16 + rng(902 + i) * 0.12),
-      t: rng(903 + i),
+      x: width * (0.02 + rng() * 0.96),
+      h: height * (0.14 + rng() * 0.12),
+      t: rng(),
     }));
-  }, [rng, width, height]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [width, height, timeOfDay]);
 
   const fgPlants = useMemo(() => {
-    const n = 12 + ((rng(950) * 6) | 0);
+    const n = 12 + ((rng() * 6) | 0);
     return Array.from({ length: n }).map((_, i) => ({
-      x: width * (0.03 + (i / (n - 1)) * 0.94) + (rng(951 + i) - 0.5) * 10,
-      h: height * (0.22 + rng(952 + i) * 0.16),
-      t: rng(953 + i),
+      x: width * (0.03 + (i / (n - 1)) * 0.94) + (rng() - 0.5) * 10,
+      h: height * (0.22 + rng() * 0.16),
+      t: rng(),
     }));
-  }, [rng, width, height]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [width, height, timeOfDay]);
 
-  const puddles = useMemo(() => {
-    const wetness = Math.max(
-      0,
-      Math.min(1, (weather?.intensity ?? 0) * (weather?.precipitation === "rain" ? 1.0 : 0.4))
-    );
-    const n = 6 + ((rng(1001) * 6) | 0);
-    return Array.from({ length: n }).map((_, i) => ({
-      x: width * (0.06 + rng(1002 + i) * 0.88),
-      y: height * (0.83 + rng(1003 + i) * 0.10),
-      rx: 10 + rng(1004 + i) * (14 + wetness * 16),
-      ry: 3 + rng(1005 + i) * (4 + wetness * 3),
-      o: 0.14 + wetness * 0.30,
-    }));
-  }, [rng, width, height, weather]);
+  /* Weather flags */
+  const fx = weather?.fx;
+  const windy = (weather?.windSpeed ?? 0) >= WINDY_KMH;
+  const precip = weather?.precipitation ?? 'none';
+  const intensity = clamp01(weather?.intensity ?? 0);
+  const isRain = (precip === 'rain' || precip === 'drizzle' || precip === 'sleet') && intensity > 0;
+  const isSnow = precip === 'snow' && intensity > 0;
+  const isFoggy = weather?.special === 'fog' || weather?.special === 'mist';
 
-  /* ---- ids ---- */
+  const dropletSize = clamp01(fx?.dropletSize ?? (isRain ? 0.5 + intensity * 0.5 : 0));
+  const flakeSize = clamp01(fx?.flakeSize ?? (isSnow ? 0.5 + intensity * 0.4 : 0));
+  const leavesActivity = clamp01(fx?.leavesActivity ?? 0);
+  const airborne = fx?.airborneParticles;
+  const fireflyP = fx?.fireflyProbability ?? 0;
+  const showFireflies = isNight && fireflyP > 0.15;
+  const showRainbow = (fx?.rainbowProbability ?? 0) > 0.5 && !isNight;
+  const showLightning = (fx?.lightningProbability ?? 0) > 0.2 && isRain;
+  const blossoms = fx?.blossoms; // jacaranda expected here
+  const showBlossoms = !!(blossoms && blossoms.activity > 0.08);
+  const showLeaves = leavesActivity > 0.05;
+
+  // counts
+  const rainDrops = isRain ? Math.min(190, 50 + Math.round(intensity * 160)) : 0;
+  const puddles = isRain ? (3 + Math.round(intensity * 5)) : 0;
+  const snowFlakes = isSnow ? Math.min(160, 36 + Math.round(intensity * 140)) : 0;
+  const blossomCount = showBlossoms ? (10 + Math.round((blossoms!.activity || 0.2) * 18)) : 0;
+  const leafCount = showLeaves ? (10 + Math.round(leavesActivity * 24)) : 0;
+  const pollenDots = airborne?.type === 'pollen' ? Math.round(60 * clamp01(airborne.density ?? 0.4)) : 0;
+  const dustDots = airborne && (airborne.type === 'dust' || airborne.type === 'sand')
+    ? Math.round(60 * clamp01(airborne.density)) : 0;
+
+  // angles
+  const windRad = ((weather?.windDirection ?? 0) * Math.PI) / 180;
+  const rainAngleX = Math.sin(windRad) * (0.6 + (weather?.windSpeed ?? 0) / 45);
+  const rainAngleY = Math.cos(windRad) * (1.2 + (weather?.windSpeed ?? 0) / 30);
+
+  /* Villas (urban) */
+  type Villa = { x: number; w: number; h: number; y: number; glow: boolean };
+  const villas: Villa[] = useMemo(() => {
+    if (!isUrban) return [];
+    const n = 3 + ((Math.random() * 3) | 0);
+    const xs = sampleXs(n, width * 0.22);
+    return xs.map((x, i) => {
+      const w = p(16 + (i % 2) * 3);
+      const h = p(10 + (i % 3));
+      const y = p(yFG - 10 - (Math.random() * 8));
+      const glow = Math.random() > 0.45;
+      return { x, w, h, y, glow };
+    });
+  }, [isUrban, width, yFG]);
+
+  /* IDs */
+  const uid = useMemo(() => `semi-${Math.random().toString(36).slice(2, 9)}`, []);
   const ids = {
     topfade: `${uid}-topfade`,
     topmask: `${uid}-topmask`,
-    haze1: `${uid}-h1`,
-    haze2: `${uid}-h2`,
-    dither: `${uid}-dith`,
-    band1: `${uid}-b1`,
-    band2: `${uid}-b2`,
-    band3: `${uid}-b3`,
-    panelFeather: `${uid}-panelFeather`,
-    water: `${uid}-water`,
+    hazeL: `${uid}-hazeL`,
+    hazeD: `${uid}-hazeD`,
+    panel: `${uid}-panel`,
+    waterSheen: `${uid}-waterSheen`,
     rimHL: `${uid}-rimHL`,
+    rainBlur: `${uid}-rainBlur`,
+    snowBlur: `${uid}-snowBlur`,
+    glow: `${uid}-glow`,
+    pollen: `${uid}-pollen`,
+    dust: `${uid}-dust`,
+    rainbow: `${uid}-rainbow`,
+    whitecap: `${uid}-whitecap`,
   };
 
   return (
@@ -293,187 +336,432 @@ const SemitropicalHorizon: React.FC<SemitropicalHorizonProps> = ({
       width={width}
       height={height}
       viewBox={`0 0 ${width} ${height}`}
-      preserveAspectRatio="xMidYMax meet"
-      style={{ position: "absolute", left: 0, bottom: 0, pointerEvents: "none", imageRendering: "pixelated" }}
+      preserveAspectRatio="none"
+      style={{ position: 'absolute', left: 0, bottom: 0, pointerEvents: 'none', imageRendering: 'pixelated' }}
       shapeRendering="crispEdges"
     >
-      <style>{`
-        @keyframes ${ids.rimHL} { 0% { opacity:.2 } 50% { opacity:.42 } 100% { opacity:.2 } }
-      `}</style>
-
       <defs>
-        {/* USER-SPACE top fade for real sky merge */}
-        <linearGradient id={ids.topfade} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={height}>
-          <stop offset="0%" stopColor="white" stopOpacity="0" />
-          <stop offset="40%" stopColor="white" stopOpacity="0.12" />
-          <stop offset="65%" stopColor="white" stopOpacity="0.45" />
-          <stop offset="100%" stopColor="white" stopOpacity="1" />
+        {/* Top fade (mask) */}
+        <linearGradient id={ids.topfade} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="white" stopOpacity="0" />
+          <stop offset="40%"  stopColor="white" stopOpacity="0.12" />
+          <stop offset="68%"  stopColor="white" stopOpacity="0.45" />
+          <stop offset="100%" stopColor="white" stopOpacity="0.98" />
         </linearGradient>
-
-        {/* luminance mask; small carve so the very top isn't a slab */}
-        <mask id={ids.topmask} maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" style={{ maskType: "luminance" } as any}>
+        <mask id={ids.topmask}>
           <rect x="0" y="0" width={width} height={height} fill={`url(#${ids.topfade})`} />
-          <path d={ridgePath(height * 0.18, height * 0.08, 11, 222)} fill="black" opacity="0.22" />
+          <path d={ridgePath(height * 0.18, height * 0.08, 11, 0.7)} fill="white" opacity="0.18" />
         </mask>
 
-        {/* haze banks */}
-        <linearGradient id={ids.haze1} gradientUnits="userSpaceOnUse" x1="0" y1={yFar - height * 0.04} x2="0" y2={yFar + height * 0.08}>
-          <stop offset="0%" stopColor={P.haze1} stopOpacity="0.22" />
-          <stop offset="100%" stopColor={P.haze1} stopOpacity="0.04" />
+        {/* Haze bands */}
+        <linearGradient id={ids.hazeL} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={P.hazeL} stopOpacity="0.25" />
+          <stop offset="100%" stopColor={P.hazeL} stopOpacity="0" />
         </linearGradient>
-        <linearGradient id={ids.haze2} gradientUnits="userSpaceOnUse" x1="0" y1={yMid - height * 0.04} x2="0" y2={yMid + height * 0.08}>
-          <stop offset="0%" stopColor={P.haze2} stopOpacity="0.18" />
-          <stop offset="100%" stopColor={P.haze2} stopOpacity="0.03" />
-        </linearGradient>
-
-        {/* subtle dither */}
-        <pattern id={ids.dither} width="4" height="4" patternUnits="userSpaceOnUse">
-          <rect width="4" height="4" fill="transparent" />
-          <rect x="2" y="1" width="1" height="1" fill="#000" opacity="0.05" />
-        </pattern>
-
-        {/* panel blends (low alpha to avoid slabs) */}
-        <linearGradient id={ids.band1} gradientUnits="userSpaceOnUse" x1="0" y1={yBand0} x2="0" y2={height}>
-          <stop offset="0%" stopColor={P.band2} stopOpacity="0.55" />
-          <stop offset="100%" stopColor={P.band0} stopOpacity="0.95" />
-        </linearGradient>
-        <linearGradient id={ids.band2} gradientUnits="userSpaceOnUse" x1="0" y1={yBand1} x2="0" y2={yBand0}>
-          <stop offset="0%" stopColor={P.band1} stopOpacity="0.45" />
-          <stop offset="100%" stopColor={P.band2} stopOpacity="0.55" />
-        </linearGradient>
-        <linearGradient id={ids.band3} gradientUnits="userSpaceOnUse" x1="0" y1={yBand2} x2="0" y2={yBand1}>
-          <stop offset="0%" stopColor={P.band1} stopOpacity="0.35" />
-          <stop offset="100%" stopColor={P.band1} stopOpacity="0.45" />
+        <linearGradient id={ids.hazeD} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={P.hazeD} stopOpacity="0.28" />
+          <stop offset="100%" stopColor={P.hazeD} stopOpacity="0" />
         </linearGradient>
 
-        {/* panel feather */}
-        <linearGradient id={ids.panelFeather} gradientUnits="userSpaceOnUse" x1="0" y1={height - bandH * 2.8} x2="0" y2={height}>
-          <stop offset="0%" stopColor={`${P.band0}00`} />
-          <stop offset="60%" stopColor={`${P.band0}22`} />
-          <stop offset="100%" stopColor={`${P.band0}55`} />
+        {/* Bottom panel feather */}
+        <linearGradient id={ids.panel} x1="0" y1={yFeather} x2="0" y2={height}>
+          <stop offset="0%" stopColor={P.nearGreen} />
+          <stop offset="60%" stopColor={P.darkBand} />
+          <stop offset="100%" stopColor={P.panel0} />
         </linearGradient>
 
-        {/* water sheen */}
-        <linearGradient id={ids.water} gradientUnits="userSpaceOnUse" x1="0" y1={height - bandH * 0.7} x2="0" y2={height}>
-          <stop offset="0%" stopColor={P.water} stopOpacity="0.18" />
+        {/* Water sheen */}
+        <linearGradient id={ids.waterSheen} x1="0" y1={height - 18} x2="0" y2={height}>
+          <stop offset="0%" stopColor={P.water} stopOpacity="0.22" />
           <stop offset="100%" stopColor={P.water} stopOpacity="0" />
         </linearGradient>
+
+        {/* Subtle blur for precip */}
+        <filter id={ids.rainBlur}><feGaussianBlur stdDeviation="0.4" /></filter>
+        <filter id={ids.snowBlur}><feGaussianBlur stdDeviation="0.3" /></filter>
+
+        {/* Glows */}
+        <filter id={ids.glow} x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="1.5" result="b"/>
+          <feMerge>
+            <feMergeNode in="b"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+
+        {/* Dust/pollen tint */}
+        <filter id={ids.dust}>
+          <feColorMatrix type="matrix" values="1 0 0 0 0  0 0.85 0 0 0  0 0 0.7 0 0  0 0 0 0.35 0"/>
+        </filter>
+        <filter id={ids.pollen}>
+          <feColorMatrix type="matrix" values="1 0 0 0 0.15  0.9 1 0 0 0  0 0 0.3 0 0  0 0 0 0.45 0"/>
+        </filter>
+
+        {/* Rainbow */}
+        <radialGradient id={ids.rainbow} cx="50%" cy="100%" r="80%">
+          <stop offset="30%" stopColor="#ff0000" stopOpacity="0.06"/>
+          <stop offset="45%" stopColor="#ffa500" stopOpacity="0.05"/>
+          <stop offset="58%" stopColor="#ffff00" stopOpacity="0.05"/>
+          <stop offset="70%" stopColor="#00ff00" stopOpacity="0.05"/>
+          <stop offset="82%" stopColor="#00bfff" stopOpacity="0.05"/>
+          <stop offset="92%" stopColor="#8a2be2" stopOpacity="0.05"/>
+          <stop offset="100%" stopColor="#000000" stopOpacity="0"/>
+        </radialGradient>
+
+        {/* Sea whitecaps */}
+        <filter id={ids.whitecap}>
+          <feTurbulence baseFrequency="0.12" numOctaves="1" seed="11" />
+          <feColorMatrix type="saturate" values="0" />
+          <feComponentTransfer>
+            <feFuncA type="table" tableValues="0 0 1 0" />
+          </feComponentTransfer>
+        </filter>
+
+        {/* Animations */}
+        <style>{`
+          @keyframes ${ids.rimHL} { 0%{opacity:.2} 50%{opacity:.42} 100%{opacity:.2} }
+          @keyframes semi-sway { 0%,100%{ transform: rotate(0deg);} 50%{ transform: rotate(${windy ? 3 : 1.5}deg);} }
+          @keyframes semi-rain { 0%{ transform: translate(0,0); opacity:0;} 10%{opacity:.65;} 100%{ transform: translate(${rainAngleX * height}px, ${rainAngleY * height}px); opacity:0; } }
+          @keyframes semi-ripple { 0%{ transform: scale(0.4); opacity:.6;} 100%{ transform: scale(1.4); opacity:0;} }
+          @keyframes semi-snow { 0%{ transform: translate(0,0) rotate(0deg); opacity:.95;} 100%{ transform: translate(${(Math.sin(windRad) * (windy ? 55 : 25))}px, ${height * 0.22}px) rotate(180deg); opacity:.1;} }
+          @keyframes semi-lightning { 0%,96%,100%{opacity:0;} 97%{opacity:.9;} 98%{opacity:.15;} 99%{opacity:.75;} }
+          @keyframes semi-window { 0%,100%{ opacity:.86;} 60%{ opacity:.55;} }
+          @keyframes semi-petal { 0%{ transform: translateY(0) translateX(0) rotate(0); opacity:.9;} 100%{ transform: translateY(${height*0.2}px) translateX(${windy?42:22}px) rotate(200deg); opacity:0;} }
+          @keyframes semi-leaf { 0%{ transform: translateY(0) translateX(0) rotate(0); opacity:.95;} 100%{ transform: translateY(${height*0.22}px) translateX(${windy?46:24}px) rotate(240deg); opacity:0;} }
+          @keyframes semi-firefly { 0%,100%{opacity:.1;} 50%{opacity:.9;} }
+        `}</style>
       </defs>
 
-      {/* fade into sky */}
+      {/* Scene under a top mask to blend into real sky */}
       <g mask={`url(#${ids.topmask})`}>
-        {/* bottom blends */}
-        <rect x="0" y={yBand0} width={width} height={height - yBand0} fill={`url(#${ids.band1})`} />
-        <rect x="0" y={yBand1} width={width} height={bandH} fill={`url(#${ids.band2})`} />
-        <rect x="0" y={yBand2} width={width} height={bandH} fill={`url(#${ids.band3})`} />
-
-        {/* VERY FAR violet hills — semi translucent so sky reads behind */}
-        <g opacity={isNight ? 0.55 : 0.6}>
-          <path d={ridgePath(yVF, height * 0.11, 10, 7)} fill={P.farViolet} />
-          <rect x="0" y="0" width={width} height={yVF - 2} fill={`url(#${ids.dither})`} opacity={0.35} />
-        </g>
-
-        {/* Haze between very-far and far green ridge */}
-        <rect x="0" y={yVF - height * 0.02} width={width} height={height * 0.07} fill={`url(#${ids.haze1})`} />
-
-        {/* FAR green ridge (readable) */}
-        <g opacity={0.9}>
-          <path d={ridgePath(yFar, height * 0.20, 11, 17)} fill={P.far} />
-          {/* tiny clumps */}
-          {Array.from({ length: 12 }).map((_, i) => {
-            const cx = ((i + 0.5) / 12) * width + (rng(210 + i) - 0.5) * 8;
-            const w = 14 + rng(220 + i) * 10;
-            const h = 8 + rng(230 + i) * 6;
-            return <rect key={i} x={cx - w / 2} y={yFar - 4 - h} width={w} height={h} fill={blendHex(P.far, "#1b1b1b", 0.1)} />;
-          })}
+        {/* VERY FAR violet hills */}
+        <g opacity={isNight ? 0.55 : 0.60}>
+          <path d={ridgePath(yVF, p(height * 0.12), 11, 0.7)} fill={P.farViolet} />
         </g>
 
         {/* Haze band */}
-        <rect x="0" y={yFar - height * 0.03} width={width} height={height * 0.08} fill={`url(#${ids.haze1})`} />
+        <rect x="0" y={p(yVF - height * 0.02)} width={width} height={p(height * 0.08)} fill={`url(#${ids.hazeD})`} opacity={clamp01((fx?.hazeDensity ?? 0.25) * 1.0)} />
 
-        {/* MID ridge */}
-        <g opacity={0.95}>
-          <path d={ridgePath(yMid, height * 0.18, 12, 29)} fill={P.mid} />
-          {/* reeds & mangrove blocks */}
-          {Array.from({ length: 18 }).map((_, i) => {
-            const cx = width * (0.02 + rng(310 + i) * 0.96);
-            if (rng(320 + i) < 0.4) {
-              return <rect key={i} x={cx} y={yMid - 2} width={2} height={10 + rng(330 + i) * 10} fill={P.reed} />;
-            }
-            const w = 18 + rng(340 + i) * 18;
-            const h = 10 + rng(350 + i) * 12;
-            return <rect key={i} x={cx - w / 2} y={yMid - 5 - h} width={w} height={h} fill={blendHex(P.mid, "#15251f", 0.12)} />;
+        {/* FAR green ridge (broken clumps) */}
+        <g opacity={0.92}>
+          <path d={ridgePath(yFar, p(height * 0.18), 11, 0.8)} fill={P.farGreen} />
+          {Array.from({ length: 12 }).map((_, i) => {
+            const cx = ((i + 0.5) / 12) * width + (Math.random() - 0.5) * 10;
+            const w = 12 + Math.random() * 12;
+            const h = 8 + Math.random() * 6;
+            return <rect key={i} x={cx - w / 2} y={yFar - 4 - h} width={w} height={h} fill={blendHex(P.farGreen, '#1b1b1b', 0.12)} />;
           })}
         </g>
 
-        {/* Haze between mid/near */}
-        <rect x="0" y={yMid - height * 0.03} width={width} height={height * 0.07} fill={`url(#${ids.haze2})`} />
+        {/* Haze */}
+        <rect x="0" y={p(yFar - height * 0.03)} width={width} height={p(height * 0.08)} fill={`url(#${ids.hazeL})`} opacity={clamp01((fx?.hazeDensity ?? 0.22) * 1.0)} />
 
-        {/* NEAR ridge with pixel rim highlight */}
+        {/* MID mangrove flats */}
+        <g opacity={0.96}>
+          <path d={ridgePath(yMid, p(height * 0.16), 12, 0.9)} fill={P.midGreen} />
+          {Array.from({ length: 16 }).map((_, i) => {
+            const cx = width * (0.02 + Math.random() * 0.96);
+            if (Math.random() < 0.4) {
+              return <rect key={i} x={p(cx)} y={p(yMid - 2)} width={2} height={p(10 + Math.random() * 10)} fill={P.reed} />;
+            }
+            const w = 16 + Math.random() * 16, h = 10 + Math.random() * 12;
+            return <Mangrove key={i} x={cx} baseY={yMid - 4} w={w} h={h} />;
+          })}
+        </g>
+
+        {/* Fog/mist bank if present */}
+        {isFoggy && (
+          <g opacity={fx?.fogDensity ? clamp01(fx.fogDensity) : (weather!.special === 'fog' ? 0.5 : 0.25)}>
+            <rect x="0" y={p(yMid - height * 0.06)} width={width} height={p(height * 0.28)} fill={`url(#${ids.hazeL})`} />
+          </g>
+        )}
+
+        {/* NEAR ridge with rim highlight */}
         <g opacity={0.98}>
-          <path d={ridgePath(yNear, height * 0.15, 13, 41)} fill={P.near} />
+          <path d={ridgePath(yNear, p(height * 0.15), 13, 1.0)} fill={P.nearGreen} />
           <path
-            d={ridgePath(yNear - 1, height * 0.15, 13, 41)}
+            d={ridgePath(yNear - 1, p(height * 0.15), 13, 1.0)}
             fill="none"
             stroke={P.rim}
             strokeWidth={1}
             opacity={isNight ? 0.22 : 0.32}
-            style={{ animation: `${ids.rimHL} ${14 + (rng(2) * 6).toFixed(2)}s ease-in-out infinite` }}
+            style={{ animation: `${ids.rimHL} ${14 + ((Math.random() * 6) | 0)}s ease-in-out infinite` }}
           />
         </g>
 
-        {/* Treeline shelf */}
-        <path d={ridgePath(yTree, height * 0.10, 40, 51)} fill={P.nearDark} />
+        {/* TREE LINE shelf */}
+        <path d={ridgePath(yTree, p(height * 0.10), 40, 1.0)} fill={P.darkBand} />
 
-        {/* Mid layer plants (readable silhouettes) */}
-        {midPlants.map((p, i) => {
-          if (p.t < 0.34) return <Palmetto key={`m-p-${i}`} x={p.x} baseY={yTree} h={p.h} />;
-          if (p.t < 0.67) return <Banana key={`m-b-${i}`} x={p.x} baseY={yTree} h={p.h} />;
-          return <Yucca key={`m-y-${i}`} x={p.x} baseY={yTree} h={p.h * 0.92} />;
+        {/* Mid plants */}
+        {midPlants.map((m, i) => {
+          if (m.t < 0.34) return <Palmetto key={`m-p-${i}`} x={m.x} baseY={yTree} h={m.h} />;
+          if (m.t < 0.67) return <Banana key={`m-b-${i}`} x={m.x} baseY={yTree} h={m.h} />;
+          return <Mangrove key={`m-m-${i}`} x={m.x} baseY={yTree} w={p(m.h * 0.55)} h={p(m.h * 0.6)} />;
         })}
 
-        {/* Foreground silhouettes (dark) */}
+        {/* FOREGROUND silhouettes */}
         <g opacity={0.96}>
-          <path d={ridgePath(yFG, height * 0.08, 42, 77)} fill={P.nearDark} />
-          {fgPlants.map((p, i) => {
-            if (p.t < 0.33) return <Palmetto key={`f-p-${i}`} x={p.x} baseY={yFG} h={p.h} dark />;
-            if (p.t < 0.66) return <Banana key={`f-b-${i}`} x={p.x} baseY={yFG} h={p.h * 0.92} dark />;
-            return <Yucca key={`f-y-${i}`} x={p.x} baseY={yFG} h={p.h * 0.86} dark />;
+          <path d={ridgePath(yFG, p(height * 0.08), 42, 1.2)} fill={P.darkBand} />
+          {fgPlants.map((f, i) => {
+            const origin = `${p(f.x)}px ${yFG}px`;
+            const swayDur = 3 + (i % 3);
+            const style = windy ? { transformOrigin: origin, animation: `semi-sway ${swayDur}s ease-in-out infinite` } : undefined;
+            if (f.t < 0.33) return <g key={`f-p-${i}`} style={style}><Palmetto x={f.x} baseY={yFG} h={f.h} dark /></g>;
+            if (f.t < 0.66) return <g key={`f-b-${i}`} style={style}><Banana x={f.x} baseY={yFG} h={f.h * 0.94} dark /></g>;
+            return <g key={`f-m-${i}`} style={style}><Mangrove x={f.x} baseY={yFG} w={p(f.h * 0.60)} h={p(f.h * 0.66)} dark /></g>;
           })}
         </g>
 
-        {/* Few sky-tinted puddles (kept subtle for readability) */}
-        <g style={{ mixBlendMode: "screen" as any }}>
-          {puddles.map((p, i) => (
-            <g key={i} opacity={p.o}>
-              <ellipse cx={p.x} cy={p.y} rx={p.rx} ry={p.ry} fill={blendHex(P.water, P.rim, 0.25)} />
-              <ellipse cx={p.x} cy={p.y} rx={Math.max(1, p.rx - 2)} ry={Math.max(1, p.ry - 1)} fill="none" stroke={P.waterHi} strokeWidth={0.7} />
-            </g>
-          ))}
-        </g>
+        {/* Urban villas with window glow */}
+        {villas.map((v, k) => (
+          <g key={`villa-${k}`} opacity={0.97}>
+            <rect x={v.x - v.w / 2} y={v.y - v.h} width={v.w} height={v.h} fill={blendHex('#fff3df', skyBottom, 0.15)} />
+            <path
+              d={`M ${v.x - v.w / 2 - 2} ${v.y - v.h}
+                 L ${v.x} ${v.y - v.h - 6}
+                 L ${v.x + v.w / 2 + 2} ${v.y - v.h} Z`}
+              fill={blendHex('#cb6a38', skyBottom, 0.2)}
+            />
+            {(isNight || isDusk) && v.glow && (
+              <g filter={`url(#${ids.glow})`} style={{ animation: `semi-window ${4 + (k % 3)}s ease-in-out infinite` }}>
+                <rect x={v.x - v.w * 0.25} y={v.y - v.h + 3} width="3" height="3" fill={P.windowGlow} rx="0.5" />
+                <rect x={v.x + v.w * 0.1}  y={v.y - v.h + 3} width="3" height="3" fill={P.windowGlow} rx="0.5" opacity="0.85" />
+              </g>
+            )}
+            {isSnow && <rect x={v.x - v.w / 2 - 1} y={v.y - v.h - 1} width={v.w + 2} height="2" fill={P.snow} opacity="0.9" />}
+          </g>
+        ))}
 
-        {/* Optional water sheen near panel */}
-        {hasWater && (
-          <g opacity={0.75}>
-            <rect x="0" y={height - bandH * 0.7} width={width} height={bandH * 0.7} fill={`url(#${ids.water})`} />
-            {[0.86, 0.90].map((yy, i) => (
-              <path
-                key={i}
-                d={`M 0 ${height * yy}
-                    Q ${width * 0.25} ${height * (yy - 0.010)}, ${width * 0.5} ${height * yy}
-                    T ${width} ${height * yy}`}
-                stroke={P.waterHi}
-                strokeWidth={i === 0 ? 1.2 : 1}
-                opacity={0.26}
-                fill="none"
-              />
-            ))}
+        {/* Lagoon / water pocket */}
+        {hasLagoon && hasWater && (
+          <g opacity="0.9">
+            <path
+              d={`
+                M ${p(width * 0.28)} ${p(yMid + 4)}
+                C ${p(width * 0.36)} ${p(yMid)}, ${p(width * 0.46)} ${p(yMid + 2)}, ${p(width * 0.54)} ${p(yMid + 4)}
+                S ${p(width * 0.66)} ${p(yMid + 2)}, ${p(width * 0.72)} ${p(yMid + 4)}
+                L ${p(width * 0.72)} ${p(yNear)}
+                C ${p(width * 0.64)} ${p(yNear - 2)}, ${p(width * 0.56)} ${p(yNear)}, ${p(width * 0.50)} ${p(yNear)}
+                S ${p(width * 0.36)} ${p(yNear - 2)}, ${p(width * 0.28)} ${p(yNear)}
+                Z
+              `}
+              fill={P.water}
+              opacity="0.78"
+            />
+            <path
+              d={`M ${p(width * 0.34)} ${p((yMid + yNear) / 2)} Q ${p(width * 0.50)} ${p((yMid + yNear) / 2 - 2)}, ${p(width * 0.66)} ${p((yMid + yNear) / 2)}`}
+              stroke={P.waterHi}
+              strokeWidth="1"
+              opacity="0.4"
+              fill="none"
+            />
           </g>
         )}
+
+        {/* Coastal edges if not lagoon */}
+        {!hasLagoon && hasWater && (
+          <>
+            <g opacity="0.88">
+              <path
+                d={`M 0 ${p(yNear - 10)} C ${p(width*0.10)} ${p(yNear - 12)}, ${p(width*0.20)} ${p(yNear - 6)}, ${p(width*0.26)} ${p(yNear - 3)} L ${p(width*0.26)} ${height} L 0 ${height} Z`}
+                fill={P.water}
+              />
+              <path d={`M 0 ${p(yNear - 3)} Q ${p(width*0.12)} ${p(yNear - 4)}, ${p(width*0.26)} ${p(yNear - 3)}`} stroke={P.waterHi} strokeWidth="1.5" opacity="0.45" fill="none" />
+            </g>
+            <g opacity="0.88">
+              <path
+                d={`M ${width} ${p(yNear - 8)} C ${p(width*0.92)} ${p(yNear - 10)}, ${p(width*0.86)} ${p(yNear - 6)}, ${p(width*0.80)} ${p(yNear - 3)} L ${p(width*0.80)} ${height} L ${width} ${height} Z`}
+                fill={P.water}
+              />
+              <path d={`M ${width} ${p(yNear - 3)} Q ${p(width*0.90)} ${p(yNear - 4)}, ${p(width*0.80)} ${p(yNear - 3)}`} stroke={P.waterHi} strokeWidth="1.5" opacity="0.45" fill="none" />
+            </g>
+          </>
+        )}
+
+        {/* Wind whitecaps */}
+        {hasWater && windy && (
+          <rect
+            x="0" y={p(yNear - 8)} width={width} height={p(height - (yNear - 8))}
+            fill="white" filter={`url(#${ids.whitecap})`} opacity="0.08"
+          />
+        )}
+
+        {/* RAIN: streaks + puddles + wet sheen + lightning */}
+        {isRain && (
+          <g>
+            <g filter={`url(#${ids.rainBlur})`} opacity={0.6}>
+              {Array.from({ length: rainDrops }).map((_, i) => {
+                const x = p(width * Math.random());
+                const y = p(yVF * 0.3 * Math.random());
+                const len = p((8 + dropletSize * 16) * (0.6 + Math.random() * 0.6));
+                const w = Math.max(1, Math.round(1 + dropletSize));
+                const dur = (0.9 + Math.random() * 0.8) * (1.4 - intensity);
+                const delay = Math.random() * -4;
+                return (
+                  <rect
+                    key={`rd-${i}`}
+                    x={x} y={y} width={w} height={len} rx={w/2}
+                    fill={P.rain} opacity={0.8}
+                    style={{ animation: `semi-rain ${dur}s linear ${delay}s infinite` }}
+                  />
+                );
+              })}
+            </g>
+
+            {/* Wet sheen */}
+            <rect x="0" y={p(height * 0.86)} width={width} height={p(height * 0.14)} fill={P.water} opacity={0.12 + (fx?.surfaceWetnessNow ?? intensity) * 0.22} />
+
+            {/* Puddles + ripples */}
+            <g opacity={0.36 + intensity * 0.4}>
+              {Array.from({ length: puddles }).map((_, i) => {
+                const cx = p(width * ((i + 1) / (puddles + 1)) + Math.sin(i * 13.7) * 18);
+                const cy = p(height * (0.90 + Math.sin(i * 7.3) * 0.02));
+                const rx = p(12 + intensity * 14 + (i % 3) * 3);
+                const ry = p(3 + intensity * 3);
+                return (
+                  <g key={`pud-${i}`}>
+                    <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={P.water} opacity={0.45 + intensity * 0.3} />
+                    {[0,1,2].map((r) => (
+                      <ellipse
+                        key={`rip-${i}-${r}`}
+                        cx={cx} cy={cy} rx={rx * (0.5 + r * 0.2)} ry={ry * (0.5 + r * 0.2)}
+                        fill="none" stroke={P.waterHi} strokeWidth="1" opacity="0.5"
+                        style={{ transformOrigin: `${cx}px ${cy}px`, animation: `semi-ripple ${1.4 + r * 0.3}s ease-out ${r * 0.35 + i * 0.2}s infinite` }}
+                      />
+                    ))}
+                  </g>
+                );
+              })}
+            </g>
+
+            {/* Lightning */}
+            {showLightning && (
+              <rect x="0" y="0" width={width} height={height} fill="#ffffff" style={{ animation: `semi-lightning ${6 + ((Math.random() * 5) | 0)}s linear ${Math.random()*3}s infinite` }} opacity="0" />
+            )}
+          </g>
+        )}
+
+        {/* SNOW: flakes + drift accumulation (rare in semitropical, but supported) */}
+        {isSnow && (
+          <g>
+            <g filter={`url(#${ids.snowBlur})`}>
+              {Array.from({ length: snowFlakes }).map((_, i) => {
+                const sx = p(width * Math.random());
+                const sy = p(yVF * 0.2 * Math.random());
+                const size = 1 + Math.round(1 + flakeSize * 2 + (i % 2));
+                const dur = 3.5 + (Math.random() * 2) + (1 - intensity) * 2;
+                const delay = Math.random() * -6;
+                return (
+                  <circle
+                    key={`sf-${i}`}
+                    cx={sx} cy={sy} r={size}
+                    fill={P.snow} opacity={0.9}
+                    style={{ animation: `semi-snow ${dur}s linear ${delay}s infinite` }}
+                  />
+                );
+              })}
+            </g>
+            <path
+              d={`M 0 ${p(yNear + 2)} C ${p(width*0.20)} ${p(yNear - 2)}, ${p(width*0.50)} ${p(yNear + 2)}, ${p(width*0.80)} ${p(yNear - 2)} L ${width} ${p(yNear)} L ${width} ${height} L 0 ${height} Z`}
+              fill={P.snowBlue} opacity={0.35 + intensity * 0.35}
+            />
+          </g>
+        )}
+
+        {/* Airborne dust/sand */}
+        {dustDots > 0 && (
+          <g opacity={clamp01((airborne?.density ?? 0.5) * 0.6)}>
+            <rect x="0" y={yMid - 10} width={width} height={p(height - (yMid - 10))} fill={P.dust} filter={`url(#${ids.dust})`} />
+          </g>
+        )}
+
+        {/* Pollen drift */}
+        {pollenDots > 0 && (
+          <g opacity={0.45} filter={`url(#${ids.pollen})`}>
+            {Array.from({ length: pollenDots }).map((_, i) => {
+              const x = p(width * (0.05 + Math.random() * 0.90));
+              const y = p(yMid + Math.random() * (height - yMid));
+              const r = 1 + (i % 2);
+              const dur = 6 + (i % 5);
+              return (
+                <circle key={`pol-${i}`} cx={x} cy={y} r={r} fill={P.pollen} style={{ animation: `${ids.rimHL} ${dur}s ${Math.random()*2}s infinite` }} opacity="0" />
+              );
+            })}
+          </g>
+        )}
+
+        {/* Blossoms (jacaranda/cherry) */}
+        {showBlossoms && (
+          <g opacity={0.85}>
+            {Array.from({ length: blossomCount }).map((_, i) => {
+              const px = p(width * (0.05 + Math.random() * 0.90));
+              const py = p(yNear - 18 - Math.random() * 24);
+              const palette = blossoms!.palette ?? ['#C7A0E8', '#B57EDC', '#9F6ED1', '#8F5BC7', '#E6D7F7'];
+              const color = palette[i % palette.length];
+              const sizeMin = blossoms!.sizeRange?.[0] ?? 3;
+              const sizeMax = blossoms!.sizeRange?.[1] ?? 7;
+              const size = sizeMin + Math.random() * (sizeMax - sizeMin);
+              return (
+                <rect
+                  key={`petal-${i}`} x={px} y={py}
+                  width={size} height={size * 0.6}
+                  fill={color} opacity={0.9}
+                  style={{ transformOrigin: `${px}px ${py}px`, animation: `semi-petal ${7 + (i % 5)}s linear ${i * 0.18}s infinite` }}
+                />
+              );
+            })}
+          </g>
+        )}
+
+        {/* Autumn leaves (rare in semitropics but supported) */}
+        {showLeaves && (
+          <g opacity={0.9}>
+            {Array.from({ length: leafCount }).map((_, i) => {
+              const px = p(width * (0.06 + Math.random() * 0.88));
+              const py = p(yMid - 6 - Math.random() * 22);
+              const palette = fx?.leafPalette ?? ['#C43E2F','#E07A2E','#E3A018','#9E6A3A','#7A4F2C','#B26E5D'];
+              const color = palette[i % palette.length];
+              const w = 4 + (i % 3);
+              const h = 3 + (i % 2);
+              return (
+                <path
+                  key={`leaf-${i}`}
+                  d={`M ${px} ${py} q ${-w} ${h}, 0 ${2*h} q ${w} ${-h}, 0 ${-2*h} z`}
+                  fill={color}
+                  style={{ transformOrigin: `${px}px ${py}px`, animation: `semi-leaf ${6 + (i % 5)}s linear ${i * 0.15}s infinite` }}
+                  opacity="0.95"
+                />
+              );
+            })}
+          </g>
+        )}
+
+        {/* Rainbow hint */}
+        {showRainbow && (
+          <ellipse cx={width / 2} cy={height} rx={width * 0.7} ry={height * 0.9} fill={`url(#${ids.rainbow})`} opacity="0.35" />
+        )}
+
+        {/* Fireflies */}
+        {showFireflies && (
+          <g filter={`url(#${ids.glow})`}>
+            {Array.from({ length: 6 + Math.round(fireflyP * 10) }).map((_, i) => {
+              const x = p(width * (0.08 + Math.random() * 0.84));
+              const y = p(yMid + Math.random() * (yNear - yMid));
+              return (
+                <circle key={`ff-${i}`} cx={x} cy={y} r="1.6" fill={P.firefly} style={{ animation: `semi-firefly ${3 + (i%4)}s ease-in-out ${Math.random()*2}s infinite` }} opacity="0.7" />
+              );
+            })}
+          </g>
+        )}
+
+        {/* Bottom feather into panel */}
+        <rect x="0" y={yFeather} width={width} height={height - yFeather} fill={`url(#${ids.panel})`} />
       </g>
 
-      {/* panel feather (outside mask) */}
-      <rect x="0" y={height - bandH * 2.8} width={width} height={bandH * 2.8} fill={`url(#${ids.panelFeather})`} />
+      {/* Optional water sheen near the very bottom (outside mask to sit over panel) */}
+      {hasWater && (
+        <rect x="0" y={height - 18} width={width} height={18} fill={`url(#${ids.waterSheen})`} />
+      )}
     </svg>
   );
 };

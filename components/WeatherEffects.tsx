@@ -2,17 +2,19 @@
  * components/WeatherEffects.tsx - Dynamic weather particle & atmosphere effects
  * High-performance CSS animations integrated with WeatherService.fx and CloudSystem
  *
- * Features (backward compatible):
- *  - Rain/drizzle with droplet sizing from fx.dropletSize, lens-sheen, gust lines
- *  - Snow with flake sizing from fx.flakeSize, sway & spin, visibility-aware density
- *  - Heatwave shimmer & ground mirage (fx.heatShimmer or special === 'heatwave')
- *  - Wind-blown leaves (fx.leavesActivity or wind heuristics)
- *  - Airborne particles: dust/sand (dry & windy) or pollen (warm, calm) via fx.airborneParticles
+ * Features:
+ *  - Rain/drizzle with droplet sizing (fx.dropletSize), lens-sheen, gust lines
+ *  - Snow with flake sizing (fx.flakeSize), sway & spin, visibility-aware density
+ *  - Seasonal petals (spring): cherry (temperate/cold/med) & jacaranda (semitropical) via fx.blossoms
+ *  - Autumn leaves (fall): in temperate/med/cold only, via fx.leavesActivity (+ fx.leafPalette)
+ *  - Airborne particles: dust/sand/pollen via fx.airborneParticles
  *  - Fog/mist/haze layering using fx.fogDensity / fx.hazeDensity + special
  *  - Frost sparkle field (special === 'frost')
  *  - Rainbow (special === 'rainbow' or fx.rainbowProbability)
  *  - Puddle ripples using fx.surfaceWetnessNow (snapshot)
  *  - Lightning flash frequency scaled by fx.lightningProbability
+ *  - Fireflies (summer nights) via fx.fireflyProbability
+ *  - Aurora (rare winter nights, cold climates) via fx.auroraProbability
  */
 
 import React, { useMemo, useEffect, useRef } from 'react';
@@ -23,6 +25,9 @@ interface WeatherEffectsProps {
   width?: number;
   height?: number;
 }
+
+/** Keep this in sync with services/weatherService.ts */
+const WINDY_KMH = 18;
 
 // Particle pool to avoid garbage collection
 class ParticlePool {
@@ -74,7 +79,9 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
   const rainPoolRef = useRef<ParticlePool | null>(null);
   const snowPoolRef = useRef<ParticlePool | null>(null);
   const leafPoolRef = useRef<ParticlePool | null>(null);
+  const blossomPoolRef = useRef<ParticlePool | null>(null);
   const airPoolRef = useRef<ParticlePool | null>(null);
+  const fireflyPoolRef = useRef<ParticlePool | null>(null);
 
   // Shorthands / safe fallbacks
   const fx = weather.fx;
@@ -85,19 +92,25 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
     if (!containerRef.current) return;
     rainPoolRef.current = new ParticlePool(260, 'rain-particle');
     snowPoolRef.current = new ParticlePool(180, 'snow-particle');
-    leafPoolRef.current = new ParticlePool(120, 'leaf-particle');
+    leafPoolRef.current = new ParticlePool(140, 'leaf-particle');
+    blossomPoolRef.current = new ParticlePool(160, 'petal-particle');
     airPoolRef.current = new ParticlePool(160, 'air-particle');
+    fireflyPoolRef.current = new ParticlePool(120, 'firefly-particle');
 
     rainPoolRef.current.init(containerRef.current);
     snowPoolRef.current.init(containerRef.current);
     leafPoolRef.current.init(containerRef.current);
+    blossomPoolRef.current.init(containerRef.current);
     airPoolRef.current.init(containerRef.current);
+    fireflyPoolRef.current.init(containerRef.current);
 
     return () => {
       rainPoolRef.current?.cleanup();
       snowPoolRef.current?.cleanup();
       leafPoolRef.current?.cleanup();
+      blossomPoolRef.current?.cleanup();
       airPoolRef.current?.cleanup();
+      fireflyPoolRef.current?.cleanup();
     };
   }, []);
 
@@ -110,8 +123,9 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
     const windX = Math.cos((windDir * Math.PI) / 180) * wind;
     const windShear = Math.min(160, Math.max(-160, windX * 6));
     const intensity = clamp(weather.intensity ?? 0);
+    const visible = (weather.visibility ?? 1);
 
-    // RAIN / DRIZZLE
+    /* --------------------------- RAIN / DRIZZLE --------------------------- */
     if (weather.precipitation === 'rain' || weather.precipitation === 'drizzle') {
       const sizeFactor = fx?.dropletSize ?? (weather.precipitation === 'drizzle' ? 0.25 : 0.7);
       const base = weather.precipitation === 'rain' ? 220 : 80;
@@ -122,12 +136,11 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
         const startY = -20 - Math.random() * 80;
         const dropW = clamp(0.8 + sizeFactor * 2, 0.8, 3);
         const dropH = clamp(8 + sizeFactor * 16, 8, 24);
-        const duration = 1.2 + Math.random() * 1.4; // cinematic but not too slow
+        const duration = 1.2 + Math.random() * 1.4;
         const delay = Math.random() * 3.0;
 
         particle.style.setProperty('--fall-y', `${height + 50}px`);
         particle.style.setProperty('--wind-offset', `${windShear.toFixed(1)}px`);
-
         particle.style.left = `${x}px`;
         particle.style.top = `${startY}px`;
         particle.style.width = `${dropW}px`;
@@ -139,7 +152,6 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
         particle.style.animation = `rain-fall ${duration}s linear ${delay}s infinite, rain-tilt ${
           1.8 + Math.random() * 1.2
         }s ease-in-out ${Math.random().toFixed(2)}s infinite alternate`;
-
         const visualTilt = Math.max(-16, Math.min(16, windX * 0.6));
         particle.style.transform = `rotate(${visualTilt}deg) translateZ(0)`;
       });
@@ -147,10 +159,10 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
       rainPoolRef.current?.activate(0, () => {});
     }
 
-    // SNOW
+    /* -------------------------------- SNOW ------------------------------- */
     if (weather.precipitation === 'snow') {
       const flakeK = fx?.flakeSize ?? (0.3 + intensity * 0.7);
-      const count = Math.floor(intensity * 150 * clamp(weather.visibility ?? 1)); // fewer when visibility is low anyway
+      const count = Math.floor(intensity * 150 * clamp(visible)); // fewer when visibility is low
 
       snowPoolRef.current?.activate(count, (particle) => {
         const x = Math.random() * width;
@@ -165,7 +177,6 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
         particle.style.setProperty('--drift', `${(windX * 2.8).toFixed(1)}px`);
         particle.style.setProperty('--sway', `${sway.toFixed(1)}px`);
         particle.style.setProperty('--spinDir', spin ? '1' : '-1');
-
         particle.style.left = `${x}px`;
         particle.style.top = `${startY}px`;
         particle.style.width = `${size}px`;
@@ -183,21 +194,72 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
       snowPoolRef.current?.activate(0, () => {});
     }
 
-    // LEAVES (windy & visible)
-    const leavesActivity = fx?.leavesActivity ?? clamp((weather.windSpeed - 10) / 60);
-    const showLeaves = leavesActivity > 0.05 && weather.precipitation === 'none' && (weather.visibility ?? 1) > 0.5;
+    /* --------------------------- BLOSSOMS (SPRING) ------------------------ */
+    const blossoms = fx?.blossoms; // defined by WeatherService only when appropriate
+    const showBlossoms =
+      !!blossoms &&
+      (weather.precipitation === 'none') &&
+      visible > 0.5 &&
+      (weather.windSpeed ?? 0) >= WINDY_KMH &&
+      (blossoms.activity ?? 0) > 0.05;
+
+    if (showBlossoms && blossoms) {
+      const { activity, palette, sizeRange } = blossoms;
+      const count = Math.min(160, Math.floor(activity * 160));
+
+      blossomPoolRef.current?.activate(count, (particle) => {
+        const x = Math.random() * width;
+        const startY = Math.random() * (height * 0.28) - 60;
+        const size = (sizeRange ? (sizeRange[0] + Math.random() * (sizeRange[1] - sizeRange[0])) : (3 + Math.random() * 4));
+        const w = size + (Math.random() * 2);
+        const h = size * (0.6 + Math.random() * 0.5);
+        const dx = windX * (16 + Math.random() * 18) + (Math.random() * 200 - 100);
+        const dy = height + 80 + Math.random() * 160;
+        const dur = 7 + Math.random() * 4;
+        const delay = Math.random() * 2.5;
+
+        particle.style.setProperty('--petal-dx', `${dx}px`);
+        particle.style.setProperty('--petal-dy', `${dy}px`);
+        particle.style.setProperty('--petal-dx-half', `${dx * 0.55}px`);
+        particle.style.setProperty('--petal-dy-half', `${dy * 0.55}px`);
+        particle.style.setProperty('--petal-rotMid', `${(Math.random() * 220 - 110).toFixed(1)}deg`);
+        particle.style.setProperty('--petal-rotEnd', `${(Math.random() * 480 - 240).toFixed(1)}deg`);
+        particle.style.left = `${x}px`;
+        particle.style.top = `${startY}px`;
+        particle.style.width = `${w}px`;
+        particle.style.height = `${h}px`;
+        particle.style.borderRadius = '45% 55% 50% 50% / 55% 45% 55% 45%';
+
+        const col = palette[(Math.random() * palette.length) | 0];
+        particle.style.background = `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.6), ${col})`;
+        particle.style.boxShadow = '0 0 1px rgba(0,0,0,0.12)';
+        particle.style.opacity = String(0.8 + Math.random() * 0.2);
+        particle.style.animation = `petal-move ${dur}s ease-in ${delay}s infinite`;
+      });
+    } else {
+      blossomPoolRef.current?.activate(0, () => {});
+    }
+
+    /* ----------------------- LEAVES (AUTUMN ONLY) ------------------------- */
+    const leavesActivity = fx?.leavesActivity ?? 0;
+    const showLeaves =
+      (weather.windSpeed ?? 0) >= WINDY_KMH &&
+      leavesActivity > 0.05 &&
+      weather.precipitation === 'none' &&
+      visible > 0.5;
+
     if (showLeaves) {
-      const count = Math.min(120, Math.floor(leavesActivity * 120));
-      const leafPalette = ['#9E6A3A', '#C58B35', '#7AA45A', '#B26E5D', '#8C7A4B'];
+      const count = Math.min(140, Math.floor(leavesActivity * 140));
+      const leafPalette = fx?.leafPalette ?? ['#C43E2F', '#E07A2E', '#E3A018', '#9E6A3A', '#7A4F2C', '#B26E5D'];
 
       leafPoolRef.current?.activate(count, (particle) => {
         const x = Math.random() * width;
         const startY = Math.random() * (height * 0.25) - 60;
         const w = 6 + Math.random() * 8;
         const h = 3 + Math.random() * 5;
-        const dx = windX * (12 + Math.random() * 14) + (Math.random() * 160 - 80);
-        const dy = height + 60 + Math.random() * 120;
-        const dur = 6 + Math.random() * 4;
+        const dx = windX * (14 + Math.random() * 18) + (Math.random() * 180 - 90);
+        const dy = height + 60 + Math.random() * 140;
+        const dur = 6.5 + Math.random() * 4.5;
         const delay = Math.random() * 3;
 
         particle.style.setProperty('--leaf-dx', `${dx}px`);
@@ -222,7 +284,7 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
       leafPoolRef.current?.activate(0, () => {});
     }
 
-    // AIRBORNE PARTICLES (dust/sand or pollen)
+    /* ------------------- AIRBORNE PARTICLES (dust/pollen) ----------------- */
     const ap = fx?.airborneParticles;
     const showDust = ap && (ap.type === 'dust' || ap.type === 'sand');
     const showPollen = ap && ap.type === 'pollen';
@@ -254,45 +316,72 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
     } else {
       airPoolRef.current?.activate(0, () => {});
     }
+
+    /* ------------------------ FIREFLIES (summer nights) ------------------- */
+    const fireflyProb = fx?.fireflyProbability ?? 0;
+    const showFireflies = fireflyProb > 0 && (weather.precipitation === 'none');
+    if (showFireflies) {
+      const count = Math.floor(clamp(fireflyProb, 0.05, 1) * 120);
+      fireflyPoolRef.current?.activate(count, (particle, i) => {
+        const x = (i * 97) % width;
+        const y = height * (0.6 + Math.random() * 0.35);
+        const size = 1 + (i % 3);
+        const dur = 6 + Math.random() * 6;
+        const delay = Math.random() * 4;
+
+        particle.style.left = `${x}px`;
+        particle.style.top = `${y}px`;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        particle.style.borderRadius = '50%';
+        particle.style.background = 'rgba(255, 255, 170, 0.9)';
+        particle.style.boxShadow = '0 0 6px rgba(255,255,170,0.9), 0 0 10px rgba(255,255,170,0.6)';
+        particle.style.opacity = '0';
+        particle.style.animation = `firefly-float ${dur}s ease-in-out ${delay}s infinite, firefly-twinkle ${
+          2 + Math.random() * 2
+        }s ease-in-out ${Math.random() * 2}s infinite`;
+      });
+    } else {
+      fireflyPoolRef.current?.activate(0, () => {});
+    }
   }, [weather, width, height]);
 
-  // Fog / mist / haze: derive layered opacities
+  /* ---------------- Fog / Mist / Haze layering (derived) ----------------- */
   const fogLayers = useMemo(() => {
-    const isFog = weather.special === 'fog';
-    const isMist = weather.special === 'mist';
-    const fogDensity = weather.fx?.fogDensity ?? (isFog ? 0.6 : isMist ? 0.34 : 0);
+    const fogDensity = weather.fx?.fogDensity ?? 0;
     const hazeDensity = weather.fx?.hazeDensity ?? 0;
+    const isFog = weather.special === 'fog' || fogDensity > 0.05;
+    const isMist = weather.special === 'mist' || (hazeDensity > 0.1 && !isFog);
 
     const layers =
-      fogDensity > 0
-        ? 2 + (fogDensity > 0.5 ? 1 : 0)
-        : hazeDensity > 0.1
-        ? 1
-        : 0;
+      isFog ? (fogDensity > 0.5 ? 3 : 2) :
+      isMist ? 1 : 0;
 
     if (layers === 0) return null;
 
     return Array.from({ length: layers }, (_, i) => ({
-      opacity:
-        fogDensity > 0
-          ? fogDensity * (1 - i * 0.22)
-          : hazeDensity * (0.22 + (i === 0 ? 0.15 : 0.08)),
+      opacity: isFog
+        ? fogDensity * (1 - i * 0.22)
+        : hazeDensity * (0.22 + (i === 0 ? 0.15 : 0.08)),
       duration: 24 + i * 10,
       delay: i * 1.4,
       scale: 1.15 + i * 0.05
     }));
   }, [weather.special, weather.fx?.fogDensity, weather.fx?.hazeDensity]);
 
-  // Overlays
+  /* ----------------------------- Overlays -------------------------------- */
   const showHeat = weather.special === 'heatwave' || (weather.fx?.heatShimmer ?? 0) > 0.15;
   const showRainbow = weather.special === 'rainbow' || (weather.fx?.rainbowProbability ?? 0) > 0.55;
   const showFrost = weather.special === 'frost';
   const lightningProb = weather.fx?.lightningProbability ?? 0;
   const showLightning = (weather.precipitation === 'rain' || weather.precipitation === 'drizzle') && lightningProb > 0.2;
-  const showGusts = (weather.windSpeed ?? 0) > 12 && (weather.precipitation === 'rain' || weather.precipitation === 'drizzle');
+  const showGusts = (weather.windSpeed ?? 0) >= WINDY_KMH && (weather.precipitation === 'rain' || weather.precipitation === 'drizzle');
 
-  const wetness = clamp(weather.fx?.surfaceWetnessNow ?? 0);
+  const wetness = Math.max(0, Math.min(1, weather.fx?.surfaceWetnessNow ?? 0));
   const showPuddles = wetness > 0.35;
+
+  const auroraProb = weather.fx?.auroraProbability ?? 0;
+  const showAurora = auroraProb > 0 && (weather.precipitation === 'none') && (weather.cloudCover ?? 1) < 0.35;
 
   return (
     <>
@@ -373,7 +462,7 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
             className="absolute inset-0 pointer-events-none"
             style={{
               zIndex: 2,
-              opacity: clamp((weather.fx?.heatShimmer ?? 0.4) * 0.6 + 0.2),
+              opacity: Math.min(1, (weather.fx?.heatShimmer ?? 0.4) * 0.6 + 0.2),
               background:
                 'repeating-linear-gradient(0deg, rgba(255,255,255,0), rgba(255,255,255,0) 8px, rgba(255,230,180,0.06) 12px, rgba(255,255,255,0) 16px)',
               animation: 'heat-shimmer 6s ease-in-out infinite',
@@ -470,7 +559,7 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
 
       {/* Puddle ripples (subtle, near bottom) */}
       {showPuddles && (
-        <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{ height: '18%', zIndex: 2, opacity: clamp(0.25 + wetness * 0.45) }}>
+        <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{ height: '18%', zIndex: 2, opacity: Math.min(0.7, 0.25 + wetness * 0.45) }}>
           {Array.from({ length: 12 }, (_, i) => {
             const w = 80 + (i % 4) * 30;
             const l = (i * 11.3) % width;
@@ -495,14 +584,40 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
         </div>
       )}
 
-      {/* Lightning flash (frequency scaled by probability) */}
+      {/* Aurora (soft moving curtains, top band) */}
+      {showAurora && (
+        <div
+          aria-hidden
+          className="absolute inset-x-0 top-0 pointer-events-none"
+          style={{
+            zIndex: 2,
+            height: '36%',
+            opacity: Math.min(0.85, 0.3 + auroraProb * 0.8),
+            mixBlendMode: 'screen',
+            background:
+              'radial-gradient(120% 100% at 50% 0%, rgba(60,255,180,0.18), rgba(120,180,255,0.12) 40%, rgba(0,0,0,0) 70%)'
+          }}
+        >
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(90deg, rgba(90,255,160,0.28), rgba(120,180,255,0.22), rgba(160,120,255,0.18))',
+              filter: 'blur(8px)',
+              animation: 'aurora-shift 16s ease-in-out infinite alternate'
+            }}
+          />
+        </div>
+      )}
+
+      {/* Lightning flash */}
       {showLightning && (
         <div
           aria-hidden
           className="absolute inset-0 pointer-events-none"
           style={{
             zIndex: 4,
-            animation: `lightning-flash ${3 + (1 - clamp(lightningProb)) * 3}s ease-in-out ${Math.random() * 2}s infinite`,
+            animation: `lightning-flash ${3 + (1 - Math.max(0, Math.min(1, lightningProb))) * 3}s ease-in-out ${Math.random() * 2}s infinite`,
             background: 'radial-gradient(circle at 60% 20%, rgba(255,255,255,0.6), rgba(255,255,255,0) 40%)',
             mixBlendMode: 'screen',
             opacity: 0
@@ -536,7 +651,15 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
           100% { transform: rotate(calc(360deg * var(--spinDir, 1))); }
         }
 
-        /* LEAVES */
+        /* PETALS (spring) */
+        @keyframes petal-move {
+          0%   { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 0; }
+          10%  { opacity: 0.95; }
+          50%  { transform: translate3d(var(--petal-dx-half, 100px), var(--petal-dy-half, 200px), 0) rotate(var(--petal-rotMid, 120deg)); }
+          100% { transform: translate3d(var(--petal-dx, 200px), var(--petal-dy, 400px), 0) rotate(var(--petal-rotEnd, 300deg)); opacity: 0; }
+        }
+
+        /* LEAVES (autumn) */
         @keyframes leaf-move {
           0%   { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 0; }
           10%  { opacity: 0.9; }
@@ -598,6 +721,23 @@ const WeatherEffects: React.FC<WeatherEffectsProps> = ({
           97% { opacity: 0.9; }
           98% { opacity: 0.1; }
           99% { opacity: 0.6; }
+        }
+
+        /* FIREFLIES */
+        @keyframes firefly-float {
+          0%   { transform: translate3d(-4px, 0, 0); }
+          50%  { transform: translate3d(6px, -10px, 0); }
+          100% { transform: translate3d(-4px, 0, 0); }
+        }
+        @keyframes firefly-twinkle {
+          0%, 100% { opacity: 0.1; box-shadow: 0 0 3px rgba(255,255,170,0.6); }
+          50%      { opacity: 1;   box-shadow: 0 0 8px rgba(255,255,170,1), 0 0 14px rgba(255,255,170,0.8); }
+        }
+
+        /* AURORA */
+        @keyframes aurora-shift {
+          0%   { transform: translateX(-6%) skewX(-2deg); }
+          100% { transform: translateX(6%)  skewX(2deg); }
         }
       `}</style>
     </>

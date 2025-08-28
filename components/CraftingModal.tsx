@@ -35,7 +35,7 @@ const CraftingModal: React.FC<CraftingModalProps> = ({ isOpen, onClose, items, m
             return (
                 <div className="flex flex-col items-center justify-center h-48 text-center">
                     <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-400 mb-4"></div>
-                    <p className="text-amber-300">The arcane energies of creation swirl...</p>
+                    <p className="text-amber-300">Doing your best to make something...</p>
                 </div>
             );
         }

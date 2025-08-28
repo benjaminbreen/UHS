@@ -76,6 +76,9 @@ export interface Tile {
   pathObjectRef?: PathObject; // For pathfinding cost calculation
   // Optional properties for new features
   ruinType?: string; // For Ruins
+  ruinVariant?: string; // Specific ruin symbol variant to use
+  ruinMaterial?: string; // Material the ruin is made from (sandstone, granite, etc)
+  ruinStyle?: string; // Architectural style (tower, temple, pagoda, etc)
   culturalZone?: string; // Cultural zone for culture-specific rendering
   palaceType?: string; // For Palaces
   holyPlaceType?: string; // For Holy Places

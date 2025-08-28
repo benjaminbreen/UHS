@@ -4,17 +4,20 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { EncounterableEntity, NpcEntity, DialogueEntry, PlayerCharacter, MapData } from '../types';
 import { generateEncounterDialogue } from '../services/encounterService';
-import { summarizeConversation, generateInternalMonologue, generateNpcQuestOffer } from '../services/llmService';
+import { summarizeConversation, generateInternalMonologue } from '../services/llmService';
 import { TypewriterText } from '../hooks/useTypewriter';
 import NpcTradeInterface from './NpcTradeInterface';
 import { ProceduralPortrait, AnimatedPortrait } from './portraits';
 import { questService } from '../services/questService';
 import { Quest } from '../types/questTypes';
 import { Sparkles, Target, MapPin, Info, AlertTriangle, Heart } from 'lucide-react';
+import NpcQuestPanel from './NpcQuestPanel';
+import NpcMedicalPanel from './NpcMedicalPanel';
+import NpcHouseholdPanel from './NpcHouseholdPanel';
+import DiseaseContractedModal from './DiseaseContractedModal';
 import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
 import { useGame } from '../contexts/GameContext';
-import DiseaseService from '../services/diseaseService';
 import { 
     attemptTaming, 
     checkAnimalOwnership, 
@@ -23,109 +26,54 @@ import {
     calculateAnimalValue 
 } from '../services/animalTamingService';
 import { eventService } from '../services/eventService';
+import { getLanguageForCharacter, getLanguageComprehension, LANGUAGES } from '../constants/gameData/languages';
+import { triggerArrest, ArrestScenario } from '../services/arrestService';
+import { usePortraitExpression, mapRepDeltaToExpr, mapEventToExpr } from '../hooks/usePortraitExpression';
 
 function isNpc(target: EncounterableEntity): target is NpcEntity {
     return 'role' in target;
 }
 
 function getHistoricalLanguage(npc: NpcEntity, mapData: MapData | null): string {
-    if (!mapData) return 'Native';
+    if (!mapData) return 'Native Language';
     
     const year = parseInt(mapData.timeSlice || '1500');
-    const location = mapData.localArea || '';
-    const continent = mapData.continent || '';
-    const culturalZone = npc.culturalZone;
+    const language = getLanguageForCharacter(
+        npc.culturalZone || mapData.culturalZone || 'EUROPEAN',
+        year,
+        mapData.region,
+        mapData.localArea
+    );
     
-    // Ancient languages (Pre-500 CE)
-    if (year < 500) {
-        if (continent === 'Europe') {
-            if (location.includes('Rome') || location.includes('Roman')) return 'Latin';
-            if (location.includes('Greece') || location.includes('Greek')) return 'Ancient Greek';
-            if (location.includes('Gaul') || location.includes('Celtic')) return 'Gaulish';
-            if (location.includes('German')) return 'Proto-Germanic';
-            return 'Latin'; // Default for ancient Europe
-        }
-        if (continent === 'Asia') {
-            if (location.includes('China')) return 'Classical Chinese';
-            if (location.includes('India')) return 'Sanskrit';
-            if (location.includes('Mesopotamia') || location.includes('Babylon')) return 'Akkadian';
-            return 'Ancient Language';
-        }
-        if (continent === 'Africa') {
-            if (location.includes('Egypt')) return 'Ancient Egyptian';
-            return 'Ancient African';
-        }
-        if (continent === 'North America') {
-            if (location.includes('Columbia') || location.includes('River Valley')) return 'Chinookan';
-            if (location.includes('Pacific') || location.includes('Coast')) return 'Coast Salish';
-            if (location.includes('Plains')) return 'Proto-Siouan';
-            if (location.includes('Great Lakes')) return 'Proto-Algonquian';
-            if (location.includes('Southwest') || location.includes('Desert')) return 'Ancestral Puebloan';
-            if (culturalZone === 'NORTH_AMERICAN_PRE_COLUMBIAN') {
-                // More specific based on region
-                if (location.includes('Alaska')) return 'Proto-Inuit';
-                if (location.includes('Eastern')) return 'Proto-Iroquoian';
-                return 'Indigenous Language';
-            }
-            return 'Native American';
-        }
-        if (continent === 'South America') {
-            if (location.includes('Andes')) return 'Quechua';
-            if (culturalZone === 'SOUTH_AMERICAN') return 'Indigenous';
-            return 'Native Language';
-        }
-    }
+    return language?.name || 'Native Language';
+}
+
+/**
+ * Get language comprehension level between speaker and listener
+ */
+function calculateComprehension(npc: NpcEntity, player: PlayerCharacter, mapData: MapData | null): number {
+    if (!mapData) return 1.0; // Full comprehension if no context
     
-    // Medieval languages (500-1500 CE)
-    if (year >= 500 && year < 1500) {
-        if (continent === 'Europe') {
-            if (location.includes('England')) {
-                if (year < 1100) return 'Old English';
-                return 'Middle English';
-            }
-            if (location.includes('France')) return 'Old French';
-            if (location.includes('Spain') || location.includes('Iberia')) return 'Old Spanish';
-            if (location.includes('Scandinavia') || location.includes('Norse')) return 'Old Norse';
-            if (location.includes('Russia')) return 'Old Slavonic';
-            return 'Medieval Language';
-        }
-        if (continent === 'Asia') {
-            if (location.includes('Japan')) return 'Classical Japanese';
-            if (location.includes('China')) return 'Middle Chinese';
-            if (location.includes('Mongolia')) return 'Middle Mongolian';
-            if (location.includes('Arab') || location.includes('Middle East')) return 'Classical Arabic';
-            return 'Medieval Asian';
-        }
-        if (continent === 'North America' || continent === 'South America') {
-            if (culturalZone === 'MESOAMERICAN') return 'Nahuatl';
-            if (location.includes('Andes')) return 'Quechua';
-            if (location.includes('Maya')) return 'Mayan';
-            return 'Indigenous Language';
-        }
-    }
+    const year = parseInt(mapData.timeSlice || '1500');
     
-    // Early Modern (1500-1800)
-    if (year >= 1500 && year < 1800) {
-        if (continent === 'Europe') {
-            if (location.includes('England')) return 'Early Modern English';
-            if (location.includes('France')) return 'Early French';
-            if (location.includes('Spain')) return 'Early Spanish';
-            if (location.includes('Germany')) return 'Early German';
-            return 'Early Modern Language';
-        }
-        if (continent === 'Asia') {
-            if (location.includes('Japan')) return 'Early Modern Japanese';
-            if (location.includes('China')) return 'Early Mandarin';
-            return 'Early Modern Asian';
-        }
-    }
+    // Get languages
+    const npcLang = getLanguageForCharacter(
+        npc.culturalZone || mapData.culturalZone || 'EUROPEAN',
+        year,
+        mapData.region,
+        mapData.localArea
+    );
     
-    // Modern era fallback
-    if (year >= 1800) {
-        return 'Historical ' + (continent || 'Language');
-    }
+    const playerLang = getLanguageForCharacter(
+        player.culturalZone || mapData.culturalZone || 'EUROPEAN',
+        year,
+        mapData.region,
+        mapData.localArea
+    );
     
-    return 'Native Language';
+    if (!npcLang || !playerLang) return 1.0;
+    
+    return getLanguageComprehension(npcLang, playerLang);
 }
 
 interface EncounterModalProps {
@@ -143,15 +91,14 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
     const { worldData } = useMap();
     const { gameDate } = useGame();
     
+    // Portrait expression management
+    const { expr: portraitExpr, flash: flashPortrait, clear: clearPortrait } = usePortraitExpression();
+    
     const [history, setHistory] = useState<DialogueEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [playerInput, setPlayerInput] = useState('');
     const [activeTab, setActiveTab] = useState<'dialogue' | 'history' | 'trade' | 'medical' | 'household' | 'quest'>('dialogue');
     
-    // Quest-related state
-    const [questOffer, setQuestOffer] = useState<any>(null);
-    const [isLoadingQuest, setIsLoadingQuest] = useState(false);
-    const [hasCheckedForQuest, setHasCheckedForQuest] = useState(false);
     const [useRealLanguage, setUseRealLanguage] = useState(false);
     const [showTradeInterface, setShowTradeInterface] = useState(false);
     const [showNegotiationPanel, setShowNegotiationPanel] = useState(false);
@@ -164,6 +111,8 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
         symptomDescriptions: string[];
     } | null>(null);
     const [showDiseaseWarning, setShowDiseaseWarning] = useState(false);
+    const [showDiseaseModal, setShowDiseaseModal] = useState(false);
+    const [contractedDisease, setContractedDisease] = useState<any>(null);
     
     // Taming states
     const [showTamingInterface, setShowTamingInterface] = useState(false);
@@ -183,8 +132,6 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
     
     const hasFetchedInitialDialogue = useRef(false);
     const dialogueLogRef = useRef<HTMLDivElement>(null);
-    
-    const diseaseService = DiseaseService.getInstance();
 
     const targetName = isNpc(target) ? target.name : target.speciesName;
     
@@ -493,6 +440,13 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
             if (result.symptomDescriptions.length > 0 || result.transmitted) {
                 setShowDiseaseWarning(true);
                 setTimeout(() => setShowDiseaseWarning(false), 5000);
+                
+                // Show disease modal if player contracted a disease
+                if (result.transmitted && playerCharacter.health?.currentDiseases?.length > 0) {
+                    const newDisease = playerCharacter.health.currentDiseases[playerCharacter.health.currentDiseases.length - 1];
+                    setContractedDisease(newDisease.disease);
+                    setShowDiseaseModal(true);
+                }
             }
         } catch (error) {
             console.error('Error checking disease transmission:', error);
@@ -589,9 +543,12 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
         shouldCallAuthorities?: boolean,
         reasoning?: string 
     }) => {
-        // Check for reputation change
+        // Check for reputation change and trigger expression
         if (response.reputationChange) {
             setReputationChange(response.reputationChange);
+            const expr = mapRepDeltaToExpr(response.reputationChange);
+            if (expr) flashPortrait(expr);
+            
             if (playerCharacter) {
                 const oldReputation = playerCharacter.mapReputation || 50;
                 const newReputation = Math.max(0, Math.min(100, oldReputation + response.reputationChange));
@@ -618,9 +575,13 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
         
         // Check if NPC wants to call authorities
         if (response.shouldCallAuthorities) {
+            // Brief shock before any scowl/concern appears later
+            flashPortrait('surprise', 1200);
+            
             // NPC is reporting the player!
             setTimeout(() => {
                 setNpcWantsToLeave(true);
+                flashPortrait('scowl');
                 // Add warning message
                 const warningEntry: DialogueEntry = { 
                     speaker: 'system', 
@@ -657,6 +618,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
         
         if (isThreatening) {
             // Immediate reputation penalty for threats
+            flashPortrait('scowl', 2200);
             const threatPenalty = -50;
             setReputationChange(threatPenalty);
             if (playerCharacter.mapReputation !== undefined) {
@@ -739,7 +701,12 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                             }}
                             title="Click to see what they're really thinking..."
                         >
-                            <ProceduralPortrait character={target as any} size={70} />
+                            <ProceduralPortrait 
+                                character={target as any} 
+                                size={70}
+                                temporaryExpression={portraitExpr}
+                                onExpressionComplete={clearPortrait}
+                            />
                         </div>
                     ) : (
                         <div 
@@ -906,34 +873,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                          </div>
                      )}
                      {activeTab === 'household' && isNpc(target) && (
-                         <div className="space-y-3">
-                             <h4 className="text-lg font-semibold text-blue-300">Household Members</h4>
-                             {npcHousehold.length === 0 ? (
-                                 <p className="text-slate-500 italic">{targetName} lives alone.</p>
-                             ) : (
-                                 <div className="space-y-2">
-                                     {npcHousehold.map((member, idx) => (
-                                         <div key={`${member.relation}-${idx}`} className="p-3 bg-slate-800/40 rounded-lg border border-slate-700/50">
-                                             <div className="flex justify-between items-start">
-                                                 <div>
-                                                     <span className="font-semibold text-white">{member.relation}</span>
-                                                     <span className="text-slate-400 ml-2">{member.name}</span>
-                                                 </div>
-                                                 <span className="text-xs text-slate-500">Age {member.age}</span>
-                                             </div>
-                                             <div className="text-xs mt-1">
-                                                 <span className="text-slate-400">{member.profession}</span>
-                                                 {member.health !== 'Healthy' && (
-                                                     <span className={`ml-2 ${member.health.includes('Sick') ? 'text-orange-500' : 'text-yellow-500'}`}>
-                                                         • {member.health}
-                                                     </span>
-                                                 )}
-                                             </div>
-                                         </div>
-                                     ))}
-                                 </div>
-                             )}
-                         </div>
+                         <NpcHouseholdPanel npc={target} />
                      )}
                      {activeTab === 'trade' && isNpc(target) && playerCharacter && (
                          <NpcTradeInterface
@@ -1655,7 +1595,12 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                     <div className="mb-4 flex justify-center">
                         {isNpc(target) ? (
                             <div className="w-100 h-100 rounded-lg overflow-hidden border-2 border-amber-500/50 shadow-lg">
-                                <ProceduralPortrait character={target as any} size={100} />
+                                <ProceduralPortrait 
+                                    character={target as any} 
+                                    size={100}
+                                    temporaryExpression={portraitExpr}
+                                    onExpressionComplete={clearPortrait}
+                                />
                             </div>
                         ) : (
                             <div className="text-7xl">{target.emoji}</div>
@@ -1691,6 +1636,16 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                     </div>
                 </div>
             </div>
+            
+            {/* Disease Contracted Modal */}
+            {showDiseaseModal && contractedDisease && playerCharacter && (
+                <DiseaseContractedModal
+                    isOpen={showDiseaseModal}
+                    onClose={() => setShowDiseaseModal(false)}
+                    disease={contractedDisease}
+                    playerCharacter={playerCharacter}
+                />
+            )}
         </div>
     );
 };

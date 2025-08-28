@@ -1,19 +1,6 @@
 /**
  * components/horizons/AridHorizon.tsx
- *
- * Pixel-art inspired ARID horizon with region-accurate biome profiles.
- * - Smooth feather into TimeAwareBackground (reads --sky-* CSS vars)
- * - Layering: very-far violet ridges → far ridges → mid groundform (mesas/ergs/plains) → near scrub line
- * - Biome profiles (auto-inferred from regionName or forced via prop):
- *    • sonoran  – SW North America / Americas deserts (saguaro/prickly pear, mesas/dunes)
- *    • sahara   – North/East/West/Central Africa (umbrella acacia, dunes/regs, low relief)
- *    • arabian  – MENA/West-Central Asia (acacia/tamarix, low djebel + ergs)
- *    • australia– Outback/Center/West (spinifex hummocks, mulga clumps, termite mounds; flat/plains)
- * - Weather: heat shimmer (hot/heatwave) • rain puddles + wet sheen • snowdrifts + simple “caps”
- * - Left/right coastal water for island/peninsula/bay/straits maps
- * - Compact composition automatically when the strip is very short
- *
- * This component mirrors Temperate/Tropical APIs so it drops in cleanly.
+ * Pixel-art inspired ARID horizon with biome profiles + subtle weather animations.
  */
 
 import React, { useMemo } from 'react';
@@ -27,22 +14,12 @@ interface AridHorizonProps {
   width: number;
   height: number;
   hasWater?: boolean;
-  /** UI panel color under the horizon strip */
   bottomPanelColor?: string;
-  /** Optional deterministic seed */
   seed?: number;
-  /** Weather input from game state */
   weather?: WeatherState;
-  /** Optional manual biome override; otherwise inferred from regionName */
   biome?: AridBiome;
-  /** Region display name from geography.ts (used for biome inference) */
   regionName?: string;
-  /** Optionally override sky colors; normally provided by TimeAwareBackground CSS vars */
-  sky?: {
-    top: string;
-    mid: string;
-    bottom: string;
-  };
+  sky?: { top: string; mid: string; bottom: string };
 }
 
 /* --------------------------------- Utils --------------------------------- */
@@ -66,31 +43,18 @@ const inferBiome = (name?: string): AridBiome => {
   const n = (name || '').toLowerCase();
   if (!n) return 'sonoran';
 
-  // --- Sonoran profile (Americas) ---
   const sonoran = [
-    'southern california', 'southwest', 'great plains',
-    'mexico', 'central highlands', 'andes south',
-    'gran chaco', 'pampas'
+    'southern california','southwest','great plains','mexico','central highlands','andes south','gran chaco','pampas'
   ];
-
-  // --- Sahara profile (Africa) ---
   const sahara = [
-    'nile valley', 'nubian corridor', 'maghreb',
-    'eastern desert and red sea', 'sahel', 'horn of africa', 'southern africa'
+    'nile valley','nubian corridor','maghreb','eastern desert and red sea','sahel','horn of africa','southern africa'
   ];
-
-  // --- Arabian profile (Middle East/Asia/Europe arid) ---
   const arabian = [
-    'iberian peninsula', 'levant', 'anatolia', 'mesopotamia', 'arabian peninsula',
-    'persian plateau', 'caucasus', 'indus valley', 'deccan plateau',
-    'kazakh steppes', 'central asian oases', 'xinjiang',
-    'mongolia', 'manchuria', 'north china plain'
+    'iberian peninsula','levant','anatolia','mesopotamia','arabian peninsula','persian plateau','caucasus',
+    'indus valley','deccan plateau','kazakh steppes','central asian oases','xinjiang','mongolia','manchuria','north china plain'
   ];
-
-  // --- Australia profile ---
   const australia = [
-    'australia – outback and center', 'australia - outback and center',
-    'australia – west and desert', 'australia - west and desert'
+    'australia – outback and center','australia - outback and center','australia – west and desert','australia - west and desert'
   ];
 
   const hit = (arr: string[]) => arr.some(k => n.includes(k.toLowerCase()));
@@ -168,51 +132,22 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
 
   /* -------- palette by biome -------- */
   const P = useMemo(() => {
-    // base sands/rocks by biome
     const baseByBiome = {
       sonoran: {
-        vf: '#6E5A7F',
-        far: '#8A6D66',
-        mesa1: '#A06C44',
-        mesa2: '#B97A4A',
-        dune: '#D4B78C',
-        dune2: '#C8A77A',
-        rock: '#7A5B47',
-        vegDark: '#3F5A3F',
-        vegLight: '#557A57',
+        vf: '#6E5A7F', far: '#8A6D66', mesa1: '#A06C44', mesa2: '#B97A4A',
+        dune: '#D4B78C', dune2: '#C8A77A', rock: '#7A5B47', vegDark: '#3F5A3F', vegLight: '#557A57',
       },
       sahara: {
-        vf: '#726388',
-        far: '#8C7A6D',
-        mesa1: '#997A58',
-        mesa2: '#B08A62',
-        dune: '#E1CF9E',
-        dune2: '#D6C18C',
-        rock: '#7A6B57',
-        vegDark: '#42573A', // acacia darker
-        vegLight: '#5E7A56',
+        vf: '#726388', far: '#8C7A6D', mesa1: '#997A58', mesa2: '#B08A62',
+        dune: '#E1CF9E', dune2: '#D6C18C', rock: '#7A6B57', vegDark: '#42573A', vegLight: '#5E7A56',
       },
       arabian: {
-        vf: '#6C5D86',
-        far: '#8C7266',
-        mesa1: '#9C6F53',
-        mesa2: '#B17B5C',
-        dune: '#D8C098',
-        dune2: '#CDB186',
-        rock: '#6F5D4A',
-        vegDark: '#3E5638',
-        vegLight: '#567A52',
+        vf: '#6C5D86', far: '#8C7266', mesa1: '#9C6F53', mesa2: '#B17B5C',
+        dune: '#D8C098', dune2: '#CDB186', rock: '#6F5D4A', vegDark: '#3E5638', vegLight: '#567A52',
       },
       australia: {
-        vf: '#6B5780',
-        far: '#806A63',
-        mesa1: '#9B6A4C', // used sparingly
-        mesa2: '#B27354',
-        dune: '#C0713C',  // redder country
-        dune2: '#B16535',
-        rock: '#7A5A45',
-        vegDark: '#2E4A32', // mulga/spinifex greens
-        vegLight: '#4F6A42',
+        vf: '#6B5780', far: '#806A63', mesa1: '#9B6A4C', mesa2: '#B27354',
+        dune: '#C0713C', dune2: '#B16535', rock: '#7A5A45', vegDark: '#2E4A32', vegLight: '#4F6A42',
       },
     }[biome];
 
@@ -228,7 +163,6 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
     const waterHiNight = blendHex(waterHiDay, '#DDE3FF', 0.6);
 
     return {
-      // sky feather stops
       sky1: 'rgba(0,0,0,0)',
       sky2: `${skyMid}33`,
       sky3: `${skyBottom}99`,
@@ -292,7 +226,7 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
        <rect x='2' y='2' width='1' height='1' fill='white' fill-opacity='${opacity}' />
      </svg>`;
 
-  /* -------- groundforms: mesas (Sonoran/Arabian), ergs/plains otherwise -------- */
+  /* -------- groundforms -------- */
   type Mesa = { x: number; w: number; h: number; top: number };
   const mesas: Mesa[] = useMemo(() => {
     if (biome === 'australia' || biome === 'sahara' || compact) return [];
@@ -307,9 +241,8 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
     return out;
   }, [rng, width, height, yMid, biome, compact]);
 
-  /* -------- plant stamps (pixel-ish, crisp) -------- */
+  /* -------- plant stamps -------- */
 
-  // Sonoran
   const Saguaro: React.FC<{ x: number; baseY: number; h: number; arms?: boolean }> = ({ x, baseY, h, arms = true }) => {
     const w = Math.max(2, h * 0.10);
     return (
@@ -341,7 +274,6 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
     );
   };
 
-  // Sahara/Arabian: umbrella acacia
   const UmbrellaAcacia: React.FC<{ x: number; baseY: number; h: number }> = ({ x, baseY, h }) => {
     const w = Math.max(2, h * 0.08);
     const crownW = h * 0.9;
@@ -349,14 +281,12 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
     return (
       <g shapeRendering="crispEdges">
         <rect x={x - w / 2} y={baseY - h * 0.35} width={w} height={h * 0.35} fill={P.vegDark} />
-        {/* flat umbrella crown = stacked short rectangles */}
         <rect x={x - crownW * 0.55} y={baseY - h * 0.70} width={crownW * 1.1} height={crownH} fill={P.vegDark} />
         <rect x={x - crownW * 0.45} y={baseY - h * 0.62} width={crownW * 0.9} height={crownH * 0.7} fill={P.vegLight} />
       </g>
     );
   };
 
-  // Australia: spinifex hummock, mulga clump, termite mound
   const SpinifexHummock: React.FC<{ x: number; baseY: number; s: number }> = ({ x, baseY, s }) => {
     const w = 10 * s;
     const h = 8 * s;
@@ -391,12 +321,9 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
 
   /* -------- placements -------- */
 
-  // Feature near objects by biome
   const fgObjects = useMemo(() => {
     const xs: number[] = [];
-    const target =
-      biome === 'australia' ? 3 :
-      biome === 'sahara' || biome === 'arabian' ? 2 : 2;
+    const target = biome === 'australia' ? 3 : (biome === 'sahara' || biome === 'arabian' ? 2 : 2);
     for (let i = 0; i < 30; i++) {
       const x = width * (0.08 + rng(1210 + i) * 0.84);
       if (xs.every(px => Math.abs(px - x) > width * 0.18)) xs.push(x);
@@ -405,13 +332,7 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
     return xs.map((x, i) => {
       if (biome === 'sonoran') {
         const isSag = rng(1500 + i) > 0.55;
-        return {
-          type: isSag ? 'saguaro' : 'pear',
-          x,
-          h: height * (0.22 + rng(1220 + i) * 0.1),
-          s: 1 + rng(1330 + i) * 0.4,
-          arms: rng(1400 + i) > 0.5
-        } as const;
+        return { type: isSag ? 'saguaro' : 'pear', x, h: height * (0.22 + rng(1220 + i) * 0.1), s: 1 + rng(1330 + i) * 0.4, arms: rng(1400 + i) > 0.5 } as const;
       }
       if (biome === 'australia') {
         const pick = rng(1500 + i);
@@ -419,12 +340,10 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
         if (pick > 0.33) return { type: 'spinifex', x, s: 1 + rng(1600 + i) * 0.5 } as const;
         return { type: 'mound', x, h: height * (0.10 + rng(1700 + i) * 0.06) } as const;
       }
-      // sahara / arabian
       return { type: 'acacia', x, h: height * (0.18 + rng(1220 + i) * 0.08) } as const;
     });
   }, [rng, width, height, biome]);
 
-  // Mid-line sprinkle (tiny posts)
   const midSprigs = useMemo(() => {
     const n = 18 + ((rng(1000) * 8) | 0);
     return Array.from({ length: n }).map((_, i) => ({
@@ -445,11 +364,28 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
     dithL: `${uid}-dithL`,
     dithM: `${uid}-dithM`,
     heat: `${uid}-heat`,
+    rainbow: `${uid}-rainbow`,
+    spindriftClip: `${uid}-spindrift-clip`,
+    dustClip: `${uid}-dust-clip`,
   };
 
-  const isRain = weather?.precipitation === 'rain' && (weather.intensity ?? 0) > 0;
-  const isSnow = weather?.precipitation === 'snow' && (weather.intensity ?? 0) > 0;
-  const isHot  = (weather?.condition === 'hot') || (weather?.special === 'heatwave');
+  const intensity = weather?.intensity ?? 0;
+  const isRain = weather?.precipitation === 'rain' && intensity > 0;
+  const isSnow = weather?.precipitation === 'snow' && intensity > 0;
+  const windy = (weather?.windSpeed ?? 0) >= 18;
+  const isHotStrict =
+    (weather?.fx?.heatShimmer ?? 0) > 0.2 ||
+    weather?.special === 'heatwave' ||
+    weather?.condition === 'hot';
+  const heatOpacity = Math.min(0.12 + (weather?.fx?.heatShimmer ?? 0) * 0.55, 0.6);
+
+  const showRainbow = (weather?.fx?.rainbowProbability ?? 0) > 0.4 && isRain && !isNight;
+  const showLightning = (weather?.fx?.lightningProbability ?? 0) > 0.18 && isRain;
+  const airborne = weather?.fx?.airborneParticles;
+  const showSandSheet = !!airborne && (airborne.type === 'sand' || airborne.type === 'dust') &&
+                        (airborne.density ?? 0) > 0.4 && !isRain && !isSnow;
+
+  const scrubSwayDir = Math.cos(((weather?.windDirection ?? 0) * Math.PI) / 180) >= 0 ? 1 : -1;
 
   /* --------------------------------- Render --------------------------------- */
 
@@ -462,6 +398,70 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
       style={{ position: 'absolute', left: 0, bottom: 0, pointerEvents: 'none', imageRendering: 'pixelated' }}
       shapeRendering="crispEdges"
     >
+      {/* ----------- local CSS animations ----------- */}
+      <style>{`
+        @media (prefers-reduced-motion: reduce) {
+          .anim, .ripple, .plop, .sway, .flash, .bolt, .ddrift, .twinkle, .drift-breathe { animation: none !important; }
+        }
+        @keyframes rippleGrow {
+          0%   { transform: scale(0.25); opacity: 0.6; }
+          70%  { opacity: 0.25; }
+          100% { transform: scale(1); opacity: 0; }
+        }
+        .ripple {
+          transform-origin: center;
+          transform-box: fill-box;
+          vector-effect: non-scaling-stroke;
+          animation: rippleGrow var(--rippleDur, 1.6s) ease-out var(--rippleDelay, 0s) infinite;
+        }
+        @keyframes plopFlash {
+          0% { opacity: 0; }
+          40% { opacity: 0.85; }
+          100% { opacity: 0; }
+        }
+        .plop { animation: plopFlash 120ms ease-out var(--plopDelay, 0s) both; }
+
+        @keyframes sway {
+          0%,100% { transform: translateX(calc(var(--swayDir, 1) * -1px)); }
+          50%     { transform: translateX(calc(var(--swayDir, 1) *  1px)); }
+        }
+        .sway { animation: sway var(--swayDur, 2.6s) ease-in-out infinite; }
+
+        @keyframes lightningFlash {
+          0%, 82%, 100% { opacity: 0; }
+          84% { opacity: 0.35; }
+          86% { opacity: 0; }
+          88% { opacity: 0.15; }
+          92% { opacity: 0; }
+        }
+        .flash { animation: lightningFlash var(--flashDur, 5s) linear infinite; }
+
+        @keyframes boltGlow {
+          0%, 90%, 100% { opacity: 0; }
+          92% { opacity: 0.6; }
+          96% { opacity: 0.0; }
+        }
+        .bolt { animation: boltGlow var(--flashDur, 5s) linear infinite; }
+
+        @keyframes ddrift {
+          0% { transform: translateX(-12%); }
+          100% { transform: translateX(112%); }
+        }
+        .ddrift { animation: ddrift var(--ddur, 10s) linear infinite; }
+
+        @keyframes twinkle {
+          0%,100% { opacity: 0.25; }
+          50%     { opacity: 1; }
+        }
+        .twinkle { animation: twinkle var(--tdur, 2.8s) ease-in-out var(--tdelay, 0s) infinite; }
+
+        @keyframes driftBreath {
+          0%,100% { transform: scaleY(1); }
+          50%     { transform: scaleY(1.03); }
+        }
+        .drift-breathe { transform-origin: bottom; animation: driftBreath 3.6s ease-in-out infinite; }
+      `}</style>
+
       <defs>
         {/* Top fade gradient for smooth transition into TimeAwareBackground */}
         <linearGradient id={ids.topfade} x1="0" y1="0" x2="0" y2="1">
@@ -471,7 +471,6 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
           <stop offset="82%"  stopColor="white" stopOpacity=".82" />
           <stop offset="100%" stopColor="white" stopOpacity=".98" />
         </linearGradient>
-        {/* Ridge-shaped mask so the top blends organically */}
         <mask id={ids.topmask}>
           <rect x="0" y="0" width={width} height={height} fill={`url(#${ids.topfade})`} />
           <path d={ridgePath(height * 0.30, height * 0.05, 12, 999)} fill="white" opacity="0.18" />
@@ -496,17 +495,38 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
 
         {/* Dither fills */}
         <pattern id={ids.dithL} width="4" height="4" patternUnits="userSpaceOnUse">
-          <image href={`data:image/svg+xml;utf8,${encodeURIComponent(ditherSVG(0.04))}`} width="4" height="4" />
+          <image href={`data:image/svg+xml;utf8,${encodeURIComponent((`<svg xmlns='http://www.w3.org/2000/svg' width='4' height='4'><rect x='0' y='0' width='1' height='1' fill='white' fill-opacity='0.04'/><rect x='2' y='2' width='1' height='1' fill='white' fill-opacity='0.04'/></svg>`))}`} width="4" height="4" />
         </pattern>
         <pattern id={ids.dithM} width="4" height="4" patternUnits="userSpaceOnUse">
-          <image href={`data:image/svg+xml;utf8,${encodeURIComponent(ditherSVG(0.07))}`} width="4" height="4" />
+          <image href={`data:image/svg+xml;utf8,${encodeURIComponent((`<svg xmlns='http://www.w3.org/2000/svg' width='4' height='4'><rect x='0' y='0' width='1' height='1' fill='white' fill-opacity='0.07'/><rect x='2' y='2' width='1' height='1' fill='white' fill-opacity='0.07'/></svg>`))}`} width="4" height="4" />
         </pattern>
 
-        {/* Heat shimmer filter */}
+        {/* Heat shimmer filter: slightly stronger than before */}
         <filter id={ids.heat}>
-          <feTurbulence baseFrequency="0.025 0.010" numOctaves="2" result="turb" />
-          <feDisplacementMap in="SourceGraphic" in2="turb" scale="2.5" xChannelSelector="R" yChannelSelector="G" />
+          <feTurbulence baseFrequency="0.028 0.012" numOctaves="2" result="turb" />
+          <feDisplacementMap in="SourceGraphic" in2="turb" scale="4.5" xChannelSelector="R" yChannelSelector="G" />
         </filter>
+
+        {/* Rainbow stroke gradient */}
+        <linearGradient id={ids.rainbow} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"   stopColor="#FF3B30" />
+          <stop offset="16%"  stopColor="#FF9500" />
+          <stop offset="33%"  stopColor="#FFCC00" />
+          <stop offset="50%"  stopColor="#34C759" />
+          <stop offset="66%"  stopColor="#007AFF" />
+          <stop offset="83%"  stopColor="#5856D6" />
+          <stop offset="100%" stopColor="#AF52DE" />
+        </linearGradient>
+
+        {/* Snow spindrift clip along near ground */}
+        <clipPath id={ids.spindriftClip}>
+          <rect x="0" y={p(height * 0.82)} width={width} height={p(height * 0.18)} />
+        </clipPath>
+
+        {/* Dust sheet clip over mid ground */}
+        <clipPath id={ids.dustClip}>
+          <rect x="0" y={p(yFar)} width={width} height={p(yNear - yFar)} />
+        </clipPath>
       </defs>
 
       {/* Masked group allows top to fade into background sky */}
@@ -516,6 +536,32 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
           <path d={ridgePath(yVF, p(height * 0.12), 10)} fill={P.vf} />
           <rect x="0" y="0" width={width} height={yVF} fill={`url(#${ids.dithL})`} opacity="0.45" />
         </g>
+
+        {/* Night star twinkle band (clear nights) */}
+        {isNight && (weather?.cloudCover ?? 0) < 0.2 && (
+          <g>
+            {Array.from({ length: 8 + ((rng(500) * 4) | 0) }).map((_, i) => {
+              const x = p(width * (0.08 + rng(510 + i) * 0.84));
+              const y = p(yVF * (0.35 + rng(520 + i) * 0.45));
+              const d = 2 + ((rng(530 + i) * 2) | 0);
+              const dur = 2.2 + rng(540 + i) * 2.2;
+              const delay = rng(550 + i) * 2.5;
+              return (
+                <rect
+                  key={`tw-${i}`}
+                  x={x}
+                  y={y}
+                  width={d}
+                  height={d}
+                  fill="#DDE3FF"
+                  opacity={0.8}
+                  className="twinkle"
+                  style={{ ['--tdur' as any]: `${dur}s`, ['--tdelay' as any]: `${delay}s` } as React.CSSProperties}
+                />
+              );
+            })}
+          </g>
+        )}
 
         {/* Haze between vf/far */}
         <rect x="0" y={p(yVF - height * 0.02)} width={width} height={p(height * 0.07)} fill={`url(#${ids.hazeD})`} />
@@ -532,7 +578,6 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
         {/* MID groundforms */}
         <g opacity={isNight ? 0.80 : 0.96}>
           {mesas.length > 0 ? (
-            // Mesas for Sonoran/Arabian
             <>
               {mesas.map((m, i) => (
                 <g key={i} shapeRendering="crispEdges">
@@ -556,7 +601,6 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
               />
             </>
           ) : (
-            // Plains/ergs: low swell with optional faint ripple lines
             <>
               <path
                 d={`
@@ -589,7 +633,7 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
         <rect x="0" y={p(yMid - height * 0.02)} width={width} height={p(height * 0.06)} fill={`url(#${ids.hazeL})`} />
 
         {/* NEAR scrub strip with tiny posts */}
-        <g>
+        <g className={windy ? 'sway' : ''} style={{ ['--swayDir' as any]: scrubSwayDir, ['--swayDur' as any]: `${Math.max(1.6, 2.6 - Math.min((weather?.windSpeed ?? 0), 32)/20)}s` } as React.CSSProperties}>
           {/* scrub baseline */}
           {(() => {
             const bumps = 56;
@@ -616,7 +660,6 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
 
         {/* FOREGROUND near edge + rocks */}
         <g>
-          {/* subtle rim light along the near ridge (cooler at night) */}
           <path
             d={`M 0 ${p(yNear + 8)} C ${p(width * 0.28)} ${p(yNear + 2)}, ${p(width * 0.62)} ${p(yNear + 9)}, ${width} ${p(yNear + 4)}`}
             stroke={isNight ? blendHex(P.vegLight, '#AEB8E5', 0.6) : blendHex(P.dune2, '#FFD8A0', 0.35)}
@@ -624,7 +667,6 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
             fill="none"
             opacity={isNight ? 0.22 : 0.30}
           />
-          {/* scattered rocks (skip for very flat plains) */}
           {Array.from({ length: biome === 'australia' ? 4 : 7 }).map((_, i) => {
             const x = p(width * (0.06 + rng(1100 + i) * 0.88));
             const rx = p(width * (0.010 + rng(1110 + i) * 0.018));
@@ -634,7 +676,7 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
         </g>
 
         {/* FOREGROUND feature silhouettes (biome-specific) */}
-        <g opacity={isNight ? 0.82 : 0.98}>
+        <g opacity={isNight ? 0.82 : 0.98} className={windy ? 'sway' : ''} style={{ ['--swayDir' as any]: scrubSwayDir, ['--swayDur' as any]: `${Math.max(1.5, 2.2 - Math.min((weather?.windSpeed ?? 0), 32)/24)}s` } as React.CSSProperties}>
           {fgObjects.map((o, i) => {
             const baseY = yNear + 8;
             if (o.type === 'saguaro') return <Saguaro key={i} x={o.x} baseY={baseY} h={(o as any).h} arms={(o as any).arms} />;
@@ -651,7 +693,7 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
         <rect x="0" y={yFeather} width={width} height={height - yFeather} fill={`url(#${ids.panel})`} />
       </g>
 
-      {/* Left/right coastal water (island/peninsula/bay/straits) */}
+      {/* Left/right coastal water */}
       {hasWater && (
         <>
           {/* Left */}
@@ -695,63 +737,78 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
 
       {/* ---------------------------- Weather overlays ---------------------------- */}
 
-      {/* Heat shimmer (hot/heatwave) */}
-      {isHot && !isRain && !isSnow && (
-        <g opacity={0.28} filter={`url(#${ids.heat})`}>
-          <rect
-            x="0"
-            y={p(yMid - height * 0.01)}
-            width={width}
-            height={p(height * 0.12)}
-            fill={`url(#${ids.hazeL})`}
-          />
+      {/* Heat shimmer */}
+      {isHotStrict && !isRain && !isSnow && (
+        <g opacity={heatOpacity} filter={`url(#${ids.heat})`}>
+          <rect x="0" y={p(yMid - height * 0.01)} width={width} height={p(height * 0.12)} fill={`url(#${ids.hazeL})`} />
         </g>
       )}
 
-      {/* Rain puddles + wet sheen */}
+      {/* Dust/sand sheet drifting across mid */}
+      {showSandSheet && (
+        <g clipPath={`url(#${ids.dustClip})`} opacity={(airborne!.density ?? 0) * 0.6}>
+          <rect className="ddrift" x={-width} y={p(yFar)} width={width * 2} height={p(yNear - yFar)} fill={P.dustTint}
+                style={{ ['--ddur' as any]: `${8 + (3 - Math.min(3, (weather?.windSpeed ?? 0) / 8))}s` } as React.CSSProperties} />
+        </g>
+      )}
+
+      {/* Rain puddles + wet sheen + plink ripples */}
       {isRain && (
-        <g opacity={0.35 + (weather!.intensity || 0) * 0.35}>
+        <g opacity={0.35 + intensity * 0.35}>
           {Array.from({ length: biome === 'australia' ? 6 : 8 }).map((_, i) => {
-            const x = (i + 1) / (biome === 'australia' ? 7 : 9);
-            const pudX = p(width * x + Math.sin(i * 13.7) * 20);
+            const xfrac = (i + 1) / (biome === 'australia' ? 7 : 9);
+            const pudX = p(width * xfrac + Math.sin(i * 13.7) * 20);
             const pudY = p(height * (0.86 + Math.sin(i * 7.3) * 0.03));
-            const pudW = p(12 + (weather!.intensity || 0) * 12 + (i % 3) * 5);
-            const pudH = p(3 + (weather!.intensity || 0) * 2);
+            const pudW = p(12 + intensity * 12 + (i % 3) * 5);
+            const pudH = p(3 + intensity * 2);
+
+            const r1Delay = (i * 0.37) % 1.8;
+            const r2Delay = ((i * 0.37) + 0.6) % 1.8;
+
             return (
               <g key={`arid-pud-${i}`}>
-                <ellipse cx={pudX} cy={pudY} rx={pudW} ry={pudH} fill={P.water} opacity={0.55 + (weather!.intensity || 0) * 0.3} />
-                {/* 1px specular line */}
+                <ellipse cx={pudX} cy={pudY} rx={pudW} ry={pudH} fill={P.water} opacity={0.55 + intensity * 0.3} />
+                {/* specular line */}
                 <path d={`M ${p(pudX - pudW * 0.6)} ${p(pudY)} L ${p(pudX + pudW * 0.6)} ${p(pudY)}`} stroke={P.waterHi} strokeWidth="1" opacity="0.35" />
+                {/* ripple rings */}
+                <circle cx={pudX} cy={pudY} r={Math.max(1, pudH - 1)} fill="none" stroke={P.waterHi} strokeWidth="1" className="ripple"
+                        style={{ ['--rippleDur' as any]: `${1.6 + rng(800 + i) * 0.8}s`, ['--rippleDelay' as any]: `${r1Delay}s` } as React.CSSProperties} />
+                <circle cx={pudX} cy={pudY} r={Math.max(1, pudH - 1)} fill="none" stroke={P.waterHi} strokeWidth="1" className="ripple"
+                        style={{ ['--rippleDur' as any]: `${1.6 + rng(900 + i) * 0.8}s`, ['--rippleDelay' as any]: `${r2Delay}s` } as React.CSSProperties} />
+                {/* plink highlight */}
+                <circle cx={pudX} cy={pudY - 2} r="1.5" fill={P.waterHi} className="plop" style={{ ['--plopDelay' as any]: `${r1Delay + 0.1}s` } as React.CSSProperties} />
               </g>
             );
           })}
           {/* Wet ground sheen */}
-          <rect
-            x="0"
-            y={p(height * 0.82)}
-            width={width}
-            height={p(height * 0.18)}
-            fill={P.water}
-            opacity={0.12 + (weather!.intensity || 0) * 0.18}
-          />
+          <rect x="0" y={p(height * 0.82)} width={width} height={p(height * 0.18)} fill={P.water} opacity={0.12 + intensity * 0.18} />
         </g>
       )}
 
-      {/* Snowdrifts */}
+      {/* Snowdrifts + spindrift */}
       {isSnow && (
-        <g opacity={0.45 + (weather!.intensity || 0) * 0.35}>
-          {/* drift along near ground */}
+        <g opacity={0.45 + intensity * 0.35}>
+          {/* primary drift along near ground */}
           <path
+            className="drift-breathe"
             d={`
               M 0 ${p(height * 0.86)}
-              C ${p(width * 0.20)} ${p(height * (0.85 - (weather!.intensity || 0) * 0.015))},
+              C ${p(width * 0.20)} ${p(height * (0.85 - intensity * 0.015))},
                 ${p(width * 0.50)} ${p(height * 0.87)},
-                ${p(width * 0.80)} ${p(height * (0.86 - (weather!.intensity || 0) * 0.015))}
+                ${p(width * 0.80)} ${p(height * (0.86 - intensity * 0.015))}
               L ${width} ${p(height * 0.86)}
               L ${width} ${height} L 0 ${height} Z
             `}
             fill={P.snow}
-            opacity={0.6}
+            opacity={0.7}
+          />
+          {/* lighter crest highlight */}
+          <path
+            d={`M 0 ${p(height * 0.86)} Q ${p(width * 0.45)} ${p(height * (0.85 - intensity * 0.008))}, ${width} ${p(height * 0.86)}`}
+            stroke={P.snowBright}
+            strokeWidth={1}
+            opacity={0.55}
+            fill="none"
           />
           {/* caps on mesa tops (if any) */}
           {mesas.map((m, i) => (
@@ -760,7 +817,7 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
               x={p(m.x + m.w * 0.18)}
               y={p(m.top)}
               width={p(m.w * 0.64)}
-              height={p(2 + (weather!.intensity || 0) * 2)}
+              height={p(2 + intensity * 2)}
               fill={P.snowBright}
               opacity={0.75}
             />
@@ -783,7 +840,47 @@ const AridHorizon: React.FC<AridHorizonProps> = ({
             }
             return null;
           })}
+
+          {/* spindrift: lateral flutter near ground */}
+          <g clipPath={`url(#${ids.spindriftClip})`} opacity={0.35 + intensity * 0.25}>
+            <rect className="ddrift" x={-width} y={p(height * 0.83)} width={width * 2} height={p(height * 0.04)} fill={P.snowBright}
+                  style={{ ['--ddur' as any]: `${10 - Math.min(6, (weather?.windSpeed ?? 0) / 4)}s` } as React.CSSProperties} />
+          </g>
         </g>
+      )}
+
+      {/* Lightning (flash wash + simple bolt) */}
+      {showLightning && (
+        <>
+          <rect x="0" y="0" width={width} height={height} fill="#FFFFFF" opacity={0.0} className="flash"
+                style={{ ['--flashDur' as any]: `${4.5 + rng(777) * 2}s` } as React.CSSProperties} />
+          <g className="bolt" opacity={0.0} style={{ ['--flashDur' as any]: `${4.5 + rng(778) * 2}s` } as React.CSSProperties}>
+            {/* stylized zig bolt */}
+            <path
+              d={`
+                M ${p(width * 0.72)} ${p(yVF * 0.4)}
+                L ${p(width * 0.66)} ${p(yFar * 0.8)}
+                L ${p(width * 0.76)} ${p(yMid * 0.7)}
+                L ${p(width * 0.62)} ${p(yNear * 0.92)}
+              `}
+              stroke="#EAF0FF"
+              strokeWidth="2"
+              fill="none"
+              strokeLinejoin="miter"
+            />
+          </g>
+        </>
+      )}
+
+      {/* Rainbow (rare) */}
+      {showRainbow && (
+        <path
+          d={`M ${p(width * 0.05)} ${p(yFar * 0.9)} Q ${p(width * 0.5)} ${p(yVF * 0.5)}, ${p(width * 0.95)} ${p(yFar * 0.9)}`}
+          stroke={`url(#${ids.rainbow})`}
+          strokeWidth="2"
+          fill="none"
+          opacity="0.35"
+        />
       )}
     </svg>
   );

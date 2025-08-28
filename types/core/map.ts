@@ -109,6 +109,9 @@ export interface MapData {
   timeSlice?: string; 
   season?: Season;
   localArea?: string;
+  mapAreaName?: string; // Used for special rendering detection
+  culturalZone?: string; // Cultural zone for historical accuracy
+  era?: string; // Historical era
   pathObjects?: PathObject[];
   terrainStructures?: TerrainStructure[];
   majorCity?: CityInfo;

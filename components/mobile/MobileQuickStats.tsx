@@ -93,7 +93,7 @@ const MobileQuickStats: React.FC<MobileQuickStatsProps> = ({ player, onStatClick
     {
       id: 'gold',
       icon: '💰',
-      value: Math.floor(player.gold),
+      value: Math.floor(player.gold || 0),
       max: null,
       label: 'Gold',
       color: '#FFD700'

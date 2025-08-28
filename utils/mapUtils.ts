@@ -50,7 +50,8 @@ export function mapLocationToCulture(location: string, year: number): CulturalZo
     if (lowerLocation.includes('sub saharan africa') || lowerLocation.includes('africa')) return 'SUB_SAHARAN_AFRICAN';
     if (lowerLocation.includes('south asia')) return 'SOUTH_ASIAN';
     if (lowerLocation.includes('east asia')) return 'EAST_ASIAN';
-    if (lowerLocation.includes('oceania')) return 'OCEANIA';
+    if (lowerLocation.includes('oceania') || lowerLocation.includes('australia') || 
+        lowerLocation.includes('new zealand') || lowerLocation.includes('pacific')) return 'OCEANIA';
     
     // Default fallback
     return 'EUROPEAN';

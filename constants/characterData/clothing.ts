@@ -1241,8 +1241,8 @@ export const CLOTHING_DATA: ClothingData = {
                         { name: 'Jade Belt', material: 'Jade Plaques' }
                     ],
                     accessories: [
-                        { name: 'Jade Ring', material: 'Carved Jade' },
-                        { name: 'Scholar Fan', material: 'Silk and Bamboo' }
+                        { name: 'Ring', material: 'Stone' },
+                        { name: 'Scholar Fan', material: 'Bamboo' }
                     ],
                     palette: EAST_ASIAN_COLORS
                 },
@@ -1282,11 +1282,11 @@ export const CLOTHING_DATA: ClothingData = {
                         { name: 'Noble Hat', material: 'Silk and Gems' }
                     ],
                     footwear: [
-                        { name: 'Dragon Boots', material: 'Silk and Gold' },
-                        { name: 'Jeweled Shoes', material: 'Silk and Pearls' }
+                        { name: 'Dragon Boots', material: 'Silk' },
+                        { name: 'Embroidered Shoes', material: 'Silk' }
                     ],
                     belts: [
-                        { name: 'Dragon Belt', material: 'Gold and Jade', adjectives: ['Imperial'] }
+                        { name: 'Dragon Belt', material: 'Jade', adjectives: ['Imperial'] }
                     ],
                     accessories: [
                         { name: 'Imperial Seal', material: 'White Jade', adjectives: ['Carved'] },
@@ -1297,23 +1297,23 @@ export const CLOTHING_DATA: ClothingData = {
                 Female: {
                     garments: [
                         { name: 'Phoenix Robe', material: 'Phoenix Silk', adjectives: ['Imperial'] },
-                        { name: 'Noble Hanfu', material: 'Gold Brocade' },
-                        { name: 'Court Gown', material: 'Silk and Pearls' }
+                        { name: 'Hanfu', material: 'Brocade' },
+                        { name: 'Gown', material: 'Silk' }
                     ],
                     headgear: [
                         { name: 'Phoenix Crown', material: 'Gold and Pearls', adjectives: ['Elaborate'] },
                         { name: 'Imperial Headdress', material: 'Gold and Jade' }
                     ],
                     footwear: [
-                        { name: 'Phoenix Slippers', material: 'Gold and Silk' },
-                        { name: 'Imperial Shoes', material: 'Silk and Gems' }
+                        { name: 'Phoenix Slippers', material: 'ilk' },
+                        { name: 'Embroidered Shoes', material: 'Silk' }
                     ],
                     belts: [
-                        { name: 'Pearl Sash', material: 'Pearls and Gold' }
+                        { name: 'Sash', material: 'Silk' }
                     ],
                     accessories: [
-                        { name: 'Imperial Hairpin', material: 'Gold and Jade' },
-                        { name: 'Phoenix Earrings', material: 'Gold and Pearls' }
+                        { name: 'Imperial Hairpin', material: 'Gold' },
+                        { name: 'Phoenix Earrings', material: 'Pearl' }
                     ],
                     palette: EAST_ASIAN_COLORS
                 }

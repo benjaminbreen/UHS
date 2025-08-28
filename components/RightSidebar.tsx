@@ -119,7 +119,7 @@ const RightSidebar: React.FC = () => {
 
       <div className="flex flex-col h-full overflow-y-auto scrollbar-thin">
         {/* Player Profile Card */}
-        <div className="flex-shrink-0 p-4">
+        <div className="flex-shrink-0 p-3">
           {playerCharacter && playerCharacter.appearance && (
             <div
               className="p-3 mb-3 transition-all duration-200 border rounded-2xl cursor-pointer

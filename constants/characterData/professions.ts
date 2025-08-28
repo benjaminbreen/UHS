@@ -2785,7 +2785,7 @@ export const PROFESSIONS: ProfessionData = {
         },
 
         [HistoricalEra.ANTIQUITY]: {
-            MESOAMERICAN: {
+            Commoner: {
                 'Farmer': {
                     statRequirements: { minStrength: 4, minConstitution: 5 },
                     keywords: 'maize',
@@ -2852,7 +2852,7 @@ export const PROFESSIONS: ProfessionData = {
         },
 
         [HistoricalEra.MEDIEVAL]: {
-            WOODLAND: {
+            Woodlands: {
                 'Basket Maker': {
                     statRequirements: { minDexterity: 6 },
                     genderBias: 'Female',
@@ -2892,7 +2892,7 @@ export const PROFESSIONS: ProfessionData = {
                     emoji: '🎣'
                 }
             },
-            PLAINS: {
+            Plains: {
                 'Buffalo Hunter': {
                     statRequirements: { minStrength: 6, minPerception: 7 },
                     socialRequirements: { maxPrivilege: 0.4 },
@@ -2949,7 +2949,7 @@ export const PROFESSIONS: ProfessionData = {
                     emoji: '🏔️'
                 }
             },
-            NORTHWEST: {
+            Northwest: {
                 'Salmon Fisher': {
                     statRequirements: { minStrength: 5, minConstitution: 6 },
                     socialRequirements: { maxPrivilege: 0.3 },
@@ -3544,7 +3544,7 @@ export const PROFESSIONS: ProfessionData = {
                     emoji: '⚔️'
                 }
             },
-            CRAFTSMEN_MERCHANTS: {
+            CRAFTSPEOPLE: {
                 'Iron Smelter': {
                     statRequirements: { minStrength: 6, minCraftiness: 7 },
                     keywords: 'metallurgy',
@@ -3615,7 +3615,7 @@ export const PROFESSIONS: ProfessionData = {
                     emoji: '📖'
                 }
             },
-            CRAFTSMEN_MERCHANTS: {
+            Craftspeople: {
                 'Gold Trader': {
                     statRequirements: { minPersuasion: 7, minCraftiness: 6 },
                     socialRequirements: { minPrivilege: 0.5 },
@@ -3638,7 +3638,7 @@ export const PROFESSIONS: ProfessionData = {
                     emoji: '🐪'
                 }
             },
-            COMMONERS: {
+            Commoners: {
                 'Millet Farmer': {
                     statRequirements: { minStamina: 5, minConstitution: 5 },
                     keywords: 'subsistence',
@@ -3681,7 +3681,7 @@ export const PROFESSIONS: ProfessionData = {
                     emoji: '⚓'
                 }
             },
-            CRAFTSMEN_MERCHANTS: {
+            CRAFTSPEOPLE: {
                 'Slave Trader': {
                     statRequirements: { minPersuasion: 5, minCraftiness: 6 },
                     socialRequirements: { minPrivilege: 0.4 },
@@ -3859,7 +3859,7 @@ export const PROFESSIONS: ProfessionData = {
                     emoji: '⚔️'
                 }
             },
-            CRAFTSMEN_MERCHANTS: {
+            CRAFTSPEOPLE: {
                 'Gold Worker': {
                     statRequirements: { minDexterity: 8, minCraftiness: 7 },
                     keywords: 'metallurgy',
@@ -3930,7 +3930,7 @@ export const PROFESSIONS: ProfessionData = {
                     emoji: '🎖️'
                 }
             },
-            CRAFTSMEN_MERCHANTS: {
+            CRAFTSPEOPLE: {
                 'Quipu Keeper': {
                     statRequirements: { minIntelligence: 8, minDexterity: 7 },
                     keywords: 'record keeping',
@@ -3995,7 +3995,7 @@ export const PROFESSIONS: ProfessionData = {
                     emoji: '✝️'
                 }
             },
-            CRAFTSMEN_MERCHANTS: {
+            CRAFTSPEOPLE: {
                 'Silver Miner': {
                     statRequirements: { minStrength: 6, minStamina: 7 },
                     genderBias: 'Male',

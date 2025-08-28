@@ -17,7 +17,7 @@ import NewItemModal from './NewItemModal';
 import FarmPanel from './FarmPanel';
 import MarketplaceModal from './MarketplaceModal';
 import CityModal from './CityModal';
-import RuinModal from './RuinModal';
+import RuinStructureModal from './RuinStructureModal';
 import { DevTooltipDisplayData, Tile, PlayerCharacter, BiomeType, DeployedVessel, TimeOfDay } from '../types';
 import TimeAwareBackground from './TimeAwareBackground';
 import HorizonLayer from './HorizonLayer';
@@ -40,7 +40,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
         handleDevHover, setTileInfoModalProps, setStructureModalTarget, setActiveSettlementInfo,
         activeLens, infoModalTarget, panelNotificationItem, setPanelNotificationItem, toastMessage,
         activeMarketplaceModal, setActiveMarketplaceModal, activeCityModal, setActiveCityModal,
-        activeRuinModal, setActiveRuinModal, useLlmForDescriptions, handleEncounter, setInfoModalTarget, 
+        activeRuinModal, setActiveRuinModal, inRuinRoguelike, setInRuinRoguelike, useLlmForDescriptions, handleEncounter, setInfoModalTarget, 
         setActiveMiningModal, setActivePoi, debugSettings,
         handleCompanionClick, handlePlayerClick, handleNewAreaEntry
     } = useUI();
@@ -184,7 +184,31 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
             return <CityModal tile={activeCityModal.tile} onClose={() => setActiveCityModal(null)} playerCharacter={playerCharacter} mapData={mapData} gameTimeHours={gameTimeHours} season={season} />;
         }
         if (activeRuinModal && playerCharacter && mapData) {
-            return <RuinModal tile={activeRuinModal.tile} onClose={() => setActiveRuinModal(null)} playerCharacter={playerCharacter} mapData={mapData} />;
+            // Find the ruin structure at this location
+            const ruinStructure = mapData.terrainStructures?.find(
+                s => s.location[0] === activeRuinModal.tile.x && 
+                     s.location[1] === activeRuinModal.tile.y &&
+                     s.structureType === 'ruin'
+            );
+            
+            if (ruinStructure) {
+                return (
+                    <RuinStructureModal 
+                        structure={ruinStructure}
+                        mapData={mapData}
+                        npcs={visibleNpcs}
+                        onClose={() => setActiveRuinModal(null)}
+                        gameTimeHours={gameTimeHours}
+                        season={season}
+                        playerCharacter={playerCharacter}
+                        currentLocation={mapData.mapAreaName || mapData.continent}
+                        formattedDate={`Year ${gameDate?.year || 1650}, Day ${gameDate?.day || 1}`}
+                        onRoguelikeModeChange={setInRuinRoguelike}
+                    />
+                );
+            }
+            // Fallback if no structure found (shouldn't happen)
+            return null;
         }
         if (viewMode === 'standard') {
             return (
@@ -519,6 +543,12 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                         dayOfYear={gameDate?.day || 180}
                         onToggleAmbientText={() => setShowAmbientText(!showAmbientText)}
                         showAmbientText={showAmbientText}
+                        inRuinRoguelike={inRuinRoguelike}
+                        isRuinModalOpen={!!activeRuinModal}
+                        onExitRuin={() => {
+                            setActiveRuinModal(null);
+                            setInRuinRoguelike(false);
+                        }}
                     />
                     {panelNotificationItem && <NewItemModal item={panelNotificationItem} onClose={() => setPanelNotificationItem(null)} />}
                 </div>

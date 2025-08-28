@@ -23,6 +23,7 @@ import { isTerrainPassable, getTerrainBlockMessage, getTerrainDamage } from '../
 const useCoreLoops = () => {
   const {
     setGameTimeMinutes,
+    gameTimeMinutes,
     setGameTimeHours,
     setGameDate,
     gameTimeHours,
@@ -40,6 +41,8 @@ const useCoreLoops = () => {
     setActionableTile,
     addGameLogEntry,
     formattedTime,
+    setNarrationHistory,
+    narrationHistory,
   } = useGame();
 
   const {
@@ -879,6 +882,7 @@ useEffect(() => {
       // Get and display terrain block message
       const blockMessage = getTerrainBlockMessage(targetTile.biome);
       if (blockMessage) {
+        // Add to game log
         addGameLogEntry({
           id: `terrain-blocked-${Date.now()}`,
           message: blockMessage,
@@ -886,6 +890,12 @@ useEffect(() => {
           timestamp: formattedTime,
           gameDate
         });
+        
+        // Add to narration panel
+        setNarrationHistory(prev => [...prev, {
+          sender: 'narrator',
+          text: blockMessage
+        }]);
       }
       
       // Apply damage if applicable
@@ -920,6 +930,38 @@ useEffect(() => {
       }
       
       return;
+    }
+
+    // Check for terrain-based disease transmission (wetlands, cities)
+    if (playerCharacter) {
+      const diseaseService = DiseaseService.getInstance();
+      const terrainResult = diseaseService.checkTerrainTransmission(
+        targetTile.biome,
+        playerCharacter,
+        gameDate.year
+      );
+      
+      if (terrainResult.transmitted && terrainResult.disease) {
+        // Show disease notification
+        showToast(terrainResult.message || `You have contracted ${terrainResult.disease.name}!`, 'error');
+        
+        // Update player character with new disease
+        setPlayerCharacter({ ...playerCharacter });
+        
+        // Add to game log
+        addGameLogEntry({
+          id: `disease-contracted-${Date.now()}`,
+          message: terrainResult.message || `Contracted ${terrainResult.disease.name}`,
+          type: 'disease',
+          timestamp: formattedTime,
+          gameDate
+        });
+        
+        // Show disease modal if available
+        if (typeof window !== 'undefined' && (window as any).showDiseaseModal) {
+          (window as any).showDiseaseModal(terrainResult.disease);
+        }
+      }
     }
 
     // commit move and set next allowed move time

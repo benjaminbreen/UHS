@@ -43,18 +43,18 @@ function getOceanPalette(climate: ClimateType): OceanPalette {
   let p: OceanPalette = {
     deep: '#2563eb',
     mid: '#1e40af',
-    shallowTint: 'rgba(34, 197, 194, 0.34)',
-    foam: 'rgba(255,255,255,0.2)',
-    haloNear: 'rgba(94, 234, 212, 0.2)',
-    haloFar: 'rgba(59, 130, 246, 0.05)',
+    shallowTint: 'rgba(34, 197, 194, 0.39)',
+    foam: 'rgba(237, 255, 255,0.3)',
+    haloNear: 'rgba(94, 234, 212, 0.3)',
+    haloFar: 'rgba(59, 130, 246, 0.15)',
   };
 
   if (climate === ClimateType.TROPICAL || climate === ClimateType.SEMITROPICAL) {
     p = {
       deep: '#1e40af',
       mid: '#1e3a8a',
-      shallowTint: 'rgba(34, 211, 238, 0.4)',
-      foam: 'rgba(255,255,255,0.2)',
+      shallowTint: 'rgba(34, 211, 238, 0.45)',
+      foam: 'rgba(237, 255, 255,0.35)',
       haloNear: 'rgba(45, 212, 191, 0.24)',
       haloFar: 'rgba(56, 189, 248, 0.05)',
     };
@@ -62,18 +62,18 @@ function getOceanPalette(climate: ClimateType): OceanPalette {
     p = {
       deep: '#1e3a8a',
       mid: '#172554',
-      shallowTint: 'rgba(14, 165, 233, 0.52)',
-      foam: 'rgba(255,255,255,0.19)',
-      haloNear: 'rgba(56, 189, 248, 0.48)',
+      shallowTint: 'rgba(113, 254, 250, 0.22)',
+      foam: 'rgba(237, 255, 255,0.19)',
+      haloNear: 'rgba(56, 189, 248, 0.38)',
       haloFar: 'rgba(37, 99, 235, 0.15)',
     };
   } else if (climate === ClimateType.COLD) {
     p = {
       deep: '#1e3a8a',
       mid: '#172554',
-      shallowTint: 'rgba(148, 163, 184, 0.4)',
-      foam: 'rgba(200,220,240,0.21)',
-      haloNear: 'rgba(148, 163, 184, 0.17)',
+      shallowTint: 'rgba(113, 254, 250, 0.4)',
+      foam: 'rgba(200,220,240,0.41)',
+      haloNear: 'rgba(148, 163, 184, 0.37)',
       haloFar: 'rgba(30, 58, 138, 0.05)',
     };
   }
