@@ -330,17 +330,17 @@ function createNpc(
         
         const shouldHaveDisease = Math.random() < diseaseChance;
         
-        let diseaseHealth = undefined;
+        let health = undefined;
         if (shouldHaveDisease) {
-            diseaseHealth = diseaseService.assignDiseasesToEntity(
+            health = diseaseService.assignDiseasesToEntity(
                 { health: undefined } as any,
                 context.era,
                 context.culturalZone,
                 context.year
             );
             
-            if (diseaseHealth && diseaseHealth.currentDiseases.length > 0) {
-                const disease = diseaseHealth.currentDiseases[0].disease;
+            if (health && health.currentDiseases.length > 0) {
+                const disease = health.currentDiseases[0].disease;
                 console.log(`[NPC Disease Spawn] ${name} (${role}, ${socialClass}) spawned with ${disease.name} at (${x}, ${y}) - ${(diseaseChance*100).toFixed(0)}% chance in ${context.era}`);
                 if (disease.symptoms && disease.symptoms.length > 0) {
                     console.log(`  → Symptoms: ${disease.symptoms.join(', ')}`);
@@ -373,7 +373,7 @@ function createNpc(
             workplaceName: structure?.name,
             inventory: newInventory,
             equippedItems: newEquippedItems,
-            diseaseHealth, // Add disease health with potential disease
+            health, // Add disease health with potential disease
             attributes, // Add generated attribute badges
         };
         
@@ -472,7 +472,7 @@ export function generateNpcsForStandardMap(
     mapAreaName?: string
 ): NpcEntity[] {
     const startTime = performance.now();
-    const npcs: NpcEntity[] = [];
+    let npcs: NpcEntity[] = [];
     
     // Skip NPC generation for SHOALS archetype (no people on shoals)
     if (mapData.archetype === 'SHOALS') {

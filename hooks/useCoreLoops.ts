@@ -12,7 +12,7 @@ import { calculateNpcUpdate } from '../services/npcAIService';
 import { spawnSingleAnimal } from '../generation/standardMap/features/animalGenerator';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES, ANIMAL_DATA, ITEM_DEFINITIONS } from '../constants/index';
 import { generateAmbianceText } from '../services/ambianceGenerator';
-import { AmbianceContext, BiomeType, Item, PlayerContext, TerrainStructureType } from '../types';
+import { AmbianceContext, BiomeType, Item, PlayerContext, TerrainStructureType, TerrainStructure } from '../types';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { createItemInstance, addItemToInventory } from '../utils/inventoryUtils';
 import { LogService } from '../services/logService';
@@ -85,6 +85,8 @@ const useCoreLoops = () => {
     currentMapSeed,
     handleMapTransition,
     updateStructureData,
+    isSpecialMap,
+    isEnteringSpecialMap,
   } = useMap();
 
   const {
@@ -97,6 +99,8 @@ const useCoreLoops = () => {
     togglePinnedTooltip,
     setPanelNotificationItem,
     setActiveMiningModal,
+    setStructureModalTarget,
+    setActiveGovernmentModal,
   } = useUI();
 
   const moveLoopId = useRef<number | null>(null);
@@ -114,6 +118,12 @@ const useCoreLoops = () => {
   // Quest Initialization - Generate quests when map and player are ready
   useEffect(() => {
     if (!mapData || !playerCharacter || questsInitialized.current) return;
+    
+    // Don't initialize quests for special maps
+    if (isSpecialMap) {
+      console.log('[QuestInit] Skipping quest generation for special map');
+      return;
+    }
 
     const validStructures =
       mapData.terrainStructures?.filter((s) => ['ruins', 'palace', 'marketplace', 'urban', 'holy_site', 'farm'].includes(s.structureType)) ||
@@ -185,7 +195,7 @@ const useCoreLoops = () => {
     } catch (error) {
       console.error('[QuestInit] Failed to generate initial quests:', error);
     }
-  }, [mapData, playerCharacter, controlledIconX, controlledIconY, currentZone, gameDate]);
+  }, [mapData, playerCharacter, controlledIconX, controlledIconY, currentZone, gameDate, isSpecialMap]);
 
   // Game Clock
   useEffect(() => {
@@ -333,15 +343,15 @@ const useCoreLoops = () => {
 
           if (Math.hypot(npc1.x - controlledIconX, npc1.y - controlledIconY) > SPREAD_RADIUS) continue;
 
-          if (!npc1.diseaseHealth?.currentDiseases?.length) continue;
+          if (!npc1.health?.currentDiseases?.length) continue;
 
-          const disease = npc1.diseaseHealth.currentDiseases[0];
+          const disease = npc1.health.currentDiseases[0];
 
           for (let j = 0; j < updatedNpcs.length; j++) {
             if (i === j) continue;
             const npc2 = updatedNpcs[j];
 
-            if (npc2.diseaseHealth?.currentDiseases?.length) continue;
+            if (npc2.health?.currentDiseases?.length) continue;
 
             const distance = Math.hypot(npc1.x - npc2.x, npc1.y - npc2.y);
             if (distance <= 2) {
@@ -357,7 +367,7 @@ const useCoreLoops = () => {
               if (Math.random() < baseChance) {
                 updatedNpcs[j] = {
                   ...npc2,
-                  diseaseHealth: {
+                  health: {
                     currentDiseases: [
                       {
                         ...disease,
@@ -366,9 +376,16 @@ const useCoreLoops = () => {
                       },
                     ],
                     exposureHistory: [],
-                    resistances: {},
+                    immunities: [],
+                    overallHealthStatus: 'sick',
+                    lastHealthUpdate: { year: parseInt(mapData?.timeSlice || '1500'), month: 1, day: 1 }
                   },
                 };
+                
+                // Show notification about disease spread
+                const notification = `⚠️ ${npc1.name}'s ${disease.disease.name} has spread to ${npc2.name}!`;
+                showToast(notification);
+                
                 console.log(
                   `[NPC→NPC Disease Spread] ${npc1.name}'s ${disease.disease.name} spread to ${npc2.name} at distance ${distance.toFixed(
                     1
@@ -437,7 +454,7 @@ const useCoreLoops = () => {
 
           // Check for cross-species transmission to NPCs
           currentNpcs.forEach((npc) => {
-            if (npc.diseaseHealth?.currentDiseases?.length) return;
+            if (npc.health?.currentDiseases?.length) return;
 
             const distance = Math.hypot(animal1.x - npc.x, animal1.y - npc.y);
             if (distance <= 1.5) {
@@ -447,6 +464,10 @@ const useCoreLoops = () => {
               baseChance *= virality * 0.5;
 
               if (Math.random() < baseChance) {
+                // Show notification about zoonotic transmission
+                const notification = `🦠 ${animal1.speciesName}'s ${disease.disease.name} has jumped to ${npc.name}!`;
+                showToast(notification);
+                
                 setNpcs((prevNpcs) =>
                   prevNpcs.map((n) => {
                     if (n.id === npc.id) {
@@ -457,7 +478,7 @@ const useCoreLoops = () => {
                       );
                       return {
                         ...n,
-                        diseaseHealth: {
+                        health: {
                           currentDiseases: [
                             {
                               ...disease,
@@ -466,7 +487,9 @@ const useCoreLoops = () => {
                             },
                           ],
                           exposureHistory: [],
-                          resistances: {},
+                          immunities: [],
+                          overallHealthStatus: 'sick',
+                          lastHealthUpdate: { year: parseInt(mapData?.timeSlice || '1500'), month: 1, day: 1 }
                         },
                       };
                     }
@@ -480,9 +503,9 @@ const useCoreLoops = () => {
 
         // Human-to-animal transmission
         currentNpcs.forEach((npc) => {
-          if (!npc.diseaseHealth?.currentDiseases?.length) return;
+          if (!npc.health?.currentDiseases?.length) return;
 
-          const disease = npc.diseaseHealth.currentDiseases[0];
+          const disease = npc.health.currentDiseases[0];
 
           for (let i = 0; i < updatedAnimals.length; i++) {
             const animal = updatedAnimals[i];
@@ -497,6 +520,10 @@ const useCoreLoops = () => {
               baseChance *= virality * 0.3;
 
               if (Math.random() < baseChance) {
+                // Show notification about reverse zoonotic transmission
+                const notification = `🐾 ${npc.name}'s ${disease.disease.name} has infected a ${animal.speciesName}!`;
+                showToast(notification);
+                
                 updatedAnimals[i] = {
                   ...animal,
                   diseaseHealth: {
@@ -650,15 +677,56 @@ const useCoreLoops = () => {
           setActionableTile({ type: 'mine', tile: currentTile, structure: structureOnTile });
           return;
         }
+        // Auto-open government district modal when walking on it
+        if (structureType === 'government_district' && !structureOnTile.isRuined) {
+          // Only set the modal target if it's not already open
+          setStructureModalTarget(prev => {
+            if (!prev || prev.id !== structureOnTile.id) {
+              return structureOnTile;
+            }
+            return prev;
+          });
+        }
+      }
+      
+      // PRIORITY CHECK: Government districts should be handled FIRST before any other tile type
+      // This ensures they are never confused with LOW_DENSITY_CITY or DENSE_CITY tiles
+      if (currentTile.biome === BiomeType.GOVERNMENT_DISTRICT) {
+        // Government districts are special and should ALWAYS open their modal
+        // Create a pseudo-structure for government district tiles
+        const pseudoStructure = {
+          id: `gov_district_${currentTile.x}_${currentTile.y}`,
+          structureType: 'government_district' as const,
+          location: [currentTile.x, currentTile.y] as [number, number],
+          materialType: 'stone',
+          isRuined: false,
+          biome: BiomeType.GOVERNMENT_DISTRICT,
+          name: 'Government District'
+        } as any as TerrainStructure;
+        
+        // Use activeGovernmentModal for proper rendering like RuinStructureModal
+        setActiveGovernmentModal(prev => {
+          if (!prev || prev.structure.id !== pseudoStructure.id) {
+            console.log('[GovernmentDistrict] Setting activeGovernmentModal for tile at', currentTile.x, currentTile.y);
+            return { structure: pseudoStructure, tile: currentTile };
+          }
+          return prev;
+        });
+        
+        // IMPORTANT: Don't set actionable tile and don't check other tile types
+        // Government districts are unique and should never be treated as buildings
+        setActionableTile(null);
+        return;
       }
 
-      const isBuildingTile = [
+      // Double-check to ensure government districts are never treated as regular buildings
+      const isBuildingTile = currentTile.biome !== BiomeType.GOVERNMENT_DISTRICT && [
         BiomeType.PALACE,
         BiomeType.HOLY_SITE,
         BiomeType.HAMLET,
         BiomeType.LOW_DENSITY_CITY,
         BiomeType.DENSE_CITY,
-        BiomeType.GOVERNMENT_DISTRICT,
+        // GOVERNMENT_DISTRICT is explicitly excluded and handled separately above
       ].includes(currentTile.biome);
 
       if (currentTile.biome === BiomeType.FARMLAND) {
@@ -831,11 +899,13 @@ useEffect(() => {
     let newLogicalX = controlledIconX + dx;
     let newLogicalY = controlledIconY + dy;
 
-    // edge transitions
-    if (newLogicalX < 0) { handleMapTransition('W', MAP_WIDTH_TILES - 1, controlledIconY); return; }
-    if (newLogicalX >= MAP_WIDTH_TILES) { handleMapTransition('E', 0, controlledIconY); return; }
-    if (newLogicalY < 0) { handleMapTransition('N', controlledIconX, MAP_HEIGHT_TILES - 1); return; }
-    if (newLogicalY >= MAP_HEIGHT_TILES) { handleMapTransition('S', controlledIconX, 0); return; }
+    // edge transitions (but not in special maps or when entering one)
+    if (!isSpecialMap && !isEnteringSpecialMap) {
+      if (newLogicalX < 0) { handleMapTransition('W', MAP_WIDTH_TILES - 1, controlledIconY); return; }
+      if (newLogicalX >= MAP_WIDTH_TILES) { handleMapTransition('E', 0, controlledIconY); return; }
+      if (newLogicalY < 0) { handleMapTransition('N', controlledIconX, MAP_HEIGHT_TILES - 1); return; }
+      if (newLogicalY >= MAP_HEIGHT_TILES) { handleMapTransition('S', controlledIconX, 0); return; }
+    }
 
     // animal interaction
     const animalOnTile = visibleAnimals?.find(a => a.x === newLogicalX && a.y === newLogicalY);

@@ -57,4 +57,28 @@ export enum BiomeType {
   // Ethereal realm biomes (only used in special zones)
   AIR = 'AIR', // Ethereal air - clouds, darkness, storms, or ice based on climate
   UNDERSEA = 'UNDERSEA', // Glowing underwater realm
+  
+  // Architectural biomes for special maps
+  WALL = 'WALL',
+  WALL_GATE = 'WALL_GATE',
+  FLOOR_STONE = 'FLOOR_STONE',
+  FLOOR_WOOD = 'FLOOR_WOOD',
+  FLOOR_MARBLE = 'FLOOR_MARBLE',
+  FLOOR_TILE = 'FLOOR_TILE',
+  TABLE = 'TABLE',
+  CHAIR = 'CHAIR',
+  BED = 'BED',
+  THRONE = 'THRONE',
+  COLUMN = 'COLUMN',
+  FOUNTAIN = 'FOUNTAIN',
+  STATUE = 'STATUE',
+  PAVILION = 'PAVILION',
+  ALTAR = 'ALTAR',
+  STAGE = 'STAGE',
+  BOOKSHELF = 'BOOKSHELF',
+  WORKSHOP = 'WORKSHOP',
+  KITCHEN = 'KITCHEN',
+  CELL = 'CELL',
+  TREASURY = 'TREASURY',
+  BATH = 'BATH',
 }

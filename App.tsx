@@ -60,7 +60,7 @@ const AppContent: React.FC = () => {
     const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, debugSettings, isTestModeEnabled } = useUI();
     const { playerCharacter } = usePlayer();
     const { gameDate, currentZone, currentRegion, isLoading } = useGame();
-    const { localArea, mapData, onStartNewWorldAtZoneRegion } = useMap();
+    const { localArea, mapData, onStartNewWorldAtZoneRegion, isSpecialMap, isEnteringSpecialMap } = useMap();
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState<'left' | 'right' | null>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
     const [showInitialScenarioModal, setShowInitialScenarioModal] = React.useState(false);
@@ -98,6 +98,11 @@ const AppContent: React.FC = () => {
         
         // Don't generate if already generating or loading
         if (isGeneratingMap || isLoading) {
+            return;
+        }
+        
+        // Don't generate if we're entering or in a special map
+        if (isSpecialMap || isEnteringSpecialMap) {
             return;
         }
         
@@ -146,7 +151,7 @@ const AppContent: React.FC = () => {
         
         // Reset generating flag after a delay
         setTimeout(() => setIsGeneratingMap(false), 5000);
-    }, [hasInitializedFromURL, delayInitialMap, shouldWaitForURLConfig, urlConfig, onStartNewWorldAtZoneRegion, currentZone, isGeneratingMap, isLoading, mapData]);
+    }, [hasInitializedFromURL, delayInitialMap, shouldWaitForURLConfig, urlConfig, onStartNewWorldAtZoneRegion, currentZone, isGeneratingMap, isLoading, mapData, isSpecialMap, isEnteringSpecialMap]);
     
     // Initialize event system
     const { 

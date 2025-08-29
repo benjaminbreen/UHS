@@ -94,6 +94,7 @@ export const useUIState = () => {
     const [activeCityModal, _setActiveCityModal] = useState<{ tile: Tile } | null>(null);
     const [activeRuinModal, setActiveRuinModal] = useState<{ tile: Tile } | null>(null);
     const [inRuinRoguelike, setInRuinRoguelike] = useState(false);
+    const [activeGovernmentModal, setActiveGovernmentModal] = useState<{ structure: TerrainStructure; tile: Tile } | null>(null);
     const [activeMiningModal, setActiveMiningModal] = useState<TerrainStructure | null>(null);
     const [interactionModalData, setInteractionModalData] = useState<any>(null); // For container loot
     const [encounterTarget, setEncounterTarget] = useState<EncounterableEntity | null>(null);
@@ -137,10 +138,10 @@ export const useUIState = () => {
     const isAnyModalOpen = useMemo(() =>
         isSettingsModalOpen || isAboutModalOpen || isWorldMapModalOpen || isCharacterProfileModalOpen || isMapDetailsModalOpen ||
         !!tileInfoModalProps || !!infoModalTarget || !!structureModalTarget || !!activeSettlementInfo ||
-        !!interactionModalData || isSkillsModalOpen || !!encounterTarget || !!combatant || !!victoryDetails || !!lootModalData || !!activeMarketplaceModal || !!activeCityModal || isLevelUpModalOpen || isPortraitModalOpen || isCraftingModalOpen || !!activeMiningModal || !!activePoi || !!activeRuinModal,
+        !!interactionModalData || isSkillsModalOpen || !!encounterTarget || !!combatant || !!victoryDetails || !!lootModalData || !!activeMarketplaceModal || !!activeCityModal || isLevelUpModalOpen || isPortraitModalOpen || isCraftingModalOpen || !!activeMiningModal || !!activePoi || !!activeRuinModal || !!activeGovernmentModal,
         [isSettingsModalOpen, isAboutModalOpen, isWorldMapModalOpen, isCharacterProfileModalOpen, isMapDetailsModalOpen,
          tileInfoModalProps, infoModalTarget, structureModalTarget, activeSettlementInfo,
-         interactionModalData, isSkillsModalOpen, encounterTarget, combatant, victoryDetails, lootModalData, activeMarketplaceModal, activeCityModal, isLevelUpModalOpen, isPortraitModalOpen, isCraftingModalOpen, activeMiningModal, activePoi, activeRuinModal]
+         interactionModalData, isSkillsModalOpen, encounterTarget, combatant, victoryDetails, lootModalData, activeMarketplaceModal, activeCityModal, isLevelUpModalOpen, isPortraitModalOpen, isCraftingModalOpen, activeMiningModal, activePoi, activeRuinModal, activeGovernmentModal]
     );
 
     // Handlers
@@ -166,6 +167,7 @@ export const useUIState = () => {
         setLootModalData(null);
         setActiveMarketplaceModal(null);
         setActiveCityModal(null);
+        setActiveGovernmentModal(null);
         setIsLevelUpModalOpen(false);
         setIsPortraitModalOpen(false);
         setPortraitModalCharacter(null);
@@ -797,7 +799,7 @@ export const useUIState = () => {
         isTestModeEnabled, debugSettings, isDevBuildingModeOpen,
         isWorldMapModalOpen, interactionModalData, isSkillsModalOpen, isSkillLoading, skillResult,
         isMapDetailsModalOpen, encounterTarget, combatant, victoryDetails, isCharacterProfileModalOpen,
-        isAnyModalOpen, activeMarketplaceModal, activeCityModal, activeRuinModal, activeMiningModal,
+        isAnyModalOpen, activeMarketplaceModal, activeCityModal, activeRuinModal, activeGovernmentModal, activeMiningModal,
         isLeftSidebarExpanded, activeMapSubTab, activeLens, toastMessage, panelNotificationItem,
         lootModalData, setLootModalData,
         isLevelUpModalOpen, levelUpCharacter,
@@ -815,7 +817,7 @@ export const useUIState = () => {
         setIsSkillsModalOpen, setIsMapDetailsModalOpen,
         handleEncounter, handleCloseEncounter, handleInitiateCombat,
         setCombatant, handleCombatVictory, setVictoryDetails, setIsCharacterProfileModalOpen,
-        closeAllModals, setActiveMarketplaceModal, setActiveCityModal, setActiveRuinModal, setActiveMiningModal, setInRuinRoguelike,
+        closeAllModals, setActiveMarketplaceModal, setActiveCityModal, setActiveRuinModal, setActiveGovernmentModal, setActiveMiningModal, setInRuinRoguelike,
         setIsLeftSidebarExpanded, setActiveMapSubTab, setActiveLens, showToast, setPanelNotificationItem,
         handleLooting, handleCloseLootModal, onTakeCoins,
         handleVictoryClose,

@@ -35,14 +35,40 @@ const DiseaseModal: React.FC<DiseaseModalProps> = ({
     setIsLoadingSource(true);
     try {
       // Search for relevant primary sources about this disease
-      const sources = await primarySourceService.searchSources(
-        [disease.disease.name.toLowerCase(), disease.disease.type, 'plague', 'sickness', 'medicine'],
-        culturalZone as any,
-        currentYear
-      );
+      // Try multiple keywords to find relevant sources
+      const keywords = [
+        disease.disease.name.toLowerCase(),
+        disease.disease.type,
+        'plague',
+        'sickness',
+        'medicine',
+        'disease',
+        'illness'
+      ];
       
-      if (sources && sources.length > 0) {
-        const randomSource = sources[Math.floor(Math.random() * sources.length)];
+      let allSources: any[] = [];
+      
+      // Search for each keyword
+      for (const keyword of keywords) {
+        try {
+          const sources = await primarySourceService.searchByKeyword(
+            keyword,
+            undefined, // Let it determine era from year
+            culturalZone as any
+          );
+          if (sources && sources.length > 0) {
+            allSources = [...allSources, ...sources];
+          }
+        } catch (err) {
+          // Ignore individual keyword search errors
+        }
+      }
+      
+      // Remove duplicates based on id
+      const uniqueSources = Array.from(new Map(allSources.map(s => [s.id, s])).values());
+      
+      if (uniqueSources.length > 0) {
+        const randomSource = uniqueSources[Math.floor(Math.random() * uniqueSources.length)];
         setPrimarySource(`"${randomSource.excerpt}" - ${randomSource.author}, ${randomSource.year}`);
       } else {
         // Fallback quotes if no sources found

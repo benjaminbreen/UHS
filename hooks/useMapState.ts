@@ -1,9 +1,11 @@
 /**
  * hooks/useMapState.ts - Manages map data, generation, and transitions.
  */
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { MapData, AnimalEntity, NpcEntity, MapAnalysisData, MapArchetype, ClimateType, AltitudeSetting, EdgeTileInfo, GameDate, AdjacencyDirection, Item, MapAreaDefinition, PlayerCharacter, BiomeType, MapGenerationParams, SocietalProfile, HistoricalEra, TerrainStructure, DeployedVessel } from '../types';
+import { SpecialMapConfig, SpecialMapData, InteractionZone, ExitZone } from '../types/specialMapTypes';
 import { proceduralGenerateMap } from '../generation/standardMap/standardMapGenerator';
+import { generateSpecialMap } from '../generation/specialMap/specialMapGenerator';
 import { deriveMapSeed } from '../utils/mapUtils';
 import { findMapAreaDefinition, getNextMapArea } from '../utils/geographyUtils';
 import { geography } from '../constants/gameData/geography';
@@ -132,6 +134,18 @@ export const useMapState = (props: useMapStateProps) => {
     const [pendingScenarioData, setPendingScenarioData] = useState<any>(null);
     const [hasGeneratedInitialMap, setHasGeneratedInitialMap] = useState(false);
     
+    // Special map state
+    const [isSpecialMap, setIsSpecialMap] = useState(false);
+    const isSpecialMapRef = useRef(false); // Immediate ref to track special map state
+    const [isEnteringSpecialMap, setIsEnteringSpecialMap] = useState(false);
+    const [specialMapInteractionZones, setSpecialMapInteractionZones] = useState<InteractionZone[]>([]);
+    const [specialMapExitZones, setSpecialMapExitZones] = useState<ExitZone[]>([]);
+    const [specialMapReturnData, setSpecialMapReturnData] = useState<{
+        mapAreaName: string;
+        returnCoordinates: [number, number];
+        originalMapCache?: string;
+    } | null>(null);
+    
     // Derived State
     const currentMapSeed = useMemo(() => deriveMapSeed(initialGameSeed, currentWorldCoords.x, currentWorldCoords.y), [initialGameSeed, currentWorldCoords]);
     const currentMapArchetype = useMemo(() => mapData?.archetype || userSelectedBaseArchetype, [mapData, userSelectedBaseArchetype]);
@@ -186,6 +200,13 @@ export const useMapState = (props: useMapStateProps) => {
     }, [mapData]);
 
     const removeVegetation = useCallback((vegetationId: string) => {
+        // Don't modify special maps (check ref for immediate value)
+        if (isSpecialMapRef.current || isSpecialMap) {
+            console.warn('[removeVegetation] BLOCKED - special map active, ref:', isSpecialMapRef.current, ', state:', isSpecialMap);
+            return;
+        }
+        console.log('[removeVegetation] Running - ref:', isSpecialMapRef.current, ', state:', isSpecialMap);
+        
         setMapData(prevMapData => {
             if (!prevMapData) return null;
 
@@ -207,9 +228,15 @@ export const useMapState = (props: useMapStateProps) => {
                 vegetation: newVegetation,
             };
         });
-    }, []);
+    }, [isSpecialMap]);
 
     const updateMineralDeposit = useCallback((x: number, y: number, amountToDecrement: number) => {
+        // Don't modify special maps
+        if (isSpecialMap) {
+            console.log('[updateMineralDeposit] Blocked - special map active');
+            return;
+        }
+        
         setMapData(prevMapData => {
             if (!prevMapData) return null;
 
@@ -237,7 +264,7 @@ export const useMapState = (props: useMapStateProps) => {
             
             return prevMapData;
         });
-    }, [currentWorldCoords.x, currentWorldCoords.y, mapDataCache]);
+    }, [currentWorldCoords.x, currentWorldCoords.y, mapDataCache, isSpecialMap]);
 
 
     const _selectRandomMapArea = useCallback(() => {
@@ -354,6 +381,12 @@ export const useMapState = (props: useMapStateProps) => {
 
     // Map transitions based on world coordinates change
     useEffect(() => {
+        // Don't run this effect if we're in a special map (check ref for immediate value)
+        if (isSpecialMapRef.current || isSpecialMap) {
+            console.log('[useEffect-MapTransition] Skipping map reload - special map is active (ref:', isSpecialMapRef.current, ', state:', isSpecialMap, ')');
+            return;
+        }
+
         const cacheKey = `${currentWorldCoords.x},${currentWorldCoords.y}`;
         const cachedEntry = mapDataCache.get(cacheKey);
 
@@ -439,7 +472,7 @@ export const useMapState = (props: useMapStateProps) => {
                 setGameState.setIsLoading(false);
             }
         }
-    }, [currentWorldCoords, gameState.liminalTravelState, mapData, currentMapSeed, mapDataCache, setGameState, setLocalArea, playerState.pendingIconTransitionInfo, generateAndCacheMapInternal, validateAndPlacePlayerOnNewMap, localArea]);
+    }, [currentWorldCoords, gameState.liminalTravelState, mapData, currentMapSeed, mapDataCache, setGameState, setLocalArea, playerState.pendingIconTransitionInfo, generateAndCacheMapInternal, validateAndPlacePlayerOnNewMap, localArea, isSpecialMap]);
 
 
     const handleMapTransition = useCallback((direction: AdjacencyDirection, entryX: number, entryY: number) => {
@@ -715,6 +748,163 @@ export const useMapState = (props: useMapStateProps) => {
         userSelectedBaseAltitude, forceVolcanicActivity, gameState.gameDate.year, 
         isAgricultural, isPastoral, economicActivityLevel]);
 
+
+    // Special Map Entry/Exit Functions
+    const enterSpecialMap = useCallback((config: SpecialMapConfig) => {
+        if (!mapData || !playerState.playerCharacter) {
+            console.error('[enterSpecialMap] Cannot enter special map without map data or player character');
+            return;
+        }
+
+        console.log('[enterSpecialMap] ======= SPECIAL MAP ENTRY START =======');
+        console.log('[enterSpecialMap] Config:', config);
+        console.log('[enterSpecialMap] Current map area:', mapData.mapAreaName);
+        console.log('[enterSpecialMap] Current isSpecialMap:', isSpecialMap);
+        
+        // Set entering flag to prevent edge transitions during the process
+        setIsEnteringSpecialMap(true);
+        console.log('[enterSpecialMap] Set isEnteringSpecialMap to true');
+        
+        // Cache the current map state
+        const cacheKey = `${currentWorldCoords.x},${currentWorldCoords.y}`;
+        console.log('[enterSpecialMap] Caching current map with key:', cacheKey);
+        const currentMapCache = {
+            mapData,
+            animals,
+            npcs,
+            deployedVessels,
+            seed: currentMapSeed,
+            archetype: currentMapArchetype,
+            climate: currentMapClimate,
+            worldX: currentWorldCoords.x,
+            worldY: currentWorldCoords.y,
+            region: mapData.region || '',
+            localArea: localArea
+        };
+        
+        // Actually add to cache!
+        mapDataCache.set(cacheKey, currentMapCache);
+        console.log('[enterSpecialMap] Map cached, cache size:', mapDataCache.size);
+        
+        // Store return data
+        setSpecialMapReturnData({
+            mapAreaName: localArea,
+            returnCoordinates: [playerState.controlledIconX || 0, playerState.controlledIconY || 0],
+            originalMapCache: cacheKey
+        });
+
+        // Generate the special map
+        setGameState.setIsLoading(true);
+        
+        const specialMapData = generateSpecialMap(
+            currentMapSeed + 999, // Different seed for special maps
+            config,
+            {
+                mapAreaName: localArea,
+                structureId: config.structureId || 'government_district',
+                structureType: 'government_district',
+                returnCoordinates: [playerState.controlledIconX || 0, playerState.controlledIconY || 0],
+                climate: currentMapClimate  // Pass the current map climate
+            }
+        );
+
+        // Set the special map data
+        console.log('[enterSpecialMap] Setting special map data:', {
+            width: specialMapData.width,
+            height: specialMapData.height,
+            mapType: specialMapData.mapType,
+            specialArchetype: specialMapData.specialArchetype,
+            tilesLength: specialMapData.tiles?.length,
+            firstRowLength: specialMapData.tiles?.[0]?.length,
+            seed: specialMapData.seed,
+            currentMapSeed: currentMapSeed,
+            firstTile: specialMapData.tiles?.[0]?.[0]?.biome
+        });
+        
+        // CRITICAL: Set the ref immediately to prevent the useEffect from running
+        isSpecialMapRef.current = true;
+        console.log('[enterSpecialMap] Set isSpecialMapRef.current to true IMMEDIATELY');
+        
+        // Set isSpecialMap state as well
+        setIsSpecialMap(true);
+        console.log('[enterSpecialMap] Set isSpecialMap to true BEFORE setting map data');
+        
+        // Now set the map data
+        setMapData(specialMapData);
+        console.log('[enterSpecialMap] Map data set - special map should now be active');
+        console.log('[enterSpecialMap] Special map has', specialMapData.npcs?.length || 0, 'NPCs');
+        setSpecialMapInteractionZones(specialMapData.interactionZones || []);
+        setSpecialMapExitZones(specialMapData.exitZones || []);
+        
+        // Set NPCs from special map data
+        setAnimals([]); // Clear animals for now
+        setNpcs(specialMapData.npcs || []); // Use NPCs from special map
+        console.log('[enterSpecialMap] Set', specialMapData.npcs?.length || 0, 'NPCs from special map');
+        setDeployedVessels([]);
+        
+        // Place player at entrance with bounds checking
+        const entranceX = Math.min(Math.floor(specialMapData.width / 2), specialMapData.tiles[0]?.length - 1 || 0);
+        const entranceY = Math.min(specialMapData.height - 2, specialMapData.tiles.length - 1);
+        
+        // Ensure position is valid
+        if (entranceY >= 0 && entranceY < specialMapData.tiles.length && 
+            entranceX >= 0 && entranceX < (specialMapData.tiles[entranceY]?.length || 0)) {
+            setPlayerState.setControlledIconX(entranceX);
+            setPlayerState.setControlledIconY(entranceY);
+        } else {
+            // Fallback to map center if entrance position is invalid
+            const centerX = Math.floor(specialMapData.width / 2);
+            const centerY = Math.floor(specialMapData.height / 2);
+            setPlayerState.setControlledIconX(centerX);
+            setPlayerState.setControlledIconY(centerY);
+            console.warn('[enterSpecialMap] Invalid entrance position, using map center');
+        }
+        setPlayerState.setPlayerMode('onFoot');
+        
+        // Clear the entering flag after a short delay to ensure all state updates have propagated
+        setTimeout(() => {
+            setIsEnteringSpecialMap(false);
+        }, 100);
+        
+        setGameState.setIsLoading(false);
+        console.log('[enterSpecialMap] ======= SPECIAL MAP ENTRY COMPLETE =======');
+    }, [mapData, playerState, currentWorldCoords, animals, npcs, deployedVessels, 
+        currentMapSeed, currentMapArchetype, currentMapClimate, localArea, 
+        setGameState, setPlayerState]);
+
+    const exitSpecialMap = useCallback(() => {
+        if (!specialMapReturnData || !specialMapReturnData.originalMapCache) {
+            console.error('[exitSpecialMap] No return data available');
+            return;
+        }
+
+        console.log('[exitSpecialMap] Exiting special map, returning to:', specialMapReturnData.mapAreaName);
+        
+        // Retrieve the cached map
+        const cachedEntry = mapDataCache.get(specialMapReturnData.originalMapCache);
+        if (cachedEntry) {
+            setMapData(cachedEntry.mapData);
+            setAnimals(cachedEntry.animals);
+            setNpcs(cachedEntry.npcs);
+            setDeployedVessels(cachedEntry.deployedVessels);
+            setLocalArea(cachedEntry.localArea);
+        } else {
+            console.warn('[exitSpecialMap] Could not find cached map, generating new map');
+            // Fallback: generate a new map at the return location
+            onRegenerateMapWithCurrentSettings();
+        }
+        
+        // Restore player position
+        setPlayerState.setControlledIconX(specialMapReturnData.returnCoordinates[0]);
+        setPlayerState.setControlledIconY(specialMapReturnData.returnCoordinates[1]);
+        
+        // Clear special map state
+        setIsSpecialMap(false);
+        isSpecialMapRef.current = false; // Clear the ref as well
+        setSpecialMapInteractionZones([]);
+        setSpecialMapExitZones([]);
+        setSpecialMapReturnData(null);
+    }, [specialMapReturnData, mapDataCache, setPlayerState, onRegenerateMapWithCurrentSettings]);
 
     const onStartNewWorldAtLocation = useCallback((targetZone: string, targetMapArea: string, characterSpec?: any, overrideYear?: number) => {
         console.log('[onStartNewWorldAtLocation] Called with zone:', targetZone, 'area:', targetMapArea, 'characterSpec:', characterSpec, 'overrideYear:', overrideYear);
@@ -1028,6 +1218,12 @@ export const useMapState = (props: useMapStateProps) => {
         forceVolcanicActivity, gameState.gameDate.year, isAgricultural, isPastoral, economicActivityLevel]);
 
     const updateStructureData = useCallback((structureId: string, updatedData: Partial<TerrainStructure>) => {
+        // Don't modify special maps
+        if (isSpecialMap) {
+            console.log('[updateStructureData] Blocked - special map active');
+            return;
+        }
+        
         setMapData(prevMapData => {
             if (!prevMapData?.terrainStructures) return prevMapData;
 
@@ -1048,7 +1244,7 @@ export const useMapState = (props: useMapStateProps) => {
 
             return newMapData;
         });
-    }, [currentWorldCoords, mapDataCache]);
+    }, [currentWorldCoords, mapDataCache, isSpecialMap]);
 
     const deployVesselToMap = useCallback((vesselItem: Item, playerX: number, playerY: number): { success: boolean, vesselPosition?: { x: number, y: number } } => {
         if (!mapData) return { success: false };
@@ -1174,5 +1370,13 @@ export const useMapState = (props: useMapStateProps) => {
         deployVesselToMap,
         pendingScenarioData,
         setPendingScenarioData,
+        
+        // Special map functions
+        enterSpecialMap,
+        exitSpecialMap,
+        isSpecialMap,
+        isEnteringSpecialMap,
+        specialMapInteractionZones,
+        specialMapExitZones,
     };
 };

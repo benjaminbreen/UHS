@@ -50,7 +50,7 @@ export const BIOME_COLORS: Record<BiomeType, string> = {
   [BiomeType.HOLY_SITE]: '#fffacd', // Lemon chiffon, a light gold/cream
   [BiomeType.FARMLAND]: '#c4a257',
   [BiomeType.MARKETPLACE]: '#c0b090',
-  [BiomeType.GOVERNMENT_DISTRICT]: '#a0b0c0',
+  [BiomeType.GOVERNMENT_DISTRICT]: '#ba11f2',
   [BiomeType.CITY_CENTER]: '#d0c0a0',
   [BiomeType.PARK]: '#5a9a40', // Green park color for modern urban parks
   [BiomeType.ROAD]: '#505050', // Dark gray for paved roads
@@ -68,8 +68,103 @@ export const BIOME_COLORS: Record<BiomeType, string> = {
   [BiomeType.UNDERSEA]: '#172554', // Deep underwater blue
   [BiomeType.AIR]: '#dbeafe', // Light sky blue
   [BiomeType.PADDOCK]: '#bef264', // Light green for animal paddocks
-  [BiomeType.HARBOR]: '#94a3b8', // Harbor gray-blue
   [BiomeType.SHOALS]: '#67e8f9', // Light cyan for shoals
+  
+  // Architectural biomes for special maps
+  [BiomeType.WALL]: '#4a4a4a', // Dark stone gray
+  [BiomeType.WALL_GATE]: '#6b4423', // Brown wood gate
+  [BiomeType.FLOOR_STONE]: '#9a9a9a', // Light stone gray
+  [BiomeType.FLOOR_WOOD]: '#8b6633', // Wood brown
+  [BiomeType.FLOOR_MARBLE]: '#e8e8e8', // White marble
+  [BiomeType.FLOOR_TILE]: '#c4a574', // Terracotta tile
+  [BiomeType.TABLE]: '#6b4423', // Dark wood
+  [BiomeType.CHAIR]: '#8b6633', // Medium wood
+  [BiomeType.BED]: '#a0522d', // Reddish wood
+  [BiomeType.COLUMN]: '#b0b0b0', // Light stone column
+  [BiomeType.STATUE]: '#d3d3d3', // Light gray stone
+  [BiomeType.FOUNTAIN]: '#87ceeb', // Light blue water
+  [BiomeType.THRONE]: '#ffd700', // Gold throne
+  [BiomeType.ALTAR]: '#8b4513', // Dark religious wood
+  [BiomeType.SHELF]: '#654321', // Dark shelf wood
+  [BiomeType.COUNTER]: '#7a5c3a', // Counter wood
+  [BiomeType.STALL]: '#8b7355', // Market stall wood
+  [BiomeType.DISPLAY]: '#705030', // Display case wood
+  [BiomeType.GARDEN]: '#228b22', // Garden green
+  [BiomeType.POND]: '#4682b4', // Pond blue
+  [BiomeType.TREE_INDOOR]: '#2e8b57', // Indoor tree green
+  [BiomeType.CARPET]: '#8b0000', // Red carpet
+  [BiomeType.CURTAIN]: '#4b0082', // Purple curtain
+  [BiomeType.WINDOW]: '#add8e6', // Light blue glass
+  [BiomeType.DOOR]: '#654321', // Door brown
+  [BiomeType.STAIRS]: '#7a7a7a', // Gray stone stairs
+  [BiomeType.LADDER]: '#8b6914', // Ladder wood
+  [BiomeType.FIREPLACE]: '#ff4500', // Orange fire glow
+  [BiomeType.TORCH]: '#ffa500', // Orange torch light
+  [BiomeType.CHANDELIER]: '#ffd700', // Gold chandelier
+  [BiomeType.BRAZIER]: '#ff6347', // Tomato red fire
+  [BiomeType.CAGE]: '#696969', // Dim gray metal
+  [BiomeType.CHEST]: '#654321', // Chest brown
+  [BiomeType.BARREL]: '#8b4513', // Barrel brown
+  [BiomeType.CRATE]: '#a0826d', // Crate tan
+  [BiomeType.WEAPON_RACK]: '#4a4a4a', // Metal gray
+  [BiomeType.ARMOR_STAND]: '#708090', // Slate gray
+  [BiomeType.BANNER]: '#dc143c', // Crimson banner
+  [BiomeType.FLAG]: '#ff0000', // Red flag
+  [BiomeType.BELL]: '#ffd700', // Gold bell
+  [BiomeType.GONG]: '#b8860b', // Dark golden rod
+  [BiomeType.BOOKSHELF]: '#654321', // Dark wood
+  [BiomeType.DESK]: '#8b6633', // Desk wood
+  [BiomeType.PODIUM]: '#705030', // Podium wood
+  [BiomeType.STAGE]: '#8b7355', // Stage wood
+  [BiomeType.PAVILION]: '#c4b5a0', // Light pavilion canvas/stone
+  [BiomeType.CELL]: '#3a3a3a', // Dark prison cell gray
+  [BiomeType.SEATING]: '#696969', // Theater seating gray
+  [BiomeType.SCREEN]: '#f5f5f5', // Light screen/paper
+  [BiomeType.PARTITION]: '#deb887', // Burlywood partition
+  [BiomeType.FENCE]: '#8b6914', // Fence brown
+  [BiomeType.GATE]: '#654321', // Gate brown
+  [BiomeType.BRIDGE_INDOOR]: '#8b7355', // Indoor bridge wood
+  [BiomeType.BALCONY]: '#a0826d', // Balcony tan
+  [BiomeType.COURTYARD]: '#c0c0c0', // Silver courtyard stone
+  [BiomeType.ARCADE]: '#d3d3d3', // Light gray arcade
+  [BiomeType.COLONNADE]: '#b0b0b0', // Column gray
+  [BiomeType.PORTICO]: '#a9a9a9', // Dark gray portico
+  [BiomeType.VAULT]: '#696969', // Dim gray vault
+  [BiomeType.DOME]: '#dcdcdc', // Gainsboro dome
+  [BiomeType.MINARET]: '#f5f5dc', // Beige minaret
+  [BiomeType.SPIRE]: '#c0c0c0', // Silver spire
+  [BiomeType.BATHHOUSE]: '#87ceeb', // Sky blue water
+  [BiomeType.SAUNA]: '#8b6633', // Wood sauna
+  [BiomeType.POOL]: '#4682b4', // Steel blue pool
+  [BiomeType.WORKSHOP]: '#8b7355', // Workshop brown
+  [BiomeType.FORGE]: '#ff4500', // Orange red forge
+  [BiomeType.KITCHEN]: '#cd853f', // Peru kitchen
+  [BiomeType.STORAGE]: '#a0826d', // Storage tan
+  [BiomeType.CELLAR]: '#4a4a4a', // Dark cellar gray
+  [BiomeType.ATTIC]: '#8b6914', // Attic wood
+  [BiomeType.OBSERVATORY]: '#191970', // Midnight blue
+  [BiomeType.LABORATORY]: '#f0f8ff', // Alice blue lab
+  [BiomeType.LIBRARY]: '#8b4513', // Saddle brown books
+  [BiomeType.SCRIPTORIUM]: '#deb887', // Burlywood scriptorium
+  [BiomeType.SHRINE]: '#ffd700', // Gold shrine
+  [BiomeType.CHAPEL]: '#f5f5dc', // Beige chapel
+  [BiomeType.CRYPT]: '#2f4f4f', // Dark slate gray crypt
+  [BiomeType.TOMB]: '#696969', // Dim gray tomb
+  [BiomeType.TREASURY]: '#ffd700', // Gold treasury
+  [BiomeType.MINT]: '#c0c0c0', // Silver mint
+  [BiomeType.GRANARY]: '#daa520', // Goldenrod grain
+  [BiomeType.WELL_INDOOR]: '#4682b4', // Steel blue water
+  [BiomeType.CISTERN]: '#5f9ea0', // Cadet blue water
+  [BiomeType.SEWER]: '#2f4f4f', // Dark slate gray sewer
+  [BiomeType.AQUEDUCT]: '#4682b4', // Steel blue aqueduct
+  [BiomeType.EXERCISE_YARD]: '#8fbc8f', // Dark sea green yard
+  [BiomeType.PRACTICE_ROOM]: '#d2b48c', // Tan practice room
+  [BiomeType.MEDITATION_ROOM]: '#f5f5dc', // Beige meditation
+  [BiomeType.PRAYER_HALL]: '#fff8dc', // Cornsilk prayer hall
+  [BiomeType.RITUAL_CHAMBER]: '#8b0000', // Dark red ritual
+  [BiomeType.SUMMONING_CIRCLE]: '#4b0082', // Indigo summoning
+  [BiomeType.ALCHEMY_LAB]: '#9370db', // Medium purple alchemy
+  [BiomeType.ENCHANTING_TABLE]: '#9400d3', // Violet enchanting
 };
 
 // Helper to make a color slightly darker/richer

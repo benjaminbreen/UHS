@@ -59,29 +59,55 @@ class DiseaseService {
     const currentDiseases: ActiveDisease[] = [];
     const immunities: Immunity[] = [];
 
-    // SIMPLIFIED: 33% chance to have a disease (1 in 3)
-    const hasDisease = Math.random() < 0.33;
+    // Check if this is an animal (has speciesName property)
+    const isAnimal = 'speciesName' in entity;
+    
+    // Animals have higher disease chance (50%), humans have 33%
+    const diseaseChance = isAnimal ? 0.5 : 0.33;
+    const hasDisease = Math.random() < diseaseChance;
     
     if (hasDisease && availableDiseases.length > 0) {
-      // Check for epidemic diseases first (like plague in 1348)
       let disease: Disease;
-      const epidemicDisease = this.getEpidemicDisease(availableDiseases, era, region, currentYear);
       
-      if (epidemicDisease) {
-        // During epidemics, 80% chance of epidemic disease
-        disease = Math.random() < 0.8 ? epidemicDisease : 
-                  availableDiseases[Math.floor(Math.random() * availableDiseases.length)];
+      if (isAnimal) {
+        // For animals, prioritize animal diseases (80% chance)
+        const animalDiseases = availableDiseases.filter(d => 
+          (d as any).isAnimalDisease === true || 
+          d.type === 'zoonotic' || 
+          d.id === 'RABIES' || 
+          d.id === 'ANTHRAX' ||
+          d.id === 'GLANDERS' ||
+          d.id === 'BRUCELLOSIS' ||
+          d.id === 'TULAREMIA'
+        );
+        
+        if (animalDiseases.length > 0 && Math.random() < 0.8) {
+          disease = animalDiseases[Math.floor(Math.random() * animalDiseases.length)];
+        } else {
+          // 20% chance of regular disease
+          disease = availableDiseases[Math.floor(Math.random() * availableDiseases.length)];
+        }
       } else {
-        // Normal times: common cold is most likely (50%), other diseases share remaining 50%
-        const commonCold = availableDiseases.find(d => d.id === 'COMMON_COLD');
-        disease = commonCold && Math.random() < 0.5 ? commonCold : 
-                  availableDiseases[Math.floor(Math.random() * availableDiseases.length)];
+        // For humans: Check for epidemic diseases first
+        const epidemicDisease = this.getEpidemicDisease(availableDiseases, era, region, currentYear);
+        
+        if (epidemicDisease) {
+          // During epidemics, 80% chance of epidemic disease
+          disease = Math.random() < 0.8 ? epidemicDisease : 
+                    availableDiseases[Math.floor(Math.random() * availableDiseases.length)];
+        } else {
+          // Normal times: common cold is most likely (50%), other diseases share remaining 50%
+          const commonCold = availableDiseases.find(d => d.id === 'COMMON_COLD');
+          disease = commonCold && Math.random() < 0.5 ? commonCold : 
+                    availableDiseases[Math.floor(Math.random() * availableDiseases.length)];
+        }
       }
       
       const activeDisease = this.createActiveDisease(disease, currentYear);
       currentDiseases.push(activeDisease);
       
-      console.log(`[DiseaseService] NPC/Animal spawned with ${disease.name} in year ${currentYear}`);
+      const entityType = isAnimal ? 'Animal' : 'NPC';
+      console.log(`[DiseaseService] ${entityType} spawned with ${disease.name} in year ${currentYear}`);
     }
 
     // Chance for immunity from previous exposure
@@ -196,11 +222,15 @@ class DiseaseService {
 
       if (transmissionResult.transmitted) {
         transmitted = true;
-        if (targetEntity.health) {
-          targetEntity.health.currentDiseases.push(transmissionResult.newDisease!);
-          targetEntity.health.exposureHistory.push(exposureEvent);
-          targetEntity.health.overallHealthStatus = this.calculateOverallHealthStatus(
-            targetEntity.health.currentDiseases
+        // Player character uses diseaseHealth, NPCs use health
+        const healthField = 'diseaseHealth' in targetEntity ? 'diseaseHealth' : 'health';
+        const healthData = (targetEntity as any)[healthField];
+        
+        if (healthData) {
+          healthData.currentDiseases.push(transmissionResult.newDisease!);
+          healthData.exposureHistory.push(exposureEvent);
+          healthData.overallHealthStatus = this.calculateOverallHealthStatus(
+            healthData.currentDiseases
           );
         }
       }
@@ -262,11 +292,15 @@ class DiseaseService {
 
       if (transmissionResult.transmitted) {
         transmitted = true;
-        if (targetEntity.health) {
-          targetEntity.health.currentDiseases.push(transmissionResult.newDisease!);
-          targetEntity.health.exposureHistory.push(exposureEvent);
-          targetEntity.health.overallHealthStatus = this.calculateOverallHealthStatus(
-            targetEntity.health.currentDiseases
+        // Player character uses diseaseHealth, NPCs use health
+        const healthField = 'diseaseHealth' in targetEntity ? 'diseaseHealth' : 'health';
+        const healthData = (targetEntity as any)[healthField];
+        
+        if (healthData) {
+          healthData.currentDiseases.push(transmissionResult.newDisease!);
+          healthData.exposureHistory.push(exposureEvent);
+          healthData.overallHealthStatus = this.calculateOverallHealthStatus(
+            healthData.currentDiseases
           );
         }
       }

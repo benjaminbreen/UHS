@@ -48,6 +48,7 @@ import { getMillSymbol } from './symbols/mills/MillSymbols';
 import { getMineSymbol } from './symbols/mines/MineSymbols';
 import { getQuarrySymbol } from './symbols/quarries/QuarrySymbols';
 import { getFortressSymbol } from './symbols/fortresses/FortressSymbolsImproved';
+import { SpecialMapSymbolRenderer } from './symbols/specialMap/SpecialMapSymbolRenderer';
 import { 
   CityHallSymbol,
   TribalCouncilSymbol,
@@ -61,6 +62,7 @@ import Minimap from './Minimap';
 import MapCanvasPerformance from './MapCanvasPerformance';
 import POIHoverTooltip from './POIHoverTooltip';
 import TileHoverTooltip from './TileHoverTooltip';
+import QuestMarkers from './QuestMarkers';
 import { getSafariOptimizedClassName, getSafariOptimizedStyle } from '../utils/safariUtils';
 
 const TILE_SIZE_PX = TILE_SIZE_PX_CONST;
@@ -249,6 +251,7 @@ interface MapDisplayOptimizedProps {
   onPlayerIconClick?: () => void;
   onCompanionClick?: (animal: TamedAnimal) => void;
   onMapEdgeCrossing?: (direction: 'north' | 'south' | 'east' | 'west') => void;
+  isSpecialMap?: boolean;
 }
 
 export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({ 
@@ -286,7 +289,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   debugSettings,
   onPlayerIconClick,
   onCompanionClick,
-  onMapEdgeCrossing
+  onMapEdgeCrossing,
+  isSpecialMap = false
 }) => {
   // State management with performance considerations
   // Start zoomed out for the zoom-in animation
@@ -3156,6 +3160,35 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               </g>
             )}
 
+            {/* Special Map Symbols for Architectural Biomes */}
+            {isSpecialMap && mapData && (
+              <g>
+                {mapData.tiles.flat().filter(tile => {
+                  // Only render symbols for furniture and interactive items, not walls/floors
+                  const furnitureBiomes = [
+                    BiomeType.TABLE, BiomeType.CHAIR, BiomeType.FOUNTAIN, BiomeType.STATUE,
+                    BiomeType.BED, BiomeType.THRONE, BiomeType.BOOKSHELF, BiomeType.DESK,
+                    BiomeType.PILLAR, BiomeType.CARPET, BiomeType.ALTAR, BiomeType.SHRINE,
+                    BiomeType.BRAZIER, BiomeType.CHEST, BiomeType.BARREL, BiomeType.TORCH
+                  ];
+                  // Don't render symbols for basic structural elements like walls and floors
+                  // These are already visible through the canvas rendering
+                  return furnitureBiomes.includes(tile.biome);
+                }).map(tile => (
+                  <SpecialMapSymbolRenderer
+                    key={`special-${tile.x}-${tile.y}`}
+                    biome={tile.biome}
+                    x={tile.x * TILE_SIZE_PX}
+                    y={tile.y * TILE_SIZE_PX}
+                    size={TILE_SIZE_PX}
+                    culturalZone={currentLocation || 'Europe'}
+                    era={parseDateString(formattedDate)}
+                    seed={seed + tile.x * 31 + tile.y * 37}
+                  />
+                ))}
+              </g>
+            )}
+
             {/* Mineral deposits layer - subtle glints on the map */}
             {mapData && shouldRenderAnimations && mapData.tiles.flat().filter(tile => 
               tile.mineralDeposit && tile.mineralDeposit.quantity > 0
@@ -3565,6 +3598,17 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           </g>
         </svg>
       </div>
+      
+      {/* Quest Markers */}
+      {playerCharacter && (
+        <QuestMarkers
+          playerX={playerCharacter.x}
+          playerY={playerCharacter.y}
+          tileSize={TILE_SIZE_PX}
+          viewportOffsetX={svgWidth / 2}
+          viewportOffsetY={svgHeight / 2}
+        />
+      )}
 
       {/* Enhanced vignette effect */}
       <div className="absolute inset-0 pointer-events-none" style={{ mixBlendMode: 'normal' }}>
@@ -3651,14 +3695,14 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     </div>
                   </>
                 )}
-                {hoveredNPC.diseaseHealth && hoveredNPC.diseaseHealth.currentDiseases && hoveredNPC.diseaseHealth.currentDiseases.length > 0 && (
+                {hoveredNPC.health && hoveredNPC.health.currentDiseases && hoveredNPC.health.currentDiseases.length > 0 && (
                   <div className="border-t border-slate-700 mt-1 pt-1">
                     <div className="text-green-400 font-semibold">
-                      ⚠️ Disease: {hoveredNPC.diseaseHealth.currentDiseases[0].disease.name}
+                      ⚠️ Disease: {hoveredNPC.health.currentDiseases[0].disease.name}
                     </div>
-                    {hoveredNPC.diseaseHealth.currentDiseases[0].disease.symptoms && (
+                    {hoveredNPC.health.currentDiseases[0].disease.symptoms && (
                       <div className="text-xs text-green-300 mt-0.5">
-                        Symptoms: {hoveredNPC.diseaseHealth.currentDiseases[0].disease.symptoms.slice(0, 2).map(s => s.name).join(', ')}
+                        Symptoms: {hoveredNPC.health.currentDiseases[0].disease.symptoms.slice(0, 2).map(s => s.name).join(', ')}
                       </div>
                     )}
                   </div>

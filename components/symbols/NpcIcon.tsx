@@ -509,7 +509,7 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
   };
   
   // Check if NPC has a disease
-  const hasDiseases = npc.diseaseHealth && npc.diseaseHealth.currentDiseases && npc.diseaseHealth.currentDiseases.length > 0;
+  const hasDiseases = npc.health && npc.health.currentDiseases && npc.health.currentDiseases.length > 0;
   
   return (
     <g transform={`translate(${baseX}, ${baseY})`}>
@@ -543,7 +543,7 @@ const NpcIcon: React.FC<NpcIconProps> = React.memo(({ npc, size, tileSize }) => 
         data-npc-profession={npc.profession}
         data-npc-class={npc.socialClass}
         data-npc-sick={hasDiseases ? "true" : "false"}
-        data-npc-disease={hasDiseases ? npc.diseaseHealth.currentDiseases[0].disease.name : ""}
+        data-npc-disease={hasDiseases ? npc.health.currentDiseases[0].disease.name : ""}
       />
       
       <g transform={`scale(${direction === 'left' ? -1 : 1}, 1)`} style={{transformBox: 'fill-box', transformOrigin: 'center'}}>

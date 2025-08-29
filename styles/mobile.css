@@ -11,6 +11,34 @@
   --sal: env(safe-area-inset-left);
 }
 
+/* Animation for floating particles in special maps */
+@keyframes float {
+  0% {
+    transform: translateY(0px) translateX(0px);
+    opacity: 0.3;
+  }
+  25% {
+    transform: translateY(-20px) translateX(10px);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(-10px) translateX(-5px);
+    opacity: 0.3;
+  }
+  75% {
+    transform: translateY(-30px) translateX(5px);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(0px) translateX(0px);
+    opacity: 0.3;
+  }
+}
+
+.animate-float {
+  animation: float 10s ease-in-out infinite;
+}
+
 /* Prevent overscroll and bounce on iOS */
 html {
   position: fixed;

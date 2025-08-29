@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import PerformanceDiagnostics from './PerformanceDiagnostics';
 import { eventService } from '../services/eventService';
-import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle } from 'lucide-react';
+import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText } from 'lucide-react';
 import DiseaseService from '../services/diseaseService';
 import { DISEASE_DATABASE, DISEASE_PREVALENCE } from '../constants/gameData/diseases';
 import { HistoricalEra } from '../types/ambiance';
 import { CulturalZone } from '../types/characterData';
+import SpecialMapTestMenu from './SpecialMapTestMenu';
+import QuestTestingPanel from './QuestTestingPanel';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -77,6 +79,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [showPerformanceDiagnostics, setShowPerformanceDiagnostics] = useState(false);
   const [showLLMTracker, setShowLLMTracker] = useState(false);
   const [showDiseaseTestPanel, setShowDiseaseTestPanel] = useState(false);
+  const [showSpecialMapTest, setShowSpecialMapTest] = useState(false);
+  const [showQuestTestPanel, setShowQuestTestPanel] = useState(false);
   const [apiStats, setApiStats] = useState(eventService.getAPIUsageStats());
   const [llmHistory, setLLMHistory] = useState(eventService.getLLMHistory());
   
@@ -453,6 +457,38 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </section>
 
           <section className="mt-6">
+            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Quest Testing</h3>
+            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+              <button
+                onClick={() => setShowQuestTestPanel(true)}
+                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-amber-600 to-orange-600 rounded-md hover:from-amber-700 hover:to-orange-700 flex items-center justify-center gap-2"
+              >
+                <ScrollText className="w-4 h-4" />
+                <span>Open Quest Testing Panel</span>
+              </button>
+              <p className="mt-2 text-xs text-slate-400">
+                Test quest generation, manipulate quest states, teleport to objectives, and debug quest issues.
+              </p>
+            </div>
+          </section>
+
+          <section className="mt-6">
+            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Special Map Testing</h3>
+            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+              <button
+                onClick={() => setShowSpecialMapTest(true)}
+                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-md hover:from-purple-700 hover:to-indigo-700 flex items-center justify-center gap-2"
+              >
+                <MapIcon className="w-4 h-4" />
+                <span>Open Special Map Test Suite</span>
+              </button>
+              <p className="mt-2 text-xs text-slate-400">
+                Test all special map archetypes and view all interior symbols used in local maps.
+              </p>
+            </div>
+          </section>
+
+          <section className="mt-6">
             <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Disease Testing</h3>
             <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
               <button
@@ -612,6 +648,18 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
       <PerformanceDiagnostics 
         isOpen={showPerformanceDiagnostics}
         onClose={() => setShowPerformanceDiagnostics(false)}
+      />
+      
+      {/* Special Map Test Menu */}
+      <SpecialMapTestMenu 
+        isOpen={showSpecialMapTest}
+        onClose={() => setShowSpecialMapTest(false)}
+      />
+      
+      {/* Quest Testing Panel */}
+      <QuestTestingPanel
+        isOpen={showQuestTestPanel}
+        onClose={() => setShowQuestTestPanel(false)}
       />
     </>
   );

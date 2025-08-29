@@ -4,12 +4,17 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { EncounterableEntity, NpcEntity, DialogueEntry, PlayerCharacter, MapData } from '../types';
 import { generateEncounterDialogue } from '../services/encounterService';
-import { summarizeConversation, generateInternalMonologue } from '../services/llmService';
+import { summarizeConversation, generateInternalMonologue, generateNpcQuestOffer } from '../services/llmService';
 import { TypewriterText } from '../hooks/useTypewriter';
 import NpcTradeInterface from './NpcTradeInterface';
 import { ProceduralPortrait, AnimatedPortrait } from './portraits';
 import { questService } from '../services/questService';
 import { Quest } from '../types/questTypes';
+import { questCompletionService } from '../services/questCompletionService';
+import { HistoricalEra } from '../types/ambiance';
+import { CulturalZone } from '../types/characterData';
+import { GameModeType } from '../types/eventTypes';
+import { spatialDescriptionService } from '../services/spatialDescriptionService';
 import { Sparkles, Target, MapPin, Info, AlertTriangle, Heart } from 'lucide-react';
 import NpcQuestPanel from './NpcQuestPanel';
 import NpcMedicalPanel from './NpcMedicalPanel';
@@ -129,6 +134,13 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
     const [monologueClickCount, setMonologueClickCount] = useState(0);
     const [isLoadingMonologue, setIsLoadingMonologue] = useState(false);
     const monologueCache = useRef<Map<number, string>>(new Map());
+    
+    // Quest states
+    const [hasCheckedForQuest, setHasCheckedForQuest] = useState(false);
+    const [isLoadingQuest, setIsLoadingQuest] = useState(false);
+    const [questOffer, setQuestOffer] = useState<any>(null);
+    const [canCompleteQuest, setCanCompleteQuest] = useState<{ quest: Quest; objective: any } | null>(null);
+    const [useHistoricalQuests, setUseHistoricalQuests] = useState(true); // Default to historical system
     
     const hasFetchedInitialDialogue = useRef(false);
     const dialogueLogRef = useRef<HTMLDivElement>(null);
@@ -381,6 +393,23 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
             }
         }
     }, [target, allNpcs]);
+    
+    // Check if this NPC can complete any active quests
+    useEffect(() => {
+        if (isNpc(target) && playerCharacter) {
+            const activeQuests = questService.getActiveQuests();
+            const completion = questCompletionService.checkQuestCompletion(
+                target,
+                playerCharacter,
+                activeQuests
+            );
+            
+            if (completion.canComplete && completion.quest && completion.objective) {
+                setCanCompleteQuest({ quest: completion.quest, objective: completion.objective });
+                console.log(`[Quest] This NPC can complete quest: ${completion.quest.title}`);
+            }
+        }
+    }, [target, playerCharacter]);
 
     useEffect(() => {
         if (!playerCharacter) return;
@@ -420,38 +449,102 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
         }
     }, [history, isLoading]);
 
-    // Check for disease transmission on encounter start
+    // Check for disease transmission on encounter start (bidirectional)
     useEffect(() => {
-        if (!playerCharacter || !mapData || !isNpc(target)) return;
+        if (!playerCharacter || !mapData) return;
         
         const currentYear = parseInt(mapData.timeSlice || '1500');
         
-        // Check for direct contact transmission
-        try {
-            const result = diseaseService.checkDirectContactTransmission(
-                target,
-                playerCharacter,
-                currentYear
-            );
-            
-            setDiseaseTransmissionResult(result);
-            
-            // Show warning if there are visible symptoms or transmission occurred
-            if (result.symptomDescriptions.length > 0 || result.transmitted) {
-                setShowDiseaseWarning(true);
-                setTimeout(() => setShowDiseaseWarning(false), 5000);
-                
-                // Show disease modal if player contracted a disease
-                if (result.transmitted && playerCharacter.health?.currentDiseases?.length > 0) {
-                    const newDisease = playerCharacter.health.currentDiseases[playerCharacter.health.currentDiseases.length - 1];
-                    setContractedDisease(newDisease.disease);
-                    setShowDiseaseModal(true);
-                }
-            }
-        } catch (error) {
-            console.error('Error checking disease transmission:', error);
+        // Initialize player's diseaseHealth if needed
+        if (!playerCharacter.diseaseHealth) {
+            playerCharacter.diseaseHealth = {
+                currentDiseases: [],
+                immunities: [],
+                exposureHistory: [],
+                overallHealthStatus: 'healthy',
+                lastHealthUpdate: { year: currentYear, month: 1, day: 1 }
+            };
         }
-    }, [target, playerCharacter, mapData]);
+        
+        // Check for disease transmission FROM NPC/animal TO player
+        if (isNpc(target) || (target as any).speciesName) {
+            try {
+                const result = diseaseService.checkDirectContactTransmission(
+                    target,
+                    playerCharacter,
+                    currentYear
+                );
+                
+                setDiseaseTransmissionResult(result);
+                
+                // Show warning if there are visible symptoms or transmission occurred
+                if (result.symptomDescriptions.length > 0 || result.transmitted) {
+                    setShowDiseaseWarning(true);
+                    setTimeout(() => setShowDiseaseWarning(false), 5000);
+                    
+                    // Show disease modal if player contracted a disease
+                    if (result.transmitted && playerCharacter.diseaseHealth?.currentDiseases?.length > 0) {
+                        const newDisease = playerCharacter.diseaseHealth.currentDiseases[playerCharacter.diseaseHealth.currentDiseases.length - 1];
+                        setContractedDisease(newDisease.disease);
+                        setShowDiseaseModal(true);
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking disease transmission from target:', error);
+            }
+        }
+        
+        // Check for disease transmission FROM player TO NPC/animal
+        if (playerCharacter.diseaseHealth?.currentDiseases?.length > 0) {
+            try {
+                const playerDiseasesResult = diseaseService.checkDirectContactTransmission(
+                    playerCharacter,
+                    target,
+                    currentYear
+                );
+                
+                if (playerDiseasesResult.transmitted) {
+                    // Update the target's health data
+                    if (isNpc(target)) {
+                        // Initialize NPC health if needed
+                        if (!target.health) {
+                            target.health = {
+                                currentDiseases: [],
+                                immunities: [],
+                                exposureHistory: [],
+                                overallHealthStatus: 'healthy',
+                                lastHealthUpdate: { year: currentYear, month: 1, day: 1 }
+                            };
+                        }
+                        
+                        // Show notification
+                        const diseaseName = playerCharacter.diseaseHealth.currentDiseases[0].disease.name;
+                        showToast(`⚠️ Your ${diseaseName} has spread to ${target.name}!`);
+                        console.log(`[Player→NPC Disease Spread] Player's ${diseaseName} transmitted to ${target.name}`);
+                    } else if ((target as any).speciesName) {
+                        // It's an animal
+                        const animal = target as any;
+                        if (!animal.diseaseHealth) {
+                            animal.diseaseHealth = {
+                                currentDiseases: [],
+                                immunities: [],
+                                exposureHistory: [],
+                                overallHealthStatus: 'healthy',
+                                lastHealthUpdate: { year: currentYear, month: 1, day: 1 }
+                            };
+                        }
+                        
+                        // Show notification
+                        const diseaseName = playerCharacter.diseaseHealth.currentDiseases[0].disease.name;
+                        showToast(`🐾 Your ${diseaseName} has spread to the ${animal.speciesName}!`);
+                        console.log(`[Player→Animal Disease Spread] Player's ${diseaseName} transmitted to ${animal.speciesName}`);
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking disease transmission from player:', error);
+            }
+        }
+    }, [target, playerCharacter, mapData, showToast]);
     
     // Taming handler
     const handleTamingAttempt = async () => {
@@ -856,6 +949,102 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                                     </div>
                                 </div>
                             )}
+                            
+                            {/* Quest Completion UI */}
+                            {canCompleteQuest && (
+                                <div className="mb-3 p-4 bg-gradient-to-r from-purple-900/30 to-blue-900/30 rounded-lg border border-purple-500/50 animate-in slide-in-from-top duration-300">
+                                    <div className="flex items-start gap-3">
+                                        <Target className="w-6 h-6 text-purple-400 mt-1 animate-pulse" />
+                                        <div className="flex-1">
+                                            <h4 className="text-purple-300 font-semibold mb-1">Quest Objective Available!</h4>
+                                            <p className="text-sm text-slate-300 mb-2">
+                                                {canCompleteQuest.objective.description}
+                                            </p>
+                                            <p className="text-xs text-slate-400 mb-3">
+                                                From quest: "{canCompleteQuest.quest.title}"
+                                            </p>
+                                            
+                                            {canCompleteQuest.objective.type === 'deliver_item' ? (
+                                                <button
+                                                    onClick={() => {
+                                                        const result = questCompletionService.completeObjective(
+                                                            canCompleteQuest.quest,
+                                                            canCompleteQuest.objective,
+                                                            playerCharacter
+                                                        );
+                                                        
+                                                        if (result.success) {
+                                                            showToast(result.message);
+                                                            
+                                                            // Add completion dialogue to history
+                                                            setHistory(prev => [...prev, {
+                                                                speaker: 'npc',
+                                                                text: "Thank you! This is exactly what I needed. Here's your reward as promised.",
+                                                                timestamp: new Date()
+                                                            }]);
+                                                            
+                                                            // Clear quest completion if quest is done
+                                                            if (result.questComplete) {
+                                                                setCanCompleteQuest(null);
+                                                            } else {
+                                                                // Update to next objective
+                                                                const nextObj = canCompleteQuest.quest.objectives[canCompleteQuest.quest.currentObjectiveIndex];
+                                                                if (nextObj) {
+                                                                    setCanCompleteQuest({
+                                                                        quest: canCompleteQuest.quest,
+                                                                        objective: nextObj
+                                                                    });
+                                                                }
+                                                            }
+                                                        }
+                                                    }}
+                                                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-colors flex items-center gap-2"
+                                                >
+                                                    <span>📦</span>
+                                                    Deliver Package
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={() => {
+                                                        const result = questCompletionService.completeObjective(
+                                                            canCompleteQuest.quest,
+                                                            canCompleteQuest.objective,
+                                                            playerCharacter
+                                                        );
+                                                        
+                                                        if (result.success) {
+                                                            showToast(result.message);
+                                                            
+                                                            // Add completion dialogue to history
+                                                            setHistory(prev => [...prev, {
+                                                                speaker: 'npc',
+                                                                text: "Good, you made it here. Let me tell you what I need...",
+                                                                timestamp: new Date()
+                                                            }]);
+                                                            
+                                                            // Clear or update quest completion
+                                                            if (result.questComplete) {
+                                                                setCanCompleteQuest(null);
+                                                            } else {
+                                                                const nextObj = canCompleteQuest.quest.objectives[canCompleteQuest.quest.currentObjectiveIndex];
+                                                                if (nextObj) {
+                                                                    setCanCompleteQuest({
+                                                                        quest: canCompleteQuest.quest,
+                                                                        objective: nextObj
+                                                                    });
+                                                                }
+                                                            }
+                                                        }
+                                                    }}
+                                                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-colors"
+                                                >
+                                                    Complete Objective
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </>
                      )}
                      {activeTab === 'history' && isNpc(target) && (
@@ -1044,43 +1233,113 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                             
                             {!hasCheckedForQuest ? (
                                 <div className="text-center py-8">
+                                    {/* Toggle between quest systems */}
+                                    <div className="flex items-center justify-center gap-2 mb-4">
+                                        <span className="text-xs text-slate-400">Historical</span>
+                                        <button
+                                            onClick={() => setUseHistoricalQuests(!useHistoricalQuests)}
+                                            className={`relative w-12 h-6 rounded-full transition-colors ${
+                                                useHistoricalQuests ? 'bg-amber-600' : 'bg-purple-600'
+                                            }`}
+                                        >
+                                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                                                useHistoricalQuests ? 'left-1' : 'left-7'
+                                            }`} />
+                                        </button>
+                                        <span className="text-xs text-slate-400">AI Generated</span>
+                                    </div>
+                                    
                                     <button 
                                         onClick={async () => {
                                             setIsLoadingQuest(true);
                                             setHasCheckedForQuest(true);
                                             
-                                            // Get nearby structures for quest locations
-                                            const nearbyStructures: any[] = []; // This would need to be passed in from props
+                                            if (useHistoricalQuests) {
+                                                // Use historical quest system
+                                                const year = parseInt(mapData?.timeSlice || '1500');
+                                                const era = year < -3000 ? HistoricalEra.PREHISTORY :
+                                                           year < 500 ? HistoricalEra.ANTIQUITY :
+                                                           year < 1400 ? HistoricalEra.MEDIEVAL :
+                                                           year < 1800 ? HistoricalEra.RENAISSANCE_EARLY_MODERN :
+                                                           year < 1950 ? HistoricalEra.INDUSTRIAL_ERA :
+                                                           year < 2100 ? HistoricalEra.MODERN_ERA :
+                                                           HistoricalEra.FUTURE_ERA;
+                                                
+                                                const culturalZone = (mapData?.culturalZone || 'EUROPEAN') as CulturalZone;
+                                                const gameMode = 'exploration' as GameModeType; // Default for now
+                                                
+                                                const quest = questService.generateHistoricalQuest(
+                                                    era,
+                                                    culturalZone,
+                                                    gameMode,
+                                                    mapData!,
+                                                    allNpcs,
+                                                    { x: playerCharacter.x, y: playerCharacter.y },
+                                                    target
+                                                );
+                                                
+                                                if (quest) {
+                                                    // Create a quest offer from the generated quest
+                                                    const spatialDesc = quest.objectives[0]?.spatialDescription || 'a nearby location';
+                                                    setQuestOffer({
+                                                        hasQuest: true,
+                                                        questTitle: quest.title,
+                                                        questDescription: quest.description,
+                                                        questType: quest.category,
+                                                        questDialogue: `I need someone to help with a task. ${quest.description} The destination is ${spatialDesc}.`,
+                                                        questReward: quest.rewards?.map(r => r.description).join(', '),
+                                                        urgency: 'medium',
+                                                        _generatedQuest: quest // Store the quest for later
+                                                    });
+                                                } else {
+                                                    setQuestOffer({
+                                                        hasQuest: false,
+                                                        questDialogue: "I don't have any work for you right now."
+                                                    });
+                                                }
+                                            } else {
+                                                // Use LLM system
+                                                const nearbyStructures: any[] = [];
+                                                const questData = await generateNpcQuestOffer(target, {
+                                                    playerCharacter,
+                                                    mapData: mapData!,
+                                                    nearbyStructures,
+                                                    gameDate: { year: parseInt(mapData?.timeSlice || '1500'), month: 6, day: 15 },
+                                                    playerReputation: playerCharacter.mapReputation || 50
+                                                });
+                                                setQuestOffer(questData);
+                                            }
                                             
-                                            // Generate quest offer
-                                            const questData = await generateNpcQuestOffer(target, {
-                                                playerCharacter,
-                                                mapData: mapData!,
-                                                nearbyStructures,
-                                                gameDate: { year: parseInt(mapData?.timeSlice || '1500'), month: 6, day: 15 },
-                                                playerReputation: playerCharacter.mapReputation || 50
-                                            });
-                                            
-                                            setQuestOffer(questData);
                                             setIsLoadingQuest(false);
                                         }}
                                         disabled={isLoadingQuest}
-                                        className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2 mx-auto"
+                                        className={`${
+                                            useHistoricalQuests 
+                                                ? 'bg-amber-600 hover:bg-amber-700 disabled:bg-amber-800' 
+                                                : 'bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800'
+                                        } text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2 mx-auto`}
                                     >
                                         {isLoadingQuest ? (
                                             <>
                                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                                Thinking...
+                                                {useHistoricalQuests ? 'Generating...' : 'Thinking...'}
                                             </>
                                         ) : (
                                             <>
-                                                <Sparkles className="w-4 h-4" />
+                                                {useHistoricalQuests ? (
+                                                    <Target className="w-4 h-4" />
+                                                ) : (
+                                                    <Sparkles className="w-4 h-4" />
+                                                )}
                                                 Ask for Work
                                             </>
                                         )}
                                     </button>
                                     <p className="text-xs text-slate-400 mt-2">
-                                        See if {target.name} has any tasks or problems you could help with.
+                                        {useHistoricalQuests 
+                                            ? `Get a historically accurate ${mapData?.culturalZone || 'period'} quest.`
+                                            : `See if ${target.name} has any unique tasks or problems.`
+                                        }
                                     </p>
                                 </div>
                             ) : questOffer === null && isLoadingQuest ? (
@@ -1131,7 +1390,68 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                                             <div className="flex gap-2">
                                                 <button 
                                                     onClick={() => {
-                                                        // Convert LLM quest offer to proper Quest object
+                                                        // Check if we already have a generated quest (historical system)
+                                                        if ((questOffer as any)._generatedQuest) {
+                                                            const quest = (questOffer as any)._generatedQuest as Quest;
+                                                            // Quest is already created and added to service
+                                                            // Just need to add quest items if needed
+                                                            if (quest.objectives[0]?.targetItem) {
+                                                                questCompletionService.addQuestItem(
+                                                                    playerCharacter,
+                                                                    quest.title,
+                                                                    quest.objectives[0].targetItem
+                                                                );
+                                                            }
+                                                            setQuestOffer(null);
+                                                            setHasCheckedForQuest(false);
+                                                            return;
+                                                        }
+                                                        
+                                                        // Original LLM quest acceptance logic
+                                                        const questDesc = questOffer.questDescription || questOffer.questDialogue || '';
+                                                        let targetNpc = null;
+                                                        let targetLocation = null;
+                                                        
+                                                        // Look for delivery quests and find/create target NPC
+                                                        if (questOffer.questType === 'delivery' && questDesc.toLowerCase().includes('sister')) {
+                                                            const result = questCompletionService.findOrCreateQuestNPC(
+                                                                target,
+                                                                'sister',
+                                                                allNpcs,
+                                                                mapData!
+                                                            );
+                                                            if (result) {
+                                                                targetNpc = result.npc;
+                                                                targetLocation = result.location;
+                                                            }
+                                                        } else if (questOffer.questType === 'delivery') {
+                                                            // Find any other NPC for generic deliveries
+                                                            const otherNpc = allNpcs.find(npc => 
+                                                                npc.id !== target.id && 
+                                                                (npc.x !== target.x || npc.y !== target.y)
+                                                            );
+                                                            if (otherNpc) {
+                                                                targetNpc = otherNpc;
+                                                                targetLocation = { x: otherNpc.x, y: otherNpc.y };
+                                                            }
+                                                        }
+                                                        
+                                                        // If no target found, use nearest structure
+                                                        if (!targetLocation && mapData?.terrainStructures) {
+                                                            const nearestStructure = mapData.terrainStructures
+                                                                .filter(s => s.x !== undefined && s.y !== undefined)
+                                                                .sort((a, b) => {
+                                                                    const distA = Math.sqrt(Math.pow(a.x! - target.x, 2) + Math.pow(a.y! - target.y, 2));
+                                                                    const distB = Math.sqrt(Math.pow(b.x! - target.x, 2) + Math.pow(b.y! - target.y, 2));
+                                                                    return distA - distB;
+                                                                })[1]; // Get second nearest (first is likely where quest giver is)
+                                                            
+                                                            if (nearestStructure) {
+                                                                targetLocation = { x: nearestStructure.x!, y: nearestStructure.y! };
+                                                            }
+                                                        }
+                                                        
+                                                        // Create quest with proper target location
                                                         const newQuest: Quest = {
                                                             id: `llm-quest-${Date.now()}`,
                                                             title: questOffer.questTitle || 'Untitled Task',
@@ -1147,9 +1467,12 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                                                                 type: questOffer.questType === 'delivery' ? 'deliver_item' :
                                                                       questOffer.questType === 'gathering' ? 'collect_item' :
                                                                       questOffer.questType === 'social' ? 'talk_to_npc' : 'visit_location',
-                                                                description: questOffer.questDescription || questOffer.questDialogue || 'Complete the requested task',
+                                                                description: targetNpc ? 
+                                                                    `Deliver the package to ${targetNpc.name} at (${targetLocation?.x}, ${targetLocation?.y})` :
+                                                                    questOffer.questDescription || 'Complete the requested task',
                                                                 completed: false,
-                                                                targetLocation: mapData ? { x: mapData.playerX || 0, y: mapData.playerY || 0 } : undefined
+                                                                targetLocation: targetLocation || { x: target.x + 10, y: target.y },
+                                                                targetNPC: targetNpc?.name
                                                             }],
                                                             currentObjectiveIndex: 0,
                                                             rewards: questOffer.questReward ? [{
@@ -1163,6 +1486,16 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                                                             historicalContext: `Quest from ${isNpc(target) ? target.name : 'NPC'} in ${mapData?.localArea || 'the local area'} during ${mapData?.timeSlice || 'ancient times'}.`,
                                                             isLLMGenerated: true
                                                         };
+                                                        
+                                                        // Add quest item to inventory for delivery quests
+                                                        if (questOffer.questType === 'delivery') {
+                                                            const questItem = questCompletionService.addQuestItem(
+                                                                playerCharacter,
+                                                                newQuest.title,
+                                                                'package'
+                                                            );
+                                                            showToast(`Received quest item: ${questItem.name}`);
+                                                        }
                                                         
                                                         // Add quest to the service
                                                         questService.addQuest(newQuest);

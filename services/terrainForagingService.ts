@@ -27,7 +27,7 @@ export function executeTerrainDig(
 ): TerrainActionResult {
   
   // Salt flats - always get salt
-  if (tile.biome === BiomeType.SALT_FLAT) {
+  if (tile.biome === BiomeType.SALT_FLATS) {
     const saltItem = createItemInstance('SALT');
     if (saltItem) {
       saltItem.quantity = 2 + Math.floor(Math.random() * 3); // 2-4 salt
@@ -189,7 +189,7 @@ export function executeTerrainForage(
 ): TerrainActionResult {
   
   // Salt flats - salt crystals and minerals
-  if (tile.biome === BiomeType.SALT_FLAT) {
+  if (tile.biome === BiomeType.SALT_FLATS) {
     const roll = Math.random();
     let itemId: string;
     
@@ -318,27 +318,124 @@ export function executeTerrainForage(
     }
   }
 
-  // Urban foraging - stealing/scavenging
+  // Dense Forest - high biodiversity, better rare item chances
+  if (tile.biome === BiomeType.DENSE_FOREST || tile.biome === BiomeType.FOREST) {
+    const roll = Math.random();
+    let itemId: string;
+    
+    // Better chances for rare items in dense forest
+    if (roll < 0.15) itemId = 'MUSHROOM';
+    else if (roll < 0.25) itemId = 'TRUFFLE'; // Rare mushroom
+    else if (roll < 0.35) itemId = 'WILD_BERRIES';
+    else if (roll < 0.45) itemId = 'MEDICINAL_HERBS';
+    else if (roll < 0.55) itemId = 'BIRD_EGG';
+    else if (roll < 0.65) itemId = 'HONEY';
+    else if (roll < 0.72) itemId = 'RARE_FLOWER';
+    else if (roll < 0.78) itemId = 'GINSENG_ROOT'; // Very valuable
+    else if (roll < 0.85) itemId = 'TREE_SAP';
+    else if (roll < 0.90) itemId = 'EDIBLE_FERN';
+    else if (roll < 0.95) itemId = 'WILD_GARLIC';
+    else itemId = 'RARE_ORCHID'; // Extremely rare
+    
+    const item = createItemInstance(itemId);
+    if (item) {
+      const rareItems = ['TRUFFLE', 'GINSENG_ROOT', 'RARE_ORCHID', 'HONEY'];
+      const xp = rareItems.includes(itemId) ? 3 : 1;
+      
+      return {
+        success: true,
+        item,
+        message: `You forage ${item.name.toLowerCase()} from the rich forest floor.`,
+        xpGained: xp
+      };
+    }
+  }
+
+  // Jungle/Tropical Forest - exotic items, high biodiversity
+  if (tile.biome === BiomeType.JUNGLE) {
+    const roll = Math.random();
+    let itemId: string;
+    
+    if (roll < 0.12) itemId = 'TROPICAL_FRUIT';
+    else if (roll < 0.22) itemId = 'CACAO_POD'; // For chocolate
+    else if (roll < 0.32) itemId = 'VANILLA_BEAN';
+    else if (roll < 0.40) itemId = 'COCONUT';
+    else if (roll < 0.48) itemId = 'MEDICINAL_BARK';
+    else if (roll < 0.55) itemId = 'JUNGLE_NUTS';
+    else if (roll < 0.62) itemId = 'EXOTIC_SPICE';
+    else if (roll < 0.68) itemId = 'RUBBER_SAP';
+    else if (roll < 0.74) itemId = 'POISON_DART_FROG'; // Dangerous!
+    else if (roll < 0.80) itemId = 'PARROT_FEATHER';
+    else if (roll < 0.85) itemId = 'MONKEY_FRUIT';
+    else if (roll < 0.90) itemId = 'BAMBOO_SHOOTS';
+    else if (roll < 0.95) itemId = 'RARE_BUTTERFLY';
+    else itemId = 'GOLDEN_BEETLE'; // Extremely rare
+    
+    const item = createItemInstance(itemId);
+    if (item) {
+      const dangerousItems = ['POISON_DART_FROG'];
+      const rareItems = ['GOLDEN_BEETLE', 'RARE_BUTTERFLY', 'EXOTIC_SPICE', 'VANILLA_BEAN'];
+      const xp = rareItems.includes(itemId) ? 3 : dangerousItems.includes(itemId) ? 2 : 1;
+      
+      return {
+        success: true,
+        item,
+        message: `You carefully gather ${item.name.toLowerCase()} from the jungle.`,
+        xpGained: xp
+      };
+    }
+  }
+
+  // Urban foraging - scavenging for human-related items
   if (isUrbanTile) {
     const roll = Math.random();
     
-    if (roll < 0.5) { // 50% success rate
-      const urbanForage = [
-        'BREAD_CRUST', 'APPLE_CORE', 'DISCARDED_CLOTH', 'BROKEN_POTTERY',
-        'BENT_NAIL', 'TORN_PAPER', 'BUTTON', 'THREAD'
-      ];
+    if (roll < 0.6) { // 60% success rate in cities
+      let itemId: string;
+      const urbanRoll = Math.random();
       
-      const itemId = urbanForage[Math.floor(Math.random() * urbanForage.length)];
+      // More varied urban items based on quality
+      if (urbanRoll < 0.15) {
+        // Food scraps
+        const foodScraps = ['BREAD_CRUST', 'APPLE_CORE', 'CHEESE_RIND', 'BONE_WITH_MEAT', 'STALE_PASTRY'];
+        itemId = foodScraps[Math.floor(Math.random() * foodScraps.length)];
+      } else if (urbanRoll < 0.35) {
+        // Cloth and materials
+        const materials = ['DISCARDED_CLOTH', 'TORN_LEATHER', 'FRAYED_ROPE', 'THREAD', 'WOOL_SCRAPS'];
+        itemId = materials[Math.floor(Math.random() * materials.length)];
+      } else if (urbanRoll < 0.55) {
+        // Broken items
+        const broken = ['BROKEN_POTTERY', 'GLASS_SHARD', 'BENT_NAIL', 'RUSTY_KEY', 'CRACKED_BUTTON'];
+        itemId = broken[Math.floor(Math.random() * broken.length)];
+      } else if (urbanRoll < 0.75) {
+        // Paper and writing
+        const paper = ['TORN_PAPER', 'OLD_NEWSPAPER', 'FADED_MAP_FRAGMENT', 'USED_ENVELOPE'];
+        itemId = paper[Math.floor(Math.random() * paper.length)];
+      } else if (urbanRoll < 0.90) {
+        // Small valuables
+        const valuables = ['BUTTON', 'SMALL_COIN', 'BROKEN_JEWELRY', 'TOBACCO_POUCH'];
+        itemId = valuables[Math.floor(Math.random() * valuables.length)];
+      } else {
+        // Rare urban finds
+        const rare = ['LOST_RING', 'SILVER_SPOON', 'POCKET_WATCH', 'SILK_HANDKERCHIEF'];
+        itemId = rare[Math.floor(Math.random() * rare.length)];
+      }
+      
       const item = createItemInstance(itemId);
       
       if (item) {
+        const rareUrbanItems = ['LOST_RING', 'SILVER_SPOON', 'POCKET_WATCH', 'SILK_HANDKERCHIEF'];
+        const isRare = rareUrbanItems.includes(itemId);
+        
         return {
           success: true,
           item,
-          message: `You scavenge ${item.name.toLowerCase()} from the street.`,
-          xpGained: 0,
-          reputationChange: -3, // Smaller penalty for scavenging vs stealing
-          stealingDetected: Math.random() < 0.2 // 20% chance of being seen
+          message: isRare 
+            ? `You find ${item.name.toLowerCase()} hidden in a corner!` 
+            : `You scavenge ${item.name.toLowerCase()} from the street.`,
+          xpGained: isRare ? 2 : 0,
+          reputationChange: isRare ? -5 : -2, // Bigger penalty for taking valuable items
+          stealingDetected: isRare ? Math.random() < 0.4 : Math.random() < 0.15 // Higher chance if valuable
         };
       }
     }

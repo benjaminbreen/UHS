@@ -507,8 +507,11 @@ function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: numb
         } 
         // Government District chance (only in main cluster, very rare)
         else if (isMainCluster && placedGovDistricts < 2 && randomNoise.random() < 0.15) {
+            // Clear all other biome properties to make this a pure government district tile
             tile.biome = BiomeType.GOVERNMENT_DISTRICT;
             tile.population = 100 + Math.floor(randomNoise.random() * 150); // Admin centers have residents
+            // Mark this tile specially so we can ensure it's surrounded properly
+            (tile as any).isPureGovernmentDistrict = true;
             placedGovDistricts++;
         }
     } else if (tile.biome === BiomeType.LOW_DENSITY_CITY) {
@@ -646,8 +649,8 @@ function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: numb
         }
       }
     } else if (govTile.biome === BiomeType.GOVERNMENT_DISTRICT) {
-      // Government districts: concentric rings (park -> plaza -> road)
-      // First ring (radius 1): parks
+      // Government districts: ENHANCED plaza surrounding for better visibility
+      // First ring (radius 1): ALL PLAZAS (not parks, to make them stand out more)
       for (let dy = -1; dy <= 1; dy++) {
         for (let dx = -1; dx <= 1; dx++) {
           if (dx === 0 && dy === 0) continue;
@@ -655,8 +658,14 @@ function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: numb
           const py = govTile.y + dy;
           if (px >= 0 && px < MAP_WIDTH_TILES && py >= 0 && py < MAP_HEIGHT_TILES) {
             const tile = tiles[py][px];
-            if (tile.isLand && !nonBuildableSiteBiomesSet.has(tile.biome)) {
-              tile.biome = BiomeType.PARK;
+            // Force plaza on all surrounding tiles except water/mountains
+            if (tile.isLand && 
+                !tile.biome.includes('OCEAN') && 
+                !tile.biome.includes('RIVER') &&
+                tile.biome !== BiomeType.MOUNTAIN &&
+                tile.biome !== BiomeType.HIGH_PEAK &&
+                tile.biome !== BiomeType.CLIFF) {
+              tile.biome = BiomeType.PLAZA;
               tile.population = 0;
               if (cityData) {
                 tile.cityName = cityData.name;
@@ -667,7 +676,7 @@ function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: numb
         }
       }
       
-      // Second ring (radius 2): plazas
+      // Second ring (radius 2): also plazas for a larger visual footprint
       for (let dy = -2; dy <= 2; dy++) {
         for (let dx = -2; dx <= 2; dx++) {
           if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) continue; // Skip inner ring
@@ -675,8 +684,16 @@ function generateUrbanCluster(tiles: Tile[][], center: Point, clusterIndex: numb
           const py = govTile.y + dy;
           if (px >= 0 && px < MAP_WIDTH_TILES && py >= 0 && py < MAP_HEIGHT_TILES) {
             const tile = tiles[py][px];
-            if (tile.isLand && !nonBuildableSiteBiomesSet.has(tile.biome) && 
-                tile.biome !== BiomeType.PARK) {
+            // Force plaza on outer ring too, with same restrictions
+            if (tile.isLand && 
+                !tile.biome.includes('OCEAN') && 
+                !tile.biome.includes('RIVER') &&
+                tile.biome !== BiomeType.MOUNTAIN &&
+                tile.biome !== BiomeType.HIGH_PEAK &&
+                tile.biome !== BiomeType.CLIFF &&
+                tile.biome !== BiomeType.MARKETPLACE && // Don't overwrite marketplaces
+                tile.biome !== BiomeType.GOVERNMENT_DISTRICT && // Don't overwrite other gov districts
+                tile.biome !== BiomeType.PALACE) { // Don't overwrite palaces
               tile.biome = BiomeType.PLAZA;
               tile.population = 0;
               if (cityData) {

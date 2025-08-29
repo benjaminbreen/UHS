@@ -44,9 +44,9 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
   let glowColor = '#fbbf24'; // Default amber
   let glowOpacity = 0.9;
   
-  if (character.health && typeof character.health === 'object' && 'overallHealthStatus' in character.health) {
-    const diseaseHealth = character.health as any; // TODO: Fix typing once PlayerCharacter is updated
-    switch (diseaseHealth.overallHealthStatus) {
+  // Check diseaseHealth field for player character diseases
+  if (character.diseaseHealth && character.diseaseHealth.overallHealthStatus) {
+    switch (character.diseaseHealth.overallHealthStatus) {
       case 'critical':
         glowColor = '#8B0000'; // Dark red with red tinge
         glowOpacity = 1.0;
@@ -62,7 +62,7 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
       case 'healthy':
       default:
         // Check for any active diseases even if overall status is healthy
-        if (diseaseHealth.currentDiseases && diseaseHealth.currentDiseases.length > 0) {
+        if (character.diseaseHealth.currentDiseases && character.diseaseHealth.currentDiseases.length > 0) {
           glowColor = '#FFF8DC'; // Pale yellow for minor illness
           glowOpacity = 0.8;
         }
@@ -386,6 +386,18 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
             )}
         </>
       </g>
+      
+      {/* Disease indicator badge */}
+      {character.diseaseHealth?.currentDiseases && character.diseaseHealth.currentDiseases.length > 0 && (
+        <g transform="translate(3, -8)">
+          {/* Background circle */}
+          <circle cx="0" cy="0" r="2.5" fill="#1a1a1a" stroke="#228B22" strokeWidth="0.3" opacity="0.9"/>
+          {/* Disease icon */}
+          <text x="0" y="1" fontSize="3.5" textAnchor="middle" fill="#90EE90">
+            {character.diseaseHealth.currentDiseases[0].disease.badgeIcon || '🦠'}
+          </text>
+        </g>
+      )}
     </g>
   );
 });

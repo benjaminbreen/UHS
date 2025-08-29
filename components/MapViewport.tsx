@@ -18,12 +18,18 @@ import FarmPanel from './FarmPanel';
 import MarketplaceModal from './MarketplaceModal';
 import CityModal from './CityModal';
 import RuinStructureModal from './RuinStructureModal';
+import GovernmentDistrictModal from './GovernmentDistrictModal';
 import { DevTooltipDisplayData, Tile, PlayerCharacter, BiomeType, DeployedVessel, TimeOfDay } from '../types';
 import TimeAwareBackground from './TimeAwareBackground';
 import HorizonLayer from './HorizonLayer';
 import CloudSystem from './CloudSystem';
 import WeatherEffects from './WeatherEffects';
 import CelestialBodies from './CelestialBodies';
+import SpecialMapBackground from './SpecialMapBackground';
+import InteriorHorizon from './InteriorHorizon';
+import SpecialMapLocationDisplay from './SpecialMapLocationDisplay';
+import { useSpecialMapLocation } from '../hooks/useSpecialMapLocation';
+import { SpecialMapData } from '../types/specialMapTypes';
 import { weatherService } from '../services/weatherService';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES } from '../constants';
 import { useDeviceDetection } from '../utils/deviceUtils';
@@ -40,7 +46,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
         handleDevHover, setTileInfoModalProps, setStructureModalTarget, setActiveSettlementInfo,
         activeLens, infoModalTarget, panelNotificationItem, setPanelNotificationItem, toastMessage,
         activeMarketplaceModal, setActiveMarketplaceModal, activeCityModal, setActiveCityModal,
-        activeRuinModal, setActiveRuinModal, inRuinRoguelike, setInRuinRoguelike, useLlmForDescriptions, handleEncounter, setInfoModalTarget, 
+        activeRuinModal, setActiveRuinModal, activeGovernmentModal, setActiveGovernmentModal, inRuinRoguelike, setInRuinRoguelike, useLlmForDescriptions, handleEncounter, setInfoModalTarget, 
         setActiveMiningModal, setActivePoi, debugSettings,
         handleCompanionClick, handlePlayerClick, handleNewAreaEntry
     } = useUI();
@@ -51,6 +57,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
     const { 
         currentWorldCoords, mapData,
         visibleAnimals, visibleNpcs, deployedVessels, mapAnalysisData, 
+        enterSpecialMap, exitSpecialMap, isSpecialMap,
     } = useMap();
 
     const {
@@ -64,7 +71,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
     const { 
         sunPosition, formattedDate, season, ambianceText, 
         actionableTile, contextualMessage, gameTimeHours, gameTimeMinutes,
-        isLoading, isLoadingFromCache, setGameDate, gameDate
+        isLoading, isLoadingFromCache, setGameDate, gameDate, currentRegion
     } = useGame();
     
     const eventSystem = useEventSystem();
@@ -73,6 +80,14 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
     const [showBottomPanel, setShowBottomPanel] = useState(true); // Show by default
     const [showAmbientText, setShowAmbientText] = useState(false); // Hidden by default
     const { isMobile } = useDeviceDetection();
+    
+    // Track current room in special maps
+    const specialMapData = isSpecialMap && mapData ? mapData as SpecialMapData : null;
+    const currentRoom = useSpecialMapLocation(
+        controlledIconX,
+        controlledIconY,
+        specialMapData?.rooms
+    );
     
     // Get current weather for horizon and particles - stable per map area, updates hourly
     const currentWeather = useMemo(() => {
@@ -210,7 +225,41 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
             // Fallback if no structure found (shouldn't happen)
             return null;
         }
+        if (activeGovernmentModal && playerCharacter && mapData) {
+            // GovernmentDistrictModal replaces the map display, similar to RuinStructureModal
+            return (
+                <GovernmentDistrictModal
+                    structure={activeGovernmentModal.structure}
+                    tile={activeGovernmentModal.tile}
+                    playerCharacter={playerCharacter}
+                    mapData={mapData}
+                    currentLocation={currentRegion}
+                    formattedDate={gameDate}
+                    gameTimeHours={gameTimeHours}
+                    season={season}
+                    npcs={visibleNpcs}
+                    onClose={() => setActiveGovernmentModal(null)}
+                    onEnterSpecialMap={(config) => {
+                        console.log('[GovernmentDistrictModal] Entering special map with config:', config);
+                        enterSpecialMap(config);
+                        setActiveGovernmentModal(null);
+                    }}
+                />
+            );
+        }
         if (viewMode === 'standard') {
+            // Check if this is a special map (interior government building, etc.)
+            if (isSpecialMap && mapData) {
+                const specialData = mapData as any;
+                console.log('[MapViewport] Special map render - isSpecialMap:', isSpecialMap, 
+                    'mapType:', specialData.mapType,
+                    'specialArchetype:', specialData.specialArchetype,
+                    'hasInteractionZones:', !!specialData.interactionZones,
+                    'tilesSample:', specialData.tiles?.[0]?.[0]?.biome);
+                // For now, render special maps with the same display but it will show architectural biomes
+                // In the future, we could create a dedicated SpecialMapDisplay component
+            }
+            
             return (
                 <MapDisplayOptimized 
                     mapData={mapData!} 
@@ -228,6 +277,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                     logicalControlledIconX={controlledIconX} 
                     logicalControlledIconY={controlledIconY} 
                     onIconAnimationComplete={onIconAnimationComplete}
+                    isSpecialMap={isSpecialMap}
                     currentVessel={currentVessel} 
                     playerMode={playerMode} 
                     shipDockX={shipDockX} 
@@ -342,14 +392,21 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
         <main className="flex-1 flex flex-col bg-transparent relative overflow-hidden">
           {/* Background layer with all atmospheric effects - behind everything */}
           <div className="absolute inset-0" style={{ zIndex: 0 }}>
-            <TimeAwareBackground 
-              gameTimeHours={gameTimeHours} 
-              gameTimeMinutes={gameTimeMinutes} 
-              viewMode={viewMode}
-              season={season}
-              climate={mapData?.climate}
-              weather={currentWeather}
-            />
+            {isSpecialMap && specialMapData ? (
+              <SpecialMapBackground 
+                config={specialMapData.specialConfig}
+                timeOfDay={sunPosition as TimeOfDay || 'Day'}
+              />
+            ) : (
+              <TimeAwareBackground 
+                gameTimeHours={gameTimeHours} 
+                gameTimeMinutes={gameTimeMinutes} 
+                viewMode={viewMode}
+                season={season}
+                climate={mapData?.climate}
+                weather={currentWeather}
+              />
+            )}
             
             {/* Cloud System - only render when there are clouds */}
             {currentWeather && currentWeather.cloudCover > 0 && (
@@ -439,8 +496,18 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                        transition: 'opacity 0.6s ease-out'
                      }}
                    >
-                     {renderMapContent()}
+                       {renderMapContent()}
                    </div>
+                   
+                   {/* Special Map Location Display - shows name and current room */}
+                   {isSpecialMap && specialMapData && (
+                     <SpecialMapLocationDisplay
+                       mapDisplayName={specialMapData.displayName || 'Special Location'}
+                       currentRoom={currentRoom}
+                       playerX={controlledIconX || 0}
+                       playerY={controlledIconY || 0}
+                     />
+                   )}
                    
                    {/* Vignette effect overlay - subtle darkening at edges */}
                    <div 
@@ -484,18 +551,24 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                  </div>
                 </div>
                 
-                {/* Horizon Layer - between map and bottom panel, bounded by sidebars */}
+                {/* Horizon Layer or Interior Horizon - between map and bottom panel, bounded by sidebars */}
                 <div className="relative w-full pointer-events-none" style={{ height: '80px', marginTop: '-20px', zIndex: 5 }}>
-                  <HorizonLayer 
-                    climate={mapData.climate}
-                    mapType={mapData.archetype}
-                    timeOfDay={sunPosition as TimeOfDay || 'Day'}
-                    weather={currentWeather || undefined}
-                    width={typeof window !== 'undefined' ? window.innerWidth : 1920}
-                    height={80}
-                    hasWater={mapData.tiles.some(row => row.some(tile => 
-                      tile.biome === BiomeType.OCEAN || 
-                      tile.biome === BiomeType.RIVER ||
+                  {isSpecialMap && specialMapData ? (
+                    <InteriorHorizon 
+                      config={specialMapData.specialConfig}
+                      timeOfDay={sunPosition as TimeOfDay || 'Day'}
+                    />
+                  ) : (
+                    <HorizonLayer 
+                      climate={mapData.climate}
+                      mapType={mapData.archetype}
+                      timeOfDay={sunPosition as TimeOfDay || 'Day'}
+                      weather={currentWeather || undefined}
+                      width={typeof window !== 'undefined' ? window.innerWidth : 1920}
+                      height={80}
+                      hasWater={mapData.tiles.some(row => row.some(tile => 
+                        tile.biome === BiomeType.OCEAN || 
+                        tile.biome === BiomeType.RIVER ||
                       tile.biome === BiomeType.LAKE
                     ))}
                     hasCities={mapData.tiles.some(row => row.some(tile => 
@@ -507,6 +580,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                     ))}
                     biomes={Array.from(new Set(mapData.tiles.flat().map(tile => tile.biome)))}
                   />
+                  )}
                 </div>
               </div>
               
@@ -545,6 +619,8 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                         showAmbientText={showAmbientText}
                         inRuinRoguelike={inRuinRoguelike}
                         isRuinModalOpen={!!activeRuinModal}
+                        isSpecialMap={isSpecialMap}
+                        onExitSpecialMap={exitSpecialMap}
                         onExitRuin={() => {
                             setActiveRuinModal(null);
                             setInRuinRoguelike(false);

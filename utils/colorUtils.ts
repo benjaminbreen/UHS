@@ -478,6 +478,29 @@ export const getTileRenderColor = (tile: Tile, climate: ClimateType, seed: numbe
         return getTileColorVariation(plazaBaseColor, tile.x, tile.y, seed, 0.03);
     }
     
+    // Special map architectural biomes - return early to avoid terrain effects
+    const specialMapBiomes = [
+        BiomeType.WALL, BiomeType.WALL_GATE,
+        BiomeType.FLOOR_STONE, BiomeType.FLOOR_WOOD, BiomeType.FLOOR_MARBLE, BiomeType.FLOOR_TILE,
+        BiomeType.TABLE, BiomeType.CHAIR, BiomeType.BED, BiomeType.THRONE,
+        BiomeType.COLUMN, BiomeType.STATUE, BiomeType.FOUNTAIN, BiomeType.ALTAR,
+        BiomeType.SHELF, BiomeType.COUNTER, BiomeType.STALL, BiomeType.DISPLAY,
+        BiomeType.GARDEN, BiomeType.POND, BiomeType.TREE_INDOOR,
+        BiomeType.CARPET, BiomeType.CURTAIN, BiomeType.WINDOW, BiomeType.DOOR,
+        BiomeType.STAIRS, BiomeType.LADDER, BiomeType.BOOKSHELF, BiomeType.DESK,
+        BiomeType.PILLAR, BiomeType.SHRINE, BiomeType.BRAZIER, BiomeType.CHEST,
+        BiomeType.BARREL, BiomeType.TORCH, BiomeType.STAGE, BiomeType.PAVILION,
+        BiomeType.CELL
+    ];
+    
+    if (specialMapBiomes.includes(currentBiome)) {
+        const specialColor = BIOME_COLORS[currentBiome];
+        if (specialColor) {
+            // Less variation for architectural elements
+            return getTileColorVariation(specialColor, tile.x, tile.y, seed, 0.02);
+        }
+    }
+    
     // Early return for water tiles
     if (currentBiome === BiomeType.RIVER) return waterColors.RIVER;
     if (currentBiome === BiomeType.MAJOR_RIVER) return waterColors.MAJOR_RIVER;

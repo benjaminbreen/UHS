@@ -1,8 +1,14 @@
 /**
- * components/NpcModal.tsx - A comprehensive, tabbed modal for NPC/Player details.
-*/
-import React, { useState } from 'react';
-import { NpcEntity, PlayerCharacter, Appearance, Point, BiomeType } from '../../types';
+ * components/NpcModal.tsx – Wider, modern NPC/Player modal
+ * - Wider layout (no clipped tabs)
+ * - Big top-bar badges to the right of the name
+ * - Large portrait sidebar
+ * - Life History: alternating icon timeline with year pills
+ * - Fixed-height content area (no jumpy tabs)
+ */
+
+import React, { useMemo, useState } from 'react';
+import { NpcEntity, PlayerCharacter, Appearance, Point } from '../../types';
 import { ProceduralPortrait } from './portraits';
 import BeliefsPanel from './BeliefsPanel';
 import { formatAppearanceText } from '../utils/colorUtils';
@@ -15,6 +21,30 @@ import { useGame } from '../contexts/GameContext';
 import { AttributeBadgeList } from './AttributeBadge';
 import AttributeModal from './AttributeModal';
 
+/* icons (lucide-react) */
+import {
+  Activity,
+  BadgeCheck,
+  Biohazard,
+  BookOpen,
+  Calendar,
+  Church,
+  Compass,
+  Heart,
+  Home,
+  MapPin,
+  Medal,
+  Mountain,
+  Scroll,
+  Shield,
+  Ship,
+  Sparkles,
+  Star,
+  Swords,
+  Trophy,
+  User,
+} from 'lucide-react';
+
 interface NpcModalProps {
   npc: NpcEntity | PlayerCharacter;
   onClose: () => void;
@@ -23,435 +53,629 @@ interface NpcModalProps {
 
 type NpcModalTab = 'overview' | 'stats' | 'beliefs' | 'equipment' | 'life-history' | 'goal' | 'history';
 
-const cmToFeetAndInches = (cm: number): string => {
-    if (!cm) return `N/A`;
-    const totalInches = cm / 2.54;
-    const feet = Math.floor(totalInches / 12);
-    const inches = Math.round(totalInches % 12);
-    return `${feet}' ${inches}"`;
+/* ----------------------------- small utilities ---------------------------- */
+
+const cmToFeetAndInches = (cm?: number): string => {
+  if (!cm && cm !== 0) return `N/A`;
+  const totalInches = cm / 2.54;
+  const feet = Math.floor(totalInches / 12);
+  const inches = Math.round(totalInches % 12);
+  return `${feet}' ${inches}"`;
 };
 
-const kgToLbs = (kg: number): string => {
-    if (!kg) return 'N/A';
-    return `${Math.round(kg * 2.20462)} lbs`;
+const kgToLbs = (kg?: number): string => {
+  if (!kg && kg !== 0) return 'N/A';
+  return `${Math.round(kg * 2.20462)} lbs`;
 };
 
-const StatDisplay: React.FC<{ label: string, value: number, icon?: string }> = ({ label, value, icon = '📊' }) => {
-    const percentage = (value / 10) * 100; // Assuming max value of 10 for base stats
-    const colorClass = value > 7 ? 'bg-green-500' : value > 4 ? 'bg-yellow-500' : 'bg-red-500';
-  
-    return (
-        <div className="text-sm mb-3">
-            <div className="flex justify-between items-center mb-1">
-                <span className="text-gray-300 flex items-center gap-2">
-                    <span className="w-4 text-center">{icon}</span>
-                    {label}
-                </span>
-                <span className="font-mono text-white font-bold">{value}/10</span>
-            </div>
-            <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden border border-slate-600">
-                <div className={`h-full ${colorClass} transition-all duration-300`} style={{ width: `${percentage}%` }}/>
-            </div>
-        </div>
-    );
-};
+const pretty = (s?: string) =>
+  (s || '—')
+    .toString()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
 
-const TraitDisplay: React.FC<{ label: string, value: number, icon?: string }> = ({ label, value, icon = '🧠' }) => {
-    const percentage = value * 100;
-    const intensity = value > 0.8 ? 'Very High' : value > 0.6 ? 'High' : value > 0.4 ? 'Moderate' : value > 0.2 ? 'Low' : 'Very Low';
-    const colorClass = value > 0.7 ? 'bg-sky-500' : value > 0.4 ? 'bg-teal-500' : 'bg-slate-500';
-  
-    return (
-        <div className="text-sm mb-3">
-            <div className="flex justify-between items-center mb-2">
-                <span className="text-gray-300 font-medium">{label}</span>
-                <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">{intensity}</span>
-            </div>
-            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-                <div className={`h-full ${colorClass} transition-all duration-300`} style={{ width: `${percentage}%` }}/>
-            </div>
-        </div>
-    );
-};
+/* -------------------------------- UI atoms -------------------------------- */
 
-const DetailRow: React.FC<{ label: string, value: React.ReactNode }> = ({ label, value }) => (
-    <div className="flex justify-between items-center py-1.5 border-b border-slate-700/50">
-        <span className="text-slate-400 text-xs uppercase tracking-wider">{label}</span> 
-        <span className="font-semibold text-white capitalize text-right text-sm">{value}</span>
-    </div>
-);
-
-
-const TabButton: React.FC<{
-  label: string;
-  icon: string;
-  isActive: boolean;
-  onClick: () => void;
-}> = ({ label, icon, isActive, onClick }) => {
+const BigChip: React.FC<{ children: React.ReactNode; tone?: 'blue' | 'amber' | 'green' | 'violet' | 'slate' }> = ({
+  children,
+  tone = 'slate',
+}) => {
+  const toneMap: Record<string, string> = {
+    blue: 'bg-blue-500/20 text-blue-100 border-blue-400/40',
+    amber: 'bg-amber-500/20 text-amber-100 border-amber-400/40',
+    green: 'bg-emerald-500/20 text-emerald-100 border-emerald-400/40',
+    violet: 'bg-violet-500/20 text-violet-100 border-violet-400/40',
+    slate: 'bg-slate-700/50 text-slate-200 border-slate-500/40',
+  };
   return (
-    <button
-      onClick={onClick}
-      role="tab"
-      aria-selected={isActive}
-      className={`flex-1 flex items-center justify-center gap-2 p-3 text-sm font-semibold border-b-2 transition-all duration-200 ${
-        isActive
-          ? 'text-blue-400 border-blue-400 bg-blue-500/10'
-          : 'text-gray-400 border-transparent hover:bg-gray-700/50 hover:text-white'
-      }`}
+    <span
+      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs md:text-sm font-bold uppercase tracking-wide ${toneMap[tone]}`}
     >
-      <span className="text-lg">{icon}</span>
-      <span className="hidden sm:inline">{label}</span>
-    </button>
+      {children}
+    </span>
   );
 };
+
+const DetailRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
+  <div className="flex justify-between items-center py-1.5 text-sm">
+    <span className="text-slate-400">{label}</span>
+    <span className="text-slate-100 font-semibold text-right">{value}</span>
+  </div>
+);
+
+const Bar: React.FC<{ value: number; max?: number; tone?: 'red' | 'blue' | 'violet' | 'emerald' | 'amber' }> = ({
+  value,
+  max = 100,
+  tone = 'blue',
+}) => {
+  const pct = Math.max(0, Math.min(100, (value / max) * 100));
+  const tones: Record<string, string> = {
+    red: 'from-red-600 to-red-400',
+    blue: 'from-blue-500 to-cyan-400',
+    violet: 'from-violet-500 to-fuchsia-400',
+    emerald: 'from-emerald-500 to-green-400',
+    amber: 'from-amber-500 to-yellow-400',
+  };
+  return (
+    <div className="h-2 rounded bg-slate-800/70 border border-slate-700 overflow-hidden">
+      <div className={`h-full bg-gradient-to-r ${tones[tone]}`} style={{ width: `${pct}%` }} />
+    </div>
+  );
+};
+
+const StatRow: React.FC<{ label: string; value: number; max?: number; Icon?: React.ElementType; tone?: Parameters<typeof Bar>[0]['tone'] }> = ({
+  label,
+  value,
+  max = 10,
+  Icon = Shield,
+  tone = 'blue',
+}) => (
+  <div className="flex items-center gap-3">
+    <div className="w-44 flex items-center gap-2 text-slate-200 text-sm">
+      <Icon className="w-4 h-4" />
+      <span>{label}</span>
+    </div>
+    <div className="flex-1">
+      <Bar value={value} max={max} tone={tone} />
+    </div>
+    <span className="w-10 text-right text-slate-100 font-bold">{value}</span>
+  </div>
+);
+
+const TraitRow: React.FC<{ label: string; value: number; Icon?: React.ElementType }> = ({ label, value, Icon = Sparkles }) => {
+  const pct = Math.round(value * 100);
+  return (
+    <div className="flex items-center gap-3">
+      <div className="w-44 flex items-center gap-2 text-slate-200 text-sm">
+        <Icon className="w-4 h-4" />
+        <span>{label}</span>
+      </div>
+      <div className="flex-1">
+        <Bar value={pct} max={100} tone="violet" />
+      </div>
+      <span className="w-10 text-right text-slate-100 font-bold">{pct}</span>
+    </div>
+  );
+};
+
+const TabButton: React.FC<{ label: string; active: boolean; onClick: () => void; Icon?: React.ElementType }> = ({
+  label,
+  active,
+  onClick,
+  Icon = Star,
+}) => (
+  <button
+    role="tab"
+    aria-selected={active}
+    onClick={onClick}
+    className={[
+      'flex items-center gap-2 px-4 py-3 text-xs md:text-sm font-bold uppercase tracking-wider transition-colors shrink-0',
+      active
+        ? 'text-white bg-slate-700/50 border-b-2 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,.25)]'
+        : 'text-slate-400 hover:text-white hover:bg-slate-800/40',
+    ].join(' ')}
+  >
+    <Icon className="w-4 h-4" />
+    {label}
+  </button>
+);
+
+/* ------------------------------- life icons ------------------------------- */
+
+const chooseEventIcon = (text: string) => {
+  const t = (text || '').toLowerCase();
+  if (t.includes('born') || t.includes('birth')) return { Icon: Sparkles, color: 'bg-amber-500' };
+  if (t.includes('apprentice') || t.includes('study') || t.includes('learn')) return { Icon: BookOpen, color: 'bg-blue-500' };
+  if (t.includes('marriage') || t.includes('wed') || t.includes('spouse')) return { Icon: BadgeCheck, color: 'bg-pink-500' };
+  if (t.includes('battle') || t.includes('fight') || t.includes('guard')) return { Icon: Swords, color: 'bg-red-500' };
+  if (t.includes('travel') || t.includes('journey') || t.includes('caravan')) return { Icon: Ship, color: 'bg-cyan-500' };
+  if (t.includes('mountain') || t.includes('pass')) return { Icon: Mountain, color: 'bg-emerald-500' };
+  if (t.includes('achievement') || t.includes('notable')) return { Icon: Trophy, color: 'bg-violet-500' };
+  if (t.includes('sick') || t.includes('plague') || t.includes('fever')) return { Icon: Biohazard, color: 'bg-fuchsia-500' };
+  if (t.includes('home') || t.includes('move') || t.includes('settle')) return { Icon: Home, color: 'bg-amber-600' };
+  return { Icon: Scroll, color: 'bg-slate-500' };
+};
+
+/* --------------------------------- main ----------------------------------- */
 
 const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitlyPlayer = false }) => {
   const [activeTab, setActiveTab] = useState<NpcModalTab>('overview');
   const [selectedDisease, setSelectedDisease] = useState<ActiveDisease | null>(null);
   const [isDiseaseModalOpen, setIsDiseaseModalOpen] = useState(false);
   const [showAttributeModal, setShowAttributeModal] = useState(false);
-  const { terrainStructures, mapData } = useMap();
+
+  const { terrainStructures } = useMap();
   const { gameDate, currentZone } = useGame();
 
   if (!npc) return null;
 
   const isPlayer = isExplicitlyPlayer || 'party' in npc;
-  
-  const targetName = npc.name;
+
+  const appearance: Appearance | undefined = npc.appearance;
+  const name = npc.name;
   const profession = isPlayer ? (npc as PlayerCharacter).profession : (npc as NpcEntity).role;
   const socialClass = isPlayer ? (npc as PlayerCharacter).class || 'Adventurer' : (npc as NpcEntity).class;
-  const description = isPlayer ? (npc as PlayerCharacter).backstory : (npc as NpcEntity).descriptions.long;
-  const appearance = npc.appearance;
-
-  const getWealthColor = (wealth: string) => {
-    switch (wealth) {
-      case 'noble': return '#a855f7';
-      case 'wealthy': return '#f59e0b';
-      case 'comfortable': return '#3b82f6';
-      case 'modest': return '#22c55e';
-      default: return '#6b7280';
-    }
+  const backstory = isPlayer ? (npc as PlayerCharacter).backstory : (npc as NpcEntity).descriptions?.long;
+  const personality = npc.personality || {
+    openness: 0.3,
+    conscientiousness: 0.5,
+    extraversion: 0.4,
+    agreeableness: 0.5,
+    neuroticism: 0.5,
   };
 
-  const renderContent = () => {
-    switch (activeTab) {
-        case 'beliefs':
-            return <BeliefsPanel character={npc} />;
-        case 'equipment':
-             if (isPlayer) return <div className="p-4 text-center text-gray-500">Player equipment is managed in the main Character Profile.</div>;
-            const npcEntity = npc as NpcEntity;
-            const equipmentItems = [
-                { label: 'Headgear', value: formatAppearanceText(npcEntity.equippedItems?.head || appearance?.headgear, appearance?.palette?.secondary) },
-                { label: 'Garment', value: formatAppearanceText(npcEntity.equippedItems?.torso || appearance?.garment, appearance?.palette?.primary) },
-                { label: 'Accessory', value: formatAppearanceText(npcEntity.equippedItems?.amulet || appearance?.accessory, appearance?.palette?.accent) },
-                { label: 'Belt', value: formatAppearanceText(npcEntity.equippedItems?.belt || appearance?.belt, appearance?.palette?.secondary) },
-                { label: 'Footwear', value: formatAppearanceText(npcEntity.equippedItems?.feet || appearance?.footwear, appearance?.palette?.secondary) }
-            ].filter(item => item.value && !item.value.toLowerCase().includes('nothing'));
-
-            return (
-                <div className="p-6">
-                    <h4 className="font-semibold text-lg text-blue-400 mb-4 border-b border-slate-700 pb-2">Worn Items</h4>
-                    <dl className="text-sm space-y-3">
-                        {equipmentItems.map(item => (
-                            <div key={item.label} className="grid grid-cols-3 gap-4 p-3 bg-slate-800/40 rounded-md">
-                                <dt className="text-gray-400 font-medium">{item.label}</dt>
-                                <dd className="col-span-2 text-white capitalize flex items-center gap-2">
-                                  <span>{item.value}</span>
-                                </dd>
-                            </div>
-                        ))}
-                         <div className="grid grid-cols-3 gap-4 p-3 bg-slate-800/40 rounded-md">
-                             <dt className="text-gray-400 font-medium">Physical</dt>
-                             <dd className="col-span-2 text-white capitalize">
-                                 {appearance?.build} build, {appearance?.facialHair ? `with ${appearance.facialHairStyle?.replace(/_/g, ' ')}` : 'clean-shaven'}
-                             </dd>
-                         </div>
-                    </dl>
-                </div>
-            );
-        case 'life-history':
-            if (isPlayer) return <div className="p-4 text-center text-gray-500">Your story is yet to be written.</div>;
-            const { lifeEvents = [], family = [] } = npc as NpcEntity;
-            return (
-                <div className="p-6 grid md:grid-cols-2 gap-8">
-                    <div>
-                        <h4 className="font-semibold text-lg text-blue-400 mb-4 border-b border-slate-700 pb-2">Family</h4>
-                        <div className="space-y-4 text-sm">
-                            {(['father', 'mother'] as const).map(rel => {
-                                const member = family.find(f => f.relation === rel);
-                                if (!member) return null;
-                                return <div key={rel}><strong>{member.relation.charAt(0).toUpperCase() + member.relation.slice(1)}:</strong> {member.name} ({member.profession})</div>
-                            })}
-                            {(['spouse'] as const).map(rel => {
-                                const member = family.find(f => f.relation === rel);
-                                if (!member) return null;
-                                return <div key={rel}><strong>Spouse:</strong> {member.name} ({member.profession}, age {member.age})</div>
-                            })}
-                             <div>
-                                <strong>Children:</strong>
-                                <ul className="list-disc list-inside ml-2 mt-1 space-y-1">
-                                    {family.filter(f => f.relation === 'son' || f.relation === 'daughter').map(child => (
-                                        <li key={child.name}>{child.name} (age {child.age})</li>
-                                    ))}
-                                    {family.filter(f => f.relation === 'son' || f.relation === 'daughter').length === 0 && <li>None</li>}
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <h4 className="font-semibold text-lg text-blue-400 mb-4 border-b border-slate-700 pb-2">Timeline</h4>
-                        <div className="relative border-l-2 border-gray-600 pl-6 space-y-6">
-                            {lifeEvents.map((event, index) => (
-                                <div key={index} className="relative">
-                                    <div className="absolute -left-[30.5px] top-1 w-4 h-4 bg-blue-500 rounded-full border-2 border-gray-800"></div>
-                                    <div className="text-xs text-gray-400 font-semibold">{event.year}</div>
-                                    <div className="text-sm text-white">{event.event}</div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            );
-        case 'goal':
-             if (isPlayer) return <div className="p-4 text-center text-gray-500">Your goals are your own to decide.</div>;
-             return (
-                <div className="p-6">
-                    <h4 className="font-semibold text-lg text-blue-400 mb-3 border-b border-slate-700 pb-2">Personal Goal</h4>
-                    <blockquote className="border-l-4 border-blue-500 pl-4 italic text-gray-300 text-base">
-                        "{(npc as NpcEntity).personalGoal?.description || 'To live a quiet life.'}"
-                    </blockquote>
-                </div>
-             );
-        case 'history':
-             return <div className="p-6 text-center text-gray-500 italic">You have not spoken with this person yet.</div>;
-        case 'stats':
-            return (
-                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div>
-                        <h4 className="font-semibold text-blue-300 mb-4 border-b border-slate-700 pb-2">PHYSICAL ATTRIBUTES</h4>
-                        <div className="space-y-4">
-                            <StatDisplay label="Strength" value={npc.stats.strength} icon="💪" />
-                            <StatDisplay label="Dexterity" value={npc.stats.dexterity} icon="🤸" />
-                            <StatDisplay label="Constitution" value={npc.stats.constitution} icon="❤️" />
-                            <StatDisplay label="Stamina" value={npc.stats.stamina} icon="⚡" />
-                        </div>
-                         <h4 className="font-semibold text-blue-300 mb-4 border-b border-slate-700 pb-2 mt-6">MENTAL ATTRIBUTES</h4>
-                        <div className="space-y-4">
-                            <StatDisplay label="Intelligence" value={npc.stats.intelligence} icon="🧠" />
-                            <StatDisplay label="Perception" value={npc.stats.perception} icon="👁️" />
-                            <StatDisplay label="Craftiness" value={npc.stats.craftiness} icon="🛠️" />
-                            <StatDisplay label="Persuasion" value={npc.stats.persuasion} icon="💬" />
-                        </div>
-                    </div>
-                     <div>
-                        <h4 className="font-semibold text-blue-300 mb-4 border-b border-slate-700 pb-2">PHYSICAL DETAILS</h4>
-                        <div className="text-sm space-y-3 p-4 bg-slate-800/50 rounded-md border border-slate-700">
-                            <div className="flex justify-between"><strong>Gender:</strong> <span className="capitalize">{npc.gender}</span></div>
-                            <div className="flex justify-between"><strong>Height:</strong> <span>{cmToFeetAndInches(appearance?.height)}</span></div>
-                            <div className="flex justify-between"><strong>Weight:</strong> <span>{kgToLbs(appearance?.weight)}</span></div>
-                            <div className="flex justify-between"><strong>Build:</strong> <span className="capitalize">{appearance?.build}</span></div>
-                            <div className="flex justify-between"><strong>Hair Style:</strong> <span className="capitalize">{appearance?.hairstyle.replace(/_/g, ' ')}</span></div>
-                            <div className="flex justify-between items-center"><strong>Hair Color:</strong> <div className="w-4 h-4 rounded-full border border-slate-500" style={{backgroundColor: appearance?.hairColor}}></div></div>
-                            <div className="flex justify-between items-center"><strong>Eye Color:</strong> <div className="w-4 h-4 rounded-full border border-slate-500" style={{backgroundColor: appearance?.eyeColor}}></div></div>
-                            <div className="flex justify-between"><strong>Affect:</strong> <span className="capitalize">{appearance?.affect}</span></div>
-                            <div className="flex justify-between"><strong>Birthplace:</strong> <span className="capitalize">{npc.birthplace}</span></div>
-                        </div>
-                    </div>
-                </div>
-            );
-        case 'overview':
-        default:
-            let workLocation = 'Unemployed';
-            if (!isPlayer) {
-                const npcEntity = npc as NpcEntity;
-                const workplace = terrainStructures?.find(s => s.id === npcEntity.workplaceId);
-                if (workplace) {
-                    workLocation = `Works at ${workplace.name}`;
-                } else if (npcEntity.role.toLowerCase() !== 'wanderer') {
-                    workLocation = `Works as a ${npcEntity.role} locally`;
-                }
-            }
-            
-            let homeLocation = 'No permanent residence';
-            if (!isPlayer && (npc as NpcEntity).homeLocation) {
-                 const npcEntity = npc as NpcEntity;
-                 homeLocation = `Lives in a settlement ${getRelativeDirection({x: npcEntity.x, y: npcEntity.y}, npcEntity.homeLocation as Point)}`;
-            }
-
-            return (
-                <div className="p-6 grid md:grid-cols-2 gap-8">
-                    {/* Left Column */}
-                    <div className="space-y-6">
-                         {/* Connections Section */}
-                        {!isPlayer && (
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-300 mb-4 uppercase tracking-wider">Connections</h3>
-                             <div className="p-4 bg-slate-800/30 rounded-lg border border-slate-700/50 space-y-2 text-sm">
-                                <DetailRow label="Livelihood" value={workLocation} />
-                                <DetailRow label="Residence" value={homeLocation} />
-                            </div>
-                        </div>
-                        )}
-                        {/* Character Info Grid */}
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-300 mb-4 uppercase tracking-wider">Details</h3>
-                            <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm p-4 bg-slate-800/30 rounded-lg border border-slate-700/50">
-                                <div>
-                                    <div className="text-slate-400 text-xs">AGE:</div>
-                                    <div className="text-white font-semibold">{npc.age} years</div>
-                                </div>
-                                <div>
-                                    <div className="text-slate-400 text-xs">PROFESSION:</div>
-                                    <div className="text-green-400 capitalize">{profession}</div>
-                                </div>
-                                <div>
-                                    <div className="text-slate-400 text-xs">CLASS:</div>
-                                    <div className="text-white capitalize">{socialClass.toLowerCase()}</div>
-                                </div>
-                                <div>
-                                    <div className="text-slate-400 text-xs">RELIGION:</div>
-                                    <div className="text-white">{npc.religion}</div>
-                                </div>
-                            </div>
-                        </div>
-        
-                        {/* Social Context */}
-                        <div>
-                             <h3 className="text-lg font-bold text-cyan-400 mb-4 uppercase tracking-wider">Social Context</h3>
-                            <div className="space-y-3">
-                                <TraitDisplay label="Privilege" value={npc.socialContext?.privilege || 0} />
-                                <TraitDisplay label="Ambition" value={npc.socialContext?.ambition || 0} />
-                                <TraitDisplay label="Religiosity" value={npc.socialContext?.religiosity || 0} />
-                            </div>
-                        </div>
-                    </div>
-        
-                    {/* Right Column */}
-                    <div className="space-y-6">
-                        {/* Background Section */}
-                         <div>
-                            <h3 className="text-lg font-bold text-amber-400 mb-4 uppercase tracking-wider">Background</h3>
-                            <div className="p-4 bg-slate-800/30 rounded-lg border border-slate-700/50">
-                                <p className="font-lora text-base text-slate-200 leading-relaxed italic">
-                                    {description}
-                                </p>
-                            </div>
-                        </div>
-        
-                        {/* Personality */}
-                        <div>
-                            <h3 className="text-lg font-bold text-purple-400 mb-4 uppercase tracking-wider">Personality</h3>
-                            <div className="space-y-3">
-                                <TraitDisplay label="Openness" value={npc.personality?.openness || 0} />
-                                <TraitDisplay label="Conscientiousness" value={npc.personality?.conscientiousness || 0} />
-                                <TraitDisplay label="Extraversion" value={npc.personality?.extraversion || 0} />
-                                <TraitDisplay label="Agreeableness" value={npc.personality?.agreeableness || 0} />
-                                <TraitDisplay label="Neuroticism" value={npc.personality?.neuroticism || 0} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
+  const { workLocation, homeLocation } = useMemo(() => {
+    let work = 'Unemployed';
+    let home = 'No permanent residence';
+    if (!isPlayer) {
+      const e = npc as NpcEntity;
+      const workplace = terrainStructures?.find(s => s.id === e.workplaceId);
+      if (workplace) work = `Works at ${workplace.name}`;
+      else if (e.role && e.role.toLowerCase() !== 'wanderer') work = `Works as a ${e.role} locally`;
+      if (e.homeLocation) home = `Lives in a settlement ${getRelativeDirection({ x: e.x, y: e.y }, e.homeLocation as Point)}`;
     }
-  };
+    return { workLocation: work, homeLocation: home };
+  }, [isPlayer, npc, terrainStructures]);
+
+  const equipmentItems = useMemo(() => {
+    if (isPlayer) return [];
+    const e = npc as NpcEntity;
+    const a = appearance;
+    const items = [
+      { label: 'Headgear', value: formatAppearanceText(e.equippedItems?.head || a?.headgear, a?.palette?.secondary) },
+      { label: 'Garment', value: formatAppearanceText(e.equippedItems?.torso || a?.garment, a?.palette?.primary) },
+      { label: 'Accessory', value: formatAppearanceText(e.equippedItems?.amulet || a?.accessory, a?.palette?.accent) },
+      { label: 'Belt', value: formatAppearanceText(e.equippedItems?.belt || a?.belt, a?.palette?.secondary) },
+      { label: 'Footwear', value: formatAppearanceText(e.equippedItems?.feet || a?.footwear, a?.palette?.secondary) },
+    ].filter(x => x.value && !x.value.toLowerCase().includes('nothing'));
+    return items;
+  }, [isPlayer, npc, appearance]);
+
+  const lifeEvents = (isPlayer ? (npc as PlayerCharacter).lifeEvents : (npc as NpcEntity).lifeEvents) || [];
+  const family = (isPlayer ? (npc as PlayerCharacter).family : (npc as NpcEntity).family) || [];
+
+  /* -------------------------------- sections ------------------------------- */
+
+  const Overview = () => (
+    <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Left */}
+      <div className="space-y-6">
+        {!isPlayer && (
+          <section>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">Connections</h3>
+            <div className="rounded-lg border border-slate-700/50 bg-slate-800/40 p-4 space-y-2">
+              <DetailRow label="Livelihood" value={workLocation} />
+              <DetailRow label="Residence" value={homeLocation} />
+            </div>
+          </section>
+        )}
+        <section>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">Details</h3>
+          <div className="grid grid-cols-2 gap-4 rounded-lg border border-slate-700/50 bg-slate-800/40 p-4 text-sm">
+            <div>
+              <div className="text-slate-400 text-xs">Age</div>
+              <div className="text-white font-semibold">{npc.age} years</div>
+            </div>
+            <div>
+              <div className="text-slate-400 text-xs">Profession</div>
+              <div className="text-green-400 font-semibold capitalize">{profession}</div>
+            </div>
+            <div>
+              <div className="text-slate-400 text-xs">Class</div>
+              <div className="text-white capitalize">{(socialClass || '').toLowerCase() || '—'}</div>
+            </div>
+            <div>
+              <div className="text-slate-400 text-xs">Religion</div>
+              <div className="text-white">{npc.religion || '—'}</div>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-300 mb-3">Social Context</h3>
+          <div className="space-y-3">
+            <TraitRow label="Privilege" value={npc.socialContext?.privilege ?? 0} Icon={BadgeCheck} />
+            <TraitRow label="Ambition" value={npc.socialContext?.ambition ?? 0} Icon={Star} />
+            <TraitRow label="Religiosity" value={npc.socialContext?.religiosity ?? 0} Icon={Church} />
+          </div>
+        </section>
+      </div>
+
+      {/* Right */}
+      <div className="space-y-6">
+        <section>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-amber-300 mb-3">Background</h3>
+          <div className="rounded-lg border border-slate-700/50 bg-slate-800/40 p-4">
+            <p className="font-lora text-slate-200/90 italic leading-relaxed whitespace-pre-wrap">
+              {backstory}
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-purple-300 mb-3">Personality</h3>
+          <div className="space-y-3">
+            <TraitRow label="Openness" value={personality.openness || 0} />
+            <TraitRow label="Conscientiousness" value={personality.conscientiousness || 0} />
+            <TraitRow label="Extraversion" value={personality.extraversion || 0} />
+            <TraitRow label="Agreeableness" value={personality.agreeableness || 0} />
+            <TraitRow label="Neuroticism" value={personality.neuroticism || 0} Icon={Activity} />
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+
+  const Stats = () => (
+    <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <section className="space-y-4">
+        <h4 className="text-xs font-bold uppercase tracking-wider text-blue-300">Physical Attributes</h4>
+        <StatRow label="Strength" value={npc.stats.strength} Icon={Swords} tone="red" />
+        <StatRow label="Dexterity" value={npc.stats.dexterity} Icon={Sparkles} tone="emerald" />
+        <StatRow label="Constitution" value={npc.stats.constitution} Icon={Shield} tone="amber" />
+        <StatRow label="Stamina" value={npc.stats.stamina} Icon={Heart} tone="red" />
+      </section>
+      <section className="space-y-4">
+        <h4 className="text-xs font-bold uppercase tracking-wider text-blue-300">Mental Attributes</h4>
+        <StatRow label="Intelligence" value={npc.stats.intelligence} Icon={Star} tone="blue" />
+        <StatRow label="Perception" value={npc.stats.perception} Icon={EyeIcon} tone="amber" />
+        <StatRow label="Craftiness" value={npc.stats.craftiness} Icon={User} tone="violet" />
+        <StatRow label="Persuasion" value={npc.stats.persuasion} Icon={BadgeCheck} tone="violet" />
+      </section>
+
+      <section className="lg:col-span-2 rounded-lg border border-slate-700/50 bg-slate-800/40 p-4 mt-2">
+        <h4 className="text-xs font-bold uppercase tracking-wider text-blue-300 mb-3">Physical Details</h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+          <DetailRow label="Gender" value={pretty(npc.gender)} />
+          <DetailRow label="Height" value={cmToFeetAndInches(appearance?.height)} />
+          <DetailRow label="Weight" value={kgToLbs(appearance?.weight)} />
+          <DetailRow label="Build" value={pretty(appearance?.build)} />
+          <DetailRow label="Hair Style" value={pretty(appearance?.hairstyle)} />
+          <DetailRow
+            label="Hair Color"
+            value={<span className="inline-flex items-center gap-2">
+              <span className="w-3.5 h-3.5 rounded-full border border-slate-500" style={{ backgroundColor: appearance?.hairColor }} />
+              <span className="capitalize">{appearance?.hairColorName || '—'}</span>
+            </span>}
+          />
+          <DetailRow
+            label="Eye Color"
+            value={<span className="inline-flex items-center gap-2">
+              <span className="w-3.5 h-3.5 rounded-full border border-slate-500" style={{ backgroundColor: appearance?.eyeColor }} />
+              <span className="capitalize">{appearance?.eyeColorName || '—'}</span>
+            </span>}
+          />
+          <DetailRow label="Affect" value={pretty(appearance?.affect)} />
+        </div>
+      </section>
+    </div>
+  );
+
+  const Equipment = () =>
+    isPlayer ? (
+      <div className="p-6 text-center text-slate-400">Player equipment is managed in the main Character Profile.</div>
+    ) : (
+      <div className="p-6">
+        <h4 className="text-lg font-semibold text-blue-300 mb-4 border-b border-slate-700 pb-2">Worn Items</h4>
+        <div className="grid gap-3">
+          {equipmentItems.map(item => (
+            <div key={item.label} className="grid grid-cols-3 gap-4 p-3 bg-slate-800/40 rounded-md border border-slate-700/50 text-sm">
+              <div className="text-slate-300 font-medium">{item.label}</div>
+              <div className="col-span-2 text-white capitalize">{item.value}</div>
+            </div>
+          ))}
+          <div className="grid grid-cols-3 gap-4 p-3 bg-slate-800/40 rounded-md border border-slate-700/50 text-sm">
+            <div className="text-slate-300 font-medium">Physical</div>
+            <div className="col-span-2 text-white capitalize">
+              {appearance?.build || '—'} build, {appearance?.facialHair ? `with ${pretty(appearance.facialHairStyle)}` : 'clean-shaven'}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+
+  const LifeHistory = () =>
+    isPlayer ? (
+      <div className="p-6 text-center text-slate-400">Your story is yet to be written.</div>
+    ) : (
+      <div className="p-6 space-y-8">
+        {/* Family summary */}
+        <section>
+          <h4 className="text-lg font-semibold text-blue-300 mb-3 border-b border-slate-700 pb-2">Family</h4>
+          <div className="grid md:grid-cols-3 gap-3">
+            {(['father', 'mother'] as const).map(rel => {
+              const m = family.find(f => f.relation === rel);
+              return m ? (
+                <div key={rel} className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 text-sm flex justify-between">
+                  <span className="text-slate-300 capitalize">{rel}</span>
+                  <span className="text-slate-100">{m.name} ({m.profession})</span>
+                </div>
+              ) : null;
+            })}
+            {(() => {
+              const spouse = family.find(f => f.relation === 'spouse');
+              return spouse ? (
+                <div className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 text-sm flex justify-between">
+                  <span className="text-slate-300">Spouse</span>
+                  <span className="text-slate-100">{spouse.name} ({spouse.profession}, age {spouse.age})</span>
+                </div>
+              ) : null;
+            })()}
+            <div className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 text-sm md:col-span-3">
+              <div className="text-slate-300">Children</div>
+              <ul className="list-disc list-inside mt-1 space-y-0.5 text-slate-100">
+                {family.filter(f => f.relation === 'son' || f.relation === 'daughter').map(c => (
+                  <li key={c.name}>{c.name} (age {c.age})</li>
+                ))}
+                {family.filter(f => f.relation === 'son' || f.relation === 'daughter').length === 0 && (
+                  <li className="text-slate-400">None</li>
+                )}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* Alternating timeline */}
+        <section>
+          <h4 className="text-lg font-semibold text-blue-300 mb-4 border-b border-slate-700 pb-2">Timeline</h4>
+
+          <div className="relative max-h-[54vh] overflow-y-auto pr-2">
+            {/* spine */}
+            <div className="absolute left-1/2 top-0 bottom-0 -translate-x-1/2 w-[2px] bg-gradient-to-b from-blue-400/70 via-blue-400/20 to-transparent rounded" />
+            <div className="space-y-6">
+              {lifeEvents.map((evt: any, i: number) => {
+                const sideLeft = i % 2 === 0;
+                const { Icon, color } = chooseEventIcon(`${evt.event || ''} ${evt.title || ''}`);
+                return (
+                  <div key={`${evt.year}-${i}`} className="relative grid grid-cols-[1fr_2.5rem_1fr] items-start gap-3">
+                    {/* left card */}
+                    <div className={`${sideLeft ? '' : 'opacity-0 pointer-events-none'} transition`}>
+                      <div className="rounded-xl border border-slate-700/60 bg-slate-900/40 p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-600/25 text-blue-200 border border-blue-400/30">
+                            {evt.year}
+                          </span>
+                          <span className="text-xs text-slate-400">Age {Math.max(0, (npc.age || 0) - (((npc as any).year || 0) - evt.year || 0))}</span>
+                        </div>
+                        <div className="text-sm font-semibold text-slate-100">
+                          {evt.title || 'Life Event'}
+                        </div>
+                        <div className="text-sm text-slate-300">{evt.event || evt.text}</div>
+                      </div>
+                    </div>
+
+                    {/* dot */}
+                    <div className="grid place-items-center">
+                      <div className={`w-5 h-5 rounded-full ${color} border-2 border-slate-900 grid place-items-center shadow`}>
+                        <Icon className="w-3 h-3 text-white" />
+                      </div>
+                    </div>
+
+                    {/* right card */}
+                    <div className={`${sideLeft ? 'opacity-0 pointer-events-none' : ''} transition`}>
+                      <div className="rounded-xl border border-slate-700/60 bg-slate-900/40 p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-600/25 text-blue-200 border border-blue-400/30">
+                            {evt.year}
+                          </span>
+                          <span className="text-xs text-slate-400">Age {Math.max(0, (npc.age || 0) - (((npc as any).year || 0) - evt.year || 0))}</span>
+                        </div>
+                        <div className="text-sm font-semibold text-slate-100">
+                          {evt.title || 'Life Event'}
+                        </div>
+                        <div className="text-sm text-slate-300">{evt.event || evt.text}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {!lifeEvents.length && <div className="text-slate-400 text-sm italic">No recorded life events.</div>}
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+
+  const Goal = () =>
+    isPlayer ? (
+      <div className="p-6 text-center text-slate-400">Your goals are your own to decide.</div>
+    ) : (
+      <div className="p-6">
+        <h4 className="text-lg font-semibold text-blue-300 mb-3 border-b border-slate-700 pb-2">Personal Goal</h4>
+        <blockquote className="border-l-4 border-blue-500/70 pl-4 italic text-slate-200 text-base">
+          “{(npc as NpcEntity).personalGoal?.description || 'To live a quiet life.'}”
+        </blockquote>
+      </div>
+    );
+
+  const History = () => <div className="p-6 text-center text-slate-400 italic">You have not spoken with this person yet.</div>;
+
+  /* --------------------------------- render -------------------------------- */
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div 
-        className="ff-panel flex flex-col w-full max-w-4xl max-h-[90vh]"
-        onClick={(e) => e.stopPropagation()}
+      <div
+        className="ff-panel w-full max-w-[92rem] h-[90vh] flex flex-col overflow-hidden"
+        onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex-shrink-0 p-4 flex justify-between items-start gap-4 border-b border-gray-700">
-            <div className="flex items-center gap-4">
-                <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-700 border-2 border-gray-600 shadow-lg flex-shrink-0">
-                    <ProceduralPortrait
-                        character={npc}
-                        size={64}
-                    />
-                    {/* Attribute badges */}
-                    {npc.attributes && npc.attributes.length > 0 && (
-                        <div className="absolute -top-1 -left-1 z-20">
-                            <AttributeBadgeList
-                                badges={npc.attributes}
-                                maxDisplay={2}
-                                size="small"
-                                onBadgeClick={() => setShowAttributeModal(true)}
-                            />
-                        </div>
-                    )}
-                </div>
-                <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-blue-300">{targetName}</h3>
-                    <p className="text-green-400 font-semibold capitalize">{profession} • {socialClass.toLowerCase()}</p>
-                </div>
-            </div>
-            
-            <div className="flex items-start gap-3">
-                {/* Health/Disease Badge */}
-                {npc.diseaseHealth?.currentDiseases && npc.diseaseHealth.currentDiseases.length > 0 ? (
-                    <div className="flex flex-wrap gap-2 max-w-xs">
-                        {npc.diseaseHealth.currentDiseases.map((disease, index) => (
-                            <button
-                                key={index}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedDisease(disease);
-                                    setIsDiseaseModalOpen(true);
-                                }}
-                                className="px-2 py-0.5 bg-pink-600/80 hover:bg-pink-500 text-white text-xs font-bold rounded-full 
-                                         border border-pink-400 shadow-md hover:shadow-pink-500/50 transition-all duration-200
-                                         flex items-center gap-1 cursor-pointer"
-                                title={`Click for details about ${disease.disease.name}`}
-                            >
-                                <span className="text-sm">{disease.disease.badgeIcon}</span>
-                                <span>{disease.disease.name}</span>
-                            </button>
-                        ))}
-                    </div>
-                ) : (
-                    <span className="px-3 py-1 bg-green-600/80 text-white text-xs font-bold rounded-full 
-                                   border border-green-400 shadow-md">
-                        ✅ Healthy
-                    </span>
-                )}
-                
-                <button 
-                    onClick={onClose} 
-                    className="text-gray-400 hover:text-white text-3xl font-thin leading-none transition-colors"
+        <div className="shrink-0 px-5 py-4 bg-slate-900/70 border-b border-slate-700 flex items-start justify-between">
+          {/* name + big badges */}
+          <div className="min-w-0 flex items-center gap-3 flex-wrap">
+            <h2 className="text-2xl md:text-3xl font-bold text-white truncate">{name}</h2>
+
+            {/* Bigger, top-bar chips to the right of the name */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <BigChip tone="amber">
+                <Shield className="w-4 h-4" />
+                {pretty(profession)}
+              </BigChip>
+              <BigChip tone="blue">
+                <Medal className="w-4 h-4" />
+                {pretty((socialClass || '').toString())}
+              </BigChip>
+              {npc.religion && (
+                <BigChip tone="violet">
+                  <Church className="w-4 h-4" />
+                  {npc.religion}
+                </BigChip>
+              )}
+              {typeof (npc as any).level === 'number' && (
+                <BigChip tone="green">
+                  <Star className="w-4 h-4" />
+                  Lv. {(npc as any).level}
+                </BigChip>
+              )}
+
+              {/* Attribute badges (larger) – opens attribute modal on click */}
+              {npc.attributes?.length ? (
+                <button
+                  onClick={() => setShowAttributeModal(true)}
+                  className="ml-1 rounded-full ring-1 ring-slate-600/60 hover:ring-blue-400/60 px-2 py-1 bg-slate-800/40"
+                  title="View all attributes"
                 >
-                    &times;
+                  <div className="scale-[1.1]">
+                    <AttributeBadgeList badges={npc.attributes} maxDisplay={4} size="medium" />
+                  </div>
                 </button>
+              ) : null}
             </div>
+          </div>
+
+          {/* health / diseases + close */}
+          <div className="flex items-start gap-3">
+            {npc.health?.currentDiseases?.length ? (
+              <div className="flex flex-wrap gap-2 max-w-xs">
+                {npc.health.currentDiseases.map((d, i) => (
+                  <button
+                    key={`${d.disease.name}-${i}`}
+                    onClick={e => {
+                      e.stopPropagation();
+                      setSelectedDisease(d);
+                      setIsDiseaseModalOpen(true);
+                    }}
+                    className="px-2 py-0.5 bg-pink-600/80 hover:bg-pink-500 text-white text-xs font-bold rounded-full border border-pink-400 shadow hover:shadow-pink-500/40 transition flex items-center gap-1"
+                    title={`Click for details about ${d.disease.name}`}
+                  >
+                    <Biohazard className="w-3.5 h-3.5" />
+                    {d.disease.name}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <span className="px-3 py-1 bg-emerald-600/80 text-white text-xs font-bold rounded-full border border-emerald-400">
+                ✅ Healthy
+              </span>
+            )}
+
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-white text-3xl leading-none font-light -mt-1"
+              aria-label="Close"
+            >
+              &times;
+            </button>
+          </div>
         </div>
-        
-        {/* Tabs */}
-        <div className="flex-shrink-0 flex border-b border-gray-700 bg-gray-800/50">
-            <TabButton label="Overview" icon="👁️" isActive={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
-            <TabButton label="Stats" icon="📊" isActive={activeTab === 'stats'} onClick={() => setActiveTab('stats')} />
-            <TabButton label="Beliefs" icon="💭" isActive={activeTab === 'beliefs'} onClick={() => setActiveTab('beliefs')} />
-            {!isPlayer && <TabButton label="Equipment" icon="👕" isActive={activeTab === 'equipment'} onClick={() => setActiveTab('equipment')} />}
-            {!isPlayer && <TabButton label="Life History" icon="📜" isActive={activeTab === 'life-history'} onClick={() => setActiveTab('life-history')} />}
-            {!isPlayer && <TabButton label="Goal" icon="🎯" isActive={activeTab === 'goal'} onClick={() => setActiveTab('goal')} />}
-            {!isPlayer && <TabButton label="History" icon="💬" isActive={activeTab === 'history'} onClick={() => setActiveTab('history')} />}
-        </div>
-        
-        {/* Main Content */}
-        <div className="flex-grow overflow-y-auto bg-gray-800/30 scrollbar-thin">
-          {renderContent()}
+
+        {/* Body: two columns; left = portrait; right = tabs+content */}
+        <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[400px_1fr]">
+          {/* LEFT SIDEBAR */}
+          <aside className="hidden xl:flex flex-col gap-5 p-5 border-r border-slate-700 bg-slate-800/40 min-h-0 overflow-y-auto">
+            <div className="relative mx-auto w-[360px]">
+              <div className="aspect-square rounded-2xl overflow-hidden border-2 border-slate-600 bg-slate-900 shadow-xl">
+                <ProceduralPortrait character={npc} size={340} />
+              </div>
+
+              {/* tiny corner attribute chips remain for flavor */}
+              {npc.attributes?.length ? (
+                <div className="absolute -top-2 -left-2 z-20">
+                  <AttributeBadgeList badges={npc.attributes} maxDisplay={2} size="small" />
+                </div>
+              ) : null}
+            </div>
+
+            <div className="rounded-xl border border-slate-700/50 bg-slate-900/40 p-4">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-blue-300 mb-3">Quick Facts</h4>
+              <div className="space-y-2">
+                <DetailRow label="Age" value={`${npc.age} years`} />
+                <DetailRow label="Gender" value={pretty(npc.gender)} />
+                <DetailRow label="Height" value={cmToFeetAndInches(appearance?.height)} />
+                <DetailRow label="Weight" value={kgToLbs(appearance?.weight)} />
+                {!isPlayer && <DetailRow label="Livelihood" value={<span className="capitalize">{workLocation}</span>} />}
+                {!isPlayer && <DetailRow label="Home" value={<span className="capitalize">{homeLocation}</span>} />}
+              </div>
+            </div>
+
+            {(npc as any).birthplace && (
+              <div className="rounded-xl border border-slate-700/50 bg-slate-900/40 p-4">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-amber-300 mb-2">Origins</h4>
+                <div className="flex items-center gap-2 text-sm text-slate-200">
+                  <MapPin className="w-4 h-4" /> {(npc as any).birthplace}
+                </div>
+              </div>
+            )}
+          </aside>
+
+          {/* RIGHT: tabs + content */}
+          <main className="flex flex-col min-h-0">
+            <div className="shrink-0 flex border-b border-slate-700 bg-slate-800/60 overflow-x-auto">
+              <TabButton label="Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} Icon={Home} />
+              <TabButton label="Stats" active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} Icon={Activity} />
+              <TabButton label="Beliefs" active={activeTab === 'beliefs'} onClick={() => setActiveTab('beliefs')} Icon={Sparkles} />
+              {!isPlayer && <TabButton label="Equipment" active={activeTab === 'equipment'} onClick={() => setActiveTab('equipment')} Icon={Shield} />}
+              {!isPlayer && <TabButton label="Life History" active={activeTab === 'life-history'} onClick={() => setActiveTab('life-history')} Icon={Calendar} />}
+              {!isPlayer && <TabButton label="Goal" active={activeTab === 'goal'} onClick={() => setActiveTab('goal')} Icon={Star} />}
+              {!isPlayer && <TabButton label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} Icon={User} />}
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto bg-slate-800/30">
+              {activeTab === 'overview' && <Overview />}
+              {activeTab === 'stats' && <Stats />}
+              {activeTab === 'beliefs' && (
+                <div className="p-6">
+                  <BeliefsPanel character={npc} />
+                </div>
+              )}
+              {activeTab === 'equipment' && <Equipment />}
+              {activeTab === 'life-history' && <LifeHistory />}
+              {activeTab === 'goal' && <Goal />}
+              {activeTab === 'history' && <History />}
+            </div>
+          </main>
         </div>
 
         {/* Footer */}
-        <div className="flex-shrink-0 p-4 border-t border-gray-700 flex justify-end bg-gray-800/50">
-          <button 
-            className="px-6 py-2 bg-gray-600 hover:bg-gray-500 text-white text-sm font-semibold rounded-md transition-colors"
+        <div className="shrink-0 p-4 border-t border-slate-700 bg-slate-800/60 flex justify-end">
+          <button
             onClick={onClose}
+            className="px-6 py-2 rounded-md bg-slate-600 hover:bg-slate-500 text-white font-semibold transition-colors"
           >
             Close
           </button>
         </div>
       </div>
-      
+
       {/* Disease Modal */}
       {selectedDisease && (
         <DiseaseModal
@@ -465,7 +689,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
           culturalZone={mapLocationToCulture(currentZone, gameDate.year)}
         />
       )}
-      
+
       {/* Attribute Modal */}
       {showAttributeModal && npc.attributes && (
         <AttributeModal
@@ -478,5 +702,13 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
     </div>
   );
 };
+
+/* tiny local Eye icon fallback */
+const EyeIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-4 h-4" {...props}>
+    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" strokeWidth="2" />
+    <circle cx="12" cy="12" r="3" strokeWidth="2" />
+  </svg>
+);
 
 export default NpcModal;

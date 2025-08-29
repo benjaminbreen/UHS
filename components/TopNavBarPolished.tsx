@@ -20,6 +20,7 @@ import { findZoneForMapArea } from '../utils/mapAreaLookup';
 import { normalizeZoneName, normalizeRegionName } from '../utils/worldWeaverHelpers';
 import { eventService } from '../services/eventService';
 import { useEventSystem } from '../hooks/useEventSystem';
+import { usePlayer } from '../contexts/PlayerContext';
 
 // Button group configurations for better organization
 const NAV_BUTTON_GROUPS = {
@@ -96,6 +97,7 @@ const GAME_MODE_CONFIG = {
 const TopNavBarPolished: React.FC = () => {
   const { setIsSettingsModalOpen, setIsAboutModalOpen, setIsWorldMapModalOpen } = useUI();
   const { currentMode } = useEventSystem();
+  const { setControlledIconX, setControlledIconY } = usePlayer();
   const { 
     currentMapSeed,
     currentWorldCoords,
@@ -979,8 +981,20 @@ const TopNavBarPolished: React.FC = () => {
         isOpen={showQuestsPanel}
         onClose={() => setShowQuestsPanel(false)}
         onNavigateToQuest={(x, y) => {
-          console.log('Navigate to quest at:', x, y);
+          console.log('Navigating to quest at:', x, y);
+          // Move the player to the quest location
+          setControlledIconX(x);
+          setControlledIconY(y);
           setShowQuestsPanel(false);
+          // Show a notification that we're navigating
+          const notification = document.createElement('div');
+          notification.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-[60] animate-in fade-in slide-in-from-top-4 duration-300';
+          notification.textContent = `Navigating to quest objective at (${x}, ${y})`;
+          document.body.appendChild(notification);
+          setTimeout(() => {
+            notification.classList.add('animate-out', 'fade-out', 'slide-out-to-top-4');
+            setTimeout(() => notification.remove(), 300);
+          }, 2000);
         }}
       />
     </>

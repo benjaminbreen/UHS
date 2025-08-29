@@ -1,0 +1,109 @@
+import React, { useState, useEffect } from 'react';
+import { SpecialMapConfig } from '../types/specialMapTypes';
+import { specialMapBackgroundService } from '../services/specialMapBackgroundService';
+
+interface SpecialMapBackgroundProps {
+  config: SpecialMapConfig;
+  timeOfDay?: 'Dawn' | 'Day' | 'Dusk' | 'Night';
+}
+
+const SpecialMapBackground: React.FC<SpecialMapBackgroundProps> = ({
+  config,
+  timeOfDay = 'Day'
+}) => {
+  const [backgroundStyle, setBackgroundStyle] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [opacity, setOpacity] = useState(0);
+
+  useEffect(() => {
+    const loadBackground = async () => {
+      setIsLoading(true);
+      setOpacity(0);
+      
+      try {
+        const background = await specialMapBackgroundService.getBackground(config);
+        
+        // Check if it's a gradient or an image URL
+        if (background.startsWith('linear-gradient')) {
+          setBackgroundStyle(background);
+        } else {
+          // It's an image URL
+          setBackgroundStyle(`url(${background})`);
+        }
+        
+        // Fade in the background
+        setTimeout(() => setOpacity(1), 100);
+      } catch (error) {
+        console.error('[SpecialMapBackground] Failed to load background:', error);
+        // Use a default gradient on error
+        setBackgroundStyle('linear-gradient(180deg, #2D3748 0%, #4A5568 50%, #2D3748 100%)');
+        setOpacity(1);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadBackground();
+  }, [config]);
+
+  // Apply time-of-day lighting overlay
+  const getLightingOverlay = () => {
+    switch (timeOfDay) {
+      case 'Dawn':
+        return 'rgba(255, 200, 150, 0.2)';
+      case 'Day':
+        return 'rgba(255, 255, 255, 0.05)';
+      case 'Dusk':
+        return 'rgba(255, 150, 100, 0.3)';
+      case 'Night':
+        return 'rgba(20, 30, 60, 0.4)';
+      default:
+        return 'transparent';
+    }
+  };
+
+  return (
+    <>
+      {/* Main background layer */}
+      <div
+        className="absolute inset-0 z-0"
+        style={{
+          background: backgroundStyle,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          opacity,
+          transition: 'opacity 1s ease-in-out',
+          filter: timeOfDay === 'Night' ? 'brightness(0.7)' : 'brightness(1)'
+        }}
+      />
+      
+      {/* Time-of-day lighting overlay */}
+      <div
+        className="absolute inset-0 z-1 pointer-events-none"
+        style={{
+          backgroundColor: getLightingOverlay(),
+          mixBlendMode: 'multiply'
+        }}
+      />
+      
+      {/* Vignette effect for depth */}
+      <div
+        className="absolute inset-0 z-2 pointer-events-none"
+        style={{
+          background: 'radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.4) 100%)'
+        }}
+      />
+      
+      {/* Loading indicator */}
+      {isLoading && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/50">
+          <div className="text-white text-lg animate-pulse">
+            Loading interior...
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+export default SpecialMapBackground;

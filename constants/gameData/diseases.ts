@@ -985,6 +985,561 @@ export const DISEASES: Disease[] = [
     },
     badgeIcon: '💔',
     outlineColor: '#8B4513'
+  },
+
+  // ANIMAL-ORIGIN DISEASES (ZOONOTIC)
+  {
+    id: 'ANTHRAX',
+    name: 'Anthrax',
+    type: 'zoonotic',
+    severity: 'severe',
+    isAnimalDisease: true, // Primarily affects animals
+    availableEras: ['PREHISTORIC', 'ANCIENT', 'MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL', 'MODERN'],
+    availableRegions: ['EUROPEAN', 'EAST_ASIAN', 'MENA', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'NORTH_AMERICAN_COLONIAL', 'OCEANIA', 'SOUTH_ASIAN', 'SOUTH_AMERICAN', 'SUB_SAHARAN_AFRICAN'],
+    transmissionVector: 'zoonotic',
+    baseTransmissionRate: 0.4, // High if exposed to infected animal
+    proximityMultiplier: 1.5,
+    directContactMultiplier: 3.0,
+    symptoms: [
+      { id: 'BLACK_ESCHARS', name: 'Black Eschars', description: 'Characteristic black skin lesions', severity: 0.7 },
+      { id: 'SEVERE_FEVER', name: 'Severe Fever', description: 'High fever and chills', severity: 0.6 },
+      { id: 'RESPIRATORY_DISTRESS', name: 'Respiratory Distress', description: 'Difficulty breathing', severity: 0.8 }
+    ],
+    incubationDays: 3,
+    durationDays: 10,
+    mortalityRate: 0.4,
+    statEffects: {
+      health: -25,
+      fatigue: 30,
+      strength: -12,
+      intelligence: -5,
+      charisma: -10,
+      speed: -10
+    },
+    recoveryChance: 0.4,
+    grantsImmunity: true,
+    immunityDuration: 1825,
+    narrativeHints: {
+      npcSymptoms: ['has black, necrotic skin lesions', 'is burning with fever', 'struggles to breathe'],
+      animalSymptoms: ['has sudden convulsions', 'bleeds from body openings', 'dies suddenly', 'has swollen neck'],
+      playerSymptoms: ['Black lesions appear on your skin', 'You burn with fever', 'Each breath is a struggle']
+    },
+    badgeIcon: '⚫',
+    outlineColor: '#2F4F4F'
+  },
+
+  {
+    id: 'GLANDERS',
+    name: 'Glanders',
+    type: 'zoonotic',
+    severity: 'severe',
+    isAnimalDisease: true, // Primarily affects horses, mules, donkeys
+    availableEras: ['ANCIENT', 'MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL'],
+    availableRegions: ['EUROPEAN', 'EAST_ASIAN', 'MENA', 'NORTH_AMERICAN_COLONIAL', 'SOUTH_ASIAN'],
+    transmissionVector: 'zoonotic',
+    baseTransmissionRate: 0.3,
+    proximityMultiplier: 2.0,
+    directContactMultiplier: 4.0,
+    symptoms: [
+      { id: 'NASAL_DISCHARGE', name: 'Nasal Discharge', description: 'Infectious nasal discharge', severity: 0.5 },
+      { id: 'SKIN_NODULES', name: 'Skin Nodules', description: 'Painful nodules and ulcers', severity: 0.6 },
+      { id: 'PNEUMONIA', name: 'Pneumonia', description: 'Severe lung infection', severity: 0.8 }
+    ],
+    incubationDays: 14,
+    durationDays: 30,
+    mortalityRate: 0.5,
+    statEffects: {
+      health: -20,
+      fatigue: 25,
+      strength: -10,
+      intelligence: -3,
+      charisma: -12,
+      speed: -8
+    },
+    recoveryChance: 0.3,
+    grantsImmunity: true,
+    immunityDuration: -1,
+    narrativeHints: {
+      npcSymptoms: ['has infectious nasal discharge', 'has painful skin ulcers', 'coughs up blood'],
+      animalSymptoms: ['has thick nasal discharge', 'has ulcers in nostrils', 'breathes with difficulty', 'has swollen lymph nodes'],
+      playerSymptoms: ['Your nose runs with infectious discharge', 'Painful nodules form on your skin', 'Your lungs fill with fluid']
+    },
+    badgeIcon: '🐴',
+    outlineColor: '#8B4513'
+  },
+
+  {
+    id: 'BRUCELLOSIS',
+    name: 'Brucellosis (Undulant Fever)',
+    type: 'zoonotic',
+    severity: 'moderate',
+    isAnimalDisease: true, // Common in cattle, goats, pigs
+    availableEras: ['PREHISTORIC', 'ANCIENT', 'MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL', 'MODERN'],
+    availableRegions: ['EUROPEAN', 'EAST_ASIAN', 'MENA', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'NORTH_AMERICAN_COLONIAL', 'OCEANIA', 'SOUTH_ASIAN', 'SOUTH_AMERICAN', 'SUB_SAHARAN_AFRICAN'],
+    transmissionVector: 'zoonotic',
+    baseTransmissionRate: 0.2,
+    proximityMultiplier: 1.5,
+    directContactMultiplier: 3.0,
+    symptoms: [
+      { id: 'UNDULANT_FEVER', name: 'Undulant Fever', description: 'Fever that rises and falls', severity: 0.6 },
+      { id: 'JOINT_PAIN', name: 'Joint Pain', description: 'Severe arthritis-like pain', severity: 0.5 },
+      { id: 'NIGHT_SWEATS', name: 'Night Sweats', description: 'Profuse sweating at night', severity: 0.4 }
+    ],
+    incubationDays: 21,
+    durationDays: 60,
+    mortalityRate: 0.05,
+    statEffects: {
+      health: -15,
+      fatigue: 25,
+      strength: -8,
+      intelligence: -2,
+      charisma: -5,
+      speed: -6
+    },
+    recoveryChance: 0.6,
+    grantsImmunity: true,
+    immunityDuration: 730,
+    narrativeHints: {
+      npcSymptoms: ['has recurring fevers', 'winces from joint pain', 'is drenched in night sweats'],
+      animalSymptoms: ['has aborted pregnancy', 'has swollen joints', 'appears lame', 'has retained placenta'],
+      playerSymptoms: ['Your fever comes and goes in waves', 'Your joints ache terribly', 'You wake drenched in sweat']
+    },
+    badgeIcon: '🐄',
+    outlineColor: '#D2691E'
+  },
+
+  {
+    id: 'TULAREMIA',
+    name: 'Tularemia (Rabbit Fever)',
+    type: 'zoonotic',
+    severity: 'moderate',
+    isAnimalDisease: true, // Common in rabbits, rodents
+    availableEras: ['PREHISTORIC', 'ANCIENT', 'MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL', 'MODERN'],
+    availableRegions: ['EUROPEAN', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'NORTH_AMERICAN_COLONIAL', 'EAST_ASIAN'],
+    transmissionVector: 'zoonotic',
+    baseTransmissionRate: 0.25,
+    proximityMultiplier: 1.5,
+    directContactMultiplier: 4.0,
+    symptoms: [
+      { id: 'SKIN_ULCER', name: 'Skin Ulcer', description: 'Ulcer at infection site', severity: 0.5 },
+      { id: 'SWOLLEN_GLANDS', name: 'Swollen Glands', description: 'Painful lymph node swelling', severity: 0.6 },
+      { id: 'HIGH_FEVER', name: 'High Fever', description: 'Sudden high fever', severity: 0.6 }
+    ],
+    incubationDays: 5,
+    durationDays: 21,
+    mortalityRate: 0.1,
+    statEffects: {
+      health: -18,
+      fatigue: 22,
+      strength: -9,
+      intelligence: -4,
+      charisma: -7,
+      speed: -7
+    },
+    recoveryChance: 0.7,
+    grantsImmunity: true,
+    immunityDuration: -1,
+    narrativeHints: {
+      npcSymptoms: ['has an ulcer where they were bitten', 'has swollen, painful glands', 'is feverish'],
+      animalSymptoms: ['appears lethargic', 'has difficulty breathing', 'dies suddenly', 'has white spots on liver'],
+      playerSymptoms: ['An ulcer forms where you touched the animal', 'Your lymph nodes swell painfully', 'Fever overtakes you']
+    },
+    badgeIcon: '🐰',
+    outlineColor: '#A0522D'
+  },
+
+  {
+    id: 'PSITTACOSIS',
+    name: 'Psittacosis (Parrot Fever)',
+    type: 'zoonotic',
+    severity: 'moderate',
+    isAnimalDisease: true, // Primarily in birds
+    availableEras: ['ANCIENT', 'MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL', 'MODERN'],
+    availableRegions: ['EUROPEAN', 'EAST_ASIAN', 'MENA', 'SOUTH_AMERICAN', 'OCEANIA'],
+    transmissionVector: 'airborne',
+    baseTransmissionRate: 0.2,
+    proximityMultiplier: 2.5,
+    directContactMultiplier: 3.5,
+    symptoms: [
+      { id: 'DRY_COUGH', name: 'Dry Cough', description: 'Persistent dry cough', severity: 0.5 },
+      { id: 'HEADACHE', name: 'Severe Headache', description: 'Intense headaches', severity: 0.6 },
+      { id: 'PNEUMONIA', name: 'Pneumonia', description: 'Lung infection', severity: 0.7 }
+    ],
+    incubationDays: 10,
+    durationDays: 20,
+    mortalityRate: 0.15,
+    statEffects: {
+      health: -16,
+      fatigue: 20,
+      strength: -7,
+      intelligence: -5,
+      charisma: -5,
+      speed: -6
+    },
+    recoveryChance: 0.6,
+    grantsImmunity: true,
+    immunityDuration: 365,
+    narrativeHints: {
+      npcSymptoms: ['has a persistent dry cough', 'complains of severe headaches', 'has difficulty breathing'],
+      animalSymptoms: ['has ruffled feathers', 'has discharge from eyes and beak', 'appears lethargic', 'has green droppings'],
+      playerSymptoms: ['You develop a dry, hacking cough', 'Your head pounds relentlessly', 'Your lungs struggle']
+    },
+    badgeIcon: '🦜',
+    outlineColor: '#32CD32'
+  },
+
+  // MORE HISTORICAL DISEASES
+  {
+    id: 'DANCING_PLAGUE',
+    name: 'Dancing Plague',
+    type: 'neurological',
+    severity: 'moderate',
+    availableEras: ['MEDIEVAL', 'EARLY_MODERN'],
+    availableRegions: ['EUROPEAN'],
+    startYear: 1374,
+    endYear: 1518,
+    transmissionVector: 'psychogenic', // Mass psychogenic illness
+    baseTransmissionRate: 0.1,
+    proximityMultiplier: 3.0, // Spreads by witnessing
+    directContactMultiplier: 1.0,
+    symptoms: [
+      { id: 'COMPULSIVE_DANCING', name: 'Compulsive Dancing', description: 'Uncontrollable dancing', severity: 0.7 },
+      { id: 'EXHAUSTION', name: 'Exhaustion', description: 'Complete physical exhaustion', severity: 0.8 },
+      { id: 'DELIRIUM', name: 'Delirium', description: 'Mental confusion', severity: 0.6 }
+    ],
+    incubationDays: 1,
+    durationDays: 7,
+    mortalityRate: 0.15,
+    statEffects: {
+      health: -20,
+      fatigue: 40,
+      strength: -15,
+      intelligence: -10,
+      charisma: -8,
+      speed: 5 // Increased movement
+    },
+    recoveryChance: 0.6,
+    grantsImmunity: false,
+    immunityDuration: 0,
+    narrativeHints: {
+      npcSymptoms: ['dances uncontrollably', 'cannot stop moving', 'appears delirious from exhaustion', 'their feet are bloody from dancing'],
+      animalSymptoms: ['behaves erratically', 'moves in strange patterns'],
+      playerSymptoms: ['You cannot stop dancing', 'Your feet move of their own accord', 'You dance until exhaustion']
+    },
+    badgeIcon: '💃',
+    outlineColor: '#FF1493'
+  },
+
+  {
+    id: 'KING_EVIL',
+    name: "King's Evil (Scrofula)",
+    type: 'respiratory',
+    severity: 'moderate',
+    availableEras: ['MEDIEVAL', 'EARLY_MODERN'],
+    availableRegions: ['EUROPEAN', 'MENA'],
+    transmissionVector: 'airborne',
+    baseTransmissionRate: 0.15,
+    proximityMultiplier: 2.0,
+    directContactMultiplier: 3.0,
+    symptoms: [
+      { id: 'NECK_SWELLING', name: 'Neck Swelling', description: 'Swollen lymph nodes in neck', severity: 0.6 },
+      { id: 'SKIN_LESIONS', name: 'Skin Lesions', description: 'Draining sores', severity: 0.5 },
+      { id: 'FEVER', name: 'Low Fever', description: 'Persistent low fever', severity: 0.4 }
+    ],
+    incubationDays: 30,
+    durationDays: 180,
+    mortalityRate: 0.1,
+    statEffects: {
+      health: -12,
+      fatigue: 15,
+      strength: -5,
+      intelligence: 0,
+      charisma: -15,
+      speed: -3
+    },
+    recoveryChance: 0.4,
+    grantsImmunity: false,
+    immunityDuration: 0,
+    narrativeHints: {
+      npcSymptoms: ['has grotesque neck swellings', 'believes only the king\'s touch can cure them', 'has draining sores'],
+      animalSymptoms: ['has swollen neck glands', 'appears unwell'],
+      playerSymptoms: ['Your neck swells with painful lumps', 'You seek the royal touch for healing', 'Sores drain constantly']
+    },
+    badgeIcon: '👑',
+    outlineColor: '#4B0082'
+  },
+
+  {
+    id: 'GAOL_FEVER',
+    name: 'Gaol Fever (Typhus)',
+    type: 'vector_borne',
+    severity: 'severe',
+    availableEras: ['MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL'],
+    availableRegions: ['EUROPEAN', 'NORTH_AMERICAN_COLONIAL'],
+    transmissionVector: 'vector', // Lice-borne
+    baseTransmissionRate: 0.3,
+    proximityMultiplier: 2.5,
+    directContactMultiplier: 4.0,
+    symptoms: [
+      { id: 'HIGH_FEVER', name: 'High Fever', description: 'Sudden high fever', severity: 0.7 },
+      { id: 'RASH', name: 'Rash', description: 'Characteristic rash', severity: 0.5 },
+      { id: 'DELIRIUM', name: 'Delirium', description: 'Mental confusion', severity: 0.8 }
+    ],
+    incubationDays: 12,
+    durationDays: 20,
+    mortalityRate: 0.3,
+    statEffects: {
+      health: -22,
+      fatigue: 30,
+      strength: -10,
+      intelligence: -12,
+      charisma: -10,
+      speed: -10
+    },
+    recoveryChance: 0.5,
+    grantsImmunity: true,
+    immunityDuration: -1,
+    narrativeHints: {
+      npcSymptoms: ['is covered in lice', 'has high fever and rash', 'speaks incoherently', 'smells of prison filth'],
+      animalSymptoms: ['has parasites', 'appears fevered'],
+      playerSymptoms: ['Lice torment you constantly', 'Fever and rash consume you', 'Your mind wanders in delirium']
+    },
+    badgeIcon: '🪲',
+    outlineColor: '#696969'
+  },
+
+  {
+    id: 'MILK_SICKNESS',
+    name: 'Milk Sickness',
+    type: 'toxic',
+    severity: 'severe',
+    availableEras: ['EARLY_MODERN', 'INDUSTRIAL'],
+    availableRegions: ['NORTH_AMERICAN_COLONIAL'],
+    transmissionVector: 'foodborne',
+    baseTransmissionRate: 0.0, // Not contagious
+    proximityMultiplier: 1.0,
+    directContactMultiplier: 1.0,
+    symptoms: [
+      { id: 'TREMBLING', name: 'Trembling', description: 'Severe muscle tremors', severity: 0.7 },
+      { id: 'VOMITING', name: 'Vomiting', description: 'Persistent vomiting', severity: 0.6 },
+      { id: 'MUSCLE_STIFFNESS', name: 'Muscle Stiffness', description: 'Rigid muscles', severity: 0.8 }
+    ],
+    incubationDays: 2,
+    durationDays: 7,
+    mortalityRate: 0.5,
+    statEffects: {
+      health: -25,
+      fatigue: 20,
+      strength: -15,
+      intelligence: -5,
+      charisma: -8,
+      speed: -12
+    },
+    recoveryChance: 0.4,
+    grantsImmunity: false,
+    immunityDuration: 0,
+    narrativeHints: {
+      npcSymptoms: ['trembles uncontrollably', 'vomits repeatedly', 'can barely move from stiffness'],
+      animalSymptoms: ['trembles violently', 'appears poisoned', 'has muscle stiffness'],
+      playerSymptoms: ['Your muscles tremble and stiffen', 'You cannot stop vomiting', 'Movement becomes nearly impossible']
+    },
+    badgeIcon: '🥛',
+    outlineColor: '#F0E68C'
+  },
+
+  {
+    id: 'AGUE',
+    name: 'Ague',
+    type: 'vector_borne',
+    severity: 'mild',
+    availableEras: ['ANCIENT', 'MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL'],
+    availableRegions: ['EUROPEAN', 'NORTH_AMERICAN_COLONIAL', 'MENA'],
+    transmissionVector: 'vector',
+    baseTransmissionRate: 0.2,
+    proximityMultiplier: 1.5,
+    directContactMultiplier: 1.5,
+    symptoms: [
+      { id: 'INTERMITTENT_FEVER', name: 'Intermittent Fever', description: 'Fever that comes and goes', severity: 0.5 },
+      { id: 'SHAKING', name: 'Shaking', description: 'Violent shaking fits', severity: 0.4 },
+      { id: 'SWEATING', name: 'Sweating', description: 'Profuse sweating', severity: 0.3 }
+    ],
+    incubationDays: 10,
+    durationDays: 30,
+    mortalityRate: 0.05,
+    statEffects: {
+      health: -10,
+      fatigue: 18,
+      strength: -6,
+      intelligence: -2,
+      charisma: -4,
+      speed: -4
+    },
+    recoveryChance: 0.7,
+    grantsImmunity: false,
+    immunityDuration: 0,
+    narrativeHints: {
+      npcSymptoms: ['shakes with chills', 'alternates between fever and cold', 'sweats profusely'],
+      animalSymptoms: ['shivers periodically', 'appears fevered'],
+      playerSymptoms: ['Chills and fever alternate', 'You shake uncontrollably', 'Sweat pours from you']
+    },
+    badgeIcon: '🌡️',
+    outlineColor: '#B0C4DE'
+  },
+
+  {
+    id: 'RICKETS',
+    name: 'Rickets',
+    type: 'nutritional',
+    severity: 'moderate',
+    availableEras: ['MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL'],
+    availableRegions: ['EUROPEAN', 'NORTH_AMERICAN_COLONIAL'],
+    transmissionVector: 'nutritional',
+    baseTransmissionRate: 0.0,
+    proximityMultiplier: 1.0,
+    directContactMultiplier: 1.0,
+    symptoms: [
+      { id: 'BONE_DEFORMITY', name: 'Bone Deformity', description: 'Bowed legs and curved spine', severity: 0.7 },
+      { id: 'MUSCLE_WEAKNESS', name: 'Muscle Weakness', description: 'Severe muscle weakness', severity: 0.6 },
+      { id: 'GROWTH_STUNTING', name: 'Growth Stunting', description: 'Impaired growth', severity: 0.8 }
+    ],
+    incubationDays: 180,
+    durationDays: 730,
+    mortalityRate: 0.15,
+    statEffects: {
+      health: -15,
+      fatigue: 20,
+      strength: -12,
+      intelligence: -2,
+      charisma: -10,
+      speed: -8
+    },
+    recoveryChance: 0.3,
+    grantsImmunity: false,
+    immunityDuration: 0,
+    narrativeHints: {
+      npcSymptoms: ['has bowed legs', 'walks with difficulty', 'appears stunted', 'has a curved spine'],
+      animalSymptoms: ['has deformed limbs', 'moves with difficulty'],
+      playerSymptoms: ['Your bones ache and bend', 'Walking becomes painful', 'You feel your body deforming']
+    },
+    badgeIcon: '🦴',
+    outlineColor: '#D3D3D3'
+  },
+
+  {
+    id: 'CONSUMPTION',
+    name: 'Consumption',
+    type: 'respiratory',
+    severity: 'severe',
+    availableEras: ['MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL'],
+    availableRegions: ['EUROPEAN', 'NORTH_AMERICAN_COLONIAL', 'EAST_ASIAN'],
+    transmissionVector: 'airborne',
+    baseTransmissionRate: 0.15,
+    proximityMultiplier: 3.0,
+    directContactMultiplier: 4.0,
+    symptoms: [
+      { id: 'CHRONIC_COUGH', name: 'Chronic Cough', description: 'Persistent cough', severity: 0.6 },
+      { id: 'WASTING', name: 'Wasting', description: 'Gradual weight loss', severity: 0.7 },
+      { id: 'BLOOD_COUGH', name: 'Hemoptysis', description: 'Coughing blood', severity: 0.8 }
+    ],
+    incubationDays: 60,
+    durationDays: 365,
+    mortalityRate: 0.5,
+    statEffects: {
+      health: -20,
+      fatigue: 30,
+      strength: -15,
+      intelligence: -3,
+      charisma: -12,
+      speed: -10
+    },
+    recoveryChance: 0.2,
+    grantsImmunity: false,
+    immunityDuration: 0,
+    narrativeHints: {
+      npcSymptoms: ['coughs constantly', 'grows thinner by the day', 'coughs up blood', 'has the consumption'],
+      animalSymptoms: ['coughs frequently', 'loses weight', 'appears weak'],
+      playerSymptoms: ['A persistent cough plagues you', 'You waste away despite eating', 'Blood stains your handkerchief']
+    },
+    badgeIcon: '🫁',
+    outlineColor: '#8B0000'
+  },
+
+  {
+    id: 'QUINSY',
+    name: 'Quinsy',
+    type: 'respiratory',
+    severity: 'moderate',
+    availableEras: ['ANCIENT', 'MEDIEVAL', 'EARLY_MODERN'],
+    availableRegions: ['EUROPEAN', 'MENA', 'EAST_ASIAN'],
+    transmissionVector: 'airborne',
+    baseTransmissionRate: 0.2,
+    proximityMultiplier: 2.0,
+    directContactMultiplier: 3.0,
+    symptoms: [
+      { id: 'THROAT_ABSCESS', name: 'Throat Abscess', description: 'Severe throat swelling', severity: 0.7 },
+      { id: 'DIFFICULTY_SWALLOWING', name: 'Dysphagia', description: 'Cannot swallow', severity: 0.8 },
+      { id: 'FEVER', name: 'Fever', description: 'High fever', severity: 0.6 }
+    ],
+    incubationDays: 3,
+    durationDays: 10,
+    mortalityRate: 0.2,
+    statEffects: {
+      health: -18,
+      fatigue: 20,
+      strength: -8,
+      intelligence: -3,
+      charisma: -10,
+      speed: -5
+    },
+    recoveryChance: 0.6,
+    grantsImmunity: false,
+    immunityDuration: 0,
+    narrativeHints: {
+      npcSymptoms: ['can barely speak', 'cannot swallow', 'has a swollen throat', 'drools constantly'],
+      animalSymptoms: ['has difficulty eating', 'drools excessively'],
+      playerSymptoms: ['Your throat swells shut', 'Swallowing becomes impossible', 'You fear choking']
+    },
+    badgeIcon: '🗣️',
+    outlineColor: '#CD5C5C'
+  },
+
+  {
+    id: 'BLOODY_FLUX',
+    name: 'Bloody Flux',
+    type: 'gastrointestinal',
+    severity: 'severe',
+    availableEras: ['ANCIENT', 'MEDIEVAL', 'EARLY_MODERN'],
+    availableRegions: ['EUROPEAN', 'MENA', 'EAST_ASIAN', 'SOUTH_ASIAN'],
+    transmissionVector: 'waterborne',
+    baseTransmissionRate: 0.35,
+    proximityMultiplier: 1.5,
+    directContactMultiplier: 2.5,
+    symptoms: [
+      { id: 'BLOODY_DIARRHEA', name: 'Bloody Diarrhea', description: 'Severe bloody diarrhea', severity: 0.8 },
+      { id: 'SEVERE_CRAMPING', name: 'Severe Cramping', description: 'Agonizing cramps', severity: 0.7 },
+      { id: 'DEHYDRATION', name: 'Dehydration', description: 'Life-threatening dehydration', severity: 0.9 }
+    ],
+    incubationDays: 2,
+    durationDays: 10,
+    mortalityRate: 0.4,
+    statEffects: {
+      health: -25,
+      fatigue: 35,
+      strength: -15,
+      intelligence: -5,
+      charisma: -15,
+      speed: -18
+    },
+    recoveryChance: 0.4,
+    grantsImmunity: false,
+    immunityDuration: 0,
+    narrativeHints: {
+      npcSymptoms: ['suffers from the bloody flux', 'is dangerously dehydrated', 'groans from cramping', 'reeks of illness'],
+      animalSymptoms: ['has severe diarrhea', 'appears dehydrated', 'is very weak'],
+      playerSymptoms: ['Blood flows from you constantly', 'Cramps double you over', 'You feel death from dehydration approaching']
+    },
+    badgeIcon: '🩸',
+    outlineColor: '#8B0000'
   }
 ];
 

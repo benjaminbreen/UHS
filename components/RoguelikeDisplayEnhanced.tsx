@@ -1,7 +1,7 @@
 /**
  * components/RoguelikeDisplayEnhanced.tsx - Full-featured historically accurate roguelike
  */
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { PlayerCharacter, MapData, HistoricalEra, CulturalZone } from '../types';
 import { ITEM_DEFINITIONS } from '../constants/index';
 import { primarySourceService, PrimarySourceMetadata } from '../services/primarySourceService';
@@ -92,8 +92,7 @@ interface Room {
     type?: 'entrance' | 'treasure' | 'altar' | 'library' | 'guard' | 'storage';
 }
 
-const DUNGEON_WIDTH = 80;
-const DUNGEON_HEIGHT = 50;
+// Dynamic dungeon sizing will be calculated based on viewport
 
 // Get historically accurate food based on culture and era
 const getHistoricalFood = (culturalZone: CulturalZone, era: HistoricalEra): string[] => {
@@ -294,6 +293,10 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
     const [gameMessages, setGameMessages] = useState<string[]>(['You descend into the ancient ruins...']);
     const [turnCount, setTurnCount] = useState(0);
     const [currentDialogue, setCurrentDialogue] = useState<{ entity: Entity; message: string } | null>(null);
+    const [zoomLevel, setZoomLevel] = useState(20); // Font size for the map
+    const [showHelp, setShowHelp] = useState(false); // Help overlay visibility
+    const [dungeonDimensions, setDungeonDimensions] = useState({ width: 60, height: 30 });
+    const containerRef = useRef<HTMLDivElement>(null);
     
     // Combat state for multi-turn battles
     const [combatState, setCombatState] = useState<{
@@ -320,6 +323,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
 
     // Generate a proper dungeon with guaranteed walkable entrance
     const generateDungeon = useCallback(async () => {
+        const { width: DUNGEON_WIDTH, height: DUNGEON_HEIGHT } = dungeonDimensions;
         const newDungeon: DungeonTile[][] = Array(DUNGEON_HEIGHT).fill(null).map(() =>
             Array(DUNGEON_WIDTH).fill(null).map(() => ({
                 type: 'wall' as const,
@@ -610,12 +614,51 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         setDiscoveredRooms(new Set());
         
         return { startX, startY };
-    }, [culturalContext]);
+    }, [culturalContext, dungeonDimensions]);
 
-    // Initialize dungeon and first chamber
+    // Calculate dynamic dungeon dimensions based on viewport
     useEffect(() => {
-        generateDungeon();
-    }, [generateDungeon]);
+        const calculateDimensions = () => {
+            // Get the parent container dimensions (central game area)
+            if (containerRef.current) {
+                const rect = containerRef.current.getBoundingClientRect();
+                const containerWidth = rect.width;
+                const containerHeight = rect.height;
+                
+                const headerHeight = 50; // Header with stats
+                const chamberHeight = 30; // Chamber name display  
+                const messageLogHeight = 80; // Message log
+                const padding = 20;
+                
+                const availableWidth = containerWidth - padding;
+                const availableHeight = containerHeight - headerHeight - chamberHeight - messageLogHeight - padding;
+                
+                const tilesWidth = Math.floor(availableWidth / zoomLevel);
+                const tilesHeight = Math.floor(availableHeight / zoomLevel);
+                
+                setDungeonDimensions({
+                    width: Math.min(100, Math.max(30, tilesWidth)),
+                    height: Math.min(50, Math.max(20, tilesHeight))
+                });
+            } else {
+                // Fallback dimensions if ref not ready
+                setDungeonDimensions({ width: 60, height: 30 });
+            }
+        };
+        
+        // Small delay to ensure container is mounted
+        setTimeout(calculateDimensions, 100);
+        calculateDimensions();
+        window.addEventListener('resize', calculateDimensions);
+        return () => window.removeEventListener('resize', calculateDimensions);
+    }, [zoomLevel]);
+    
+    // Initialize dungeon when dimensions are ready
+    useEffect(() => {
+        if (dungeonDimensions.width > 0 && dungeonDimensions.height > 0) {
+            generateDungeon();
+        }
+    }, [dungeonDimensions, generateDungeon]);
 
     // Initialize first chamber after dungeon is ready
     useEffect(() => {
@@ -637,7 +680,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     const y = playerY + dy;
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     
-                    if (x >= 0 && x < DUNGEON_WIDTH && y >= 0 && y < DUNGEON_HEIGHT && distance <= visionRadius) {
+                    if (x >= 0 && x < dungeonDimensions.width && y >= 0 && y < dungeonDimensions.height && distance <= visionRadius) {
                         // Simple line of sight check
                         let hasLineOfSight = true;
                         const steps = Math.ceil(distance);
@@ -660,7 +703,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             
             return newDungeon;
         });
-    }, []);
+    }, [dungeonDimensions]);
 
     // Calculate combat damage with proper RPG mechanics
     const calculateDamage = useCallback((attacker: { attack: number; accuracy: number }, defender: { defense: number; evasion: number }) => {
@@ -827,8 +870,8 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
     // Handle player movement
     const movePlayer = useCallback((dx: number, dy: number) => {
         setPlayer(prev => {
-            const newX = Math.max(0, Math.min(DUNGEON_WIDTH - 1, prev.x + dx));
-            const newY = Math.max(0, Math.min(DUNGEON_HEIGHT - 1, prev.y + dy));
+            const newX = Math.max(0, Math.min(dungeonDimensions.width - 1, prev.x + dx));
+            const newY = Math.max(0, Math.min(dungeonDimensions.height - 1, prev.y + dy));
             
             if (!dungeon[newY] || !dungeon[newY][newX]) return prev;
             
@@ -948,7 +991,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             
             return newPlayer;
         });
-    }, [dungeon, entities, addMessage, startCombat, moveEntities, onHealthChange, onGoldChange, onInventoryAdd]);
+    }, [dungeon, entities, addMessage, startCombat, moveEntities, onHealthChange, onGoldChange, onInventoryAdd, dungeonDimensions]);
 
     // Update visibility when player moves
     useEffect(() => {
@@ -961,7 +1004,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             const keyLower = event.key.toLowerCase();
             
             // Movement and actions
-            if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'escape', 'm', '>'].includes(keyLower)) {
+            if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'escape', 'm', '>', 'h'].includes(keyLower)) {
                 event.preventDefault();
                 event.stopPropagation();
                 
@@ -1000,6 +1043,10 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                             generateDungeon();
                         }
                         break;
+                    case 'h':
+                        // Toggle help
+                        setShowHelp(prev => !prev);
+                        break;
                 }
             }
         };
@@ -1026,9 +1073,9 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
 
     // Get tile display with enhanced ASCII art
     const getTileDisplay = (tile: DungeonTile, x: number, y: number) => {
-        // Check for player with better symbol
+        // Check for player - classic @ symbol with glow
         if (x === player.x && y === player.y) {
-            return { char: '☺', color: 'text-amber-400', glow: true }; // Smiley face for player
+            return { char: '@', color: 'text-amber-400', glow: true, strongGlow: true }; // Classic @ with strong glow
         }
         
         // Check for entities
@@ -1123,15 +1170,19 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         );
     }
 
+    // Render to fill the central game area
     return (
-        <div className="fixed inset-0 bg-black z-[9999] flex flex-col" style={{ fontFamily: 'monospace' }}>
+        <div ref={containerRef} className="absolute inset-0 bg-black flex flex-col" style={{ 
+            fontFamily: 'monospace',
+            zIndex: 50
+        }}>
             {/* Terminal header - compact */}
-            <div className="p-2 border-b" style={{ borderColor: '#ff6b00', backgroundColor: '#0a0a0a' }}>
-                <div className="flex justify-between items-center">
+            <div className="px-2 py-1 border-b" style={{ borderColor: '#ff6b00', backgroundColor: '#0a0a0a' }}>
+                <div className="flex justify-between items-center w-full">
                     <h1 className="text-2xl font-bold" style={{ color: '#ff9500', textShadow: '0 0 10px #ff6b00' }}>
                         ▓ {ruinType.name} ▓
                     </h1>
-                    <div className="flex gap-4 text-base font-bold">
+                    <div className="flex gap-3 text-sm font-bold flex-wrap">
                         <span style={{ color: '#ff6b00' }}>HP: {player.hp}/{player.maxHp}</span>
                         <span style={{ color: '#ffaa00' }}>Gold: {player.gold}</span>
                         <span style={{ color: '#ff8800' }}>Lv: {player.level}</span>
@@ -1142,12 +1193,30 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                         {player.hasTorch && <span style={{ color: '#ffcc00' }}>🕯️ {player.torchTurns}</span>}
                         <span style={{ color: '#ff7700' }}>Turn: {turnCount}</span>
                     </div>
+                    {/* Zoom controls */}
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setZoomLevel(Math.max(12, zoomLevel - 2))}
+                            className="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded"
+                            style={{ fontSize: '14px' }}
+                        >
+                            Zoom -
+                        </button>
+                        <span style={{ color: '#ffaa00', fontSize: '14px' }}>{zoomLevel}px</span>
+                        <button
+                            onClick={() => setZoomLevel(Math.min(32, zoomLevel + 2))}
+                            className="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded"
+                            style={{ fontSize: '14px' }}
+                        >
+                            Zoom +
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {/* Chamber name display - compact */}
-            <div className="flex justify-center py-1" style={{ backgroundColor: '#0a0a0a' }}>
-                <div className="px-4 py-1 rounded border" 
+            <div className="flex justify-center" style={{ backgroundColor: '#0a0a0a' }}>
+                <div className="px-3 py-0.5 rounded border text-sm" 
                      style={{ 
                          borderColor: '#ff6b00', 
                          backgroundColor: '#1a1a1a',
@@ -1161,14 +1230,12 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 </div>
             </div>
 
-            <div className="flex-1 flex">
-                {/* Main dungeon display */}
-                <div className="flex-1 flex flex-col p-4" style={{ backgroundColor: '#0a0a0a' }}>
-                    {/* Dungeon map */}
-                    <div className="flex-1 overflow-auto">
-                        <pre style={{ fontSize: '18px', lineHeight: '18px', fontFamily: 'Courier New, Courier, monospace', margin: 0, letterSpacing: '1px' }}>
+            <div className="flex-1 flex flex-col" style={{ backgroundColor: '#0a0a0a' }}>
+                {/* Dungeon map - fills available space */}
+                <div className="flex-1 overflow-auto flex justify-center items-center">
+                    <pre style={{ fontSize: `${zoomLevel}px`, lineHeight: `${zoomLevel}px`, fontFamily: 'Courier New, Courier, monospace', margin: 0, letterSpacing: '0px' }}>
                             {dungeon.map((row, y) => (
-                                <div key={y} style={{ height: '18px', display: 'flex' }}>
+                                <div key={y} style={{ height: `${zoomLevel}px`, display: 'flex' }}>
                                     {row.map((tile, x) => {
                                         const display = getTileDisplay(tile, x, y);
                                         return (
@@ -1176,11 +1243,15 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                                                 key={x}
                                                 className={display.color}
                                                 style={{
-                                                    width: '18px',
+                                                    width: `${zoomLevel}px`,
                                                     display: 'inline-block',
                                                     textAlign: 'center',
                                                     fontWeight: 'bold',
-                                                    ...(display.glow ? { textShadow: `0 0 8px currentColor` } : {})
+                                                    ...(display.strongGlow ? { 
+                                                        textShadow: `0 0 12px currentColor, 0 0 20px currentColor, 0 0 8px #ffff00` 
+                                                    } : display.glow ? { 
+                                                        textShadow: `0 0 8px currentColor` 
+                                                    } : {})
                                                 }}
                                             >
                                                 {display.char}
@@ -1192,17 +1263,17 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                         </pre>
                     </div>
 
-                    {/* Message log */}
-                    <div className="h-32 border-t p-2 overflow-y-auto" style={{ borderColor: '#ff6b00' }}>
-                        {gameMessages.map((msg, i) => (
-                            <div key={i} style={{ color: '#ff9500', opacity: 1 - (gameMessages.length - i - 1) * 0.2 }}>
-                                {'>'} {msg}
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Combat overlay */}
-                    {combatState.active && combatState.enemy && (
+                {/* Message log - compact */}
+                <div className="h-20 border-t overflow-y-auto px-2" style={{ borderColor: '#ff6b00', backgroundColor: '#0a0a0a' }}>
+                    {gameMessages.map((msg, i) => (
+                        <div key={i} style={{ color: '#ff9500', opacity: 1 - (gameMessages.length - i - 1) * 0.2 }}>
+                            {'>'} {msg}
+                        </div>
+                    ))}
+                </div>
+                
+                {/* Combat overlay */}
+                {combatState.active && combatState.enemy && (
                         <div className="absolute inset-x-4 bottom-40 max-w-3xl mx-auto p-6 border-2 rounded"
                              style={{ 
                                  backgroundColor: '#1a0a0a', 
@@ -1344,79 +1415,127 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                             </button>
                         </div>
                     )}
+                    
+                    {/* Help button (shows legend/controls) */}
+                    <div className="absolute top-20 right-4">
+                        <button
+                            onClick={() => setShowHelp(!showHelp)}
+                            className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded"
+                            style={{ fontSize: '14px' }}
+                        >
+                            {showHelp ? 'Hide' : 'Help'} (H)
+                        </button>
+                    </div>
+                    
+                    {/* Help overlay */}
+                    {showHelp && (
+                        <div className="absolute top-32 right-4 w-64 p-4 rounded" 
+                             style={{ backgroundColor: '#1a1a1a', border: '2px solid #ff6b00' }}>
+                            <h3 className="text-base font-bold mb-2" style={{ color: '#ff9500' }}>
+                                ═══ CONTROLS ═══
+                            </h3>
+                            <div className="space-y-1 text-xs mb-4" style={{ color: '#ff8800' }}>
+                                <div>WASD/Arrows - Move</div>
+                                <div>M - Read Manuscripts</div>
+                                <div>{'>'} - Descend stairs</div>
+                                <div>H - Toggle this help</div>
+                                <div>ESC - Exit dungeon</div>
+                            </div>
+                            
+                            <h3 className="text-base font-bold mb-2" style={{ color: '#ff9500' }}>
+                                ═══ SYMBOLS ═══
+                            </h3>
+                            <div className="space-y-0.5 text-xs" style={{ color: '#ff8800' }}>
+                                <div><span className="text-amber-400">@</span> - You</div>
+                                <div><span className="text-gray-400">█</span> - Wall</div>
+                                <div><span className="text-yellow-400">¤</span> - Gold</div>
+                                <div><span className="text-blue-400">†</span> - Item</div>
+                                <div><span className="text-amber-300">§</span> - Manuscript</div>
+                                <div><span className="text-green-400">♣</span> - Food</div>
+                                <div><span className="text-orange-400">†</span> - Torch</div>
+                                <div><span className="text-cyan-400">↓</span> - Stairs</div>
+                            </div>
+                            
+                            {player.inventory.length > 0 && (
+                                <>
+                                    <h3 className="text-base font-bold mt-3 mb-2" style={{ color: '#ff9500' }}>
+                                        ═══ INVENTORY ═══
+                                    </h3>
+                                    <div className="space-y-0.5 text-xs" style={{ color: '#ff8800' }}>
+                                        {player.inventory.slice(-5).map((item, i) => (
+                                            <div key={i}>• {item.name}</div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
 
-                {/* Side panel */}
-                <div className="w-80 p-4 border-l" style={{ borderColor: '#ff6b00', backgroundColor: '#0a0a0a' }}>
-                    <h3 className="text-lg font-bold mb-4" style={{ color: '#ff9500', textShadow: '0 0 10px #ff6b00' }}>
-                        ═══ LEGEND ═══
-                    </h3>
-                    <div className="space-y-1 text-sm mb-6">
-                        <div><span className="text-amber-400">☺</span> <span style={{ color: '#ff8800' }}>- You</span></div>
-                        <div><span className="text-gray-400">█</span> <span style={{ color: '#ff8800' }}>- Wall</span></div>
-                        <div><span className="text-gray-600">·</span> <span style={{ color: '#ff8800' }}>- Floor</span></div>
-                        <div><span className="text-yellow-400">¤</span> <span style={{ color: '#ff8800' }}>- Gold</span></div>
-                        <div><span className="text-blue-400">†</span> <span style={{ color: '#ff8800' }}>- Item</span></div>
-                        <div><span className="text-amber-300">§</span> <span style={{ color: '#ff8800' }}>- Manuscript</span></div>
-                        <div><span className="text-red-500">♦</span> <span style={{ color: '#ff8800' }}>- Triggered trap</span></div>
-                        <div><span className="text-cyan-400">↓</span> <span style={{ color: '#ff8800' }}>- Stairs down</span></div>
-                        <div><span className="text-green-400">◎</span> <span style={{ color: '#ff8800' }}>- Entrance</span></div>
-                        <div><span className="text-purple-400">†</span> <span style={{ color: '#ff8800' }}>- Altar</span></div>
-                        <div><span className="text-blue-500">≈</span> <span style={{ color: '#ff8800' }}>- Water</span></div>
-                        <div><span className="text-gray-400">●</span> <span style={{ color: '#ff8800' }}>- Pillar</span></div>
-                        <div><span className="text-green-400">♣</span> <span style={{ color: '#ff8800' }}>- Food</span></div>
-                        <div><span className="text-orange-400">†</span> <span style={{ color: '#ff8800' }}>- Torch</span></div>
-                    </div>
-
-                    <h3 className="text-lg font-bold mb-4" style={{ color: '#ff9500', textShadow: '0 0 10px #ff6b00' }}>
-                        ═══ CONTROLS ═══
-                    </h3>
-                    <div className="space-y-1 text-sm mb-6" style={{ color: '#ff8800' }}>
-                        <div>WASD or Arrows - Move</div>
-                        <div>M - Read Manuscripts</div>
-                        <div>{'>'} - Descend stairs</div>
-                        <div>ESC - Exit dungeon</div>
-                    </div>
-
-                    {/* Inventory */}
-                    {player.inventory.length > 0 && (
-                        <>
-                            <h3 className="text-lg font-bold mb-2" style={{ color: '#ff9500', textShadow: '0 0 10px #ff6b00' }}>
-                                ═══ INVENTORY ═══
-                            </h3>
-                            <div className="space-y-1 text-sm mb-6" style={{ color: '#ff8800' }}>
-                                {player.inventory.slice(-5).map((item, i) => (
-                                    <div key={i}>• {item.name}</div>
-                                ))}
-                            </div>
-                        </>
-                    )}
-
-                    {/* Discovered manuscripts */}
-                    {player.manuscripts.length > 0 && (
-                        <>
-                            <h3 className="text-lg font-bold mb-2" style={{ color: '#ff9500', textShadow: '0 0 10px #ff6b00' }}>
-                                ═══ MANUSCRIPTS ═══
-                            </h3>
-                            <div className="space-y-1 text-sm" style={{ color: '#ff8800' }}>
-                                {player.manuscripts.map((ms, i) => (
-                                    <div key={i}>• "{ms.title}"</div>
-                                ))}
-                            </div>
-                        </>
-                    )}
-
+                {/* Bottom Exit button - always visible */}
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
                     <button
                         onClick={onExit}
-                        className="mt-auto w-full px-4 py-2 font-bold rounded"
+                        className="px-6 py-2 font-bold rounded"
                         style={{ 
                             backgroundColor: '#ff6b00', 
                             color: 'black',
                             boxShadow: '0 0 20px #ff6b00'
                         }}
                     >
-                        [EXIT DUNGEON]
+                        [EXIT DUNGEON - ESC]
                     </button>
+                </div>
+      
+            
+            {/* Always visible legend - bottom left corner */}
+            <div className="absolute bottom-4 left-4 p-3 rounded" 
+                 style={{ 
+                     backgroundColor: 'rgba(26, 26, 26, 0.9)', 
+                     border: '1px solid #ff6b00',
+                     maxWidth: '200px'
+                 }}>
+                <h3 className="text-xs font-bold mb-2" style={{ color: '#ff9500' }}>
+                    LEGEND
+                </h3>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs" style={{ fontSize: '10px' }}>
+                    <div className="flex items-center gap-1">
+                        <span className="text-amber-400">@</span>
+                        <span style={{ color: '#ff8800' }}>You</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <span className="text-gray-400">█</span>
+                        <span style={{ color: '#ff8800' }}>Wall</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <span className="text-yellow-400">¤</span>
+                        <span style={{ color: '#ff8800' }}>Gold</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <span className="text-blue-400">†</span>
+                        <span style={{ color: '#ff8800' }}>Item</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <span className="text-green-400">♣</span>
+                        <span style={{ color: '#ff8800' }}>Food</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <span className="text-orange-400">†</span>
+                        <span style={{ color: '#ff8800' }}>Torch</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <span className="text-amber-300">§</span>
+                        <span style={{ color: '#ff8800' }}>Scroll</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <span className="text-cyan-400">↓</span>
+                        <span style={{ color: '#ff8800' }}>Stairs</span>
+                    </div>
+                </div>
+                <div className="mt-2 pt-2 border-t border-gray-700" style={{ fontSize: '10px', color: '#ff8800' }}>
+                    <div>WASD/Arrows: Move</div>
+                    <div>ESC: Exit</div>
+                    <div>H: Help</div>
                 </div>
             </div>
         </div>

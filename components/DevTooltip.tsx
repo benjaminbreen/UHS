@@ -193,7 +193,10 @@ const DevTooltip: React.FC<DevTooltipProps> = ({ hoveredData, pinnedData, isPinn
   const nearbyAnalysis = isStandardTile && mapContext ? analyzeNearbyFeatures(tile, mapContext.tiles) : null;
   const strategicRecs = isStandardTile && nearbyAnalysis && mapContext ? generateStrategicRecommendations(tile, nearbyAnalysis, mapContext.climate) : null;
 
-  const formatString = (str: string) => str.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  const formatString = (str: string | undefined) => {
+    if (!str) return 'Unknown';
+    return str.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  };
 
   return (
     <div ref={tooltipRef} className={`fixed bottom-4 right-4 z-40 w-80 max-w-sm p-4 bg-gray-800/80 backdrop-blur-md rounded-lg shadow-2xl border border-gray-600/50 text-white text-xs font-sans transition-all duration-300 ${actuallyExpanded ? 'max-h-[80vh] overflow-y-auto' : 'max-h-24 overflow-hidden'}`}>

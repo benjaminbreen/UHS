@@ -4,10 +4,15 @@
  */
 
 import { Quest, QuestObjective, QuestChain, QuestMarker, LocationInteraction, QuestReward } from '../types/questTypes';
-import { MapTile, TerrainStructure } from '../types';
+import { MapTile, TerrainStructure, MapData } from '../types';
 import { eventService } from './eventService';
 import { lootService } from './lootService';
 import { questChainService } from './questChainService';
+import { ProceduralQuestGenerator, QuestTemplate } from '../constants/questTemplates/historicalQuestTemplates';
+import { spatialDescriptionService } from './spatialDescriptionService';
+import { HistoricalEra } from '../types/ambiance';
+import { CulturalZone } from '../types/characterData';
+import { GameModeType } from '../types/eventTypes';
 
 export class QuestService {
   private activeQuests: Quest[] = [];
@@ -72,6 +77,283 @@ export class QuestService {
       localStorage.removeItem('activeQuests');
       localStorage.removeItem('completedQuests');
     }
+  }
+
+  /**
+   * Generate a quest using historical templates and spatial awareness
+   */
+  generateHistoricalQuest(
+    era: HistoricalEra,
+    culturalZone: CulturalZone,
+    gameMode: GameModeType,
+    mapData: MapData,
+    npcs: any[],
+    playerLocation: { x: number; y: number },
+    questGiver?: any
+  ): Quest | null {
+    // Get available structures
+    const availableStructures = (mapData.terrainStructures || []).map(s => s.type as any);
+    
+    // Generate quest from template
+    const template = ProceduralQuestGenerator.generateQuest(
+      era,
+      culturalZone,
+      gameMode,
+      availableStructures,
+      npcs,
+      playerLocation
+    );
+    
+    if (!template) {
+      console.warn('[QuestService] No applicable quest template found');
+      return null;
+    }
+    
+    // Find target structures for quest
+    const targetStructures = this.findTargetStructures(template, mapData, playerLocation);
+    if (targetStructures.length === 0) {
+      console.warn('[QuestService] No suitable structures found for quest');
+      return null;
+    }
+    
+    // Generate objectives with spatial descriptions
+    const objectives = this.generateObjectivesFromTemplate(
+      template,
+      targetStructures,
+      mapData,
+      culturalZone,
+      playerLocation,
+      questGiver
+    );
+    
+    // Generate culturally appropriate rewards
+    const rewards = this.generateCulturalRewards(template, era, culturalZone);
+    
+    // Create quest title and description from template
+    const title = this.fillTemplate(
+      template.titleTemplates[Math.floor(Math.random() * template.titleTemplates.length)],
+      template,
+      questGiver
+    );
+    
+    const description = this.fillTemplate(
+      template.descriptionTemplates[Math.floor(Math.random() * template.descriptionTemplates.length)],
+      template,
+      questGiver
+    );
+    
+    const quest: Quest = {
+      id: `quest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      title,
+      description,
+      category: template.category as any,
+      objectives,
+      currentObjectiveIndex: 0,
+      rewards,
+      giver: questGiver?.name || 'Unknown',
+      giverLocation: questGiver ? { x: questGiver.x, y: questGiver.y } : playerLocation,
+      startLocation: playerLocation,
+      startTime: Date.now(),
+      status: 'active',
+      historicalContext: `${era} - ${culturalZone}`,
+      isLLMGenerated: false,
+      templateId: template.id,
+      acceptedTime: Date.now()
+    };
+    
+    // Add quest markers
+    this.updateQuestMarkers(quest);
+    
+    // Save quest
+    this.addQuest(quest);
+    
+    return quest;
+  }
+  
+  /**
+   * Find suitable structures for quest objectives
+   */
+  private findTargetStructures(
+    template: QuestTemplate,
+    mapData: MapData,
+    playerLocation: { x: number; y: number }
+  ): TerrainStructure[] {
+    const structures: TerrainStructure[] = [];
+    const allStructures = mapData.terrainStructures || [];
+    
+    // Find required structures within distance range
+    for (const requiredType of template.requiredStructures) {
+      const matching = allStructures
+        .filter(s => s.type === requiredType && s.x && s.y)
+        .map(s => ({
+          ...s,
+          distance: Math.sqrt(Math.pow(s.x! - playerLocation.x, 2) + Math.pow(s.y! - playerLocation.y, 2))
+        }))
+        .filter(s => 
+          s.distance >= template.variation.distanceRange[0] &&
+          s.distance <= template.variation.distanceRange[1]
+        )
+        .sort((a, b) => a.distance - b.distance);
+      
+      if (matching.length > 0) {
+        structures.push(matching[0]);
+      }
+    }
+    
+    return structures;
+  }
+  
+  /**
+   * Generate objectives from template with spatial descriptions
+   */
+  private generateObjectivesFromTemplate(
+    template: QuestTemplate,
+    targetStructures: TerrainStructure[],
+    mapData: MapData,
+    culturalZone: CulturalZone,
+    playerLocation: { x: number; y: number },
+    questGiver?: any
+  ): QuestObjective[] {
+    const objectives: QuestObjective[] = [];
+    
+    // For each item chain, create objectives
+    for (let i = 0; i < template.itemChains.length; i++) {
+      const chain = template.itemChains[i];
+      const targetStructure = targetStructures[i];
+      
+      if (!targetStructure || !targetStructure.x || !targetStructure.y) continue;
+      
+      // Generate spatial description for this location
+      const spatialDesc = spatialDescriptionService.describeLocationRelativeToPlayer(
+        targetStructure.x,
+        targetStructure.y,
+        playerLocation.x,
+        playerLocation.y,
+        mapData,
+        culturalZone,
+        targetStructure
+      );
+      
+      // Create deliver/transform objective
+      objectives.push({
+        id: `obj_${i}_deliver`,
+        type: 'deliver_item',
+        description: `Take ${chain.fromItem} to ${spatialDesc}`,
+        targetLocation: { x: targetStructure.x, y: targetStructure.y },
+        targetStructure: targetStructure.id,
+        targetItem: chain.fromItem,
+        completed: false,
+        spatialDescription: spatialDesc
+      });
+      
+      // If there's a transformation, add return objective
+      if (chain.toItem !== chain.fromItem) {
+        const returnDesc = questGiver ? 
+          spatialDescriptionService.describeLocationRelativeToPlayer(
+            questGiver.x,
+            questGiver.y,
+            targetStructure.x,
+            targetStructure.y,
+            mapData,
+            culturalZone
+          ) : 'the quest giver';
+        
+        objectives.push({
+          id: `obj_${i}_return`,
+          type: 'deliver_item',
+          description: `Return ${chain.toItem} to ${questGiver?.name || 'the quest giver'}`,
+          targetLocation: questGiver ? { x: questGiver.x, y: questGiver.y } : playerLocation,
+          targetNPC: questGiver?.name,
+          targetItem: chain.toItem,
+          completed: false,
+          spatialDescription: returnDesc
+        });
+      }
+    }
+    
+    return objectives;
+  }
+  
+  /**
+   * Generate culturally appropriate rewards
+   */
+  private generateCulturalRewards(
+    template: QuestTemplate,
+    era: HistoricalEra,
+    culturalZone: CulturalZone
+  ): QuestReward[] {
+    const rewards: QuestReward[] = [];
+    
+    // Base reward amount with variation
+    const multiplier = template.variation.rewardMultiplier[0] + 
+      Math.random() * (template.variation.rewardMultiplier[1] - template.variation.rewardMultiplier[0]);
+    
+    // Currency reward
+    const currencyNames: Record<CulturalZone, string> = {
+      EUROPEAN: 'coins',
+      MENA: 'dinars',
+      EAST_ASIAN: 'taels',
+      SOUTH_ASIAN: 'rupees',
+      NORTH_AMERICAN_PRE_COLUMBIAN: 'trade goods',
+      NORTH_AMERICAN_COLONIAL: 'shillings',
+      SOUTH_AMERICAN: 'pesos',
+      SUB_SAHARAN_AFRICAN: 'cowries',
+      OCEANIC: 'shells'
+    };
+    
+    rewards.push({
+      type: 'currency',
+      amount: Math.floor(50 * multiplier),
+      description: `${Math.floor(50 * multiplier)} ${currencyNames[culturalZone] || 'coins'}`
+    });
+    
+    // Reputation reward
+    if (template.category === 'religious' || template.category === 'political') {
+      rewards.push({
+        type: 'reputation',
+        amount: Math.floor(10 * multiplier),
+        description: `+${Math.floor(10 * multiplier)} reputation`
+      });
+    }
+    
+    // Experience reward
+    rewards.push({
+      type: 'experience',
+      amount: Math.floor(100 * multiplier),
+      description: `${Math.floor(100 * multiplier)} XP`
+    });
+    
+    return rewards;
+  }
+  
+  /**
+   * Fill template strings with appropriate values
+   */
+  private fillTemplate(
+    template: string,
+    questTemplate: QuestTemplate,
+    questGiver?: any
+  ): string {
+    let filled = template;
+    
+    // Replace placeholders
+    filled = filled.replace('{giver}', questGiver?.name || 'Someone');
+    filled = filled.replace('{owner}', questGiver?.name?.split(' ')[0] || 'Someone');
+    filled = filled.replace('{season}', ['spring', 'summer', 'fall', 'winter'][Math.floor(Math.random() * 4)]);
+    filled = filled.replace('{destination}', 'the destination');
+    
+    // Replace item types from template
+    if (questTemplate.itemChains.length > 0) {
+      const chain = questTemplate.itemChains[0];
+      filled = filled.replace('{grain_type}', chain.fromItem);
+      filled = filled.replace('{flour_type}', chain.toItem);
+      filled = filled.replace('{item}', chain.fromItem);
+    }
+    
+    // Replace structure descriptions
+    filled = filled.replace('{structure_description}', 'the location');
+    
+    return filled;
   }
 
   /**

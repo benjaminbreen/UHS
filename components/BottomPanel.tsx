@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Tile, PlayerCharacter, MapData, Season, Item, BiomeType, ActionableTile, TerrainStructure, TimeOfDay } from '../types';
 import { getSafariOptimizedClassName, getOptimizedButtonClassName } from '../utils/safariUtils';
 import { weatherService } from '../services/weatherService';
+import { METALS } from '../constants/gameData/metals';
 
 interface BottomPanelProps {
     actionableTile: ActionableTile | null;
@@ -25,6 +26,8 @@ interface BottomPanelProps {
     inRuinRoguelike?: boolean;
     isRuinModalOpen?: boolean;
     onExitRuin?: () => void;
+    isSpecialMap?: boolean;
+    onExitSpecialMap?: () => void;
 }
 
 const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, icon: string, variant?: 'blue' | 'red' }> = ({ onClick, children, icon, variant = 'blue' }) => {
@@ -98,6 +101,8 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
     inRuinRoguelike = false,
     isRuinModalOpen = false,
     onExitRuin,
+    isSpecialMap = false,
+    onExitSpecialMap,
 }) => {
     const [weatherDisplay, setWeatherDisplay] = useState<string>('');
     const [weatherState, setWeatherState] = useState<{ state: string, emoji: string }>({ state: '', emoji: '' });
@@ -130,11 +135,13 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
     useEffect(() => {
         if (mapData) {
             // Use map center for consistent weather across the map area
-            const mapCenterX = Math.floor(mapData.tiles[0].length / 2);
+            const mapCenterX = mapData.tiles[0] ? Math.floor(mapData.tiles[0].length / 2) : 0;
             const mapCenterY = Math.floor(mapData.tiles.length / 2);
-            const centerTile = mapData.tiles[mapCenterY][mapCenterX];
+            const centerTile = mapData.tiles[mapCenterY] && mapData.tiles[mapCenterY][mapCenterX] 
+                ? mapData.tiles[mapCenterY][mapCenterX] 
+                : null;
             
-            const weather = weatherService.getWeather(
+            const weather = centerTile ? weatherService.getWeather(
                 mapData.climate,
                 centerTile.biome,
                 season,
@@ -142,27 +149,54 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                 centerTile.altitude || 0.5,
                 dayOfYear,
                 { x: mapCenterX, y: mapCenterY }
-            );
+            ) : null;
             
-            // Format temperature and wind speed based on preference
-            const temp = useFahrenheit ? 
-                Math.round(weather.temperature * 9/5 + 32) + '°F' : 
-                Math.round(weather.temperature) + '°C';
-            
-            // Convert wind speed if using Fahrenheit (imperial units)
-            const windSpeed = useFahrenheit ?
-                Math.round(weather.windSpeed * 0.621371) : // Convert km/h to mph
-                Math.round(weather.windSpeed);
-            const windUnit = useFahrenheit ? 'mph' : 'km/h';
-            
-            const windDir = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.floor(weather.windDirection / 45)];
-            
-            setWeatherDisplay(`${temp} • ${windDir} wind ${windSpeed} ${windUnit}`);
-            setWeatherState(getWeatherStateAndEmoji(weather));
+            if (weather) {
+                // Format temperature and wind speed based on preference
+                const temp = useFahrenheit ? 
+                    Math.round(weather.temperature * 9/5 + 32) + '°F' : 
+                    Math.round(weather.temperature) + '°C';
+                
+                // Convert wind speed if using Fahrenheit (imperial units)
+                const windSpeed = useFahrenheit ?
+                    Math.round(weather.windSpeed * 0.621371) : // Convert km/h to mph
+                    Math.round(weather.windSpeed);
+                const windUnit = useFahrenheit ? 'mph' : 'km/h';
+                
+                const windDir = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.floor(weather.windDirection / 45)];
+                
+                setWeatherDisplay(`${temp} • ${windDir} wind ${windSpeed} ${windUnit}`);
+                setWeatherState(getWeatherStateAndEmoji(weather));
+            }
         }
     }, [mapData, season, timeOfDay, dayOfYear, useFahrenheit]); // Update hourly, not on movement
     
     const renderActionableContent = () => {
+        // Special map exit takes priority over everything else
+        if (isSpecialMap) {
+            return (
+                <div className="w-full h-full flex items-center justify-between px-8 bg-gradient-to-r from-slate-800/90 via-slate-900/90 to-slate-800/90">
+                    <LocationDisplay
+                        title="Special Map"
+                        subtitle="Interior Space"
+                        icon="🏛️"
+                    />
+                    
+                    <div className="flex items-center gap-6">
+                        <ActionButton onClick={onExitSpecialMap || (() => {})} icon="🚪" variant="red">
+                            Exit to Map
+                        </ActionButton>
+                    </div>
+                    
+                    <div className="hidden sm:flex justify-end">
+                        <div className="text-right text-slate-400 italic text-xs sm:text-sm max-w-xs bg-slate-800/20 rounded-lg px-3 py-2 sm:px-4 sm:py-3 border border-slate-700/30">
+                            Return to the main map outside this building.
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        
         if (!actionableTile) return null;
         
         const { type, tile, structure } = actionableTile;
@@ -298,10 +332,32 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
 
     const renderDefaultContent = () => {
         const currentTile = playerCharacter && mapData && playerX !== null && playerY !== null 
+            && playerY >= 0 && playerY < mapData.tiles.length
+            && playerX >= 0 && playerX < (mapData.tiles[playerY]?.length || 0)
             ? mapData.tiles[playerY][playerX] 
             : null;
             
-        const locationPhrase = currentTile ? currentTile.biome.replace(/_/g, ' ').toLowerCase() : 'Unknown';
+        const locationPhrase = currentTile && currentTile.biome ? currentTile.biome.replace(/_/g, ' ').toLowerCase() : 'Unknown';
+        
+        // Check for mineral deposits on current tile
+        const mineralDeposit = currentTile?.mineralDeposit;
+        const mineral = mineralDeposit ? METALS[mineralDeposit.metalId] : null;
+        
+        // Get mineral color from the metal definition
+        const getMineralTextColor = () => {
+            if (!mineral?.visual?.color) return 'rgb(148, 163, 184)'; // Default slate-400
+            
+            // Extract RGB values from the rgba string and boost saturation for text
+            const colorMatch = mineral.visual.color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+            if (colorMatch) {
+                const [_, r, g, b] = colorMatch;
+                // Boost brightness for better text readability
+                const boost = 1.3;
+                return `rgb(${Math.min(255, parseInt(r) * boost)}, ${Math.min(255, parseInt(g) * boost)}, ${Math.min(255, parseInt(b) * boost)})`;
+            }
+            return 'rgb(148, 163, 184)';
+        };
+        
         const getBiomeIcon = (biome: string) => {
             if (biome.includes('ocean')) return '🌊';
             if (biome.includes('forest')) return '🌲';
@@ -339,9 +395,38 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                                 The {locationPhrase} stretches before you, alive with possibilities...
                             </p>
                         </div>
+                    ) : mineral ? (
+                        <div className="text-center animate-in fade-in duration-300">
+                            <p 
+                                className="text-sm font-bold animate-pulse"
+                                style={{ color: getMineralTextColor() }}
+                            >
+                                {mineral.name} deposits in the area!
+                            </p>
+                            <p className="text-xs mt-1" style={{ color: getMineralTextColor(), opacity: 0.8 }}>
+                                Try using the 'Dig' action button (D key)
+                            </p>
+                        </div>
+                    ) : locationPhrase.includes('salt flats') ? (
+                        <div className="text-center animate-in fade-in duration-300">
+                            <p className="text-sm font-bold" style={{ color: 'rgb(220, 220, 255)' }}>
+                                Salt crystals glisten on the ground
+                            </p>
+                            <p className="text-xs mt-1" style={{ color: 'rgb(200, 200, 230)', opacity: 0.9 }}>
+                                Try digging here for salt (D key)
+                            </p>
+                        </div>
+                    ) : (locationPhrase.includes('dense forest') || locationPhrase.includes('jungle')) ? (
+                        <div className="text-center animate-in fade-in duration-300">
+                            <p className="text-sm font-bold" style={{ color: 'rgb(100, 200, 100)' }}>
+                                Rich biodiversity surrounds you
+                            </p>
+                            <p className="text-xs mt-1" style={{ color: 'rgb(80, 180, 80)', opacity: 0.9 }}>
+                                Try foraging for rare items (F key)
+                            </p>
+                        </div>
                     ) : (
                         <div className="text-slate-600 text-center">
-                            
                             <p className="text-sm font-medium">Use arrow keys to explore</p>
                         </div>
                     )}

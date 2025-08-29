@@ -66,10 +66,10 @@ export const NpcMedicalPanel: React.FC<NpcMedicalPanelProps> = ({
                     </p>
                     
                     {/* Show player's current diseases */}
-                    {playerCharacter.health?.currentDiseases && playerCharacter.health.currentDiseases.length > 0 ? (
+                    {playerCharacter.diseaseHealth?.currentDiseases && playerCharacter.diseaseHealth.currentDiseases.length > 0 ? (
                         <div className="space-y-3">
                             <h5 className="text-sm font-semibold text-red-300">Your Current Ailments:</h5>
-                            {playerCharacter.health.currentDiseases.map((activeDisease, index) => {
+                            {playerCharacter.diseaseHealth.currentDiseases.map((activeDisease, index) => {
                                 const availableTreatments = mapData ? diseaseService.getAvailableTreatments(
                                     activeDisease.disease.type,
                                     mapData.timeSlice ? 

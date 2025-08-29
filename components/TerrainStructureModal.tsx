@@ -7,7 +7,7 @@ import { calculatePrices } from '../services/economyService';
 import { STRUCTURE_BLUEPRINTS } from '../constants/index';
 import { getPrimaryIndustry, getRegionalIndustries, IndustryData } from '../constants/gameData/economicSectors';
 import TerrainStructureBanner from './TerrainStructureBanner';
-import GovernmentDistrictModal from './GovernmentDistrictModal';
+// GovernmentDistrictModal is now handled directly in MapViewport
 import { getFactionData } from '../constants/gameData/factionIcons';
 import FactionsModal from './FactionsModal';
 import RuinStructureModal from './RuinStructureModal';
@@ -73,6 +73,7 @@ interface TerrainStructureModalProps {
   playerCharacter?: any;
   currentLocation?: string;
   formattedDate?: string;
+  onEnterSpecialMap?: (config: any) => void;
 }
 
 const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({ 
@@ -84,7 +85,8 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
     season, 
     playerCharacter, 
     currentLocation, 
-    formattedDate 
+    formattedDate,
+    onEnterSpecialMap 
 }) => {
     // State for factions modal
     const [showFactionsModal, setShowFactionsModal] = useState(false);
@@ -111,20 +113,12 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
         return '1500';
     };
     
-    // Special handling for government districts
-    if (structure.structureType === 'government_district' && playerCharacter && currentLocation && formattedDate) {
-        const tileAtLocation = mapData.tiles?.find(t => t.x === structure.location[0] && t.y === structure.location[1]);
-        return (
-            <GovernmentDistrictModal
-                structure={structure}
-                tile={tileAtLocation || { x: structure.location[0], y: structure.location[1], elevation: 0 }}
-                playerCharacter={playerCharacter}
-                mapData={mapData}
-                currentLocation={currentLocation}
-                formattedDate={formattedDate}
-                onClose={onClose}
-            />
-        );
+    // Government districts are now handled directly in MapViewport with activeGovernmentModal
+    // They should not reach this component anymore
+    if (structure.structureType === 'government_district') {
+        console.warn('[TerrainStructureModal] Government district reached modal hub - should be handled by MapViewport');
+        onClose();
+        return null;
     }
     
     // Special handling for ruins
