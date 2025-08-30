@@ -24,6 +24,10 @@ import { generatePalaceComplex } from './archetypes/palaceGenerator';
 import { generateEnhancedPalaceComplex } from './archetypes/palaceGeneratorEnhanced';
 import { generateMarketBazaar } from './archetypes/marketGenerator';
 import { generateGovernmentForum } from './archetypes/governmentGenerator';
+import { generateEnhancedGovernmentForum } from './archetypes/governmentGeneratorEnhanced';
+import { generateGovernmentForum2D } from './archetypes/governmentForum2D';
+import { generateGovernmentForumFixed } from './archetypes/governmentForumFixed';
+import { generateEnhancedCastle } from './archetypes/castleGeneratorEnhanced';
 import { generateSacredComplex } from './archetypes/sacredGenerator';
 import { generateMilitaryFortress } from './archetypes/fortressGenerator';
 import { generateUniversityAcademy } from './archetypes/universityGenerator';
@@ -31,14 +35,28 @@ import { generateTheater } from './archetypes/theaterGenerator';
 import { generateArena } from './archetypes/arenaGenerator';
 import { generateExhibition } from './archetypes/exhibitionGenerator';
 import { generateOpenField } from './archetypes/openFieldGenerator';
+import { generateVessel } from './archetypes/vesselGenerator';
+import { generateCampground } from './archetypes/campgroundGenerator';
+import { generateRestaurantInn } from './archetypes/restaurantInnGenerator';
+import { generateEstates } from './archetypes/estatesGeneratorFixed';
 import { generateSpecialMapNpcs } from './specialMapNpcGenerator';
+import { getEraAppropriateName } from '../../utils/governmentDistrictFallback';
+import { 
+  SimplifiedArchetype,
+  ARCHETYPE_MAPPING,
+  augmentGovernmentDistrict,
+  LANDSCAPE_BORDER_ROWS,
+  MapSize,
+  ClimateType as LandscapeClimate
+} from '../../constants/specialMaps/specialMapAugmentation';
 
-// Map size configurations
+// Map size configurations - NEW SIMPLIFIED SIZES
 const MAP_SIZES = {
-  small: { width: 40, height: 30 },
-  medium: { width: 50, height: 35 },
-  large: { width: 60, height: 40 },
-  huge: { width: 80, height: 60 }
+  xs: { width: 8, height: 8 },      // Tiny buildings, vessels
+  small: { width: 10, height: 10 },  // Small spaces
+  medium: { width: 16, height: 16 }, // Standard buildings
+  large: { width: 20, height: 20 },  // Major complexes
+  xl: { width: 25, height: 25 }      // Massive sites
 };
 
 /**
@@ -98,10 +116,12 @@ export function generateSpecialMap(
       break;
       
     case SpecialMapArchetype.GOVERNMENT_FORUM:
-      generatedData = generateGovernmentForum(tiles, config, noise, size);
+      // Use fixed government forum with proper organization
+      generatedData = generateGovernmentForumFixed(tiles, config, noise, size);
       tiles = generatedData.tiles;
       interactionZones = generatedData.interactionZones;
       exitZones = generatedData.exitZones;
+      rooms = generatedData.rooms || [];
       break;
       
     case SpecialMapArchetype.SACRED_COMPLEX:
@@ -112,10 +132,12 @@ export function generateSpecialMap(
       break;
       
     case SpecialMapArchetype.MILITARY_FORTRESS:
-      generatedData = generateMilitaryFortress(tiles, config, noise, size);
+      // Use enhanced castle generator with landscape integration and thick walls
+      generatedData = generateEnhancedCastle(tiles, config, noise, size);
       tiles = generatedData.tiles;
       interactionZones = generatedData.interactionZones;
       exitZones = generatedData.exitZones;
+      rooms = generatedData.rooms || [];
       break;
       
     case SpecialMapArchetype.UNIVERSITY:
@@ -153,17 +175,49 @@ export function generateSpecialMap(
       exitZones = generatedData.exitZones;
       break;
       
+    case SpecialMapArchetype.VESSEL:
+      generatedData = generateVessel(tiles, config, noise, size);
+      tiles = generatedData.tiles;
+      interactionZones = generatedData.interactionZones;
+      exitZones = generatedData.exitZones;
+      break;
+      
+    case SpecialMapArchetype.CAMPGROUND:
+      generatedData = generateCampground(tiles, config, noise, size);
+      tiles = generatedData.tiles;
+      interactionZones = generatedData.interactionZones;
+      exitZones = generatedData.exitZones;
+      break;
+      
+    case SpecialMapArchetype.RESTAURANT_INN:
+      generatedData = generateRestaurantInn(tiles, config, noise, size);
+      tiles = generatedData.tiles;
+      interactionZones = generatedData.interactionZones;
+      exitZones = generatedData.exitZones;
+      rooms = generatedData.rooms || [];
+      break;
+      
+    // New simplified archetypes
+    case SpecialMapArchetype.ESTATES:
+      generatedData = generateEstates(tiles, config, noise, size);
+      tiles = generatedData.tiles;
+      interactionZones = generatedData.interactionZones;
+      exitZones = generatedData.exitZones;
+      rooms = generatedData.rooms || [];
+      break;
+      
     default:
       console.warn(`[SpecialMapGen] Archetype ${config.archetype} not yet implemented`);
       generateDefaultLayout(tiles, size);
   }
   
-  // Generate NPCs for the special map
+  // Generate NPCs for the special map with room awareness
   const npcs = generateSpecialMapNpcs(
     config,
     size,
     noise,
-    tiles
+    tiles,
+    rooms
   );
   
   // Create special map data
@@ -262,36 +316,16 @@ function generateDefaultLayout(tiles: Tile[][], size: { width: number, height: n
  * Get display name for special map based on archetype and culture
  */
 function getSpecialMapDisplayName(config: SpecialMapConfig): string {
-  const { archetype, culturalZone, era } = config;
+  const { archetype, culturalZone, era, structureName } = config;
   
-  switch (archetype) {
-    case SpecialMapArchetype.PALACE_COMPLEX:
-      if (culturalZone === 'EAST_ASIAN') return 'Imperial Palace';
-      if (culturalZone === 'MENA') return 'Sultan\'s Palace';
-      if (culturalZone === 'EUROPEAN' && era === HistoricalEra.MEDIEVAL) return 'Royal Castle';
-      if (culturalZone === 'EUROPEAN') return 'Royal Palace';
-      return 'Palace Complex';
-      
-    case SpecialMapArchetype.MARKET_BAZAAR:
-      if (culturalZone === 'MENA') return 'Grand Bazaar';
-      if (culturalZone === 'EAST_ASIAN') return 'Market District';
-      if (era === HistoricalEra.MEDIEVAL) return 'Medieval Market';
-      return 'Marketplace';
-      
-    case SpecialMapArchetype.GOVERNMENT_FORUM:
-      if (culturalZone === 'EUROPEAN' && era === HistoricalEra.ANTIQUITY) return 'Roman Forum';
-      if (culturalZone === 'EAST_ASIAN') return 'Administrative Complex';
-      return 'Government Building';
-      
-    case SpecialMapArchetype.SACRED_COMPLEX:
-      if (culturalZone === 'MENA') return 'Grand Mosque';
-      if (culturalZone === 'EUROPEAN' && era === HistoricalEra.MEDIEVAL) return 'Cathedral';
-      if (culturalZone === 'EAST_ASIAN') return 'Temple Complex';
-      return 'Sacred Site';
-      
-    default:
-      return 'Special Location';
+  // First priority: Use the structureName from the config if provided
+  // This comes from governmentDistricts.ts and is already historically accurate
+  if (structureName) {
+    return structureName;
   }
+  
+  // Second priority: Use era-appropriate fallback names
+  return getEraAppropriateName(archetype, culturalZone as CulturalZone, era);
 }
 
 /**

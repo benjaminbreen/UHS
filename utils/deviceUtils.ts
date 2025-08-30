@@ -15,8 +15,10 @@ export const isMobileDevice = (): boolean => {
   // Check viewport width
   const viewportCheck = window.innerWidth < 768;
   
-  // Check for touch support
-  const touchCheck = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  // Check for touch support with safe fallback
+  const touchCheck = 'ontouchstart' in window || 
+    (typeof navigator !== 'undefined' && navigator.maxTouchPoints && navigator.maxTouchPoints > 0) ||
+    false;
   
   return userAgentCheck || (viewportCheck && touchCheck);
 };
@@ -37,8 +39,10 @@ export const hasNotch = (): boolean => {
   // Check for iPhone X and later models with notch
   const isIPhoneWithNotch = isIOS() && window.screen.height >= 812;
   
-  // Check for CSS environment variables (more reliable)
-  const hasEnvSupport = CSS.supports('padding-top', 'env(safe-area-inset-top)');
+  // Check for CSS environment variables (more reliable) with safe fallback
+  const hasEnvSupport = typeof CSS !== 'undefined' && 
+    typeof CSS.supports === 'function' && 
+    CSS.supports('padding-top', 'env(safe-area-inset-top)');
   
   return isIPhoneWithNotch || hasEnvSupport;
 };
@@ -48,8 +52,8 @@ export const getViewportDimensions = () => {
     return { width: 0, height: 0 };
   }
   
-  // Use visualViewport API if available (better for mobile)
-  if (window.visualViewport) {
+  // Use visualViewport API if available (better for mobile) with safe check
+  if (typeof window !== 'undefined' && window.visualViewport) {
     return {
       width: window.visualViewport.width,
       height: window.visualViewport.height

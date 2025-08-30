@@ -765,6 +765,54 @@ const CombatModal: React.FC<CombatModalProps> = ({
         }, 600);
         break;
 
+      case 'INTIMIDATING_SHOUT':
+        setTimeout(() => {
+          // Reduce opponent's defense for the rest of the battle
+          const defenseReduction = Math.floor(opponent.stats.defense * 0.5); // 50% defense reduction
+          setOpponent(prev => ({
+            ...prev,
+            stats: {
+              ...prev.stats,
+              defense: Math.max(0, prev.stats.defense - defenseReduction)
+            },
+            statusEffects: [...prev.statusEffects, { type: 'intimidated', duration: 99, potency: defenseReduction }]
+          }));
+          
+          // Check for flee chance (based on opponent's level and player's charisma)
+          const playerCharisma = playerCharacter.stats?.charisma || 5;
+          const opponentLevel = opponent.stats?.level || 1;
+          const fleeChance = Math.min(0.6, (playerCharisma / 10) * (0.4 / Math.sqrt(opponentLevel))); // Max 60% flee chance
+          
+          if (Math.random() < fleeChance) {
+            // Opponent flees!
+            addLog(`Your intimidating shout terrifies ${opponentName}! They flee in terror!`, 'system');
+            setOpponentAnimation('damaged');
+            addDamageSplat('FLED!', 'miss', 'opponent');
+            
+            setTimeout(() => {
+              // End combat with no winner
+              setCombatEnded(true);
+              setVictoryState('fled');
+              addLog(`The battle ends as ${opponentName} escapes.`, 'system');
+              setTimeout(() => {
+                onFlee(); // End combat without victory
+              }, 1500);
+            }, 1000);
+          } else {
+            // Just intimidate (reduce defense)
+            addLog(`Your intimidating shout weakens ${opponentName}'s defense by ${defenseReduction}!`, 'player');
+            setOpponentAnimation('damaged');
+            addDamageSplat(`-${defenseReduction} DEF`, 'miss', 'opponent');
+            
+            setTimeout(() => {
+              setPlayerAnimation('idle');
+              setOpponentAnimation('idle');
+              endPlayerTurn();
+            }, 500);
+          }
+        }, 600);
+        break;
+
       default:
         setTimeout(() => {
           setPlayerAnimation('idle');

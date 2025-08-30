@@ -59,6 +59,13 @@ import {
   FaBalanceScale,
   FaRegClock,
   FaTimes,
+  FaTheaterMasks,
+  FaStore,
+  FaTree,
+  FaCampground,
+  FaBed,
+  FaShip,
+  FaHome,
 } from 'react-icons/fa';
 
 import {
@@ -104,6 +111,29 @@ const getCulturalZone = (continent?: string, region?: string): CulturalZone => {
 
 const getArchetypeIcon = (archetype: SpecialMapArchetype): React.ReactNode => {
   switch (archetype) {
+    // New simplified archetypes
+    case SpecialMapArchetype.ESTATES:
+      return <GiThroneKing size={24} className="text-amber-500" />;
+    case SpecialMapArchetype.GOVERNMENT:
+      return <GiCapitol size={24} className="text-amber-500" />;
+    case SpecialMapArchetype.ARENA_THEATER:
+      return <FaTheaterMasks size={24} className="text-amber-500" />;
+    case SpecialMapArchetype.UNIVERSITY_MONASTERY:
+      return <FaUniversity size={24} className="text-amber-500" />;
+    case SpecialMapArchetype.MARKET_EXHIBITION:
+      return <FaStore size={24} className="text-amber-500" />;
+    case SpecialMapArchetype.OPEN_FIELD:
+      return <FaTree size={24} className="text-amber-500" />;
+    case SpecialMapArchetype.CAMPGROUND:
+      return <FaCampground size={24} className="text-amber-500" />;
+    case SpecialMapArchetype.RESTAURANT_INN:
+      return <FaBed size={24} className="text-amber-500" />;
+    case SpecialMapArchetype.VESSEL:
+      return <FaShip size={24} className="text-amber-500" />;
+    case SpecialMapArchetype.PLAYER_HOME:
+      return <FaHome size={24} className="text-amber-500" />;
+      
+    // Legacy archetypes (map to new ones)
     case SpecialMapArchetype.PALACE_COMPLEX:
       return <GiIndianPalace size={24} className="text-amber-500" />;
     case SpecialMapArchetype.GOVERNMENT_FORUM:
@@ -112,7 +142,7 @@ const getArchetypeIcon = (archetype: SpecialMapArchetype): React.ReactNode => {
       return <GiGreekTemple size={24} className="text-amber-500" />;
     case SpecialMapArchetype.MILITARY_FORTRESS:
       return <GiCastle size={24} className="text-amber-500" />;
-    case SpecialMapArchetype.UNIVERSITY_ACADEMY:
+    case SpecialMapArchetype.UNIVERSITY:
       return <FaUniversity size={24} className="text-amber-500" />;
     case SpecialMapArchetype.MARKET_BAZAAR:
       return <FaBuilding size={24} className="text-amber-500" />;

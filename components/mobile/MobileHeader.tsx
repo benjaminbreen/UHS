@@ -39,7 +39,7 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({
     paddingTop: 'env(safe-area-inset-top)',
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     backdropFilter: 'blur(10px)',
-    WebkitBackdropFilter: 'blur(10px)',
+    webkitBackdropFilter: 'blur(10px)',
     zIndex: 1100,
     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
     transition: 'height 0.3s ease',

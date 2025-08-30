@@ -38,6 +38,8 @@ export { default as PaddockSymbol } from './PaddockSymbol';
 export { default as RoadSymbol } from './RoadSymbol';
 export { default as RiverSymbol } from './RiverSymbol';
 export { default as LavaSymbol } from './LavaSymbol';
+export { default as LavaSymbolASCII } from './LavaSymbolASCII';
+export { default as LavaSymbolCSS } from './LavaSymbolCSS';
 export { default as MountainSymbol } from './MountainSymbol';
 export { default as SnowSymbol } from './SnowSymbol';
 export { default as BridgeSymbol } from './BridgeSymbol';

@@ -11,20 +11,41 @@ import { useMap } from '../contexts/MapContext';
 import { useGame } from '../contexts/GameContext';
 
 // Import all special map symbols for preview
-import { WallSymbol } from './symbols/government/specialMap/WallSymbol';
-import { FloorSymbol } from './symbols/government/specialMap/FloorSymbol';
-import { TableSymbol } from './symbols/government/specialMap/TableSymbol';
-import { ChairSymbol } from './symbols/government/specialMap/ChairSymbol';
-import { ThroneSymbol } from './symbols/government/specialMap/ThroneSymbol';
-import { AltarSymbol } from './symbols/government/specialMap/AltarSymbol';
-import { BedSymbol } from './symbols/government/specialMap/BedSymbol';
-import { BookshelfSymbol } from './symbols/government/specialMap/BookshelfSymbol';
-import { CarpetSymbol } from './symbols/government/specialMap/CarpetSymbol';
-import { DeskSymbol } from './symbols/government/specialMap/DeskSymbol';
-import { FountainSymbol } from './symbols/government/specialMap/FountainSymbol';
-import { PillarSymbol } from './symbols/government/specialMap/PillarSymbol';
-import { ShrineSymbol } from './symbols/government/specialMap/ShrineSymbol';
-import { StatueSymbol } from './symbols/government/specialMap/StatueSymbol';
+import { 
+  WallSymbol,
+  FloorSymbol,
+  TableSymbol,
+  ChairSymbol,
+  ThroneSymbol,
+  AltarSymbol,
+  BedSymbol,
+  BookshelfSymbol,
+  CarpetSymbol,
+  DaisSymbol,
+  DeskSymbol,
+  FountainSymbol,
+  PillarSymbol,
+  ShrineSymbol,
+  StatueSymbol,
+  DoorSymbol,
+  ArchwaySymbol,
+  WallGateSymbol,
+  WallWindowSymbol,
+  ColumnSymbol,
+  StairsSymbol,
+  BenchSymbol,
+  CabinetSymbol,
+  BathSymbol,
+  MirrorSymbol,
+  KitchenCounterSymbol,
+  KitchenSinkSymbol,
+  WeaponRackSymbol,
+  ArmorStandSymbol,
+  TorchSymbol,
+  BrazierSymbol,
+  ChestSymbol,
+  BarrelSymbol
+} from './symbols/architecture/specialMap/index';
 
 interface SpecialMapTestMenuProps {
   isOpen: boolean;
@@ -35,24 +56,29 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
   const { enterSpecialMap } = useMap();
   const { gameDate } = useGame();
   
-  const [selectedArchetype, setSelectedArchetype] = useState<SpecialMapArchetype>(SpecialMapArchetype.PALACE_COMPLEX);
+  const [selectedArchetype, setSelectedArchetype] = useState<SpecialMapArchetype>(SpecialMapArchetype.ESTATES);
   const [selectedZone, setSelectedZone] = useState<CulturalZone>('EUROPEAN' as CulturalZone);
   const [selectedEra, setSelectedEra] = useState<HistoricalEra>('MEDIEVAL');
+  const [selectedSize, setSelectedSize] = useState<'xs' | 'small' | 'medium' | 'large' | 'xl'>('large');
+  const [hasLandscape, setHasLandscape] = useState(true);
   const [showSymbolGrid, setShowSymbolGrid] = useState(false);
   
   if (!isOpen) return null;
   
   const archetypes = [
-    { value: SpecialMapArchetype.PALACE_COMPLEX, label: '🏛️ Palace Complex', description: 'Royal palaces and imperial courts' },
-    { value: SpecialMapArchetype.MARKET_BAZAAR, label: '🏪 Market Bazaar', description: 'Trading markets and merchant quarters' },
-    { value: SpecialMapArchetype.GOVERNMENT_FORUM, label: '⚖️ Government Forum', description: 'Senate houses and council chambers' },
-    { value: SpecialMapArchetype.SACRED_COMPLEX, label: '⛪ Sacred Complex', description: 'Temples, churches, and shrines' },
-    { value: SpecialMapArchetype.MILITARY_FORTRESS, label: '🏰 Military Fortress', description: 'Castles, forts, and bunkers' },
-    { value: SpecialMapArchetype.UNIVERSITY, label: '🎓 University Academy', description: 'Libraries and lecture halls' },
-    { value: SpecialMapArchetype.THEATER, label: '🎭 Theater', description: 'Performance venues and amphitheaters' },
-    { value: SpecialMapArchetype.ARENA, label: '⚔️ Arena', description: 'Colosseums and sports venues' },
-    { value: SpecialMapArchetype.EXHIBITION, label: '🖼️ Exhibition', description: 'Museums and world fairs' },
-    { value: SpecialMapArchetype.OPEN_FIELD, label: '🌾 Open Field', description: 'Parade grounds and festival spaces' }
+    // New simplified archetypes
+    { value: SpecialMapArchetype.ESTATES, label: '🏛️ Estate', description: 'Palaces, villas, and noble residences' },
+    { value: SpecialMapArchetype.CAMPGROUND, label: '🏕️ Campground', description: 'Temporary settlements and camps' },
+    { value: SpecialMapArchetype.RESTAURANT_INN, label: '🍺 Restaurant/Inn', description: 'Taverns, inns, and eating establishments' },
+    { value: SpecialMapArchetype.VESSEL, label: '⛵ Vessel', description: 'Ships, boats, and floating structures' },
+    
+    // Core government/civic (these remain but streamlined)
+    { value: SpecialMapArchetype.GOVERNMENT_FORUM, label: '⚖️ Government', description: 'Council chambers and forums' },
+    { value: SpecialMapArchetype.SACRED_COMPLEX, label: '⛪ Sacred', description: 'Temples, churches, and shrines' },
+    { value: SpecialMapArchetype.MILITARY_FORTRESS, label: '🏰 Fortress', description: 'Castles, forts, and bunkers' },
+    { value: SpecialMapArchetype.UNIVERSITY, label: '🎓 University', description: 'Libraries and lecture halls' },
+    { value: SpecialMapArchetype.THEATER, label: '🎭 Theater', description: 'Performance venues' },
+    { value: SpecialMapArchetype.OPEN_FIELD, label: '🌾 Open Field', description: 'Festival and parade grounds' }
   ];
   
   const culturalZones = [
@@ -65,6 +91,34 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
     'INDUSTRIAL_ERA', 'MODERN_ERA'
   ];
   
+  // Determine default size based on archetype and era
+  const getDefaultSize = () => {
+    // Government districts are always XL
+    if (selectedArchetype === SpecialMapArchetype.GOVERNMENT_FORUM) return 'xl';
+    
+    // Estates are large from medieval onward
+    if (selectedArchetype === SpecialMapArchetype.ESTATES) {
+      if (selectedEra === 'PREHISTORY') return 'xs';
+      if (selectedEra === 'ANTIQUITY') return 'small';
+      return 'large'; // Medieval and later
+    }
+    
+    // Vessels have specific sizes
+    if (selectedArchetype === SpecialMapArchetype.VESSEL) {
+      if (selectedEra === 'PREHISTORY') return 'xs';
+      if (selectedEra === 'ANTIQUITY') return 'small';
+      return 'medium';
+    }
+    
+    // Campgrounds are usually small
+    if (selectedArchetype === SpecialMapArchetype.CAMPGROUND) {
+      return 'small';
+    }
+    
+    // Default to selected size
+    return selectedSize;
+  };
+  
   const handleEnterMap = () => {
     const config: SpecialMapConfig = {
       archetype: selectedArchetype,
@@ -72,7 +126,8 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
       era: selectedEra,
       specificYear: gameDate.year,
       region: 'Test Region',
-      mapSize: 'medium'
+      mapSize: getDefaultSize(),
+      hasLandscape: hasLandscape
     };
     
     // Call enterSpecialMap directly
@@ -82,23 +137,57 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
   };
   
   const specialMapSymbols = [
+    // Walls & Structure
     { Component: WallSymbol, name: 'Wall', biome: BiomeType.WALL },
+    { Component: DoorSymbol, name: 'Door', biome: BiomeType.DOOR },
+    { Component: ArchwaySymbol, name: 'Archway', biome: BiomeType.ARCHWAY },
+    { Component: WallGateSymbol, name: 'Gate', biome: BiomeType.GATE },
+    { Component: WallWindowSymbol, name: 'Window', biome: BiomeType.WINDOW },
+    
+    // Floors
     { Component: FloorSymbol, name: 'Stone Floor', biome: BiomeType.FLOOR_STONE, props: { material: 'stone' } },
     { Component: FloorSymbol, name: 'Wood Floor', biome: BiomeType.FLOOR_WOOD, props: { material: 'wood' } },
     { Component: FloorSymbol, name: 'Marble Floor', biome: BiomeType.FLOOR_MARBLE, props: { material: 'marble' } },
     { Component: FloorSymbol, name: 'Tile Floor', biome: BiomeType.FLOOR_TILE, props: { material: 'tile' } },
+    { Component: CarpetSymbol, name: 'Carpet', biome: BiomeType.CARPET },
+    { Component: DaisSymbol, name: 'Dais', biome: BiomeType.DAIS },
+    
+    // Furniture
     { Component: TableSymbol, name: 'Table', biome: BiomeType.TABLE },
     { Component: ChairSymbol, name: 'Chair', biome: BiomeType.CHAIR },
+    { Component: BenchSymbol, name: 'Bench', biome: BiomeType.BENCH },
     { Component: ThroneSymbol, name: 'Throne', biome: BiomeType.THRONE },
-    { Component: AltarSymbol, name: 'Altar', biome: BiomeType.ALTAR },
     { Component: BedSymbol, name: 'Bed', biome: BiomeType.BED },
-    { Component: BookshelfSymbol, name: 'Bookshelf', biome: BiomeType.BOOKSHELF },
-    { Component: CarpetSymbol, name: 'Carpet', biome: BiomeType.CARPET },
     { Component: DeskSymbol, name: 'Desk', biome: BiomeType.DESK },
-    { Component: FountainSymbol, name: 'Fountain', biome: BiomeType.FOUNTAIN },
+    { Component: BookshelfSymbol, name: 'Bookshelf', biome: BiomeType.BOOKSHELF },
+    { Component: CabinetSymbol, name: 'Cabinet', biome: BiomeType.CABINET },
+    
+    // Architectural Elements
     { Component: PillarSymbol, name: 'Pillar', biome: BiomeType.PILLAR },
+    { Component: ColumnSymbol, name: 'Column', biome: BiomeType.COLUMN },
+    { Component: StairsSymbol, name: 'Stairs', biome: BiomeType.STAIRS_UP },
+    
+    // Decorative
+    { Component: StatueSymbol, name: 'Statue', biome: BiomeType.STATUE },
+    { Component: FountainSymbol, name: 'Fountain', biome: BiomeType.FOUNTAIN },
+    { Component: AltarSymbol, name: 'Altar', biome: BiomeType.ALTAR },
     { Component: ShrineSymbol, name: 'Shrine', biome: BiomeType.SHRINE },
-    { Component: StatueSymbol, name: 'Statue', biome: BiomeType.STATUE }
+    
+    // Kitchen/Bath
+    { Component: BathSymbol, name: 'Bath', biome: BiomeType.BATH },
+    { Component: MirrorSymbol, name: 'Mirror', biome: BiomeType.MIRROR },
+    { Component: KitchenCounterSymbol, name: 'Counter', biome: BiomeType.COUNTER },
+    { Component: KitchenSinkSymbol, name: 'Sink', biome: BiomeType.BASIN },
+    
+    // Military
+    { Component: WeaponRackSymbol, name: 'Weapon Rack', biome: BiomeType.WEAPON_RACK },
+    { Component: ArmorStandSymbol, name: 'Armor Stand', biome: BiomeType.ARMOR_STAND },
+    
+    // Lighting & Storage
+    { Component: TorchSymbol, name: 'Torch', biome: BiomeType.TORCH },
+    { Component: BrazierSymbol, name: 'Brazier', biome: BiomeType.BRAZIER },
+    { Component: ChestSymbol, name: 'Chest', biome: BiomeType.CHEST },
+    { Component: BarrelSymbol, name: 'Barrel', biome: BiomeType.BARREL }
   ];
   
   return (
@@ -205,6 +294,42 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
                 </select>
               </div>
               
+              {/* Map Size Selection */}
+              <div>
+                <label className="block text-sm font-medium text-blue-300 mb-2">
+                  Map Size
+                </label>
+                <select
+                  value={selectedSize}
+                  onChange={(e) => setSelectedSize(e.target.value as any)}
+                  className="w-full px-4 py-2 rounded-lg bg-black/30 border border-gray-600 text-white focus:border-blue-400 focus:outline-none"
+                >
+                  <option value="xs">XS (8×8)</option>
+                  <option value="small">Small (10×10)</option>
+                  <option value="medium">Medium (16×16)</option>
+                  <option value="large">Large (20×20)</option>
+                  <option value="xl">XL (25×25)</option>
+                </select>
+              </div>
+              
+              {/* Landscape Toggle */}
+              <div>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={hasLandscape}
+                    onChange={(e) => setHasLandscape(e.target.checked)}
+                    className="w-5 h-5 rounded border-gray-600 bg-black/30 text-blue-500 focus:ring-blue-400 focus:ring-2"
+                  />
+                  <span className="text-sm font-medium text-blue-300">
+                    Has Landscape Border
+                  </span>
+                </label>
+                <p className="text-xs text-gray-400 mt-1 ml-8">
+                  Add climate-appropriate landscape border around the building
+                </p>
+              </div>
+              
               {/* Configuration Preview */}
               <div className="p-4 rounded-lg bg-black/30 border border-gray-700">
                 <h3 className="text-sm font-semibold text-purple-400 mb-2">Configuration Preview</h3>
@@ -224,6 +349,14 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
                   <div className="flex justify-between">
                     <span className="text-gray-400">Year:</span>
                     <span className="text-white">{gameDate.year}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Size:</span>
+                    <span className="text-white">{getDefaultSize().toUpperCase()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Landscape:</span>
+                    <span className="text-white">{hasLandscape ? 'Yes' : 'No'}</span>
                   </div>
                 </div>
               </div>

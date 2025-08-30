@@ -7,6 +7,7 @@ import { DISEASE_DATABASE, DISEASE_PREVALENCE } from '../constants/gameData/dise
 import { HistoricalEra } from '../types/ambiance';
 import { CulturalZone } from '../types/characterData';
 import SpecialMapTestMenu from './SpecialMapTestMenu';
+import InteriorMapTestMenu from './InteriorMapTestMenu';
 import QuestTestingPanel from './QuestTestingPanel';
 
 interface SettingsPanelProps {
@@ -80,6 +81,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [showLLMTracker, setShowLLMTracker] = useState(false);
   const [showDiseaseTestPanel, setShowDiseaseTestPanel] = useState(false);
   const [showSpecialMapTest, setShowSpecialMapTest] = useState(false);
+  const [showInteriorMapTest, setShowInteriorMapTest] = useState(false);
   const [showQuestTestPanel, setShowQuestTestPanel] = useState(false);
   const [apiStats, setApiStats] = useState(eventService.getAPIUsageStats());
   const [llmHistory, setLLMHistory] = useState(eventService.getLLMHistory());
@@ -473,8 +475,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </section>
 
           <section className="mt-6">
-            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Special Map Testing</h3>
-            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Map Testing</h3>
+            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70 space-y-3">
               <button
                 onClick={() => setShowSpecialMapTest(true)}
                 className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-md hover:from-purple-700 hover:to-indigo-700 flex items-center justify-center gap-2"
@@ -482,8 +484,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 <MapIcon className="w-4 h-4" />
                 <span>Open Special Map Test Suite</span>
               </button>
-              <p className="mt-2 text-xs text-slate-400">
-                Test all special map archetypes and view all interior symbols used in local maps.
+              <button
+                onClick={() => setShowInteriorMapTest(true)}
+                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-md hover:from-cyan-700 hover:to-blue-700 flex items-center justify-center gap-2"
+              >
+                <MapIcon className="w-4 h-4" />
+                <span>Open Interior Map Test Suite</span>
+              </button>
+              <p className="mt-2 text-xs text-gray-400">
+                Test special map archetypes and interior building layouts with all cultural variants
               </p>
             </div>
           </section>
@@ -654,6 +663,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
       <SpecialMapTestMenu 
         isOpen={showSpecialMapTest}
         onClose={() => setShowSpecialMapTest(false)}
+      />
+      
+      {/* Interior Map Test Menu */}
+      <InteriorMapTestMenu 
+        isOpen={showInteriorMapTest}
+        onClose={() => setShowInteriorMapTest(false)}
       />
       
       {/* Quest Testing Panel */}

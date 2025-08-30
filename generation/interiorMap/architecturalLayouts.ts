@@ -36,6 +36,120 @@ export interface BuildingLayout {
     ambientLighting: { color: string; intensity: number };
 }
 
+// GOVERNMENT FORUM - Council chambers and administrative offices
+export const GOVERNMENT_FORUM_LAYOUT: BuildingLayout = {
+    name: 'Government Forum',
+    totalBounds: { width: 40, height: 48 },
+    entrance: { x: 20, y: 46 },
+    backgroundPattern: 'stone_official',
+    ambientLighting: { color: '#F5E6D3', intensity: 0.4 },
+    spaces: [
+        // Main Council Chamber
+        {
+            id: 'council_chamber',
+            name: 'Council Chamber',
+            type: 'room',
+            bounds: { x: 10, y: 10, width: 20, height: 16 },
+            floorType: 'marble',
+            wallHeight: 6,
+            lightingSources: [
+                { type: 'chandelier', position: { x: 20, y: 18 }, intensity: 0.8, color: '#FFD700' },
+                { type: 'window', position: { x: 9, y: 18 }, intensity: 0.5, color: '#87CEEB' },
+                { type: 'window', position: { x: 31, y: 18 }, intensity: 0.5, color: '#87CEEB' },
+                { type: 'brazier', position: { x: 15, y: 15 }, intensity: 0.6, color: '#FF6347' },
+                { type: 'brazier', position: { x: 25, y: 15 }, intensity: 0.6, color: '#FF6347' }
+            ],
+            furniture: [
+                { type: 'throne', position: { x: 20, y: 12 } }, // Council leader's seat
+                { type: 'pew', position: { x: 15, y: 16 }, rotation: 90 }, // Council benches
+                { type: 'pew', position: { x: 25, y: 16 }, rotation: 270 },
+                { type: 'pew', position: { x: 15, y: 20 }, rotation: 90 },
+                { type: 'pew', position: { x: 25, y: 20 }, rotation: 270 },
+                { type: 'rug', position: { x: 20, y: 18 }, scale: 2 }
+            ],
+            accessibility: 'restricted',
+            requiredClass: ['nobility', 'merchant', 'clergy', 'scholar']
+        },
+        // Public Waiting Hall
+        {
+            id: 'waiting_hall',
+            name: 'Public Waiting Hall',
+            type: 'room',
+            bounds: { x: 12, y: 28, width: 16, height: 12 },
+            floorType: 'stone',
+            wallHeight: 5,
+            lightingSources: [
+                { type: 'torch', position: { x: 14, y: 30 }, intensity: 0.5, color: '#FFA500' },
+                { type: 'torch', position: { x: 26, y: 30 }, intensity: 0.5, color: '#FFA500' },
+                { type: 'window', position: { x: 11, y: 34 }, intensity: 0.4, color: '#87CEEB' },
+                { type: 'window', position: { x: 29, y: 34 }, intensity: 0.4, color: '#87CEEB' }
+            ],
+            furniture: [
+                { type: 'pew', position: { x: 14, y: 32 } },
+                { type: 'pew', position: { x: 26, y: 32 } },
+                { type: 'pew', position: { x: 14, y: 36 } },
+                { type: 'pew', position: { x: 26, y: 36 } }
+            ],
+            accessibility: 'public'
+        },
+        // Left Office - Tax/Finance
+        {
+            id: 'tax_office',
+            name: 'Tax Collection Office',
+            type: 'room',
+            bounds: { x: 2, y: 14, width: 6, height: 8 },
+            floorType: 'wood',
+            wallHeight: 4,
+            lightingSources: [
+                { type: 'candle', position: { x: 5, y: 18 }, intensity: 0.4, color: '#FFD700' }
+            ],
+            furniture: [
+                { type: 'chest', position: { x: 4, y: 16 } }, // Tax records
+                { type: 'tapestry', position: { x: 3, y: 15 } }
+            ],
+            accessibility: 'restricted',
+            requiredClass: ['nobility', 'merchant']
+        },
+        // Right Office - Records/Archives
+        {
+            id: 'records_office',
+            name: 'Records Archive',
+            type: 'room',
+            bounds: { x: 32, y: 14, width: 6, height: 8 },
+            floorType: 'wood',
+            wallHeight: 4,
+            lightingSources: [
+                { type: 'candle', position: { x: 35, y: 18 }, intensity: 0.4, color: '#FFD700' }
+            ],
+            furniture: [
+                { type: 'chest', position: { x: 34, y: 16 } },
+                { type: 'chest', position: { x: 36, y: 16 } },
+                { type: 'tapestry', position: { x: 37, y: 15 } }
+            ],
+            accessibility: 'restricted',
+            requiredClass: ['scholar', 'clergy', 'nobility']
+        },
+        // Entry Corridor
+        {
+            id: 'entry_corridor',
+            name: 'Entry Hall',
+            type: 'corridor',
+            bounds: { x: 16, y: 42, width: 8, height: 4 },
+            floorType: 'tile',
+            wallHeight: 4,
+            lightingSources: [
+                { type: 'torch', position: { x: 18, y: 44 }, intensity: 0.5, color: '#FFA500' },
+                { type: 'torch', position: { x: 22, y: 44 }, intensity: 0.5, color: '#FFA500' }
+            ],
+            furniture: [
+                { type: 'statue', position: { x: 17, y: 43 } },
+                { type: 'statue', position: { x: 23, y: 43 } }
+            ],
+            accessibility: 'public'
+        }
+    ]
+};
+
 // CHRISTIAN CATHEDRAL - Cross/Cruciform layout
 export const CATHEDRAL_LAYOUT: BuildingLayout = {
     name: 'Gothic Cathedral',
@@ -547,7 +661,9 @@ export const BUILDING_LAYOUTS: Record<string, BuildingLayout> = {
     'european_palace': EUROPEAN_PALACE_LAYOUT,
     'middle_eastern_palace': MIDDLE_EASTERN_PALACE_LAYOUT,
     'asian_palace': ASIAN_PALACE_LAYOUT,
-    'african_palace': AFRICAN_PALACE_LAYOUT
+    'african_palace': AFRICAN_PALACE_LAYOUT,
+    'government_forum': GOVERNMENT_FORUM_LAYOUT,
+    'government_district': GOVERNMENT_FORUM_LAYOUT
 };
 
 /**
@@ -566,6 +682,12 @@ export function selectBuildingLayout(
         culturalZone: culturalZone || 'None',
         size: size || 'medium'
     });
+    
+    // Handle government buildings
+    if (buildingType === 'government' || buildingType === 'government_district' || buildingType === 'government_forum') {
+        console.log('🏛️ Selected: GOVERNMENT_FORUM_LAYOUT');
+        return GOVERNMENT_FORUM_LAYOUT;
+    }
     
     if (buildingType === 'palace') {
         // Use seed for deterministic randomization if no specific cultural zone match

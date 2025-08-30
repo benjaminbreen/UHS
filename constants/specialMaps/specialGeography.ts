@@ -381,6 +381,20 @@ export function getGenericGovernmentDistrict(
       }
     },
     'MENA': {
+      [HistoricalEra.ANTIQUITY]: {
+        availableArchetypes: [SpecialMapArchetype.PALACE_COMPLEX, SpecialMapArchetype.SACRED_COMPLEX],
+        historicalExamples: [{
+          archetype: SpecialMapArchetype.PALACE_COMPLEX,
+          name: 'Royal Palace',
+          description: 'Ancient royal palace complex',
+          yearRange: [-3000, 500]
+        }, {
+          archetype: SpecialMapArchetype.SACRED_COMPLEX,
+          name: 'Temple Complex',
+          description: 'Temple with administrative quarters',
+          yearRange: [-3000, 500]
+        }]
+      },
       [HistoricalEra.MEDIEVAL]: {
         availableArchetypes: [SpecialMapArchetype.PALACE_COMPLEX, SpecialMapArchetype.MILITARY_FORTRESS],
         historicalExamples: [{
@@ -388,6 +402,33 @@ export function getGenericGovernmentDistrict(
           name: 'Sultan\'s Palace',
           description: 'Palace with courtyards and gardens',
           yearRange: [700, 1500]
+        }]
+      },
+      [HistoricalEra.RENAISSANCE_EARLY_MODERN]: {
+        availableArchetypes: [SpecialMapArchetype.PALACE_COMPLEX, SpecialMapArchetype.MILITARY_FORTRESS],
+        historicalExamples: [{
+          archetype: SpecialMapArchetype.PALACE_COMPLEX,
+          name: 'Pasha\'s Palace',
+          description: 'Ottoman-style administrative palace',
+          yearRange: [1500, 1800]
+        }]
+      },
+      [HistoricalEra.INDUSTRIAL_ERA]: {
+        availableArchetypes: [SpecialMapArchetype.PALACE_COMPLEX, SpecialMapArchetype.GOVERNMENT_FORUM],
+        historicalExamples: [{
+          archetype: SpecialMapArchetype.PALACE_COMPLEX,
+          name: 'Khedive\'s Palace',
+          description: 'Modernizing ruler\'s palace',
+          yearRange: [1800, 1920]
+        }]
+      },
+      [HistoricalEra.MODERN_ERA]: {
+        availableArchetypes: [SpecialMapArchetype.GOVERNMENT_FORUM, SpecialMapArchetype.PALACE_COMPLEX],
+        historicalExamples: [{
+          archetype: SpecialMapArchetype.PALACE_COMPLEX,
+          name: 'Presidential Palace',
+          description: 'Modern government complex',
+          yearRange: [1920, 2024]
         }]
       }
     }

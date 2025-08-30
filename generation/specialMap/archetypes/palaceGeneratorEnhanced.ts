@@ -4,9 +4,12 @@
  */
 
 import { Tile, BiomeType, HistoricalEra } from '../../../types';
-import { SpecialMapConfig, InteractionZone, ExitZone, RoomDefinition } from '../../../types/specialMapTypes';
+import { SpecialMapConfig, InteractionZone, ExitZone, RoomDefinition, ProfessionCategory } from '../../../types/specialMapTypes';
 import { ValueNoise } from '../../../utils/noise';
 import { placeWallRectangle, fillArea } from '../specialMapGenerator';
+import { generateContextualLandscape } from '../landscapeService';
+import { buildThickWalls, getWallConfigForArchetype } from '../wallBuilder';
+import { applyCulturalFlooring } from '../culturalFlooringService';
 
 export function generateEnhancedPalaceComplex(
   tiles: Tile[][],
@@ -19,15 +22,44 @@ export function generateEnhancedPalaceComplex(
   const exitZones: ExitZone[] = [];
   const rooms: RoomDefinition[] = [];
   
-  // Choose layout based on culture
+  // Palace should be substantial but not fill the entire map - leave space for gardens and courtyards
+  const palaceWidth = Math.floor(size.width * 0.65);
+  const palaceHeight = Math.floor(size.height * 0.6);
+  const palaceX = Math.floor((size.width - palaceWidth) / 2);
+  const palaceY = Math.floor((size.height - palaceHeight) / 2) - 2; // Slightly toward back for impressive approach
+  
+  const palaceBounds = { x: palaceX, y: palaceY, width: palaceWidth, height: palaceHeight };
+  
+  // Generate landscape first (gardens, courtyards, water features, etc.)
+  generateContextualLandscape(tiles, config, noise, size, palaceBounds);
+  
+  // Get wall configuration for this palace
+  const wallConfig = getWallConfigForArchetype('PALACE_COMPLEX', config.culturalZone, config.era);
+  
+  // Build the outer palace walls (2-3 tiles thick, decorative)
+  buildThickWalls(tiles, palaceBounds, wallConfig, size);
+  
+  // Generate interior palace layout based on culture
   if (config.culturalZone === 'EAST_ASIAN') {
     generateEastAsianPalace(tiles, config, noise, size, interactionZones, exitZones, rooms);
   } else if (config.culturalZone === 'MENA') {
     generateIslamicPalace(tiles, config, noise, size, interactionZones, exitZones, rooms);
   } else if (config.culturalZone === 'EUROPEAN') {
-    generateEuropeanPalace(tiles, config, noise, size, interactionZones, exitZones, rooms);
+    generateRealisticEuropeanPalace(tiles, palaceBounds, config, noise, rooms, interactionZones, exitZones, size);
   } else {
+    // Use generic palace for other cultures
     generateGenericPalace(tiles, config, noise, size, interactionZones, exitZones, rooms);
+  }
+  
+  // Main exit zones are now handled by culture-specific functions
+  // If no exit zones were created, add a default one
+  if (exitZones.length === 0) {
+    exitZones.push({ 
+      id: 'main_entrance', 
+      location: [palaceX + Math.floor(palaceWidth / 2), palaceY + palaceHeight - 1], 
+      label: 'Palace Gates', 
+      destination: 'parent_map' 
+    });
   }
   
   return { tiles, interactionZones, exitZones, rooms };
@@ -87,7 +119,7 @@ function generateEastAsianPalace(
     // Hall interior
     fillArea(tiles, hallX + 1, hall.y + 1, hallWidth - 2, hallHeight - 2, BiomeType.FLOOR_WOOD);
     
-    // Add room definition for this hall
+    // Add room definition for this hall with access metadata
     const roomType = index === 1 ? 'throne_room' : 'hall';
     rooms.push({
       id: `hall_${index}`,
@@ -95,7 +127,17 @@ function generateEastAsianPalace(
       bounds: { x: hallX, y: hall.y, width: hallWidth, height: hallHeight },
       description: index === 1 ? 'The grand throne room where imperial audiences are held' : 
                    index === 0 ? 'The ceremonial entrance hall' : 'A harmony hall for imperial ceremonies',
-      roomType: roomType
+      roomType: roomType as any,
+      // Access control
+      accessLevel: index === 1 ? 'restricted' : 'semi-public',
+      allowedSocialClasses: index === 1 ? ['NOBILITY', 'SCHOLAR_OFFICIAL'] : ['NOBILITY', 'SCHOLAR_OFFICIAL', 'MERCHANT'],
+      professionFilter: index === 1 ? {
+        category: [ProfessionCategory.NOBILITY, ProfessionCategory.OFFICIAL],
+        whitelist: ['Mandarin', 'Emperor', 'Empress', 'Prince', 'Princess', 'Chancellor', 'Imperial Guard']
+      } : {
+        category: [ProfessionCategory.NOBILITY, ProfessionCategory.OFFICIAL, ProfessionCategory.MILITARY]
+      },
+      npcDensity: index === 1 ? 'normal' : 'sparse'
     });
     
     // Throne in main hall
@@ -135,7 +177,13 @@ function generateEastAsianPalace(
     name: 'Garden of Tranquil Longevity',
     bounds: { x: 5, y: 5, width: 15, height: 20 },
     description: 'A peaceful garden with ponds and pavilions',
-    roomType: 'garden'
+    roomType: 'garden',
+    accessLevel: 'semi-public',
+    allowedSocialClasses: ['NOBILITY', 'SCHOLAR_OFFICIAL'],
+    professionFilter: {
+      category: [ProfessionCategory.NOBILITY, ProfessionCategory.SCHOLAR, ProfessionCategory.SERVANT]
+    },
+    npcDensity: 'sparse'
   });
   
   generateChineseGarden(tiles, size.width - 20, 5, 15, 20, 'east');
@@ -144,7 +192,13 @@ function generateEastAsianPalace(
     name: 'Garden of Eternal Spring',
     bounds: { x: size.width - 20, y: 5, width: 15, height: 20 },
     description: 'An ornamental garden with rare plants and rock formations',
-    roomType: 'garden'
+    roomType: 'garden',
+    accessLevel: 'semi-public',
+    allowedSocialClasses: ['NOBILITY', 'SCHOLAR_OFFICIAL'],
+    professionFilter: {
+      category: [ProfessionCategory.NOBILITY, ProfessionCategory.SCHOLAR, ProfessionCategory.SERVANT]
+    },
+    npcDensity: 'sparse'
   });
   
   // Living quarters in the back (north)
@@ -154,7 +208,14 @@ function generateEastAsianPalace(
     name: 'Imperial Residence',
     bounds: { x: 10, y: 3, width: size.width - 20, height: 8 },
     description: 'Private chambers of the imperial family',
-    roomType: 'chamber'
+    roomType: 'private_chamber' as any,
+    accessLevel: 'restricted',
+    allowedSocialClasses: ['NOBILITY'],
+    professionFilter: {
+      whitelist: ['Emperor', 'Empress', 'Prince', 'Princess', 'Concubine', 'Eunuch', 'Lady-in-Waiting', 'Imperial Guard']
+    },
+    genderRestriction: config.era === HistoricalEra.MEDIEVAL || config.era === HistoricalEra.RENAISSANCE_EARLY_MODERN ? 'female' : 'any',
+    npcDensity: 'normal'
   });
   
   // Add main courtyard as a room
@@ -163,7 +224,10 @@ function generateEastAsianPalace(
     name: 'Central Courtyard',
     bounds: { x: 20, y: 25, width: size.width - 40, height: size.height - 35 },
     description: 'The vast ceremonial courtyard',
-    roomType: 'courtyard'
+    roomType: 'courtyard',
+    accessLevel: 'public',
+    allowedSocialClasses: ['COMMONER', 'MERCHANT', 'ARTISAN', 'SCHOLAR_OFFICIAL', 'NOBILITY'],
+    npcDensity: 'crowded'
   });
   
   // Add decorative elements
@@ -244,7 +308,8 @@ function generateIslamicPalace(
   noise: ValueNoise,
   size: { width: number, height: number },
   interactionZones: InteractionZone[],
-  exitZones: ExitZone[]
+  exitZones: ExitZone[],
+  rooms?: RoomDefinition[]
 ) {
   // Fill with decorative tile
   fillArea(tiles, 0, 0, size.width, size.height, BiomeType.FLOOR_TILE);
@@ -367,71 +432,172 @@ function generateIslamicHall(
 }
 
 /**
- * Generate European palace (Versailles style)
+ * Generate realistic European palace with proper rooms, courtyards, and cultural features
  */
-function generateEuropeanPalace(
+function generateRealisticEuropeanPalace(
   tiles: Tile[][],
+  bounds: { x: number, y: number, width: number, height: number },
   config: SpecialMapConfig,
   noise: ValueNoise,
-  size: { width: number, height: number },
+  rooms: RoomDefinition[],
   interactionZones: InteractionZone[],
-  exitZones: ExitZone[]
+  exitZones: ExitZone[],
+  size: { width: number, height: number }
 ) {
-  // Fill with marble floors
-  fillArea(tiles, 0, 0, size.width, size.height, BiomeType.FLOOR_MARBLE);
+  const wallThickness = 2; // Account for thick decorative walls
+  const interiorX = bounds.x + wallThickness;
+  const interiorY = bounds.y + wallThickness;
+  const interiorWidth = bounds.width - (wallThickness * 2);
+  const interiorHeight = bounds.height - (wallThickness * 2);
   
-  // Outer walls
-  placeWallRectangle(tiles, 0, 0, size.width, size.height, [
-    { side: 'south', offset: Math.floor(size.width / 2) },
-    { side: 'north', offset: Math.floor(size.width / 2) }
-  ]);
-  
-  // Hall of Mirrors (central gallery)
-  const galleryY = Math.floor(size.height / 2) - 5;
-  const galleryHeight = 10;
-  placeWallRectangle(tiles, 5, galleryY, size.width - 10, galleryHeight, [
-    { side: 'west', offset: 5 },
-    { side: 'east', offset: 5 }
-  ]);
-  
-  // Gallery interior
-  fillArea(tiles, 6, galleryY + 1, size.width - 12, galleryHeight - 2, BiomeType.FLOOR_MARBLE);
-  
-  // Columns along gallery
-  for (let x = 10; x < size.width - 10; x += 4) {
-    tiles[galleryY + 2][x].biome = BiomeType.PILLAR;
-    tiles[galleryY + galleryHeight - 3][x].biome = BiomeType.PILLAR;
+  // Clear interior space with base marble flooring
+  for (let y = interiorY; y < interiorY + interiorHeight; y++) {
+    for (let x = interiorX; x < interiorX + interiorWidth; x++) {
+      if (x >= 0 && x < size.width && y >= 0 && y < size.height) {
+        tiles[y][x].biome = BiomeType.FLOOR_MARBLE; // Base floor
+      }
+    }
   }
   
-  // Throne room
-  const throneRoomX = Math.floor(size.width / 2) - 8;
-  const throneRoomY = 3;
-  placeWallRectangle(tiles, throneRoomX, throneRoomY, 16, 10, [
-    { side: 'south', offset: 8 }
-  ]);
-  fillArea(tiles, throneRoomX + 1, throneRoomY + 1, 14, 8, BiomeType.FLOOR_WOOD);
+  // **THRONE ROOM** - The heart of the palace (center-north)
+  const throneRoomWidth = Math.floor(interiorWidth * 0.6);
+  const throneRoomHeight = Math.floor(interiorHeight * 0.25);
+  const throneRoomX = interiorX + Math.floor((interiorWidth - throneRoomWidth) / 2);
+  const throneRoomY = interiorY + 2;
   
-  // Throne setup
-  tiles[throneRoomY + 2][throneRoomX + 8].biome = BiomeType.THRONE;
-  // Red carpet to throne
-  for (let y = throneRoomY + 3; y < throneRoomY + 9; y++) {
-    tiles[y][throneRoomX + 8].biome = BiomeType.CARPET;
-    tiles[y][throneRoomX + 7].biome = BiomeType.CARPET;
-    tiles[y][throneRoomX + 9].biome = BiomeType.CARPET;
+  generateThroneRoom(tiles, { x: throneRoomX, y: throneRoomY, width: throneRoomWidth, height: throneRoomHeight }, 
+                    config, rooms, interactionZones, size);
+  
+  // **GREAT HALL** - For feasts and gatherings (center)
+  const hallWidth = Math.floor(interiorWidth * 0.8);
+  const hallHeight = Math.floor(interiorHeight * 0.2);
+  const hallX = interiorX + Math.floor((interiorWidth - hallWidth) / 2);
+  const hallY = throneRoomY + throneRoomHeight + 3;
+  
+  if (hallY + hallHeight < interiorY + interiorHeight - 10) {
+    generateGreatHall(tiles, { x: hallX, y: hallY, width: hallWidth, height: hallHeight }, 
+                      config, rooms, interactionZones, size);
   }
   
-  // Royal apartments
-  generateRoyalApartments(tiles, 5, size.height - 18, 20, 15, 'west');
-  generateRoyalApartments(tiles, size.width - 25, size.height - 18, 20, 15, 'east');
+  // **ROYAL CHAMBERS** - Private quarters (east wing)
+  const chambersWidth = Math.floor(interiorWidth * 0.25);
+  const chambersHeight = Math.floor(interiorHeight * 0.4);
+  const chambersX = interiorX + interiorWidth - chambersWidth - 2;
+  const chambersY = interiorY + 2;
   
-  // Formal gardens
-  const gardenY = galleryY + galleryHeight + 3;
-  fillArea(tiles, 10, gardenY, size.width - 20, 8, BiomeType.PARK);
+  generateRoyalChambers(tiles, { x: chambersX, y: chambersY, width: chambersWidth, height: chambersHeight }, 
+                        config, rooms, interactionZones, size);
   
-  // Fountains in gardens
-  tiles[gardenY + 4][15].biome = BiomeType.FOUNTAIN;
-  tiles[gardenY + 4][size.width - 15].biome = BiomeType.FOUNTAIN;
-  tiles[gardenY + 4][Math.floor(size.width / 2)].biome = BiomeType.FOUNTAIN;
+  // **CHAPEL** - Sacred space (west wing)
+  const chapelWidth = Math.floor(interiorWidth * 0.25);
+  const chapelHeight = Math.floor(interiorHeight * 0.3);
+  const chapelX = interiorX + 2;
+  const chapelY = interiorY + 2;
+  
+  generatePalaceChapel(tiles, { x: chapelX, y: chapelY, width: chapelWidth, height: chapelHeight }, 
+                       config, rooms, interactionZones, size);
+  
+  // **LIBRARY/STUDY** - For scholarly pursuits (west wing, lower)
+  const libraryWidth = Math.floor(interiorWidth * 0.25);
+  const libraryHeight = Math.floor(interiorHeight * 0.2);
+  const libraryX = interiorX + 2;
+  const libraryY = chapelY + chapelHeight + 3;
+  
+  generatePalaceLibrary(tiles, { x: libraryX, y: libraryY, width: libraryWidth, height: libraryHeight }, 
+                        config, rooms, interactionZones, size);
+  
+  // **TREASURY** - Secure vault (east wing, lower)
+  const treasuryWidth = Math.floor(interiorWidth * 0.15);
+  const treasuryHeight = Math.floor(interiorHeight * 0.15);
+  const treasuryX = chambersX;
+  const treasuryY = chambersY + chambersHeight + 3;
+  
+  generateTreasury(tiles, { x: treasuryX, y: treasuryY, width: treasuryWidth, height: treasuryHeight }, 
+                   config, rooms, interactionZones, size);
+  
+  // **KITCHEN COMPLEX** - Food preparation (south wing)
+  const kitchenWidth = Math.floor(interiorWidth * 0.4);
+  const kitchenHeight = Math.floor(interiorHeight * 0.2);
+  const kitchenX = interiorX + Math.floor((interiorWidth - kitchenWidth) / 2);
+  const kitchenY = interiorY + interiorHeight - kitchenHeight - 2;
+  
+  generatePalaceKitchen(tiles, { x: kitchenX, y: kitchenY, width: kitchenWidth, height: kitchenHeight }, 
+                        config, rooms, interactionZones, size);
+  
+  // **SERVANTS' QUARTERS** - Staff accommodation (southwest)
+  const servantsWidth = Math.floor(interiorWidth * 0.2);
+  const servantsHeight = Math.floor(interiorHeight * 0.15);
+  const servantsX = interiorX + 2;
+  const servantsY = interiorY + interiorHeight - servantsHeight - 2;
+  
+  generateServantsQuarters(tiles, { x: servantsX, y: servantsY, width: servantsWidth, height: servantsHeight }, 
+                           config, rooms, interactionZones, size);
+  
+  // **ARMORY/GUARD HOUSE** - Security (southeast)
+  const armoryWidth = Math.floor(interiorWidth * 0.15);
+  const armoryHeight = Math.floor(interiorHeight * 0.15);
+  const armoryX = interiorX + interiorWidth - armoryWidth - 2;
+  const armoryY = interiorY + interiorHeight - armoryHeight - 2;
+  
+  generatePalaceArmory(tiles, { x: armoryX, y: armoryY, width: armoryWidth, height: armoryHeight }, 
+                       config, rooms, interactionZones, size);
+  
+  // **COURTYARDS** - Open spaces within the palace
+  generateInnerCourtyard(tiles, bounds, config, noise, rooms, interactionZones, size);
+  
+  // **HALL OF MIRRORS** - Gallery space (calculated position)
+  const galleryWidth = size.width - 10;
+  const galleryHeight = 8;
+  const galleryY = Math.max(hallY + hallHeight + 2, libraryY + libraryHeight + 2);
+  
+  // **FORMAL GARDENS** - Garden space (positioned near bottom)
+  const gardenY = Math.max(kitchenY + kitchenHeight + 2, size.height - 12);
+  
+  // Add room definitions with access metadata
+  rooms.push({
+    id: 'throne_room',
+    name: 'Throne Room',
+    bounds: { x: throneRoomX, y: throneRoomY, width: 16, height: 10 },
+    description: 'The grand throne room for royal audiences',
+    roomType: 'throne_room',
+    accessLevel: 'restricted',
+    allowedSocialClasses: ['NOBILITY', 'CLERGY', 'UPPER_CLASS'],
+    professionFilter: {
+      category: [ProfessionCategory.NOBILITY, ProfessionCategory.CLERGY],
+      whitelist: ['King', 'Queen', 'Prince', 'Princess', 'Duke', 'Duchess', 'Knight', 'Bishop', 'Cardinal', 'Royal Guard', 'Guard Captain']
+    },
+    npcDensity: 'normal'
+  });
+  
+  rooms.push({
+    id: 'hall_of_mirrors',
+    name: 'Hall of Mirrors',
+    bounds: { x: 5, y: galleryY, width: size.width - 10, height: galleryHeight },
+    description: 'A magnificent gallery for court events',
+    roomType: 'gallery',
+    accessLevel: 'semi-public',
+    allowedSocialClasses: ['NOBILITY', 'UPPER_CLASS', 'MERCHANT'],
+    professionFilter: {
+      category: [ProfessionCategory.NOBILITY, ProfessionCategory.ARTISAN, ProfessionCategory.MERCHANT],
+      whitelist: ['Courtier', 'Noble', 'Aristocrat', 'Musician', 'Artist', 'Merchant Prince']
+    },
+    npcDensity: 'normal'
+  });
+  
+  rooms.push({
+    id: 'formal_gardens',
+    name: 'Royal Gardens',
+    bounds: { x: 10, y: gardenY, width: size.width - 20, height: 8 },
+    description: 'Meticulously maintained palace gardens',
+    roomType: 'garden',
+    accessLevel: 'semi-public',
+    allowedSocialClasses: ['NOBILITY', 'UPPER_CLASS'],
+    professionFilter: {
+      category: [ProfessionCategory.NOBILITY, ProfessionCategory.SERVANT],
+      whitelist: ['Noble', 'Courtier', 'Gardener', 'Guard']
+    },
+    npcDensity: 'sparse'
+  });
   
   interactionZones.push({
     id: 'throne_room',
@@ -443,7 +609,7 @@ function generateEuropeanPalace(
   interactionZones.push({
     id: 'hall_of_mirrors',
     bounds: { x: 5, y: galleryY, width: size.width - 10, height: galleryHeight },
-    type: 'social',
+    type: 'social' as any,
     interactions: ['dance', 'feast', 'reception']
   });
   
@@ -606,6 +772,527 @@ function addEastAsianDecorations(
 }
 
 /**
+ * Generate ornate throne room with cultural flooring patterns
+ */
+function generateThroneRoom(
+  tiles: Tile[][],
+  bounds: { x: number, y: number, width: number, height: number },
+  config: SpecialMapConfig,
+  rooms: RoomDefinition[],
+  interactionZones: InteractionZone[],
+  size: { width: number, height: number }
+) {
+  // Build room walls
+  buildPalaceRoom(tiles, bounds, size);
+  
+  // Apply cultural flooring patterns
+  applyCulturalFlooring(tiles, bounds, config, new ValueNoise(), 'ceremonial');
+  
+  // Central throne on a dais
+  const throneX = bounds.x + Math.floor(bounds.width / 2);
+  const throneY = bounds.y + 3;
+  
+  // Throne dais (raised platform)
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -2; dx <= 2; dx++) {
+      const x = throneX + dx;
+      const y = throneY + dy;
+      if (x >= bounds.x && x < bounds.x + bounds.width && y >= bounds.y && y < bounds.y + bounds.height) {
+        tiles[y][x].biome = BiomeType.FLOOR_MARBLE; // Raised marble platform
+      }
+    }
+  }
+  
+  // The throne itself
+  tiles[throneY][throneX].biome = BiomeType.THRONE;
+  
+  // Royal carpet leading to throne
+  for (let y = throneY + 2; y < bounds.y + bounds.height - 2; y++) {
+    tiles[y][throneX].biome = BiomeType.RUG;
+  }
+  
+  // Ceremonial columns
+  const colX1 = bounds.x + Math.floor(bounds.width * 0.25);
+  const colX2 = bounds.x + Math.floor(bounds.width * 0.75);
+  tiles[throneY + 2][colX1].biome = BiomeType.COLUMN;
+  tiles[throneY + 2][colX2].biome = BiomeType.COLUMN;
+  
+  rooms.push({
+    id: 'throne_room',
+    name: 'Throne Room',
+    bounds: bounds,
+    description: 'The magnificent throne room where the sovereign holds court and receives petitions.',
+    roomType: 'throne_room',
+    accessLevel: 'restricted',
+    allowedSocialClasses: ['NOBILITY', 'CLERGY', 'OFFICIAL'],
+    professionFilter: {
+      category: [ProfessionCategory.NOBILITY, ProfessionCategory.OFFICIAL]
+    },
+    npcDensity: 'normal'
+  });
+  
+  interactionZones.push({
+    id: 'throne',
+    bounds: { x: throneX - 2, y: throneY - 1, width: 5, height: 3 },
+    type: 'throne',
+    interactions: ['hold_court', 'receive_petitions', 'royal_decree']
+  });
+}
+
+/**
+ * Generate great hall for feasting and ceremonies
+ */
+function generateGreatHall(
+  tiles: Tile[][],
+  bounds: { x: number, y: number, width: number, height: number },
+  config: SpecialMapConfig,
+  rooms: RoomDefinition[],
+  interactionZones: InteractionZone[],
+  size: { width: number, height: number }
+) {
+  buildPalaceRoom(tiles, bounds, size);
+  applyCulturalFlooring(tiles, bounds, config, new ValueNoise(), 'formal');
+  
+  // Long banquet tables
+  const tableCount = Math.floor(bounds.height / 6);
+  for (let i = 0; i < tableCount; i++) {
+    const tableY = bounds.y + 2 + (i * 4);
+    const tableLength = bounds.width - 6;
+    
+    for (let x = bounds.x + 3; x < bounds.x + 3 + tableLength; x += 3) {
+      tiles[tableY][x].biome = BiomeType.TABLE;
+      tiles[tableY + 1][x].biome = BiomeType.BENCH; // Seating
+      tiles[tableY - 1][x].biome = BiomeType.BENCH; // Seating on other side
+    }
+  }
+  
+  // Grand fireplace
+  const fireplaceX = bounds.x + Math.floor(bounds.width / 2);
+  const fireplaceY = bounds.y + 1;
+  tiles[fireplaceY][fireplaceX].biome = BiomeType.FIRE_PIT;
+  
+  // Decorative tapestries (using rug)
+  tiles[bounds.y + 1][bounds.x + 2].biome = BiomeType.RUG;
+  tiles[bounds.y + 1][bounds.x + bounds.width - 3].biome = BiomeType.RUG;
+  
+  rooms.push({
+    id: 'great_hall',
+    name: 'Great Hall',
+    bounds: bounds,
+    description: 'The grand hall where nobles feast, celebrations are held, and important announcements are made.',
+    roomType: 'dining_hall',
+    accessLevel: 'semi-public',
+    allowedSocialClasses: ['NOBILITY', 'UPPER_CLASS', 'OFFICIAL'],
+    npcDensity: 'normal'
+  });
+}
+
+/**
+ * Generate royal private chambers
+ */
+function generateRoyalChambers(
+  tiles: Tile[][],
+  bounds: { x: number, y: number, width: number, height: number },
+  config: SpecialMapConfig,
+  rooms: RoomDefinition[],
+  interactionZones: InteractionZone[],
+  size: { width: number, height: number }
+) {
+  buildPalaceRoom(tiles, bounds, size);
+  applyCulturalFlooring(tiles, bounds, config, new ValueNoise(), 'residential');
+  
+  // Royal bed chamber
+  const bedX = bounds.x + bounds.width - 3;
+  const bedY = bounds.y + 2;
+  tiles[bedY][bedX].biome = BiomeType.THRONE; // Use throne as fancy bed
+  
+  // Royal desk/writing area
+  const deskX = bounds.x + 2;
+  const deskY = bounds.y + 2;
+  tiles[deskY][deskX].biome = BiomeType.DESK;
+  tiles[deskY][deskX + 1].biome = BiomeType.CHAIR;
+  
+  // Wardrobe
+  tiles[bounds.y + bounds.height - 3][bounds.x + 2].biome = BiomeType.CABINET;
+  
+  // Privacy screen
+  tiles[bounds.y + Math.floor(bounds.height / 2)][bounds.x + Math.floor(bounds.width / 2)].biome = BiomeType.RUG;
+  
+  rooms.push({
+    id: 'royal_chambers',
+    name: 'Royal Chambers',
+    bounds: bounds,
+    description: 'The private quarters of the royal family, richly appointed and heavily guarded.',
+    roomType: 'bedroom',
+    accessLevel: 'restricted',
+    allowedSocialClasses: ['NOBILITY'],
+    professionFilter: {
+      whitelist: ['King', 'Queen', 'Prince', 'Princess', 'Royal Guard', 'Lady-in-Waiting', 'Valet']
+    },
+    npcDensity: 'sparse'
+  });
+}
+
+/**
+ * Generate palace chapel for worship
+ */
+function generatePalaceChapel(
+  tiles: Tile[][],
+  bounds: { x: number, y: number, width: number, height: number },
+  config: SpecialMapConfig,
+  rooms: RoomDefinition[],
+  interactionZones: InteractionZone[],
+  size: { width: number, height: number }
+) {
+  buildPalaceRoom(tiles, bounds, size);
+  
+  // Sacred flooring
+  for (let y = bounds.y + 1; y < bounds.y + bounds.height - 1; y++) {
+    for (let x = bounds.x + 1; x < bounds.x + bounds.width - 1; x++) {
+      tiles[y][x].biome = BiomeType.FLOOR_MARBLE; // Sacred marble
+    }
+  }
+  
+  // Altar at the front
+  const altarX = bounds.x + Math.floor(bounds.width / 2);
+  const altarY = bounds.y + 2;
+  tiles[altarY][altarX].biome = BiomeType.ALTAR;
+  
+  // Pews for congregation
+  const pewRows = Math.min(3, Math.floor((bounds.height - 6) / 2));
+  for (let row = 0; row < pewRows; row++) {
+    const pewY = bounds.y + 4 + (row * 2);
+    for (let x = bounds.x + 2; x < bounds.x + bounds.width - 2; x += 2) {
+      tiles[pewY][x].biome = BiomeType.BENCH;
+    }
+  }
+  
+  // Sacred font or vessel
+  tiles[altarY][altarX - 2].biome = BiomeType.BASIN;
+  
+  rooms.push({
+    id: 'palace_chapel',
+    name: 'Palace Chapel',
+    bounds: bounds,
+    description: 'The sacred chapel where the royal family and court attend religious services.',
+    roomType: 'chapel',
+    accessLevel: 'semi-public',
+    allowedSocialClasses: ['NOBILITY', 'CLERGY', 'UPPER_CLASS'],
+    professionFilter: {
+      category: [ProfessionCategory.CLERGY]
+    },
+    npcDensity: 'sparse'
+  });
+}
+
+/**
+ * Generate palace library and study
+ */
+function generatePalaceLibrary(
+  tiles: Tile[][],
+  bounds: { x: number, y: number, width: number, height: number },
+  config: SpecialMapConfig,
+  rooms: RoomDefinition[],
+  interactionZones: InteractionZone[],
+  size: { width: number, height: number }
+) {
+  buildPalaceRoom(tiles, bounds, size);
+  applyCulturalFlooring(tiles, bounds, config, new ValueNoise(), 'formal');
+  
+  // Bookshelves along walls
+  for (let x = bounds.x + 1; x < bounds.x + bounds.width - 1; x += 2) {
+    tiles[bounds.y + 1][x].biome = BiomeType.BOOKSHELF;
+    tiles[bounds.y + bounds.height - 2][x].biome = BiomeType.BOOKSHELF;
+  }
+  
+  // Study desks
+  const desk1X = bounds.x + 2;
+  const desk1Y = bounds.y + Math.floor(bounds.height / 2);
+  tiles[desk1Y][desk1X].biome = BiomeType.DESK;
+  tiles[desk1Y][desk1X + 1].biome = BiomeType.CHAIR;
+  
+  // Scroll racks for important documents
+  tiles[bounds.y + 2][bounds.x + bounds.width - 2].biome = BiomeType.SCROLL_RACK;
+  
+  rooms.push({
+    id: 'palace_library',
+    name: 'Palace Library',
+    bounds: bounds,
+    description: 'The royal library containing books, scrolls, and important state documents.',
+    roomType: 'library',
+    accessLevel: 'semi-public',
+    allowedSocialClasses: ['NOBILITY', 'SCHOLAR', 'CLERGY'],
+    professionFilter: {
+      category: [ProfessionCategory.SCHOLAR, ProfessionCategory.CLERGY]
+    },
+    npcDensity: 'sparse'
+  });
+}
+
+/**
+ * Generate secure treasury
+ */
+function generateTreasury(
+  tiles: Tile[][],
+  bounds: { x: number, y: number, width: number, height: number },
+  config: SpecialMapConfig,
+  rooms: RoomDefinition[],
+  interactionZones: InteractionZone[],
+  size: { width: number, height: number }
+) {
+  buildPalaceRoom(tiles, bounds, size);
+  
+  // Stone flooring for security
+  for (let y = bounds.y + 1; y < bounds.y + bounds.height - 1; y++) {
+    for (let x = bounds.x + 1; x < bounds.x + bounds.width - 1; x++) {
+      tiles[y][x].biome = BiomeType.FLOOR_STONE;
+    }
+  }
+  
+  // Treasure chests
+  tiles[bounds.y + 1][bounds.x + 1].biome = BiomeType.CHEST;
+  tiles[bounds.y + 1][bounds.x + bounds.width - 2].biome = BiomeType.CHEST;
+  tiles[bounds.y + bounds.height - 2][bounds.x + 1].biome = BiomeType.CHEST;
+  tiles[bounds.y + bounds.height - 2][bounds.x + bounds.width - 2].biome = BiomeType.CHEST;
+  
+  // Central vault table
+  const centerX = bounds.x + Math.floor(bounds.width / 2);
+  const centerY = bounds.y + Math.floor(bounds.height / 2);
+  tiles[centerY][centerX].biome = BiomeType.TABLE;
+  
+  rooms.push({
+    id: 'treasury',
+    name: 'Royal Treasury',
+    bounds: bounds,
+    description: 'The heavily guarded vault containing the royal treasure and state funds.',
+    roomType: 'treasury',
+    accessLevel: 'restricted',
+    professionFilter: {
+      whitelist: ['Treasurer', 'Royal Guard', 'King', 'Queen', 'Steward']
+    },
+    npcDensity: 'sparse'
+  });
+}
+
+/**
+ * Generate palace kitchen complex
+ */
+function generatePalaceKitchen(
+  tiles: Tile[][],
+  bounds: { x: number, y: number, width: number, height: number },
+  config: SpecialMapConfig,
+  rooms: RoomDefinition[],
+  interactionZones: InteractionZone[],
+  size: { width: number, height: number }
+) {
+  buildPalaceRoom(tiles, bounds, size);
+  
+  // Kitchen tile flooring
+  for (let y = bounds.y + 1; y < bounds.y + bounds.height - 1; y++) {
+    for (let x = bounds.x + 1; x < bounds.x + bounds.width - 1; x++) {
+      tiles[y][x].biome = BiomeType.FLOOR_TILE;
+    }
+  }
+  
+  // Large cooking hearths
+  const hearth1X = bounds.x + 2;
+  const hearth1Y = bounds.y + 2;
+  tiles[hearth1Y][hearth1X].biome = BiomeType.KITCHEN_STOVE;
+  
+  const hearth2X = bounds.x + bounds.width - 3;
+  const hearth2Y = bounds.y + 2;
+  tiles[hearth2Y][hearth2X].biome = BiomeType.KITCHEN_STOVE;
+  
+  // Prep tables
+  for (let x = bounds.x + 2; x < bounds.x + bounds.width - 2; x += 3) {
+    tiles[bounds.y + Math.floor(bounds.height / 2)][x].biome = BiomeType.TABLE;
+  }
+  
+  // Food storage
+  tiles[bounds.y + bounds.height - 2][bounds.x + 2].biome = BiomeType.CHEST; // Food storage
+  tiles[bounds.y + bounds.height - 2][bounds.x + bounds.width - 3].biome = BiomeType.CHEST;
+  
+  // Kitchen sink/wash area
+  tiles[bounds.y + bounds.height - 3][bounds.x + Math.floor(bounds.width / 2)].biome = BiomeType.KITCHEN_SINK;
+  
+  rooms.push({
+    id: 'palace_kitchen',
+    name: 'Palace Kitchen',
+    bounds: bounds,
+    description: 'The bustling kitchen complex where elaborate royal feasts are prepared.',
+    roomType: 'kitchen',
+    accessLevel: 'semi-public',
+    professionFilter: {
+      whitelist: ['Cook', 'Chef', 'Kitchen Maid', 'Scullery Boy', 'Baker', 'Butcher']
+    },
+    npcDensity: 'normal'
+  });
+}
+
+/**
+ * Generate servants' quarters
+ */
+function generateServantsQuarters(
+  tiles: Tile[][],
+  bounds: { x: number, y: number, width: number, height: number },
+  config: SpecialMapConfig,
+  rooms: RoomDefinition[],
+  interactionZones: InteractionZone[],
+  size: { width: number, height: number }
+) {
+  buildPalaceRoom(tiles, bounds, size);
+  
+  // Simple wood flooring
+  for (let y = bounds.y + 1; y < bounds.y + bounds.height - 1; y++) {
+    for (let x = bounds.x + 1; x < bounds.x + bounds.width - 1; x++) {
+      tiles[y][x].biome = BiomeType.FLOOR_WOOD;
+    }
+  }
+  
+  // Simple beds (using bench)
+  for (let x = bounds.x + 1; x < bounds.x + bounds.width - 1; x += 3) {
+    tiles[bounds.y + 1][x].biome = BiomeType.BENCH;
+    tiles[bounds.y + bounds.height - 2][x].biome = BiomeType.BENCH;
+  }
+  
+  // Simple storage
+  tiles[bounds.y + Math.floor(bounds.height / 2)][bounds.x + 1].biome = BiomeType.CHEST;
+  
+  rooms.push({
+    id: 'servants_quarters',
+    name: 'Servants\' Quarters',
+    bounds: bounds,
+    description: 'Simple but adequate accommodations for the palace staff.',
+    roomType: 'servants_quarters',
+    accessLevel: 'restricted',
+    professionFilter: {
+      category: [ProfessionCategory.SERVICE]
+    },
+    npcDensity: 'normal'
+  });
+}
+
+/**
+ * Generate palace armory and guard house
+ */
+function generatePalaceArmory(
+  tiles: Tile[][],
+  bounds: { x: number, y: number, width: number, height: number },
+  config: SpecialMapConfig,
+  rooms: RoomDefinition[],
+  interactionZones: InteractionZone[],
+  size: { width: number, height: number }
+) {
+  buildPalaceRoom(tiles, bounds, size);
+  
+  // Stone flooring
+  for (let y = bounds.y + 1; y < bounds.y + bounds.height - 1; y++) {
+    for (let x = bounds.x + 1; x < bounds.x + bounds.width - 1; x++) {
+      tiles[y][x].biome = BiomeType.FLOOR_STONE;
+    }
+  }
+  
+  // Weapon racks
+  tiles[bounds.y + 1][bounds.x + 1].biome = BiomeType.WEAPON_RACK;
+  tiles[bounds.y + 1][bounds.x + bounds.width - 2].biome = BiomeType.WEAPON_RACK;
+  
+  // Armor stands
+  tiles[bounds.y + bounds.height - 2][bounds.x + 1].biome = BiomeType.ARMOR_STAND;
+  tiles[bounds.y + bounds.height - 2][bounds.x + bounds.width - 2].biome = BiomeType.ARMOR_STAND;
+  
+  rooms.push({
+    id: 'palace_armory',
+    name: 'Palace Armory',
+    bounds: bounds,
+    description: 'The armory where the palace guard\'s weapons and armor are stored.',
+    roomType: 'armory',
+    accessLevel: 'restricted',
+    professionFilter: {
+      whitelist: ['Royal Guard', 'Captain', 'Armorer', 'Weapons Master']
+    },
+    npcDensity: 'sparse'
+  });
+}
+
+/**
+ * Generate inner courtyard with fountains and gardens
+ */
+function generateInnerCourtyard(
+  tiles: Tile[][],
+  bounds: { x: number, y: number, width: number, height: number },
+  config: SpecialMapConfig,
+  noise: ValueNoise,
+  rooms: RoomDefinition[],
+  interactionZones: InteractionZone[],
+  size: { width: number, height: number }
+) {
+  // Find open central area for courtyard
+  const courtyardWidth = Math.floor(bounds.width * 0.3);
+  const courtyardHeight = Math.floor(bounds.height * 0.25);
+  const courtyardX = bounds.x + Math.floor((bounds.width - courtyardWidth) / 2);
+  const courtyardY = bounds.y + Math.floor((bounds.height - courtyardHeight) / 2);
+  
+  // Create courtyard space
+  for (let y = courtyardY; y < courtyardY + courtyardHeight; y++) {
+    for (let x = courtyardX; x < courtyardX + courtyardWidth; x++) {
+      if (x >= 0 && x < size.width && y >= 0 && y < size.height) {
+        if (tiles[y][x].biome === BiomeType.FLOOR_MARBLE) { // Only if it's an open space
+          tiles[y][x].biome = BiomeType.PARK; // Garden space
+        }
+      }
+    }
+  }
+  
+  // Central fountain
+  const fountainX = courtyardX + Math.floor(courtyardWidth / 2);
+  const fountainY = courtyardY + Math.floor(courtyardHeight / 2);
+  if (fountainX >= 0 && fountainX < size.width && fountainY >= 0 && fountainY < size.height) {
+    tiles[fountainY][fountainX].biome = BiomeType.FOUNTAIN;
+  }
+  
+  rooms.push({
+    id: 'inner_courtyard',
+    name: 'Palace Courtyard',
+    bounds: { x: courtyardX, y: courtyardY, width: courtyardWidth, height: courtyardHeight },
+    description: 'A peaceful inner courtyard with gardens and fountains for the royal family to enjoy.',
+    roomType: 'courtyard',
+    accessLevel: 'semi-public',
+    allowedSocialClasses: ['NOBILITY', 'UPPER_CLASS'],
+    npcDensity: 'sparse'
+  });
+}
+
+/**
+ * Helper function to build a basic palace room with walls and door
+ */
+function buildPalaceRoom(
+  tiles: Tile[][],
+  bounds: { x: number, y: number, width: number, height: number },
+  size: { width: number, height: number }
+) {
+  // Build walls
+  for (let y = bounds.y; y < bounds.y + bounds.height; y++) {
+    for (let x = bounds.x; x < bounds.x + bounds.width; x++) {
+      if (x >= 0 && x < size.width && y >= 0 && y < size.height) {
+        const isWall = (x === bounds.x || x === bounds.x + bounds.width - 1 ||
+                       y === bounds.y || y === bounds.y + bounds.height - 1);
+        
+        if (isWall) {
+          tiles[y][x].biome = BiomeType.WALL;
+        }
+      }
+    }
+  }
+  
+  // Add door
+  const doorX = bounds.x + Math.floor(bounds.width / 2);
+  const doorY = bounds.y + bounds.height - 1;
+  if (doorX >= 0 && doorX < size.width && doorY >= 0 && doorY < size.height) {
+    tiles[doorY][doorX].biome = BiomeType.DOOR;
+  }
+}
+
+/**
  * Generate generic palace for other cultures
  */
 function generateGenericPalace(
@@ -614,8 +1301,16 @@ function generateGenericPalace(
   noise: ValueNoise,
   size: { width: number, height: number },
   interactionZones: InteractionZone[],
-  exitZones: ExitZone[]
+  exitZones: ExitZone[],
+  rooms: RoomDefinition[]
 ) {
-  // Use the European style as default but simpler
-  generateEuropeanPalace(tiles, config, noise, size, interactionZones, exitZones);
+  // Use the realistic European palace system as default
+  const bounds = { 
+    x: Math.floor(size.width * 0.175), 
+    y: Math.floor(size.height * 0.2), 
+    width: Math.floor(size.width * 0.65), 
+    height: Math.floor(size.height * 0.6) 
+  };
+  
+  generateRealisticEuropeanPalace(tiles, bounds, config, noise, rooms, interactionZones, exitZones, size);
 }

@@ -14,7 +14,7 @@ export interface AnimalData {
   name: string;
   emoji: string;
   type: 'Prey' | 'Predator' | 'Domestic' | 'Ambient' | 'Mythical';
-  social: 'solitary' | 'herd'; // NEW: Behavior grouping
+  social: 'solitary' | 'herd' | 'pack'; // NEW: Behavior grouping
   sizeMultiplier?: number; // Visual size multiplier (1.0 = default, 0.3 = tiny, 2.0 = huge)
   attack: number;
   defense: number;
@@ -32,13 +32,16 @@ export interface AnimalData {
     maxSafety?: number;
     minSafety?: number;
     minSacrality?: number;
+    minAltitude?: number;
     climate?: ClimateType[];
     zones?: CulturalZone[];
     regions?: string[];
     nearSettlement?: boolean;
     remote?: boolean;
+    nocturnal?: boolean; // Only spawns at night
+    season?: ('spring' | 'summer' | 'fall' | 'winter' | 'wet' | 'dry')[]; // Seasonal spawning
   };
-  habitat?: 'forest' | 'grassland' | 'mountain' | 'aquatic' | 'desert';
+  habitat?: 'forest' | 'grassland' | 'mountain' | 'aquatic' | 'desert' | 'tundra' | 'wetland';
   behaviorProfile?: 'deer' | 'wolf' | 'bear' | 'rabbit';
   specialAttack?: {
     type: StatusEffect['type'];

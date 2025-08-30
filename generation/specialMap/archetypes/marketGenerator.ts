@@ -106,8 +106,8 @@ function generateIslamicBazaar(
   // Covered market passages (souks) radiating from center
   createCoveredPassages(tiles, centerX, centerY, size, noise);
   
-  // Merchant stalls along passages
-  createMerchantStalls(tiles, config, noise, size, 'islamic');
+  // Specialized market zones
+  createSpecializedMarketZones(tiles, config, noise, size, 'islamic', rooms);
   
   // Add carpets, pillars, and decorative elements
   addIslamicDecorations(tiles, noise, size);
@@ -143,7 +143,8 @@ function generateAsianMarket(
   config: SpecialMapConfig,
   noise: ValueNoise,
   size: { width: number, height: number },
-  interactionZones: InteractionZone[]
+  interactionZones: InteractionZone[],
+  rooms: RoomDefinition[]
 ) {
   // Outer walls
   placeWallRectangle(tiles, 0, 0, size.width, size.height, [
@@ -191,8 +192,8 @@ function generateAsianMarket(
     tiles[teaHouseY + 5][teaHouseX + 5].biome = BiomeType.TABLE;
   }
   
-  // Organized market sections
-  createAsianMarketSections(tiles, config, noise, size);
+  // Organized market sections with walls
+  createSpecializedMarketZones(tiles, config, noise, size, 'asian', rooms);
   
   // Add lanterns and decorations
   addAsianDecorations(tiles, noise, size);
@@ -232,7 +233,8 @@ function generateAfricanMarket(
   config: SpecialMapConfig,
   noise: ValueNoise,
   size: { width: number, height: number },
-  interactionZones: InteractionZone[]
+  interactionZones: InteractionZone[],
+  rooms: RoomDefinition[]
 ) {
   // Open-air market with minimal walls
   // Only gates, no full perimeter
@@ -295,7 +297,8 @@ function generateEuropeanMarket(
   config: SpecialMapConfig,
   noise: ValueNoise,
   size: { width: number, height: number },
-  interactionZones: InteractionZone[]
+  interactionZones: InteractionZone[],
+  rooms: RoomDefinition[]
 ) {
   // Stone walls with arched gates
   placeWallRectangle(tiles, 0, 0, size.width, size.height, [
@@ -330,11 +333,8 @@ function generateEuropeanMarket(
     tiles[centerY][centerX].biome = BiomeType.FOUNTAIN;
   }
   
-  // Guild halls and shops around perimeter
-  createGuildHalls(tiles, config, noise, size);
-  
-  // Market stalls in organized rows
-  createEuropeanMarketStalls(tiles, config, noise, size);
+  // Create specialized market zones with walls
+  createSpecializedMarketZones(tiles, config, noise, size, 'european', rooms);
   
   // Add architectural elements
   addEuropeanDecorations(tiles, config, noise, size);
@@ -742,53 +742,142 @@ function addEuropeanDecorations(tiles: Tile[][], config: SpecialMapConfig, noise
   }
 }
 
-function createBasicMarketStalls(tiles: Tile[][], noise: ValueNoise, size: any, config: SpecialMapConfig) {
-  console.log('[MarketStalls] Creating stalls for era:', config.era, 'culture:', config.culturalZone);
+function createSpecializedMarketZones(
+  tiles: Tile[][],
+  config: SpecialMapConfig,
+  noise: ValueNoise,
+  size: { width: number, height: number },
+  style: string,
+  rooms: RoomDefinition[]
+) {
+  // Create distinct market zones with actual walls
+  const zones = getMarketZones(style, size);
   
-  // Create organized market rows instead of random placement
-  const stallRows = [];
-  const rowSpacing = 6;
-  const stallSpacing = 4;
+  zones.forEach((zone, index) => {
+    // Create walled room for each zone
+    placeWallRectangle(tiles, zone.x, zone.y, zone.width, zone.height, [
+      { side: 'south', offset: Math.floor(zone.width / 2) } // Door in the middle
+    ]);
+    
+    // Fill with appropriate floor
+    const floorType = getZoneFloor(zone.type, style);
+    fillArea(tiles, zone.x + 1, zone.y + 1, zone.width - 2, zone.height - 2, floorType);
+    
+    // Add zone-specific furniture and items
+    populateMarketZone(tiles, zone, style, noise);
+    
+    // Add room definition
+    rooms.push({
+      id: `market_${zone.type}_${index}`,
+      name: zone.name,
+      bounds: zone,
+      roomType: 'marketplace',
+      accessLevel: zone.type === 'luxury' ? 'semi-public' : 'public',
+      allowedSocialClasses: zone.type === 'luxury' ? ['wealthy', 'noble'] : undefined,
+      npcDensity: zone.type === 'food' ? 'crowded' : 'normal'
+    });
+  });
+}
+
+function getMarketZones(style: string, size: { width: number, height: number }) {
+  const centerX = Math.floor(size.width / 2);
+  const centerY = Math.floor(size.height / 2);
   
-  // Define market areas - leave center and edges clear
-  for (let y = 8; y < size.height - 8; y += rowSpacing) {
-    const row = [];
-    for (let x = 8; x < size.width - 8; x += stallSpacing) {
-      // Skip center area for fountain/gathering
-      const centerX = Math.floor(size.width / 2);
-      const centerY = Math.floor(size.height / 2);
-      if (Math.abs(x - centerX) < 6 && Math.abs(y - centerY) < 6) continue;
-      
-      if (tiles[y][x].biome.includes('FLOOR') && noise.random() > 0.2) {
-        // Use appropriate stall type based on era
-        if (config.era === HistoricalEra.PREHISTORY) {
-          // Simple ground displays
-          tiles[y][x].biome = BiomeType.CHEST; // Baskets/containers
-        } else if (config.era === HistoricalEra.MODERN_ERA || config.era === HistoricalEra.CONTEMPORARY) {
-          // Modern stands
-          tiles[y][x].biome = BiomeType.TABLE;
-          // Add signage (statue as placeholder for now)
-          if (noise.random() > 0.7 && tiles[y-1]?.[x]) {
-            tiles[y-1][x].biome = BiomeType.PLAZA; // Use plaza to indicate modern paving
-          }
-        } else {
-          // Historical markets - tables and goods
-          tiles[y][x].biome = BiomeType.TABLE;
-        }
-        
-        row.push({x, y});
-        
-        // Add storage/goods display
-        if (noise.random() > 0.4) {
-          const dx = noise.random() > 0.5 ? 1 : -1;
-          if (tiles[y]?.[x + dx]?.biome.includes('FLOOR')) {
-            tiles[y][x + dx].biome = noise.random() > 0.5 ? BiomeType.BARREL : BiomeType.CHEST;
-          }
-        }
-      }
-    }
-    if (row.length > 0) stallRows.push(row);
+  if (style === 'islamic') {
+    return [
+      { x: 5, y: 5, width: 12, height: 8, type: 'spices', name: 'Spice Bazaar' },
+      { x: size.width - 17, y: 5, width: 12, height: 8, type: 'textiles', name: 'Textile Souk' },
+      { x: 5, y: size.height - 13, width: 12, height: 8, type: 'crafts', name: 'Artisan Quarter' },
+      { x: size.width - 17, y: size.height - 13, width: 12, height: 8, type: 'luxury', name: 'Perfume & Jewelry' }
+    ];
+  } else if (style === 'european') {
+    return [
+      { x: 5, y: 5, width: 15, height: 10, type: 'food', name: 'Food Hall' },
+      { x: size.width - 20, y: 5, width: 15, height: 10, type: 'crafts', name: 'Guild Workshop' },
+      { x: centerX - 8, y: size.height - 15, width: 16, height: 10, type: 'livestock', name: 'Livestock Pen' }
+    ];
+  } else if (style === 'asian') {
+    return [
+      { x: 5, y: 15, width: 12, height: 8, type: 'food', name: 'Food Section' },
+      { x: size.width - 17, y: 15, width: 12, height: 8, type: 'crafts', name: 'Craft Workshop' },
+      { x: 5, y: size.height - 13, width: 12, height: 8, type: 'textiles', name: 'Silk Quarter' },
+      { x: size.width - 17, y: size.height - 13, width: 12, height: 8, type: 'luxury', name: 'Tea & Porcelain' }
+    ];
+  } else {
+    return [
+      { x: 8, y: 8, width: 12, height: 8, type: 'food', name: 'Food Market' },
+      { x: size.width - 20, y: 8, width: 12, height: 8, type: 'crafts', name: 'Craft Stalls' },
+      { x: 8, y: size.height - 16, width: 12, height: 8, type: 'general', name: 'General Goods' }
+    ];
   }
-  
-  console.log('[MarketStalls] Created', stallRows.length, 'rows of stalls');
+}
+
+function getZoneFloor(zoneType: string, style: string) {
+  if (style === 'islamic') {
+    return zoneType === 'luxury' ? BiomeType.FLOOR_MOSAIC : BiomeType.FLOOR_TILE;
+  } else if (style === 'european') {
+    return zoneType === 'food' ? BiomeType.FLOOR_STONE : BiomeType.FLOOR_WOOD;
+  } else {
+    return BiomeType.FLOOR_STONE;
+  }
+}
+
+function populateMarketZone(
+  tiles: Tile[][],
+  zone: { x: number, y: number, width: number, height: number, type: string },
+  style: string,
+  noise: ValueNoise
+) {
+  // Add zone-specific items
+  switch (zone.type) {
+    case 'food':
+      // Tables for food display
+      for (let x = zone.x + 2; x < zone.x + zone.width - 2; x += 3) {
+        tiles[zone.y + 2][x].biome = BiomeType.TABLE;
+        tiles[zone.y + zone.height - 3][x].biome = BiomeType.TABLE;
+      }
+      // Storage barrels
+      tiles[zone.y + 2][zone.x + zone.width - 2].biome = BiomeType.BARREL;
+      tiles[zone.y + zone.height - 3][zone.x + 1].biome = BiomeType.BARREL;
+      break;
+      
+    case 'spices':
+      // Carpet displays
+      for (let x = zone.x + 2; x < zone.x + zone.width - 2; x += 3) {
+        tiles[zone.y + 3][x].biome = BiomeType.RUG;
+      }
+      // Spice containers
+      tiles[zone.y + 2][zone.x + 2].biome = BiomeType.CHEST;
+      tiles[zone.y + zone.height - 3][zone.x + zone.width - 3].biome = BiomeType.CHEST;
+      break;
+      
+    case 'textiles':
+      // Display tables
+      tiles[zone.y + 2][zone.x + 3].biome = BiomeType.TABLE;
+      tiles[zone.y + zone.height - 3][zone.x + 3].biome = BiomeType.TABLE;
+      // Fabric storage
+      tiles[zone.y + 3][zone.x + zone.width - 2].biome = BiomeType.CABINET;
+      break;
+      
+    case 'crafts':
+      // Work tables
+      tiles[zone.y + 2][zone.x + 2].biome = BiomeType.DESK;
+      tiles[zone.y + zone.height - 3][zone.x + zone.width - 3].biome = BiomeType.DESK;
+      // Tool storage
+      tiles[zone.y + 3][zone.x + 1].biome = BiomeType.CHEST;
+      break;
+      
+    case 'luxury':
+      // Fancy display
+      tiles[zone.y + Math.floor(zone.height/2)][zone.x + Math.floor(zone.width/2)].biome = BiomeType.PODIUM;
+      // Secure storage
+      tiles[zone.y + 2][zone.x + 2].biome = BiomeType.TREASURY;
+      break;
+      
+    default:
+      // Generic stalls
+      for (let x = zone.x + 2; x < zone.x + zone.width - 2; x += 4) {
+        tiles[zone.y + 3][x].biome = BiomeType.TABLE;
+      }
+  }
 }

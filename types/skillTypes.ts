@@ -87,4 +87,14 @@ export interface CombatSkillResult {
     xpGained?: number;
 }
 
-export type SkillResult = ObserveSkillResult | ForageSkillResult | DigSkillResult | CombatSkillResult | ChopSkillResult | null;
+export interface SingSkillResult {
+    type: 'sing';
+    success: boolean;
+    song: string;
+    message: string;
+    performanceScore: number;
+    reputationChange: number;
+    xpGained?: number;
+}
+
+export type SkillResult = ObserveSkillResult | ForageSkillResult | DigSkillResult | CombatSkillResult | ChopSkillResult | SingSkillResult | null;

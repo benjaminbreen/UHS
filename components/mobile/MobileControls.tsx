@@ -40,7 +40,7 @@ const MobileControls: React.FC<MobileControlsProps> = ({ onMove, disabled = fals
     fontSize: '20px',
     color: activeButton === direction ? '#fff' : 'rgba(255, 255, 255, 0.8)',
     backdropFilter: 'blur(10px)',
-    WebkitBackdropFilter: 'blur(10px)',
+    webkitBackdropFilter: 'blur(10px)',
     cursor: disabled ? 'not-allowed' : 'pointer',
     transition: 'all 0.1s ease',
     userSelect: 'none',

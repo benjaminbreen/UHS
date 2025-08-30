@@ -128,7 +128,7 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({
     maxHeight: 'calc(100vh - env(safe-area-inset-top) - 60px)',
     backgroundColor: 'rgba(20, 20, 20, 0.95)',
     backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
+    webkitBackdropFilter: 'blur(20px)',
     borderTopLeftRadius: '20px',
     borderTopRightRadius: '20px',
     display: 'flex',

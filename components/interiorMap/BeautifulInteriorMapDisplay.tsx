@@ -45,19 +45,7 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
     const [hasBeenWarned, setHasBeenWarned] = useState(false);
     const [confrontedNpcs, setConfrontedNpcs] = useState<Set<string>>(new Set());
     
-    // Initialize interior data
-    useEffect(() => {
-        const data = generateBeautifulInterior(config);
-        setInteriorData({
-            layout: data.layout,
-            namedElite: data.namedElite,
-            guardNpcs: data.guardNpcs,
-            npcs: data.npcs || []
-        });
-        setPlayerPosition(data.layout.entrance);
-    }, [config.buildingId, config.buildingType]); // More specific dependencies
-    
-    // Handle player movement
+    // Handle player movement - MUST be defined before useEffect that uses it
     const handlePlayerMove = useCallback((newPosition: Point) => {
         if (!interiorData) return;
         
@@ -211,6 +199,57 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
             onNpcInteraction(npc, dialogue);
         }
     }, [interiorData, playerReligion, playerClass, playerReputation, hasBeenWarned, confrontedNpcs, config, onNpcInteraction, onReputationChange]);
+    
+    // Initialize interior data
+    useEffect(() => {
+        const data = generateBeautifulInterior(config);
+        setInteriorData({
+            layout: data.layout,
+            namedElite: data.namedElite,
+            guardNpcs: data.guardNpcs,
+            npcs: data.npcs || []
+        });
+        setPlayerPosition(data.layout.entrance);
+    }, [config.buildingId, config.buildingType]); // More specific dependencies
+    
+    // Handle keyboard movement
+    useEffect(() => {
+        const handleKeyPress = (e: KeyboardEvent) => {
+            if (!playerPosition) return;
+            
+            let newX = playerPosition.x;
+            let newY = playerPosition.y;
+            
+            switch (e.key.toLowerCase()) {
+                case 'w':
+                case 'arrowup':
+                    newY -= 1;
+                    break;
+                case 's':
+                case 'arrowdown':
+                    newY += 1;
+                    break;
+                case 'a':
+                case 'arrowleft':
+                    newX -= 1;
+                    break;
+                case 'd':
+                case 'arrowright':
+                    newX += 1;
+                    break;
+                case 'escape':
+                    onExit();
+                    return;
+                default:
+                    return;
+            }
+            
+            handlePlayerMove({ x: newX, y: newY });
+        };
+        
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, [playerPosition, handlePlayerMove, onExit]);
     
     // Handle ESC key for exit only
     useEffect(() => {

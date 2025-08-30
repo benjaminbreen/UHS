@@ -5,20 +5,57 @@
 
 import React from 'react';
 import { BiomeType, CulturalZone, HistoricalEra } from '../../../types';
-import { TableSymbol } from '../government/specialMap/TableSymbol';
-import { ChairSymbol } from '../government/specialMap/ChairSymbol';
-import { StatueSymbol } from '../government/specialMap/StatueSymbol';
-import { WallSymbol } from '../government/specialMap/WallSymbol';
-import { FloorSymbol } from '../government/specialMap/FloorSymbol';
-import { FountainSymbol } from '../government/specialMap/FountainSymbol';
-import { BedSymbol } from '../government/specialMap/BedSymbol';
-import { ThroneSymbol } from '../government/specialMap/ThroneSymbol';
-import { BookshelfSymbol } from '../government/specialMap/BookshelfSymbol';
-import { DeskSymbol } from '../government/specialMap/DeskSymbol';
-import { PillarSymbol } from '../government/specialMap/PillarSymbol';
-import { CarpetSymbol } from '../government/specialMap/CarpetSymbol';
-import { AltarSymbol } from '../government/specialMap/AltarSymbol';
-import { ShrineSymbol } from '../government/specialMap/ShrineSymbol';
+
+// Import all special map symbols from the consolidated location
+import { 
+  TableSymbol,
+  ChairSymbol,
+  BenchSymbol,
+  BedSymbol,
+  ThroneSymbol,
+  DeskSymbol,
+  BookshelfSymbol,
+  CabinetSymbol,
+  WallSymbol,
+  DoorSymbol,
+  ArchwaySymbol,
+  WallGateSymbol,
+  WallWindowSymbol,
+  ColumnSymbol,
+  PillarSymbol,
+  StairsSymbol,
+  StatueSymbol,
+  FountainSymbol,
+  AltarSymbol,
+  ShrineSymbol,
+  CarpetSymbol,
+  FloorSymbol,
+  BathSymbol,
+  MirrorSymbol,
+  KitchenCounterSymbol,
+  KitchenSinkSymbol,
+  WeaponRackSymbol,
+  ArmorStandSymbol
+} from '../architecture/specialMap/index';
+
+// Import new 2.5D symbols (Phase 1 implementations)
+import { 
+  WallSymbol2D,
+  FloorTileSymbol2D,
+  TableSymbol2D,
+  ChairSymbol2D
+} from '../architecture/specialMap/index2D';
+
+// Import general architectural symbols that can be used in special maps
+import { 
+  MosaicFloorSymbol, 
+  ToiletSymbol, 
+  BasinSymbol, 
+  FilingCabinetSymbol, 
+  KitchenStoveSymbol, 
+  GuardPostSymbol, 
+  PodiumSymbol
+} from '../architecture';
 
 interface SpecialMapSymbolRendererProps {
   x: number;
@@ -47,10 +84,13 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
   const renderSymbol = () => {
     switch (biome) {
       case BiomeType.TABLE:
-        return <TableSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+        return <TableSymbol2D x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
       
       case BiomeType.CHAIR:
-        return <ChairSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+        return <ChairSymbol2D x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+      
+      case BiomeType.BENCH:
+        return <BenchSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
       
       case BiomeType.STATUE:
         return <StatueSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
@@ -72,6 +112,9 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
         
       case BiomeType.PILLAR:
         return <PillarSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+      
+      case BiomeType.COLUMN:
+        return <ColumnSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
         
       case BiomeType.CARPET:
         return <CarpetSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
@@ -84,13 +127,70 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
       
       // Additional architectural biomes that might be in the map
       case BiomeType.WALL:
-        return <WallSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+        return <WallSymbol2D x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+      case BiomeType.WALL_GATE:
+        return <WallGateSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+      case BiomeType.WALL_WINDOW:
+        return <WallWindowSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+      case BiomeType.DOOR:
+        return <DoorSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} isLocked={false} seed={seed} />;
+      case BiomeType.DOOR_LOCKED:
+        return <DoorSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} isLocked={true} seed={seed} />;
+      case BiomeType.ARCHWAY:
+        return <ArchwaySymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
         
       case BiomeType.FLOOR_STONE:
+        return <FloorTileSymbol2D x={0} y={0} size={size} culturalZone={culturalZone} era={era} floorType="stone" seed={seed} />;
       case BiomeType.FLOOR_WOOD:
+        return <FloorTileSymbol2D x={0} y={0} size={size} culturalZone={culturalZone} era={era} floorType="wood" seed={seed} />;
       case BiomeType.FLOOR_MARBLE:
+        return <FloorTileSymbol2D x={0} y={0} size={size} culturalZone={culturalZone} era={era} floorType="marble" seed={seed} />;
       case BiomeType.FLOOR_TILE:
-        return <FloorSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} biomeType={biome} seed={seed} />;
+      case BiomeType.FLOOR_PATTERN:
+      case BiomeType.FLOOR_CHECKERED:
+        return <FloorTileSymbol2D x={0} y={0} size={size} culturalZone={culturalZone} era={era} floorType="tile" seed={seed} />;
+      case BiomeType.FLOOR_CARPET:
+        return <FloorTileSymbol2D x={0} y={0} size={size} culturalZone={culturalZone} era={era} floorType="carpet" seed={seed} />;
+      
+      // Mosaic floors
+      case BiomeType.FLOOR_MOSAIC:
+        return <MosaicFloorSymbol culturalZone={culturalZone as CulturalZone} variant="regular" />;
+      case BiomeType.FLOOR_MOSAIC_CENTER:
+        return <MosaicFloorSymbol culturalZone={culturalZone as CulturalZone} variant="center" />;
+      case BiomeType.FLOOR_MOSAIC_BORDER:
+        return <MosaicFloorSymbol culturalZone={culturalZone as CulturalZone} variant="border" />;
+      
+      // Bathroom fixtures
+      case BiomeType.TOILET:
+        return <ToiletSymbol culturalZone={culturalZone as CulturalZone} />;
+      case BiomeType.BASIN:
+        return <BasinSymbol culturalZone={culturalZone as CulturalZone} />;
+      case BiomeType.BATH:
+        return <BathSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+      case BiomeType.MIRROR:
+        return <MirrorSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+        
+      // Office/Administrative
+      case BiomeType.FILING_CABINET:
+        return <FilingCabinetSymbol culturalZone={culturalZone as CulturalZone} era={era} />;
+      case BiomeType.PODIUM:
+        return <PodiumSymbol culturalZone={culturalZone as CulturalZone} />;
+        
+      // Kitchen
+      case BiomeType.KITCHEN_STOVE:
+        return <KitchenStoveSymbol culturalZone={culturalZone as CulturalZone} era={era} />;
+      case BiomeType.KITCHEN_COUNTER:
+        return <KitchenCounterSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+      case BiomeType.KITCHEN_SINK:
+        return <KitchenSinkSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+        
+      // Security
+      case BiomeType.GUARD_POST:
+        return <GuardPostSymbol culturalZone={culturalZone as CulturalZone} />;
+      case BiomeType.WEAPON_RACK:
+        return <WeaponRackSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+      case BiomeType.ARMOR_STAND:
+        return <ArmorStandSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
       
       // Additional special map biomes
       case BiomeType.BRAZIER:
@@ -113,6 +213,10 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
           </g>
         );
         
+      // Furniture - Storage
+      case BiomeType.CABINET:
+        return <CabinetSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+      
       case BiomeType.CHEST:
         return (
           <g>
@@ -142,6 +246,12 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
             <circle cx={size * 0.5} cy={size * 0.5} r={size * 0.15} fill="none" stroke="#a3a3a3" strokeWidth="0.5" />
           </g>
         );
+        
+      // Functional
+      case BiomeType.STAIRS_UP:
+        return <StairsSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} direction="up" seed={seed} />;
+      case BiomeType.STAIRS_DOWN:
+        return <StairsSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} direction="down" seed={seed} />;
       
       default:
         // Return null for biomes that don't need special symbols

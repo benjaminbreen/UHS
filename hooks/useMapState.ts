@@ -279,11 +279,11 @@ export const useMapState = (props: useMapStateProps) => {
         return { areaDef: randomMapAreaDef, region: randomRegionName, zone: randomZoneName };
     }, []);
 
-    const generateAndCacheMapInternal = useCallback(( seedToUse: number, archetypeToUse: MapArchetype, climateToUse: ClimateType, worldX: number, worldY: number, localAreaToUse: string, regionToUse: string, zoneToUse: string, neighboringEdges?: any, altitudeOverride?: 'standard' | 'high' | 'low', hasLakes?: boolean, areaEconomicActivityLevel?: number ): CachedMapEntry => { 
+    const generateAndCacheMapInternal = useCallback(( seedToUse: number, archetypeToUse: MapArchetype, climateToUse: ClimateType, worldX: number, worldY: number, localAreaToUse: string, regionToUse: string, zoneToUse: string, neighboringEdges?: any, altitudeOverride?: 'standard' | 'high' | 'low', hasLakes?: boolean, areaEconomicActivityLevel?: number, isVolcanic?: boolean ): CachedMapEntry => { 
         // Use area-specific economicActivityLevel if provided, otherwise fall back to state value
         const effectiveEconomicLevel = areaEconomicActivityLevel !== undefined ? areaEconomicActivityLevel : economicActivityLevel;
         const generationParams: MapGenerationParams = { isAgricultural, isPastoral, economicActivityLevel: effectiveEconomicLevel };
-        const newMap = proceduralGenerateMap( seedToUse, archetypeToUse, climateToUse,  generateHarbor, generateLargeCity,  altitudeOverride || userSelectedBaseAltitude, forceVolcanicActivity, zoneToUse, regionToUse, localAreaToUse, String(gameState.gameDate.year), generationParams, neighboringEdges, hasLakes, undefined, undefined, undefined ); 
+        const newMap = proceduralGenerateMap( seedToUse, archetypeToUse, climateToUse,  generateHarbor, generateLargeCity,  altitudeOverride || userSelectedBaseAltitude, isVolcanic || forceVolcanicActivity, zoneToUse, regionToUse, localAreaToUse, String(gameState.gameDate.year), generationParams, neighboringEdges, hasLakes, undefined, undefined, undefined ); 
         const newAnimals = newMap.animals || []; const newNpcs = newMap.npcs || [];
         delete newMap.animals; delete newMap.npcs;
         const newCacheEntry = { mapData: newMap, animals: newAnimals, npcs: newNpcs, deployedVessels: [], seed: seedToUse, archetype: archetypeToUse, climate: climateToUse, worldX, worldY, region: regionToUse, localArea: localAreaToUse };
@@ -459,7 +459,7 @@ export const useMapState = (props: useMapStateProps) => {
                         currentMapSeed, mapToGenerate.archetype, mapToGenerate.climate,
                         currentWorldCoords.x, currentWorldCoords.y,
                         mapToGenerate.name, mapToGenerate.region, mapToGenerate.zone, neighboringEdges,
-                        mapToGenerate.altitude, mapToGenerate.hasLakes, mapToGenerate.economicActivityLevel
+                        mapToGenerate.altitude, mapToGenerate.hasLakes, mapToGenerate.economicActivityLevel, mapToGenerate.isVolcanic
                     );
                     setMapData(newMapData.mapData);
                     setAnimals(newMapData.animals);
@@ -629,7 +629,7 @@ export const useMapState = (props: useMapStateProps) => {
         const newMapEntry = generateAndCacheMapInternal(
             currentMapSeed, userSelectedBaseArchetype, userSelectedBaseClimate, 
             currentWorldCoords.x, currentWorldCoords.y, 
-            currentLocalArea!, currentRegion!, continent!, {}
+            currentLocalArea!, currentRegion!, continent!, {}, undefined, undefined, undefined, undefined
         );
         setMapData(newMapEntry.mapData);
         setAnimals(newMapEntry.animals);
@@ -691,7 +691,7 @@ export const useMapState = (props: useMapStateProps) => {
             generateHarbor, 
             generateLargeCity,
             areaDef.altitude || userSelectedBaseAltitude, 
-            forceVolcanicActivity,
+            areaDef.isVolcanic || forceVolcanicActivity,
             zone, 
             region, 
             areaDef.name,
@@ -982,7 +982,7 @@ export const useMapState = (props: useMapStateProps) => {
             generateHarbor, 
             generateLargeCity,
             foundAreaDef.altitude || userSelectedBaseAltitude, 
-            forceVolcanicActivity,
+            foundAreaDef.isVolcanic || forceVolcanicActivity,
             targetZone, 
             foundRegion, 
             foundAreaDef.name,

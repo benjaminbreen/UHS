@@ -613,7 +613,7 @@ export async function generateLlmContents(entity: InteriorEntity, mapData: Inter
     const prompt = `You are an expert, historically-accurate world-building assistant for an educational history simulation game. Your task is to generate a plausible list of items found inside a container. Be creative and specific to the context. Context: Location: A ${mapData.buildingType} in a place culturally similar to ${location}. Year: Approximately ${date}. Container: A ${entity.subType}. Based on this context, what specific items might be found inside? Infer a plausible story or profession for the owner if it adds flavor. Please provide the response as a JSON array of 2 to 4 objects, where each object has these keys: "name" (string), "description" (string), "emoji" (string, one character), "rarity" (string, "Common" or "Rare"), "value" (number), "weight" (number), "attack" (number, usually 0), "wearable" (boolean), "stackable" (boolean), "sustenance" (number, usually 0 if not food), "wieldable" (boolean), "throwable" (boolean), "craftingValue" (number, 1-10), "category" (string, one of: 'Tool', 'Weapon', 'Material', 'Apparel', 'Food', 'Special', 'Document').`;
 
     const response = await ai.models.generateContent({ 
-        model: 'gemini-2.5-flash', 
+        model: 'gemini-2.5-flash-lite', 
         contents: prompt,
         config: { responseMimeType: "application/json" }
     });

@@ -297,6 +297,7 @@ export const useUIState = () => {
             playerX: controlledIconX,
             playerY: controlledIconY,
             mapData,
+            gameDate,
         };
 
         const result = await executeSkill(skillId, playerContext);
@@ -333,6 +334,44 @@ export const useUIState = () => {
             }
             if (result.tileCoords && result.amountExtracted) {
                 updateMineralDeposit(result.tileCoords.x, result.tileCoords.y, result.amountExtracted);
+            }
+        }
+        
+        if (result?.type === 'sing' && result.success) {
+            // Apply reputation change from singing performance
+            if (result.reputationChange !== 0) {
+                setPlayerCharacter(p => {
+                    if (!p) return p;
+                    const newRep = Math.max(0, Math.min(100, p.mapReputation + result.reputationChange));
+                    return { ...p, mapReputation: newRep };
+                });
+            }
+            
+            // Add a small amount of fatigue for singing
+            setPlayerCharacter(p => {
+                if (!p) return p;
+                return { ...p, fatigue: Math.min(p.maxFatigue, p.fatigue + 2) };
+            });
+        }
+        
+        if (result?.type === 'combat' && result.message?.includes('Reputation')) {
+            // Handle reputation change from intimidating shout
+            const repMatch = result.message.match(/Reputation ([+-]\d+)/);
+            if (repMatch) {
+                const repChange = parseInt(repMatch[1]);
+                setPlayerCharacter(p => {
+                    if (!p) return p;
+                    const newRep = Math.max(0, Math.min(100, p.mapReputation + repChange));
+                    return { ...p, mapReputation: newRep };
+                });
+            }
+            
+            // Add fatigue cost for intimidating shout
+            if (skillId === 'INTIMIDATING_SHOUT') {
+                setPlayerCharacter(p => {
+                    if (!p) return p;
+                    return { ...p, fatigue: Math.min(p.maxFatigue, p.fatigue + 2) };
+                });
             }
         }
 

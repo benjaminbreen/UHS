@@ -9,6 +9,19 @@ import { MapData, BiomeType, CulturalZone, HistoricalEra, ClimateType } from './
  * Types of special map archetypes
  */
 export enum SpecialMapArchetype {
+  // Simplified archetypes (new system)
+  ESTATES = 'ESTATES',
+  GOVERNMENT = 'GOVERNMENT',
+  ARENA_THEATER = 'ARENA_THEATER',
+  UNIVERSITY_MONASTERY = 'UNIVERSITY_MONASTERY',
+  MARKET_EXHIBITION = 'MARKET_EXHIBITION',
+  OPEN_FIELD = 'OPEN_FIELD',
+  CAMPGROUND = 'CAMPGROUND',
+  RESTAURANT_INN = 'RESTAURANT_INN',
+  VESSEL = 'VESSEL',
+  PLAYER_HOME = 'PLAYER_HOME',
+  
+  // Legacy archetypes (will be mapped to new ones)
   PALACE_COMPLEX = 'PALACE_COMPLEX',
   MARKET_BAZAAR = 'MARKET_BAZAAR',
   GOVERNMENT_FORUM = 'GOVERNMENT_FORUM',
@@ -17,8 +30,7 @@ export enum SpecialMapArchetype {
   UNIVERSITY = 'UNIVERSITY',
   THEATER = 'THEATER',
   ARENA = 'ARENA',
-  EXHIBITION = 'EXHIBITION',
-  OPEN_FIELD = 'OPEN_FIELD'
+  EXHIBITION = 'EXHIBITION'
 }
 
 /**
@@ -28,16 +40,59 @@ export enum ArchitecturalBiome {
   // Structural
   WALL = 'WALL',
   WALL_GATE = 'WALL_GATE',
+  WALL_WINDOW = 'WALL_WINDOW',
+  DOOR = 'DOOR',
+  DOOR_LOCKED = 'DOOR_LOCKED',
+  ARCHWAY = 'ARCHWAY',
+  
+  // Floors - Basic
   FLOOR_STONE = 'FLOOR_STONE',
   FLOOR_WOOD = 'FLOOR_WOOD',
   FLOOR_MARBLE = 'FLOOR_MARBLE',
   FLOOR_TILE = 'FLOOR_TILE',
+  FLOOR_CARPET = 'FLOOR_CARPET',
   
-  // Furniture
+  // Floors - Decorative
+  FLOOR_MOSAIC = 'FLOOR_MOSAIC',
+  FLOOR_MOSAIC_CENTER = 'FLOOR_MOSAIC_CENTER',
+  FLOOR_MOSAIC_BORDER = 'FLOOR_MOSAIC_BORDER',
+  FLOOR_PATTERN = 'FLOOR_PATTERN',
+  FLOOR_CHECKERED = 'FLOOR_CHECKERED',
+  
+  // Furniture - Seating
   TABLE = 'TABLE',
   CHAIR = 'CHAIR',
-  BED = 'BED',
+  BENCH = 'BENCH',
   THRONE = 'THRONE',
+  DESK = 'DESK',
+  PODIUM = 'PODIUM',
+  
+  // Furniture - Storage
+  BOOKSHELF = 'BOOKSHELF',
+  CABINET = 'CABINET',
+  CHEST = 'CHEST',
+  SHELF = 'SHELF',
+  COAT_RACK = 'COAT_RACK',
+  
+  // Additional Architectural
+  DAIS = 'DAIS',
+  FIREPIT = 'FIREPIT',
+  LIGHT_SOURCE = 'LIGHT_SOURCE',
+  TENT = 'TENT',
+  BERRY_BUSH = 'BERRY_BUSH',
+  TORCH = 'TORCH',
+  
+  // Bathroom
+  TOILET = 'TOILET',
+  BASIN = 'BASIN',
+  BATH = 'BATH',
+  MIRROR = 'MIRROR',
+  
+  // Kitchen
+  KITCHEN_STOVE = 'KITCHEN_STOVE',
+  KITCHEN_COUNTER = 'KITCHEN_COUNTER',
+  KITCHEN_SINK = 'KITCHEN_SINK',
+  PANTRY = 'PANTRY',
   
   // Features
   COLUMN = 'COLUMN',
@@ -46,24 +101,37 @@ export enum ArchitecturalBiome {
   PAVILION = 'PAVILION',
   ALTAR = 'ALTAR',
   STAGE = 'STAGE',
+  PLANTER = 'PLANTER',
+  RUG = 'RUG',
+  
+  // Office/Administrative
+  FILING_CABINET = 'FILING_CABINET',
+  DOCUMENT_TABLE = 'DOCUMENT_TABLE',
+  SCROLL_RACK = 'SCROLL_RACK',
+  SEAL_STAND = 'SEAL_STAND',
+  
+  // Security
+  GUARD_POST = 'GUARD_POST',
+  WEAPON_RACK = 'WEAPON_RACK',
+  ARMOR_STAND = 'ARMOR_STAND',
   
   // Functional
-  BOOKSHELF = 'BOOKSHELF',
   WORKSHOP = 'WORKSHOP',
-  KITCHEN = 'KITCHEN',
   CELL = 'CELL',
   TREASURY = 'TREASURY',
-  BATH = 'BATH'
+  STAIRS_UP = 'STAIRS_UP',
+  STAIRS_DOWN = 'STAIRS_DOWN'
 }
 
 /**
  * Map size configurations for special maps
  */
 export interface SpecialMapSize {
-  small: { width: 40, height: 30 };   // Intimate spaces
-  medium: { width: 50, height: 35 };  // Default
-  large: { width: 60, height: 40 };   // Complex spaces
-  huge: { width: 80, height: 60 };    // Vast areas
+  xs: { width: 8, height: 8 };        // Small buildings, vessels, prehistoric
+  small: { width: 10, height: 10 };   // Temporary spaces
+  medium: { width: 16, height: 16 };  // Standard buildings  
+  large: { width: 20, height: 20 };   // Major complexes
+  xl: { width: 25, height: 25 };      // Massive sites
 }
 
 /**
@@ -71,15 +139,29 @@ export interface SpecialMapSize {
  */
 export interface SpecialMapConfig {
   archetype: SpecialMapArchetype;
-  mapSize: 'small' | 'medium' | 'large' | 'huge';
+  mapSize: 'xs' | 'small' | 'medium' | 'large' | 'xl';
   culturalZone: CulturalZone;
   era: HistoricalEra;
   region?: string; // Specific region within cultural zone
   specificYear?: number; // For more precise historical accuracy
   climate?: ClimateType; // Climate from parent map
+  structureId?: string; // ID of the structure on the main map
+  structureName?: string; // Name of the structure (e.g., "Babylonian Royal Palace")
   
-  // Archetype-specific configurations
-  // Palace
+  // New simplified system parameters
+  isCircular?: boolean;        // Round structures (huts, amphitheaters)
+  isRectangular?: boolean;     // Constrained rectangular (vessels)
+  hasLandscape?: boolean;      // Add climate-appropriate border
+  landscapeClimate?: 'arid' | 'temperate' | 'cold' | 'semitropical' | 'tropical' | 'ocean';
+  floorMaterial?: 'white_marble' | 'grey_stone' | 'red_lacquer' | 'sandstone' | 'wood' | 'steel' | 'earth';
+  wallMaterial?: 'white_marble' | 'grey_stone' | 'red_lacquer' | 'sandstone' | 'wood' | 'steel' | 'hide';
+  furnitureMaterial?: 'white_marble' | 'grey_stone' | 'red_lacquer' | 'sandstone' | 'wood' | 'steel';
+  innerMapType?: string;       // Type of interior map portal
+  innerMapName?: string;       // Custom name for interior
+  isPrivate?: boolean;         // Requires elite access
+  density?: 'sparse' | 'normal' | 'dense';
+  
+  // Legacy archetype-specific configurations (will be deprecated)
   concentricCourts?: number;
   hasGardens?: boolean;
   waterFeature?: 'ponds' | 'fountains' | 'canals' | 'none';
@@ -122,9 +204,31 @@ export interface RoomDefinition {
   name: string;
   bounds: { x: number, y: number, width: number, height: number };
   description?: string;
-  roomType: 'throne_room' | 'courtyard' | 'hall' | 'chamber' | 'garden' | 
-            'corridor' | 'marketplace' | 'assembly' | 'sanctuary' | 'armory' | 
-            'library' | 'treasury' | 'entrance' | 'gallery' | 'workshop';
+  roomType: string; // Flexible room type for various architectures
+  
+  // Access control fields
+  accessLevel?: 'public' | 'semi-public' | 'private' | 'restricted';
+  allowedSocialClasses?: string[];
+  professionFilter?: {
+    whitelist?: string[];  // Specific professions allowed
+    blacklist?: string[];  // Specific professions banned
+    category?: ProfessionCategory[]; // Categories like 'nobility', 'clergy', 'military'
+  };
+  genderRestriction?: 'male' | 'female' | 'any';
+  npcDensity?: 'empty' | 'sparse' | 'normal' | 'crowded';
+  timeRestriction?: 'day' | 'night' | 'dawn' | 'dusk' | 'any';
+}
+
+export enum ProfessionCategory {
+  NOBILITY = 'nobility',      // Knight, Duke, Baron, etc.
+  CLERGY = 'clergy',          // Priest, Monk, Bishop, Imam, etc.
+  MILITARY = 'military',      // Soldier, Guard, Captain, etc.
+  MERCHANT = 'merchant',      // Any merchant types
+  SCHOLAR = 'scholar',        // Scholar, Philosopher, Teacher, etc.
+  ARTISAN = 'artisan',        // Craftsman, Artist, etc.
+  SERVANT = 'servant',        // Servant, Butler, Maid, etc.
+  COMMONER = 'commoner',      // General public
+  OFFICIAL = 'official'       // Bureaucrat, Magistrate, etc.
 }
 
 /**
@@ -175,7 +279,7 @@ export interface SpecialMapData extends MapData {
 export interface InteractionZone {
   id: string;
   bounds: { x: number, y: number, width: number, height: number };
-  type: 'throne' | 'altar' | 'stage' | 'auction' | 'council' | 'market';
+  type: string; // Flexible interaction type for various architectures
   interactions: string[];
   requiredStatus?: string[]; // e.g., 'noble', 'citizen', 'merchant'
 }
@@ -187,7 +291,7 @@ export interface ExitZone {
   id: string;
   location: [number, number];
   label: string;
-  destination: 'parent_map' | 'adjacent_special_map';
+  destination: string; // Flexible destination type for interior maps
   adjacentMapId?: string;
 }
 

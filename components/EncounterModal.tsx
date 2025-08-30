@@ -34,6 +34,7 @@ import { eventService } from '../services/eventService';
 import { getLanguageForCharacter, getLanguageComprehension, LANGUAGES } from '../constants/gameData/languages';
 import { triggerArrest, ArrestScenario } from '../services/arrestService';
 import { usePortraitExpression, mapRepDeltaToExpr, mapEventToExpr } from '../hooks/usePortraitExpression';
+import DiseaseService from '../services/diseaseService';
 
 function isNpc(target: EncounterableEntity): target is NpcEntity {
     return 'role' in target;
@@ -145,7 +146,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
     const hasFetchedInitialDialogue = useRef(false);
     const dialogueLogRef = useRef<HTMLDivElement>(null);
 
-    const targetName = isNpc(target) ? target.name : target.speciesName;
+    const targetName = isNpc(target) ? (target.name || 'Unknown NPC') : (target.speciesName || 'Unknown Creature');
     
     /**
      * Trigger arrest scenario when reputation hits zero
@@ -437,7 +438,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                 setIsLoading(false);
             });
         } else if (!isNpc(target)) {
-            const fallbackText = `The ${targetName.toLowerCase()} watches you warily.`;
+            const fallbackText = `The ${targetName ? targetName.toLowerCase() : 'creature'} watches you warily.`;
             setHistory([{ speaker: 'npc', text: fallbackText, timestamp: new Date() }]);
             setIsLoading(false);
         }
@@ -469,7 +470,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
         // Check for disease transmission FROM NPC/animal TO player
         if (isNpc(target) || (target as any).speciesName) {
             try {
-                const result = diseaseService.checkDirectContactTransmission(
+                const result = DiseaseService.checkDirectContactTransmission(
                     target,
                     playerCharacter,
                     currentYear
@@ -497,7 +498,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
         // Check for disease transmission FROM player TO NPC/animal
         if (playerCharacter.diseaseHealth?.currentDiseases?.length > 0) {
             try {
-                const playerDiseasesResult = diseaseService.checkDirectContactTransmission(
+                const playerDiseasesResult = DiseaseService.checkDirectContactTransmission(
                     playerCharacter,
                     target,
                     currentYear
@@ -1120,7 +1121,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                                         <div className="space-y-3">
                                             <h5 className="text-sm font-semibold text-red-300">Your Current Ailments:</h5>
                                             {playerCharacter.health.currentDiseases.map((activeDisease, index) => {
-                                                const availableTreatments = mapData ? diseaseService.getAvailableTreatments(
+                                                const availableTreatments = mapData ? DiseaseService.getAvailableTreatments(
                                                     activeDisease.disease.type,
                                                     mapData.timeSlice ? 
                                                         (parseInt(mapData.timeSlice) < 500 ? 'ANCIENT' :
@@ -1163,7 +1164,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                                                                         </div>
                                                                         <button
                                                                             onClick={() => {
-                                                                                const result = diseaseService.applyTreatment(
+                                                                                const result = DiseaseService.applyTreatment(
                                                                                     playerCharacter,
                                                                                     activeDisease.disease.id,
                                                                                     medicine.id,

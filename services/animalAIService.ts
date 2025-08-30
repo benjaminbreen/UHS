@@ -1,7 +1,7 @@
 /**
  * services/animalAIService.ts - Enhanced animal AI behavior for standard maps
  */
-import { AnimalEntity, Point, Tile, MapData, BiomeType } from '../types';
+import { AnimalEntity, NpcEntity, Point, Tile, MapData, BiomeType } from '../types';
 import { ANIMAL_DATA } from '../constants/index';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES } from '../constants/index';
 
@@ -25,7 +25,7 @@ interface AIConfig {
 
 const AI_CONFIG: AIConfig = {
     PLAYER_DETECTION_RADIUS: 8,
-    FLEE_DISTANCE: 6,
+    FLEE_DISTANCE: 3, // Updated to 3 squares as requested
     ATTACK_DISTANCE: 1.5,
     CHASE_DISTANCE: 12,
     WANDER_RADIUS: 10,
@@ -113,7 +113,8 @@ export function calculateAnimalUpdate(
     animal: AnimalEntity, 
     allAnimals: AnimalEntity[],
     playerPos: Point,
-    map: MapData
+    map: MapData,
+    allNpcs?: NpcEntity[]
 ): Partial<AnimalEntity> {
     const memory = getAnimalMemory(animal.id, animal);
     const animalData = ANIMAL_DATA[animal.baseId];
@@ -129,16 +130,37 @@ export function calculateAnimalUpdate(
     const playerDist = Math.hypot(animal.x - playerPos.x, animal.y - playerPos.y);
     const canSeePlayer = playerDist <= AI_CONFIG.PLAYER_DETECTION_RADIUS;
     
+    // Check for nearby NPCs (prey should flee from them too)
+    let nearestThreat: Point | null = null;
+    let nearestThreatDist = Infinity;
+    
+    // Check player as threat
+    if (canSeePlayer && playerDist <= AI_CONFIG.FLEE_DISTANCE) {
+        nearestThreat = playerPos;
+        nearestThreatDist = playerDist;
+    }
+    
+    // Check NPCs as threats (for prey animals)
+    if (animal.type === 'Prey' && allNpcs) {
+        for (const npc of allNpcs) {
+            const npcDist = Math.hypot(animal.x - npc.x, animal.y - npc.y);
+            if (npcDist <= AI_CONFIG.FLEE_DISTANCE && npcDist < nearestThreatDist) {
+                nearestThreat = { x: npc.x, y: npc.y };
+                nearestThreatDist = npcDist;
+            }
+        }
+    }
+    
     let newState = animal.aiState;
     let targetPos: Point | null = null;
     
     // --- State Transitions ---
-    if(animal.type === 'Predator' && canSeePlayer) {
+    if (animal.type === 'Predator' && canSeePlayer) {
         newState = playerDist <= AI_CONFIG.ATTACK_DISTANCE ? 'attacking' : 'chasing';
         targetPos = playerPos;
-    } else if (animal.type === 'Prey' && canSeePlayer) {
+    } else if (animal.type === 'Prey' && nearestThreat) {
         newState = 'fleeing';
-        targetPos = playerPos;
+        targetPos = nearestThreat;
     } else {
         if(newState !== 'wandering' && newState !== 'idle') {
             newState = 'wandering';

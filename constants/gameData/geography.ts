@@ -63,7 +63,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Roman Campagna": { name: "Roman Campagna", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.ALL_LAND, hasLakes: false },
             "Venetian Lagoon": { name: "Venetian Lagoon", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.BAY },
             "Apennine Foothills": { name: "Apennine Foothills", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false },
-            "Bay of Naples": { name: "Bay of Naples", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.BAY },
+            "Bay of Naples": { name: "Bay of Naples", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.BAY, isVolcanic: true },
             "Florence Hills": { name: "Florence Hills", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.ALL_LAND, hasLakes: false },
             "Po Valley": { name: "Po Valley", climate: ClimateType.MEDITERRANEAN, archetype: MapArchetype.RIVER_PORT }
         },
@@ -130,7 +130,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
         },
 
         "Atlantic Islands": {
-            "Iceland": { name: "Iceland", climate: ClimateType.TUNDRA, archetype: MapArchetype.ISLAND, economicActivityLevel: 1 },
+            "Iceland": { name: "Iceland", climate: ClimateType.TUNDRA, archetype: MapArchetype.ISLAND, economicActivityLevel: 1, isVolcanic: true },
             "Greenland Coast": { name: "Greenland Coast", climate: ClimateType.TUNDRA, archetype: MapArchetype.BAY, economicActivityLevel: 0 },
             "Azores": { name: "Azores", climate: ClimateType.TEMPERATE, archetype: MapArchetype.ISLAND },
             "Cape Verde": { name: "Cape Verde", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND }
@@ -589,7 +589,7 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Strait of Malacca": { name: "Strait of Malacca", climate: ClimateType.TROPICAL, archetype: MapArchetype.STRAITS },
             "Sumatra Highlands": { name: "Sumatra Highlands", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false },
             "Java Sea": { name: "Java Sea", climate: ClimateType.TROPICAL, archetype: MapArchetype.SHOALS },
-            "Central Java": { name: "Central Java", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND, hasLakes: false },
+            "Central Java": { name: "Central Java", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND, hasLakes: false, isVolcanic: true },
             "Sunda Strait": { name: "Sunda Strait", climate: ClimateType.TROPICAL, archetype: MapArchetype.STRAITS },
             "Borneo": { name: "Borneo", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND },
             "Makassar Strait": { name: "Makassar Strait", climate: ClimateType.TROPICAL, archetype: MapArchetype.STRAITS },
@@ -764,10 +764,10 @@ export const GEOGRAPHICAL_DATA: { [zoneName: string]: ZoneDefinition } = {
             "Guam and Surroundings": { name: "Guam and Surroundings", climate: ClimateType.TROPICAL, archetype: MapArchetype.ISLAND }
         },
         "Hawaii and Central Pacific": {
-            "Big Island Highlands": { name: "Big Island Highlands", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false },
+            "Big Island Highlands": { name: "Big Island Highlands", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false, isVolcanic: true },
             "Maui Slopes": { name: "Maui Slopes", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND, hasLakes: false },
-            "Oahu Basin": { name: "Oahu Basin", climate: ClimateType.TROPICAL, archetype: MapArchetype.BAY },
-            "Volcanoes National Park": { name: "Volcanoes National Park", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false },
+            "Oahu Basin": { name: "Oahu Basin", climate: ClimateType.TROPICAL, archetype: MapArchetype.BAY, isVolcanic: true },
+            "Volcanoes National Park": { name: "Volcanoes National Park", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND, altitude: 'high', hasLakes: false, isVolcanic: true },
             "Kauai Valleys": { name: "Kauai Valleys", climate: ClimateType.TROPICAL, archetype: MapArchetype.ALL_LAND, hasLakes: false },
             "Molokai Channel": { name: "Molokai Channel", climate: ClimateType.TROPICAL, archetype: MapArchetype.STRAITS }
         },

@@ -7,6 +7,7 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react';
 import { MapData, Tile, BiomeType, ClimateType, DevTooltipDisplayData, AnimalEntity, NpcEntity, VegetationEntity, LensMode, TerrainStructure, Season, PlayerCharacter, HistoricalEra, DeployedVessel, PathType } from '../types/index';
 import { loadTamedAnimals, TamedAnimal } from '../services/animalTamingService';
+import { fireService } from '../services/fireService';
 import { isMobileDevice } from '../utils/deviceUtils';
 import MobileControls from './mobile/MobileControls';
 import MobileHeader from './mobile/MobileHeader';
@@ -26,7 +27,7 @@ import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { selectBuilding } from '../utils/buildingSelectionSystem';
 import { getLocationCulturalStyle } from '../utils/culturalMappingUtils';
-import { CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol, FishingHutSymbol, SteamSymbol, GovernmentDistrictSymbol, FireflySymbol, MineralGlintSymbol, OasisSymbol, PlazaSymbol, ParkSymbol, HarborDistrictSymbol, IndustrialDistrictSymbol, PaddockSymbol, LavaSymbol, MountainSymbol, SnowSymbol, BridgeSymbol } from './symbols';
+import { CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol, FishingHutSymbol, SteamSymbol, GovernmentDistrictSymbol, FireflySymbol, MineralGlintSymbol, OasisSymbol, PlazaSymbol, ParkSymbol, HarborDistrictSymbol, IndustrialDistrictSymbol, PaddockSymbol, LavaSymbol, LavaSymbolCSS, MountainSymbol, SnowSymbol, BridgeSymbol } from './symbols';
 import RuinsSymbolNew from './symbols/ruins/RuinsSymbolNew';
 import VesselSymbol from './symbols/VesselSymbol';
 import TrainSymbol from './symbols/TrainSymbol';
@@ -360,12 +361,34 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   const [mobileControlMode, setMobileControlMode] = useState<'camera' | 'player'>('player');
   const [tamedAnimals, setTamedAnimals] = useState<TamedAnimal[]>([]);
   const [lastMoveDirection, setLastMoveDirection] = useState<{x: number, y: number}>({ x: 0, y: -1 });
+  const [fireUpdateTrigger, setFireUpdateTrigger] = useState(0); // Force re-render when fires change
   
   // Load tamed animals on mount and when player position changes
   useEffect(() => {
     const animals = loadTamedAnimals();
     setTamedAnimals(animals);
   }, [logicalControlledIconX, logicalControlledIconY]);
+  
+  // Listen for fire changes and update immediately
+  useEffect(() => {
+    // Subscribe to fire changes
+    const unsubscribe = fireService.onFireChange(() => {
+      setFireUpdateTrigger(prev => prev + 1);
+    });
+    
+    // Also update periodically for animation
+    const fireUpdateInterval = setInterval(() => {
+      // Force re-render if there are active fires for animation
+      if (fireService.getAllFires().length > 0) {
+        setFireUpdateTrigger(prev => prev + 1);
+      }
+    }, 500); // Update twice per second for smoother animation
+    
+    return () => {
+      clearInterval(fireUpdateInterval);
+      unsubscribe();
+    };
+  }, []);
   
   // Track player movement direction
   const prevPlayerPos = useRef({ x: logicalControlledIconX, y: logicalControlledIconY });
@@ -1613,6 +1636,13 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         >
           <defs>
             {/* Enhanced filters and gradients */}
+            <filter id="fireGlow">
+              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
             <filter id="symbolShadow" x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
               <feOffset dx="2" dy="2" result="offsetblur"/>
@@ -1636,7 +1666,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             <filter id="streamFilter">
               <feGaussianBlur in="SourceGraphic" stdDeviation="0.5" result="blur" />
               <feOffset in="blur" dx="1" dy="1" result="offsetBlur" />
-              <feFlood flood-color="#000000" flood-opacity="0.2" />
+              <feFlood floodColor="#000000" floodOpacity="0.2" />
               <feComposite in2="offsetBlur" operator="in" result="shadow" />
               <feMerge>
                 <feMergeNode in="shadow" />
@@ -2366,7 +2396,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   const lavaY = tile.y * TILE_SIZE_PX;
                   const lavaSeed = seed + tile.x * 47 + tile.y * 53;
                   return (
-                    <LavaSymbol 
+                    <LavaSymbolCSS 
                       key={`lava-${tile.x}-${tile.y}`}
                       x={lavaX}
                       y={lavaY}
@@ -3164,16 +3194,28 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {isSpecialMap && mapData && (
               <g>
                 {mapData.tiles.flat().filter(tile => {
-                  // Only render symbols for furniture and interactive items, not walls/floors
-                  const furnitureBiomes = [
-                    BiomeType.TABLE, BiomeType.CHAIR, BiomeType.FOUNTAIN, BiomeType.STATUE,
-                    BiomeType.BED, BiomeType.THRONE, BiomeType.BOOKSHELF, BiomeType.DESK,
-                    BiomeType.PILLAR, BiomeType.CARPET, BiomeType.ALTAR, BiomeType.SHRINE,
-                    BiomeType.BRAZIER, BiomeType.CHEST, BiomeType.BARREL, BiomeType.TORCH
+                  // Render ALL special map biomes that need custom symbols
+                  // This includes walls, floors, and furniture for proper 2.5D rendering
+                  const specialMapBiomes = [
+                    // Walls and structural elements (now with 2.5D symbols!)
+                    BiomeType.WALL, BiomeType.WALL_GATE, BiomeType.WALL_WINDOW,
+                    BiomeType.DOOR, BiomeType.DOOR_LOCKED, BiomeType.ARCHWAY,
+                    // Floors (with beautiful textures)
+                    BiomeType.FLOOR_STONE, BiomeType.FLOOR_WOOD, BiomeType.FLOOR_MARBLE,
+                    BiomeType.FLOOR_TILE, BiomeType.FLOOR_CARPET, BiomeType.FLOOR_PATTERN,
+                    BiomeType.FLOOR_CHECKERED, BiomeType.FLOOR_MOSAIC,
+                    BiomeType.FLOOR_MOSAIC_CENTER, BiomeType.FLOOR_MOSAIC_BORDER,
+                    // Furniture and interactive items
+                    BiomeType.TABLE, BiomeType.CHAIR, BiomeType.BENCH, BiomeType.BED,
+                    BiomeType.THRONE, BiomeType.BOOKSHELF, BiomeType.DESK,
+                    BiomeType.FOUNTAIN, BiomeType.STATUE, BiomeType.COLUMN, BiomeType.PILLAR,
+                    BiomeType.CARPET, BiomeType.ALTAR, BiomeType.SHRINE,
+                    BiomeType.BRAZIER, BiomeType.CHEST, BiomeType.BARREL, BiomeType.TORCH,
+                    BiomeType.PODIUM, BiomeType.CABINET, BiomeType.MIRROR,
+                    BiomeType.BATH, BiomeType.KITCHEN_COUNTER, BiomeType.KITCHEN_SINK,
+                    BiomeType.WEAPON_RACK, BiomeType.ARMOR_STAND, BiomeType.STAIRS
                   ];
-                  // Don't render symbols for basic structural elements like walls and floors
-                  // These are already visible through the canvas rendering
-                  return furnitureBiomes.includes(tile.biome);
+                  return specialMapBiomes.includes(tile.biome);
                 }).map(tile => (
                   <SpecialMapSymbolRenderer
                     key={`special-${tile.x}-${tile.y}`}
@@ -3488,6 +3530,55 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               ))}
             </g>
             
+            {/* Fire overlay layer - rendered above terrain but below NPCs/animals */}
+            <g key={`fire-layer-${fireUpdateTrigger}`}>
+              {fireService.getAllFires().map((fire) => {
+                const fireX = fire.x * TILE_SIZE_PX;
+                const fireY = fire.y * TILE_SIZE_PX;
+                const opacity = fire.intensity === 1 ? 0.7 :
+                               fire.intensity === 2 ? 0.85 : 1.0;
+                const scale = fire.intensity === 1 ? 1.0 :
+                             fire.intensity === 2 ? 1.2 : 1.4;
+                
+                return (
+                  <g key={`fire-${fire.x}-${fire.y}`}>
+                    <text
+                      x={fireX + TILE_SIZE_PX / 2}
+                      y={fireY + TILE_SIZE_PX / 2}
+                      fontSize={TILE_SIZE_PX * 0.8 * scale}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      opacity={opacity}
+                      className="select-none pointer-events-none"
+                      style={{
+                        filter: 'drop-shadow(0 0 10px rgba(255, 100, 0, 0.9)) drop-shadow(0 0 20px rgba(255, 50, 0, 0.6))',
+                        animation: `fireFlicker ${0.3 + Math.random() * 0.4}s infinite alternate`
+                      }}
+                    >
+                      🔥
+                    </text>
+                    {fire.intensity >= 3 && (
+                      <text
+                        x={fireX + TILE_SIZE_PX * 0.7}
+                        y={fireY + TILE_SIZE_PX * 0.3}
+                        fontSize={TILE_SIZE_PX * 0.6}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        opacity={0.8}
+                        className="select-none pointer-events-none"
+                        style={{
+                          filter: 'drop-shadow(0 0 8px rgba(255, 150, 0, 0.7))',
+                          animation: `fireFlicker ${0.4 + Math.random() * 0.3}s infinite alternate-reverse`
+                        }}
+                      >
+                        🔥
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+            </g>
+            
             <g>
               {/* Docked Ship Icon */}
               {shipDockX !== null && shipDockY !== null && playerMode === 'onFoot' && (
@@ -3756,5 +3847,43 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   );
 };
 
-// Export memoized version for performance
-export default memo(MapDisplayOptimized);
+// Custom comparison function for memo to prevent unnecessary re-renders
+const arePropsEqual = (prevProps: MapDisplayOptimizedProps, nextProps: MapDisplayOptimizedProps) => {
+  // Only re-render if these essential props changed
+  return (
+    // Map data comparison - use seed as a proxy for map changes
+    prevProps.mapData?.seed === nextProps.mapData?.seed &&
+    prevProps.mapData?.mapType === nextProps.mapData?.mapType &&
+    
+    // View and position changes
+    prevProps.zoomLevel === nextProps.zoomLevel &&
+    prevProps.panX === nextProps.panX &&
+    prevProps.panY === nextProps.panY &&
+    prevProps.viewMode === nextProps.viewMode &&
+    
+    // Player position changes
+    prevProps.controlledIconX === nextProps.controlledIconX &&
+    prevProps.controlledIconY === nextProps.controlledIconY &&
+    prevProps.playerMode === nextProps.playerMode &&
+    
+    // Essential state changes
+    prevProps.isNight === nextProps.isNight &&
+    prevProps.activeLens === nextProps.activeLens &&
+    prevProps.selectedTileCoords?.x === nextProps.selectedTileCoords?.x &&
+    prevProps.selectedTileCoords?.y === nextProps.selectedTileCoords?.y &&
+    
+    // Array length comparisons for performance (deep comparison is expensive)
+    prevProps.animals?.length === nextProps.animals?.length &&
+    prevProps.npcs?.length === nextProps.npcs?.length &&
+    prevProps.vegetationEntities?.length === nextProps.vegetationEntities?.length &&
+    prevProps.deployedVessels?.length === nextProps.deployedVessels?.length &&
+    
+    // Game state that affects rendering
+    prevProps.gameDate?.dayOfYear === nextProps.gameDate?.dayOfYear &&
+    prevProps.gameDate?.year === nextProps.gameDate?.year &&
+    prevProps.gameDate?.season === nextProps.gameDate?.season
+  );
+};
+
+// Export memoized version with custom comparison for maximum performance
+export default memo(MapDisplayOptimized, arePropsEqual);

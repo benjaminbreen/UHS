@@ -1,11 +1,14 @@
 /**
  * services/skillService.ts - The main service for executing player skills.
  */
-import { Tile, SkillID, SkillResult, PlayerContext, ForageSkillResult, ObserveSkillResult, BiomeType, AnimalEntity, ChopSkillResult, DigSkillResult, VegetationEntity, VegetationSpecies, Item, ItemQuality } from '../types';
+import { Tile, SkillID, SkillResult, PlayerContext, ForageSkillResult, ObserveSkillResult, BiomeType, AnimalEntity, ChopSkillResult, DigSkillResult, VegetationEntity, VegetationSpecies, Item, ItemQuality, SingSkillResult, NPC, CombatSkillResult } from '../types';
 import { generateObservationText, generateUniqueForageItem } from './llmService';
 import { LOOT_TABLES, ANIMAL_DATA, VEGETATION_SPECIES_DATA, ITEM_DEFINITIONS, STRUCTURE_LOOT_TABLES, METALS } from '../constants/index';
 import { createItemInstance, generateProceduralItemDefinition } from '../utils/inventoryUtils';
 import { executeTerrainDig, executeTerrainForage, executeTerrainChop } from './terrainForagingService';
+import { performSong, formatSongDisplay } from './singingService';
+import { handleIntimidatingShout } from './npcInitiatedEncounterService';
+import { fireService } from './fireService';
 
 
 async function executeObserve(context: PlayerContext): Promise<ObserveSkillResult> {
@@ -527,6 +530,209 @@ async function executeDig(context: PlayerContext): Promise<DigSkillResult> {
  * @param context The current player and environmental context.
  * @returns A promise that resolves with the result of the skill.
  */
+async function executeSing(context: PlayerContext): Promise<SingSkillResult> {
+    const { playerCharacter, currentTile, mapData, npcs, gameDate } = context;
+    
+    if (!playerCharacter) {
+        return {
+            type: 'sing',
+            success: false,
+            song: '',
+            message: "You can't sing right now.",
+            performanceScore: 0,
+            reputationChange: 0
+        };
+    }
+    
+    // Get nearby NPCs (within 5 tiles)
+    const nearbyNPCs: NPC[] = [];
+    if (npcs && context.playerX !== null && context.playerY !== null) {
+        npcs.forEach(npc => {
+            const distance = Math.sqrt(
+                Math.pow(npc.x - context.playerX!, 2) + 
+                Math.pow(npc.y - context.playerY!, 2)
+            );
+            if (distance <= 5) {
+                nearbyNPCs.push(npc as any);
+            }
+        });
+    }
+    
+    // Get time of day and season from gameDate
+    const timeOfDay = gameDate?.timeOfDay || 'day';
+    const season = gameDate?.season || 'summer';
+    
+    try {
+        const result = await performSong(
+            playerCharacter,
+            mapData || null,
+            currentTile as Tile || null,
+            nearbyNPCs,
+            timeOfDay,
+            season
+        );
+        
+        // Format the display message
+        const displayMessage = formatSongDisplay(result, playerCharacter.name);
+        
+        // Calculate XP gained (1-3 based on performance)
+        const xpGained = Math.max(1, Math.min(3, Math.floor(result.finalScore / 3)));
+        
+        return {
+            type: 'sing',
+            success: true,
+            song: result.song,
+            message: displayMessage,
+            performanceScore: result.finalScore,
+            reputationChange: result.reputationChange,
+            xpGained
+        };
+    } catch (error) {
+        console.error('Error executing Sing skill:', error);
+        return {
+            type: 'sing',
+            success: false,
+            song: '♪ ...la la la... ♪',
+            message: 'You try to sing, but your voice falters.',
+            performanceScore: 3,
+            reputationChange: 0,
+            xpGained: 1
+        };
+    }
+}
+
+async function executeBurn(context: PlayerContext): Promise<CombatSkillResult> {
+    const { playerCharacter, currentTile, mapData, playerX, playerY, gameDate } = context;
+    
+    if (!playerCharacter || !currentTile || !mapData || playerX === null || playerY === null) {
+        return {
+            type: 'combat',
+            success: false,
+            message: "You can't start a fire right now.",
+            xpGained: 0
+        };
+    }
+    
+    // Check if in combat (handled separately in CombatModal)
+    if (context.combatant) {
+        return {
+            type: 'combat',
+            success: false,
+            message: "Use this skill from the combat interface during battle.",
+            xpGained: 0
+        };
+    }
+    
+    // Check if in interior (prevent indoor fires for now)
+    if (context.viewMode === 'interior') {
+        return {
+            type: 'combat',
+            success: false,
+            message: "You cannot start fires indoors!",
+            xpGained: 0
+        };
+    }
+    
+    // TODO: Later add check for torch/tinderbox in inventory
+    // For now, allow fire starting without items as requested
+    
+    // Get current game time in minutes
+    const gameTimeMinutes = ((gameDate?.dayOfYear || 1) - 1) * 24 * 60 + 
+                           ((gameDate?.hour || 0) * 60) + 
+                           (gameDate?.minute || 0);
+    
+    // Attempt to start fire
+    const tile = currentTile as Tile;
+    const result = fireService.startFire(playerX, playerY, tile, gameTimeMinutes, playerCharacter);
+    
+    if (result.success) {
+        // Apply fatigue cost
+        const fatigueCost = 3;
+        
+        return {
+            type: 'combat',
+            success: true,
+            message: result.message + "\n\n⚠️ Be careful - fire can spread to neighboring areas!",
+            xpGained: 2
+        };
+    } else {
+        return {
+            type: 'combat',
+            success: false,
+            message: result.message,
+            xpGained: 0
+        };
+    }
+}
+
+async function executeIntimidatingShout(context: PlayerContext): Promise<CombatSkillResult> {
+    const { playerCharacter, mapData, npcs, playerX, playerY } = context;
+    
+    if (!playerCharacter || playerX === null || playerY === null) {
+        return {
+            type: 'combat',
+            success: false,
+            message: "You can't shout right now.",
+            xpGained: 0
+        };
+    }
+    
+    // Check if in combat (handled separately in CombatModal)
+    if (context.combatant) {
+        return {
+            type: 'combat',
+            success: false,
+            message: "Use this skill from the combat interface during battle.",
+            xpGained: 0
+        };
+    }
+    
+    // Non-combat use: Make nearby NPCs approach
+    try {
+        const results = await handleIntimidatingShout(
+            playerCharacter,
+            npcs || [],
+            playerX,
+            playerY,
+            mapData!
+        );
+        
+        if (results.length === 0) {
+            return {
+                type: 'combat',
+                success: true,
+                message: "You let out a fierce, intimidating shout!\n\nYour voice echoes through the area, but no one is close enough to hear it.",
+                xpGained: 1
+            };
+        }
+        
+        // Build message with NPC reactions
+        let message = "You let out a fierce, intimidating shout!\n\n";
+        
+        for (const result of results) {
+            message += `${result.npcName} approaches you: \"${result.dialogue}\"\n\n`;
+        }
+        
+        // Small reputation penalty for disturbing the peace
+        const reputationChange = -1;
+        
+        return {
+            type: 'combat',
+            success: true,
+            message: message + `\nReputation ${reputationChange}`,
+            xpGained: 1
+        };
+    } catch (error) {
+        console.error('Error executing Intimidating Shout:', error);
+        return {
+            type: 'combat',
+            success: false,
+            message: "Your shout comes out as a weak croak.",
+            xpGained: 0
+        };
+    }
+}
+
 export async function executeSkill(skillId: SkillID, context: PlayerContext): Promise<SkillResult> {
     switch(skillId) {
         case 'OBSERVE':
@@ -537,6 +743,21 @@ export async function executeSkill(skillId: SkillID, context: PlayerContext): Pr
             return await executeDig(context);
         case 'CHOP':
             return await executeChop(context);
+        case 'SING':
+            return await executeSing(context);
+        case 'INTIMIDATING_SHOUT':
+            return await executeIntimidatingShout(context);
+        case 'BURN':
+            return await executeBurn(context);
+        case 'POWER_STRIKE':
+        case 'FIRST_AID':
+            // These are combat-only skills
+            return {
+                type: 'combat',
+                success: false,
+                message: `${skillId.replace('_', ' ').toLowerCase()} can only be used in combat.`,
+                xpGained: 0
+            };
         default:
             console.error(`Unknown skill ID: ${skillId}`);
             return null;

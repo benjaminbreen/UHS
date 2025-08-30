@@ -10,6 +10,9 @@ import { getDaysInMonth, parseDateString } from '../utils/dateUtils';
 import { calculateAnimalUpdate } from '../services/animalAIService';
 import { calculateNpcUpdate } from '../services/npcAIService';
 import { spawnSingleAnimal } from '../generation/standardMap/features/animalGenerator';
+import { checkReputationBasedApproach, generateLowReputationDialogue } from '../services/npcInitiatedEncounterService';
+import { fireService } from '../services/fireService';
+import { weatherService } from '../services/weatherService';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES, ANIMAL_DATA, ITEM_DEFINITIONS } from '../constants/index';
 import { generateAmbianceText } from '../services/ambianceGenerator';
 import { AmbianceContext, BiomeType, Item, PlayerContext, TerrainStructureType, TerrainStructure } from '../types';
@@ -203,6 +206,57 @@ const useCoreLoops = () => {
       if (isAnyModalOpen) return;
       setGameTimeMinutes((prevMinutes) => {
         const newMinutes = (prevMinutes + 1) % 60;
+        
+        // Fire spread check every 10 game minutes
+        if (newMinutes % 10 === 0 && mapData && controlledIconX !== null && controlledIconY !== null) {
+          // Get weather conditions for fire spread
+          const centerX = Math.floor(mapData.tiles[0].length / 2);
+          const centerY = Math.floor(mapData.tiles.length / 2);
+          const centerTile = mapData.tiles[centerY]?.[centerX];
+          
+          let isRaining = false;
+          let windDirection = 0;
+          
+          if (centerTile) {
+            const weather = weatherService.getWeather(
+              mapData.climate,
+              centerTile.biome,
+              gameDate.season,
+              currentTimeOfDay,
+              centerTile.altitude || 0.5,
+              gameDate.dayOfYear,
+              { x: centerX, y: centerY }
+            );
+            
+            isRaining = weather.precipitation === 'rain' || weather.precipitation === 'drizzle';
+            windDirection = weather.windDirection;
+          }
+          
+          // Process fire spread
+          const gameTimeInMinutes = ((gameDate.dayOfYear - 1) * 24 * 60) + (gameTimeHours * 60) + newMinutes;
+          const spreadEvents = fireService.processFireSpread(
+            mapData,
+            gameTimeInMinutes,
+            windDirection,
+            isRaining
+          );
+          
+          // Show toast notifications for fire spread
+          const timeouts: NodeJS.Timeout[] = [];
+          spreadEvents.forEach((event, index) => {
+            const timeout = setTimeout(() => {
+              showToast(
+                `🔥 Fire spreading at [${event.toX}, ${event.toY}]. ${event.biomeName} is now aflame!`,
+                'warning'
+              );
+            }, index * 500); // Stagger toasts by 0.5s
+            timeouts.push(timeout);
+          });
+          
+          // Store timeouts for cleanup if needed
+          // Note: These are short-lived (max 2-3 seconds) so cleanup in main interval is sufficient
+        }
+        
         if (newMinutes === 0) {
           setGameTimeHours((prevHours) => {
             const newHours = (prevHours + 1) % 24;
@@ -246,9 +300,8 @@ const useCoreLoops = () => {
 
                     if (Math.random() < deathChance) {
                       console.log(`[DISEASE DEATH] Player has died from ${mostSevere.disease.name}!`);
-                      setTimeout(() => {
-                        alert(`Death feature to be implemented.\n\nYour character has succumbed to ${mostSevere.disease.name}.`);
-                      }, 100);
+                      // Use immediate alert without setTimeout to avoid memory leak
+                      alert(`Death feature to be implemented.\n\nYour character has succumbed to ${mostSevere.disease.name}.`);
                     }
                   }
 
@@ -265,7 +318,14 @@ const useCoreLoops = () => {
       });
     }, 1000);
     return () => clearInterval(clockInterval);
-  }, [isAnyModalOpen, playerCharacter]); // Remove state setters from dependencies
+  }, [isAnyModalOpen]); // Remove playerCharacter to prevent frequent recreations
+
+  // Clear animals when entering special or interior maps
+  useEffect(() => {
+    if (mapData?.mapType === 'special' || viewMode === 'interior') {
+      setAnimals([]);
+    }
+  }, [mapData?.mapType, viewMode]);
 
   // Animal AI Tick
   useEffect(() => {
@@ -275,14 +335,17 @@ const useCoreLoops = () => {
     const tickInterval = setInterval(() => {
       if (isAnyModalOpen || !playerCharacter) return;
 
-      if (viewMode === 'standard' && mapData && controlledIconX !== null && controlledIconY !== null) {
+      // Skip animal spawning for special and interior maps
+      const isSpecialOrInteriorMap = mapData?.mapType === 'special' || viewMode === 'interior';
+      
+      if (viewMode === 'standard' && mapData && controlledIconX !== null && controlledIconY !== null && !isSpecialOrInteriorMap) {
         setAnimals((prevAnimals) => {
           if (!prevAnimals) return [];
           const playerPos = { x: controlledIconX, y: controlledIconY };
           const updatedAnimals = prevAnimals
             .map((animal) => {
               if (Math.hypot(animal.x - playerPos.x, animal.y - playerPos.y) <= AI_UPDATE_RADIUS) {
-                return { ...animal, ...calculateAnimalUpdate(animal, prevAnimals, playerPos, mapData) };
+                return { ...animal, ...calculateAnimalUpdate(animal, prevAnimals, playerPos, mapData, npcs) };
               }
               return animal;
             })
@@ -302,7 +365,7 @@ const useCoreLoops = () => {
     }, 2000);
 
     return () => clearInterval(tickInterval);
-  }, [mapData, playerCharacter, controlledIconX, controlledIconY, viewMode, animalSpawnNoise, isAnyModalOpen, setAnimals, currentZone, gameDate]);
+  }, [mapData, playerCharacter, controlledIconX, controlledIconY, viewMode, animalSpawnNoise, isAnyModalOpen, currentZone]); // Remove setAnimals to prevent recreation
 
   // NPC AI Tick
   useEffect(() => {
@@ -313,18 +376,51 @@ const useCoreLoops = () => {
 
       if (viewMode === 'standard' && mapData && controlledIconX !== null && controlledIconY !== null) {
         setNpcs((prevNpcs) => {
-          return prevNpcs.map((npc) => {
+          let updatedNpcs = prevNpcs.map((npc) => {
             if (Math.hypot(npc.x - controlledIconX, npc.y - controlledIconY) <= AI_UPDATE_RADIUS) {
               return { ...npc, ...calculateNpcUpdate(npc, { x: controlledIconX, y: controlledIconY }, mapData, gameTimeHours) };
             }
             return npc;
           });
+          
+          // Check for reputation-based NPC approaches (only if reputation < 20)
+          if (playerCharacter.mapReputation < 20) {
+            const approachingNPCs = checkReputationBasedApproach(
+              playerCharacter,
+              updatedNpcs,
+              controlledIconX,
+              controlledIconY
+            );
+            
+            // If any NPCs approached, trigger dialogue
+            if (approachingNPCs.length > 0) {
+              const closestNPC = approachingNPCs[0];
+              
+              // Generate hostile dialogue asynchronously
+              generateLowReputationDialogue(closestNPC, playerCharacter, mapData).then(dialogue => {
+                // Add to narration history
+                setNarrationHistory(prev => [...prev, {
+                  sender: 'narrator',
+                  text: `${closestNPC.name} approaches you with a hostile expression: "${dialogue}"`
+                }]);
+              }).catch(err => {
+                console.error('Failed to generate low reputation dialogue:', err);
+                // Fallback message
+                setNarrationHistory(prev => [...prev, {
+                  sender: 'narrator',
+                  text: `${closestNPC.name} approaches you with a hostile expression: "You're not welcome here. Leave!"`
+                }]);
+              });
+            }
+          }
+          
+          return updatedNpcs;
         });
       }
     }, 3000);
 
     return () => clearInterval(tickInterval);
-  }, [mapData, npcs, playerCharacter, controlledIconX, controlledIconY, viewMode, isAnyModalOpen, setNpcs, gameTimeHours]);
+  }, [mapData, playerCharacter, controlledIconX, controlledIconY, viewMode, isAnyModalOpen, gameTimeHours]); // Remove setNpcs to prevent recreation
 
   // Disease Spreading Tick - runs every 10 seconds
   useEffect(() => {
@@ -402,7 +498,8 @@ const useCoreLoops = () => {
       // Handle animal-to-animal and cross-species spreading
       setAnimals((prevAnimals) => {
         const updatedAnimals = [...prevAnimals];
-        const currentNpcs = npcs;
+        // Get current NPCs from state
+        const currentNpcs = [...(npcs || [])];
 
         // Animal-to-animal spreading
         for (let i = 0; i < updatedAnimals.length; i++) {
@@ -553,7 +650,7 @@ const useCoreLoops = () => {
     }, 10000);
 
     return () => clearInterval(diseaseInterval);
-  }, [isAnyModalOpen, playerCharacter, viewMode, controlledIconX, controlledIconY, npcs, animals, setNpcs, setAnimals]);
+  }, [isAnyModalOpen, playerCharacter, viewMode, controlledIconX, controlledIconY]); // Remove npcs, animals, and setters to prevent recreation
 
   // Economy Tick (Taxation)
   useEffect(() => {
@@ -920,8 +1017,12 @@ useEffect(() => {
           if (newItem) {
             setPlayerCharacter(prev => prev ? { ...prev, inventory: addItemToInventory(prev.inventory, newItem) } : null);
             setPanelNotificationItem(newItem);
-            setTimeout(() => setPanelNotificationItem(null), 2500);
+            // Use a ref to track timeout for cleanup
+            const notificationTimeout = setTimeout(() => setPanelNotificationItem(null), 2500);
             addGameLogEntry(LogService.createItemAcquiredLog(newItem.name, 1, 'from the water', gameDate, formattedTime));
+            
+            // Store timeout for potential cleanup (though this is short-lived)
+            return () => clearTimeout(notificationTimeout);
           }
         }
         setAnimals(prev => prev.filter(a => a.id !== animalOnTile.id));
@@ -993,9 +1094,8 @@ useEffect(() => {
         
         // Check for death
         if (newHealth <= 0) {
-          setTimeout(() => {
-            alert(`Death feature to be implemented.\n\nYour character has perished from the harsh terrain.`);
-          }, 100);
+          // Use immediate alert without setTimeout to avoid memory leak
+          alert(`Death feature to be implemented.\n\nYour character has perished from the harsh terrain.`);
         }
       }
       

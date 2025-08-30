@@ -9,12 +9,16 @@ import InventoryPanel from './InventoryPanel';
 import BeliefsPanel from './BeliefsPanel';
 import { AnimatedPortrait } from './portraits';
 import { SKILL_DATA, SKILL_BUTTON_ORDER } from '../constants/index';
+import { SkillID } from '../types';
+import ActionConfigModal from './ActionConfigModal';
+import { Settings } from 'lucide-react';
 
 const MIN_SIDEBAR_WIDTH = 320;
 const MAX_SIDEBAR_WIDTH = 520;
 const DEFAULT_SIDEBAR_WIDTH = 380;
 const RHS_WIDTH_KEY = 'rhs.sidebarWidth';
 const RHS_TAB_KEY = 'rhs.activeTab';
+const ACTION_BUTTONS_KEY = 'rhs.actionButtons';
 
 type RightSidebarTab = 'narrator' | 'inventory' | 'beliefs';
 
@@ -30,6 +34,9 @@ const RightSidebar: React.FC = () => {
   const [isResizing, setIsResizing] = useState(false);
   const resizeStartX = useRef(0);
   const resizeStartWidth = useRef(DEFAULT_SIDEBAR_WIDTH);
+  const [configModalOpen, setConfigModalOpen] = useState(false);
+  const [actionButtons, setActionButtons] = useState<SkillID[]>(SKILL_BUTTON_ORDER);
+  const [hoveredButton, setHoveredButton] = useState<number | null>(null);
 
   useEffect(() => {
     try {
@@ -37,6 +44,15 @@ const RightSidebar: React.FC = () => {
       if (savedW) setSidebarWidth(Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, savedW)));
       const savedTab = (localStorage.getItem(RHS_TAB_KEY) || '') as RightSidebarTab;
       if (savedTab) setActiveTab(savedTab);
+      const savedButtons = localStorage.getItem(ACTION_BUTTONS_KEY);
+      if (savedButtons) {
+        try {
+          const parsed = JSON.parse(savedButtons) as SkillID[];
+          if (Array.isArray(parsed) && parsed.length <= 4) {
+            setActionButtons(parsed);
+          }
+        } catch {}
+      }
     } catch {}
   }, []);
 
@@ -74,6 +90,34 @@ const RightSidebar: React.FC = () => {
       window.removeEventListener('mouseup', handleResizeEnd);
     };
   }, [isResizing, handleResizeMove, handleResizeEnd]);
+
+  // Hotkey handler
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Check if user is typing in an input field
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      
+      const key = e.key;
+      if (key >= '1' && key <= '4') {
+        const index = parseInt(key) - 1;
+        if (actionButtons[index]) {
+          onUseSkill(actionButtons[index]);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [actionButtons, onUseSkill]);
+
+  const handleSaveActionButtons = useCallback((buttons: SkillID[]) => {
+    setActionButtons(buttons);
+    try {
+      localStorage.setItem(ACTION_BUTTONS_KEY, JSON.stringify(buttons));
+    } catch {}
+  }, []);
 
   /* --------------------------------- profile -------------------------------- */
   const healthPercent = playerCharacter ? (playerCharacter.health / playerCharacter.maxHealth) * 100 : 100;
@@ -257,32 +301,59 @@ const RightSidebar: React.FC = () => {
 
           {/* Actions */}
           <div className="mb-0">
-            <h4 className="mb-2 mt-1 text-xs tracking-wider text-gray-400 uppercase">Actions</h4>
+            <div className="flex items-center justify-between mb-2 mt-1">
+              <h4 className="text-xs tracking-wider text-gray-400 uppercase">Actions</h4>
+              <button
+                onClick={() => setConfigModalOpen(true)}
+                className="p-1 text-gray-400 hover:text-white hover:bg-slate-700/50 rounded transition-all"
+                title="Configure action buttons"
+              >
+                <Settings className="w-3.5 h-3.5" />
+              </button>
+            </div>
             <div className="grid grid-cols-4 gap-1.5">
-              {SKILL_BUTTON_ORDER.map((skillId) => {
+              {actionButtons.map((skillId, index) => {
                 const skill = SKILL_DATA[skillId];
                 if (!skill) return null;
                 return (
-                  <button
-                    key={skillId}
-                    onClick={() => onUseSkill(skillId)}
-                    className="group flex flex-col items-center justify-center px-2 py-1.5 text-md font-semibold text-gray-300 transition-all duration-200 border rounded-lg
-                               bg-gradient-to-br from-slate-700/80 to-slate-800/60 border-gray-600/50
-                               hover:bg-gradient-to-br hover:from-slate-600/90 hover:to-slate-700/70 hover:border-blue-400/50 hover:text-white hover:shadow-lg"
-                    style={{ aspectRatio: '1 / 0.7' }}
-                    title={skill.description}
-                  >
-                    <div
-                      className="mb-0.5 text-base"
-                      style={{
-                        filter: 'drop-shadow(0 0 3px rgba(255,255,255,0.3))',
-                        textShadow: '0 0 8px rgba(255,255,255,0.4)'
-                      }}
+                  <div key={skillId} className="relative">
+                    <button
+                      onClick={() => onUseSkill(skillId)}
+                      onMouseEnter={() => setHoveredButton(index)}
+                      onMouseLeave={() => setHoveredButton(null)}
+                      className="group relative w-full flex flex-col items-center justify-center px-2 py-1.5 text-md font-semibold text-gray-300 transition-all duration-200 border rounded-lg
+                                 bg-gradient-to-br from-slate-700/80 to-slate-800/60 border-gray-600/50
+                                 hover:bg-gradient-to-br hover:from-slate-600/90 hover:to-slate-700/70 hover:border-blue-400/50 hover:text-white hover:shadow-lg"
+                      style={{ aspectRatio: '1 / 0.7' }}
                     >
-                      {skill.icon}
-                    </div>
-                    <span className="text-[11px] leading-tight text-center">{skill.name}</span>
-                  </button>
+                      {/* Hotkey indicator */}
+                      <div className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center bg-blue-600/30 text-blue-300 text-[10px] font-bold rounded border border-blue-500/30">
+                        {index + 1}
+                      </div>
+                      <div
+                        className="mb-0.5 text-base"
+                        style={{
+                          filter: 'drop-shadow(0 0 3px rgba(255,255,255,0.3))',
+                          textShadow: '0 0 8px rgba(255,255,255,0.4)'
+                        }}
+                      >
+                        {skill.icon}
+                      </div>
+                      <span className="text-[11px] leading-tight text-center">{skill.name}</span>
+                    </button>
+                    
+                    {/* Tooltip */}
+                    {hoveredButton === index && (
+                      <div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900/95 border border-slate-600/50 rounded-lg shadow-xl pointer-events-none animate-fadeIn">
+                        <p className="text-xs font-semibold text-white mb-1">{skill.name}</p>
+                        <p className="text-[10px] text-gray-300 mb-2">{skill.description}</p>
+                        <div className="flex items-center gap-2 text-[10px] text-blue-300">
+                          <kbd className="px-1 py-0.5 bg-slate-800 border border-slate-600 rounded">{index + 1}</kbd>
+                          <span>Press to activate</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -355,6 +426,14 @@ const RightSidebar: React.FC = () => {
           {activeTab === 'beliefs' && <BeliefsPanel character={playerCharacter} />}
         </div>
       </div>
+      
+      {/* Action Configuration Modal */}
+      <ActionConfigModal
+        isOpen={configModalOpen}
+        onClose={() => setConfigModalOpen(false)}
+        currentActions={actionButtons}
+        onSave={handleSaveActionButtons}
+      />
     </div>
   );
 };
