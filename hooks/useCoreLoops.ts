@@ -128,16 +128,34 @@ const useCoreLoops = () => {
       return;
     }
 
+    // Expand valid structures to include ALL structure types that can host quests
     const validStructures =
-      mapData.terrainStructures?.filter((s) => ['ruins', 'palace', 'marketplace', 'urban', 'holy_site', 'farm'].includes(s.structureType)) ||
-      [];
+      mapData.terrainStructures?.filter((s) => {
+        // Include original high-value structures
+        const highValueTypes = ['ruins', 'palace', 'marketplace', 'urban', 'holy_site', 'farm'];
+        // Add common structures that should work for quests
+        const commonTypes = ['hamlet', 'bridge', 'mill', 'fortress', 'well', 'watchtower'];
+        // Check both structureType and type fields (different structure objects use different fields)
+        const structureType = s.structureType || s.type || '';
+        // Also check if the name contains these keywords (fallback for non-standard structures)
+        const structureName = s.name?.toLowerCase() || '';
+        
+        return highValueTypes.includes(structureType) || 
+               commonTypes.includes(structureType) ||
+               structureName.includes('hamlet') ||
+               structureName.includes('mill') ||
+               structureName.includes('base') ||
+               structureName.includes('fortress');
+      }) || [];
 
+    // Even if no structures exist, we should still generate quests (they'll use wilderness locations)
     if (validStructures.length === 0) {
-      console.log('[QuestInit] No valid structures for quest generation');
-      return;
+      console.log('[QuestInit] No valid structures found, will generate wilderness-based quests');
     }
 
-    const numQuests = Math.min(10, Math.max(1, Math.floor(validStructures.length / 3)));
+    const numQuests = validStructures.length > 0 
+      ? Math.min(10, Math.max(1, Math.floor(validStructures.length / 3)))
+      : 2; // Generate at least 2 wilderness quests if no structures
     console.log(`[QuestInit] Generating ${numQuests} initial quests from ${validStructures.length} structures`);
 
     try {

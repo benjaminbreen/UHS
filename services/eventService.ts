@@ -753,7 +753,8 @@ export class EventService {
           historicalBasis: event.historicalContext
         },
         mapStructures,
-        currentLocation
+        currentLocation,
+        mapData // Pass mapData as 4th parameter for wilderness fallback
       );
       
       if (quest) {

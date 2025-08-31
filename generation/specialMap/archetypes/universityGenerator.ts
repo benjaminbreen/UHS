@@ -79,8 +79,12 @@ function generateMedievalUniversity(
   const quadY = Math.floor((size.height - quadSize) / 2);
   
   // Covered walkway (cloister) around quad
-  placeWallRectangle(tiles, quadX, quadY, quadSize, quadSize);
-  fillArea(tiles, quadX + 3, quadY + 3, quadSize - 6, quadSize - 6, BiomeType.PARK);
+  if (!isSmall) {
+    placeWallRectangle(tiles, quadX, quadY, quadSize, quadSize);
+    const innerPadding = isSmall ? 2 : 3;
+    fillArea(tiles, quadX + innerPadding, quadY + innerPadding, 
+             quadSize - innerPadding * 2, quadSize - innerPadding * 2, BiomeType.PARK);
+  }
   
   // Columns along the cloister
   for (let x = quadX + 3; x < quadX + quadSize - 3; x += 3) {
@@ -112,11 +116,11 @@ function generateMedievalUniversity(
     }
   }
   
-  // Library (west wing)
-  const libX = 3;
-  const libY = Math.floor(size.height / 2) - 5;
-  const libWidth = 10;
-  const libHeight = 10;
+  // Library (west wing) - scale with map size
+  const libX = Math.min(3, Math.floor(size.width * 0.1));
+  const libY = Math.floor(size.height / 2) - Math.min(5, Math.floor(size.height * 0.15));
+  const libWidth = Math.min(10, Math.floor(size.width * 0.35));
+  const libHeight = Math.min(10, Math.floor(size.height * 0.4));
   
   placeWallRectangle(tiles, libX, libY, libWidth, libHeight);
   fillArea(tiles, libX + 1, libY + 1, libWidth - 2, libHeight - 2, BiomeType.FLOOR_WOOD);

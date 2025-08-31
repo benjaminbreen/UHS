@@ -8,6 +8,41 @@ import { SpecialMapConfig, InteractionZone, ExitZone } from '../../../types/spec
 import { ValueNoise } from '../../../utils/noise';
 import { placeWallRectangle, fillArea } from '../specialMapGenerator';
 
+/**
+ * Generate simple theater for tiny maps
+ */
+function generateSimpleTheater(
+  tiles: Tile[][],
+  size: { width: number, height: number },
+  config: SpecialMapConfig,
+  interactionZones: InteractionZone[],
+  exitZones: ExitZone[]
+) {
+  const centerX = Math.floor(size.width / 2);
+  
+  // Tiny stage at top
+  for (let x = 2; x < size.width - 2; x++) {
+    tiles[1][x].biome = BiomeType.STAGE;
+    tiles[1][x].isBlocking = true;
+  }
+  
+  // Few benches for audience
+  for (let y = 3; y < size.height - 2; y += 2) {
+    for (let x = 2; x < size.width - 2; x += 2) {
+      tiles[y][x].biome = BiomeType.BENCH;
+      tiles[y][x].isBlocking = true;
+    }
+  }
+  
+  // Stage interaction zone
+  interactionZones.push({
+    id: 'stage',
+    bounds: { x: 2, y: 1, width: size.width - 4, height: 1 },
+    type: 'stage',
+    interactions: ['perform', 'speak']
+  });
+}
+
 export function generateTheater(
   tiles: Tile[][],
   config: SpecialMapConfig,
@@ -18,55 +53,167 @@ export function generateTheater(
   const interactionZones: InteractionZone[] = [];
   const exitZones: ExitZone[] = [];
   
-  // Determine theater type based on era and culture
-  const theaterType = getTheaterType(config);
-  
-  // Create perimeter walls
+  // Create perimeter walls with main entrance at south
   placeWallRectangle(tiles, 0, 0, size.width, size.height, [
-    { side: 'south', offset: Math.floor(size.width / 2) },
-    { side: 'south', offset: Math.floor(size.width / 2) - 5 },
-    { side: 'south', offset: Math.floor(size.width / 2) + 5 }
+    { side: 'south', offset: Math.floor(size.width / 2) }
   ]);
   
   // Fill with appropriate flooring
   const floorType = config.era === 'ANTIQUITY' ? BiomeType.FLOOR_STONE : BiomeType.FLOOR_WOOD;
   fillArea(tiles, 1, 1, size.width - 2, size.height - 2, floorType);
   
-  if (theaterType === 'amphitheater') {
-    generateAmphitheater(tiles, size, config);
-  } else if (theaterType === 'proscenium') {
-    generateProsceniumTheater(tiles, size, config);
-  } else if (theaterType === 'kabuki') {
-    generateKabukiTheater(tiles, size, config);
-  } else {
-    generateGlobeTheater(tiles, size, config);
+  // Always use improved standard layout
+  generateImprovedTheater(tiles, size, config, interactionZones, exitZones);
+  
+  return { tiles, interactionZones, exitZones };
+}
+
+function generateImprovedTheater(
+  tiles: Tile[][], 
+  size: any, 
+  config: SpecialMapConfig,
+  interactionZones: InteractionZone[],
+  exitZones: ExitZone[]
+) {
+  const centerX = Math.floor(size.width / 2);
+  
+  // Handle tiny maps (XS: 8x8) with minimal layout
+  if (size.width <= 10 || size.height <= 10) {
+    generateSimpleTheater(tiles, size, config, interactionZones, exitZones);
+    return;
   }
   
-  // Stage interaction zone
-  const stageY = Math.floor(size.height * 0.2);
+  // STAGE AREA - Top middle (raised platform)
+  const stageWidth = Math.floor(size.width * 0.6);
+  const stageStartX = Math.floor((size.width - stageWidth) / 2);
+  const stageDepth = Math.min(6, Math.max(2, Math.floor(size.height * 0.25)));
+  
+  // Main stage platform
+  for (let y = 2; y < 2 + stageDepth; y++) {
+    for (let x = stageStartX; x < stageStartX + stageWidth; x++) {
+      tiles[y][x].biome = BiomeType.STAGE;
+    }
+  }
+  
+  // Stage backdrop/wall
+  for (let x = stageStartX - 1; x <= stageStartX + stageWidth; x++) {
+    tiles[1][x].biome = BiomeType.WALL;
+  }
+  
+  // BACKSTAGE ENTRANCE - Top center (door to interior map)
+  const backstageX = centerX;
+  const backstageY = 0;
+  tiles[backstageY][backstageX].biome = BiomeType.DOOR;
+  
+  // Add backstage exit zone
+  exitZones.push({
+    id: 'backstage_entrance',
+    location: [backstageX, backstageY],
+    label: 'Backstage',
+    destination: 'theater_backstage_interior'
+  });
+  
+  // BENCHES - Left and right sides (tiered seating)
+  const benchStartY = stageDepth + 4;
+  const benchEndY = size.height - 6;
+  
+  // Left side benches (3 columns)
+  for (let col = 0; col < 3; col++) {
+    const x = 2 + col * 2;
+    for (let y = benchStartY; y < benchEndY; y += 2) {
+      tiles[y][x].biome = BiomeType.CHAIR;
+      // Add small table between some benches
+      if (y % 4 === 0 && col < 2) {
+        tiles[y][x + 1].biome = BiomeType.TABLE;
+      }
+    }
+  }
+  
+  // Right side benches (3 columns)
+  for (let col = 0; col < 3; col++) {
+    const x = size.width - 3 - col * 2;
+    for (let y = benchStartY; y < benchEndY; y += 2) {
+      tiles[y][x].biome = BiomeType.CHAIR;
+      // Add small table between some benches
+      if (y % 4 === 0 && col < 2) {
+        tiles[y][x - 1].biome = BiomeType.TABLE;
+      }
+    }
+  }
+  
+  // GROUNDLINGS AREA - Bottom center (standing area for common folk)
+  const groundlingsStartX = Math.floor(size.width * 0.25);
+  const groundlingsEndX = Math.floor(size.width * 0.75);
+  const groundlingsStartY = size.height - 7;
+  const groundlingsEndY = size.height - 2;
+  
+  // Mark groundlings area with different floor type
+  for (let y = groundlingsStartY; y < groundlingsEndY; y++) {
+    for (let x = groundlingsStartX; x < groundlingsEndX; x++) {
+      tiles[y][x].biome = BiomeType.FLOOR_STONE; // Dirt/stone for standing area
+    }
+  }
+  
+  // Add some decorative elements based on culture
+  if (config.culturalZone === 'EUROPEAN') {
+    // Columns supporting upper galleries
+    tiles[benchStartY - 1][1].biome = BiomeType.COLUMN;
+    tiles[benchStartY - 1][size.width - 2].biome = BiomeType.COLUMN;
+    tiles[benchEndY][1].biome = BiomeType.COLUMN;
+    tiles[benchEndY][size.width - 2].biome = BiomeType.COLUMN;
+  } else if (config.culturalZone === 'EAST_ASIAN') {
+    // Paper lanterns on walls
+    tiles[stageDepth + 2][1].biome = BiomeType.TORCH;
+    tiles[stageDepth + 2][size.width - 2].biome = BiomeType.TORCH;
+  }
+  
+  // VIP boxes near stage (for wealthy patrons)
+  if (config.era === 'RENAISSANCE_EARLY_MODERN' || config.era === 'INDUSTRIAL_ERA') {
+    // Left VIP box
+    for (let x = 2; x < 5; x++) {
+      tiles[stageDepth + 2][x].biome = BiomeType.CHAIR;
+    }
+    tiles[stageDepth + 2][5].biome = BiomeType.WALL; // Divider
+    
+    // Right VIP box
+    for (let x = size.width - 5; x < size.width - 2; x++) {
+      tiles[stageDepth + 2][x].biome = BiomeType.CHAIR;
+    }
+    tiles[stageDepth + 2][size.width - 6].biome = BiomeType.WALL; // Divider
+  }
+  
+  // Add interaction zones
   interactionZones.push({
     id: 'stage',
     bounds: { 
-      x: Math.floor(size.width * 0.3), 
-      y: stageY - 3,
-      width: Math.floor(size.width * 0.4), 
-      height: 6 
+      x: stageStartX, 
+      y: 2,
+      width: stageWidth, 
+      height: stageDepth 
     },
     type: 'stage',
     interactions: ['perform', 'watch', 'applaud']
   });
   
-  // Exit zones at south
-  exitZones.push(
-    { id: 'main_exit', location: [Math.floor(size.width / 2), size.height - 1], 
-      label: 'Main Entrance', destination: 'parent_map' },
-    { id: 'west_exit', location: [Math.floor(size.width / 2) - 5, size.height - 1], 
-      label: 'West Door', destination: 'parent_map' },
-    { id: 'east_exit', location: [Math.floor(size.width / 2) + 5, size.height - 1], 
-      label: 'East Door', destination: 'parent_map' }
-  );
+  interactionZones.push({
+    id: 'groundlings',
+    bounds: { 
+      x: groundlingsStartX, 
+      y: groundlingsStartY,
+      width: groundlingsEndX - groundlingsStartX, 
+      height: groundlingsEndY - groundlingsStartY
+    },
+    type: 'standing_area',
+    interactions: ['cheer', 'jeer', 'throw_tomatoes']
+  });
   
-  return { tiles, interactionZones, exitZones };
+  // Main entrance at bottom
+  exitZones.push({
+    id: 'main_entrance',
+    location: [centerX, size.height - 1],
+    label: 'Exit to Street',
+    destination: 'parent_map'
+  });
 }
 
 function getTheaterType(config: SpecialMapConfig): string {

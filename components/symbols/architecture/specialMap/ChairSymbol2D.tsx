@@ -343,8 +343,14 @@ export const ChairSymbol2D: React.FC<ChairSymbol2DProps> = ({
     );
   };
   
+  // Standard gray background to prevent terrain bleed
+  const standardGray = '#8a8a8a';
+  
   return (
     <g transform={`translate(${x}, ${y})`}>
+      {/* Gray background to prevent color bleed */}
+      <rect x={0} y={0} width={size} height={size} fill={standardGray} />
+      
       {facing === 'front' && renderFrontFacingChair()}
       {facing === 'back' && renderBackFacingChair()}
       {(facing === 'left' || facing === 'right') && renderSideFacingChair()}

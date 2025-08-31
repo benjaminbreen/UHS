@@ -5,6 +5,8 @@
 
 import React from 'react';
 import { BiomeType, CulturalZone, HistoricalEra } from '../../../types';
+import { SpecialMapArchetype } from '../../../types/specialMapTypes';
+import { getFurnitureMaterial, getMaterialStyle } from '../../../services/materialMappingService';
 
 // Import all special map symbols from the consolidated location
 import { 
@@ -29,6 +31,7 @@ import {
   AltarSymbol,
   ShrineSymbol,
   CarpetSymbol,
+  DaisSymbol,
   FloorSymbol,
   BathSymbol,
   MirrorSymbol,
@@ -37,6 +40,9 @@ import {
   WeaponRackSymbol,
   ArmorStandSymbol
 } from '../architecture/specialMap/index';
+
+// Import multi-tile components
+import { PillarBase } from '../architecture/specialMap/PillarBase';
 
 // Import new 2.5D symbols (Phase 1 implementations)
 import { 
@@ -66,6 +72,13 @@ interface SpecialMapSymbolRendererProps {
   era: HistoricalEra;
   seed?: number;
   nightIntensity?: number;
+  multiTileData?: {
+    objectId: string;
+    isBase: boolean;
+    material: string;
+    height: number;
+  };
+  specialArchetype?: SpecialMapArchetype;
 }
 
 export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> = ({
@@ -76,7 +89,8 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
   culturalZone,
   era,
   seed = 0,
-  nightIntensity = 0
+  nightIntensity = 0,
+  multiTileData
 }) => {
   // Apply night filter if needed
   const nightFilter = nightIntensity > 0 ? `brightness(${1 - nightIntensity * 0.5})` : undefined;
@@ -93,10 +107,10 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
         return <BenchSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
       
       case BiomeType.STATUE:
-        return <StatueSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+        return <StatueSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} />;
       
       case BiomeType.FOUNTAIN:
-        return <FountainSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+        return <FountainSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} />;
       
       case BiomeType.THRONE:
         return <ThroneSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
@@ -108,10 +122,28 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
         return <BookshelfSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
         
       case BiomeType.DESK:
-        return <DeskSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+        return <DeskSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} />;
         
       case BiomeType.PILLAR:
-        return <PillarSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+        // Check if this is part of a multi-tile pillar
+        if (multiTileData && multiTileData.isBase) {
+          // For base tiles, render the PillarBase
+          return <PillarBase 
+            x={0} 
+            y={0} 
+            material={multiTileData.material as any}
+            tileWidth={size}
+            tileHeight={size}
+            offsetX={0}
+            offsetY={0}
+          />;
+        } else if (multiTileData) {
+          // For non-base tiles that are part of multi-tile pillar, render nothing (pillar renders from top)
+          return null;
+        } else {
+          // Regular single-tile pillar
+          return <PillarSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+        }
       
       case BiomeType.COLUMN:
         return <ColumnSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
@@ -121,9 +153,15 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
       
       case BiomeType.ALTAR:
         return <AltarSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+      
+      case BiomeType.DAIS:
+        return <DaisSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+        
+      case BiomeType.CABINET:
+        return <CabinetSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} />;
         
       case BiomeType.SHRINE:
-        return <ShrineSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+        return <ShrineSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} />;
       
       // Additional architectural biomes that might be in the map
       case BiomeType.WALL:
@@ -194,29 +232,12 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
       
       // Additional special map biomes
       case BiomeType.BRAZIER:
-        return (
-          <g>
-            <ellipse cx={size * 0.5} cy={size * 0.7} rx={size * 0.3} ry={size * 0.1} fill="#696969" stroke="#404040" strokeWidth="1" />
-            <rect x={size * 0.4} y={size * 0.5} width={size * 0.2} height={size * 0.2} fill="#696969" stroke="#404040" strokeWidth="1" />
-            <ellipse cx={size * 0.5} cy={size * 0.5} rx={size * 0.25} ry={size * 0.08} fill="#404040" />
-            <ellipse cx={size * 0.5} cy={size * 0.4} rx={size * 0.2} ry={size * 0.15} fill="#ff4500" opacity="0.8" />
-            <ellipse cx={size * 0.5} cy={size * 0.35} rx={size * 0.15} ry={size * 0.12} fill="#ffa500" opacity="0.6" />
-          </g>
-        );
+        return <TorchSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} type="brazier" lit={true} />;
         
       case BiomeType.TORCH:
-        return (
-          <g>
-            <rect x={size * 0.45} y={size * 0.5} width={size * 0.1} height={size * 0.35} fill="#8b4513" stroke="#654321" strokeWidth="0.5" />
-            <ellipse cx={size * 0.5} cy={size * 0.35} rx={size * 0.12} ry={size * 0.15} fill="#ff6347" opacity="0.9" />
-            <ellipse cx={size * 0.5} cy={size * 0.32} rx={size * 0.08} ry={size * 0.12} fill="#ffd700" opacity="0.7" />
-          </g>
-        );
+        return <TorchSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} type="torch" lit={true} />;
         
       // Furniture - Storage
-      case BiomeType.CABINET:
-        return <CabinetSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
-      
       case BiomeType.CHEST:
         return (
           <g>

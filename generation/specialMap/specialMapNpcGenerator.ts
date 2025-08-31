@@ -203,13 +203,28 @@ export function generateSpecialMapNpcs(
   const npcs: NpcEntity[] = [];
   let npcId = 1000; // Start with high ID to avoid conflicts
   
+  // LIMIT: Maximum 10 NPCs per special map
+  const MAX_NPCS_PER_MAP = 10;
+  const RESERVED_GUARDS = 2; // Always have 2 guards at main entrance
+  const MAX_REGULAR_NPCS = MAX_NPCS_PER_MAP - RESERVED_GUARDS;
+  
   // If no rooms defined, fall back to old system
   if (!rooms || rooms.length === 0) {
-    return generateLegacyNpcs(config, mapSize, noise, tiles);
+    const legacyNpcs = generateLegacyNpcs(config, mapSize, noise, tiles);
+    // Limit legacy NPCs too
+    return legacyNpcs.slice(0, MAX_NPCS_PER_MAP);
   }
   
-  // Generate NPCs for each room
+  // First, generate the 2 guards for the main entrance
+  const entranceGuards = generateEntranceGuards(config, tiles, noise, npcId);
+  npcs.push(...entranceGuards);
+  npcId += entranceGuards.length;
+  
+  // Generate NPCs for each room (limited)
+  let regularNpcCount = 0;
   for (const room of rooms) {
+    if (regularNpcCount >= MAX_REGULAR_NPCS) break;
+    
     const roomNpcs = generateNpcsForRoom(
       room,
       config,
@@ -217,20 +232,26 @@ export function generateSpecialMapNpcs(
       noise,
       npcId
     );
-    npcs.push(...roomNpcs);
-    npcId += roomNpcs.length;
+    
+    // Only add as many NPCs as we have room for
+    const npcsToAdd = Math.min(roomNpcs.length, MAX_REGULAR_NPCS - regularNpcCount);
+    npcs.push(...roomNpcs.slice(0, npcsToAdd));
+    regularNpcCount += npcsToAdd;
+    npcId += npcsToAdd;
   }
   
-  // Add some wandering NPCs in corridors/undefined spaces
-  const wanderingNpcs = generateWanderingNpcs(
-    config,
-    tiles,
-    rooms,
-    noise,
-    npcId,
-    Math.floor(3 + noise.random() * 5) // 3-7 wandering NPCs
-  );
-  npcs.push(...wanderingNpcs);
+  // Skip wandering NPCs if we're at the limit
+  if (regularNpcCount < MAX_REGULAR_NPCS) {
+    const wanderingNpcs = generateWanderingNpcs(
+      config,
+      tiles,
+      rooms,
+      noise,
+      npcId,
+      MAX_REGULAR_NPCS - regularNpcCount // Only add remaining slots
+    );
+    npcs.push(...wanderingNpcs);
+  }
   
   return npcs;
 }
@@ -429,8 +450,8 @@ function calculateNpcCount(room: RoomDefinition): number {
     count = 3; // At least 3 merchants
   }
   
-  // Maximum cap
-  return Math.min(count, 20);
+  // Maximum cap - reduced for performance and focus
+  return Math.min(count, 3); // Max 3 NPCs per room to stay under total limit
 }
 
 /**
@@ -590,6 +611,100 @@ function createRoomAppropriateNpc(
     targetX: position.x,
     targetY: position.y
   } as NpcEntity;
+}
+
+/**
+ * Generate entrance guards flanking the main door
+ */
+function generateEntranceGuards(
+  config: SpecialMapConfig,
+  tiles: any[][],
+  noise: ValueNoise,
+  startId: number
+): NpcEntity[] {
+  const guards: NpcEntity[] = [];
+  
+  // Find the main entrance (usually at the bottom center)
+  const mapHeight = tiles.length;
+  const mapWidth = tiles[0]?.length || 0;
+  
+  // Look for door tiles near the bottom center
+  let entranceX = Math.floor(mapWidth / 2);
+  let entranceY = mapHeight - 2;
+  
+  // Search for actual door tile near expected location
+  for (let y = mapHeight - 3; y < mapHeight; y++) {
+    for (let x = Math.floor(mapWidth / 2) - 3; x < Math.floor(mapWidth / 2) + 4; x++) {
+      if (tiles[y] && tiles[y][x] && 
+          (tiles[y][x].biome === 'DOOR' || tiles[y][x].biome === 'ARCHWAY' || tiles[y][x].biome === 'DOOR_LOCKED')) {
+        entranceX = x;
+        entranceY = y;
+        break;
+      }
+    }
+  }
+  
+  // Place guards flanking the entrance
+  const guardPositions = [
+    { x: entranceX - 1, y: entranceY }, // Left guard
+    { x: entranceX + 1, y: entranceY }  // Right guard
+  ];
+  
+  // Select appropriate guard profession based on culture and era
+  const guardProfession = getGuardProfession(config.culturalZone, config.era);
+  
+  guardPositions.forEach((pos, index) => {
+    // Make sure position is valid
+    if (pos.x >= 0 && pos.x < mapWidth && pos.y >= 0 && pos.y < mapHeight &&
+        tiles[pos.y][pos.x] && !isBlockingTerrain(tiles[pos.y][pos.x].biome)) {
+      
+      const guard = createSpecialMapNpc(
+        startId + index,
+        guardProfession,
+        pos,
+        config,
+        noise
+      );
+      
+      // Make guards face downward (toward entrance)
+      guard.direction = 'down';
+      guard.movement = { type: 'stationary' };
+      
+      guards.push(guard);
+    }
+  });
+  
+  return guards;
+}
+
+/**
+ * Get appropriate guard profession for culture and era
+ */
+function getGuardProfession(culturalZone: string, era: number): string {
+  const zone = normalizeZone(culturalZone);
+  
+  if (era < 500) {
+    // Antiquity
+    if (zone === 'MENA') return 'Palace Guard';
+    if (zone === 'EAST_ASIAN') return 'Imperial Guard';
+    return 'Praetorian';
+  } else if (era < 1000) {
+    // Medieval
+    if (zone === 'MENA') return 'Mamluk';
+    if (zone === 'EAST_ASIAN') return 'Samurai';
+    return 'Knight';
+  } else if (era < 1500) {
+    // Late Medieval/Renaissance
+    if (zone === 'MENA') return 'Janissary';
+    if (zone === 'EAST_ASIAN') return 'Samurai';
+    return 'Guard Captain';
+  } else if (era < 1900) {
+    // Early Modern/Industrial
+    return 'Guard';
+  } else {
+    // Modern
+    return 'Security Officer';
+  }
 }
 
 /**

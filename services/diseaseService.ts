@@ -1098,4 +1098,8 @@ class DiseaseService {
   }
 }
 
+// Export singleton instance for easier use
+export const diseaseService = new DiseaseService();
+
+// Also export the class for type usage if needed
 export default DiseaseService;

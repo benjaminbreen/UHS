@@ -801,6 +801,7 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
                         mapSize: 'medium',
                         structureId: structure.id,
                         structureName: governmentType.name,
+                        climate: mapData.climate,  // Pass climate to avoid undefined
                       };
                       onEnterSpecialMap(config);
                       onClose();

@@ -195,6 +195,53 @@ export const useUIState = () => {
     
             const newMaxExperience = Math.floor(prev.maxExperience * 1.5);
             const newMaxHealth = prev.maxHealth + 10;
+            
+            // Check if the new profession grants healing abilities
+            const healingProfessions = [
+                'Healer', 'Physician', 'Doctor', 'Herbalist', 'Apothecary',
+                'Medicine Woman', 'Medicine Man', 'Medicine Person', 'Shaman',
+                'Sangoma', 'Curandero', 'Hakim', 'Barber Surgeon', 'Plague Doctor',
+                'Nurse', 'Mission Nurse', 'Tohunga', 'Kahuna Lapaʻau', 'Pajé',
+                'Kallawaya', 'Diviner Healer', 'Traditional Healer', 'Pueblo Healer'
+            ];
+            
+            const isBecomingHealer = newProfession && healingProfessions.includes(newProfession);
+            const wasHealer = prev.profession && healingProfessions.includes(prev.profession);
+            
+            // Initialize or update abilities
+            let abilities = { ...prev.abilities };
+            let medicalSkills = { ...prev.medicalSkills };
+            
+            if (isBecomingHealer && !wasHealer) {
+                // Grant healing abilities when becoming a healer
+                abilities.canHeal = true;
+                
+                // Initialize medical skills based on intelligence and wisdom
+                const baseSkill = Math.min(50 + (prev.stats.intelligence * 3) + (prev.stats.wisdom || 5) * 2, 80);
+                medicalSkills = {
+                    diagnosisAccuracy: baseSkill,
+                    treatmentEffectiveness: baseSkill - 10,
+                    herbalistKnowledge: newProfession === 'Herbalist' ? baseSkill + 20 : baseSkill,
+                    surgicalSkill: newProfession?.includes('Surgeon') ? baseSkill + 15 : baseSkill - 20,
+                    patientTrust: Math.min(50 + (prev.stats.charisma * 2), 75)
+                };
+                
+                showToast(`🌿 You have gained healing abilities as a ${newProfession}!`);
+            } else if (wasHealer && !isBecomingHealer) {
+                // Remove healing abilities when changing away from healer
+                abilities.canHeal = false;
+                showToast(`You have lost your healing abilities.`);
+            } else if (isBecomingHealer && wasHealer) {
+                // Improve medical skills when continuing as healer
+                medicalSkills = {
+                    diagnosisAccuracy: Math.min((medicalSkills.diagnosisAccuracy || 50) + 5, 100),
+                    treatmentEffectiveness: Math.min((medicalSkills.treatmentEffectiveness || 40) + 5, 100),
+                    herbalistKnowledge: Math.min((medicalSkills.herbalistKnowledge || 50) + 3, 100),
+                    surgicalSkill: Math.min((medicalSkills.surgicalSkill || 30) + 3, 100),
+                    patientTrust: Math.min((medicalSkills.patientTrust || 50) + 2, 100)
+                };
+                showToast(`🌿 Your medical skills have improved!`);
+            }
     
             return {
                 ...prev,
@@ -204,7 +251,9 @@ export const useUIState = () => {
                 health: newMaxHealth, // Heal on level up
                 maxHealth: newMaxHealth,
                 stats: newStats,
-                profession: newProfession || prev.profession
+                profession: newProfession || prev.profession,
+                abilities,
+                medicalSkills: isBecomingHealer || wasHealer ? medicalSkills : prev.medicalSkills
             };
         });
         setIsLevelUpModalOpen(false);

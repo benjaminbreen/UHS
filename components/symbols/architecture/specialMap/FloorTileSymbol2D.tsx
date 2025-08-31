@@ -320,6 +320,9 @@ export const FloorTileSymbol2D: React.FC<FloorTileSymbol2DProps> = ({
     );
   };
   
+  // Standard gray background to prevent terrain bleed
+  const standardGray = '#8a8a8a';
+  
   return (
     <g transform={`translate(${x}, ${y})`}>
       <defs>
@@ -328,6 +331,9 @@ export const FloorTileSymbol2D: React.FC<FloorTileSymbol2DProps> = ({
           <stop offset="100%" stopColor="#E0E0E0" />
         </linearGradient>
       </defs>
+      
+      {/* Gray background to prevent color bleed */}
+      <rect x={0} y={0} width={size} height={size} fill={standardGray} />
       
       {type === 'wood' && renderWoodFloor()}
       {type === 'stone' && renderStoneFloor()}

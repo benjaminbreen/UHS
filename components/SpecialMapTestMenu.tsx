@@ -11,41 +11,38 @@ import { useMap } from '../contexts/MapContext';
 import { useGame } from '../contexts/GameContext';
 
 // Import all special map symbols for preview
-import { 
-  WallSymbol,
-  FloorSymbol,
-  TableSymbol,
-  ChairSymbol,
-  ThroneSymbol,
-  AltarSymbol,
-  BedSymbol,
-  BookshelfSymbol,
-  CarpetSymbol,
-  DaisSymbol,
-  DeskSymbol,
-  FountainSymbol,
-  PillarSymbol,
-  ShrineSymbol,
-  StatueSymbol,
-  DoorSymbol,
-  ArchwaySymbol,
-  WallGateSymbol,
-  WallWindowSymbol,
-  ColumnSymbol,
-  StairsSymbol,
-  BenchSymbol,
-  CabinetSymbol,
-  BathSymbol,
-  MirrorSymbol,
-  KitchenCounterSymbol,
-  KitchenSinkSymbol,
-  WeaponRackSymbol,
-  ArmorStandSymbol,
-  TorchSymbol,
-  BrazierSymbol,
-  ChestSymbol,
-  BarrelSymbol
-} from './symbols/architecture/specialMap/index';
+import WallSymbol from './symbols/WallSymbol';
+import { FloorSymbol } from './symbols/architecture/specialMap/FloorSymbol';
+import { TableSymbol } from './symbols/architecture/specialMap/TableSymbol';
+import ChairSymbol from './symbols/ChairSymbol';
+import { ThroneSymbol } from './symbols/architecture/specialMap/ThroneSymbol';
+import { AltarSymbol } from './symbols/architecture/specialMap/AltarSymbol';
+import { BedSymbol } from './symbols/architecture/specialMap/BedSymbol';
+import BookshelfSymbol from './symbols/BookshelfSymbol';
+import { CarpetSymbol } from './symbols/architecture/specialMap/CarpetSymbol';
+import { DaisSymbol } from './symbols/architecture/specialMap/DaisSymbol';
+import DeskSymbol from './symbols/DeskSymbol';
+import FountainSymbol from './symbols/FountainSymbol';
+import PillarSymbol from './symbols/PillarSymbol';
+import ShrineSymbol from './symbols/ShrineSymbol';
+import StatueSymbol from './symbols/StatueSymbol';
+import { DoorSymbol } from './symbols/architecture/specialMap/DoorSymbol';
+import { ArchwaySymbol } from './symbols/architecture/specialMap/ArchwaySymbol';
+import { WallGateSymbol } from './symbols/architecture/specialMap/WallGateSymbol';
+import { WallWindowSymbol } from './symbols/architecture/specialMap/WallWindowSymbol';
+import { ColumnSymbol } from './symbols/architecture/specialMap/ColumnSymbol';
+import { StairsSymbol } from './symbols/architecture/specialMap/StairsSymbol';
+import { BenchSymbol } from './symbols/architecture/specialMap/BenchSymbol';
+import CabinetSymbol from './symbols/CabinetSymbol';
+import { BathSymbol } from './symbols/architecture/specialMap/BathSymbol';
+import { MirrorSymbol } from './symbols/architecture/specialMap/MirrorSymbol';
+import { KitchenCounterSymbol } from './symbols/architecture/specialMap/KitchenCounterSymbol';
+import { KitchenSinkSymbol } from './symbols/architecture/specialMap/KitchenSinkSymbol';
+import WeaponRackSymbol from './symbols/WeaponRackSymbol';
+import ArmorStandSymbol from './symbols/ArmorStandSymbol';
+import TorchSymbol from './symbols/TorchSymbol';
+import { ChestSymbol } from './symbols/architecture/specialMap/ChestSymbol';
+import { BarrelSymbol } from './symbols/architecture/specialMap/BarrelSymbol';
 
 interface SpecialMapTestMenuProps {
   isOpen: boolean;
@@ -62,6 +59,9 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
   const [selectedSize, setSelectedSize] = useState<'xs' | 'small' | 'medium' | 'large' | 'xl'>('large');
   const [hasLandscape, setHasLandscape] = useState(true);
   const [showSymbolGrid, setShowSymbolGrid] = useState(false);
+  
+  // State for cycling through variants
+  const [symbolVariants, setSymbolVariants] = useState<Record<number, { zone: string; era: number }>>({});
   
   if (!isOpen) return null;
   
@@ -86,7 +86,7 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
     'AFRICAN', 'NORTH_AMERICAN', 'SOUTH_AMERICAN', 'OCEANIAN'
   ];
   
-  const eras: HistoricalEra[] = [
+  const historicalEras: HistoricalEra[] = [
     'PREHISTORY', 'ANTIQUITY', 'MEDIEVAL', 'RENAISSANCE_EARLY_MODERN',
     'INDUSTRIAL_ERA', 'MODERN_ERA'
   ];
@@ -136,42 +136,240 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
     onClose();
   };
   
+  // Render simplified archetype layout mockups
+  const renderArchetypeMockup = (pattern: string) => {
+    const size = 40; // Small square mockup
+    
+    switch (pattern) {
+      case 'estates':
+        // Symmetrical throne room with side chambers
+        return (
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <rect x={0} y={0} width={size} height={size} fill="#1a1a1a" />
+            <rect x={2} y={2} width={size-4} height={size-4} fill="none" stroke="#444" strokeWidth={1} />
+            <rect x={10} y={5} width={20} height={15} fill="#2a2a2a" /> {/* Throne room */}
+            <rect x={18} y={7} width={4} height={3} fill="#8b4513" /> {/* Throne */}
+            <rect x={5} y={25} width={10} height={10} fill="#2a2a2a" /> {/* Left chamber */}
+            <rect x={25} y={25} width={10} height={10} fill="#2a2a2a" /> {/* Right chamber */}
+            <rect x={18} y={35} width={4} height={3} fill="#654321" /> {/* Door */}
+          </svg>
+        );
+      
+      case 'government':
+        // Semicircular seating arrangement
+        return (
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <rect x={0} y={0} width={size} height={size} fill="#1a1a1a" />
+            <rect x={2} y={2} width={size-4} height={size-4} fill="none" stroke="#444" strokeWidth={1} />
+            <rect x={18} y={5} width={4} height={4} fill="#8b4513" /> {/* Podium */}
+            <path d={`M 10,25 Q 20,15 30,25`} fill="none" stroke="#4a4a4a" strokeWidth={2} /> {/* Seating arc */}
+            <circle cx={15} cy={22} r={1} fill="#3a3a3a" />
+            <circle cx={20} cy={20} r={1} fill="#3a3a3a" />
+            <circle cx={25} cy={22} r={1} fill="#3a3a3a" />
+            <rect x={15} y={30} width={10} height={6} fill="#2a2a2a" /> {/* Foyer */}
+          </svg>
+        );
+      
+      case 'sacred':
+        // Central altar with radiating pattern
+        return (
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <rect x={0} y={0} width={size} height={size} fill="#1a1a1a" />
+            <rect x={2} y={2} width={size-4} height={size-4} fill="none" stroke="#444" strokeWidth={1} />
+            <circle cx={20} cy={20} r={12} fill="none" stroke="#3a3a3a" strokeWidth={1} />
+            <rect x={17} y={17} width={6} height={6} fill="#d4af37" /> {/* Altar */}
+            <line x1={20} y1={8} x2={20} y2={14} stroke="#4a4a4a" strokeWidth={1} />
+            <line x1={20} y1={26} x2={20} y2={32} stroke="#4a4a4a" strokeWidth={1} />
+            <line x1={8} y1={20} x2={14} y2={20} stroke="#4a4a4a" strokeWidth={1} />
+            <line x1={26} y1={20} x2={32} y2={20} stroke="#4a4a4a" strokeWidth={1} />
+          </svg>
+        );
+      
+      case 'fortress':
+        // Thick walls with corner towers
+        return (
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <rect x={0} y={0} width={size} height={size} fill="#1a1a1a" />
+            <rect x={4} y={4} width={32} height={32} fill="none" stroke="#666" strokeWidth={3} />
+            <rect x={2} y={2} width={8} height={8} fill="#4a4a4a" /> {/* Corner tower */}
+            <rect x={30} y={2} width={8} height={8} fill="#4a4a4a" />
+            <rect x={2} y={30} width={8} height={8} fill="#4a4a4a" />
+            <rect x={30} y={30} width={8} height={8} fill="#4a4a4a" />
+            <rect x={15} y={15} width={10} height={10} fill="#2a2a2a" /> {/* Keep */}
+          </svg>
+        );
+      
+      case 'university':
+        // Library with reading rooms
+        return (
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <rect x={0} y={0} width={size} height={size} fill="#1a1a1a" />
+            <rect x={2} y={2} width={size-4} height={size-4} fill="none" stroke="#444" strokeWidth={1} />
+            <rect x={10} y={5} width={20} height={10} fill="#2a2a2a" /> {/* Main hall */}
+            <rect x={5} y={20} width={8} height={8} fill="#2a2a2a" /> {/* Study */}
+            <rect x={16} y={20} width={8} height={8} fill="#2a2a2a" /> {/* Study */}
+            <rect x={27} y={20} width={8} height={8} fill="#2a2a2a" /> {/* Study */}
+            <rect x={12} y={7} width={2} height={6} fill="#3a3a3a" /> {/* Bookshelf */}
+            <rect x={16} y={7} width={2} height={6} fill="#3a3a3a" />
+            <rect x={20} y={7} width={2} height={6} fill="#3a3a3a" />
+            <rect x={24} y={7} width={2} height={6} fill="#3a3a3a" />
+          </svg>
+        );
+      
+      case 'theater':
+        // Stage with audience seating
+        return (
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <rect x={0} y={0} width={size} height={size} fill="#1a1a1a" />
+            <rect x={2} y={2} width={size-4} height={size-4} fill="none" stroke="#444" strokeWidth={1} />
+            <rect x={8} y={5} width={24} height={8} fill="#3a3a3a" /> {/* Stage */}
+            <rect x={18} y={7} width={4} height={4} fill="#8b4513" /> {/* Props */}
+            {/* Seating rows */}
+            <rect x={10} y={18} width={20} height={2} fill="#2a2a2a" />
+            <rect x={10} y={22} width={20} height={2} fill="#2a2a2a" />
+            <rect x={10} y={26} width={20} height={2} fill="#2a2a2a" />
+            <rect x={10} y={30} width={20} height={2} fill="#2a2a2a" />
+          </svg>
+        );
+      
+      case 'field':
+        // Open space with minimal structures
+        return (
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <rect x={0} y={0} width={size} height={size} fill="#1a1a1a" />
+            <rect x={2} y={2} width={size-4} height={size-4} fill="none" stroke="#444" strokeWidth={1} />
+            <circle cx={20} cy={20} r={15} fill="none" stroke="#2a2a2a" strokeWidth={1} strokeDasharray="2,2" />
+            <rect x={5} y={18} width={4} height={4} fill="#3a3a3a" /> {/* Small structure */}
+            <rect x={31} y={18} width={4} height={4} fill="#3a3a3a" />
+          </svg>
+        );
+      
+      case 'camp':
+        // Scattered tents around fire
+        return (
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <rect x={0} y={0} width={size} height={size} fill="#1a1a1a" />
+            <rect x={2} y={2} width={size-4} height={size-4} fill="none" stroke="#444" strokeWidth={1} />
+            <circle cx={20} cy={20} r={3} fill="#ff6b35" /> {/* Campfire */}
+            <polygon points="8,12 12,8 16,12" fill="#3a3a3a" /> {/* Tent */}
+            <polygon points="24,12 28,8 32,12" fill="#3a3a3a" />
+            <polygon points="8,28 12,24 16,28" fill="#3a3a3a" />
+            <polygon points="24,28 28,24 32,28" fill="#3a3a3a" />
+          </svg>
+        );
+      
+      case 'restaurant':
+        // Bar counter with seating area
+        return (
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <rect x={0} y={0} width={size} height={size} fill="#1a1a1a" />
+            <rect x={2} y={2} width={size-4} height={size-4} fill="none" stroke="#444" strokeWidth={1} />
+            <rect x={5} y={5} width={30} height={4} fill="#4a4a4a" /> {/* Bar counter */}
+            <circle cx={10} cy={7} r={1} fill="#8b4513" /> {/* Bar stool */}
+            <circle cx={15} cy={7} r={1} fill="#8b4513" />
+            <circle cx={20} cy={7} r={1} fill="#8b4513" />
+            <circle cx={25} cy={7} r={1} fill="#8b4513" />
+            <circle cx={30} cy={7} r={1} fill="#8b4513" />
+            {/* Tables */}
+            <rect x={8} y={15} width={4} height={4} fill="#3a3a3a" />
+            <rect x={18} y={15} width={4} height={4} fill="#3a3a3a" />
+            <rect x={28} y={15} width={4} height={4} fill="#3a3a3a" />
+            <rect x={8} y={25} width={4} height={4} fill="#3a3a3a" />
+            <rect x={18} y={25} width={4} height={4} fill="#3a3a3a" />
+            <rect x={28} y={25} width={4} height={4} fill="#3a3a3a" />
+          </svg>
+        );
+      
+      case 'vessel':
+        // Ship deck with ocean border
+        return (
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <rect x={0} y={0} width={size} height={size} fill="#1a3a4a" /> {/* Ocean */}
+            <rect x={10} y={10} width={20} height={20} fill="#2a2a2a" /> {/* Deck */}
+            <rect x={18} y={12} width={4} height={4} fill="#8b4513" /> {/* Helm */}
+            <rect x={13} y={20} width={3} height={6} fill="#3a3a3a" /> {/* Cargo */}
+            <rect x={24} y={20} width={3} height={6} fill="#3a3a3a" />
+            <line x1={20} y1={14} x2={20} y2={8} stroke="#666" strokeWidth={1} /> {/* Mast */}
+          </svg>
+        );
+      
+      default:
+        return (
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <rect x={0} y={0} width={size} height={size} fill="#1a1a1a" />
+            <rect x={2} y={2} width={size-4} height={size-4} fill="none" stroke="#444" strokeWidth={1} />
+            <text x={20} y={20} textAnchor="middle" fill="#666" fontSize={8}>?</text>
+          </svg>
+        );
+    }
+  };
+  
+  // Cultural zones for cycling variants
+  const zones = ['EUROPEAN', 'EAST_ASIAN', 'MENA', 'AFRICAN', 'AMERICAS', 'OCEANIA'];
+  const eraYears = [-3000, 0, 500, 1000, 1500, 1800, 1950, 2020];
+  
+  const handleSymbolClick = (index: number) => {
+    setSymbolVariants(prev => {
+      const current = prev[index] || { zone: 'EUROPEAN', era: 1500 };
+      const currentZoneIndex = zones.indexOf(current.zone);
+      const currentEraIndex = eraYears.indexOf(current.era);
+      
+      // Cycle to next zone, and if at end, cycle era too
+      let nextZoneIndex = (currentZoneIndex + 1) % zones.length;
+      let nextEraIndex = currentEraIndex;
+      
+      if (nextZoneIndex === 0) {
+        nextEraIndex = (currentEraIndex + 1) % eraYears.length;
+      }
+      
+      return {
+        ...prev,
+        [index]: {
+          zone: zones[nextZoneIndex],
+          era: eraYears[nextEraIndex]
+        }
+      };
+    });
+  };
+  
   const specialMapSymbols = [
     // Walls & Structure
-    { Component: WallSymbol, name: 'Wall', biome: BiomeType.WALL },
+    { Component: WallSymbol, name: 'Wall', biome: BiomeType.WALL, hasVariants: true },
     { Component: DoorSymbol, name: 'Door', biome: BiomeType.DOOR },
     { Component: ArchwaySymbol, name: 'Archway', biome: BiomeType.ARCHWAY },
     { Component: WallGateSymbol, name: 'Gate', biome: BiomeType.GATE },
     { Component: WallWindowSymbol, name: 'Window', biome: BiomeType.WINDOW },
     
     // Floors
-    { Component: FloorSymbol, name: 'Stone Floor', biome: BiomeType.FLOOR_STONE, props: { material: 'stone' } },
-    { Component: FloorSymbol, name: 'Wood Floor', biome: BiomeType.FLOOR_WOOD, props: { material: 'wood' } },
-    { Component: FloorSymbol, name: 'Marble Floor', biome: BiomeType.FLOOR_MARBLE, props: { material: 'marble' } },
-    { Component: FloorSymbol, name: 'Tile Floor', biome: BiomeType.FLOOR_TILE, props: { material: 'tile' } },
+    { Component: FloorSymbol, name: 'Stone Floor', biome: BiomeType.FLOOR_STONE, props: { floorType: 'stone' } },
+    { Component: FloorSymbol, name: 'Wood Floor', biome: BiomeType.FLOOR_WOOD, props: { floorType: 'wood' } },
+    { Component: FloorSymbol, name: 'Marble Floor', biome: BiomeType.FLOOR_MARBLE, props: { floorType: 'marble' } },
+    { Component: FloorSymbol, name: 'Tile Floor', biome: BiomeType.FLOOR_TILE, props: { floorType: 'tile' } },
     { Component: CarpetSymbol, name: 'Carpet', biome: BiomeType.CARPET },
     { Component: DaisSymbol, name: 'Dais', biome: BiomeType.DAIS },
     
-    // Furniture
+    // Furniture (with cultural variants)
     { Component: TableSymbol, name: 'Table', biome: BiomeType.TABLE },
-    { Component: ChairSymbol, name: 'Chair', biome: BiomeType.CHAIR },
+    { Component: ChairSymbol, name: 'Chair', biome: BiomeType.CHAIR, hasVariants: true },
     { Component: BenchSymbol, name: 'Bench', biome: BiomeType.BENCH },
     { Component: ThroneSymbol, name: 'Throne', biome: BiomeType.THRONE },
     { Component: BedSymbol, name: 'Bed', biome: BiomeType.BED },
-    { Component: DeskSymbol, name: 'Desk', biome: BiomeType.DESK },
-    { Component: BookshelfSymbol, name: 'Bookshelf', biome: BiomeType.BOOKSHELF },
-    { Component: CabinetSymbol, name: 'Cabinet', biome: BiomeType.CABINET },
+    { Component: DeskSymbol, name: 'Desk', biome: BiomeType.DESK, hasVariants: true },
+    { Component: BookshelfSymbol, name: 'Bookshelf', biome: BiomeType.BOOKSHELF, hasVariants: true },
+    { Component: CabinetSymbol, name: 'Cabinet', biome: BiomeType.CABINET, hasVariants: true },
     
-    // Architectural Elements
-    { Component: PillarSymbol, name: 'Pillar', biome: BiomeType.PILLAR },
+    // Architectural Elements (with variants)
+    { Component: PillarSymbol, name: 'Pillar (Base)', biome: BiomeType.PILLAR, hasVariants: true, props: { section: 'base' } },
+    { Component: PillarSymbol, name: 'Pillar (Middle)', biome: BiomeType.PILLAR, hasVariants: true, props: { section: 'middle' } },
+    { Component: PillarSymbol, name: 'Pillar (Top)', biome: BiomeType.PILLAR, hasVariants: true, props: { section: 'top' } },
     { Component: ColumnSymbol, name: 'Column', biome: BiomeType.COLUMN },
     { Component: StairsSymbol, name: 'Stairs', biome: BiomeType.STAIRS_UP },
     
     // Decorative
-    { Component: StatueSymbol, name: 'Statue', biome: BiomeType.STATUE },
-    { Component: FountainSymbol, name: 'Fountain', biome: BiomeType.FOUNTAIN },
-    { Component: AltarSymbol, name: 'Altar', biome: BiomeType.ALTAR },
-    { Component: ShrineSymbol, name: 'Shrine', biome: BiomeType.SHRINE },
+    { Component: StatueSymbol, name: 'Statue', biome: BiomeType.STATUE, hasVariants: true },
+    { Component: FountainSymbol, name: 'Fountain', biome: BiomeType.FOUNTAIN, hasVariants: true },
+    { Component: AltarSymbol, name: 'Altar', biome: BiomeType.ALTAR, hasVariants: true },
+    { Component: ShrineSymbol, name: 'Shrine', biome: BiomeType.SHRINE, hasVariants: true },
     
     // Kitchen/Bath
     { Component: BathSymbol, name: 'Bath', biome: BiomeType.BATH },
@@ -180,12 +378,12 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
     { Component: KitchenSinkSymbol, name: 'Sink', biome: BiomeType.BASIN },
     
     // Military
-    { Component: WeaponRackSymbol, name: 'Weapon Rack', biome: BiomeType.WEAPON_RACK },
-    { Component: ArmorStandSymbol, name: 'Armor Stand', biome: BiomeType.ARMOR_STAND },
+    { Component: WeaponRackSymbol, name: 'Weapon Rack', biome: BiomeType.WEAPON_RACK, hasVariants: true },
+    { Component: ArmorStandSymbol, name: 'Armor Stand', biome: BiomeType.ARMOR_STAND, hasVariants: true },
     
     // Lighting & Storage
-    { Component: TorchSymbol, name: 'Torch', biome: BiomeType.TORCH },
-    { Component: BrazierSymbol, name: 'Brazier', biome: BiomeType.BRAZIER },
+    { Component: TorchSymbol, name: 'Torch', biome: BiomeType.TORCH, hasVariants: true, props: { type: 'torch' } },
+    { Component: TorchSymbol, name: 'Brazier', biome: BiomeType.BRAZIER, hasVariants: true, props: { type: 'brazier' } },
     { Component: ChestSymbol, name: 'Chest', biome: BiomeType.CHEST },
     { Component: BarrelSymbol, name: 'Barrel', biome: BiomeType.BARREL }
   ];
@@ -288,7 +486,7 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
                   onChange={(e) => setSelectedEra(e.target.value as HistoricalEra)}
                   className="w-full px-4 py-2 rounded-lg bg-black/30 border border-gray-600 text-white focus:border-blue-400 focus:outline-none"
                 >
-                  {eras.map(era => (
+                  {historicalEras.map(era => (
                     <option key={era} value={era}>{era.replace(/_/g, ' ')}</option>
                   ))}
                 </select>
@@ -369,36 +567,75 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
                 <Play className="w-5 h-5" />
                 Enter Special Map
               </button>
+              
+              {/* Archetype Layout Mockups */}
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold text-purple-400 mb-4">Archetype Layout Patterns</h3>
+                <div className="grid grid-cols-5 gap-3">
+                  {[
+                    { name: 'Estate', pattern: 'estates' },
+                    { name: 'Government', pattern: 'government' },
+                    { name: 'Sacred', pattern: 'sacred' },
+                    { name: 'Fortress', pattern: 'fortress' },
+                    { name: 'University', pattern: 'university' },
+                    { name: 'Theater', pattern: 'theater' },
+                    { name: 'Open Field', pattern: 'field' },
+                    { name: 'Campground', pattern: 'camp' },
+                    { name: 'Restaurant', pattern: 'restaurant' },
+                    { name: 'Vessel', pattern: 'vessel' }
+                  ].map(arch => (
+                    <div key={arch.pattern} className="text-center">
+                      <div className="w-full aspect-square bg-black/30 border border-gray-700 rounded p-1">
+                        {renderArchetypeMockup(arch.pattern)}
+                      </div>
+                      <div className="text-[10px] text-gray-400 mt-1">{arch.name}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           ) : (
             <div>
               {/* Symbol Grid */}
               <h3 className="text-xl font-semibold text-blue-300 mb-4">Special Map Symbols</h3>
               <div className="grid grid-cols-4 gap-4">
-                {specialMapSymbols.map((symbol, index) => (
-                  <div
-                    key={index}
-                    className="p-4 rounded-lg bg-black/30 border border-gray-700 hover:border-blue-400 transition-all"
-                  >
-                    <div className="w-full h-24 flex items-center justify-center mb-2">
-                      <svg width="60" height="60" viewBox="0 0 60 60">
-                        <symbol.Component
-                          x={0}
-                          y={0}
-                          size={60}
-                          culturalZone={selectedZone}
-                          era={selectedEra}
-                          seed={index}
-                          {...(symbol.props || {})}
-                        />
-                      </svg>
+                {specialMapSymbols.map((symbol, index) => {
+                  const variant = symbolVariants[index] || { zone: 'EUROPEAN', era: 1500 };
+                  return (
+                    <div
+                      key={index}
+                      className={`p-4 rounded-lg bg-black/30 border border-gray-700 hover:border-blue-400 transition-all ${
+                        symbol.hasVariants ? 'cursor-pointer' : ''
+                      }`}
+                      onClick={() => symbol.hasVariants && handleSymbolClick(index)}
+                    >
+                      <div className="w-full h-24 flex items-center justify-center mb-2">
+                        <svg width="60" height="60" viewBox="0 0 60 60">
+                          <symbol.Component
+                            x={0}
+                            y={0}
+                            size={60}
+                            culturalZone={symbol.hasVariants ? variant.zone : selectedZone}
+                            era={symbol.hasVariants ? variant.era : (selectedEra === 'MEDIEVAL' ? 1200 : 1500)}
+                            seed={index}
+                            {...(symbol.props || {})}
+                          />
+                        </svg>
+                      </div>
+                      <div className="text-xs text-center">
+                        <div className="text-white font-medium">{symbol.name}</div>
+                        <div className="text-gray-500 text-[10px] mt-1">{symbol.biome}</div>
+                        {symbol.hasVariants && (
+                          <div className="text-blue-400 text-[9px] mt-1">
+                            {variant.zone} • {variant.era}
+                            <br />
+                            <span className="text-gray-400">(click to cycle)</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-xs text-center">
-                      <div className="text-white font-medium">{symbol.name}</div>
-                      <div className="text-gray-500 text-[10px] mt-1">{symbol.biome}</div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               
               {/* Additional Test Symbols */}

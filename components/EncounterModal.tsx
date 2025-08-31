@@ -34,7 +34,7 @@ import { eventService } from '../services/eventService';
 import { getLanguageForCharacter, getLanguageComprehension, LANGUAGES } from '../constants/gameData/languages';
 import { triggerArrest, ArrestScenario } from '../services/arrestService';
 import { usePortraitExpression, mapRepDeltaToExpr, mapEventToExpr } from '../hooks/usePortraitExpression';
-import DiseaseService from '../services/diseaseService';
+import { diseaseService } from '../services/diseaseService';
 
 function isNpc(target: EncounterableEntity): target is NpcEntity {
     return 'role' in target;
@@ -470,7 +470,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
         // Check for disease transmission FROM NPC/animal TO player
         if (isNpc(target) || (target as any).speciesName) {
             try {
-                const result = DiseaseService.checkDirectContactTransmission(
+                const result = diseaseService.checkDirectContactTransmission(
                     target,
                     playerCharacter,
                     currentYear
@@ -498,7 +498,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
         // Check for disease transmission FROM player TO NPC/animal
         if (playerCharacter.diseaseHealth?.currentDiseases?.length > 0) {
             try {
-                const playerDiseasesResult = DiseaseService.checkDirectContactTransmission(
+                const playerDiseasesResult = diseaseService.checkDirectContactTransmission(
                     playerCharacter,
                     target,
                     currentYear
@@ -913,8 +913,9 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                                 Quests
                             </span>
                         </button>
-                        {/* Show medical tab if NPC is a healer or player has diseases */}
+                        {/* Show medical tab if NPC is a healer, player is a healer, or player has diseases */}
                         {((target.role && (target.role.toLowerCase().includes('healer') || target.role.toLowerCase().includes('physician') || target.role.toLowerCase().includes('apothecary'))) || 
+                          (playerCharacter?.abilities?.canHeal) ||
                           (playerCharacter?.health?.currentDiseases && playerCharacter.health.currentDiseases.length > 0)) && (
                             <button onClick={() => setActiveTab('medical')} className={`flex-1 py-3 px-2 text-center text-sm font-semibold transition-all duration-200 border-b-2 ${activeTab === 'medical' ? 'text-white border-blue-400 bg-slate-700/50' : 'text-slate-300 border-transparent hover:bg-slate-700/40 hover:text-white'}`}>
                                 <span className="flex items-center justify-center gap-1">
@@ -1107,8 +1108,93 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                                 Medical Treatment
                             </h4>
                             
-                            {/* Check if NPC is a healer */}
-                            {target.role && (target.role.toLowerCase().includes('healer') || 
+                            {/* Check if PLAYER is a healer examining the NPC */}
+                            {playerCharacter?.abilities?.canHeal ? (
+                                <div className="bg-blue-900/20 border border-blue-600/30 rounded-lg p-3">
+                                    <p className="text-blue-300 text-sm mb-3">
+                                        🌿 As a {playerCharacter.profession}, you can examine and treat this person.
+                                    </p>
+                                    
+                                    {/* Show NPC's health status */}
+                                    <div className="space-y-3">
+                                        <h5 className="text-sm font-semibold text-yellow-300">Patient Examination:</h5>
+                                        
+                                        {/* Check if NPC has diseases */}
+                                        {target.health?.currentDiseases && target.health.currentDiseases.length > 0 ? (
+                                            <div className="space-y-2">
+                                                {target.health.currentDiseases.map((disease, idx) => (
+                                                    <div key={idx} className="bg-slate-800/50 rounded-lg p-3">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <span className="text-white font-medium">
+                                                                {/* Show symptoms based on diagnosis skill */}
+                                                                {(playerCharacter.medicalSkills?.diagnosisAccuracy || 50) > 60 ? (
+                                                                    <>{disease.disease.badgeIcon} {disease.disease.name}</>
+                                                                ) : (
+                                                                    <>❓ Unknown illness (symptoms: {disease.disease.symptoms[0]?.name})</>
+                                                                )}
+                                                            </span>
+                                                            <span className="text-xs px-2 py-1 rounded bg-yellow-600 text-white">
+                                                                {disease.stage}
+                                                            </span>
+                                                        </div>
+                                                        
+                                                        <div className="text-xs text-slate-300 mb-2">
+                                                            Diagnosis confidence: {playerCharacter.medicalSkills?.diagnosisAccuracy || 50}%
+                                                        </div>
+                                                        
+                                                        <button
+                                                            onClick={() => {
+                                                                // Apply healing based on player's medical skills
+                                                                const effectiveness = (playerCharacter.medicalSkills?.treatmentEffectiveness || 40) / 100;
+                                                                const healAmount = Math.floor(20 * effectiveness);
+                                                                
+                                                                // Simple healing for now - later we'll use the disease treatment system
+                                                                if (target.health) {
+                                                                    target.health.overallHealthStatus = 'recovering';
+                                                                    setNegotiationResponse(`You treated ${target.name}'s illness. Your medical expertise helped them feel ${healAmount}% better!`);
+                                                                    setTimeout(() => setNegotiationResponse(''), 5000);
+                                                                }
+                                                            }}
+                                                            className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors"
+                                                        >
+                                                            Treat Patient (Skill: {playerCharacter.medicalSkills?.treatmentEffectiveness || 40}%)
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="bg-green-900/30 rounded-lg p-3">
+                                                <p className="text-green-300 text-sm">
+                                                    ✅ This person appears to be in good health.
+                                                </p>
+                                                <p className="text-xs text-slate-400 mt-1">
+                                                    No treatment needed at this time.
+                                                </p>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Show player's medical skills */}
+                                        <div className="mt-3 pt-3 border-t border-slate-600/50">
+                                            <h6 className="text-xs font-semibold text-blue-300 mb-2">Your Medical Skills:</h6>
+                                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                                <div className="text-slate-300">
+                                                    Diagnosis: {playerCharacter.medicalSkills?.diagnosisAccuracy || 50}%
+                                                </div>
+                                                <div className="text-slate-300">
+                                                    Treatment: {playerCharacter.medicalSkills?.treatmentEffectiveness || 40}%
+                                                </div>
+                                                <div className="text-slate-300">
+                                                    Herb Knowledge: {playerCharacter.medicalSkills?.herbalistKnowledge || 50}%
+                                                </div>
+                                                <div className="text-slate-300">
+                                                    Patient Trust: {playerCharacter.medicalSkills?.patientTrust || 50}%
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : /* Check if NPC is a healer */
+                            target.role && (target.role.toLowerCase().includes('healer') || 
                                            target.role.toLowerCase().includes('physician') || 
                                            target.role.toLowerCase().includes('apothecary')) ? (
                                 <div className="bg-green-900/20 border border-green-600/30 rounded-lg p-3">
@@ -1121,7 +1207,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                                         <div className="space-y-3">
                                             <h5 className="text-sm font-semibold text-red-300">Your Current Ailments:</h5>
                                             {playerCharacter.health.currentDiseases.map((activeDisease, index) => {
-                                                const availableTreatments = mapData ? DiseaseService.getAvailableTreatments(
+                                                const availableTreatments = mapData ? diseaseService.getAvailableTreatments(
                                                     activeDisease.disease.type,
                                                     mapData.timeSlice ? 
                                                         (parseInt(mapData.timeSlice) < 500 ? 'ANCIENT' :
@@ -1164,7 +1250,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                                                                         </div>
                                                                         <button
                                                                             onClick={() => {
-                                                                                const result = DiseaseService.applyTreatment(
+                                                                                const result = diseaseService.applyTreatment(
                                                                                     playerCharacter,
                                                                                     activeDisease.disease.id,
                                                                                     medicine.id,

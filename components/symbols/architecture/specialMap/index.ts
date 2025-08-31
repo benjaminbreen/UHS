@@ -5,13 +5,13 @@
 
 // Furniture
 export { TableSymbol } from './TableSymbol';
-export { ChairSymbol } from './ChairSymbol';
+export { default as ChairSymbol } from '../../ChairSymbol';
 export { BenchSymbol } from './BenchSymbol';
 export { BedSymbol } from './BedSymbol';
 export { ThroneSymbol } from './ThroneSymbol';
-export { DeskSymbol } from './DeskSymbol';
-export { BookshelfSymbol } from './BookshelfSymbol';
-export { CabinetSymbol } from './CabinetSymbol';
+export { default as DeskSymbol } from '../../DeskSymbol';
+export { default as BookshelfSymbol } from '../../BookshelfSymbol';  // Use the better culturally-aware version
+export { default as CabinetSymbol } from '../../CabinetSymbol';
 
 // Architectural Elements
 export { WallSymbol } from './WallSymbol';
@@ -24,10 +24,10 @@ export { PillarSymbol } from './PillarSymbol';
 export { StairsSymbol } from './StairsSymbol';
 
 // Decorative
-export { StatueSymbol } from './StatueSymbol';
-export { FountainSymbol } from './FountainSymbol';
+export { default as StatueSymbol } from '../../StatueSymbol';
+export { default as FountainSymbol } from '../../FountainSymbol';
 export { AltarSymbol } from './AltarSymbol';
-export { ShrineSymbol } from './ShrineSymbol';
+export { default as ShrineSymbol } from '../../ShrineSymbol';
 export { CarpetSymbol } from './CarpetSymbol';
 export { DaisSymbol } from './DaisSymbol';
 
@@ -41,11 +41,10 @@ export { KitchenCounterSymbol } from './KitchenCounterSymbol';
 export { KitchenSinkSymbol } from './KitchenSinkSymbol';
 
 // Security
-export { WeaponRackSymbol } from './WeaponRackSymbol';
-export { ArmorStandSymbol } from './ArmorStandSymbol';
+export { default as WeaponRackSymbol } from '../../WeaponRackSymbol';
+export { default as ArmorStandSymbol } from '../../ArmorStandSymbol';
 
 // Lighting & Storage
-export { TorchSymbol } from './TorchSymbol';
-export { BrazierSymbol } from './BrazierSymbol';
+export { default as TorchSymbol } from '../../TorchSymbol';
 export { ChestSymbol } from './ChestSymbol';
 export { BarrelSymbol } from './BarrelSymbol';

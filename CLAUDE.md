@@ -242,6 +242,73 @@
 - Maintained consistency with existing game date ranges and political entities
 - Every region now has complete faction coverage across all historical eras
 
+## Healing System Plan (Multi-Stage Implementation)
+
+### Stage 1: Profession-Based Healing Unlocks
+- Allow any character to become healer/herbalist on level up
+- Make healing professions available in ALL eras/zones
+- Unlock basic healing abilities with profession change
+
+### Stage 2: Diagnosis Mechanics
+- Create HealingModal component for medical interactions
+- Implement symptom investigation mini-game
+- Add Intelligence/Wisdom checks for diagnosis accuracy
+- Risk of misdiagnosis leading to wrong treatments
+
+### Stage 3: Treatment System
+- Expand medicine crafting from herbs/materials
+- Dosage selection (too little/much has consequences)
+- Era-appropriate treatments (bloodletting → antibiotics)
+- Track treatment outcomes and patient follow-ups
+
+### Stage 4: Medical Quests
+- Transform fetch quests into full medical scenarios
+- "Diagnose illness" → "Gather ingredients" → "Prepare remedy" → "Monitor recovery"
+- Epidemic response quests for disease outbreaks
+- Build medical reputation through successful treatments
+
+### Stage 5: Advanced Features
+- Medical skill progression tree
+- Specializations (surgeon, herbalist, plague doctor)
+- Medical equipment crafting/trading
+- Teaching/apprentice system for spreading medical knowledge
+
+## Quest System Implementation - Phase 1 Complete (Latest Session)
+
+### Phase 1: Fix Critical Bugs & Expand Location Types ✅
+
+**Completed in this session:**
+
+1. **✅ Expanded Valid Quest Locations**:
+   - Modified `useCoreLoops.ts` to include ALL structure types: hamlets, bridges, mills, fortresses, wells, watchtowers
+   - Added fallback detection for structures with keywords in names (e.g., "Military Base" detected as fortress)
+   - System now continues even with zero structures (generates wilderness quests)
+
+2. **✅ Fixed Structure Detection Issues**:
+   - Updated `questService.ts` to handle inconsistent structure field names (location vs x/y coordinates)
+   - Added `getStructureLocation()` helper function to safely extract coordinates
+   - Fixed all structure filtering to check both `type` and `structureType` fields
+
+3. **✅ Added Wilderness Fallback System**:
+   - When NO structures exist, generates wilderness locations at different distances/angles
+   - Created survival and exploration quests that don't require structures
+   - Examples: "Travel 10 tiles", "Find water", "Survive 5 days"
+
+4. **✅ Fixed Disease Service Error**:
+   - Changed `diseaseService.ts` to export singleton instance
+   - Updated `EncounterModal.tsx` to use the singleton (was trying to call static method on class)
+   - Resolved "checkDirectContactTransmission is not a function" error
+
+### Files Modified:
+- **services/questService.ts**: Expanded location types, added wilderness fallback, fixed coordinate access
+- **hooks/useCoreLoops.ts**: Expanded valid structure detection, enabled wilderness quest generation
+- **services/diseaseService.ts**: Added singleton export for proper instantiation
+- **components/EncounterModal.tsx**: Updated to use diseaseService singleton
+- **services/eventService.ts**: Added mapData parameter to createQuestFromEvent call
+
+### Rationale:
+The quest system was failing on most maps because it required specific POI types (palaces, marketplaces) that rarely exist. By expanding to common structures (hamlets, mills) and adding wilderness fallbacks, quests now work on ALL maps. The coordinate access fixes handle the inconsistent data structures in the codebase.
+
 ## All Tasks Completed
 
 All requested work has been successfully completed:

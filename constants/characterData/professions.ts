@@ -2608,6 +2608,12 @@ export const PROFESSIONS: ProfessionData = {
                     genderBias: 'Male',
                     keywords: 'recitation',
                     emoji: '📖'
+                },
+                'Hakim': {
+                    statRequirements: { minIntelligence: 7, minPerception: 6 },
+                    socialRequirements: { minPrivilege: 0.5 },
+                    keywords: 'islamic medicine',
+                    emoji: '⚕️'
                 }
             }
         },
@@ -2780,6 +2786,12 @@ export const PROFESSIONS: ProfessionData = {
                     genderBias: 'Female',
                     keywords: 'hides',
                     emoji: '🦌'
+                },
+                'Medicine Person': {
+                    statRequirements: { minIntelligence: 6, minPerception: 6 },
+                    socialRequirements: { minReligiosity: 0.5 },
+                    keywords: 'healing spirits',
+                    emoji: '🌿'
                 }
             }
         },
@@ -2847,6 +2859,12 @@ export const PROFESSIONS: ProfessionData = {
                     genderBias: 'Male',
                     keywords: 'taxation',
                     emoji: '📋'
+                },
+                'Curandero': {
+                    statRequirements: { minIntelligence: 6, minPerception: 5 },
+                    socialRequirements: { minReligiosity: 0.4 },
+                    keywords: 'medicinal plants',
+                    emoji: '🌿'
                 }
             }
         },
@@ -2919,6 +2937,13 @@ export const PROFESSIONS: ProfessionData = {
                     genderBias: 'Female',
                     keywords: 'shelter',
                     emoji: '⛺'
+                },
+                'Medicine Man': {
+                    statRequirements: { minIntelligence: 6, minPerception: 6 },
+                    socialRequirements: { minReligiosity: 0.6 },
+                    genderBias: 'Male',
+                    keywords: 'healing ceremony',
+                    emoji: '🦅'
                 }
             },
             SOUTHWEST: {
@@ -2947,6 +2972,12 @@ export const PROFESSIONS: ProfessionData = {
                     socialRequirements: { maxPrivilege: 0.4 },
                     keywords: 'building',
                     emoji: '🏔️'
+                },
+                'Pueblo Healer': {
+                    statRequirements: { minIntelligence: 6, minPerception: 5 },
+                    socialRequirements: { minReligiosity: 0.5 },
+                    keywords: 'kiva medicine',
+                    emoji: '🌵'
                 }
             },
             Northwest: {
@@ -3265,6 +3296,12 @@ export const PROFESSIONS: ProfessionData = {
                     statRequirements: { minDexterity: 7, minCraftiness: 6 },
                     keywords: 'obsidian',
                     emoji: '🪨'
+                },
+                'Tohunga': {
+                    statRequirements: { minIntelligence: 6, minPerception: 6 },
+                    socialRequirements: { minReligiosity: 0.6 },
+                    keywords: 'traditional healing',
+                    emoji: '🌿'
                 }
             }
         },
@@ -3320,6 +3357,12 @@ export const PROFESSIONS: ProfessionData = {
                     socialRequirements: { maxPrivilege: 0.3 },
                     keywords: 'pearls',
                     emoji: '🦪'
+                },
+                'Kahuna Lapaʻau': {
+                    statRequirements: { minIntelligence: 7, minPerception: 6 },
+                    socialRequirements: { minReligiosity: 0.5 },
+                    keywords: 'medicinal plants',
+                    emoji: '🌿'
                 }
             }
         },
@@ -3517,6 +3560,12 @@ export const PROFESSIONS: ProfessionData = {
                     statRequirements: { minConstitution: 5, minPerception: 6 },
                     keywords: 'sacred flame',
                     emoji: '🔥'
+                },
+                'Sangoma': {
+                    statRequirements: { minIntelligence: 6, minPerception: 6 },
+                    socialRequirements: { minReligiosity: 0.6 },
+                    keywords: 'traditional healing',
+                    emoji: '🌿'
                 }
             }
         },
@@ -3582,6 +3631,13 @@ export const PROFESSIONS: ProfessionData = {
                     socialRequirements: { minPrivilege: 0.4 },
                     keywords: 'wisdom',
                     emoji: '👴🏿'
+                },
+                'Medicine Woman': {
+                    statRequirements: { minIntelligence: 6, minPerception: 5 },
+                    socialRequirements: { minReligiosity: 0.4 },
+                    genderBias: 'Female',
+                    keywords: 'herbal remedies',
+                    emoji: '🌿'
                 }
             }
         },

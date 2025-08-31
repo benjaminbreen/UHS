@@ -25,38 +25,38 @@ const BridgeSymbol: React.FC<BridgeSymbolProps> = ({
   width = 1
 }) => {
   const bridgeElements = useMemo(() => {
-    // Calculate bridge direction and length
+    // Calculate bridge direction and length (coordinates are now in pixels)
     const dx = endX - startX;
     const dy = endY - startY;
     const length = Math.sqrt(dx * dx + dy * dy);
     const angle = Math.atan2(dy, dx) * 180 / Math.PI;
     
-    // Bridge dimensions
-    const bridgeWidth = TILE_SIZE_PX * width * 0.8;
-    const bridgeLength = length;
+    // Bridge dimensions - match road width more closely
+    const bridgeWidth = TILE_SIZE_PX * width * 0.4; // Reduced from 0.8 to 0.4
+    const bridgeLength = length * 0.9; // Slightly shorter to not overhang
     
-    // Center points for tiles
-    const centerStartX = startX * TILE_SIZE_PX + TILE_SIZE_PX / 2;
-    const centerStartY = startY * TILE_SIZE_PX + TILE_SIZE_PX / 2;
+    // Use pixel coordinates directly (no multiplication needed)
+    const centerStartX = startX;
+    const centerStartY = startY;
     
-    // Color schemes by type
+    // Color schemes by type - adjusted to better match road browns
     const colors = {
       wooden: {
-        deck: '#8B6B47',
-        rail: '#6B5637',
-        support: '#5C4A3A',
-        shadow: 'rgba(0, 0, 0, 0.3)'
+        deck: '#9B7653', // Lighter, more road-like brown
+        rail: '#7A5D43',
+        support: '#6B4E3A',
+        shadow: 'rgba(0, 0, 0, 0.4)'
       },
       stone: {
-        deck: '#A0A0A0',
-        rail: '#808080',
-        support: '#707070',
+        deck: '#A8A8A8',
+        rail: '#888888',
+        support: '#787878',
         shadow: 'rgba(0, 0, 0, 0.4)'
       },
       iron: {
-        deck: '#5A5A5A',
-        rail: '#3A3A3A',
-        support: '#2A2A2A',
+        deck: '#6A6A6A',
+        rail: '#4A4A4A',
+        support: '#3A3A3A',
         shadow: 'rgba(0, 0, 0, 0.5)'
       },
       modern: {
@@ -71,64 +71,106 @@ const BridgeSymbol: React.FC<BridgeSymbolProps> = ({
     
     return (
       <g transform={`translate(${centerStartX}, ${centerStartY}) rotate(${angle})`}>
-        {/* Shadow under bridge */}
+        {/* Shadow under bridge - matches road shadow style */}
+        <line
+          x1={0}
+          y1={bridgeWidth / 2 + 1}
+          x2={bridgeLength}
+          y2={bridgeWidth / 2 + 1}
+          stroke="rgba(0, 0, 0, 0.3)"
+          strokeWidth="2"
+        />
         <rect
-          x={-bridgeWidth / 2}
-          y={-bridgeWidth / 2 + 2}
+          x={0}
+          y={-bridgeWidth / 2 + 1}
           width={bridgeLength}
           height={bridgeWidth}
           fill={color.shadow}
-          opacity="0.5"
+          opacity="0.2"
         />
         
         {/* Bridge deck */}
         <rect
-          x={-bridgeWidth / 2}
+          x={0}
           y={-bridgeWidth / 2}
           width={bridgeLength}
           height={bridgeWidth}
           fill={color.deck}
           stroke={color.support}
-          strokeWidth="1"
+          strokeWidth="0.5"
         />
         
-        {/* Wooden planks texture */}
-        {type === 'wooden' && (
+        {/* Wood textures based on style */}
+        {type === 'wooden' && style === 'log' && (
+          // Ancient log bridge - just parallel logs
           <>
-            {Array.from({ length: Math.floor(bridgeLength / 4) }, (_, i) => (
-              <line
-                key={`plank-${i}`}
-                x1={i * 4}
-                y1={-bridgeWidth / 2}
-                x2={i * 4}
-                y2={bridgeWidth / 2}
-                stroke={color.support}
-                strokeWidth="0.5"
-                opacity="0.5"
+            {Array.from({ length: 3 }, (_, i) => (
+              <rect
+                key={`log-${i}`}
+                x={0}
+                y={-bridgeWidth / 2 + (i * bridgeWidth / 3)}
+                width={bridgeLength}
+                height={bridgeWidth / 4}
+                fill="#8B6B47"
+                rx="1"
               />
             ))}
           </>
         )}
         
-        {/* Stone blocks texture */}
-        {type === 'stone' && (
+        {type === 'wooden' && style === 'plank' && (
+          // Medieval plank bridge
           <>
             {Array.from({ length: Math.floor(bridgeLength / 8) }, (_, i) => (
+              <line
+                key={`plank-${i}`}
+                x1={i * 8}
+                y1={-bridgeWidth / 2}
+                x2={i * 8}
+                y2={bridgeWidth / 2}
+                stroke={color.support}
+                strokeWidth="0.3"
+                opacity="0.4"
+              />
+            ))}
+          </>
+        )}
+        
+        {type === 'wooden' && style === 'beam' && (
+          // Classical beam bridge
+          <>
+            <rect
+              x={0}
+              y={-bridgeWidth / 2 + bridgeWidth * 0.3}
+              width={bridgeLength}
+              height={bridgeWidth * 0.4}
+              fill={color.support}
+              opacity="0.7"
+            />
+          </>
+        )}
+        
+        {/* Stone textures based on style */}
+        {type === 'stone' && style === 'roman' && (
+          // Roman stone with large blocks
+          <>
+            {Array.from({ length: Math.floor(bridgeLength / 12) }, (_, i) => (
               <g key={`block-${i}`}>
-                <line
-                  x1={i * 8}
-                  y1={-bridgeWidth / 2}
-                  x2={i * 8}
-                  y2={bridgeWidth / 2}
+                <rect
+                  x={i * 12}
+                  y={-bridgeWidth / 2}
+                  width={11}
+                  height={bridgeWidth}
+                  fill="none"
                   stroke={color.support}
                   strokeWidth="0.5"
                   opacity="0.3"
                 />
                 {i % 2 === 0 && (
                   <line
-                    x1={i * 8}
+                    x1={i * 12}
                     y1={0}
-                    x2={(i + 1) * 8}
+                    x2={(i + 1) * 12}
                     y2={0}
                     stroke={color.support}
                     strokeWidth="0.3"
@@ -140,8 +182,27 @@ const BridgeSymbol: React.FC<BridgeSymbolProps> = ({
           </>
         )}
         
-        {/* Iron truss structure */}
-        {type === 'iron' && (
+        {type === 'stone' && style === 'beam' && (
+          // Simple stone beam
+          <>
+            {Array.from({ length: Math.floor(bridgeLength / 8) }, (_, i) => (
+              <line
+                key={`seam-${i}`}
+                x1={i * 8}
+                y1={-bridgeWidth / 2}
+                x2={i * 8}
+                y2={bridgeWidth / 2}
+                stroke={color.support}
+                strokeWidth="0.3"
+                opacity="0.2"
+              />
+            ))}
+          </>
+        )}
+        
+        {/* Iron styles */}
+        {type === 'iron' && style === 'truss' && (
+          // Industrial truss bridge
           <>
             {/* Diagonal supports */}
             {Array.from({ length: Math.floor(bridgeLength / 10) }, (_, i) => (
@@ -162,19 +223,85 @@ const BridgeSymbol: React.FC<BridgeSymbolProps> = ({
                   stroke={color.support}
                   strokeWidth="1.5"
                 />
+                {/* Rivets */}
+                <circle cx={i * 10} cy={-bridgeWidth / 2} r="1" fill={color.support} />
+                <circle cx={i * 10} cy={bridgeWidth / 2} r="1" fill={color.support} />
               </g>
             ))}
           </>
         )}
         
-        {/* Railings */}
+        {type === 'iron' && style === 'railroad' && (
+          // Railroad bridge with heavy beams
+          <>
+            <rect
+              x={0}
+              y={-bridgeWidth / 2}
+              width={bridgeLength}
+              height={2}
+              fill={color.support}
+            />
+            <rect
+              x={0}
+              y={bridgeWidth / 2 - 2}
+              width={bridgeLength}
+              height={2}
+              fill={color.support}
+            />
+            {/* Cross beams */}
+            {Array.from({ length: Math.floor(bridgeLength / 8) }, (_, i) => (
+              <rect
+                key={`beam-${i}`}
+                x={i * 8}
+                y={-bridgeWidth / 2}
+                width={2}
+                height={bridgeWidth}
+                fill={color.support}
+                opacity="0.8"
+              />
+            ))}
+          </>
+        )}
+        
+        {/* Modern concrete styles */}
+        {type === 'modern' && (
+          <>
+            {/* Clean modern look */}
+            <rect
+              x={0}
+              y={-bridgeWidth / 2 - 1}
+              width={bridgeLength}
+              height={bridgeWidth + 2}
+              fill="#C0C0C0"
+              stroke="#909090"
+              strokeWidth="0.5"
+            />
+            {style === 'highway' && (
+              // Highway markings
+              <>
+                <line
+                  x1={0}
+                  y1={0}
+                  x2={bridgeLength}
+                  y2={0}
+                  stroke="yellow"
+                  strokeWidth="1"
+                  strokeDasharray="10,10"
+                  opacity="0.6"
+                />
+              </>
+            )}
+          </>
+        )}
+        
+        {/* Railings - thinner for better proportions */}
         <line
           x1={0}
           y1={-bridgeWidth / 2}
           x2={bridgeLength}
           y2={-bridgeWidth / 2}
           stroke={color.rail}
-          strokeWidth="2"
+          strokeWidth="1"
         />
         <line
           x1={0}
@@ -182,24 +309,24 @@ const BridgeSymbol: React.FC<BridgeSymbolProps> = ({
           x2={bridgeLength}
           y2={bridgeWidth / 2}
           stroke={color.rail}
-          strokeWidth="2"
+          strokeWidth="1"
         />
         
-        {/* Railing posts */}
-        {Array.from({ length: Math.floor(bridgeLength / 15) + 1 }, (_, i) => (
+        {/* Railing posts - smaller and spaced for 3-tile bridges */}
+        {Array.from({ length: 3 }, (_, i) => (
           <g key={`post-${i}`}>
             <rect
-              x={i * 15 - 1}
-              y={-bridgeWidth / 2 - 3}
-              width="2"
-              height="6"
+              x={i * (bridgeLength / 2) - 0.5}
+              y={-bridgeWidth / 2 - 2}
+              width="1"
+              height="4"
               fill={color.rail}
             />
             <rect
-              x={i * 15 - 1}
-              y={bridgeWidth / 2 - 3}
-              width="2"
-              height="6"
+              x={i * (bridgeLength / 2) - 0.5}
+              y={bridgeWidth / 2 - 2}
+              width="1"
+              height="4"
               fill={color.rail}
             />
           </g>
@@ -235,22 +362,49 @@ const BridgeSymbol: React.FC<BridgeSymbolProps> = ({
         {/* Special features by style */}
         {style === 'covered' && type === 'wooden' && (
           <g>
-            {/* Roof */}
+            {/* Medieval covered bridge roof */}
             <polygon
-              points={`0,${-bridgeWidth/2 - 8} ${bridgeLength},${-bridgeWidth/2 - 8} ${bridgeLength},${-bridgeWidth/2} 0,${-bridgeWidth/2}`}
+              points={`0,${-bridgeWidth/2 - 10} ${bridgeLength},${-bridgeWidth/2 - 10} ${bridgeLength},${-bridgeWidth/2} 0,${-bridgeWidth/2}`}
               fill="#654321"
-              opacity="0.8"
+              opacity="0.9"
             />
             <polygon
-              points={`0,${bridgeWidth/2 + 8} ${bridgeLength},${bridgeWidth/2 + 8} ${bridgeLength},${bridgeWidth/2} 0,${bridgeWidth/2}`}
+              points={`0,${bridgeWidth/2 + 10} ${bridgeLength},${bridgeWidth/2 + 10} ${bridgeLength},${bridgeWidth/2} 0,${bridgeWidth/2}`}
               fill="#654321"
-              opacity="0.8"
+              opacity="0.9"
             />
+            {/* Roof peak */}
             <polygon
-              points={`0,${-bridgeWidth/2 - 8} ${bridgeLength},${-bridgeWidth/2 - 8} ${bridgeLength},${bridgeWidth/2 + 8} 0,${bridgeWidth/2 + 8}`}
-              fill="#543210"
-              opacity="0.6"
+              points={`0,${-bridgeWidth/2 - 10} ${bridgeLength},${-bridgeWidth/2 - 10} ${bridgeLength},${bridgeWidth/2 + 10} 0,${bridgeWidth/2 + 10}`}
+              fill="#4A3018"
+              opacity="0.7"
             />
+          </g>
+        )}
+        
+        {style === 'truss' && type === 'wooden' && (
+          // Early modern wooden truss
+          <g>
+            {Array.from({ length: Math.floor(bridgeLength / 15) }, (_, i) => (
+              <g key={`wood-truss-${i}`}>
+                <line
+                  x1={i * 15}
+                  y1={-bridgeWidth / 2}
+                  x2={(i + 0.5) * 15}
+                  y2={-bridgeWidth / 2 - 8}
+                  stroke={color.support}
+                  strokeWidth="2"
+                />
+                <line
+                  x1={(i + 0.5) * 15}
+                  y1={-bridgeWidth / 2 - 8}
+                  x2={(i + 1) * 15}
+                  y2={-bridgeWidth / 2}
+                  stroke={color.support}
+                  strokeWidth="2"
+                />
+              </g>
+            ))}
           </g>
         )}
         

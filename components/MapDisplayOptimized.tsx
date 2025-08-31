@@ -50,6 +50,7 @@ import { getMineSymbol } from './symbols/mines/MineSymbols';
 import { getQuarrySymbol } from './symbols/quarries/QuarrySymbols';
 import { getFortressSymbol } from './symbols/fortresses/FortressSymbolsImproved';
 import { SpecialMapSymbolRenderer } from './symbols/specialMap/SpecialMapSymbolRenderer';
+import { MultiTilePillar } from './symbols/architecture/specialMap/MultiTilePillar';
 import { 
   CityHallSymbol,
   TribalCouncilSymbol,
@@ -3216,16 +3217,44 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     BiomeType.WEAPON_RACK, BiomeType.ARMOR_STAND, BiomeType.STAIRS
                   ];
                   return specialMapBiomes.includes(tile.biome);
-                }).map(tile => (
-                  <SpecialMapSymbolRenderer
-                    key={`special-${tile.x}-${tile.y}`}
-                    biome={tile.biome}
-                    x={tile.x * TILE_SIZE_PX}
-                    y={tile.y * TILE_SIZE_PX}
-                    size={TILE_SIZE_PX}
-                    culturalZone={currentLocation || 'Europe'}
-                    era={parseDateString(formattedDate)}
-                    seed={seed + tile.x * 31 + tile.y * 37}
+                }).map(tile => {
+                  // Get proper cultural zone from mapData or derive from location
+                  const { year } = parseDateString(formattedDate);
+                  const culturalZone = mapData.culturalZone || 
+                                      mapLocationToCulture(mapData.continent || currentLocation || 'Europe', year);
+                  
+                  return (
+                    <SpecialMapSymbolRenderer
+                      key={`special-${tile.x}-${tile.y}`}
+                      biome={tile.biome}
+                      x={tile.x * TILE_SIZE_PX}
+                      y={tile.y * TILE_SIZE_PX}
+                      size={TILE_SIZE_PX}
+                      culturalZone={culturalZone}
+                      era={parseDateString(formattedDate).era}
+                      seed={seed + tile.x * 31 + tile.y * 37}
+                      multiTileData={(tile as any).multiTileData}
+                      specialArchetype={(mapData as any).specialArchetype}
+                    />
+                  );
+                })}
+              </g>
+            )}
+
+            {/* Multi-tile pillars layer - rendered above base tiles */}
+            {isSpecialMap && (mapData as any)?.multiTileObjects && (
+              <g className="multi-tile-pillars-layer">
+                {((mapData as any).multiTileObjects || []).filter((obj: any) => obj.type === 'pillar').map((pillar: any) => (
+                  <MultiTilePillar
+                    key={pillar.id}
+                    x={pillar.baseX}
+                    y={pillar.baseY}
+                    height={pillar.height}
+                    material={pillar.material}
+                    tileWidth={TILE_SIZE_PX}
+                    tileHeight={TILE_SIZE_PX}
+                    offsetX={0}
+                    offsetY={0}
                   />
                 ))}
               </g>

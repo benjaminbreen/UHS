@@ -84,7 +84,8 @@ function findWaterCrossings(
         // Found a crossing! Now trace the full water span
         const crossing = traceWaterCrossing(tiles, points, i);
         
-        if (crossing && crossing.waterTiles.length > 0 && crossing.waterTiles.length <= 8) {
+        // Only build bridges for 1-tile water crossings (3 tiles total: land-water-land)
+        if (crossing && crossing.waterTiles.length === 1) {
           // Determine direction
           const dx = crossing.end.x - crossing.start.x;
           const dy = crossing.end.y - crossing.start.y;
@@ -161,13 +162,14 @@ function traceWaterCrossing(
   let landStart: Point | null = null;
   let landEnd: Point | null = null;
   
-  // Find the land tile before water
+  // Find the land tile before water - store in PIXEL coordinates
   for (let i = startIndex; i >= 0; i--) {
     const tile = getTileAtPoint(tiles, pathPoints[i]);
     if (tile && !isWaterTile(tile)) {
+      // Store as pixel coordinates for rendering alignment
       landStart = {
-        x: Math.floor(pathPoints[i].x / TILE_SIZE_PX),
-        y: Math.floor(pathPoints[i].y / TILE_SIZE_PX)
+        x: pathPoints[i].x,
+        y: pathPoints[i].y
       };
       break;
     }
@@ -186,13 +188,16 @@ function traceWaterCrossing(
     
     if (isWaterTile(tile)) {
       inWater = true;
-      // Check if we already have this tile
+      // Water tiles stored as tile coordinates for game logic
       if (!waterTiles.some(t => t.x === tileCoord.x && t.y === tileCoord.y)) {
         waterTiles.push(tileCoord);
       }
     } else if (inWater) {
-      // Found land after water
-      landEnd = tileCoord;
+      // Found land after water - store in PIXEL coordinates
+      landEnd = {
+        x: pathPoints[i].x,
+        y: pathPoints[i].y
+      };
       break;
     }
   }
@@ -200,9 +205,9 @@ function traceWaterCrossing(
   if (!landStart || !landEnd || waterTiles.length === 0) return null;
   
   return {
-    start: landStart,
-    end: landEnd,
-    waterTiles
+    start: landStart,  // Now in pixels
+    end: landEnd,      // Now in pixels
+    waterTiles         // Still in tiles for game logic
   };
 }
 
@@ -283,39 +288,77 @@ function getBridgeType(
   culturalZone: string,
   pathType: PathType,
   length: number
-): { type: 'wooden' | 'stone' | 'iron' | 'modern'; style: string } {
-  // Default to wooden for short spans
-  if (length <= 2 && pathType === PathType.TRAIL) {
-    return { type: 'wooden', style: 'simple' };
-  }
-  
-  // Era-based selection
+): { type: 'wooden' | 'stone' | 'iron' | 'modern'; style: string } | null {
+  // Era-based selection with historical accuracy
   const eraStr = typeof era === 'string' ? era : era.toString();
   
-  if (eraStr.includes('MODERN') || eraStr.includes('CONTEMPORARY')) {
-    return { type: 'modern', style: 'concrete' };
+  // PREHISTORIC (before 3000 BCE) - No bridges
+  if (eraStr.includes('PREHISTORIC') || eraStr.includes('STONE_AGE')) {
+    return null; // No bridges in prehistoric times
   }
   
-  if (eraStr.includes('INDUSTRIAL')) {
-    return { type: 'iron', style: 'truss' };
-  }
-  
-  if (eraStr.includes('MEDIEVAL') || eraStr.includes('RENAISSANCE')) {
-    if (pathType === PathType.ROAD && length > 3) {
-      return { type: 'stone', style: culturalZone === 'EUROPEAN' ? 'arch' : 'beam' };
-    }
-    return { type: 'wooden', style: 'covered' };
-  }
-  
-  if (eraStr.includes('ANCIENT') || eraStr.includes('CLASSICAL')) {
-    if (culturalZone === 'EUROPEAN' || culturalZone === 'MENA') {
-      return { type: 'stone', style: 'roman' };
-    }
+  // ANCIENT (3000 BCE - 500 CE) - Simple log bridges
+  if (eraStr.includes('ANCIENT') || eraStr.includes('BRONZE_AGE')) {
+    // Very primitive - just logs across water
     return { type: 'wooden', style: 'log' };
   }
   
-  // Default fallback
-  return { type: 'wooden', style: 'simple' };
+  // CLASSICAL (500 BCE - 500 CE) - Early engineering
+  if (eraStr.includes('CLASSICAL') || eraStr.includes('IRON_AGE')) {
+    if ((culturalZone === 'EUROPEAN' || culturalZone === 'MENA') && pathType === PathType.ROAD) {
+      // Romans built stone arch bridges
+      return { type: 'stone', style: 'roman' };
+    }
+    // Others used wooden beam bridges
+    return { type: 'wooden', style: 'beam' };
+  }
+  
+  // MEDIEVAL (500 - 1500) - Mix of wood and stone
+  if (eraStr.includes('MEDIEVAL')) {
+    if (pathType === PathType.ROAD && length > 3) {
+      // Important crossings get stone bridges
+      return { type: 'stone', style: culturalZone === 'EUROPEAN' ? 'arch' : 'beam' };
+    }
+    // Smaller crossings use wood, sometimes covered
+    return { type: 'wooden', style: length > 2 ? 'covered' : 'plank' };
+  }
+  
+  // EARLY MODERN (1500 - 1800) - Refined stone construction
+  if (eraStr.includes('RENAISSANCE') || eraStr.includes('EARLY_MODERN')) {
+    if (pathType === PathType.ROAD || pathType === PathType.MAJOR_PATH) {
+      // Stone becomes standard for major routes
+      return { type: 'stone', style: 'arch' };
+    }
+    // Wood with better engineering
+    return { type: 'wooden', style: 'truss' };
+  }
+  
+  // INDUSTRIAL (1800 - 1950) - Iron and early steel
+  if (eraStr.includes('INDUSTRIAL')) {
+    if (pathType === PathType.RAILROAD) {
+      // Railroads need strong iron bridges
+      return { type: 'iron', style: 'railroad' };
+    }
+    if (length > 4) {
+      // Long spans use iron truss
+      return { type: 'iron', style: 'truss' };
+    }
+    // Short spans might still use stone
+    return { type: 'stone', style: 'beam' };
+  }
+  
+  // MODERN (1950+) - Concrete and steel
+  if (eraStr.includes('MODERN') || eraStr.includes('CONTEMPORARY')) {
+    if (pathType === PathType.HIGHWAY) {
+      // Highways get modern concrete
+      return { type: 'modern', style: 'highway' };
+    }
+    // Standard modern bridge
+    return { type: 'modern', style: 'concrete' };
+  }
+  
+  // Default fallback for unrecognized eras - simple wooden
+  return { type: 'wooden', style: 'plank' };
 }
 
 /**
@@ -333,11 +376,19 @@ export function generateBridges(
   // Select which ones to build
   const selected = selectBridges(candidates);
   
-  // Convert to bridge objects
-  const bridges: Bridge[] = selected.map((candidate, index) => {
+  // Convert to bridge objects, filtering out null types (prehistoric era)
+  const bridges: Bridge[] = [];
+  
+  for (const [index, candidate] of selected.entries()) {
     const bridgeType = getBridgeType(era, culturalZone, candidate.pathType, candidate.waterTiles.length);
     
-    return {
+    // Skip if no bridge should be built (e.g., prehistoric era)
+    if (!bridgeType) {
+      console.log('[Gen] Skipping bridge generation - not available in this era');
+      continue;
+    }
+    
+    bridges.push({
       id: `bridge-${index}`,
       start: candidate.start,
       end: candidate.end,
@@ -345,8 +396,8 @@ export function generateBridges(
       type: bridgeType.type,
       style: bridgeType.style,
       width: candidate.pathType === PathType.ROAD || candidate.pathType === PathType.HIGHWAY ? 2 : 1,
-    };
-  });
+    });
+  }
   
   return bridges;
 }
@@ -360,11 +411,15 @@ export function addBridgesToMap(mapData: MapData, bridges: Bridge[]): MapData {
     id: bridge.id,
     name: `Bridge`,
     structureType: 'bridge',
-    location: [bridge.start.x, bridge.start.y],
+    // Convert pixel coordinates to tile coordinates for the location field
+    location: [
+      Math.floor(bridge.start.x / TILE_SIZE_PX), 
+      Math.floor(bridge.start.y / TILE_SIZE_PX)
+    ],
     economicRole: 'commerce' as const,
     npcAnchor: 'trader',
     state: 'active' as const,
-    customData: bridge, // Store full bridge data
+    customData: bridge, // Store full bridge data with pixel coordinates
   }));
   
   // Add to map's terrain structures

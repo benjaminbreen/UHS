@@ -14,6 +14,27 @@ export type EquipmentSlot = 'head' | 'torso' | 'legs' | 'feet' |
                           'main_hand' | 'off_hand' | 
                           'cloak' | 'belt' | 'amulet' | 'ring1' | 'ring2' | 'accessory';
 
+export interface CharacterAbilities {
+    canHeal?: boolean; // Can diagnose and treat diseases
+    canCraft?: boolean; // Can craft items
+    canTame?: boolean; // Can tame animals
+    canNavigate?: boolean; // Enhanced navigation abilities
+    canTrade?: boolean; // Better trading prices
+    canTeach?: boolean; // Can teach skills to others
+    canPray?: boolean; // Religious abilities
+    canFight?: boolean; // Combat bonuses
+    canForage?: boolean; // Better foraging results
+    canSmith?: boolean; // Metalworking abilities
+}
+
+export interface MedicalSkills {
+    diagnosisAccuracy: number; // 0-100, affects correct disease identification
+    treatmentEffectiveness: number; // 0-100, affects healing success rate
+    herbalistKnowledge: number; // 0-100, knowledge of medicinal plants
+    surgicalSkill: number; // 0-100, for advanced procedures
+    patientTrust: number; // 0-100, affects patient cooperation
+}
+
 export interface CharacterStats {
     // Core Attributes
     strength: number;
@@ -119,4 +140,8 @@ export interface PlayerCharacter {
     // New properties for interior view state
     interiorViewState?: InteriorViewState | null;
     interiorMapPlayerPos?: Point | null;
+    
+    // Abilities and Skills
+    abilities?: CharacterAbilities;
+    medicalSkills?: MedicalSkills;
 }

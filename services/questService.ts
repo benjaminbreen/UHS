@@ -362,21 +362,31 @@ export class QuestService {
   createQuestFromEvent(
     eventData: any,
     mapStructures: TerrainStructure[],
-    currentLocation: { x: number; y: number }
+    currentLocation: { x: number; y: number },
+    mapData?: any
   ): Quest | null {
-    // Find relevant structures on the map
+    // Find ALL relevant structures on the map, including commonly available ones
     const marketplaces = mapStructures.filter(s => s.type === 'marketplace');
     const cities = mapStructures.filter(s => s.type === 'urban');
     const palaces = mapStructures.filter(s => s.type === 'palace');
     const holySites = mapStructures.filter(s => s.type === 'holy_site');
     const ruins = mapStructures.filter(s => s.type === 'ruins');
     const farms = mapStructures.filter(s => s.type === 'farm');
+    
+    // Add more common structure types that are likely to exist
+    const hamlets = mapStructures.filter(s => s.type === 'hamlet' || s.name?.includes('Hamlet'));
+    const bridges = mapStructures.filter(s => s.type === 'bridge');
+    const mills = mapStructures.filter(s => s.type === 'mill' || s.name?.includes('Mill'));
+    const fortresses = mapStructures.filter(s => s.type === 'fortress' || s.name?.includes('Base'));
+    const wells = mapStructures.filter(s => s.type === 'well');
+    const watchtowers = mapStructures.filter(s => s.type === 'watchtower');
 
     // Pick appropriate locations for the quest
     const questLocations = this.selectQuestLocations(
       eventData,
-      { marketplaces, cities, palaces, holySites, ruins, farms },
-      currentLocation
+      { marketplaces, cities, palaces, holySites, ruins, farms, hamlets, bridges, mills, fortresses, wells, watchtowers },
+      currentLocation,
+      mapData
     );
 
     if (questLocations.length === 0) {
@@ -433,15 +443,23 @@ export class QuestService {
       holySites: TerrainStructure[];
       ruins: TerrainStructure[];
       farms: TerrainStructure[];
+      hamlets?: TerrainStructure[];
+      bridges?: TerrainStructure[];
+      mills?: TerrainStructure[];
+      fortresses?: TerrainStructure[];
+      wells?: TerrainStructure[];
+      watchtowers?: TerrainStructure[];
     },
-    currentLocation: { x: number; y: number }
-  ): Array<{ structure: TerrainStructure; distance: number }> {
-    const locations: Array<{ structure: TerrainStructure; distance: number }> = [];
+    currentLocation: { x: number; y: number },
+    mapData?: any
+  ): Array<{ structure: TerrainStructure | any; distance: number }> {
+    const locations: Array<{ structure: TerrainStructure | any; distance: number }> = [];
 
     // Analyze event text to determine which location types are relevant
     const eventText = (eventData.description + ' ' + eventData.title).toLowerCase();
     
-    const addLocationsOfType = (structureList: TerrainStructure[], priority: number) => {
+    const addLocationsOfType = (structureList: TerrainStructure[] | undefined, priority: number) => {
+      if (!structureList) return;
       structureList.forEach(s => {
         if (s.x !== undefined && s.y !== undefined) {
           const distance = Math.sqrt(
@@ -459,9 +477,11 @@ export class QuestService {
     }
     if (eventText.includes('city') || eventText.includes('urban') || eventText.includes('settlement')) {
       addLocationsOfType(structures.cities, 1);
+      addLocationsOfType(structures.hamlets, 2);
     }
     if (eventText.includes('noble') || eventText.includes('ruler') || eventText.includes('palace')) {
       addLocationsOfType(structures.palaces, 1);
+      addLocationsOfType(structures.fortresses, 2);
     }
     if (eventText.includes('holy') || eventText.includes('religious') || eventText.includes('temple')) {
       addLocationsOfType(structures.holySites, 1);
@@ -471,25 +491,51 @@ export class QuestService {
     }
     if (eventText.includes('farm') || eventText.includes('harvest') || eventText.includes('grain')) {
       addLocationsOfType(structures.farms, 1);
+      addLocationsOfType(structures.mills, 2);
+    }
+    if (eventText.includes('bridge') || eventText.includes('river') || eventText.includes('crossing')) {
+      addLocationsOfType(structures.bridges, 1);
+    }
+    if (eventText.includes('defense') || eventText.includes('military') || eventText.includes('guard')) {
+      addLocationsOfType(structures.fortresses, 1);
+      addLocationsOfType(structures.watchtowers, 2);
     }
 
-    // If no specific matches, add nearest of each type
+    // If no specific matches, add all available structures
     if (locations.length === 0) {
-      [
-        ...structures.marketplaces,
-        ...structures.cities,
-        ...structures.palaces,
-        ...structures.holySites,
-        ...structures.ruins,
-        ...structures.farms
-      ].forEach(s => {
-        if (s.x !== undefined && s.y !== undefined) {
-          const distance = Math.sqrt(
-            Math.pow(s.x - currentLocation.x, 2) + 
-            Math.pow(s.y - currentLocation.y, 2)
-          );
-          locations.push({ structure: s, distance });
+      Object.values(structures).forEach(structureList => {
+        if (Array.isArray(structureList)) {
+          addLocationsOfType(structureList, 3);
         }
+      });
+    }
+
+    // If STILL no locations, create fallback wilderness locations
+    if (locations.length === 0 && mapData) {
+      console.log('[QuestService] No structures found, generating wilderness locations');
+      
+      // Generate 3 wilderness points at different distances and directions
+      const distances = [5, 10, 15];
+      const angles = [0, Math.PI * 2/3, Math.PI * 4/3]; // 120 degrees apart
+      
+      distances.forEach((dist, i) => {
+        const angle = angles[i];
+        const wildernessPoint = {
+          x: Math.round(currentLocation.x + Math.cos(angle) * dist),
+          y: Math.round(currentLocation.y + Math.sin(angle) * dist),
+          type: 'wilderness',
+          name: `Wilderness location ${i + 1}`,
+          id: `wilderness_${Date.now()}_${i}`
+        };
+        
+        // Clamp to map bounds
+        wildernessPoint.x = Math.max(0, Math.min(mapData.width - 1, wildernessPoint.x));
+        wildernessPoint.y = Math.max(0, Math.min(mapData.height - 1, wildernessPoint.y));
+        
+        locations.push({ 
+          structure: wildernessPoint, 
+          distance: dist 
+        });
       });
     }
 
@@ -566,7 +612,7 @@ export class QuestService {
   /**
    * Map structure types to location types
    */
-  private mapStructureTypeToLocation(structureType: string): 'marketplace' | 'city_center' | 'palace' | 'holy_site' | 'ruins' | 'farm' {
+  private mapStructureTypeToLocation(structureType: string): 'marketplace' | 'city_center' | 'palace' | 'holy_site' | 'ruins' | 'farm' | 'hamlet' | 'wilderness' {
     switch (structureType) {
       case 'marketplace': return 'marketplace';
       case 'urban': return 'city_center';
@@ -574,6 +620,15 @@ export class QuestService {
       case 'holy_site': return 'holy_site';
       case 'ruins': return 'ruins';
       case 'farm': return 'farm';
+      case 'hamlet': return 'hamlet';
+      case 'bridge':
+      case 'mill':
+      case 'fortress':
+      case 'well':
+      case 'watchtower':
+        return 'hamlet'; // Use hamlet as a generic settlement type
+      case 'wilderness':
+        return 'wilderness';
       default: return 'city_center';
     }
   }
@@ -983,14 +1038,24 @@ export class QuestService {
     mapData?: any
   ): Quest[] {
     const quests: Quest[] = [];
-    const searchRadius = 15; // Look within 15 tiles for more options
+    const searchRadius = 20; // Increased search radius for more options
     
-    // Find nearby ruins
+    // Helper to get location from structure (handles different field names)
+    const getStructureLocation = (s: TerrainStructure): { x: number; y: number } | null => {
+      if (s.location) return s.location;
+      if (s.x !== undefined && s.y !== undefined) return { x: s.x, y: s.y };
+      return null;
+    };
+    
+    // Find nearby ruins (check both type and structureType fields)
     const nearbyRuins = mapStructures.filter(s => {
-      if (s.type !== 'ruins') return false;
+      const isRuin = s.type === 'ruins' || s.structureType === 'ruins';
+      if (!isRuin) return false;
+      const loc = getStructureLocation(s);
+      if (!loc) return false;
       const distance = Math.sqrt(
-        Math.pow(s.location.x - playerLocation.x, 2) + 
-        Math.pow(s.location.y - playerLocation.y, 2)
+        Math.pow(loc.x - playerLocation.x, 2) + 
+        Math.pow(loc.y - playerLocation.y, 2)
       );
       return distance <= searchRadius;
     });
@@ -998,23 +1063,29 @@ export class QuestService {
     // Generate exploration quest for nearest ruin
     if (nearbyRuins.length > 0) {
       const nearestRuin = nearbyRuins.sort((a, b) => {
+        const locA = getStructureLocation(a);
+        const locB = getStructureLocation(b);
+        if (!locA || !locB) return 0;
         const distA = Math.sqrt(
-          Math.pow(a.location.x - playerLocation.x, 2) + 
-          Math.pow(a.location.y - playerLocation.y, 2)
+          Math.pow(locA.x - playerLocation.x, 2) + 
+          Math.pow(locA.y - playerLocation.y, 2)
         );
         const distB = Math.sqrt(
-          Math.pow(b.location.x - playerLocation.x, 2) + 
-          Math.pow(b.location.y - playerLocation.y, 2)
+          Math.pow(locB.x - playerLocation.x, 2) + 
+          Math.pow(locB.y - playerLocation.y, 2)
         );
         return distA - distB;
       })[0];
       
-      const direction = this.getDirection(playerLocation, nearestRuin.location);
+      const ruinLoc = getStructureLocation(nearestRuin);
+      if (!ruinLoc) return quests;
+      
+      const direction = this.getDirection(playerLocation, ruinLoc);
       const ruinName = this.generateRuinName(culturalZone, era);
       
       const distance = Math.sqrt(
-        Math.pow(nearestRuin.location.x - playerLocation.x, 2) + 
-        Math.pow(nearestRuin.location.y - playerLocation.y, 2)
+        Math.pow(ruinLoc.x - playerLocation.x, 2) + 
+        Math.pow(ruinLoc.y - playerLocation.y, 2)
       );
       const difficulty = distance < 5 ? 'easy' : distance < 10 ? 'medium' : 'hard';
       
@@ -1028,7 +1099,7 @@ export class QuestService {
             id: 'obj_1',
             description: `Reach the ${ruinName}`,
             type: 'visit_location',
-            targetLocation: nearestRuin.location,
+            targetLocation: ruinLoc,
             targetType: 'ruins',
             completed: false,
             isLLMEnabled: true
@@ -1037,7 +1108,7 @@ export class QuestService {
             id: 'obj_2',
             description: `Explore the ruins thoroughly`,
             type: 'explore_area',
-            targetLocation: { ...nearestRuin.location, radius: 2 },
+            targetLocation: { ...ruinLoc, radius: 2 },
             completed: false,
             hidden: true, // Revealed when reaching the ruins
             isLLMEnabled: true
@@ -1077,7 +1148,7 @@ export class QuestService {
         bonusRewards: [
           {
             type: 'map_reveal',
-            value: { radius: 5, centerX: nearestRuin.location.x, centerY: nearestRuin.location.y },
+            value: { radius: 5, centerX: ruinLoc.x, centerY: ruinLoc.y },
             description: 'Reveal surrounding area',
             guaranteed: true
           }
@@ -1087,7 +1158,7 @@ export class QuestService {
         status: 'active',
         difficulty,
         isProceduralQuest: true,
-        followUpQuests: [`quest_chain_ruins_${nearestRuin.location.x}_${nearestRuin.location.y}`]
+        followUpQuests: [`quest_chain_ruins_${ruinLoc.x}_${ruinLoc.y}`]
       };
       
       quests.push(explorationQuest);
@@ -1135,19 +1206,21 @@ export class QuestService {
     
     // If we don't have 2 quests yet, add a sacred site quest
     if (quests.length < 2) {
-      const holySites = mapStructures.filter(s => s.type === 'holy_site');
+      const holySites = mapStructures.filter(s => s.type === 'holy_site' || s.structureType === 'holy_site');
       if (holySites.length > 0) {
         const targetSite = holySites[Math.floor(Math.random() * holySites.length)];
-        const pilgrimmageQuest: Quest = {
-          id: `quest_pilgrimmage_${Date.now()}`,
-          title: 'Sacred Pilgrimage',
-          description: 'Visit a sacred site to gain spiritual insight and blessings.',
-          category: 'exploration',
-          objectives: [{
-            id: 'obj_1',
-            description: 'Reach the sacred site',
-            type: 'visit_location',
-            targetLocation: targetSite.location,
+        const siteLoc = getStructureLocation(targetSite);
+        if (siteLoc) {
+          const pilgrimmageQuest: Quest = {
+            id: `quest_pilgrimmage_${Date.now()}`,
+            title: 'Sacred Pilgrimage',
+            description: 'Visit a sacred site to gain spiritual insight and blessings.',
+            category: 'exploration',
+            objectives: [{
+              id: 'obj_1',
+              description: 'Reach the sacred site',
+              type: 'visit_location',
+              targetLocation: siteLoc,
             targetType: 'holy_site',
             completed: false
           }],
@@ -1162,24 +1235,32 @@ export class QuestService {
           status: 'active',
           isProceduralQuest: true
         };
-        
-        quests.push(pilgrimmageQuest);
+          
+          quests.push(pilgrimmageQuest);
+        }
       }
     }
     
-    // Add a merchant escort quest if there are cities nearby
+    // Add a merchant escort quest if there are cities/hamlets nearby
     const nearbyCities = mapStructures.filter(s => {
-      if (s.type !== 'urban') return false;
+      const isUrban = s.type === 'urban' || s.structureType === 'urban' || 
+                      s.type === 'hamlet' || s.structureType === 'hamlet' ||
+                      s.name?.toLowerCase().includes('hamlet');
+      if (!isUrban) return false;
+      const loc = getStructureLocation(s);
+      if (!loc) return false;
       const distance = Math.sqrt(
-        Math.pow(s.location.x - playerLocation.x, 2) + 
-        Math.pow(s.location.y - playerLocation.y, 2)
+        Math.pow(loc.x - playerLocation.x, 2) + 
+        Math.pow(loc.y - playerLocation.y, 2)
       );
       return distance <= searchRadius && distance > 3; // Not too close, not too far
     });
     
     if (nearbyCities.length > 0 && quests.length < 2) {
       const targetCity = nearbyCities[Math.floor(Math.random() * nearbyCities.length)];
-      const escortQuest: Quest = {
+      const cityLoc = getStructureLocation(targetCity);
+      if (cityLoc) {
+        const escortQuest: Quest = {
         id: `quest_escort_${Date.now()}`,
         title: 'Merchant Escort',
         description: `A local merchant needs protection while traveling to ${targetCity.name || 'the nearby city'}. Bandits have been spotted along the route.`,
@@ -1196,7 +1277,7 @@ export class QuestService {
             id: 'obj_2',
             description: `Escort the merchant safely to ${targetCity.name || 'the city'}`,
             type: 'escort_npc',
-            targetLocation: targetCity.location,
+            targetLocation: cityLoc,
             completed: false,
             timeLimit: 300 // 5 minutes game time
           }
@@ -1233,8 +1314,9 @@ export class QuestService {
         ],
         isProceduralQuest: true
       };
-      
-      quests.push(escortQuest);
+        
+        quests.push(escortQuest);
+      }
     }
     
     // Add a mystery investigation quest for certain biomes
@@ -1243,6 +1325,99 @@ export class QuestService {
       if (mysteryQuest) {
         quests.push(mysteryQuest);
       }
+    }
+    
+    // If we STILL don't have any quests (no structures at all), generate wilderness survival quests
+    if (quests.length === 0) {
+      console.log('[QuestService] No structures found, generating wilderness survival quests');
+      
+      // Generate a basic exploration quest
+      const explorationQuest: Quest = {
+        id: `quest_explore_wilderness_${Date.now()}`,
+        title: 'Explore the Wilderness',
+        description: 'Survey the surrounding area and discover what lies beyond the horizon.',
+        category: 'exploration',
+        objectives: [
+          {
+            id: 'obj_1',
+            description: 'Travel at least 10 tiles from your starting position',
+            type: 'travel_distance',
+            targetDistance: 10,
+            startLocation: playerLocation,
+            completed: false
+          },
+          {
+            id: 'obj_2',
+            description: 'Survive for 5 days',
+            type: 'survive_time',
+            targetDays: 5,
+            completed: false
+          }
+        ],
+        currentObjectiveIndex: 0,
+        rewards: [
+          {
+            type: 'experience',
+            value: 50,
+            description: 'Experience +50'
+          },
+          {
+            type: 'reputation',
+            value: 5,
+            description: 'Explorer reputation +5'
+          }
+        ],
+        startLocation: playerLocation,
+        startTime: Date.now(),
+        status: 'active',
+        difficulty: 'easy',
+        isProceduralQuest: true
+      };
+      quests.push(explorationQuest);
+      
+      // Generate a survival quest
+      const survivalQuest: Quest = {
+        id: `quest_survival_${Date.now()}`,
+        title: 'Basic Survival',
+        description: 'Find food and water to sustain yourself in this harsh environment.',
+        category: 'survival',
+        objectives: [
+          {
+            id: 'obj_1',
+            description: 'Find or obtain food',
+            type: 'collect_resource',
+            resourceType: 'food',
+            targetAmount: 3,
+            completed: false
+          },
+          {
+            id: 'obj_2',
+            description: 'Find a water source',
+            type: 'find_terrain',
+            terrainType: 'water',
+            completed: false
+          }
+        ],
+        currentObjectiveIndex: 0,
+        rewards: [
+          {
+            type: 'health',
+            value: 10,
+            description: 'Health +10'
+          },
+          {
+            type: 'experience',
+            value: 25,
+            description: 'Experience +25'
+          }
+        ],
+        startLocation: playerLocation,
+        startTime: Date.now(),
+        status: 'active',
+        difficulty: 'easy',
+        isProceduralQuest: true
+      };
+      quests.push(survivalQuest);
     }
     
     return quests.slice(0, 2); // Return max 2 procedural quests

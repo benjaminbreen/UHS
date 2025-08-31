@@ -58,16 +58,18 @@ export function generateArena(
       generateGenericArena(tiles, size, config);
   }
   
-  // Arena floor interaction zone
+  // Arena floor interaction zone - scale with map size
   const centerX = Math.floor(size.width / 2);
   const centerY = Math.floor(size.height / 2);
+  const arenaWidth = Math.min(30, Math.floor(size.width * 0.7));
+  const arenaHeight = Math.min(20, Math.floor(size.height * 0.6));
   interactionZones.push({
     id: 'arena_floor',
     bounds: { 
-      x: centerX - 15, 
-      y: centerY - 10,
-      width: 30, 
-      height: 20 
+      x: centerX - Math.floor(arenaWidth / 2), 
+      y: centerY - Math.floor(arenaHeight / 2),
+      width: arenaWidth, 
+      height: arenaHeight 
     },
     type: 'arena',
     interactions: ['compete', 'spectate', 'challenge']
@@ -128,10 +130,11 @@ function generateColosseum(tiles: Tile[][], size: any, config: SpecialMapConfig,
     }
   }
   
-  // Tiered seating in oval pattern
-  for (let tier = 1; tier <= 4; tier++) {
-    const tierRadiusX = 12 + tier * 4;
-    const tierRadiusY = 8 + tier * 3;
+  // Tiered seating in oval pattern - scale with map size
+  const maxTiers = size.width <= 10 ? 2 : size.width <= 16 ? 3 : 4;
+  for (let tier = 1; tier <= maxTiers; tier++) {
+    const tierRadiusX = Math.floor(size.width * 0.2) + tier * Math.floor(size.width * 0.1);
+    const tierRadiusY = Math.floor(size.height * 0.2) + tier * Math.floor(size.height * 0.08);
     
     for (let angle = 0; angle < Math.PI * 2; angle += 0.1) {
       const x = Math.floor(centerX + tierRadiusX * Math.cos(angle));
@@ -159,10 +162,12 @@ function generateBallCourt(tiles: Tile[][], size: any, config: SpecialMapConfig)
   const centerX = Math.floor(size.width / 2);
   const centerY = Math.floor(size.height / 2);
   
-  // Playing alley (I-shape)
+  // Playing alley (I-shape) - scale with map size
   // Main alley
-  for (let y = centerY - 12; y <= centerY + 12; y++) {
-    for (let x = centerX - 3; x <= centerX + 3; x++) {
+  const alleyLength = Math.min(12, Math.floor(size.height * 0.4));
+  const alleyWidth = Math.min(3, Math.floor(size.width * 0.15));
+  for (let y = centerY - alleyLength; y <= centerY + alleyLength; y++) {
+    for (let x = centerX - alleyWidth; x <= centerX + alleyWidth; x++) {
       if (x > 0 && x < size.width - 1 && y > 0 && y < size.height - 1) {
         tiles[y][x].biome = BiomeType.FLOOR_STONE;
       }

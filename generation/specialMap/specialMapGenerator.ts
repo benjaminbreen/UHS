@@ -20,16 +20,11 @@ import {
   RoomDefinition
 } from '../../types/specialMapTypes';
 import { ValueNoise } from '../../utils/noise';
-import { generatePalaceComplex } from './archetypes/palaceGenerator';
-import { generateEnhancedPalaceComplex } from './archetypes/palaceGeneratorEnhanced';
-import { generateMarketBazaar } from './archetypes/marketGenerator';
-import { generateGovernmentForum } from './archetypes/governmentGenerator';
-import { generateEnhancedGovernmentForum } from './archetypes/governmentGeneratorEnhanced';
-import { generateGovernmentForum2D } from './archetypes/governmentForum2D';
+// Archetype generators - ONE per archetype type
+import { generateEstates } from './archetypes/estatesGeneratorFixed';
 import { generateGovernmentForumFixed } from './archetypes/governmentForumFixed';
-import { generateEnhancedCastle } from './archetypes/castleGeneratorEnhanced';
+import { generateMarketBazaar } from './archetypes/marketGenerator';
 import { generateSacredComplex } from './archetypes/sacredGenerator';
-import { generateMilitaryFortress } from './archetypes/fortressGenerator';
 import { generateUniversityAcademy } from './archetypes/universityGenerator';
 import { generateTheater } from './archetypes/theaterGenerator';
 import { generateArena } from './archetypes/arenaGenerator';
@@ -38,7 +33,6 @@ import { generateOpenField } from './archetypes/openFieldGenerator';
 import { generateVessel } from './archetypes/vesselGenerator';
 import { generateCampground } from './archetypes/campgroundGenerator';
 import { generateRestaurantInn } from './archetypes/restaurantInnGenerator';
-import { generateEstates } from './archetypes/estatesGeneratorFixed';
 import { generateSpecialMapNpcs } from './specialMapNpcGenerator';
 import { getEraAppropriateName } from '../../utils/governmentDistrictFallback';
 import { 
@@ -62,6 +56,75 @@ const MAP_SIZES = {
 /**
  * Main entry point for generating special maps
  */
+/**
+ * Determine appropriate map size based on archetype and era
+ */
+function determineMapSize(archetype: SpecialMapArchetype, era: HistoricalEra, specificYear?: number): MapSize {
+  // Era-based defaults
+  const eraDefaults: Record<HistoricalEra, MapSize> = {
+    [HistoricalEra.PREHISTORY]: 'xs',
+    [HistoricalEra.ANTIQUITY]: 'small',
+    [HistoricalEra.MEDIEVAL]: 'medium',
+    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: 'large',
+    [HistoricalEra.INDUSTRIAL_ERA]: 'large',
+    [HistoricalEra.MODERN_ERA]: 'xl',
+    [HistoricalEra.FUTURE_ERA]: 'xl'
+  };
+  
+  // Archetype-specific overrides
+  const archetypeOverrides: Partial<Record<SpecialMapArchetype, { min: MapSize, max: MapSize }>> = {
+    // Government forums need more space
+    [SpecialMapArchetype.GOVERNMENT_FORUM]: { min: 'large', max: 'xl' },
+    // Estates scale dramatically with era
+    [SpecialMapArchetype.ESTATES]: { min: 'xs', max: 'xl' },
+    [SpecialMapArchetype.PALACE_COMPLEX]: { min: 'xs', max: 'xl' },
+    // Vessels are constrained
+    [SpecialMapArchetype.VESSEL]: { min: 'xs', max: 'small' },
+    // Campgrounds are temporary
+    [SpecialMapArchetype.CAMPGROUND]: { min: 'xs', max: 'medium' },
+    // Restaurants/inns are modest
+    [SpecialMapArchetype.RESTAURANT_INN]: { min: 'small', max: 'medium' },
+    // Open fields can be any size
+    [SpecialMapArchetype.OPEN_FIELD]: { min: 'xs', max: 'xl' },
+    // Markets scale with city size
+    [SpecialMapArchetype.MARKET_BAZAAR]: { min: 'small', max: 'xl' },
+    [SpecialMapArchetype.EXHIBITION]: { min: 'medium', max: 'xl' },
+    // Universities grow over time
+    [SpecialMapArchetype.UNIVERSITY]: { min: 'small', max: 'large' },
+    // Entertainment venues
+    [SpecialMapArchetype.THEATER]: { min: 'small', max: 'large' },
+    [SpecialMapArchetype.ARENA]: { min: 'medium', max: 'large' },
+    // Military/sacred stay medium to large
+    [SpecialMapArchetype.MILITARY_FORTRESS]: { min: 'medium', max: 'large' },
+    [SpecialMapArchetype.SACRED_COMPLEX]: { min: 'small', max: 'large' }
+  };
+  
+  let baseSize = eraDefaults[era] || 'medium';
+  
+  // Apply archetype constraints
+  const constraints = archetypeOverrides[archetype];
+  if (constraints) {
+    const sizeOrder: MapSize[] = ['xs', 'small', 'medium', 'large', 'xl'];
+    const baseIndex = sizeOrder.indexOf(baseSize);
+    const minIndex = sizeOrder.indexOf(constraints.min);
+    const maxIndex = sizeOrder.indexOf(constraints.max);
+    
+    // Clamp to allowed range
+    if (baseIndex < minIndex) {
+      baseSize = constraints.min;
+    } else if (baseIndex > maxIndex) {
+      baseSize = constraints.max;
+    }
+  }
+  
+  // Special case: prehistoric always tiny except open fields
+  if (era === HistoricalEra.PREHISTORY && archetype !== SpecialMapArchetype.OPEN_FIELD) {
+    return 'xs';
+  }
+  
+  return baseSize;
+}
+
 export function generateSpecialMap(
   seed: number,
   config: SpecialMapConfig,
@@ -78,6 +141,12 @@ export function generateSpecialMap(
   // Ensure we have a valid climate
   const climate = config.climate || parentMapData.climate || ClimateType.TEMPERATE;
   console.log(`[SpecialMapGen] Using climate: ${climate}`);
+  
+  // Determine map size based on era and archetype if not specified
+  if (!config.mapSize) {
+    config.mapSize = determineMapSize(config.archetype, config.era, config.specificYear);
+    console.log(`[SpecialMapGen] Determined mapSize: ${config.mapSize} for era ${config.era} and archetype ${config.archetype}`);
+  }
   
   const size = MAP_SIZES[config.mapSize];
   const noise = new ValueNoise(seed);
@@ -96,12 +165,14 @@ export function generateSpecialMap(
   let interactionZones: InteractionZone[] = [];
   let exitZones: ExitZone[] = [];
   let rooms: RoomDefinition[] = [];
+  let multiTileObjects: any[] = [];
   let generatedData: { tiles: Tile[][], interactionZones: InteractionZone[], exitZones: ExitZone[], rooms?: RoomDefinition[] };
   
   switch (config.archetype) {
     case SpecialMapArchetype.PALACE_COMPLEX:
-      // Use enhanced palace generator for more beautiful, realistic palaces
-      generatedData = generateEnhancedPalaceComplex(tiles, config, noise, size);
+      // Legacy palace complex - redirect to estates
+      config.archetype = SpecialMapArchetype.ESTATES;
+      generatedData = generateEstates(tiles, config, noise, size);
       tiles = generatedData.tiles;
       interactionZones = generatedData.interactionZones;
       exitZones = generatedData.exitZones;
@@ -122,6 +193,7 @@ export function generateSpecialMap(
       interactionZones = generatedData.interactionZones;
       exitZones = generatedData.exitZones;
       rooms = generatedData.rooms || [];
+      multiTileObjects = (generatedData as any).multiTileObjects || [];
       break;
       
     case SpecialMapArchetype.SACRED_COMPLEX:
@@ -132,8 +204,8 @@ export function generateSpecialMap(
       break;
       
     case SpecialMapArchetype.MILITARY_FORTRESS:
-      // Use enhanced castle generator with landscape integration and thick walls
-      generatedData = generateEnhancedCastle(tiles, config, noise, size);
+      // Military fortresses should be on standard map, fallback to estates
+      generatedData = generateEstates(tiles, config, noise, size);
       tiles = generatedData.tiles;
       interactionZones = generatedData.interactionZones;
       exitZones = generatedData.exitZones;
@@ -247,6 +319,7 @@ export function generateSpecialMap(
     interactionZones,
     exitZones,
     rooms,
+    multiTileObjects,
     displayName: getSpecialMapDisplayName(config),
     
     historicalMetadata: createHistoricalMetadata(config),

@@ -258,11 +258,17 @@ export const TableSymbol2D: React.FC<TableSymbol2DProps> = ({
     );
   };
   
+  // Standard gray background to prevent terrain bleed
+  const standardGray = '#8a8a8a';
+  
   return (
     <g transform={`translate(${x}, ${y})`}>
       <defs>
         {createDropShadow('tableShadow')}
       </defs>
+      
+      {/* Gray background to prevent color bleed */}
+      <rect x={0} y={0} width={size} height={size} fill={standardGray} />
       
       {/* Shadow beneath table */}
       <ellipse

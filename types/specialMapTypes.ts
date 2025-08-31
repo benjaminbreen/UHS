@@ -256,6 +256,9 @@ export interface SpecialMapData extends MapData {
   // Room definitions for tracking player location
   rooms: RoomDefinition[];
   
+  // Multi-tile objects like tall pillars
+  multiTileObjects?: any[];
+  
   // Custom display name for this specific special map instance
   displayName?: string;
   

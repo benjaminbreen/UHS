@@ -86,6 +86,10 @@ export const BIOME_COLORS: Record<BiomeType, string> = {
   [BiomeType.THRONE]: '#ffd700', // Gold throne
   [BiomeType.ALTAR]: '#8b4513', // Dark religious wood
   [BiomeType.SHELF]: '#654321', // Dark shelf wood
+  [BiomeType.DAIS]: '#9a8a7a', // Raised platform gray-brown
+  [BiomeType.BENCH]: '#7a5c3a', // Bench wood brown
+  [BiomeType.PILLAR]: '#8a8a8a', // Stone pillar gray
+  [BiomeType.CABINET]: '#6b4423', // Cabinet dark wood
   [BiomeType.COUNTER]: '#7a5c3a', // Counter wood
   [BiomeType.STALL]: '#8b7355', // Market stall wood
   [BiomeType.DISPLAY]: '#705030', // Display case wood

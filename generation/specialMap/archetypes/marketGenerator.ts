@@ -25,7 +25,12 @@ export function generateMarketBazaar(
     size: size
   });
   
-  // Choose generation style based on culture
+  // Handle tiny maps (XS: 8x8) with simple layout
+  if (size.width <= 8 || size.height <= 8) {
+    generateSimpleMarket(tiles, config, noise, size, interactionZones, rooms);
+  }
+  // Choose generation style based on culture for larger maps
+  else
   if (config.culturalZone === 'MENA') {
     generateIslamicBazaar(tiles, config, noise, size, interactionZones, rooms);
   } else if (config.culturalZone === 'EAST_ASIAN') {
@@ -50,6 +55,48 @@ export function generateMarketBazaar(
   
   console.log('[MarketGenerator] Generated', rooms.length, 'rooms');
   return { tiles, interactionZones, exitZones, rooms };
+}
+
+/**
+ * Generate simple market for tiny maps
+ */
+function generateSimpleMarket(
+  tiles: Tile[][],
+  config: SpecialMapConfig,
+  noise: ValueNoise,
+  size: { width: number, height: number },
+  interactionZones: InteractionZone[],
+  rooms: RoomDefinition[]
+) {
+  // Simple walls
+  placeWallRectangle(tiles, 0, 0, size.width, size.height, [
+    { side: 'south', offset: Math.floor(size.width / 2) }
+  ]);
+  
+  // Floor
+  fillArea(tiles, 1, 1, size.width - 2, size.height - 2, BiomeType.FLOOR_STONE);
+  
+  // Single central stall
+  const centerX = Math.floor(size.width / 2);
+  const centerY = Math.floor(size.height / 2);
+  tiles[centerY][centerX].biome = BiomeType.STALL;
+  tiles[centerY][centerX].isBlocking = true;
+  
+  // Corner stalls if space
+  if (size.width >= 6 && size.height >= 6) {
+    tiles[2][2].biome = BiomeType.STALL;
+    tiles[2][size.width - 3].biome = BiomeType.STALL;
+    tiles[size.height - 3][2].biome = BiomeType.STALL;
+    tiles[size.height - 3][size.width - 3].biome = BiomeType.STALL;
+  }
+  
+  rooms.push({
+    id: 'market_square',
+    name: 'Market Square',
+    bounds: { x: 0, y: 0, width: size.width, height: size.height },
+    roomType: 'market',
+    accessLevel: 'public'
+  });
 }
 
 /**

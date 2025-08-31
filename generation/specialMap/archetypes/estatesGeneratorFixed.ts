@@ -13,8 +13,9 @@ import { placePillar, placeTable, placeLightSource } from '../multiTileSystem';
  */
 export function generateEstates(
   tiles: Tile[][],
-  size: { width: number; height: number },
-  config: SpecialMapConfig
+  config: SpecialMapConfig,
+  noise: any, // ValueNoise parameter, not used but needed for signature
+  size: { width: number; height: number }
 ): {
   tiles: Tile[][];
   interactionZones: InteractionZone[];

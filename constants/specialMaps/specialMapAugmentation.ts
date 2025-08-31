@@ -289,6 +289,119 @@ export function convertLegacyConfig(legacyConfig: any): any {
   };
 }
 
+// Layout patterns for different cultural zones
+export const CULTURAL_LAYOUT_PATTERNS = {
+  GOVERNMENT: {
+    EUROPEAN: {
+      shape: 'rectangular',
+      description: 'Cross-shaped complex with marble pillars',
+      centralFeature: 'throne',
+      pillarMaterial: 'white_marble',
+      hasCourtyard: false,
+      seatingArrangement: 'semicircular' // Parliamentary style
+    },
+    MENA: {
+      shape: 'circular',
+      description: 'Circular complex with sandstone pillars evoking a dome',
+      centralFeature: 'fountain',
+      pillarMaterial: 'sandstone',
+      hasCourtyard: true,
+      seatingArrangement: 'circular'
+    },
+    EAST_ASIAN: {
+      shape: 'rectangular',
+      description: 'Symmetrical rectangular halls with red lacquer pillars',
+      centralFeature: 'throne',
+      pillarMaterial: 'red_lacquer',
+      hasCourtyard: true,
+      seatingArrangement: 'parallel' // Facing rows
+    },
+    NORTH_AMERICAN_PRE_COLUMBIAN: {
+      shape: 'circular',
+      description: 'Small rectangular wooden complex with wood pillars',
+      centralFeature: 'firepit',
+      pillarMaterial: 'wood',
+      hasCourtyard: false,
+      seatingArrangement: 'circular'
+    },
+    SOUTH_AMERICAN: {
+      shape: 'rectangular',
+      description: 'Stone terraced complex with sandstone pillars',
+      centralFeature: 'altar',
+      pillarMaterial: 'sandstone',
+      hasCourtyard: true,
+      seatingArrangement: 'tiered'
+    },
+    SUB_SAHARAN_AFRICAN: {
+      shape: 'circular',
+      description: 'Round council house with wooden pillars',
+      centralFeature: 'firepit',
+      pillarMaterial: 'wood',
+      hasCourtyard: false,
+      seatingArrangement: 'circular'
+    },
+    OCEANIA: {
+      shape: 'oval',
+      description: 'Open-air meeting house with carved wooden pillars',
+      centralFeature: 'platform',
+      pillarMaterial: 'wood',
+      hasCourtyard: false,
+      seatingArrangement: 'oval'
+    }
+  },
+  ESTATES: {
+    EUROPEAN: {
+      shape: 'rectangular',
+      description: 'Grand palace with symmetrical wings',
+      centralFeature: 'throne',
+      pillarMaterial: 'white_marble',
+      hasGarden: true
+    },
+    MENA: {
+      shape: 'rectangular',
+      description: 'Palace with inner courtyards and fountains',
+      centralFeature: 'fountain',
+      pillarMaterial: 'sandstone',
+      hasGarden: true
+    },
+    EAST_ASIAN: {
+      shape: 'rectangular',
+      description: 'Multi-building complex with pavilions',
+      centralFeature: 'throne',
+      pillarMaterial: 'red_lacquer',
+      hasGarden: true
+    },
+    NORTH_AMERICAN_PRE_COLUMBIAN: {
+      shape: 'circular',
+      description: 'Chief\'s longhouse or earth lodge',
+      centralFeature: 'firepit',
+      pillarMaterial: 'wood',
+      hasGarden: false
+    },
+    SOUTH_AMERICAN: {
+      shape: 'rectangular',
+      description: 'Stone palace with terraces',
+      centralFeature: 'throne',
+      pillarMaterial: 'sandstone',
+      hasGarden: true
+    },
+    SUB_SAHARAN_AFRICAN: {
+      shape: 'circular',
+      description: 'Royal compound with multiple huts',
+      centralFeature: 'throne',
+      pillarMaterial: 'wood',
+      hasGarden: false
+    },
+    OCEANIA: {
+      shape: 'oval',
+      description: 'Chief\'s house on raised platform',
+      centralFeature: 'platform',
+      pillarMaterial: 'wood',
+      hasGarden: false
+    }
+  }
+};
+
 // Multi-tile object configurations
 export const MULTI_TILE_CONFIGS = {
   pillar: {

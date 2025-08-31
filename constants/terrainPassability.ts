@@ -29,6 +29,47 @@ export const TERRAIN_PASSABILITY: Partial<Record<BiomeType, TerrainPassabilityCo
     message: "too sheer to climb",
     damagePerAttempt: 5,
     damageType: 'physical'
+  },
+  // Special map blocking tiles
+  [BiomeType.WALL]: {
+    impassable: true,
+    message: "solid and impassable"
+  },
+  [BiomeType.PILLAR]: {
+    impassable: true,
+    message: "a solid stone pillar blocking the way"
+  },
+  [BiomeType.THRONE]: {
+    impassable: true,
+    message: "occupied by the throne"
+  },
+  [BiomeType.DESK]: {
+    impassable: true,
+    message: "blocked by a desk"
+  },
+  [BiomeType.BENCH]: {
+    impassable: true,
+    message: "blocked by a bench"
+  },
+  [BiomeType.CHAIR]: {
+    impassable: true,
+    message: "blocked by a chair"
+  },
+  [BiomeType.BOOKSHELF]: {
+    impassable: true,
+    message: "blocked by a bookshelf"
+  },
+  [BiomeType.CABINET]: {
+    impassable: true,
+    message: "blocked by a cabinet"
+  },
+  [BiomeType.CHEST]: {
+    impassable: true,
+    message: "blocked by a chest"
+  },
+  [BiomeType.BARREL]: {
+    impassable: true,
+    message: "blocked by a barrel"
   }
 };
 

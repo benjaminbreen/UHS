@@ -251,8 +251,14 @@ export const WallSymbol2D: React.FC<WallSymbol2DProps> = ({
     );
   };
   
+  // Standard gray background to prevent terrain bleed
+  const standardGray = '#8a8a8a';
+  
   return (
     <g transform={`translate(${x}, ${y})`}>
+      {/* Gray background to prevent color bleed */}
+      <rect x={0} y={0} width={size} height={size} fill={standardGray} />
+      
       {/* Position wall at the top of the tile (back wall effect) */}
       <g transform={`translate(0, ${size - wallHeight})`}>
         {/* Main wall surface */}
