@@ -20,6 +20,8 @@ import { parseDateString } from '../utils/dateUtils';
 import { ANIMAL_DATA } from '../constants/index';
 import { isSafari } from '../utils/safariUtils';
 import { TamedAnimal } from '../services/animalTamingService';
+import { specialMapNpcBehaviorService } from '../services/specialMapNpcBehaviorService';
+import { eventBus } from '../services/eventBus';
 
 export interface VictoryDetails {
     xpGained: number;
@@ -604,16 +606,32 @@ export const useUIState = () => {
             // Store recent NPC and conversation for narration context
             setRecentNpc(encounterTarget);
             
+            // Check if this was a guard encounter and clear the alert state
+            const { isGuardType } = specialMapNpcBehaviorService;
+            if (isGuardType(encounterTarget)) {
+                // Emit reset event to clear guard warning and alert states
+                eventBus.emit('guard:resolved', { npcId: encounterTarget.id });
+            }
+            
             summarizeConversation(history).then(({ summary, sentiment }) => {
                 setRecentConversationSummary(summary);
                 
                 setNpcs(prevNpcs => prevNpcs.map(npc => {
                     if (npc.id === encounterTarget.id) {
-                        const newSummaries = [...npc.memory.conversationSummaries, summary].slice(-5); // Keep last 5
-                        let newOpinion = npc.memory.opinionOfPlayer;
+                        // Ensure memory and conversationSummaries exist
+                        const currentSummaries = npc.memory?.conversationSummaries || [];
+                        const newSummaries = [...currentSummaries, summary].slice(-5); // Keep last 5
+                        let newOpinion = npc.memory?.opinionOfPlayer || 0;
                         if (sentiment === 'positive') newOpinion = Math.min(100, newOpinion + 10);
                         if (sentiment === 'negative') newOpinion = Math.max(-100, newOpinion - 10);
-                        return { ...npc, memory: { ...npc.memory, conversationSummaries: newSummaries, opinionOfPlayer: newOpinion } };
+                        return { 
+                            ...npc, 
+                            memory: { 
+                                ...npc.memory, 
+                                conversationSummaries: newSummaries, 
+                                opinionOfPlayer: newOpinion 
+                            } 
+                        };
                     }
                     return npc;
                 }));

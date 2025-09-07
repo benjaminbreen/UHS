@@ -38,7 +38,51 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
   
   const isNaked = !garment; // Track if torso is bare
   
-  const { primary: clothingColor, secondary: secondaryColor, accent: accentColor } = character.appearance.palette;
+  // Use equipped item color if available, otherwise fall back to palette
+  const getClothingColor = () => {
+    if (garment?.color) {
+      // Handle both hex colors and color names
+      if (garment.color.startsWith('#')) {
+        return garment.color;
+      }
+      
+      // Convert color names to hex
+      const colorMap: Record<string, string> = {
+        'Navy': '#001f3f',
+        'Blue': '#4169e1',
+        'Crimson': '#dc143c',
+        'Green': '#228b22',
+        'Gold': '#ffd700',
+        'Purple': '#800080',
+        'Black': '#1a1a1a',
+        'White': '#f8f8f8',
+        'Gray': '#808080',
+        'Grey': '#808080',
+        'Silver': '#c0c0c0',
+        'Bronze': '#cd7f32',
+        'Copper': '#b87333',
+        'Brown': '#8b4513',
+        'Tan': '#d2b48c',
+        'Orange': '#ff8c00',
+        'Pink': '#ffc0cb',
+        'Red': '#dc143c',
+        'Yellow': '#ffd700',
+        'Burgundy': '#800020',
+        'Forest Green': '#228b22',
+        'Teal': '#008080',
+        'Cyan': '#00ffff',
+        'Turquoise': '#40e0d0',
+        'Wheat': '#f5deb3',
+        'Beige': '#f5f5dc'
+      };
+      
+      return colorMap[garment.color] || character.appearance.palette.primary;
+    }
+    return character.appearance.palette.primary;
+  };
+  
+  const clothingColor = getClothingColor();
+  const { secondary: secondaryColor, accent: accentColor } = character.appearance.palette;
   
   // Determine glow color based on disease state
   let glowColor = '#fbbf24'; // Default amber

@@ -23,13 +23,8 @@ const SpecialMapBackground: React.FC<SpecialMapBackgroundProps> = ({
       try {
         const background = await specialMapBackgroundService.getBackground(config);
         
-        // Check if it's a gradient or an image URL
-        if (background.startsWith('linear-gradient')) {
-          setBackgroundStyle(background);
-        } else {
-          // It's an image URL
-          setBackgroundStyle(`url(${background})`);
-        }
+        // Set background style without mixing shorthand and specific properties
+        setBackgroundStyle(background);
         
         // Fade in the background
         setTimeout(() => setOpacity(1), 100);
@@ -68,9 +63,10 @@ const SpecialMapBackground: React.FC<SpecialMapBackgroundProps> = ({
       <div
         className="absolute inset-0 z-0"
         style={{
-          background: backgroundStyle,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          backgroundImage: backgroundStyle.startsWith('linear-gradient') ? backgroundStyle : backgroundStyle.startsWith('url(') ? backgroundStyle : `url(${backgroundStyle})`,
+          backgroundSize: backgroundStyle.startsWith('linear-gradient') ? 'auto' : 'cover',
+          backgroundPosition: backgroundStyle.startsWith('linear-gradient') ? 'initial' : 'center',
+          backgroundRepeat: 'no-repeat',
           opacity,
           transition: 'opacity 1s ease-in-out',
           filter: timeOfDay === 'Night' ? 'brightness(0.7)' : 'brightness(1)'

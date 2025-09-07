@@ -32,15 +32,21 @@ import GovernmentDistrictSymbol from './symbols/GovernmentDistrictSymbol';
 import { getMineSymbol } from './symbols/mines/MineSymbols';
 import { getQuarrySymbol } from './symbols/quarries/QuarrySymbols';
 
-// Government building symbols - using improved versions
-import {
-  CityHallSymbol,
-  TribalCouncilSymbol,
-  MandateHallSymbol,
-  CaliphCourtSymbol,
-  ColonialOfficeSymbol,
-  RomanForumSymbol
-} from './symbols/government/GovernmentSymbolsImproved';
+// Government building symbols - using individual modular files
+import CityHallSymbol from './symbols/government/CityHallSymbol';
+import TownHallSymbol from './symbols/government/TownHallSymbol';
+import AdminCenterSymbol from './symbols/government/AdminCenterSymbol';
+import TribalCouncilSymbol from './symbols/government/TribalCouncilSymbol';
+import MandateHallSymbol from './symbols/government/MandateHallSymbol';
+import CaliphCourtSymbol from './symbols/government/CaliphCourtSymbol';
+import ColonialOfficeSymbol from './symbols/government/ColonialOfficeSymbol';
+import RomanForumSymbol from './symbols/government/RomanForumSymbol';
+import FeudalHallSymbol from './symbols/government/FeudalHallSymbol';
+import SovietMinistrySymbol from './symbols/government/SovietMinistrySymbol';
+import AztecPalaceSymbol from './symbols/government/AztecPalaceSymbol';
+import OceanianMeetingHouseSymbol from './symbols/government/OceanianMeetingHouseSymbol';
+import AgoraSymbol from './symbols/government/AgoraSymbol';
+import ShogunateSymbol from './symbols/government/ShogunateSymbol';
 
 // Building types from buildings folder - ALL current building types
 import {
@@ -298,13 +304,21 @@ const symbolItems: SymbolDisplayItem[] = [
   { name: 'Estuary', component: EstuarySymbol, category: 'terrain' },
   { name: 'Coral Reef', component: CoralReefSymbol, category: 'terrain' },
   
-  // Government Buildings (Improved versions)
+  // Government Buildings - All current modular symbols
   { name: 'City Hall', component: CityHallSymbol, category: 'government' },
+  { name: 'Town Hall', component: TownHallSymbol, category: 'government' },
+  { name: 'Admin Center', component: AdminCenterSymbol, category: 'government' },
   { name: 'Tribal Council', component: TribalCouncilSymbol, category: 'government' },
-  { name: 'Colonial Office', component: ColonialOfficeSymbol, category: 'government' },
   { name: 'Mandate Hall', component: MandateHallSymbol, category: 'government' },
   { name: 'Caliph Court', component: CaliphCourtSymbol, category: 'government' },
+  { name: 'Colonial Office', component: ColonialOfficeSymbol, category: 'government' },
   { name: 'Roman Forum', component: RomanForumSymbol, category: 'government' },
+  { name: 'Feudal Hall', component: FeudalHallSymbol, category: 'government' },
+  { name: 'Soviet Ministry', component: SovietMinistrySymbol, category: 'government' },
+  { name: 'Aztec Palace', component: AztecPalaceSymbol, category: 'government' },
+  { name: 'Oceanian Meeting House', component: OceanianMeetingHouseSymbol, category: 'government' },
+  { name: 'Agora', component: AgoraSymbol, category: 'government' },
+  { name: 'Shogunate', component: ShogunateSymbol, category: 'government' },
   
   // Cultural Buildings - ALL current types
   { name: 'Aboriginal Hut', component: AboriginalHut3D, category: 'buildings' },

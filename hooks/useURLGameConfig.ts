@@ -27,6 +27,22 @@ export function useURLGameConfig() {
     // This hook is disabled - URL config is now handled in initial state
     // in useGameState.ts and App.tsx
     return;
+    
+    // The code below is kept for reference but is unreachable
+    /*
+    const config = parseURLConfig(location.pathname);
+    
+    if (!config || hasAppliedConfig.current || isWaitingForInit) {
+      return;
+    }
+    
+    hasAppliedConfig.current = true;
+    console.log('[URLGameConfig] Applying URL configuration:', config);
+    
+    let targetYear: number | undefined;
+    
+    // Apply date range
+    if (config.dateRange) {
       targetYear = config.dateRange.startYear;
       const month = Math.floor(Math.random() * 12) + 1;
       const day = Math.floor(Math.random() * 28) + 1; // Safe for all months
@@ -81,5 +97,6 @@ export function useURLGameConfig() {
         window.location.reload(); // For now, just reload to apply the date
       }, 100);
     }
-  }, [isWaitingForInit, location.pathname]); // Re-run when initialization is complete or URL changes
+    */
+  }, [isWaitingForInit, location.pathname, onMapConfigDateChange, onStartNewWorldAtZoneRegion]); // Re-run when initialization is complete or URL changes
 }

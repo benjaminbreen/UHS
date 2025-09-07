@@ -1,238 +1,276 @@
 /**
- * components/symbols/government/specialMap/WallSymbol.tsx
- * Wall symbols for special maps that vary by cultural zone and era
+ * WallSymbol.tsx - Culture-specific wall rendering
+ * Stardew Valley inspired with dollhouse perspective
  */
-
 import React from 'react';
-import { CulturalZone, HistoricalEra } from '../../../../types';
+import { MaterialType } from '../../constants/specialMaps/specialMapAugmentation';
 
 interface WallSymbolProps {
-  culturalZone: CulturalZone;
-  era: HistoricalEra;
-  variant?: 'standard' | 'thick' | 'decorative';
-  isGate?: boolean;
+  x: number;
+  y: number;
+  size: number;
+  material?: MaterialType;
+  culturalZone?: string;
+  era?: number;
+  opacity?: number;
 }
 
-export const WallSymbol: React.FC<WallSymbolProps> = ({ 
-  culturalZone, 
-  era, 
-  variant = 'standard',
-  isGate = false 
+const WallSymbol: React.FC<WallSymbolProps> = ({ 
+  x, 
+  y, 
+  size, 
+  material = 'grey_stone',
+  culturalZone = 'EUROPEAN',
+  era = 1500,
+  opacity = 1.0 
 }) => {
+  // Determine style based on culture and material
   const getWallStyle = () => {
-    // Base styles by cultural zone
-    switch (culturalZone) {
-      case 'EUROPEAN':
-        if (era === 'ANTIQUITY') {
-          // Roman stone walls
-          return {
-            fill: '#8B7355',
-            pattern: 'marble',
-            thickness: variant === 'thick' ? 3 : 2
-          };
-        } else if (era === 'MEDIEVAL') {
-          // Medieval stone walls
-          return {
-            fill: '#696969',
-            pattern: 'stone-blocks',
-            thickness: variant === 'thick' ? 4 : 2.5
-          };
-        } else if (era === 'RENAISSANCE_EARLY_MODERN') {
-          // Renaissance brick/stone
-          return {
-            fill: '#8B4513',
-            pattern: 'brick',
-            thickness: variant === 'thick' ? 3 : 2
-          };
-        } else {
-          // Modern concrete/steel
-          return {
-            fill: '#A9A9A9',
-            pattern: 'concrete',
-            thickness: variant === 'thick' ? 2 : 1.5
-          };
-        }
+    const baseStyles: Record<MaterialType, {
+      primary: string;
+      secondary: string;
+      accent: string;
+      texture: string;
+    }> = {
+      'white_marble': {
+        primary: '#f8f4ed',
+        secondary: '#e8e0d0',
+        accent: '#d0c4a8',
+        texture: 'smooth'
+      },
+      'grey_stone': {
+        primary: '#8a8578',
+        secondary: '#6b665e',
+        accent: '#524e47',
+        texture: 'rough'
+      },
+      'red_lacquer': {
+        primary: '#8b2c1b',
+        secondary: '#6b1810',
+        accent: '#4a0f08',
+        texture: 'glossy'
+      },
+      'sandstone': {
+        primary: '#d4a574',
+        secondary: '#c4925f',
+        accent: '#a67c4b',
+        texture: 'grainy'
+      },
+      'wood': {
+        primary: '#7a5d3a',
+        secondary: '#5c452b',
+        accent: '#3e2e1c',
+        texture: 'wooden'
+      },
+      'steel': {
+        primary: '#b4c7d4',
+        secondary: '#8a9ca8',
+        accent: '#647380',
+        texture: 'metallic'
+      }
+    };
 
-      case 'EAST_ASIAN':
-        if (era === 'MEDIEVAL' || era === 'RENAISSANCE_EARLY_MODERN') {
-          // Paper screens / wooden walls
-          return {
-            fill: '#DEB887',
-            pattern: 'wood-panels',
-            thickness: variant === 'thick' ? 2 : 1
-          };
-        } else {
-          // Modern materials
-          return {
-            fill: '#C0C0C0',
-            pattern: 'modern',
-            thickness: 1.5
-          };
-        }
-
-      case 'MENA':
-        if (era === 'ANTIQUITY') {
-          // Ancient mud brick
-          return {
-            fill: '#D2691E',
-            pattern: 'mud-brick',
-            thickness: variant === 'thick' ? 3.5 : 2.5
-          };
-        } else if (era === 'MEDIEVAL' || era === 'RENAISSANCE_EARLY_MODERN') {
-          // Islamic geometric patterns
-          return {
-            fill: '#F5DEB3',
-            pattern: 'geometric',
-            thickness: variant === 'thick' ? 3 : 2
-          };
-        } else {
-          return {
-            fill: '#D3D3D3',
-            pattern: 'modern',
-            thickness: 2
-          };
-        }
-
-      case 'SOUTH_ASIAN':
-        // Red sandstone / marble
-        return {
-          fill: era === 'MEDIEVAL' ? '#CD5C5C' : '#FFF8DC',
-          pattern: era === 'MEDIEVAL' ? 'sandstone' : 'marble-veined',
-          thickness: variant === 'thick' ? 3 : 2
-        };
-
-      case 'SUB_SAHARAN_AFRICAN':
-        // Mud brick / stone
-        return {
-          fill: '#8B4513',
-          pattern: 'mud-brick',
-          thickness: variant === 'thick' ? 3 : 2
-        };
-
-      case 'NORTH_AMERICAN_PRE_COLUMBIAN':
-      case 'SOUTH_AMERICAN':
-        // Stone blocks
-        return {
-          fill: '#808080',
-          pattern: 'stone-blocks',
-          thickness: variant === 'thick' ? 4 : 3
-        };
-
-      default:
-        return {
-          fill: '#696969',
-          pattern: 'stone',
-          thickness: 2
-        };
-    }
+    return baseStyles[material] || baseStyles['grey_stone'];
   };
 
   const style = getWallStyle();
-
-  if (isGate) {
-    // Gate opening in wall
-    return (
-      <g className="wall-gate-symbol">
-        {/* Wall segments on sides */}
-        <rect x={0} y={10} width={15} height={30} fill={style.fill} />
-        <rect x={35} y={10} width={15} height={30} fill={style.fill} />
+  const renderWall = () => {
+    // Culture-specific decorative patterns
+    const getCulturePattern = () => {
+      switch (culturalZone?.toUpperCase()) {
+        case 'EAST_ASIAN':
+          // Chinese/Japanese style with lattice patterns
+          return (
+            <g>
+              {/* Lattice pattern */}
+              <rect x={2} y={2} width={size-4} height={2} fill={style.accent} opacity={0.3} />
+              <rect x={2} y={size-4} width={size-4} height={2} fill={style.accent} opacity={0.3} />
+              <rect x={size/3} y={0} width={2} height={size} fill={style.accent} opacity={0.2} />
+              <rect x={2*size/3} y={0} width={2} height={size} fill={style.accent} opacity={0.2} />
+            </g>
+          );
         
-        {/* Gate arch */}
-        <path
-          d="M 15 25 Q 25 15 35 25 L 35 40 L 15 40 Z"
-          fill="none"
-          stroke={style.fill}
-          strokeWidth={2}
+        case 'MENA':
+        case 'AFRICAN':
+          // Islamic/African geometric patterns
+          return (
+            <g>
+              {/* Geometric star pattern */}
+              <polygon 
+                points={`${size/2},${size/4} ${3*size/4},${size/2} ${size/2},${3*size/4} ${size/4},${size/2}`}
+                fill={style.accent} 
+                opacity={0.2} 
+              />
+              <circle cx={size/2} cy={size/2} r={size/6} fill="none" stroke={style.accent} strokeWidth={1} opacity={0.3} />
+            </g>
+          );
+        
+        case 'AMERICAS':
+          // Mesoamerican step patterns
+          return (
+            <g>
+              {/* Step/pyramid pattern */}
+              <rect x={size/4} y={2} width={size/2} height={3} fill={style.accent} opacity={0.3} />
+              <rect x={size/3} y={5} width={size/3} height={3} fill={style.accent} opacity={0.25} />
+              <rect x={5*size/12} y={8} width={size/6} height={3} fill={style.accent} opacity={0.2} />
+            </g>
+          );
+        
+        case 'OCEANIA':
+          // Pacific wave/spiral patterns
+          return (
+            <g>
+              {/* Wave pattern */}
+              <path 
+                d={`M 0,${size/2} Q ${size/4},${size/3} ${size/2},${size/2} T ${size},${size/2}`}
+                fill="none" 
+                stroke={style.accent} 
+                strokeWidth={2} 
+                opacity={0.25} 
+              />
+            </g>
+          );
+        
+        default: // EUROPEAN
+          // Classical European brick/stone pattern
+          return (
+            <g>
+              {/* Brick pattern */}
+              <rect x={0} y={size/4} width={size/2-1} height={3} fill={style.accent} opacity={0.2} />
+              <rect x={size/2+1} y={size/4} width={size/2-1} height={3} fill={style.accent} opacity={0.2} />
+              <rect x={size/4} y={size/2} width={size/2} height={3} fill={style.accent} opacity={0.2} />
+              <rect x={0} y={3*size/4} width={size/2-1} height={3} fill={style.accent} opacity={0.2} />
+              <rect x={size/2+1} y={3*size/4} width={size/2-1} height={3} fill={style.accent} opacity={0.2} />
+            </g>
+          );
+      }
+    };
+
+    // Material-specific textures
+    const getMaterialTexture = () => {
+      switch (material) {
+        case 'white_marble':
+          // Marble veining
+          return (
+            <g opacity={0.15}>
+              <path d={`M 0,${size/3} Q ${size/2},${size/2} ${size},${size/4}`} 
+                    stroke={style.accent} strokeWidth={1} fill="none" />
+              <path d={`M ${size/4},0 Q ${size/2},${size/3} ${3*size/4},${size}`} 
+                    stroke={style.accent} strokeWidth={0.5} fill="none" />
+            </g>
+          );
+        
+        case 'wood':
+          // Wood grain
+          return (
+            <g opacity={0.2}>
+              <line x1={0} y1={size/3} x2={size} y2={size/3} stroke={style.accent} strokeWidth={1} />
+              <line x1={0} y1={2*size/3} x2={size} y2={2*size/3} stroke={style.accent} strokeWidth={1} />
+              <path d={`M 0,${size/2} Q ${size/4},${size/2-2} ${size/2},${size/2}`} 
+                    stroke={style.accent} strokeWidth={0.5} fill="none" />
+            </g>
+          );
+        
+        case 'steel':
+          // Metallic rivets
+          return (
+            <g>
+              <circle cx={4} cy={4} r={1.5} fill={style.accent} opacity={0.4} />
+              <circle cx={size-4} cy={4} r={1.5} fill={style.accent} opacity={0.4} />
+              <circle cx={4} cy={size-4} r={1.5} fill={style.accent} opacity={0.4} />
+              <circle cx={size-4} cy={size-4} r={1.5} fill={style.accent} opacity={0.4} />
+            </g>
+          );
+        
+        default:
+          return null;
+      }
+    };
+
+    return (
+      <g transform={`translate(${x}, ${y})`} opacity={opacity}>
+        {/* Main wall body with 3D effect */}
+        <rect 
+          x={0} 
+          y={0} 
+          width={size} 
+          height={size} 
+          fill={style.primary}
         />
         
-        {/* Gate details by culture */}
-        {culturalZone === 'EAST_ASIAN' && (
-          /* Torii-style gate */
-          <>
-            <rect x={18} y={15} width={2} height={25} fill="#8B4513" />
-            <rect x={30} y={15} width={2} height={25} fill="#8B4513" />
-            <rect x={15} y={12} width={20} height={3} fill="#DC143C" />
-          </>
+        {/* Top edge (lighter) - dollhouse perspective */}
+        <rect 
+          x={0} 
+          y={0} 
+          width={size} 
+          height={4} 
+          fill={style.secondary}
+          opacity={0.7}
+        />
+        
+        {/* Right edge (darker) - cast shadow */}
+        <rect 
+          x={size-3} 
+          y={0} 
+          width={3} 
+          height={size} 
+          fill={style.accent}
+          opacity={0.5}
+        />
+        
+        {/* Bottom edge (darkest) - ground shadow */}
+        <rect 
+          x={0} 
+          y={size-2} 
+          width={size} 
+          height={2} 
+          fill={style.accent}
+          opacity={0.6}
+        />
+        
+        {/* Material texture */}
+        {getMaterialTexture()}
+        
+        {/* Cultural decorative pattern */}
+        {getCulturePattern()}
+        
+        {/* Highlight for 3D effect */}
+        <rect 
+          x={1} 
+          y={1} 
+          width={size-2} 
+          height={2} 
+          fill="white"
+          opacity={0.15}
+        />
+        
+        {/* Era-specific details */}
+        {era < 0 && ( // Prehistoric - rough edges
+          <rect x={0} y={0} width={size} height={size} 
+                fill="none" stroke={style.accent} 
+                strokeWidth={1} strokeDasharray="2,3" opacity={0.3} />
         )}
         
-        {culturalZone === 'MENA' && (
-          /* Islamic arch */
-          <path
-            d="M 20 20 Q 25 10 30 20"
-            fill="none"
-            stroke={style.fill}
-            strokeWidth={1}
-          />
-        )}
-        
-        {culturalZone === 'EUROPEAN' && era === 'MEDIEVAL' && (
-          /* Portcullis */
-          <>
-            <line x1={20} y1={20} x2={20} y2={35} stroke="#4B4B4B" strokeWidth={1} />
-            <line x1={25} y1={20} x2={25} y2={35} stroke="#4B4B4B" strokeWidth={1} />
-            <line x1={30} y1={20} x2={30} y2={35} stroke="#4B4B4B" strokeWidth={1} />
-          </>
+        {era > 1950 && material === 'steel' && ( // Modern - glass panels
+          <rect x={size/4} y={size/4} width={size/2} height={size/2} 
+                fill="#a8c4d4" opacity={0.3} />
         )}
       </g>
     );
-  }
+  };
 
-  // Standard wall segment
   return (
-    <g className="wall-symbol">
-      <rect 
-        x={5} 
-        y={5} 
-        width={40} 
-        height={40} 
-        fill={style.fill}
-        strokeWidth={0.5}
-        stroke="#000000"
-        opacity={0.9}
-      />
-      
-      {/* Pattern overlays */}
-      {style.pattern === 'stone-blocks' && (
-        <>
-          <line x1={5} y1={15} x2={45} y2={15} stroke="#555" strokeWidth={0.5} opacity={0.3} />
-          <line x1={5} y1={25} x2={45} y2={25} stroke="#555" strokeWidth={0.5} opacity={0.3} />
-          <line x1={5} y1={35} x2={45} y2={35} stroke="#555" strokeWidth={0.5} opacity={0.3} />
-          <line x1={15} y1={5} x2={15} y2={15} stroke="#555" strokeWidth={0.5} opacity={0.3} />
-          <line x1={25} y1={15} x2={25} y2={25} stroke="#555" strokeWidth={0.5} opacity={0.3} />
-          <line x1={35} y1={25} x2={35} y2={35} stroke="#555" strokeWidth={0.5} opacity={0.3} />
-        </>
-      )}
-      
-      {style.pattern === 'brick' && (
-        <>
-          {[10, 20, 30, 40].map(y => (
-            <line key={y} x1={5} y1={y} x2={45} y2={y} stroke="#7B3F00" strokeWidth={0.3} opacity={0.4} />
-          ))}
-          {[10, 20, 30, 40].map(x => (
-            <line key={x} x1={x} y1={5} x2={x} y2={45} stroke="#7B3F00" strokeWidth={0.3} opacity={0.4} />
-          ))}
-        </>
-      )}
-      
-      {style.pattern === 'geometric' && (
-        <g opacity={0.3}>
-          <polygon points="25,10 35,20 25,30 15,20" fill="none" stroke="#8B7D6B" strokeWidth={0.5} />
-          <polygon points="25,20 30,25 25,30 20,25" fill="none" stroke="#8B7D6B" strokeWidth={0.5} />
-        </g>
-      )}
-      
-      {style.pattern === 'wood-panels' && (
-        <>
-          <line x1={15} y1={5} x2={15} y2={45} stroke="#8B6914" strokeWidth={0.5} opacity={0.5} />
-          <line x1={25} y1={5} x2={25} y2={45} stroke="#8B6914" strokeWidth={0.5} opacity={0.5} />
-          <line x1={35} y1={5} x2={35} y2={45} stroke="#8B6914" strokeWidth={0.5} opacity={0.5} />
-        </>
-      )}
-      
-      {variant === 'decorative' && (
-        /* Additional decorative elements */
-        <circle cx={25} cy={25} r={3} fill="none" stroke="#FFD700" strokeWidth={0.5} opacity={0.6} />
-      )}
-    </g>
+    <svg 
+      x={x} 
+      y={y} 
+      width={size} 
+      height={size} 
+      viewBox={`0 0 ${size} ${size}`}
+      style={{ overflow: 'visible' }}
+    >
+      {renderWall()}
+    </svg>
   );
 };
+
+export default WallSymbol;

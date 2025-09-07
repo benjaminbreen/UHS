@@ -565,7 +565,13 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                                                      <p className="font-bold text-sm text-white">{p.name}</p>
                                                      <p className="text-xs text-slate-400">{p.age}, {p.profession}</p>
                                                      {p.diseaseStatus && (
-                                                         <p className="text-xs text-orange-500 font-medium">{p.diseaseStatus}</p>
+                                                         <p className="text-xs text-orange-500 font-medium">
+                                                             {typeof p.diseaseStatus === 'string' 
+                                                                 ? p.diseaseStatus 
+                                                                 : p.diseaseStatus.currentDiseases?.length > 0 
+                                                                     ? p.diseaseStatus.currentDiseases.join(', ')
+                                                                     : null}
+                                                         </p>
                                                      )}
                                                      {dialogueLoading && isSelected && (
                                                          <p className="text-xs text-cyan-400 animate-pulse">Speaking...</p>

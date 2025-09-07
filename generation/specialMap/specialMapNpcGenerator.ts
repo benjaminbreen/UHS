@@ -3,13 +3,41 @@
  * Generates culturally and historically appropriate NPCs for special maps
  */
 
-import { NpcEntity, HistoricalEra, CulturalZone } from '../../types';
+import { NpcEntity, HistoricalEra, CulturalZone, BiomeType } from '../../types';
 import { SpecialMapArchetype, SpecialMapConfig, RoomDefinition, ProfessionCategory } from '../../types/specialMapTypes';
 import { ValueNoise } from '../../utils/noise';
 import { generateBaseProfile } from '../common/npcUtils';
 import { getProfessionsByCategory, getCategoryForProfession, getSocialClassForProfession } from '../../constants/specialMaps/professionMapping';
 import { getApplicableRules, getHistoricalGenderRestriction, AccessRule } from '../../constants/specialMaps/historicalAccessRules';
 import { PROFESSIONS } from '../../constants/characterData/professions';
+
+/**
+ * Check if a biome type blocks NPC placement
+ */
+function isBlockingTerrain(biome: BiomeType): boolean {
+  const blockingBiomes = [
+    BiomeType.WALL,
+    BiomeType.OCEAN,
+    BiomeType.LAKE,
+    BiomeType.RIVER,
+    BiomeType.PILLAR,
+    BiomeType.COLUMN,
+    BiomeType.STATUE,
+    BiomeType.FOUNTAIN,
+    BiomeType.ALTAR,
+    BiomeType.SHRINE,
+    BiomeType.TABLE,
+    BiomeType.DESK,
+    BiomeType.BED,
+    BiomeType.THRONE,
+    BiomeType.BOOKSHELF,
+    BiomeType.CABINET,
+    BiomeType.CHEST,
+    BiomeType.BARREL
+  ];
+  
+  return blockingBiomes.includes(biome);
+}
 
 // Elite professions for different cultures and eras
 const PALACE_NPCS = {
@@ -158,10 +186,10 @@ const PALACE_NPCS = {
 const GOVERNMENT_NPCS = {
   EUROPEAN: {
     [HistoricalEra.ANTIQUITY]: [
-      { profession: 'MAGISTRATE', count: 2 },
-      { profession: 'SCRIBE', count: 3 },
-      { profession: 'ADVOCATE', count: 2 },
-      { profession: 'LICTOR', count: 2 }
+      { profession: 'MAGISTRATE', count: 1 },
+      { profession: 'SCRIBE', count: 2 },
+      { profession: 'ADVOCATE', count: 1 },
+      { profession: 'LICTOR', count: 1 }
     ],
     [HistoricalEra.MEDIEVAL]: [
       { profession: 'BAILIFF', count: 2 },
@@ -202,6 +230,11 @@ export function generateSpecialMapNpcs(
 ): NpcEntity[] {
   const npcs: NpcEntity[] = [];
   let npcId = 1000; // Start with high ID to avoid conflicts
+  
+  // Special case: No NPCs on vessels (just the player)
+  if (config.archetype === SpecialMapArchetype.VESSEL) {
+    return [];
+  }
   
   // LIMIT: Maximum 10 NPCs per special map
   const MAX_NPCS_PER_MAP = 10;
@@ -614,7 +647,7 @@ function createRoomAppropriateNpc(
 }
 
 /**
- * Generate entrance guards flanking the main door
+ * Generate guards positioned near restricted areas instead of entrance
  */
 function generateEntranceGuards(
   config: SpecialMapConfig,
@@ -624,31 +657,44 @@ function generateEntranceGuards(
 ): NpcEntity[] {
   const guards: NpcEntity[] = [];
   
-  // Find the main entrance (usually at the bottom center)
   const mapHeight = tiles.length;
   const mapWidth = tiles[0]?.length || 0;
+  const centerX = Math.floor(mapWidth / 2);
+  const centerY = Math.floor(mapHeight / 2);
   
-  // Look for door tiles near the bottom center
-  let entranceX = Math.floor(mapWidth / 2);
-  let entranceY = mapHeight - 2;
+  // Position guards based on map archetype - near restricted zones
+  let guardPositions: { x: number; y: number }[] = [];
   
-  // Search for actual door tile near expected location
-  for (let y = mapHeight - 3; y < mapHeight; y++) {
-    for (let x = Math.floor(mapWidth / 2) - 3; x < Math.floor(mapWidth / 2) + 4; x++) {
-      if (tiles[y] && tiles[y][x] && 
-          (tiles[y][x].biome === 'DOOR' || tiles[y][x].biome === 'ARCHWAY' || tiles[y][x].biome === 'DOOR_LOCKED')) {
-        entranceX = x;
-        entranceY = y;
-        break;
-      }
-    }
+  if (config.archetype === 'ESTATES' || config.archetype === 'GOVERNMENT_FORUM') {
+    // Place guards at the boundary of the inner sanctum (center third)
+    const innerBoundaryY = Math.floor(mapHeight * 0.65); // Bottom of restricted area
+    
+    // Guards at the entrance to restricted area
+    guardPositions = [
+      { x: centerX - 3, y: innerBoundaryY }, // Left guard at bottom of restricted area
+      { x: centerX + 3, y: innerBoundaryY }  // Right guard at bottom of restricted area
+    ];
+  } else if (config.archetype === 'SACRED') {
+    // Place guards near altar area (top center)
+    const altarAreaY = Math.floor(mapHeight * 0.3); // Near altar but not blocking
+    
+    guardPositions = [
+      { x: centerX - 4, y: altarAreaY }, // Left guard near altar
+      { x: centerX + 4, y: altarAreaY }  // Right guard near altar
+    ];
+  } else if (config.archetype === 'MARKET') {
+    // Place guards near valuable merchant areas (center)
+    guardPositions = [
+      { x: centerX - 5, y: centerY }, // Left patrol
+      { x: centerX + 5, y: centerY }  // Right patrol
+    ];
+  } else {
+    // Default: place near center area but not directly blocking
+    guardPositions = [
+      { x: centerX - 6, y: centerY + 3 },
+      { x: centerX + 6, y: centerY + 3 }
+    ];
   }
-  
-  // Place guards flanking the entrance
-  const guardPositions = [
-    { x: entranceX - 1, y: entranceY }, // Left guard
-    { x: entranceX + 1, y: entranceY }  // Right guard
-  ];
   
   // Select appropriate guard profession based on culture and era
   const guardProfession = getGuardProfession(config.culturalZone, config.era);
@@ -662,12 +708,19 @@ function generateEntranceGuards(
         startId + index,
         guardProfession,
         pos,
-        config,
+        config.culturalZone as string,
+        config.era as string,
         noise
       );
       
-      // Make guards face downward (toward entrance)
-      guard.direction = 'down';
+      // Make guards face toward restricted areas
+      if (config.archetype === 'ESTATES' || config.archetype === 'GOVERNMENT_FORUM') {
+        guard.direction = 'up'; // Face toward inner sanctum
+      } else if (config.archetype === 'SACRED') {
+        guard.direction = 'up'; // Face toward altar
+      } else {
+        guard.direction = index === 0 ? 'right' : 'left'; // Face inward
+      }
       guard.movement = { type: 'stationary' };
       
       guards.push(guard);
@@ -798,7 +851,7 @@ function generateLegacyNpcs(
       npcTemplates = getPalaceNpcs(config.culturalZone, config.era);
       break;
     case SpecialMapArchetype.GOVERNMENT_FORUM:
-      npcTemplates = getGovernmentNpcs(config.culturalZone, config.era);
+      npcTemplates = getGovernmentNpcs(config.culturalZone, config.era, config.mapSize);
       break;
     case SpecialMapArchetype.MARKET_BAZAAR:
       npcTemplates = getMarketNpcs(config.culturalZone, config.era);
@@ -863,20 +916,61 @@ function getPalaceNpcs(culturalZone: string, era: string): { profession: string,
 /**
  * Get government NPCs for culture/era
  */
-function getGovernmentNpcs(culturalZone: string, era: string): { profession: string, count: number }[] {
+function getGovernmentNpcs(culturalZone: string, era: string, mapSize?: string): { profession: string, count: number }[] {
   const zone = normalizeZone(culturalZone);
   const govNpcs = GOVERNMENT_NPCS[zone]?.[era];
   
-  if (govNpcs) {
-    return govNpcs;
+  // Determine NPC count multiplier based on map size
+  let multiplier = 1;
+  switch (mapSize) {
+    case 'xs':
+    case 'small':
+      multiplier = 0.6; // 3-4 NPCs
+      break;
+    case 'medium':
+      multiplier = 0.8; // 4-5 NPCs
+      break;
+    case 'large':
+      multiplier = 1.2; // 6-8 NPCs
+      break;
+    case 'xl':
+      multiplier = 1.5; // 8-12 NPCs
+      break;
+    default:
+      multiplier = 0.8;
   }
   
-  // Default fallback
-  return [
-    { profession: 'BUREAUCRAT', count: 3 },
-    { profession: 'CLERK', count: 3 },
-    { profession: 'GUARD', count: 2 }
-  ];
+  let templates: { profession: string, count: number }[];
+  
+  if (govNpcs) {
+    templates = govNpcs.map(npc => ({
+      profession: npc.profession,
+      count: Math.max(1, Math.round(npc.count * multiplier))
+    }));
+  } else {
+    // Default fallback
+    templates = [
+      { profession: 'BUREAUCRAT', count: Math.max(1, Math.round(2 * multiplier)) },
+      { profession: 'CLERK', count: Math.max(1, Math.round(2 * multiplier)) },
+      { profession: 'GUARD', count: Math.max(1, Math.round(1 * multiplier)) }
+    ];
+  }
+  
+  // Cap total NPCs to prevent overcrowding
+  const totalNpcs = templates.reduce((sum, template) => sum + template.count, 0);
+  const maxNpcs = mapSize === 'xs' || mapSize === 'small' ? 5 : 
+                  mapSize === 'medium' ? 8 :
+                  mapSize === 'large' ? 12 : 15;
+  
+  if (totalNpcs > maxNpcs) {
+    const scaleFactor = maxNpcs / totalNpcs;
+    templates = templates.map(template => ({
+      profession: template.profession,
+      count: Math.max(1, Math.round(template.count * scaleFactor))
+    }));
+  }
+  
+  return templates;
 }
 
 /**
@@ -1454,7 +1548,13 @@ function generatePersonality(noise: ValueNoise): any {
 /**
  * Normalize cultural zone string
  */
-function normalizeZone(zone: string): string {
+function normalizeZone(zone: any): string {
+  // Handle undefined, null, or non-string input
+  if (!zone || typeof zone !== 'string') {
+    console.warn('[normalizeZone] Invalid zone input:', zone, 'defaulting to EUROPEAN');
+    return 'EUROPEAN';
+  }
+  
   const normalized = zone.toUpperCase().replace(/-/g, '_');
   
   // Map variations to standard zones

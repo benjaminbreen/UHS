@@ -42,6 +42,7 @@ export const ARCHETYPE_MAPPING: Record<string, SimplifiedArchetype> = {
   // Markets and exhibitions merge
   'MARKET_BAZAAR': SimplifiedArchetype.MARKET,
   'MARKETPLACE': SimplifiedArchetype.MARKET,
+  'MARKET_EXHIBITION': SimplifiedArchetype.MARKET, // Add the actual enum value!
   'EXHIBITION': SimplifiedArchetype.MARKET,
   'WORLDS_FAIR': SimplifiedArchetype.MARKET,
   'TRADE_POST': SimplifiedArchetype.MARKET,
@@ -70,7 +71,7 @@ export const ARCHETYPE_MAPPING: Record<string, SimplifiedArchetype> = {
 };
 
 // Size determination based on era and importance
-export type MapSize = 'xs' | 'small' | 'medium' | 'large' | 'xl';
+export type MapSize = 'xs' | 'small' | 'medium' | 'large' | 'xl' | 'xxl';
 
 export const ERA_SIZE_DEFAULTS: Record<number, MapSize> = {
   [-10000]: 'xs',      // Prehistoric
@@ -144,7 +145,8 @@ export const LANDSCAPE_BORDER_ROWS: Record<MapSize, number> = {
   small: 2,   // 10x10 → 6x6 usable
   medium: 3,  // 16x16 → 10x10 usable
   large: 4,   // 20x20 → 12x12 usable
-  xl: 5       // 25x25 → 15x15 usable
+  xl: 5,      // 25x25 → 15x15 usable
+  xxl: 6      // 32x32 → 20x20 usable
 };
 
 // Interior map types based on archetype

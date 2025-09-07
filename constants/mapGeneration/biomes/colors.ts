@@ -9,6 +9,7 @@ import { ClimateType } from '../../../types';
 
 // ===== BIOME COLOR DEFINITIONS =====
 export const BIOME_COLORS: Record<BiomeType, string> = {
+  [BiomeType.OCEAN]: '#2563eb',  // Blue ocean for special maps
   [BiomeType.DEEP_OCEAN]: '#1e3a8a', 
   [BiomeType.SHALLOW_OCEAN]: '#3b82f6', 
   [BiomeType.BEACH]: '#fde895', 
@@ -73,17 +74,23 @@ export const BIOME_COLORS: Record<BiomeType, string> = {
   // Architectural biomes for special maps
   [BiomeType.WALL]: '#4a4a4a', // Dark stone gray
   [BiomeType.WALL_GATE]: '#6b4423', // Brown wood gate
+  [BiomeType.WALL_BACK]: '#5a5a5a', // Back wall stone (slightly lighter for depth)
+  [BiomeType.WALL_BACK_WINDOW]: '#5a5a5a', // Back wall with window
+  [BiomeType.WALL_BACK_DOOR]: '#5a5a5a', // Back wall with door
   [BiomeType.FLOOR_STONE]: '#9a9a9a', // Light stone gray
   [BiomeType.FLOOR_WOOD]: '#8b6633', // Wood brown
   [BiomeType.FLOOR_MARBLE]: '#e8e8e8', // White marble
   [BiomeType.FLOOR_TILE]: '#c4a574', // Terracotta tile
   [BiomeType.TABLE]: '#6b4423', // Dark wood
+  [BiomeType.TABLE_LEFT]: '#6b4423', // Dark wood (left end)
+  [BiomeType.TABLE_CENTER]: '#6b4423', // Dark wood (center)
+  [BiomeType.TABLE_RIGHT]: '#6b4423', // Dark wood (right end)
   [BiomeType.CHAIR]: '#8b6633', // Medium wood
   [BiomeType.BED]: '#a0522d', // Reddish wood
   [BiomeType.COLUMN]: '#b0b0b0', // Light stone column
   [BiomeType.STATUE]: '#d3d3d3', // Light gray stone
   [BiomeType.FOUNTAIN]: '#87ceeb', // Light blue water
-  [BiomeType.THRONE]: '#ffd700', // Gold throne
+  [BiomeType.THRONE]: '#9a9a9a', // Should be overlay, not full tile - use floor color
   [BiomeType.ALTAR]: '#8b4513', // Dark religious wood
   [BiomeType.SHELF]: '#654321', // Dark shelf wood
   [BiomeType.DAIS]: '#9a8a7a', // Raised platform gray-brown
@@ -100,12 +107,15 @@ export const BIOME_COLORS: Record<BiomeType, string> = {
   [BiomeType.CURTAIN]: '#4b0082', // Purple curtain
   [BiomeType.WINDOW]: '#add8e6', // Light blue glass
   [BiomeType.DOOR]: '#654321', // Door brown
+  [BiomeType.ARCHWAY]: '#9a9a9a', // Should be overlay - use floor color
   [BiomeType.STAIRS]: '#7a7a7a', // Gray stone stairs
   [BiomeType.LADDER]: '#8b6914', // Ladder wood
   [BiomeType.FIREPLACE]: '#ff4500', // Orange fire glow
-  [BiomeType.TORCH]: '#ffa500', // Orange torch light
+  [BiomeType.TORCH]: '#9a9a9a', // Should be overlay, not full tile - use floor color
   [BiomeType.CHANDELIER]: '#ffd700', // Gold chandelier
-  [BiomeType.BRAZIER]: '#ff6347', // Tomato red fire
+  [BiomeType.BRAZIER]: '#9a9a9a', // Should be overlay, not full tile - use floor color
+  [BiomeType.FIRE_PIT]: '#8b4513', // Dark brown (earth/stone ring)
+  [BiomeType.HEARTH]: '#696969', // Dim gray (stone hearth)
   [BiomeType.CAGE]: '#696969', // Dim gray metal
   [BiomeType.CHEST]: '#654321', // Chest brown
   [BiomeType.BARREL]: '#8b4513', // Barrel brown

@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { CulturalZone, HistoricalEra } from '../../../types';
+import { CulturalZone, HistoricalEra } from '../../../../types';
 
 interface ArchwaySymbolProps {
   x?: number;

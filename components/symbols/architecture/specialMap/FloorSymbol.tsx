@@ -127,18 +127,24 @@ export const FloorSymbol: React.FC<FloorSymbolProps> = ({
       );
       
     default: // stone
-      // Simple gray stone - the default
+      // Improved gray stone - the default floor that blends with furniture
       return (
         <g transform={`translate(${x}, ${y})`}>
-          {/* Standard gray stone floor */}
+          {/* Base stone floor - same gray as furniture backgrounds */}
           <rect x={0} y={0} width={size} height={size} fill={standardGray} />
           
-          {/* Subtle stone texture */}
-          <rect x={1} y={1} width={size-2} height={size-2} fill={lightGray} opacity={0.3} />
+          {/* Subtle random stone variations */}
+          <rect x={2} y={1} width={Math.floor(size/3)} height={2} fill={lightGray} opacity={0.4} />
+          <rect x={size-Math.floor(size/4)} y={Math.floor(size/3)} width={Math.floor(size/5)} height={2} fill={darkGray} opacity={0.3} />
+          <rect x={1} y={size-4} width={Math.floor(size/2)} height={1} fill={lightGray} opacity={0.3} />
           
-          {/* Stone seams */}
-          <line x1={0} y1={size/2} x2={size} y2={size/2} stroke={darkGray} strokeWidth={0.5} opacity={0.3} />
-          <line x1={size/2} y1={0} x2={size/2} y2={size} stroke={darkGray} strokeWidth={0.5} opacity={0.3} />
+          {/* Very subtle joint lines - creates stone block feel */}
+          <line x1={0} y1={Math.floor(size*0.6)} x2={size} y2={Math.floor(size*0.6)} stroke={darkGray} strokeWidth={0.5} opacity={0.15} />
+          <line x1={Math.floor(size*0.4)} y1={0} x2={Math.floor(size*0.4)} y2={size} stroke={darkGray} strokeWidth={0.5} opacity={0.15} />
+          
+          {/* Tiny highlight for depth */}
+          <line x1={1} y1={1} x2={size-1} y2={1} stroke={lightGray} strokeWidth={0.5} opacity={0.2} />
+          <line x1={1} y1={1} x2={1} y2={size-1} stroke={lightGray} strokeWidth={0.5} opacity={0.2} />
         </g>
       );
   }

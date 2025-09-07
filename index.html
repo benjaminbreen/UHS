@@ -697,17 +697,585 @@
     .animate-sprite-flee { animation: spriteFlee 1.2s ease-in forwards; }
     .animate-sprite-defend-bob { animation: ff6-idle-bob 1.5s ease-in-out infinite; }
     
+    /* Combat sprite animations */
+    .animate-sprite-idle-bob { animation: spriteIdleBob 2s ease-in-out infinite; }
+    .animate-sprite-attack-forward { animation: spriteAttackForward 0.5s ease-out; }
+    .animate-damaged-recoil { animation: damagedRecoil 0.4s ease-out; }
+    .animate-defend-stance { animation: defendStance 0.3s ease-out forwards; }
+    .animate-flee-anim { animation: fleeAnim 0.8s ease-in forwards; }
+    .animate-item-use-hop { animation: itemUseHop 0.6s ease-out; }
+    
+    /* Weapon-specific attack animations */
+    .animate-sprite-thrust { animation: spriteThrust 0.4s ease-out; }
+    .animate-sprite-slash { animation: spriteSlash 0.5s ease-out; }
+    .animate-sprite-overhead { animation: spriteOverhead 0.6s ease-out; }
+    .animate-sprite-stab { animation: spriteStab 0.3s ease-out; }
+    .animate-sprite-swing { animation: spriteSwing 0.7s ease-in-out; }
+    .animate-sprite-sweep { animation: spriteSweep 0.5s ease-out; }
+    
     .gentle-float { animation: gentle-float 3s ease-in-out infinite; }
     
     .ff-action-button:focus-visible { outline: 2px solid var(--ff-border); outline-offset: 2px; box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.3); }
     
     @keyframes move-twink-back { from { background-position: 0 0; } to { background-position: -10000px 5000px; } }
     
+    /* Enhanced Combat sprite keyframes with better easing */
+    @keyframes spriteIdleBob {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-3px) rotate(0.5deg); }
+    }
+    
+    @keyframes spriteAttackForward {
+      0% { transform: translateX(0) scale(1); }
+      20% { transform: translateX(-2px) scale(1.02); } /* Wind-up */
+      60% { transform: translateX(15px) scale(0.98); } /* Strike */
+      100% { transform: translateX(0) scale(1); } /* Recovery */
+    }
+    
+    @keyframes damagedRecoil {
+      0% { transform: translateX(0) rotate(0deg); filter: brightness(1); }
+      15% { transform: translateX(-8px) rotate(-2deg); filter: brightness(2.5); }
+      40% { transform: translateX(-3px) rotate(-1deg); filter: brightness(1.8); }
+      75% { transform: translateX(2px) rotate(1deg); filter: brightness(1.2); }
+      100% { transform: translateX(0) rotate(0deg); filter: brightness(1); }
+    }
+    
+    @keyframes defendStance {
+      0% { transform: translateY(0) scaleY(1) scaleX(1); }
+      100% { transform: translateY(3px) scaleY(0.92) scaleX(1.05); }
+    }
+    
+    @keyframes fleeAnim {
+      0% { transform: translateX(0); opacity: 1; }
+      100% { transform: translateX(-20px); opacity: 0.7; }
+    }
+    
+    @keyframes itemUseHop {
+      0%, 100% { transform: translateY(0); }
+      25% { transform: translateY(-4px); }
+      50% { transform: translateY(-2px); }
+    }
+    
+    /* Enhanced weapon-specific attack keyframes */
+    @keyframes spriteThrust {
+      0% { transform: translateX(0) scale(1); }
+      15% { transform: translateX(-3px) scale(1.02); } /* Wind-up */
+      50% { transform: translateX(18px) scale(0.95); } /* Extended thrust */
+      85% { transform: translateX(12px) scale(1); } /* Hold */
+      100% { transform: translateX(0) scale(1); } /* Recovery */
+    }
+    
+    @keyframes spriteSlash {
+      0% { transform: rotate(0deg) translateX(0) scale(1); }
+      25% { transform: rotate(15deg) translateX(-2px) scale(1.05); } /* Wind-up */
+      65% { transform: rotate(-15deg) translateX(8px) scale(0.95); } /* Follow-through */
+      100% { transform: rotate(0deg) translateX(0) scale(1); }
+    }
+    
+    @keyframes spriteOverhead {
+      0% { transform: translateY(0) rotate(0deg) scale(1); }
+      20% { transform: translateY(-8px) rotate(-25deg) scale(1.08); } /* Raise */
+      40% { transform: translateY(-6px) rotate(-20deg) scale(1.05); } /* Peak */
+      70% { transform: translateY(5px) rotate(8deg) scale(0.92); } /* Strike down */
+      100% { transform: translateY(0) rotate(0deg) scale(1); } /* Recovery */
+    }
+    
+    @keyframes spriteStab {
+      0% { transform: translateX(0) scale(1); }
+      20% { transform: translateX(-2px) scale(1.03); } /* Quick wind-up */
+      50% { transform: translateX(12px) scale(0.97); } /* Sharp stab */
+      100% { transform: translateX(0); }
+    }
+    
+    @keyframes spriteSwing {
+      0% { transform: rotate(0deg); }
+      25% { transform: rotate(-20deg); }
+      75% { transform: rotate(15deg); }
+      100% { transform: rotate(0deg); }
+    }
+    
+    @keyframes spriteSweep {
+      0% { transform: rotate(0deg) translateX(0); }
+      50% { transform: rotate(10deg) translateX(-3px); }
+      100% { transform: rotate(0deg) translateX(0); }
+    }
+    
+    @keyframes spriteFlee {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-30px); }
+    }
+    
+    /* Animal-specific movement animations */
+    @keyframes waddle {
+      0%, 100% { transform: translateY(0) rotate(-2deg); }
+      25% { transform: translateY(-2px) rotate(2deg); }
+      50% { transform: translateY(0) rotate(-2deg); }
+      75% { transform: translateY(-2px) rotate(2deg); }
+    }
+    
+    @keyframes swim {
+      0%, 100% { transform: translateX(0) translateY(0); }
+      25% { transform: translateX(2px) translateY(-1px); }
+      50% { transform: translateX(0) translateY(1px); }
+      75% { transform: translateX(-2px) translateY(-1px); }
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+    
+    @keyframes flutter {
+      0%, 100% { transform: translateY(0) scale(1); }
+      25% { transform: translateY(-3px) scale(1.1) rotate(5deg); }
+      50% { transform: translateY(-5px) scale(1); }
+      75% { transform: translateY(-3px) scale(1.1) rotate(-5deg); }
+    }
+    
+    /* CSS classes for animal animations */
+    .animate-waddle { animation: waddle 0.8s ease-in-out infinite; }
+    .animate-swim { animation: swim 1.2s ease-in-out infinite; }
+    .animate-float { animation: float 2s ease-in-out infinite; }
+    .animate-flutter { animation: flutter 0.6s ease-in-out infinite; }
+    
+    /* Predator Animations */
+    @keyframes prowl {
+      0%, 100% { 
+        transform: translateX(0) translateY(0) scale(1);
+        filter: brightness(1);
+      }
+      25% { 
+        transform: translateX(-3px) translateY(2px) scale(1.02);
+        filter: brightness(1.1);
+      }
+      50% { 
+        transform: translateX(0) translateY(0) scale(1);
+      }
+      75% { 
+        transform: translateX(3px) translateY(2px) scale(1.02);
+        filter: brightness(1.1);
+      }
+    }
+    
+    @keyframes pounce {
+      0% { 
+        transform: translateX(0) translateY(0) scale(1) rotate(0deg);
+      }
+      30% { 
+        transform: translateX(-20px) translateY(5px) scale(0.9) rotate(-5deg);
+      }
+      60% { 
+        transform: translateX(50px) translateY(-30px) scale(1.3) rotate(10deg);
+        filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
+      }
+      100% { 
+        transform: translateX(80px) translateY(0) scale(1.1) rotate(0deg);
+      }
+    }
+    
+    /* Bird Animations */
+    @keyframes soar {
+      0%, 100% { 
+        transform: translateY(0) rotate(0deg);
+        filter: drop-shadow(0 5px 10px rgba(0,0,0,0.3));
+      }
+      25% { 
+        transform: translateY(-15px) rotate(-10deg);
+        filter: drop-shadow(0 15px 20px rgba(0,0,0,0.2));
+      }
+      50% { 
+        transform: translateY(-25px) rotate(0deg);
+        filter: drop-shadow(0 20px 25px rgba(0,0,0,0.15));
+      }
+      75% { 
+        transform: translateY(-15px) rotate(10deg);
+        filter: drop-shadow(0 15px 20px rgba(0,0,0,0.2));
+      }
+    }
+    
+    @keyframes dive {
+      0% { 
+        transform: translateY(-100px) scale(0.8) rotate(45deg);
+        opacity: 0.8;
+      }
+      50% { 
+        transform: translateY(-20px) scale(1.2) rotate(60deg);
+        filter: blur(1px);
+      }
+      100% { 
+        transform: translateY(0) scale(1) rotate(0deg);
+        opacity: 1;
+      }
+    }
+    
+    /* Large Herbivore Animations */
+    @keyframes stampede {
+      0%, 100% { 
+        transform: translateX(0) scaleX(1);
+      }
+      10%, 30%, 50%, 70% { 
+        transform: translateX(0) translateY(-5px) scaleX(1.05);
+      }
+      20%, 40%, 60%, 80% { 
+        transform: translateX(0) translateY(0) scaleX(0.95);
+      }
+    }
+    
+    @keyframes charge {
+      0% { 
+        transform: translateX(0) scale(1);
+        filter: brightness(1);
+      }
+      20% { 
+        transform: translateX(-30px) scale(1.1);
+        filter: brightness(1.2) contrast(1.2);
+      }
+      60% { 
+        transform: translateX(40px) scale(1.3);
+        filter: brightness(1.3) contrast(1.3) blur(0.5px);
+      }
+      100% { 
+        transform: translateX(100px) scale(1.2);
+        filter: brightness(1) contrast(1);
+      }
+    }
+    
+    /* Aquatic Animations */
+    @keyframes swim-attack {
+      0%, 100% { 
+        transform: translateX(0) translateY(0) rotate(0deg);
+      }
+      25% { 
+        transform: translateX(10px) translateY(-5px) rotate(5deg);
+      }
+      50% { 
+        transform: translateX(-10px) translateY(5px) rotate(-5deg);
+      }
+      75% { 
+        transform: translateX(5px) translateY(-3px) rotate(3deg);
+      }
+    }
+    
+    @keyframes breach {
+      0% { 
+        transform: translateY(50px) rotate(0deg);
+        opacity: 0;
+      }
+      40% { 
+        transform: translateY(-40px) rotate(-20deg);
+        opacity: 1;
+      }
+      70% { 
+        transform: translateY(-60px) rotate(0deg);
+      }
+      100% { 
+        transform: translateY(0) rotate(0deg);
+      }
+    }
+    
+    /* Venomous/Snake Animations */
+    @keyframes slither {
+      0%, 100% { 
+        transform: translateX(0) scaleX(1);
+      }
+      25% { 
+        transform: translateX(-5px) scaleX(1.1);
+      }
+      50% { 
+        transform: translateX(5px) scaleX(0.9);
+      }
+      75% { 
+        transform: translateX(-3px) scaleX(1.05);
+      }
+    }
+    
+    @keyframes strike {
+      0% { 
+        transform: translateX(0) scaleX(1);
+      }
+      30% { 
+        transform: translateX(-20px) scaleX(0.7);
+      }
+      60% { 
+        transform: translateX(60px) scaleX(1.5);
+        filter: drop-shadow(0 0 10px rgba(128, 0, 128, 0.5));
+      }
+      100% { 
+        transform: translateX(0) scaleX(1);
+      }
+    }
+    
+    /* Pack Animal Animations */
+    @keyframes pack-circle {
+      0% { 
+        transform: translate(0, 0);
+      }
+      25% { 
+        transform: translate(20px, -10px);
+      }
+      50% { 
+        transform: translate(0, -20px);
+      }
+      75% { 
+        transform: translate(-20px, -10px);
+      }
+      100% { 
+        transform: translate(0, 0);
+      }
+    }
+    
+    @keyframes howl {
+      0%, 100% { 
+        transform: scale(1) rotate(0deg);
+      }
+      30% { 
+        transform: scale(1.05) rotate(-5deg);
+      }
+      60% { 
+        transform: scale(1.1) rotate(5deg);
+        filter: drop-shadow(0 0 20px rgba(150, 150, 255, 0.6));
+      }
+    }
+    
+    /* Primate Animations */
+    @keyframes swing {
+      0%, 100% { 
+        transform: translateY(0) rotate(0deg);
+      }
+      25% { 
+        transform: translateY(-20px) rotate(-15deg);
+      }
+      50% { 
+        transform: translateY(-30px) rotate(0deg);
+      }
+      75% { 
+        transform: translateY(-20px) rotate(15deg);
+      }
+    }
+    
+    @keyframes pound {
+      0%, 100% { 
+        transform: scale(1);
+      }
+      25%, 75% { 
+        transform: scale(1.2) translateY(-5px);
+        filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5));
+      }
+      50% { 
+        transform: scale(0.9) translateY(5px);
+      }
+    }
+    
+    /* Special Attack Effects */
+    @keyframes fury {
+      0%, 100% { 
+        filter: hue-rotate(0deg) brightness(1);
+        transform: scale(1);
+      }
+      25% { 
+        filter: hue-rotate(20deg) brightness(1.3);
+        transform: scale(1.1) rotate(5deg);
+      }
+      50% { 
+        filter: hue-rotate(-20deg) brightness(1.5);
+        transform: scale(1.2) rotate(-5deg);
+      }
+      75% { 
+        filter: hue-rotate(10deg) brightness(1.3);
+        transform: scale(1.1) rotate(3deg);
+      }
+    }
+    
+    @keyframes earthquake {
+      0%, 100% { transform: translateX(0); }
+      10% { transform: translateX(-2px) rotate(-1deg); }
+      20% { transform: translateX(2px) rotate(1deg); }
+      30% { transform: translateX(-2px) rotate(0deg); }
+      40% { transform: translateX(2px) rotate(1deg); }
+      50% { transform: translateX(-1px) rotate(-1deg); }
+      60% { transform: translateX(1px) rotate(0deg); }
+      70% { transform: translateX(-1px) rotate(1deg); }
+      80% { transform: translateX(0px) rotate(-1deg); }
+      90% { transform: translateX(1px) rotate(0deg); }
+    }
+    
+    /* CSS Classes for Combat Animations */
+    .animate-prowl { animation: prowl 2s ease-in-out infinite; }
+    .animate-pounce { animation: pounce 0.8s ease-out; }
+    .animate-soar { animation: soar 3s ease-in-out infinite; }
+    .animate-dive { animation: dive 0.6s ease-out; }
+    .animate-stampede { animation: stampede 1.5s ease-in-out infinite; }
+    .animate-charge { animation: charge 1s ease-out; }
+    .animate-swim-attack { animation: swim-attack 1.5s ease-in-out infinite; }
+    .animate-breach { animation: breach 1.2s ease-out; }
+    .animate-slither { animation: slither 1s ease-in-out infinite; }
+    .animate-strike { animation: strike 0.6s ease-out; }
+    .animate-pack-circle { animation: pack-circle 2s ease-in-out infinite; }
+    .animate-howl { animation: howl 1.5s ease-in-out; }
+    .animate-swing { animation: swing 2s ease-in-out infinite; }
+    .animate-pound { animation: pound 0.8s ease-out; }
+    .animate-fury { animation: fury 0.5s ease-in-out infinite; }
+    .animate-earthquake { animation: earthquake 0.5s ease-in-out; }
+    
     @keyframes shooting-star {
       0% { transform: translateX(0) translateY(0) rotate(45deg); opacity: 0; }
       10% { opacity: 1; }
       90% { opacity: 1; }
       100% { transform: translateX(-300px) translateY(200px) rotate(45deg); opacity: 0; }
+    }
+    
+    /* Enhanced Projectile System */
+    @keyframes projectileFly {
+      0% { transform: translateX(0) scale(0.8); opacity: 0.9; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { transform: translateX(400px) scale(1.2); opacity: 0; }
+    }
+    
+    @keyframes projectileFlyReverse {
+      0% { transform: translateX(0) scale(0.8); opacity: 0.9; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { transform: translateX(-400px) scale(1.2); opacity: 0; }
+    }
+    
+    .enhanced-projectile {
+      border-radius: 50%;
+      background: radial-gradient(circle, #ffd700 20%, #ffab00 50%, #ff6f00 80%);
+      position: relative;
+    }
+    
+    .enhanced-projectile::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: -30px;
+      width: 30px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.8));
+      border-radius: 1px;
+      animation: projectileTrail 0.4s linear infinite;
+    }
+    
+    @keyframes projectileTrail {
+      0% { opacity: 0.8; transform: scaleX(1); }
+      50% { opacity: 0.6; transform: scaleX(0.8); }
+      100% { opacity: 0.4; transform: scaleX(0.6); }
+    }
+    
+    /* FF6-Style Special Attack Announcement */
+    .ff6-special-attack-announcement {
+      position: absolute;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      
+      /* FF6 Blue gradient background */
+      background: linear-gradient(180deg, #4a90e2 0%, #2c5aa0 50%, #1e3a8a 100%);
+      border: 3px solid #fff;
+      border-radius: 8px;
+      box-shadow: 
+        0 0 0 2px #000,
+        inset 0 2px 4px rgba(255, 255, 255, 0.3),
+        0 4px 8px rgba(0, 0, 0, 0.5);
+      
+      /* Text styling */
+      color: #fff;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 14px;
+      text-shadow: 2px 2px 0px #000;
+      text-align: center;
+      padding: 12px 24px;
+      min-width: 200px;
+      
+      /* Animation */
+      animation: ff6Announcement 2s ease-out;
+    }
+    
+    @keyframes ff6Announcement {
+      0% {
+        opacity: 0;
+        transform: translateX(-50%) scale(0.5);
+      }
+      20% {
+        opacity: 1;
+        transform: translateX(-50%) scale(1.1);
+      }
+      30% {
+        transform: translateX(-50%) scale(1);
+      }
+      85% {
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translateX(-50%) scale(0.9);
+      }
+    }
+    
+    /* Enhanced Enemy Visual Effects */
+    .enhanced-strong {
+      filter: brightness(1.2) contrast(1.1);
+      box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+    }
+    
+    .enhanced-enraged {
+      filter: brightness(1.3) hue-rotate(10deg);
+      box-shadow: 0 0 12px rgba(255, 0, 0, 0.6);
+      animation: rageGlow 1s ease-in-out infinite alternate;
+    }
+    
+    .enhanced-elite {
+      filter: brightness(1.4) contrast(1.2) saturate(1.3);
+      box-shadow: 0 0 16px rgba(138, 43, 226, 0.8);
+      animation: eliteGlow 2s ease-in-out infinite alternate;
+    }
+    
+    @keyframes rageGlow {
+      0% { box-shadow: 0 0 12px rgba(255, 0, 0, 0.6); }
+      100% { box-shadow: 0 0 20px rgba(255, 0, 0, 0.9); }
+    }
+    
+    @keyframes eliteGlow {
+      0% { 
+        box-shadow: 0 0 16px rgba(138, 43, 226, 0.8);
+        transform: scale(1);
+      }
+      100% { 
+        box-shadow: 0 0 24px rgba(138, 43, 226, 1.0);
+        transform: scale(1.02);
+      }
+    }
+    
+    /* Enhanced Enemy Name Styling */
+    .enhanced-strong-name {
+      color: #ffd700 !important;
+      text-shadow: 0 0 4px rgba(255, 215, 0, 0.5);
+    }
+    
+    .enhanced-enraged-name {
+      color: #ff4444 !important;
+      text-shadow: 0 0 6px rgba(255, 68, 68, 0.7);
+      animation: textRage 0.5s ease-in-out infinite alternate;
+    }
+    
+    .enhanced-elite-name {
+      color: #8a2be2 !important;
+      text-shadow: 0 0 8px rgba(138, 43, 226, 0.8);
+      font-weight: bold;
+      animation: textElite 1.5s ease-in-out infinite alternate;
+    }
+    
+    @keyframes textRage {
+      0% { text-shadow: 0 0 6px rgba(255, 68, 68, 0.7); }
+      100% { text-shadow: 0 0 10px rgba(255, 68, 68, 1.0); }
+    }
+    
+    @keyframes textElite {
+      0% { text-shadow: 0 0 8px rgba(138, 43, 226, 0.8); }
+      100% { text-shadow: 0 0 12px rgba(138, 43, 226, 1.0); }
     }
   </style>
 <script type="importmap">

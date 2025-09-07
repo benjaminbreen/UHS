@@ -1,5 +1,6 @@
 /**
- * components/symbols/government/TribalCouncilSymbol.tsx - Indigenous and tribal government structures
+ * components/symbols/government/TribalCouncilSymbol.tsx
+ * Opaque earthen mound + flames drawn in front of the central pole
  */
 import React from 'react';
 import { Tile } from '../../../types';
@@ -14,305 +15,185 @@ interface TribalCouncilSymbolProps {
   variant?: 'native_american' | 'african' | 'polynesian' | 'aboriginal' | 'advanced' | 'kingdom';
 }
 
-const TribalCouncilSymbol: React.FC<TribalCouncilSymbolProps> = ({ 
-  x, y, size, seed, tile, buildingName, variant = 'native_american' 
+const TribalCouncilSymbol: React.FC<TribalCouncilSymbolProps> = ({
+  x, y, size, seed, tile, buildingName, variant = 'native_american'
 }) => {
-  const centerX = x + size / 2;
-  const centerY = y + size / 2;
-  const buildingSize = size * 0.75;
-  
-  // Color variations by cultural tradition
-  const getColors = () => {
-    switch (variant) {
-      case 'african':
-        return {
-          base: '#CD853F', // Peru (mud brick)
-          roof: '#8B4513', // Saddle brown (thatch)
-          accent: '#A0522D', // Sienna
-          details: '#DAA520' // Goldenrod
-        };
-      case 'polynesian':
-        return {
-          base: '#D2B48C', // Tan (bamboo/wood)
-          roof: '#8B4513', // Saddle brown (palm thatch)
-          accent: '#654321', // Dark brown
-          details: '#FF6347' // Tomato (decorations)
-        };
-      case 'aboriginal':
-        return {
-          base: '#DEB887', // Burlywood (bark/earth)
-          roof: '#8B4513', // Saddle brown
-          accent: '#A0522D', // Sienna
-          details: '#FFD700' // Gold (ochre)
-        };
-      case 'advanced':
-        return {
-          base: '#F4A460', // Sandy brown (stone/adobe)
-          roof: '#8B4513', // Saddle brown
-          accent: '#CD853F', // Peru
-          details: '#B8860B' // Dark goldenrod
-        };
-      case 'kingdom':
-        return {
-          base: '#DEB887', // Burlywood
-          roof: '#8B0000', // Dark red
-          accent: '#DAA520', // Goldenrod
-          details: '#FF6347' // Tomato
-        };
-      default: // native_american
-        return {
-          base: '#D2B48C', // Tan (wood/hide)
-          roof: '#8B4513', // Saddle brown (bark/hide)
-          accent: '#A0522D', // Sienna
-          details: '#FF4500' // Orange red
-        };
-    }
-  };
+  const uniqueId = `tribal-${x}-${y}-${seed}`;
 
-  const colors = getColors();
-  const elements: JSX.Element[] = [];
-
-  if (variant === 'polynesian') {
-    // Long house style (rectangular with curved roof)
-    elements.push(
-      <rect
-        key="longhouse-base"
-        x={centerX - buildingSize/2}
-        y={centerY - buildingSize/4}
-        width={buildingSize}
-        height={buildingSize/2}
-        fill={colors.base}
-        stroke={colors.accent}
-        strokeWidth="2"
-      />
-    );
-
-    // Curved thatched roof
-    elements.push(
-      <path
-        key="thatch-roof"
-        d={`M ${centerX - buildingSize/2 - 3} ${centerY - buildingSize/4}
-            Q ${centerX} ${centerY - buildingSize/2.2}
-            ${centerX + buildingSize/2 + 3} ${centerY - buildingSize/4}`}
-        fill={colors.roof}
-        stroke={colors.accent}
-        strokeWidth="1"
-      />
-    );
-
-    // Support posts
-    [-buildingSize/3, 0, buildingSize/3].forEach((offset, i) => {
-      elements.push(
-        <rect
-          key={`support-post-${i}`}
-          x={centerX + offset - 2}
-          y={centerY - buildingSize/4}
-          width="4"
-          height={buildingSize/2}
-          fill={colors.accent}
-        />
-      );
-    });
-
-  } else if (variant === 'african' || variant === 'kingdom') {
-    // Round house with conical roof (common in Africa)
-    elements.push(
-      <circle
-        key="round-base"
-        cx={centerX}
-        cy={centerY}
-        r={buildingSize/3}
-        fill={colors.base}
-        stroke={colors.accent}
-        strokeWidth="2"
-      />
-    );
-
-    // Conical thatched roof
-    elements.push(
-      <polygon
-        key="conical-roof"
-        points={`${centerX - buildingSize/3 - 3},${centerY - buildingSize/6} ${centerX},${centerY - buildingSize/2.2} ${centerX + buildingSize/3 + 3},${centerY - buildingSize/6}`}
-        fill={colors.roof}
-        stroke={colors.accent}
-        strokeWidth="1"
-      />
-    );
-
-    // If kingdom variant, add royal compound walls
-    if (variant === 'kingdom') {
-      elements.push(
-        <g key="compound-wall">
-          <circle
-            cx={centerX}
-            cy={centerY}
-            r={buildingSize/2.2}
-            fill="none"
-            stroke={colors.accent}
-            strokeWidth="3"
-            opacity="0.7"
-          />
-          {/* Gates */}
-          <rect
-            x={centerX - 4}
-            y={centerY - buildingSize/2.2}
-            width="8"
-            height="6"
-            fill={colors.details}
-          />
-        </g>
-      );
-    }
-
-  } else if (variant === 'advanced') {
-    // More complex structure (Puebloan/Mississippian style)
-    // Main structure
-    elements.push(
-      <rect
-        key="main-structure"
-        x={centerX - buildingSize/2}
-        y={centerY - buildingSize/4}
-        width={buildingSize}
-        height={buildingSize/2}
-        fill={colors.base}
-        stroke={colors.accent}
-        strokeWidth="2"
-      />
-    );
-
-    // Stepped levels (pyramid-like)
-    elements.push(
-      <rect
-        key="upper-level"
-        x={centerX - buildingSize/3}
-        y={centerY - buildingSize/3}
-        width={buildingSize * 2/3}
-        height={buildingSize/3}
-        fill={colors.base}
-        stroke={colors.accent}
-        strokeWidth="2"
-      />
-    );
-
-    // Flat roof with parapet
-    elements.push(
-      <rect
-        key="parapet"
-        x={centerX - buildingSize/3 - 2}
-        y={centerY - buildingSize/3 - 2}
-        width={buildingSize * 2/3 + 4}
-        height="2"
-        fill={colors.accent}
-      />
-    );
-
-  } else {
-    // Traditional wigwam/tipi or simple lodge
-    if (variant === 'aboriginal') {
-      // Simple shelter structure
-      elements.push(
-        <path
-          key="shelter"
-          d={`M ${centerX - buildingSize/2} ${centerY + buildingSize/4}
-              Q ${centerX} ${centerY - buildingSize/3}
-              ${centerX + buildingSize/2} ${centerY + buildingSize/4}`}
-          fill={colors.base}
-          stroke={colors.accent}
-          strokeWidth="2"
-        />
-      );
-    } else {
-      // Dome-shaped lodge (Native American)
-      elements.push(
-        <ellipse
-          key="lodge"
-          cx={centerX}
-          cy={centerY + buildingSize/8}
-          rx={buildingSize/2.5}
-          ry={buildingSize/3}
-          fill={colors.base}
-          stroke={colors.accent}
-          strokeWidth="2"
-        />
-      );
-    }
-  }
-
-  // Central fire pit or meeting circle (common to most traditions)
-  elements.push(
-    <circle
-      key="fire-pit"
-      cx={centerX}
-      cy={centerY + buildingSize/6}
-      r="4"
-      fill={colors.details}
-      stroke={colors.accent}
-      strokeWidth="1"
-    />
-  );
-
-  // Totem pole or ceremonial post (for some traditions)
-  if (variant === 'native_american' || variant === 'polynesian' || variant === 'aboriginal') {
-    elements.push(
-      <g key="ceremonial-post">
-        <rect
-          x={centerX + buildingSize/3}
-          y={centerY - buildingSize/3}
-          width="4"
-          height={buildingSize * 0.7}
-          fill={colors.accent}
-        />
-        {/* Decorative top */}
-        <polygon
-          points={`${centerX + buildingSize/3 - 2},${centerY - buildingSize/3} ${centerX + buildingSize/3 + 2},${centerY - buildingSize/3 - 6} ${centerX + buildingSize/3 + 6},${centerY - buildingSize/3}`}
-          fill={colors.details}
-        />
-      </g>
-    );
-  }
-
-  // Meeting circle or sacred space around the structure
-  elements.push(
-    <circle
-      key="sacred-circle"
-      cx={centerX}
-      cy={centerY}
-      r={buildingSize/2 + 4}
-      fill="none"
-      stroke={colors.details}
-      strokeWidth="1"
-      opacity="0.5"
-      strokeDasharray="3,3"
-    />
-  );
-
-  // Small huts or structures around the main building (compound style)
-  if (variant === 'advanced' || variant === 'kingdom' || variant === 'african') {
-    const smallHuts = [
-      { x: centerX - buildingSize/2 - 10, y: centerY + buildingSize/4 },
-      { x: centerX + buildingSize/2 + 6, y: centerY + buildingSize/4 },
-      { x: centerX, y: centerY + buildingSize/2 + 8 }
-    ];
-
-    smallHuts.forEach((hut, i) => {
-      elements.push(
-        <circle
-          key={`small-hut-${i}`}
-          cx={hut.x}
-          cy={hut.y}
-          r="4"
-          fill={colors.base}
-          stroke={colors.accent}
-          strokeWidth="1"
-          opacity="0.8"
-        />
-      );
-    });
-  }
+  const cx = size * 0.5;
+  const moundCy = size * 0.7;
 
   return (
-    <g>
-      {elements}
+    <g transform={`translate(${x}, ${y})`}>
+      <defs>
+        {/* Fire gradient & glow */}
+        <radialGradient id={`fireGrad-${uniqueId}`} cx="50%" cy="80%">
+          <stop offset="0%" stopColor="#fff59a" />
+          <stop offset="28%" stopColor="#ffd24d" />
+          <stop offset="60%" stopColor="#ff7a1a" />
+          <stop offset="100%" stopColor="#cc3300" />
+        </radialGradient>
+        <filter id={`glow-${uniqueId}`} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        {/* Opaque earthen mound gradients */}
+        <radialGradient id={`moundFill-${uniqueId}`} cx="50%" cy="40%" r="70%">
+          {/* top highlight -> mid earth -> darker base */}
+          <stop offset="0%" stopColor="#d7b48a" />
+          <stop offset="45%" stopColor="#b98f64" />
+          <stop offset="100%" stopColor="#825c3a" />
+        </radialGradient>
+        {/* subtle rim highlight for a "raised" hill/fort edge */}
+        <linearGradient id={`rimGrad-${uniqueId}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#ead2b8" stopOpacity="0.85" />
+          <stop offset="100%" stopColor="#a77951" stopOpacity="0.0" />
+        </linearGradient>
+
+        {/* Soft blur for shadows */}
+        <filter id={`softBlur-${uniqueId}`} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="1.5" />
+        </filter>
+      </defs>
+
+      {/* --- MOUND / GROUND: now opaque with earthy gradient --- */}
+      {/* Main mound */}
+      <ellipse
+        cx={cx}
+        cy={moundCy}
+        rx={size * 0.46}
+        ry={size * 0.22}
+        fill={`url(#moundFill-${uniqueId})`}
+      />
+      {/* Base shadow to seat the mound */}
+      <ellipse
+        cx={cx}
+        cy={moundCy + size * 0.02}
+        rx={size * 0.42}
+        ry={size * 0.14}
+        fill="#000"
+        opacity={0.18}
+        filter={`url(#softBlur-${uniqueId})`}
+      />
+      {/* Rim highlight to suggest raised edge */}
+      <ellipse
+        cx={cx}
+        cy={moundCy - size * 0.02}
+        rx={size * 0.43}
+        ry={size * 0.18}
+        fill={`url(#rimGrad-${uniqueId})`}
+        opacity={0.65}
+      />
+
+      {/* Stone circle for council */}
+      {Array.from({ length: 8 }).map((_, i) => {
+        const angle = (i / 8) * Math.PI * 2;
+        const stoneX = cx + Math.cos(angle) * size * 0.35;
+        const stoneY = size * 0.6 + Math.sin(angle) * size * 0.2;
+        return (
+          <ellipse
+            key={i}
+            cx={stoneX}
+            cy={stoneY}
+            rx={size * 0.04}
+            ry={size * 0.03}
+            fill="#8a7a6a"
+            stroke="#6a5a4a"
+            strokeWidth={0.5}
+          />
+        );
+      })}
+
+      {/* Fire pit (darker bowl + hot rim) */}
+      <ellipse cx={cx} cy={size * 0.6} rx={size * 0.09} ry={size * 0.055} fill="#3c2a1c" />
+      <ellipse cx={cx} cy={size * 0.6} rx={size * 0.09} ry={size * 0.055} fill="#000" opacity={0.25} />
+      <ellipse cx={cx} cy={size * 0.598} rx={size * 0.07} ry={size * 0.04} fill="#6e4b32" opacity={0.6} />
+
+      {/* --- CENTRAL POLE (drawn BEFORE fire so flames appear in FRONT) --- */}
+      <g>
+        <rect
+          x={cx - size * 0.02}
+          y={size * 0.35}
+          width={size * 0.04}
+          height={size * 0.25}
+          fill="#6a4a2a"
+          stroke="#4a2a0a"
+          strokeWidth={0.5}
+        />
+        {/* Carved details */}
+        <circle cx={cx} cy={size * 0.40} r={size * 0.015} fill="#8a6a4a" />
+        <rect x={cx - size * 0.015} y={size * 0.43} width={size * 0.03} height={size * 0.02} fill="#7a5a3a" />
+        <circle cx={cx} cy={size * 0.48} r={size * 0.012} fill="#8a6a4a" />
+      </g>
+
+      {/* --- FIRE (now drawn AFTER the pole so it sits IN FRONT of the pole) --- */}
+      <g filter={`url(#glow-${uniqueId})`} transform={`translate(${cx}, ${size * 0.58})`}>
+        {/* Flame 1 */}
+        <ellipse
+          cx={-size * 0.02}
+          cy={0}
+          rx={size * 0.03}
+          ry={size * 0.05}
+          fill={`url(#fireGrad-${uniqueId})`}
+        >
+          <animate attributeName="ry" values={`${size * 0.05};${size * 0.07};${size * 0.05}`} dur="0.8s" repeatCount="indefinite" />
+          <animate attributeName="rx" values={`${size * 0.03};${size * 0.025};${size * 0.03}`} dur="0.8s" repeatCount="indefinite" />
+        </ellipse>
+        {/* Flame 2 */}
+        <ellipse
+          cx={size * 0.02}
+          cy={0}
+          rx={size * 0.025}
+          ry={size * 0.045}
+          fill={`url(#fireGrad-${uniqueId})`}
+        >
+          <animate attributeName="ry" values={`${size * 0.045};${size * 0.065};${size * 0.045}`} dur="1s" repeatCount="indefinite" />
+        </ellipse>
+        {/* Central tall flame */}
+        <ellipse
+          cx={0}
+          cy={-size * 0.01}
+          rx={size * 0.035}
+          ry={size * 0.06}
+          fill={`url(#fireGrad-${uniqueId})`}
+        >
+          <animate attributeName="ry" values={`${size * 0.06};${size * 0.08};${size * 0.06}`} dur="1.2s" repeatCount="indefinite" />
+        </ellipse>
+      </g>
+
+      {/* Smoke (origin slightly above flames) */}
+      <g opacity="0.42">
+        {[0, 1, 2].map((i) => (
+          <circle key={i} cx={cx} cy={size * 0.53} r={size * 0.02} fill="#8c8c8c">
+            <animate attributeName="cy" values={`${size * 0.53};${size * 0.33};${size * 0.15}`} dur={`${2.8 + i * 0.4}s`} repeatCount="indefinite" />
+            <animate attributeName="cx" values={`${cx};${cx + size * 0.03};${cx + size * 0.05}`} dur={`${2.8 + i * 0.4}s`} repeatCount="indefinite" />
+            <animate attributeName="r" values={`${size * 0.02};${size * 0.038};${size * 0.055}`} dur={`${2.8 + i * 0.4}s`} repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.42;0.28;0" dur={`${2.8 + i * 0.4}s`} repeatCount="indefinite" />
+          </circle>
+        ))}
+      </g>
+
+      {/* Variant-specific decorations (unchanged) */}
+      {variant === 'african' && (
+        <g>
+          <ellipse cx={size * 0.3} cy={size * 0.65} rx={size * 0.04} ry={size * 0.03} fill="#8a6a4a" stroke="#6a4a2a" strokeWidth={0.5} />
+          <ellipse cx={size * 0.7} cy={size * 0.65} rx={size * 0.04} ry={size * 0.03} fill="#8a6a4a" stroke="#6a4a2a" strokeWidth={0.5} />
+        </g>
+      )}
+
+      {variant === 'polynesian' && (
+        <g>
+          <rect x={size * 0.25} y={size * 0.5} width={size * 0.02} height={size * 0.15} fill="#6a4a2a" />
+          <ellipse cx={size * 0.26} cy={size * 0.48} rx={size * 0.02} ry={size * 0.03} fill="#ff8800" opacity={0.8} />
+          <rect x={size * 0.73} y={size * 0.5} width={size * 0.02} height={size * 0.15} fill="#6a4a2a" />
+          <ellipse cx={size * 0.74} cy={size * 0.48} rx={size * 0.02} ry={size * 0.03} fill="#ff8800" opacity={0.8} />
+        </g>
+      )}
+
       <title>{buildingName}</title>
     </g>
   );

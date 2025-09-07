@@ -25,7 +25,7 @@ import { generateEstates } from './archetypes/estatesGeneratorFixed';
 import { generateGovernmentForumFixed } from './archetypes/governmentForumFixed';
 import { generateMarketBazaar } from './archetypes/marketGenerator';
 import { generateSacredComplex } from './archetypes/sacredGenerator';
-import { generateUniversityAcademy } from './archetypes/universityGenerator';
+import generateUniversityAcademy from './archetypes/universityGeneratorV2';
 import { generateTheater } from './archetypes/theaterGenerator';
 import { generateArena } from './archetypes/arenaGenerator';
 import { generateExhibition } from './archetypes/exhibitionGenerator';
@@ -50,7 +50,8 @@ const MAP_SIZES = {
   small: { width: 10, height: 10 },  // Small spaces
   medium: { width: 16, height: 16 }, // Standard buildings
   large: { width: 20, height: 20 },  // Major complexes
-  xl: { width: 25, height: 25 }      // Massive sites
+  xl: { width: 25, height: 25 },     // Massive sites
+  xxl: { width: 32, height: 32 }     // Modern government complexes
 };
 
 /**
@@ -73,8 +74,11 @@ function determineMapSize(archetype: SpecialMapArchetype, era: HistoricalEra, sp
   
   // Archetype-specific overrides
   const archetypeOverrides: Partial<Record<SpecialMapArchetype, { min: MapSize, max: MapSize }>> = {
-    // Government forums need more space
-    [SpecialMapArchetype.GOVERNMENT_FORUM]: { min: 'large', max: 'xl' },
+    // Government forums need more space, especially modern ones
+    [SpecialMapArchetype.GOVERNMENT_FORUM]: { 
+      min: 'large', 
+      max: era === HistoricalEra.MODERN_ERA || era === HistoricalEra.INDUSTRIAL_ERA ? 'xxl' : 'xl' 
+    },
     // Estates scale dramatically with era
     [SpecialMapArchetype.ESTATES]: { min: 'xs', max: 'xl' },
     [SpecialMapArchetype.PALACE_COMPLEX]: { min: 'xs', max: 'xl' },
@@ -136,7 +140,10 @@ export function generateSpecialMap(
     climate?: ClimateType;
   }
 ): SpecialMapData {
+  console.log(`[SpecialMapGen] ======= SPECIAL MAP GENERATION START =======`);
   console.log(`[SpecialMapGen] Generating ${config.archetype} for ${config.culturalZone} in ${config.era}`);
+  console.log(`[SpecialMapGen] Full config:`, config);
+  console.log(`[SpecialMapGen] Parent map data:`, parentMapData);
   
   // Ensure we have a valid climate
   const climate = config.climate || parentMapData.climate || ClimateType.TEMPERATE;
@@ -168,6 +175,26 @@ export function generateSpecialMap(
   let multiTileObjects: any[] = [];
   let generatedData: { tiles: Tile[][], interactionZones: InteractionZone[], exitZones: ExitZone[], rooms?: RoomDefinition[] };
   
+  // Ensure landscape settings are properly configured
+  if (config.hasLandscape === undefined) {
+    config.hasLandscape = true; // Default to having landscape for estates
+  }
+  
+  if (config.hasLandscape && !config.landscapeClimate) {
+    // Map ClimateType to landscape climate string
+    const climateMap: Record<ClimateType, string> = {
+      [ClimateType.ARCTIC]: 'cold',
+      [ClimateType.SUBARCTIC]: 'cold', 
+      [ClimateType.TEMPERATE]: 'temperate',
+      [ClimateType.MEDITERRANEAN]: 'mediterranean',
+      [ClimateType.ARID]: 'arid',
+      [ClimateType.SEMIARID]: 'arid',
+      [ClimateType.TROPICAL]: 'tropical',
+      [ClimateType.OCEANIC]: 'ocean'
+    };
+    config.landscapeClimate = climateMap[climate] || 'temperate';
+  }
+  
   switch (config.archetype) {
     case SpecialMapArchetype.PALACE_COMPLEX:
       // Legacy palace complex - redirect to estates
@@ -180,13 +207,17 @@ export function generateSpecialMap(
       break;
       
     case SpecialMapArchetype.MARKET_BAZAAR:
+    case SpecialMapArchetype.MARKET_EXHIBITION:  // New simplified archetype
       generatedData = generateMarketBazaar(tiles, config, noise, size);
       tiles = generatedData.tiles;
       interactionZones = generatedData.interactionZones;
       exitZones = generatedData.exitZones;
+      rooms = generatedData.rooms || [];
+      multiTileObjects = (generatedData as any).multiTileObjects || [];
       break;
       
     case SpecialMapArchetype.GOVERNMENT_FORUM:
+    case SpecialMapArchetype.GOVERNMENT:  // New simplified archetype
       // Use fixed government forum with proper organization
       generatedData = generateGovernmentForumFixed(tiles, config, noise, size);
       tiles = generatedData.tiles;
@@ -213,13 +244,17 @@ export function generateSpecialMap(
       break;
       
     case SpecialMapArchetype.UNIVERSITY:
+    case SpecialMapArchetype.UNIVERSITY_MONASTERY:  // New simplified archetype
+      // Use new V2 generator with overlay system
       generatedData = generateUniversityAcademy(tiles, config, noise, size);
       tiles = generatedData.tiles;
       interactionZones = generatedData.interactionZones;
       exitZones = generatedData.exitZones;
+      rooms = generatedData.rooms || [];
       break;
       
     case SpecialMapArchetype.THEATER:
+    case SpecialMapArchetype.ARENA_THEATER:  // New simplified archetype - defaults to theater
       generatedData = generateTheater(tiles, config, noise, size);
       tiles = generatedData.tiles;
       interactionZones = generatedData.interactionZones;
@@ -390,6 +425,11 @@ function generateDefaultLayout(tiles: Tile[][], size: { width: number, height: n
  */
 function getSpecialMapDisplayName(config: SpecialMapConfig): string {
   const { archetype, culturalZone, era, structureName } = config;
+  
+  // Special case: Vessel maps should always be "Your Ship"
+  if (archetype === SpecialMapArchetype.VESSEL) {
+    return "Your Ship";
+  }
   
   // First priority: Use the structureName from the config if provided
   // This comes from governmentDistricts.ts and is already historically accurate

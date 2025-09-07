@@ -8,6 +8,7 @@ import { useMap } from '../contexts/MapContext';
 import { usePlayer } from '../contexts/PlayerContext';
 import { useGame } from '../contexts/GameContext';
 import { useEventSystem } from '../hooks/useEventSystem';
+import { SpecialMapConfig, SpecialMapArchetype } from '../types/specialMapTypes';
 import { MapDisplayOptimized } from './MapDisplayOptimized';
 import { InteriorMapDisplay } from './interiorMap';
 import BeautifulInteriorMapDisplay from './interiorMap/BeautifulInteriorMapDisplay';
@@ -29,7 +30,12 @@ import SpecialMapBackground from './SpecialMapBackground';
 import InteriorHorizon from './InteriorHorizon';
 import SpecialMapLocationDisplay from './SpecialMapLocationDisplay';
 import { useSpecialMapLocation } from '../hooks/useSpecialMapLocation';
+import { useSpecialMapNpcBehavior } from '../hooks/useSpecialMapNpcBehavior';
 import { SpecialMapData } from '../types/specialMapTypes';
+import GuardWarningBox from './GuardWarningBox';
+import NpcAlertIndicator from './NpcAlertIndicator';
+import { eventBus } from '../services/eventBus';
+import { isGuardType } from '../services/specialMapNpcBehaviorService';
 import { weatherService } from '../services/weatherService';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES } from '../constants';
 import { useDeviceDetection } from '../utils/deviceUtils';
@@ -52,12 +58,12 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
     } = useUI();
     
     const [isMapTransitioning, setIsMapTransitioning] = useState(false);
-    const [mapFadeClass, setMapFadeClass] = useState('');
     
     const { 
         currentWorldCoords, mapData,
         visibleAnimals, visibleNpcs, deployedVessels, mapAnalysisData, 
         enterSpecialMap, exitSpecialMap, isSpecialMap,
+        addPersistedMerchant,
     } = useMap();
 
     const {
@@ -81,12 +87,47 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
     const [showAmbientText, setShowAmbientText] = useState(false); // Hidden by default
     const { isMobile } = useDeviceDetection();
     
+    // Guard warning state
+    const [guardWarning, setGuardWarning] = useState<{
+        message: string;
+        guardName?: string;
+        severity: 'notice' | 'warning' | 'alert';
+        turnsRemaining?: number;
+    } | null>(null);
+    const [guardAlerts, setGuardAlerts] = useState<Map<string, 'detecting' | 'warning' | 'pursuing'>>(new Map());
+    const [guardsAlreadyWarned, setGuardsAlreadyWarned] = useState<Set<string>>(new Set());
+    
     // Track current room in special maps
     const specialMapData = isSpecialMap && mapData ? mapData as SpecialMapData : null;
+    // The archetype field is called 'specialArchetype' in the actual data
+    const mapArchetype = (mapData as any)?.specialArchetype || specialMapData?.archetype;
+    
+    // Debug: Only log when in special map to reduce spam
+    if (isSpecialMap && mapArchetype) {
+        console.log('[MapViewport] Special map active:', {
+            archetype: mapArchetype,
+            npcCount: visibleNpcs?.length
+        });
+    }
+    
     const currentRoom = useSpecialMapLocation(
         controlledIconX,
         controlledIconY,
         specialMapData?.rooms
+    );
+    
+    // Enable special map NPC behavior (guard detection, etc.)
+    // Create a player object with the actual position
+    const playerWithPosition = {
+        ...playerCharacter,
+        x: controlledIconX ?? 0,
+        y: controlledIconY ?? 0
+    };
+    useSpecialMapNpcBehavior(
+        mapArchetype || null,
+        visibleNpcs || [],
+        playerWithPosition,
+        mapData?.tiles || []
     );
     
     // Get current weather for horizon and particles - stable per map area, updates hourly
@@ -143,30 +184,142 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
         setShowBottomPanel(!isMobile);
     }, [isMobile]);
     
-    // Handle map transitions with fade effect
+    // Listen for guard events
+    useEffect(() => {
+        const handleGuardDetecting = (data: any) => {
+            // Check if we've already warned about this guard
+            if (guardsAlreadyWarned.has(data.npcId)) {
+                return; // Don't show warning again
+            }
+            
+            console.log('[MapViewport] Received guard:detecting event:', data);
+            
+            // Mark this guard as having shown a warning
+            setGuardsAlreadyWarned(prev => new Set(prev).add(data.npcId));
+            
+            // Add alert indicator for detecting guard
+            setGuardAlerts(prev => {
+                const newAlerts = new Map(prev);
+                newAlerts.set(data.npcId, 'detecting');
+                console.log('[MapViewport] Updated guard alerts:', newAlerts);
+                return newAlerts;
+            });
+            
+            // Show initial detection message after 2 seconds
+            setTimeout(() => {
+                const guard = visibleNpcs?.find(n => n.id === data.npcId);
+                if (guard && isGuardType(guard)) {
+                    setGuardWarning({
+                        message: "Who goes there?",
+                        guardName: guard.name,
+                        severity: 'notice'
+                    });
+                    
+                    // Progress to warning after another 2 seconds
+                    setTimeout(() => {
+                        setGuardAlerts(prev => {
+                            const newAlerts = new Map(prev);
+                            newAlerts.set(data.npcId, 'warning');
+                            return newAlerts;
+                        });
+                        setGuardWarning({
+                            message: "You're under arrest!",
+                            guardName: guard.name,
+                            severity: 'warning',
+                            turnsRemaining: 3
+                        });
+                        
+                        // Auto-hide the warning after 5 seconds
+                        setTimeout(() => {
+                            setGuardWarning(null);
+                        }, 5000);
+                    }, 2000);
+                }
+            }, 2000);
+        };
+        
+        const handleGuardReset = (data: any) => {
+            // Remove this guard from the warned set so they can warn again if player approaches
+            setGuardsAlreadyWarned(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(data.npcId);
+                return newSet;
+            });
+            
+            // Remove alert indicator
+            setGuardAlerts(prev => {
+                const newAlerts = new Map(prev);
+                newAlerts.delete(data.npcId);
+                return newAlerts;
+            });
+        };
+        
+        const handleGuardResolved = (data: any) => {
+            console.log('[MapViewport] Guard encounter resolved for NPC:', data.npcId);
+            // Clear guard warning
+            setGuardWarning(null);
+            // Clear guard alert state
+            setGuardAlerts(prev => {
+                const newAlerts = new Map(prev);
+                newAlerts.delete(data.npcId);
+                return newAlerts;
+            });
+            // Clear from warned list so they can warn again if needed
+            setGuardsAlreadyWarned(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(data.npcId);
+                return newSet;
+            });
+        };
+        
+        const handleGuardEncounter = (data: any) => {
+            // Update to pursuing state
+            setGuardAlerts(prev => {
+                const newAlerts = new Map(prev);
+                newAlerts.set(data.npcId, 'pursuing');
+                return newAlerts;
+            });
+            
+            // Show hostile warning
+            const guard = data.guardNpc;
+            setGuardWarning({
+                message: "You're under arrest!",
+                guardName: guard?.name,
+                severity: 'alert'
+            });
+            
+            // Trigger encounter modal after a brief delay
+            setTimeout(() => {
+                if (guard) {
+                    handleEncounter(guard);
+                }
+            }, 1000);
+        };
+        
+        // Subscribe to events
+        eventBus.on('guard:detecting', handleGuardDetecting);
+        eventBus.on('guard:encounter', handleGuardEncounter);
+        eventBus.on('guard:reset', handleGuardReset);
+        eventBus.on('guard:resolved', handleGuardResolved);
+        
+        return () => {
+            eventBus.off('guard:detecting', handleGuardDetecting);
+            eventBus.off('guard:encounter', handleGuardEncounter);
+            eventBus.off('guard:reset', handleGuardReset);
+            eventBus.off('guard:resolved', handleGuardResolved);
+        };
+    }, [visibleNpcs, handleEncounter, guardsAlreadyWarned]);
+    
+    // Handle map transitions with elegant fade effect
     useEffect(() => {
         if (isLoading && !isMapTransitioning) {
-            // Starting to load - immediately fade out the map display
-            setMapFadeClass('opacity-0 transition-opacity duration-500');
+            // Starting to load - trigger fade transition
             setIsMapTransitioning(true);
-            
-            // After fade out completes, show background for 2 seconds
-            setTimeout(() => {
-                // Map will be hidden while loading
-            }, 500);
         } else if (!isLoading && isMapTransitioning) {
             // Finished loading - wait a moment then fade in
             setTimeout(() => {
-                setMapFadeClass('opacity-0');
-                // Force reflow
-                setTimeout(() => {
-                    setMapFadeClass('opacity-100 transition-opacity duration-1000');
-                    setTimeout(() => {
-                        setIsMapTransitioning(false);
-                        setMapFadeClass('');
-                    }, 1000);
-                }, 50);
-            }, 500); // Brief pause to appreciate the background
+                setIsMapTransitioning(false);
+            }, 800); // Wait for fade to complete
         }
     }, [isLoading, isMapTransitioning]);
 
@@ -191,9 +344,45 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
         alert(`${vessel.vesselItem.name} - Walk onto this vessel to embark!`);
     }, []);
 
+    const handleShipClick = useCallback(() => {
+        console.log('[MapViewport] Ship clicked - entering vessel special map');
+        
+        // Create vessel special map config
+        const vesselConfig: SpecialMapConfig = {
+            archetype: SpecialMapArchetype.VESSEL,
+            culturalZone: mapData?.culturalStyle || 'EUROPEAN' as const,
+            era: gameDate?.year < 1500 ? 'MEDIEVAL' as const : 
+                 gameDate?.year < 1800 ? 'RENAISSANCE_EARLY_MODERN' as const : 
+                 'INDUSTRIAL_MODERN' as const,
+            specificYear: gameDate?.year || 1400,
+            region: currentRegion || 'Northern Europe',
+            mapSize: 'xs' as const,
+            hasLandscape: true,
+            landscapeClimate: 'ocean' as const,
+            isPrivate: false,
+            isRectangular: true,
+            wallMaterial: gameDate?.year > 1800 ? 'steel' : 'wood',
+            floorMaterial: 'wood'
+        };
+        
+        enterSpecialMap(vesselConfig);
+    }, [enterSpecialMap, mapData, gameDate, currentRegion]);
+
     const renderMapContent = () => {
         if (activeMarketplaceModal && playerCharacter && mapData && mapAnalysisData) {
-            return <MarketplaceModal tile={activeMarketplaceModal.tile} onClose={() => setActiveMarketplaceModal(null)} playerCharacter={playerCharacter} onBuy={onBuyItem} onSell={onSellItem} mapData={mapData} npcs={visibleNpcs} mapAnalysisData={mapAnalysisData} gameTimeHours={gameTimeHours} season={season} />;
+            return <MarketplaceModal 
+                tile={activeMarketplaceModal.tile} 
+                onClose={() => setActiveMarketplaceModal(null)} 
+                playerCharacter={playerCharacter} 
+                onBuy={onBuyItem} 
+                onSell={onSellItem} 
+                mapData={mapData} 
+                npcs={visibleNpcs} 
+                mapAnalysisData={mapAnalysisData} 
+                gameTimeHours={gameTimeHours} 
+                season={season}
+                onAddPersistedNpc={addPersistedMerchant}
+            />;
         }
         if (activeCityModal && playerCharacter && mapData) {
             return <CityModal tile={activeCityModal.tile} onClose={() => setActiveCityModal(null)} playerCharacter={playerCharacter} mapData={mapData} gameTimeHours={gameTimeHours} season={season} />;
@@ -298,8 +487,10 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                     debugSettings={debugSettings}
                     devMode={false}
                     onPlayerIconClick={handlePlayerClick}
+                    onShipClick={handleShipClick}
                     onCompanionClick={handleCompanionClick}
                     onMapEdgeCrossing={handleNewAreaEntry}
+                    guardAlerts={guardAlerts} // Pass guard alert states for rendering indicators
                 />
             );
         }
@@ -453,14 +644,14 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
             </div>
           ) : mapData && (
              <div 
-               className={`w-full h-full flex flex-col ${mapFadeClass} relative transition-all`} 
+               className={`w-full h-full flex flex-col relative transition-all`} 
                style={{ 
                  zIndex: 10,
-                 opacity: mapVisible ? 1 : 0,
-                 transform: mapVisible ? 'scale(1)' : 'scale(0.95)',
+                 opacity: (mapVisible && !isMapTransitioning) ? 1 : 0,
+                 transform: (mapVisible && !isMapTransitioning) ? 'scale(1)' : 'scale(0.95)',
                  transition: 'opacity 1.5s ease-out, transform 1.5s ease-out',
-                 transitionDelay: mapVisible ? '0s' : '0.5s',
-                 pointerEvents: mapVisible ? 'auto' : 'none'
+                 transitionDelay: (mapVisible && !isMapTransitioning) ? '0s' : '0.5s',
+                 pointerEvents: (mapVisible && !isMapTransitioning) ? 'auto' : 'none'
                }}
              >
               {/* Map container */}
@@ -488,12 +679,9 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                          boxShadow: 'inset 0 4px 12px rgba(0, 0, 0, 0.9), 0 8px 32px rgba(31, 41, 59, 0.9)'
                        }}>
                    <div 
-                     className="transition-opacity"
                      style={{ 
                        width: '100%', 
-                       height: '100%',
-                       opacity: mapVisible ? 1 : 0,
-                       transition: 'opacity 0.6s ease-out'
+                       height: '100%'
                      }}
                    >
                        {renderMapContent()}
@@ -506,6 +694,16 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                        currentRoom={currentRoom}
                        playerX={controlledIconX || 0}
                        playerY={controlledIconY || 0}
+                     />
+                   )}
+                   
+                   {/* Guard Warning Box - appears below location display */}
+                   {guardWarning && (
+                     <GuardWarningBox
+                       message={guardWarning.message}
+                       guardName={guardWarning.guardName}
+                       severity={guardWarning.severity}
+                       turnsRemaining={guardWarning.turnsRemaining}
                      />
                    )}
                    
@@ -625,6 +823,8 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                             setActiveRuinModal(null);
                             setInRuinRoguelike(false);
                         }}
+                        isMarketplaceModalOpen={!!activeMarketplaceModal}
+                        onExitMarketplace={() => setActiveMarketplaceModal(null)}
                     />
                     {panelNotificationItem && <NewItemModal item={panelNotificationItem} onClose={() => setPanelNotificationItem(null)} />}
                 </div>

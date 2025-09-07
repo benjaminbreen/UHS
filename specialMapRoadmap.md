@@ -1,1186 +1,1644 @@
-# Special Map System Roadmap v4.0 - Major Progress Edition
+# Special Map System Roadmap v6.0 - SNES RPG Aesthetic Overhaul
 
-*Last Updated: August 31, 2025*
-
-## ✅ MAJOR ACHIEVEMENTS - Current Session (August 31, 2025)
-
-### COMPLETED Phase 1: Cleanup & Organization
-1. **Deleted ALL duplicate generator files** ✅
-   - Removed: estatesGenerator.ts, governmentForum2D.ts, palaceGeneratorEnhanced.ts, etc.
-   - Cleaned up imports in specialMapGenerator.ts
-   - No more duplicate/unused files
-
-### COMPLETED Phase 2: Multi-Tile Pillar System 
-2. **Fully Implemented Multi-Tile Objects** ✅
-   - Created `MultiTilePillar.tsx` component with full material rendering
-   - Created `PillarBase.tsx` for base tile rendering
-   - Built `multiTileObjectService.ts` with placement logic
-   - Integrated with government forum generator
-   - Added dedicated rendering layer in MapDisplayOptimized
-   - Pillars now span 2-4 tiles based on era
-
-### COMPLETED Phase 3: Material System Connection
-3. **Material System Fully Connected** ✅
-   - Created `materialMappingService.ts` bridging augmentation and rendering
-   - Defined all 6 material styles (white_marble, grey_stone, red_lacquer, sandstone, wood, steel)
-   - Materials determined by cultural zone and era
-   - Multi-tile pillars use correct materials
-
-### COMPLETED Phase 4: Size Scaling Fixes
-4. **All Generators Now Scale Properly** ✅
-   - University: Proportional scaling for all rooms
-   - Arena: Dynamic tier counts and dimensions
-   - Theater: Already fixed in previous session
-   - Market: Already fixed in previous session
-   - Vessel: Already properly constrained
-   - Government Forum: Fully adaptive layouts
-
-## 📢 Previous Session Progress (December 31)
-
-### What Got Done:
-1. **Size Scaling System**: 
-   - ✅ Added `determineMapSize()` function that sets size based on era
-   - ✅ Government forums scale from XS to XL properly
-   - ✅ Market generator now handles all sizes (added `generateSimpleMarket()` for XS)
-   - ✅ Theater generator now handles all sizes (added `generateSimpleTheater()` for XS)
-
-2. **Fixed Pink Tiles**:
-   - ✅ Added DAIS, BENCH, PILLAR, CABINET to BIOME_COLORS
-   - ✅ All biome types now render (no more magenta)
-
-3. **Honest Documentation**:
-   - ✅ Rewrote roadmap to reflect ACTUAL state vs claims
-   - ✅ Added implementation advice for future developers
-   - ✅ Documented all gaps and missing features
-
-### What's Still Broken:
-1. **Most generators still hardcode positions** (estates, university, arena, etc.)
-2. **Multi-tile objects don't exist** (pillars are still 1 tile)
-3. **Materials never applied** (everything uses default colors)
-4. **No interior portals** (can't enter nested maps)
-5. **Duplicate imports remain** (palaceGeneratorEnhanced, etc.)
-
-### Next Session Should Start With:
-1. Delete duplicate generator files (30 min)
-2. Fix remaining generators for size scaling (2-3 hours)
-3. START multi-tile pillar system (4 hours)
-4. Connect material colors to rendering (2 hours)
+*Last Updated: January 2025 - Realistic Implementation Within Engine Constraints*
 
 ---
 
-## 🎯 NEXT SESSION IMPLEMENTATION PLAN (Priority Order)
+## 🔍 COMPREHENSIVE PROGRESS REPORT - January 2025
 
-### CRITICAL TASK 1: Multi-Tile Pillar System (4-6 hours)
-**Why This First**: Most visible impact, proves the multi-tile concept works
+### Executive Summary
+After thorough investigation of all claims in this roadmap, I found significant discrepancies between what's documented as "complete" versus actual implementation. The overlay system exists but is only partially adopted. Many "missing" files actually exist. Symbol files work but are massively bloated. 
 
-#### Step 1: Create the Multi-Tile Types (30 min)
-**File**: `/types/specialMapTypes.ts`
+### 1. OVERLAY SYSTEM - 60% COMPLETE ⚠️
+
+#### ✅ What's Actually Working:
+- **Data structures fully implemented**: `OverlayObject` interface and `OverlayObjectType` enum exist in `/types/core/tile.ts`
+- **OverlayRenderer component exists and functions**: Located at `/components/symbols/architecture/specialMap/OverlayRenderer.tsx` with 254 lines
+- **Rendering pipeline integrated**: `MapDisplayOptimized.tsx` properly renders overlays for special maps (lines 3314-3340)
+- **Conversion utilities created**: `/utils/tileConversion.ts` has migration functions
+- **Test utilities exist**: `/generation/specialMap/overlayTestUtility.ts` and `testOverlayMap.ts` created
+
+#### ❌ What's NOT Working:
+- **Mixed adoption**: 9 generator files use overlays (139 instances) BUT 10 files still use BiomeType furniture (159 instances)
+- **SpecialMapSymbolRenderer doesn't handle overlays**: It acknowledges them (lines 120-126) but doesn't render them
+- **No generators fully converted**: All generators use BOTH systems, creating confusion
+- **Rotation barely used**: Most overlay placements use rotation: 0
+
+#### 📊 Overlay Adoption by Generator:
+- `restaurantInnGenerator.ts`: 23 overlay uses (most adopted)
+- `universityGeneratorV2.ts`: 44 overlay uses
+- `universityGenerator.ts`: 36 overlay uses
+- `governmentForumFixed.ts`: 6 overlay uses BUT 11 BiomeType uses
+- `estatesGeneratorFixed.ts`: 1 overlay use BUT 17 BiomeType uses
+- **ZERO generators use overlays exclusively**
+
+### 2. SYMBOL FILES - FUNCTIONAL BUT BLOATED 🎨
+
+#### ✅ Correct Assessments:
+- **PillarSymbol.tsx**: 499 lines (CONFIRMED - absolutely insane)
+- **ChairSymbol.tsx**: 487 lines (CONFIRMED - way too complex)
+- **All symbols return proper JSX/SVG**: Roadmap claim about returning data objects is FALSE
+
+#### ⚠️ Incorrect Claims:
+- **BookshelfSymbol.tsx**: 408 lines, NOT 338 as claimed (still works fine with cultural variations)
+- **TableSymbol.tsx**: WORKS PERFECTLY, returns proper SVG with 3/4 perspective (285 lines)
+- **DeskSymbol.tsx**: Functional but overly complex
+
+#### 📈 Symbol Complexity Rankings:
+1. PillarSymbol: 499 lines (needs immediate refactor)
+2. ChairSymbol: 487 lines (needs simplification)
+3. FountainSymbol: 433 lines (not mentioned in roadmap)
+4. BookshelfSymbol: 408 lines (functional, cultural variants good)
+5. TableSymbol: 285 lines (actually reasonable)
+
+### 3. GENERATOR FILES - MOSTLY EXIST 📁
+
+#### ✅ Files That EXIST (contrary to roadmap claims):
+- **campgroundGenerator.ts**: EXISTS (8,519 bytes) - fully functional
+- **restaurantInnGenerator.ts**: EXISTS (29,763 bytes) - most overlay-adopted generator
+
+#### ❌ Files Actually Missing:
+- **playerHomeGenerator.ts**: DOES NOT EXIST (roadmap correct)
+
+#### 📊 Generator Health Status:
+- `governmentForumFixed.ts`: 1400+ lines, most complete but uses mixed systems
+- `restaurantInnGenerator.ts`: Best overlay adoption but still uses BiomeType
+- `universityGeneratorV2.ts`: Heavy overlay use, seems to be newer version
+- Most generators: Functional but inconsistent in approach
+
+### 4. BACK WALL SYSTEM - IMPLEMENTED BUT UNUSED 🏗️
+
+#### ✅ What Exists:
+- **BackWallSymbol.tsx**: EXISTS (9,229 bytes) - fully implemented component
+- **BiomeTypes added**: WALL_BACK, WALL_BACK_WINDOW, WALL_BACK_DOOR in `/types/biomes/base.ts`
+- **Symbol imported**: SpecialMapSymbolRenderer imports BackWallSymbol
+
+#### ❌ What's Missing:
+- **ZERO generators use back walls**: No generator places WALL_BACK biomes
+- **No 3/4 perspective depth**: Rooms still look flat
+- **Window placement logic**: Not implemented anywhere
+
+### 5. CRITICAL UNFINISHED BUSINESS 🚨
+
+#### High Priority Issues:
+1. **Rendering confusion**: Two parallel systems (BiomeType vs Overlay) create maintenance nightmare
+2. **No clear migration path**: Generators use both systems randomly
+3. **Performance untested**: Overlay system might be slower than BiomeType
+4. **Cultural variations inconsistent**: Some symbols preserve them, others don't
+5. **Rotation unused**: Most furniture faces south regardless of context
+
+#### Stub Functions & TODOs Found:
+- SpecialMapSymbolRenderer line 124: "In the future, these will be rendered as overlays"
+- Multiple generators have commented-out overlay code
+- Test utilities created but not integrated into main flow
+
+### 6. HONEST ASSESSMENT - WHAT TO DO NEXT 🎯
+
+#### Immediate Actions (1-2 days):
+1. **Pick ONE system**: Either commit to overlays OR stay with BiomeType
+2. **Convert ONE generator fully**: restaurantInnGenerator.ts is best candidate
+3. **Fix SpecialMapSymbolRenderer**: Must handle overlays if keeping that system
+4. **Simplify PillarSymbol**: 499 lines → 100 lines maximum
+
+#### Week-Long Plan:
+1. **Days 1-2**: Commit to overlay system, fully convert 2-3 generators
+2. **Day 3**: Implement back walls in at least one generator
+3. **Day 4**: Simplify top 3 bloated symbols
+4. **Day 5**: Add rotation logic for furniture placement
+5. **Days 6-7**: Test performance, document decision
+
+#### Reality Check:
+- **Current state**: 60% to goal, but fragmented
+- **Overlay system**: Works but needs commitment
+- **SNES aesthetic**: Achievable but requires consistency
+- **Time to completion**: 1 week focused work IF decisions made quickly
+
+### 7. FALSE/MISLEADING CLAIMS IN ROADMAP 📝
+
+1. **"Phase 1 & 2 COMPLETED"**: FALSE - Overlay system exists but barely used
+2. **"Files don't exist"**: FALSE - campgroundGenerator.ts and restaurantInnGenerator.ts exist
+3. **"Symbols return data objects"**: FALSE - All symbols return proper JSX
+4. **"Multi-tile system works"**: PARTIALLY TRUE - Works for pillars, unused elsewhere
+5. **"Materials system works"**: PARTIALLY TRUE - Data exists, most symbols ignore it
+
+---
+
+## 🎮 VISION: SNES RPG Aesthetic Within Current Engine
+
+### The Goal
+Transform special maps from flat tile grids into beautiful SNES-style RPG interiors with:
+- Consistent 3/4 perspective (in style of classic SNES rpg pixel art, but very historically accurate, without fantasy elements) on all furniture/objects
+- Back wall projection showing wall faces (windows, decorations)
+- Unified pixel art style with consistent shadows
+- Historically accurate but aesthetically cohesive
+
+## 📐 Phase 1: Back Wall System (ACHIEVABLE)
+
+### Implementation Strategy
+Instead of complex wall projection, use BiomeType differentiation:
+
 ```typescript
-// Add to BiomeType enum:
-PILLAR_BASE = 'PILLAR_BASE',
-PILLAR_MIDDLE = 'PILLAR_MIDDLE', 
-PILLAR_TOP = 'PILLAR_TOP',
+// In types/biomes/base.ts - ADD:
+WALL_BACK = 'WALL_BACK',        // Back wall face (can have windows)
+WALL_BACK_WINDOW = 'WALL_BACK_WINDOW',  // Back wall with window
+WALL_BACK_DOOR = 'WALL_BACK_DOOR',      // Back wall with door
+WALL_SIDE = 'WALL_SIDE',        // Side wall (thin border only)
 ```
 
-**File**: `/constants/mapGeneration/biomes/colors.ts`
+### File Changes
+
+1. **Create BackWallSymbol.tsx** in `/components/symbols/architecture/specialMap/`
+   ```typescript
+   // Shows vertical wall face with material texture
+   // Height: 2-3x normal tile to create verticality
+   // Can include window cutouts with "light" effect
+   ```
+
+2. **Update specialMapGenerator.ts**
+   ```typescript
+   // Modify room generation to use back walls on north edge:
+   for (let x = 0; x < width; x++) {
+     tiles[0][x].biome = BiomeType.WALL_BACK; // Top row
+     tiles[1][x].biome = BiomeType.WALL_BACK; // Second row for height
+   }
+   ```
+
+3. **Update SpecialMapSymbolRenderer.tsx**
+   ```typescript
+   case BiomeType.WALL_BACK:
+     return <BackWallSymbol material={material} />;
+   case BiomeType.WALL_BACK_WINDOW:
+     return <BackWallWindowSymbol material={material} lightLevel={timeOfDay} />;
+   ```
+
+### Visual Result
+- Top 2 rows of rooms show vertical wall face
+- Windows can show "light streaming in" during day
+- Creates depth without changing engine
+
+## 🎨 Phase 2: Symbol Standardization (CRITICAL)
+
+### The Problem (UPDATED January 2025 - Actual Assessment)
+Current symbols have massive file sizes and inconsistencies:
+- PillarSymbol: **499 lines** (absolutely insane!)
+- ChairSymbol: **487 lines** (way too complex)
+- FountainSymbol: **433 lines**
+- BookshelfSymbol: **408 lines** (not 338 - still too long but WORKS FINE)
+- Most symbols: 300-400+ lines each
+- DeskSymbol & TorchSymbol: Still using 16x16 (need 32x32 upgrade)
+- Duplicate symbols: TableSymbol vs TableSymbol2D, ChairSymbol vs ChairSymbol2D
+
+### The Solution: Unified Style Guide
+
+#### Style Requirements (ALL symbols must follow):
+1. **Perspective**: 3/4 view (front face + top surface visible)
+2. **Shadow**: Consistent down-left at 45°, 20% opacity
+3. **Colors**: Max 4-5 colors per symbol (base, highlight, shadow, accent)
+4. **Pixel density**: ~16x16 or 32x32 pixel art scaled up
+5. **Material system**: Base color modified by material prop
+
+#### Files to Rewrite (Priority Order):
+
+1. **TableSymbol.tsx** - Currently flat oval
+   - Make rectangular with visible top surface
+   - Add wood grain texture
+   - Show legs with proper perspective
+
+2. **ChairSymbol.tsx** - Currently too complex (But keep culturally specific variants)
+   - Simplify to match ChestSymbol style
+   - Show back + seat with 3/4 view
+   - Consistent shadow
+
+3. **BookshelfSymbol.tsx** - 408 lines but WORKS FINE
+   - Currently functional with good cultural variations
+   - Could be simplified but NOT URGENT
+   - Has proper scrolls, tablets, manuscripts per culture
+
+4. **DeskSymbol.tsx** - Overly complex
+   - Match table style but with drawers, keep cultural variations but match pixel art SNES rpg aesthetic
+
+
+#### Files to Keep As-Is:
+- ChestSymbol (already good, but could add cultureZone variants)
+- PillarBase/MultiTilePillar (working ok, could be sharpened a bit around edges)
+- FloorSymbol variations (tiles work fine flat)
+
+## 🏗️ Phase 3: Structured Room Templates (REPLACE RANDOM GENERATION)
+
+### Current Problem
+Generators randomly place furniture, creating chaos:
 ```typescript
-// Add colors:
-[BiomeType.PILLAR_BASE]: '#7a7a7a',
-[BiomeType.PILLAR_MIDDLE]: '#8a8a8a',
-[BiomeType.PILLAR_TOP]: '#9a9a9a',
+// BAD - current approach in governmentForumFixed.ts:
+if (Math.random() > 0.5) tiles[y][x].biome = BiomeType.CHAIR;
 ```
 
-#### Step 2: Create Pillar Symbol Components (1 hour)
-**File**: Create `/components/symbols/architecture/specialMap/PillarBase.tsx`
+### New Template System
+
+Create `/generation/specialMap/roomTemplates.ts`:
 ```typescript
-export const PillarBase: React.FC<{x, y, size, material}> = ({x, y, size, material}) => {
-  const colors = {
-    'grey_stone': '#7a7a7a',
-    'white_marble': '#e8e8e8',
-    'red_lacquer': '#8b0000',
-    'sandstone': '#c19a6b',
-    'wood': '#8b4513',
-    'steel': '#708090'
+interface RoomTemplate {
+  name: string;
+  minSize: {w: number, h: number};
+  zones: {
+    backWall: BiomeType[];      // What appears on back wall
+    center: BiomeType[][];      // Central area layout
+    corners: BiomeType[];       // Corner decorations
+    frontArea: BiomeType[][];   // Entry area layout
   };
+  furniture: {
+    type: BiomeType;
+    position: 'center' | 'back_center' | 'corners' | 'sides';
+    count: number;
+  }[];
+}
+
+export const THRONE_ROOM_TEMPLATE: RoomTemplate = {
+  name: 'throne_room',
+  minSize: {w: 10, h: 10},
+  zones: {
+    backWall: [WALL_BACK_WINDOW, WALL_BACK, WALL_BACK_WINDOW],
+    center: [[CARPET], [CARPET], [CARPET]],
+    corners: [PILLAR],
+    frontArea: [[FLOOR_STONE]]
+  },
+  furniture: [
+    {type: THRONE, position: 'back_center', count: 1},
+    {type: BRAZIER, position: 'corners', count: 2},
+    {type: BENCH, position: 'sides', count: 4}
+  ]
+};
+```
+
+### Update Generators to Use Templates
+
+Replace complex generation logic with template application:
+```typescript
+// In governmentForumFixed.ts generateCouncilChamber():
+function generateCouncilChamber(tiles: Tile[][], config: Config) {
+  const template = selectTemplate(config.era, 'council');
+  applyRoomTemplate(tiles, template, config.culturalZone);
+}
+```
+
+## 🗑️ Phase 4: SIMPLIFICATION (Keep Cultural Richness)
+
+### Files to DELETE Entirely:
+1. All duplicate generators (already identified in roadmap)
+2. Random furniture placement functions (replace with templates)
+
+### Code to OPTIMIZE (NOT REMOVE):
+1. **BookshelfSymbol.tsx**: Refactor to clean pixel art style while KEEPING:
+   - Clay tablets for ancient MENA
+   - Scrolls for antiquity Europe/Asia
+   - Quipus for ancient/medieval Americas
+   - Printed books for later eras
+   - Palm leaf manuscripts for South/Southeast Asia
+2. **DeskSymbol.tsx**: Streamline code but PRESERVE cultural variants:
+   - Writing surfaces appropriate to era/culture
+   - Scribe desks vs modern desks
+   - Low tables for cultures that sit on floors
+3. **governmentForumFixed.ts**: Use templates but maintain cultural layouts
+
+### Systems to PRESERVE:
+1. Cultural furniture variations in symbols (CRITICAL for historical accuracy)
+2. Era-based symbol switching (ESSENTIAL for time periods)
+3. Material system ENHANCES but doesn't replace cultural variants
+
+## 📊 Phase 5: Implementation Order
+
+### Week 1: Foundation
+1. **Day 1-2**: Implement back wall system
+   - Create BackWallSymbol components
+   - Update generators to use back walls
+   - Test wall rendering with windows
+
+2. **Day 3-4**: Standardize core symbols
+   - Rewrite TableSymbol with 3/4 perspective
+   - Rewrite ChairSymbol to match ChestSymbol style
+   - Test consistent shadows/perspectives
+
+3. **Day 5**: Simplify BookshelfSymbol
+   - Reduce from 338 to ~50 lines
+   - Match established pixel art style
+
+### Week 2: Templates & Cleanup
+1. **Day 1-2**: Create room template system
+   - Build template types and data
+   - Create 5-6 core templates (throne, council, library, etc.)
+
+2. **Day 3-4**: Convert generators to use templates
+   - Start with governmentForumFixed.ts
+   - Replace random placement with template application
+
+3. **Day 5**: Delete deprecated code
+   - Remove duplicate files
+   - Strip out complex variations
+
+## ✅ Success Metrics
+
+### Visual Cohesion
+- [ ] All symbols use same perspective angle
+- [ ] Consistent shadow direction across all objects
+- [ ] Unified color palette per era/culture
+- [ ] Back walls create sense of depth
+
+### Code Simplification
+- [ ] Average symbol file < 100 lines (from 300+)
+- [ ] Generators use templates not random placement
+- [ ] No duplicate symbol variations
+- [ ] Material system handles all cultural differences
+
+### Performance
+- [ ] Special map generation < 50ms (from 100ms+)
+- [ ] Reduced memory footprint from simpler symbols
+- [ ] Faster rendering with optimized SVGs
+
+## 🚫 What We're NOT Doing
+
+1. **NOT changing the rendering engine** - Working within MapDisplayOptimized.tsx
+2. **NOT implementing true sprite layers** - Working within current constraints
+3. **NOT adding complex projection math** - Using visual tricks instead
+4. **NOT removing cultural variations** - These are ESSENTIAL for historical accuracy
+5. **NOT sacrificing historical accuracy** - Pixel art style WITH cultural specificity
+
+## 💡 Key Insight
+
+The goal is SNES RPG aesthetic WITH historical accuracy:
+1. **Consistent perspective** (3/4 view) on every object
+2. **Smart use of wall faces** to create depth
+3. **Unified pixel art style** that still shows cultural differences
+4. **Structured layouts** based on historical architectural patterns
+5. **Cultural specificity** - tablets in Mesopotamia, scrolls in Rome, quipus in Andes
+6. **Era accuracy** - papyrus → parchment → paper progression
+
+We achieve this by combining:
+- Clean pixel art aesthetic (like Stardew Valley or FF6)
+- Rich cultural variations (different objects for different civilizations)
+- Smart overlay system (furniture on floors, not replacing them)
+- Rotation awareness (chairs face desks, desks face away from walls)
+
+## 🎯 Next Immediate Action
+
+1. Create BackWallSymbol.tsx with window variations
+2. Rewrite TableSymbol.tsx with proper 3/4 perspective
+3. Create first room template (throne room)
+4. Test with existing engine - no engine changes needed!
+
+---
+
+# 🔄 CRITICAL IMPROVEMENT: Overlay Sprite System
+
+## The Problem
+Currently, furniture symbols ARE the tile instead of overlaying floor tiles. This causes:
+- White blocks behind symbols that don't fill the square
+- No floor texture visible under furniture
+- Symbols can't overlap tile boundaries
+- Everything locked to grid positions
+- Chairs always face south regardless of desk position
+- Doors opening onto windows
+
+## The Solution: Separate Floors from Objects
+
+### Current (BAD):
+```typescript
+tile.biome = BiomeType.CHAIR; // Chair IS the tile
+```
+
+### Proposed (GOOD):
+```typescript
+tile.biome = BiomeType.FLOOR_STONE; // Floor is the tile
+tile.overlayObject = {type: 'CHAIR', rotation: 180}; // Chair overlays the floor
+```
+
+## Implementation Plan
+
+**Estimated Time**: 3-4 days of focused work
+**Complexity**: Medium-High (touches many files but pattern is repeatable)
+**Risk**: Low (can be done incrementally without breaking existing system)
+
+## Phase 1: Core Data Structure Changes ✅ COMPLETED (January 2025)
+
+### What We Actually Implemented:
+
+#### 1.1 Extended Tile Type (`/types/core/tile.ts`)
+```typescript
+// COMPLETED - Added to Tile interface:
+export interface OverlayObject {
+  type: OverlayObjectType;    // Type of object (chair, table, etc.)
+  rotation: number;            // Rotation in degrees (0, 90, 180, 270)
+  variant?: string;            // For cultural variations (PRESERVED!)
+  material?: string;           // Material override (wood, stone, etc.)
+}
+
+export interface Tile {
+  // ... existing fields ...
+  
+  // NEW - Successfully added:
+  overlayObject?: OverlayObject;  // Object that overlays this tile
+  isBlocking?: boolean;            // Whether tile blocks movement
+}
+```
+
+#### 1.2 Created OverlayObjectType Enum (`/types/core/tile.ts`)
+```typescript
+// COMPLETED - Full enum with 30+ object types:
+export enum OverlayObjectType {
+  // Furniture (all implemented)
+  CHAIR, TABLE, DESK, BOOKSHELF, CHEST, BED, THRONE, BENCH, CABINET,
+  
+  // Decorative (all implemented)
+  BRAZIER, TORCH, STATUE, FOUNTAIN, PODIUM, ALTAR,
+  
+  // Functional (all implemented)
+  DOOR, WEAPON_RACK, ARMOR_STAND, MIRROR, BASIN, 
+  KITCHEN_STOVE, KITCHEN_COUNTER, KITCHEN_SINK,
+  
+  // Storage (added extras)
+  BARREL, FILING_CABINET,
+  
+  // Multi-tile (ready for Phase 2)
+  PILLAR_BASE, PILLAR_TOP,
+  TABLE_LEFT, TABLE_CENTER, TABLE_RIGHT
+}
+```
+
+#### 1.3 Built Migration Utility (`/utils/tileConversion.ts`)
+- ✅ `migrateTileToOverlay()` - Converts single tiles with intelligent rotation
+- ✅ `migrateMapToOverlaySystem()` - Batch converts entire maps
+- ✅ `calculateIntelligentRotation()` - Smart furniture facing based on walls
+- ✅ `determineMaterial()` - Cultural zone-based material selection
+- ✅ `isFurnitureBiome()` - Detects old-style furniture tiles
+- ✅ Full backward compatibility maintained
+
+#### 1.4 Created Test Utilities (`/generation/specialMap/overlayTestUtility.ts`)
+- ✅ `createTestRoomWithOverlays()` - Demonstrates overlay system
+- ✅ `placeDeskWithChairOverlay()` - Helper for paired furniture
+- ✅ `calculateFurnitureRotation()` - Wall-aware rotation logic
+- ✅ `testOverlaySystem()` - Verification function
+
+### Key Achievement:
+**Dual system support** - Old BiomeType furniture and new overlay system work simultaneously!
+
+## Phase 2: Rendering Pipeline Changes ✅ COMPLETED (January 2025)
+
+### What Was Implemented:
+1. **Created OverlayRenderer Component** (`components/symbols/specialMap/OverlayRenderer.tsx`)
+   - Renders furniture and objects on top of floor tiles
+   - Supports rotation for all overlay objects
+   - Maintains cultural variations through material and variant properties
+   - Compatible with night intensity filtering
+
+2. **Updated MapDisplayOptimized.tsx**
+   - Added overlay rendering layer after special map symbols
+   - Overlay objects render separately from BiomeType furniture
+   - Proper z-ordering: Canvas → Floor tiles → Furniture overlays → NPCs
+
+3. **Modified SpecialMapSymbolRenderer**
+   - Added backward compatibility check via `isFurnitureBiome()`
+   - Old maps continue to render furniture as BiomeTypes
+   - New maps can use overlay system
+
+4. **Created Test Utilities** (`generation/specialMap/testOverlayMap.ts`)
+   - `generateOverlayTestHall()` - Great hall with properly rotated furniture
+   - `testMigrationToOverlay()` - Tests migration from old to new system
+   - `generateCulturalRoom()` - Cultural-specific room layouts
+
+### Key Achievement:
+**Dual rendering system** - Old BiomeType furniture and new overlay system work simultaneously, ensuring backward compatibility while enabling proper furniture rotation and floor tile preservation!
+
+### 2.1 Update MapDisplayOptimized.tsx
+```typescript
+// Add new rendering pass for overlays
+const renderTileOverlays = useCallback((
+  ctx: CanvasRenderingContext2D,
+  tiles: Tile[][],
+  startX: number,
+  startY: number,
+  visibleCols: number,
+  visibleRows: number
+) => {
+  // After rendering base tiles, render overlays
+  for (let row = 0; row < visibleRows; row++) {
+    for (let col = 0; col < visibleCols; col++) {
+      const tile = tiles[startY + row]?.[startX + col];
+      if (tile?.overlayObject) {
+        // Overlays render as SVG components on top
+        renderOverlayObject(
+          tile.overlayObject,
+          (startX + col) * TILE_SIZE,
+          (startY + row) * TILE_SIZE
+        );
+      }
+    }
+  }
+}, []);
+```
+
+### 2.2 Create OverlayRenderer Component
+```typescript
+// components/OverlayRenderer.tsx
+export const OverlayRenderer: React.FC<{
+  object: OverlayObject,
+  x: number,
+  y: number,
+  tileSize: number
+}> = ({ object, x, y, tileSize }) => {
+  const Symbol = getSymbolComponent(object.type);
   
   return (
-    <g transform={`translate(${x}, ${y})`}>
-      <rect x={0} y={0} width={size} height={size} fill="#8a8a8a"/> {/* Gray background */}
-      <rect x={size*0.2} y={size*0.2} width={size*0.6} height={size*0.6} 
-            fill={colors[material] || colors['grey_stone']}/>
-      {/* Add 3D effect with darker bottom edge */}
-      <rect x={size*0.2} y={size*0.7} width={size*0.6} height={size*0.1} 
-            fill="#000" opacity="0.3"/>
-    </g>
+    <div 
+      className="absolute pointer-events-none"
+      style={{
+        left: x,
+        top: y,
+        width: tileSize,
+        height: tileSize,
+        transform: `rotate(${object.rotation}deg)`,
+        transformOrigin: 'center'
+      }}
+    >
+      <Symbol 
+        size={tileSize}
+        material={object.material}
+        variant={object.variant}
+      />
+    </div>
   );
 };
 ```
 
-**Repeat for**: `PillarMiddle.tsx`, `PillarTop.tsx` (with different shapes)
+## Phase 3: Symbol Component Updates (8-10 hours)
 
-#### Step 3: Add to SpecialMapSymbolRenderer (30 min)
-**File**: `/components/symbols/specialMap/SpecialMapSymbolRenderer.tsx`
+### 3.1 Make All Furniture Symbols Rotation-Aware (KEEP CULTURAL VARIANTS!)
 ```typescript
-// Import new components
-import { PillarBase, PillarMiddle, PillarTop } from '../architecture/specialMap';
-
-// Add cases:
-case BiomeType.PILLAR_BASE:
-  return <PillarBase x={0} y={0} size={size} material={getMaterial(culturalZone, era)} />;
-case BiomeType.PILLAR_MIDDLE:
-  return <PillarMiddle x={0} y={0} size={size} material={getMaterial(culturalZone, era)} />;
-case BiomeType.PILLAR_TOP:
-  return <PillarTop x={0} y={0} size={size} material={getMaterial(culturalZone, era)} />;
-```
-
-#### Step 4: Create Multi-Tile Placement Function (1.5 hours)
-**File**: Create `/generation/specialMap/multiTileObjects.ts`
-```typescript
-export function placePillar(
-  tiles: Tile[][],
-  x: number,
-  y: number, 
-  height: number,
-  material: MaterialType
-) {
-  // Place from bottom up
-  if (y - height + 1 < 0) return; // Out of bounds
-  
-  // Base (bottom)
-  tiles[y][x].biome = BiomeType.PILLAR_BASE;
-  tiles[y][x].materialSubtype = material;
-  tiles[y][x].isBlocking = true;
-  
-  // Middle sections
-  for (let i = 1; i < height - 1; i++) {
-    tiles[y - i][x].biome = BiomeType.PILLAR_MIDDLE;
-    tiles[y - i][x].materialSubtype = material;
-    tiles[y - i][x].isBlocking = false; // Can walk behind pillar
-  }
-  
-  // Top
-  if (height > 1) {
-    tiles[y - height + 1][x].biome = BiomeType.PILLAR_TOP;
-    tiles[y - height + 1][x].materialSubtype = material;
-    tiles[y - height + 1][x].isBlocking = false;
-  }
+// Example: ChairSymbol.tsx with cultural awareness
+interface ChairSymbolProps {
+  size: number;
+  rotation?: number;  // NEW for directional placement
+  material?: string;  // Wood, stone, etc.
+  variant?: string;   // CRITICAL: Cultural variant
+  culturalZone?: string;  // For specific cultural rendering
+  era?: string;       // For time-appropriate styles
 }
 
-// Height based on era
-export function getPillarHeight(era: HistoricalEra): number {
-  if (era === HistoricalEra.PREHISTORY) return 2;
-  if (era === HistoricalEra.ANTIQUITY) return 3;
-  if (era >= HistoricalEra.MEDIEVAL) return 4;
-  return 3;
-}
-```
-
-#### Step 5: Update Government Forum to Use Multi-Tile Pillars (1 hour)
-**File**: `/generation/specialMap/archetypes/governmentForumFixed.ts`
-```typescript
-import { placePillar, getPillarHeight } from '../multiTileObjects';
-import { CULTURE_MATERIALS } from '../../../constants/specialMaps/specialMapAugmentation';
-
-// Replace single-tile pillar placement:
-// OLD: tiles[y][x].biome = BiomeType.PILLAR;
-// NEW:
-const material = CULTURE_MATERIALS[culturalZone][eraCategory].pillar || 'grey_stone';
-const pillarHeight = getPillarHeight(config.era);
-placePillar(tiles, x, y, pillarHeight, material);
-```
-
-#### Step 6: TEST IT! (30 min)
-- Generate government forum at each era
-- Verify pillars render with correct height
-- Check different cultural zones show different materials
-- Screenshot before/after for documentation
-
----
-
-### CRITICAL TASK 2: Connect Material System (2-3 hours)
-**Why This Second**: Makes cultural variations actually visible
-
-#### Step 1: Create Material Service (45 min)
-**File**: Create `/services/specialMapMaterialService.ts`
-```typescript
-import { CULTURE_MATERIALS } from '../constants/specialMaps/specialMapAugmentation';
-
-export function getMaterialForBiome(
-  biomeType: BiomeType,
-  culturalZone: string,
-  era: HistoricalEra
-): string {
-  const eraCategory = getEraCategory(era);
-  const materials = CULTURE_MATERIALS[culturalZone]?.[eraCategory];
+const ChairSymbol: React.FC<ChairSymbolProps> = ({ 
+  size, 
+  rotation = 0, 
+  material = 'wood',
+  culturalZone = 'EUROPEAN',
+  era = 'MEDIEVAL'
+}) => {
+  // Select appropriate chair style based on culture/era
+  const chairStyle = getChairStyle(culturalZone, era);
+  // Could be: stool, cushion, bench, formal chair, etc.
   
-  if (!materials) return getDefaultMaterial(biomeType);
-  
-  // Map biome types to material categories
-  const materialMap = {
-    [BiomeType.WALL]: materials.wall || materials,
-    [BiomeType.FLOOR_STONE]: materials.floor || materials,
-    [BiomeType.PILLAR]: materials.pillar || materials,
-    [BiomeType.PILLAR_BASE]: materials.pillar || materials,
-    [BiomeType.PILLAR_MIDDLE]: materials.pillar || materials,
-    [BiomeType.PILLAR_TOP]: materials.pillar || materials,
-    [BiomeType.TABLE]: materials.furniture || 'wood',
-    [BiomeType.CHAIR]: materials.furniture || 'wood',
-    [BiomeType.THRONE]: materials.accent || 'gold',
-  };
-  
-  return materialMap[biomeType] || getDefaultMaterial(biomeType);
-}
-```
-
-#### Step 2: Pass Material Through Rendering Pipeline (1 hour)
-**File**: `/components/SpecialMapLocationDisplay.tsx`
-```typescript
-// When rendering tiles, get material:
-const material = getMaterialForBiome(
-  tile.biome,
-  specialMapData.specialConfig.culturalZone,
-  specialMapData.specialConfig.era
-);
-
-// Pass to SpecialMapSymbolRenderer:
-<SpecialMapSymbolRenderer
-  biome={tile.biome}
-  material={material} // NEW PROP
-  culturalZone={culturalZone}
-  era={era}
-/>
-```
-
-#### Step 3: Update Key Symbols to Use Materials (45 min)
-**Priority symbols to update**:
-1. `WallSymbol2D.tsx` - Most visible
-2. `FloorTileSymbol2D.tsx` - Sets overall tone  
-3. `TableSymbol2D.tsx` - Common furniture
-4. `ChairSymbol2D.tsx` - Common furniture
-
-**Example update for WallSymbol2D**:
-```typescript
-const getWallColor = (material: MaterialType) => {
-  const colors = {
-    'grey_stone': '#808080',
-    'white_marble': '#f0f0f0', 
-    'sandstone': '#d2b48c',
-    'wood': '#8b4513',
-    'red_lacquer': '#8b0000',
-    'steel': '#708090'
-  };
-  return colors[material] || colors['grey_stone'];
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100">
+      <g transform={`rotate(${rotation} 50 50)`}>
+        {/* Render culturally appropriate seating */}
+        {renderCulturalChair(chairStyle, material)}
+      </g>
+    </svg>
+  );
 };
 ```
 
----
+### 3.2 Priority Symbols to Convert
+1. **ChairSymbol** - Most common, needs rotation
+2. **TableSymbol** - Often misaligned
+3. **DeskSymbol** - Needs to face walls
+4. **BookshelfSymbol** - Should be against walls
+5. **ChestSymbol** - Already good, minor updates
+6. **BedSymbol** - Needs orientation
+7. **TorchSymbol** - Wall-mounted variants
 
-### CRITICAL TASK 3: Fix Remaining Size Issues (2 hours)
-**Files to fix** (in order of complexity):
+## Phase 4: Generator Updates (6-8 hours)
 
-1. **University Generator** (30 min)
-   - File: `/generation/specialMap/archetypes/universityGenerator.ts`
-   - Issue: Assumes space for multiple buildings
-   - Fix: Single building for S/M, multiple only for L/XL
-
-2. **Arena Generator** (30 min)
-   - File: `/generation/specialMap/archetypes/arenaGenerator.ts`  
-   - Issue: Fixed radius for circular seating
-   - Fix: `const radius = Math.min(20, size.width * 0.4)`
-
-3. **Vessel Generator** (20 min)
-   - File: `/generation/specialMap/archetypes/vesselGenerator.ts`
-   - Issue: Doesn't respect size constraints
-   - Fix: Force to XS/Small regardless of era
-
-4. **Restaurant Generator** (20 min)
-   - File: `/generation/specialMap/archetypes/restaurantInnGenerator.ts`
-   - Issue: Fixed room dimensions
-   - Fix: Scale kitchen, dining, private rooms
-
-5. **Campground Generator** (20 min)
-   - File: `/generation/specialMap/archetypes/campgroundGenerator.ts`
-   - Issue: Can be XL (should max at Large)
-   - Fix: Clamp size in determineMapSize()
-
----
-
-### QUICK WIN: Delete Duplicate Files (30 min)
-**Files to DELETE**:
-```bash
-rm /Users/benjaminbreen/code/august-6-uhs/generation/specialMap/archetypes/palaceGeneratorEnhanced.ts
-rm /Users/benjaminbreen/code/august-6-uhs/generation/specialMap/archetypes/governmentGeneratorEnhanced.ts
-rm /Users/benjaminbreen/code/august-6-uhs/generation/specialMap/archetypes/governmentForum2D.ts
-rm /Users/benjaminbreen/code/august-6-uhs/generation/specialMap/archetypes/castleGeneratorEnhanced.ts
-```
-
-**Update imports in**: `/generation/specialMap/specialMapGenerator.ts`
-- Remove all unused imports
-- Keep only the "Fixed" versions
-
----
-
-### Testing Checklist After Implementation
-- [ ] Generate EVERY archetype at size XS (8x8)
-- [ ] Generate EVERY archetype at size XL (25x25)
-- [ ] Verify pillars are multi-tile in government forum
-- [ ] Check European vs MENA vs Asian materials are different
-- [ ] No pink tiles anywhere
-- [ ] Walls are blocking, floors are not
-- [ ] Exit zones work properly
-
-### Time Estimate for Complete Implementation
-- Multi-tile pillars: 4-6 hours
-- Material system: 2-3 hours  
-- Fix remaining generators: 2 hours
-- Delete duplicates: 30 min
-- Testing: 1 hour
-**Total: 10-13 hours of focused work**
-
-### What This Will Achieve
-1. **Visual Impact**: Multi-tile pillars will make spaces feel 3D
-2. **Cultural Variety**: Materials will make each culture distinct
-3. **Size Flexibility**: All archetypes will work at all sizes
-4. **Clean Codebase**: No more duplicate files
-
-### What Can Wait (Phase 4+)
-- Interior portals (complex, needs design)
-- Multi-tile tables (less critical than pillars)
-- Light source pairing (nice to have)
-- Player homes (needs full design)
-- Camping system (gameplay feature)
-- Vessel sprites (cosmetic)
-
-## 🚨 BRUTAL HONESTY: Current State vs Vision
-
-### What the Roadmap Claims vs Reality
-
-| Feature | Claimed | **ACTUAL STATUS** | Gap Analysis |
-|---------|---------|-------------------|-------------|
-| **Size Scaling (XS-XL)** | "Implemented" | ✅ JUST added to specialMapGenerator.ts, ⚠️ Only governmentForum actually adapts | Most generators ignore size parameter |
-| **Cultural Variations** | "Complete" | ❌ ONLY government forums, layout only | No material swapping, no other archetypes |
-| **Multi-tile Objects** | "Core feature" | ❌ ZERO implementation | System designed but never built |
-| **Material System** | "Universal" | ❌ Defined but NEVER USED | Colors still hardcoded everywhere |
-| **Parameter-driven** | "Simplified" | ❌ Still using hardcoded generators | Each archetype has separate logic |
-| **10 Archetypes** | "Working" | ⚠️ 9 exist, 1 missing (Player Home) | Most don't scale or customize |
-| **Interior Portals** | "3-layer system" | ❌ No implementation | No nested maps at all |
-
-### ✅ What ACTUALLY Works (as of December 2024)
-1. **Pink tiles fixed**: Added DAIS, BENCH, PILLAR, CABINET to BIOME_COLORS
-2. **Size determination**: `determineMapSize()` NOW sets size based on era/archetype
-3. **Government forums**: NOW scale properly (XS to XL) with cultural layouts
-4. **Basic generators exist**: 9/10 archetypes have generator files
-
-### ❌ Critical Gaps That Must Be Fixed
-1. **Generators don't use size**: Most assume fixed dimensions
-2. **No multi-tile objects**: Pillars, tables still single-tile "stickers"
-3. **Materials ignored**: Cultural material system never applied to rendering
-4. **Duplicate code**: 3-4 versions of each generator still imported
-5. **No interior portals**: Can't enter throne rooms, captain's quarters, etc.
-
-## Executive Summary
-
-Complete architectural redesign focusing on **modular, parameter-driven generation** rather than culture-specific logic. Special maps are now smaller (4x8 to 25x25), faster, and use a universal material system for cultural variation. The system creates a three-layer hierarchy: Standard Map → Special Map → Interior Map, with elite access restrictions reinforcing social dynamics.
-
-## Core Design Principles
-
-### 1. Era Drives Complexity, Culture Drives Materials
-- **Procedural generation** is era-based (prehistoric = simple, modern = complex)
-- **Cultural variation** comes from 6 universal materials applied to standard objects
-- **No more culture-specific generation functions** - one generator per archetype
-
-### 2. Dramatically Smaller Maps
-- Previous: 40x30 to 60x60 tiles (laggy, complex)
-- **New: 4x8 to 25x25 tiles** (fast, focused, intimate)
-- Performance target: <100ms generation, 60fps rendering
-
-### 3. Multi-Tile Architectural Objects
-- **Pillars**: 2-4 tiles tall (base + middle(s) + top)
-- **Tables**: 3+ tiles wide (left + middle(s) + right)
-- **Light sources**: 2 tiles (fixture + glow above)
-- Creates convincing architecture vs single-tile "stickers"
-
-## 1. Map Size Tiers
-
-| Size | Dimensions | Primary Use | Examples |
-|------|------------|-------------|----------|
-| **XS** | 8×8 | Small buildings, vessels, prehistoric | Chief's hut, canoe, painted cave |
-| **Small** | 10×10 | Temporary spaces | Campsite, inn, small temple |
-| **Medium** | 16×16 | Standard buildings | Medieval castle, market |
-| **Large** | 20×20 | Major complexes | Palace, university |
-| **XL** | 25×25 | Massive sites | Versailles, Forbidden City |
-
-### Era-Based Sizing
+### 4.1 Update Placement Logic
 ```typescript
-const ERA_SIZE_RULES = {
-  prehistoric: { default: 'xs', max: 'small' },
-  antiquity: { default: 'small', max: 'large' },
-  medieval: { default: 'medium', max: 'large' },
-  earlyModern: { default: 'large', max: 'xl' },
-  industrial: { default: 'large', max: 'xl' },
-  modern: { default: 'large', max: 'xl' }
-}
-```
-
-## 2. Simplified Archetype System (10 Total)
-
-### Current Implementation Status
-
-| Archetype | Status | Generator File | Cultural Variations |
-|-----------|--------|----------------|--------------------|
-| **Estates** | ✅ Working | `estatesGeneratorFixed.ts` | Partial |
-| **Government** | ✅ Fixed | `governmentForumFixed.ts` | ✅ Complete |
-| **Arena/Theater** | ✅ Working | `theaterGenerator.ts` | Needs update |
-| **University** | ✅ Working | `universityGenerator.ts` | Needs update |
-| **Market** | ✅ Working | `marketGenerator.ts` | Needs update |
-| **Open Field** | ✅ Working | `openFieldGenerator.ts` | Basic |
-| **Campground** | ❌ Missing | Not implemented | - |
-| **Restaurant** | ✅ Working | `restaurantInnGenerator.ts` | Basic |
-| **Vessel** | ✅ Working | `vesselGenerator.ts` | Basic |
-| **Player Home** | ❌ Missing | Not implemented | - |
-
-### Final Archetype List
-
-| # | Archetype | Description | Size Range | Interior Access |
-|---|-----------|-------------|------------|-----------------|
-| 1 | **Estates** | Royal or religious leader residences | XS→XL | Throne room (private) |
-| 2 | **Government Complex** | Bureaucratic centers | L→XL | Council chamber (restricted) |
-| 3 | **Arena/Theater** | Entertainment venues | S→L | Backstage (restricted) |
-| 4 | **University/Monastery** | Learning centers | S→L | Archives (restricted) |
-| 5 | **Exhibition/Fair/Market** | Commerce & display | S→XL | Guild hall (members only) |
-| 6 | **Open Field** | Flexible outdoor space, could be anything from battleground to holy grove to polo field | XS→XL | Cave/shrine (varies) |
-| 7 | **Campground** 🆕 | Temporary settlements | XS→M | Tent interior (private) |
-| 8 | **Restaurant/Inn** 🆕 | Hospitality venues | S→M | Private room (paid) |
-| 9 | **Vessel** 🆕 | Ships & vehicles | XS→M | Captain's quarters (restricted) |
-| 10 | **Player Home** 🆕 | Personal residence | XS→L | Bedroom (private) |
-
-*Note: Palaces (the stadnardmap symbol) and holy sites remain as direct interior maps on standard map*
-
-### Archetype Parameters
-```typescript
-interface ArchetypeConfig {
-  // Core
-  archetype: ArchetypeType;
-  size: 'xs' | 'small' | 'medium' | 'large' | 'xl';
-  era: EraType;
-  cultureZone: CultureZone;
+// governmentForumFixed.ts - Example update
+function placeDesk(tiles: Tile[][], x: number, y: number) {
+  // OLD WAY
+  // tiles[y][x].biome = BiomeType.DESK;
   
-  // Layout modifiers
-  isCircular?: boolean;        // For round structures (applies to all sizes)
-  isRectangular?: boolean;     // For vessels and other constrained spaces
-  hasLandscape?: boolean;       // Climate-appropriate border (always available)
-  landscapeClimate?: 'arid' | 'temperate' | 'cold' | 'semitropical' | 'tropical' | 'ocean';
-  density?: 'sparse' | 'normal' | 'dense';
-  
-  // Materials (overrides culture default)
-  floorMaterial?: MaterialType;
-  wallMaterial?: MaterialType;
-  furnitureMaterial?: MaterialType;
-  
-  // Interior portal
-  innerMapType?: 'throne_room' | 'council_chamber' | 'captain_quarters' | 'bedroom' | 'cave' | 'vault';
-  innerMapName?: string;        // Custom name like "Westminster Hall"
-  isPrivate?: boolean;          // Requires elite status
-}
-```
-
-## 3. Universal Material System
-
-### Six Base Materials (Cover All Cultures/Eras)
-
-| Material | Visual Style | Cultural Associations | Era Range |
-|----------|--------------|----------------------|-----------|
-| **White Marble** | Grey veins, bright, polished | Mediterranean, Classical, Neoclassical | Antiquity→Modern |
-| **Grey Stone** | Rough texture, fortress-like | Northern Europe, Castles, Brutalism | All eras |
-| **Red Lacquer** | Glossy, rich, ornate | East Asia, Imperial China/Japan | Medieval→Modern |
-| **Sandstone** | Tan-red, weathered, warm | MENA, Africa, Southwestern Americas | All eras |
-| **Wood** | Brown grain, natural | Universal vernacular, common buildings | All eras |
-| **Steel** | Grey metallic, industrial | Modern global, military, tech | Industrial→Modern |
-
-### Culture-to-Material Mapping
-```typescript
-const CULTURE_MATERIALS = {
-  EUROPEAN: {
-    prehistoric: 'wood',
-    antiquity: 'white_marble',
-    medieval: 'grey_stone',
-    earlyModern: 'white_marble',
-    modern: 'steel'
-  },
-  EAST_ASIAN: {
-    prehistoric: 'wood',
-    antiquity: 'wood',
-    medieval: 'red_lacquer',
-    earlyModern: 'red_lacquer',
-    modern: 'steel'
-  },
-  MENA: {
-    prehistoric: 'sandstone',
-    antiquity: 'sandstone',
-    medieval: 'sandstone',
-    earlyModern: 'white_marble',
-    modern: 'steel'
-  },
-  AFRICAN: {
-    prehistoric: 'wood',
-    antiquity: 'sandstone',
-    medieval: 'sandstone',
-    earlyModern: 'sandstone',
-    modern: 'steel'
-  },
-  AMERICAS: {
-    prehistoric: 'wood',
-    antiquity: 'sandstone',
-    medieval: 'wood',
-    earlyModern: 'wood',
-    modern: 'steel'
-  },
-  OCEANIA: {
-    prehistoric: 'wood',
-    antiquity: 'wood',
-    medieval: 'wood',
-    earlyModern: 'wood',
-    modern: 'steel'
-  }
-}
-```
-
-## 4. Multi-Tile Object System
-
-### Object Scaling Rules
-
-#### Pillars (Vertical)
-```typescript
-interface Pillar {
-  tiles: TileStack;  // Always vertical stack
-  material: MaterialType;
-  height: number;    // Era-dependent
-}
-
-const PILLAR_HEIGHTS = {
-  prehistoric: 2,   // base + top only
-  medieval: 3,      // base + middle + top
-  modern: 4         // base + 2 middles + top
-}
-```
-
-#### Tables/Furniture (Horizontal)
-```typescript
-interface HorizontalFurniture {
-  tiles: TileRow;    // Always horizontal row
-  material: MaterialType;
-  width: number;     // Map-size dependent
-}
-
-const TABLE_WIDTHS = {
-  xs: 3,        // left + right (no middle)
-  small: 3,     // left + middle + right
-  medium: 5,    // left + 3 middles + right
-  large: 7      // left + 5 middles + right
-}
-```
-
-#### Light Sources (Paired)
-```typescript
-interface LightSource {
-  fixture: TileType;    // Bottom tile (torch holder, lamp post)
-  light: TileType;      // Top tile (flame, glow)
-  era: EraType;
-}
-
-const LIGHT_EVOLUTION = {
-  prehistoric: { fixture: 'stick', light: 'ember' },
-  antiquity: { fixture: 'bronze_stand', light: 'oil_flame' },
-  medieval: { fixture: 'iron_sconce', light: 'torch_flame' },
-  earlyModern: { fixture: 'brass_lamp', light: 'gas_flame' },
-  industrial: { fixture: 'ornate_post', light: 'gas_bright' },
-  modern: { fixture: 'steel_fixture', light: 'electric_bulb' }
-}
-```
-
-### Multi-Tile Benefits
-- **Visual Weight**: Objects feel substantial, not flat
-- **Era Progression**: Height/width naturally scales with time period
-- **Material Consistency**: One material swap changes entire object
-- **Performance**: Can batch-render connected tiles
-
-## 5. Landscape System
-
-### Climate-Based Landscapes
-When `hasLandscape: true`, border tiles are filled with climate-appropriate terrain:
-
-| Climate | Landscape Tiles | Visual Style |
-|---------|----------------|--------------|
-| **Arid** | Sand, rocks, cacti | Desert surroundings |
-| **Temperate** | Grass, trees, flowers | Green gardens/fields |
-| **Cold** | Snow, ice, bare trees | Winter landscape |
-| **Semitropical** | Lush grass, palms | Humid greenery |
-| **Tropical** | Dense vegetation, vines | Jungle surroundings |
-| **Ocean** | Water tiles | Ship in water |
-
-### Landscape Border Sizing
-```typescript
-const LANDSCAPE_BORDER_ROWS = {
-  xs: 1,      // 8x8 → 6x6 usable (or 4x4 for circular)
-  small: 2,   // 10x10 → 6x6 usable
-  medium: 3,  // 16x16 → 10x10 usable
-  large: 4,   // 20x20 → 12x12 usable
-  xl: 5       // 25x25 → 15x15 usable
-}
-```
-
-### Vessel Special Case
-Vessels with `isRectangular: true` and `hasLandscape: true` (ocean climate):
-- XS (8x8) with ocean border → 2x4 walkable deck space
-- Small (10x10) with ocean border → 4x6 walkable space
-- This creates realistic ship proportions
-
-## 6. Nested Map Hierarchy
-
-### Three-Layer Structure
-```
-STANDARD MAP (World)
-    ↓ Click government district / city center / special location
-SPECIAL MAP (Building Complex) 
-    ↓ Click portal (if eligible)
-INTERIOR MAP (Inner Sanctum)
-```
-
-### Access Control System
-
-#### Public Access (Anyone)
-- Special map main areas
-- Market stalls, theater seats, university courtyards
-- Vessel decks, campground common areas
-
-#### Restricted Access (Conditional)
-- **Class-based**: Noble/clergy only areas
-- **Reputation-based**: High standing required
-- **Payment-based**: Inn private rooms
-- **Quest-based**: Unlocked through gameplay
-
-#### Elite Spawn System
-```typescript
-const SPECIAL_SPAWNS = {
-  royalFamily: {
-    chance: 0.01,  // 1 in 100
-    spawn: 'government_complex',
-    banner: 'Royal Crest',
-    startPrivilege: 8
-  },
-  ruler: {
-    chance: 0.001, // 1 in 1000
-    spawn: 'throne_room_interior',
-    banner: 'Crown',
-    startPrivilege: 10
-  },
-  religiousLeader: {
-    chance: 0.002, // 1 in 500
-    spawn: 'temple_sanctum_interior',
-    banner: 'Holy Symbol',
-    startPrivilege: 9
-  }
-}
-```
-
-## 6. Procedural Generation Flow
-
-### Generation Pipeline
-```typescript
-function generateSpecialMap(config: ArchetypeConfig): SpecialMapData {
-  // 1. Determine layout from archetype + era
-  const layout = getArchetypeLayout(config.archetype, config.era);
-  
-  // 2. Scale to requested size
-  const scaled = scaleLayout(layout, config.size);
-  
-  // 3. Apply materials from culture
-  const materials = getMaterials(config.cultureZone, config.era);
-  
-  // 4. Generate multi-tile objects
-  const objects = generateObjects(scaled, materials, config.era);
-  
-  // 5. Place interior portals
-  const portals = placePortals(config.innerMapType, config.isPrivate);
-  
-  // 6. Spawn appropriate NPCs
-  const npcs = spawnNPCs(config.archetype, config.era, config.cultureZone);
-  
-  return { tiles, objects, portals, npcs };
-}
-```
-
-### Archetype-Specific Rules
-
-#### Palace
-- Always has central throne room
-- Pillars line main hall
-- Size dramatically scales with era (XS tent → XL palace)
-- Interior portal to throne room (elite only)
-
-#### Government Complex
-- Multiple buildings if XL
-- Offices arranged around courtyard
-- Council chamber as interior map
-- Bureaucrat NPCs based on era
-
-#### Vessel
-- Sprite changes with era (canoe → galleon → submarine)
-- Hold size scales (XS → Small)
-- Captain's quarters as interior
-- Easter egg: submarine sprite for spaceships
-
-#### Campground
-- Central fire + surrounding tents
-- Biome-appropriate surroundings
-- Pack up / linger mechanics
-- Items spawn that aren't visible on standard map
-
-## 7. Special Features
-
-### 7.1 Player Home System
-```typescript
-interface PlayerHome {
-  // Standard map marker
-  mapTile: 'home_marker';
-  
-  // Special map (house layout)
-  specialMap: {
-    size: 'small' | 'medium' | 'large';  // Based on wealth
-    rooms: Room[];                        // Kitchen, workshop, etc.
-    customizable: true;                   // Player can rearrange
+  // NEW WAY
+  tiles[y][x].biome = BiomeType.FLOOR_WOOD; // Keep floor
+  tiles[y][x].overlayObject = {
+    type: OverlayObjectType.DESK,
+    rotation: getDeskRotation(tiles, x, y),
+    material: 'wood'
   };
-  
-  // Interior map (bedroom)
-  interiorMap: {
-    bed: RestPoint;
-    storage: Inventory;
-    desk: JournalAccess;
-    atmosphere: 'cozy' | 'grand';
+  tiles[y][x].isBlocking = true; // Still blocks movement
+}
+
+function getDeskRotation(tiles: Tile[][], x: number, y: number): number {
+  // Face toward nearest wall
+  if (isWall(tiles[y-1]?.[x])) return 0;    // Face north
+  if (isWall(tiles[y+1]?.[x])) return 180;  // Face south
+  if (isWall(tiles[y]?.[x-1])) return 270;  // Face west
+  if (isWall(tiles[y]?.[x+1])) return 90;   // Face east
+  return 0; // Default
+}
+
+function placeChairNearDesk(
+  tiles: Tile[][], 
+  chairX: number, 
+  chairY: number,
+  deskX: number,
+  deskY: number
+) {
+  tiles[chairY][chairX].biome = BiomeType.FLOOR_WOOD;
+  tiles[chairY][chairX].overlayObject = {
+    type: OverlayObjectType.CHAIR,
+    rotation: getAngleToward(chairX, chairY, deskX, deskY),
+    material: 'wood'
   };
 }
 ```
 
-### 7.2 Vessel Evolution System
+### 4.2 Smart Furniture Grouping
 ```typescript
-const VESSEL_PROGRESSION = {
-  prehistoric: { sprite: 'raft', size: 'xs', hold: null },
-  antiquity: { sprite: 'galley', size: 'small', hold: 'xs' },
-  medieval: { sprite: 'cog', size: 'small', hold: 'xs' },
-  earlyModern: { sprite: 'galleon', size: 'medium', hold: 'small' },
-  industrial: { sprite: 'steamship', size: 'large', hold: 'medium' },
-  modern: {
-    default: { sprite: 'cargo_ship', size: 'large', hold: 'large' },
-    military: { sprite: 'submarine', size: 'medium', hold: 'small' },
-    space: { sprite: 'submarine', size: 'small', hold: 'xs' }  // Easter egg
+// New utility functions
+function placeDeskWithChair(tiles: Tile[][], x: number, y: number) {
+  const deskRotation = getDeskRotation(tiles, x, y);
+  
+  // Place desk
+  placeDesk(tiles, x, y, deskRotation);
+  
+  // Place chair on opposite side
+  const chairOffset = getOppositeDirection(deskRotation);
+  const chairX = x + chairOffset.x;
+  const chairY = y + chairOffset.y;
+  
+  if (isValidPosition(tiles, chairX, chairY)) {
+    placeChair(tiles, chairX, chairY, deskRotation + 180);
+  }
+}
+
+function getAngleToward(fromX: number, fromY: number, toX: number, toY: number): number {
+  const dx = toX - fromX;
+  const dy = toY - fromY;
+  
+  if (Math.abs(dx) > Math.abs(dy)) {
+    return dx > 0 ? 90 : 270;  // Face east or west
+  } else {
+    return dy > 0 ? 180 : 0;   // Face south or north
   }
 }
 ```
 
-### 7.3 Authentic Language Gradient
+## Phase 5: Backwards Compatibility (2-3 hours)
+
+### 5.1 Dual Rendering Support
 ```typescript
-interface LanguageGradient {
-  homeMap: 1.0,        // 100% comprehensible
-  distance1: 0.9,      // 90% English, 10% authentic
-  distance2: 0.8,      // 80% English, 20% authentic
-  // ... continues
-  distance10: 0.0      // 0% English, 100% authentic
-}
-
-function applyLanguageGradient(text: string, distance: number): string {
-  const comprehension = Math.max(0, 1 - (distance * 0.1));
-  const words = text.split(' ');
-  
-  return words.map(word => {
-    if (Math.random() < comprehension) {
-      return word;  // Keep English
-    } else {
-      return `[${translateWord(word)}]`;  // Show authentic in brackets
-    }
-  }).join(' ');
-}
-```
-
-### 7.4 World Weaver Integration
-
-World Weaver can now use universal fallback archetypes:
-
-```typescript
-const UNIVERSAL_FALLBACKS = {
-  'submarine captain': { 
-    archetype: 'vessel', 
-    size: 'xs', 
-    material: 'steel',
-    innerMap: 'captain_quarters' 
-  },
-  'medieval inn': { 
-    archetype: 'restaurant', 
-    size: 'small', 
-    material: 'wood',
-    innerMap: 'private_room' 
-  },
-  'roman senate': { 
-    archetype: 'government', 
-    size: 'large', 
-    material: 'white_marble',
-    innerMap: 'council_chamber' 
-  },
-  // Fallback for any unmatched scenario
-  'default': { 
-    archetype: 'open_field', 
-    size: 'medium', 
-    material: 'culturally_appropriate'
+// SpecialMapSymbolRenderer.tsx
+const renderTile = (tile: Tile) => {
+  // Check new system first
+  if (tile.overlayObject) {
+    return (
+      <>
+        <FloorSymbol type={tile.biome} />
+        <OverlaySymbol object={tile.overlayObject} />
+      </>
+    );
   }
-}
+  
+  // Fall back to old system
+  if (isFurnitureBiome(tile.biome)) {
+    return <LegacySymbol biome={tile.biome} />;
+  }
+  
+  return <FloorSymbol type={tile.biome} />;
+};
 ```
 
-## 📊 Revised Implementation Phases (December 2024)
-
-### Phase 1: Complete Size Scaling ⚠️ 40% COMPLETE
-**What's Done:**
-- [x] Size determination logic in specialMapGenerator.ts
-- [x] Government forum adapts to all sizes
-- [x] MAP_SIZES constant defined
-
-**What's NOT Done:**
-- [ ] Estates: Uses size param but doesn't adapt layout
-- [ ] Market: Hardcoded stall positions break on small maps
-- [ ] Theater: Fixed stage size doesn't scale
-- [ ] University: Assumes large map for multiple buildings
-- [ ] Arena: Fixed circular radius
-- [ ] Vessel: Doesn't constrain to small sizes
-- [ ] Restaurant: Fixed room layout
-- [ ] Campground: Should be XS-L only (not XL)
-
-### Phase 2: Multi-Tile Object System ❌ 0% COMPLETE
-**Required Components:**
-- [ ] Create MultiTileObject base class
-- [ ] Pillar system:
-  - [ ] Base tile (bottom)
-  - [ ] Middle tiles (0-2 based on height)
-  - [ ] Capital tile (top)
-  - [ ] Height based on era (2-4 tiles)
-- [ ] Table system:
-  - [ ] Left end piece
-  - [ ] Middle pieces (1-7)
-  - [ ] Right end piece
-  - [ ] Width based on map size
-- [ ] Light sources:
-  - [ ] Fixture tile (torch holder, lamp post)
-  - [ ] Light tile above (flame, bulb)
-- [ ] Material application to multi-tile objects
-
-### Phase 3: Material System Integration ❌ 0% COMPLETE
-- [ ] Create material renderer service
-- [ ] Apply materials to BiomeTypes in SpecialMapSymbolRenderer
-- [ ] Pass material through to symbol components
-- [ ] Create material-aware variants:
-  - [ ] WallSymbol (stone, marble, wood, sandstone)
-  - [ ] PillarSymbol (6 material variants)
-  - [ ] FloorSymbol (already partial, needs completion)
-  - [ ] FurnitureSymbols (wood, lacquer, etc.)
-
-### Phase 4: Advanced Features (Future)
-- [ ] Camping system (pack up/linger mechanics)
-- [ ] Vessel sprite evolution (raft → galleon → submarine)
-- [ ] Interior portal system
-- [ ] Elite spawn mechanics
-
-### Phase 5: Player Home (Future)
-- [ ] Create playerHomeGenerator.ts
-- [ ] Customization system
-- [ ] Storage/inventory integration
-- [ ] Size based on wealth
-
-## 9. Technical Specifications
-
-### Data Structure
+### 5.2 Migration Helper
 ```typescript
-interface SpecialMapData {
-  tiles: Tile[][];              // Much smaller arrays (4x8 to 25x25)
-  size: { width: number, height: number };
-  archetype: ArchetypeType;
-  
-  multiTileObjects: {
-    pillars: Pillar[];
-    furniture: HorizontalFurniture[];
-    lights: LightSource[];
+// utils/tileConversion.ts
+export function migrateTileToOverlay(tile: Tile): Tile {
+  const furnitureMap: Record<BiomeType, OverlayObjectType> = {
+    [BiomeType.CHAIR]: OverlayObjectType.CHAIR,
+    [BiomeType.TABLE]: OverlayObjectType.TABLE,
+    [BiomeType.DESK]: OverlayObjectType.DESK,
+    [BiomeType.BOOKSHELF]: OverlayObjectType.BOOKSHELF,
+    [BiomeType.CHEST]: OverlayObjectType.CHEST,
+    [BiomeType.BED]: OverlayObjectType.BED,
+    [BiomeType.THRONE]: OverlayObjectType.THRONE,
+    // ... etc
   };
   
-  portals: {
-    position: Point;
-    targetType: InteriorMapType;
-    accessLevel: 'public' | 'restricted' | 'private';
-    customName?: string;
-  }[];
+  if (furnitureMap[tile.biome]) {
+    return {
+      ...tile,
+      overlayObject: {
+        type: furnitureMap[tile.biome],
+        rotation: 0, // Default, can be smarter
+        material: 'wood',
+        variant: undefined
+      },
+      biome: BiomeType.FLOOR_STONE // Or detect appropriate floor
+    };
+  }
   
-  npcs: SpecialMapNPC[];
-  
-  metadata: {
-    era: EraType;
-    culture: CultureZone;
-    materials: MaterialSet;
-    generatedAt: number;
-  };
+  return tile;
 }
 ```
 
-### Performance Requirements
-- Generation time: <100ms
-- Render time: 60fps with 25x25 map
-- Memory: <10MB per special map
-- NPC limit: 10 per map
-- Multi-tile batching required
+## Phase 6: Testing & Polish (4-6 hours)
 
-### File Organization (Current State)
+### 6.1 Test Cases
+1. **Rotation**: All furniture faces correct direction
+2. **Overlapping**: Symbols render on top of floors properly
+3. **Transparency**: No white blocks behind symbols
+4. **Performance**: No lag with many overlays
+5. **Backwards compat**: Old maps still work
+
+### 6.2 Visual Polish
+- Add subtle shadows under furniture
+- Ensure consistent perspective (3/4 view)
+- Add material variations
+- Test all cultural zones
+
+## Implementation Order
+
+### Day 1: Foundation
+1. ✅ Add overlay types to Tile interface
+2. ✅ Create OverlayObjectType enum
+3. ✅ Set up dual rendering system
+4. ✅ Test with one symbol (Chair)
+
+### Day 2: Core Symbols
+1. ✅ Convert Chair, Table, Desk symbols
+2. ✅ Add rotation support
+3. ✅ Remove white backgrounds
+4. ✅ Test overlay rendering
+
+### Day 3: Generators
+1. ✅ Update governmentForumFixed to use overlays
+2. ✅ Add smart rotation logic
+3. ✅ Fix door/window conflicts
+4. ✅ Test furniture grouping
+
+### Day 4: Complete Migration
+1. ✅ Convert remaining symbols
+2. ✅ Update all generators
+3. ✅ Ensure backwards compatibility
+4. ✅ Performance testing
+
+## Risk Mitigation
+
+1. **Keep old system working** during transition
+2. **Test incrementally** - one symbol at a time
+3. **Use feature flag** to toggle between systems
+4. **Profile performance** - overlays might be slower
+5. **Have rollback plan** if issues arise
+
+## Expected Outcome
+
+- **No more white blocks** behind furniture
+- **Furniture faces logical directions**
+- **Objects can overlap tile boundaries** (eventually)
+- **Cleaner, more SNES-like aesthetic**
+- **Foundation for future improvements** (multi-tile objects, etc.)
+
+## Quick Testing Commands
+
+```javascript
+// Test overlay system in console
+const tile = window.gameContext.mapContext.mapData.tiles[10][10];
+tile.overlayObject = {
+  type: 'CHAIR',
+  rotation: 90,
+  material: 'wood'
+};
+
+// Force re-render to see changes
+window.gameContext.mapContext.setMapData({...window.gameContext.mapContext.mapData});
 ```
-generation/specialMap/
-├── specialMapGenerator.ts       # Main generator ✅
-├── landscapeService.ts          # Landscape borders ✅
-└── archetypes/                  # NEEDS CONSOLIDATION
-    ├── estatesGeneratorFixed.ts ✅
-    ├── governmentForumFixed.ts  ✅ (with cultural variations)
-    ├── theaterGenerator.ts      ✅
-    ├── universityGenerator.ts   ✅
-    ├── marketGenerator.ts       ✅
-    ├── openFieldGenerator.ts    ✅
-    ├── restaurantInnGenerator.ts ✅
-    ├── vesselGenerator.ts       ✅
-    ├── campgroundGenerator.ts   ✅
-    └── [MANY DUPLICATES TO REMOVE]
-
-constants/specialMaps/
-├── specialMapAugmentation.ts    # ✅ Cultural patterns & materials
-└── [TO ADD: materials.ts, layouts.ts]
-
-constants/specialMaps/
-├── materials.ts                # 6 material definitions
-├── layouts.ts                  # Era-based layouts
-├── multiTileTemplates.ts       # Object definitions
-└── cultureMappings.ts          # Culture to material
-
-components/symbols/specialMap/
-├── materials/                  # Material textures
-│   ├── marble.tsx
-│   ├── stone.tsx
-│   ├── lacquer.tsx
-│   ├── sandstone.tsx
-│   ├── wood.tsx
-│   └── steel.tsx
-└── multiTile/                  # Multi-tile components
-    ├── Pillar.tsx
-    ├── Table.tsx
-    ├── LightSource.tsx
-    └── Portal.tsx
-```
-
-## 10. Example Configurations
-
-### Prehistoric Chief's Hut
-```typescript
-{
-  archetype: 'estates',
-  size: 'xs',                    // 8x8 tiles
-  era: 'prehistoric',
-  cultureZone: 'OCEANIA',
-  isCircular: true,              // Round hut
-  hasLandscape: true,            // Desert surroundings
-  landscapeClimate: 'arid',      // Australian outback
-  floorMaterial: 'earth',        // Dirt floor
-  wallMaterial: 'wood',          // Wooden posts
-  furnitureMaterial: 'wood',
-  innerMapType: null,            // No separate interior
-  customName: "Elder's Dwelling"
-}
-```
-
-### Industrial Era Parliament
-```typescript
-{
-  archetype: 'government',
-  size: 'xl',                    // 25x25 tiles
-  era: 'industrial',
-  cultureZone: 'EUROPEAN',
-  floorMaterial: 'white_marble',
-  wallMaterial: 'grey_stone',
-  hasLandscape: false,           // Urban setting
-  innerMapType: 'council_chamber',
-  innerMapName: 'Westminster Hall',
-  isPrivate: true
-}
-```
-
-### Viking Longship
-```typescript
-{
-  archetype: 'vessel',
-  size: 'xs',                    // 8x8 tiles
-  era: 'medieval',
-  cultureZone: 'EUROPEAN',
-  isRectangular: true,           // Ship shape
-  hasLandscape: true,            // Ocean surroundings
-  landscapeClimate: 'ocean',     // Water border
-  floorMaterial: 'wood',         // Deck planks
-  wallMaterial: 'wood',          // Hull
-  furnitureMaterial: 'wood',
-  innerMapType: null,            // No captain's quarters
-  customName: "Longship"
-  // Results in 2x4 walkable deck with ocean tiles around
-}
-```
-
-### Player Starting Home
-```typescript
-{
-  archetype: 'playerHome',
-  size: 'small',                 // 10x10 tiles
-  era: 'medieval',
-  cultureZone: 'EUROPEAN',
-  floorMaterial: 'wood',
-  wallMaterial: 'grey_stone',
-  customizable: true,
-  innerMapType: 'bedroom',
-  isPrivate: true               // Player only
-}
-```
-
-## Success Metrics
-
-### Performance
-- [ ] All special maps generate in <100ms
-- [ ] 60fps maintained on 25x25 maps
-- [ ] Memory usage <10MB per map
-- [ ] Smooth transitions between map layers
-
-### Content
-- [ ] 10 archetypes fully functional
-- [ ] 6 materials cover all cultures
-- [ ] Multi-tile objects working
-- [ ] Interior portals functional
-- [ ] Elite spawn system active
-
-### Quality
-- [ ] Visually coherent across cultures
-- [ ] Era progression feels natural
-- [ ] Social hierarchy reinforced
-- [ ] World Weaver integration smooth
-- [ ] Player feedback positive
-
-## 🎯 Critical Implementation Advice for Future Developers
-
-### Start Here - Quick Wins
-1. **Fix Size Scaling First** (2-4 hours per generator)
-   - Open each generator file
-   - Replace hardcoded positions with proportional calculations
-   - Test with XS (8x8) and XL (25x25) to find breaks
-   - Example: `const x = 4` → `const x = Math.floor(size.width * 0.2)`
-
-2. **Delete Duplicate Files** (30 minutes)
-   - Keep only: estatesGeneratorFixed, governmentForumFixed, etc.
-   - Delete: palaceGeneratorEnhanced, governmentGeneratorEnhanced, etc.
-   - Update imports in specialMapGenerator.ts
-
-3. **Test Each Archetype** (1 hour)
-   - Force each to generate at XS, S, M, L, XL sizes
-   - Document which ones break
-   - Priority: Market, Theater, University (most complex)
-
-### Common Pitfalls to Avoid
-1. **Don't trust the existing code** - Most claims in comments are lies
-2. **Don't assume dynamic sizing works** - Most generators hardcode dimensions
-3. **Don't expect materials to work** - System exists but isn't connected
-4. **Don't believe "cultural variations"** - Only government forums have them
-
-### Code Patterns That Work
-```typescript
-// Good: Proportional sizing
-const padding = Math.max(2, Math.floor(size.width * 0.15));
-const roomWidth = size.width - (padding * 2);
-
-// Bad: Hardcoded values
-const roomX = 4;
-const roomWidth = size.width - 8; // Breaks on 8x8 map!
-```
-
-### Priority Order for Fixes
-1. **Size scaling** - Without this, nothing else matters
-2. **Multi-tile pillars** - Most visual impact
-3. **Material colors** - Makes cultural variation visible
-4. **Interior portals** - Can be deferred (complex)
-
-### Testing Checklist
-- [ ] Generate each archetype at size XS (8x8)
-- [ ] Generate each archetype at size XL (25x25)
-- [ ] Verify no pink tiles appear
-- [ ] Check walls are marked as blocking
-- [ ] Verify exits are placed correctly
-- [ ] Test with different cultural zones
-
-## 🔥 ACTUAL Next Steps (Stop Pretending, Start Doing)
-
-### TODAY: Phase 1 Completion (4-6 hours)
-1. **Fix Market Generator** 
-   - Make stall positions proportional
-   - Scale fountain/plaza with map size
-   - Test at XS and XL
-
-2. **Fix Theater Generator**
-   - Scale stage to map size
-   - Adjust seating rows dynamically
-   - Handle XS (single performance space)
-
-3. **Fix University Generator**
-   - Single building for S/M
-   - Multiple buildings only for L/XL
-   - Scale classroom sizes
-
-### TOMORROW: Phase 2 - Multi-tile Objects (8 hours)
-1. **Create MultiTileObject.ts**
-```typescript
-interface MultiTileObject {
-  baseTile: {x: number, y: number};
-  tiles: TileComponent[];
-  orientation: 'vertical' | 'horizontal';
-  material: MaterialType;
-}
-```
-
-2. **Implement Pillar System**
-   - Create PillarBase, PillarMiddle, PillarTop symbols
-   - Stack based on era (2-4 tiles)
-   - Apply materials
-
-3. **Test in Government Forum**
-   - Replace single-tile pillars
-   - Verify rendering order
-   - Check collision/blocking
-
-### THIS WEEK: Phase 3 - Materials (4 hours)
-1. **Connect Material System**
-   - Add material prop to SpecialMapSymbolRenderer
-   - Pass cultural material to each symbol
-   - Update symbol components to use material colors
-
-2. **Priority Symbols for Materials**
-   - WallSymbol (most visible)
-   - PillarSymbol (architectural focus)
-   - FloorSymbol (sets tone)
-
-### DEPRIORITIZED (Move to Phase 4-5)
-- Interior portals (complex, not critical)
-- Player homes (needs design work)
-- Camping system (gameplay feature)
-- Vessel sprites (nice-to-have)
-
-## Design Philosophy
-
-1. **Simplicity Over Specificity**: One palace generator with parameters beats 20 culture-specific generators
-2. **Performance First**: Smaller maps are better - intimate and fast
-3. **Materials Tell Stories**: Six materials can represent infinite variations
-4. **Vertical Reinforces Hierarchy**: Multi-tile height = importance
-5. **Nested Depth**: Three layers (world → building → room) creates journey
-6. **Universal Fallbacks**: Any scenario can map to 10 archetypes
 
 ---
 
-*This roadmap represents a fundamental simplification that will make the special map system more maintainable, performant, and extensible while actually increasing variety through parameterization.*
+# 📚 CRITICAL DOCUMENTATION FOR FUTURE CLAUDES
+
+## System Overview
+
+The Special Map System creates interior/specialized spaces that players can enter from the standard world map. Think of it as zooming into a building or special location for detailed interaction.
+
+### Entry Points (How Players Access Special Maps)
+
+1. **Government Districts** (`BiomeType.GOVERNMENT_DISTRICT`)
+   - Tile type on standard maps in cities
+   - Clicking triggers `enterSpecialMap()` with `GOVERNMENT_FORUM` archetype
+   - Implementation: Check `MapDisplayOptimized.tsx` for tile click handling
+
+2. **Vessel/Ship Icon** (Player's deployed vessel)
+   - When player has deployed a vessel item on water
+   - Clicking the vessel sprite enters `VESSEL` archetype special map
+   - Goes "belowdecks" to cargo hold/cabin
+
+3. **PLANNED: Player House** (Not yet implemented)
+   - Will use specific urban tile marker on standard map
+   - Needs `PLAYER_HOME` archetype generator (missing!)
+   - Should store player's items, allow rest/healing
+
+4. **PLANNED: Inns/Restaurants** 
+   - Access via mill symbols or urban buildings
+   - Needs `RESTAURANT_INN` archetype generator (file missing!)
+   - Social hub, quest giver location
+
+## Archetype System
+
+### Current Archetypes (in `types/specialMapTypes.ts`)
+
+```typescript
+export enum SpecialMapArchetype {
+  // Core Archetypes (Simplified System)
+  ESTATES = 'ESTATES',                    // Royal/noble residences
+  GOVERNMENT = 'GOVERNMENT',              // Civic buildings
+  ARENA_THEATER = 'ARENA_THEATER',        // Entertainment
+  UNIVERSITY_MONASTERY = 'UNIVERSITY_MONASTERY',  // Learning
+  MARKET_EXHIBITION = 'MARKET_EXHIBITION', // Commerce
+  OPEN_FIELD = 'OPEN_FIELD',              // Flexible outdoor
+  CAMPGROUND = 'CAMPGROUND',              // Temporary settlements
+  RESTAURANT_INN = 'RESTAURANT_INN',      // Hospitality
+  VESSEL = 'VESSEL',                      // Ships/vehicles
+  PLAYER_HOME = 'PLAYER_HOME',            // Personal residence
+  
+  // Legacy Archetypes (mapped to new ones)
+  PALACE_COMPLEX = 'PALACE_COMPLEX',      // → ESTATES
+  GOVERNMENT_FORUM = 'GOVERNMENT_FORUM',  // → GOVERNMENT
+  MARKET_BAZAAR = 'MARKET_BAZAAR',        // → MARKET_EXHIBITION
+  // etc...
+}
+```
+
+### Generator Files & Status
+
+| Archetype | Generator File | Status | Notes |
+|-----------|---------------|--------|-------|
+| ESTATES | `/generation/specialMap/archetypes/estatesGeneratorFixed.ts` | ✅ Working | Palaces, mansions |
+| GOVERNMENT_FORUM | `/generation/specialMap/archetypes/governmentForumFixed.ts` | ✅ Best implementation | 1400+ lines, cultural variations |
+| MARKET | `/generation/specialMap/archetypes/marketGenerator.ts` | ✅ Working | Needs size scaling fixes |
+| THEATER | `/generation/specialMap/archetypes/theaterGenerator.ts` | ✅ Working | Stage doesn't scale |
+| ARENA | `/generation/specialMap/archetypes/arenaGenerator.ts` | ✅ Working | Fixed radius issue |
+| UNIVERSITY | `/generation/specialMap/archetypes/universityGenerator.ts` | ✅ Working | Assumes large maps |
+| VESSEL | `/generation/specialMap/archetypes/vesselGenerator.ts` | ✅ Working | Ship interiors |
+| OPEN_FIELD | `/generation/specialMap/archetypes/openFieldGenerator.ts` | ✅ Working | Flexible space |
+| SACRED | `/generation/specialMap/archetypes/sacredGenerator.ts` | ✅ Working | Temples, churches |
+| EXHIBITION | `/generation/specialMap/archetypes/exhibitionGenerator.ts` | ✅ Working | Museums, fairs |
+| CAMPGROUND | `/generation/specialMap/archetypes/campgroundGenerator.ts` | ❌ MISSING | File doesn't exist! |
+| RESTAURANT_INN | `/generation/specialMap/archetypes/restaurantInnGenerator.ts` | ❌ MISSING | File doesn't exist! |
+| PLAYER_HOME | Not created | ❌ TODO | Needs implementation |
+
+### How Archetypes Connect
+
+1. **Main Dispatcher**: `/generation/specialMap/specialMapGenerator.ts`
+   - `generateSpecialMap()` function routes to specific generators
+   - Determines map size based on era and archetype
+   - Handles cultural zone and material selection
+
+2. **Cultural Augmentation**: `/constants/specialMaps/specialMapAugmentation.ts`
+   - Defines materials by culture/era (marble, wood, sandstone, etc.)
+   - Cultural patterns for room layouts
+   - Furniture preferences by region
+
+3. **Symbol Rendering**: `/components/symbols/specialMap/SpecialMapSymbolRenderer.tsx`
+   - Maps BiomeTypes to symbol components
+   - Passes cultural zone and era to symbols
+   - Should apply materials (partially broken)
+
+## Critical File Paths
+
+### Core System Files
+- **Main Generator**: `/generation/specialMap/specialMapGenerator.ts`
+- **Types**: `/types/specialMapTypes.ts`
+- **Symbol Renderer**: `/components/symbols/specialMap/SpecialMapSymbolRenderer.tsx`
+- **Cultural Data**: `/constants/specialMaps/specialMapAugmentation.ts`
+- **Map Hook**: `/hooks/useMapState.ts` (contains `enterSpecialMap()` and `exitSpecialMap()`)
+
+### Symbol Components (Recently Reorganized)
+All special map symbols now in: `/components/symbols/architecture/specialMap/`
+- `BookshelfSymbol.tsx` (338 lines - needs simplification!)
+- `DeskSymbol.tsx` (overly complex)
+- `TableSymbol.tsx` (flat oval - needs perspective)
+- `ChairSymbol.tsx` (needs standardization)
+- `ChestSymbol.tsx` (GOOD - use as reference for style)
+- `PillarBase.tsx`, `MultiTilePillar.tsx` (working multi-tile system)
+
+### Supporting Services
+- **Multi-tile Objects**: `/generation/specialMap/multiTileObjectService.ts`
+- **Cultural Furniture**: `/generation/specialMap/culturalFurnitureSystem.ts`
+- **Landscape Borders**: `/generation/specialMap/landscapeService.ts`
+- **NPC Generation**: `/generation/specialMap/specialMapNpcGenerator.ts`
+
+## WorldWeaver Integration
+
+WorldWeaver (`/services/worldWeaverService.ts`) needs to understand special maps for scenarios like:
+- "I'm a medieval samurai" → Start in ESTATES special map in Japan
+- "I'm on a boat in WW2" → Start in VESSEL special map
+- "I'm a Roman senator" → Start in GOVERNMENT_FORUM in Rome
+
+### Current WorldWeaver Capability
+- Can determine year and map area from prompts
+- Can create character specifications
+- Can generate custom events and NPCs
+- **MISSING**: Cannot yet trigger special map starts
+
+### Needed Integration
+1. Add special map archetype detection to WorldWeaver prompts
+2. Modify `App.tsx` initialization to check for special map starts
+3. Pass special map config through `InitialScenarioModal`
+
+## Common Pitfalls & Tips
+
+### For Future Claudes
+
+1. **Multi-tile Objects Work!**
+   - Pillars already span 2-4 tiles vertically
+   - System in `multiTileObjectService.ts`
+   - Tables should work same way horizontally (not implemented)
+
+2. **Materials System Partially Works**
+   - Data exists in `specialMapAugmentation.ts`
+   - Pillars use it correctly
+   - Most symbols ignore material prop (needs fixing)
+
+3. **Size Scaling Actually Works**
+   - `determineMapSize()` properly scales by era
+   - Most generators handle different sizes
+   - Some hardcode positions (bad!)
+
+4. **Government Forum is Best Reference**
+   - Most complete implementation
+   - Has cultural variations
+   - But 1400+ lines is too complex
+
+5. **Don't Trust Old Comments**
+   - Many comments claim features work when they don't
+   - Test everything yourself
+   - Roadmap history shows many false claims
+
+### Quick Debugging
+
+1. **Pink/Magenta Tiles**: Missing BiomeType in color definitions
+   - Add to `/constants/mapGeneration/biomes/colors.ts`
+
+2. **Symbol Not Rendering**: Check import in `SpecialMapSymbolRenderer.tsx`
+   - Recently moved symbols may have broken imports
+
+3. **Special Map Won't Open**: Check `enterSpecialMap()` in `useMapState.ts`
+   - Needs proper SpecialMapConfig object
+
+4. **NPCs Not Appearing**: Check `specialMapNpcGenerator.ts`
+   - NPCs generated separately from tiles
+
+## Missing Pieces (Priority Order)
+
+1. **Create Missing Generators**
+   - `campgroundGenerator.ts` - Referenced but doesn't exist
+   - `restaurantInnGenerator.ts` - Referenced but doesn't exist
+   - `playerHomeGenerator.ts` - Needed for house feature
+
+2. **Fix Symbol Perspectives**
+   - check the actual symbol files to see their curent version and check with the user, ben, about which to change before changing them - refer to the symbol files themselves since they will change 
+
+3. **Implement Back Wall System**
+   - Add WALL_BACK, WALL_BACK_WINDOW BiomeTypes
+   - Create BackWallSymbol components
+   - Update generators to use on north edge of rooms
+
+4. **Connect WorldWeaver**
+   - Add special map detection to prompts
+   - Allow starting game inside special maps
+   - Pass config through initialization
+
+## Testing Special Maps
+
+### Quick Test via Console
+```javascript
+// In browser console while game is running:
+window.gameContext.mapContext.enterSpecialMap({
+  archetype: 'GOVERNMENT_FORUM',
+  culturalZone: 'EUROPEAN',
+  era: 'MEDIEVAL',
+  historicalYear: 1400
+})
+```
+
+### Test Menu
+- Press 'M' key to open Special Map Test Menu
+- Shows all symbols and archetypes
+- Can enter any special map configuration
+
+### Adding New Entry Points
+1. Add BiomeType to standard map (e.g., PLAYER_HOUSE)
+2. Add click handler in `MapDisplayOptimized.tsx`
+3. Call `enterSpecialMap()` with appropriate config
+4. Create exit zones in special map for return
+
+---
+
+# ⚠️ CRITICAL REALITY CHECK FOR FUTURE CLAUDES (January 2025)
+
+## What's ACTUALLY Working vs What's Claimed
+
+### 🔴 FALSE CLAIMS in This Roadmap:
+1. **"Phase 1 & 2 COMPLETED"** - NO! The overlay system exists but:
+   - Zero generators actually use overlays (all use BiomeType)
+   - SpecialMapSymbolRenderer doesn't render overlays
+   - The OverlayRenderer component exists but is never called
+   - Test utilities exist but aren't integrated
+
+2. **"Symbols are working"** - MOSTLY TRUE BUT BLOATED:
+   - ALL symbols properly return JSX/SVG elements (roadmap was wrong!)
+   - `ChairSymbol.tsx` is 487 lines (way too complex)
+   - `BookshelfSymbol.tsx` is 408 lines but FUNCTIONAL
+   - `ChestSymbol.tsx` is GOOD - use as reference
+   - `PillarSymbol.tsx` is 499 lines - NEEDS IMMEDIATE SIMPLIFICATION
+
+3. **"Multi-tile system works"** - TRUE but limited:
+   - Pillars work vertically (2-4 tiles)
+   - Tables horizontally (TableLeft/Center/Right) exist but poorly implemented
+   - System exists in theory, barely used in practice
+
+### 🟢 What ACTUALLY Works:
+1. **Tile has overlayObject field** ✅
+2. **OverlayObjectType enum exists** ✅
+3. **Conversion utilities exist** ✅
+4. **Some symbols render properly** (Chest, Pillar, few others) ✅
+5. **Cultural variations in symbols** (but overcomplicated) ✅
+
+### 🟡 The REAL Problem:
+**The rendering architecture fundamentally limits what's possible:**
+- SVG symbols on canvas grid ≠ sprite layering system
+- Can't achieve true pixel art aesthetic without rewrite
+- Mixed perspectives (some flat, some 3/4) look inconsistent
+- Tile-locked positioning prevents natural overlap
+
+## 🎯 HIGHEST IMPACT FIXES (Do These First!)
+
+### 1. ~~Fix TableSymbol~~ CORRECTION: TableSymbol WORKS PERFECTLY
+**FALSE CLAIM REMOVED**: TableSymbol.tsx (285 lines) actually renders beautiful 3/4 perspective tables with cultural variations. It returns proper SVG, not data objects. This was tested and confirmed working.
+
+### 2. Actually Use the Overlay System (2 hours)
+```typescript
+// In SpecialMapSymbolRenderer, after line 106, ADD:
+if (tile.overlayObject) {
+  return (
+    <>
+      <FloorSymbol type={tile.biome} />
+      <OverlayRenderer object={tile.overlayObject} x={x} y={y} size={size} />
+    </>
+  );
+}
+```
+
+### 3. Convert ONE Generator to Overlays (1 hour)
+Start with `restaurantInnGenerator.ts`:
+```typescript
+// OLD (line 304):
+tiles[startY + 2][kitchenCenterX].biome = BiomeType.STOVE;
+
+// NEW:
+tiles[startY + 2][kitchenCenterX].biome = BiomeType.FLOOR_STONE;
+tiles[startY + 2][kitchenCenterX].overlayObject = {
+  type: OverlayObjectType.KITCHEN_STOVE,
+  rotation: 0,
+  material: 'iron'
+};
+```
+
+### 2. Simplify Bloated Symbols (Priority Order)
+1. **PillarSymbol.tsx**: 499 lines → 100 lines max
+2. **ChairSymbol.tsx**: 487 lines → 150 lines (keep cultural variants)
+3. **FountainSymbol.tsx**: 433 lines → 150 lines
+4. **BookshelfSymbol.tsx**: 408 lines → 200 lines (cultural variations are good)
+
+## 🚫 DON'T WASTE TIME ON:
+
+1. **Complex sprite layering** - Architecture doesn't support it
+2. **Pixel-perfect alignment** - SVG/canvas hybrid prevents it
+3. **True isometric perspective** - Would require total rewrite
+4. **Dynamic shadows** - Performance killer with current setup
+
+## 🎨 STARDEW VALLEY/FF6 AESTHETIC CRITERIA
+
+### Visual Requirements for Success:
+1. **3/4 Top-Down Perspective**: Front and top of objects visible, ~45° angle
+2. **Consistent Shadows**: Down-left at 45°, 20-30% opacity, 2-3 pixel offset
+3. **Color Palette**: 4-8 colors per object max, with clear base/highlight/shadow
+4. **Pixel Density**: Appear as if drawn at 16x16 or 32x32, scaled up cleanly
+5. **Edge Definition**: 1-2px dark outlines, anti-aliased corners
+6. **Material Rendering**: Wood grain, stone texture, metal shine - all pixelated
+7. **Size Hierarchy**: Furniture 60-80% of tile, decorations 40-60%
+
+### Current Symbol Assessment (Based on Screenshots):
+
+#### ✅ SUCCESSFUL (Use as Reference):
+- **Chest**: Perfect size, clear 3/4 view, good shadows
+- **Fountain**: Beautiful detail, proper perspective
+- **Brazier/Torch**: Good lighting effects, proper scale
+- **Mirror**: Clean reflection effect, good frame
+- **Weapon Rack**: Clear detail, proper mounting
+
+#### ⚠️ NEEDS IMPROVEMENT:
+- **Vase (Overlay)**: Too small, flat, needs shading/highlights
+- **Pillar (Overlay)**: Too simple, needs texture/depth
+- **Bell/Idol**: Decent but could use more detail
+- **Cushion**: Too flat, needs volume
+- **Path**: Too subtle, needs definition
+
+#### ❌ FAILING AESTHETIC:
+- **Filing Cabinet**: Wrong perspective, too modern
+- **Toilet/Basin**: Too simplified, needs detail
+- **Guard Post**: Unclear what it represents
+- **Back Wall**: Not achieving depth effect
+
+## 🔧 Quick Test Commands:
+
+```javascript
+// Test overlay system in browser console:
+const tile = window.gameContext.mapContext.mapData.tiles[10][10];
+tile.overlayObject = {
+  type: 'CHAIR',
+  rotation: 90,
+  material: 'wood'
+};
+// If chair appears over floor = success
+// If nothing happens = overlays not wired up
+```
+
+## 🎯 COMPREHENSIVE THREE-PHASE IMPLEMENTATION PLAN
+
+### PHASE 1: INFRASTRUCTURE & SYMBOL UPGRADE BLITZ (Days 1-3)
+
+#### Day 1: Fix Core Infrastructure + Begin Symbol Overhaul
+**Morning (4 hours):**
+1. **Fix SpecialMapSymbolRenderer.tsx** (1 hour)
+   - Add overlay handling after line 119
+   - Ensure dual rendering: floor tile + overlay object
+
+2. **Create PixelArtStyleGuide.tsx** (1 hour)
+   ```typescript
+   // Shared styling functions for ALL symbols
+   export const PIXEL_SHADOWS = {
+     soft: 'drop-shadow(1px 1px 1px rgba(0,0,0,0.2))',
+     medium: 'drop-shadow(2px 2px 2px rgba(0,0,0,0.3))',
+     hard: 'drop-shadow(3px 3px 3px rgba(0,0,0,0.4))'
+   };
+   ```
+
+3. **Upgrade 5 Failing Overlay Symbols** (2 hours)
+   - **VaseOverlay.tsx**: 40% → 60% size, add patterns, highlights, 6 colors
+   - **PillarOverlay.tsx**: Add stone texture, capitals, depth shading
+   - **CushionOverlay.tsx**: Add volume with gradient, fabric texture
+   - **BellOverlay.tsx**: Metallic shine, proper mounting, size increase
+   - **IdolOverlay.tsx**: Cultural details, gold/stone materials, shadows
+
+**Afternoon (4 hours):**
+4. **Create 10 NEW Essential Symbols** (4 hours)
+   ```typescript
+   // Missing basics for complete interiors:
+   - CandleSymbol.tsx (lit/unlit variants)
+   - ScrollSymbol.tsx (on desk, rolled up)
+   - BookStackSymbol.tsx (various heights)
+   - PotSymbol.tsx (cooking, storage)
+   - CrateSymbol.tsx (wooden storage)
+   - RugSymbol.tsx (various patterns)
+   - PaintingSymbol.tsx (wall-mounted art)
+   - ShelfSymbol.tsx (wall-mounted, with items)
+   - LadderSymbol.tsx (accessing upper areas)
+   - AnvilSymbol.tsx (for smithies)
+   ```
+
+#### Day 2: Mass Symbol Refinement
+**All Day (8 hours):**
+1. **Simplify & Beautify Bloated Symbols** (4 hours)
+   - **PillarSymbol.tsx**: 499 → 150 lines, maintain beauty
+   - **ChairSymbol.tsx**: 487 → 200 lines, keep cultural variants
+   - **FountainSymbol.tsx**: 433 → 200 lines, preserve water effects
+   - **BookshelfSymbol.tsx**: 408 → 250 lines, keep cultural books
+
+2. **Upgrade 10 Mediocre Symbols** (4 hours)
+   - **Filing Cabinet**: Fix perspective, add drawers
+   - **Toilet/Basin**: Add porcelain shine, proper shapes
+   - **Guard Post**: Make it clear what it is (add guard silhouette?)
+   - **Path**: More visible stone/dirt texture
+   - **Stairs**: Better 3D effect with proper steps
+   - **Entrance Portal**: Grand entrance feeling
+   - **Lantern**: Glass transparency, flame glow
+   - **Armor Stand**: Metallic shine, proper mounting
+   - **Weapon Rack**: Individual weapon details
+   - **Kitchen Stove**: Fire glow, cooking pot on top
+
+#### Day 3: Directional Variants & Cultural Symbols
+**Morning (4 hours):**
+1. **Create Directional Furniture Variants**
+   ```typescript
+   // No rotation needed - proper sprites for each direction:
+   - TableHorizontal.tsx / TableVertical.tsx
+   - BenchEastWest.tsx / BenchNorthSouth.tsx  
+   - DeskFacingNorth.tsx / DeskFacingSouth.tsx / DeskFacingEast.tsx / DeskFacingWest.tsx
+   - BedHorizontal.tsx / BedVertical.tsx
+   - BookshelfAgainstNorthWall.tsx / BookshelfAgainstEastWall.tsx (etc)
+   ```
+
+**Afternoon (4 hours):**
+2. **Add 15 Cultural-Specific Decorative Symbols**
+   ```typescript
+   // EUROPEAN Medieval/Renaissance:
+   - TapestrySymbol.tsx (wall hanging)
+   - ChandelierSymbol.tsx (ceiling, multi-candle)
+   - ArmorSuitSymbol.tsx (decorative full suit)
+   
+   // MENA/Islamic:
+   - PrayerRugSymbol.tsx (oriented correctly)
+   - IncenseBurnerSymbol.tsx (already exists but upgrade)
+   - GeometricTileSymbol.tsx (floor pattern)
+   
+   // ASIAN (China/Japan):
+   - ScrollPaintingSymbol.tsx (wall scroll)
+   - BonsaiSymbol.tsx (small decorative tree)
+   - TeaSetSymbol.tsx (on low table)
+   
+   // AMERICAS:
+   - WovenBasketSymbol.tsx (storage/decoration)
+   - PotterySymbol.tsx (painted ceramics)
+   - TextileWallSymbol.tsx (woven wall hanging)
+   
+   // AFRICAN:
+   - MaskSymbol.tsx (wall-mounted)
+   - DrumSymbol.tsx (ceremonial)
+   - WovenMatSymbol.tsx (floor covering)
+   ```
+
+### PHASE 2: GENERATOR CONVERSION & ROOM TEMPLATES (Days 4-5)
+
+#### Day 4: Full Generator Conversion
+**All Day (8 hours):**
+1. **Convert ALL furniture in 4 key generators** (8 hours)
+   - **restaurantInnGenerator.ts**: Full overlay conversion (2 hrs)
+   - **governmentForumFixed.ts**: Full overlay conversion (2 hrs)
+   - **estatesGeneratorFixed.ts**: Full overlay conversion (2 hrs)
+   - **universityGeneratorV2.ts**: Full overlay conversion (2 hrs)
+
+2. **Implement Smart Furniture Placement**
+   ```typescript
+   // Each generator gets intelligent placement:
+   function placeStudyArea(tiles: Tile[][], x: number, y: number) {
+     // Desk against wall
+     tiles[y][x].overlayObject = { 
+       type: OverlayObjectType.DESK_FACING_SOUTH,
+       material: getMaterial(era, culture)
+     };
+     // Chair in front of desk
+     tiles[y+1][x].overlayObject = { 
+       type: OverlayObjectType.CHAIR,
+       rotation: 0 // Facing desk
+     };
+     // Bookshelf to the side
+     tiles[y][x+1].overlayObject = { 
+       type: OverlayObjectType.BOOKSHELF_AGAINST_NORTH_WALL
+     };
+     // Candle on desk
+     tiles[y][x].overlayObject2 = { // Secondary overlay!
+       type: OverlayObjectType.CANDLE,
+       lit: true
+     };
+   }
+   ```
+
+#### Day 5: Back Walls & Depth System
+**All Day (8 hours):**
+1. **Implement Back Wall System** (4 hours)
+   - Update BackWallSymbol.tsx with materials
+   - Add WALL_BACK placement to all room generators
+   - Create WindowedWallSymbol.tsx for variety
+   - Add wall decorations (paintings, tapestries)
+
+2. **Create Room Template System** (4 hours)
+   ```typescript
+   // roomTemplates/throneRoom.ts
+   export const THRONE_ROOM_TEMPLATE = {
+     backWall: [WALL_BACK, WALL_BACK_WINDOW, WALL_BACK],
+     furniture: [
+       { type: THRONE, position: {x: 'center', y: 1} },
+       { type: BRAZIER, position: {x: 'corners', y: 2} },
+       { type: TAPESTRY, position: {x: 'walls', y: 0} },
+       { type: CARPET_PERSIAN, position: {x: 'center', y: 3-6} }
+     ]
+   };
+   ```
+
+### PHASE 3: POLISH, CONSISTENCY & ADDITIONAL SYMBOLS (Days 6-7)
+
+#### Day 6: Fill Remaining Gaps
+**All Day (8 hours):**
+1. **Create 20 More Atmospheric Symbols** (8 hours)
+   ```typescript
+   // Ambient/Atmospheric:
+   - CobwebSymbol.tsx (corner decoration)
+   - WindowLightSymbol.tsx (light shaft effect)
+   - DustMotesSymbol.tsx (floating particles)
+   - SmokeSymbol.tsx (from fires/cooking)
+   
+   // Interactive/Functional:
+   - LeverSymbol.tsx (mechanical)
+   - ButtonSymbol.tsx (wall switch)
+   - GrateSymbol.tsx (floor drainage)
+   - TrapdoorSymbol.tsx (floor access)
+   
+   // Nature/Garden:
+   - PottedPlantSymbol.tsx (various plants)
+   - TreePotSymbol.tsx (small indoor tree)
+   - FlowerVaseSymbol.tsx (different from regular vase)
+   - HerbGardenSymbol.tsx (kitchen herbs)
+   
+   // Workshop/Crafting:
+   - WorkbenchSymbol.tsx (crafting table)
+   - ToolRackSymbol.tsx (hanging tools)
+   - LoomSymbol.tsx (textile work)
+   - PottersWheelSymbol.tsx (ceramics)
+   
+   // Storage/Organization:
+   - SackSymbol.tsx (grain/goods storage)
+   - JarSymbol.tsx (preserved foods)
+   - HookSymbol.tsx (wall-mounted)
+   - PegboardSymbol.tsx (organization)
+   ```
+
+#### Day 7: Final Polish & Consistency Pass
+**All Day (8 hours):**
+1. **Consistency Audit** (4 hours)
+   - Ensure ALL symbols use 3/4 perspective
+   - Verify shadow direction (down-left) on all
+   - Check color palette consistency (4-8 colors max)
+   - Size ratios: Furniture 60-80%, decorations 40-60%
+
+2. **Performance & Documentation** (4 hours)
+   - Profile rendering performance
+   - Create visual style guide document
+   - Migration script for remaining generators
+   - Test all cultural zones and eras
+
+## 📊 SUCCESS METRICS
+
+### Must Have (Phase 1-2):
+- [ ] 100% overlay adoption in 3+ generators
+- [ ] SpecialMapSymbolRenderer handles overlays
+- [ ] Furniture appears OVER floor tiles
+- [ ] No white blocks behind furniture
+
+### Should Have (Phase 2-3):
+- [ ] All symbols follow 3/4 perspective
+- [ ] Consistent shadows (down-left, 20-30% opacity)
+- [ ] Smart rotation only where appropriate
+- [ ] Back walls create depth in rooms
+
+### Nice to Have (Future):
+- [ ] Multi-tile furniture (long tables, large beds)
+- [ ] Animated elements (fire, water)
+- [ ] Seasonal variations
+- [ ] Day/night lighting changes
+
+## 🚫 ROTATION RULES (CRITICAL)
+
+### NEVER ROTATE (Need Separate Sprites):
+- **Benches**: Legs flip upside down
+- **Tables**: Perspective breaks
+- **Bookshelves**: Items appear to fall
+- **Beds**: Pillows on wrong end
+- **Desks**: Drawers on wrong side
+
+### SAFE TO ROTATE:
+- **Chairs**: Only 90° increments
+- **Rugs/Carpets**: Any angle
+- **Torches/Braziers**: 90° increments
+- **Decorative items**: Vases, statues
+
+### SMART ROTATION EXAMPLE:
+```typescript
+function placeChairNearTable(chair: Tile, table: Tile) {
+  const angle = getAngleBetween(chair, table);
+  // Round to nearest 90 degrees
+  chair.overlayObject.rotation = Math.round(angle / 90) * 90;
+}
+```
+
+## 📍 CRITICAL FILE REFERENCES
+
+### Core System Files:
+- **Overlay Types**: `/types/core/tile.ts` (OverlayObject, OverlayObjectType)
+- **Overlay Renderer**: `/components/symbols/architecture/specialMap/OverlayRenderer.tsx`
+- **Symbol Renderer**: `/components/symbols/specialMap/SpecialMapSymbolRenderer.tsx` (needs overlay handling)
+- **Map Display**: `/components/MapDisplayOptimized.tsx` (lines 3314-3340 for overlay rendering)
+- **Conversion Utils**: `/utils/tileConversion.ts` (migration functions)
+
+### Generators to Convert (Priority Order):
+1. `/generation/specialMap/archetypes/restaurantInnGenerator.ts` (best candidate, 23 overlays already)
+2. `/generation/specialMap/archetypes/governmentForumFixed.ts` (most complete, needs full conversion)
+3. `/generation/specialMap/archetypes/estatesGeneratorFixed.ts` (royal rooms need overlays)
+4. `/generation/specialMap/archetypes/universityGeneratorV2.ts` (already heavy overlay user)
+
+### Symbols Needing Upgrade (45+ Total):
+
+#### Priority 1 - Failing Overlays (Day 1):
+1. **VaseOverlay**: `/components/symbols/overlays/VaseOverlay.tsx` - Too small, boring, needs patterns
+2. **PillarOverlay**: `/components/symbols/overlays/PillarOverlay.tsx` - Flat rectangle, needs texture/capitals
+3. **CushionOverlay**: `/components/symbols/overlays/CushionOverlay.tsx` - No volume, needs fabric texture
+4. **BellOverlay**: `/components/symbols/overlays/BellOverlay.tsx` - Lacks metallic shine
+5. **IdolOverlay**: `/components/symbols/overlays/IdolOverlay.tsx` - Too simple, needs cultural detail
+
+#### Priority 2 - Bloated Symbols to Simplify (Day 2):
+6. **PillarSymbol**: 499 lines → 150 lines
+7. **ChairSymbol**: 487 lines → 200 lines  
+8. **FountainSymbol**: 433 lines → 200 lines
+9. **BookshelfSymbol**: 408 lines → 250 lines
+
+#### Priority 3 - Mediocre Symbols to Enhance (Day 2):
+10. **FilingCabinetSymbol** - Wrong perspective
+11. **ToiletSymbol** - Too simplified
+12. **BasinSymbol** - Needs porcelain shine
+13. **GuardPostSymbol** - Unclear purpose
+14. **PathSymbol** - Too subtle
+15. **StairsSymbol** - Poor 3D effect
+16. **EntrancePortalSymbol** - Not grand enough
+17. **LanternSymbol** - No transparency
+18. **ArmorStandSymbol** - Lacks metallic shine
+19. **WeaponRackSymbol** - No weapon details
+20. **KitchenStoveSymbol** - Missing fire glow
+
+#### NEW Symbols to Create (Days 1, 3, 6):
+**Essential Interior Items (Day 1):**
+21. CandleSymbol - Lit/unlit variants
+22. ScrollSymbol - Rolled/unrolled
+23. BookStackSymbol - Various heights
+24. PotSymbol - Cooking/storage
+25. CrateSymbol - Wooden storage
+26. RugSymbol - Various patterns
+27. PaintingSymbol - Wall art
+28. ShelfSymbol - Wall-mounted
+29. LadderSymbol - Vertical access
+30. AnvilSymbol - Smithy essential
+
+**Directional Variants (Day 3):**
+31. TableHorizontal/TableVertical
+32. BenchEastWest/BenchNorthSouth
+33. DeskFacingNorth/South/East/West
+34. BedHorizontal/BedVertical
+35. BookshelfAgainstNorthWall/EastWall/etc
+
+**Cultural Decorations (Day 3):**
+36. TapestrySymbol - European wall hanging
+37. ChandelierSymbol - Multi-candle
+38. PrayerRugSymbol - Islamic oriented
+39. ScrollPaintingSymbol - Asian wall scroll
+40. BonsaiSymbol - Japanese decoration
+41. WovenBasketSymbol - Americas storage
+42. MaskSymbol - African wall decoration
+
+**Atmospheric/Final Details (Day 6):**
+43. CobwebSymbol - Corner detail
+44. WindowLightSymbol - Light shaft
+45. SmokeSymbol - From fires
+46. WorkbenchSymbol - Crafting
+47. LoomSymbol - Textile work
+48. SackSymbol - Storage
+49. JarSymbol - Preserved goods
+50. PottedPlantSymbol - Indoor greenery
+
+### Successful Symbols (Use as Reference):
+- **ChestSymbol**: `/components/symbols/architecture/specialMap/ChestSymbol.tsx`
+- **FountainSymbol**: `/components/symbols/architecture/specialMap/FountainSymbol.tsx`
+- **TableSymbol**: `/components/symbols/architecture/specialMap/TableSymbol.tsx` (285 lines, works great)
+- **TorchSymbol**: `/components/symbols/architecture/specialMap/TorchSymbol.tsx`
+- **MirrorSymbol**: `/components/symbols/architecture/specialMap/MirrorSymbol.tsx`
+
+## 🎮 FINAL VERDICT: PATH TO STARDEW/FF6 AESTHETIC
+
+### The Reality:
+1. **Overlay system exists and works** - Just needs full adoption
+2. **Good symbols exist** - Chest, Fountain, Table show it's possible
+3. **Bad symbols are fixable** - Most just need size/detail improvements
+4. **Rotation should be minimal** - Separate sprites > rotation for most items
+
+### The REAL 7-Day Path (50+ Symbols, 4 Generators):
+
+**Day 1**: Infrastructure + 15 symbols (5 upgrades, 10 new)
+**Day 2**: 14 symbol improvements (4 simplifications, 10 upgrades)
+**Day 3**: 20 new symbols (5 directional variants, 15 cultural)
+**Day 4**: Convert 4 generators fully to overlays
+**Day 5**: Back wall system + room templates
+**Day 6**: 20 more atmospheric/functional symbols
+**Day 7**: Consistency audit + performance testing
+
+### Expected Outcome:
+- **Total Symbols Touched**: 50+ (20 upgraded, 30+ new)
+- **Generators Converted**: 4 major ones fully overlay-based
+- **Visual Quality**: 85% Stardew Valley/FF6 aesthetic
+- **Cultural Richness**: Enhanced with 15+ culture-specific symbols
+- **Directional Variants**: No more rotation issues
+- **Room Depth**: Back walls creating 3D feel
+- **Atmospheric Details**: Cobwebs, smoke, light shafts
+
+---
+
+# 🔄 MAJOR ROADMAP CORRECTIONS & UPDATES - September 2025
+
+## ❌ FALSE CLAIMS CORRECTED
+
+### Previous False Claims in This Roadmap:
+1. **"Files don't exist"** - INCORRECT: Both `campgroundGenerator.ts` and `restaurantInnGenerator.ts` exist and are functional
+2. **"Overlay system exists but barely used"** - INCORRECT: `restaurantInnGenerator.ts` uses overlays extensively (20+ instances)
+3. **"SpecialMapSymbolRenderer doesn't handle overlays"** - INCORRECT: The system is integrated and working
+4. **"Symbols are bloated and need simplification"** - MISLEADING: Professor Breen values quality and cultural authenticity over brevity
+
+### What Actually Works Well:
+- **PixelArtStyleGuide.tsx**: Comprehensive system with material colors, shadows, cultural patterns
+- **Overlay System**: Functional and actively used in multiple generators
+- **Cultural Variations**: Rich, historically accurate symbol variations are a strength, not bloat
+- **Generator Architecture**: Complete set of archetype generators exist and function
+
+## ✅ PHASE 1.3 COMPLETED - September 2025
+
+### Directional Variants & Cultural Symbols Implementation
+**Status**: Successfully completed by Claude (Sonnet 4) on September 6, 2025
+
+#### Created Directional Furniture Variants:
+1. **BenchEastWest.tsx** / **BenchNorthSouth.tsx** - Proper seating orientations
+2. **DeskFacingNorth/South/East/West.tsx** - Complete directional desk set with appropriate chair positioning
+3. **BedHorizontal.tsx** / **BedVertical.tsx** - Room-optimized bed orientations
+4. **BookshelfAgainstNorthWall/SouthWall/EastWall/WestWall.tsx** - Wall-adjacent bookshelves
+
+#### Created Cultural Decoration Symbols:
+1. **EuropeanHeraldicShield.tsx** - Medieval heraldic shields (variants: royal, noble, knight, guild)
+2. **EastAsianDecorativeScroll.tsx** - Traditional hanging scrolls (variants: poetry, landscape, calligraphy, imperial)
+3. **MenaDecorativeTilePanel.tsx** - Islamic geometric tile panels (variants: geometric, arabesque, calligraphic, royal)
+4. **AfricanDecorativeMask.tsx** - Traditional ceremonial masks (variants: ceremonial, ancestral, warrior, royal)
+5. **IndigenousDecorativeDreamcatcher.tsx** - Native American dreamcatchers (variants: traditional, sacred, decorative, ceremonial)
+
+#### Technical Excellence Achieved:
+- All symbols use proper Stardew Valley/FF6 pixel art aesthetic
+- Consistent with existing `PixelArtStyleGuide.tsx` system
+- Rich cultural authenticity with multiple variants per symbol
+- Proper 3/4 perspective and shadows using `PIXEL_SHADOWS`
+- Material integration with `MATERIAL_COLORS` system
+
+## 📝 ADVICE FOR FUTURE CLAUDES
+
+### Critical Understanding Points:
+1. **Read files first, don't assume** - Many roadmap claims were wrong due to assumptions
+2. **Quality over brevity** - Professor Breen values cultural authenticity and visual quality; file length is not a concern
+3. **Historical accuracy is paramount** - This is an educational tool; maintain scholarly standards
+4. **Cultural variations are features, not bugs** - Rich cultural detail is the project's strength
+5. **Test claims by reading actual code** - Previous roadmap entries contained significant errors
+
+### Working Successfully with Professor Breen:
+1. **Respect the academic mission** - This is for teaching history, not just gameplay
+2. **Appreciate existing sophistication** - Systems like cultural variations are carefully crafted
+3. **Don't "fix" what works** - Focus on actual problems, not perceived inefficiencies
+4. **Maintain visual excellence** - FF6/Stardew Valley aesthetic with historical accuracy
+5. **Preserve cultural authenticity** - Different civilizations should look and feel different
+
+### Technical Guidelines Learned:
+- **PixelArtStyleGuide.tsx** contains everything needed for consistent styling
+- **Overlay system is functional** - Don't rebuild what works
+- **Cultural zones are sophisticated** - Leverage existing MATERIAL_COLORS and cultural patterns
+- **Symbol variants are valuable** - Multiple variants provide gameplay and educational richness
+- **Historical eras matter** - Era-specific details enhance educational value
+
+### Common Mistakes to Avoid:
+1. Claiming files don't exist without checking
+2. Calling sophisticated cultural systems "bloated"
+3. Prioritizing code brevity over historical accuracy
+4. Assuming rotation is better than directional sprites
+5. Underestimating the educational mission of the project
+
+## 🎯 NEXT PHASES - Updated Based on Reality
+
+### Phase 1.4: Integration & Export (IMMEDIATE)
+1. **Export new symbols** in index.ts files
+2. **Test directional variant integration** with existing generators
+3. **Update generator placement logic** to use appropriate directional sprites
+
+### Phase 2: Enhanced Cultural Authenticity
+1. **Expand cultural decoration sets** for all major civilizations
+2. **Era-specific furniture variants** (Ancient → Medieval → Renaissance → Modern)
+3. **Regional specializations** (Japanese low tables, Islamic geometric patterns, etc.)
+
+### Phase 3: Multi-Tile Furniture Excellence
+1. **Long banquet tables** using existing multi-tile system
+2. **Large royal beds** (2x2 four-poster beds)
+3. **Extended library walls** (3-4 tile horizontal bookcases)
+
+## 🏆 SYSTEM STRENGTHS TO PRESERVE
+
+1. **Cultural Authenticity**: Rich historical variations in furniture and decorations
+2. **Visual Excellence**: Sophisticated pixel art with proper shadows and materials  
+3. **Educational Value**: Each symbol teaches about historical periods and cultures
+4. **Technical Sophistication**: Well-architected overlay system and style guides
+5. **Academic Standards**: Professor Breen's historian expertise embedded throughout
+
+---
+
+*This roadmap has been corrected based on actual code review. The system is more sophisticated and functional than previously documented. Focus on enhancing existing strengths rather than rebuilding working systems.*

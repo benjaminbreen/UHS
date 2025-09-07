@@ -53,7 +53,16 @@ const ItemTooltip: React.FC<{
                 
                 {/* Item name and rarity */}
                 <div className="flex-1">
-                    <p className="font-semibold text-white text-sm">{item.name}</p>
+                    <p className={`font-semibold text-sm ${
+                        item.quality === 'excellent' ? 'text-yellow-300' :
+                        item.quality === 'good' ? 'text-blue-300' :
+                        item.quality === 'poor' ? 'text-orange-400' :
+                        'text-white'
+                    }`}>
+                        {item.quality === 'excellent' && '✨ '}
+                        {item.name}
+                        {item.quality === 'excellent' && ' ✨'}
+                    </p>
                     {item.rarity && (
                         <span className={`inline-block mt-1 px-2 py-0.5 text-[10px] font-bold rounded-full ${
                             item.rarity === 'Common' ? 'bg-slate-600 text-slate-200' :
@@ -67,14 +76,17 @@ const ItemTooltip: React.FC<{
                         </span>
                     )}
                     {item.quality && (
-                        <span className={`inline-block mt-1 ml-1 px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                            item.quality === 'excellent' ? 'bg-purple-600 text-purple-100' :
-                            item.quality === 'good' ? 'bg-blue-600 text-blue-100' :
-                            item.quality === 'standard' ? 'bg-gray-600 text-gray-200' :
-                            item.quality === 'poor' ? 'bg-orange-600 text-orange-100' :
-                            'bg-gray-500 text-gray-200'
+                        <span className={`inline-block mt-1 ml-1 px-2 py-0.5 text-[10px] font-bold rounded-full border ${
+                            item.quality === 'excellent' ? 'bg-gradient-to-r from-yellow-600 to-amber-600 text-yellow-100 border-yellow-400 shadow-md shadow-yellow-500/30' :
+                            item.quality === 'good' ? 'bg-gradient-to-r from-blue-600 to-sky-600 text-blue-100 border-blue-400' :
+                            item.quality === 'standard' ? 'bg-gray-600 text-gray-200 border-gray-500' :
+                            item.quality === 'poor' ? 'bg-gradient-to-r from-orange-700 to-red-700 text-orange-100 border-orange-500' :
+                            'bg-gray-500 text-gray-200 border-gray-400'
                         }`}>
-                            {item.quality.toUpperCase()}
+                            {item.quality === 'excellent' ? '★ EXCELLENT ★' :
+                             item.quality === 'good' ? '◆ GOOD ◆' :
+                             item.quality === 'poor' ? '▼ POOR ▼' :
+                             item.quality ? item.quality.toUpperCase() : ''}
                         </span>
                     )}
                 </div>
@@ -161,6 +173,42 @@ const ItemTooltip: React.FC<{
                     <div className="flex items-center gap-1">
                         <span className="text-slate-500">Defense:</span>
                         <span className="text-blue-400">+{item.defense}</span>
+                    </div>
+                )}
+                {item.condition !== undefined && (
+                    <div className="flex items-center gap-1">
+                        <span className="text-slate-500">Condition:</span>
+                        <span className={`${
+                            item.condition > 80 ? 'text-green-400' :
+                            item.condition > 50 ? 'text-yellow-400' :
+                            item.condition > 20 ? 'text-orange-400' :
+                            'text-red-400'
+                        }`}>
+                            {item.condition}%
+                            {item.condition < 20 && ' ⚠️'}
+                        </span>
+                    </div>
+                )}
+                {item.age !== undefined && (
+                    <div className="flex items-center gap-1">
+                        <span className="text-slate-500">Age:</span>
+                        <span className={`${
+                            item.age > 100 ? 'text-purple-400' :
+                            item.age > 50 ? 'text-blue-400' :
+                            item.age > 10 ? 'text-gray-400' :
+                            'text-white'
+                        }`}>
+                            {item.age > 100 ? `Ancient (${item.age} years)` :
+                             item.age > 50 ? `Old (${item.age} years)` :
+                             item.age > 10 ? `${item.age} years` :
+                             'New'}
+                        </span>
+                    </div>
+                )}
+                {item.crafterName && (
+                    <div className="flex items-center gap-1 col-span-2">
+                        <span className="text-slate-500">Crafted by:</span>
+                        <span className="text-amber-400 font-semibold">{item.crafterName}</span>
                     </div>
                 )}
             </div>

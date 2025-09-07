@@ -11,21 +11,25 @@ import { useMap } from '../contexts/MapContext';
 import { useGame } from '../contexts/GameContext';
 
 // Import all special map symbols for preview
-import WallSymbol from './symbols/WallSymbol';
+// IMPORTANT: Using GOOD symbols from parent directory for consistency!
+import WallSymbol from './symbols/architecture/specialMap/WallSymbol'; // GOOD - sophisticated version
 import { FloorSymbol } from './symbols/architecture/specialMap/FloorSymbol';
 import { TableSymbol } from './symbols/architecture/specialMap/TableSymbol';
-import ChairSymbol from './symbols/ChairSymbol';
+import { TableLeft } from './symbols/architecture/specialMap/TableLeft';
+import { TableCenter } from './symbols/architecture/specialMap/TableCenter';
+import { TableRight } from './symbols/architecture/specialMap/TableRight';
+import ChairSymbol from './symbols/ChairSymbol'; // GOOD - has cultural variations
 import { ThroneSymbol } from './symbols/architecture/specialMap/ThroneSymbol';
 import { AltarSymbol } from './symbols/architecture/specialMap/AltarSymbol';
-import { BedSymbol } from './symbols/architecture/specialMap/BedSymbol';
-import BookshelfSymbol from './symbols/BookshelfSymbol';
+import BedSymbol from './symbols/architecture/specialMap/BedSymbol';
+import BookshelfSymbol from './symbols/architecture/specialMap/BookshelfSymbol'; // GOOD - 338 lines with variations
 import { CarpetSymbol } from './symbols/architecture/specialMap/CarpetSymbol';
 import { DaisSymbol } from './symbols/architecture/specialMap/DaisSymbol';
-import DeskSymbol from './symbols/DeskSymbol';
-import FountainSymbol from './symbols/FountainSymbol';
-import PillarSymbol from './symbols/PillarSymbol';
-import ShrineSymbol from './symbols/ShrineSymbol';
-import StatueSymbol from './symbols/StatueSymbol';
+import DeskSymbol from './symbols/architecture/specialMap/DeskSymbol'; // GOOD - has era-based styles
+import FountainSymbol from './symbols/architecture/specialMap/FountainSymbol'; // GOOD - 434 lines with variations
+import PillarSymbol from './symbols/architecture/specialMap/PillarSymbol'; // GOOD - has variants
+import ShrineSymbol from './symbols/ShrineSymbol'; // GOOD
+import StatueSymbol from './symbols/StatueSymbol'; // GOOD
 import { DoorSymbol } from './symbols/architecture/specialMap/DoorSymbol';
 import { ArchwaySymbol } from './symbols/architecture/specialMap/ArchwaySymbol';
 import { WallGateSymbol } from './symbols/architecture/specialMap/WallGateSymbol';
@@ -33,16 +37,52 @@ import { WallWindowSymbol } from './symbols/architecture/specialMap/WallWindowSy
 import { ColumnSymbol } from './symbols/architecture/specialMap/ColumnSymbol';
 import { StairsSymbol } from './symbols/architecture/specialMap/StairsSymbol';
 import { BenchSymbol } from './symbols/architecture/specialMap/BenchSymbol';
-import CabinetSymbol from './symbols/CabinetSymbol';
+import CabinetSymbol from './symbols/architecture/specialMap/CabinetSymbol'; // GOOD
 import { BathSymbol } from './symbols/architecture/specialMap/BathSymbol';
 import { MirrorSymbol } from './symbols/architecture/specialMap/MirrorSymbol';
 import { KitchenCounterSymbol } from './symbols/architecture/specialMap/KitchenCounterSymbol';
 import { KitchenSinkSymbol } from './symbols/architecture/specialMap/KitchenSinkSymbol';
-import WeaponRackSymbol from './symbols/WeaponRackSymbol';
-import ArmorStandSymbol from './symbols/ArmorStandSymbol';
-import TorchSymbol from './symbols/TorchSymbol';
+import WeaponRackSymbol from './symbols/architecture/specialMap/WeaponRackSymbol'; // GOOD
+import ArmorStandSymbol from './symbols/architecture/specialMap/ArmorStandSymbol'; // GOOD
+import TorchSymbol from './symbols/TorchSymbol'; // GOOD
+import FirePitSymbol from './symbols/FirePitSymbol'; // GOOD - for hearths and fire pits
 import { ChestSymbol } from './symbols/architecture/specialMap/ChestSymbol';
 import { BarrelSymbol } from './symbols/architecture/specialMap/BarrelSymbol';
+import { PillarBase } from './symbols/architecture/specialMap/PillarBase';
+import { MultiTilePillar } from './symbols/architecture/specialMap/MultiTilePillar';
+
+// Import additional architectural symbols used in special maps
+import { ToiletSymbol } from './symbols/architecture/specialMap/ToiletSymbol';
+import { BasinSymbol } from './symbols/architecture/specialMap/BasinSymbol';
+import { FilingCabinetSymbol } from './symbols/architecture/specialMap/FilingCabinetSymbol';
+import { PodiumSymbol } from './symbols/architecture/specialMap/PodiumSymbol';
+import { GuardPostSymbol } from './symbols/architecture/specialMap/GuardPostSymbol';
+import { MosaicFloorSymbol } from './symbols/architecture/specialMap/MosaicFloorSymbol';
+import { BrazierSymbol } from './symbols/architecture/specialMap/BrazierSymbol';
+import { KitchenStoveSymbol } from './symbols/architecture/specialMap/KitchenStoveSymbol';
+
+// Import missing special map symbols
+import { BackWallSymbol } from './symbols/architecture/specialMap/BackWallSymbol';
+import EntrancePortalSymbol from './symbols/architecture/specialMap/EntrancePortalSymbol';
+import LanternSymbol from './symbols/architecture/specialMap/LanternSymbol';
+import PathSymbol from './symbols/architecture/specialMap/PathSymbol';
+import PersianRugSymbol from './symbols/architecture/specialMap/PersianRugSymbol';
+import StairsUpPixel from './symbols/architecture/specialMap/StairsUpPixel';
+
+// Import all overlay symbols
+import {
+  ArmorStandOverlay,
+  BellOverlay,
+  CandelabraOverlay,
+  ColumnOverlay,
+  CushionOverlay,
+  IdolOverlay,
+  IncenseBurnerOverlay,
+  PillarOverlay,
+  ShrineOverlay,
+  StatueOverlay,
+  VaseOverlay
+} from './symbols/overlays';
 
 interface SpecialMapTestMenuProps {
   isOpen: boolean;
@@ -53,10 +93,10 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
   const { enterSpecialMap } = useMap();
   const { gameDate } = useGame();
   
-  const [selectedArchetype, setSelectedArchetype] = useState<SpecialMapArchetype>(SpecialMapArchetype.ESTATES);
+  const [selectedArchetype, setSelectedArchetype] = useState<SpecialMapArchetype>(SpecialMapArchetype.GOVERNMENT);
   const [selectedZone, setSelectedZone] = useState<CulturalZone>('EUROPEAN' as CulturalZone);
   const [selectedEra, setSelectedEra] = useState<HistoricalEra>('MEDIEVAL');
-  const [selectedSize, setSelectedSize] = useState<'xs' | 'small' | 'medium' | 'large' | 'xl'>('large');
+  const [selectedSize, setSelectedSize] = useState<'xs' | 'small' | 'medium' | 'large' | 'xl' | 'xxl'>('large');
   const [hasLandscape, setHasLandscape] = useState(true);
   const [showSymbolGrid, setShowSymbolGrid] = useState(false);
   
@@ -66,19 +106,27 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
   if (!isOpen) return null;
   
   const archetypes = [
-    // New simplified archetypes
+    // Primary archetypes (new simplified system)
     { value: SpecialMapArchetype.ESTATES, label: '🏛️ Estate', description: 'Palaces, villas, and noble residences' },
-    { value: SpecialMapArchetype.CAMPGROUND, label: '🏕️ Campground', description: 'Temporary settlements and camps' },
+    { value: SpecialMapArchetype.GOVERNMENT, label: '⚖️ Government', description: 'Council chambers and forums' },
+    { value: SpecialMapArchetype.MARKET_EXHIBITION, label: '🛍️ Market', description: 'Marketplaces, bazaars, and exhibitions' },
+    { value: SpecialMapArchetype.ARENA_THEATER, label: '🎭 Arena/Theater', description: 'Performance and entertainment venues' },
+    { value: SpecialMapArchetype.UNIVERSITY_MONASTERY, label: '🎓 University', description: 'Libraries, monasteries, and learning centers' },
     { value: SpecialMapArchetype.RESTAURANT_INN, label: '🍺 Restaurant/Inn', description: 'Taverns, inns, and eating establishments' },
     { value: SpecialMapArchetype.VESSEL, label: '⛵ Vessel', description: 'Ships, boats, and floating structures' },
+    { value: SpecialMapArchetype.CAMPGROUND, label: '🏕️ Campground', description: 'Temporary settlements and camps' },
+    { value: SpecialMapArchetype.OPEN_FIELD, label: '🌾 Open Field', description: 'Festival and parade grounds' },
+    { value: SpecialMapArchetype.PLAYER_HOME, label: '🏠 Player Home', description: 'Personal residence' },
     
-    // Core government/civic (these remain but streamlined)
-    { value: SpecialMapArchetype.GOVERNMENT_FORUM, label: '⚖️ Government', description: 'Council chambers and forums' },
-    { value: SpecialMapArchetype.SACRED_COMPLEX, label: '⛪ Sacred', description: 'Temples, churches, and shrines' },
+    // Legacy archetypes (still functional)
+    { value: SpecialMapArchetype.GOVERNMENT_FORUM, label: '🏛️ Government Forum', description: 'Traditional council chambers' },
+    { value: SpecialMapArchetype.SACRED_COMPLEX, label: '⛪ Sacred Complex', description: 'Temples, churches, and shrines' },
     { value: SpecialMapArchetype.MILITARY_FORTRESS, label: '🏰 Fortress', description: 'Castles, forts, and bunkers' },
-    { value: SpecialMapArchetype.UNIVERSITY, label: '🎓 University', description: 'Libraries and lecture halls' },
-    { value: SpecialMapArchetype.THEATER, label: '🎭 Theater', description: 'Performance venues' },
-    { value: SpecialMapArchetype.OPEN_FIELD, label: '🌾 Open Field', description: 'Festival and parade grounds' }
+    { value: SpecialMapArchetype.PALACE_COMPLEX, label: '👑 Palace Complex', description: 'Royal palace grounds' },
+    { value: SpecialMapArchetype.MARKET_BAZAAR, label: '🏪 Market Bazaar', description: 'Traditional marketplace' },
+    { value: SpecialMapArchetype.UNIVERSITY, label: '📚 University (Legacy)', description: 'Academic institution' },
+    { value: SpecialMapArchetype.THEATER, label: '🎪 Theater (Legacy)', description: 'Performance venue' },
+    { value: SpecialMapArchetype.ARENA, label: '⚔️ Arena', description: 'Combat arena' }
   ];
   
   const culturalZones = [
@@ -93,8 +141,23 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
   
   // Determine default size based on archetype and era
   const getDefaultSize = () => {
-    // Government districts are always XL
-    if (selectedArchetype === SpecialMapArchetype.GOVERNMENT_FORUM) return 'xl';
+    // Modern government buildings need XXL
+    if ((selectedArchetype === SpecialMapArchetype.GOVERNMENT || 
+         selectedArchetype === SpecialMapArchetype.GOVERNMENT_FORUM) && 
+        (selectedEra === 'INDUSTRIAL_ERA' || selectedEra === 'MODERN_ERA')) {
+      return 'xxl';
+    }
+    
+    // Government districts are usually XL
+    if (selectedArchetype === SpecialMapArchetype.GOVERNMENT || 
+        selectedArchetype === SpecialMapArchetype.GOVERNMENT_FORUM) return 'xl';
+    
+    // Markets and exhibitions scale with era
+    if (selectedArchetype === SpecialMapArchetype.MARKET_EXHIBITION) {
+      if (selectedEra === 'MODERN_ERA') return 'xl';
+      if (selectedEra === 'INDUSTRIAL_ERA') return 'large';
+      return 'medium';
+    }
     
     // Estates are large from medieval onward
     if (selectedArchetype === SpecialMapArchetype.ESTATES) {
@@ -130,9 +193,18 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
       hasLandscape: hasLandscape
     };
     
+    console.log('[SpecialMapTestMenu] handleEnterMap called with config:', config);
+    console.log('[SpecialMapTestMenu] enterSpecialMap function exists:', !!enterSpecialMap);
+    
     // Call enterSpecialMap directly
     // The MapContext will handle caching the current map
-    enterSpecialMap(config);
+    try {
+      enterSpecialMap(config);
+      console.log('[SpecialMapTestMenu] enterSpecialMap called successfully');
+    } catch (error) {
+      console.error('[SpecialMapTestMenu] Error calling enterSpecialMap:', error);
+    }
+    
     onClose();
   };
   
@@ -332,6 +404,8 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
     });
   };
   
+  // The table components and FirePitSymbol are now imported from the specialMap folder
+
   const specialMapSymbols = [
     // Walls & Structure
     { Component: WallSymbol, name: 'Wall', biome: BiomeType.WALL, hasVariants: true },
@@ -350,6 +424,9 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
     
     // Furniture (with cultural variants)
     { Component: TableSymbol, name: 'Table', biome: BiomeType.TABLE },
+    { Component: TableLeft, name: 'Table (Left)', biome: 'TABLE_LEFT' },
+    { Component: TableCenter, name: 'Table (Center)', biome: 'TABLE_CENTER' },
+    { Component: TableRight, name: 'Table (Right)', biome: 'TABLE_RIGHT' },
     { Component: ChairSymbol, name: 'Chair', biome: BiomeType.CHAIR, hasVariants: true },
     { Component: BenchSymbol, name: 'Bench', biome: BiomeType.BENCH },
     { Component: ThroneSymbol, name: 'Throne', biome: BiomeType.THRONE },
@@ -359,11 +436,12 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
     { Component: CabinetSymbol, name: 'Cabinet', biome: BiomeType.CABINET, hasVariants: true },
     
     // Architectural Elements (with variants)
-    { Component: PillarSymbol, name: 'Pillar (Base)', biome: BiomeType.PILLAR, hasVariants: true, props: { section: 'base' } },
+    { Component: PillarBase, name: 'Pillar (Base)', biome: BiomeType.PILLAR, hasVariants: true, props: { material: 'grey_stone' } },
     { Component: PillarSymbol, name: 'Pillar (Middle)', biome: BiomeType.PILLAR, hasVariants: true, props: { section: 'middle' } },
     { Component: PillarSymbol, name: 'Pillar (Top)', biome: BiomeType.PILLAR, hasVariants: true, props: { section: 'top' } },
     { Component: ColumnSymbol, name: 'Column', biome: BiomeType.COLUMN },
-    { Component: StairsSymbol, name: 'Stairs', biome: BiomeType.STAIRS_UP },
+    { Component: StairsSymbol, name: 'Stairs (Up)', biome: BiomeType.STAIRS_UP, props: { direction: 'up' } },
+    { Component: StairsSymbol, name: 'Stairs (Down)', biome: BiomeType.STAIRS_DOWN, props: { direction: 'down' } },
     
     // Decorative
     { Component: StatueSymbol, name: 'Statue', biome: BiomeType.STATUE, hasVariants: true },
@@ -382,10 +460,58 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
     { Component: ArmorStandSymbol, name: 'Armor Stand', biome: BiomeType.ARMOR_STAND, hasVariants: true },
     
     // Lighting & Storage
-    { Component: TorchSymbol, name: 'Torch', biome: BiomeType.TORCH, hasVariants: true, props: { type: 'torch' } },
-    { Component: TorchSymbol, name: 'Brazier', biome: BiomeType.BRAZIER, hasVariants: true, props: { type: 'brazier' } },
+    { Component: TorchSymbol, name: 'Torch', biome: BiomeType.TORCH, hasVariants: true, props: { type: 'torch', lit: true } },
+    { Component: TorchSymbol, name: 'Brazier', biome: BiomeType.BRAZIER, hasVariants: true, props: { type: 'brazier', lit: true } },
+    { Component: FirePitSymbol, name: 'Fire Pit', biome: BiomeType.FIRE_PIT, hasVariants: true, props: { type: 'pit', lit: true } },
+    { Component: FirePitSymbol, name: 'Hearth', biome: BiomeType.HEARTH, hasVariants: true, props: { type: 'hearth', lit: true } },
     { Component: ChestSymbol, name: 'Chest', biome: BiomeType.CHEST },
-    { Component: BarrelSymbol, name: 'Barrel', biome: BiomeType.BARREL }
+    { Component: BarrelSymbol, name: 'Barrel', biome: BiomeType.BARREL },
+    
+    // Modern/Office Furniture
+    { Component: FilingCabinetSymbol, name: 'Filing Cabinet', biome: BiomeType.FILING_CABINET },
+    { Component: ToiletSymbol, name: 'Toilet', biome: BiomeType.TOILET },
+    { Component: BasinSymbol, name: 'Basin/Sink', biome: BiomeType.BASIN },
+    { Component: PodiumSymbol, name: 'Podium', biome: BiomeType.PODIUM },
+    { Component: GuardPostSymbol, name: 'Guard Post', biome: BiomeType.GUARD_POST },
+    
+    // Decorative Floors
+    { Component: MosaicFloorSymbol, name: 'Mosaic Floor', biome: BiomeType.FLOOR_MOSAIC },
+    { Component: FloorSymbol, name: 'Checkered Floor', biome: BiomeType.FLOOR_CHECKERED, props: { floorType: 'checkered' } },
+    { Component: FloorSymbol, name: 'Pattern Floor', biome: BiomeType.FLOOR_PATTERN, props: { floorType: 'pattern' } },
+    
+    // Cultural Carpets/Floor Coverings
+    { Component: CarpetSymbol, name: 'MENA Carpet', biome: BiomeType.CARPET, props: { culturalZone: 'MENA' } },
+    { Component: CarpetSymbol, name: 'Roman Mosaic', biome: BiomeType.CARPET, props: { culturalZone: 'EUROPEAN', era: 'ANTIQUITY' } },
+    { Component: CarpetSymbol, name: 'East Asian Mat', biome: BiomeType.CARPET, props: { culturalZone: 'EAST_ASIAN' } },
+    { Component: CarpetSymbol, name: 'African Weaving', biome: BiomeType.CARPET, props: { culturalZone: 'AFRICAN' } },
+    { Component: CarpetSymbol, name: 'Oceanic Reed Mat', biome: BiomeType.CARPET, props: { culturalZone: 'OCEANIAN' } },
+    { Component: CarpetSymbol, name: 'Americas Textile', biome: BiomeType.CARPET, props: { culturalZone: 'AMERICAS' } },
+    { Component: CarpetSymbol, name: 'European Carpet', biome: BiomeType.CARPET, props: { culturalZone: 'EUROPEAN' } },
+    
+    // Additional Modern Items
+    { Component: KitchenStoveSymbol, name: 'Kitchen Stove', biome: BiomeType.KITCHEN_STOVE },
+    { Component: BrazierSymbol, name: 'Brazier (MENA)', biome: BiomeType.BRAZIER },
+    
+    // Missing Special Map Symbols
+    { Component: BackWallSymbol, name: 'Back Wall (3/4 view)', biome: BiomeType.WALL_BACK },
+    { Component: EntrancePortalSymbol, name: 'Entrance Portal', biome: BiomeType.ENTRANCE_PORTAL },
+    { Component: LanternSymbol, name: 'Lantern', biome: BiomeType.LANTERN, hasVariants: true },
+    { Component: PathSymbol, name: 'Path', biome: BiomeType.PATH },
+    { Component: PersianRugSymbol, name: 'Persian Rug', biome: BiomeType.PERSIAN_RUG },
+    { Component: StairsUpPixel, name: 'Stairs (Pixel)', biome: BiomeType.STAIRS_UP },
+    
+    // All Overlay Symbols (SNES RPG Style)
+    { Component: ArmorStandOverlay, name: 'Armor Stand (Overlay)', biome: 'OVERLAY_ARMOR_STAND', hasVariants: true },
+    { Component: BellOverlay, name: 'Bell (Overlay)', biome: 'OVERLAY_BELL', hasVariants: true },
+    { Component: CandelabraOverlay, name: 'Candelabra (Overlay)', biome: 'OVERLAY_CANDELABRA', hasVariants: true },
+    { Component: ColumnOverlay, name: 'Column (Overlay)', biome: 'OVERLAY_COLUMN', hasVariants: true },
+    { Component: CushionOverlay, name: 'Cushion (Overlay)', biome: 'OVERLAY_CUSHION', hasVariants: true },
+    { Component: IdolOverlay, name: 'Idol (Overlay)', biome: 'OVERLAY_IDOL', hasVariants: true },
+    { Component: IncenseBurnerOverlay, name: 'Incense Burner (Overlay)', biome: 'OVERLAY_INCENSE', hasVariants: true },
+    { Component: PillarOverlay, name: 'Pillar (Overlay)', biome: 'OVERLAY_PILLAR', hasVariants: true },
+    { Component: ShrineOverlay, name: 'Shrine (Overlay)', biome: 'OVERLAY_SHRINE', hasVariants: true },
+    { Component: StatueOverlay, name: 'Statue (Overlay)', biome: 'OVERLAY_STATUE', hasVariants: true },
+    { Component: VaseOverlay, name: 'Vase (Overlay)', biome: 'OVERLAY_VASE', hasVariants: true }
   ];
   
   return (
@@ -507,6 +633,7 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
                   <option value="medium">Medium (16×16)</option>
                   <option value="large">Large (20×20)</option>
                   <option value="xl">XL (25×25)</option>
+                  <option value="xxl">XXL (32×32)</option>
                 </select>
               </div>
               
@@ -617,6 +744,7 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
                             size={60}
                             culturalZone={symbol.hasVariants ? variant.zone : selectedZone}
                             era={symbol.hasVariants ? variant.era : (selectedEra === 'MEDIEVAL' ? 1200 : 1500)}
+                            year={symbol.hasVariants ? variant.era : (selectedEra === 'MEDIEVAL' ? 1200 : 1500)}
                             seed={index}
                             {...(symbol.props || {})}
                           />

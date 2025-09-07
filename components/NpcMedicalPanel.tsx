@@ -139,10 +139,10 @@ export const NpcMedicalPanel: React.FC<NpcMedicalPanelProps> = ({
                         ⚠️ This person is not a trained healer, but they might know folk remedies or can direct you to someone who can help.
                     </p>
                     
-                    {playerCharacter.health?.currentDiseases && playerCharacter.health.currentDiseases.length > 0 && (
+                    {playerCharacter.diseaseHealth?.currentDiseases && playerCharacter.diseaseHealth.currentDiseases.length > 0 && (
                         <div className="mt-3">
                             <p className="text-sm text-slate-300 mb-2">Your current ailments:</p>
-                            {playerCharacter.health.currentDiseases.map((activeDisease, index) => (
+                            {playerCharacter.diseaseHealth.currentDiseases.map((activeDisease, index) => (
                                 <div key={index} className="text-xs text-red-300 mb-1">
                                     {activeDisease.disease.badgeIcon} {activeDisease.disease.name} ({activeDisease.stage})
                                 </div>

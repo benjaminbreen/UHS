@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Item } from '../../types';
 // Import baseSprites mappings as a fallback/reference system
 import { ITEM_ARCHETYPES_MAX, getItemArchetypeMax } from '../../constants/items/baseSprites';
+import { getMaterialColorHex } from '../../services/itemGenerationService';
 
 interface GenerativeItemIconProps {
   item: Item;
@@ -103,9 +104,15 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
     // First check if item has a color field (from character generation)
     let primaryColor = '#8b7355'; // Default brownish
     if (item.color) {
-      const itemColorLower = item.color.toLowerCase();
-      if (colorMap[itemColorLower]) {
-        primaryColor = colorMap[itemColorLower];
+      // If it's a hex color, use it directly
+      if (item.color.startsWith('#')) {
+        primaryColor = item.color;
+      } else {
+        // Otherwise treat as color name
+        const itemColorLower = item.color.toLowerCase();
+        if (colorMap[itemColorLower]) {
+          primaryColor = colorMap[itemColorLower];
+        }
       }
     } else {
       // Otherwise check name for colors
@@ -117,7 +124,12 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
       }
     }
     
-    // If no color in name, check material
+    // If no color found yet, check material using our service
+    if (primaryColor === '#8b7355' && item.material) {
+      primaryColor = getMaterialColorHex(item.material);
+    }
+    
+    // Final fallback check for local material mapping  
     if (primaryColor === '#8b7355') {
       // Material-based colors
       const materialColors: Record<string, string> = {
@@ -265,7 +277,20 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
       if (name.includes('poncho')) return 'poncho';
       if (name.includes('apron')) return 'apron';
       
-      // Suits
+      // Modern business wear
+      if (name.includes('business suit') || name.includes('suit jacket')) return 'business_suit';
+      if (name.includes('blazer') || name.includes('sport jacket')) return 'blazer';
+      if (name.includes('dress shirt') || name.includes('button-up') || name.includes('button up')) return 'dress_shirt';
+      if (name.includes('waistcoat') || name.includes('vest') && !name.includes('safety')) return 'waistcoat';
+      
+      // Modern casual wear
+      if (name.includes('hoodie') || name.includes('sweatshirt') || name.includes('pullover')) return 'hoodie';
+      if (name.includes('t-shirt') || name.includes('tee') && !name.includes('tunic')) return 't_shirt';
+      if (name.includes('polo') && name.includes('shirt')) return 'polo_shirt';
+      if (name.includes('sweater') || name.includes('cardigan') || name.includes('jumper')) return 'sweater';
+      if (name.includes('tank top') || name.includes('singlet')) return 'tank_top';
+      
+      // Traditional suits (fallback)
       if (name.includes('suit') || name.includes('tailcoat') || name.includes('bandhgala')) return 'suit';
       
       // Hide/primitive
@@ -274,6 +299,14 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
     
     // === LEGS ===
     if (slot === 'legs') {
+      // Modern leg wear
+      if (name.includes('jeans') || name.includes('denim')) return 'jeans';
+      if (name.includes('slacks') || name.includes('dress pants')) return 'slacks';
+      if (name.includes('cargo') && name.includes('pants')) return 'cargo_pants';
+      if (name.includes('khaki') || name.includes('chinos')) return 'khakis';
+      if (name.includes('sweatpants') || name.includes('track pants')) return 'sweatpants';
+      
+      // Traditional/general leg wear
       if (name.includes('trouser') || name.includes('pant') || name.includes('breeches') || name.includes('overalls')) return 'trousers';
       if (name.includes('hose') || name.includes('leggings') || name.includes('tights')) return 'hose';
       if (name.includes('dhoti') || name.includes('lungi')) return 'dhoti';
@@ -284,9 +317,17 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
     
     // === FOOTWEAR ===
     if (slot === 'feet') {
+      // Modern footwear
+      if (name.includes('sneakers') || name.includes('trainers') || name.includes('athletic shoes')) return 'sneakers';
+      if (name.includes('dress shoes') || name.includes('oxfords') || name.includes('brogues')) return 'dress_shoes';
+      if (name.includes('loafers') || name.includes('slip-ons')) return 'loafers';
+      if (name.includes('high heels') || name.includes('pumps')) return 'high_heels';
+      if (name.includes('flats') || name.includes('ballet flats')) return 'flats';
+      
+      // Traditional footwear
       if (name.includes('boot')) return 'boots';
       if (name.includes('sandal') || name.includes('chappal')) return 'sandals';
-      if (name.includes('shoe') || name.includes('loafer') || name.includes('pump') || name.includes('flat')) return 'shoes';
+      if (name.includes('shoe') || name.includes('pump') || name.includes('flat')) return 'shoes';
       if (name.includes('clog') || name.includes('sabot')) return 'clogs';
       if (name.includes('moccasin')) return 'moccasin';
       if (name.includes('jutti') || name.includes('khussa') || name.includes('mojari')) return 'jutti';
@@ -377,6 +418,14 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
     }
     
     // === CONTAINERS ===
+    // Modern bags and cases
+    if (name.includes('briefcase') || name.includes('laptop bag')) return 'briefcase';
+    if (name.includes('backpack') || name.includes('rucksack')) return 'backpack';
+    if (name.includes('messenger bag') || name.includes('satchel')) return 'messenger_bag';
+    if (name.includes('handbag') || name.includes('purse')) return 'handbag';
+    if (name.includes('duffel') || name.includes('gym bag')) return 'duffel_bag';
+    
+    // Traditional containers
     if (name.includes('bottle') || name.includes('vial')) return 'bottle';
     if (name.includes('gourd') || name.includes('flask')) return 'gourd';
     if (name.includes('pot') || name.includes('jar') || name.includes('urn')) return 'pot';
@@ -410,6 +459,15 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
     if (name.includes('thread') || name.includes('yarn') || name.includes('string')) return 'thread';
     if (name.includes('bead')) return 'bead';
     if (name.includes('gem') || name.includes('jewel') || name.includes('crystal')) return 'gem';
+    
+    // === MODERN ACCESSORIES ===
+    if (name.includes('tie') || name.includes('necktie')) return 'tie';
+    if (name.includes('bow tie')) return 'bow_tie';
+    if (name.includes('watch') || name.includes('wristwatch')) return 'watch';
+    if (name.includes('sunglasses') || name.includes('shades')) return 'sunglasses';
+    if (name.includes('eyeglasses') || name.includes('spectacles') || name.includes('glasses')) return 'glasses';
+    if (name.includes('scarf') || name.includes('muffler')) return 'scarf';
+    if (name.includes('gloves') && !name.includes('work')) return 'dress_gloves';
     
     // === RELIGIOUS/MAGICAL ===
     if (name.includes('prayer') || name.includes('bead') || name.includes('rosary')) return 'prayer_beads';
@@ -4097,9 +4155,309 @@ case 'cheese': {
         break;
       }
 
+      // === MODERN CLOTHING ===
+      case 'business_suit':
+        // Business suit with lapels and structured shoulders
+        svgContent = pixels([
+          // Lapels
+          [9,6],[10,6],[14,6],[15,6],
+          [9,7],[15,7],
+          // Structured shoulders
+          [8,7],[9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],[16,7],
+          // Body (fitted cut)
+          [10,8],[11,8],[12,8],[13,8],[14,8],
+          [10,9],[11,9],[12,9],[13,9],[14,9],
+          [10,10],[11,10],[12,10],[13,10],[14,10],
+          [10,11],[11,11],[12,11],[13,11],[14,11],
+          [10,12],[11,12],[12,12],[13,12],[14,12],
+          [10,13],[11,13],[12,13],[13,13],[14,13],
+        ], colors.primary) +
+        pixels([
+          // Button line
+          [12,8],[12,10],[12,12],
+        ], colors.secondary) +
+        pixels([
+          // Lapel details
+          [9,6],[15,6],
+        ], colors.accent);
+        break;
 
+      case 'blazer':
+        // Casual blazer, less structured than business suit
+        svgContent = pixels([
+          // Lapels (smaller than suit)
+          [10,6],[14,6],
+          [10,7],[14,7],
+          // Body
+          [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],
+          [9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],
+          [9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],
+          [9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],
+          [9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],
+          [10,13],[11,13],[12,13],[13,13],[14,13],
+        ], colors.primary) +
+        pixels([
+          // Single button
+          [12,9],
+        ], colors.secondary);
+        break;
 
-        
+      case 'dress_shirt':
+        // Dress shirt with collar and placket
+        svgContent = pixels([
+          // Collar
+          [10,5],[11,5],[12,5],[13,5],[14,5],
+          [10,6],[14,6],
+          // Shirt body
+          [9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],
+          [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],
+          [9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],
+          [9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],
+          [9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],
+          [9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],
+          [10,13],[11,13],[12,13],[13,13],[14,13],
+        ], colors.primary) +
+        pixels([
+          // Button placket
+          [12,7],[12,8],[12,9],[12,10],[12,11],[12,12],
+        ], colors.secondary) +
+        pixels([
+          // Buttons
+          [12,8],[12,10],[12,12],
+        ], colors.accent);
+        break;
+
+      case 'hoodie':
+        // Hoodie with attached hood and kangaroo pocket
+        svgContent = pixels([
+          // Hood
+          [9,4],[10,4],[11,4],[12,4],[13,4],[14,4],[15,4],
+          [9,5],[15,5],
+          // Wide shoulders (casual fit)
+          [8,6],[9,6],[10,6],[11,6],[12,6],[13,6],[14,6],[15,6],[16,6],
+          // Body (loose fit)
+          [8,7],[9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],[16,7],
+          [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],
+          [9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],
+          [9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],
+          [9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],
+          [9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],
+        ], colors.primary) +
+        pixels([
+          // Kangaroo pocket
+          [10,10],[11,10],[12,10],[13,10],[14,10],
+          [10,11],[14,11],
+        ], colors.secondary) +
+        pixels([
+          // Hood drawstring
+          [11,5],[13,5],
+        ], colors.accent);
+        break;
+
+      case 't_shirt':
+        // Casual t-shirt with wide shoulders
+        svgContent = pixels([
+          // Neck
+          [11,5],[12,5],[13,5],
+          // Wide casual shoulders
+          [8,6],[9,6],[10,6],[11,6],[12,6],[13,6],[14,6],[15,6],[16,6],
+          // Body
+          [9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],
+          [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],
+          [9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],
+          [9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],
+          [10,11],[11,11],[12,11],[13,11],[14,11],
+        ], colors.primary) +
+        pixels([
+          // Short sleeves
+          [8,6],[8,7],
+          [16,6],[16,7],
+        ], colors.secondary);
+        break;
+
+      case 'polo_shirt':
+        // Polo shirt with collar and partial button placket
+        svgContent = pixels([
+          // Collar
+          [10,5],[11,5],[12,5],[13,5],[14,5],
+          // Body
+          [9,6],[10,6],[11,6],[12,6],[13,6],[14,6],[15,6],
+          [9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],
+          [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],
+          [9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],
+          [9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],
+          [10,11],[11,11],[12,11],[13,11],[14,11],
+        ], colors.primary) +
+        pixels([
+          // Short placket
+          [12,6],[12,7],[12,8],
+        ], colors.secondary) +
+        pixels([
+          // Two buttons
+          [12,7],[12,8],
+        ], colors.accent);
+        break;
+
+      case 'jeans':
+        // Jeans with center seam and pockets
+        svgContent = pixels([
+          // Waistband
+          [10,6],[11,6],[12,6],[13,6],[14,6],
+          // Hip area
+          [10,7],[11,7],[12,7],[13,7],[14,7],
+          // Legs with center seam
+          [10,8],[11,8],[13,8],[14,8],
+          [10,9],[11,9],[13,9],[14,9],
+          [10,10],[11,10],[13,10],[14,10],
+          [10,11],[11,11],[13,11],[14,11],
+          [10,12],[11,12],[13,12],[14,12],
+          [10,13],[11,13],[13,13],[14,13],
+        ], colors.primary) +
+        pixels([
+          // Center seam
+          [12,8],[12,9],[12,10],[12,11],[12,12],[12,13],
+        ], colors.secondary) +
+        pixels([
+          // Pockets
+          [10,7],[14,7],
+        ], colors.accent);
+        break;
+
+      case 'slacks':
+        // Dress pants with pressed crease
+        svgContent = pixels([
+          // Waistband
+          [10,6],[11,6],[12,6],[13,6],[14,6],
+          // Body (fitted)
+          [10,7],[11,7],[12,7],[13,7],[14,7],
+          [10,8],[11,8],[12,8],[13,8],[14,8],
+          [10,9],[11,9],[12,9],[13,9],[14,9],
+          [10,10],[11,10],[12,10],[13,10],[14,10],
+          [10,11],[11,11],[12,11],[13,11],[14,11],
+          [10,12],[11,12],[12,12],[13,12],[14,12],
+          [10,13],[11,13],[12,13],[13,13],[14,13],
+        ], colors.primary) +
+        pixels([
+          // Pressed creases
+          [11,8],[11,9],[11,10],[11,11],[11,12],[11,13],
+          [13,8],[13,9],[13,10],[13,11],[13,12],[13,13],
+        ], colors.secondary);
+        break;
+
+      case 'sneakers':
+        // Athletic sneakers with laces
+        svgContent = pixels([
+          // Sole
+          [8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],[16,12],
+          [8,13],[9,13],[10,13],[11,13],[12,13],[13,13],[14,13],[15,13],[16,13],
+          // Upper
+          [9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],
+          [9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],
+        ], colors.primary) +
+        pixels([
+          // Laces
+          [10,10],[12,10],[14,10],
+        ], colors.secondary) +
+        pixels([
+          // Sole detail
+          [8,12],[16,12],
+        ], colors.accent);
+        break;
+
+      case 'dress_shoes':
+        // Formal dress shoes
+        svgContent = pixels([
+          // Sole
+          [9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],
+          [9,13],[10,13],[11,13],[12,13],[13,13],[14,13],[15,13],
+          // Upper
+          [10,10],[11,10],[12,10],[13,10],[14,10],
+          [10,11],[11,11],[12,11],[13,11],[14,11],
+        ], colors.primary) +
+        pixels([
+          // Shoe shine highlight
+          [11,10],[12,10],[13,10],
+        ], colors.accent);
+        break;
+
+      case 'tie':
+        // Necktie
+        svgContent = pixels([
+          // Knot
+          [11,6],[12,6],[13,6],
+          [11,7],[12,7],[13,7],
+          // Tie body
+          [12,8],[12,9],[12,10],[12,11],[12,12],[12,13],[12,14],
+          [11,15],[12,15],[13,15],
+          [12,16],
+        ], colors.primary) +
+        pixels([
+          // Pattern/texture
+          [12,9],[12,11],[12,13],
+        ], colors.secondary);
+        break;
+
+      case 'watch':
+        // Wristwatch
+        svgContent = pixels([
+          // Watch face
+          [11,10],[12,10],[13,10],
+          [11,11],[12,11],[13,11],
+          [11,12],[12,12],[13,12],
+        ], colors.primary) +
+        pixels([
+          // Band
+          [9,11],[10,11],[14,11],[15,11],
+        ], colors.secondary) +
+        pixels([
+          // Watch hands
+          [12,11],
+        ], colors.accent);
+        break;
+
+      case 'briefcase':
+        // Business briefcase
+        svgContent = pixels([
+          // Body
+          [8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],[16,8],
+          [8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],
+          [8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],
+          [8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],[16,11],
+          [8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],[16,12],
+        ], colors.primary) +
+        pixels([
+          // Handle
+          [11,6],[12,6],[13,6],
+          [10,7],[14,7],
+        ], colors.secondary) +
+        pixels([
+          // Lock/clasp
+          [12,10],
+        ], colors.accent);
+        break;
+
+      case 'backpack':
+        // Modern backpack
+        svgContent = pixels([
+          // Main compartment
+          [9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],
+          [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],
+          [9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],
+          [9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],
+          [9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],
+          [9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],
+        ], colors.primary) +
+        pixels([
+          // Straps
+          [8,6],[8,7],[8,8],
+          [16,6],[16,7],[16,8],
+        ], colors.secondary) +
+        pixels([
+          // Front pocket
+          [10,9],[11,9],[12,9],[13,9],[14,9],
+        ], colors.accent);
+        break;
+
       default:
         // Check if baseSprites has a mapping for this item
         const baseSpriteArchetype = getItemArchetypeMax(name);
@@ -4165,6 +4523,83 @@ case 'cheese': {
           [9,8],[11,8],[13,8],
         ], '#F5DEB3', 0.4);
     }
+    
+    // Phase 7: Add quality and condition indicators
+    const addQualityOverlay = () => {
+      let overlay = '';
+      
+      // Quality indicators
+      if (item.quality === 'excellent') {
+        // Add sparkles for excellent quality
+        overlay += pixels([[6,6]], '#FFEB3B', 0.9); // Gold sparkle top-left
+        overlay += pixels([[18,6]], '#FFEB3B', 0.8); // Gold sparkle top-right
+        overlay += pixels([[7,7]], '#FFF59D', 0.6); // Light gold
+        overlay += pixels([[17,7]], '#FFF59D', 0.6);
+        // Add subtle glow effect
+        overlay += pixels([[11,5],[12,5],[13,5]], '#FFEB3B', 0.15);
+        overlay += pixels([[11,19],[12,19],[13,19]], '#FFEB3B', 0.15);
+      } else if (item.quality === 'good') {
+        // Add subtle shine for good quality
+        overlay += pixels([[7,7]], '#FFFFFF', 0.4);
+        overlay += pixels([[8,8]], '#FFFFFF', 0.25);
+        overlay += pixels([[16,7]], '#FFFFFF', 0.3);
+      } else if (item.quality === 'poor') {
+        // Add rust/wear marks for poor quality
+        overlay += pixels([[9,11],[14,13]], '#8B4513', 0.5); // Rust spots
+        overlay += pixels([[10,15],[15,10]], '#5D4E37', 0.4); // Wear marks
+        overlay += pixels([[8,13]], '#696969', 0.3); // Scratches
+      }
+      
+      // Condition indicators (if condition is very low)
+      if (item.condition !== undefined) {
+        if (item.condition < 20) {
+          // Broken/damaged appearance
+          overlay += pixels([[11,11],[12,12]], '#2F2F2F', 0.6); // Cracks
+          overlay += pixels([[10,13],[13,10]], '#1A1A1A', 0.4); // Deep damage
+          overlay += pixels([[9,14]], '#8B0000', 0.3); // Damage tint
+        } else if (item.condition < 50) {
+          // Worn appearance
+          overlay += pixels([[10,10],[14,14]], '#4A4A4A', 0.3); // Wear spots
+          overlay += pixels([[11,15]], '#5F5F5F', 0.25); // Scuffs
+        } else if (item.condition > 95) {
+          // Pristine shine
+          overlay += pixels([[8,6],[16,6]], '#FFFFFF', 0.5); // Bright shine
+          overlay += pixels([[9,7],[15,7]], '#F0F0F0', 0.3); // Secondary shine
+        }
+      }
+      
+      // Age indicators
+      if (item.age !== undefined) {
+        if (item.age > 100) {
+          // Ancient patina
+          overlay += pixels([[7,12],[17,12]], '#4A7C59', 0.2); // Verdigris
+          overlay += pixels([[9,16],[15,9]], '#6B8E23', 0.15); // Patina
+        } else if (item.age > 50) {
+          // Aged appearance
+          overlay += pixels([[8,14],[16,8]], '#8B7355', 0.2); // Age spots
+        }
+      }
+      
+      // Enchantment/Special effects (rare)
+      if (item.enchantments && item.enchantments.length > 0) {
+        // Magical glow effect
+        overlay += pixels([[6,10],[18,10]], '#9C27B0', 0.4); // Purple glow
+        overlay += pixels([[10,6],[14,18]], '#E91E63', 0.3); // Pink accent
+        overlay += pixels([[12,8],[12,16]], '#3F51B5', 0.25); // Blue shimmer
+      }
+      
+      // Crafter signature indicator (for masterwork items)
+      if (item.crafterName) {
+        // Add maker's mark
+        overlay += pixels([[17,17]], '#FFD700', 0.7); // Gold mark bottom-right
+        overlay += pixels([[16,17],[17,16]], '#FFA000', 0.4); // Orange accent
+      }
+      
+      return overlay;
+    };
+    
+    // Apply quality overlay to the base sprite
+    svgContent += addQualityOverlay();
     
     return svgContent;
   }, [item, size]);

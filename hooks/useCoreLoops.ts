@@ -90,6 +90,7 @@ const useCoreLoops = () => {
     updateStructureData,
     isSpecialMap,
     isEnteringSpecialMap,
+    exitSpecialMap,
   } = useMap();
 
   const {
@@ -1178,6 +1179,13 @@ useEffect(() => {
       } else if (targetTile.isLand) {
         setControlledIconX(newLogicalX);
         setControlledIconY(newLogicalY);
+        
+        // Check if player stepped on stairs - exit special map
+        if (isSpecialMap && targetTile.biome === BiomeType.STAIRS_UP) {
+          console.log('[useCoreLoops] Player stepped on stairs - exiting special map');
+          showToast('Going back up...');
+          setTimeout(() => exitSpecialMap(), 500); // Small delay for immersion
+        }
       } else {
         // water while on foot: don't move
         return;

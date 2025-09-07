@@ -125,14 +125,14 @@ export function useEventSystem() {
   }, [playerCharacter, currentTile, worldData, currentMode, hasShownInitialEvent, currentEvent, currentZone, gameDate]);
 
   /**
-   * Check quest progress when player moves
+   * Check quest progress when player moves or world changes
    */
   useEffect(() => {
     if (!playerCharacter || playerCharacter.x === undefined || playerCharacter.y === undefined) return;
     
     // Check quest progress at current location
     questService.checkQuestProgress(playerCharacter.x, playerCharacter.y);
-  }, [playerCharacter?.x, playerCharacter?.y]);
+  }, [playerCharacter?.x, playerCharacter?.y, worldData]); // Added worldData to also check on map load
 
   /**
    * Check for event triggers periodically

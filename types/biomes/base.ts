@@ -62,9 +62,14 @@ export enum BiomeType {
   WALL = 'WALL',
   WALL_GATE = 'WALL_GATE',
   WALL_WINDOW = 'WALL_WINDOW',
+  WALL_BACK = 'WALL_BACK',  // Back wall for 3/4 perspective
+  WALL_BACK_WINDOW = 'WALL_BACK_WINDOW',  // Back wall with window
+  WALL_BACK_DOOR = 'WALL_BACK_DOOR',  // Back wall with door
   DOOR = 'DOOR',
   DOOR_LOCKED = 'DOOR_LOCKED',
   ARCHWAY = 'ARCHWAY',
+  ENTRANCE_PORTAL = 'ENTRANCE_PORTAL', // Glowing entrance to inner sanctum
+  PATH = 'PATH', // Stone/brick path for navigation in special maps
   
   // Floors - Basic
   FLOOR_STONE = 'FLOOR_STONE',
@@ -82,6 +87,9 @@ export enum BiomeType {
   
   // Furniture - Seating
   TABLE = 'TABLE',
+  TABLE_LEFT = 'TABLE_LEFT',     // Multi-tile table left end
+  TABLE_CENTER = 'TABLE_CENTER',  // Multi-tile table center (repeatable)
+  TABLE_RIGHT = 'TABLE_RIGHT',    // Multi-tile table right end
   CHAIR = 'CHAIR',
   BENCH = 'BENCH',
   THRONE = 'THRONE',
@@ -137,8 +145,10 @@ export enum BiomeType {
   
   // Additional Architectural Elements
   FIRE_PIT = 'FIRE_PIT',
+  HEARTH = 'HEARTH',  // Indoor fireplace/hearth for great halls
   BRAZIER = 'BRAZIER',
   TORCH = 'TORCH',
+  LANTERN = 'LANTERN',
   PILLAR = 'PILLAR',
   BED = 'BED',
   BARREL = 'BARREL',

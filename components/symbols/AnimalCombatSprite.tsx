@@ -8,7 +8,7 @@ import { AnimalEntity } from '../../types';
 
 interface AnimalCombatSpriteProps {
   animal: AnimalEntity;
-  animation: 'idle' | 'attacking' | 'damaged';
+  animation: 'idle' | 'attacking' | 'damaged' | 'attack' | 'special';
   size?: number;
   facing: 'left' | 'right';
 }
@@ -939,6 +939,601 @@ const OctopusSprite: React.FC<{ animation: string }> = ({ animation }) => {
     );
 };
 
+// COMPANION ANIMALS
+const DogSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#8B4513'; const shadow = '#654321'; const collar = '#DC143C'; const nose = '#000000';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={10} y={18} width={10} height={6} color={color} />
+            <PixelBlock x={10} y={23} width={10} height={1} color={shadow} />
+            <PixelBlock x={11} y={24} width={3} height={5} color={shadow} />
+            <PixelBlock x={16} y={24} width={3} height={5} color={color} />
+            <PixelBlock x={20} y={16} width={6} height={5} color={color} />
+            <PixelBlock x={26} y={17} width={3} height={3} color={color} />
+            <PixelBlock x={28} y={18} width={1} height={1} color={nose} />
+            <PixelBlock x={22} y={17} width={1} height={1} color={'#000000'} />
+            <PixelBlock x={17} y={18} width={3} height={1} color={collar} />
+            <PixelBlock x={20} y={14} width={1} height={2} color={shadow} />
+            <PixelBlock x={23} y={14} width={1} height={2} color={shadow} />
+            <PixelBlock x={7} y={20} width={3} height={2} color={color} />
+            <PixelBlock x={6} y={21} width={1} height={4} color={color} />
+        </g>
+    );
+};
+
+const CatSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#4B4B4B'; const white = '#FFFFFF'; const eye = '#32CD32'; const nose = '#FFB6C1';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={13} y={19} width={7} height={5} color={color} />
+            <PixelBlock x={13} y={23} width={7} height={1} color={darken(color, 0.2)} />
+            <PixelBlock x={14} y={24} width={2} height={4} color={color} />
+            <PixelBlock x={17} y={24} width={2} height={4} color={color} />
+            <PixelBlock x={20} y={17} width={4} height={4} color={color} />
+            <PixelBlock x={24} y={18} width={2} height={2} color={color} />
+            <PixelBlock x={21} y={18} width={1} height={1} color={eye} />
+            <PixelBlock x={23} y={18} width={1} height={1} color={eye} />
+            <PixelBlock x={22} y={19} width={1} height={1} color={nose} />
+            <PixelBlock x={20} y={15} width={1} height={2} color={color} />
+            <PixelBlock x={23} y={15} width={1} height={2} color={color} />
+            <PixelBlock x={8} y={21} width={5} height={1} color={color} />
+            <PixelBlock x={7} y={20} width={1} height={3} color={color} />
+            <PixelBlock x={15} y={21} width={3} height={1} color={white} />
+        </g>
+    );
+};
+
+const PigSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#FFB6C1'; const shadow = '#FF69B4'; const snout = '#FF1493'; const eye = '#000000';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={9} y={17} width={12} height={7} color={color} />
+            <PixelBlock x={9} y={23} width={12} height={1} color={shadow} />
+            <PixelBlock x={10} y={24} width={3} height={4} color={shadow} />
+            <PixelBlock x={17} y={24} width={3} height={4} color={color} />
+            <PixelBlock x={21} y={16} width={5} height={5} color={color} />
+            <PixelBlock x={26} y={18} width={3} height={2} color={snout} />
+            <PixelBlock x={27} y={18} width={1} height={1} color={'#000000'} />
+            <PixelBlock x={27} y={19} width={1} height={1} color={'#000000'} />
+            <PixelBlock x={23} y={17} width={1} height={1} color={eye} />
+            <PixelBlock x={20} y={14} width={1} height={2} color={color} />
+            <PixelBlock x={23} y={14} width={1} height={2} color={color} />
+            <PixelBlock x={6} y={19} width={3} height={1} color={color} />
+            <PixelBlock x={5} y={18} width={1} height={3} color={color} />
+        </g>
+    );
+};
+
+// REGIONAL PREDATORS
+const JaguarSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#FFD700'; const spots = '#000000'; const shadow = '#DAA520'; const eye = '#32CD32';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={6} y={18} width={14} height={6} color={color} />
+            <PixelBlock x={6} y={23} width={14} height={1} color={shadow} />
+            <PixelBlock x={7} y={24} width={3} height={7} color={shadow} />
+            <PixelBlock x={16} y={24} width={3} height={7} color={color} />
+            <PixelBlock x={20} y={14} width={8} height={8} color={color} />
+            <PixelBlock x={28} y={16} width={4} height={4} color={color} />
+            <PixelBlock x={22} y={16} width={1} height={1} color={eye} />
+            <PixelBlock x={25} y={16} width={1} height={1} color={eye} />
+            <PixelBlock x={8} y={19} width={2} height={2} color={spots} />
+            <PixelBlock x={12} y={18} width={2} height={2} color={spots} />
+            <PixelBlock x={15} y={20} width={2} height={2} color={spots} />
+            <PixelBlock x={22} y={15} width={1} height={1} color={spots} />
+            <PixelBlock x={25} y={17} width={1} height={1} color={spots} />
+            <PixelBlock x={26} y={15} width={1} height={1} color={spots} />
+            <PixelBlock x={4} y={20} width={2} height={3} color={shadow} />
+        </g>
+    );
+};
+
+const PumaSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#D2691E'; const shadow = '#8B4513'; const eye = '#FFD700'; const nose = '#000000';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={7} y={18} width={12} height={6} color={color} />
+            <PixelBlock x={7} y={23} width={12} height={1} color={shadow} />
+            <PixelBlock x={8} y={24} width={3} height={6} color={shadow} />
+            <PixelBlock x={15} y={24} width={3} height={6} color={color} />
+            <PixelBlock x={19} y={15} width={7} height={6} color={color} />
+            <PixelBlock x={26} y={17} width={3} height={3} color={color} />
+            <PixelBlock x={21} y={17} width={1} height={1} color={eye} />
+            <PixelBlock x={24} y={17} width={1} height={1} color={eye} />
+            <PixelBlock x={28} y={18} width={1} height={1} color={nose} />
+            <PixelBlock x={5} y={20} width={2} height={3} color={shadow} />
+            <PixelBlock x={19} y={13} width={1} height={2} color={color} />
+            <PixelBlock x={23} y={13} width={1} height={2} color={color} />
+        </g>
+    );
+};
+
+const HyenaSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#8B7355'; const spots = '#4B4B4B'; const shadow = '#5D4E37'; const eye = '#FFD700';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={8} y={16} width={11} height={7} color={color} />
+            <PixelBlock x={8} y={22} width={11} height={1} color={shadow} />
+            <PixelBlock x={9} y={23} width={3} height={6} color={shadow} />
+            <PixelBlock x={15} y={23} width={3} height={6} color={color} />
+            <PixelBlock x={19} y={14} width={6} height={6} color={color} />
+            <PixelBlock x={25} y={16} width={3} height={3} color={color} />
+            <PixelBlock x={21} y={16} width={1} height={1} color={eye} />
+            <PixelBlock x={10} y={17} width={2} height={2} color={spots} />
+            <PixelBlock x={13} y={18} width={2} height={2} color={spots} />
+            <PixelBlock x={16} y={17} width={2} height={2} color={spots} />
+            <PixelBlock x={6} y={18} width={2} height={4} color={shadow} />
+            <PixelBlock x={7} y={15} width={4} height={3} color={color} />
+        </g>
+    );
+};
+
+const CheetahSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#FFD700'; const spots = '#000000'; const shadow = '#DAA520'; const eye = '#32CD32';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={7} y={18} width={11} height={5} color={color} />
+            <PixelBlock x={7} y={22} width={11} height={1} color={shadow} />
+            <PixelBlock x={8} y={23} width={2} height={7} color={shadow} />
+            <PixelBlock x={15} y={23} width={2} height={7} color={color} />
+            <PixelBlock x={18} y={15} width={7} height={5} color={color} />
+            <PixelBlock x={25} y={17} width={3} height={2} color={color} />
+            <PixelBlock x={20} y={16} width={1} height={1} color={eye} />
+            <PixelBlock x={23} y={16} width={1} height={1} color={eye} />
+            <PixelBlock x={9} y={19} width={1} height={1} color={spots} />
+            <PixelBlock x={11} y={20} width={1} height={1} color={spots} />
+            <PixelBlock x={13} y={19} width={1} height={1} color={spots} />
+            <PixelBlock x={15} y={20} width={1} height={1} color={spots} />
+            <PixelBlock x={20} y={17} width={1} height={2} color={'#000000'} />
+            <PixelBlock x={23} y={17} width={1} height={2} color={'#000000'} />
+            <PixelBlock x={5} y={20} width={2} height={3} color={shadow} />
+        </g>
+    );
+};
+
+// COMMON DOMESTICS
+const DonkeySprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#808080'; const shadow = '#696969'; const eye = '#000000'; const muzzle = '#D3D3D3';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={8} y={16} width={12} height={7} color={color} />
+            <PixelBlock x={8} y={22} width={12} height={1} color={shadow} />
+            <PixelBlock x={9} y={23} width={3} height={7} color={shadow} />
+            <PixelBlock x={16} y={23} width={3} height={7} color={color} />
+            <PixelBlock x={20} y={13} width={5} height={7} color={color} />
+            <PixelBlock x={25} y={15} width={3} height={3} color={color} />
+            <PixelBlock x={27} y={16} width={2} height={2} color={muzzle} />
+            <PixelBlock x={26} y={16} width={1} height={1} color={eye} />
+            <PixelBlock x={21} y={10} width={1} height={3} color={color} />
+            <PixelBlock x={23} y={10} width={1} height={3} color={color} />
+            <PixelBlock x={6} y={18} width={2} height={4} color={shadow} />
+        </g>
+    );
+};
+
+const MuleSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#8B4513'; const shadow = '#654321'; const eye = '#000000'; const muzzle = '#D2691E';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={7} y={15} width={13} height={8} color={color} />
+            <PixelBlock x={7} y={22} width={13} height={1} color={shadow} />
+            <PixelBlock x={8} y={23} width={3} height={8} color={shadow} />
+            <PixelBlock x={16} y={23} width={3} height={8} color={color} />
+            <PixelBlock x={20} y={12} width={6} height={8} color={color} />
+            <PixelBlock x={26} y={14} width={3} height={4} color={color} />
+            <PixelBlock x={28} y={15} width={2} height={2} color={muzzle} />
+            <PixelBlock x={27} y={15} width={1} height={1} color={eye} />
+            <PixelBlock x={21} y={9} width={1} height={3} color={color} />
+            <PixelBlock x={24} y={9} width={1} height={3} color={color} />
+            <PixelBlock x={5} y={17} width={2} height={5} color={shadow} />
+        </g>
+    );
+};
+
+const DuckSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#FFFFFF'; const beak = '#FFA500'; const feet = '#FF6347'; const eye = '#000000';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-waddle' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={13} y={18} width={6} height={5} color={color} />
+            <PixelBlock x={14} y={23} width={2} height={3} color={feet} />
+            <PixelBlock x={16} y={23} width={2} height={3} color={feet} />
+            <PixelBlock x={19} y={16} width={4} height={4} color={color} />
+            <PixelBlock x={23} y={17} width={2} height={2} color={beak} />
+            <PixelBlock x={21} y={17} width={1} height={1} color={eye} />
+            <PixelBlock x={11} y={19} width={2} height={3} color={'#E5E5E5'} />
+            <PixelBlock x={10} y={20} width={1} height={2} color={'#E5E5E5'} />
+        </g>
+    );
+};
+
+// AFRICAN MEGAFAUNA
+const WarthogSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#8B7355'; const shadow = '#5D4E37'; const tusk = '#F5F5DC'; const eye = '#000000';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={8} y={18} width={11} height={6} color={color} />
+            <PixelBlock x={8} y={23} width={11} height={1} color={shadow} />
+            <PixelBlock x={9} y={24} width={3} height={5} color={shadow} />
+            <PixelBlock x={15} y={24} width={3} height={5} color={color} />
+            <PixelBlock x={19} y={16} width={6} height={5} color={color} />
+            <PixelBlock x={25} y={17} width={3} height={3} color={color} />
+            <PixelBlock x={26} y={20} width={2} height={1} color={tusk} />
+            <PixelBlock x={23} y={17} width={1} height={1} color={eye} />
+            <PixelBlock x={19} y={14} width={2} height={2} color={color} />
+            <PixelBlock x={5} y={19} width={3} height={2} color={shadow} />
+        </g>
+    );
+};
+
+const WildebeestSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#4B4B4B'; const shadow = '#2F2F2F'; const horn = '#D3D3D3'; const eye = '#000000';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={6} y={16} width={14} height={7} color={color} />
+            <PixelBlock x={6} y={22} width={14} height={1} color={shadow} />
+            <PixelBlock x={7} y={23} width={3} height={7} color={shadow} />
+            <PixelBlock x={16} y={23} width={3} height={7} color={color} />
+            <PixelBlock x={20} y={14} width={7} height={6} color={color} />
+            <PixelBlock x={27} y={16} width={3} height={3} color={color} />
+            <PixelBlock x={22} y={16} width={1} height={1} color={eye} />
+            <PixelBlock x={21} y={12} width={1} height={2} color={horn} />
+            <PixelBlock x={24} y={12} width={1} height={2} color={horn} />
+            <PixelBlock x={20} y={11} width={1} height={1} color={horn} />
+            <PixelBlock x={25} y={11} width={1} height={1} color={horn} />
+        </g>
+    );
+};
+
+const BaboonSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#8B7355'; const face = '#FFB6C1'; const shadow = '#5D4E37'; const eye = '#8B4513';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={10} y={17} width={9} height={6} color={color} />
+            <PixelBlock x={10} y={22} width={9} height={1} color={shadow} />
+            <PixelBlock x={11} y={23} width={2} height={5} color={shadow} />
+            <PixelBlock x={16} y={23} width={2} height={5} color={color} />
+            <PixelBlock x={19} y={15} width={5} height={5} color={color} />
+            <PixelBlock x={24} y={16} width={3} height={3} color={face} />
+            <PixelBlock x={25} y={17} width={1} height={1} color={eye} />
+            <PixelBlock x={19} y={21} width={4} height={2} color={face} />
+            <PixelBlock x={7} y={18} width={3} height={2} color={color} />
+            <PixelBlock x={12} y={14} width={3} height={3} color={color} />
+        </g>
+    );
+};
+
+const AntelopeSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#D2691E'; const white = '#FFFFFF'; const shadow = '#8B4513'; const eye = '#000000';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={8} y={17} width={10} height={5} color={color} />
+            <PixelBlock x={8} y={21} width={10} height={1} color={shadow} />
+            <PixelBlock x={9} y={22} width={2} height={7} color={shadow} />
+            <PixelBlock x={15} y={22} width={2} height={7} color={color} />
+            <PixelBlock x={18} y={15} width={6} height={5} color={color} />
+            <PixelBlock x={24} y={16} width={3} height={3} color={color} />
+            <PixelBlock x={21} y={16} width={1} height={1} color={eye} />
+            <PixelBlock x={19} y={12} width={1} height={3} color={'#2F2F2F'} />
+            <PixelBlock x={22} y={12} width={1} height={3} color={'#2F2F2F'} />
+            <PixelBlock x={13} y={19} width={3} height={2} color={white} />
+        </g>
+    );
+};
+
+// ASIAN ANIMALS
+const WaterBuffaloSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#2F2F2F'; const shadow = '#1A1A1A'; const horn = '#D3D3D3'; const eye = '#000000';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={5} y={15} width={15} height={8} color={color} />
+            <PixelBlock x={5} y={22} width={15} height={1} color={shadow} />
+            <PixelBlock x={6} y={23} width={3} height={8} color={shadow} />
+            <PixelBlock x={16} y={23} width={3} height={8} color={color} />
+            <PixelBlock x={20} y={13} width={8} height={7} color={color} />
+            <PixelBlock x={28} y={15} width={3} height={4} color={color} />
+            <PixelBlock x={23} y={15} width={1} height={1} color={eye} />
+            <PixelBlock x={19} y={11} width={3} height={2} color={horn} />
+            <PixelBlock x={25} y={11} width={3} height={2} color={horn} />
+            <PixelBlock x={18} y={10} width={1} height={1} color={horn} />
+            <PixelBlock x={28} y={10} width={1} height={1} color={horn} />
+        </g>
+    );
+};
+
+const YakSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#4B2F20'; const fur = '#8B4513'; const horn = '#F5F5DC'; const eye = '#000000';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={6} y={14} width={14} height={9} color={color} />
+            <PixelBlock x={6} y={22} width={14} height={1} color={darken(color, 0.2)} />
+            <PixelBlock x={7} y={23} width={3} height={8} color={fur} />
+            <PixelBlock x={16} y={23} width={3} height={8} color={fur} />
+            <PixelBlock x={20} y={12} width={7} height={8} color={color} />
+            <PixelBlock x={27} y={14} width={3} height={4} color={color} />
+            <PixelBlock x={22} y={14} width={1} height={1} color={eye} />
+            <PixelBlock x={20} y={10} width={2} height={2} color={horn} />
+            <PixelBlock x={24} y={10} width={2} height={2} color={horn} />
+            <PixelBlock x={5} y={18} width={16} height={5} color={fur} />
+        </g>
+    );
+};
+
+const GaurSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#1A1A1A'; const shadow = '#000000'; const horn = '#FFFFFF'; const eye = '#8B4513';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={5} y={14} width={16} height={9} color={color} />
+            <PixelBlock x={5} y={22} width={16} height={1} color={shadow} />
+            <PixelBlock x={6} y={23} width={3} height={8} color={shadow} />
+            <PixelBlock x={17} y={23} width={3} height={8} color={color} />
+            <PixelBlock x={21} y={12} width={8} height={8} color={color} />
+            <PixelBlock x={29} y={14} width={3} height={4} color={color} />
+            <PixelBlock x={24} y={14} width={1} height={1} color={eye} />
+            <PixelBlock x={22} y={10} width={2} height={2} color={horn} />
+            <PixelBlock x={26} y={10} width={2} height={2} color={horn} />
+        </g>
+    );
+};
+
+const OrangutanSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#D2691E'; const shadow = '#8B4513'; const face = '#FFB6C1'; const eye = '#000000';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={9} y={16} width={10} height={7} color={color} />
+            <PixelBlock x={9} y={22} width={10} height={1} color={shadow} />
+            <PixelBlock x={10} y={23} width={3} height={5} color={color} />
+            <PixelBlock x={15} y={23} width={3} height={5} color={color} />
+            <PixelBlock x={19} y={14} width={6} height={6} color={color} />
+            <PixelBlock x={21} y={15} width={3} height={3} color={face} />
+            <PixelBlock x={22} y={16} width={1} height={1} color={eye} />
+            <PixelBlock x={5} y={17} width={4} height={5} color={color} />
+            <PixelBlock x={19} y={17} width={4} height={5} color={color} />
+            <PixelBlock x={11} y={13} width={4} height={3} color={color} />
+        </g>
+    );
+};
+
+const TapirSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#4B4B4B'; const white = '#FFFFFF'; const shadow = '#2F2F2F'; const nose = '#FFB6C1';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={8} y={17} width={12} height={6} color={color} />
+            <PixelBlock x={8} y={22} width={12} height={1} color={shadow} />
+            <PixelBlock x={9} y={23} width={3} height={6} color={shadow} />
+            <PixelBlock x={16} y={23} width={3} height={6} color={color} />
+            <PixelBlock x={20} y={16} width={5} height={5} color={color} />
+            <PixelBlock x={25} y={17} width={3} height={2} color={nose} />
+            <PixelBlock x={28} y={18} width={1} height={2} color={nose} />
+            <PixelBlock x={22} y={17} width={1} height={1} color={'#000000'} />
+            <PixelBlock x={13} y={18} width={4} height={2} color={white} />
+        </g>
+    );
+};
+
+// AMERICAN WILDLIFE
+const CaribouSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#8B7355'; const white = '#F5F5DC'; const antler = '#D3D3D3'; const eye = '#000000';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={7} y={16} width={12} height={7} color={color} />
+            <PixelBlock x={7} y={22} width={12} height={1} color={darken(color, 0.2)} />
+            <PixelBlock x={8} y={23} width={3} height={7} color={darken(color, 0.2)} />
+            <PixelBlock x={15} y={23} width={3} height={7} color={color} />
+            <PixelBlock x={19} y={14} width={7} height={6} color={color} />
+            <PixelBlock x={26} y={15} width={3} height={3} color={color} />
+            <PixelBlock x={21} y={15} width={1} height={1} color={eye} />
+            <PixelBlock x={18} y={10} width={1} height={4} color={antler} />
+            <PixelBlock x={24} y={10} width={1} height={4} color={antler} />
+            <PixelBlock x={16} y={9} width={5} height={1} color={antler} />
+            <PixelBlock x={25} y={9} width={5} height={1} color={antler} />
+            <PixelBlock x={12} y={20} width={4} height={2} color={white} />
+        </g>
+    );
+};
+
+const ElkSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#8B4513'; const shadow = '#654321'; const antler = '#D2B48C'; const eye = '#000000';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={6} y={15} width={13} height={8} color={color} />
+            <PixelBlock x={6} y={22} width={13} height={1} color={shadow} />
+            <PixelBlock x={7} y={23} width={3} height={8} color={shadow} />
+            <PixelBlock x={15} y={23} width={3} height={8} color={color} />
+            <PixelBlock x={19} y={13} width={7} height={7} color={color} />
+            <PixelBlock x={26} y={14} width={3} height={4} color={color} />
+            <PixelBlock x={21} y={14} width={1} height={1} color={eye} />
+            <PixelBlock x={19} y={9} width={1} height={4} color={antler} />
+            <PixelBlock x={23} y={9} width={1} height={4} color={antler} />
+            <PixelBlock x={17} y={8} width={8} height={1} color={antler} />
+            <PixelBlock x={16} y={10} width={1} height={1} color={antler} />
+            <PixelBlock x={26} y={10} width={1} height={1} color={antler} />
+        </g>
+    );
+};
+
+const PeccarySprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#4B4B4B'; const shadow = '#2F2F2F'; const snout = '#FFB6C1'; const eye = '#000000';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={10} y={18} width={9} height={5} color={color} />
+            <PixelBlock x={10} y={22} width={9} height={1} color={shadow} />
+            <PixelBlock x={11} y={23} width={2} height={5} color={shadow} />
+            <PixelBlock x={16} y={23} width={2} height={5} color={color} />
+            <PixelBlock x={19} y={17} width={5} height={4} color={color} />
+            <PixelBlock x={24} y={18} width={2} height={2} color={snout} />
+            <PixelBlock x={21} y={18} width={1} height={1} color={eye} />
+            <PixelBlock x={8} y={19} width={2} height={2} color={color} />
+        </g>
+    );
+};
+
+// ARCTIC SPECIALISTS
+const MuskOxSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#4B2F20'; const fur = '#8B4513'; const horn = '#F5F5DC'; const eye = '#000000';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={5} y={14} width={16} height={9} color={color} />
+            <PixelBlock x={5} y={22} width={16} height={1} color={darken(color, 0.3)} />
+            <PixelBlock x={6} y={23} width={3} height={8} color={fur} />
+            <PixelBlock x={17} y={23} width={3} height={8} color={fur} />
+            <PixelBlock x={21} y={12} width={8} height={8} color={color} />
+            <PixelBlock x={29} y={14} width={3} height={4} color={color} />
+            <PixelBlock x={24} y={14} width={1} height={1} color={eye} />
+            <PixelBlock x={20} y={10} width={3} height={2} color={horn} />
+            <PixelBlock x={26} y={10} width={3} height={2} color={horn} />
+            <PixelBlock x={19} y={11} width={1} height={1} color={horn} />
+            <PixelBlock x={29} y={11} width={1} height={1} color={horn} />
+            <PixelBlock x={4} y={17} width={18} height={6} color={fur} />
+        </g>
+    );
+};
+
+const WalrusSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#8B7355'; const shadow = '#5D4E37'; const tusk = '#FFFAF0'; const eye = '#000000';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-waddle' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={6} y={16} width={18} height={8} color={color} />
+            <PixelBlock x={6} y={23} width={18} height={1} color={shadow} />
+            <PixelBlock x={8} y={24} width={4} height={4} color={shadow} />
+            <PixelBlock x={18} y={24} width={4} height={4} color={color} />
+            <PixelBlock x={24} y={15} width={5} height={6} color={color} />
+            <PixelBlock x={26} y={16} width={1} height={1} color={eye} />
+            <PixelBlock x={25} y={21} width={1} height={3} color={tusk} />
+            <PixelBlock x={27} y={21} width={1} height={3} color={tusk} />
+            <PixelBlock x={29} y={17} width={2} height={3} color={shadow} />
+        </g>
+    );
+};
+
+// MOUNTAIN SPECIALIST
+const IbexSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#8B7355'; const white = '#F5F5DC'; const horn = '#4B4B4B'; const eye = '#000000';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={9} y={17} width={10} height={6} color={color} />
+            <PixelBlock x={9} y={22} width={10} height={1} color={darken(color, 0.2)} />
+            <PixelBlock x={10} y={23} width={2} height={7} color={darken(color, 0.2)} />
+            <PixelBlock x={16} y={23} width={2} height={7} color={color} />
+            <PixelBlock x={19} y={15} width={6} height={5} color={color} />
+            <PixelBlock x={25} y={16} width={3} height={3} color={color} />
+            <PixelBlock x={21} y={16} width={1} height={1} color={eye} />
+            <PixelBlock x={20} y={11} width={1} height={4} color={horn} />
+            <PixelBlock x={23} y={11} width={1} height={4} color={horn} />
+            <PixelBlock x={19} y={10} width={1} height={1} color={horn} />
+            <PixelBlock x={24} y={10} width={1} height={1} color={horn} />
+            <PixelBlock x={14} y={20} width={3} height={2} color={white} />
+        </g>
+    );
+};
+
+// AQUATIC ANIMALS
+const FishSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#4682B4'; const fin = '#87CEEB'; const eye = '#000000';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-swim' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={10} y={18} width={12} height={4} color={color} />
+            <PixelBlock x={22} y={17} width={3} height={6} color={color} />
+            <PixelBlock x={12} y={19} width={1} height={1} color={eye} />
+            <PixelBlock x={8} y={17} width={2} height={6} color={fin} />
+            <PixelBlock x={25} y={16} width={3} height={8} color={fin} />
+            <PixelBlock x={14} y={16} width={2} height={1} color={fin} />
+            <PixelBlock x={14} y={23} width={2} height={1} color={fin} />
+        </g>
+    );
+};
+
+const JellyfishSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#FFB6C1'; const tentacle = '#FF69B4';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-float' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <ellipse cx="16" cy="16" rx="6" ry="4" fill={color} opacity="0.7" />
+            <ellipse cx="16" cy="16" rx="4" ry="3" fill={color} opacity="0.5" />
+            <PixelBlock x={12} y={20} width={1} height={6} color={tentacle} opacity="0.6" />
+            <PixelBlock x={14} y={20} width={1} height={7} color={tentacle} opacity="0.6" />
+            <PixelBlock x={16} y={20} width={1} height={8} color={tentacle} opacity="0.6" />
+            <PixelBlock x={18} y={20} width={1} height={7} color={tentacle} opacity="0.6" />
+            <PixelBlock x={20} y={20} width={1} height={6} color={tentacle} opacity="0.6" />
+        </g>
+    );
+};
+
+const WhaleSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#2F4F4F'; const white = '#F5F5DC'; const eye = '#000000';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-swim' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <ellipse cx="15" cy="18" rx="12" ry="6" fill={color} />
+            <ellipse cx="15" cy="18" rx="11" ry="5" fill={darken(color, 0.1)} />
+            <PixelBlock x={8} y={17} width={1} height={1} color={eye} />
+            <PixelBlock x={10} y={22} width={10} height={2} color={white} />
+            <PixelBlock x={26} y={16} width={4} height={5} color={color} />
+            <PixelBlock x={2} y={16} width={3} height={5} color={color} />
+            <PixelBlock x={14} y={12} width={1} height={3} color={'#87CEEB'} opacity="0.5" />
+            <PixelBlock x={16} y={11} width={1} height={4} color={'#87CEEB'} opacity="0.5" />
+        </g>
+    );
+};
+
+const FlotsomSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const wood = '#8B4513'; const rope = '#D2B48C';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-float' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={8} y={18} width={15} height={2} color={wood} />
+            <PixelBlock x={10} y={16} width={10} height={2} color={wood} />
+            <PixelBlock x={12} y={20} width={6} height={2} color={wood} />
+            <PixelBlock x={8} y={17} width={2} height={1} color={rope} />
+            <PixelBlock x={20} y={19} width={2} height={1} color={rope} />
+            <PixelBlock x={14} y={15} width={1} height={3} color={rope} />
+        </g>
+    );
+};
+
+// SPECIAL BIRD
+const FlamingoSprite: React.FC<{ animation: string }> = ({ animation }) => {
+    const color = '#FF69B4'; const leg = '#FFB6C1'; const beak = '#000000'; const eye = '#000000';
+    
+    return (
+        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            <PixelBlock x={14} y={14} width={7} height={8} color={color} />
+            <PixelBlock x={21} y={12} width={4} height={4} color={color} />
+            <PixelBlock x={25} y={13} width={2} height={2} color={beak} />
+            <PixelBlock x={23} y={13} width={1} height={1} color={eye} />
+            <PixelBlock x={16} y={22} width={1} height={8} color={leg} />
+            <PixelBlock x={18} y={22} width={1} height={8} color={leg} />
+            <PixelBlock x={11} y={16} width={3} height={4} color={color} />
+            <PixelBlock x={10} y={17} width={1} height={2} color={color} />
+        </g>
+    );
+};
+
 const ButterflySprite: React.FC<{ animation: string }> = ({ animation }) => {
     const body = '#000000'; const wing1 = '#FF69B4'; const wing2 = '#FFB6C1'; const dot = '#FFFFFF';
     
@@ -963,6 +1558,47 @@ const AnimalCombatSprite: React.FC<AnimalCombatSpriteProps> = ({
     size = 128,
     facing
 }) => {
+    // Get animation class based on animal type and animation state
+    const getAnimationClass = () => {
+        const animalType = animal.type?.toLowerCase() || 'domestic';
+        const baseId = animal.baseId?.toUpperCase() || '';
+        
+        // Idle animations based on type
+        if (animation === 'idle') {
+            if (['LION', 'TIGER', 'LEOPARD', 'JAGUAR', 'CHEETAH', 'COUGAR'].includes(baseId)) return 'animate-prowl';
+            if (['EAGLE', 'HAWK', 'OWL', 'VULTURE', 'FALCON'].includes(baseId)) return 'animate-soar';
+            if (['ELEPHANT', 'RHINOCEROS', 'HIPPOPOTAMUS'].includes(baseId)) return 'animate-stampede';
+            if (['SHARK', 'DOLPHIN', 'WHALE', 'ORCA'].includes(baseId)) return 'animate-swim-attack';
+            if (['SNAKE', 'PYTHON', 'COBRA', 'VIPER'].includes(baseId)) return 'animate-slither';
+            if (['WOLF', 'HYENA', 'WILD_DOG', 'COYOTE'].includes(baseId)) return 'animate-pack-circle';
+            if (['GORILLA', 'CHIMPANZEE', 'ORANGUTAN', 'BABOON', 'MONKEY'].includes(baseId)) return 'animate-swing';
+            return '';
+        }
+        
+        // Attack animations
+        if (animation === 'attacking' || animation === 'attack') {
+            if (animalType === 'predator' || ['LION', 'TIGER', 'LEOPARD'].includes(baseId)) return 'animate-pounce';
+            if (animalType === 'bird' || ['EAGLE', 'HAWK', 'OWL'].includes(baseId)) return 'animate-dive';
+            if (animalType === 'large herbivore' || ['RHINOCEROS', 'ELEPHANT', 'BISON'].includes(baseId)) return 'animate-charge';
+            if (animalType === 'aquatic' || ['SHARK', 'CROCODILE'].includes(baseId)) return 'animate-breach';
+            if (animalType === 'venomous' || ['SNAKE', 'SPIDER'].includes(baseId)) return 'animate-strike';
+            if (animalType === 'pack' || ['WOLF', 'HYENA'].includes(baseId)) return 'animate-howl';
+            if (['GORILLA', 'BEAR'].includes(baseId)) return 'animate-pound';
+            return 'animate-fury';
+        }
+        
+        // Special attack animation
+        if (animation === 'special') {
+            return 'animate-fury';
+        }
+        
+        // Damaged animation
+        if (animation === 'damaged') {
+            return 'animate-earthquake';
+        }
+        
+        return '';
+    };
     const renderSprite = () => {
         switch(animal.baseId.toUpperCase()) {
             // Small Animals
@@ -984,6 +1620,12 @@ const AnimalCombatSprite: React.FC<AnimalCombatSpriteProps> = ({
             case 'BADGER': return <BadgerSprite animation={animation} />;
             case 'BUTTERFLY': return <ButterflySprite animation={animation} />;
             case 'PENGUIN': return <PenguinSprite animation={animation} />;
+            case 'DUCK': return <DuckSprite animation={animation} />;
+            
+            // Companion Animals
+            case 'DOG': return <DogSprite animation={animation} />;
+            case 'CAT': return <CatSprite animation={animation} />;
+            case 'PIG': return <PigSprite animation={animation} />;
             
             // Human-sized Animals
             case 'DEER': return <DeerSprite animation={animation} />;
@@ -994,6 +1636,8 @@ const AnimalCombatSprite: React.FC<AnimalCombatSpriteProps> = ({
             case 'WILD_HORSE': return <WildHorseSprite animation={animation} />;
             case 'KANGAROO': return <KangarooSprite animation={animation} />;
             case 'LLAMA': return <LlamaSprite animation={animation} />;
+            case 'DONKEY': return <DonkeySprite animation={animation} />;
+            case 'MULE': return <MuleSprite animation={animation} />;
             
             // Large Animals
             case 'LION': return <LionSprite animation={animation} />;
@@ -1001,6 +1645,38 @@ const AnimalCombatSprite: React.FC<AnimalCombatSpriteProps> = ({
             case 'LEOPARD': return <LeopardSprite animation={animation} />;
             case 'COW': return <CowSprite animation={animation} />;
             case 'EAGLE': return <EagleSprite animation={animation} />;
+            case 'JAGUAR': return <JaguarSprite animation={animation} />;
+            case 'PUMA': return <PumaSprite animation={animation} />;
+            case 'HYENA': return <HyenaSprite animation={animation} />;
+            case 'CHEETAH': return <CheetahSprite animation={animation} />;
+            
+            // African Wildlife
+            case 'WARTHOG': return <WarthogSprite animation={animation} />;
+            case 'WILDEBEEST': return <WildebeestSprite animation={animation} />;
+            case 'BABOON': return <BaboonSprite animation={animation} />;
+            case 'ANTELOPE': return <AntelopeSprite animation={animation} />;
+            
+            // Asian Animals
+            case 'WATER_BUFFALO': return <WaterBuffaloSprite animation={animation} />;
+            case 'YAK': return <YakSprite animation={animation} />;
+            case 'GAUR': return <GaurSprite animation={animation} />;
+            case 'ORANGUTAN': return <OrangutanSprite animation={animation} />;
+            case 'TAPIR': return <TapirSprite animation={animation} />;
+            
+            // American Wildlife
+            case 'CARIBOU': return <CaribouSprite animation={animation} />;
+            case 'ELK': return <ElkSprite animation={animation} />;
+            case 'PECCARY': return <PeccarySprite animation={animation} />;
+            
+            // Arctic Specialists
+            case 'MUSK_OX': return <MuskOxSprite animation={animation} />;
+            case 'WALRUS': return <WalrusSprite animation={animation} />;
+            
+            // Mountain Specialist
+            case 'IBEX': return <IbexSprite animation={animation} />;
+            
+            // Special Birds
+            case 'FLAMINGO': return <FlamingoSprite animation={animation} />;
             
             // Very Large Animals
             case 'ELEPHANT': return <ElephantSprite animation={animation} />;
@@ -1018,6 +1694,10 @@ const AnimalCombatSprite: React.FC<AnimalCombatSpriteProps> = ({
             case 'CROCODILE': return <CrocodileSprite animation={animation} />;
             case 'LOBSTER': return <LobsterSprite animation={animation} />;
             case 'OCTOPUS': return <OctopusSprite animation={animation} />;
+            case 'FISH': return <FishSprite animation={animation} />;
+            case 'JELLYFISH': return <JellyfishSprite animation={animation} />;
+            case 'WHALE': return <WhaleSprite animation={animation} />;
+            case 'FLOTSAM': return <FlotsomSprite animation={animation} />;
             
             // Reptiles
             case 'SNAKE': return <SnakeSprite animation={animation} />;
@@ -1028,20 +1708,29 @@ const AnimalCombatSprite: React.FC<AnimalCombatSpriteProps> = ({
     };
 
     return (
-        <svg viewBox="0 0 80 80" width={size} height={size} style={{ imageRendering: 'pixelated' }}>
-            <defs>
-                <filter id="predatorGlow">
-                    <feDropShadow dx="0" dy="0" stdDeviation="1" floodColor="#dc2626" floodOpacity="0.3"/>
-                </filter>
-            </defs>
-            <g style={{ 
-                filter: animal.type === 'Predator' ? 'url(#predatorGlow)' : 'none',
-                transform: facing === 'left' ? 'scaleX(-1)' : 'scaleX(1)',
-                transformOrigin: 'center'
-            }}>
-                {renderSprite()}
-            </g>
-        </svg>
+        <div className={getAnimationClass()} style={{
+            width: `${size}px`,
+            height: `${size}px`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transformOrigin: 'center center'
+        }}>
+            <svg viewBox="0 0 80 80" width={size} height={size} style={{ imageRendering: 'pixelated' }}>
+                <defs>
+                    <filter id="predatorGlow">
+                        <feDropShadow dx="0" dy="0" stdDeviation="1" floodColor="#dc2626" floodOpacity="0.3"/>
+                    </filter>
+                </defs>
+                <g style={{ 
+                    filter: animal.type === 'Predator' ? 'url(#predatorGlow)' : 'none',
+                    transform: facing === 'left' ? 'scaleX(-1)' : 'scaleX(1)',
+                    transformOrigin: 'center'
+                }}>
+                    {renderSprite()}
+                </g>
+            </svg>
+        </div>
     );
 };
 

@@ -1,373 +1,487 @@
 /**
- * components/symbols/government/specialMap/ChairSymbol.tsx
- * Chair symbols for special maps that vary by cultural zone and era
+ * ChairSymbol.tsx
+ * Beautiful Stardew Valley-style chair with cultural variations
+ * Detailed 32x32 base for elegant pixel art aesthetic
  */
 
 import React from 'react';
 import { CulturalZone, HistoricalEra } from '../../../../types';
 
 interface ChairSymbolProps {
-  culturalZone: CulturalZone;
-  era: HistoricalEra;
+  x?: number;
+  y?: number;
+  size?: number;
+  culturalZone: CulturalZone | string;
+  era: HistoricalEra | number;
   variant?: 'simple' | 'throne' | 'cushion' | 'bench';
+  rotation?: number; // 0 = facing south, 90 = east, 180 = north, 270 = west
+  seed?: number;
 }
 
 export const ChairSymbol: React.FC<ChairSymbolProps> = ({ 
+  x = 0,
+  y = 0,
+  size = 32,
   culturalZone, 
   era, 
-  variant = 'simple' 
+  variant = 'simple',
+  rotation = 0,
+  seed = 0
 }) => {
+  // Stardew/FF6 style pixel size for beautiful detail
+  const pixelSize = size / 32;
+  
   const getChairStyle = () => {
     switch (culturalZone) {
       case 'EUROPEAN':
-        if (era === 'ANTIQUITY') {
-          // Roman curule chair or klismos
+        if (era === 'ANTIQUITY' || era === -500) {
           return {
-            type: 'curved-legs',
-            color: '#8B4513',
-            material: 'bronze-wood',
+            baseColor: '#A0713A',    // Rich wood
+            darkColor: '#7A5530',     // Deep shadow
+            lightColor: '#C4955A',    // Highlight
+            cushionColor: '#E84A4A',  // Rich red
+            hasCushion: true,
             hasBack: true,
-            hasCushion: true
+            style: 'roman'
           };
-        } else if (era === 'MEDIEVAL') {
-          // Heavy wooden chair or throne
+        } else if (era === 'MEDIEVAL' || era === 1200) {
           return {
-            type: variant === 'throne' ? 'high-backed-throne' : 'wooden-chair',
-            color: '#654321',
-            material: 'oak',
+            baseColor: '#7A5C3A',    // Warm oak
+            darkColor: '#5A4030',     // Deep wood shadow,
+            lightColor: '#8B6F47',
+            cushionColor: variant === 'throne' ? '#4B0082' : null,
+            hasCushion: variant === 'throne',
             hasBack: true,
-            hasArms: variant === 'throne'
+            hasArms: variant === 'throne',
+            style: 'medieval'
           };
-        } else if (era === 'RENAISSANCE_EARLY_MODERN') {
-          // Ornate upholstered chair
+        } else if (era === 'RENAISSANCE_EARLY_MODERN' || era === 1500) {
           return {
-            type: 'upholstered',
-            color: '#8B0000',
-            material: 'velvet-wood',
+            baseColor: '#8B4513',
+            darkColor: '#654321',
+            lightColor: '#CD853F',
+            cushionColor: '#8B0000',
+            hasCushion: true,
             hasBack: true,
             hasArms: true,
-            decorative: true
+            style: 'renaissance'
           };
         } else {
-          // Modern chair
           return {
-            type: 'modern',
-            color: '#696969',
-            material: 'metal-plastic',
-            hasBack: true
+            baseColor: '#696969',
+            darkColor: '#4A4A4A',
+            lightColor: '#A9A9A9',
+            cushionColor: '#4169E1',
+            hasCushion: true,
+            hasBack: true,
+            style: 'modern'
           };
         }
 
       case 'EAST_ASIAN':
-        if (era === 'MEDIEVAL' || era === 'RENAISSANCE_EARLY_MODERN') {
-          // Floor cushions or low stools
+        if (era === 'MEDIEVAL' || era === 'RENAISSANCE_EARLY_MODERN' || era === 1200 || era === 1500) {
           return {
-            type: variant === 'cushion' ? 'zabuton' : 'low-stool',
-            color: variant === 'cushion' ? '#DC143C' : '#8B4513',
-            material: variant === 'cushion' ? 'silk' : 'bamboo',
-            hasBack: false
+            baseColor: '#8B4513',
+            darkColor: '#654321',
+            lightColor: '#D2691E',
+            cushionColor: '#DC143C',
+            hasCushion: variant === 'cushion',
+            hasBack: false,
+            isLow: true,
+            style: 'asian-low'
           };
         } else {
           return {
-            type: 'modern',
-            color: '#2F4F4F',
-            material: 'modern',
-            hasBack: true
+            baseColor: '#2F4F4F',
+            darkColor: '#1C3636',
+            lightColor: '#4A6666',
+            cushionColor: '#708090',
+            hasCushion: true,
+            hasBack: true,
+            style: 'modern'
           };
         }
 
       case 'MENA':
-        // Floor cushions, divans, or low stools
-        if (era === 'MEDIEVAL' || era === 'RENAISSANCE_EARLY_MODERN') {
-          return {
-            type: variant === 'bench' ? 'divan' : 'cushion',
-            color: '#8B008B',
-            material: 'cushioned',
-            hasBack: variant === 'bench',
-            decorative: true
-          };
-        } else {
-          return {
-            type: 'modern',
-            color: '#696969',
-            material: 'modern',
-            hasBack: true
-          };
-        }
+        return {
+          baseColor: '#8B4513',
+          darkColor: '#654321',
+          lightColor: '#CD853F',
+          cushionColor: '#8B008B',
+          hasCushion: true,
+          hasBack: variant === 'bench',
+          isLow: era !== 'MODERN_ERA' && era !== 1900,
+          style: 'middle-eastern'
+        };
 
       case 'SOUTH_ASIAN':
-        // Floor seating or low carved chairs
         return {
-          type: era === 'MODERN_ERA' ? 'chair' : 'floor-cushion',
-          color: '#DC143C',
-          material: 'silk-cotton',
-          hasBack: era === 'MODERN_ERA',
-          decorative: true
+          baseColor: '#8B4513',
+          darkColor: '#654321',
+          lightColor: '#D2691E',
+          cushionColor: '#DC143C',
+          hasCushion: true,
+          hasBack: era === 'MODERN_ERA' || era === 1900,
+          isLow: era !== 'MODERN_ERA' && era !== 1900,
+          style: 'south-asian'
         };
 
       case 'SUB_SAHARAN_AFRICAN':
-        // Carved stools or modern chairs
         return {
-          type: era === 'MODERN_ERA' ? 'chair' : 'carved-stool',
-          color: '#654321',
-          material: 'carved-wood',
-          hasBack: era === 'MODERN_ERA',
-          decorative: true
+          baseColor: '#654321',
+          darkColor: '#4A3626',
+          lightColor: '#8B6F47',
+          cushionColor: null,
+          hasCushion: false,
+          hasBack: era === 'MODERN_ERA' || era === 1900,
+          hasCarving: true,
+          style: 'african'
         };
 
       case 'NORTH_AMERICAN_PRE_COLUMBIAN':
       case 'SOUTH_AMERICAN':
-        // Stone seats or woven seats
         return {
-          type: variant === 'throne' ? 'stone-throne' : 'woven-seat',
-          color: variant === 'throne' ? '#696969' : '#DEB887',
-          material: variant === 'throne' ? 'stone' : 'woven-reed',
-          hasBack: variant === 'throne'
+          baseColor: variant === 'throne' ? '#696969' : '#DEB887',
+          darkColor: variant === 'throne' ? '#4A4A4A' : '#B8956F',
+          lightColor: variant === 'throne' ? '#808080' : '#F5DEB3',
+          cushionColor: null,
+          hasCushion: false,
+          hasBack: variant === 'throne',
+          style: variant === 'throne' ? 'stone' : 'woven'
         };
 
       case 'OCEANIA':
-        // Woven mats or carved stools
         return {
-          type: 'mat',
-          color: '#D2B48C',
-          material: 'woven',
-          hasBack: false
+          baseColor: '#D2B48C',
+          darkColor: '#B8956F',
+          lightColor: '#F5DEB3',
+          cushionColor: null,
+          hasCushion: false,
+          hasBack: false,
+          isLow: true,
+          style: 'woven'
         };
 
       default:
         return {
-          type: 'simple-chair',
-          color: '#8B4513',
-          material: 'wood',
-          hasBack: true
+          baseColor: '#8B4513',
+          darkColor: '#654321',
+          lightColor: '#A0522D',
+          cushionColor: null,
+          hasCushion: false,
+          hasBack: true,
+          style: 'simple'
         };
     }
   };
 
   const style = getChairStyle();
 
-  // Render different chair types
-  if (style.type === 'cushion' || style.type === 'zabuton' || style.type === 'floor-cushion') {
-    // Floor cushion
+  // Apply rotation transform
+  const rotationTransform = rotation !== 0 ? `rotate(${rotation} ${size/2} ${size/2})` : undefined;
+
+  // SNES pixel art style rendering
+  if (style.isLow && variant === 'cushion') {
+    // Floor cushion (like in Final Fantasy 6)
     return (
-      <g className="chair-symbol">
-        {/* Cushion base */}
-        <ellipse 
-          cx={25} 
-          cy={28} 
-          rx={12} 
-          ry={8} 
-          fill={style.color}
-          stroke="#000000"
-          strokeWidth={0.5}
-        />
-        
-        {/* Cushion detail */}
-        <ellipse 
-          cx={25} 
-          cy={26} 
-          rx={10} 
-          ry={6} 
-          fill={style.color}
-          stroke="#000000"
-          strokeWidth={0.3}
-          opacity={0.8}
-        />
-        
-        {/* Decorative pattern */}
-        {style.decorative && (
-          <circle cx={25} cy={26} r={3} fill="none" stroke="#FFD700" strokeWidth={0.3} opacity={0.6} />
-        )}
+      <g transform={`translate(${x}, ${y})`}>
+        <g transform={rotationTransform}>
+          {/* Shadow */}
+          <rect 
+            x={pixelSize * 2} 
+            y={pixelSize * 11} 
+            width={pixelSize * 12} 
+            height={pixelSize * 3} 
+            fill="#000000" 
+            opacity={0.3}
+          />
+          
+          {/* Main cushion body */}
+          <rect 
+            x={pixelSize * 3} 
+            y={pixelSize * 9} 
+            width={pixelSize * 10} 
+            height={pixelSize * 4} 
+            fill={style.cushionColor}
+          />
+          
+          {/* Top highlight */}
+          <rect 
+            x={pixelSize * 3} 
+            y={pixelSize * 9} 
+            width={pixelSize * 10} 
+            height={pixelSize} 
+            fill={style.lightColor}
+            opacity={0.5}
+          />
+          
+          {/* Side shading for depth */}
+          <rect 
+            x={pixelSize * 3} 
+            y={pixelSize * 12} 
+            width={pixelSize * 10} 
+            height={pixelSize} 
+            fill={style.darkColor}
+            opacity={0.5}
+          />
+          
+          {/* Decorative center pattern */}
+          {style.style === 'middle-eastern' && (
+            <rect 
+              x={pixelSize * 6} 
+              y={pixelSize * 10} 
+              width={pixelSize * 4} 
+              height={pixelSize * 2} 
+              fill="#FFD700"
+              opacity={0.3}
+            />
+          )}
+        </g>
       </g>
     );
-  } else if (style.type === 'mat') {
-    // Woven mat
+  } else if (style.isLow && !variant) {
+    // Low stool (Asian/African style)
     return (
-      <g className="chair-symbol">
-        <rect 
-          x={15} 
-          y={20} 
-          width={20} 
-          height={15} 
-          fill={style.color}
-          stroke="#000000"
-          strokeWidth={0.5}
-        />
-        
-        {/* Weave pattern */}
-        {[22, 25, 28, 31].map(y => (
-          <line key={y} x1={15} y1={y} x2={35} y2={y} stroke="#8B7355" strokeWidth={0.3} opacity={0.5} />
-        ))}
-        {[18, 21, 24, 27, 30, 33].map(x => (
-          <line key={x} x1={x} y1={20} x2={x} y2={35} stroke="#8B7355" strokeWidth={0.3} opacity={0.5} />
-        ))}
+      <g transform={`translate(${x}, ${y})`}>
+        <g transform={rotationTransform}>
+          {/* Shadow */}
+          <rect 
+            x={pixelSize * 3} 
+            y={pixelSize * 12} 
+            width={pixelSize * 10} 
+            height={pixelSize * 2} 
+            fill="#000000" 
+            opacity={0.3}
+          />
+          
+          {/* Seat */}
+          <rect 
+            x={pixelSize * 4} 
+            y={pixelSize * 9} 
+            width={pixelSize * 8} 
+            height={pixelSize * 3} 
+            fill={style.baseColor}
+          />
+          
+          {/* Top surface */}
+          <rect 
+            x={pixelSize * 4} 
+            y={pixelSize * 9} 
+            width={pixelSize * 8} 
+            height={pixelSize} 
+            fill={style.lightColor}
+            opacity={0.5}
+          />
+          
+          {/* Legs - pixel style */}
+          <rect x={pixelSize * 5} y={pixelSize * 11} width={pixelSize * 2} height={pixelSize * 2} fill={style.darkColor} />
+          <rect x={pixelSize * 9} y={pixelSize * 11} width={pixelSize * 2} height={pixelSize * 2} fill={style.darkColor} />
+          
+          {/* Carving detail for African style */}
+          {style.hasCarving && (
+            <>
+              <rect x={pixelSize * 6} y={pixelSize * 10} width={pixelSize} height={pixelSize} fill={style.darkColor} opacity={0.3} />
+              <rect x={pixelSize * 9} y={pixelSize * 10} width={pixelSize} height={pixelSize} fill={style.darkColor} opacity={0.3} />
+            </>
+          )}
+        </g>
       </g>
     );
-  } else if (style.type === 'carved-stool' || style.type === 'low-stool') {
-    // African/Asian carved stool
+  } else if (variant === 'throne') {
+    // Throne - SNES RPG style (like in Chrono Trigger)
     return (
-      <g className="chair-symbol">
-        {/* Seat */}
-        <ellipse 
-          cx={25} 
-          cy={22} 
-          rx={10} 
-          ry={6} 
-          fill={style.color}
-          stroke="#000000"
-          strokeWidth={0.5}
-        />
-        
-        {/* Carved legs */}
-        <path 
-          d="M 20 24 L 19 32 M 30 24 L 31 32 M 25 24 L 25 32"
-          stroke={style.color}
-          strokeWidth={2}
-          opacity={0.8}
-        />
-        
-        {/* Carved decoration */}
-        {style.decorative && (
-          <>
-            <circle cx={20} cy={22} r={1.5} fill="none" stroke="#4A3C2A" strokeWidth={0.3} opacity={0.5} />
-            <circle cx={30} cy={22} r={1.5} fill="none" stroke="#4A3C2A" strokeWidth={0.3} opacity={0.5} />
-          </>
-        )}
-      </g>
-    );
-  } else if (style.type === 'high-backed-throne') {
-    // Medieval/royal throne
-    return (
-      <g className="chair-symbol">
-        {/* High back */}
-        <rect 
-          x={18} 
-          y={8} 
-          width={14} 
-          height={20} 
-          fill={style.color}
-          stroke="#000000"
-          strokeWidth={0.5}
-        />
-        
-        {/* Seat */}
-        <rect 
-          x={17} 
-          y={25} 
-          width={16} 
-          height={8} 
-          fill={style.color}
-          stroke="#000000"
-          strokeWidth={0.5}
-        />
-        
-        {/* Arms */}
-        <rect x={15} y={23} width={3} height={8} fill={style.color} opacity={0.8} />
-        <rect x={32} y={23} width={3} height={8} fill={style.color} opacity={0.8} />
-        
-        {/* Decorative crown on top */}
-        <polygon 
-          points="20,8 22,5 25,7 28,5 30,8"
-          fill="#FFD700"
-          stroke="#000000"
-          strokeWidth={0.3}
-        />
-        
-        {/* Legs */}
-        <rect x={18} y={33} width={2} height={5} fill={style.color} opacity={0.7} />
-        <rect x={30} y={33} width={2} height={5} fill={style.color} opacity={0.7} />
-      </g>
-    );
-  } else if (style.type === 'divan') {
-    // Middle Eastern divan/bench
-    return (
-      <g className="chair-symbol">
-        {/* Long cushioned seat */}
-        <rect 
-          x={10} 
-          y={24} 
-          width={30} 
-          height={10} 
-          rx={2}
-          fill={style.color}
-          stroke="#000000"
-          strokeWidth={0.5}
-        />
-        
-        {/* Back cushions */}
-        <rect 
-          x={10} 
-          y={18} 
-          width={30} 
-          height={7} 
-          rx={2}
-          fill={style.color}
-          stroke="#000000"
-          strokeWidth={0.5}
-          opacity={0.8}
-        />
-        
-        {/* Decorative pattern */}
-        <path 
-          d="M 15 28 Q 25 26 35 28"
-          stroke="#FFD700"
-          strokeWidth={0.3}
-          fill="none"
-          opacity={0.6}
-        />
-        
-        {/* Ornate legs */}
-        <ellipse cx={15} cy={35} rx={2} ry={1} fill={style.color} opacity={0.7} />
-        <ellipse cx={35} cy={35} rx={2} ry={1} fill={style.color} opacity={0.7} />
+      <g transform={`translate(${x}, ${y})`}>
+        <g transform={rotationTransform}>
+          {/* Shadow */}
+          <rect 
+            x={pixelSize * 2} 
+            y={pixelSize * 13} 
+            width={pixelSize * 12} 
+            height={pixelSize * 2} 
+            fill="#000000" 
+            opacity={0.3}
+          />
+          
+          {/* High back */}
+          <rect 
+            x={pixelSize * 4} 
+            y={pixelSize * 2} 
+            width={pixelSize * 8} 
+            height={pixelSize * 9} 
+            fill={style.baseColor}
+          />
+          
+          {/* Back highlight */}
+          <rect 
+            x={pixelSize * 4} 
+            y={pixelSize * 2} 
+            width={pixelSize * 8} 
+            height={pixelSize} 
+            fill={style.lightColor}
+          />
+          
+          {/* Crown decoration on top */}
+          <rect x={pixelSize * 5} y={pixelSize} width={pixelSize * 2} height={pixelSize * 2} fill="#FFD700" />
+          <rect x={pixelSize * 7} y={pixelSize * 1.5} width={pixelSize} height={pixelSize} fill="#FFD700" />
+          <rect x={pixelSize * 8} y={pixelSize} width={pixelSize * 2} height={pixelSize * 2} fill="#FFD700" />
+          
+          {/* Seat */}
+          <rect 
+            x={pixelSize * 3} 
+            y={pixelSize * 10} 
+            width={pixelSize * 10} 
+            height={pixelSize * 3} 
+            fill={style.baseColor}
+          />
+          
+          {/* Arms - pixel blocky style */}
+          <rect x={pixelSize * 2} y={pixelSize * 9} width={pixelSize * 2} height={pixelSize * 4} fill={style.baseColor} />
+          <rect x={pixelSize * 12} y={pixelSize * 9} width={pixelSize * 2} height={pixelSize * 4} fill={style.baseColor} />
+          
+          {/* Cushion on seat */}
+          {style.hasCushion && (
+            <rect 
+              x={pixelSize * 4} 
+              y={pixelSize * 10} 
+              width={pixelSize * 8} 
+              height={pixelSize * 2} 
+              fill={style.cushionColor}
+              opacity={0.8}
+            />
+          )}
+          
+          {/* Legs */}
+          <rect x={pixelSize * 4} y={pixelSize * 12} width={pixelSize * 2} height={pixelSize * 2} fill={style.darkColor} />
+          <rect x={pixelSize * 10} y={pixelSize * 12} width={pixelSize * 2} height={pixelSize * 2} fill={style.darkColor} />
+        </g>
       </g>
     );
   } else {
-    // Standard chair with back
+    // Standard chair - SNES pixel art style with improved 3/4 perspective
     return (
-      <g className="chair-symbol">
-        {/* Back */}
-        {style.hasBack && (
-          <rect 
-            x={20} 
-            y={15} 
-            width={10} 
-            height={12} 
-            fill={style.color}
-            stroke="#000000"
-            strokeWidth={0.5}
+      <g transform={`translate(${x}, ${y})`}>
+        <g transform={rotationTransform}>
+          {/* Shadow - elliptical for realism */}
+          <ellipse 
+            cx={pixelSize * 8} 
+            cy={pixelSize * 14.5} 
+            rx={pixelSize * 5} 
+            ry={pixelSize * 1.5} 
+            fill="#000000" 
+            opacity={0.3}
           />
-        )}
-        
-        {/* Seat */}
-        <rect 
-          x={18} 
-          y={25} 
-          width={14} 
-          height={8} 
-          fill={style.color}
-          stroke="#000000"
-          strokeWidth={0.5}
-        />
-        
-        {/* Arms */}
-        {style.hasArms && (
-          <>
-            <rect x={16} y={23} width={3} height={8} fill={style.color} opacity={0.8} />
-            <rect x={31} y={23} width={3} height={8} fill={style.color} opacity={0.8} />
-          </>
-        )}
-        
-        {/* Upholstery detail */}
-        {style.type === 'upholstered' && (
-          <>
-            <rect x={19} y={26} width={12} height={6} fill={style.color} opacity={0.6} rx={1} />
-            <circle cx={25} cy={20} r={1} fill="#FFD700" opacity={0.5} />
-          </>
-        )}
-        
-        {/* Legs */}
-        <rect x={19} y={33} width={2} height={5} fill={style.color} opacity={0.7} />
-        <rect x={29} y={33} width={2} height={5} fill={style.color} opacity={0.7} />
+          
+          {/* Back legs first (3/4 perspective) */}
+          {style.hasBack && (
+            <>
+              <rect x={pixelSize * 5.5} y={pixelSize * 5} width={pixelSize * 0.8} height={pixelSize * 7} fill={style.darkColor} />
+              <rect x={pixelSize * 9.7} y={pixelSize * 5} width={pixelSize * 0.8} height={pixelSize * 7} fill={style.darkColor} />
+            </>
+          )}
+          
+          {/* Back panel (if has back) - with 3/4 perspective */}
+          {style.hasBack && (
+            <>
+              {/* Back panel main surface */}
+              <polygon 
+                points={`${pixelSize * 5.5},${pixelSize * 6} ${pixelSize * 10.5},${pixelSize * 6} ${pixelSize * 11},${pixelSize * 6.5} ${pixelSize * 11},${pixelSize * 9} ${pixelSize * 10.5},${pixelSize * 8.5} ${pixelSize * 5.5},${pixelSize * 8.5}`} 
+                fill={style.baseColor}
+              />
+              
+              {/* Back panel right side (3D edge) */}
+              <polygon 
+                points={`${pixelSize * 10.5},${pixelSize * 6} ${pixelSize * 11},${pixelSize * 6.5} ${pixelSize * 11},${pixelSize * 9} ${pixelSize * 10.5},${pixelSize * 8.5}`} 
+                fill={style.darkColor}
+                opacity={0.6}
+              />
+              
+              {/* Back panel top edge highlight */}
+              <polygon 
+                points={`${pixelSize * 5.5},${pixelSize * 6} ${pixelSize * 10.5},${pixelSize * 6} ${pixelSize * 11},${pixelSize * 6.5} ${pixelSize * 6},${pixelSize * 6.5}`} 
+                fill={style.lightColor}
+                opacity={0.7}
+              />
+            </>
+          )}
+          
+          {/* Seat - 3/4 perspective with depth */}
+          <polygon 
+            points={`${pixelSize * 4},${pixelSize * 9.5} ${pixelSize * 12},${pixelSize * 9.5} ${pixelSize * 12.5},${pixelSize * 10} ${pixelSize * 12.5},${pixelSize * 11} ${pixelSize * 4.5},${pixelSize * 11} ${pixelSize * 4},${pixelSize * 10.5}`} 
+            fill={style.baseColor}
+          />
+          
+          {/* Seat top surface (3/4 perspective) */}
+          <polygon 
+            points={`${pixelSize * 4},${pixelSize * 9.5} ${pixelSize * 12},${pixelSize * 9.5} ${pixelSize * 12.5},${pixelSize * 10} ${pixelSize * 4.5},${pixelSize * 10}`} 
+            fill={style.lightColor}
+            opacity={0.8}
+          />
+          
+          {/* Seat right edge (3D) */}
+          <polygon 
+            points={`${pixelSize * 12},${pixelSize * 9.5} ${pixelSize * 12.5},${pixelSize * 10} ${pixelSize * 12.5},${pixelSize * 11} ${pixelSize * 12},${pixelSize * 10.5}`} 
+            fill={style.darkColor}
+            opacity={0.6}
+          />
+          
+          {/* Cushion (if has cushion) - with slight perspective */}
+          {style.hasCushion && (
+            <>
+              <polygon 
+                points={`${pixelSize * 5},${pixelSize * 9.8} ${pixelSize * 11},${pixelSize * 9.8} ${pixelSize * 11.3},${pixelSize * 10.2} ${pixelSize * 5.3},${pixelSize * 10.2}`} 
+                fill={style.cushionColor}
+                opacity={0.9}
+              />
+              {/* Cushion highlight */}
+              <polygon 
+                points={`${pixelSize * 5},${pixelSize * 9.8} ${pixelSize * 11},${pixelSize * 9.8} ${pixelSize * 11.3},${pixelSize * 10.2} ${pixelSize * 5.3},${pixelSize * 10.2}`} 
+                fill="white"
+                opacity={0.2}
+              />
+            </>
+          )}
+          
+          {/* Arms (if has arms) - with 3/4 perspective */}
+          {style.hasArms && (
+            <>
+              {/* Left arm */}
+              <polygon 
+                points={`${pixelSize * 3.5},${pixelSize * 8.5} ${pixelSize * 4.5},${pixelSize * 8.5} ${pixelSize * 5},${pixelSize * 9} ${pixelSize * 5},${pixelSize * 11} ${pixelSize * 4.5},${pixelSize * 11.5} ${pixelSize * 3.5},${pixelSize * 11.5}`} 
+                fill={style.baseColor}
+              />
+              {/* Left arm top */}
+              <polygon 
+                points={`${pixelSize * 3.5},${pixelSize * 8.5} ${pixelSize * 4.5},${pixelSize * 8.5} ${pixelSize * 5},${pixelSize * 9} ${pixelSize * 4},${pixelSize * 9}`} 
+                fill={style.lightColor}
+                opacity={0.7}
+              />
+              
+              {/* Right arm */}
+              <polygon 
+                points={`${pixelSize * 11.5},${pixelSize * 8.5} ${pixelSize * 12.5},${pixelSize * 8.5} ${pixelSize * 12.5},${pixelSize * 11.5} ${pixelSize * 12},${pixelSize * 11} ${pixelSize * 12},${pixelSize * 9} ${pixelSize * 11.5},${pixelSize * 8.5}`} 
+                fill={style.baseColor}
+              />
+              {/* Right arm top */}
+              <polygon 
+                points={`${pixelSize * 11.5},${pixelSize * 8.5} ${pixelSize * 12.5},${pixelSize * 8.5} ${pixelSize * 13},${pixelSize * 9} ${pixelSize * 12},${pixelSize * 9}`} 
+                fill={style.lightColor}
+                opacity={0.7}
+              />
+            </>
+          )}
+          
+          {/* Front legs - cleaner, more defined */}
+          <rect x={pixelSize * 5} y={pixelSize * 11} width={pixelSize * 1.2} height={pixelSize * 3.5} fill={style.darkColor} />
+          <rect x={pixelSize * 9.8} y={pixelSize * 11} width={pixelSize * 1.2} height={pixelSize * 3.5} fill={style.darkColor} />
+          
+          {/* Front leg highlights */}
+          <rect x={pixelSize * 5} y={pixelSize * 11} width={pixelSize * 0.3} height={pixelSize * 3.5} fill={style.baseColor} opacity={0.4} />
+          <rect x={pixelSize * 9.8} y={pixelSize * 11} width={pixelSize * 0.3} height={pixelSize * 3.5} fill={style.baseColor} opacity={0.4} />
+          
+          {/* Front leg bottom shadow */}
+          <rect x={pixelSize * 5} y={pixelSize * 14.2} width={pixelSize * 1.2} height={pixelSize * 0.3} fill="black" opacity={0.4} />
+          <rect x={pixelSize * 9.8} y={pixelSize * 14.2} width={pixelSize * 1.2} height={pixelSize * 0.3} fill="black" opacity={0.4} />
+        </g>
       </g>
     );
   }

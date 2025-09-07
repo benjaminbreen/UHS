@@ -4,13 +4,19 @@
  */
 
 import React from 'react';
-import { BiomeType, CulturalZone, HistoricalEra } from '../../../types';
+import { BiomeType } from '../../../types/biomes/base';
+import { CulturalZone } from '../../../types/characterData';
+import { HistoricalEra } from '../../../types/ambiance';
 import { SpecialMapArchetype } from '../../../types/specialMapTypes';
 import { getFurnitureMaterial, getMaterialStyle } from '../../../services/materialMappingService';
+import { isFurnitureBiome } from '../../../utils/tileConversion';
 
 // Import all special map symbols from the consolidated location
 import { 
   TableSymbol,
+  TableLeft,
+  TableCenter,
+  TableRight,
   ChairSymbol,
   BenchSymbol,
   BedSymbol,
@@ -38,15 +44,21 @@ import {
   KitchenCounterSymbol,
   KitchenSinkSymbol,
   WeaponRackSymbol,
-  ArmorStandSymbol
+  ArmorStandSymbol,
+  TorchSymbol,
+  LanternSymbol,
+  EntrancePortalSymbol,
+  PathSymbol
 } from '../architecture/specialMap/index';
+
+// Import back wall symbol for 3/4 perspective
+import { BackWallSymbol } from '../architecture/specialMap/BackWallSymbol';
 
 // Import multi-tile components
 import { PillarBase } from '../architecture/specialMap/PillarBase';
 
 // Import new 2.5D symbols (Phase 1 implementations)
 import { 
-  WallSymbol2D,
   FloorTileSymbol2D,
   TableSymbol2D,
   ChairSymbol2D
@@ -63,6 +75,12 @@ import {
   PodiumSymbol
 } from '../architecture';
 
+// Import fire pit symbol
+import FirePitSymbol from '../FirePitSymbol';
+
+// Import Persian rug symbol
+import PersianRugSymbol from '../architecture/specialMap/PersianRugSymbol';
+
 interface SpecialMapSymbolRendererProps {
   x: number;
   y: number;
@@ -70,6 +88,7 @@ interface SpecialMapSymbolRendererProps {
   biome: BiomeType;
   culturalZone: CulturalZone | string;
   era: HistoricalEra;
+  year?: number; // Add year for components that need numeric year
   seed?: number;
   nightIntensity?: number;
   multiTileData?: {
@@ -79,6 +98,7 @@ interface SpecialMapSymbolRendererProps {
     height: number;
   };
   specialArchetype?: SpecialMapArchetype;
+  tile?: any; // Add tile prop to check for overlays
 }
 
 export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> = ({
@@ -88,6 +108,7 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
   biome,
   culturalZone,
   era,
+  year,
   seed = 0,
   nightIntensity = 0,
   multiTileData
@@ -96,18 +117,40 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
   const nightFilter = nightIntensity > 0 ? `brightness(${1 - nightIntensity * 0.5})` : undefined;
   
   const renderSymbol = () => {
+    // Check if this is a floor tile that should only render floors (overlays handled separately)
+    const isFloorTile = [
+      BiomeType.FLOOR_STONE, BiomeType.FLOOR_WOOD, BiomeType.FLOOR_MARBLE,
+      BiomeType.FLOOR_TILE, BiomeType.FLOOR_CHECKERED, BiomeType.FLOOR_PATTERN,
+      BiomeType.FLOOR_MOSAIC, BiomeType.FLOOR_MAT, BiomeType.CARPET,
+      BiomeType.DIRT, BiomeType.GRASS
+    ].includes(biome);
+    
+    // For floor tiles, just render the floor and let MapDisplayOptimized handle overlays
+    if (isFloorTile) {
+      // Floor rendering is handled in the switch statement below
+    }
+    
     switch (biome) {
       case BiomeType.TABLE:
-        return <TableSymbol2D x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+        return <TableSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} variant="dining" seed={seed} />;
+      
+      case BiomeType.TABLE_LEFT:
+        return <TableLeft x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} material="wood" />;
+      
+      case BiomeType.TABLE_CENTER:
+        return <TableCenter x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} material="wood" />;
+      
+      case BiomeType.TABLE_RIGHT:
+        return <TableRight x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} material="wood" />;
       
       case BiomeType.CHAIR:
-        return <ChairSymbol2D x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+        return <ChairSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} />;
       
       case BiomeType.BENCH:
         return <BenchSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
       
       case BiomeType.STATUE:
-        return <StatueSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} />;
+        return <StatueSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={year || 1500} />;
       
       case BiomeType.FOUNTAIN:
         return <FountainSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} />;
@@ -142,13 +185,20 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
           return null;
         } else {
           // Regular single-tile pillar
-          return <PillarSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+          return <PillarSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} />;
         }
       
       case BiomeType.COLUMN:
         return <ColumnSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
         
       case BiomeType.CARPET:
+        return <CarpetSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+      
+      case BiomeType.RUG:
+        // Use Persian rug for MENA zones, regular carpet for others
+        if (culturalZone === 'MENA' || culturalZone === 'CENTRAL_ASIAN' || culturalZone === 'SOUTH_ASIAN') {
+          return <PersianRugSymbol x={0} y={0} size={size} variant="center" colorScheme="red" />;
+        }
         return <CarpetSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
       
       case BiomeType.ALTAR:
@@ -165,11 +215,20 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
       
       // Additional architectural biomes that might be in the map
       case BiomeType.WALL:
-        return <WallSymbol2D x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+        return <WallSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} />;
       case BiomeType.WALL_GATE:
         return <WallGateSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
       case BiomeType.WALL_WINDOW:
         return <WallWindowSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+      
+      // Back wall biomes for 3/4 perspective
+      case BiomeType.WALL_BACK:
+        return <BackWallSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} variant="plain" seed={seed} />;
+      case BiomeType.WALL_BACK_WINDOW:
+        return <BackWallSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} variant="window" seed={seed} />;
+      case BiomeType.WALL_BACK_DOOR:
+        return <BackWallSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} variant="door" seed={seed} />;
+      
       case BiomeType.DOOR:
         return <DoorSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} isLocked={false} seed={seed} />;
       case BiomeType.DOOR_LOCKED:
@@ -178,7 +237,7 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
         return <ArchwaySymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
         
       case BiomeType.FLOOR_STONE:
-        return <FloorTileSymbol2D x={0} y={0} size={size} culturalZone={culturalZone} era={era} floorType="stone" seed={seed} />;
+        return <FloorSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} floorType="stone" seed={seed} />;
       case BiomeType.FLOOR_WOOD:
         return <FloorTileSymbol2D x={0} y={0} size={size} culturalZone={culturalZone} era={era} floorType="wood" seed={seed} />;
       case BiomeType.FLOOR_MARBLE:
@@ -192,11 +251,11 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
       
       // Mosaic floors
       case BiomeType.FLOOR_MOSAIC:
-        return <MosaicFloorSymbol culturalZone={culturalZone as CulturalZone} variant="regular" />;
+        return <MosaicFloorSymbol culturalZone={culturalZone as CulturalZone} variant="regular" size={size} />;
       case BiomeType.FLOOR_MOSAIC_CENTER:
-        return <MosaicFloorSymbol culturalZone={culturalZone as CulturalZone} variant="center" />;
+        return <MosaicFloorSymbol culturalZone={culturalZone as CulturalZone} variant="center" size={size} />;
       case BiomeType.FLOOR_MOSAIC_BORDER:
-        return <MosaicFloorSymbol culturalZone={culturalZone as CulturalZone} variant="border" />;
+        return <MosaicFloorSymbol culturalZone={culturalZone as CulturalZone} variant="border" size={size} />;
       
       // Bathroom fixtures
       case BiomeType.TOILET:
@@ -236,6 +295,27 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
         
       case BiomeType.TORCH:
         return <TorchSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} type="torch" lit={true} />;
+      
+      case BiomeType.LANTERN:
+        return <LanternSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} lit={true} />;
+      
+      case BiomeType.FIRE_PIT:
+        return <FirePitSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} type="pit" lit={true} />;
+      
+      case BiomeType.HEARTH:
+        return <FirePitSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} type="hearth" lit={true} />;
+      
+      // Portal and path symbols
+      case BiomeType.ENTRANCE_PORTAL:
+        return <EntrancePortalSymbol x={0} y={0} size={size} isNight={nightIntensity > 0.3} />;
+      
+      case BiomeType.PATH:
+        // Choose path variant based on culture and era
+        let pathVariant: 'stone' | 'dirt' | 'brick' | 'marble' = 'stone';
+        if (culturalZone === 'EUROPEAN' && era >= 1500) pathVariant = 'brick';
+        else if (culturalZone === 'MENA') pathVariant = 'marble';
+        else if (era < 1000) pathVariant = 'dirt';
+        return <PathSymbol x={0} y={0} size={size} variant={pathVariant} isNight={nightIntensity > 0.3} />;
         
       // Furniture - Storage
       case BiomeType.CHEST:
@@ -274,6 +354,25 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
       case BiomeType.STAIRS_DOWN:
         return <StairsSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} direction="down" seed={seed} />;
       
+      // Landscape biomes - return null to let canvas handle them properly
+      case BiomeType.PARK:
+      case BiomeType.FOREST:
+      case BiomeType.GRASSLAND:
+      case BiomeType.DESERT:
+      case BiomeType.SNOW:
+      case BiomeType.BEACH:
+      case BiomeType.RIVER:
+      case BiomeType.RIVERBANK:
+      case BiomeType.SCRUB:
+      case BiomeType.HILLS:
+      case BiomeType.TUNDRA:
+      case BiomeType.JUNGLE:
+      case BiomeType.WETLANDS:
+      case BiomeType.MANGROVE:
+      case BiomeType.OASIS:
+        // Don't render these in SpecialMapSymbolRenderer - let MapCanvasPerformance handle them
+        return null;
+        
       default:
         // Return null for biomes that don't need special symbols
         return null;

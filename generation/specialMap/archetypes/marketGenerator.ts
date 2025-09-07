@@ -4,16 +4,44 @@
  */
 
 import { Tile, BiomeType, HistoricalEra } from '../../../types';
+import { OverlayObjectType } from '../../../types/core/tile';
 import { SpecialMapConfig, InteractionZone, ExitZone, RoomDefinition } from '../../../types/specialMapTypes';
-import { ValueNoise } from '../../../utils/noise';
-import { placeWallRectangle, fillArea } from '../specialMapGenerator';
+import { ValueNoise } from '../../../utils/valueNoise';
+import { placeWallRectangle, fillArea } from '../mapLayoutUtils';
+import { MultiTileObjectManager } from '../../../services/multiTileObjectService';
+import { 
+  getCulturalFurnitureSet, 
+  getFlooringForRoom,
+  getCulturalLighting,
+  getCulturalStorage,
+  getCulturalFloorPattern
+} from '../culturalFurnitureSystem';
+import { LANDSCAPE_BORDER_ROWS } from '../../../constants/specialMaps/specialMapAugmentation';
+import {
+  lightRoom,
+  placeChandelier,
+  placeWallSconce,
+  getCulturalLighting as getAdvancedLighting
+} from '../advancedLightingSystem';
+import {
+  placeCulturalStorage,
+  placeWineRack,
+  placeSpiceStorage
+} from '../storageUtilitySystem';
+import {
+  placeSmartTable,
+  placeRoundTable
+} from '../advancedFurnitureSystem';
+import {
+  placeBenchWithOrientation
+} from '../directionalFurniturePlacement';
 
 export function generateMarketBazaar(
   tiles: Tile[][],
   config: SpecialMapConfig,
   noise: ValueNoise,
   size: { width: number, height: number }
-): { tiles: Tile[][], interactionZones: InteractionZone[], exitZones: ExitZone[], rooms?: RoomDefinition[] } {
+): { tiles: Tile[][], interactionZones: InteractionZone[], exitZones: ExitZone[], rooms?: RoomDefinition[], multiTileObjects?: any[] } {
   
   const interactionZones: InteractionZone[] = [];
   const exitZones: ExitZone[] = [];
@@ -53,8 +81,10 @@ export function generateMarketBazaar(
     { id: 'west_exit', location: [0, centerY], label: 'West Gate', destination: 'parent_map' }
   );
   
+  const multiTileManager = new MultiTileObjectManager();
+  
   console.log('[MarketGenerator] Generated', rooms.length, 'rooms');
-  return { tiles, interactionZones, exitZones, rooms };
+  return { tiles, interactionZones, exitZones, rooms, multiTileObjects: multiTileManager.getObjects() };
 }
 
 /**
@@ -73,22 +103,35 @@ function generateSimpleMarket(
     { side: 'south', offset: Math.floor(size.width / 2) }
   ]);
   
-  // Floor
-  fillArea(tiles, 1, 1, size.width - 2, size.height - 2, BiomeType.FLOOR_STONE);
+  // Cultural floor
+  const floorType = getFlooringForRoom(config, 'market');
+  fillArea(tiles, 1, 1, size.width - 2, size.height - 2, floorType);
   
-  // Single central stall
+  // Market stalls using overlay system
   const centerX = Math.floor(size.width / 2);
   const centerY = Math.floor(size.height / 2);
-  tiles[centerY][centerX].biome = BiomeType.STALL;
+  const era = config.specificYear || 1500;
+  
+  // Single central stall using overlay
+  tiles[centerY][centerX].overlayObject = {
+    type: OverlayObjectType.STALL,
+    rotation: 0,
+    material: config.culturalZone === 'EAST_ASIAN' ? 'bamboo' : 'wood'
+  };
   tiles[centerY][centerX].isBlocking = true;
   
-  // Corner stalls if space
+  // Corner stalls if space using smart tables
   if (size.width >= 6 && size.height >= 6) {
-    tiles[2][2].biome = BiomeType.STALL;
-    tiles[2][size.width - 3].biome = BiomeType.STALL;
-    tiles[size.height - 3][2].biome = BiomeType.STALL;
-    tiles[size.height - 3][size.width - 3].biome = BiomeType.STALL;
+    // Use round tables for corner stalls
+    placeRoundTable(tiles, 2, 2, 'small', config.culturalZone || 'EUROPEAN', 'wood');
+    placeRoundTable(tiles, size.width - 3, 2, 'small', config.culturalZone || 'EUROPEAN', 'wood');
+    placeRoundTable(tiles, 2, size.height - 3, 'small', config.culturalZone || 'EUROPEAN', 'wood');
+    placeRoundTable(tiles, size.width - 3, size.height - 3, 'small', config.culturalZone || 'EUROPEAN', 'wood');
   }
+  
+  // Light the market
+  lightRoom(tiles, 1, 1, size.width - 2, size.height - 2,
+           config.culturalZone || 'EUROPEAN', era, 'work', false);
   
   rooms.push({
     id: 'market_square',
@@ -157,7 +200,7 @@ function generateIslamicBazaar(
   createSpecializedMarketZones(tiles, config, noise, size, 'islamic', rooms);
   
   // Add carpets, pillars, and decorative elements
-  addIslamicDecorations(tiles, noise, size);
+  addIslamicDecorations(tiles, noise, size, config);
   
   // Interaction zones
   interactionZones.push({
@@ -237,6 +280,18 @@ function generateAsianMarket(
     tiles[teaHouseY + 2][teaHouseX + 5].biome = BiomeType.TABLE;
     tiles[teaHouseY + 5][teaHouseX + 2].biome = BiomeType.TABLE;
     tiles[teaHouseY + 5][teaHouseX + 5].biome = BiomeType.TABLE;
+    
+    // Add cabinets for tea storage
+    tiles[teaHouseY + 1][teaHouseX + 3].biome = BiomeType.CABINET;
+    tiles[teaHouseY + 1][teaHouseX + 3].isBlocking = true;
+    tiles[teaHouseY + 1][teaHouseX + 4].biome = BiomeType.CABINET;
+    tiles[teaHouseY + 1][teaHouseX + 4].isBlocking = true;
+    
+    // Add decorative armor stand (historical display)
+    if (config.era !== HistoricalEra.MODERN_ERA) {
+      tiles[teaHouseY + 3][teaHouseX + 6].biome = BiomeType.ARMOR_STAND;
+      tiles[teaHouseY + 3][teaHouseX + 6].isBlocking = true;
+    }
   }
   
   // Organized market sections with walls
@@ -530,16 +585,22 @@ function createMerchantStalls(tiles: Tile[][], config: SpecialMapConfig, noise: 
   });
 }
 
-function addIslamicDecorations(tiles: Tile[][], noise: ValueNoise, size: any) {
-  // Add carpets in key areas
+function addIslamicDecorations(tiles: Tile[][], noise: ValueNoise, size: any, config?: SpecialMapConfig) {
+  const era = config?.specificYear || 1400;
+  
+  // Add Persian rugs in key areas using overlay system
   for (let y = 5; y < size.height - 5; y += 8) {
     for (let x = 5; x < size.width - 5; x += 8) {
       if (tiles[y][x].biome.includes('FLOOR') && noise.random() > 0.5) {
-        // 2x2 carpet area
+        // 2x2 rug area using overlay
         for (let dy = 0; dy < 2; dy++) {
           for (let dx = 0; dx < 2; dx++) {
             if (tiles[y + dy][x + dx].biome.includes('FLOOR')) {
-              tiles[y + dy][x + dx].biome = BiomeType.CARPET;
+              tiles[y + dy][x + dx].overlayObject = {
+                type: OverlayObjectType.RUG,
+                rotation: 0,
+                variant: 'persian'
+              };
             }
           }
         }
@@ -547,14 +608,35 @@ function addIslamicDecorations(tiles: Tile[][], noise: ValueNoise, size: any) {
     }
   }
   
-  // Add braziers for light
+  // Add hanging lanterns for authentic Islamic market lighting
   for (let y = 10; y < size.height - 10; y += 12) {
     for (let x = 10; x < size.width - 10; x += 12) {
-      if (tiles[y][x].biome.includes('FLOOR')) {
-        tiles[y][x].biome = BiomeType.BRAZIER;
+      if (tiles[y][x].biome.includes('FLOOR') && !tiles[y][x].isBlocking) {
+        tiles[y][x].overlayObject = {
+          type: OverlayObjectType.HANGING_LANTERN,
+          rotation: 0,
+          material: 'brass'
+        };
       }
     }
   }
+  
+  // Add incense burners for atmosphere
+  for (let y = 8; y < size.height - 8; y += 16) {
+    for (let x = 8; x < size.width - 8; x += 16) {
+      if (tiles[y][x].biome.includes('FLOOR') && !tiles[y][x].isBlocking) {
+        tiles[y][x].overlayObject = {
+          type: OverlayObjectType.INCENSE_BURNER,
+          rotation: 0
+        };
+        tiles[y][x].isBlocking = true;
+      }
+    }
+  }
+  
+  // Light the entire bazaar properly
+  lightRoom(tiles, 1, 1, size.width - 2, size.height - 2,
+           'MENA', era, 'work', false);
 }
 
 function createAsianMarketSections(tiles: Tile[][], config: SpecialMapConfig, noise: ValueNoise, size: any) {
@@ -591,13 +673,40 @@ function createAsianMarketSections(tiles: Tile[][], config: SpecialMapConfig, no
 }
 
 function addAsianDecorations(tiles: Tile[][], noise: ValueNoise, size: any) {
-  // Add lanterns (using torches with special subtype)
+  // Add beautiful Chinese red lanterns
   for (let y = 5; y < size.height - 5; y += 10) {
     for (let x = 5; x < size.width - 5; x += 10) {
       if (tiles[y][x].biome.includes('FLOOR') || tiles[y][x].biome === BiomeType.ROAD) {
-        tiles[y][x].biome = BiomeType.TORCH;
-        tiles[y][x].materialSubtype = 'lantern';
+        tiles[y][x].overlayObject = {
+          type: OverlayObjectType.TORCH,
+          rotation: 0,
+          variant: 'lantern' // Chinese red lanterns
+        };
+        tiles[y][x].isBlocking = false; // Hanging lanterns don't block
       }
+    }
+  }
+  
+  // Add extra lanterns along main thoroughfare for festive feel
+  const centerX = Math.floor(size.width / 2);
+  for (let y = 3; y < size.height - 3; y += 6) {
+    // Left side of main road
+    if (tiles[y][centerX - 3] && !tiles[y][centerX - 3].isBlocking) {
+      tiles[y][centerX - 3].overlayObject = {
+        type: OverlayObjectType.TORCH,
+        rotation: 0,
+        variant: 'lantern'
+      };
+      tiles[y][centerX - 3].isBlocking = false;
+    }
+    // Right side of main road
+    if (tiles[y][centerX + 3] && !tiles[y][centerX + 3].isBlocking) {
+      tiles[y][centerX + 3].overlayObject = {
+        type: OverlayObjectType.TORCH,
+        rotation: 0,
+        variant: 'lantern'
+      };
+      tiles[y][centerX + 3].isBlocking = false;
     }
   }
 }
@@ -756,6 +865,44 @@ function addEuropeanDecorations(tiles: Tile[][], config: SpecialMapConfig, noise
         tiles[y][size.width - 11].biome = BiomeType.PILLAR;
       }
     }
+    
+    // Add armor stands as decorative displays in guild quarter
+    if (config.era === HistoricalEra.MEDIEVAL) {
+      // Display armor near guild buildings
+      if (size.width >= 20 && size.height >= 20) {
+        tiles[5][5].biome = BiomeType.ARMOR_STAND;
+        tiles[5][5].isBlocking = true;
+        tiles[5][size.width - 6].biome = BiomeType.ARMOR_STAND;
+        tiles[5][size.width - 6].isBlocking = true;
+      }
+    }
+    
+    // Add weapon racks near guard posts
+    if (size.width >= 16 && size.height >= 16) {
+      // Near entrance gates
+      tiles[size.height - 3][3].biome = BiomeType.WEAPON_RACK;
+      tiles[size.height - 3][3].isBlocking = true;
+      tiles[size.height - 3][size.width - 4].biome = BiomeType.WEAPON_RACK;
+      tiles[size.height - 3][size.width - 4].isBlocking = true;
+    }
+    
+    // Add storage cabinets in merchant areas
+    if (size.width >= 20) {
+      // Storage for valuable goods
+      tiles[8][15].biome = BiomeType.CABINET;
+      tiles[8][15].isBlocking = true;
+      tiles[8][size.width - 16].biome = BiomeType.CABINET;
+      tiles[8][size.width - 16].isBlocking = true;
+    }
+    
+    // Add beds in merchant quarters (upper floors implied)
+    if (config.era !== HistoricalEra.PREHISTORY && size.width >= 24) {
+      // Merchant living quarters
+      tiles[3][12].biome = BiomeType.BED;
+      tiles[3][12].isBlocking = true;
+      tiles[3][size.width - 13].biome = BiomeType.BED;
+      tiles[3][size.width - 13].isBlocking = true;
+    }
   }
   
   // Add statues for classical feel
@@ -782,7 +929,12 @@ function addEuropeanDecorations(tiles: Tile[][], config: SpecialMapConfig, noise
           // Wall torch
           tiles[y][x].materialSubtype = 'wall_torch';
         } else if (tiles[y][x].biome.includes('FLOOR')) {
-          tiles[y][x].biome = BiomeType.TORCH;
+          tiles[y][x].overlayObject = {
+            type: OverlayObjectType.TORCH,
+            rotation: 0,
+            variant: 'standing'
+          };
+          tiles[y][x].isBlocking = true;
         }
       }
     }
@@ -811,7 +963,7 @@ function createSpecializedMarketZones(
     fillArea(tiles, zone.x + 1, zone.y + 1, zone.width - 2, zone.height - 2, floorType);
     
     // Add zone-specific furniture and items
-    populateMarketZone(tiles, zone, style, noise);
+    populateMarketZone(tiles, zone, style, noise, config);
     
     // Add room definition
     rooms.push({
@@ -830,32 +982,66 @@ function getMarketZones(style: string, size: { width: number, height: number }) 
   const centerX = Math.floor(size.width / 2);
   const centerY = Math.floor(size.height / 2);
   
+  // Ensure minimum margins and responsive sizing
+  const margin = Math.min(5, Math.floor(size.width * 0.1));
+  const zoneWidth = Math.min(15, Math.floor((size.width - margin * 3) / 2));
+  const zoneHeight = Math.min(10, Math.floor((size.height - margin * 3) / 2));
+  
   if (style === 'islamic') {
-    return [
-      { x: 5, y: 5, width: 12, height: 8, type: 'spices', name: 'Spice Bazaar' },
-      { x: size.width - 17, y: 5, width: 12, height: 8, type: 'textiles', name: 'Textile Souk' },
-      { x: 5, y: size.height - 13, width: 12, height: 8, type: 'crafts', name: 'Artisan Quarter' },
-      { x: size.width - 17, y: size.height - 13, width: 12, height: 8, type: 'luxury', name: 'Perfume & Jewelry' }
+    const zones = [
+      { x: margin, y: margin, width: zoneWidth, height: zoneHeight, type: 'spices', name: 'Spice Bazaar' }
     ];
+    
+    // Add more zones if there's space
+    if (size.width > zoneWidth + margin * 3) {
+      zones.push({ x: size.width - zoneWidth - margin, y: margin, width: zoneWidth, height: zoneHeight, type: 'textiles', name: 'Textile Souk' });
+    }
+    if (size.height > zoneHeight + margin * 3) {
+      zones.push({ x: margin, y: size.height - zoneHeight - margin, width: zoneWidth, height: zoneHeight, type: 'crafts', name: 'Artisan Quarter' });
+    }
+    if (size.width > zoneWidth + margin * 3 && size.height > zoneHeight + margin * 3) {
+      zones.push({ x: size.width - zoneWidth - margin, y: size.height - zoneHeight - margin, width: zoneWidth, height: zoneHeight, type: 'luxury', name: 'Perfume & Jewelry' });
+    }
+    return zones;
   } else if (style === 'european') {
-    return [
-      { x: 5, y: 5, width: 15, height: 10, type: 'food', name: 'Food Hall' },
-      { x: size.width - 20, y: 5, width: 15, height: 10, type: 'crafts', name: 'Guild Workshop' },
-      { x: centerX - 8, y: size.height - 15, width: 16, height: 10, type: 'livestock', name: 'Livestock Pen' }
+    const zones = [
+      { x: margin, y: margin, width: zoneWidth, height: zoneHeight, type: 'food', name: 'Food Hall' }
     ];
+    
+    if (size.width > zoneWidth + margin * 3) {
+      zones.push({ x: size.width - zoneWidth - margin, y: margin, width: zoneWidth, height: zoneHeight, type: 'crafts', name: 'Guild Workshop' });
+    }
+    if (size.height > zoneHeight + margin * 3) {
+      zones.push({ x: Math.max(margin, centerX - Math.floor(zoneWidth/2)), y: size.height - zoneHeight - margin, width: zoneWidth, height: zoneHeight, type: 'livestock', name: 'Livestock Pen' });
+    }
+    return zones;
   } else if (style === 'asian') {
-    return [
-      { x: 5, y: 15, width: 12, height: 8, type: 'food', name: 'Food Section' },
-      { x: size.width - 17, y: 15, width: 12, height: 8, type: 'crafts', name: 'Craft Workshop' },
-      { x: 5, y: size.height - 13, width: 12, height: 8, type: 'textiles', name: 'Silk Quarter' },
-      { x: size.width - 17, y: size.height - 13, width: 12, height: 8, type: 'luxury', name: 'Tea & Porcelain' }
+    const zones = [
+      { x: margin, y: Math.max(margin, centerY - Math.floor(zoneHeight/2)), width: zoneWidth, height: zoneHeight, type: 'food', name: 'Food Section' }
     ];
+    
+    if (size.width > zoneWidth + margin * 3) {
+      zones.push({ x: size.width - zoneWidth - margin, y: Math.max(margin, centerY - Math.floor(zoneHeight/2)), width: zoneWidth, height: zoneHeight, type: 'crafts', name: 'Craft Workshop' });
+    }
+    if (size.height > zoneHeight + margin * 3) {
+      zones.push({ x: margin, y: size.height - zoneHeight - margin, width: zoneWidth, height: zoneHeight, type: 'textiles', name: 'Silk Quarter' });
+    }
+    if (size.width > zoneWidth + margin * 3 && size.height > zoneHeight + margin * 3) {
+      zones.push({ x: size.width - zoneWidth - margin, y: size.height - zoneHeight - margin, width: zoneWidth, height: zoneHeight, type: 'luxury', name: 'Tea & Porcelain' });
+    }
+    return zones;
   } else {
-    return [
-      { x: 8, y: 8, width: 12, height: 8, type: 'food', name: 'Food Market' },
-      { x: size.width - 20, y: 8, width: 12, height: 8, type: 'crafts', name: 'Craft Stalls' },
-      { x: 8, y: size.height - 16, width: 12, height: 8, type: 'general', name: 'General Goods' }
+    const zones = [
+      { x: margin, y: margin, width: zoneWidth, height: zoneHeight, type: 'food', name: 'Food Market' }
     ];
+    
+    if (size.width > zoneWidth + margin * 3) {
+      zones.push({ x: size.width - zoneWidth - margin, y: margin, width: zoneWidth, height: zoneHeight, type: 'crafts', name: 'Craft Stalls' });
+    }
+    if (size.height > zoneHeight + margin * 3) {
+      zones.push({ x: margin, y: size.height - zoneHeight - margin, width: zoneWidth, height: zoneHeight, type: 'general', name: 'General Goods' });
+    }
+    return zones;
   }
 }
 
@@ -873,58 +1059,111 @@ function populateMarketZone(
   tiles: Tile[][],
   zone: { x: number, y: number, width: number, height: number, type: string },
   style: string,
-  noise: ValueNoise
+  noise: ValueNoise,
+  config?: SpecialMapConfig
 ) {
-  // Add zone-specific items
+  // Bounds check helper function
+  const isValidTile = (y: number, x: number) => {
+    return y >= 0 && y < tiles.length && x >= 0 && x < tiles[0].length && tiles[y] && tiles[y][x];
+  };
+  
+  const culturalZone = config?.culturalZone || 'EUROPEAN';
+  const era = config?.specificYear || 1500;
+  const material = culturalZone === 'EAST_ASIAN' ? 'bamboo' : 
+                   culturalZone === 'MENA' ? 'cedar' : 'oak';
+
+  // Add zone-specific items using new systems
   switch (zone.type) {
     case 'food':
-      // Tables for food display
-      for (let x = zone.x + 2; x < zone.x + zone.width - 2; x += 3) {
-        tiles[zone.y + 2][x].biome = BiomeType.TABLE;
-        tiles[zone.y + zone.height - 3][x].biome = BiomeType.TABLE;
+      // Smart tables for food display
+      for (let x = zone.x + 2; x < zone.x + zone.width - 2; x += 4) {
+        if (isValidTile(zone.y + 2, x)) {
+          placeSmartTable(tiles, x, zone.y + 2, 3, 2, 'casual',
+                         culturalZone, material);
+        }
       }
-      // Storage barrels
-      tiles[zone.y + 2][zone.x + zone.width - 2].biome = BiomeType.BARREL;
-      tiles[zone.y + zone.height - 3][zone.x + 1].biome = BiomeType.BARREL;
+      // Storage using cultural storage system
+      if (isValidTile(zone.y + 2, zone.x + zone.width - 2)) {
+        placeCulturalStorage(tiles, zone.x + zone.width - 2, zone.y + 2,
+                           culturalZone, era, 'food');
+      }
       break;
       
     case 'spices':
-      // Carpet displays
+      // Carpet displays using overlay system
       for (let x = zone.x + 2; x < zone.x + zone.width - 2; x += 3) {
-        tiles[zone.y + 3][x].biome = BiomeType.RUG;
+        if (isValidTile(zone.y + 3, x)) {
+          tiles[zone.y + 3][x].overlayObject = {
+            type: OverlayObjectType.RUG,
+            rotation: 0,
+            variant: 'persian'
+          };
+        }
       }
-      // Spice containers
-      tiles[zone.y + 2][zone.x + 2].biome = BiomeType.CHEST;
-      tiles[zone.y + zone.height - 3][zone.x + zone.width - 3].biome = BiomeType.CHEST;
+      // Spice storage using specialized system
+      if (isValidTile(zone.y + 2, zone.x + 2)) {
+        placeSpiceStorage(tiles, zone.x + 2, zone.y + 2, culturalZone, false);
+      }
+      if (isValidTile(zone.y + zone.height - 3, zone.x + zone.width - 3)) {
+        placeSpiceStorage(tiles, zone.x + zone.width - 3, zone.y + zone.height - 3,
+                         culturalZone, false);
+      }
       break;
       
     case 'textiles':
       // Display tables
-      tiles[zone.y + 2][zone.x + 3].biome = BiomeType.TABLE;
-      tiles[zone.y + zone.height - 3][zone.x + 3].biome = BiomeType.TABLE;
+      if (isValidTile(zone.y + 2, zone.x + 3)) {
+        tiles[zone.y + 2][zone.x + 3].biome = BiomeType.TABLE;
+      }
+      if (isValidTile(zone.y + zone.height - 3, zone.x + 3)) {
+        tiles[zone.y + zone.height - 3][zone.x + 3].biome = BiomeType.TABLE;
+      }
       // Fabric storage
-      tiles[zone.y + 3][zone.x + zone.width - 2].biome = BiomeType.CABINET;
+      if (isValidTile(zone.y + 3, zone.x + zone.width - 2)) {
+        tiles[zone.y + 3][zone.x + zone.width - 2].biome = BiomeType.CABINET;
+      }
       break;
       
     case 'crafts':
       // Work tables
-      tiles[zone.y + 2][zone.x + 2].biome = BiomeType.DESK;
-      tiles[zone.y + zone.height - 3][zone.x + zone.width - 3].biome = BiomeType.DESK;
+      if (isValidTile(zone.y + 2, zone.x + 2)) {
+        tiles[zone.y + 2][zone.x + 2].biome = BiomeType.DESK;
+      }
+      if (isValidTile(zone.y + zone.height - 3, zone.x + zone.width - 3)) {
+        tiles[zone.y + zone.height - 3][zone.x + zone.width - 3].biome = BiomeType.DESK;
+      }
       // Tool storage
-      tiles[zone.y + 3][zone.x + 1].biome = BiomeType.CHEST;
+      if (isValidTile(zone.y + 3, zone.x + 1)) {
+        tiles[zone.y + 3][zone.x + 1].biome = BiomeType.CHEST;
+      }
       break;
       
     case 'luxury':
       // Fancy display
-      tiles[zone.y + Math.floor(zone.height/2)][zone.x + Math.floor(zone.width/2)].biome = BiomeType.PODIUM;
+      if (isValidTile(zone.y + Math.floor(zone.height/2), zone.x + Math.floor(zone.width/2))) {
+        tiles[zone.y + Math.floor(zone.height/2)][zone.x + Math.floor(zone.width/2)].biome = BiomeType.PODIUM;
+      }
       // Secure storage
-      tiles[zone.y + 2][zone.x + 2].biome = BiomeType.TREASURY;
+      if (isValidTile(zone.y + 2, zone.x + 2)) {
+        tiles[zone.y + 2][zone.x + 2].biome = BiomeType.TREASURY;
+      }
       break;
       
     default:
-      // Generic stalls
+      // Generic stalls using overlay system
       for (let x = zone.x + 2; x < zone.x + zone.width - 2; x += 4) {
-        tiles[zone.y + 3][x].biome = BiomeType.TABLE;
+        if (isValidTile(zone.y + 3, x)) {
+          tiles[zone.y + 3][x].overlayObject = {
+            type: OverlayObjectType.STALL,
+            rotation: 0,
+            material: material
+          };
+          tiles[zone.y + 3][x].isBlocking = true;
+        }
       }
   }
+  
+  // Light the market zone
+  lightRoom(tiles, zone.x, zone.y, zone.width, zone.height,
+           culturalZone, era, 'work', false);
 }

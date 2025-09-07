@@ -30,8 +30,11 @@ import { getLocationCulturalStyle } from '../utils/culturalMappingUtils';
 import { CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol, FishingHutSymbol, SteamSymbol, GovernmentDistrictSymbol, FireflySymbol, MineralGlintSymbol, OasisSymbol, PlazaSymbol, ParkSymbol, HarborDistrictSymbol, IndustrialDistrictSymbol, PaddockSymbol, LavaSymbol, LavaSymbolCSS, MountainSymbol, SnowSymbol, BridgeSymbol } from './symbols';
 import RuinsSymbolNew from './symbols/ruins/RuinsSymbolNew';
 import VesselSymbol from './symbols/VesselSymbol';
+import ShipTooltip from './ShipTooltip';
+import { StairsUpPixel } from './symbols/architecture/specialMap/StairsUpPixel';
 import TrainSymbol from './symbols/TrainSymbol';
 import LumberCampSymbol from './symbols/structures/LumberCampSymbol';
+import NpcAlertIndicator from './NpcAlertIndicator';
 import UrbanSymbol from './symbols/UrbanSymbolSimplified';
 import { getPalaceSymbol } from './symbols/poi/PalaceSymbolsImproved';
 import { getHolySiteSymbol } from './symbols/poi/getHolySiteSymbol';
@@ -50,7 +53,9 @@ import { getMineSymbol } from './symbols/mines/MineSymbols';
 import { getQuarrySymbol } from './symbols/quarries/QuarrySymbols';
 import { getFortressSymbol } from './symbols/fortresses/FortressSymbolsImproved';
 import { SpecialMapSymbolRenderer } from './symbols/specialMap/SpecialMapSymbolRenderer';
+import { OverlayRenderer } from './symbols/architecture/specialMap/OverlayRenderer';
 import { MultiTilePillar } from './symbols/architecture/specialMap/MultiTilePillar';
+import GovernmentDistrictSymbol from './symbols/GovernmentDistrictSymbol';
 import { 
   CityHallSymbol,
   TribalCouncilSymbol,
@@ -251,9 +256,11 @@ interface MapDisplayOptimizedProps {
     logPerformanceMetrics: boolean;
   };
   onPlayerIconClick?: () => void;
+  onShipClick?: () => void;
   onCompanionClick?: (animal: TamedAnimal) => void;
   onMapEdgeCrossing?: (direction: 'north' | 'south' | 'east' | 'west') => void;
   isSpecialMap?: boolean;
+  guardAlerts?: Map<string, 'detecting' | 'warning' | 'pursuing'>;
 }
 
 export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({ 
@@ -290,9 +297,11 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   gameTimeMinutes,
   debugSettings,
   onPlayerIconClick,
+  onShipClick,
   onCompanionClick,
   onMapEdgeCrossing,
-  isSpecialMap = false
+  isSpecialMap = false,
+  guardAlerts
 }) => {
   // State management with performance considerations
   // Start zoomed out for the zoom-in animation
@@ -312,6 +321,10 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   const [hoveredTile, setHoveredTile] = useState<Tile | null>(null);
   const [hoveredTileCoords, setHoveredTileCoords] = useState<{ x: number, y: number } | null>(null);
   
+  // Ship tooltip state
+  const [showShipTooltip, setShowShipTooltip] = useState(false);
+  const [shipTooltipPos, setShipTooltipPos] = useState({ x: 0, y: 0 });
+
   // NPC/Animal hover state
   const [hoveredNPC, setHoveredNPC] = useState<NpcEntity | null>(null);
   const [hoveredAnimal, setHoveredAnimal] = useState<AnimalEntity | null>(null);
@@ -998,6 +1011,9 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           break;
         case BiomeType.INDUSTRIAL_DISTRICT:
           componentInfo = { fileName: 'IndustrialDistrictSymbol.tsx', symbolName: 'IndustrialDistrictSymbol' };
+          break;
+        case BiomeType.STAIRS_UP:
+          componentInfo = { fileName: 'StairsUpPixel.tsx', symbolName: 'StairsUpPixel' };
           break;
       }
     }
@@ -2052,6 +2068,15 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     elements.push(<MangroveSymbol key={`mangrove-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />);
                   } else if(tile.biome === BiomeType.SALT_FLATS) {
                     elements.push(<SaltFlatsSymbol key={`saltflats-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tileX={tile.x} tileY={tile.y} />);
+                  } else if(tile.biome === BiomeType.STAIRS_UP) {
+                    elements.push(
+                      <StairsUpPixel 
+                        key={`stairs-${tile.x}-${tile.y}`} 
+                        x={symbolX} 
+                        y={symbolY} 
+                        size={TILE_SIZE_PX} 
+                      />
+                    );
                   // HILLS MOVED TO AFTER ROADS
                   } else if(tile.biome === BiomeType.OASIS) {
                     elements.push(<OasisSymbol key={`oasis-${tile.x}-${tile.y}`} x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} tileX={tile.x} tileY={tile.y} />);
@@ -2490,7 +2515,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   const elements = [];
                   
                   // Only render urban/structure symbols in this pass
-                  if ([BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.GOVERNMENT_DISTRICT, BiomeType.CITY_CENTER].includes(tile.biome)) {
+                  if ([BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.CITY_CENTER].includes(tile.biome)) {
                     elements.push(
                       <g
                         key={`urban-${tile.x}-${tile.y}`}
@@ -2508,6 +2533,35 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         style={{ cursor: 'pointer' }}
                       >
                         <UrbanSymbol x={symbolX} y={symbolY} size={TILE_SIZE_PX} seed={tileSeed} tile={tile} date={formattedDate} zone={currentLocation} location={mapData.localArea || mapData.region || currentLocation} nightIntensity={timeOfDayData.isNight ? 0.6 : 0} />
+                      </g>
+                    );
+                  } else if (tile.biome === BiomeType.GOVERNMENT_DISTRICT) {
+                    elements.push(
+                      <g
+                        key={`gov-district-${tile.x}-${tile.y}`}
+                        onMouseEnter={(e) => {
+                          if (!isDragging) {
+                            setHoveredTile(tile);
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setHoveredTileCoords({ x: rect.left + rect.width / 2, y: rect.top });
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredTile(null);
+                          setHoveredTileCoords(null);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <GovernmentDistrictSymbol 
+                          x={symbolX} 
+                          y={symbolY} 
+                          size={TILE_SIZE_PX} 
+                          seed={tileSeed} 
+                          tile={tile} 
+                          date={formattedDate} 
+                          zone={currentLocation} 
+                          nightIntensity={timeOfDayData.isNight ? 0.6 : 0} 
+                        />
                       </g>
                     );
                   } else if(tile.biome === BiomeType.MARKETPLACE) {
@@ -2764,6 +2818,12 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   if (!blueprint) return null;
                   const isPoi = ['holy_site', 'palace', 'ruin'].includes(structure.structureType);
                   if(isPoi) return null;
+
+                  // Check if structure is on a government district - if so, don't render it
+                  const tileAtLocation = mapData?.tiles?.[structure.location[1]]?.[structure.location[0]];
+                  if (tileAtLocation && tileAtLocation.biome === BiomeType.GOVERNMENT_DISTRICT) {
+                    return null; // Don't render structures on government districts
+                  }
 
                   const structX = structure.location[0] * TILE_SIZE_PX;
                   const structY = structure.location[1] * TILE_SIZE_PX;
@@ -3201,20 +3261,27 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     // Walls and structural elements (now with 2.5D symbols!)
                     BiomeType.WALL, BiomeType.WALL_GATE, BiomeType.WALL_WINDOW,
                     BiomeType.DOOR, BiomeType.DOOR_LOCKED, BiomeType.ARCHWAY,
+                    // Back walls for 3/4 perspective
+                    BiomeType.WALL_BACK, BiomeType.WALL_BACK_WINDOW, BiomeType.WALL_BACK_DOOR,
                     // Floors (with beautiful textures)
                     BiomeType.FLOOR_STONE, BiomeType.FLOOR_WOOD, BiomeType.FLOOR_MARBLE,
                     BiomeType.FLOOR_TILE, BiomeType.FLOOR_CARPET, BiomeType.FLOOR_PATTERN,
                     BiomeType.FLOOR_CHECKERED, BiomeType.FLOOR_MOSAIC,
                     BiomeType.FLOOR_MOSAIC_CENTER, BiomeType.FLOOR_MOSAIC_BORDER,
                     // Furniture and interactive items
-                    BiomeType.TABLE, BiomeType.CHAIR, BiomeType.BENCH, BiomeType.BED,
+                    BiomeType.TABLE, BiomeType.TABLE_LEFT, BiomeType.TABLE_CENTER, BiomeType.TABLE_RIGHT,
+                    BiomeType.CHAIR, BiomeType.BENCH, BiomeType.BED,
                     BiomeType.THRONE, BiomeType.BOOKSHELF, BiomeType.DESK,
                     BiomeType.FOUNTAIN, BiomeType.STATUE, BiomeType.COLUMN, BiomeType.PILLAR,
                     BiomeType.CARPET, BiomeType.ALTAR, BiomeType.SHRINE,
                     BiomeType.BRAZIER, BiomeType.CHEST, BiomeType.BARREL, BiomeType.TORCH,
                     BiomeType.PODIUM, BiomeType.CABINET, BiomeType.MIRROR,
                     BiomeType.BATH, BiomeType.KITCHEN_COUNTER, BiomeType.KITCHEN_SINK,
-                    BiomeType.WEAPON_RACK, BiomeType.ARMOR_STAND, BiomeType.STAIRS
+                    BiomeType.WEAPON_RACK, BiomeType.ARMOR_STAND, BiomeType.STAIRS,
+                    BiomeType.FIRE_PIT, BiomeType.HEARTH, BiomeType.CHANDELIER,
+                    BiomeType.SCREEN, BiomeType.FILING_CABINET, BiomeType.TOILET, BiomeType.BASIN,
+                    BiomeType.ENTRANCE_PORTAL, BiomeType.PATH, BiomeType.LANTERN
+                    // Note: Landscape biomes (PARK, FOREST, etc.) are rendered by canvas, not as symbols
                   ];
                   return specialMapBiomes.includes(tile.biome);
                 }).map(tile => {
@@ -3232,6 +3299,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       size={TILE_SIZE_PX}
                       culturalZone={culturalZone}
                       era={parseDateString(formattedDate).era}
+                      year={year}
                       seed={seed + tile.x * 31 + tile.y * 37}
                       multiTileData={(tile as any).multiTileData}
                       specialArchetype={(mapData as any).specialArchetype}
@@ -3240,6 +3308,40 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 })}
               </g>
             )}
+
+            {/* Overlay objects layer - furniture and objects on top of floor tiles */}
+            {isSpecialMap && mapData && (() => {
+              const overlayTiles = mapData.tiles.flat().filter(tile => tile.overlayObject);
+              console.log('[Overlay Debug] Found overlay tiles:', overlayTiles.length, overlayTiles);
+              if (overlayTiles.length > 0) {
+                return (
+                  <g className="overlay-objects-layer">
+                    {overlayTiles.map(tile => {
+                      // Get proper cultural zone from mapData or derive from location
+                      const { year } = parseDateString(formattedDate);
+                      const culturalZone = mapData.culturalZone || 
+                                          mapLocationToCulture(mapData.continent || currentLocation || 'Europe', year);
+                      
+                      return (
+                        <OverlayRenderer
+                          key={`overlay-${tile.x}-${tile.y}`}
+                          tile={tile}
+                          x={tile.x * TILE_SIZE_PX}
+                          y={tile.y * TILE_SIZE_PX}
+                          size={TILE_SIZE_PX}
+                          culturalZone={culturalZone}
+                          era={parseDateString(formattedDate).era}
+                          seed={seed + tile.x * 31 + tile.y * 37}
+                          nightIntensity={timeOfDayData.nightIntensity}
+                          specialArchetype={(mapData as any).specialArchetype}
+                        />
+                      );
+                    })}
+                  </g>
+                );
+              }
+              return null;
+            })()}
 
             {/* Multi-tile pillars layer - rendered above base tiles */}
             {isSpecialMap && (mapData as any)?.multiTileObjects && (
@@ -3649,19 +3751,43 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   <g>
                     {playerMode === 'ship' ? (
                       currentVessel ? (
-                        <VesselSymbol 
-                          vessel={currentVessel} 
-                          x={displayPixelIconX} 
-                          y={displayPixelIconY} 
-                          size={TILE_SIZE_PX * 1.1} 
-                        />
+                        <g 
+                          onClick={(e) => {
+                            console.log('[MapDisplay] Ship icon clicked');
+                            const rect = (e.currentTarget.parentNode as SVGSVGElement).getBoundingClientRect();
+                            const x = e.clientX - rect.left;
+                            const y = e.clientY - rect.top;
+                            setShipTooltipPos({ x, y });
+                            setShowShipTooltip(true);
+                          }}
+                          style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                        >
+                          <VesselSymbol 
+                            vessel={currentVessel} 
+                            x={displayPixelIconX} 
+                            y={displayPixelIconY} 
+                            size={TILE_SIZE_PX * 1.1} 
+                          />
+                        </g>
                       ) : (
-                        <ShipIcon
-                          x={displayPixelIconX}
-                          y={displayPixelIconY}
-                          rotation={iconRotation}
-                          velocity={velocity}
-                        />
+                        <g 
+                          onClick={(e) => {
+                            console.log('[MapDisplay] Ship icon clicked');
+                            const rect = (e.currentTarget.parentNode as SVGSVGElement).getBoundingClientRect();
+                            const x = e.clientX - rect.left;
+                            const y = e.clientY - rect.top;
+                            setShipTooltipPos({ x, y });
+                            setShowShipTooltip(true);
+                          }}
+                          style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                        >
+                          <ShipIcon
+                            x={displayPixelIconX}
+                            y={displayPixelIconY}
+                            rotation={iconRotation}
+                            velocity={velocity}
+                          />
+                        </g>
                       )
                     ) : playerCharacter && (
                       <g 
@@ -3713,6 +3839,42 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       seed={mapData.seed + tile.x * 31 + tile.y * 37}
                     />
                   ))}
+              </g>
+            )}
+
+            {/* Guard Alert Indicators - Render inside SVG */}
+            {guardAlerts && npcs && console.log(`[MapDisplay] Guard alerts size: ${guardAlerts.size}, NPCs count: ${npcs.length}`) && (
+              <g id="guard-alerts">
+                {npcs.filter(npc => {
+                  // Only show alerts for NPCs within 10 tiles of player
+                  if (logicalControlledIconX === null || logicalControlledIconY === null) return false;
+                  const dx = npc.x - logicalControlledIconX;
+                  const dy = npc.y - logicalControlledIconY;
+                  const distance = Math.sqrt(dx * dx + dy * dy);
+                  const hasAlert = guardAlerts.has(npc.id);
+                  if (hasAlert) {
+                    console.log(`[MapDisplay] Rendering alert for ${npc.name} at distance ${distance}`);
+                  }
+                  return distance <= 10 && hasAlert;
+                }).map(npc => {
+                  const alertLevel = guardAlerts.get(npc.id);
+                  if (!alertLevel) return null;
+
+                  // Calculate screen position from tile coordinates
+                  const screenX = svgWidth / 2 + (npc.x - (logicalControlledIconX || 0)) * TILE_SIZE_PX;
+                  const screenY = svgHeight / 2 + (npc.y - (logicalControlledIconY || 0)) * TILE_SIZE_PX;
+
+                  return (
+                    <NpcAlertIndicator
+                      key={`alert-${npc.id}`}
+                      npc={npc}
+                      alertLevel={alertLevel}
+                      x={screenX}
+                      y={screenY}
+                      tileSize={TILE_SIZE_PX}
+                    />
+                  );
+                })}
               </g>
             )}
           </g>
@@ -3806,7 +3968,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     <div className="border-t border-slate-700 mt-1 pt-1">
                       <div className="flex justify-between">
                         <span className="text-slate-400">Health:</span>
-                        <span>{hoveredNPC.health}/{hoveredNPC.maxHealth}</span>
+                        <span>{hoveredNPC.health?.hp || hoveredNPC.health}/{hoveredNPC.maxHealth || hoveredNPC.health?.maxHp}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">STR/CON:</span>
@@ -3815,18 +3977,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     </div>
                   </>
                 )}
-                {hoveredNPC.health && hoveredNPC.health.currentDiseases && hoveredNPC.health.currentDiseases.length > 0 && (
-                  <div className="border-t border-slate-700 mt-1 pt-1">
-                    <div className="text-green-400 font-semibold">
-                      ⚠️ Disease: {hoveredNPC.health.currentDiseases[0].disease.name}
-                    </div>
-                    {hoveredNPC.health.currentDiseases[0].disease.symptoms && (
-                      <div className="text-xs text-green-300 mt-0.5">
-                        Symptoms: {hoveredNPC.health.currentDiseases[0].disease.symptoms.slice(0, 2).map(s => s.name).join(', ')}
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* Disease display temporarily disabled - health system structure changed */}
               </div>
             </>
           )}
@@ -3848,7 +3999,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Health:</span>
-                  <span>{hoveredAnimal.health}/{hoveredAnimal.maxHealth}</span>
+                  <span>{hoveredAnimal.health?.hp || hoveredAnimal.health}/{hoveredAnimal.maxHealth || hoveredAnimal.health?.maxHp}</span>
                 </div>
                 {hoveredAnimal.stats && (
                   <div className="flex justify-between">
@@ -3871,6 +4022,20 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           )}
           </div>
         </div>
+      )}
+
+      {/* Ship Tooltip */}
+      {showShipTooltip && (
+        <ShipTooltip
+          x={shipTooltipPos.x}
+          y={shipTooltipPos.y}
+          onGoBelow={() => {
+            console.log('[MapDisplay] Going belowdecks');
+            setShowShipTooltip(false);
+            onShipClick?.();
+          }}
+          onClose={() => setShowShipTooltip(false)}
+        />
       )}
     </div>
   );

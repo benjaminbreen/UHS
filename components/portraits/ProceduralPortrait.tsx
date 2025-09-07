@@ -1,4 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { 
+  bayer4, seededRng, mix, plotPixel,
+  skinRamp, hairRamp, outlineColor,
+  renderFaceMicroShades, renderStubble,
+  renderEnhancedEyes, renderHairHighlightAndFuzz,
+  aaConcaveCorners, renderGlassesShine, renderEarring
+} from './portraitUtils';
 
 interface ProceduralPortraitProps {
   character: {
@@ -20,10 +27,10 @@ interface ProceduralPortraitProps {
       constitution: number;
     };
     equippedItems?: {
-      head?: { name: string; material?: string };
-      torso?: { name: string; material?: string };
-      cloak?: { name: string; material?: string };
-      amulet?: { name: string; material?: string };
+      head?: { name: string; material?: string; color?: string };
+      torso?: { name: string; material?: string; color?: string };
+      cloak?: { name: string; material?: string; color?: string };
+      amulet?: { name: string; material?: string; color?: string };
       [key: string]: any;
     };
     appearance: {
@@ -178,6 +185,159 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
 
   const appearanceWithDefaults = defaultAppearance;
 
+  // Utility function to get item color from equipped items
+  const getItemColor = (item: any): string => {
+    if (!item?.color) return appearanceWithDefaults.palette.primary;
+    
+    // Handle both hex colors and color names
+    if (item.color.startsWith('#')) {
+      return item.color;
+    }
+    
+    // Convert color names to hex
+    const colorMap: Record<string, string> = {
+      'Navy': '#001f3f',
+      'Blue': '#4169e1',
+      'Crimson': '#dc143c',
+      'Green': '#228b22',
+      'Gold': '#ffd700',
+      'Purple': '#800080',
+      'Black': '#1a1a1a',
+      'White': '#f8f8f8',
+      'Gray': '#808080',
+      'Grey': '#808080',
+      'Silver': '#c0c0c0',
+      'Bronze': '#cd7f32',
+      'Copper': '#b87333',
+      'Brown': '#8b4513',
+      'Tan': '#d2b48c',
+      'Orange': '#ff8c00',
+      'Pink': '#ffc0cb',
+      'Red': '#dc143c',
+      'Yellow': '#ffd700',
+      'Burgundy': '#800020',
+      'Forest Green': '#228b22',
+      'Teal': '#008080',
+      'Cyan': '#00ffff',
+      'Turquoise': '#40e0d0',
+      'Wheat': '#f5deb3',
+      'Beige': '#f5f5dc'
+    };
+    
+    return colorMap[item.color] || appearanceWithDefaults.palette.primary;
+  };
+
+  // Parse hairstyle name to get actual style and length
+  const parseHairstyle = (hairstyle: string): { length: typeof appearanceWithDefaults.hairLength; style: string; texture?: typeof appearanceWithDefaults.hairTexture } => {
+    const lower = hairstyle.toLowerCase();
+    
+    // Check for specific styles first
+    if (lower.includes('bald') || lower === 'none') return { length: 'bald', style: 'none' };
+    
+    // Compound styles - check for combinations first
+    if (lower.includes('braided bun') || lower.includes('bun') && lower.includes('braid')) return { length: 'medium', style: 'braided_bun' };
+    if (lower.includes('braided_crown') || lower.includes('braided crown')) return { length: 'long', style: 'braided_crown' };
+    
+    if (lower.includes('elaborate braid')) return { length: 'long', style: 'braided', texture: 'straight' };
+    if (lower.includes('braid')) return { length: 'medium', style: 'braided' };
+    if (lower.includes('novice')) return { length: 'short', style: 'simple' };
+    if (lower.includes('ponytail')) return { length: 'long', style: 'ponytail' };
+    if (lower.includes('bun')) return { length: 'medium', style: 'bun' };
+    if (lower.includes('mohawk')) return { length: 'short', style: 'mohawk' };
+    if (lower.includes('afro')) return { length: 'medium', style: 'afro', texture: 'kinky' };
+    if (lower.includes('dreadlock') || lower.includes('locs')) return { length: 'long', style: 'locs', texture: 'coily' };
+    if (lower.includes('crew') || lower.includes('military')) return { length: 'very_short', style: 'crew' };
+    if (lower.includes('bob')) return { length: 'short', style: 'bob' };
+    if (lower.includes('pixie')) return { length: 'very_short', style: 'pixie' };
+    if (lower.includes('topknot')) return { length: 'medium', style: 'topknot' };
+    if (lower.includes('queue')) return { length: 'long', style: 'queue' };
+    
+    // Medieval/historical styles
+    if (lower.includes('page cut') || lower.includes('pageboy')) return { length: 'short', style: 'pageboy' };
+    if (lower.includes('bowl cut') || lower.includes('bowl')) return { length: 'short', style: 'bowl_cut' };
+    
+    // Renaissance styles
+    if (lower.includes('renaissance_rolls') || lower.includes('renaissance rolls')) return { length: 'medium', style: 'renaissance_rolls' };
+    if (lower.includes('elaborate_braids')) return { length: 'long', style: 'braided' };
+    if (lower.includes('side_curls')) return { length: 'medium', style: 'side_curls' };
+    if (lower.includes('high_forehead')) return { length: 'medium', style: 'high_forehead' };
+    if (lower.includes('pearl_net')) return { length: 'medium', style: 'covered' };
+    if (lower.includes('shoulder_curled')) return { length: 'medium', style: 'curled' };
+    if (lower.includes('courtier_locks')) return { length: 'long', style: 'flowing' };
+    if (lower.includes('artist_mane')) return { length: 'long', style: 'flowing' };
+    if (lower.includes('renaissance_bob')) return { length: 'short', style: 'bob' };
+    
+    // Antiquity styles
+    if (lower.includes('greek_bun')) return { length: 'medium', style: 'bun' };
+    if (lower.includes('roman_waves')) return { length: 'medium', style: 'wavy' };
+    if (lower.includes('braided_crown')) return { length: 'long', style: 'braided' };
+    if (lower.includes('goddess_locks')) return { length: 'long', style: 'flowing' };
+    if (lower.includes('priestess_style')) return { length: 'long', style: 'covered' };
+    if (lower.includes('short_cropped')) return { length: 'very_short', style: 'simple' };
+    if (lower.includes('medium_curled')) return { length: 'medium', style: 'curled' };
+    if (lower.includes('senator_style')) return { length: 'short', style: 'formal' };
+    
+    // Medieval styles
+    if (lower.includes('long_plaits')) return { length: 'long', style: 'braided' };
+    if (lower.includes('maiden_braids')) return { length: 'long', style: 'braided' };
+    if (lower.includes('braided_buns')) return { length: 'medium', style: 'braided_bun' };
+    if (lower.includes('covered_hair')) return { length: 'medium', style: 'covered' };
+    if (lower.includes('courtly_braids')) return { length: 'long', style: 'braided' };
+    if (lower.includes('noble_wimple')) return { length: 'medium', style: 'covered' };
+    if (lower.includes('shoulder_length')) return { length: 'medium', style: 'simple' };
+    if (lower.includes('monk_style')) return { length: 'short', style: 'tonsure' };
+    if (lower.includes('knight_cut')) return { length: 'short', style: 'simple' };
+    if (lower.includes('noble_waves')) return { length: 'medium', style: 'wavy' };
+    
+    // Industrial era styles
+    if (lower.includes('gibson_girl')) return { length: 'long', style: 'elaborate_updo' };
+    if (lower.includes('victorian_updo')) return { length: 'long', style: 'elaborate_updo' };
+    if (lower.includes('elaborate_bun')) return { length: 'medium', style: 'elaborate_bun' };
+    if (lower.includes('chignon')) return { length: 'medium', style: 'chignon' };
+    if (lower.includes('matron_waves')) return { length: 'medium', style: 'wavy' };
+    if (lower.includes('side_part')) return { length: 'short', style: 'parted' };
+    if (lower.includes('slicked_back')) return { length: 'short', style: 'slicked' };
+    if (lower.includes('gentleman_cut')) return { length: 'short', style: 'formal' };
+    if (lower.includes('victorian_waves')) return { length: 'medium', style: 'wavy' };
+    
+    // Modern era styles
+    if (lower.includes('finger_waves')) return { length: 'short', style: 'finger_waves' };
+    if (lower.includes('flapper_style')) return { length: 'short', style: 'flapper' };
+    if (lower.includes('pin_curls')) return { length: 'short', style: 'pin_curls' };
+    if (lower.includes('victory_rolls')) return { length: 'medium', style: 'victory_rolls' };
+    if (lower.includes('marcel_waves')) return { length: 'medium', style: 'marcel_waves' };
+    if (lower.includes('pompadour')) return { length: 'short', style: 'pompadour' };
+    if (lower.includes('professional_cut')) return { length: 'short', style: 'professional' };
+    
+    // Prehistoric styles
+    if (lower.includes('long_wild')) return { length: 'very_long', style: 'wild' };
+    if (lower.includes('medium_messy')) return { length: 'medium', style: 'messy' };
+    if (lower.includes('tied_back')) return { length: 'long', style: 'tied_back' };
+    if (lower.includes('warrior_knot')) return { length: 'medium', style: 'topknot' };
+    if (lower.includes('shaman_braids')) return { length: 'long', style: 'braided' };
+    if (lower.includes('tribal_braids')) return { length: 'long', style: 'braided' };
+    
+    // General age/condition styles
+    if (lower.includes('balding')) return { length: 'very_short', style: 'balding' };
+    if (lower.includes('thin_long')) return { length: 'long', style: 'thin' };
+    if (lower.includes('elder_') || lower.includes('old_')) return { length: 'medium', style: 'elder' };
+    
+    // Check for length indicators
+    if (lower.includes('very short')) return { length: 'very_short', style: 'simple' };
+    if (lower.includes('very long')) return { length: 'very_long', style: 'flowing' };
+    if (lower.includes('short')) return { length: 'short', style: 'simple' };
+    if (lower.includes('long')) return { length: 'long', style: 'flowing' };
+    if (lower.includes('medium')) return { length: 'medium', style: 'simple' };
+    
+    // Default fallback
+    return { length: appearanceWithDefaults.hairLength || 'medium', style: 'simple' };
+  };
+
+  const parsedHair = parseHairstyle(appearanceWithDefaults.hairstyle);
+  const hairLength = parsedHair.length;
+  const hairStyle = parsedHair.style;
+  const hairTexture = parsedHair.texture || appearanceWithDefaults.hairTexture || 'straight';
+
   const isFemale = gender === 'Female';
   const isWealthy = wealthLevel === 'wealthy' || wealthLevel === 'noble';
   const isNoble = wealthLevel === 'noble';
@@ -234,13 +394,13 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     if (warmth < -0.1) return 'cool';
     return 'neutral';
   };
+  // Color ramps are now imported from portraitUtils
 
   // ---------- Head Geometry ----------
-  const hairLength = appearanceWithDefaults.hairLength || 'medium';
   const headDim = useMemo(() => {
     const faceShape = appearanceWithDefaults.faceShape || 'oval';
     let width = isFemale ? 22 : 26;
-    let height = isFemale ? 28 : 30;
+    let height = isFemale ? 34 : 36;  // Increased from 28/30 to 34/36 for better proportions
 
     if (isYoung) { width += 2; height -= 1; }
     if (isOld)   { height += 3; width -= 1; }
@@ -564,119 +724,196 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
   // ========================= RENDERERS =========================
 
   // ----- HEAD -----
-  const renderHead = useMemo(() => {
-    const elements: JSX.Element[] = [];
-    const faceShape = appearanceWithDefaults.faceShape || 'oval';
-    const jawline = appearanceWithDefaults.jawline || 'soft';
+const renderHead = useMemo(() => {
+  const elements: JSX.Element[] = [];
+  const faceShape = appearanceWithDefaults.faceShape || 'oval';
+  const jawline = appearanceWithDefaults.jawline || 'soft';
+  const cheekbones = appearanceWithDefaults.cheekbones || 'average';
+  const skinTexture = appearanceWithDefaults.skinTexture || 'smooth';
 
-    for (let y = 0; y < headDim.height; y++) {
-      const relativeY = y / headDim.height;
-      let widthMultiplier = 1;
+  // helpers
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+  const smooth01 = (x: number) => {
+    const t = clamp((x - 0) / 1, 0, 1);
+    return t * t * (3 - 2 * t); // classic smoothstep
+  };
+  const smooth = (a: number, b: number, x: number, x0: number, x1: number) =>
+    lerp(a, b, smooth01(clamp((x - x0) / (x1 - x0), 0, 1)));
+  const bell = (t: number, m = 0.5, s = 0.22) =>
+    Math.exp(-((t - m) * (t - m)) / (2 * s * s));
 
-      switch (faceShape) {
-        case 'oval':
-          widthMultiplier = Math.sin(Math.max(0, Math.min(1, relativeY)) * Math.PI) * 0.95 + 0.05;
-          if (relativeY < 0.05) widthMultiplier *= (0.7 + relativeY * 6);
-          break;
-        case 'round':
-          const roundness = Math.sqrt(Math.max(0, 1 - Math.pow((relativeY - 0.5) * 2, 2)));
-          widthMultiplier = roundness * 0.95 + 0.05;
-          if (relativeY < 0.05) widthMultiplier *= (0.75 + relativeY * 5);
-          break;
-        case 'square':
-          if (relativeY < 0.2) {
-            widthMultiplier = 0.85 + 0.15 * Math.cos((relativeY / 0.2 - 1) * Math.PI);
-          } else if (relativeY > 0.8) {
-            widthMultiplier = jawline === 'square' ? 0.96 : 0.9;
-          } else {
-            widthMultiplier = 1.0;
-          }
-          break;
-        case 'long':
-          widthMultiplier = Math.sin(Math.max(0, Math.min(1, relativeY)) * Math.PI) * 0.85 + 0.15;
-          if (relativeY < 0.05) widthMultiplier *= (0.65 + relativeY * 7);
-          break;
-        case 'heart':
-          if (relativeY < 0.3) {
-            widthMultiplier = Math.sin(Math.max(0, Math.min(1, relativeY / 0.3)) * Math.PI * 0.5) * 0.95 + 0.05;
-          } else {
-            widthMultiplier = relativeY < 0.5 ? 0.58 + relativeY * 0.9 : 0.9 - (relativeY - 0.5) * 0.78;
-          }
-          break;
-        case 'diamond':
-          if (relativeY < 0.1) widthMultiplier = 0.4 + relativeY * 6;
-          else if (relativeY < 0.4) widthMultiplier = 0.72 + relativeY * 0.75;
-          else if (relativeY > 0.6) widthMultiplier = 1 - (relativeY - 0.6) * 0.75;
-          else widthMultiplier = 1;
-          break;
+  // anchor defaults by face shape
+  // values are normalized width multipliers (relative to headDim.width)
+  let topW   = 0.82;
+  let cheekW = 1.00;
+  let chinW  = 0.70;
+  let tPeak  = 0.54; // where max width occurs (0=top, 1=chin)
+
+  switch (faceShape) {
+    case 'round':
+      topW = 0.86; cheekW = 1.02; chinW = 0.78; tPeak = 0.52; break;
+    case 'oval':
+      topW = 0.82; cheekW = 1.00; chinW = 0.70; tPeak = 0.54; break;
+    case 'square':
+      topW = 0.84; cheekW = 1.02; chinW = 0.84; tPeak = 0.53; break;
+    case 'heart':
+      topW = 0.86; cheekW = 1.02; chinW = 0.56; tPeak = 0.50; break;
+    case 'diamond':
+      topW = 0.76; cheekW = 1.06; chinW = 0.68; tPeak = 0.55; break;
+    case 'long':
+      topW = 0.80; cheekW = 0.96; chinW = 0.66; tPeak = 0.58; break;
+  }
+
+  // jawline influence (only widens/narrows lower third anchors)
+  if (jawline === 'square') chinW += 0.10;
+  else if (jawline === 'sharp') chinW -= 0.08;
+
+  // cheekbone influence (only boosts cheek anchor)
+  if (cheekbones === 'high') cheekW += 0.04;
+  else if (cheekbones === 'low') cheekW -= 0.03;
+
+  // hair length subtly affects the crown
+  if (hairLength === 'bald' || hairLength === 'very_short') topW += 0.02;
+
+  // hard safety clamps on anchors
+  topW = clamp(topW, 0.72, 0.92);
+  cheekW = clamp(cheekW, 0.92, 1.10);
+  chinW = clamp(chinW, 0.52, 0.90);
+  tPeak = clamp(tPeak, 0.48, 0.62);
+
+  // precompute row widths with a strictly unimodal baseline
+  const H = headDim.height;
+  const widthsNorm: number[] = new Array(H);
+
+  for (let y = 0; y < H; y++) {
+    const t = H > 1 ? y / (H - 1) : 0.0;
+
+    // piecewise smoothstep from top→cheek, then cheek→chin
+    const base =
+      t <= tPeak
+        ? smooth(topW, cheekW, t, 0, tPeak)
+        : smooth(cheekW, chinW, t, tPeak, 1);
+
+    // gentle additive styling that NEVER subtracts width (prevents pinches)
+    let styled = base;
+
+    // cheek emphasis
+    const cheekBoost =
+      faceShape === 'round'   ? 0.06 :
+      faceShape === 'diamond' ? 0.08 :
+      faceShape === 'square'  ? 0.04 :
+      faceShape === 'heart'   ? 0.05 :
+      faceShape === 'long'    ? 0.03 :
+      0.05;
+    styled += cheekBoost * bell(t, tPeak, 0.18);
+
+    // slight crown smoothing (only adds)
+    styled += 0.02 * bell(t, 0.12, 0.10);
+
+    // final normalized width with guard rails
+    widthsNorm[y] = clamp(styled, 0.50, 1.12);
+  }
+
+  // ---- UNIMODAL SWEEP (strictly no waist) ----
+  // ensure non-decreasing from top to peak
+  const peakY = Math.round(tPeak * (H - 1));
+  for (let y = 1; y <= peakY; y++) {
+    if (widthsNorm[y] < widthsNorm[y - 1]) widthsNorm[y] = widthsNorm[y - 1];
+  }
+  // ensure non-increasing from peak to chin
+  for (let y = H - 2; y >= peakY; y--) {
+    if (widthsNorm[y] < widthsNorm[y + 1]) widthsNorm[y] = widthsNorm[y + 1];
+  }
+
+  // draw
+  for (let y = 0; y < H; y++) {
+    const t = H > 1 ? y / (H - 1) : 0.0;
+    const wNorm = widthsNorm[y];
+    const rowWidth = Math.max(6, Math.round(headDim.width * wNorm));
+    const startX = headX + Math.floor((headDim.width - rowWidth) / 2);
+
+    // outlines
+    elements.push(
+      <rect key={`outline-outer-l-${y}`} x={startX - 2} y={headY + y} width="1" height="1" fill={createShadow(outlineColor, 0.7)} className="pixel" />,
+      <rect key={`outline-outer-r-${y}`} x={startX + rowWidth + 1} y={headY + y} width="1" height="1" fill={createShadow(outlineColor, 0.7)} className="pixel" />,
+      <rect key={`outline-l-${y}`}        x={startX - 1} y={headY + y} width="1" height="1" fill={outlineColor} className="pixel" />,
+      <rect key={`outline-r-${y}`}        x={startX + rowWidth} y={headY + y} width="1" height="1" fill={outlineColor} className="pixel" />
+    );
+
+    // fill & shading (kept consistent with your previous logic)
+    for (let x = 0; x < rowWidth; x++) {
+      let faceColor = skinTone;
+      const xRatio = x / rowWidth;
+
+      if (xRatio < 0.15) faceColor = skinBrightHighlight;
+      else if (xRatio < 0.25) faceColor = skinHighlight;
+      else if (xRatio < 0.4) faceColor = createHighlight(skinTone, 1.08);
+      else if (xRatio > 0.85) faceColor = skinDeepShadow;
+      else if (xRatio > 0.75) faceColor = skinShadow;
+      else if (xRatio > 0.6) faceColor = skinMidtone;
+
+      const relativeY = t;
+      if (relativeY > 0.3 && relativeY < 0.5) {
+        if (x < 3 || x > rowWidth - 4) faceColor = skinSubsurface;
       }
 
-      if (hairLength === 'bald' || hairLength === 'very_short') {
-        if (relativeY < 0.2) widthMultiplier *= 1.02;
+      if (cheekbones !== 'low' && relativeY > 0.4 && relativeY < 0.65) {
+        const cheekboneIntensity = cheekbones === 'high' ? 0.12 : 0.08;
+        if (Math.abs(xRatio - 0.22) < cheekboneIntensity || Math.abs(xRatio - 0.78) < cheekboneIntensity) {
+          faceColor = createHighlight(faceColor, xRatio < 0.5 ? 1.1 : 1.05);
+        }
       }
 
-      const rowWidth = Math.max(6, Math.floor(headDim.width * widthMultiplier));
-      const startX = headX + Math.floor((headDim.width - rowWidth) / 2);
+      if (relativeY > 0.25 && relativeY < 0.65 && Math.abs(x - rowWidth / 2) < 2) {
+        faceColor = createHighlight(faceColor, 1.12); // nose bridge
+      }
+
+      if (skinTexture === 'freckled' && rand(x * 100 + y * 1000) > 0.92) {
+        faceColor = createShadow(faceColor, 0.85);
+      } else if (skinTexture === 'weathered' && rand(x * 50 + y * 500) > 0.88) {
+        faceColor = createShadow(faceColor, 0.92);
+      }
+      if (hasAgeSpots && relativeY > 0.3 && relativeY < 0.7 && rand(x * 200 + y * 2000) > 0.96) {
+        faceColor = createShadow(faceColor, 0.75);
+      }
+      if (hasWrinkles) {
+        if ((relativeY > 0.18 && relativeY < 0.32) && y % 4 === 0) faceColor = createShadow(faceColor, 0.88);
+        if ((relativeY > 0.35 && relativeY < 0.45) && (xRatio < 0.15 || xRatio > 0.85) && ((x + y) % 3 === 0)) faceColor = createShadow(faceColor, 0.9);
+        if ((relativeY > 0.55 && relativeY < 0.75) && (xRatio < 0.3 || xRatio > 0.7) && ((x - Math.floor(rowWidth / 2)) % 4 === 0)) faceColor = createShadow(faceColor, 0.89);
+      }
 
       elements.push(
-        <rect key={`outline-outer-l-${y}`} x={startX - 2} y={headY + y} width="1" height="1" fill={createShadow(outlineColor, 0.7)} className="pixel" />,
-        <rect key={`outline-outer-r-${y}`} x={startX + rowWidth + 1} y={headY + y} width="1" height="1" fill={createShadow(outlineColor, 0.7)} className="pixel" />,
-        <rect key={`outline-l-${y}`} x={startX - 1} y={headY + y} width="1" height="1" fill={outlineColor} className="pixel" />,
-        <rect key={`outline-r-${y}`} x={startX + rowWidth} y={headY + y} width="1" height="1" fill={outlineColor} className="pixel" />
+        <rect key={`face-${y}-${x}`} x={startX + x} y={headY + y} width="1" height="1" fill={faceColor} className="pixel" />
       );
-
-      for (let x = 0; x < rowWidth; x++) {
-        let faceColor = skinTone;
-        const xRatio = x / rowWidth;
-
-        if (xRatio < 0.15) faceColor = skinBrightHighlight;
-        else if (xRatio < 0.25) faceColor = skinHighlight;
-        else if (xRatio < 0.4) faceColor = createHighlight(skinTone, 1.08);
-        else if (xRatio > 0.85) faceColor = skinDeepShadow;
-        else if (xRatio > 0.75) faceColor = skinShadow;
-        else if (xRatio > 0.6) faceColor = skinMidtone;
-
-        if (relativeY > 0.3 && relativeY < 0.5) {
-          if (x < 3 || x > rowWidth - 4) faceColor = skinSubsurface;
-        }
-
-        const cheekbones = appearanceWithDefaults.cheekbones || 'average';
-        if (cheekbones !== 'low' && relativeY > 0.4 && relativeY < 0.65) {
-          const cheekboneIntensity = cheekbones === 'high' ? 0.12 : 0.08;
-          if (Math.abs(xRatio - 0.22) < cheekboneIntensity || Math.abs(xRatio - 0.78) < cheekboneIntensity) {
-            faceColor = createHighlight(faceColor, xRatio < 0.5 ? 1.1 : 1.05);
-          }
-        }
-
-        if (relativeY > 0.25 && relativeY < 0.65 && Math.abs(x - rowWidth / 2) < 2) {
-          faceColor = createHighlight(faceColor, 1.12); // nose bridge
-        }
-
-        const skinTexture = appearanceWithDefaults.skinTexture || 'smooth';
-        if (skinTexture === 'freckled' && rand(x * 100 + y * 1000) > 0.92) {
-          faceColor = createShadow(faceColor, 0.85);
-        } else if (skinTexture === 'weathered' && rand(x * 50 + y * 500) > 0.88) {
-          faceColor = createShadow(faceColor, 0.92);
-        }
-        if (hasAgeSpots && relativeY > 0.3 && relativeY < 0.7 && rand(x * 200 + y * 2000) > 0.96) {
-          faceColor = createShadow(faceColor, 0.75);
-        }
-        if (hasWrinkles) {
-          if ((relativeY > 0.18 && relativeY < 0.32) && y % 4 === 0) faceColor = createShadow(faceColor, 0.88);
-          if ((relativeY > 0.35 && relativeY < 0.45) && (xRatio < 0.15 || xRatio > 0.85) && ((x + y) % 3 === 0)) faceColor = createShadow(faceColor, 0.9);
-          if ((relativeY > 0.55 && relativeY < 0.75) && (xRatio < 0.3 || xRatio > 0.7) && ((x - Math.floor(rowWidth / 2)) % 4 === 0)) faceColor = createShadow(faceColor, 0.89);
-        }
-
-        elements.push(<rect key={`face-${y}-${x}`} x={startX + x} y={headY + y} width="1" height="1" fill={faceColor} className="pixel" />);
-      }
     }
-    return <g key="head">{elements}</g>;
-  }, [appearanceWithDefaults.cheekbones, appearanceWithDefaults.faceShape, appearanceWithDefaults.jawline, hairLength, headDim.height, headDim.width, headX, headY, hasAgeSpots, hasWrinkles, outlineColor, skinBrightHighlight, skinDeepShadow, skinHighlight, skinMidtone, skinShadow, skinSubsurface, skinTone]);
+  }
+
+  return <g key="head">{elements}</g>;
+}, [
+  appearanceWithDefaults.cheekbones,
+  appearanceWithDefaults.faceShape,
+  appearanceWithDefaults.jawline,
+  hairLength,
+  headDim.height,
+  headDim.width,
+  headX,
+  headY,
+  hasAgeSpots,
+  hasWrinkles,
+  outlineColor,
+  skinBrightHighlight,
+  skinDeepShadow,
+  skinHighlight,
+  skinMidtone,
+  skinShadow,
+  skinSubsurface,
+  skinTone
+]);
 
   // ----- HAIR -----
   const renderHair = useMemo(() => {
     const elements: JSX.Element[] = [];
-    const hairTexture = appearanceWithDefaults.hairTexture || 'straight';
     const hairLen = hairLength;
     if (hairLen === 'bald') return <g key="hair" />;
 
@@ -691,42 +928,553 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
       }
     };
 
-    const revealForehead = hairLen === 'very_short' ? 4 : hairLen === 'short' ? 2 : 0;
+    // Buzz/crew shouldn't carve a gap out of the hairline
+    const revealForehead = hairLen === 'short' ? 1 : 0;
 
-    const hairTop = headY - (hairLen === 'very_short' ? 3 : 6);
+    // Lower hairTop for very short to hug scalp instead of floating
+    const hairTop = headY - (hairLen === 'very_short' ? 2 : hairLen === 'short' ? 4 : 7);
     const thickness = isOld ? 0.7 : isYoung ? 0.95 : 0.85;
+    
+    // Fix unrealistic hair colors - convert oversaturated reds to natural tones
+    const naturalizeHairColor = (color: string): string => {
+      const rgb = toRGB(color);
+      // If it's an oversaturated red (high red, low green/blue), convert to auburn
+      if (rgb.r > 150 && rgb.g < 80 && rgb.b < 80) {
+        return '#8B4513'; // Natural auburn/saddle brown
+      }
+      // If it's bright red, make it more orange-brown
+      if (rgb.r > 200 && rgb.g < 100 && rgb.b < 100) {
+        return '#CD853F'; // Peru/orange-brown
+      }
+      return color;
+    };
+    
+    const naturalBaseHair = naturalizeHairColor(baseHair);
+    const naturalHairShadow = createShadow(naturalBaseHair, 0.7);
+    const naturalHairDeepShadow = createShadow(naturalBaseHair, 0.5);
+    const naturalHairHighlight = createHighlight(naturalBaseHair, 1.2);
+    const naturalHairBrightHighlight = createHighlight(naturalBaseHair, 1.4);
 
-    for (let layer = 0; layer < 3; layer++) {
-      for (let y = hairTop - layer; y < headY + 10; y++) {
-        for (let x = headX - 5 + layer; x < headX + headDim.width + 5 - layer; x++) {
-          const centerX = headX + headDim.width / 2;
+    // Special style rendering
+    const centerX = headX + headDim.width / 2;
+    
+  // Render braids (outside the face + behind/around ears)
+if (hairStyle === 'braided') {
+  const braidWidth = 3;
+  const numBraids = isFemale ? 2 : 1;
+
+  // helpers
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+  const smooth01 = (t: number) => (t = clamp(t, 0, 1), t * t * (3 - 2 * t)); // smoothstep
+
+  // keep the braids a few pixels OUTSIDE the head rect
+  const clearance = 3; // try 3–5 if you still see overlap at some sizes
+  const leftLaneBase  = headX - clearance - braidWidth;
+  const rightLaneBase = headX + headDim.width + clearance;
+
+  // ear bounds (roughly mid-face)
+  const earTop    = headY + Math.round(headDim.height * 0.30);
+  const earBottom = headY + Math.round(headDim.height * 0.62);
+
+  // start a bit above the ear; length scales with hairLen
+  const yStart = headY + Math.round(headDim.height * 0.14);
+  const braidLength =
+    hairLen === 'long'   ? Math.round(headDim.height * 1.1) :
+    hairLen === 'medium' ? Math.round(headDim.height * 0.75) :
+                           Math.round(headDim.height * 0.55);
+
+  // choose lanes per braid and gently approach the ear through the ear band
+  const laneX = (b: number, y: number) => {
+    // 0 at earTop, 1 at earBottom
+    const tEar = y <= earTop ? 0 : y >= earBottom ? 1 : (y - earTop) / (earBottom - earTop);
+    const ease = smooth01(tEar);
+
+    // as we pass the ear, come slightly closer to the head (still outside)
+    const leftApproach  = Math.round(lerp(leftLaneBase,  headX - braidWidth - 1, ease));
+    const rightApproach = Math.round(lerp(rightLaneBase, headX + headDim.width + 1, ease));
+
+    if (numBraids === 1) {
+      // single braid: keep it to the right side by default (change to leftApproach if you prefer)
+      return rightApproach;
+    }
+    return b === 0 ? leftApproach : rightApproach;
+  };
+
+  for (let b = 0; b < numBraids; b++) {
+    for (let y = yStart; y < yStart + braidLength; y++) {
+      // gentle sway; lower frequency so it doesn’t saw through the outline
+      const weave = Math.sin(y * 0.45 + (b * Math.PI / 6)) * 1.2;
+      const baseX = laneX(b, y);
+
+      for (let layer = 0; layer < 3; layer++) {
+        const col = layer === 0 ? naturalHairDeepShadow
+                  : layer === 1 ? naturalBaseHair
+                  :               naturalHairHighlight;
+
+        for (let w = 0; w < braidWidth; w++) {
+          const px = Math.round(baseX + w + weave);
+
+          // hard guard: never draw inside the face rectangle
+          const insideFace = (px >= headX && px < headX + headDim.width);
+          if (insideFace) continue;
+
+          elements.push(
+            <rect
+              key={`braid-${b}-${layer}-${w}-${y}`}
+              x={px}
+              y={y}
+              width="1"
+              height="1"
+              fill={col}
+              className="pixel"
+            />
+          );
+        }
+      }
+    }
+  }
+}
+
+    
+    // Render bun - needs base hair coverage first, then elevated bun
+    if (hairStyle === 'bun') {
+      // First render base hair covering the scalp
+      for (let layer = 0; layer < 2; layer++) {
+        for (let y = hairTop; y < headY + 6; y++) {
+          for (let x = headX - 4 + layer; x < headX + headDim.width + 4 - layer; x++) {
+            const dist = Math.abs(x - centerX);
+            let draw = false;
+            const col = layer === 0 ? naturalHairShadow : naturalBaseHair;
+
+            // Cover top and sides of head
+            if (y < headY + 2) {
+              const allowed = (headDim.width / 2 + 3) * thickness;
+              if (dist < allowed - layer) draw = true;
+            } else if (y >= headY + 2 && y < headY + 4) {
+              if (dist <= headDim.width / 2 + 1 - layer) draw = true;
+            }
+
+            // Keep face area clear
+            const faceTop = headY + 3;
+            const faceCenterWidth = headDim.width / 2 - 2;
+            if (y >= faceTop && Math.abs(x - centerX) <= faceCenterWidth) {
+              draw = false;
+            }
+
+            if (draw) {
+              elements.push(<rect key={`bun-base-${layer}-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+        }
+      }
+      
+      // Now render the actual bun above the hairline
+      const bunY = headY - 6; // Moved higher above head
+      const bunSize = 10; // Made slightly larger
+      for (let dy = 0; dy < bunSize; dy++) {
+        for (let dx = 0; dx < bunSize; dx++) {
+          const dist = Math.sqrt((dx - bunSize/2) ** 2 + (dy - bunSize/2) ** 2);
+          if (dist < bunSize/2) {
+            const shade = dist / (bunSize/2);
+            const col = shade < 0.3 ? naturalHairHighlight : shade < 0.7 ? naturalBaseHair : naturalHairShadow;
+            elements.push(<rect key={`bun-${dx}-${dy}`} x={centerX - bunSize/2 + dx} y={bunY + dy} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+      }
+    }
+    
+    // Render ponytail
+    if (hairStyle === 'ponytail') {
+      const tieY = headY + 4;
+      // Hair tie
+      elements.push(<rect key="tie" x={centerX - 2} y={tieY} width="4" height="2" fill={hairDeepShadow} className="pixel" />);
+      
+      // Ponytail strands
+      const tailLength = hairLen === 'long' ? 20 : 12;
+      for (let y = tieY + 2; y < tieY + tailLength; y++) {
+        const sway = Math.sin(y * 0.2) * 2;
+        const width = 4 - Math.floor((y - tieY) / 8);
+        for (let layer = 0; layer < 3; layer++) {
+          const col = layer === 0 ? naturalHairShadow : layer === 1 ? naturalBaseHair : naturalHairHighlight;
+          for (let x = -width; x <= width; x++) {
+            elements.push(<rect key={`tail-${layer}-${x}-${y}`} x={centerX + x + sway} y={y} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+      }
+    }
+    
+    // Render topknot
+    if (hairStyle === 'topknot') {
+      const knotY = headY - 4;
+      const knotSize = 6;
+      for (let dy = 0; dy < knotSize; dy++) {
+        for (let dx = 0; dx < knotSize; dx++) {
+          const dist = Math.sqrt((dx - knotSize/2) ** 2 + (dy - knotSize/2) ** 2);
+          if (dist < knotSize/2) {
+            const col = dist < knotSize/3 ? hairHighlight : baseHair;
+            elements.push(<rect key={`knot-${dx}-${dy}`} x={centerX - knotSize/2 + dx} y={knotY + dy} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+      }
+    }
+    
+    // Render mohawk
+    if (hairStyle === 'mohawk') {
+      const mohawkHeight = 8;
+      for (let y = headY - mohawkHeight; y < headY + 5; y++) {
+        const heightProgress = (y - (headY - mohawkHeight)) / (mohawkHeight + 5);
+        const width = heightProgress < 0.5 ? 2 : 2 - Math.floor(heightProgress * 2);
+        for (let layer = 0; layer < 2; layer++) {
+          const col = layer === 0 ? naturalHairShadow : naturalBaseHair;
+          for (let x = -width; x <= width; x++) {
+            elements.push(<rect key={`mohawk-${layer}-${x}-${y}`} x={centerX + x} y={y} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+      }
+      // Shaved sides
+      for (let y = headY; y < headY + 6; y++) {
+        elements.push(
+          <rect key={`shave-l-${y}`} x={headX - 2} y={y} width="4" height="1" fill={createShadow(skinTone, 0.9)} className="pixel" />,
+          <rect key={`shave-r-${y}`} x={headX + headDim.width - 2} y={y} width="4" height="1" fill={createShadow(skinTone, 0.9)} className="pixel" />
+        );
+      }
+    }
+    
+    // Render afro
+    if (hairStyle === 'afro') {
+      const afroRadius = headDim.width / 2 + 6;
+      for (let y = headY - 8; y < headY + 12; y++) {
+        for (let x = centerX - afroRadius; x <= centerX + afroRadius; x++) {
+          const dx = x - centerX;
+          const dy = y - (headY + 2);
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          
+          if (dist < afroRadius && dist > 2) {
+            // Better face boundary detection - preserve eyes, nose, mouth area
+            const faceTop = headY + 3;
+            const faceBottom = headY + headDim.height - 3;
+            const faceCenterWidth = headDim.width / 2 - 3;
+            const isInFaceArea = y >= faceTop && y <= faceBottom && Math.abs(dx) <= faceCenterWidth;
+            
+            if (!isInFaceArea) {
+              const noise = Math.sin(x * 1.5 + y * 1.5) * 0.5 + Math.cos(x * 2.1 - y * 1.8) * 0.3;
+              const layer = dist < afroRadius * 0.6 ? 2 : dist < afroRadius * 0.85 ? 1 : 0;
+              const col = layer === 0 ? hairDeepShadow : layer === 1 ? baseHair : noise > 0.2 ? hairHighlight : baseHair;
+              
+              elements.push(<rect key={`afro-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+        }
+      }
+    }
+    
+    // Render pageboy cut
+    if (hairStyle === 'pageboy') {
+      for (let layer = 0; layer < 3; layer++) {
+        for (let y = hairTop - layer; y < headY + 8; y++) {
+          for (let x = headX - 3 + layer; x < headX + headDim.width + 3 - layer; x++) {
+            const dist = Math.abs(x - centerX);
+            let draw = false;
+            const col = layer === 0 ? hairDeepShadow : layer === 1 ? baseHair : hairHighlight;
+
+            // Even bowl-like shape around head
+            if (y < headY + 2) {
+              const allowed = (headDim.width / 2 + 3) * thickness;
+              if (dist < allowed - layer) draw = true;
+            } else if (y >= headY + 2 && y < headY + 6) {
+              // Straight cut around ears and nape
+              if (dist <= headDim.width / 2 + 1 - layer) draw = true;
+            }
+
+            // Keep forehead clear
+            const faceTop = headY + 1;
+            const faceCenterWidth = headDim.width / 2 - 2;
+            if (y >= faceTop && y <= headY + 4 && Math.abs(x - centerX) <= faceCenterWidth) {
+              draw = false;
+            }
+
+            if (draw) {
+              elements.push(<rect key={`pageboy-${layer}-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+        }
+      }
+    }
+    
+    // Render bowl cut
+    if (hairStyle === 'bowl_cut') {
+      for (let layer = 0; layer < 2; layer++) {
+        for (let y = hairTop - layer; y < headY + 5; y++) {
+          for (let x = headX - 4 + layer; x < headX + headDim.width + 4 - layer; x++) {
+            const dist = Math.abs(x - centerX);
+            let draw = false;
+            const col = layer === 0 ? naturalHairShadow : naturalBaseHair;
+
+            // Perfect bowl shape
+            const bowlRadius = headDim.width / 2 + 2;
+            const dy = y - (headY - 1);
+            const bowlDist = Math.sqrt(dist * dist + dy * dy);
+            
+            if (bowlDist <= bowlRadius && y < headY + 3) {
+              draw = true;
+            }
+
+            // Clear face area more aggressively
+            const faceTop = headY + 2;
+            const faceCenterWidth = headDim.width / 2 - 1;
+            if (y >= faceTop && Math.abs(x - centerX) <= faceCenterWidth) {
+              draw = false;
+            }
+
+            if (draw) {
+              elements.push(<rect key={`bowl-${layer}-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+        }
+      }
+    }
+    
+    // Render braided bun (combination style) - needs base coverage + elevated bun
+    if (hairStyle === 'braided_bun') {
+      // Base hair coverage
+      for (let layer = 0; layer < 2; layer++) {
+        for (let y = hairTop; y < headY + 5; y++) {
+          for (let x = headX - 4 + layer; x < headX + headDim.width + 4 - layer; x++) {
+            const dist = Math.abs(x - centerX);
+            const col = layer === 0 ? naturalHairShadow : naturalBaseHair;
+            let draw = false;
+
+            if (y < headY + 2) {
+              const allowed = (headDim.width / 2 + 3) * thickness;
+              if (dist < allowed - layer) draw = true;
+            } else if (y >= headY + 2 && y < headY + 4) {
+              if (dist <= headDim.width / 2 + 1 - layer) draw = true;
+            }
+
+            const faceTop = headY + 3;
+            const faceCenterWidth = headDim.width / 2 - 2;
+            if (y >= faceTop && Math.abs(x - centerX) <= faceCenterWidth) {
+              draw = false;
+            }
+
+            if (draw) {
+              elements.push(<rect key={`braidbun-base-${layer}-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+        }
+      }
+      
+      // Small braids leading to central bun
+      const bunY = headY - 5; // Moved higher
+      const bunSize = 8; // Made larger
+      
+      // Draw leading braids
+      for (let side = 0; side < 2; side++) {
+        const braidX = side === 0 ? centerX - 8 : centerX + 8;
+        for (let y = headY; y < bunY + bunSize / 2; y++) {
+          const weave = Math.sin(y * 0.8) * 1;
+          for (let w = 0; w < 2; w++) {
+            const col = w === 0 ? naturalHairShadow : naturalBaseHair;
+            elements.push(<rect key={`braidbun-lead-${side}-${w}-${y}`} x={braidX + w + weave} y={y} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+      }
+      
+      // Central bun
+      for (let dy = 0; dy < bunSize; dy++) {
+        for (let dx = 0; dx < bunSize; dx++) {
+          const dist = Math.sqrt((dx - bunSize/2) ** 2 + (dy - bunSize/2) ** 2);
+          if (dist < bunSize/2) {
+            const shade = dist / (bunSize/2);
+            const col = shade < 0.3 ? naturalHairHighlight : shade < 0.7 ? naturalBaseHair : naturalHairShadow;
+            elements.push(<rect key={`braidbun-${dx}-${dy}`} x={centerX - bunSize/2 + dx} y={bunY + dy} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+      }
+    }
+    
+    // Render braided crown - MUST have base hair coverage first
+    if (hairStyle === 'braided_crown') {
+      // First: render FULL base hair covering the entire scalp
+      for (let layer = 0; layer < 3; layer++) {
+        for (let y = hairTop - layer; y < headY + 8; y++) {
+          for (let x = headX - 6 + layer; x < headX + headDim.width + 6 - layer; x++) {
+            const dist = Math.abs(x - centerX);
+            let draw = false;
+            const col = layer === 0 ? naturalHairDeepShadow : layer === 1 ? naturalBaseHair : naturalHairHighlight;
+
+            // FULL scalp coverage - this is the key fix
+            if (y < headY + 2) {
+              const allowed = (headDim.width / 2 + 5) * thickness * (1 - (y - hairTop) / 10 * 0.3);
+              if (dist < allowed - layer) draw = true;
+            } else if (y >= headY + 2 && y < headY + 6) {
+              if (dist <= headDim.width / 2 + 3 - layer) draw = true;
+            }
+
+            // Only clear the center face area, not the entire forehead
+            const faceTop = headY + 3;
+            const faceBottom = headY + headDim.height - 2;
+            const faceCenterWidth = headDim.width / 2 - 2;
+            const isInFaceArea = y >= faceTop && y <= faceBottom && Math.abs(x - centerX) <= faceCenterWidth;
+            
+            if (isInFaceArea) {
+              draw = false;
+            }
+
+            if (draw && (!isOld || rand(x + y * 100 + layer * 1000) > 0.35)) {
+              elements.push(<rect key={`crownbase-${layer}-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+        }
+      }
+      
+      // Second: Add the decorative crown braid around the head
+      const crownRadius = headDim.width / 2 + 2;
+      const crownY = headY - 2;
+      
+      for (let angle = 0; angle < Math.PI * 2; angle += 0.3) {
+        const braidX = centerX + Math.cos(angle) * crownRadius;
+        const braidY = crownY + Math.sin(angle) * crownRadius * 0.4; // Flattened circle
+        
+        // Braid thickness
+        for (let thickness = 0; thickness < 3; thickness++) {
+          const offsetX = Math.cos(angle + Math.PI/2) * thickness;
+          const offsetY = Math.sin(angle + Math.PI/2) * thickness * 0.5;
+          const weave = Math.sin(angle * 6) * 0.5; // Braided pattern
+          const col = thickness === 0 ? naturalHairHighlight : thickness === 1 ? naturalBaseHair : naturalHairShadow;
+          
+          elements.push(<rect key={`crown-${Math.floor(angle*10)}-${thickness}`} 
+            x={braidX + offsetX + weave} y={braidY + offsetY} 
+            width="1" height="1" fill={col} className="pixel" />);
+        }
+      }
+    }
+    
+    // Render renaissance rolls
+    if (hairStyle === 'renaissance_rolls') {
+      // Renaissance rolls: hair pulled back with decorative rolls at temples
+      for (let layer = 0; layer < 2; layer++) {
+        for (let y = hairTop; y < headY + 6; y++) {
+          for (let x = headX - 4 + layer; x < headX + headDim.width + 4 - layer; x++) {
+            const dist = Math.abs(x - centerX);
+            const col = layer === 0 ? naturalHairShadow : naturalBaseHair;
+            let draw = false;
+
+            // Base hair coverage
+            if (y < headY + 2) {
+              const allowed = (headDim.width / 2 + 3) * thickness;
+              if (dist < allowed - layer) draw = true;
+            } else if (y >= headY + 2 && y < headY + 4) {
+              if (dist <= headDim.width / 2 + 1 - layer) draw = true;
+            }
+
+            // Keep center forehead clear for high forehead style
+            const faceTop = headY + 2;
+            const faceCenterWidth = headDim.width / 2 - 3;
+            if (y >= faceTop && y <= headY + 5 && Math.abs(x - centerX) <= faceCenterWidth) {
+              draw = false;
+            }
+
+            if (draw) {
+              elements.push(<rect key={`renaissance-base-${layer}-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
+            }
+          }
+        }
+      }
+      
+      // Temple rolls - decorative spiral rolls at temples
+      for (let side = 0; side < 2; side++) {
+        const rollX = side === 0 ? centerX - headDim.width/2 - 1 : centerX + headDim.width/2 + 1;
+        const rollY = headY + 1;
+        
+        // Create spiral roll pattern
+        for (let r = 0; r < 3; r++) {
+          const radius = 2 + r;
+          for (let angle = 0; angle < Math.PI * 2; angle += 0.8) {
+            const px = rollX + Math.cos(angle) * radius;
+            const py = rollY + Math.sin(angle) * radius * 0.6;
+            const col = r === 0 ? naturalHairHighlight : r === 1 ? naturalBaseHair : naturalHairShadow;
+            elements.push(<rect key={`roll-${side}-${r}-${Math.floor(angle*10)}`} x={px} y={py} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+      }
+    }
+    
+    // Render locs/dreadlocks
+    if (hairStyle === 'locs') {
+      const numLocs = 8 + Math.floor(rand(100) * 4);
+      const locPositions: number[] = [];
+      
+      // Generate loc starting positions
+      for (let i = 0; i < numLocs; i++) {
+        const angle = (i / numLocs) * Math.PI * 2;
+        const radius = headDim.width / 2 - 1;
+        const locX = centerX + Math.cos(angle) * radius * 0.8;
+        locPositions.push(locX);
+      }
+      
+      // Draw each loc
+      locPositions.forEach((locX, i) => {
+        const locLength = hairLen === 'long' ? 25 : hairLen === 'medium' ? 18 : 12;
+        const thickness = 2 + (i % 2);
+        
+        for (let y = headY; y < headY + locLength; y++) {
+          const sway = Math.sin(y * 0.3 + i) * 1.5;
+          const taper = y > headY + locLength - 5 ? (headY + locLength - y) / 5 : 1;
+          const width = Math.floor(thickness * taper);
+          
+          for (let w = 0; w < width; w++) {
+            const shade = w === 0 ? hairHighlight : w === width - 1 ? hairShadow : baseHair;
+            elements.push(<rect key={`loc-${i}-${y}-${w}`} x={locX + sway + w - width/2} y={y} width="1" height="1" fill={shade} className="pixel" />);
+          }
+        }
+      });
+    }
+    
+    // Default hair rendering for simple/flowing styles - FIXED with full scalp coverage
+    if (hairStyle === 'simple' || hairStyle === 'flowing' || hairStyle === 'bob' || hairStyle === 'pixie' || hairStyle === 'crew') {
+      // Add helpers for buzz cuts
+      const isBuzz = hairLen === 'very_short' || hairStyle === 'crew' || hairStyle === 'pixie';
+      const coverThickness = isBuzz ? 1 : thickness;   // ignore age thinning for buzz/crew
+      
+      for (let layer = 0; layer < 3; layer++) {
+        for (let y = hairTop - layer; y < headY + 10; y++) {
+          for (let x = headX - 7 + layer; x < headX + headDim.width + 7 - layer; x++) {
           const dist = Math.abs(x - centerX);
           let draw = false;
-          let col = layer === 0 ? hairDeepShadow : layer === 1 ? baseHair : hairHighlight;
+          let col = layer === 0 ? naturalHairDeepShadow : layer === 1 ? naturalBaseHair : naturalHairHighlight;
 
-          if (y < headY + 2) {
-            const topProgress = (headY + 2 - y) / (headY + 2 - hairTop);
-            const allowed = (headDim.width / 2 + 4) * thickness * (1 - topProgress * 0.4);
+          // FULL SCALP COVERAGE - using coverThickness instead of thickness
+          if (y < headY + 3) {
+            const topProgress = (headY + 3 - y) / (headY + 3 - hairTop);
+            const allowed = (headDim.width / 2 + 5) * coverThickness * (1 - topProgress * 0.3);
             if (dist < allowed - layer) draw = true;
-          } else if (y < headY + 8 - layer) {
-            if (x >= headX - 3 + layer && x <= headX + headDim.width + 2 - layer) draw = true;
+          } else if (y >= headY + 3 && y < headY + 8 - layer) {
+            // Ensure sides are covered too
+            if (dist <= headDim.width / 2 + 3 - layer) draw = true;
           }
 
-          if (hairLen === 'very_short') {
-            if (y >= headY && y < headY + 3) {
-              const frontForehead = headDim.width / 2 - 3;
-              if (Math.abs(x - centerX) < frontForehead) {
-                draw = false;
-              }
-            }
-            if (y < headY && y >= hairTop) {
-              if (dist < headDim.width / 2 + 3) {
-                draw = true;
-              }
-            }
-          } else if (revealForehead > 0 && y < headY + revealForehead) {
-            const inner = headDim.width / 2 - 2;
-            if (Math.abs(x - centerX) < inner - 1) draw = false;
+          // Only clear center facial features for non-buzz cuts
+          const faceTop = headY + 4;
+          const faceBottom = headY + headDim.height - 3;
+          const faceCenterWidth = headDim.width / 2 - 2;
+          const isInFaceArea = y >= faceTop && y <= faceBottom && Math.abs(x - centerX) <= faceCenterWidth;
+          
+          if (!isBuzz && isInFaceArea) {
+            draw = false;
+          }
+
+          // Continuous cap for very short / crew cuts: no center gap at the hairline
+          if (isBuzz && y <= headY + 3) {
+            const allowed = headDim.width / 2 + 3 - layer; // full width across crown
+            if (dist < allowed) draw = true;
+          }
+
+          // Normal forehead reveal for non-buzz cuts
+          if (!isBuzz && revealForehead > 0 && y < headY + revealForehead + 2) {
+            const inner = headDim.width / 2 - 3;
+            if (Math.abs(x - centerX) < inner) draw = false;
           }
 
           if (draw && (!isOld || rand(x + y * 100 + layer * 1000) > 0.35)) {
@@ -739,8 +1487,9 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
         }
       }
     }
+    } // End of default hair styles
 
-    if (['medium', 'long', 'very_long'].includes(hairLen)) {
+    if (['medium', 'long', 'very_long'].includes(hairLen) && (hairStyle === 'simple' || hairStyle === 'flowing')) {
       const hairLengthPixels = hairLen === 'very_long' ? 28 : hairLen === 'long' ? 20 : 12;
       for (let y = headY + 5; y < headY + hairLengthPixels; y++) {
         const progress = (y - headY - 5) / hairLengthPixels;
@@ -752,8 +1501,8 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
           for (let x = headX - 6 + widthReduction + strandOffset; x <= headX + 4 - strandOffset; x++) {
             const p = getHairPattern(x, y);
             const s = Math.sin((x - headX) * 2 + y * 0.3 + strand) * 0.4;
-            let col = strand === 0 ? hairShadow : strand === 1 ? baseHair : hairHighlight;
-            if (s > 0.2 && strand === 2) col = hairBrightHighlight;
+            let col = strand === 0 ? naturalHairShadow : strand === 1 ? naturalBaseHair : naturalHairHighlight;
+            if (s > 0.2 && strand === 2) col = naturalHairBrightHighlight;
             if (!isOld || rand(x + y + strand * 1000) > 0.4) {
               elements.push(<rect key={`hair-left-${strand}-${x}-${y}`} x={x + s * 0.4 + p + flow} y={y} width="1" height="1" fill={col} className="pixel" />);
             }
@@ -761,8 +1510,8 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
           for (let x = headX + headDim.width - 4 + strandOffset; x < headX + headDim.width + 6 - widthReduction - strandOffset; x++) {
             const p = getHairPattern(x, y);
             const s = Math.sin((x - headX) * 2 + y * 0.3 + strand) * 0.4;
-            let col = strand === 0 ? hairShadow : strand === 1 ? baseHair : hairHighlight;
-            if (s > 0.2 && strand === 2) col = hairBrightHighlight;
+            let col = strand === 0 ? naturalHairShadow : strand === 1 ? naturalBaseHair : naturalHairHighlight;
+            if (s > 0.2 && strand === 2) col = naturalHairBrightHighlight;
             if (!isOld || rand(x + y + strand * 1000) > 0.4) {
               elements.push(<rect key={`hair-right-${strand}-${x}-${y}`} x={x - s * 0.4 - p - flow} y={y} width="1" height="1" fill={col} className="pixel" />);
             }
@@ -772,11 +1521,16 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     }
 
     return <g key="hair">{elements}</g>;
-  }, [appearanceWithDefaults.hairTexture, baseHair, hairBrightHighlight, hairDeepShadow, hairHighlight, hairShadow, headDim.width, headX, headY, hairLength, isOld, isYoung]);
+  }, [hairTexture, hairStyle, baseHair, hairBrightHighlight, hairDeepShadow, hairHighlight, hairShadow, headDim.width, headX, headY, hairLength, isOld, isYoung, skinTone, isFemale]);
 
   // ----- EYES (with expression tweaks) -----
   const renderEyes = () => {
     const elements: JSX.Element[] = [];
+    
+    // Disabled enhanced eye rendering due to visual artifacts
+    // renderEnhancedEyes(elements, headX, headY, headDim.width, headDim.height, appearanceWithDefaults.eyeColor, skinTone);
+    
+    // Keep existing variables for expression/eyebrow logic
     const eyeShape = appearanceWithDefaults.eyeShape || 'almond';
     const eyebrowShape = appearanceWithDefaults.eyebrowShape || 'arched';
     const eyebrowThickness = appearanceWithDefaults.eyebrowThickness || 'medium';
@@ -1235,7 +1989,24 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     const densityBase = thickness === 'thick' ? 0.85 : thickness === 'sparse' ? 0.45 : 0.65;
     const chinWidth = Math.floor(headDim.width * 0.55);
 
-    if (style === 'full_beard') {
+    // ENHANCED STUBBLE RENDERING
+    if (style === 'stubble') {
+      const centerX = headX + Math.floor(headDim.width / 2);
+      const stubbleDensity = thickness === 'thick' ? 0.7 : thickness === 'sparse' ? 0.3 : 0.5;
+      
+      renderStubble({
+        elements,
+        headX,
+        headY,
+        headW: headDim.width,
+        headH: headDim.height,
+        centerX,
+        skinTone,
+        hairColor: beardColor,
+        density: stubbleDensity,
+        seed: character.portraitSeed || seed || 1234
+      });
+    } else if (style === 'full_beard') {
       const mustacheY = mouthY - 1;
       const mustacheThickness = thickness === 'thick' ? 2 : 1;
       for (let t = 0; t < mustacheThickness; t++) {
@@ -1314,73 +2085,6 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
             );
           }
         }
-      }
-    } else if (style === 'stubble') {
-           // STUBBLE = soft tonal darkening along jaw + above lip (no black dots)
-      {
-        const density = thickness === 'thick' ? 1.0 : thickness === 'sparse' ? 0.6 : 0.8;
-
-        // 1) Above-lip shadow (short, centered)
-        const centerX = headX + Math.floor(headDim.width / 2);
-        const moustW = 8;
-        const moustY = mouthY - 1; // just above upper lip
-        for (let i = -Math.floor(moustW / 2); i <= Math.floor(moustW / 2); i++) {
-          // Dither skip to keep it soft
-          const skip = ((i + moustY) % 2) !== 0 && density < 0.9;
-          if (!skip) {
-            elements.push(
-              <rect
-                key={`stubble-m-${i}`}
-                x={centerX + i}
-                y={moustY}
-                width="1"
-                height="1"
-                fill={createShadow(skinTone, 0.88)}
-                className="pixel"
-              />
-            );
-          }
-        }
-
-        // 2) Jaw band: a curved, softly darkened region from under lip to chin
-        // Use skin-tone shadows, slightly stronger at edges to imply hair density
-        const chinWidth = Math.floor(headDim.width * 0.55);
-        const startY = baseY - 1;          // just below the mouth line
-        const endY = baseY + 8;            // fade out toward the neck
-        for (let y = startY; y <= endY; y++) {
-          const t = (y - startY) / (endY - startY); // 0..1
-          const rowW = Math.floor(chinWidth * (0.65 + 0.35 * Math.min(1, t * 1.4)));
-          const rowX = headX + Math.floor(headDim.width / 2) - Math.floor(rowW / 2);
-
-          // Shade ramp: darker near the sides & chin, lighter near the center
-          for (let x = 0; x < rowW; x++) {
-            const xr = x / Math.max(1, rowW - 1); // 0..1 across the band
-            // Center stays a bit lighter; edges a bit darker
-            const edgeBoost = 0.86 - 0.06 * Math.abs(0.5 - xr) * 2; // ~0.80..0.86
-            // Vertical fade: stronger near top/middle, fades out by endY
-            const vFade = 0.86 + (1 - t) * 0.06; // ~0.86..0.92
-            const amount = Math.max(0.80, Math.min(0.92, Math.min(edgeBoost, vFade)));
-
-            // light blue-noise dither so it doesn't look painted
-            const noise = rand(x * 917 + y * 613);
-            const shouldDraw = noise < density; // thicker -> more coverage
-            if (shouldDraw) {
-              elements.push(
-                <rect
-                  key={`stubble-j-${x}-${y}`}
-                  x={rowX + x}
-                  y={y}
-                  width="1"
-                  height="1"
-                  fill={createShadow(skinTone, amount)}
-                  className="pixel"
-                />
-              );
-            }
-          }
-        }
-      
-
       }
     } else if (style === 'mutton_chops') {
       for (let y = -8; y < 4; y++) {
@@ -1476,7 +2180,8 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     
     // If no garment equipped, show bare torso (skip clothing rendering)
     const isNaked = !garment;
-    const clothingColor = appearanceWithDefaults.palette.primary;
+    
+    const clothingColor = getItemColor(garment);
     const clothingShadow = createShadow(clothingColor, 0.7);
     const clothingDeepShadow = createShadow(clothingColor, 0.5);
     const clothingHighlight = createHighlight(clothingColor, 1.2);
@@ -1560,22 +2265,183 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
         );
       }
 
+      // Enhanced garment type detection and rendering
+      const garmentName = garment?.name?.toLowerCase() || '';
+      const isRobe = garmentName.includes('robe') || garmentName.includes('habit') || garmentName.includes('cassock');
+      const isDress = garmentName.includes('dress') || garmentName.includes('gown');
+      const isArmor = garmentName.includes('armor') || garmentName.includes('mail') || garmentName.includes('plate') || garmentName.includes('cuirass');
+      const isApron = garmentName.includes('apron');
+      const isVest = garmentName.includes('vest') || garmentName.includes('waistcoat') || garmentName.includes('jerkin');
+      const isShirt = garmentName.includes('shirt') || garmentName.includes('blouse') || garmentName.includes('dress shirt');
+      const isTunic = garmentName.includes('tunic') || garmentName.includes('tabard');
+      const isCoat = garmentName.includes('coat') || garmentName.includes('jacket') || garmentName.includes('doublet');
+      const isCape = garmentName.includes('cape') || garmentName.includes('cloak') || garmentName.includes('mantle');
+      const isPoncho = garmentName.includes('poncho');
+      const isShawl = garmentName.includes('shawl');
+      
+      // Modern clothing detection
+      const isBusinessSuit = garmentName.includes('business suit') || garmentName.includes('suit jacket');
+      const isBlazer = garmentName.includes('blazer');
+      const isHoodie = garmentName.includes('hoodie') || garmentName.includes('hooded sweatshirt');
+      const isTShirt = garmentName.includes('t-shirt') || garmentName.includes('t shirt') || garmentName.includes('tee shirt');
+      const isPoloShirt = garmentName.includes('polo shirt') || garmentName.includes('polo');
+      const isSweater = garmentName.includes('sweater') || garmentName.includes('pullover') || garmentName.includes('jumper');
+      const isTankTop = garmentName.includes('tank top') || garmentName.includes('vest top') || garmentName.includes('sleeveless shirt');
+      
+      // Collar/neckline rendering based on garment type
       if (y < 3) {
         const collarWidth = Math.floor(torsoWidth * 0.6);
         const collarX = 32 - (collarWidth / 2);
-        const name = garment?.name?.toLowerCase() || '';
-        if (name.includes('robe') || name.includes('dress')) {
+        
+        if (isRobe || isDress) {
+          // V-neck for robes and dresses
           for (let cx = 0; cx < collarWidth; cx++) {
             const vDepth = Math.abs(cx - collarWidth / 2) < y * 2;
             if (vDepth) elements.push(<rect key={`collar-v-${y}-${cx}`} x={collarX + cx} y={bodyStartY + y} width="1" height="1" fill={skinTone} className="pixel" />);
           }
+        } else if (isArmor && y === 0) {
+          // High collar for armor
+          for (let cx = 0; cx < collarWidth + 4; cx++) {
+            const metalCol = isMetallic ? createHighlight(clothingColor, 1.4) : clothingDeepShadow;
+            elements.push(<rect key={`armor-collar-${cx}`} x={collarX + cx - 2} y={bodyStartY - 1} width="1" height="2" fill={metalCol} className="pixel" />);
+          }
+        } else if (isVest && y > 0) {
+          // Open vest showing shirt underneath
+          for (let cx = 0; cx < collarWidth; cx++) {
+            if (Math.abs(cx - collarWidth / 2) > 3) {
+              elements.push(<rect key={`vest-open-${y}-${cx}`} x={collarX + cx} y={bodyStartY + y} width="1" height="1" fill={clothingColor} className="pixel" />);
+            } else {
+              // Show shirt underneath
+              elements.push(<rect key={`vest-shirt-${y}-${cx}`} x={collarX + cx} y={bodyStartY + y} width="1" height="1" fill={'#f8f8f8'} className="pixel" />);
+            }
+          }
+        } else if (isCoat && y === 0) {
+          // High collar for coats
+          for (let cx = 0; cx < collarWidth; cx++) {
+            elements.push(<rect key={`coat-collar-${cx}`} x={collarX + cx} y={bodyStartY} width="1" height="1" fill={clothingDeepShadow} className="pixel" />);
+          }
+        } else if ((isBusinessSuit || isBlazer) && y === 0) {
+          // Professional suit collar with lapels
+          for (let cx = 0; cx < collarWidth; cx++) {
+            const isLapel = cx < 3 || cx > collarWidth - 4;
+            const lapelColor = isLapel ? clothingDeepShadow : clothingColor;
+            elements.push(<rect key={`suit-collar-${cx}`} x={collarX + cx} y={bodyStartY} width="1" height="1" fill={lapelColor} className="pixel" />);
+          }
+        } else if (isHoodie && y === 0) {
+          // Hoodie with visible hood rim
+          for (let cx = 0; cx < collarWidth + 2; cx++) {
+            elements.push(<rect key={`hoodie-hood-${cx}`} x={collarX + cx - 1} y={bodyStartY - 1} width="1" height="1" fill={clothingDeepShadow} className="pixel" />);
+          }
+        } else if (isTShirt || isTankTop) {
+          // Simple rounded neckline for casual wear
+          for (let cx = 0; cx < collarWidth; cx++) {
+            const roundDepth = Math.abs(cx - collarWidth / 2) < (collarWidth / 4) && y === 1;
+            if (roundDepth) elements.push(<rect key={`tshirt-neck-${y}-${cx}`} x={collarX + cx} y={bodyStartY + y} width="1" height="1" fill={skinTone} className="pixel" />);
+          }
+        } else if (isPoloShirt && y < 2) {
+          // Polo collar stands up slightly
+          for (let cx = 0; cx < collarWidth; cx++) {
+            const collarUp = y === 0 && cx > 2 && cx < collarWidth - 3;
+            if (collarUp) elements.push(<rect key={`polo-collar-${cx}`} x={collarX + cx} y={bodyStartY - 1} width="1" height="1" fill={clothingColor} className="pixel" />);
+          }
+        } else if (isSweater) {
+          // Crew neck sweater
+          for (let cx = 0; cx < collarWidth; cx++) {
+            if (y === 0) elements.push(<rect key={`sweater-neck-${cx}`} x={collarX + cx} y={bodyStartY} width="1" height="1" fill={clothingDeepShadow} className="pixel" />);
+          }
         } else if (isWealthy) {
+          // Decorative collar for wealthy characters
           for (let cx = 0; cx < collarWidth; cx++) {
             elements.push(
               <rect key={`collar-${y}-${cx}`} x={collarX + cx} y={bodyStartY + y} width="1" height="1" fill={y === 0 ? accentColor : appearanceWithDefaults.palette.secondary} className="pixel" />
             );
           }
         }
+      }
+      
+      // Add apron overlay if wearing apron
+      if (isApron && y > 8 && y < bodyHeight - 5) {
+        const apronWidth = Math.floor(torsoWidth * 0.7);
+        const apronX = 32 - (apronWidth / 2);
+        for (let ax = 0; ax < apronWidth; ax++) {
+          if (rand(ax + y * 100) > 0.1) { // Slightly transparent effect
+            const apronCol = garment?.color?.startsWith('#') ? garment.color : '#f5f5dc'; // Default to beige
+            elements.push(<rect key={`apron-${y}-${ax}`} x={apronX + ax} y={bodyStartY + y} width="1" height="1" fill={apronCol} className="pixel" />);
+          }
+        }
+      }
+      
+      // Add armor plates/details
+      if (isArmor && y % 4 === 0 && y > 5 && y < bodyHeight - 10) {
+        const plateWidth = Math.floor(torsoWidth * 0.8);
+        const plateX = 32 - (plateWidth / 2);
+        for (let px = 0; px < plateWidth; px++) {
+          const plateCol = createHighlight(clothingColor, 1.3);
+          elements.push(<rect key={`plate-${y}-${px}`} x={plateX + px} y={bodyStartY + y} width="1" height="1" fill={plateCol} className="pixel" />);
+        }
+      }
+      
+      // Add cape/cloak flowing effect
+      if (isCape && y > 10) {
+        const capeWidth = torsoWidth + Math.floor((y - 10) / 3);
+        const capeX = 32 - (capeWidth / 2);
+        const flow = Math.sin(y * 0.1) * 2;
+        for (let cx = 0; cx < capeWidth; cx++) {
+          const edgeEffect = cx === 0 || cx === capeWidth - 1 ? createShadow(clothingColor, 0.6) : clothingColor;
+          elements.push(<rect key={`cape-${y}-${cx}`} x={capeX + cx + flow} y={bodyStartY + y} width="1" height="1" fill={edgeEffect} className="pixel" />);
+        }
+      }
+      
+      // Add poncho draping
+      if (isPoncho && y > 8) {
+        const ponchoWidth = torsoWidth + 8;
+        const ponchoX = 32 - (ponchoWidth / 2);
+        // Poncho has characteristic diamond/triangular shape
+        const shouldShow = Math.abs(32 - (ponchoX + ponchoWidth/2)) < ponchoWidth/2;
+        if (shouldShow) {
+          for (let px = 0; px < ponchoWidth; px += 2) { // Slightly transparent effect
+            elements.push(<rect key={`poncho-${y}-${px}`} x={ponchoX + px} y={bodyStartY + y} width="1" height="1" fill={clothingColor} className="pixel" />);
+          }
+        }
+      }
+      
+      // Add shawl draping over shoulders
+      if (isShawl && y > 3 && y < 12) {
+        const shawlWidth = torsoWidth + 6;
+        const shawlX = 32 - (shawlWidth / 2);
+        const drape = Math.sin((y - 3) * 0.5) * 1;
+        for (let sx = 0; sx < shawlWidth; sx += 2) {
+          if (sx < 6 || sx > shawlWidth - 6) { // Only show on shoulders/edges
+            elements.push(<rect key={`shawl-${y}-${sx}`} x={shawlX + sx + drape} y={bodyStartY + y} width="1" height="1" fill={clothingColor} className="pixel" />);
+          }
+        }
+      }
+      
+      // Modern clothing details
+      if ((isBusinessSuit || isBlazer) && y > 5 && y < bodyHeight - 5) {
+        // Suit jacket buttons
+        if (y % 4 === 0) {
+          const buttonX = 32;
+          elements.push(<rect key={`suit-button-${y}`} x={buttonX} y={bodyStartY + y} width="1" height="1" fill={clothingDeepShadow} className="pixel" />);
+        }
+      }
+      
+      if (isHoodie && y > 8 && y < 15) {
+        // Hoodie front pocket (kangaroo pocket)
+        const pocketWidth = Math.floor(torsoWidth * 0.4);
+        const pocketX = 32 - (pocketWidth / 2);
+        if (y === 12 || y === 13) { // Pocket opening
+          for (let px = 0; px < pocketWidth; px++) {
+            elements.push(<rect key={`hoodie-pocket-${y}-${px}`} x={pocketX + px} y={bodyStartY + y} width="1" height="1" fill={clothingDeepShadow} className="pixel" />);
+          }
+        }
+      }
+      
+      if (isTankTop) {
+        // Tank top has no sleeves - show more skin on sides
+        const skinWidth = 2;
+        elements.push(<rect key={`tank-skin-l-${y}`} x={32 - torsoWidth/2 - skinWidth} y={bodyStartY + y} width={skinWidth} height="1" fill={skinTone} className="pixel" />);
+        elements.push(<rect key={`tank-skin-r-${y}`} x={32 + torsoWidth/2} y={bodyStartY + y} width={skinWidth} height="1" fill={skinTone} className="pixel" />);
       }
     }
 
@@ -1587,7 +2453,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     // ----- HEADGEAR (improved) -----
   const renderHeadgear = useMemo(() => {
     // Choose source (equipped vs appearance) without changing your prop contract
-    let headItem: { name: string; material?: string } | null = null;
+    let headItem: { name: string; material?: string; color?: string } | null = null;
     if (useEquippedItems && character.equippedItems !== undefined) {
       headItem = character.equippedItems.head ?? null;
     } else {
@@ -1609,6 +2475,47 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     const nameContains = (...keywords: string[]) => keywords.some(k => name.includes(k));
 
     const resolveHeadgearColor = (): string => {
+      // First check if the equipped item has its own color
+      if (headItem?.color) {
+        // Handle both hex colors and color names
+        if (headItem.color.startsWith('#')) {
+          return headItem.color;
+        }
+        
+        // Convert color names to hex
+        const colorMap: Record<string, string> = {
+          'Navy': '#001f3f',
+          'Blue': '#4169e1',
+          'Crimson': '#dc143c',
+          'Green': '#228b22',
+          'Gold': '#ffd700',
+          'Purple': '#800080',
+          'Black': '#1a1a1a',
+          'White': '#f8f8f8',
+          'Gray': '#808080',
+          'Grey': '#808080',
+          'Silver': '#c0c0c0',
+          'Bronze': '#cd7f32',
+          'Copper': '#b87333',
+          'Brown': '#8b4513',
+          'Tan': '#d2b48c',
+          'Orange': '#ff8c00',
+          'Pink': '#ffc0cb',
+          'Red': '#dc143c',
+          'Yellow': '#ffd700',
+          'Burgundy': '#800020',
+          'Forest Green': '#228b22',
+          'Teal': '#008080',
+          'Cyan': '#00ffff',
+          'Turquoise': '#40e0d0',
+          'Wheat': '#f5deb3',
+          'Beige': '#f5f5dc'
+        };
+        
+        const mappedColor = colorMap[headItem.color];
+        if (mappedColor) return mappedColor;
+      }
+      
       // 1) explicit color tokens in the name
       const tokens: Array<[string, string]> = [
         ['navy', '#000080'], ['crimson', '#DC143C'], ['scarlet', '#FF2400'], ['red', '#DC143C'],
@@ -1833,119 +2740,253 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
 
       switch (hatStyle) {
         case 'top': {
-          // Tall crown
-          for (let y = headY - 10; y < headY - 2; y++) {
-            for (let x = headX + 2; x < headX + headDim.width - 2; x++) {
+          // Tall crown - much taller and wider to cover hair
+          for (let y = headY - 12; y < headY + 1; y++) {
+            for (let x = headX - 1; x < headX + headDim.width + 1; x++) {
               elements.push(<rect key={`tophat-${x}-${y}`} x={x} y={y} width="1" height="1" fill="#000000" className="pixel" />);
             }
           }
-          // Brim
-          for (let x = headX - 4; x < headX + headDim.width + 4; x++) {
-            elements.push(<rect key={`tophat-brim-${x}`} x={x} y={headY - 2} width="1" height="2" fill="#000000" className="pixel" />);
+          // Wide brim
+          for (let x = headX - 6; x < headX + headDim.width + 6; x++) {
+            elements.push(<rect key={`tophat-brim-${x}`} x={x} y={headY} width="1" height="3" fill="#000000" className="pixel" />);
           }
-          // Band
+          // Band around middle
           if (isWealthy) {
-            for (let x = headX + 2; x < headX + headDim.width - 2; x++) {
-              elements.push(<rect key={`tophat-band-${x}`} x={x} y={headY - 5} width="1" height="1" fill={appearanceWithDefaults.palette.accent} className="pixel" />);
+            for (let x = headX - 1; x < headX + headDim.width + 1; x++) {
+              elements.push(<rect key={`tophat-band-${x}`} x={x} y={headY - 4} width="1" height="2" fill={appearanceWithDefaults.palette.accent} className="pixel" />);
             }
           }
           break;
         }
         case 'beret': {
-          for (let y = headY - 4; y < headY + 2; y++) {
-            for (let x = headX - 2; x < headX + headDim.width + 3; x++) {
-              const dx = Math.abs(x - centerX);
-              const shape = dx < headDim.width / 2 + 3 - Math.max(0, (y - headY));
-              if (shape) {
-                const tilt = x > centerX ? -1 : 0;
-                elements.push(<rect key={`beret-${x}-${y}`} x={x} y={y + tilt} width="1" height="1" fill={base} className="pixel" />);
+          // Beret with proper slouchy shape that covers hair
+          const beretRadius = Math.floor(headDim.width * 0.75);
+          for (let y = headY - 6; y < headY + 3; y++) {
+            const yOffset = y - (headY - 2);
+            const width = Math.round(beretRadius * Math.sqrt(Math.max(0, 1 - Math.pow(yOffset / 6, 2))) * 2.2);
+            if (width > 0) {
+              const startX = centerX - Math.floor(width / 2) + (y > headY ? 2 : 0); // slight tilt
+              for (let x = 0; x < width; x++) {
+                elements.push(<rect key={`beret-${x}-${y}`} x={startX + x} y={y} width="1" height="1" fill={base} className="pixel" />);
               }
             }
           }
+          // Small stem on top
+          elements.push(<rect key="beret-stem" x={centerX + 2} y={headY - 7} width="2" height="2" fill={shade} className="pixel" />);
           break;
         }
         case 'fez': {
-          for (let y = headY - 6; y < headY; y++) {
-            for (let x = headX + 3; x < headX + headDim.width - 3; x++) {
-              elements.push(<rect key={`fez-${x}-${y}`} x={x} y={y} width="1" height="1" fill={createShadow('#8B0000', 0.95)} className="pixel" />);
+          // Cylindrical fez that fully covers head
+          const fezColor = name.includes('red') || name.includes('fez') ? '#8B0000' : base;
+          for (let y = headY - 8; y < headY + 2; y++) {
+            const taper = Math.max(0, (headY - 4 - y) / 4); // slight taper at top
+            const width = headDim.width + 2 - Math.floor(taper * 2);
+            const startX = centerX - Math.floor(width / 2);
+            for (let x = 0; x < width; x++) {
+              elements.push(<rect key={`fez-${x}-${y}`} x={startX + x} y={y} width="1" height="1" fill={fezColor} className="pixel" />);
             }
           }
-          for (let t = 0; t < 4; t++) {
-            elements.push(<rect key={`fez-tassel-${t}`} x={centerX} y={headY - 6 - t} width="1" height="1" fill="#000000" className="pixel" />);
+          // Tassel hanging from top
+          for (let t = 0; t < 5; t++) {
+            const tasselX = centerX + Math.floor(Math.sin(t * 0.5));
+            elements.push(<rect key={`fez-tassel-${t}`} x={tasselX} y={headY - 8 - t} width="1" height="1" fill="#000000" className="pixel" />);
           }
           break;
         }
         case 'brimmed': {
-          // Crown
-          for (let y = headY - 5; y < headY; y++) {
-            for (let x = headX; x < headX + headDim.width; x++) {
-              elements.push(<rect key={`fed-crown-${x}-${y}`} x={x} y={y} width="1" height="1" fill={base} className="pixel" />);
+          // Fedora/Panama crown with center crease, covers all hair
+          for (let y = headY - 7; y < headY + 1; y++) {
+            for (let x = headX - 2; x < headX + headDim.width + 2; x++) {
+              // Center crease effect
+              const isCrease = Math.abs(x - centerX) < 2 && y < headY - 2;
+              const color = isCrease ? shade : base;
+              elements.push(<rect key={`fed-crown-${x}-${y}`} x={x} y={y} width="1" height="1" fill={color} className="pixel" />);
             }
           }
-          // Brim
-          for (let x = headX - 3; x < headX + headDim.width + 3; x++) {
-            elements.push(<rect key={`fed-brim-${x}`} x={x} y={headY} width="1" height="1" fill={shade} className="pixel" />);
+          // Wide brim all around
+          for (let y = 0; y < 2; y++) {
+            for (let x = headX - 6; x < headX + headDim.width + 6; x++) {
+              // Skip center area on second row for depth
+              if (y === 1 && Math.abs(x - centerX) < headDim.width / 2 - 1) continue;
+              elements.push(<rect key={`fed-brim-${x}-${y}`} x={x} y={headY + 1 + y} width="1" height="1" fill={shade} className="pixel" />);
+            }
+          }
+          // Hat band
+          for (let x = headX - 2; x < headX + headDim.width + 2; x++) {
+            elements.push(<rect key={`fed-band-${x}`} x={x} y={headY - 1} width="1" height="1" fill={deep} className="pixel" />);
           }
           break;
         }
         case 'knit': {
-          for (let y = headY - 6; y < headY + 1; y++) {
-            for (let x = headX - 2; x < headX + headDim.width + 2; x++) {
+          // Knit cap that fully covers head and hair
+          for (let y = headY - 8; y < headY + 3; y++) {
+            const yFromTop = y - (headY - 8);
+            // Rounded top
+            let width = headDim.width + 4;
+            if (yFromTop < 3) {
+              width = headDim.width + 4 - (3 - yFromTop) * 2;
+            }
+            const startX = centerX - Math.floor(width / 2);
+            for (let x = 0; x < width; x++) {
               const knit = (x + y) % 2 === 0;
-              elements.push(<rect key={`knit-${x}-${y}`} x={x} y={y} width="1" height="1" fill={knit ? base : shade} className="pixel" />);
+              elements.push(<rect key={`knit-${startX + x}-${y}`} x={startX + x} y={y} width="1" height="1" fill={knit ? base : shade} className="pixel" />);
             }
           }
-          // optional ear flaps for chullo
+          // Pom-pom on top for some styles
+          if (name.includes('beanie') || name.includes('tuque')) {
+            for (let dy = -2; dy <= 0; dy++) {
+              for (let dx = -1; dx <= 1; dx++) {
+                elements.push(<rect key={`pom-${dx}-${dy}`} x={centerX + dx} y={headY - 10 + dy} width="1" height="1" fill={hl} className="pixel" />);
+              }
+            }
+          }
+          // Ear flaps for chullo
           if (name.includes('chullo')) {
-            for (let f = 0; f < 4; f++) {
+            for (let f = 0; f < 6; f++) {
               elements.push(
-                <rect key={`flap-l-${f}`} x={headX - 1} y={headY + f} width="1" height="1" fill={shade} className="pixel" />,
-                <rect key={`flap-r-${f}`} x={headX + headDim.width} y={headY + f} width="1" height="1" fill={shade} className="pixel" />
+                <rect key={`flap-l-${f}`} x={headX - 2 - Math.floor(f/3)} y={headY + 2 + f} width="2" height="1" fill={shade} className="pixel" />,
+                <rect key={`flap-r-${f}`} x={headX + headDim.width + Math.floor(f/3)} y={headY + 2 + f} width="2" height="1" fill={shade} className="pixel" />
               );
             }
           }
           break;
         }
         default: {
-          // Generic cap with visor
-          for (let y = 0; y < 7; y++) {
-            const w = y < 3 ? headDim.width - 2 + y : headDim.width + 2;
+          // Baseball cap style with proper crown
+          for (let y = 0; y < 9; y++) {
+            const w = y < 3 ? headDim.width + y : headDim.width + 3;
             const sx = centerX - Math.floor(w / 2);
             for (let x = 0; x < w; x++) {
               if (y === 0 && (x === 0 || x === w - 1)) continue; // slight rounding
               elements.push(<rect key={`cap-c-${y}-${x}`} x={sx + x} y={headY - 6 + y} width="1" height="1" fill={base} className="pixel" />);
             }
           }
-          // Visor
-          for (let y = 0; y < 2; y++) {
-            for (let x = headX - 1; x < headX + headDim.width + 1; x++) {
-              elements.push(<rect key={`cap-v-${y}-${x}`} x={x} y={headY + y} width="1" height="1" fill={createShadow(base, 0.75)} className="pixel" />);
+          // Wider visor
+          for (let y = 0; y < 3; y++) {
+            const visorW = headDim.width + 4 - y;
+            const visorX = centerX - Math.floor(visorW / 2);
+            for (let x = 0; x < visorW; x++) {
+              elements.push(<rect key={`cap-v-${y}-${x}`} x={visorX + x} y={headY + 2 + y} width="1" height="1" fill={createShadow(base, 0.75)} className="pixel" />);
             }
           }
           // Top button
-          elements.push(<rect key="cap-btn" x={centerX - 1} y={headY - 7} width="2" height="1" fill={shade} className="pixel" />);
+          elements.push(<rect key="cap-btn" x={centerX - 1} y={headY - 7} width="2" height="2" fill={shade} className="pixel" />);
         }
       }
     }
 
+    // TRICORN / PIRATE / COLONIAL HATS
+    else if (nameContains('tricorn', 'pirate', 'colonial hat', 'cocked hat')) {
+      const hatColor = name.includes('pirate') ? '#000000' : base;
+      const hatShade = createShadow(hatColor, 0.8);
+      
+      // Crown - larger and covers hair
+      for (let y = headY - 6; y < headY + 1; y++) {
+        for (let x = headX - 1; x < headX + headDim.width + 1; x++) {
+          elements.push(<rect key={`tricorn-crown-${x}-${y}`} x={x} y={y} width="1" height="1" fill={hatColor} className="pixel" />);
+        }
+      }
+      
+      // Wide brim base
+      for (let x = headX - 6; x < headX + headDim.width + 6; x++) {
+        for (let y = 0; y < 2; y++) {
+          elements.push(<rect key={`tricorn-brim-${x}-${y}`} x={x} y={headY + y} width="1" height="1" fill={hatShade} className="pixel" />);
+        }
+      }
+      
+      // Three upturned corners (cocked hat effect)
+      const corners = [
+        { x: centerX - headDim.width/2 - 5, y: headY - 2 }, // left corner up
+        { x: centerX, y: headY + 3 }, // front corner down
+        { x: centerX + headDim.width/2 + 5, y: headY - 2 } // right corner up
+      ];
+      
+      for (let i = 0; i < corners.length; i++) {
+        const corner = corners[i];
+        for (let dx = -4; dx <= 4; dx++) {
+          for (let dy = -2; dy <= 2; dy++) {
+            const dist = Math.abs(dx) + Math.abs(dy);
+            if (dist <= 4) {
+              elements.push(<rect key={`tricorn-corner-${i}-${dx}-${dy}`} x={corner.x + dx} y={corner.y + dy} width="1" height="1" fill={hatShade} className="pixel" />);
+            }
+          }
+        }
+      }
+      
+      // Gold trim and feather for wealthy
+      if (isWealthy) {
+        // Trim around crown
+        for (let x = headX - 1; x < headX + headDim.width + 1; x++) {
+          if ((x - headX) % 2 === 0) {
+            elements.push(<rect key={`tricorn-trim-${x}`} x={x} y={headY - 1} width="1" height="1" fill="#FFD700" className="pixel" />);
+          }
+        }
+        // Feather
+        for (let f = 0; f < 6; f++) {
+          elements.push(<rect key={`tricorn-feather-${f}`} x={centerX - 4} y={headY - 7 + f} width="1" height="1" fill={f % 2 === 0 ? '#2E7D32' : createHighlight('#2E7D32', 1.1)} className="pixel" />);
+        }
+      }
+    }
+    
+    // MILITARY CAPS (officer, garrison, kepi)
+    else if (nameContains('officer', 'garrison', 'kepi', 'military cap', 'forage cap')) {
+      const capColor = material.includes('blue') ? '#000080' : material.includes('gray') ? '#808080' : base;
+      const visorColor = '#000000';
+      
+      // Crown - taller and covers all hair
+      for (let y = 0; y < 9; y++) {
+        const width = headDim.width + 2 - Math.floor(y / 3); // gradual taper
+        const sx = centerX - Math.floor(width / 2) - (y > 4 ? 1 : 0); // slight forward tilt
+        for (let x = 0; x < width; x++) {
+          elements.push(<rect key={`mil-crown-${y}-${x}`} x={sx + x} y={headY - 6 + y} width="1" height="1" fill={capColor} className="pixel" />);
+        }
+      }
+      
+      // Wider, more prominent visor
+      for (let y = 0; y < 3; y++) {
+        const visorWidth = headDim.width + 6 - y;
+        const visorStartX = centerX - Math.floor(visorWidth / 2);
+        for (let x = 0; x < visorWidth; x++) {
+          elements.push(<rect key={`mil-visor-${y}-${x}`} x={visorStartX + x} y={headY + 3 + y} width="1" height="1" fill={visorColor} className="pixel" />);
+        }
+      }
+      
+      // Chin strap
+      elements.push(
+        <rect key="mil-strap-l" x={headX - 1} y={headY + headDim.height - 2} width="1" height="2" fill={visorColor} className="pixel" />,
+        <rect key="mil-strap-r" x={headX + headDim.width} y={headY + headDim.height - 2} width="1" height="2" fill={visorColor} className="pixel" />
+      );
+      
+      // Badge/insignia for officers
+      if (isWealthy || name.includes('officer')) {
+        elements.push(
+          <rect key="mil-badge-1" x={centerX - 2} y={headY - 2} width="4" height="3" fill="#FFD700" className="pixel" />,
+          <rect key="mil-badge-2" x={centerX - 1} y={headY - 1} width="2" height="1" fill="#DC143C" className="pixel" />,
+          <rect key="mil-eagle" x={centerX} y={headY} width="1" height="1" fill="#000000" className="pixel" />
+        );
+      }
+    }
+    
     // STRAW / CONICAL (rice hat, sedge hat)
-else if (nameContains('straw', 'rice hat', 'conical', 'bamboo hat', 'sedge hat', 'coolie')) {
-  const straw = '#D4A76A';
+    else if (nameContains('straw', 'rice hat', 'conical', 'bamboo hat', 'sedge hat', 'coolie')) {
+  // Use the actual item color if available (e.g., black straw hat), otherwise default straw color
+  const straw = base;  // base is already the resolved color from resolveHeadgearColor()
   const strawDark = createShadow(straw, 0.78);
 
-  // --- Brim settings ---
-  const brimY = headY;            // top of the brim
+  // --- Brim settings - position at top of head ---
+  const brimY = headY - 1;            // position at top of head
   const brimThickness = 2;        // 2px brim
-  const brimExtra = Math.floor(headDim.width / 2) + 8; // how far brim sticks out
+  const brimExtra = Math.floor(headDim.width / 2) + 2; // narrow brim extension
 
-  // --- Crown: start ONE pixel above the brim so it touches it ---
-  // (this was headY - 6 - i, which created the floating gap)
-  const crownHeight = 7;
-  const crownBaseWidth = headDim.width + 4;
+  // --- Crown: conical shape, taller and wider to cover all hair ---
+  const crownHeight = 12;          // taller crown to cover more
+  const crownBaseWidth = headDim.width + 4;  // wider base to cover hair on sides
 
+  // Draw crown from top to bottom (conical shape)
   for (let i = 0; i < crownHeight; i++) {
-    const rowY = brimY - 1 - i;                      // << key change
-    const rowW = Math.max(3, crownBaseWidth - i * 2);
+    const rowY = brimY - crownHeight + i;  // build from top down
+    const taper = i / crownHeight;  // 0 at top, 1 at bottom
+    const rowW = Math.max(3, Math.floor(crownBaseWidth * (0.4 + 0.6 * taper)));  // wider throughout, still tapered
     const sx = centerX - Math.floor(rowW / 2);
 
     for (let x = 0; x < rowW; x++) {
@@ -1975,10 +3016,11 @@ else if (nameContains('straw', 'rice hat', 'conical', 'bamboo hat', 'sedge hat',
     }
   }
 
-  // A narrow darker band just above the brim helps the join read cleanly
-  for (let x = headX; x < headX + headDim.width; x++) {
+  // A narrow darker band where crown meets brim
+  const bandWidth = Math.floor(crownBaseWidth * 0.9);  // band slightly narrower than full crown base
+  for (let x = centerX - Math.floor(bandWidth/2); x < centerX + Math.floor(bandWidth/2); x++) {
     elements.push(
-      <rect key={`straw-band-${x}`} x={x} y={brimY - 2} width="1" height="1" fill={strawDark} className="pixel" />
+      <rect key={`straw-band-${x}`} x={x} y={brimY - 1} width="1" height="1" fill={strawDark} className="pixel" />
     );
   }
 
@@ -2160,6 +3202,76 @@ else if (nameContains('straw', 'rice hat', 'conical', 'bamboo hat', 'sedge hat',
     return <g key="jewelry">{elements}</g>;
   }, [appearanceWithDefaults.jewelry, headDim.height, headDim.width, headX, headY, isWealthy]);
 
+  // ----- EQUIPPED AMULET -----
+  const renderAmulet = useMemo(() => {
+    let amuletItem = null;
+    if (useEquippedItems && character.equippedItems !== undefined) {
+      amuletItem = character.equippedItems.amulet;
+    }
+    
+    if (!amuletItem) return <g key="amulet" />;
+    
+    const elements: JSX.Element[] = [];
+    const centerX = headX + Math.floor(headDim.width / 2);
+    const neckY = headY + headDim.height + 3;
+    
+    // Get amulet color
+    const amuletColor = getItemColor(amuletItem);
+    const amuletShadow = createShadow(amuletColor, 0.7);
+    
+    // Chain
+    for (let x = centerX - 8; x <= centerX + 8; x++) {
+      const distFromCenter = Math.abs(x - centerX);
+      const yOffset = Math.floor(distFromCenter * 0.3);
+      if (x % 2 === 0) {
+        elements.push(<rect key={`amulet-chain-${x}`} x={x} y={neckY + yOffset} width="1" height="1" fill="#C0C0C0" className="pixel" />);
+      }
+    }
+    
+    // Pendant shape based on amulet name/material
+    const name = amuletItem.name?.toLowerCase() || '';
+    const material = amuletItem.material?.toLowerCase() || '';
+    
+    if (name.includes('cross') || name.includes('crucifix')) {
+      // Cross shape
+      elements.push(
+        <rect key="cross-v" x={centerX} y={neckY + 4} width="1" height="5" fill={amuletColor} className="pixel" />,
+        <rect key="cross-h" x={centerX - 1} y={neckY + 6} width="3" height="1" fill={amuletColor} className="pixel" />
+      );
+    } else if (name.includes('star') || name.includes('pentagram')) {
+      // Star shape
+      elements.push(
+        <rect key="star-c" x={centerX} y={neckY + 5} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="star-t" x={centerX} y={neckY + 3} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="star-bl" x={centerX - 2} y={neckY + 7} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="star-br" x={centerX + 2} y={neckY + 7} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="star-l" x={centerX - 1} y={neckY + 4} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="star-r" x={centerX + 1} y={neckY + 4} width="1" height="1" fill={amuletColor} className="pixel" />
+      );
+    } else if (name.includes('circle') || name.includes('ring') || name.includes('medallion')) {
+      // Circular pendant
+      const radius = 2;
+      for (let dx = -radius; dx <= radius; dx++) {
+        for (let dy = -radius; dy <= radius; dy++) {
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist <= radius && dist >= radius - 1) {
+            elements.push(<rect key={`circle-${dx}-${dy}`} x={centerX + dx} y={neckY + 5 + dy} width="1" height="1" fill={amuletColor} className="pixel" />);
+          }
+        }
+      }
+      // Center gem
+      elements.push(<rect key="circle-gem" x={centerX} y={neckY + 5} width="1" height="1" fill="#DC143C" className="pixel" />);
+    } else {
+      // Default rectangular pendant
+      elements.push(
+        <rect key="pendant-1" x={centerX - 1} y={neckY + 4} width="3" height="3" fill={amuletColor} className="pixel" />,
+        <rect key="pendant-2" x={centerX} y={neckY + 5} width="1" height="1" fill={amuletShadow} className="pixel" />
+      );
+    }
+    
+    return <g key="amulet">{elements}</g>;
+  }, [character.equippedItems, useEquippedItems, headDim.height, headDim.width, headX, headY]);
+
   // ----- MARKINGS -----
   const renderMarkings = useMemo(() => {
     if (!appearanceWithDefaults.markings || appearanceWithDefaults.markings.length === 0) return <g key="markings" />;
@@ -2255,6 +3367,13 @@ else if (nameContains('straw', 'rice hat', 'conical', 'bamboo hat', 'sedge hat',
       {/* Body then head so the jaw sits above the collar */}
       {renderBody}
       {renderHead}
+      
+      {/* Facial micro-shading for depth */}
+      {(() => {
+        const elements: JSX.Element[] = [];
+        renderFaceMicroShades(elements, headX, headY, headDim.width, headDim.height, skinTone);
+        return <g key="micro-shading">{elements}</g>;
+      })()}
 
       {/* Hair before headgear */}
       {renderHair}
@@ -2271,6 +3390,7 @@ else if (nameContains('straw', 'rice hat', 'conical', 'bamboo hat', 'sedge hat',
       {/* Headgear & jewelry */}
       {renderHeadgear}
       {renderJewelry}
+      {renderAmulet}
     </svg>
   );
 };

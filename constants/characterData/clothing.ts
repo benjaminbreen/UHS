@@ -408,7 +408,11 @@ export const CLOTHING_DATA: ClothingData = {
                     ],
                     accessories: [
                         { name: 'Wooden Cross', material: 'Carved Wood' },
-                        { name: 'Leather Pouch', material: 'Rough Leather' }
+                        { name: 'Leather Pouch', material: 'Rough Leather' },
+                        { name: 'Prayer Beads', material: 'Wood' },
+                        { name: 'Rope Necklace', material: 'Hemp' },
+                        { name: 'Bone Necklace', material: 'Bone' },
+                        { name: 'Shell Necklace', material: 'Shell' }
                     ],
                     palette: MEDIEVAL_COLORS
                 },
@@ -482,7 +486,12 @@ export const CLOTHING_DATA: ClothingData = {
                     ],
                     accessories: [
                         { name: 'Silver Pin', material: 'Silver', adjectives: ['Decorated'] },
-                        { name: 'Ivory Comb', material: 'Carved Ivory' }
+                        { name: 'Ivory Comb', material: 'Carved Ivory' },
+                        { name: 'Silver Cross', material: 'Silver' },
+                        { name: 'Coral Beads', material: 'Red Coral' },
+                        { name: 'Pearl Necklace', material: 'River Pearls' },
+                        { name: 'Gold Chain', material: 'Gold' },
+                        { name: 'Amber Necklace', material: 'Amber' }
                     ],
                     palette: MEDIEVAL_COLORS
                 }

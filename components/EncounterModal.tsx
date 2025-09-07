@@ -667,8 +667,27 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
             setTimeout(() => setReputationChange(null), displayDuration);
         }
         
+        // Check if NPC wants to attack (guards/soldiers when provoked)
+        if (response.shouldAttack && isNpc(target)) {
+            // Guard initiates combat!
+            flashPortrait('scowl', 2000);
+            
+            // Add combat warning message
+            const combatEntry: DialogueEntry = { 
+                speaker: 'system', 
+                text: '[Combat initiated!]', 
+                timestamp: new Date() 
+            };
+            setHistory(prev => [...prev, combatEntry]);
+            
+            // Close dialog and start combat after a brief delay
+            setTimeout(() => {
+                onClose(history);
+                onInitiateCombat(target);
+            }, 1500);
+        }
         // Check if NPC wants to call authorities
-        if (response.shouldCallAuthorities) {
+        else if (response.shouldCallAuthorities) {
             // Brief shock before any scowl/concern appears later
             flashPortrait('surprise', 1200);
             

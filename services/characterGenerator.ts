@@ -213,8 +213,16 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
         year: dateInfo.year,
     };
     
-    // Get starting package and inventory
-    const { inventory, equippedItems } = assembleStartingPackage(role, tempCharacter as PlayerCharacter);
+    // Get starting package and inventory with color support
+    const privilege = baseProfile.wealthLevel === 'wealthy' ? 0.8 : 
+                     baseProfile.wealthLevel === 'comfortable' ? 0.6 : 
+                     baseProfile.wealthLevel === 'modest' ? 0.4 : 0.2;
+                     
+    const { inventory, equippedItems } = assembleStartingPackage(role, tempCharacter as PlayerCharacter, {
+        culture: culturalZone,
+        era: generationContext.era,
+        privilege
+    });
     
     // Generate appearance with palette
     const palette = generateClothingPalette(baseProfile.wealthLevel, generationContext.era, culturalZone, baseProfile.gender, noise);
@@ -737,8 +745,16 @@ export function generateCharacter(context: GenerationContext): PlayerCharacter {
         year: dateInfo.year,
     };
     
-    // Get starting package and inventory first
-    const { inventory, equippedItems } = assembleStartingPackage(role, tempCharacter as PlayerCharacter);
+    // Get starting package and inventory first with color support
+    const privilege = baseProfile.wealthLevel === 'wealthy' ? 0.8 : 
+                     baseProfile.wealthLevel === 'comfortable' ? 0.6 : 
+                     baseProfile.wealthLevel === 'modest' ? 0.4 : 0.2;
+                     
+    const { inventory, equippedItems } = assembleStartingPackage(role, tempCharacter as PlayerCharacter, {
+        culture: culturalZone,
+        era: generationContext.era,
+        privilege
+    });
 
     // Generate a color palette based on context
     const palette = generateClothingPalette(baseProfile.wealthLevel, generationContext.era, culturalZone, baseProfile.gender, noise);

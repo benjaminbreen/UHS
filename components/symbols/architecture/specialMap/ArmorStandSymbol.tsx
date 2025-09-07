@@ -1,173 +1,413 @@
 /**
- * ArmorStandSymbol.tsx
- * Culturally and era-specific armor stand symbol for special maps
+ * ArmorStandSymbol.tsx - Beautiful SNES RPG-style armor display
+ * Consistent 3/4 perspective with 45-degree shadows
+ * Rich cultural armor variations with pixel art aesthetic
  */
-
 import React from 'react';
-import { CulturalZone, HistoricalEra } from '../../../types';
 
 interface ArmorStandSymbolProps {
-  x?: number;
-  y?: number;
-  size?: number;
-  culturalZone: CulturalZone | string;
-  era: HistoricalEra;
-  seed?: number;
+  x: number;
+  y: number;
+  size: number;
+  culturalZone?: string;
+  era?: number;
+  opacity?: number;
 }
 
-export const ArmorStandSymbol: React.FC<ArmorStandSymbolProps> = ({ 
-  x = 0, 
-  y = 0, 
+const ArmorStandSymbol: React.FC<ArmorStandSymbolProps> = ({ 
+  x, 
+  y, 
   size = 32,
-  culturalZone,
-  era,
-  seed = 0
+  culturalZone = 'EUROPEAN',
+  era = 1500,
+  opacity = 1.0 
 }) => {
-  const getArmorStyle = () => {
-    if (era < 500) {
-      if (culturalZone === 'MENA' || culturalZone === 'NORTH_AFRICAN') {
-        return { armor: '#CD853F', detail: '#8B4513', style: 'scale' };
-      } else if (culturalZone === 'EUROPEAN') {
-        return { armor: '#B87333', detail: '#8B4513', style: 'bronze' };
-      } else if (culturalZone === 'EAST_ASIAN') {
-        return { armor: '#8B4513', detail: '#654321', style: 'lamellar' };
-      }
-      return { armor: '#B87333', detail: '#8B4513', style: 'bronze' };
-    }
+  // Beautiful pixel size for Stardew Valley/FF6 style detail
+  const pixelSize = size / 32;
+  
+  // Helper functions for color manipulation
+  const lightenColor = (color: string, percent: number) => {
+    const num = parseInt(color.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = ((num >> 16) + amt) < 255 ? ((num >> 16) + amt) : 255;
+    const G = (((num >> 8) & 0x00FF) + amt) < 255 ? (((num >> 8) & 0x00FF) + amt) : 255;
+    const B = ((num & 0x0000FF) + amt) < 255 ? ((num & 0x0000FF) + amt) : 255;
+    return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+  };
+  
+  const darkenColor = (color: string, percent: number) => {
+    const num = parseInt(color.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = ((num >> 16) - amt) > 0 ? ((num >> 16) - amt) : 0;
+    const G = (((num >> 8) & 0x00FF) - amt) > 0 ? (((num >> 8) & 0x00FF) - amt) : 0;
+    const B = ((num & 0x0000FF) - amt) > 0 ? ((num & 0x0000FF) - amt) : 0;
+    return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+  };
+  
+  // Rich material palette with consistent lighting
+  const getMaterials = () => {
+    const baseWood = '#6B4423';
+    const baseMetal = culturalZone === 'EAST_ASIAN' ? '#4A4A4A' : 
+                      culturalZone === 'MENA' ? '#CD7F32' : '#8A8A8A';
     
-    if (era < 1500) {
-      if (culturalZone === 'EUROPEAN') {
-        return { armor: '#708090', detail: '#2F4F4F', style: 'plate' };
-      } else if (culturalZone === 'MENA' || culturalZone === 'NORTH_AFRICAN') {
-        return { armor: '#696969', detail: '#DAA520', style: 'mamluk' };
-      } else if (culturalZone === 'EAST_ASIAN') {
-        return { armor: '#2F4F4F', detail: '#8B0000', style: 'samurai' };
-      }
-      return { armor: '#708090', detail: '#2F4F4F', style: 'chain' };
-    }
-    
-    return { armor: '#4B5563', detail: '#1F2937', style: 'modern' };
+    return {
+      wood: baseWood,
+      woodLight: lightenColor(baseWood, 20),
+      woodDark: darkenColor(baseWood, 20),
+      metal: baseMetal,
+      metalLight: lightenColor(baseMetal, 20),
+      metalDark: darkenColor(baseMetal, 20),
+      leather: '#8B4513',
+      leatherLight: '#A0522D',
+      cloth: culturalZone === 'EAST_ASIAN' ? '#DC143C' : 
+             culturalZone === 'MENA' ? '#4B0082' : '#8B0000',
+      gold: '#FFD700',
+      shadow: '#000000'
+    };
   };
 
-  const style = getArmorStyle();
+  const materials = getMaterials();
   
-  return (
-    <g transform={`translate(${x}, ${y})`}>
-      {/* Stand base */}
-      <rect 
-        x={size * 0.35} 
-        y={size * 0.85} 
-        width={size * 0.3} 
-        height={size * 0.1}
-        fill="#654321"
-      />
-      <rect 
-        x={size * 0.48} 
-        y={size * 0.7} 
-        width={size * 0.04} 
-        height={size * 0.2}
-        fill="#8B4513"
+  // Beautiful 3/4 perspective stand base
+  const renderStandBase = () => (
+    <g>
+      {/* 45-degree shadow underneath */}
+      <ellipse 
+        cx={pixelSize * 16} 
+        cy={pixelSize * 29} 
+        rx={pixelSize * 8} 
+        ry={pixelSize * 2} 
+        fill={materials.shadow} 
+        opacity={0.3}
       />
       
-      {/* Armor based on style */}
-      {style.style === 'samurai' ? (
-        // East Asian samurai armor
-        <>
-          {/* Helmet */}
-          <ellipse cx={size * 0.5} cy={size * 0.15} rx={size * 0.12} ry={size * 0.08} fill={style.armor} />
-          <path d={`M ${size * 0.38} ${size * 0.12} Q ${size * 0.3} ${size * 0.08}, ${size * 0.28} ${size * 0.15}`} stroke={style.armor} strokeWidth="1" fill="none" />
-          <path d={`M ${size * 0.62} ${size * 0.12} Q ${size * 0.7} ${size * 0.08}, ${size * 0.72} ${size * 0.15}`} stroke={style.armor} strokeWidth="1" fill="none" />
-          {/* Chest plate */}
-          <rect x={size * 0.35} y={size * 0.25} width={size * 0.3} height={size * 0.25} fill={style.armor} rx={size * 0.02} />
-          {/* Lamellae pattern */}
-          <line x1={size * 0.35} y1={size * 0.3} x2={size * 0.65} y2={size * 0.3} stroke={style.detail} strokeWidth="0.5" />
-          <line x1={size * 0.35} y1={size * 0.35} x2={size * 0.65} y2={size * 0.35} stroke={style.detail} strokeWidth="0.5" />
-          <line x1={size * 0.35} y1={size * 0.4} x2={size * 0.65} y2={size * 0.4} stroke={style.detail} strokeWidth="0.5" />
-          <line x1={size * 0.35} y1={size * 0.45} x2={size * 0.65} y2={size * 0.45} stroke={style.detail} strokeWidth="0.5" />
-          {/* Shoulder guards */}
-          <rect x={size * 0.25} y={size * 0.25} width={size * 0.08} height={size * 0.15} fill={style.armor} rx={size * 0.02} />
-          <rect x={size * 0.67} y={size * 0.25} width={size * 0.08} height={size * 0.15} fill={style.armor} rx={size * 0.02} />
-          {/* Skirt plates */}
-          <rect x={size * 0.37} y={size * 0.52} width={size * 0.26} height={size * 0.15} fill={style.armor} />
-          <line x1={size * 0.42} y1={size * 0.52} x2={size * 0.42} y2={size * 0.67} stroke={style.detail} strokeWidth="0.5" />
-          <line x1={size * 0.5} y1={size * 0.52} x2={size * 0.5} y2={size * 0.67} stroke={style.detail} strokeWidth="0.5" />
-          <line x1={size * 0.58} y1={size * 0.52} x2={size * 0.58} y2={size * 0.67} stroke={style.detail} strokeWidth="0.5" />
-        </>
-      ) : style.style === 'plate' ? (
-        // European plate armor
-        <>
-          {/* Helmet */}
-          <ellipse cx={size * 0.5} cy={size * 0.15} rx={size * 0.1} ry={size * 0.12} fill={style.armor} />
-          <rect x={size * 0.45} y={size * 0.12} width={size * 0.1} height={size * 0.08} fill={style.detail} />
-          {/* Breastplate */}
-          <path d={`M ${size * 0.35} ${size * 0.28} L ${size * 0.35} ${size * 0.48} Q ${size * 0.5} ${size * 0.52}, ${size * 0.65} ${size * 0.48} L ${size * 0.65} ${size * 0.28} Q ${size * 0.5} ${size * 0.24}, ${size * 0.35} ${size * 0.28}`} fill={style.armor} />
-          <line x1={size * 0.5} y1={size * 0.28} x2={size * 0.5} y2={size * 0.48} stroke={style.detail} strokeWidth="1" />
-          {/* Pauldrons */}
-          <circle cx={size * 0.28} cy={size * 0.3} r={size * 0.08} fill={style.armor} />
-          <circle cx={size * 0.72} cy={size * 0.3} r={size * 0.08} fill={style.armor} />
-          {/* Faulds */}
-          <rect x={size * 0.38} y={size * 0.52} width={size * 0.24} height={size * 0.12} fill={style.armor} />
-          <line x1={size * 0.38} y1={size * 0.56} x2={size * 0.62} y2={size * 0.56} stroke={style.detail} strokeWidth="0.5" />
-          <line x1={size * 0.38} y1={size * 0.6} x2={size * 0.62} y2={size * 0.6} stroke={style.detail} strokeWidth="0.5" />
-        </>
-      ) : style.style === 'mamluk' ? (
-        // MENA Mamluk armor
-        <>
-          {/* Turban helmet */}
-          <ellipse cx={size * 0.5} cy={size * 0.12} rx={size * 0.12} ry={size * 0.06} fill="#F5F5DC" />
-          <ellipse cx={size * 0.5} cy={size * 0.15} rx={size * 0.1} ry={size * 0.08} fill={style.armor} />
-          <polygon points={`${size * 0.5},${size * 0.08} ${size * 0.48},${size * 0.12} ${size * 0.52},${size * 0.12}`} fill="#DAA520" />
-          {/* Chain mail */}
-          <rect x={size * 0.32} y={size * 0.25} width={size * 0.36} height={size * 0.3} fill={style.armor} />
-          {/* Chain pattern */}
-          <circle cx={size * 0.4} cy={size * 0.3} r={size * 0.01} fill={style.detail} />
-          <circle cx={size * 0.45} cy={size * 0.32} r={size * 0.01} fill={style.detail} />
-          <circle cx={size * 0.5} cy={size * 0.3} r={size * 0.01} fill={style.detail} />
-          <circle cx={size * 0.55} cy={size * 0.32} r={size * 0.01} fill={style.detail} />
-          <circle cx={size * 0.6} cy={size * 0.3} r={size * 0.01} fill={style.detail} />
-          <circle cx={size * 0.4} cy={size * 0.35} r={size * 0.01} fill={style.detail} />
-          <circle cx={size * 0.45} cy={size * 0.37} r={size * 0.01} fill={style.detail} />
-          <circle cx={size * 0.5} cy={size * 0.35} r={size * 0.01} fill={style.detail} />
-          <circle cx={size * 0.55} cy={size * 0.37} r={size * 0.01} fill={style.detail} />
-          <circle cx={size * 0.6} cy={size * 0.35} r={size * 0.01} fill={style.detail} />
-          {/* Scale plates */}
-          <rect x={size * 0.35} y={size * 0.48} width={size * 0.3} height={size * 0.15} fill="#DAA520" />
-          <path d={`M ${size * 0.35} ${size * 0.52} Q ${size * 0.4} ${size * 0.5}, ${size * 0.45} ${size * 0.52}`} fill={style.armor} />
-          <path d={`M ${size * 0.45} ${size * 0.52} Q ${size * 0.5} ${size * 0.5}, ${size * 0.55} ${size * 0.52}`} fill={style.armor} />
-          <path d={`M ${size * 0.55} ${size * 0.52} Q ${size * 0.6} ${size * 0.5}, ${size * 0.65} ${size * 0.52}`} fill={style.armor} />
-        </>
-      ) : style.style === 'scale' ? (
-        // Ancient scale armor
-        <>
-          {/* Simple helmet */}
-          <ellipse cx={size * 0.5} cy={size * 0.15} rx={size * 0.1} ry={size * 0.1} fill={style.armor} />
-          {/* Scale vest */}
-          <rect x={size * 0.35} y={size * 0.28} width={size * 0.3} height={size * 0.35} fill={style.armor} />
-          {/* Scale pattern */}
-          {[0.28, 0.33, 0.38, 0.43, 0.48, 0.53, 0.58].map(y => (
-            <g key={y}>
-              <path d={`M ${size * 0.35} ${size * y} Q ${size * 0.38} ${size * (y - 0.02)}, ${size * 0.41} ${size * y}`} fill={style.detail} />
-              <path d={`M ${size * 0.41} ${size * y} Q ${size * 0.44} ${size * (y - 0.02)}, ${size * 0.47} ${size * y}`} fill={style.detail} />
-              <path d={`M ${size * 0.47} ${size * y} Q ${size * 0.5} ${size * (y - 0.02)}, ${size * 0.53} ${size * y}`} fill={style.detail} />
-              <path d={`M ${size * 0.53} ${size * y} Q ${size * 0.56} ${size * (y - 0.02)}, ${size * 0.59} ${size * y}`} fill={style.detail} />
-              <path d={`M ${size * 0.59} ${size * y} Q ${size * 0.62} ${size * (y - 0.02)}, ${size * 0.65} ${size * y}`} fill={style.detail} />
-            </g>
-          ))}
-        </>
-      ) : (
-        // Default bronze/simple armor
-        <>
-          {/* Helmet */}
-          <ellipse cx={size * 0.5} cy={size * 0.15} rx={size * 0.1} ry={size * 0.1} fill={style.armor} />
-          {/* Breastplate */}
-          <rect x={size * 0.35} y={size * 0.28} width={size * 0.3} height={size * 0.25} fill={style.armor} rx={size * 0.02} />
-          <circle cx={size * 0.5} cy={size * 0.4} r={size * 0.05} fill={style.detail} />
-          {/* Belt */}
-          <rect x={size * 0.33} y={size * 0.52} width={size * 0.34} height={size * 0.04} fill={style.detail} />
-          {/* Skirt */}
-          <rect x={size * 0.37} y={size * 0.56} width={size * 0.26} height={size * 0.1} fill={style.armor} />
-        </>
-      )}
+      {/* Central post with 3D depth */}
+      <rect 
+        x={pixelSize * 15} 
+        y={pixelSize * 8} 
+        width={pixelSize * 2} 
+        height={pixelSize * 18} 
+        fill={materials.wood}
+      />
+      <rect 
+        x={pixelSize * 15} 
+        y={pixelSize * 8} 
+        width={pixelSize * 0.5} 
+        height={pixelSize * 18} 
+        fill={materials.woodLight}
+      />
+      
+      {/* Base platform (3/4 perspective) */}
+      <polygon
+        points={`${pixelSize * 12},${pixelSize * 26} 
+                ${pixelSize * 20},${pixelSize * 26}
+                ${pixelSize * 21},${pixelSize * 27}
+                ${pixelSize * 11},${pixelSize * 27}`}
+        fill={materials.wood}
+      />
+      <polygon
+        points={`${pixelSize * 12},${pixelSize * 26} 
+                ${pixelSize * 20},${pixelSize * 26}
+                ${pixelSize * 20},${pixelSize * 26.3}
+                ${pixelSize * 12},${pixelSize * 26.3}`}
+        fill={materials.woodLight}
+      />
+      
+      {/* Crossbar for shoulders */}
+      <rect 
+        x={pixelSize * 10} 
+        y={pixelSize * 8} 
+        width={pixelSize * 12} 
+        height={pixelSize * 1.5} 
+        fill={materials.wood}
+      />
+      <rect 
+        x={pixelSize * 10} 
+        y={pixelSize * 8} 
+        width={pixelSize * 12} 
+        height={pixelSize * 0.4} 
+        fill={materials.woodLight}
+      />
+    </g>
+  );
+  
+  // Render armor based on culture and era
+  const renderArmor = () => {
+    const zone = culturalZone?.toUpperCase();
+    
+    // European medieval/renaissance armor
+    if (zone === 'EUROPEAN' && era >= 500 && era < 1700) {
+      return (
+        <g>
+          {/* Helmet with beautiful shading */}
+          <g transform={`translate(${pixelSize * 16}, ${pixelSize * 5})`}>
+            {/* Main helmet shape */}
+            <ellipse cx={0} cy={0} rx={pixelSize * 3} ry={pixelSize * 2.5} fill={materials.metal} />
+            <ellipse cx={0} cy={0} rx={pixelSize * 3} ry={pixelSize * 2.5} fill="none" stroke={materials.metalDark} strokeWidth={pixelSize * 0.2} />
+            {/* Visor slit */}
+            <rect x={-pixelSize * 2} y={-pixelSize * 0.3} width={pixelSize * 4} height={pixelSize * 0.6} fill={materials.metalDark} />
+            {/* Top highlight */}
+            <ellipse cx={0} cy={-pixelSize * 1.5} rx={pixelSize * 1.5} ry={pixelSize * 0.5} fill={materials.metalLight} opacity={0.7} />
+            {/* Plume (if renaissance) */}
+            {era >= 1400 && (
+              <path d={`M ${0} ${-pixelSize * 2.5} 
+                       Q ${pixelSize} ${-pixelSize * 3.5}, ${pixelSize * 0.5} ${-pixelSize * 4.5}`} 
+                    stroke="#DC143C" 
+                    strokeWidth={pixelSize * 0.8} 
+                    fill="none" />
+            )}
+          </g>
+          
+          {/* Breastplate with 3/4 perspective */}
+          <g transform={`translate(${pixelSize * 16}, ${pixelSize * 12})`}>
+            {/* Main chest piece */}
+            <polygon
+              points={`${-pixelSize * 4},${0} 
+                      ${pixelSize * 4},${0}
+                      ${pixelSize * 3.5},${pixelSize * 6}
+                      ${-pixelSize * 3.5},${pixelSize * 6}`}
+              fill={materials.metal}
+            />
+            {/* Center ridge for depth */}
+            <line x1={0} y1={0} x2={0} y2={pixelSize * 6} 
+                  stroke={materials.metalLight} 
+                  strokeWidth={pixelSize * 0.5} />
+            {/* Side highlights */}
+            <line x1={-pixelSize * 3.5} y1={pixelSize * 0.5} x2={-pixelSize * 3} y2={pixelSize * 5.5} 
+                  stroke={materials.metalLight} 
+                  strokeWidth={pixelSize * 0.3} 
+                  opacity={0.7} />
+            <line x1={pixelSize * 3.5} y1={pixelSize * 0.5} x2={pixelSize * 3} y2={pixelSize * 5.5} 
+                  stroke={materials.metalDark} 
+                  strokeWidth={pixelSize * 0.3} />
+            {/* Decorative emblem */}
+            {era >= 1200 && (
+              <circle cx={0} cy={pixelSize * 2} r={pixelSize * 1} fill={materials.gold} opacity={0.7} />
+            )}
+          </g>
+          
+          {/* Pauldrons (shoulder armor) */}
+          <g>
+            {/* Left pauldron */}
+            <ellipse cx={pixelSize * 10} cy={pixelSize * 9} 
+                    rx={pixelSize * 2} ry={pixelSize * 1.5} 
+                    fill={materials.metal} />
+            <ellipse cx={pixelSize * 10} cy={pixelSize * 9} 
+                    rx={pixelSize * 2} ry={pixelSize * 1.5} 
+                    fill="none" 
+                    stroke={materials.metalDark} 
+                    strokeWidth={pixelSize * 0.2} />
+            {/* Right pauldron */}
+            <ellipse cx={pixelSize * 22} cy={pixelSize * 9} 
+                    rx={pixelSize * 2} ry={pixelSize * 1.5} 
+                    fill={materials.metal} />
+            <ellipse cx={pixelSize * 22} cy={pixelSize * 9} 
+                    rx={pixelSize * 2} ry={pixelSize * 1.5} 
+                    fill="none" 
+                    stroke={materials.metalDark} 
+                    strokeWidth={pixelSize * 0.2} />
+          </g>
+          
+          {/* Gauntlets */}
+          <g>
+            {/* Left gauntlet */}
+            <rect x={pixelSize * 8} y={pixelSize * 14} 
+                  width={pixelSize * 1.5} height={pixelSize * 3} 
+                  fill={materials.metal} />
+            <rect x={pixelSize * 8} y={pixelSize * 14} 
+                  width={pixelSize * 0.4} height={pixelSize * 3} 
+                  fill={materials.metalLight} />
+            {/* Right gauntlet */}
+            <rect x={pixelSize * 22.5} y={pixelSize * 14} 
+                  width={pixelSize * 1.5} height={pixelSize * 3} 
+                  fill={materials.metal} />
+            <rect x={pixelSize * 23.6} y={pixelSize * 14} 
+                  width={pixelSize * 0.4} height={pixelSize * 3} 
+                  fill={materials.metalDark} />
+          </g>
+        </g>
+      );
+    }
+    
+    // East Asian armor (samurai style)
+    if (zone === 'EAST_ASIAN') {
+      return (
+        <g>
+          {/* Kabuto (helmet) with horns */}
+          <g transform={`translate(${pixelSize * 16}, ${pixelSize * 5})`}>
+            {/* Main helmet */}
+            <ellipse cx={0} cy={0} rx={pixelSize * 3.5} ry={pixelSize * 2} fill={materials.metalDark} />
+            {/* Face mask */}
+            <rect x={-pixelSize * 2} y={pixelSize * 0.5} width={pixelSize * 4} height={pixelSize * 1.5} fill={materials.metal} />
+            {/* Horns (maedate) */}
+            <path d={`M ${-pixelSize * 2} ${-pixelSize * 1.5} L ${-pixelSize * 3} ${-pixelSize * 3}`} 
+                  stroke={materials.gold} strokeWidth={pixelSize * 0.5} />
+            <path d={`M ${pixelSize * 2} ${-pixelSize * 1.5} L ${pixelSize * 3} ${-pixelSize * 3}`} 
+                  stroke={materials.gold} strokeWidth={pixelSize * 0.5} />
+          </g>
+          
+          {/* Do (chest armor) with laced plates */}
+          <g transform={`translate(${pixelSize * 16}, ${pixelSize * 12})`}>
+            {/* Layered plates */}
+            {[0, 1.5, 3, 4.5].map((offset, i) => (
+              <rect key={i}
+                    x={-pixelSize * 4} 
+                    y={pixelSize * offset} 
+                    width={pixelSize * 8} 
+                    height={pixelSize * 1.2} 
+                    fill={i % 2 === 0 ? materials.metalDark : materials.metal} />
+            ))}
+            {/* Lacing between plates */}
+            {[0.6, 2.1, 3.6].map((offset, i) => (
+              <line key={i}
+                    x1={-pixelSize * 3.5} y1={pixelSize * offset}
+                    x2={pixelSize * 3.5} y2={pixelSize * offset}
+                    stroke={materials.cloth} 
+                    strokeWidth={pixelSize * 0.2} />
+            ))}
+          </g>
+          
+          {/* Sode (shoulder guards) */}
+          <g>
+            {/* Left sode */}
+            <rect x={pixelSize * 8} y={pixelSize * 9} 
+                  width={pixelSize * 3} height={pixelSize * 4} 
+                  fill={materials.metalDark} />
+            <rect x={pixelSize * 8.5} y={pixelSize * 10} 
+                  width={pixelSize * 2} height={pixelSize * 0.3} 
+                  fill={materials.cloth} />
+            {/* Right sode */}
+            <rect x={pixelSize * 21} y={pixelSize * 9} 
+                  width={pixelSize * 3} height={pixelSize * 4} 
+                  fill={materials.metalDark} />
+            <rect x={pixelSize * 21.5} y={pixelSize * 10} 
+                  width={pixelSize * 2} height={pixelSize * 0.3} 
+                  fill={materials.cloth} />
+          </g>
+          
+          {/* Kote (arm guards) */}
+          <g>
+            {/* Left kote */}
+            <rect x={pixelSize * 8} y={pixelSize * 14} 
+                  width={pixelSize * 1.5} height={pixelSize * 3} 
+                  fill={materials.cloth} />
+            <rect x={pixelSize * 8.2} y={pixelSize * 14.5} 
+                  width={pixelSize * 1.1} height={pixelSize * 0.5} 
+                  fill={materials.metal} />
+            {/* Right kote */}
+            <rect x={pixelSize * 22.5} y={pixelSize * 14} 
+                  width={pixelSize * 1.5} height={pixelSize * 3} 
+                  fill={materials.cloth} />
+            <rect x={pixelSize * 22.7} y={pixelSize * 14.5} 
+                  width={pixelSize * 1.1} height={pixelSize * 0.5} 
+                  fill={materials.metal} />
+          </g>
+        </g>
+      );
+    }
+    
+    // Middle Eastern armor (mamluk/ottoman style)
+    if (zone === 'MENA') {
+      return (
+        <g>
+          {/* Turban helmet with spike */}
+          <g transform={`translate(${pixelSize * 16}, ${pixelSize * 5})`}>
+            {/* Wrapped turban base */}
+            <ellipse cx={0} cy={0} rx={pixelSize * 3} ry={pixelSize * 2} fill={materials.cloth} />
+            {/* Metal cap underneath */}
+            <ellipse cx={0} cy={pixelSize * 0.5} rx={pixelSize * 2.5} ry={pixelSize * 1.5} fill={materials.metal} />
+            {/* Spike on top */}
+            <polygon points={`${0},${-pixelSize * 2} 
+                            ${-pixelSize * 0.3},${-pixelSize * 1}
+                            ${pixelSize * 0.3},${-pixelSize * 1}`} 
+                    fill={materials.metalLight} />
+            {/* Face mail */}
+            <rect x={-pixelSize * 1.5} y={pixelSize * 1} 
+                  width={pixelSize * 3} height={pixelSize} 
+                  fill={materials.metalDark} opacity={0.7} />
+          </g>
+          
+          {/* Scale/chain mail with decorative patterns */}
+          <g transform={`translate(${pixelSize * 16}, ${pixelSize * 12})`}>
+            {/* Main mail shirt */}
+            <rect x={-pixelSize * 4} y={0} 
+                  width={pixelSize * 8} height={pixelSize * 6} 
+                  fill={materials.metal} />
+            {/* Scale pattern */}
+            {[0, 1, 2, 3, 4, 5].map((row) => 
+              [0, 1, 2, 3, 4, 5, 6, 7].map((col) => (
+                <circle key={`${row}-${col}`}
+                        cx={-pixelSize * 3.5 + col * pixelSize} 
+                        cy={pixelSize * 0.5 + row * pixelSize}
+                        r={pixelSize * 0.3} 
+                        fill={materials.metalDark} 
+                        opacity={0.3} />
+              ))
+            )}
+            {/* Decorative band */}
+            <rect x={-pixelSize * 4} y={pixelSize * 2.5} 
+                  width={pixelSize * 8} height={pixelSize * 0.8} 
+                  fill={materials.gold} 
+                  opacity={0.7} />
+          </g>
+          
+          {/* Bazubands (arm guards) */}
+          <g>
+            {/* Left arm */}
+            <rect x={pixelSize * 8} y={pixelSize * 14} 
+                  width={pixelSize * 1.8} height={pixelSize * 3} 
+                  fill={materials.metal} />
+            <rect x={pixelSize * 8.3} y={pixelSize * 15} 
+                  width={pixelSize * 1.2} height={pixelSize * 0.3} 
+                  fill={materials.gold} />
+            {/* Right arm */}
+            <rect x={pixelSize * 22.2} y={pixelSize * 14} 
+                  width={pixelSize * 1.8} height={pixelSize * 3} 
+                  fill={materials.metal} />
+            <rect x={pixelSize * 22.5} y={pixelSize * 15} 
+                  width={pixelSize * 1.2} height={pixelSize * 0.3} 
+                  fill={materials.gold} />
+          </g>
+        </g>
+      );
+    }
+    
+    // Default/Modern: Simple leather armor
+    return (
+      <g>
+        {/* Simple helmet/cap */}
+        <g transform={`translate(${pixelSize * 16}, ${pixelSize * 5})`}>
+          <ellipse cx={0} cy={0} rx={pixelSize * 2.5} ry={pixelSize * 2} fill={materials.leather} />
+          <ellipse cx={0} cy={-pixelSize * 0.5} rx={pixelSize * 1.5} ry={pixelSize * 0.5} 
+                   fill={materials.leatherLight} opacity={0.5} />
+        </g>
+        
+        {/* Leather vest */}
+        <g transform={`translate(${pixelSize * 16}, ${pixelSize * 12})`}>
+          <rect x={-pixelSize * 3.5} y={0} width={pixelSize * 7} height={pixelSize * 6} fill={materials.leather} />
+          <rect x={-pixelSize * 3.5} y={0} width={pixelSize * 0.5} height={pixelSize * 6} fill={materials.leatherLight} />
+          {/* Buckles */}
+          <rect x={-pixelSize * 0.5} y={pixelSize * 1} width={pixelSize} height={pixelSize * 0.5} fill={materials.metal} />
+          <rect x={-pixelSize * 0.5} y={pixelSize * 3} width={pixelSize} height={pixelSize * 0.5} fill={materials.metal} />
+        </g>
+        
+        {/* Bracers */}
+        <g>
+          <rect x={pixelSize * 8} y={pixelSize * 14} width={pixelSize * 1.5} height={pixelSize * 2.5} fill={materials.leather} />
+          <rect x={pixelSize * 22.5} y={pixelSize * 14} width={pixelSize * 1.5} height={pixelSize * 2.5} fill={materials.leather} />
+        </g>
+      </g>
+    );
+  };
+
+  return (
+    <g transform={`translate(${x}, ${y})`}>
+      <g opacity={opacity}>
+        {renderStandBase()}
+        {renderArmor()}
+      </g>
     </g>
   );
 };
+
+export default ArmorStandSymbol;

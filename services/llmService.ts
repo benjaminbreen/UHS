@@ -39,6 +39,7 @@ const formatBeliefs = (character: PlayerCharacter | NpcEntity): string => {
 }
 
 
+
 /**
  * NEW: Summarizes a conversation history into a single sentence for an NPC's memory.
  */
@@ -342,8 +343,37 @@ export async function generateEncounterDialogue(
         return style.length > 0 ? `Your personality traits: ${style.join(', ')}` : '';
     })();
     
+    // Check if this is a special map NPC with enhanced context
+    const specialMapContext = (target as any).specialMapContext;
+    const isSpecialMapNpc = !!specialMapContext;
+    
+    const getSpecialMapIntroduction = () => {
+        if (!isSpecialMapNpc) return '';
+        
+        return `
+        **SPECIAL LOCATION CONTEXT:**
+        You are currently inside: ${specialMapContext.displayName}
+        Building Type: ${specialMapContext.archetype}
+        Location: ${specialMapContext.location}, ${specialMapContext.mapArea}
+        Your Role: ${specialMapContext.roleContext}
+        
+        **YOUR DUTIES AND RESPONSIBILITIES:**
+        ${specialMapContext.specialInstructions}
+        
+        **LOCATION AWARENESS:**
+        - You know this building's layout, rules, and customs intimately
+        - You understand proper protocols for different types of visitors
+        - You're aware of who belongs here and who requires challenge/assistance
+        - You understand the power dynamics and social expectations of this place
+        - This is your workplace/domain - act accordingly with appropriate authority or deference
+        
+        `;
+    };
+
     const prompt = `
-        You are roleplaying as ${target.name}, a ${target.age}-year-old ${target.role} in ${mapData.timeSlice} ${mapData.localArea}. To roleplay effectively, imagine this npc as a real person with a detailed, realistic backtstory appropriate to the setting. They won't share everything (who does?) but they might drop hints. Consider whether the npc and the player might realistically already be acquainted - if so, invent a backstory for that relationship. If not, respond to them as a complete stranger.
+        You are roleplaying as ${target.name}, a ${target.age}-year-old ${target.role} in ${mapData.timeSlice} ${mapData.localArea}. ${isSpecialMapNpc ? `You work within the ${specialMapContext.displayName}.` : ''} To roleplay effectively, imagine this npc as a real person with a detailed, realistic backtstory appropriate to the setting. They won't share everything (who does?) but they might drop hints. Consider whether the npc and the player might realistically already be acquainted - if so, invent a backstory for that relationship. If not, respond to them as a complete stranger.
+        
+        ${getSpecialMapIntroduction()}
         
         **CONVERSATION INTELLIGENCE RULES:**
         1. INFORMATION PROGRESSION - Never repeat the same information:
@@ -367,8 +397,8 @@ export async function generateEncounterDialogue(
         4. PERSONALITY-DRIVEN RESPONSES:
            ${personalityStyle}
            - Let your personality affect HOW you share information
-           - Fearful NPCs might whisper about dangers
-           - Compassionate NPCs will ensure strangers understand warnings or simply say something friendly
+           - Fearful NPCs might be afraid of the player
+           - Compassionate NPCs will ask about the player's health or travels, or simply say something friendly
            - Greedy NPCs might hint at rewards for information
         
         **CURRENT SITUATION:**
@@ -377,7 +407,7 @@ export async function generateEncounterDialogue(
         Player seems: ${isConfused ? 'confused and needs clarification' : askedForMoreInfo ? 'interested and wants details' : 'engaged in conversation'}
         
         **CRITICAL INSTRUCTION:** Think like a real person in this exact historical moment. Consider:
-        - What specific events (raids, plagues, wars, love affairs, feuds, or anything that makes sense in the setting) are happening RIGHT NOW that everyone knows about?
+        - What specific events (news, plagues, wars, love affairs, feuds, or anything that makes sense in the setting) are happening RIGHT NOW that everyone knows about?
         - What would genuinely shock or alarm someone in my position?
         - What are the real, immediate dangers people face daily?
         - How would someone of my social class and profession realistically react?
@@ -396,17 +426,17 @@ export async function generateEncounterDialogue(
         
         Example 1 - Occupied France 1940, telephone operator meets RAF pilot:
         Player: "I am a British pilot, my plane was shot down"
-        NPC: "Mon Dieu! British? Here? Quick, get inside before someone sees you! The Germans patrol this road!"
+        NPC: "British? Here?! Mon dieu... quick, get inside before someone sees you. NOW, please. The Germans patrol this road. NOW."
         (Notice: Immediate recognition of danger, practical urgency, no time for pleasantries)
         
         Example 2 - Medieval village 1348, peasant meets wealthy merchant:
         Player: "Good day, I seek lodging"
-        NPC: "Lodging? Half the village is dead. Try the monastery, if the monks still live."
+        NPC: "Lodging? Half the village is dead. Try the monastery... if the monks still live."
         (Notice: Plague context dominates response, class difference secondary to crisis)
     
         Example 3 - Roman Britain 125 CE, local merchant meets Germanic tribesman:
         Player: "I come from across the Rhine, seeking trade"
-        NPC: "Germanic? The legions just crushed a rebellion. You're very foolish to announce that here."
+        NPC: "A German? The legions just crushed a rebellion. You're very foolish to announce that here. Leave."
         (Notice: Recent military context makes origin significant)
         
         **NOW YOUR SITUATION:**
@@ -480,9 +510,9 @@ export async function generateEncounterDialogue(
         - Stay in character for your role, age, and social class
         - Know about major events of your time (wars, plagues, discoveries, people)
         - NEVER repeat the same information - always add something new
-        - If discussing immediate dangers, be PROACTIVE with warnings
+        - If discussing immediate dangers, be PROACTIVE and direct, even blunt or rude
         - If the player is confused after multiple exchanges, CHANGE YOUR APPROACH
-        - Show appropriate emotional responses (fear about raids, worry about disease, etc.)
+        - Show appropriate emotional responses (fear about dangers, worry about disease, truculence, melancholy about sick family, etc.)
         - Your personality (courage/compassion/greed) should color HOW you speak
     `;
     
@@ -498,6 +528,17 @@ export async function generateEncounterDialogue(
         - Is this a dangerous historical situation where the player doesn't belong? (-5 to -100)
         - Is the player being helpful/kind? (+5 to +20)
         - Is this a normal conversation? (0 to +/-3)
+        
+        ${target.profession?.toLowerCase().includes('guard') || target.profession?.toLowerCase().includes('soldier') ? `
+        GUARD-SPECIFIC ANALYSIS (You are a ${target.profession}):
+        - If player says they'll leave/comply (e.g., "ok", "fine", "I'll go", "sorry", "my mistake"): Let them go (+0 reputation)
+        - If player gives reasonable explanation (e.g., "I have business here", "I was invited", "I'm looking for someone"): Consider it (-5 reputation, warning)
+        - If player is defiant (e.g., "no", "make me", "you can't stop me", "never", insults): Prepare to attack (-50 reputation)
+        - If player directly threatens you (e.g., "I'll kill you", "fight me", "try and stop me"): Attack immediately (-75 reputation)
+        - If this is your 3rd+ warning to the same person: Attack them for ignoring orders (-50 reputation)
+        
+        Remember: Guards give ONE warning before attacking defiant intruders. Be stern but fair.
+        ` : ''}
         
         FORMAT YOUR RESPONSE EXACTLY LIKE THIS (no JSON, no code blocks, just these lines):
         DIALOGUE: [your character's response in 1-4 sentences]
@@ -584,10 +625,45 @@ export async function generateEncounterDialogue(
         // Process the parsed response
         const npcText = dialogueText;
         
-        // Determine additional flags based on reputation change
+        // Determine additional flags based on reputation change and NPC type
         const shouldCallAuthorities = reputationChange <= -100;
         const shouldLeave = shouldCallAuthorities || reputationChange <= -70;
-        const shouldAttack = false; // Authorities don't attack, they arrest
+        
+        // Guards should attack if player is defiant/threatening and they're a guard
+        // Check both the reputation change and if this is a guard or soldier
+        const isGuardOrSoldier = target.profession?.toLowerCase().includes('guard') || 
+                                 target.profession?.toLowerCase().includes('soldier') ||
+                                 target.profession?.toLowerCase().includes('warrior') ||
+                                 target.profession?.toLowerCase().includes('knight');
+        
+        // Guards attack if: player is threatening AND they're a guard type
+        // OR if player has been warned multiple times (history > 4 exchanges with negative reputation)
+        const previousWarnings = Array.isArray(history) && history.length > 0 && typeof history[0] !== 'string' ?
+            (history as DialogueEntry[]).filter(h => 
+                h.speaker === 'npc' && 
+                (h.text.toLowerCase().includes('leave') || 
+                 h.text.toLowerCase().includes('stop') || 
+                 h.text.toLowerCase().includes('warning'))
+            ).length : 0;
+        
+        const shouldAttack = isGuardOrSoldier && (
+            (reputationChange <= -50 && !shouldCallAuthorities) || // Threatening but not authority-calling level
+            (previousWarnings >= 2 && reputationChange < 0) || // Multiple warnings ignored
+            (playerInput.toLowerCase().includes('make me') || 
+             playerInput.toLowerCase().includes('never') ||
+             playerInput.toLowerCase().includes('fight me') ||
+             playerInput.toLowerCase().includes('try and stop me'))
+        )
+        
+        // Debug logging for guard behavior
+        if (isGuardOrSoldier) {
+            console.log(`[GUARD ANALYSIS] ${target.name} (${target.profession}):
+                - Reputation Change: ${reputationChange}
+                - Previous Warnings: ${previousWarnings}
+                - Should Attack: ${shouldAttack}
+                - Should Call Authorities: ${shouldCallAuthorities}
+                - Player Input: "${playerInput}"`);
+        }
         
         console.log(`[NPC Dialogue] Final dialogue: "${npcText}", Reputation change: ${reputationChange}`);
         
@@ -1142,6 +1218,170 @@ export async function generateCombatTalkResponse(
     }
 }
 
+export async function generateCombatSkillResponse(
+  playerCharacter: PlayerCharacter,
+  opponent: EncounterableEntity,
+  skillName: string,
+  skillEffect: string
+): Promise<{ dialogue: string }> {
+    const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+
+    const opponentContext = isAnimal(opponent)
+        ? `You are a game master describing an animal's reaction. The animal is a ${opponent.speciesName}, a ${opponent.type} creature.`
+        : `You are roleplaying as ${opponent.name}, a ${opponent.age}-year-old ${opponent.role}. Your personality is: ${opponent.backstory}. Your appearance is that of ${formatAppearance(opponent)}`;
+
+    const instructions = isAnimal(opponent)
+        ? `Describe the animal's visceral reaction (pain, fear, aggression) to the skill attack. The reaction should be realistic and brief (e.g., a wolf might howl in pain, a bear might roar in fury).`
+        : `Respond with a short, spoken line reacting to the skill attack. Express pain, fear, anger, or surprise. Keep it brief and in-character for your historical period and role.`;
+
+    const skillDescriptions: Record<string, string> = {
+        'BURN': 'engulfs you in magical flames',
+        'CHOP': 'strikes you with a vicious axe blow',
+        'INTIMIDATING_SHOUT': 'bellows a terrifying war cry at you',
+        'POWER_STRIKE': 'delivers a devastating power attack',
+        'HAMMER_BLOW': 'crushes you with a mighty hammer strike',
+        'SCYTHE_SWEEP': 'sweeps at you with a deadly scythe',
+        'SCALDING_WATER': 'throws boiling water at you',
+        'NET_THROW': 'entangles you in a fishing net'
+    };
+
+    const skillDescription = skillDescriptions[skillName] || `uses ${skillName} against you`;
+
+    const prompt = `
+        CONTEXT:
+        You are in combat with a player named ${playerCharacter.name}, who is ${formatAppearance(playerCharacter)}.
+        The player ${skillDescription}, causing ${skillEffect}.
+        You are hurt and reacting to this special attack.
+
+        YOUR TASK:
+        ${opponentContext}
+        ${instructions}
+        
+        IMPORTANT: Keep your response under 15 words. Be dramatic but concise.
+        
+        Return a valid JSON object with one key:
+           - "dialogue": (string) Your pained/shocked response (description for animal, spoken line for NPC).
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-lite',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        dialogue: { type: Type.STRING }
+                    },
+                    required: ["dialogue"]
+                }
+            }
+        });
+        
+        let jsonStr = response.text.trim();
+        const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
+        const match = jsonStr.match(fenceRegex);
+        if (match && match[2]) { jsonStr = match[2].trim(); }
+        
+        const parsed = JSON.parse(jsonStr);
+        if (typeof parsed.dialogue === 'string') {
+            return parsed;
+        }
+        throw new Error("Invalid JSON structure.");
+    } catch (error) {
+        console.error('[Combat Skill Response] Error:', error);
+        
+        // Fallback responses based on skill
+        const fallbacks: Record<string, string> = {
+            'BURN': isAnimal(opponent) ? "*howls in agony as flames lick its fur*" : "By the gods, I'm burning!",
+            'CHOP': isAnimal(opponent) ? "*yelps and staggers back*" : "That axe... it cuts deep!",
+            'INTIMIDATING_SHOUT': isAnimal(opponent) ? "*cowers and whimpers*" : "Your voice... it chills my soul!",
+            'POWER_STRIKE': isAnimal(opponent) ? "*reels from the impact*" : "Such strength... impossible!",
+            'HAMMER_BLOW': isAnimal(opponent) ? "*staggers, dazed*" : "My armor... crushed like paper!",
+            'SCYTHE_SWEEP': isAnimal(opponent) ? "*bleeds profusely*" : "The reaper's blade finds its mark!",
+            'SCALDING_WATER': isAnimal(opponent) ? "*shrieks in pain*" : "It burns! Curse you!",
+            'NET_THROW': isAnimal(opponent) ? "*thrashes wildly*" : "A fisherman's trick? Really?"
+        };
+        
+        return { dialogue: fallbacks[skillName] || (isAnimal(opponent) ? "*growls in pain*" : "Gah!") };
+    }
+}
+
+export async function generateCombatLowHealthResponse(
+  playerCharacter: PlayerCharacter,
+  opponent: EncounterableEntity,
+  healthPercentage: number
+): Promise<{ dialogue: string }> {
+    const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+
+    const opponentContext = isAnimal(opponent)
+        ? `You are a game master describing an animal's reaction. The animal is a ${opponent.speciesName}, a ${opponent.type} creature.`
+        : `You are roleplaying as ${opponent.name}, a ${opponent.age}-year-old ${opponent.role}. Your personality is: ${opponent.backstory}. Your appearance is that of ${formatAppearance(opponent)}`;
+
+    const instructions = isAnimal(opponent)
+        ? `Describe the animal's behavior as it becomes critically wounded. Show its weakening state through physical descriptions (limping, labored breathing, defensive posture).`
+        : `Respond with a short, desperate or defiant line as you realize you're badly wounded. Express pain, fear, desperation, or grim determination. Keep it historically appropriate and in-character.`;
+
+    const prompt = `
+        CONTEXT:
+        You are in combat with a player named ${playerCharacter.name}.
+        You are badly wounded - your health has dropped to ${Math.floor(healthPercentage)}% of maximum.
+        You are struggling to continue fighting but won't give up easily.
+
+        YOUR TASK:
+        ${opponentContext}
+        ${instructions}
+        
+        IMPORTANT: Keep your response under 15 words. Be dramatic but concise.
+        
+        Return a valid JSON object with one key:
+           - "dialogue": (string) Your desperate/pained response as you realize you're losing.
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-lite',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                temperature: 0.9
+            }
+        });
+
+        const jsonStr = response.text.trim();
+        const parsed = JSON.parse(jsonStr);
+        
+        if (!parsed.dialogue) {
+            throw new Error("Missing dialogue in response");
+        }
+        
+        return { dialogue: parsed.dialogue };
+    } catch (error) {
+        console.error("Error generating low health dialogue:", error);
+        
+        // Fallback responses
+        if (isAnimal(opponent)) {
+            const animalFallbacks = [
+                "*whimpers and limps backward, blood dripping*",
+                "*breathing heavily, eyes wild with pain*",
+                "*staggers, barely able to stand*",
+                "*growls weakly, cornered and desperate*"
+            ];
+            return { dialogue: animalFallbacks[Math.floor(Math.random() * animalFallbacks.length)] };
+        } else {
+            const npcFallbacks = [
+                "I... I won't fall here!",
+                "This can't be happening...",
+                "My strength... it's fading...",
+                "Please... mercy...",
+                "I yield! I yield!"
+            ];
+            return { dialogue: npcFallbacks[Math.floor(Math.random() * npcFallbacks.length)] };
+        }
+    }
+}
+
 export async function generateCombatItemResponse(
   playerCharacter: PlayerCharacter,
   opponent: EncounterableEntity,
@@ -1362,7 +1602,8 @@ export async function generateTradeNegotiation(
         suggestion?: string;
     }
 ): Promise<{ dialogue: string; counterOffer?: string; willNegotiate: boolean; }> {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // Import the edge function client
+    const { callLLMEdgeFunction } = await import('./llmClientService');
     
     // Get event service instance to track API usage
     const eventService = (window as any).eventService;
@@ -1406,31 +1647,29 @@ export async function generateTradeNegotiation(
     `;
     
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-lite',
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        dialogue: { type: Type.STRING },
-                        counterOffer: { type: Type.STRING },
-                        willNegotiate: { type: Type.BOOLEAN }
-                    },
-                    required: ["dialogue", "willNegotiate"]
-                }
-            }
+        const responseSchema = {
+            type: 'OBJECT',
+            properties: {
+                dialogue: { type: 'STRING' },
+                counterOffer: { type: 'STRING' },
+                willNegotiate: { type: 'BOOLEAN' }
+            },
+            required: ["dialogue", "willNegotiate"]
+        };
+
+        const response = await callLLMEdgeFunction({
+            operation: 'trade_negotiation',
+            prompt,
+            context: { 
+                npcName: npc.name, 
+                tradeValue: tradeContext.fairValue,
+                playerOffer: tradeContext.playerValue 
+            },
+            responseSchema,
+            model: 'gemini-2.5-flash'
         });
         
-        let jsonStr = response.text.trim();
-        const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
-        const match = jsonStr.match(fenceRegex);
-        if (match && match[2]) {
-            jsonStr = match[2].trim();
-        }
-        
-        const parsed = JSON.parse(jsonStr);
+        const parsed = response.data;
         
         // Track API usage
         if (eventService) {

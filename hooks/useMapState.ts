@@ -125,6 +125,39 @@ export const useMapState = (props: useMapStateProps) => {
     const [mapData, setMapData] = useState<MapData | null>(null);
     const [animals, setAnimals] = useState<AnimalEntity[]>([]);
     const [npcs, setNpcs] = useState<NpcEntity[]>([]);
+    
+    // Add persisted merchant to the map
+    const addPersistedMerchant = useCallback((merchant: NpcEntity) => {
+        setNpcs(prevNpcs => {
+            // Check if merchant already exists
+            if (prevNpcs.some(npc => npc.id === merchant.id)) {
+                return prevNpcs;
+            }
+            return [...prevNpcs, merchant];
+        });
+    }, []);
+    
+    // Load persisted merchants on mount
+    useEffect(() => {
+        const loadPersistedMerchants = async () => {
+            const { llmQuestService } = await import('../services/llmQuestService');
+            const persistedMerchants = llmQuestService.getPersistedMerchants();
+            
+            if (persistedMerchants.length > 0) {
+                setNpcs(prevNpcs => {
+                    const newNpcs = [...prevNpcs];
+                    persistedMerchants.forEach(merchant => {
+                        if (!newNpcs.some(npc => npc.id === merchant.id)) {
+                            newNpcs.push(merchant);
+                        }
+                    });
+                    return newNpcs;
+                });
+            }
+        };
+        
+        loadPersistedMerchants();
+    }, []);
     const [deployedVessels, setDeployedVessels] = useState<DeployedVessel[]>([]);
     const [mapDataCache, setMapDataCache] = useState<Map<string, CachedMapEntry>>(new Map());
     const [currentWorldCoords, setCurrentWorldCoords] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
@@ -144,6 +177,7 @@ export const useMapState = (props: useMapStateProps) => {
         mapAreaName: string;
         returnCoordinates: [number, number];
         originalMapCache?: string;
+        originalPlayerMode?: 'ship' | 'onFoot';
     } | null>(null);
     
     // Derived State
@@ -763,6 +797,7 @@ export const useMapState = (props: useMapStateProps) => {
         
         // Set entering flag to prevent edge transitions during the process
         setIsEnteringSpecialMap(true);
+        localStorage.setItem('isEnteringSpecialMap', 'true');
         console.log('[enterSpecialMap] Set isEnteringSpecialMap to true');
         
         // Cache the current map state
@@ -786,11 +821,12 @@ export const useMapState = (props: useMapStateProps) => {
         mapDataCache.set(cacheKey, currentMapCache);
         console.log('[enterSpecialMap] Map cached, cache size:', mapDataCache.size);
         
-        // Store return data
+        // Store return data (including player mode for vessel maps)
         setSpecialMapReturnData({
             mapAreaName: localArea,
             returnCoordinates: [playerState.controlledIconX || 0, playerState.controlledIconY || 0],
-            originalMapCache: cacheKey
+            originalMapCache: cacheKey,
+            originalPlayerMode: playerState.playerMode // Store the mode to restore later
         });
 
         // Generate the special map
@@ -864,6 +900,7 @@ export const useMapState = (props: useMapStateProps) => {
         // Clear the entering flag after a short delay to ensure all state updates have propagated
         setTimeout(() => {
             setIsEnteringSpecialMap(false);
+            localStorage.removeItem('isEnteringSpecialMap');
         }, 100);
         
         setGameState.setIsLoading(false);
@@ -894,9 +931,14 @@ export const useMapState = (props: useMapStateProps) => {
             onRegenerateMapWithCurrentSettings();
         }
         
-        // Restore player position
+        // Restore player position and mode
         setPlayerState.setControlledIconX(specialMapReturnData.returnCoordinates[0]);
         setPlayerState.setControlledIconY(specialMapReturnData.returnCoordinates[1]);
+        
+        // Restore player mode (important for vessel maps where we entered as a ship)
+        if (specialMapReturnData.originalPlayerMode) {
+            setPlayerState.setPlayerMode(specialMapReturnData.originalPlayerMode);
+        }
         
         // Clear special map state
         setIsSpecialMap(false);
@@ -1333,6 +1375,7 @@ export const useMapState = (props: useMapStateProps) => {
         mapData, setMapData,
         animals, setAnimals,
         npcs, setNpcs,
+        addPersistedMerchant,
         deployedVessels, setDeployedVessels,
         mapDataCache, setMapDataCache,
         currentWorldCoords, setCurrentWorldCoords,

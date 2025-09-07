@@ -299,6 +299,59 @@ function createNpc(
         createAndEquip('feet', appearance.footwear, appearance.palette?.secondary);
         createAndEquip('belt', appearance.belt, appearance.palette?.accent);
         createAndEquip('amulet', appearance.accessory, appearance.palette?.accent);
+        
+        // Enhanced amulet assignment for NPCs - ensure higher distribution
+        if (!newEquippedItems.amulet) {
+            // Calculate chance based on era, culture, and role
+            let amuletChance = 0.35; // Base 35% chance
+            
+            // Era modifiers
+            if (era === 'MEDIEVAL') amuletChance += 0.20;
+            if (era === 'ANTIQUITY') amuletChance += 0.15;
+            if (era === 'RENAISSANCE_EARLY_MODERN') amuletChance += 0.10;
+            
+            // Role modifiers
+            const roleLower = role.toLowerCase();
+            if (roleLower.includes('priest') || roleLower.includes('monk') || roleLower.includes('nun')) amuletChance = 0.90;
+            if (roleLower.includes('merchant') || roleLower.includes('noble')) amuletChance += 0.15;
+            if (roleLower.includes('child')) amuletChance += 0.20;
+            
+            // Culture modifiers
+            if (culturalZone === 'EUROPEAN' || culturalZone === 'MENA') amuletChance += 0.10;
+            if (culturalZone === 'SOUTH_ASIAN' || culturalZone === 'EAST_ASIAN') amuletChance += 0.10;
+            
+            // Apply chance
+            if (Math.random() < Math.min(amuletChance, 0.95)) {
+                // Select appropriate amulet based on wealth and culture
+                let amuletId = 'ROPE_NECKLACE'; // Default
+                
+                if (isWealthy) {
+                    const wealthyAmulets = ['SILVER_CHAIN', 'GOLD_CHAIN', 'PEARL_NECKLACE', 'CORAL_BEADS', 'AMBER_PENDANT'];
+                    amuletId = wealthyAmulets[Math.floor(Math.random() * wealthyAmulets.length)];
+                } else if (era === 'MEDIEVAL' && culturalZone === 'EUROPEAN') {
+                    const medievalAmulets = ['WOODEN_CROSS', 'PRAYER_BEADS', 'SAINTS_MEDAL', 'PILGRIM_BADGE'];
+                    amuletId = medievalAmulets[Math.floor(Math.random() * medievalAmulets.length)];
+                } else if (culturalZone === 'MENA') {
+                    const menaAmulets = ['HAMSA_PENDANT', 'EVIL_EYE_AMULET', 'PRAYER_BEADS'];
+                    amuletId = menaAmulets[Math.floor(Math.random() * menaAmulets.length)];
+                } else if (culturalZone === 'EAST_ASIAN') {
+                    const asianAmulets = ['JADE_PENDANT', 'PRAYER_BEADS', 'BONE_NECKLACE'];
+                    amuletId = asianAmulets[Math.floor(Math.random() * asianAmulets.length)];
+                } else {
+                    const commonAmulets = ['SHELL_NECKLACE', 'BONE_NECKLACE', 'ROPE_NECKLACE', 'PRAYER_BEADS'];
+                    amuletId = commonAmulets[Math.floor(Math.random() * commonAmulets.length)];
+                }
+                
+                const amuletItem = createItemInstance(amuletId);
+                if (amuletItem) {
+                    // Apply color if available
+                    if (appearance.palette?.accent) {
+                        amuletItem.color = appearance.palette.accent;
+                    }
+                    newEquippedItems.amulet = amuletItem;
+                }
+            }
+        }
 
         // Add some generic items to inventory from a starting package for flavor
         const startingPackage = STARTING_PACKAGES[role] || STARTING_PACKAGES['Wanderer'];

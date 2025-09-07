@@ -48,6 +48,11 @@ export interface Item extends ItemDefinition {
     quantity: number;
     quality?: ItemQuality; // Quality level for minerals, metals, and crafted items
     color?: string; // Color of the item (e.g., "Navy", "Crimson", etc.) for clothing
+    condition?: number; // Condition from 0-100 (100 = pristine, 0 = broken)
+    culturalStyle?: string; // Cultural variation (e.g., "Celtic", "Roman", "Japanese")
+    crafterName?: string; // Name of the crafter for unique items
+    age?: number; // Age of the item in years
+    enchantments?: string[]; // Magical or special properties (if applicable)
 }
 
 // NEW: For Gemini-powered crafting

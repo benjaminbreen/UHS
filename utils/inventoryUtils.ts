@@ -1,10 +1,12 @@
 /**
  * utils/inventoryUtils.ts - Utility functions for player inventory management.
  */
-import { Item, ItemDefinition, EquipmentSlot, PlayerCharacter, AnimalEntity } from '../types';
+import { Item, ItemDefinition, EquipmentSlot, PlayerCharacter, AnimalEntity, CulturalZone, HistoricalEra } from '../types';
 import { ITEM_DEFINITIONS, STARTING_PACKAGES, ANIMAL_DATA } from '../constants/index';
 import { generateProceduralItemDescription } from '../services/itemDescriptionGenerator';
 import { createTamedAnimal, addToParty } from '../services/animalTamingService';
+import { createColoredItemInstance, applyColorsToAllItems, generateContextualWeapon } from '../services/itemGenerationService';
+import { generateContextualHeadgear, generateContextualStartingPackage } from '../services/headgearGenerationService';
 
 let itemIdCounter = 1000; // Start high to avoid collision with other potential item sources
 
@@ -327,6 +329,112 @@ function createStartingCompanion(animalBaseId: string, playerCharacter: PlayerCh
 }
 
 /**
+ * Calculate the chance of having an amulet based on era, culture, and profession
+ */
+function calculateAmuletChance(era?: HistoricalEra, culture?: CulturalZone, profession?: string): number {
+    let baseChance = 0.35; // 35% base chance
+    
+    // Era modifiers
+    if (era === HistoricalEra.MEDIEVAL) baseChance += 0.20; // +20% for medieval (religious)
+    if (era === HistoricalEra.ANTIQUITY) baseChance += 0.15; // +15% for ancient (amulet culture)
+    if (era === HistoricalEra.RENAISSANCE_EARLY_MODERN) baseChance += 0.10; // +10% for renaissance
+    
+    // Culture modifiers  
+    if (culture === 'MENA' || culture === 'EUROPEAN') baseChance += 0.10; // Religious cultures
+    if (culture === 'SOUTH_ASIAN' || culture === 'EAST_ASIAN') baseChance += 0.10; // Religious jewelry tradition
+    
+    // Profession modifiers
+    const profLower = profession?.toLowerCase() || '';
+    if (profLower.includes('priest') || profLower.includes('monk') || profLower.includes('nun')) baseChance = 0.90;
+    if (profLower.includes('merchant') || profLower.includes('noble') || profLower.includes('scholar')) baseChance += 0.15;
+    if (profLower.includes('child') || profLower.includes('orphan')) baseChance += 0.20; // Children more likely
+    if (profLower.includes('pilgrim')) baseChance = 0.95; // Pilgrims almost always have religious items
+    
+    return Math.min(baseChance, 0.95); // Cap at 95%
+}
+
+/**
+ * Select a culturally appropriate amulet based on era, culture, and privilege
+ */
+function selectCulturalAmulet(era: HistoricalEra, culture: CulturalZone, privilege: number): string | null {
+    // Map era/culture to appropriate amulet items
+    const amuletMap: Record<string, string[]> = {
+        // Medieval combinations
+        'MEDIEVAL_EUROPEAN': ['WOODEN_CROSS', 'PRAYER_BEADS', 'SAINTS_MEDAL', 'PILGRIM_BADGE', 'ROPE_NECKLACE'],
+        'MEDIEVAL_MENA': ['HAMSA_PENDANT', 'PRAYER_BEADS', 'EVIL_EYE_AMULET', 'CORAL_BEADS'],
+        'MEDIEVAL_EAST_ASIAN': ['JADE_PENDANT', 'PRAYER_BEADS', 'BONE_NECKLACE'],
+        'MEDIEVAL_SOUTH_ASIAN': ['PRAYER_BEADS', 'SHELL_NECKLACE', 'CORAL_BEADS'],
+        'MEDIEVAL_SUB_SAHARAN_AFRICAN': ['BONE_NECKLACE', 'SHELL_NECKLACE', 'ROPE_NECKLACE'],
+        'MEDIEVAL_NORTH_AMERICAN_PRE_COLUMBIAN': ['BONE_NECKLACE', 'SHELL_NECKLACE', 'JADE_PENDANT'],
+        'MEDIEVAL_SOUTH_AMERICAN': ['BONE_NECKLACE', 'SHELL_NECKLACE', 'JADE_PENDANT'],
+        'MEDIEVAL_OCEANIA': ['SHELL_NECKLACE', 'BONE_NECKLACE', 'WHALE_TOOTH_NECKLACE'],
+        
+        // Antiquity combinations
+        'ANTIQUITY_EUROPEAN': ['BULLA', 'TORC_NECKLACE', 'AMBER_PENDANT', 'CORAL_BEADS'],
+        'ANTIQUITY_MENA': ['EVIL_EYE_AMULET', 'SCARAB_PENDANT', 'ANKH_PENDANT', 'HAMSA_PENDANT'],
+        'ANTIQUITY_EAST_ASIAN': ['JADE_PENDANT', 'BONE_NECKLACE'],
+        'ANTIQUITY_SOUTH_ASIAN': ['SHELL_NECKLACE', 'CORAL_BEADS'],
+        
+        // Renaissance/Early Modern
+        'RENAISSANCE_EARLY_MODERN_EUROPEAN': ['SILVER_CROSS', 'RELIQUARY_PENDANT', 'POMANDER', 'CORAL_BEADS', 'PEARL_NECKLACE'],
+        'RENAISSANCE_EARLY_MODERN_MENA': ['HAMSA_PENDANT', 'EVIL_EYE_AMULET', 'PRAYER_BEADS'],
+        
+        // Industrial Era
+        'INDUSTRIAL_ERA_EUROPEAN': ['PHOTO_LOCKET', 'POCKET_WATCH_CHAIN', 'MOURNING_JEWELRY', 'SILVER_CROSS'],
+        'INDUSTRIAL_ERA_MENA': ['HAMSA_PENDANT', 'PRAYER_BEADS', 'EVIL_EYE_AMULET'],
+        'INDUSTRIAL_ERA_EAST_ASIAN': ['JADE_PENDANT', 'PRAYER_BEADS'],
+        
+        // Modern Era
+        'MODERN_ERA_EUROPEAN': ['DOG_TAGS', 'MEDICAL_ALERT_PENDANT', 'SILVER_CHAIN', 'PHOTO_LOCKET'],
+        'MODERN_ERA_NORTH_AMERICAN_PRE_COLUMBIAN': ['DOG_TAGS', 'SILVER_CHAIN', 'MEDICAL_ALERT_PENDANT'],
+        'MODERN_ERA_MENA': ['HAMSA_PENDANT', 'EVIL_EYE_AMULET', 'PRAYER_BEADS'],
+        
+        // Default fallbacks
+        'DEFAULT_POOR': ['ROPE_NECKLACE', 'SHELL_NECKLACE', 'BONE_NECKLACE', 'WOODEN_CROSS'],
+        'DEFAULT_COMMON': ['PRAYER_BEADS', 'SHELL_NECKLACE', 'BRONZE_PIN', 'ROPE_NECKLACE'],
+        'DEFAULT_WEALTHY': ['SILVER_CHAIN', 'GOLD_CHAIN', 'PEARL_NECKLACE', 'CORAL_BEADS']
+    };
+    
+    // Build key from era and culture
+    const key = `${era}_${culture}`;
+    let options = amuletMap[key];
+    
+    // If no specific match, use defaults based on wealth
+    if (!options) {
+        if (privilege > 0.7) {
+            options = amuletMap['DEFAULT_WEALTHY'];
+        } else if (privilege > 0.3) {
+            options = amuletMap['DEFAULT_COMMON'];
+        } else {
+            options = amuletMap['DEFAULT_POOR'];
+        }
+    }
+    
+    // Filter by wealth level - remove expensive items for poor characters
+    if (privilege < 0.3 && options) {
+        const expensiveItems = ['GOLD_CHAIN', 'PEARL_NECKLACE', 'SILVER_CHAIN', 'RELIQUARY_PENDANT', 'WHALE_TOOTH_NECKLACE'];
+        options = options.filter(item => !expensiveItems.includes(item));
+    }
+    
+    // Add wealthy-only options
+    if (privilege > 0.7 && options) {
+        const wealthyUpgrades: Record<string, string> = {
+            'ROPE_NECKLACE': 'SILVER_CHAIN',
+            'WOODEN_CROSS': 'SILVER_CROSS',
+            'SHELL_NECKLACE': 'PEARL_NECKLACE',
+            'BONE_NECKLACE': 'AMBER_PENDANT'
+        };
+        
+        options = options.map(item => wealthyUpgrades[item] || item);
+    }
+    
+    if (!options || options.length === 0) return null;
+    
+    // Random selection from appropriate options
+    return options[Math.floor(Math.random() * options.length)];
+}
+
+/**
  * Adds random pets based on era, profession, and chance
  */
 function addRandomPets(playerCharacter: PlayerCharacter): void {
@@ -386,9 +494,25 @@ function addRandomPets(playerCharacter: PlayerCharacter): void {
 
 export function assembleStartingPackage(
     profession: string, 
-    playerCharacter?: PlayerCharacter
+    playerCharacter?: PlayerCharacter,
+    colorOptions?: {
+        culture?: CulturalZone;
+        era?: HistoricalEra;
+        privilege?: number;
+    }
 ): { inventory: Item[], equippedItems: PlayerCharacter['equippedItems'] } {
-    const pkg = STARTING_PACKAGES[profession] || STARTING_PACKAGES['Wanderer'];
+    // Try to get the defined package, or generate a contextual one
+    let pkg = STARTING_PACKAGES[profession];
+    
+    // If profession not found, generate contextual package instead of always using Wanderer
+    if (!pkg) {
+        pkg = generateContextualStartingPackage(profession, {
+            era: colorOptions?.era,
+            culture: colorOptions?.culture,
+            privilege: colorOptions?.privilege
+        });
+    }
+    
     if (!pkg) return { inventory: [], equippedItems: {} };
     
     // Clear any existing tamed animals when creating a new character
@@ -397,16 +521,89 @@ export function assembleStartingPackage(
         localStorage.removeItem('tamedAnimals');
     }
 
-    const inventory = pkg.inventory
-        .map(baseId => createItemInstance(baseId))
-        .filter(item => item !== null) as Item[];
+    // Create inventory items with colors if options provided
+    let inventory: Item[];
+    if (colorOptions?.culture) {
+        inventory = pkg.inventory
+            .map(baseId => createColoredItemInstance(baseId, colorOptions.culture!, colorOptions.privilege, colorOptions.era))
+            .filter(item => item !== null) as Item[];
+    } else {
+        inventory = pkg.inventory
+            .map(baseId => createItemInstance(baseId))
+            .filter(item => item !== null) as Item[];
+    }
     
+    // Create equipped items with colors if options provided
     const equippedItems: PlayerCharacter['equippedItems'] = {};
+    
+    // First, add all defined equipment
     for (const slot in pkg.equipment) {
         const baseId = pkg.equipment[slot as keyof typeof pkg.equipment];
         if (baseId) {
-            const item = createItemInstance(baseId);
+            let item: Item | null;
+            
+            // Handle procedural weapon generation
+            if (baseId === '*CONTEXTUAL*' && colorOptions) {
+                item = generateContextualWeapon(profession, {
+                    culture: colorOptions.culture,
+                    era: colorOptions.era,
+                    socialClass: colorOptions.privilege && colorOptions.privilege > 0.7 ? 'noble' : 
+                                colorOptions.privilege && colorOptions.privilege > 0.4 ? 'common' : 'common',
+                    privilege: colorOptions.privilege
+                });
+            }
+            else if (colorOptions?.culture) {
+                item = createColoredItemInstance(baseId, colorOptions.culture, colorOptions.privilege, colorOptions.era);
+            } else {
+                item = createItemInstance(baseId);
+            }
             if(item) equippedItems[slot as keyof typeof equippedItems] = item;
+        }
+    }
+    
+    // Define generic headgear that should be replaced with contextual alternatives
+    const GENERIC_HEADGEAR = ['STRAW_HAT', 'CLOTH_CAP', 'LEATHER_CAP', 'FELT_CAP', 'CLOTH_HOOD'];
+    
+    // Replace generic headgear OR add if missing
+    const shouldReplaceHeadgear = !equippedItems.head || 
+                                  (equippedItems.head && GENERIC_HEADGEAR.includes(equippedItems.head.baseId));
+    
+    if (shouldReplaceHeadgear && colorOptions) {
+        const headgearId = generateContextualHeadgear(profession, {
+            era: colorOptions.era,
+            culture: colorOptions.culture,
+            privilege: colorOptions.privilege
+        });
+        
+        if (headgearId) {
+            const headgearItem = createColoredItemInstance(headgearId, colorOptions.culture!, colorOptions.privilege, colorOptions.era);
+            if (headgearItem) {
+                equippedItems.head = headgearItem;
+            }
+        }
+    }
+    
+    // ADD AMULET ASSIGNMENT LOGIC
+    if (!equippedItems.amulet && colorOptions) {
+        const amuletChance = calculateAmuletChance(colorOptions.era, colorOptions.culture, profession);
+        
+        if (Math.random() < amuletChance) {
+            const appropriateAmulet = selectCulturalAmulet(
+                colorOptions.era || HistoricalEra.MEDIEVAL,
+                colorOptions.culture || 'EUROPEAN',
+                colorOptions.privilege || 0.5
+            );
+            
+            if (appropriateAmulet) {
+                const amuletItem = colorOptions.culture ? 
+                    createColoredItemInstance(appropriateAmulet, colorOptions.culture, colorOptions.privilege, colorOptions.era) :
+                    createItemInstance(appropriateAmulet);
+                    
+                if (amuletItem) {
+                    equippedItems.amulet = amuletItem;
+                    console.log(`[Amulet] Added ${amuletItem.name} to ${profession} (${colorOptions.culture}/${colorOptions.era})`);
+                }
+            }
         }
     }
     

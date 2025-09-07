@@ -326,12 +326,12 @@ function generateMillDialogue(profession: string, millType: MillType): string[] 
   
   const professionDialogue: { [key: string]: string[] } = {
     'Master Miller': [
-      'I've been running this mill for twenty years.',
+      'I\'ve been running this mill for twenty years.',
       'The secret is keeping the stones at just the right distance.',
       'We produce the finest flour in the region.'
     ],
     'Mill Worker': [
-      'It's hard work, but honest.',
+      'It\'s hard work, but honest.',
       'The dust gets everywhere.',
       'We work from dawn to dusk.'
     ],
@@ -343,7 +343,7 @@ function generateMillDialogue(profession: string, millType: MillType): string[] 
     'Sugar Master': [
       'The cane must be crushed quickly after cutting.',
       'We boil the juice down to crystallize the sugar.',
-      'It's dangerous work around the boiling vats.'
+      'It\'s dangerous work around the boiling vats.'
     ]
   };
   

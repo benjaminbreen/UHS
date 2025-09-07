@@ -745,7 +745,7 @@ export class QuestService {
    * Check if player is at a quest location
    */
   checkQuestProgress(playerX: number, playerY: number, interactionType?: string): void {
-    const tolerance = 2; // Allow 2 tile radius for quest objectives
+    const tolerance = 3; // Allow 3 tile radius for quest objectives (improved from 2)
 
     this.activeQuests.forEach(quest => {
       if (quest.status !== 'active') return;

@@ -189,11 +189,19 @@ const AppContent: React.FC = () => {
     }, [currentEvent, showEventModal, hasShownInitialEvent]);
     
     // Track if this is the first character for URL mode application
-    const [hasAppliedURLMode, setHasAppliedURLMode] = React.useState(false);
+    // Using a ref to prevent reset during re-renders (e.g., when entering special maps)
+    const hasAppliedURLModeRef = React.useRef(false);
     
     // Reset event system when starting new games, then set game mode
     React.useEffect(() => {
         if (playerCharacter) {
+            // Don't reset if we're entering a special map - the game mode should persist
+            const isEnteringSpecial = localStorage.getItem('isEnteringSpecialMap') === 'true';
+            if (isEnteringSpecial) {
+                console.log('[GameMode] Entering special map, skipping game mode reset');
+                return;
+            }
+            
             console.log('[GameMode] New character detected, resetting event system');
             resetForNewGame();
             // Reset initial scenario modal state for new character
@@ -203,12 +211,12 @@ const AppContent: React.FC = () => {
             const urlGameMode = localStorage.getItem('urlConfigGameMode');
             let mode;
             
-            if (urlGameMode && !hasAppliedURLMode) {
+            if (urlGameMode && !hasAppliedURLModeRef.current) {
                 // Use the URL-specified game mode using the getGameModeById function
                 mode = getGameModeById(urlGameMode);
                 if (mode) {
                     console.log('[GameMode] Using URL-configured mode:', urlGameMode);
-                    setHasAppliedURLMode(true);
+                    hasAppliedURLModeRef.current = true;
                     // Don't clear it yet - let it persist for the correct character
                 } else {
                     console.warn('[GameMode] Invalid game mode from URL:', urlGameMode);
@@ -239,7 +247,7 @@ const AppContent: React.FC = () => {
             console.log('[GameMode] MODE SELECTION COMPLETE');
             console.log('═══════════════════════════════════════════════════════');
             console.log('Selected Mode:', mode?.name || 'NONE');
-            console.log('Mode was from URL:', !!urlGameMode && !hasAppliedURLMode);
+            console.log('Mode was from URL:', !!urlGameMode && hasAppliedURLModeRef.current);
             console.log('Character:', playerCharacter.name, '|', playerCharacter.occupation);
             console.log('Era:', playerCharacter.historicalEra);
             if (mode) {
@@ -251,7 +259,7 @@ const AppContent: React.FC = () => {
             }
             console.log('═══════════════════════════════════════════════════════');
         }
-    }, [playerCharacter?.name, resetForNewGame, setGameMode, hasAppliedURLMode]); // Only reset when character name changes (new character)
+    }, [playerCharacter?.name, resetForNewGame, setGameMode]); // Only reset when character name changes (new character)
     
     // Show InitialScenarioModal for non-WorldWeaver games (only once per character)
     React.useEffect(() => {

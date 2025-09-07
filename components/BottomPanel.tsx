@@ -26,6 +26,8 @@ interface BottomPanelProps {
     inRuinRoguelike?: boolean;
     isRuinModalOpen?: boolean;
     onExitRuin?: () => void;
+    isMarketplaceModalOpen?: boolean;
+    onExitMarketplace?: () => void;
     isSpecialMap?: boolean;
     onExitSpecialMap?: () => void;
 }
@@ -101,6 +103,8 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
     inRuinRoguelike = false,
     isRuinModalOpen = false,
     onExitRuin,
+    isMarketplaceModalOpen = false,
+    onExitMarketplace,
     isSpecialMap = false,
     onExitSpecialMap,
 }) => {
@@ -240,11 +244,19 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                 );
                 break;
             case 'marketplace':
-                buttonText = 'Enter Marketplace';
-                buttonIcon = '💰';
-                locationIcon = '🏪';
-                onClickAction = () => onEnterMarketplace(tile);
-                helperText = "Trade goods, hire mercenaries, and gather rumors from across the region.";
+                if (isMarketplaceModalOpen) {
+                    buttonText = 'Exit Marketplace';
+                    buttonIcon = '🚪';
+                    locationIcon = '🏪';
+                    onClickAction = onExitMarketplace || (() => {});
+                    helperText = "Return to the world map from the marketplace.";
+                } else {
+                    buttonText = 'Enter Marketplace';
+                    buttonIcon = '💰';
+                    locationIcon = '🏪';
+                    onClickAction = () => onEnterMarketplace(tile);
+                    helperText = "Trade goods, hire mercenaries, and gather rumors from across the region.";
+                }
                 contextualInfo = (
                     <LocationDisplay
                         title="Marketplace"
@@ -315,7 +327,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                     <ActionButton 
                         onClick={onClickAction} 
                         icon={buttonIcon}
-                        variant={(inRuinRoguelike || isRuinModalOpen) && type === 'ruin' ? 'red' : 'blue'}
+                        variant={((inRuinRoguelike || isRuinModalOpen) && type === 'ruin') || (isMarketplaceModalOpen && type === 'marketplace') ? 'red' : 'blue'}
                     >
                         {buttonText}
                     </ActionButton>

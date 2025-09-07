@@ -13,6 +13,11 @@ import CaliphCourtSymbol from './government/CaliphCourtSymbol';
 import MandateHallSymbol from './government/MandateHallSymbol';
 import ColonialOfficeSymbol from './government/ColonialOfficeSymbol';
 import TribalCouncilSymbol from './government/TribalCouncilSymbol';
+import AgoraSymbol from './government/AgoraSymbol';
+import ShogunateSymbol from './government/ShogunateSymbol';
+import AztecPalaceSymbol from './government/AztecPalaceSymbol';
+import SovietMinistrySymbol from './government/SovietMinistrySymbol';
+import OceanianMeetingHouseSymbol from './government/OceanianMeetingHouseSymbol';
 
 interface GovernmentDistrictSymbolProps {
   x: number;
@@ -41,6 +46,14 @@ const GovernmentDistrictSymbol: React.FC<GovernmentDistrictSymbolProps> = ({
     // Era and culture-specific logic
     if (zone === "Europe") {
       if (era === HistoricalEra.ANTIQUITY) {
+        // Use Agora for Greek areas, Forum for Roman
+        const isGreek = buildingType?.toLowerCase().includes('greek') || 
+                       buildingType?.toLowerCase().includes('agora') ||
+                       tile.cityName?.toLowerCase().includes('athens') ||
+                       tile.cityName?.toLowerCase().includes('sparta');
+        if (isGreek) {
+          return <AgoraSymbol {...commonProps} buildingName={buildingType || "Agora"} />;
+        }
         return <RomanForumSymbol {...commonProps} buildingName={buildingType || "Forum"} />;
       }
       if (era === HistoricalEra.MEDIEVAL) {
@@ -53,6 +66,15 @@ const GovernmentDistrictSymbol: React.FC<GovernmentDistrictSymbolProps> = ({
         return <CityHallSymbol {...commonProps} buildingName={buildingType || "City Hall"} />;
       }
       if (era === HistoricalEra.MODERN_ERA) {
+        // Use Soviet style for Eastern Europe post-1945
+        const year = parseInt(date.match(/\d+/)?.[0] || '2000');
+        const isEasternEurope = tile.cityName?.toLowerCase().includes('moscow') ||
+                               tile.cityName?.toLowerCase().includes('warsaw') ||
+                               tile.cityName?.toLowerCase().includes('berlin') ||
+                               tile.region?.toLowerCase().includes('eastern');
+        if (year >= 1945 && year <= 1991 && isEasternEurope) {
+          return <SovietMinistrySymbol {...commonProps} buildingName={buildingType || "Ministry"} />;
+        }
         return <AdminCenterSymbol {...commonProps} buildingName={buildingType || "Government Complex"} />;
       }
     }
@@ -80,6 +102,14 @@ const GovernmentDistrictSymbol: React.FC<GovernmentDistrictSymbolProps> = ({
         return <MandateHallSymbol {...commonProps} buildingName={buildingType || "Commandery Office"} />;
       }
       if (era === HistoricalEra.MEDIEVAL) {
+        // Use Shogunate for Japan, Mandate Hall for China
+        const isJapan = tile.cityName?.toLowerCase().includes('kyoto') ||
+                       tile.cityName?.toLowerCase().includes('edo') ||
+                       tile.cityName?.toLowerCase().includes('osaka') ||
+                       tile.region?.toLowerCase().includes('japan');
+        if (isJapan) {
+          return <ShogunateSymbol {...commonProps} buildingName={buildingType || "Bakufu"} />;
+        }
         return <MandateHallSymbol {...commonProps} buildingName={buildingType || "Prefecture Hall"} />;
       }
       if (era === HistoricalEra.RENAISSANCE_EARLY_MODERN) {
@@ -98,6 +128,15 @@ const GovernmentDistrictSymbol: React.FC<GovernmentDistrictSymbolProps> = ({
         return <TribalCouncilSymbol {...commonProps} buildingName={buildingType || "Council Lodge"} />;
       }
       if (era === HistoricalEra.ANTIQUITY || era === HistoricalEra.MEDIEVAL) {
+        // Use Aztec Palace for Mesoamerica
+        const isMesoamerica = tile.cityName?.toLowerCase().includes('tenochtitlan') ||
+                             tile.cityName?.toLowerCase().includes('mexico') ||
+                             tile.region?.toLowerCase().includes('mexico') ||
+                             tile.region?.toLowerCase().includes('maya') ||
+                             tile.region?.toLowerCase().includes('aztec');
+        if (isMesoamerica) {
+          return <AztecPalaceSymbol {...commonProps} buildingName={buildingType || "Tecpan"} />;
+        }
         return <TribalCouncilSymbol {...commonProps} buildingName={buildingType || "Great Council House"} variant="advanced" />;
       }
       if (era === HistoricalEra.RENAISSANCE_EARLY_MODERN) {
@@ -149,7 +188,7 @@ const GovernmentDistrictSymbol: React.FC<GovernmentDistrictSymbolProps> = ({
     
     else if (zone === "Oceania") {
       if (era === HistoricalEra.PREHISTORY || era === HistoricalEra.ANTIQUITY || era === HistoricalEra.MEDIEVAL) {
-        return <TribalCouncilSymbol {...commonProps} buildingName={buildingType || "Meeting House"} variant="polynesian" />;
+        return <OceanianMeetingHouseSymbol {...commonProps} buildingName={buildingType || "Fale Fono"} />;
       }
       if (era === HistoricalEra.RENAISSANCE_EARLY_MODERN) {
         return <ColonialOfficeSymbol {...commonProps} buildingName={buildingType || "Mission Station"} variant="pacific" />;

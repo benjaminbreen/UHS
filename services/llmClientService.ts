@@ -26,7 +26,7 @@ interface EdgeLLMResponse {
 /**
  * Makes an LLM request via the Vercel Edge Function
  */
-async function callLLMEdgeFunction(request: EdgeLLMRequest): Promise<EdgeLLMResponse> {
+export async function callLLMEdgeFunction(request: EdgeLLMRequest): Promise<EdgeLLMResponse> {
   try {
     console.log(`[LLM Client] Making ${request.operation} request via Edge Function`);
     const startTime = Date.now();

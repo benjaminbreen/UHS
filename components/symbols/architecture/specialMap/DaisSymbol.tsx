@@ -54,93 +54,102 @@ export const DaisSymbol: React.FC<DaisSymbolProps> = ({
 
   return (
     <g transform={`translate(${x}, ${y})`}>
-      {/* Shadow under platform */}
-      <rect
-        x={size * 0.05}
-        y={size * 0.85}
-        width={size * 0.95}
-        height={size * 0.1}
-        fill="#000000"
-        opacity={0.3}
-      />
-      
-      {/* Platform front face (visible in dollhouse view) */}
+      {/* Full tile base fill */}
       <rect
         x={0}
-        y={size * 0.7}
+        y={0}
         width={size}
-        height={platformHeight}
-        fill={palette.front}
-      />
-      
-      {/* Platform top surface */}
-      <rect
-        x={0}
-        y={size * 0.6}
-        width={size}
-        height={size * 0.1}
+        height={size}
         fill={palette.top}
       />
       
-      {/* Highlight edge */}
+      {/* Subtle shadow border */}
       <rect
         x={0}
-        y={size * 0.6}
+        y={0}
         width={size}
-        height={size * 0.02}
+        height={size}
+        fill="none"
+        stroke={palette.shadow}
+        strokeWidth={1}
+        opacity={0.3}
+      />
+      
+      {/* Raised platform effect - lighter highlight on top edge */}
+      <rect
+        x={0}
+        y={0}
+        width={size}
+        height={size * 0.1}
         fill={palette.highlight}
+        opacity={0.4}
       />
       
-      {/* Shadow line between top and front */}
+      {/* Left side highlight */}
       <rect
         x={0}
-        y={size * 0.69}
-        width={size}
-        height={size * 0.01}
-        fill={palette.shadow}
+        y={0}
+        width={size * 0.05}
+        height={size}
+        fill={palette.highlight}
+        opacity={0.3}
       />
       
-      {/* Decorative trim for royal variants */}
-      {variant === 'carpet' && (
+      {/* Wood grain detail for full tile */}
+      {variant === 'wood' && (
         <>
-          {/* Gold trim */}
-          <rect
-            x={size * 0.1}
-            y={size * 0.72}
-            width={size * 0.8}
-            height={size * 0.02}
-            fill="#D4AF37"
+          <line
+            x1={size * 0.1}
+            y1={size * 0.3}
+            x2={size * 0.9}
+            y2={size * 0.3}
+            stroke={palette.shadow}
+            strokeWidth={0.8}
+            opacity={0.25}
           />
-          <rect
-            x={size * 0.1}
-            y={size * 0.76}
-            width={size * 0.8}
-            height={size * 0.02}
-            fill="#D4AF37"
+          <line
+            x1={size * 0.05}
+            y1={size * 0.6}
+            x2={size * 0.95}
+            y2={size * 0.6}
+            stroke={palette.shadow}
+            strokeWidth={0.8}
+            opacity={0.25}
+          />
+          <line
+            x1={size * 0.15}
+            y1={size * 0.8}
+            x2={size * 0.85}
+            y2={size * 0.8}
+            stroke={palette.shadow}
+            strokeWidth={0.8}
+            opacity={0.25}
           />
         </>
       )}
       
-      {/* Wood grain detail */}
-      {variant === 'wood' && (
+      {/* Decorative trim for royal variants */}
+      {variant === 'carpet' && (
         <>
-          <line
-            x1={size * 0.2}
-            y1={size * 0.62}
-            x2={size * 0.8}
-            y2={size * 0.62}
-            stroke={palette.shadow}
-            strokeWidth={0.5}
-            opacity={0.3}
+          {/* Gold border */}
+          <rect
+            x={size * 0.05}
+            y={size * 0.05}
+            width={size * 0.9}
+            height={size * 0.9}
+            fill="none"
+            stroke="#D4AF37"
+            strokeWidth={2}
           />
-          <line
-            x1={size * 0.15}
-            y1={size * 0.65}
-            x2={size * 0.85}
-            y2={size * 0.65}
-            stroke={palette.shadow}
-            strokeWidth={0.5}
-            opacity={0.3}
+          <rect
+            x={size * 0.1}
+            y={size * 0.1}
+            width={size * 0.8}
+            height={size * 0.8}
+            fill="none"
+            stroke="#D4AF37"
+            strokeWidth={1}
+            opacity={0.6}
           />
         </>
       )}

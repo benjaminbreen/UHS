@@ -6,7 +6,7 @@
 import { Tile, BiomeType } from '../../../types';
 import { SpecialMapConfig, InteractionZone, ExitZone } from '../../../types/specialMapTypes';
 import { ValueNoise } from '../../../utils/noise';
-import { placeWallRectangle, fillArea } from '../specialMapGenerator';
+import { placeWallRectangle, fillArea } from '../mapLayoutUtils';
 
 export function generateExhibition(
   tiles: Tile[][],
