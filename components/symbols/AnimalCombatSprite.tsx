@@ -35,23 +35,41 @@ const darken = (color: string, amount: number) => {
 // SMALL ANIMALS
 const FoxSprite: React.FC<{ animation: string }> = ({ animation }) => {
     const color = '#ea580c'; const shadow = '#9a3412'; const tail = '#fed7aa'; const eye = '#000000'; const noseTip = '#1f2937';
+    const white = '#ffffff';
     
     return (
         <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'} style={{ '--walk-distance': '25px', '--direction': 1 } as React.CSSProperties}>
-            <PixelBlock x={4} y={18} width={6} height={4} color={color} />
-            <PixelBlock x={5} y={17} width={4} height={2} color={tail} />
-            <PixelBlock x={3} y={19} width={3} height={3} color={shadow} />
-            <PixelBlock x={11} y={19} width={8} height={4} color={color} />
-            <PixelBlock x={11} y={22} width={8} height={1} color={shadow} />
-            <PixelBlock x={12} y={23} width={2} height={4} color={shadow} />
-            <PixelBlock x={16} y={23} width={2} height={4} color={color} />
-            <PixelBlock x={19} y={17} width={4} height={4} color={color} />
-            <PixelBlock x={23} y={18} width={3} height={2} color={color} />
-            <PixelBlock x={25} y={19} width={1} height={1} color={noseTip} />
+            {/* Tail - more fluffy */}
+            <PixelBlock x={3} y={18} width={7} height={5} color={color} />
+            <PixelBlock x={4} y={17} width={5} height={3} color={tail} />
+            <PixelBlock x={5} y={16} width={3} height={2} color={white} />
+            <PixelBlock x={2} y={19} width={4} height={4} color={shadow} />
+            
+            {/* Body - more defined */}
+            <PixelBlock x={10} y={18} width={10} height={6} color={color} />
+            <PixelBlock x={11} y={17} width={8} height={1} color={tail} />
+            <PixelBlock x={10} y={23} width={10} height={1} color={shadow} />
+            
+            {/* Front legs with paws */}
+            <PixelBlock x={11} y={23} width={3} height={5} color={shadow} />
+            <PixelBlock x={10} y={27} width={4} height={2} color={noseTip} />
+            
+            {/* Back legs with paws */}
+            <PixelBlock x={16} y={23} width={3} height={5} color={color} />
+            <PixelBlock x={15} y={27} width={4} height={2} color={noseTip} />
+            
+            {/* Head - more fox-like */}
+            <PixelBlock x={19} y={16} width={5} height={5} color={color} />
+            <PixelBlock x={24} y={17} width={3} height={3} color={color} />
+            <PixelBlock x={26} y={18} width={2} height={1} color={noseTip} />
             <PixelBlock x={21} y={18} width={1} height={1} color={eye} />
-            <PixelBlock x={19} y={15} width={1} height={2} color={shadow} />
-            <PixelBlock x={21} y={15} width={1} height={2} color={shadow} />
-            <PixelBlock x={15} y={20} width={3} height={2} color={tail} />
+            <PixelBlock x={21} y={19} width={3} height={1} color={white} />
+            
+            {/* Ears - pointed */}
+            <PixelBlock x={19} y={14} width={2} height={3} color={color} />
+            <PixelBlock x={22} y={14} width={2} height={3} color={color} />
+            <PixelBlock x={19} y={15} width={1} height={1} color={shadow} />
+            <PixelBlock x={22} y={15} width={1} height={1} color={shadow} />
         </g>
     );
 };
@@ -75,19 +93,57 @@ const OwlSprite: React.FC<{ animation: string }> = ({ animation }) => {
 };
 
 const ChickenSprite: React.FC<{ animation: string }> = ({ animation }) => {
-    const color = '#FFFFFF'; const comb = '#DC143C'; const beak = '#FFA500'; const leg = '#FFD700';
+    const white = '#FFFFFF'; const feather = '#F5F5F5'; const comb = '#DC143C'; 
+    const beak = '#FFA500'; const leg = '#FFD700'; const wattle = '#FF6B6B';
+    const eye = '#000000'; const shadow = '#E0E0E0';
     
     return (
-        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
-            <PixelBlock x={14} y={18} width={6} height={5} color={color} />
-            <PixelBlock x={15} y={17} width={4} height={1} color={'#F5F5F5'} />
-            <PixelBlock x={15} y={23} width={2} height={3} color={leg} />
-            <PixelBlock x={18} y={23} width={2} height={3} color={leg} />
-            <PixelBlock x={20} y={15} width={3} height={4} color={color} />
-            <PixelBlock x={22} y={17} width={1} height={1} color={'#000000'} />
-            <PixelBlock x={23} y={18} width={1} height={1} color={beak} />
-            <PixelBlock x={20} y={13} width={3} height={2} color={comb} />
-            <PixelBlock x={12} y={19} width={2} height={3} color={'#F5F5F5'} />
+        <g className={animation === 'attacking' ? 'animate-peck' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-chicken-bob'}>
+            {/* Tail feathers */}
+            <PixelBlock x={10} y={17} width={3} height={4} color={feather} />
+            <PixelBlock x={11} y={16} width={2} height={2} color={white} />
+            <PixelBlock x={9} y={18} width={2} height={2} color={shadow} />
+            
+            {/* Body - plump and round */}
+            <PixelBlock x={13} y={17} width={8} height={7} color={white} />
+            <PixelBlock x={14} y={16} width={6} height={2} color={feather} />
+            <PixelBlock x={13} y={23} width={8} height={1} color={shadow} />
+            
+            {/* Wing detail */}
+            <PixelBlock x={12} y={19} width={3} height={3} color={feather} />
+            <PixelBlock x={19} y={19} width={3} height={3} color={feather} />
+            <PixelBlock x={14} y={20} width={5} height={1} color={shadow} />
+            
+            {/* Legs with claws */}
+            <PixelBlock x={15} y={23} width={1} height={4} color={leg} />
+            <PixelBlock x={14} y={26} width={3} height={1} color={'#FFA500'} />
+            <PixelBlock x={14} y={27} width={1} height={1} color={'#FF8C00'} />
+            <PixelBlock x={16} y={27} width={1} height={1} color={'#FF8C00'} />
+            
+            <PixelBlock x={18} y={23} width={1} height={4} color={leg} />
+            <PixelBlock x={17} y={26} width={3} height={1} color={'#FFA500'} />
+            <PixelBlock x={17} y={27} width={1} height={1} color={'#FF8C00'} />
+            <PixelBlock x={19} y={27} width={1} height={1} color={'#FF8C00'} />
+            
+            {/* Head and neck */}
+            <PixelBlock x={20} y={14} width={5} height={5} color={white} />
+            <PixelBlock x={21} y={13} width={3} height={2} color={feather} />
+            
+            {/* Comb */}
+            <PixelBlock x={20} y={11} width={4} height={3} color={comb} />
+            <PixelBlock x={21} y={10} width={2} height={2} color={'#FF1493'} />
+            
+            {/* Face details */}
+            <PixelBlock x={22} y={16} width={1} height={1} color={eye} />
+            <PixelBlock x={25} y={16} width={2} height={2} color={beak} />
+            <PixelBlock x={23} y={18} width={2} height={2} color={wattle} />
+            
+            {animation === 'attacking' && (
+                <>
+                    {/* Pecking beak open */}
+                    <PixelBlock x={26} y={17} width={1} height={1} color={'#FF4500'} />
+                </>
+            )}
         </g>
     );
 };
@@ -150,30 +206,60 @@ const DeerSprite: React.FC<{ animation: string }> = ({ animation }) => {
             <PixelBlock x={28} y={8} width={3} height={1} color={antler} />
             <PixelBlock x={8} y={17} width={2} height={3} color={white} />
             <PixelBlock x={13} y={19} width={6} height={1} color={white} />
+            
+            {/* Enhanced two-layer shadow system */}
+            {/* Ground contact shadow - directly under hooves */}
+            <ellipse cx={18} cy={30} rx={10} ry={2} fill="rgba(0,0,0,0.4)" />
+            {/* Ambient shadow - larger, softer */}
+            <ellipse cx={18} cy={31} rx={12} ry={3} fill="rgba(0,0,0,0.2)" />
         </g>
     );
 };
 
 const WolfSprite: React.FC<{ animation: string }> = ({ animation }) => {
     const color = '#6b7280'; const shadow = '#4b5563'; const eye = '#facc15'; const teeth = '#f3f4f6';
+    const darkFur = '#374151';
     
     return (
         <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'} style={{ '--walk-distance': '40px', '--direction': 1 } as React.CSSProperties}>
-            <PixelBlock x={4} y={19} width={6} height={3} color={shadow} />
-            <PixelBlock x={5} y={18} width={4} height={2} color={color} />
-            <PixelBlock x={11} y={18} width={10} height={6} color={color} />
-            <PixelBlock x={11} y={23} width={10} height={1} color={shadow} />
-            <PixelBlock x={12} y={24} width={3} height={6} color={shadow} />
-            <PixelBlock x={17} y={24} width={3} height={6} color={color} />
-            <PixelBlock x={21} y={16} width={6} height={6} color={color} />
-            <PixelBlock x={27} y={18} width={4} height={3} color={color} />
+            {/* Tail - bushy */}
+            <PixelBlock x={2} y={18} width={8} height={5} color={shadow} />
+            <PixelBlock x={3} y={17} width={6} height={4} color={color} />
+            <PixelBlock x={4} y={19} width={4} height={2} color={darkFur} />
+            
+            {/* Body - muscular */}
+            <PixelBlock x={10} y={16} width={12} height={8} color={color} />
+            <PixelBlock x={11} y={15} width={10} height={2} color={darkFur} />
+            <PixelBlock x={10} y={23} width={12} height={1} color={shadow} />
+            
+            {/* Front legs - strong */}
+            <PixelBlock x={11} y={23} width={4} height={7} color={shadow} />
+            <PixelBlock x={12} y={22} width={2} height={1} color={color} />
+            <PixelBlock x={10} y={29} width={5} height={2} color={darkFur} />
+            
+            {/* Back legs */}
+            <PixelBlock x={17} y={23} width={4} height={7} color={color} />
+            <PixelBlock x={18} y={22} width={2} height={1} color={darkFur} />
+            <PixelBlock x={16} y={29} width={5} height={2} color={darkFur} />
+            
+            {/* Head - wolf-like with snout */}
+            <PixelBlock x={21} y={15} width={7} height={7} color={color} />
+            <PixelBlock x={28} y={17} width={4} height={4} color={color} />
+            <PixelBlock x={31} y={18} width={2} height={2} color={darkFur} />
             <PixelBlock x={23} y={17} width={1} height={1} color={eye} />
-            <PixelBlock x={22} y={14} width={1} height={2} color={shadow} />
-            <PixelBlock x={25} y={14} width={1} height={2} color={shadow} />
+            <PixelBlock x={25} y={17} width={1} height={1} color={'#000000'} />
+            
+            {/* Ears - alert */}
+            <PixelBlock x={22} y={13} width={2} height={3} color={shadow} />
+            <PixelBlock x={25} y={13} width={2} height={3} color={shadow} />
+            <PixelBlock x={22} y={14} width={1} height={1} color={color} />
+            <PixelBlock x={25} y={14} width={1} height={1} color={color} />
+            
             {animation === 'attacking' && (
                 <>
-                    <PixelBlock x={29} y={20} width={1} height={2} color={teeth} />
-                    <PixelBlock x={30} y={20} width={1} height={2} color={teeth} />
+                    <PixelBlock x={31} y={20} width={2} height={1} color={teeth} />
+                    <PixelBlock x={32} y={19} width={1} height={2} color={teeth} />
+                    <PixelBlock x={30} y={21} width={3} height={1} color={'#dc2626'} />
                 </>
             )}
         </g>
@@ -181,20 +267,95 @@ const WolfSprite: React.FC<{ animation: string }> = ({ animation }) => {
 };
 
 const BearSprite: React.FC<{ animation: string }> = ({ animation }) => {
-    const color = '#92400e'; const shadow = '#451a03'; const eye = '#000000'; const darkFur = '#713f12';
+    const bearBrown = '#8B4513';
+    const darkFur = '#654321';
+    const lightBrown = '#A0522D';
+    const blackNose = '#000000';
+    const eyeColor = '#2F1B14';
+    const clawColor = '#F5F5DC';
+    const shadowColor = '#5D4037';
+    
+    const isAttacking = animation === 'attacking' || animation === 'special';
     
     return (
-        <g className={animation === 'attacking' ? 'animate-strike' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
-            <PixelBlock x={8} y={14} width={16} height={10} color={color} />
-            <PixelBlock x={8} y={23} width={16} height={1} color={shadow} />
-            <PixelBlock x={9} y={24} width={4} height={7} color={shadow} />
-            <PixelBlock x={18} y={24} width={4} height={7} color={color} />
-            <PixelBlock x={24} y={12} width={8} height={8} color={color} />
-            <PixelBlock x={26} y={14} width={1} height={1} color={eye} />
-            <PixelBlock x={29} y={14} width={1} height={1} color={eye} />
-            <PixelBlock x={26} y={10} width={2} height={2} color={shadow} />
-            <PixelBlock x={30} y={10} width={2} height={2} color={shadow} />
-            <PixelBlock x={32} y={16} width={3} height={3} color={shadow} />
+        <g className={isAttacking ? 'animate-bear-swipe' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            {/* Massive bear body */}
+            <PixelBlock x={8} y={16} width={18} height={12} color={bearBrown} />
+            <PixelBlock x={9} y={17} width={16} height={10} color={lightBrown} />
+            <PixelBlock x={10} y={18} width={14} height={3} color={darkFur} />
+            
+            {/* Large bear head */}
+            <PixelBlock x={22} y={8} width={12} height={12} color={bearBrown} />
+            <PixelBlock x={23} y={9} width={10} height={10} color={lightBrown} />
+            
+            {/* Distinctive bear snout */}
+            <PixelBlock x={34} y={13} width={5} height={4} color={lightBrown} />
+            <PixelBlock x={36} y={14} width={3} height={2} color={darkFur} />
+            <PixelBlock x={37} y={14.5} width={1} height={1} color={blackNose} />
+            
+            {/* Small bear eyes */}
+            <PixelBlock x={25} y={12} width={1.5} height={1.5} color={eyeColor} />
+            <PixelBlock x={29} y={12} width={1.5} height={1.5} color={eyeColor} />
+            <PixelBlock x={25.3} y={12.3} width={0.8} height={0.8} color={'#000000'} />
+            <PixelBlock x={29.3} y={12.3} width={0.8} height={0.8} color={'#000000'} />
+            
+            {/* Round bear ears */}
+            <PixelBlock x={24} y={6} width={4} height={4} color={bearBrown} />
+            <PixelBlock x={30} y={6} width={4} height={4} color={bearBrown} />
+            <PixelBlock x={25} y={7} width={2} height={2} color={darkFur} />
+            <PixelBlock x={31} y={7} width={2} height={2} color={darkFur} />
+            
+            {/* Thick powerful legs */}
+            <PixelBlock x={10} y={28} width={5} height={8} color={bearBrown} />
+            <PixelBlock x={11} y={29} width={3} height={6} color={lightBrown} />
+            <PixelBlock x={9} y={35} width={7} height={2} color={shadowColor} />
+            <PixelBlock x={10} y={36} width={5} height={1} color={clawColor} />
+            
+            <PixelBlock x={19} y={28} width={5} height={8} color={bearBrown} />
+            <PixelBlock x={20} y={29} width={3} height={6} color={lightBrown} />
+            <PixelBlock x={18} y={35} width={7} height={2} color={shadowColor} />
+            <PixelBlock x={19} y={36} width={5} height={1} color={clawColor} />
+            
+            {/* Front legs with dynamic attacking position */}
+            {isAttacking ? (
+                <>
+                    {/* Raised attacking paw */}
+                    <PixelBlock x={34} y={10} width={6} height={8} color={bearBrown} />
+                    <PixelBlock x={35} y={11} width={4} height={6} color={lightBrown} />
+                    <PixelBlock x={40} y={8} width={3} height={4} color={bearBrown} />
+                    {/* Extended claws */}
+                    <PixelBlock x={41} y={6} width={1} height={4} color={clawColor} />
+                    <PixelBlock x={39} y={7} width={1} height={3} color={clawColor} />
+                    <PixelBlock x={37} y={8} width={1} height={3} color={clawColor} />
+                    
+                    {/* Action lines */}
+                    <PixelBlock x={42} y={9} width={2} height={0.5} color={'#ffff00'} />
+                    <PixelBlock x={43} y={10} width={3} height={0.5} color={'#ffff00'} />
+                </>
+            ) : (
+                <>
+                    {/* Normal front legs */}
+                    <PixelBlock x={12} y={28} width={4} height={8} color={bearBrown} />
+                    <PixelBlock x={21} y={28} width={4} height={8} color={bearBrown} />
+                    <PixelBlock x={13} y={29} width={2} height={6} color={lightBrown} />
+                    <PixelBlock x={22} y={29} width={2} height={6} color={lightBrown} />
+                </>
+            )}
+            
+            {/* Stubby bear tail */}
+            <PixelBlock x={4} y={20} width={4} height={3} color={bearBrown} />
+            <PixelBlock x={5} y={21} width={2} height={1} color={darkFur} />
+            
+            {/* Attack effects */}
+            {isAttacking && (
+                <>
+                    <PixelBlock x={40} y={12} width={1} height={1} color={'#ff6600'} />
+                    <PixelBlock x={38} y={11} width={1} height={1} color={'#ff6600'} />
+                </>
+            )}
+            
+            {/* Bear shadow */}
+            <ellipse cx={20} cy={38} rx={16} ry={3} fill="rgba(0,0,0,0.4)" />
         </g>
     );
 };
@@ -258,86 +419,411 @@ const WildHorseSprite: React.FC<{ animation: string }> = ({ animation }) => {
 };
 
 const KangarooSprite: React.FC<{ animation: string }> = ({ animation }) => {
-    const color = '#CD853F'; const pouch = '#DEB887'; const eye = '#000000';
+    const bodyColor = '#D2691E';
+    const darkColor = '#A0522D';
+    const lightColor = '#F4A460';
+    const pouchColor = '#DEB887';
+    const eyeColor = '#000000';
+    const noseColor = '#8B4513';
+    const earInner = '#FFB6C1';
+    const shadowColor = '#8B4513';
+    
+    const isPunching = animation === 'attacking' || animation === 'special';
     
     return (
-        <g className={animation === 'attacking' ? 'animate-jump' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
-            <PixelBlock x={12} y={12} width={6} height={12} color={color} />
-            <PixelBlock x={14} y={18} width={3} height={4} color={pouch} />
-            <PixelBlock x={10} y={16} width={2} height={6} color={color} />
-            <PixelBlock x={18} y={16} width={2} height={6} color={color} />
-            <PixelBlock x={13} y={24} width={4} height={6} color={color} />
-            <PixelBlock x={18} y={10} width={4} height={6} color={color} />
-            <PixelBlock x={20} y={12} width={1} height={1} color={eye} />
-            <PixelBlock x={17} y={8} width={1} height={2} color={color} />
-            <PixelBlock x={20} y={8} width={1} height={2} color={color} />
-            <PixelBlock x={8} y={20} width={4} height={2} color={color} />
+        <g className={isPunching ? 'animate-kangaroo-punch' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            {/* Enhanced Body with Realistic Proportions */}
+            
+            {/* Main torso - upright posture */}
+            <PixelBlock x={15} y={10} width={6} height={14} color={bodyColor} />
+            <PixelBlock x={16} y={11} width={4} height={12} color={lightColor} />
+            
+            {/* Distinctive pouch with detail */}
+            <PixelBlock x={16} y={18} width={4} height={5} color={pouchColor} />
+            <PixelBlock x={17} y={19} width={2} height={3} color={darkColor} />
+            
+            {/* Enhanced head with proper kangaroo features */}
+            <PixelBlock x={17} y={6} width={6} height={6} color={bodyColor} />
+            <PixelBlock x={18} y={7} width={4} height={4} color={lightColor} />
+            
+            {/* Long snout */}
+            <PixelBlock x={23} y={8} width={3} height={2} color={bodyColor} />
+            <PixelBlock x={25} y={8.5} width={1} height={1} color={noseColor} />
+            
+            {/* Large distinctive ears */}
+            <PixelBlock x={16} y={4} width={2} height={4} color={bodyColor} />
+            <PixelBlock x={16.5} y={4.5} width={1} height={3} color={earInner} />
+            <PixelBlock x={21} y={4} width={2} height={4} color={bodyColor} />
+            <PixelBlock x={21.5} y={4.5} width={1} height={3} color={earInner} />
+            
+            {/* Enhanced eye with more detail */}
+            <PixelBlock x={19} y={8} width={1.5} height={1.5} color={eyeColor} />
+            <PixelBlock x={19.3} y={8.2} width={0.5} height={0.5} color={'#ffffff'} />
+            
+            {/* Small arms - kangaroos have small front limbs */}
+            {isPunching ? (
+                <>
+                    <PixelBlock x={12} y={12} width={3} height={2} color={bodyColor} />
+                    <PixelBlock x={10} y={13} width={2} height={2} color={bodyColor} />
+                    <PixelBlock x={8} y={14} width={2} height={1} color={darkColor} />
+                </>
+            ) : (
+                <>
+                    <PixelBlock x={13} y={14} width={2} height={4} color={bodyColor} />
+                    <PixelBlock x={21} y={14} width={2} height={4} color={bodyColor} />
+                </>
+            )}
+            
+            {/* Powerful hind legs - kangaroo's signature feature */}
+            <PixelBlock x={13} y={24} width={3} height={8} color={bodyColor} />
+            <PixelBlock x={18} y={24} width={3} height={8} color={bodyColor} />
+            <PixelBlock x={14} y={25} width={1} height={6} color={lightColor} />
+            <PixelBlock x={19} y={25} width={1} height={6} color={lightColor} />
+            
+            {/* Large feet */}
+            <PixelBlock x={10} y={32} width={6} height={2} color={darkColor} />
+            <PixelBlock x={18} y={32} width={6} height={2} color={darkColor} />
+            
+            {/* Muscular thigh definition */}
+            <PixelBlock x={14} y={26} width={2} height={4} color={darkColor} />
+            <PixelBlock x={18} y={26} width={2} height={4} color={darkColor} />
+            
+            {/* Distinctive tail - thick at base, tapers */}
+            <PixelBlock x={6} y={20} width={8} height={3} color={bodyColor} />
+            <PixelBlock x={4} y={22} width={6} height={2} color={bodyColor} />
+            <PixelBlock x={2} y={24} width={4} height={2} color={darkColor} />
+            
+            {/* Tail tip touching ground for support */}
+            <PixelBlock x={1} y={26} width={2} height={2} color={shadowColor} />
+            
+            {/* Combat effects for punch attack */}
+            {isPunching && (
+                <>
+                    {/* Action lines */}
+                    <PixelBlock x={6} y={13} width={2} height={0.5} color={'#ffff00'} />
+                    <PixelBlock x={5} y={14} width={3} height={0.5} color={'#ffff00'} />
+                    <PixelBlock x={4} y={15} width={4} height={0.5} color={'#ffff00'} />
+                    
+                    {/* Impact effect */}
+                    <PixelBlock x={7} y={15} width={1} height={1} color={'#ff6600'} />
+                    <PixelBlock x={6} y={14} width={1} height={1} color={'#ff6600'} />
+                </>
+            )}
+            
+            {/* Enhanced two-layer shadow system */}
+            {/* Ground contact shadow - directly under feet */}
+            <ellipse cx={18} cy={32} rx={8} ry={2} fill="rgba(0,0,0,0.4)" />
+            {/* Ambient shadow - larger, softer */}
+            <ellipse cx={18} cy={33} rx={10} ry={3} fill="rgba(0,0,0,0.2)" />
         </g>
     );
 };
 
 // LARGE ANIMALS
 const LionSprite: React.FC<{ animation: string }> = ({ animation }) => {
-    const color = '#d97706'; const mane = '#92400e'; const shadow = '#451a03'; const eye = '#facc15';
+    const lionBody = '#D2691E';
+    const lionMane = '#8B4513';
+    const lionManeDark = '#654321';
+    const lionMuzzle = '#CD853F';
+    const eyeColor = '#FFD700';
+    const noseColor = '#8B4513';
+    const clawColor = '#F5F5DC';
+    const shadowColor = '#A0522D';
+    
+    const isAttacking = animation === 'attacking' || animation === 'special';
     
     return (
-        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
-            <PixelBlock x={3} y={19} width={7} height={3} color={color} />
-            <PixelBlock x={1} y={18} width={3} height={3} color={mane} />
-            <PixelBlock x={10} y={16} width={12} height={8} color={color} />
-            <PixelBlock x={10} y={23} width={12} height={1} color={shadow} />
-            <PixelBlock x={11} y={24} width={3} height={7} color={shadow} />
-            <PixelBlock x={18} y={24} width={3} height={7} color={color} />
-            <PixelBlock x={20} y={10} width={12} height={12} color={mane} />
-            <PixelBlock x={22} y={14} width={8} height={6} color={color} />
-            <PixelBlock x={24} y={16} width={1} height={1} color={eye} />
-            <PixelBlock x={27} y={16} width={1} height={1} color={eye} />
-            <PixelBlock x={29} y={18} width={2} height={1} color={shadow} />
+        <g className={isAttacking ? 'animate-lion-pounce' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            {/* Magnificent Mane - Lion's signature feature */}
+            <PixelBlock x={18} y={6} width={12} height={12} color={lionMane} />
+            <PixelBlock x={16} y={8} width={16} height={8} color={lionManeDark} />
+            <PixelBlock x={19} y={7} width={10} height={10} color={lionMane} />
+            
+            {/* Head with proper feline features */}
+            <PixelBlock x={22} y={10} width={8} height={6} color={lionBody} />
+            <PixelBlock x={23} y={11} width={6} height={4} color={lionMuzzle} />
+            
+            {/* Snout and nose */}
+            <PixelBlock x={30} y={12} width={3} height={2} color={lionMuzzle} />
+            <PixelBlock x={31} y={12.5} width={1} height={1} color={noseColor} />
+            
+            {/* Eyes with feline intensity */}
+            <PixelBlock x={24} y={12} width={1.5} height={1.5} color={eyeColor} />
+            <PixelBlock x={27} y={12} width={1.5} height={1.5} color={eyeColor} />
+            <PixelBlock x={24.3} y={12.3} width={0.8} height={0.8} color={'#000000'} />
+            <PixelBlock x={27.3} y={12.3} width={0.8} height={0.8} color={'#000000'} />
+            
+            {/* Powerful body */}
+            <PixelBlock x={12} y={18} width={16} height={8} color={lionBody} />
+            <PixelBlock x={13} y={19} width={14} height={6} color={lionMuzzle} />
+            
+            {/* Front legs with attacking motion */}
+            {isAttacking ? (
+                <>
+                    {/* Pouncing front legs */}
+                    <PixelBlock x={8} y={20} width={4} height={6} color={lionBody} />
+                    <PixelBlock x={6} y={24} width={2} height={3} color={lionBody} />
+                    <PixelBlock x={5} y={26} width={3} height={1} color={clawColor} />
+                    
+                    <PixelBlock x={28} y={18} width={4} height={8} color={lionBody} />
+                    <PixelBlock x={30} y={25} width={3} height={1} color={clawColor} />
+                </>
+            ) : (
+                <>
+                    {/* Normal front legs */}
+                    <PixelBlock x={14} y={26} width={3} height={6} color={lionBody} />
+                    <PixelBlock x={24} y={26} width={3} height={6} color={lionBody} />
+                    <PixelBlock x={14} y={31} width={3} height={1} color={shadowColor} />
+                    <PixelBlock x={24} y={31} width={3} height={1} color={shadowColor} />
+                </>
+            )}
+            
+            {/* Back legs */}
+            <PixelBlock x={16} y={26} width={3} height={6} color={lionBody} />
+            <PixelBlock x={21} y={26} width={3} height={6} color={lionBody} />
+            <PixelBlock x={16} y={31} width={3} height={1} color={shadowColor} />
+            <PixelBlock x={21} y={31} width={3} height={1} color={shadowColor} />
+            
+            {/* Tail with tuft */}
+            <PixelBlock x={4} y={20} width={8} height={2} color={lionBody} />
+            <PixelBlock x={2} y={18} width={4} height={2} color={lionMane} />
+            <PixelBlock x={1} y={16} width={3} height={2} color={lionManeDark} />
+            
+            {/* Combat effects for attack */}
+            {isAttacking && (
+                <>
+                    <PixelBlock x={4} y={22} width={2} height={0.5} color={'#ffff00'} />
+                    <PixelBlock x={3} y={23} width={3} height={0.5} color={'#ffff00'} />
+                    <PixelBlock x={5} y={27} width={1} height={1} color={'#ff6600'} />
+                </>
+            )}
+            
+            {/* Realistic shadow */}
+            <ellipse cx={20} cy={33} rx={12} ry={3} fill="rgba(0,0,0,0.3)" />
         </g>
     );
 };
 
 const TigerSprite: React.FC<{ animation: string }> = ({ animation }) => {
-    const color = '#FF8C00'; const stripes = '#000000'; const eye = '#32CD32'; const shadow = '#B8860B';
+    const tigerOrange = '#FF8C00';
+    const tigerWhite = '#FFF8DC';
+    const blackStripes = '#000000';
+    const eyeColor = '#00CED1';
+    const noseColor = '#FF69B4';
+    const clawColor = '#F5F5DC';
+    const shadowColor = '#CD853F';
+    
+    const isAttacking = animation === 'attacking' || animation === 'special';
     
     return (
-        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
-            <PixelBlock x={6} y={19} width={7} height={3} color={color} />
-            <PixelBlock x={10} y={16} width={12} height={8} color={color} />
-            <PixelBlock x={10} y={23} width={12} height={1} color={shadow} />
-            <PixelBlock x={11} y={24} width={3} height={7} color={shadow} />
-            <PixelBlock x={18} y={24} width={3} height={7} color={color} />
-            <PixelBlock x={22} y={14} width={8} height={8} color={color} />
-            <PixelBlock x={30} y={16} width={3} height={4} color={color} />
-            <PixelBlock x={24} y={16} width={1} height={1} color={eye} />
-            <PixelBlock x={27} y={16} width={1} height={1} color={eye} />
-            <PixelBlock x={12} y={17} width={1} height={6} color={stripes} />
-            <PixelBlock x={15} y={17} width={1} height={6} color={stripes} />
-            <PixelBlock x={18} y={17} width={1} height={6} color={stripes} />
-            <PixelBlock x={24} y={15} width={1} height={6} color={stripes} />
-            <PixelBlock x={27} y={15} width={1} height={6} color={stripes} />
+        <g className={isAttacking ? 'animate-tiger-strike' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            {/* Head with tiger features */}
+            <PixelBlock x={22} y={10} width={10} height={8} color={tigerOrange} />
+            <PixelBlock x={23} y={11} width={8} height={6} color={tigerWhite} />
+            
+            {/* Distinctive tiger ears */}
+            <PixelBlock x={22} y={8} width={3} height={3} color={tigerOrange} />
+            <PixelBlock x={29} y={8} width={3} height={3} color={tigerOrange} />
+            <PixelBlock x={22.5} y={8.5} width={2} height={2} color={tigerWhite} />
+            <PixelBlock x={29.5} y={8.5} width={2} height={2} color={tigerWhite} />
+            
+            {/* Snout */}
+            <PixelBlock x={32} y={13} width={3} height={3} color={tigerWhite} />
+            <PixelBlock x={33} y={14} width={1} height={1} color={noseColor} />
+            
+            {/* Piercing tiger eyes */}
+            <PixelBlock x={25} y={12} width={2} height={2} color={eyeColor} />
+            <PixelBlock x={28} y={12} width={2} height={2} color={eyeColor} />
+            <PixelBlock x={25.5} y={12.5} width={1} height={1} color={blackStripes} />
+            <PixelBlock x={28.5} y={12.5} width={1} height={1} color={blackStripes} />
+            
+            {/* Powerful body */}
+            <PixelBlock x={14} y={18} width={18} height={10} color={tigerOrange} />
+            <PixelBlock x={15} y={19} width={16} height={8} color={tigerWhite} />
+            
+            {/* Signature tiger stripes */}
+            <PixelBlock x={16} y={19} width={1} height={8} color={blackStripes} />
+            <PixelBlock x={19} y={18} width={1} height={9} color={blackStripes} />
+            <PixelBlock x={22} y={19} width={1} height={8} color={blackStripes} />
+            <PixelBlock x={25} y={18} width={1} height={9} color={blackStripes} />
+            <PixelBlock x={28} y={19} width={1} height={8} color={blackStripes} />
+            
+            {/* Head stripes */}
+            <PixelBlock x={24} y={11} width={1} height={3} color={blackStripes} />
+            <PixelBlock x={27} y={10} width={1} height={4} color={blackStripes} />
+            <PixelBlock x={30} y={11} width={1} height={3} color={blackStripes} />
+            
+            {/* Front legs with striking motion */}
+            {isAttacking ? (
+                <>
+                    {/* Striking front legs */}
+                    <PixelBlock x={10} y={22} width={4} height={6} color={tigerOrange} />
+                    <PixelBlock x={8} y={26} width={2} height={4} color={tigerOrange} />
+                    <PixelBlock x={7} y={29} width={4} height={1} color={clawColor} />
+                    
+                    <PixelBlock x={32} y={20} width={4} height={8} color={tigerOrange} />
+                    <PixelBlock x={34} y={27} width={3} height={1} color={clawColor} />
+                </>
+            ) : (
+                <>
+                    {/* Normal front legs */}
+                    <PixelBlock x={16} y={28} width={3} height={6} color={tigerOrange} />
+                    <PixelBlock x={26} y={28} width={3} height={6} color={tigerOrange} />
+                    <PixelBlock x={16} y={33} width={3} height={1} color={shadowColor} />
+                    <PixelBlock x={26} y={33} width={3} height={1} color={shadowColor} />
+                </>
+            )}
+            
+            {/* Back legs */}
+            <PixelBlock x={18} y={28} width={3} height={6} color={tigerOrange} />
+            <PixelBlock x={23} y={28} width={3} height={6} color={tigerOrange} />
+            <PixelBlock x={18} y={33} width={3} height={1} color={shadowColor} />
+            <PixelBlock x={23} y={33} width={3} height={1} color={shadowColor} />
+            
+            {/* Long powerful tail */}
+            <PixelBlock x={6} y={22} width={8} height={2} color={tigerOrange} />
+            <PixelBlock x={3} y={20} width={5} height={2} color={tigerOrange} />
+            <PixelBlock x={1} y={18} width={4} height={2} color={tigerOrange} />
+            {/* Tail stripes */}
+            <PixelBlock x={4} y={21} width={1} height={1} color={blackStripes} />
+            <PixelBlock x={7} y={21} width={1} height={1} color={blackStripes} />
+            <PixelBlock x={2} y={19} width={1} height={1} color={blackStripes} />
+            
+            {/* Attack effects */}
+            {isAttacking && (
+                <>
+                    <PixelBlock x={6} y={24} width={2} height={0.5} color={'#ffff00'} />
+                    <PixelBlock x={5} y={25} width={3} height={0.5} color={'#ffff00'} />
+                    <PixelBlock x={7} y={30} width={1} height={1} color={'#ff6600'} />
+                </>
+            )}
+            
+            {/* Enhanced two-layer shadow system */}
+            {/* Ground contact shadow - directly under paws */}
+            <ellipse cx={22} cy={32} rx={16} ry={3} fill="rgba(0,0,0,0.4)" />
+            {/* Ambient shadow - larger, softer */}
+            <ellipse cx={22} cy={33} rx={20} ry={5} fill="rgba(0,0,0,0.2)" />
         </g>
     );
 };
 
 const LeopardSprite: React.FC<{ animation: string }> = ({ animation }) => {
-    const color = '#FFD700'; const spots = '#8B4513'; const eye = '#32CD32'; const shadow = '#DAA520';
+    const leopardGold = '#FFD700';
+    const leopardTan = '#DEB887';
+    const leopardWhite = '#FFF8DC';
+    const blackSpots = '#2F4F4F';
+    const darkSpots = '#1C1C1C';
+    const eyeColor = '#32CD32';
+    const noseColor = '#FF69B4';
+    const clawColor = '#F5F5DC';
+    const shadowColor = '#BDB76B';
+    
+    const isAttacking = animation === 'attacking' || animation === 'special';
     
     return (
-        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
-            <PixelBlock x={6} y={19} width={6} height={3} color={color} />
-            <PixelBlock x={10} y={17} width={10} height={6} color={color} />
-            <PixelBlock x={10} y={22} width={10} height={1} color={shadow} />
-            <PixelBlock x={11} y={23} width={2} height={5} color={shadow} />
-            <PixelBlock x={17} y={23} width={2} height={5} color={color} />
-            <PixelBlock x={20} y={15} width={6} height={6} color={color} />
-            <PixelBlock x={26} y={17} width={3} height={3} color={color} />
-            <PixelBlock x={22} y={17} width={1} height={1} color={eye} />
-            <PixelBlock x={12} y={18} width={1} height={1} color={spots} />
-            <PixelBlock x={15} y={19} width={1} height={1} color={spots} />
-            <PixelBlock x={17} y={18} width={1} height={1} color={spots} />
-            <PixelBlock x={21} y={16} width={1} height={1} color={spots} />
-            <PixelBlock x={24} y={17} width={1} height={1} color={spots} />
+        <g className={isAttacking ? 'animate-leopard-pounce' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            {/* Head with leopard features */}
+            <PixelBlock x={22} y={11} width={9} height={7} color={leopardGold} />
+            <PixelBlock x={23} y={12} width={7} height={5} color={leopardTan} />
+            
+            {/* Rounded ears */}
+            <PixelBlock x={22} y={9} width={2} height={3} color={leopardGold} />
+            <PixelBlock x={29} y={9} width={2} height={3} color={leopardGold} />
+            <PixelBlock x={22.5} y={9.5} width={1} height={2} color={leopardTan} />
+            <PixelBlock x={29.5} y={9.5} width={1} height={2} color={leopardTan} />
+            
+            {/* Snout and nose */}
+            <PixelBlock x={31} y={14} width={3} height={2} color={leopardWhite} />
+            <PixelBlock x={32} y={15} width={1} height={1} color={noseColor} />
+            
+            {/* Green cat eyes */}
+            <PixelBlock x={25} y={13} width={2} height={1} color={eyeColor} />
+            <PixelBlock x={28} y={13} width={2} height={1} color={eyeColor} />
+            <PixelBlock x={25.5} y={13} width={1} height={1} color={darkSpots} />
+            <PixelBlock x={28.5} y={13} width={1} height={1} color={darkSpots} />
+            
+            {/* Sleek body */}
+            <PixelBlock x={15} y={18} width={16} height={9} color={leopardGold} />
+            <PixelBlock x={16} y={19} width={14} height={7} color={leopardTan} />
+            <PixelBlock x={17} y={25} width={12} height={2} color={leopardWhite} />
+            
+            {/* Distinctive leopard rosette spots */}
+            {/* Head spots */}
+            <PixelBlock x={24} y={12} width={1} height={1} color={blackSpots} />
+            <PixelBlock x={26} y={11} width={1} height={1} color={blackSpots} />
+            <PixelBlock x={28} y={12} width={1} height={1} color={blackSpots} />
+            
+            {/* Body rosettes */}
+            <PixelBlock x={17} y={19} width={2} height={1} color={blackSpots} />
+            <PixelBlock x={16} y={20} width={1} height={1} color={blackSpots} />
+            <PixelBlock x={19} y={20} width={1} height={1} color={blackSpots} />
+            <PixelBlock x={17} y={21} width={2} height={1} color={blackSpots} />
+            
+            <PixelBlock x={21} y={20} width={2} height={1} color={blackSpots} />
+            <PixelBlock x={20} y={21} width={1} height={1} color={blackSpots} />
+            <PixelBlock x={23} y={21} width={1} height={1} color={blackSpots} />
+            <PixelBlock x={21} y={22} width={2} height={1} color={blackSpots} />
+            
+            <PixelBlock x={25} y={19} width={2} height={1} color={blackSpots} />
+            <PixelBlock x={24} y={20} width={1} height={1} color={blackSpots} />
+            <PixelBlock x={27} y={20} width={1} height={1} color={blackSpots} />
+            <PixelBlock x={25} y={21} width={2} height={1} color={blackSpots} />
+            
+            <PixelBlock x={28} y={22} width={2} height={1} color={blackSpots} />
+            <PixelBlock x={27} y={23} width={1} height={1} color={blackSpots} />
+            <PixelBlock x={30} y={23} width={1} height={1} color={blackSpots} />
+            
+            {/* Front legs with pouncing motion */}
+            {isAttacking ? (
+                <>
+                    {/* Pouncing front legs extended */}
+                    <PixelBlock x={11} y={20} width={4} height={7} color={leopardGold} />
+                    <PixelBlock x={9} y={25} width={2} height={3} color={leopardGold} />
+                    <PixelBlock x={8} y={27} width={4} height={1} color={clawColor} />
+                    
+                    <PixelBlock x={31} y={19} width={4} height={8} color={leopardGold} />
+                    <PixelBlock x={33} y={26} width={3} height={1} color={clawColor} />
+                </>
+            ) : (
+                <>
+                    {/* Normal front legs */}
+                    <PixelBlock x={17} y={27} width={3} height={5} color={leopardGold} />
+                    <PixelBlock x={26} y={27} width={3} height={5} color={leopardGold} />
+                    <PixelBlock x={17} y={31} width={3} height={1} color={shadowColor} />
+                    <PixelBlock x={26} y={31} width={3} height={1} color={shadowColor} />
+                </>
+            )}
+            
+            {/* Back legs */}
+            <PixelBlock x={19} y={27} width={3} height={5} color={leopardGold} />
+            <PixelBlock x={23} y={27} width={3} height={5} color={leopardGold} />
+            <PixelBlock x={19} y={31} width={3} height={1} color={shadowColor} />
+            <PixelBlock x={23} y={31} width={3} height={1} color={shadowColor} />
+            
+            {/* Long flexible tail */}
+            <PixelBlock x={6} y={21} width={9} height={2} color={leopardGold} />
+            <PixelBlock x={3} y={19} width={5} height={2} color={leopardGold} />
+            <PixelBlock x={1} y={17} width={4} height={2} color={leopardGold} />
+            {/* Tail spots */}
+            <PixelBlock x={4} y={20} width={1} height={1} color={blackSpots} />
+            <PixelBlock x={7} y={20} width={1} height={1} color={blackSpots} />
+            <PixelBlock x={10} y={22} width={1} height={1} color={blackSpots} />
+            <PixelBlock x={2} y={18} width={1} height={1} color={blackSpots} />
+            
+            {/* Attack effects */}
+            {isAttacking && (
+                <>
+                    <PixelBlock x={7} y={23} width={2} height={0.5} color={'#ffff00'} />
+                    <PixelBlock x={6} y={24} width={3} height={0.5} color={'#ffff00'} />
+                    <PixelBlock x={8} y={28} width={1} height={1} color={'#ff6600'} />
+                </>
+            )}
+            
+            {/* Enhanced two-layer shadow system */}
+            {/* Ground contact shadow - directly under paws */}
+            <ellipse cx={22} cy={31} rx={14} ry={2.5} fill="rgba(0,0,0,0.4)" />
+            {/* Ambient shadow - larger, softer */}
+            <ellipse cx={22} cy={32} rx={18} ry={4} fill="rgba(0,0,0,0.2)" />
         </g>
     );
 };
@@ -365,72 +851,283 @@ const CowSprite: React.FC<{ animation: string }> = ({ animation }) => {
 };
 
 const EagleSprite: React.FC<{ animation: string }> = ({ animation }) => {
-    const color = '#78716c'; const wing = '#44403c'; const beak = '#eab308'; const eye = '#dc2626';
+    const eagleBrown = '#8B4513';
+    const darkBrown = '#654321';
+    const lightBrown = '#A0522D';
+    const wingBlack = '#2F2F2F';
+    const wingTip = '#1C1C1C';
+    const beakYellow = '#FFD700';
+    const beakBase = '#DAA520';
+    const eyeColor = '#8B0000';
+    const talonsBlack = '#1C1C1C';
+    const whiteFeathers = '#F5F5DC';
+    
+    const isAttacking = animation === 'attacking' || animation === 'special';
     
     return (
-        <g className={animation === 'attacking' ? 'animate-strike' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
-            <PixelBlock x={16} y={16} width={6} height={8} color={color} />
-            {animation === 'attacking' ? (
+        <g className={isAttacking ? 'animate-eagle-swoop' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            {/* Eagle head with distinctive features */}
+            <PixelBlock x={18} y={12} width={6} height={6} color={eagleBrown} />
+            <PixelBlock x={19} y={13} width={4} height={4} color={lightBrown} />
+            
+            {/* Head crest feathers */}
+            <PixelBlock x={19} y={10} width={2} height={2} color={darkBrown} />
+            <PixelBlock x={21} y={11} width={1} height={2} color={darkBrown} />
+            
+            {/* Piercing eagle eye */}
+            <PixelBlock x={20} y={14} width={2} height={1} color={eyeColor} />
+            <PixelBlock x={20.5} y={14} width={1} height={1} color={'#FFFFFF'} />
+            
+            {/* Sharp hooked beak */}
+            <PixelBlock x={23} y={15} width={3} height={2} color={beakYellow} />
+            <PixelBlock x={25} y={16} width={1} height={1} color={beakBase} />
+            <PixelBlock x={23} y={16} width={2} height={1} color={beakBase} />
+            
+            {/* Eagle body */}
+            <PixelBlock x={16} y={18} width={8} height={6} color={eagleBrown} />
+            <PixelBlock x={17} y={19} width={6} height={4} color={lightBrown} />
+            <PixelBlock x={18} y={21} width={4} height={2} color={whiteFeathers} />
+            
+            {/* Magnificent wings - dynamic based on attack */}
+            {isAttacking ? (
                 <>
-                    <PixelBlock x={6} y={17} width={10} height={5} color={wing} />
-                    <PixelBlock x={22} y={17} width={10} height={5} color={wing} />
+                    {/* Wings spread wide for swooping attack */}
+                    <PixelBlock x={4} y={16} width={12} height={4} color={wingBlack} />
+                    <PixelBlock x={5} y={18} width={10} height={2} color={darkBrown} />
+                    <PixelBlock x={2} y={17} width={4} height={2} color={wingTip} />
+                    
+                    <PixelBlock x={24} y={16} width={12} height={4} color={wingBlack} />
+                    <PixelBlock x={25} y={18} width={10} height={2} color={darkBrown} />
+                    <PixelBlock x={34} y={17} width={4} height={2} color={wingTip} />
+                    
+                    {/* Wing feather details */}
+                    <PixelBlock x={3} y={18} width={1} height={1} color={whiteFeathers} />
+                    <PixelBlock x={6} y={19} width={1} height={1} color={whiteFeathers} />
+                    <PixelBlock x={30} y={19} width={1} height={1} color={whiteFeathers} />
+                    <PixelBlock x={33} y={18} width={1} height={1} color={whiteFeathers} />
                 </>
             ) : (
                 <>
-                    <PixelBlock x={12} y={18} width={4} height={6} color={wing} />
-                    <PixelBlock x={22} y={18} width={4} height={6} color={wing} />
+                    {/* Folded wings */}
+                    <PixelBlock x={12} y={19} width={4} height={5} color={wingBlack} />
+                    <PixelBlock x={13} y={20} width={2} height={3} color={darkBrown} />
+                    
+                    <PixelBlock x={24} y={19} width={4} height={5} color={wingBlack} />
+                    <PixelBlock x={25} y={20} width={2} height={3} color={darkBrown} />
+                    
+                    {/* Wing tips */}
+                    <PixelBlock x={11} y={21} width={2} height={2} color={wingTip} />
+                    <PixelBlock x={27} y={21} width={2} height={2} color={wingTip} />
                 </>
             )}
-            <PixelBlock x={15} y={12} width={4} height={6} color={color} />
-            <PixelBlock x={17} y={14} width={1} height={1} color={eye} />
-            <PixelBlock x={19} y={15} width={3} height={2} color={beak} />
-            <PixelBlock x={17} y={24} width={1} height={3} color={beak} />
-            <PixelBlock x={19} y={24} width={1} height={3} color={beak} />
+            
+            {/* Powerful talons */}
+            <PixelBlock x={18} y={24} width={2} height={3} color={talonsBlack} />
+            <PixelBlock x={21} y={24} width={2} height={3} color={talonsBlack} />
+            {/* Talon claws */}
+            <PixelBlock x={17} y={26} width={1} height={2} color={talonsBlack} />
+            <PixelBlock x={19} y={26} width={1} height={2} color={talonsBlack} />
+            <PixelBlock x={21} y={26} width={1} height={2} color={talonsBlack} />
+            <PixelBlock x={23} y={26} width={1} height={2} color={talonsBlack} />
+            
+            {/* Tail feathers */}
+            <PixelBlock x={19} y={24} width={2} height={4} color={darkBrown} />
+            <PixelBlock x={18} y={26} width={4} height={2} color={wingTip} />
+            
+            {/* Attack effects */}
+            {isAttacking && (
+                <>
+                    <PixelBlock x={1} y={16} width={2} height={0.5} color={'#ffff00'} />
+                    <PixelBlock x={37} y={16} width={2} height={0.5} color={'#ffff00'} />
+                    <PixelBlock x={25} y={17} width={1} height={1} color={'#ff6600'} />
+                </>
+            )}
+            
+            {/* Enhanced two-layer shadow system */}
+            {/* Ground contact shadow - directly under talons */}
+            <ellipse cx={20} cy={28} rx={10} ry={2} fill="rgba(0,0,0,0.4)" />
+            {/* Ambient shadow - larger, softer */}
+            <ellipse cx={20} cy={29} rx={12} ry={3} fill="rgba(0,0,0,0.2)" />
         </g>
     );
 };
 
 // VERY LARGE ANIMALS
 const ElephantSprite: React.FC<{ animation: string }> = ({ animation }) => {
-    const color = '#6b7280'; const shadow = '#374151'; const tusk = '#f3f4f6';
+    const elephantGray = '#708090';
+    const darkGray = '#2F4F4F';
+    const lightGray = '#A9A9A9';
+    const tuskWhite = '#F5F5DC';
+    const eyeColor = '#8B4513';
+    const shadowColor = '#696969';
+    const pinkInside = '#FFB6C1';
+    
+    const isAttacking = animation === 'attacking' || animation === 'special';
     
     return (
-        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
-            <PixelBlock x={4} y={12} width={20} height={12} color={color} />
-            <PixelBlock x={4} y={23} width={20} height={1} color={shadow} />
-            <PixelBlock x={5} y={24} width={4} height={8} color={shadow} />
-            <PixelBlock x={18} y={24} width={4} height={8} color={color} />
-            <PixelBlock x={24} y={8} width={8} height={12} color={color} />
-            {animation === 'attacking' ? (
-                <PixelBlock x={32} y={16} width={6} height={4} color={color} />
+        <g className={isAttacking ? 'animate-elephant-stomp' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            {/* Massive body - proper elephant proportions */}
+            <PixelBlock x={8} y={16} width={22} height={12} color={elephantGray} />
+            <PixelBlock x={9} y={17} width={20} height={10} color={lightGray} />
+            <PixelBlock x={10} y={26} width={18} height={2} color={darkGray} />
+            
+            {/* Large elephant head */}
+            <PixelBlock x={24} y={10} width={12} height={10} color={elephantGray} />
+            <PixelBlock x={25} y={11} width={10} height={8} color={lightGray} />
+            
+            {/* Distinctive large ears */}
+            <PixelBlock x={22} y={8} width={6} height={8} color={elephantGray} />
+            <PixelBlock x={32} y={8} width={6} height={8} color={elephantGray} />
+            <PixelBlock x={23} y={9} width={4} height={6} color={pinkInside} />
+            <PixelBlock x={33} y={9} width={4} height={6} color={pinkInside} />
+            
+            {/* Intelligent eye */}
+            <PixelBlock x={28} y={13} width={2} height={2} color={eyeColor} />
+            <PixelBlock x={28.5} y={13.5} width={1} height={1} color={'#000000'} />
+            
+            {/* Magnificent ivory tusks */}
+            <PixelBlock x={26} y={18} width={2} height={6} color={tuskWhite} />
+            <PixelBlock x={30} y={18} width={2} height={6} color={tuskWhite} />
+            <PixelBlock x={25} y={22} width={4} height={2} color={tuskWhite} />
+            
+            {/* Flexible trunk - animated position */}
+            {isAttacking ? (
+                <>
+                    {/* Trunk swinging in attack */}
+                    <PixelBlock x={36} y={15} width={3} height={2} color={elephantGray} />
+                    <PixelBlock x={38} y={17} width={2} height={3} color={elephantGray} />
+                    <PixelBlock x={39} y={20} width={3} height={2} color={elephantGray} />
+                    <PixelBlock x={41} y={22} width={2} height={3} color={elephantGray} />
+                    <PixelBlock x={42} y={25} width={3} height={2} color={elephantGray} />
+                    {/* Trunk tip */}
+                    <PixelBlock x={44} y={26} width={2} height={2} color={pinkInside} />
+                </>
             ) : (
-                <PixelBlock x={30} y={18} width={3} height={8} color={color} />
+                <>
+                    {/* Relaxed trunk hanging down */}
+                    <PixelBlock x={34} y={20} width={3} height={2} color={elephantGray} />
+                    <PixelBlock x={35} y={22} width={2} height={3} color={elephantGray} />
+                    <PixelBlock x={34} y={25} width={3} height={2} color={elephantGray} />
+                    <PixelBlock x={33} y={27} width={2} height={3} color={elephantGray} />
+                    <PixelBlock x={32} y={30} width={3} height={2} color={elephantGray} />
+                    {/* Trunk tip */}
+                    <PixelBlock x={32.5} y={31} width={2} height={2} color={pinkInside} />
+                </>
             )}
-            <PixelBlock x={29} y={14} width={1} height={4} color={tusk} />
-            <PixelBlock x={31} y={14} width={1} height={4} color={tusk} />
-            <PixelBlock x={23} y={6} width={6} height={8} color={shadow} />
-            <PixelBlock x={29} y={8} width={4} height={6} color={shadow} />
-            <PixelBlock x={26} y={12} width={1} height={1} color={'#000000'} />
-            <PixelBlock x={2} y={18} width={2} height={6} color={shadow} />
+            
+            {/* Powerful legs - tree trunk thick */}
+            <PixelBlock x={10} y={28} width={4} height={8} color={elephantGray} />
+            <PixelBlock x={15} y={28} width={4} height={8} color={elephantGray} />
+            <PixelBlock x={20} y={28} width={4} height={8} color={elephantGray} />
+            <PixelBlock x={25} y={28} width={4} height={8} color={elephantGray} />
+            
+            {/* Leg shadows and feet */}
+            <PixelBlock x={10} y={35} width={4} height={2} color={shadowColor} />
+            <PixelBlock x={15} y={35} width={4} height={2} color={shadowColor} />
+            <PixelBlock x={20} y={35} width={4} height={2} color={shadowColor} />
+            <PixelBlock x={25} y={35} width={4} height={2} color={shadowColor} />
+            
+            {/* Small tail */}
+            <PixelBlock x={6} y={20} width={2} height={6} color={elephantGray} />
+            <PixelBlock x={5} y={25} width={3} height={1} color={darkGray} />
+            
+            {/* Attack effects */}
+            {isAttacking && (
+                <>
+                    <PixelBlock x={40} y={23} width={3} height={0.5} color={'#ffff00'} />
+                    <PixelBlock x={42} y={24} width={2} height={0.5} color={'#ffff00'} />
+                    <PixelBlock x={43} y={27} width={1} height={1} color={'#ff6600'} />
+                </>
+            )}
+            
+            {/* Enhanced two-layer shadow system - Extra large for massive elephant */}
+            {/* Ground contact shadow - directly under feet */}
+            <ellipse cx={20} cy={37} rx={20} ry={3} fill="rgba(0,0,0,0.4)" />
+            {/* Ambient shadow - massive, softer */}
+            <ellipse cx={20} cy={38} rx={25} ry={5} fill="rgba(0,0,0,0.2)" />
         </g>
     );
 };
 
 const RhinocerosSprite: React.FC<{ animation: string }> = ({ animation }) => {
-    const color = '#696969'; const shadow = '#2F4F4F'; const horn = '#8B7355';
+    const rhinoGray = '#708090';
+    const darkGray = '#2F4F4F';
+    const lightGray = '#A9A9A9';
+    const hornColor = '#8B7355';
+    const hornTip = '#654321';
+    const eyeColor = '#8B4513';
+    const shadowColor = '#696969';
+    
+    const isAttacking = animation === 'attacking' || animation === 'special';
     
     return (
-        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
-            <PixelBlock x={6} y={14} width={16} height={10} color={color} />
-            <PixelBlock x={6} y={23} width={16} height={1} color={shadow} />
-            <PixelBlock x={7} y={24} width={4} height={7} color={shadow} />
-            <PixelBlock x={17} y={24} width={4} height={7} color={color} />
-            <PixelBlock x={22} y={10} width={8} height={10} color={color} />
-            <PixelBlock x={30} y={14} width={3} height={4} color={color} />
-            <PixelBlock x={31} y={12} width={1} height={2} color={horn} />
-            <PixelBlock x={32} y={10} width={1} height={2} color={horn} />
-            <PixelBlock x={25} y={13} width={1} height={1} color={'#000000'} />
-            <PixelBlock x={4} y={18} width={2} height={4} color={shadow} />
+        <g className={isAttacking ? 'animate-rhino-charge' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            {/* Massive rhino body */}
+            <PixelBlock x={8} y={18} width={20} height={11} color={rhinoGray} />
+            <PixelBlock x={9} y={19} width={18} height={9} color={lightGray} />
+            <PixelBlock x={10} y={27} width={16} height={2} color={darkGray} />
+            
+            {/* Distinctive rhino head shape */}
+            <PixelBlock x={24} y={12} width={10} height={8} color={rhinoGray} />
+            <PixelBlock x={25} y={13} width={8} height={6} color={lightGray} />
+            
+            {/* Rhino snout */}
+            <PixelBlock x={32} y={16} width={4} height={4} color={rhinoGray} />
+            <PixelBlock x={33} y={17} width={2} height={2} color={lightGray} />
+            
+            {/* Small rhino eye */}
+            <PixelBlock x={27} y={14} width={2} height={1} color={eyeColor} />
+            <PixelBlock x={27.5} y={14} width={1} height={1} color={'#000000'} />
+            
+            {/* Iconic rhino horns */}
+            <PixelBlock x={33} y={12} width={2} height={4} color={hornColor} />
+            <PixelBlock x={33.5} y={10} width={1} height={2} color={hornTip} />
+            <PixelBlock x={31} y={14} width={1} height={2} color={hornColor} />
+            
+            {/* Thick armored skin texture */}
+            <PixelBlock x={12} y={20} width={1} height={1} color={darkGray} />
+            <PixelBlock x={15} y={21} width={1} height={1} color={darkGray} />
+            <PixelBlock x={18} y={20} width={1} height={1} color={darkGray} />
+            <PixelBlock x={21} y={22} width={1} height={1} color={darkGray} />
+            <PixelBlock x={24} y={21} width={1} height={1} color={darkGray} />
+            
+            {/* Powerful legs */}
+            <PixelBlock x={10} y={29} width={4} height={7} color={rhinoGray} />
+            <PixelBlock x={16} y={29} width={4} height={7} color={rhinoGray} />
+            <PixelBlock x={20} y={29} width={4} height={7} color={rhinoGray} />
+            <PixelBlock x={24} y={29} width={4} height={7} color={rhinoGray} />
+            
+            {/* Foot pads */}
+            <PixelBlock x={10} y={35} width={4} height={2} color={shadowColor} />
+            <PixelBlock x={16} y={35} width={4} height={2} color={shadowColor} />
+            <PixelBlock x={20} y={35} width={4} height={2} color={shadowColor} />
+            <PixelBlock x={24} y={35} width={4} height={2} color={shadowColor} />
+            
+            {/* Small ears */}
+            <PixelBlock x={24} y={11} width={2} height={3} color={rhinoGray} />
+            <PixelBlock x={30} y={11} width={2} height={3} color={rhinoGray} />
+            
+            {/* Short tail */}
+            <PixelBlock x={6} y={22} width={2} height={4} color={rhinoGray} />
+            <PixelBlock x={5} y={25} width={3} height={1} color={darkGray} />
+            
+            {/* Charging effect */}
+            {isAttacking && (
+                <>
+                    <PixelBlock x={36} y={15} width={3} height={0.5} color={'#ffff00'} />
+                    <PixelBlock x={37} y={16} width={2} height={0.5} color={'#ffff00'} />
+                    <PixelBlock x={35} y={17} width={1} height={1} color={'#ff6600'} />
+                    {/* Dust cloud */}
+                    <PixelBlock x={6} y={30} width={2} height={1} color={'#D2B48C'} />
+                    <PixelBlock x={7} y={32} width={3} height={1} color={'#D2B48C'} />
+                </>
+            )}
+            
+            {/* Enhanced two-layer shadow system - Large for heavy rhino */}
+            {/* Ground contact shadow - directly under feet */}
+            <ellipse cx={18} cy={37} rx={18} ry={3} fill="rgba(0,0,0,0.4)" />
+            {/* Ambient shadow - larger, softer */}
+            <ellipse cx={18} cy={38} rx={22} ry={5} fill="rgba(0,0,0,0.2)" />
         </g>
     );
 };
@@ -1197,20 +1894,56 @@ const WildebeestSprite: React.FC<{ animation: string }> = ({ animation }) => {
 };
 
 const BaboonSprite: React.FC<{ animation: string }> = ({ animation }) => {
-    const color = '#8B7355'; const face = '#FFB6C1'; const shadow = '#5D4E37'; const eye = '#8B4513';
+    const color = '#8B7355'; const face = '#FFB6C1'; const shadow = '#5D4E37'; const eye = '#000000';
+    const snout = '#D4A5A5'; const darkFur = '#6B5D4F';
     
     return (
-        <g className={animation === 'attacking' ? 'animate-walk-forward' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
-            <PixelBlock x={10} y={17} width={9} height={6} color={color} />
-            <PixelBlock x={10} y={22} width={9} height={1} color={shadow} />
-            <PixelBlock x={11} y={23} width={2} height={5} color={shadow} />
-            <PixelBlock x={16} y={23} width={2} height={5} color={color} />
-            <PixelBlock x={19} y={15} width={5} height={5} color={color} />
-            <PixelBlock x={24} y={16} width={3} height={3} color={face} />
-            <PixelBlock x={25} y={17} width={1} height={1} color={eye} />
-            <PixelBlock x={19} y={21} width={4} height={2} color={face} />
-            <PixelBlock x={7} y={18} width={3} height={2} color={color} />
-            <PixelBlock x={12} y={14} width={3} height={3} color={color} />
+        <g className={animation === 'attacking' ? 'animate-primate-attack' : animation === 'damaged' ? 'animate-sprite-damaged' : 'animate-animal-idle'}>
+            {/* Body - more defined with hunched posture */}
+            <PixelBlock x={8} y={16} width={12} height={8} color={color} />
+            <PixelBlock x={9} y={15} width={10} height={2} color={darkFur} />
+            <PixelBlock x={8} y={23} width={12} height={1} color={shadow} />
+            
+            {/* Muscular arms */}
+            <PixelBlock x={5} y={17} width={4} height={6} color={color} />
+            <PixelBlock x={4} y={22} width={5} height={2} color={darkFur} />
+            <PixelBlock x={3} y={23} width={6} height={3} color={shadow} />
+            <PixelBlock x={4} y={25} width={4} height={2} color={face} /> {/* Hand */}
+            
+            <PixelBlock x={19} y={17} width={4} height={6} color={color} />
+            <PixelBlock x={18} y={22} width={5} height={2} color={darkFur} />
+            <PixelBlock x={19} y={23} width={4} height={3} color={shadow} />
+            <PixelBlock x={20} y={25} width={3} height={2} color={face} /> {/* Hand */}
+            
+            {/* Legs - more primate-like */}
+            <PixelBlock x={10} y={23} width={3} height={5} color={shadow} />
+            <PixelBlock x={9} y={27} width={4} height={2} color={darkFur} />
+            
+            <PixelBlock x={15} y={23} width={3} height={5} color={color} />
+            <PixelBlock x={14} y={27} width={4} height={2} color={darkFur} />
+            
+            {/* Head with distinctive baboon features */}
+            <PixelBlock x={20} y={13} width={7} height={7} color={color} />
+            <PixelBlock x={27} y={14} width={4} height={5} color={face} /> {/* Snout */}
+            <PixelBlock x={30} y={15} width={2} height={3} color={snout} />
+            <PixelBlock x={22} y={15} width={1} height={1} color={eye} />
+            <PixelBlock x={24} y={15} width={1} height={1} color={eye} />
+            <PixelBlock x={29} y={16} width={1} height={1} color={'#000'} /> {/* Nostril */}
+            
+            {/* Distinctive baboon butt */}
+            <PixelBlock x={6} y={20} width={3} height={3} color={'#FF69B4'} />
+            
+            {/* Tail */}
+            <PixelBlock x={3} y={19} width={4} height={1} color={color} />
+            <PixelBlock x={2} y={18} width={2} height={2} color={darkFur} />
+            
+            {animation === 'attacking' && (
+                <>
+                    {/* Open mouth with teeth */}
+                    <PixelBlock x={28} y={17} width={3} height={1} color={'#FFFFFF'} />
+                    <PixelBlock x={29} y={18} width={2} height={1} color={'#8B0000'} />
+                </>
+            )}
         </g>
     );
 };
@@ -1721,9 +2454,18 @@ const AnimalCombatSprite: React.FC<AnimalCombatSpriteProps> = ({
                     <filter id="predatorGlow">
                         <feDropShadow dx="0" dy="0" stdDeviation="1" floodColor="#dc2626" floodOpacity="0.3"/>
                     </filter>
+                    <filter id="animal-outline" x="-20%" y="-20%" width="140%" height="140%">
+                        <feMorphology in="SourceAlpha" result="dilated" operator="dilate" radius="0.3"/>
+                        <feFlood floodColor="#1a1a1a" floodOpacity="0.4" result="outlineColor"/>
+                        <feComposite in="outlineColor" in2="dilated" operator="in" result="outline"/>
+                        <feMerge>
+                            <feMergeNode in="outline"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
                 </defs>
                 <g style={{ 
-                    filter: animal.type === 'Predator' ? 'url(#predatorGlow)' : 'none',
+                    filter: animal.type === 'Predator' ? 'url(#animal-outline) url(#predatorGlow)' : 'url(#animal-outline)',
                     transform: facing === 'left' ? 'scaleX(-1)' : 'scaleX(1)',
                     transformOrigin: 'center'
                 }}>

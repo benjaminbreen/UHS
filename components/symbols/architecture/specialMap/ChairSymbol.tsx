@@ -28,8 +28,10 @@ export const ChairSymbol: React.FC<ChairSymbolProps> = ({
   rotation = 0,
   seed = 0
 }) => {
+  // Make chairs bigger - scale up from base size
+  const scaledSize = size * 1.5; // 50% bigger
   // Stardew/FF6 style pixel size for beautiful detail
-  const pixelSize = size / 32;
+  const pixelSize = scaledSize / 32;
   
   const getChairStyle = () => {
     switch (culturalZone) {

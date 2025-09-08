@@ -28,6 +28,9 @@ export * from './goals'; // NEW: Export goal types
 export * from './diseaseTypes'; // NEW: Export disease types
 export * from './vesselTypes'; // NEW: Export vessel types
 
+// Re-export SimplifiedArchetype from constants
+export { SimplifiedArchetype } from '../constants/specialMaps/specialMapAugmentation';
+
 import { Tile } from './core/tile';
 import { InteriorTile, InteriorEntity } from './interiorMapTypes';
 import { AnimalEntity } from './animalTypes';

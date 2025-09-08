@@ -299,12 +299,45 @@ function createMainChamber(
     }
   }
   
-  // Central feature based on culture from furniture set
+  // Central feature based on district type first, then culture
   const furnitureSet = getCulturalFurnitureSet(config, 'government');
   const podiumX = chamberX + Math.floor(chamberWidth / 2);
   
-  // Use furniture set's central feature or fall back to layout pattern
-  const centralFeature = furnitureSet.centralFeature || layoutPattern.centralFeature;
+  // Determine central feature based on district type
+  let centralFeature = furnitureSet.centralFeature || layoutPattern.centralFeature;
+  
+  // Override with district-specific features
+  if (config.districtType) {
+    switch (config.districtType) {
+      case 'sacred_council':
+      case 'royal_temple':
+      case 'sacred_assembly':
+        centralFeature = 'altar'; // Religious councils have altars
+        break;
+      case 'military_council':
+      case 'castle':
+        centralFeature = 'weapon_rack'; // Military councils display weapons
+        break;
+      case 'palace':
+      case 'royal_hall':
+        centralFeature = 'throne'; // Monarchies have thrones
+        break;
+      case 'forum':
+      case 'parliament':
+      case 'council':
+        centralFeature = 'podium'; // Democratic assemblies have speaker podiums
+        break;
+      case 'merchant_council':
+      case 'trading_house':
+      case 'commercial_guild':
+        centralFeature = 'table'; // Merchant councils use tables for contract negotiations
+        break;
+      case 'chiefly_court':
+      case 'compound':
+        centralFeature = 'firepit'; // Tribal councils gather around fire
+        break;
+    }
+  }
   
   if (centralFeature === 'throne') {
     tiles[platformY + 1][podiumX].overlayObject = {
@@ -330,26 +363,150 @@ function createMainChamber(
         }
       }
     }
-  } else if (centralFeature === 'firepit' || centralFeature === 'hearth') {
-    tiles[platformY + 1][podiumX].biome = centralFeature === 'hearth' ? BiomeType.HEARTH : BiomeType.FIRE_PIT;
+  } else if (centralFeature === 'hearth') {
+    tiles[platformY + 1][podiumX].biome = BiomeType.HEARTH;
   } else if (centralFeature === 'altar') {
+    // Religious altar for theocracies
     tiles[platformY + 1][podiumX].biome = BiomeType.ALTAR;
+    tiles[platformY + 1][podiumX].isBlocking = true;
+    // Add decorative elements around altar
+    for (let dx = -1; dx <= 1; dx += 2) {
+      const candleX = podiumX + dx;
+      if (tiles[platformY + 1][candleX]) {
+        tiles[platformY + 1][candleX].overlayObject = {
+          type: OverlayObjectType.TORCH,
+          rotation: 0,
+          variant: 'candle'
+        };
+      }
+    }
+  } else if (centralFeature === 'weapon_rack') {
+    // Military display for military councils
+    tiles[platformY + 1][podiumX].overlayObject = {
+      type: OverlayObjectType.WEAPON_RACK,
+      rotation: 0,
+      variant: config.culturalZone
+    };
+    tiles[platformY + 1][podiumX].isBlocking = true;
+    // Add armor stands on sides
+    for (let dx = -2; dx <= 2; dx += 4) {
+      const armorX = podiumX + dx;
+      if (tiles[platformY + 1][armorX]) {
+        tiles[platformY + 1][armorX].overlayObject = {
+          type: OverlayObjectType.ARMOR_STAND,
+          rotation: 0,
+          variant: config.culturalZone
+        };
+        tiles[platformY + 1][armorX].isBlocking = true;
+      }
+    }
+  } else if (centralFeature === 'firepit') {
+    // Central fire for tribal councils
+    tiles[platformY + 1][podiumX].biome = BiomeType.FIREPIT;
+    // Add seating stones around fire
+    for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
+      const fx = podiumX + Math.round(Math.cos(angle) * 2);
+      const fy = platformY + 1 + Math.round(Math.sin(angle) * 2);
+      if (tiles[fy] && tiles[fy][fx] && !tiles[fy][fx].isBlocking) {
+        tiles[fy][fx].biome = BiomeType.FLOOR_STONE;
+      }
+    }
+  } else if (centralFeature === 'table') {
+    // Large negotiation table for merchant councils
+    tiles[platformY + 1][podiumX].overlayObject = {
+      type: OverlayObjectType.TABLE,
+      rotation: 0,
+      variant: config.culturalZone
+    };
+    tiles[platformY + 1][podiumX].isBlocking = true;
+    
+    // Add chairs around the table for merchants
+    const chairPositions = [
+      { x: podiumX - 1, y: platformY + 1 },     // Left
+      { x: podiumX + 1, y: platformY + 1 },     // Right  
+      { x: podiumX, y: platformY },             // Top
+      { x: podiumX, y: platformY + 2 }          // Bottom
+    ];
+    
+    for (const pos of chairPositions) {
+      if (tiles[pos.y] && tiles[pos.y][pos.x] && !tiles[pos.y][pos.x].isBlocking) {
+        tiles[pos.y][pos.x].overlayObject = {
+          type: OverlayObjectType.CHAIR,
+          rotation: 0,
+          variant: config.culturalZone
+        };
+      }
+    }
   } else {
+    // Default to podium
     tiles[platformY + 1][podiumX].biome = BiomeType.PODIUM;
   }
-  tiles[platformY + 1][podiumX].isBlocking = true;
   
-  // Use cultural seating arrangement from furniture system
-  const seatingInfo = getSeatingArrangement(config, 'government', chamberWidth * chamberHeight);
+  // Set blocking for all except firepit
+  if (centralFeature !== 'firepit') {
+    tiles[platformY + 1][podiumX].isBlocking = true;
+  }
   
-  if (seatingInfo.arrangement === 'semicircular') {
-    createSemicircularSeating(tiles, chamberX, chamberY + 6, chamberWidth, chamberHeight - 8, seatingInfo.furniture);
-  } else if (seatingInfo.arrangement === 'parallel') {
-    createParallelSeating(tiles, chamberX, chamberY + 6, chamberWidth, chamberHeight - 8, seatingInfo.furniture);
-  } else if (seatingInfo.arrangement === 'circular') {
-    createCircularSeating(tiles, chamberX, chamberY + 6, chamberWidth, chamberHeight - 8, seatingInfo.furniture);
-  } else if (seatingInfo.arrangement === 'tiered') {
-    createTieredSeating(tiles, chamberX, chamberY + 6, chamberWidth, chamberHeight - 8, seatingInfo.furniture);
+  // Use district type to determine seating arrangement if available
+  let seatingArrangement = 'semicircular'; // default
+  
+  // Override with district-specific layout if available
+  if (config.districtType) {
+    switch (config.districtType) {
+      case 'sacred_council':
+      case 'royal_temple':
+      case 'chiefly_court':
+      case 'hillfort':
+      case 'sacred_assembly':
+        seatingArrangement = 'circular'; // Religious/tribal gatherings in the round
+        break;
+      case 'parliament':
+      case 'colonial_office':
+      case 'administration':
+        seatingArrangement = 'parallel'; // Modern parliamentary opposing benches
+        break;
+      case 'military_council':
+      case 'palace':
+      case 'royal_hall':
+      case 'castle':
+      case 'compound':
+        seatingArrangement = 'tiered'; // Hierarchical command structure
+        break;
+      case 'forum':
+      case 'council':
+      case 'settlement_council':
+      case 'assembly':
+        seatingArrangement = 'semicircular'; // Classical senate/forum style
+        break;
+      case 'merchant_council':
+      case 'trading_house':
+      case 'commercial_guild':
+        seatingArrangement = 'rectangular'; // Business meetings around large tables
+        break;
+      default:
+        // Fall back to cultural patterns
+        const seatingInfo = getSeatingArrangement(config, 'government', chamberWidth * chamberHeight);
+        seatingArrangement = seatingInfo.arrangement;
+        break;
+    }
+  } else {
+    // No district type, use cultural patterns
+    const seatingInfo = getSeatingArrangement(config, 'government', chamberWidth * chamberHeight);
+    seatingArrangement = seatingInfo.arrangement;
+  }
+  
+  // Get furniture type from cultural system
+  const furnitureInfo = getSeatingArrangement(config, 'government', chamberWidth * chamberHeight);
+  
+  // Create the appropriate seating arrangement
+  if (seatingArrangement === 'semicircular') {
+    createSemicircularSeating(tiles, chamberX, chamberY + 6, chamberWidth, chamberHeight - 8, furnitureInfo.furniture);
+  } else if (seatingArrangement === 'parallel') {
+    createParallelSeating(tiles, chamberX, chamberY + 6, chamberWidth, chamberHeight - 8, furnitureInfo.furniture);
+  } else if (seatingArrangement === 'circular') {
+    createCircularSeating(tiles, chamberX, chamberY + 6, chamberWidth, chamberHeight - 8, furnitureInfo.furniture);
+  } else if (seatingArrangement === 'tiered') {
+    createTieredSeating(tiles, chamberX, chamberY + 6, chamberWidth, chamberHeight - 8, furnitureInfo.furniture);
   }
   
   // Central carpet runner - use culture-specific carpet

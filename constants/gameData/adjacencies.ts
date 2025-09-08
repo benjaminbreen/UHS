@@ -554,7 +554,7 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Wadi Hammamat": { N: "Eastern Desert Highlands", S: "Berenice Hinterland", W: "Thebes Valley" },
   "Berenice Hinterland": { N: "Eastern Desert Highlands", S: "Gebel Elba Region", E: "Sudanese Red Sea" },
   "Suez Isthmus": { N: "Alexandria Coast", S: "Eastern Desert Highlands", E: "Dead Sea Shore" },
-  "Gebel Elba Region": { N: "Berenice Hinterland", S: "Ethiopian Highlands", E: "Red Sea Shore" },
+  "Gebel Elba Region": { N: "Berenice Hinterland", S: "Ethiopian Highlands", E: "Red Sea Shore",  W: "Thebes Valley"},
 
   // === SUB SAHARAN AFRICA ===
   // Sahel

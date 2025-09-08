@@ -10,7 +10,15 @@ import { getDaysInMonth, parseDateString } from '../utils/dateUtils';
 import { calculateAnimalUpdate } from '../services/animalAIService';
 import { calculateNpcUpdate } from '../services/npcAIService';
 import { spawnSingleAnimal } from '../generation/standardMap/features/animalGenerator';
-import { checkReputationBasedApproach, generateLowReputationDialogue } from '../services/npcInitiatedEncounterService';
+import { 
+  checkReputationBasedApproach, 
+  generateLowReputationDialogue,
+  checkNPCApproaches,
+  generateApproachDialogue,
+  estimatePlayerWealth,
+  ApproachContext
+} from '../services/npcInitiatedEncounterService';
+import { generateNPCApproachNarration } from '../services/llmService';
 import { fireService } from '../services/fireService';
 import { weatherService } from '../services/weatherService';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES, ANIMAL_DATA, ITEM_DEFINITIONS } from '../constants/index';
@@ -113,6 +121,8 @@ const useCoreLoops = () => {
   const questsInitialized = useRef<boolean>(false);
   const lastDiseaseCheckMove = useRef<number>(0);
   const nextMoveAllowed = useRef<number>(0); // Track when next move is allowed
+  const npcNarrationHistory = useRef<Set<string>>(new Set()); // Track NPCs who have had narration generated
+  const lastNarrationTime = useRef<number>(0); // Track last narration generation time
 
   // Repeat control for movement (time-based; replaces setTimeout gating)
   const repeatRef = useRef({ holdStart: 0, nextStepAt: 0, isRepeating: false });
@@ -431,6 +441,112 @@ const useCoreLoops = () => {
                 }]);
               });
             }
+          }
+          
+          // Enhanced NPC-Initiated Encounter System (Performance Optimized)
+          // Only run comprehensive approach checks if no immediate hostile approaches
+          if (playerCharacter.mapReputation >= 20) {
+            // Get only visible NPCs for performance (within 12 tiles)
+            const visibleNPCs = updatedNpcs.filter(npc => {
+              const distance = Math.sqrt(
+                Math.pow(npc.x - controlledIconX, 2) + 
+                Math.pow(npc.y - controlledIconY, 2)
+              );
+              return distance <= 12;
+            });
+            
+            // Build approach context
+            const approachContext: ApproachContext = {
+              playerReputation: playerCharacter.mapReputation,
+              timeOfDay: gameTimeHours,
+              playerWealth: estimatePlayerWealth(playerCharacter),
+              playerHealth: playerCharacter.health || 100,
+              isInTown: mapData.urbanCenters?.some(uc => 
+                Math.abs(uc.x - controlledIconX) <= 3 && Math.abs(uc.y - controlledIconY) <= 3
+              ) || false,
+              isNearStructure: mapData.structures?.some(s => 
+                Math.abs(s.x! - controlledIconX) <= 2 && Math.abs(s.y! - controlledIconY) <= 2
+              ) || false
+            };
+            
+            // Check for NPC approaches (performance throttled internally)
+            const approachResults = checkNPCApproaches(
+              playerCharacter,
+              visibleNPCs,
+              controlledIconX,
+              controlledIconY,
+              approachContext
+            );
+            
+            // Handle approach results with enhanced narrator LLM integration
+            if (approachResults.length > 0) {
+              const approach = approachResults[0];
+              const approachingNPC = updatedNpcs.find(npc => npc.id === approach.npcId);
+              
+              if (approachingNPC) {
+                const currentTime = Date.now();
+                const canGenerateNarration = !npcNarrationHistory.current.has(approach.npcId) && 
+                                           currentTime - lastNarrationTime.current > 60000; // 1 minute throttle
+                
+                // Show immediate toast notification
+                const approachIcon = approach.isHostile ? '⚠️' : '💬';
+                const toastType = approach.isHostile ? 'error' : 'info';
+                showToast(`${approachIcon} ${approachingNPC.name} approaches`, toastType);
+                
+                if (canGenerateNarration) {
+                  // Generate rich LLM narration (once per NPC, max 1 per minute)
+                  generateNPCApproachNarration(
+                    approachingNPC,
+                    playerCharacter,
+                    approach.approachType,
+                    approach.distance
+                  ).then(narration => {
+                    setNarrationHistory(prev => [...prev, {
+                      sender: 'narrator',
+                      text: narration
+                    }]);
+                    
+                    // Track this NPC and update last narration time
+                    npcNarrationHistory.current.add(approach.npcId);
+                    lastNarrationTime.current = currentTime;
+                    
+                    console.log(`[NPCNarration] Generated for ${approachingNPC.name}: ${narration}`);
+                  }).catch(err => {
+                    console.error('Failed to generate approach narration:', err);
+                    // Fallback to basic narration
+                    setNarrationHistory(prev => [...prev, {
+                      sender: 'narrator', 
+                      text: `${approachingNPC.name} approaches you with ${approach.isHostile ? 'hostile' : 'curious'} intent.`
+                    }]);
+                  });
+                } else {
+                  // Basic fallback for throttled cases
+                  setNarrationHistory(prev => [...prev, {
+                    sender: 'narrator',
+                    text: `${approachingNPC.name} draws closer to you.`
+                  }]);
+                }
+                
+                // Move NPC slightly toward player to show approach
+                const dx = Math.sign(controlledIconX - approachingNPC.x);
+                const dy = Math.sign(controlledIconY - approachingNPC.y);
+                
+                // Only move if it would bring them closer (don't overshoot)
+                if (Math.abs(approachingNPC.x - controlledIconX) > 1) {
+                  approachingNPC.x += dx;
+                }
+                if (Math.abs(approachingNPC.y - controlledIconY) > 1) {
+                  approachingNPC.y += dy;
+                }
+              }
+            }
+          }
+          
+          // Clean up old narration history every 10 minutes (to prevent memory leaks)
+          const cleanupTime = Date.now();
+          if (cleanupTime % 600000 < 3000) { // Check every 10 minutes (within 3 second window)
+            npcNarrationHistory.current.clear();
+            console.log('[NPCNarration] Cleared narration history to prevent memory leaks');
           }
           
           return updatedNpcs;
@@ -1015,12 +1131,26 @@ useEffect(() => {
     let newLogicalX = controlledIconX + dx;
     let newLogicalY = controlledIconY + dy;
 
-    // edge transitions (but not in special maps or when entering one)
-    if (!isSpecialMap && !isEnteringSpecialMap) {
-      if (newLogicalX < 0) { handleMapTransition('W', MAP_WIDTH_TILES - 1, controlledIconY); return; }
-      if (newLogicalX >= MAP_WIDTH_TILES) { handleMapTransition('E', 0, controlledIconY); return; }
-      if (newLogicalY < 0) { handleMapTransition('N', controlledIconX, MAP_HEIGHT_TILES - 1); return; }
-      if (newLogicalY >= MAP_HEIGHT_TILES) { handleMapTransition('S', controlledIconX, 0); return; }
+    // edge transitions 
+    if (!isEnteringSpecialMap) {
+      if (isSpecialMap && mapData) {
+        // In special maps, reaching any edge returns to the standard map
+        const mapWidth = mapData.width || mapData.tiles[0]?.length || MAP_WIDTH_TILES;
+        const mapHeight = mapData.height || mapData.tiles.length || MAP_HEIGHT_TILES;
+        
+        if (newLogicalX < 0 || newLogicalX >= mapWidth || 
+            newLogicalY < 0 || newLogicalY >= mapHeight) {
+          console.log('[Edge Exit] Exiting special map via edge at:', newLogicalX, newLogicalY, 'map size:', mapWidth + 'x' + mapHeight);
+          exitSpecialMap();
+          return;
+        }
+      } else {
+        // Normal map edge transitions
+        if (newLogicalX < 0) { handleMapTransition('W', MAP_WIDTH_TILES - 1, controlledIconY); return; }
+        if (newLogicalX >= MAP_WIDTH_TILES) { handleMapTransition('E', 0, controlledIconY); return; }
+        if (newLogicalY < 0) { handleMapTransition('N', controlledIconX, MAP_HEIGHT_TILES - 1); return; }
+        if (newLogicalY >= MAP_HEIGHT_TILES) { handleMapTransition('S', controlledIconX, 0); return; }
+      }
     }
 
     // animal interaction

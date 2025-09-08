@@ -329,11 +329,17 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     setMarketConditions(conditions);
     
     // Find merchant NPCs
+    console.log('[MarketplaceModal] Total NPCs received:', npcs.length);
+    console.log('[MarketplaceModal] NPC roles:', npcs.map(n => ({ name: n.name, role: n.role })));
+    
     const merchants = npcs.filter(npc => 
       npc.role?.toLowerCase().includes('merchant') ||
       npc.role?.toLowerCase().includes('trader') ||
       npc.role?.toLowerCase().includes('vendor')
     );
+    
+    console.log('[MarketplaceModal] Filtered merchants:', merchants.length);
+    console.log('[MarketplaceModal] Merchants found:', merchants.map(m => ({ name: m.name, role: m.role })));
     setMerchantNpcs(merchants);
     
     // Load tamed animals

@@ -27,8 +27,8 @@ const MobileControls: React.FC<MobileControlsProps> = ({ onMove, disabled = fals
   
   const buttonStyle = (direction: string): React.CSSProperties => ({
     position: 'absolute',
-    width: '40px',
-    height: '40px',
+    width: '50px',
+    height: '50px',
     backgroundColor: activeButton === direction 
       ? 'rgba(255, 255, 255, 0.3)' 
       : 'rgba(255, 255, 255, 0.15)',
@@ -37,7 +37,7 @@ const MobileControls: React.FC<MobileControlsProps> = ({ onMove, disabled = fals
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '20px',
+    fontSize: '24px',
     color: activeButton === direction ? '#fff' : 'rgba(255, 255, 255, 0.8)',
     backdropFilter: 'blur(10px)',
     webkitBackdropFilter: 'blur(10px)',
@@ -52,20 +52,20 @@ const MobileControls: React.FC<MobileControlsProps> = ({ onMove, disabled = fals
   
   const containerStyle: React.CSSProperties = {
     position: 'fixed',
-    bottom: 'calc(env(safe-area-inset-bottom) + 20px)',
-    right: 'calc(env(safe-area-inset-right) + 20px)',
-    width: '130px',
-    height: '130px',
+    bottom: 'calc(env(safe-area-inset-bottom) + 80px)',
+    right: 'calc(env(safe-area-inset-right) + 15px)',
+    width: '150px',
+    height: '150px',
     zIndex: 1000,
     pointerEvents: 'none',
   };
   
   const centerDotStyle: React.CSSProperties = {
     position: 'absolute',
-    top: '45px',
-    left: '45px',
-    width: '40px',
-    height: '40px',
+    top: '50px',
+    left: '50px',
+    width: '50px',
+    height: '50px',
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     border: '1px solid rgba(255, 255, 255, 0.2)',
     borderRadius: '50%',
@@ -83,7 +83,7 @@ const MobileControls: React.FC<MobileControlsProps> = ({ onMove, disabled = fals
         style={{
           ...buttonStyle('north'),
           top: '0',
-          left: '45px',
+          left: '50px',
           pointerEvents: 'auto',
         }}
         onTouchStart={() => handleTouchStart('north')}
@@ -102,7 +102,7 @@ const MobileControls: React.FC<MobileControlsProps> = ({ onMove, disabled = fals
         style={{
           ...buttonStyle('south'),
           bottom: '0',
-          left: '45px',
+          left: '50px',
           pointerEvents: 'auto',
         }}
         onTouchStart={() => handleTouchStart('south')}
@@ -120,7 +120,7 @@ const MobileControls: React.FC<MobileControlsProps> = ({ onMove, disabled = fals
       <button
         style={{
           ...buttonStyle('west'),
-          top: '45px',
+          top: '50px',
           left: '0',
           pointerEvents: 'auto',
         }}
@@ -139,7 +139,7 @@ const MobileControls: React.FC<MobileControlsProps> = ({ onMove, disabled = fals
       <button
         style={{
           ...buttonStyle('east'),
-          top: '45px',
+          top: '50px',
           right: '0',
           pointerEvents: 'auto',
         }}

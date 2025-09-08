@@ -1,0 +1,853 @@
+/**
+ * constants/characterData/culturalMarkings.ts
+ * Historically accurate cultural body markings, face paint, tattoos, and modifications
+ * Based on anthropological and historical evidence
+ */
+
+import { CulturalZone } from './culturalZones';
+import { HistoricalEra } from '../../types/ambiance';
+
+export interface MarkingPattern {
+  id: string;
+  name: string;
+  localName?: string; // Native term (e.g., "Ta Moko", "Tilaka")
+  description: string;
+  pattern: string; // Pattern type for renderer
+  locations: ('forehead' | 'cheek' | 'chin' | 'nose' | 'neck' | 'arm' | 'chest' | 'face')[];
+  colors: string[]; // Hex colors
+  size: 'small' | 'medium' | 'large';
+}
+
+export interface CulturalMarking {
+  baseId: string;
+  type: 'tattoo' | 'paint' | 'scarification' | 'piercing' | 'brand' | 'henna' | 'ash';
+  culturalZones: CulturalZone[];
+  eras?: HistoricalEra[];
+  patterns: MarkingPattern[];
+  isPermanent: boolean;
+  duration?: number; // Hours for temporary markings
+  professions?: string[]; // Specific to certain professions
+  gender?: 'male' | 'female' | 'any';
+  ageGroups?: ('child' | 'young' | 'adult' | 'elder')[];
+  socialClasses?: ('poor' | 'modest' | 'comfortable' | 'wealthy' | 'noble')[];
+  occasions?: ('daily' | 'ceremony' | 'war' | 'mourning' | 'celebration' | 'religious')[];
+  weight: number; // Selection probability (1-10)
+  culturalSignificance: string;
+}
+
+export const CULTURAL_MARKINGS: CulturalMarking[] = [
+  // ========== OCEANIA ==========
+  {
+    baseId: 'TA_MOKO',
+    type: 'tattoo',
+    culturalZones: ['OCEANIA'],
+    patterns: [
+      {
+        id: 'ta_moko_warrior',
+        name: 'Warrior Ta Moko',
+        localName: 'Ta Moko',
+        description: 'Sacred Māori facial tattoos indicating genealogy and achievements',
+        pattern: 'maori_spiral',
+        locations: ['chin', 'cheek', 'forehead'],
+        colors: ['#1a1a1a'],
+        size: 'large'
+      },
+      {
+        id: 'ta_moko_chief',
+        name: 'Chief Ta Moko',
+        localName: 'Ta Moko Rangatira',
+        description: 'Full facial tattoos of high-ranking chiefs',
+        pattern: 'maori_full',
+        locations: ['face'],
+        colors: ['#000000'],
+        size: 'large'
+      }
+    ],
+    isPermanent: true,
+    professions: ['Warrior', 'Chief', 'Noble', 'Hunter'],
+    gender: 'any',
+    ageGroups: ['adult', 'elder'],
+    socialClasses: ['comfortable', 'wealthy', 'noble'],
+    occasions: ['daily'],
+    weight: 8,
+    culturalSignificance: 'Sacred genealogical record and status marker'
+  },
+  {
+    baseId: 'POLYNESIAN_TATTOO',
+    type: 'tattoo',
+    culturalZones: ['OCEANIA'],
+    patterns: [
+      {
+        id: 'pe_a',
+        name: "Pe'a Body Tattoo",
+        localName: "Pe'a",
+        description: 'Traditional Samoan body tattoos from waist to knees',
+        pattern: 'geometric_bands',
+        locations: ['chest', 'arm'],
+        colors: ['#0d0d0d'],
+        size: 'large'
+      }
+    ],
+    isPermanent: true,
+    gender: 'male',
+    ageGroups: ['young', 'adult'],
+    socialClasses: ['modest', 'comfortable', 'wealthy'],
+    occasions: ['daily'],
+    weight: 6,
+    culturalSignificance: 'Rite of passage into manhood'
+  },
+
+  // ========== NORTH AMERICAN PRE-COLUMBIAN ==========
+  {
+    baseId: 'WAR_PAINT',
+    type: 'paint',
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN'],
+    patterns: [
+      {
+        id: 'plains_war',
+        name: 'Plains War Paint',
+        description: 'Red and black stripes for battle',
+        pattern: 'horizontal_stripes',
+        locations: ['forehead', 'cheek'],
+        colors: ['#B22222', '#000000'],
+        size: 'medium'
+      },
+      {
+        id: 'lightning',
+        name: 'Lightning Pattern',
+        description: 'Zigzag patterns representing thunder power',
+        pattern: 'zigzag',
+        locations: ['cheek'],
+        colors: ['#FFD700', '#B22222'],
+        size: 'medium'
+      },
+      {
+        id: 'hand_print',
+        name: 'Hand Print',
+        description: 'Hand prints indicating enemies defeated',
+        pattern: 'handprint',
+        locations: ['chest', 'cheek'],
+        colors: ['#8B0000', '#FFFFFF'],
+        size: 'small'
+      }
+    ],
+    isPermanent: false,
+    duration: 24,
+    professions: ['Warrior', 'Hunter', 'Scout'],
+    gender: 'any',
+    ageGroups: ['young', 'adult'],
+    occasions: ['war', 'ceremony'],
+    weight: 7,
+    culturalSignificance: 'Spiritual protection and enemy intimidation'
+  },
+  {
+    baseId: 'VISION_PAINT',
+    type: 'paint',
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN'],
+    patterns: [
+      {
+        id: 'spirit_dots',
+        name: 'Spirit Dots',
+        description: 'Dots representing spirit visions',
+        pattern: 'dots',
+        locations: ['forehead', 'chin'],
+        colors: ['#FFFFFF', '#4169E1'],
+        size: 'small'
+      }
+    ],
+    isPermanent: false,
+    duration: 48,
+    professions: ['Shaman', 'Medicine Man', 'Mystic'],
+    gender: 'any',
+    ageGroups: ['adult', 'elder'],
+    occasions: ['religious', 'ceremony'],
+    weight: 5,
+    culturalSignificance: 'Connection to spirit world'
+  },
+  {
+    baseId: 'MOURNING_PAINT',
+    type: 'paint',
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN', 'NORTH_AMERICAN_COLONIAL'],
+    patterns: [
+      {
+        id: 'mourning_black',
+        name: 'Mourning Black',
+        description: 'Black paint across eyes for grief',
+        pattern: 'eye_band',
+        locations: ['face'],
+        colors: ['#000000'],
+        size: 'medium'
+      }
+    ],
+    isPermanent: false,
+    duration: 168, // 1 week
+    gender: 'any',
+    ageGroups: ['adult', 'elder'],
+    occasions: ['mourning'],
+    weight: 3,
+    culturalSignificance: 'Expression of grief and loss'
+  },
+
+  // ========== SUB-SAHARAN AFRICAN ==========
+  {
+    baseId: 'SCARIFICATION',
+    type: 'scarification',
+    culturalZones: ['SUB_SAHARAN_AFRICAN'],
+    patterns: [
+      {
+        id: 'yoruba_marks',
+        name: 'Yoruba Facial Marks',
+        localName: 'Kolo',
+        description: 'Vertical cheek scarifications',
+        pattern: 'vertical_lines',
+        locations: ['cheek'],
+        colors: ['#8B7355'],
+        size: 'medium'
+      },
+      {
+        id: 'dinka_forehead',
+        name: 'Dinka Forehead Marks',
+        localName: 'Gar',
+        description: 'Horizontal forehead scarifications indicating initiation',
+        pattern: 'horizontal_lines',
+        locations: ['forehead'],
+        colors: ['#A0826D'],
+        size: 'large'
+      },
+      {
+        id: 'geometric_scars',
+        name: 'Geometric Patterns',
+        description: 'Diamond and dot patterns',
+        pattern: 'geometric',
+        locations: ['arm', 'chest'],
+        colors: ['#8B7355'],
+        size: 'medium'
+      }
+    ],
+    isPermanent: true,
+    gender: 'any',
+    ageGroups: ['young', 'adult'],
+    socialClasses: ['poor', 'modest', 'comfortable'],
+    occasions: ['daily'],
+    weight: 7,
+    culturalSignificance: 'Tribal identity and coming of age'
+  },
+  {
+    baseId: 'WHITE_CHALK',
+    type: 'paint',
+    culturalZones: ['SUB_SAHARAN_AFRICAN'],
+    patterns: [
+      {
+        id: 'white_dots',
+        name: 'White Chalk Dots',
+        localName: 'Nzu',
+        description: 'White dots for ceremonies',
+        pattern: 'dots',
+        locations: ['forehead', 'arm'],
+        colors: ['#FFFFFF'],
+        size: 'small'
+      }
+    ],
+    isPermanent: false,
+    duration: 12,
+    gender: 'any',
+    occasions: ['ceremony', 'celebration'],
+    weight: 5,
+    culturalSignificance: 'Purity and spiritual connection'
+  },
+  {
+    baseId: 'OCHRE_PAINT',
+    type: 'paint',
+    culturalZones: ['SUB_SAHARAN_AFRICAN'],
+    patterns: [
+      {
+        id: 'red_ochre',
+        name: 'Red Ochre',
+        description: 'Red earth pigment for protection',
+        pattern: 'solid',
+        locations: ['forehead', 'chest'],
+        colors: ['#CD5C5C', '#8B4513'],
+        size: 'large'
+      }
+    ],
+    isPermanent: false,
+    duration: 24,
+    gender: 'any',
+    occasions: ['daily', 'ceremony'],
+    weight: 6,
+    culturalSignificance: 'Protection from sun and insects'
+  },
+
+  // ========== SOUTH ASIAN ==========
+  {
+    baseId: 'BINDI_TILAKA',
+    type: 'paint',
+    culturalZones: ['SOUTH_ASIAN'],
+    patterns: [
+      {
+        id: 'bindi_dot',
+        name: 'Bindi',
+        localName: 'Bindi',
+        description: 'Red dot on forehead',
+        pattern: 'dot',
+        locations: ['forehead'],
+        colors: ['#DC143C', '#FF1493'],
+        size: 'small'
+      },
+      {
+        id: 'tilaka_vertical',
+        name: 'Vaishnava Tilaka',
+        localName: 'Urdhva Pundra',
+        description: 'Vertical marks of Vishnu devotees',
+        pattern: 'vertical_v',
+        locations: ['forehead'],
+        colors: ['#FFFFFF', '#DC143C'],
+        size: 'medium'
+      },
+      {
+        id: 'tilaka_horizontal',
+        name: 'Shaiva Tilaka',
+        localName: 'Tripundra',
+        description: 'Three horizontal lines of Shiva devotees',
+        pattern: 'three_lines',
+        locations: ['forehead'],
+        colors: ['#FFFFFF', '#808080'],
+        size: 'medium'
+      }
+    ],
+    isPermanent: false,
+    duration: 12,
+    gender: 'any',
+    ageGroups: ['child', 'young', 'adult', 'elder'],
+    occasions: ['daily', 'religious', 'ceremony'],
+    weight: 9,
+    culturalSignificance: 'Religious devotion and marital status'
+  },
+  {
+    baseId: 'HENNA_DESIGNS',
+    type: 'henna',
+    culturalZones: ['SOUTH_ASIAN', 'MENA'],
+    patterns: [
+      {
+        id: 'mehndi_floral',
+        name: 'Mehndi Floral',
+        localName: 'Mehndi',
+        description: 'Intricate floral patterns for celebrations',
+        pattern: 'floral',
+        locations: ['arm'],
+        colors: ['#8B4513', '#A0522D'],
+        size: 'large'
+      },
+      {
+        id: 'simple_henna',
+        name: 'Simple Henna',
+        description: 'Basic geometric patterns',
+        pattern: 'geometric',
+        locations: ['arm'],
+        colors: ['#8B4513'],
+        size: 'medium'
+      }
+    ],
+    isPermanent: false,
+    duration: 336, // 2 weeks
+    gender: 'female',
+    occasions: ['celebration', 'ceremony'],
+    weight: 6,
+    culturalSignificance: 'Celebration and blessing'
+  },
+  {
+    baseId: 'VIBHUTI',
+    type: 'ash',
+    culturalZones: ['SOUTH_ASIAN'],
+    patterns: [
+      {
+        id: 'sacred_ash',
+        name: 'Sacred Ash',
+        localName: 'Vibhuti',
+        description: 'Sacred ash marks',
+        pattern: 'three_lines',
+        locations: ['forehead', 'arm'],
+        colors: ['#D3D3D3', '#FFFFFF'],
+        size: 'medium'
+      }
+    ],
+    isPermanent: false,
+    duration: 8,
+    professions: ['Priest', 'Monk', 'Ascetic', 'Mystic'],
+    gender: 'any',
+    occasions: ['religious', 'daily'],
+    weight: 5,
+    culturalSignificance: 'Spiritual purification and devotion'
+  },
+
+  // ========== MENA (Middle East & North Africa) ==========
+  {
+    baseId: 'BERBER_TATTOO',
+    type: 'tattoo',
+    culturalZones: ['MENA'],
+    patterns: [
+      {
+        id: 'amazigh_chin',
+        name: 'Amazigh Chin Tattoo',
+        localName: 'Oucham',
+        description: 'Geometric chin tattoos of Berber women',
+        pattern: 'berber_geometric',
+        locations: ['chin', 'forehead'],
+        colors: ['#2F4F4F', '#000080'],
+        size: 'small'
+      }
+    ],
+    isPermanent: true,
+    gender: 'female',
+    ageGroups: ['young', 'adult'],
+    socialClasses: ['poor', 'modest', 'comfortable'],
+    occasions: ['daily'],
+    weight: 5,
+    culturalSignificance: 'Tribal identity and protection from evil'
+  },
+  {
+    baseId: 'KOHL_EYES',
+    type: 'paint',
+    culturalZones: ['MENA'],
+    patterns: [
+      {
+        id: 'kohl_liner',
+        name: 'Kohl Eye Liner',
+        localName: 'Kohl',
+        description: 'Black eye liner for protection',
+        pattern: 'eye_liner',
+        locations: ['face'],
+        colors: ['#000000'],
+        size: 'small'
+      }
+    ],
+    isPermanent: false,
+    duration: 24,
+    gender: 'any',
+    ageGroups: ['child', 'young', 'adult', 'elder'],
+    occasions: ['daily'],
+    weight: 8,
+    culturalSignificance: 'Protection from evil eye and sun glare'
+  },
+  {
+    baseId: 'HENNA_HANDS',
+    type: 'henna',
+    culturalZones: ['MENA'],
+    patterns: [
+      {
+        id: 'geometric_henna',
+        name: 'Geometric Henna',
+        description: 'Geometric patterns for celebrations',
+        pattern: 'geometric',
+        locations: ['arm'],
+        colors: ['#8B4513'],
+        size: 'medium'
+      }
+    ],
+    isPermanent: false,
+    duration: 240,
+    gender: 'female',
+    occasions: ['celebration', 'ceremony'],
+    weight: 5,
+    culturalSignificance: 'Blessing and celebration'
+  },
+
+  // ========== EAST ASIAN ==========
+  {
+    baseId: 'FOREHEAD_DOT',
+    type: 'paint',
+    culturalZones: ['EAST_ASIAN'],
+    patterns: [
+      {
+        id: 'huadian',
+        name: 'Flower Dot',
+        localName: 'Huadian',
+        description: 'Decorative forehead marking',
+        pattern: 'flower',
+        locations: ['forehead'],
+        colors: ['#DC143C', '#FFD700'],
+        size: 'small'
+      }
+    ],
+    isPermanent: false,
+    duration: 12,
+    gender: 'female',
+    eras: ['ANTIQUITY', 'MEDIEVAL'],
+    socialClasses: ['comfortable', 'wealthy', 'noble'],
+    occasions: ['ceremony', 'celebration'],
+    weight: 4,
+    culturalSignificance: 'Beauty and nobility'
+  },
+  {
+    baseId: 'CINNABAR_MARK',
+    type: 'paint',
+    culturalZones: ['EAST_ASIAN'],
+    patterns: [
+      {
+        id: 'daoist_mark',
+        name: 'Daoist Mark',
+        description: 'Cinnabar mark for protection',
+        pattern: 'dot',
+        locations: ['forehead'],
+        colors: ['#E34234'],
+        size: 'small'
+      }
+    ],
+    isPermanent: false,
+    duration: 24,
+    professions: ['Monk', 'Priest', 'Mystic'],
+    gender: 'any',
+    occasions: ['religious'],
+    weight: 3,
+    culturalSignificance: 'Spiritual protection'
+  },
+
+  // ========== SOUTH AMERICAN ==========
+  {
+    baseId: 'JAGUAR_PAINT',
+    type: 'paint',
+    culturalZones: ['SOUTH_AMERICAN'],
+    patterns: [
+      {
+        id: 'jaguar_spots',
+        name: 'Jaguar Spots',
+        description: 'Black spots mimicking jaguar',
+        pattern: 'spots',
+        locations: ['face', 'chest'],
+        colors: ['#000000'],
+        size: 'medium'
+      }
+    ],
+    isPermanent: false,
+    duration: 48,
+    professions: ['Warrior', 'Hunter', 'Shaman'],
+    gender: 'male',
+    occasions: ['war', 'ceremony'],
+    weight: 6,
+    culturalSignificance: 'Jaguar spirit protection'
+  },
+  {
+    baseId: 'URUCUM',
+    type: 'paint',
+    culturalZones: ['SOUTH_AMERICAN'],
+    patterns: [
+      {
+        id: 'urucum_red',
+        name: 'Urucum Red',
+        localName: 'Urucum',
+        description: 'Red body paint from annatto',
+        pattern: 'solid',
+        locations: ['face', 'chest', 'arm'],
+        colors: ['#FF4500', '#FF6347'],
+        size: 'large'
+      }
+    ],
+    isPermanent: false,
+    duration: 72,
+    gender: 'any',
+    occasions: ['daily', 'ceremony'],
+    weight: 7,
+    culturalSignificance: 'Protection from sun and insects'
+  },
+  {
+    baseId: 'YANOMAMI_PAINT',
+    type: 'paint',
+    culturalZones: ['SOUTH_AMERICAN'],
+    patterns: [
+      {
+        id: 'yanomami_pattern',
+        name: 'Yanomami Pattern',
+        description: 'Traditional geometric face paint',
+        pattern: 'geometric',
+        locations: ['face'],
+        colors: ['#000000', '#FF0000'],
+        size: 'medium'
+      }
+    ],
+    isPermanent: false,
+    duration: 24,
+    gender: 'any',
+    occasions: ['ceremony', 'celebration'],
+    weight: 5,
+    culturalSignificance: 'Ritual and celebration'
+  },
+
+  // ========== EUROPEAN ==========
+  {
+    baseId: 'WOAD_PAINT',
+    type: 'paint',
+    culturalZones: ['EUROPEAN'],
+    eras: ['PREHISTORY', 'ANTIQUITY'],
+    patterns: [
+      {
+        id: 'celtic_woad',
+        name: 'Celtic Woad',
+        localName: 'Woad',
+        description: 'Blue war paint of Celtic warriors',
+        pattern: 'swirls',
+        locations: ['face', 'chest', 'arm'],
+        colors: ['#4682B4', '#191970'],
+        size: 'large'
+      }
+    ],
+    isPermanent: false,
+    duration: 24,
+    professions: ['Warrior', 'Barbarian'],
+    gender: 'any',
+    occasions: ['war'],
+    weight: 5,
+    culturalSignificance: 'Intimidation and warrior spirit'
+  },
+  {
+    baseId: 'PILGRIM_ASH',
+    type: 'ash',
+    culturalZones: ['EUROPEAN'],
+    eras: ['MEDIEVAL', 'RENAISSANCE_EARLY_MODERN'],
+    patterns: [
+      {
+        id: 'ash_cross',
+        name: 'Ash Wednesday Cross',
+        description: 'Cross of ashes on forehead',
+        pattern: 'cross',
+        locations: ['forehead'],
+        colors: ['#808080'],
+        size: 'small'
+      }
+    ],
+    isPermanent: false,
+    duration: 24,
+    professions: ['Priest', 'Monk', 'Pilgrim'],
+    gender: 'any',
+    occasions: ['religious'],
+    weight: 3,
+    culturalSignificance: 'Christian penance and mortality'
+  },
+  {
+    baseId: 'PLAGUE_MARK',
+    type: 'paint',
+    culturalZones: ['EUROPEAN'],
+    eras: ['MEDIEVAL'],
+    patterns: [
+      {
+        id: 'plague_cross',
+        name: 'Plague Cross',
+        description: 'Red cross marking plague houses',
+        pattern: 'cross',
+        locations: ['forehead'],
+        colors: ['#8B0000'],
+        size: 'medium'
+      }
+    ],
+    isPermanent: false,
+    duration: 168,
+    gender: 'any',
+    occasions: ['mourning'],
+    weight: 2,
+    culturalSignificance: 'Warning of disease'
+  },
+
+  // ========== PIERCINGS (Cross-cultural) ==========
+  {
+    baseId: 'NOSE_PIERCING',
+    type: 'piercing',
+    culturalZones: ['SOUTH_ASIAN', 'MENA', 'SUB_SAHARAN_AFRICAN', 'OCEANIA'],
+    patterns: [
+      {
+        id: 'nostril_stud',
+        name: 'Nostril Stud',
+        description: 'Small stud in nostril',
+        pattern: 'stud',
+        locations: ['nose'],
+        colors: ['#FFD700', '#C0C0C0'],
+        size: 'small'
+      }
+    ],
+    isPermanent: true,
+    gender: 'female',
+    weight: 6,
+    culturalSignificance: 'Beauty and marital status'
+  },
+  {
+    baseId: 'SEPTUM_PIERCING',
+    type: 'piercing',
+    culturalZones: ['OCEANIA', 'SOUTH_AMERICAN', 'SUB_SAHARAN_AFRICAN', 'NORTH_AMERICAN_PRE_COLUMBIAN'],
+    patterns: [
+      {
+        id: 'septum_ring',
+        name: 'Septum Ring',
+        description: 'Ring through nasal septum',
+        pattern: 'ring',
+        locations: ['nose'],
+        colors: ['#8B7355', '#FFD700'],
+        size: 'small'
+      }
+    ],
+    isPermanent: true,
+    professions: ['Warrior', 'Hunter', 'Chief'],
+    gender: 'any',
+    weight: 4,
+    culturalSignificance: 'Warrior status and strength'
+  },
+  {
+    baseId: 'EAR_STRETCHING',
+    type: 'piercing',
+    culturalZones: ['SUB_SAHARAN_AFRICAN', 'OCEANIA', 'SOUTH_AMERICAN'],
+    patterns: [
+      {
+        id: 'ear_plugs',
+        name: 'Stretched Ears',
+        description: 'Large ear plugs',
+        pattern: 'plug',
+        locations: ['face'],
+        colors: ['#8B4513', '#000000'],
+        size: 'medium'
+      }
+    ],
+    isPermanent: true,
+    gender: 'any',
+    socialClasses: ['comfortable', 'wealthy', 'noble'],
+    weight: 3,
+    culturalSignificance: 'Beauty and social status'
+  }
+];
+
+// Helper function to get appropriate markings for a character
+export function getMarkingsForCharacter(
+  culturalZone: CulturalZone,
+  era?: HistoricalEra,
+  profession?: string,
+  gender: 'male' | 'female' = 'male',
+  socialClass: string = 'modest',
+  age: number = 30,
+  occasion: string = 'daily'
+): CulturalMarking[] {
+  
+  // Determine age group
+  const ageGroup = age < 16 ? 'child' : 
+                   age < 25 ? 'young' :
+                   age < 50 ? 'adult' : 'elder';
+  
+  return CULTURAL_MARKINGS.filter(marking => {
+    // Check cultural zone
+    if (!marking.culturalZones.includes(culturalZone)) return false;
+    
+    // Check era if specified
+    if (marking.eras && era && !marking.eras.includes(era)) return false;
+    
+    // Check gender
+    if (marking.gender && marking.gender !== 'any' && marking.gender !== gender) return false;
+    
+    // Check age group
+    if (marking.ageGroups && !marking.ageGroups.includes(ageGroup as any)) return false;
+    
+    // Check social class
+    if (marking.socialClasses && !marking.socialClasses.includes(socialClass as any)) return false;
+    
+    // Check profession
+    if (marking.professions && profession) {
+      const profLower = profession.toLowerCase();
+      const hasMatch = marking.professions.some(p => 
+        profLower.includes(p.toLowerCase()) || p.toLowerCase().includes(profLower)
+      );
+      if (!hasMatch) return false;
+    }
+    
+    // Check occasion
+    if (marking.occasions && !marking.occasions.includes(occasion as any)) return false;
+    
+    return true;
+  });
+}
+
+// Select a random marking based on weights
+export function selectRandomMarking(
+  markings: CulturalMarking[],
+  seed: number = Math.random()
+): CulturalMarking | null {
+  if (markings.length === 0) return null;
+  
+  const totalWeight = markings.reduce((sum, marking) => sum + marking.weight, 0);
+  let random = seed * totalWeight;
+  
+  for (const marking of markings) {
+    random -= marking.weight;
+    if (random <= 0) {
+      return marking;
+    }
+  }
+  
+  return markings[markings.length - 1];
+}
+
+// Get a random pattern from a marking
+export function getRandomPattern(
+  marking: CulturalMarking,
+  seed: number = Math.random()
+): MarkingPattern | null {
+  if (marking.patterns.length === 0) return null;
+  const index = Math.floor(seed * marking.patterns.length);
+  return marking.patterns[index];
+}
+
+// Convert marking to appearance format for ProceduralPortrait
+export function convertToAppearanceMarking(
+  marking: CulturalMarking,
+  pattern: MarkingPattern
+): any {
+  // Get the primary location
+  const location = pattern.locations[0] || 'face';
+  
+  return {
+    type: marking.type === 'piercing' ? 'tattoo' : marking.type, // Piercings render as tattoos for now
+    location: location,
+    color: pattern.colors[0] || '#000000',
+    size: pattern.size,
+    pattern: pattern.pattern,
+    name: pattern.localName || pattern.name,
+    isPermanent: marking.isPermanent,
+    duration: marking.duration,
+    culturalSignificance: marking.culturalSignificance
+  };
+}
+
+// Get marking probability based on culture and context
+export function getMarkingProbability(
+  culturalZone: CulturalZone,
+  era?: HistoricalEra,
+  profession?: string
+): number {
+  // Base probabilities by culture
+  const baseProbabilities: Record<CulturalZone, number> = {
+    OCEANIA: 0.8,
+    NORTH_AMERICAN_PRE_COLUMBIAN: 0.7,
+    SUB_SAHARAN_AFRICAN: 0.65,
+    SOUTH_AMERICAN: 0.6,
+    SOUTH_ASIAN: 0.5,
+    MENA: 0.4,
+    EAST_ASIAN: 0.2,
+    EUROPEAN: 0.1,
+    NORTH_AMERICAN_COLONIAL: 0.05
+  };
+  
+  let probability = baseProbabilities[culturalZone] || 0.1;
+  
+  // Adjust for era
+  if (era === 'PREHISTORY' || era === 'ANTIQUITY') {
+    probability *= 1.5;
+  } else if (era === 'MODERN_ERA' || era === 'INDUSTRIAL_ERA') {
+    probability *= 0.3;
+  }
+  
+  // Adjust for profession
+  if (profession) {
+    const profLower = profession.toLowerCase();
+    if (profLower.includes('warrior') || profLower.includes('shaman') || 
+        profLower.includes('priest') || profLower.includes('chief')) {
+      probability *= 1.5;
+    } else if (profLower.includes('merchant') || profLower.includes('scholar')) {
+      probability *= 0.7;
+    }
+  }
+  
+  return Math.min(probability, 1.0);
+}

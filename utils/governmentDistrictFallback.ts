@@ -97,6 +97,30 @@ export function getEraAppropriateName(
         [HistoricalEra.INDUSTRIAL_ERA]: 'Viceroy\'s Palace',
         [HistoricalEra.MODERN_ERA]: 'Presidential Palace'
       },
+      SOUTH_AMERICAN: {
+        [HistoricalEra.PREHISTORY]: 'Tribal Council Hall',
+        [HistoricalEra.ANTIQUITY]: 'Temple-Palace Complex',
+        [HistoricalEra.MEDIEVAL]: 'Inca Kallanka',
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: 'Viceregal Palace',
+        [HistoricalEra.INDUSTRIAL_ERA]: 'Government Palace',
+        [HistoricalEra.MODERN_ERA]: 'Presidential Palace'
+      },
+      NORTH_AMERICAN_PRE_COLUMBIAN: {
+        [HistoricalEra.PREHISTORY]: 'Council Lodge',
+        [HistoricalEra.ANTIQUITY]: 'Great Lodge',
+        [HistoricalEra.MEDIEVAL]: 'Council Longhouse',
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: 'Council Hall',
+        [HistoricalEra.INDUSTRIAL_ERA]: 'Tribal Council Building',
+        [HistoricalEra.MODERN_ERA]: 'Tribal Government Center'
+      },
+      NORTH_AMERICAN_COLONIAL: {
+        [HistoricalEra.PREHISTORY]: 'Meeting House',
+        [HistoricalEra.ANTIQUITY]: 'Meeting House',
+        [HistoricalEra.MEDIEVAL]: 'Meeting House',
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: 'Colonial Assembly',
+        [HistoricalEra.INDUSTRIAL_ERA]: 'State Capitol',
+        [HistoricalEra.MODERN_ERA]: 'Government Building'
+      },
       NATIVE_AMERICAN: {
         [HistoricalEra.PREHISTORY]: 'Chief\'s Lodge',
         [HistoricalEra.ANTIQUITY]: 'Great Chief\'s Compound',
@@ -154,6 +178,30 @@ export function getEraAppropriateName(
         [HistoricalEra.RENAISSANCE_EARLY_MODERN]: 'Mughal Court',
         [HistoricalEra.INDUSTRIAL_ERA]: 'Legislative Council',
         [HistoricalEra.MODERN_ERA]: 'Parliament'
+      },
+      SOUTH_AMERICAN: {
+        [HistoricalEra.PREHISTORY]: 'Council Ground',
+        [HistoricalEra.ANTIQUITY]: 'Temple Council',
+        [HistoricalEra.MEDIEVAL]: 'Inca Kallanka',
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: 'Cabildo',
+        [HistoricalEra.INDUSTRIAL_ERA]: 'National Congress',
+        [HistoricalEra.MODERN_ERA]: 'Congress Building'
+      },
+      NORTH_AMERICAN_PRE_COLUMBIAN: {
+        [HistoricalEra.PREHISTORY]: 'Council Fire',
+        [HistoricalEra.ANTIQUITY]: 'Council Lodge',
+        [HistoricalEra.MEDIEVAL]: 'Grand Council',
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: 'Tribal Assembly',
+        [HistoricalEra.INDUSTRIAL_ERA]: 'Council House',
+        [HistoricalEra.MODERN_ERA]: 'Tribal Council'
+      },
+      NORTH_AMERICAN_COLONIAL: {
+        [HistoricalEra.PREHISTORY]: 'Town Meeting',
+        [HistoricalEra.ANTIQUITY]: 'Town Meeting',
+        [HistoricalEra.MEDIEVAL]: 'Town Meeting',
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: 'Colonial Assembly',
+        [HistoricalEra.INDUSTRIAL_ERA]: 'State Legislature',
+        [HistoricalEra.MODERN_ERA]: 'Capitol Building'
       },
       NATIVE_AMERICAN: {
         [HistoricalEra.PREHISTORY]: 'Council Lodge',

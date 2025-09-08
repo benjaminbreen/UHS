@@ -495,6 +495,7 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
         structureId: structure.id,
         structureName: governmentType?.name || building.name,
         climate: mapData.climate,  // Pass climate to avoid undefined
+        districtType: (structure as any).districtType || governmentType?.districtType,  // Use structure's districtType first!
       };
       onEnterSpecialMap(config);
       onClose();
@@ -802,6 +803,7 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
                         structureId: structure.id,
                         structureName: governmentType.name,
                         climate: mapData.climate,  // Pass climate to avoid undefined
+                        districtType: (structure as any).districtType || governmentType.districtType,  // Use structure's districtType first!
                       };
                       onEnterSpecialMap(config);
                       onClose();

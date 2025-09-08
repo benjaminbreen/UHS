@@ -1,8 +1,8 @@
 /**
  * components/PointOfInterestModal.tsx - A specialized modal for unique structures.
  */
-import React, { useMemo } from 'react';
-import { TerrainStructure, MapData, HistoricalEra, CulturalZone, NpcEntity, GameDate } from '../types';
+import React, { useMemo, useCallback } from 'react';
+import { TerrainStructure, MapData, HistoricalEra, CulturalZone, NpcEntity, GameDate, SpecialMapConfig, SimplifiedArchetype } from '../types';
 import { SOCIETAL_PROFILES, ITEM_DEFINITIONS, FACTION_DATA } from '../constants/index';
 import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
@@ -14,14 +14,16 @@ import HolySiteInteractions from './HolySiteInteractions';
 import { getReligiousEconomy, generateHolySiteTreasury, calculateHolySiteWealth } from '../constants/gameData/religiousEconomy';
 import { getClergyRoles } from '../constants/characterData/religionClergyRoles';
 import { getReligionDisplay, detectReligion } from '../constants/gameData/religionIcons';
+import { getHistoricalEra } from '../constants/gameData/historicalContext';
 
 interface PointOfInterestModalProps {
   structure: TerrainStructure;
   mapData: MapData;
   onClose: () => void;
+  onEnterSpecialMap?: (config: SpecialMapConfig) => void;
 }
 
-const PointOfInterestModal: React.FC<PointOfInterestModalProps> = ({ structure, mapData, onClose }) => {
+const PointOfInterestModal: React.FC<PointOfInterestModalProps> = ({ structure, mapData, onClose, onEnterSpecialMap }) => {
     const { npcs } = useMap();
     const { name, structureType, state, allegianceGroup, inputGoods, outputGoods, treasury } = structure;
 
@@ -268,6 +270,43 @@ const PointOfInterestModal: React.FC<PointOfInterestModalProps> = ({ structure, 
                         {/* Holy Site Interactions or Generic Actions */}
                         {structure.structureType === 'holy_site' ? (
                             <div className="mt-4">
+                                {/* Add Special Map Exploration Button */}
+                                {onEnterSpecialMap && (
+                                    <div className="mb-4 p-4 bg-gradient-to-r from-purple-900/30 to-indigo-900/30 rounded-lg border border-purple-600/30">
+                                        <h4 className="font-semibold text-lg text-purple-300 mb-3 flex items-center gap-2">
+                                            <span>🛐</span> Sacred Complex
+                                        </h4>
+                                        <button 
+                                            onClick={() => {
+                                                const config: SpecialMapConfig = {
+                                                    archetype: SimplifiedArchetype.SACRED_COMPLEX,
+                                                    culturalZone: culturalZone,
+                                                    era: era,
+                                                    region: mapData.region,
+                                                    mapSize: 'medium',
+                                                    structureId: structure.id,
+                                                    structureName: structure.name || 'Sacred Site',
+                                                    climate: mapData.climate,
+                                                    customData: {
+                                                        religion: religion?.name || 'Local Faith',
+                                                        deity: religion?.primaryDeity,
+                                                        yearBuilt: structure.customData?.yearBuilt || gameDate.year - Math.floor(Math.random() * 500),
+                                                        culturalDetails: structure.customData
+                                                    }
+                                                };
+                                                console.log('[PointOfInterestModal] Entering sacred complex with config:', config);
+                                                onEnterSpecialMap(config);
+                                                onClose();
+                                            }}
+                                            className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-lg transition-all shadow-lg hover:shadow-purple-500/25 font-bold flex items-center justify-center gap-2"
+                                        >
+                                            <span>🚪</span> Explore Sacred Complex
+                                        </button>
+                                        <p className="text-xs text-purple-200 text-center italic mt-2">
+                                            Enter the sacred interior to explore shrines, altars, and holy relics
+                                        </p>
+                                    </div>
+                                )}
                                 <HolySiteInteractions 
                                     structure={structure}
                                     religion={religion?.name || 'Local Faith'}

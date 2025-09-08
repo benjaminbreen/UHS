@@ -1,7 +1,7 @@
 /**
  * components/ModalHub.tsx - Centralized component for rendering all application modals.
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
 import { usePlayer } from '../contexts/PlayerContext';
@@ -23,7 +23,8 @@ import SettlementInfoModal from './SettlementInfoModal';
 import MiningModal from './MiningModal';
 import PointOfInterestModal from './PointOfInterestModal';
 import { InteractionModal } from './interiorMap';
-import { isNpc, isAnimal, NpcEntity } from '../types';
+import { isNpc, isAnimal } from '../types';
+import { NpcEntity } from '../types';
 import LootModal from './LootModal';
 import LevelUpModal from './LevelUpModal';
 import PortraitModal from './portraits/PortraitModal';
@@ -66,7 +67,7 @@ const ModalHub: React.FC = () => {
     } = useUI();
 
     const { 
-        mapDataCache, currentWorldCoords, initialGameSeed, handleSeedChangeFromSettings, mapData, npcs,
+        mapDataCache, currentWorldCoords, initialGameSeed, handleSeedChangeFromSettings, mapData, npcs, setNpcs,
         enterSpecialMap, exitSpecialMap, isSpecialMap
     } = useMap();
     
@@ -77,6 +78,13 @@ const ModalHub: React.FC = () => {
     } = usePlayer();
     
     const { gameDate, currentZone, currentRegion, gameTimeHours, season } = useGame();
+    
+    // Function to update a single NPC in the npcs array
+    const handleUpdateNpc = useCallback((updatedNpc: NpcEntity) => {
+        setNpcs(prevNpcs => prevNpcs.map(npc => 
+            npc.id === updatedNpc.id ? updatedNpc : npc
+        ));
+    }, [setNpcs]);
     
     // Add global keyboard shortcuts
     useEffect(() => {
@@ -123,6 +131,7 @@ const ModalHub: React.FC = () => {
                   handleCloseEncounter([]);
                   setInfoModalTarget(target);
                 }}
+                onUpdateNpc={handleUpdateNpc}
               />
             )}
             {combatant && playerCharacter && mapData && (
@@ -142,7 +151,7 @@ const ModalHub: React.FC = () => {
              {structureModalTarget && mapData && <TerrainStructureModal structure={structureModalTarget} mapData={mapData} npcs={npcs} onClose={() => setStructureModalTarget(null)} gameTimeHours={gameTimeHours} season={season} playerCharacter={playerCharacter} currentLocation={currentRegion} formattedDate={gameDate} onEnterSpecialMap={enterSpecialMap} />}
             {activeSettlementInfo && mapData && <SettlementInfoModal tile={activeSettlementInfo.tile} mapData={mapData} npcs={npcs} onClose={() => setActiveSettlementInfo(null)} gameTimeHours={gameTimeHours} season={season} playerCharacter={playerCharacter} />}
             {activeMiningModal && playerCharacter && <MiningModal structure={activeMiningModal} playerCharacter={playerCharacter} onClose={() => setActiveMiningModal(null)} onMine={() => {}} isMining={false} mineResult={null} />}
-            {activePoi && mapData && <PointOfInterestModal structure={activePoi} mapData={mapData} onClose={() => setActivePoi(null)} />}
+            {activePoi && mapData && <PointOfInterestModal structure={activePoi} mapData={mapData} onClose={() => setActivePoi(null)} onEnterSpecialMap={enterSpecialMap} />}
             {isCharacterProfileModalOpen && playerCharacter && (
               <CharacterProfileModal 
                   isOpen={isCharacterProfileModalOpen} 

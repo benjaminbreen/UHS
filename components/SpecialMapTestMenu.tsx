@@ -93,12 +93,13 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
   const { enterSpecialMap } = useMap();
   const { gameDate } = useGame();
   
-  const [selectedArchetype, setSelectedArchetype] = useState<SpecialMapArchetype>(SpecialMapArchetype.GOVERNMENT);
-  const [selectedZone, setSelectedZone] = useState<CulturalZone>('EUROPEAN' as CulturalZone);
+  const [selectedArchetype, setSelectedArchetype] = useState<SpecialMapArchetype>(SpecialMapArchetype.TRIBAL_COUNCIL);
+  const [selectedZone, setSelectedZone] = useState<CulturalZone>('NORTH_AMERICAN' as CulturalZone);
   const [selectedEra, setSelectedEra] = useState<HistoricalEra>('MEDIEVAL');
   const [selectedSize, setSelectedSize] = useState<'xs' | 'small' | 'medium' | 'large' | 'xl' | 'xxl'>('large');
   const [hasLandscape, setHasLandscape] = useState(true);
   const [showSymbolGrid, setShowSymbolGrid] = useState(false);
+  const [palaceVariant, setPalaceVariant] = useState<string>('');
   
   // State for cycling through variants
   const [symbolVariants, setSymbolVariants] = useState<Record<number, { zone: string; era: number }>>({});
@@ -106,6 +107,13 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
   if (!isOpen) return null;
   
   const archetypes = [
+    // NEW: Phase 2 Government Archetypes
+    { value: SpecialMapArchetype.TRIBAL_COUNCIL, label: '🔥 Tribal Council', description: 'Indigenous gathering spaces with fire pits' },
+    { value: SpecialMapArchetype.COURT_CHAMBER, label: '⚖️ Court Chamber', description: 'Legal courts with judge bench and gallery' },
+    { value: SpecialMapArchetype.TOWN_HALL, label: '🏛️ Town Hall', description: 'Municipal buildings with offices' },
+    { value: SpecialMapArchetype.ASSEMBLY_HALL, label: '🗳️ Assembly Hall', description: 'Parliamentary chambers with semicircular seating' },
+    { value: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, label: '🏢 Admin Complex', description: 'Bureaucratic offices and filing systems' },
+    
     // Primary archetypes (new simplified system)
     { value: SpecialMapArchetype.ESTATES, label: '🏛️ Estate', description: 'Palaces, villas, and noble residences' },
     { value: SpecialMapArchetype.GOVERNMENT, label: '⚖️ Government', description: 'Council chambers and forums' },
@@ -137,6 +145,30 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
   const historicalEras: HistoricalEra[] = [
     'PREHISTORY', 'ANTIQUITY', 'MEDIEVAL', 'RENAISSANCE_EARLY_MODERN',
     'INDUSTRIAL_ERA', 'MODERN_ERA'
+  ];
+  
+  // Palace variants for ESTATES archetype testing
+  const palaceVariants = [
+    { value: '', label: 'Default Estate' },
+    { value: 'royal_palace', label: '👑 Royal Palace' },
+    { value: 'throne_room', label: '🪑 Throne Room' },
+    { value: 'forum', label: '🏛️ Forum' },
+    { value: 'senate', label: '⚖️ Senate' },
+    { value: 'parliament', label: '🏛️ Parliament' },
+    { value: 'sacred_council', label: '⛪ Sacred Council' },
+    { value: 'royal_temple', label: '🛕 Royal Temple' },
+    { value: 'military_council', label: '⚔️ Military Council' },
+    { value: 'war_room', label: '🗡️ War Room' },
+    { value: 'fortress_command', label: '🏰 Fortress Command' },
+    { value: 'council', label: '🤝 Tribal Council' },
+    { value: 'elders_chamber', label: '👴 Elders Chamber' },
+    { value: 'chiefly_court', label: '🏺 Chiefly Court' },
+    { value: 'compound', label: '🏘️ Compound' },
+    { value: 'colonial_office', label: '🌍 Colonial Office' },
+    { value: 'administration', label: '📋 Administration' },
+    { value: 'merchant_hall', label: '🏪 Merchant Hall' },
+    { value: 'guild_palace', label: '⚒️ Guild Palace' },
+    { value: 'academy_senate', label: '🎓 Academy Senate' }
   ];
   
   // Determine default size based on archetype and era
@@ -183,14 +215,15 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
   };
   
   const handleEnterMap = () => {
-    const config: SpecialMapConfig = {
+    const config: SpecialMapConfig & { districtType?: string } = {
       archetype: selectedArchetype,
       culturalZone: selectedZone as CulturalZone,
       era: selectedEra,
       specificYear: gameDate.year,
       region: 'Test Region',
       mapSize: getDefaultSize(),
-      hasLandscape: hasLandscape
+      hasLandscape: hasLandscape,
+      ...(palaceVariant && { districtType: palaceVariant })
     };
     
     console.log('[SpecialMapTestMenu] handleEnterMap called with config:', config);
@@ -618,6 +651,27 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
                 </select>
               </div>
               
+              {/* Palace Variant Selection (only for ESTATES) */}
+              {selectedArchetype === SpecialMapArchetype.ESTATES && (
+                <div>
+                  <label className="block text-sm font-medium text-blue-300 mb-2">
+                    Palace Variant (ESTATES only)
+                  </label>
+                  <select
+                    value={palaceVariant}
+                    onChange={(e) => setPalaceVariant(e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg bg-black/30 border border-gray-600 text-white focus:border-blue-400 focus:outline-none"
+                  >
+                    {palaceVariants.map(variant => (
+                      <option key={variant.value} value={variant.value}>{variant.label}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Test specific palace layouts based on government type
+                  </p>
+                </div>
+              )}
+              
               {/* Map Size Selection */}
               <div>
                 <label className="block text-sm font-medium text-blue-300 mb-2">
@@ -679,6 +733,12 @@ const SpecialMapTestMenu: React.FC<SpecialMapTestMenuProps> = ({ isOpen, onClose
                     <span className="text-gray-400">Size:</span>
                     <span className="text-white">{getDefaultSize().toUpperCase()}</span>
                   </div>
+                  {palaceVariant && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Palace Type:</span>
+                      <span className="text-white">{palaceVariants.find(p => p.value === palaceVariant)?.label || palaceVariant}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-gray-400">Landscape:</span>
                     <span className="text-white">{hasLandscape ? 'Yes' : 'No'}</span>

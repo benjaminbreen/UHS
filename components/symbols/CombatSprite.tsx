@@ -54,7 +54,7 @@ const getDitheredColor = (baseColor: string, shadowColor: string, x: number, y: 
     return pattern > 0.3 ? shadowColor : baseColor;
 };
 
-// Enhanced Pixel component with lighting
+// Enhanced Pixel component with lighting and outline
 const Pixel: React.FC<{ 
     x: number; 
     y: number; 
@@ -64,7 +64,8 @@ const Pixel: React.FC<{
     enhanced?: boolean;
     dithered?: boolean;
     shadowColor?: string;
-}> = ({ x, y, color, w = 1, h = 1, enhanced = false, dithered = false, shadowColor }) => {
+    outline?: boolean;
+}> = ({ x, y, color, w = 1, h = 1, enhanced = false, dithered = false, shadowColor, outline = false }) => {
     let finalColor = color;
     
     if (enhanced) {
@@ -75,7 +76,20 @@ const Pixel: React.FC<{
         finalColor = getDitheredColor(finalColor, shadowColor, x, y);
     }
     
-    return <rect x={x} y={y} width={w} height={h} fill={finalColor} shapeRendering="crispEdges" />;
+    return (
+        <g>
+            {outline && (
+                <rect 
+                    x={x - 0.2} y={y - 0.2} 
+                    width={w + 0.4} height={h + 0.4} 
+                    fill="#1a1a1a" 
+                    opacity="0.8"
+                    shapeRendering="crispEdges" 
+                />
+            )}
+            <rect x={x} y={y} width={w} height={h} fill={finalColor} shapeRendering="crispEdges" />
+        </g>
+    );
 };
 
 // Weapon trail effects
@@ -434,6 +448,53 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
     const clothingHighlight = shadeColor(clothingColor, 15);
     const hairShadow = shadeColor(finalHairColor, -20);
     
+    // Enhanced body part rendering for more detail
+    const renderArm = (x: number, y: number, width: number, height: number, color: string, isWeaponArm: boolean = false) => {
+        const shoulderWidth = width * 1.2;
+        const elbowY = y + height * 0.5;
+        const wristY = y + height * 0.85;
+        
+        return (
+            <g className={isWeaponArm && animation === 'attacking' ? 'animate-sprite-arm-swing' : ''}>
+                {/* Upper arm with shoulder */}
+                <Pixel x={x} y={y} w={shoulderWidth} h={height * 0.5} color={color} enhanced />
+                <Pixel x={x + shoulderWidth * 0.2} y={y} w={shoulderWidth * 0.6} h={2} color={shadeColor(color, 15)} />
+                
+                {/* Elbow joint */}
+                <Pixel x={x + width * 0.1} y={elbowY} w={width * 0.8} h={2} color={shadeColor(color, -10)} />
+                
+                {/* Forearm */}
+                <Pixel x={x + width * 0.1} y={elbowY} w={width * 0.8} h={height * 0.35} color={color} enhanced />
+                
+                {/* Hand */}
+                <Pixel x={x + width * 0.2} y={wristY} w={width * 0.6} h={height * 0.15} color={skinColor} />
+            </g>
+        );
+    };
+    
+    const renderLeg = (x: number, y: number, width: number, height: number, primaryColor: string, bootColor: string) => {
+        const kneeY = y + height * 0.45;
+        const ankleY = y + height * 0.85;
+        
+        return (
+            <g>
+                {/* Thigh */}
+                <Pixel x={x} y={y} w={width} h={height * 0.45} color={primaryColor} enhanced />
+                <Pixel x={x + width * 0.1} y={y} w={width * 0.8} h={2} color={shadeColor(primaryColor, 10)} />
+                
+                {/* Knee */}
+                <Pixel x={x + width * 0.1} y={kneeY - 1} w={width * 0.8} h={3} color={shadeColor(primaryColor, -15)} />
+                
+                {/* Shin */}
+                <Pixel x={x + width * 0.1} y={kneeY + 2} w={width * 0.8} h={height * 0.4} color={primaryColor} enhanced />
+                
+                {/* Boot/Foot */}
+                <Pixel x={x - width * 0.1} y={ankleY} w={width * 1.2} h={height * 0.15} color={bootColor} />
+                <Pixel x={x - width * 0.2} y={ankleY + height * 0.12} w={width * 1.4} h={height * 0.08} color={shadeColor(bootColor, -20)} />
+            </g>
+        );
+    };
+
     const renderWeapon = (item: Item) => {
         const name = item.name.toLowerCase();
         const archetype = getItemArchetypeMax(item.baseId || name);
@@ -916,24 +977,40 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
 
     return (
         <svg viewBox="0 0 40 40" width="100%" height="100%" style={{ imageRendering: 'pixelated', overflow: 'visible' }}>
+            {/* SVG filters for better rendering */}
+            <defs>
+                <filter id="trail-glow">
+                    <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+                <filter id="sprite-outline" x="-20%" y="-20%" width="140%" height="140%">
+                    <feMorphology in="SourceAlpha" result="dilated" operator="dilate" radius="0.5"/>
+                    <feFlood floodColor="#1a1a1a" floodOpacity="0.8" result="outlineColor"/>
+                    <feComposite in="outlineColor" in2="dilated" operator="in" result="outline"/>
+                    <feMerge>
+                        <feMergeNode in="outline"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
             <g className={animationClass} style={{ transformOrigin: 'center bottom', '--direction': facing === 'left' ? -1 : 1 } as React.CSSProperties}>
-                <g style={{ transform: `scaleX(${facing === 'left' ? -1 : 1})`, transformOrigin: 'center' }}>
+                <g style={{ transform: `scaleX(${facing === 'left' ? -1 : 1})`, transformOrigin: 'center' }} filter="url(#sprite-outline)">
                     
                     {/* Shadow */}
                     <ellipse cx="20" cy="35" rx="7" ry="2" fill="rgba(0,0,0,0.3)" />
 
-                    {/* Back Arm */}
+                    {/* Back Arm with better detail */}
                     <g transform="translate(14, 15)">
                         {offHandItem && (offHandItem.name.toLowerCase().includes('shield') || getItemArchetypeMax(offHandItem.name)?.includes('SHIELD')) && renderShield()}
                     </g>
-                    <Pixel x={16} y={15} w={2} h={7} color={clothingShadow} />
-                    <Pixel x={16} y={22} w={2} h={3} color={skinShadow} />
+                    {renderArm(16, 15, 2.5, 8, clothingShadow, false)}
                     
-                    {/* Legs & Feet */}
-                    <Pixel x={17.5} y={24} w={2.5} h={legHeight} color={shadeColor(secondaryColor, -10)} />
-                    <Pixel x={20.5} y={24} w={2.5} h={legHeight} color={secondaryColor} />
-                    <Pixel x={17} y={24 + legHeight} w={3} h={2} color="#4a2c17" />
-                    <Pixel x={20.5} y={24 + legHeight} w={3} h={2} color="#38220f" />
+                    {/* Enhanced Legs with knee and boot detail */}
+                    {renderLeg(17.5, 24, 2.5, legHeight + 2, shadeColor(secondaryColor, -10), "#4a2c17")}
+                    {renderLeg(20.5, 24, 2.5, legHeight + 2, secondaryColor, "#38220f")}
 
                     {/* Torso & Clothing with Category System */}
                     {(() => {
@@ -1287,8 +1364,10 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
                             </g>
                         )}
 
-                        {/* Eye & Face */}
-                        <Pixel x={20 + headSize.w/2 - 2} y={15 - headSize.h + 2} color={eyeColor} w={1} />
+                        {/* Enhanced Eye & Face */}
+                        <Pixel x={20 + headSize.w/2 - 2} y={15 - headSize.h + 2} color="#ffffff" w={1.5} h={1} />
+                        <Pixel x={20 + headSize.w/2 - 1.7} y={15 - headSize.h + 2.1} color={eyeColor} w={1} h={0.8} />
+                        <Pixel x={20 + headSize.w/2 - 1.5} y={15 - headSize.h + 2.2} color="#000000" w={0.6} h={0.6} />
                         {isFemale && <Pixel x={20 + headSize.w/2 - 2} y={15 - headSize.h + 1.5} w={1.5} h={0.5} color="#27272a" />}
                         
                         {/* Facial Hair */}
@@ -1300,16 +1379,20 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
                         )}
 
                         {jewelry?.find(j => j.type === 'earrings') && (
-                            <Pixel x={20 - headSize.w/2} y={15 - headSize.h + 4} color={jewelry.find(j=>j.type==='earrings')?.material === 'gold' ? '#fcd34d' : '#e5e7eb'} />
+                            <g>
+                                <circle cx={20 - headSize.w/2 - 0.5} cy={15 - headSize.h + 4} r="0.8" 
+                                        fill={jewelry.find(j=>j.type==='earrings')?.material === 'gold' ? '#fcd34d' : '#e5e7eb'} />
+                                <circle cx={20 - headSize.w/2 - 0.5} cy={15 - headSize.h + 4} r="0.4" 
+                                        fill={jewelry.find(j=>j.type==='earrings')?.material === 'gold' ? '#fbbf24' : '#f3f4f6'} />
+                            </g>
                         )}
                     </g>
                     
-                    {/* Front Arm & Weapon */}
+                    {/* Enhanced Front Arm with weapon */}
                     <g className={animation === 'attacking' ? 'animate-sprite-arm-swing' : ''} style={{ transformOrigin: `${20}px 17px` }}>
                        <g transform={`translate(${animation === 'defending' && offHandItem ? -4 : 0}, 0)`}>
                           {animation === 'defending' && offHandItem?.name.toLowerCase().includes('shield') && renderShield()}
-                          <Pixel x={22} y={15} w={2.5} h={torsoHeight * 0.8} color={clothingColor} />
-                          <Pixel x={22} y={15 + torsoHeight * 0.8} w={2.5} h={torsoHeight * 0.3} color={skinColor} />
+                          {renderArm(22, 15, 2.5, torsoHeight, clothingColor, true)}
                           {mainHandItem && animation !== 'defending' && (
                             <g transform={`translate(23, ${15 + torsoHeight})`}>
                                 {renderWeapon(mainHandItem)}
@@ -1319,7 +1402,15 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
                     </g>
 
                     {jewelry?.find(j => j.type === 'necklace') && (
-                        <Pixel x={20 - 1} y={15} color={jewelry.find(j=>j.type==='necklace')?.material === 'gold' ? '#fcd34d' : '#e5e7eb'} w={2} />
+                        <g>
+                            <ellipse cx="20" cy="15.5" rx="3" ry="0.8" fill="none" 
+                                     stroke={jewelry.find(j=>j.type==='necklace')?.material === 'gold' ? '#fcd34d' : '#e5e7eb'} 
+                                     strokeWidth="0.5" />
+                            <circle cx="20" cy="16.5" r="1" 
+                                    fill={jewelry.find(j=>j.type==='necklace')?.material === 'gold' ? '#fcd34d' : '#e5e7eb'} />
+                            <circle cx="20" cy="16.5" r="0.5" 
+                                    fill={jewelry.find(j=>j.type==='necklace')?.material === 'gold' ? '#fbbf24' : '#f3f4f6'} />
+                        </g>
                     )}
                 </g>
             </g>

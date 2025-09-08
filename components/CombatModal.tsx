@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AnimalEntity, NpcEntity, PlayerCharacter, Item, CombatLogMessage, SkillID, StatusEffect, StatusEffectType, PlayerStats, EncounterableEntity, isAnimal, isNpc, MapData } from '../types';
 import { SKILL_DATA, ANIMAL_DATA } from '../constants/index';
 import { createItemInstance, addItemToInventory } from '../utils/inventoryUtils';
-import { generateCombatTalkResponse, generateCombatItemResponse, generateCombatSkillResponse, generateCombatLowHealthResponse } from '../services/llmService';
+import { generateCombatTalkResponse, generateCombatItemResponse, generateCombatSkillResponse, generateCombatLowHealthResponse, generateCombatStartResponse } from '../services/llmService';
 import { CombatSprite, AnimalCombatSprite } from './symbols';
 import { ProceduralPortrait } from './portraits';
 import { loadTamedAnimals, saveTamedAnimals, TamedAnimal } from '../services/animalTamingService';
+import { getAnimalTexts } from '../constants/gameData/animalTexts';
 
 interface CombatModalProps {
   combatant: EncounterableEntity;
@@ -59,11 +60,12 @@ const CombatModal: React.FC<CombatModalProps> = ({
   const [tamedAnimalHealth, setTamedAnimalHealth] = useState<Record<string, number>>({});
   const [tamedAnimalAnimation, setTamedAnimalAnimation] = useState<Record<string, string>>({});
   
-  const [activeMenu, setActiveMenu] = useState<'main' | 'skills' | 'items' | 'talk'>('main');
+  const [activeMenu, setActiveMenu] = useState<'main' | 'skills' | 'items' | 'talk' | 'itemAction'>('main');
   const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   
   const [playerAnimation, setPlayerAnimation] = useState<'idle' | 'attacking' | 'item' | 'damaged' | 'defending' | 'fleeing' | 'power_strike'>('idle');
-  const [opponentAnimation, setOpponentAnimation] = useState<'idle' | 'attacking' | 'damaged'>('idle');
+  const [opponentAnimation, setOpponentAnimation] = useState<'idle' | 'attacking' | 'damaged' | 'special'>('idle');
   const [screenShake, setScreenShake] = useState<{active: boolean, intensity: 'light' | 'medium' | 'heavy'}>({active: false, intensity: 'light'});
   const [specialAttackAnnouncement, setSpecialAttackAnnouncement] = useState<{text: string, visible: boolean}>({text: '', visible: false});
   const [enemyEnhancement, setEnemyEnhancement] = useState<{type: 'strong' | 'enraged' | 'elite' | null, announced: boolean}>({type: null, announced: false});
@@ -74,6 +76,13 @@ const CombatModal: React.FC<CombatModalProps> = ({
     if (typeof opp.health === 'number') return opp.health;
     if (opp.health && typeof opp.health === 'object' && 'current' in opp.health) return opp.health.current;
     return 0;
+  };
+
+  // Handle click anywhere to dismiss dialogue
+  const handleDismissDialogue = () => {
+    if (llmDialogue?.visible) {
+      setLlmDialogue(prev => prev ? { ...prev, visible: false } : null);
+    }
   };
   const [damageSplats, setDamageSplats] = useState<DamageSplat[]>([]);
   const [activeProjectiles, setActiveProjectiles] = useState<Array<{id: number, type: string, direction: 'left' | 'right'}>>([]);
@@ -136,6 +145,21 @@ const CombatModal: React.FC<CombatModalProps> = ({
     setTamedAnimalHealth(healthMap);
     setTamedAnimalAnimation(animationMap);
   }, []);
+  
+  // Show initial combat message for animals
+  useEffect(() => {
+    if (isAnimal(combatant)) {
+      const animalTexts = getAnimalTexts(combatant.name || combatant.speciesName || 'creature');
+      setLlmDialogue({ text: animalTexts.combatText, visible: true });
+      
+      // Auto-hide after 20 seconds
+      const timer = setTimeout(() => {
+        setLlmDialogue(prev => prev ? { ...prev, visible: false } : null);
+      }, 20000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [combatant]);
   
   // Save tamed animal health changes when combat ends
   useEffect(() => {
@@ -468,12 +492,30 @@ const CombatModal: React.FC<CombatModalProps> = ({
       }, 400);
   };
   
-  const calculateAttack = (attacker: PlayerCharacter | EncounterableEntity, defender: PlayerCharacter | EncounterableEntity, isPowerAttack: boolean = false) => {
+  const calculateAttack = (attacker: PlayerCharacter | EncounterableEntity, defender: PlayerCharacter | EncounterableEntity, damageMultiplier: number = 1.0, isPowerAttack: boolean = false) => {
     const isObserved = defender.statusEffects.some(e => e.type === 'observed');
     const isDefDown = defender.statusEffects.some(e => e.type === 'defense_down');
     const defenseBonus = isDefending && defender === playerCharacter ? 2 : 0;
 
-    const hitChance = isPowerAttack ? 0.7 : 0.9;
+    // Much more realistic hit chances - combat is difficult!
+    let baseHitChance = isPowerAttack ? 0.45 : 0.6; // Reduced from 0.7 and 0.9
+    
+    // Small, fast animals are even harder to hit
+    if (isAnimal(defender)) {
+      const baseId = defender.baseId;
+      if (['RABBIT', 'HARE', 'MOUSE', 'RAT', 'SQUIRREL', 'FERRET'].includes(baseId)) {
+        baseHitChance -= 0.25; // Very hard to hit small creatures
+      } else if (['DEER', 'FOX', 'CAT', 'SNAKE', 'LIZARD'].includes(baseId)) {
+        baseHitChance -= 0.15; // Fast/agile creatures
+      } else if (['BEAR', 'ELEPHANT', 'RHINO', 'HIPPO'].includes(baseId)) {
+        baseHitChance += 0.1; // Large, easier targets
+      }
+    }
+    
+    // Apply skill bonuses
+    const attackerSkill = attacker.stats.skill || 0;
+    const hitChance = Math.min(0.85, Math.max(0.15, baseHitChance + (attackerSkill * 0.02)));
+    
     if (Math.random() > hitChance) return { hit: false, crit: false, damage: 0, text: "Miss!" };
 
     const isCrit = Math.random() < 0.05 + (attacker.stats.luck || 5) * 0.01 + (isObserved ? 0.25 : 0);
@@ -482,7 +524,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
     let baseDamage = isPowerAttack ? attacker.stats.attack * 1.5 : (2 + Math.floor(Math.random() * 4) + attacker.stats.attack);
     const effectiveDefense = Math.max(0, defender.stats.defense + defenseBonus - (isDefDown ? 5 : 0));
     const damage = Math.max(1, baseDamage * (1 + (Math.random() - 0.2)) - effectiveDefense);
-    const finalDamage = Math.floor(damage * critMultiplier);
+    const finalDamage = Math.floor(damage * critMultiplier * damageMultiplier);
 
     return { hit: true, crit: isCrit, damage: finalDamage, text: finalDamage.toString() };
   };
@@ -547,10 +589,12 @@ const CombatModal: React.FC<CombatModalProps> = ({
       'large herbivore': {name: 'Crushing Charge', multiplier: 2.5, effect: 'knockdown'},
       'bird': {name: 'Diving Strike', multiplier: 1.8, effect: 'critical'},
       'venomous': {name: 'Venom Injection', multiplier: 1.2, effect: 'poison'},
-      'aquatic': {name: 'Death Roll', multiplier: 2.0, effect: 'bleeding'}
+      'aquatic': {name: 'Death Roll', multiplier: 2.0, effect: 'bleeding'},
+      'kangaroo': {name: 'Devastating Kick', multiplier: 2.8, effect: 'knockdown'}
     };
     
-    const specialAttack = useSpecialAttack ? specialAttacks[animalType] : null;
+    const speciesName = currentAnimal.name?.toLowerCase() || currentAnimal.speciesName?.toLowerCase() || '';
+    const specialAttack = useSpecialAttack ? (specialAttacks[speciesName] || specialAttacks[animalType]) : null;
     
     if (specialAttack) {
       // Special attack
@@ -618,13 +662,188 @@ const CombatModal: React.FC<CombatModalProps> = ({
     }, 600);
   };
   
+  // Calculate NPC morale and flee decision
+  const calculateNPCMorale = (): { shouldFlee: boolean, fleeChance: number } => {
+    if (isAnimal(opponent)) return { shouldFlee: false, fleeChance: 0 };
+    
+    const healthPercent = (getOpponentHealth(opponent) / (opponent.maxHealth || 100)) * 100;
+    const opponentLevel = opponent.stats?.level || 1;
+    const playerLevel = playerCharacter.stats?.level || 1;
+    
+    // Base flee chance factors
+    let fleeChance = 0;
+    
+    // Health factor (0-40% contribution)
+    if (healthPercent < 20) fleeChance += 0.4;
+    else if (healthPercent < 40) fleeChance += 0.2;
+    else if (healthPercent < 60) fleeChance += 0.1;
+    
+    // Round factor (0-20% contribution) - longer fights increase flee chance
+    if (round >= 5) fleeChance += 0.2;
+    else if (round >= 4) fleeChance += 0.15;
+    else if (round >= 3) fleeChance += 0.1;
+    
+    // Level difference factor (0-20% contribution)
+    const levelDiff = playerLevel - opponentLevel;
+    if (levelDiff >= 3) fleeChance += 0.2;
+    else if (levelDiff >= 1) fleeChance += 0.1;
+    else if (levelDiff <= -2) fleeChance -= 0.1; // Stronger NPCs less likely to flee
+    
+    // Personality factors (±30% modification)
+    const backstory = opponent.backstory?.toLowerCase() || '';
+    const role = opponent.role?.toLowerCase() || '';
+    
+    // Brave personalities reduce flee chance
+    if (backstory.includes('brave') || backstory.includes('fearless') || 
+        backstory.includes('veteran') || backstory.includes('warrior')) {
+      fleeChance -= 0.2;
+    }
+    if (role.includes('guard') || role.includes('soldier') || role.includes('knight')) {
+      fleeChance -= 0.15;
+    }
+    
+    // Cowardly personalities increase flee chance
+    if (backstory.includes('timid') || backstory.includes('nervous') || 
+        backstory.includes('peaceful') || backstory.includes('gentle')) {
+      fleeChance += 0.2;
+    }
+    if (role.includes('merchant') || role.includes('scholar') || role.includes('priest')) {
+      fleeChance += 0.1;
+    }
+    
+    // Status effects
+    if (opponent.statusEffects.some(e => e.type === 'intimidated')) fleeChance += 0.2;
+    if (opponent.statusEffects.some(e => e.type === 'bleeding')) fleeChance += 0.1;
+    if (opponent.statusEffects.some(e => e.type === 'burn')) fleeChance += 0.1;
+    
+    // Clamp between 0 and 0.8 (max 80% flee chance)
+    fleeChance = Math.max(0, Math.min(0.8, fleeChance));
+    
+    // Only consider fleeing after round 2 and if health is below 70%
+    const shouldConsiderFleeing = round >= 3 || healthPercent < 70;
+    const shouldFlee = shouldConsiderFleeing && Math.random() < fleeChance;
+    
+    return { shouldFlee, fleeChance };
+  };
+
   const startOpponentTurn = () => {
+      // Check if opponent is stunned first
+      const isStunned = opponent.statusEffects.some(e => e.type === 'stunned');
+      if (isStunned) {
+        addLog(`${opponentName} is stunned and cannot act!`, 'system');
+        setOpponent(prev => ({
+          ...prev,
+          statusEffects: prev.statusEffects.map(e => 
+            e.type === 'stunned' ? { ...e, duration: e.duration - 1 } : e
+          ).filter(e => e.duration > 0)
+        }));
+        setTimeout(() => {
+          startPlayerTurn();
+        }, 1000);
+        return;
+      }
+
       // Process status effects at start of opponent turn
       processStatusEffects(opponent, false);
       
       // Check if opponent is at low health and hasn't shown dialogue yet
       const currentHealth = getOpponentHealth(opponent);
       checkAndTriggerLowHealthDialogue(currentHealth);
+      
+      // Check morale and flee decision for NPCs
+      if (!isAnimal(opponent)) {
+        const { shouldFlee, fleeChance } = calculateNPCMorale();
+        
+        if (shouldFlee) {
+          addLog(`${opponentName} looks for an escape route...`, 'system');
+          setTimeout(() => {
+            addLog(`${opponentName} flees the battle!`, 'system');
+            setOpponentAnimation('damaged');
+            addDamageSplat('FLED!', 'miss', 'opponent');
+            
+            // Generate fleeing dialogue
+            if (!isAnimal(opponent)) {
+              const fleeReasons = [
+                "I can't win this fight!",
+                "This isn't worth dying for!",
+                "I yield! Please, let me go!",
+                "I must survive... for my family!",
+                "You're too strong! I surrender!"
+              ];
+              const dialogue = fleeReasons[Math.floor(Math.random() * fleeReasons.length)];
+              setLlmDialogue({ text: dialogue, visible: true });
+            }
+            
+            setTimeout(() => {
+              setCombatEnded(true);
+              setVictoryState('fled');
+              addLog(`You are victorious as ${opponentName} escapes.`, 'system');
+              setTimeout(() => {
+                onClose();
+              }, 1500);
+            }, 1000);
+          }, 800);
+          return;
+        }
+      }
+      
+      // Check flee behavior for animals
+      if (isAnimal(opponent)) {
+        const baseId = opponent.baseId;
+        const healthPercent = (getOpponentHealth(opponent) / (opponent.maxHealth || 100)) * 100;
+        let fleeChance = 0;
+        
+        // Prey animals have high flee chance, especially on first turn
+        const preyAnimals = ['DEER', 'RABBIT', 'HARE', 'MOUSE', 'RAT', 'SQUIRREL', 'SHEEP', 'GOAT'];
+        const skittishAnimals = ['FOX', 'CAT', 'RACCOON', 'OPOSSUM'];
+        const aggressiveAnimals = ['BEAR', 'LION', 'TIGER', 'WOLF', 'BOAR', 'CROCODILE', 'SNAKE'];
+        
+        if (preyAnimals.includes(baseId)) {
+          // Prey animals almost always try to flee immediately
+          fleeChance = round === 1 ? 0.85 : 0.6;
+          if (healthPercent < 50) fleeChance = 0.95;
+        } else if (skittishAnimals.includes(baseId)) {
+          // Skittish animals often flee
+          fleeChance = round === 1 ? 0.5 : 0.3;
+          if (healthPercent < 40) fleeChance = 0.8;
+        } else if (aggressiveAnimals.includes(baseId)) {
+          // Aggressive animals rarely flee unless badly hurt
+          fleeChance = healthPercent < 20 ? 0.3 : 0.05;
+        } else {
+          // Default animals
+          fleeChance = healthPercent < 30 ? 0.4 : 0.15;
+        }
+        
+        // Apply flee decision
+        if (Math.random() < fleeChance) {
+          const fleeDescriptions = {
+            'DEER': 'The deer bounds away in terror!',
+            'RABBIT': 'The rabbit zigzags away at lightning speed!',
+            'HARE': 'The hare leaps away in great bounds!',
+            'MOUSE': 'The mouse scurries into the undergrowth!',
+            'FOX': 'The fox darts away into the shadows!',
+            'CAT': 'The cat springs away and disappears!',
+            'BEAR': 'The wounded bear lumbers away!',
+            'WOLF': 'The wolf retreats with a final snarl!',
+            'SNAKE': 'The snake slithers away into hiding!'
+          };
+          
+          const fleeText = fleeDescriptions[baseId] || `The ${opponentName.toLowerCase()} flees!`;
+          addLog(fleeText, 'system');
+          setOpponentAnimation('damaged');
+          addDamageSplat('FLED!', 'miss', 'opponent');
+          
+          setTimeout(() => {
+            setCombatEnded(true);
+            setVictoryState('fled');
+            addLog(`The ${opponentName.toLowerCase()} has escaped.`, 'system');
+            setTimeout(() => {
+              onClose();
+            }, 1500);
+          }, 1000);
+          return;
+        }
+      }
       
       // Decide target - 30% chance to target a tamed animal if any are alive
       const aliveTamedAnimals = tamedAnimals.filter(animal => tamedAnimalHealth[animal.id] > 0);
@@ -671,10 +890,38 @@ const CombatModal: React.FC<CombatModalProps> = ({
               }, 600);
           }, 600);
       } else {
-          addLog(flavorText || `${opponentName} attacks!`, 'opponent');
+          // Check for animal special attacks against player
+          let isSpecialAttack = false;
+          let specialAttackData = null;
+          
+          if (isAnimal(opponent)) {
+              const level = opponent.stats?.level || opponent.level || 1;
+              const speciesName = opponent.name?.toLowerCase() || opponent.speciesName?.toLowerCase() || '';
+              const animalType = opponent.type?.toLowerCase() || '';
+              
+              // 30% chance for level 3+ animals
+              if (level >= 3 && Math.random() < 0.3) {
+                  const specialAttacks: Record<string, {name: string, multiplier: number, effect?: string}> = {
+                      'predator': {name: 'Pounce Strike', multiplier: 2.0, effect: 'stun'},
+                      'large herbivore': {name: 'Crushing Charge', multiplier: 2.5, effect: 'knockdown'},
+                      'kangaroo': {name: 'Devastating Kick', multiplier: 2.8, effect: 'knockdown'}
+                  };
+                  
+                  specialAttackData = specialAttacks[speciesName] || specialAttacks[animalType];
+                  isSpecialAttack = !!specialAttackData;
+              }
+          }
+          
+          if (isSpecialAttack && specialAttackData) {
+              setOpponentAnimation('special');
+              addLog(`${opponentName} uses ${specialAttackData.name}!`, 'opponent');
+              showSpecialAttackAnnouncement(specialAttackData.name);
+          } else {
+              addLog(flavorText || `${opponentName} attacks!`, 'opponent');
+          }
 
           setTimeout(() => {
-              const result = calculateAttack(opponent, playerCharacter);
+              const result = calculateAttack(opponent, playerCharacter, isSpecialAttack ? specialAttackData.multiplier : 1.0);
               
               if (result.hit) {
                   setPlayerAnimation('damaged');
@@ -803,7 +1050,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
         setPlayerAnimation('attacking');
         addLog('You attack!', 'player');
         setTimeout(() => {
-            const result = calculateAttack(playerCharacter, opponent);
+            const result = calculateAttack(playerCharacter, opponent, 1.0);
             if (result.hit) {
                 const newHealth = Math.max(0, getOpponentHealth(opponent) - result.damage);
                 setOpponent(prev => ({...prev, health: newHealth}));
@@ -812,6 +1059,21 @@ const CombatModal: React.FC<CombatModalProps> = ({
                 
                 if (result.crit) {
                   setCombatStats(prev => ({ ...prev, criticalHits: prev.criticalHits + 1 }));
+                  
+                  // Apply stun on critical hit
+                  const stunDuration = Math.floor(Math.random() * 2) + 1; // 1-2 turns
+                  const stunEffect: StatusEffect = {
+                    type: 'stunned',
+                    duration: stunDuration,
+                    appliedBy: 'player'
+                  };
+                  
+                  setOpponent(prev => ({
+                    ...prev,
+                    statusEffects: [...(prev.statusEffects || []), stunEffect]
+                  }));
+                  
+                  addLog(`Critical hit! ${opponentName} is stunned for ${stunDuration} turn${stunDuration > 1 ? 's' : ''}!`, 'system');
                 }
                 triggerScreenShake(result.damage, result.crit);
                 
@@ -1053,7 +1315,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
     switch (skillId) {
       case 'POWER_STRIKE':
         setTimeout(() => {
-          const result = calculateAttack(playerCharacter, opponent, true);
+          const result = calculateAttack(playerCharacter, opponent, 1.0, true);
           if (result.hit) {
             setOpponent(prev => ({...prev, health: Math.max(0, (prev.health || 0) - result.damage)}));
             setOpponentAnimation('damaged');
@@ -1144,14 +1406,14 @@ const CombatModal: React.FC<CombatModalProps> = ({
 
       case 'BURN':
         setTimeout(() => {
-          const damage = 25 + playerCharacter.stats.intelligence * 2;
-          const applyBurn = Math.random() < 0.7; // 70% chance to apply burn status
+          const damage = 15 + playerCharacter.stats.intelligence;
+          const applyBurn = Math.random() < 0.6; // 60% chance to apply burn status
 
           const newHealth = Math.max(0, getOpponentHealth(opponent) - damage);
           setOpponent(prev => {
             let newStatusEffects = [...prev.statusEffects];
             if (applyBurn) {
-              newStatusEffects.push({ type: 'burn', duration: 3, potency: 15 });
+              newStatusEffects.push({ type: 'burn', duration: 3, potency: 10 });
             }
             return { ...prev, health: newHealth, statusEffects: newStatusEffects };
           });
@@ -1161,7 +1423,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
 
           setOpponentAnimation('damaged');
           addDamageSplat(damage.toString(), 'damage', 'opponent');
-          addLog(`You scorch the opponent for ${damage} damage.` + (applyBurn ? ' It is now burning!' : ''), 'player');
+          addLog(`You burn the opponent for ${damage} damage.` + (applyBurn ? ' They catch fire!' : ''), 'player');
           setCombatStats(prev => ({ ...prev, playerDamageDealt: prev.playerDamageDealt + damage }));
           
           // Generate NPC dialogue reaction to burn skill
@@ -1177,6 +1439,54 @@ const CombatModal: React.FC<CombatModalProps> = ({
               }
             }).catch(error => {
               console.warn('Failed to generate burn skill dialogue:', error);
+            });
+          }
+          
+          setTimeout(() => {
+            setPlayerAnimation('idle');
+            setOpponentAnimation('idle');
+            if (getOpponentHealth(opponent) - damage <= 0) {
+              const victoryText = getCombatFlavorText('victory', isAnimal(opponent), isAnimal(opponent) ? opponent.baseId : undefined);
+              addLog(victoryText || `${opponentName} is defeated!`, 'system');
+              setTimeout(() => onVictory(opponent), 1000);
+            } else {
+              endPlayerTurn();
+            }
+          }, 500);
+        }, 600);
+        break;
+
+      case 'THRUST':
+        setTimeout(() => {
+          const hasPointedWeapon = playerCharacter.equippedItems.main_hand?.name.toLowerCase().includes('sword') || 
+                                  playerCharacter.equippedItems.main_hand?.name.toLowerCase().includes('spear') ||
+                                  playerCharacter.equippedItems.main_hand?.name.toLowerCase().includes('dagger');
+          const baseDamage = 8 + (hasPointedWeapon ? 4 : 0);
+          const damage = Math.max(1, baseDamage + Math.floor(playerCharacter.stats.dexterity / 2) - opponent.stats.defense);
+          
+          setOpponent(prev => ({
+            ...prev,
+            health: Math.max(0, getOpponentHealth(prev) - damage)
+          }));
+
+          setOpponentAnimation('damaged');
+          addDamageSplat(damage.toString(), 'damage', 'opponent');
+          addLog(`Your precise thrust deals ${damage} damage.`, 'player');
+          setCombatStats(prev => ({ ...prev, playerDamageDealt: prev.playerDamageDealt + damage }));
+          
+          // Generate NPC dialogue reaction to thrust skill
+          if (!isAnimal(opponent)) {
+            generateCombatSkillResponse(
+              playerCharacter,
+              opponent,
+              'THRUST',
+              'piercing damage'
+            ).then(response => {
+              if (response.dialogue) {
+                setLlmDialogue({ text: response.dialogue, visible: true });
+              }
+            }).catch(error => {
+              console.warn('Failed to generate thrust skill dialogue:', error);
             });
           }
           
@@ -1452,6 +1762,46 @@ const CombatModal: React.FC<CombatModalProps> = ({
     }, 600);
   };
   
+  const handleItemSelection = (item: Item) => {
+    setSelectedItem(item);
+    setActiveMenu('itemAction');
+    setSelectedCommandIndex(0);
+  };
+
+  const handleItemThrow = async (item: Item) => {
+    if (!isPlayerTurn || isResolving) return;
+    setIsResolving(true);
+    addLog(`You throw ${item.name} at ${opponent.name}.`, 'player');
+    onUseCombatItem(item);
+    
+    setPlayerAnimation('attack');
+    
+    // Calculate throw damage based on item weight and player stats
+    const throwDamage = Math.max(1, Math.floor((item.weight || 1) + playerCharacter.attack / 3));
+    const finalDamage = Math.max(1, throwDamage - opponent.stats.defense);
+    
+    // Throwing has lower accuracy than melee attacks
+    const hitChance = 0.65;
+    const hits = Math.random() < hitChance;
+    
+    if (hits) {
+      setOpponent(prev => {
+        const currentHealth = typeof prev.health === 'number' ? prev.health : (prev.health?.current || 0);
+        return { ...prev, health: Math.max(0, currentHealth - finalDamage) };
+      });
+      setOpponentAnimation('damaged');
+      addDamageSplat(finalDamage.toString(), 'damage', 'opponent');
+      addLog(`Your thrown ${item.name} hits for ${finalDamage} damage!`, 'player');
+    } else {
+      addLog(`Your thrown ${item.name} misses!`, 'player');
+    }
+    
+    setTimeout(() => {
+        setPlayerAnimation('idle');
+        endPlayerTurn();
+    }, 800);
+  };
+
   const handleItemUse = async (item: Item) => {
     if (!isPlayerTurn || isResolving) return;
     setIsResolving(true);
@@ -1560,8 +1910,16 @@ const CombatModal: React.FC<CombatModalProps> = ({
     } else if (activeMenu === 'items') {
         commands = menuCommands.items;
         const usableItems = inventory.filter(item => item.category === 'Consumable' || item.sustenance);
-        commandHandlers = [...usableItems.map(item => () => handleItemUse(item)), () => setActiveMenu('main')];
+        commandHandlers = [...usableItems.map(item => () => handleItemSelection(item)), () => setActiveMenu('main')];
         commandAvailability = [...usableItems.map(() => true), true];
+    } else if (activeMenu === 'itemAction' && selectedItem) {
+        commands = ['Use', 'Throw', 'Back'];
+        commandHandlers = [
+            () => { handleItemUse(selectedItem); setActiveMenu('main'); setSelectedItem(null); },
+            () => { handleItemThrow(selectedItem); setActiveMenu('main'); setSelectedItem(null); },
+            () => { setActiveMenu('main'); setSelectedItem(null); setSelectedCommandIndex(0); }
+        ];
+        commandAvailability = [true, true, true];
     }
 
     const itemsPerRow = 3;
@@ -1571,7 +1929,21 @@ const CombatModal: React.FC<CombatModalProps> = ({
     const pointerLeft = `${0.5 + pointerCol * (100 / itemsPerRow)}%`; 
 
     return (
-      <div className="combat-command-grid">
+      <>
+        {activeMenu === 'itemAction' && selectedItem && (
+          <div style={{
+            color: '#e5e5e5',
+            fontSize: '14px',
+            textAlign: 'center',
+            marginBottom: '8px',
+            padding: '4px',
+            background: 'rgba(0, 0, 0, 0.3)',
+            borderRadius: '4px'
+          }}>
+            {selectedItem.name}
+          </div>
+        )}
+        <div className="combat-command-grid">
           <div className="ff-pointer" style={{ top: pointerTop, left: pointerLeft }} />
           {commands.length > 0 ? commands.map((cmd, index) => {
              const isAvailable = commandAvailability[index] !== false;
@@ -1594,7 +1966,8 @@ const CombatModal: React.FC<CombatModalProps> = ({
           }) : (
             <div className="col-span-3 text-center text-gray-400 text-sm p-4">No usable items.</div>
           )}
-      </div>
+        </div>
+      </>
     );
   };
 
@@ -1616,6 +1989,28 @@ const CombatModal: React.FC<CombatModalProps> = ({
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const currentBiome = useMemo(() => getCurrentBiome(), [mapData, playerCharacter.x, playerCharacter.y]);
 
+  // Generate combat start dialogue when combat begins
+  useEffect(() => {
+    const generateStartDialogue = async () => {
+      // Only trigger for NPCs, and add a slight delay to ensure component is ready
+      if (!isAnimal(opponent)) {
+        try {
+          const response = await generateCombatStartResponse(playerCharacter, opponent);
+          if (response.dialogue) {
+            // Add a short delay to ensure the dialogue appears
+            setTimeout(() => {
+              setLlmDialogue({ text: response.dialogue, visible: true });
+            }, 500);
+          }
+        } catch (error) {
+          console.warn('Failed to generate combat start dialogue:', error);
+        }
+      }
+    };
+    
+    generateStartDialogue();
+  }, []); // Only run once when component mounts
+
   // Check for biome background image
   useEffect(() => {
     const checkBackgroundImage = async () => {
@@ -1635,12 +2030,14 @@ const CombatModal: React.FC<CombatModalProps> = ({
   }, [currentBiome]);
 
   return (
-    <div ref={wrapperRef} className={`combat-modal-wrapper ${screenShake.active ? `animate-screen-shake-${screenShake.intensity}` : ''} ${backgroundImage ? 'has-background' : ''}`} 
+    <div ref={wrapperRef} 
+         className={`combat-modal-wrapper ${screenShake.active ? `animate-screen-shake-${screenShake.intensity}` : ''} ${backgroundImage ? 'has-background' : ''}`} 
          style={backgroundImage ? { 
            backgroundImage: `url(${backgroundImage})`,
            backgroundSize: 'cover',
            backgroundPosition: 'center'
-         } : {}}>
+         } : {}}
+         onClick={handleDismissDialogue}>
         <div className="combat-screen-fx-wrapper">
             {/* Combat Stage */}
             <div className="combat-stage-platform"></div>
@@ -1654,7 +2051,24 @@ const CombatModal: React.FC<CombatModalProps> = ({
             
             {/* LLM Dialogue */}
             {llmDialogue?.visible && (
-                <div className="ff6-npc-dialogue animate-popIn">
+                <div className="ff6-npc-dialogue animate-popIn" style={{
+                    position: 'absolute',
+                    top: '10%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    zIndex: 1000,
+                    background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
+                    border: '3px solid #4a90e2',
+                    borderRadius: '12px',
+                    padding: '16px 24px',
+                    maxWidth: '80%',
+                    textAlign: 'center',
+                    fontSize: '16px',
+                    color: '#ffffff',
+                    fontFamily: 'monospace',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                    cursor: 'pointer'
+                }}>
                     {llmDialogue.text}
                 </div>
             )}
@@ -1683,8 +2097,42 @@ const CombatModal: React.FC<CombatModalProps> = ({
             <div className="combat-scene-elevated">
                 <div className="combatant-sprite-wrapper player-side" style={{ display: 'flex', alignItems: 'flex-end', gap: '10px' }}>
                     <div className={`sprite-with-effects ${playerCharacter.statusEffects.map(e => `has-${e.type}`).join(' ')}`} style={{ position: 'relative' }}>
+                        {/* Player health bar */}
+                        <div className="floating-health-bar player-health" style={{
+                            position: 'absolute',
+                            top: '-25px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            width: '60px',
+                            height: '8px',
+                            background: 'rgba(0,0,0,0.7)',
+                            borderRadius: '4px',
+                            border: '1px solid #ffffff',
+                            overflow: 'hidden'
+                        }}>
+                            <div style={{
+                                width: `${Math.max(0, playerHealthPercent)}%`,
+                                height: '100%',
+                                background: playerHealthPercent > 50 ? '#10b981' : playerHealthPercent > 20 ? '#f59e0b' : '#ef4444',
+                                transition: 'all 0.3s ease'
+                            }} />
+                        </div>
                         {playerCharacter.health > 0 && (
-                          <CombatSprite character={playerCharacter} animation={playerAnimation as any} facing="right" />
+                          <>
+                            <CombatSprite character={playerCharacter} animation={playerAnimation as any} facing="right" />
+                            {/* Character shadow */}
+                            <div style={{
+                              position: 'absolute',
+                              bottom: '-8px',
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              width: '50px',
+                              height: '12px',
+                              background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.3) 50%, transparent 70%)',
+                              borderRadius: '50%',
+                              zIndex: -1
+                            }} />
+                          </>
                         )}
                         {/* Status effect overlays for player */}
                         {playerCharacter.statusEffects.map(effect => (
@@ -1739,15 +2187,50 @@ const CombatModal: React.FC<CombatModalProps> = ({
                 
                 <div className="combatant-sprite-wrapper opponent-side">
                     <div className={`sprite-with-effects ${opponent.statusEffects.map(e => `has-${e.type}`).join(' ')} ${enemyEnhancement.type ? `enhanced-${enemyEnhancement.type}` : ''}`} style={{ position: 'relative' }}>
+                        {/* Opponent health bar */}
+                        <div className="floating-health-bar opponent-health" style={{
+                            position: 'absolute',
+                            top: '-25px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            width: '60px',
+                            height: '8px',
+                            background: 'rgba(0,0,0,0.7)',
+                            borderRadius: '4px',
+                            border: '1px solid #ffffff',
+                            overflow: 'hidden'
+                        }}>
+                            <div style={{
+                                width: `${Math.max(0, opponentHealthPercent)}%`,
+                                height: '100%',
+                                background: opponentHealthPercent > 50 ? '#10b981' : opponentHealthPercent > 20 ? '#f59e0b' : '#ef4444',
+                                transition: 'all 0.3s ease'
+                            }} />
+                        </div>
                         {getOpponentHealth(opponent) > 0 && (
-                            isAnimal(opponent)
-                                ? <AnimalCombatSprite 
-                                    animal={opponent} 
-                                    animation={opponentAnimation as any}
-                                    size={getAnimalSize(opponent)}
-                                    facing="left"
-                                  />
-                                : <CombatSprite character={opponent} animation={opponentAnimation as any} facing="left" />
+                            <>
+                                {isAnimal(opponent)
+                                    ? <AnimalCombatSprite 
+                                        animal={opponent} 
+                                        animation={opponentAnimation as any}
+                                        size={getAnimalSize(opponent)}
+                                        facing="left"
+                                      />
+                                    : <CombatSprite character={opponent} animation={opponentAnimation as any} facing="left" />
+                                }
+                                {/* Character shadow */}
+                                <div style={{
+                                  position: 'absolute',
+                                  bottom: '-8px',
+                                  left: '50%',
+                                  transform: 'translateX(-50%)',
+                                  width: '50px',
+                                  height: '12px',
+                                  background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.3) 50%, transparent 70%)',
+                                  borderRadius: '50%',
+                                  zIndex: -1
+                                }} />
+                            </>
                         )}
                         {/* Status effect overlays for opponent */}
                         {opponent.statusEffects.map(effect => (
@@ -1784,6 +2267,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
             </div>
             
             {/* Combat Stats Badge */}
+            <div className="combat-stats-badge-wrapper">
             <div className="combat-stats-badge" style={{
                 position: 'absolute',
                 top: '20px',
@@ -1810,6 +2294,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
                     <span>🕐</span>
                     <span>TURN: {combatStats.turnCount}</span>
                 </div>
+            </div>
             </div>
             
             {/* Enhanced Player Info Panel with External Portrait */}
@@ -1943,11 +2428,35 @@ const CombatModal: React.FC<CombatModalProps> = ({
                     </div>
                 </div>
                 <div className="portrait-frame">
-                    {isNpc(opponent) && (
+                    {isNpc(opponent) ? (
                         <ProceduralPortrait
                             character={opponent}
                             size={120}
                         />
+                    ) : isAnimal(opponent) ? (
+                        <div style={{
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '64px',
+                            background: 'linear-gradient(145deg, #2d3748, #1a202c)'
+                        }}>
+                            {ANIMAL_DATA[opponent.baseId]?.emoji || '🐾'}
+                        </div>
+                    ) : (
+                        <div style={{
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '64px',
+                            background: 'linear-gradient(145deg, #2d3748, #1a202c)'
+                        }}>
+                            ❓
+                        </div>
                     )}
                 </div>
             </div>
@@ -1998,13 +2507,14 @@ const CombatModal: React.FC<CombatModalProps> = ({
           /* Elevated Combat Scene */
           .combat-scene-elevated {
             position: absolute;
-            bottom: 32%;
-            left: 25%;
-            right: 25%;
-            height: 200px;
+            bottom: 28%;
+            left: 10%;
+            right: 10%;
+            height: 280px;
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
+            padding: 0 60px;
           }
 
           .combatant-sprite-wrapper {
@@ -2014,11 +2524,15 @@ const CombatModal: React.FC<CombatModalProps> = ({
           }
 
           .player-side {
-            margin-left: 10%;
+            margin-left: 40px;
+            transform: scale(1.8);
+            transform-origin: bottom center;
           }
 
           .opponent-side {
-            margin-right: 10%;
+            margin-right: 40px;
+            transform: scale(1.8);
+            transform-origin: bottom center;
           }
 
           .opponent-damage-container {
@@ -2107,6 +2621,31 @@ const CombatModal: React.FC<CombatModalProps> = ({
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+          }
+          
+          /* Mobile text sizing */
+          @media (max-width: 768px) {
+            .character-name {
+              font-size: 9px;
+            }
+          }
+          
+          /* Mobile combat stats badge positioning */
+          .combat-stats-badge-wrapper {
+            position: relative;
+          }
+          
+          @media (max-width: 768px) {
+            .combat-stats-badge-wrapper .combat-stats-badge {
+              position: fixed !important;
+              top: 10px !important;
+              right: 10px !important;
+              font-size: 8px !important;
+              padding: 6px 8px !important;
+              min-width: 100px !important;
+              border-radius: 6px !important;
+              z-index: 1001 !important;
+            }
           }
 
           .player-name {
@@ -2199,8 +2738,8 @@ const CombatModal: React.FC<CombatModalProps> = ({
             bottom: 200px;
             left: 50%;
             transform: translateX(-50%);
-            width: 600px;
-            height: 120px;
+            width: 800px;
+            height: 160px;
             background: linear-gradient(145deg, #0f1419, #1a2332);
             border: 3px solid #60a5fa;
             border-radius: 8px;
@@ -2217,9 +2756,9 @@ const CombatModal: React.FC<CombatModalProps> = ({
           }
 
           .ff6-log-entry {
-            font-size: 10px;
-            margin-bottom: 3px;
-            line-height: 1.4;
+            font-size: 12px;
+            margin-bottom: 4px;
+            line-height: 1.5;
             text-shadow: 1px 1px 1px rgba(0,0,0,0.8);
           }
 
@@ -2335,6 +2874,35 @@ const CombatModal: React.FC<CombatModalProps> = ({
               0 0 15px rgba(251, 191, 36, 0.6);
           }
 
+          .combat-command-button.ready-flash {
+            background: linear-gradient(145deg, #1e40af, #3b82f6);
+            border: 2px solid #60a5fa;
+            box-shadow: 
+              inset 0 2px 6px rgba(255,255,255,0.3),
+              inset 0 -2px 6px rgba(0,0,0,0.2),
+              0 3px 8px rgba(0,0,0,0.4),
+              0 0 20px rgba(96, 165, 250, 0.8);
+            animation: selectedPulse 1.5s ease-in-out infinite;
+          }
+
+          @keyframes selectedPulse {
+            0% { box-shadow: 
+              inset 0 2px 6px rgba(255,255,255,0.3),
+              inset 0 -2px 6px rgba(0,0,0,0.2),
+              0 3px 8px rgba(0,0,0,0.4),
+              0 0 20px rgba(96, 165, 250, 0.8); }
+            50% { box-shadow: 
+              inset 0 2px 6px rgba(255,255,255,0.4),
+              inset 0 -2px 6px rgba(0,0,0,0.3),
+              0 5px 12px rgba(0,0,0,0.5),
+              0 0 30px rgba(96, 165, 250, 1.0); }
+            100% { box-shadow: 
+              inset 0 2px 6px rgba(255,255,255,0.3),
+              inset 0 -2px 6px rgba(0,0,0,0.2),
+              0 3px 8px rgba(0,0,0,0.4),
+              0 0 20px rgba(96, 165, 250, 0.8); }
+          }
+
           /* FF6-Style Dialogue */
           .ff6-dialogue-container {
             position: absolute;
@@ -2392,6 +2960,25 @@ const CombatModal: React.FC<CombatModalProps> = ({
               0 2px 4px rgba(0,0,0,0.3),
               0 0 8px rgba(96, 165, 250, 0.2);
           }
+          
+          /* Mobile talk interface improvements */
+          @media (max-width: 768px) {
+            .ff6-input-field {
+              font-size: 12px;
+              padding: 12px;
+              min-height: 44px;
+              border-radius: 6px;
+              -webkit-appearance: none;
+            }
+            
+            .ff6-talk-button {
+              font-size: 11px;
+              padding: 12px 20px;
+              min-height: 44px;
+              border-radius: 6px;
+              -webkit-tap-highlight-color: rgba(96, 165, 250, 0.3);
+            }
+          }
 
           .ff6-npc-dialogue {
             position: absolute;
@@ -2421,11 +3008,11 @@ const CombatModal: React.FC<CombatModalProps> = ({
           }
           
           @keyframes attackSequence {
-            0% { transform: translateX(0) translateY(0) scale(1); }
-            25% { transform: translateX(40px) translateY(-8px) scale(1.05); }
-            50% { transform: translateX(60px) translateY(-5px) scale(1.1) rotate(15deg); }
-            75% { transform: translateX(50px) translateY(-2px) scale(1.05) rotate(-5deg); }
-            100% { transform: translateX(0) translateY(0) scale(1) rotate(0deg); }
+            0% { transform: translateX(0) translateY(0) scale(1.8); }
+            25% { transform: translateX(40px) translateY(-8px) scale(1.89); }
+            50% { transform: translateX(60px) translateY(-5px) scale(1.98) rotate(15deg); }
+            75% { transform: translateX(50px) translateY(-2px) scale(1.89) rotate(-5deg); }
+            100% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); }
           }
           
           /* Power Strike Animation */
@@ -2434,12 +3021,12 @@ const CombatModal: React.FC<CombatModalProps> = ({
           }
           
           @keyframes powerStrikeSequence {
-            0% { transform: translateX(0) translateY(0) scale(1); }
-            15% { transform: translateX(30px) translateY(-50px) scale(1.1); }
-            30% { transform: translateX(50px) translateY(-80px) scale(1.2); }
-            50% { transform: translateX(70px) translateY(-20px) scale(1.3) rotate(25deg); filter: drop-shadow(0 0 20px #fbbf24); }
-            70% { transform: translateX(55px) translateY(5px) scale(1.1) rotate(-10deg); }
-            100% { transform: translateX(0) translateY(0) scale(1) rotate(0deg); filter: none; }
+            0% { transform: translateX(0) translateY(0) scale(1.8); }
+            15% { transform: translateX(30px) translateY(-50px) scale(1.98); }
+            30% { transform: translateX(50px) translateY(-80px) scale(2.16); }
+            50% { transform: translateX(70px) translateY(-20px) scale(2.34) rotate(25deg); filter: drop-shadow(0 0 20px #fbbf24); }
+            70% { transform: translateX(55px) translateY(5px) scale(1.98) rotate(-10deg); }
+            100% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); filter: none; }
           }
           
           /* Apply animations to sprite based on animation state */
@@ -2454,11 +3041,11 @@ const CombatModal: React.FC<CombatModalProps> = ({
           }
 
           @keyframes opponentAttackSequence {
-            0% { transform: translateX(0) translateY(0) scale(1); }
-            25% { transform: translateX(-40px) translateY(-8px) scale(1.05); }
-            50% { transform: translateX(-60px) translateY(-5px) scale(1.1) rotate(-15deg); }
-            75% { transform: translateX(-50px) translateY(-2px) scale(1.05) rotate(5deg); }
-            100% { transform: translateX(0) translateY(0) scale(1) rotate(0deg); }
+            0% { transform: translateX(0) translateY(0) scale(1.8); }
+            25% { transform: translateX(-40px) translateY(-8px) scale(1.89); }
+            50% { transform: translateX(-60px) translateY(-5px) scale(1.98) rotate(-15deg); }
+            75% { transform: translateX(-50px) translateY(-2px) scale(1.89) rotate(5deg); }
+            100% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); }
           }
           
           /* Damage Animation */
@@ -2467,11 +3054,11 @@ const CombatModal: React.FC<CombatModalProps> = ({
           }
           
           @keyframes damageRecoil {
-            0% { transform: translateX(0) scale(1); filter: brightness(1); }
-            25% { transform: translateX(-15px) scale(0.9); filter: brightness(1.5) hue-rotate(0deg); }
-            50% { transform: translateX(-25px) scale(0.85); filter: brightness(2) hue-rotate(45deg); }
-            75% { transform: translateX(-10px) scale(0.95); filter: brightness(1.2) hue-rotate(0deg); }
-            100% { transform: translateX(0) scale(1); filter: brightness(1); }
+            0% { transform: translateX(0) scale(1.8); filter: brightness(1); }
+            25% { transform: translateX(-15px) scale(1.62); filter: brightness(1.5) hue-rotate(0deg); }
+            50% { transform: translateX(-25px) scale(1.53); filter: brightness(2) hue-rotate(45deg); }
+            75% { transform: translateX(-10px) scale(1.71); filter: brightness(1.2) hue-rotate(0deg); }
+            100% { transform: translateX(0) scale(1.8); filter: brightness(1); }
           }
           
           /* Defend Animation */
@@ -2480,13 +3067,13 @@ const CombatModal: React.FC<CombatModalProps> = ({
           }
           
           @keyframes defendStance {
-            0% { transform: scale(1); filter: brightness(1); }
-            100% { transform: scale(0.9); filter: brightness(1.2) drop-shadow(0 0 10px rgba(59, 130, 246, 0.6)); }
+            0% { transform: scale(1.8); filter: brightness(1); }
+            100% { transform: scale(1.62); filter: brightness(1.2) drop-shadow(0 0 10px rgba(59, 130, 246, 0.6)); }
           }
           
           @keyframes defendBob {
-            0%, 100% { transform: scale(0.9) translateY(0); }
-            50% { transform: scale(0.9) translateY(-3px); }
+            0%, 100% { transform: scale(1.62) translateY(0); }
+            50% { transform: scale(1.62) translateY(-3px); }
           }
           
           /* Enhanced Damage Splats with better effects */
@@ -2709,6 +3296,37 @@ const CombatModal: React.FC<CombatModalProps> = ({
             filter: drop-shadow(0 0 8px #fbbf24);
           }
 
+          /* Enhancement glow effects for powerful enemies */
+          .sprite-with-effects.enhanced-enraged {
+            filter: drop-shadow(0 0 12px #dc2626) drop-shadow(0 0 20px #dc2626);
+            animation: enragedPulse 1.5s ease-in-out infinite;
+          }
+          
+          .sprite-with-effects.enhanced-strong {
+            filter: drop-shadow(0 0 10px #f59e0b) drop-shadow(0 0 18px #f59e0b);
+            animation: strongPulse 2s ease-in-out infinite;
+          }
+          
+          .sprite-with-effects.enhanced-elite {
+            filter: drop-shadow(0 0 12px #a855f7) drop-shadow(0 0 20px #a855f7);
+            animation: elitePulse 1.8s ease-in-out infinite;
+          }
+          
+          @keyframes enragedPulse {
+            0%, 100% { filter: drop-shadow(0 0 12px #dc2626) drop-shadow(0 0 20px #dc2626); opacity: 1; }
+            50% { filter: drop-shadow(0 0 18px #dc2626) drop-shadow(0 0 30px #dc2626); opacity: 0.9; }
+          }
+          
+          @keyframes strongPulse {
+            0%, 100% { filter: drop-shadow(0 0 10px #f59e0b) drop-shadow(0 0 18px #f59e0b); opacity: 1; }
+            50% { filter: drop-shadow(0 0 15px #f59e0b) drop-shadow(0 0 25px #f59e0b); opacity: 0.95; }
+          }
+          
+          @keyframes elitePulse {
+            0%, 100% { filter: drop-shadow(0 0 12px #a855f7) drop-shadow(0 0 20px #a855f7); opacity: 1; }
+            50% { filter: drop-shadow(0 0 18px #a855f7) drop-shadow(0 0 28px #a855f7); opacity: 0.95; }
+          }
+
           .status-overlay {
             position: absolute;
             top: 0;
@@ -2780,6 +3398,89 @@ const CombatModal: React.FC<CombatModalProps> = ({
           @keyframes stunnedSpin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+          }
+
+          /* Idle breathing animation */
+          @keyframes idleBreathing {
+            0%, 100% { 
+              transform: scaleY(1) translateY(0); 
+            }
+            25% { 
+              transform: scaleY(1.02) translateY(-1px); 
+            }
+            50% { 
+              transform: scaleY(1.01) translateY(-2px); 
+            }
+            75% { 
+              transform: scaleY(1.02) translateY(-1px); 
+            }
+          }
+
+          .animate-sprite-idle-bob {
+            animation: idleBreathing 3s ease-in-out infinite;
+            transform-origin: bottom center;
+          }
+
+          /* Subtle animal idle - just breathing, no jumping */
+          @keyframes animalIdle {
+            0%, 100% { 
+              transform: scaleY(1); 
+            }
+            50% { 
+              transform: scaleY(1.01); 
+            }
+          }
+
+          .animate-animal-idle {
+            animation: animalIdle 4s ease-in-out infinite;
+            transform-origin: bottom center;
+          }
+
+          /* Specific animal animations */
+          @keyframes chickenBob {
+            0%, 100% { transform: translateY(0); }
+            25% { transform: translateY(-2px); }
+            50% { transform: translateY(0); }
+            75% { transform: translateY(-1px); }
+          }
+
+          .animate-chicken-bob {
+            animation: chickenBob 1.5s ease-in-out infinite;
+          }
+
+          @keyframes peck {
+            0% { transform: translateX(0) scale(1.8) rotate(0deg); }
+            50% { transform: translateX(5px) scale(1.8) rotate(10deg); }
+            100% { transform: translateX(0) scale(1.8) rotate(0deg); }
+          }
+
+          .animate-peck {
+            animation: peck 0.4s ease-in-out;
+            transform-origin: center;
+          }
+
+          @keyframes primateAttack {
+            0% { transform: translateX(0) translateY(0) scale(1.8); }
+            25% { transform: translateX(10px) translateY(-5px) scale(1.8) rotate(5deg); }
+            50% { transform: translateX(15px) translateY(-3px) scale(1.8) rotate(-5deg); }
+            100% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); }
+          }
+
+          .animate-primate-attack {
+            animation: primateAttack 0.6s ease-in-out;
+            transform-origin: bottom center;
+          }
+
+          @keyframes pounce {
+            0% { transform: translateX(0) translateY(0) scale(1.8); }
+            30% { transform: translateX(20px) translateY(-10px) scale(1.98); }
+            60% { transform: translateX(35px) translateY(-5px) scale(1.89); }
+            100% { transform: translateX(0) translateY(0) scale(1.8); }
+          }
+
+          .animate-pounce {
+            animation: pounce 0.7s ease-in-out;
+            transform-origin: center;
           }
 
           /* Tamed Animals Formation */

@@ -937,13 +937,11 @@ export function isGuardType(npc: NpcEntity): boolean {
   ];
   
   if (!npc.profession) {
-    console.log(`[isGuardType] NPC ${npc.name} has no profession`);
     return false;
   }
   
   const professionLower = npc.profession.toLowerCase();
   const isGuard = guardProfessions.some(prof => professionLower.includes(prof));
-  console.log(`[isGuardType] ${npc.name} (${npc.profession}): ${isGuard ? 'IS' : 'NOT'} a guard`);
   return isGuard;
 }
 

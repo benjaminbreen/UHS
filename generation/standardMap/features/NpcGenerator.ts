@@ -11,6 +11,252 @@ import { mapLocationToCulture } from '../../../utils/mapUtils';
 import { generateNpcFamilyAndLifeEvents, findNpcFriends } from '../../../services/socialService';
 import { createItemInstance } from '../../../utils/inventoryUtils';
 import { detectCitiesForArea } from '../../../utils/cityDetectionUtils';
+import { generateCulturalAccessory } from '../../../services/culturalAccessoryService';
+
+/**
+ * Generate historically appropriate legs/trousers equipment
+ */
+function generateLegsEquipment(era: HistoricalEra | undefined, culturalZone: CulturalZone, role: string, isWealthy: boolean, equippedItems: any, colorHex?: string) {
+    let legsChance = 0.60; // Base 60% chance for legs coverage
+    
+    // Era-based adjustments
+    if (era === 'MEDIEVAL' || era === 'RENAISSANCE_EARLY_MODERN' || era === 'INDUSTRIAL' || era === 'MODERN') {
+        legsChance = 0.80; // Higher chance in later eras
+    }
+    
+    // Cultural adjustments
+    if (culturalZone === 'EUROPEAN' || culturalZone === 'EAST_ASIAN') {
+        legsChance += 0.15; // More leg covering in these cultures
+    } else if (culturalZone === 'MENA') {
+        legsChance += 0.10; // Loose trousers common
+    } else if (culturalZone === 'OCEANIA' || culturalZone === 'SUB_SAHARAN_AFRICAN') {
+        legsChance -= 0.20; // Less leg covering in tropical climates
+    }
+    
+    // Role adjustments
+    const roleLower = role.toLowerCase();
+    if (roleLower.includes('soldier') || roleLower.includes('guard') || roleLower.includes('knight')) {
+        legsChance += 0.25; // Military needs leg protection
+    } else if (roleLower.includes('merchant') || roleLower.includes('noble')) {
+        legsChance += 0.15; // Status roles more likely to have full dress
+    } else if (roleLower.includes('farmer') || roleLower.includes('peasant')) {
+        legsChance += 0.10; // Working clothes include trousers
+    }
+    
+    if (Math.random() < Math.min(legsChance, 0.95)) {
+        let legsId = 'SIMPLE_TROUSERS';
+        
+        if (isWealthy) {
+            const wealthyLegs = ['SILK_TROUSERS', 'FINE_BREECHES', 'NOBLE_LEGGINGS', 'VELVET_PANTS'];
+            legsId = wealthyLegs[Math.floor(Math.random() * wealthyLegs.length)];
+        } else if (roleLower.includes('soldier') || roleLower.includes('guard')) {
+            const militaryLegs = ['CHAINMAIL_LEGGINGS', 'LEATHER_GREAVES', 'PADDED_LEGGINGS'];
+            legsId = militaryLegs[Math.floor(Math.random() * militaryLegs.length)];
+        } else if (culturalZone === 'MENA') {
+            legsId = 'LOOSE_TROUSERS';
+        } else if (culturalZone === 'EAST_ASIAN') {
+            legsId = 'SILK_TROUSERS';
+        }
+        
+        const legsItem = createItemInstance(legsId);
+        if (legsItem) {
+            equippedItems.legs = legsItem;
+        }
+    }
+}
+
+/**
+ * Generate profession-appropriate cloaks
+ */
+function generateCloakEquipment(era: HistoricalEra | undefined, culturalZone: CulturalZone, role: string, isWealthy: boolean, equippedItems: any, colorHex?: string) {
+    let cloakChance = 0.25; // Base 25% chance
+    
+    // Era adjustments - cloaks more common in earlier eras
+    if (era === 'MEDIEVAL' || era === 'ANTIQUITY') {
+        cloakChance = 0.50;
+    } else if (era === 'RENAISSANCE_EARLY_MODERN') {
+        cloakChance = 0.35;
+    }
+    
+    // Cultural adjustments
+    if (culturalZone === 'EUROPEAN') {
+        cloakChance += 0.20; // Cloaks very common in medieval Europe
+    } else if (culturalZone === 'MENA') {
+        cloakChance += 0.15; // Desert robes and cloaks common
+    } else if (culturalZone === 'OCEANIA' || culturalZone === 'SUB_SAHARAN_AFRICAN') {
+        cloakChance -= 0.10; // Less need in warm climates
+    }
+    
+    // Role adjustments
+    const roleLower = role.toLowerCase();
+    if (roleLower.includes('noble') || roleLower.includes('lord') || roleLower.includes('lady')) {
+        cloakChance += 0.30; // Nobles love cloaks for status
+    } else if (roleLower.includes('priest') || roleLower.includes('monk') || roleLower.includes('cleric')) {
+        cloakChance += 0.25; // Religious robes/cloaks
+    } else if (roleLower.includes('merchant') || roleLower.includes('traveler')) {
+        cloakChance += 0.20; // Travel cloaks
+    } else if (roleLower.includes('wizard') || roleLower.includes('scholar')) {
+        cloakChance += 0.25; // Academic robes
+    } else if (roleLower.includes('guard') || roleLower.includes('soldier')) {
+        cloakChance += 0.15; // Military cloaks
+    }
+    
+    if (Math.random() < Math.min(cloakChance, 0.90)) {
+        let cloakId = 'SIMPLE_CLOAK';
+        
+        if (isWealthy) {
+            const wealthyCloaks = ['SILK_CLOAK', 'VELVET_CLOAK', 'FUR_CLOAK', 'NOBLE_CAPE'];
+            cloakId = wealthyCloaks[Math.floor(Math.random() * wealthyCloaks.length)];
+        } else if (roleLower.includes('priest') || roleLower.includes('monk')) {
+            const religiousCloaks = ['MONK_ROBE', 'PRIEST_VESTMENTS', 'SIMPLE_HABIT'];
+            cloakId = religiousCloaks[Math.floor(Math.random() * religiousCloaks.length)];
+        } else if (roleLower.includes('noble')) {
+            const nobleCloaks = ['NOBLE_CAPE', 'HERALDIC_CLOAK', 'COURT_MANTLE'];
+            cloakId = nobleCloaks[Math.floor(Math.random() * nobleCloaks.length)];
+        } else if (culturalZone === 'MENA') {
+            cloakId = 'DESERT_ROBE';
+        }
+        
+        const cloakItem = createItemInstance(cloakId);
+        if (cloakItem) {
+            equippedItems.cloak = cloakItem;
+        }
+    }
+}
+
+/**
+ * Generate profession-appropriate offhand items
+ */
+function generateOffhandEquipment(era: HistoricalEra | undefined, culturalZone: CulturalZone, role: string, isWealthy: boolean, equippedItems: any) {
+    let offhandChance = 0.15; // Base 15% chance
+    
+    const roleLower = role.toLowerCase();
+    
+    // High chance for specific professions that need offhand items
+    if (roleLower.includes('guard') || roleLower.includes('soldier') || roleLower.includes('knight')) {
+        offhandChance = 0.70; // Military almost always has shields
+    } else if (roleLower.includes('scholar') || roleLower.includes('scribe') || roleLower.includes('clerk')) {
+        offhandChance = 0.60; // Scholars carry books/scrolls
+    } else if (roleLower.includes('priest') || roleLower.includes('cleric') || roleLower.includes('monk')) {
+        offhandChance = 0.50; // Religious symbols/books
+    } else if (roleLower.includes('merchant') || roleLower.includes('trader')) {
+        offhandChance = 0.40; // Ledgers, scales, samples
+    } else if (roleLower.includes('noble') || roleLower.includes('lord')) {
+        offhandChance = 0.35; // Status symbols
+    } else if (roleLower.includes('farmer') || roleLower.includes('peasant')) {
+        offhandChance = 0.25; // Tools, baskets
+    }
+    
+    if (Math.random() < offhandChance) {
+        let offhandId = 'WOODEN_SHIELD';
+        
+        if (roleLower.includes('guard') || roleLower.includes('soldier')) {
+            const militaryOffhand = ['IRON_SHIELD', 'WOODEN_SHIELD', 'BUCKLER', 'KITE_SHIELD'];
+            offhandId = militaryOffhand[Math.floor(Math.random() * militaryOffhand.length)];
+        } else if (roleLower.includes('knight')) {
+            const knightOffhand = ['HERALDIC_SHIELD', 'STEEL_SHIELD', 'KITE_SHIELD'];
+            offhandId = knightOffhand[Math.floor(Math.random() * knightOffhand.length)];
+        } else if (roleLower.includes('scholar') || roleLower.includes('scribe')) {
+            const scholarOffhand = ['SCROLL_CASE', 'LEATHER_TOME', 'WRITING_SLATE'];
+            offhandId = scholarOffhand[Math.floor(Math.random() * scholarOffhand.length)];
+        } else if (roleLower.includes('priest') || roleLower.includes('cleric')) {
+            const religiousOffhand = ['HOLY_SYMBOL', 'PRAYER_BOOK', 'CEREMONIAL_CHALICE'];
+            offhandId = religiousOffhand[Math.floor(Math.random() * religiousOffhand.length)];
+        } else if (roleLower.includes('merchant')) {
+            const merchantOffhand = ['MERCHANT_LEDGER', 'COIN_PURSE', 'SAMPLE_CASE'];
+            offhandId = merchantOffhand[Math.floor(Math.random() * merchantOffhand.length)];
+        } else if (roleLower.includes('noble')) {
+            const nobleOffhand = ['IVORY_FAN', 'SILK_HANDKERCHIEF', 'JEWELED_GOBLET'];
+            offhandId = nobleOffhand[Math.floor(Math.random() * nobleOffhand.length)];
+        } else if (roleLower.includes('farmer')) {
+            const farmerOffhand = ['WICKER_BASKET', 'SEED_POUCH', 'WATER_GOURD'];
+            offhandId = farmerOffhand[Math.floor(Math.random() * farmerOffhand.length)];
+        }
+        
+        const offhandItem = createItemInstance(offhandId);
+        if (offhandItem) {
+            equippedItems.off_hand = offhandItem;
+        }
+    }
+}
+
+/**
+ * Calculate accessory chance based on cultural universality
+ */
+function calculateAccessoryChance(culturalZone: CulturalZone, era: HistoricalEra | undefined, role: string): number {
+    // Base chance varies by culture - some cultures have universal tattoo/marking traditions
+    let baseChance = 0.30; // Default 30%
+    
+    // Cultures with near-universal tattoo/marking traditions
+    if (culturalZone === 'OCEANIA') {
+        baseChance = 1.0; // Everyone in Polynesian/Maori culture has tattoos
+    } else if (culturalZone === 'NORTH_AMERICAN_PRE_COLUMBIAN') {
+        baseChance = 0.85; // Very common tattoos and face paint
+    } else if (culturalZone === 'SUB_SAHARAN_AFRICAN') {
+        baseChance = 0.80; // Scarification, tattoos, and ornaments very common
+    } else if (culturalZone === 'SOUTH_AMERICAN') {
+        baseChance = 0.75; // Body modifications common in many cultures
+    } else if (culturalZone === 'SOUTH_ASIAN') {
+        baseChance = 0.70; // Bindis, nose rings, henna very common especially for women
+    } else if (culturalZone === 'MENA') {
+        baseChance = 0.60; // Kohl, henna, tattoos common
+    } else if (culturalZone === 'EAST_ASIAN') {
+        baseChance = 0.45; // Hair ornaments, some cultural markings
+    } else if (culturalZone === 'EUROPEAN') {
+        baseChance = 0.35; // Lower base rate, more jewelry than markings
+    }
+    
+    // Role modifiers
+    const roleLower = role.toLowerCase();
+    if (roleLower.includes('shaman') || roleLower.includes('priest') || roleLower.includes('healer')) {
+        baseChance += 0.20; // Religious/spiritual roles more likely to have markings
+    } else if (roleLower.includes('warrior') || roleLower.includes('hunter')) {
+        baseChance += 0.15; // Warriors often have tattoos/war paint
+    } else if (roleLower.includes('noble') || roleLower.includes('chief')) {
+        baseChance += 0.10; // High status individuals more likely to have ornate accessories
+    }
+    
+    // Era modifiers
+    if (era === 'PREHISTORIC') {
+        baseChance += 0.10; // More body modification in prehistoric times
+    }
+    
+    return Math.min(baseChance, 0.98); // Cap at 98%
+}
+
+/**
+ * Add a quality adjective to amulet/jewelry names based on privilege level
+ */
+function addQualityAdjective(itemName: string, privilege: number): string {
+    // Skip if name already has an adjective
+    if (itemName.toLowerCase().includes('legendary') || 
+        itemName.toLowerCase().includes('ornate') ||
+        itemName.toLowerCase().includes('polished') ||
+        itemName.toLowerCase().includes('beautiful')) {
+        return itemName;
+    }
+    
+    const qualityAdjectives = {
+        poor: ['Battered', 'Worn', 'Simple', 'Crude', 'Plain', 'Humble', 'Weathered'],
+        common: ['Well-made', 'Sturdy', 'Decent', 'Solid', 'Reliable', 'Functional'],
+        wealthy: ['Fine', 'Polished', 'Elegant', 'Beautiful', 'Ornate', 'Exquisite', 'Masterful'],
+        legendary: ['Legendary', 'Ancient', 'Sacred', 'Blessed', 'Magnificent', 'Divine']
+    };
+    
+    let adjectives: string[];
+    if (privilege < 0.2) {
+        adjectives = qualityAdjectives.poor;
+    } else if (privilege < 0.6) {
+        adjectives = qualityAdjectives.common;
+    } else if (privilege < 0.9) {
+        adjectives = qualityAdjectives.wealthy;
+    } else {
+        adjectives = qualityAdjectives.legendary;
+    }
+    
+    const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    return `${randomAdjective} ${itemName}`;
+}
 import { factoryEconomyService } from '../../../services/factoryEconomyService';
 import { factoryNpcBehaviorService } from '../../../services/factoryNpcBehaviors';
 import { getFactoryType } from '../../../constants/gameData/factoryTypes';
@@ -300,6 +546,32 @@ function createNpc(
         createAndEquip('belt', appearance.belt, appearance.palette?.accent);
         createAndEquip('amulet', appearance.accessory, appearance.palette?.accent);
         
+        // Generate historically appropriate legs/trousers
+        generateLegsEquipment(context.era, context.culturalZone, role, isWealthy, newEquippedItems, appearance.palette?.primary);
+        
+        // Generate profession-appropriate cloaks
+        generateCloakEquipment(context.era, context.culturalZone, role, isWealthy, newEquippedItems, appearance.palette?.secondary);
+        
+        // Generate profession-appropriate offhand items
+        generateOffhandEquipment(context.era, context.culturalZone, role, isWealthy, newEquippedItems);
+        
+        // Cultural accessory generation - tattoos, face paint, jewelry
+        const accessoryChance = calculateAccessoryChance(context.culturalZone, context.era, role);
+        if (Math.random() < accessoryChance) {
+            const wealthLevel = isWealthy ? 'wealthy' : 'modest';
+            const culturalAccessory = generateCulturalAccessory({
+                culture: context.culturalZone,
+                era: context.era,
+                wealth: wealthLevel,
+                gender: baseProfile.gender.toLowerCase() as 'male' | 'female',
+                profession: role
+            });
+            
+            if (culturalAccessory) {
+                newEquippedItems.accessory = culturalAccessory;
+            }
+        }
+        
         // Enhanced amulet assignment for NPCs - ensure higher distribution
         if (!newEquippedItems.amulet) {
             // Calculate chance based on era, culture, and role
@@ -344,10 +616,9 @@ function createNpc(
                 
                 const amuletItem = createItemInstance(amuletId);
                 if (amuletItem) {
-                    // Apply color if available
-                    if (appearance.palette?.accent) {
-                        amuletItem.color = appearance.palette.accent;
-                    }
+                    // Add quality adjective based on wealth instead of color
+                    const privilege = isWealthy ? 0.8 : 0.3;
+                    amuletItem.name = addQualityAdjective(amuletItem.name, privilege);
                     newEquippedItems.amulet = amuletItem;
                 }
             }

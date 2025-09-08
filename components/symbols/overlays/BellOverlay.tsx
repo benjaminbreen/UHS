@@ -64,7 +64,7 @@ export const BellOverlay: React.FC<BellOverlayProps> = ({
         return {
           metal: MATERIAL_COLORS.metal.brass,
           accent: getPixelColors('#DC143C'), // Ruby red
-          mount: getPixelColors('#FFD700'), // Gold mount
+          mount: MATERIAL_COLORS.metal.gold, // Gold mount
           style: 'ghanta',
           inscription: 'ॐ',
           hasRelief: true,

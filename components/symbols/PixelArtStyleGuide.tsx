@@ -92,8 +92,11 @@ export const MATERIAL_COLORS = {
   metal: {
     iron: getPixelColors('#434B4D'),
     bronze: getPixelColors('#CD7F32'),
+    brass: getPixelColors('#B5A642'),
+    copper: getPixelColors('#B87333'),
     gold: getPixelColors('#FFD700'),
-    silver: getPixelColors('#C0C0C0')
+    silver: getPixelColors('#C0C0C0'),
+    steel: getPixelColors('#71797E')
   },
   fabric: {
     wool: getPixelColors('#E5D4B0'),

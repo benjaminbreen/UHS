@@ -324,10 +324,26 @@ function generateNpcsForRoom(
     return []; // No valid professions for this room
   }
   
-  // Find valid positions within room bounds
+  // Find valid positions within room bounds (handle both formats)
+  let bounds;
+  if (room.bounds) {
+    bounds = room.bounds;
+  } else if ((room as any).x !== undefined) {
+    // Legacy format from palaceVariantGenerator
+    bounds = {
+      x: (room as any).x,
+      y: (room as any).y,
+      width: (room as any).width,
+      height: (room as any).height
+    };
+  } else {
+    console.warn('[NPCGen] Room missing position data:', room);
+    return [];
+  }
+  
   const positions = findValidPositionsInRoom(
     tiles,
-    room.bounds,
+    bounds,
     npcCount
   );
   
@@ -463,7 +479,22 @@ function selectProfessionsForRoom(
  * Calculate number of NPCs for a room
  */
 function calculateNpcCount(room: RoomDefinition): number {
-  const area = room.bounds.width * room.bounds.height;
+  // Handle both formats: room.bounds.x and room.x
+  let width: number, height: number;
+  
+  if (room.bounds) {
+    width = room.bounds.width;
+    height = room.bounds.height;
+  } else if ((room as any).width !== undefined && (room as any).height !== undefined) {
+    // Legacy format from palaceVariantGenerator
+    width = (room as any).width;
+    height = (room as any).height;
+  } else {
+    console.warn('[NPCGen] Room missing dimensions:', room);
+    return 0;
+  }
+  
+  const area = width * height;
   const densityMap = {
     'empty': 0,
     'sparse': 0.02,
@@ -817,13 +848,22 @@ function findPositionOutsideRooms(
       continue;
     }
     
-    // Check if inside any room
-    const insideRoom = rooms.some(room => 
-      x >= room.bounds.x && 
-      x < room.bounds.x + room.bounds.width &&
-      y >= room.bounds.y && 
-      y < room.bounds.y + room.bounds.height
-    );
+    // Check if inside any room (handle both formats)
+    const insideRoom = rooms.some(room => {
+      if (room.bounds) {
+        return x >= room.bounds.x && 
+               x < room.bounds.x + room.bounds.width &&
+               y >= room.bounds.y && 
+               y < room.bounds.y + room.bounds.height;
+      } else if ((room as any).x !== undefined) {
+        // Legacy format
+        return x >= (room as any).x && 
+               x < (room as any).x + (room as any).width &&
+               y >= (room as any).y && 
+               y < (room as any).y + (room as any).height;
+      }
+      return false;
+    });
     
     if (!insideRoom) {
       return { x, y };

@@ -744,8 +744,8 @@ export class QuestService {
   /**
    * Check if player is at a quest location
    */
-  checkQuestProgress(playerX: number, playerY: number, interactionType?: string): void {
-    const tolerance = 3; // Allow 3 tile radius for quest objectives (improved from 2)
+  checkQuestProgress(playerX: number, playerY: number, interactionType?: string, structureType?: string): void {
+    const tolerance = 5; // Increased tolerance to 5 tiles for better mobile/click detection
 
     this.activeQuests.forEach(quest => {
       if (quest.status !== 'active') return;
@@ -760,12 +760,31 @@ export class QuestService {
           Math.pow(currentObj.targetLocation.y - playerY, 2)
         );
 
+        console.log(`[QuestService] Checking objective "${currentObj.description}" - Distance: ${distance.toFixed(1)}, Tolerance: ${tolerance}`);
+
         if (distance <= tolerance) {
-          // Check if the correct interaction type is happening
-          if (currentObj.type === 'visit_location' ||
-              (currentObj.type === 'talk_to_npc' && interactionType === 'npc_interaction') ||
-              (currentObj.type === 'deliver_item' && interactionType === 'item_delivery')) {
-            
+          let canComplete = false;
+
+          // Visit location quests - just need to be nearby
+          if (currentObj.type === 'visit_location') {
+            canComplete = true;
+            console.log(`[QuestService] Visit location quest can complete at distance ${distance.toFixed(1)}`);
+          }
+          
+          // NPC interaction quests - require explicit interaction trigger
+          else if (currentObj.type === 'talk_to_npc' && interactionType === 'npc_interaction') {
+            canComplete = true;
+            console.log(`[QuestService] NPC interaction quest triggered`);
+          }
+          
+          // Item delivery quests - require explicit delivery trigger
+          else if (currentObj.type === 'deliver_item' && interactionType === 'item_delivery') {
+            canComplete = true;
+            console.log(`[QuestService] Item delivery quest triggered`);
+          }
+
+          if (canComplete) {
+            console.log(`[QuestService] Completing objective: ${currentObj.description} at (${playerX}, ${playerY})`);
             this.completeObjective(quest.id, currentObj.id);
           }
         }
@@ -778,13 +797,24 @@ export class QuestService {
    */
   completeObjective(questId: string, objectiveId: string): void {
     const quest = this.activeQuests.find(q => q.id === questId);
-    if (!quest) return;
+    if (!quest) {
+      console.warn(`[QuestService] Cannot complete objective - quest ${questId} not found`);
+      return;
+    }
 
     const objective = quest.objectives.find(o => o.id === objectiveId);
-    if (!objective) return;
+    if (!objective) {
+      console.warn(`[QuestService] Cannot complete objective - objective ${objectiveId} not found in quest ${questId}`);
+      return;
+    }
+
+    if (objective.completed) {
+      console.log(`[QuestService] Objective already completed: ${objective.description}`);
+      return;
+    }
 
     objective.completed = true;
-    console.log('[QuestService] Completed objective:', objective.description);
+    console.log(`[QuestService] ✅ Completed objective: "${objective.description}" for quest: "${quest.title}"`);
 
     // Check if all objectives are complete
     if (quest.objectives.every(o => o.completed)) {
@@ -792,6 +822,10 @@ export class QuestService {
     } else {
       // Move to next objective
       quest.currentObjectiveIndex++;
+      const nextObjective = quest.objectives[quest.currentObjectiveIndex];
+      if (nextObjective) {
+        console.log(`[QuestService] 🎯 Moving to next objective: "${nextObjective.description}"`);
+      }
       this.updateQuestMarkers(quest);
     }
 

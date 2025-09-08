@@ -33,10 +33,11 @@ interface BottomPanelProps {
 }
 
 const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, icon: string, variant?: 'blue' | 'red' }> = ({ onClick, children, icon, variant = 'blue' }) => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
     const isRed = variant === 'red';
     const baseClass = isRed 
-        ? "group relative px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold rounded-xl shadow-lg text-base transform hover:scale-105 transition-all duration-300 ease-out border border-red-400/30 backdrop-blur-sm flex items-center justify-center gap-2 overflow-hidden"
-        : "group relative px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold rounded-xl shadow-lg text-base transform hover:scale-105 transition-all duration-300 ease-out border border-blue-400/30 backdrop-blur-sm flex items-center justify-center gap-2 overflow-hidden";
+        ? `group relative ${isMobile ? 'px-8 py-4' : 'px-6 py-3'} bg-gradient-to-r from-red-600 to-red-700 active:from-red-500 active:to-red-600 text-white font-bold rounded-xl shadow-lg ${isMobile ? 'text-lg' : 'text-base'} transform active:scale-95 transition-all duration-300 ease-out border border-red-400/30 backdrop-blur-sm flex items-center justify-center gap-2 overflow-hidden`
+        : `group relative ${isMobile ? 'px-8 py-4' : 'px-6 py-3'} bg-gradient-to-r from-blue-600 to-blue-700 active:from-blue-500 active:to-blue-600 text-white font-bold rounded-xl shadow-lg ${isMobile ? 'text-lg' : 'text-base'} transform active:scale-95 transition-all duration-300 ease-out border border-blue-400/30 backdrop-blur-sm flex items-center justify-center gap-2 overflow-hidden`;
     const boxShadowColor = isRed ? 'rgba(239, 68, 68, 0.3)' : 'rgba(59, 130, 246, 0.3)';
     const glowColor = isRed ? 'from-red-400/0 via-red-300/20 to-red-400/0' : 'from-blue-400/0 via-blue-300/20 to-blue-400/0';
     const glowBg = isRed ? 'bg-red-400/20' : 'bg-blue-400/20';
@@ -62,17 +63,20 @@ const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, i
     );
 };
 
-const LocationDisplay: React.FC<{ title: string; subtitle: string; icon?: string }> = ({ title, subtitle, icon }) => (
-    <div className={getSafariOptimizedClassName("flex items-center space-x-3 bg-slate-800/40 rounded-lg px-3 py-2 border border-slate-700/50 backdrop-blur-sm")}>
-        {icon && (
-            <div className="text-2xl drop-shadow-lg">{icon}</div>
-        )}
-        <div>
-            <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">{title}</p>
-            <p className="text-base text-slate-200 font-semibold capitalize">{subtitle}</p>
+const LocationDisplay: React.FC<{ title: string; subtitle: string; icon?: string }> = ({ title, subtitle, icon }) => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+    return (
+        <div className={getSafariOptimizedClassName(`flex items-center ${isMobile ? 'space-x-2' : 'space-x-3'} bg-slate-800/40 rounded-lg ${isMobile ? 'px-2 py-1.5' : 'px-3 py-2'} border border-slate-700/50 backdrop-blur-sm`)}>
+            {icon && (
+                <div className={`${isMobile ? 'text-xl' : 'text-2xl'} drop-shadow-lg`}>{icon}</div>
+            )}
+            <div>
+                <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-slate-400 font-medium uppercase tracking-wide`}>{title}</p>
+                <p className={`${isMobile ? 'text-sm' : 'text-base'} text-slate-200 font-semibold capitalize`}>{subtitle}</p>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 const ContextualAlert: React.FC<{ message: string }> = ({ message }) => (
     <div className={getSafariOptimizedClassName("flex items-center justify-center space-x-3 bg-gradient-to-r from-amber-900/40 to-orange-900/40 rounded-lg px-4 py-3 border border-amber-600/30 backdrop-blur-sm animate-pulse")}>
@@ -317,9 +321,11 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                 break;
         }
 
+        const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+        
         return (
-            <div className="w-full flex flex-col sm:grid sm:grid-cols-[200px_1fr_200px] lg:grid-cols-[300px_1fr_300px] items-center gap-2 sm:gap-6 p-2 sm:p-4 lg:p-5 animate-in slide-in-from-bottom duration-500">
-                <div className="flex justify-center sm:justify-start w-full sm:w-auto">
+            <div className={`w-full flex flex-col ${isMobile ? 'gap-3 p-3' : 'sm:grid sm:grid-cols-[200px_1fr_200px] lg:grid-cols-[300px_1fr_300px] items-center gap-2 sm:gap-6 p-2 sm:p-4 lg:p-5'} animate-in slide-in-from-bottom duration-500`}>
+                <div className={`flex ${isMobile ? 'justify-center' : 'justify-center sm:justify-start'} w-full sm:w-auto`}>
                     {contextualInfo}
                 </div>
                 
@@ -333,11 +339,13 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                     </ActionButton>
                 </div>
                 
-                <div className="hidden sm:flex justify-end">
-                    <div className="text-right text-slate-400 italic text-xs sm:text-sm max-w-xs bg-slate-800/20 rounded-lg px-3 py-2 sm:px-4 sm:py-3 border border-slate-700/30">
-                        {helperText}
+                {!isMobile && (
+                    <div className="hidden sm:flex justify-end">
+                        <div className="text-right text-slate-400 italic text-xs sm:text-sm max-w-xs bg-slate-800/20 rounded-lg px-3 py-2 sm:px-4 sm:py-3 border border-slate-700/30">
+                            {helperText}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         );
     };

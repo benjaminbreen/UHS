@@ -36,9 +36,17 @@ export const SKILL_DATA: Record<SkillID, SkillDefinition> = {
   BURN: {
     id: 'BURN',
     name: 'Burn',
-    description: 'Use a torch or tinderbox to set something alight. In combat, scorches the opponent and may cause burning.',
+    description: 'Use a torch or burning oil to set opponent alight. Requires fire source.',
     type: 'procedural',
     icon: '🔥',
+    target: 'opponent'
+  },
+  THRUST: {
+    id: 'THRUST',
+    name: 'Thrust',
+    description: 'A quick jabbing attack with any pointed weapon. More accurate but less damaging than a swing.',
+    type: 'procedural',
+    icon: '🗡️',
     target: 'opponent'
   },
   SING: {
@@ -57,10 +65,10 @@ export const SKILL_DATA: Record<SkillID, SkillDefinition> = {
     fatigueCost: 4,
     target: 'opponent'
   },
-  FIRST_AID: {
-    id: 'FIRST_AID',
-    name: 'First Aid',
-    description: 'Use basic medical knowledge to restore some health.',
+  BANDAGE_WOUNDS: {
+    id: 'BANDAGE_WOUNDS',
+    name: 'Bandage Wounds',
+    description: 'Apply cloth strips to stop bleeding. Takes time and leaves you vulnerable.',
     type: 'procedural',
     icon: '🩹',
     fatigueCost: 3,
@@ -74,6 +82,33 @@ export const SKILL_DATA: Record<SkillID, SkillDefinition> = {
     icon: '🗣️',
     fatigueCost: 2,
     target: 'opponent'
+  },
+  PARRY: {
+    id: 'PARRY',
+    name: 'Parry',
+    description: 'Defensive stance that reduces incoming damage and may create counter-attack opportunity.',
+    type: 'procedural',
+    icon: '🛡️',
+    fatigueCost: 2,
+    target: 'self'
+  },
+  GRAPPLE: {
+    id: 'GRAPPLE',
+    name: 'Grapple',
+    description: 'Attempt to wrestle opponent to the ground. More effective against lighter opponents.',
+    type: 'procedural',
+    icon: '🤼',
+    fatigueCost: 5,
+    target: 'opponent'
+  },
+  FEINT: {
+    id: 'FEINT',
+    name: 'Feint',
+    description: 'Deceptive move to create opening. Next attack more likely to hit.',
+    type: 'procedural',
+    icon: '🎭',
+    fatigueCost: 1,
+    target: 'self'
   }
 };
 

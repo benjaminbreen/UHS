@@ -638,7 +638,7 @@ export function generateVolcanicComplex(tiles: Tile[][], temperatureNoise: Value
             }
         }
 
-        const rockRadius = archetype === MapArchetype.ATOLL ? VOLCANIC_ROCK_RADIUS * 0.3 : VOLCANIC_ROCK_RADIUS; 
+        const rockRadius = Math.floor(archetype === MapArchetype.ATOLL ? VOLCANIC_ROCK_RADIUS * 0.3 : VOLCANIC_ROCK_RADIUS); 
         for (let dy = -rockRadius; dy <= rockRadius; dy++) {
             for (let dx = -rockRadius; dx <= rockRadius; dx++) {
                 const checkX = center.x + dx; const checkY = center.y + dy;

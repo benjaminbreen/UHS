@@ -393,6 +393,10 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = ({
                <CandelabraOverlay x={0} y={0} size={size} culturalZone={culturalZone as string} /> :
                <TorchSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} type="torch" lit={true} />;
       
+      case OverlayObjectType.OFFERING_TABLE:
+        // Sacred offering table for ceremonial sites
+        return <TableSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} />;
+      
       default:
         // Return a placeholder for unimplemented types
         return (

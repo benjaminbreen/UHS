@@ -3,7 +3,7 @@
  */
 import { AmbianceContext, AnyTile, AnyEntity, ViewMode, AnimalEntity, Rarity, Item, PlayerCharacter, TerrainStructure, StatusEffect, EncounterableEntity, MapData, NpcEntity, GameDate } from './index';
 
-export type SkillID = 'OBSERVE' | 'FORAGE' | 'DIG' | 'CHOP' | 'BURN' | 'SING' | 'POWER_STRIKE' | 'FIRST_AID' | 'INTIMIDATING_SHOUT';
+export type SkillID = 'OBSERVE' | 'FORAGE' | 'DIG' | 'CHOP' | 'BURN' | 'THRUST' | 'SING' | 'POWER_STRIKE' | 'BANDAGE_WOUNDS' | 'INTIMIDATING_SHOUT' | 'PARRY' | 'GRAPPLE' | 'FEINT';
 
 export interface SkillDefinition {
     id: SkillID;

@@ -15,6 +15,7 @@ import { generateCharacter, generateCharacterWithSpec } from '../services/charac
 import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { SeedManager } from '../services/seedService';
+import { npcPersistenceService } from '../services/npcPersistenceService';
 
 /**
  * Convert MapArchetype enum to a readable area name for display
@@ -158,9 +159,24 @@ export const useMapState = (props: useMapStateProps) => {
         
         loadPersistedMerchants();
     }, []);
+    
     const [deployedVessels, setDeployedVessels] = useState<DeployedVessel[]>([]);
     const [mapDataCache, setMapDataCache] = useState<Map<string, CachedMapEntry>>(new Map());
     const [currentWorldCoords, setCurrentWorldCoords] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
+    
+    // Derive currentMapSeed early, before any hooks that use it
+    const currentMapSeed = useMemo(() => deriveMapSeed(initialGameSeed, currentWorldCoords.x, currentWorldCoords.y), [initialGameSeed, currentWorldCoords]);
+    
+    // Save NPCs to localStorage when they change (throttled)
+    useEffect(() => {
+        if (npcs.length === 0) return;
+        
+        const saveTimer = setTimeout(() => {
+            npcPersistenceService.saveNpcs(npcs, currentMapSeed);
+        }, 2000); // Save after 2 seconds of no changes
+        
+        return () => clearTimeout(saveTimer);
+    }, [npcs, currentMapSeed]);
     const [localArea, setLocalArea] = useState<string>('');
     const [worldItems, setWorldItems] = useState<Map<string, Item[]>>(new Map());
     const [mapAnalysisData, setMapAnalysisData] = useState<MapAnalysisData | null>(null);
@@ -181,7 +197,6 @@ export const useMapState = (props: useMapStateProps) => {
     } | null>(null);
     
     // Derived State
-    const currentMapSeed = useMemo(() => deriveMapSeed(initialGameSeed, currentWorldCoords.x, currentWorldCoords.y), [initialGameSeed, currentWorldCoords]);
     const currentMapArchetype = useMemo(() => mapData?.archetype || userSelectedBaseArchetype, [mapData, userSelectedBaseArchetype]);
     const currentMapClimate = useMemo(() => mapData?.climate || userSelectedBaseClimate, [mapData, userSelectedBaseClimate]);
     
@@ -318,8 +333,13 @@ export const useMapState = (props: useMapStateProps) => {
         const effectiveEconomicLevel = areaEconomicActivityLevel !== undefined ? areaEconomicActivityLevel : economicActivityLevel;
         const generationParams: MapGenerationParams = { isAgricultural, isPastoral, economicActivityLevel: effectiveEconomicLevel };
         const newMap = proceduralGenerateMap( seedToUse, archetypeToUse, climateToUse,  generateHarbor, generateLargeCity,  altitudeOverride || userSelectedBaseAltitude, isVolcanic || forceVolcanicActivity, zoneToUse, regionToUse, localAreaToUse, String(gameState.gameDate.year), generationParams, neighboringEdges, hasLakes, undefined, undefined, undefined ); 
-        const newAnimals = newMap.animals || []; const newNpcs = newMap.npcs || [];
+        const newAnimals = newMap.animals || []; 
+        let newNpcs = newMap.npcs || [];
         delete newMap.animals; delete newMap.npcs;
+        
+        // Load and merge persisted NPC data
+        newNpcs = npcPersistenceService.loadAndMergeNpcs(newNpcs, seedToUse);
+        
         const newCacheEntry = { mapData: newMap, animals: newAnimals, npcs: newNpcs, deployedVessels: [], seed: seedToUse, archetype: archetypeToUse, climate: climateToUse, worldX, worldY, region: regionToUse, localArea: localAreaToUse };
         setMapDataCache(prevCache => new Map(prevCache).set(`${worldX},${worldY}`, newCacheEntry)); 
         return newCacheEntry;
@@ -417,7 +437,7 @@ export const useMapState = (props: useMapStateProps) => {
     useEffect(() => {
         // Don't run this effect if we're in a special map (check ref for immediate value)
         if (isSpecialMapRef.current || isSpecialMap) {
-            console.log('[useEffect-MapTransition] Skipping map reload - special map is active (ref:', isSpecialMapRef.current, ', state:', isSpecialMap, ')');
+            // Map reload skipped - special map active (debug log removed to reduce console spam)
             return;
         }
 
@@ -740,9 +760,12 @@ export const useMapState = (props: useMapStateProps) => {
         
         // Extract animals and npcs
         const newAnimals = newMapData.animals || [];
-        const newNpcs = newMapData.npcs || [];
+        let newNpcs = newMapData.npcs || [];
         delete newMapData.animals;
         delete newMapData.npcs;
+        
+        // Load and merge persisted NPC data
+        newNpcs = npcPersistenceService.loadAndMergeNpcs(newNpcs, mapSeedToUse);
         
         setMapData(newMapData);
         setAnimals(newAnimals);

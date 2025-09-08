@@ -17,6 +17,7 @@ export enum SimplifiedArchetype {
   UNIVERSITY = 'university',
   MARKET = 'market',
   OPEN_FIELD = 'open_field',
+  SACRED_COMPLEX = 'sacred_complex',
   CAMPGROUND = 'campground',
   RESTAURANT = 'restaurant',
   VESSEL = 'vessel',
@@ -65,9 +66,14 @@ export const ARCHETYPE_MAPPING: Record<string, SimplifiedArchetype> = {
   'RITUAL_GROUND': SimplifiedArchetype.OPEN_FIELD,
   'PARADE_GROUND': SimplifiedArchetype.OPEN_FIELD,
   
-  // Military (now removed, goes to standard map)
+  // Sacred and religious sites
+  'SACRED_COMPLEX': SimplifiedArchetype.SACRED_COMPLEX,
+  'TEMPLE': SimplifiedArchetype.SACRED_COMPLEX,
+  'SHRINE': SimplifiedArchetype.SACRED_COMPLEX,
+  'MONASTERY_COMPLEX': SimplifiedArchetype.SACRED_COMPLEX,
+  
+  // Military (now removed, goes to standard map) 
   'MILITARY_FORTRESS': SimplifiedArchetype.OPEN_FIELD,  // Fallback
-  'SACRED_COMPLEX': SimplifiedArchetype.OPEN_FIELD,     // Fallback
 };
 
 // Size determination based on era and importance
@@ -164,23 +170,49 @@ export const ARCHETYPE_INTERIORS: Record<SimplifiedArchetype, string[]> = {
 };
 
 /**
+ * Map districtType to assemblyType for government forums
+ */
+export const DISTRICT_TO_ASSEMBLY_TYPE: Record<string, string> = {
+  'sacred_council': 'amphitheater',      // Theocracy: centered religious gathering
+  'parliament': 'opposing-benches',      // Democracy: parliamentary debate style
+  'military_council': 'great-hall',      // Military: hierarchical command structure
+  'forum': 'hemicycle',                  // Republic: semicircular senate
+  'palace': 'great-hall',                 // Monarchy: throne-focused hall
+  'council': 'hemicycle',                 // Generic council
+  'colonial_office': 'opposing-benches', // Colonial administration
+  'administration': 'opposing-benches',  // Modern bureaucracy
+  'settlement_council': 'hemicycle',     // Small settlement
+  'compound': 'great-hall',               // Tribal compound
+  'chiefly_court': 'amphitheater',      // Tribal chief
+  'royal_temple': 'amphitheater',        // Religious monarchy
+  'royal_hall': 'great-hall',            // Royal court
+  'castle': 'great-hall',                 // Medieval castle
+  'hillfort': 'amphitheater',           // Ancient fortification
+  'sacred_assembly': 'amphitheater',     // Religious assembly
+  'assembly': 'hemicycle',                // Generic assembly
+};
+
+/**
  * Function to augment existing government district data with new parameters
  */
 export function augmentGovernmentDistrict(
   oldArchetype: string,
   culturalZone: CulturalZone | string,
   year: number,
-  customName?: string
+  customName?: string,
+  districtType?: string
 ): {
   archetype: SimplifiedArchetype;
   size: MapSize;
   material: MaterialType;
   innerMapType?: string;
   customName?: string;
+  districtType?: string;  // Preserve the district type for variant generation!
   isCircular?: boolean;
   isRectangular?: boolean;
   hasLandscape?: boolean;
   landscapeClimate?: ClimateType;
+  assemblyType?: string;
 } {
   // Map old archetype to new
   const archetype = ARCHETYPE_MAPPING[oldArchetype] || SimplifiedArchetype.OPEN_FIELD;
@@ -234,8 +266,14 @@ export function augmentGovernmentDistrict(
     size,
     material,
     innerMapType,
-    customName
+    customName,
+    districtType  // PRESERVE THE DISTRICT TYPE!
   };
+  
+  // Add assembly type if this is a government forum and we have a districtType
+  if (archetype === SimplifiedArchetype.GOVERNMENT && districtType) {
+    config.assemblyType = DISTRICT_TO_ASSEMBLY_TYPE[districtType] || 'hemicycle';
+  }
   
   // Circular structures
   if (oldArchetype === 'TRIBAL_COUNCIL' || 

@@ -26,6 +26,7 @@ import { generateNpcName } from '../generation/common/npcUtils';
 import { CHARACTER_NAMES } from '../constants/characterData/names';
 import { DISEASE_DATABASE } from '../constants/gameData/diseases';
 import { ValueNoise } from '../utils/noise';
+import AccessoryMaintenanceService from '../services/accessoryMaintenanceService';
 import {
   loadTamedAnimals,
   removeFromParty,
@@ -790,6 +791,57 @@ const CharacterProfileModal: React.FC<Props> = ({
                         </div>
                       ) : null}
                     </div>
+
+                    {/* Body Modifications */}
+                    {character.equippedItems?.accessory && (
+                      (() => {
+                        const accessory = character.equippedItems.accessory;
+                        const specialType = (accessory as any).specialType;
+                        const isPermanent = (accessory as any).isPermanent;
+                        const duration = (accessory as any).duration;
+                        
+                        if (specialType) {
+                          return (
+                            <div className="p-4 rounded-lg border border-slate-700/60 bg-slate-800/50">
+                              <h4 className="text-xs font-bold uppercase tracking-wider text-purple-300 mb-3 flex items-center gap-2">
+                                <Sparkles className="w-4 h-4" />
+                                Body Modifications
+                              </h4>
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between p-2 rounded bg-slate-900/50">
+                                  <div className="flex items-center gap-2">
+                                    {specialType === 'tattoo' && <span className="text-lg">🖤</span>}
+                                    {specialType === 'scarification' && <span className="text-lg">⚡</span>}
+                                    {specialType === 'face_paint' && <span className="text-lg">🎨</span>}
+                                    {specialType === 'henna' && <span className="text-lg">🌿</span>}
+                                    <div>
+                                      <p className="text-sm font-semibold text-white">{accessory.name}</p>
+                                      <p className="text-xs text-slate-400 capitalize">{specialType.replace('_', ' ')}</p>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    {isPermanent && (
+                                      <span className="px-2 py-1 rounded-full bg-red-600/70 text-red-200 text-xs font-bold">
+                                        Permanent
+                                      </span>
+                                    )}
+                                    {duration && (
+                                      <span className="px-2 py-1 rounded-full bg-yellow-600/70 text-yellow-200 text-xs font-bold">
+                                        {AccessoryMaintenanceService.getTemporaryAccessoryDisplay(accessory)}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <p className="text-xs text-slate-300 italic">
+                                  {AccessoryMaintenanceService.getCulturalSignificance(accessory)}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()
+                    )}
                   </div>
 
                   {/* Background */}

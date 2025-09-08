@@ -104,3 +104,6 @@ export { EastAsianDecorativeScroll } from './EastAsianDecorativeScroll';
 export { MenaDecorativeTilePanel } from './MenaDecorativeTilePanel';
 export { AfricanDecorativeMask } from './AfricanDecorativeMask';
 export { IndigenousDecorativeDreamcatcher } from './IndigenousDecorativeDreamcatcher';
+
+// Low Wall Symbol for tribal and other structures
+export { default as WallLowSymbol } from './WallLowSymbol';

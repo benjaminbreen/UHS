@@ -6,6 +6,7 @@ import { PROFESSIONS, CulturalZone, SocialClassMap, ProfessionDefinition, CHARAC
 import { ValueNoise } from '../../utils/noise';
 import { generatePersonalGoal } from '../../services/goalService';
 import { getProfessionContext, getFallbackContext, ProfessionContext } from '../../services/professionContextService';
+import { getMarkingsForCharacter, selectRandomMarking, getRandomPattern, convertToAppearanceMarking, getMarkingProbability } from '../../constants/characterData/culturalMarkings';
 
 export function determineReligion(
     culturalZone: CulturalZone,
@@ -199,7 +200,41 @@ export function generateBodyMetrics(gender: Gender, stats: CharacterStats, noise
     return { height, build, weight, facialHair };
 }
 
-export function generateFacialFeatures(noise: ValueNoise, gender: Gender, culturalZone: CulturalZone) {
+function generateRealisticHairLength(gender: Gender, age: number, rand: () => number): 'bald' | 'very_short' | 'short' | 'medium' | 'long' | 'very_long' {
+    if (gender === 'Female') {
+        // Women are almost never bald (only medical conditions)
+        const r = rand();
+        if (r < 0.1) return 'short';
+        if (r < 0.45) return 'medium';
+        if (r < 0.9) return 'long';
+        return 'very_long';
+    } else {
+        // Men - baldness increases with age
+        const r = rand();
+        
+        // Age-based baldness probability
+        let baldnessProbability = 0;
+        if (age >= 18 && age <= 30) baldnessProbability = 0.03; // 3% for young men
+        else if (age <= 45) baldnessProbability = 0.20; // 20% for middle-aged
+        else if (age <= 60) baldnessProbability = 0.40; // 40% for older men
+        else baldnessProbability = 0.60; // 60% for elderly men
+        
+        if (r < baldnessProbability) return 'bald';
+        
+        // Remaining hair lengths for non-bald men
+        const remaining = r - baldnessProbability;
+        const remainingRange = 1 - baldnessProbability;
+        const adjustedR = remaining / remainingRange;
+        
+        if (adjustedR < 0.15) return 'very_short';
+        if (adjustedR < 0.50) return 'short';
+        if (adjustedR < 0.80) return 'medium';
+        if (adjustedR < 0.95) return 'long';
+        return 'very_long';
+    }
+}
+
+export function generateFacialFeatures(noise: ValueNoise, gender: Gender, culturalZone: CulturalZone, age: number) {
     const rand = noise.random;
 
     const select = <T,>(arr: readonly T[]): T => arr[Math.floor(rand() * arr.length)];
@@ -218,7 +253,7 @@ export function generateFacialFeatures(noise: ValueNoise, gender: Gender, cultur
         cheekbones: select(['average', 'high', 'low'] as const),
         jawline: select(gender === 'Male' ? ['sharp', 'square', 'round'] as const : ['soft', 'round', 'oval'] as const),
         hairTexture: select(hairTextures),
-        hairLength: select(['short', 'medium', 'long', 'very_long', 'bald', 'very_short'] as const),
+        hairLength: generateRealisticHairLength(gender, age, rand),
         skinTone: select(['fair', 'light', 'medium', 'olive', 'tan', 'very_pale', 'pale', 'dark', 'very_dark'] as const),
         skinTexture: select(['smooth', 'freckled', 'weathered', 'rough', 'scarred'] as const),
         eyebrowShape: select(['straight', 'arched', 'rounded', 'angular'] as const),
@@ -473,7 +508,7 @@ export function generateBaseProfile(noise: ValueNoise, context: { era: Historica
         const currency = 5 + Math.floor(noise.random() * (wealthLevel === 'poor' ? 10 : wealthLevel === 'modest' ? 30 : 100));
 
         const culturalAppearance = generateCulturalAppearance(context.culturalZone, noise);
-        const facialFeatures = generateFacialFeatures(noise, gender, context.culturalZone);
+        const facialFeatures = generateFacialFeatures(noise, gender, context.culturalZone, age);
         const bodyMetrics = generateBodyMetrics(gender, stats, noise);
         
         const clothingPalette = generateClothingPalette(wealthLevel, context.era, context.culturalZone, gender, noise);
@@ -490,6 +525,31 @@ export function generateBaseProfile(noise: ValueNoise, context: { era: Historica
         if (personality.neuroticism > 0.8) affect = 'anxious';
         if (stats.strength > 8 && personality.agreeableness < 0.4) affect = 'intimidating';
 
+        // Generate cultural markings based on context
+        const markingProbability = getMarkingProbability(context.culturalZone, context.era, undefined);
+        const markings: any[] = [];
+        
+        if (noise.random() < markingProbability) {
+            const availableMarkings = getMarkingsForCharacter(
+                context.culturalZone,
+                context.era,
+                undefined, // Will be set later when role is determined
+                gender.toLowerCase() as 'male' | 'female',
+                wealthLevel,
+                age,
+                'daily'
+            );
+            
+            const selectedMarking = selectRandomMarking(availableMarkings, noise.random());
+            if (selectedMarking) {
+                const pattern = getRandomPattern(selectedMarking, noise.random());
+                if (pattern) {
+                    const appearanceMarking = convertToAppearanceMarking(selectedMarking, pattern);
+                    markings.push(appearanceMarking);
+                }
+            }
+        }
+
         const appearance: Appearance = {
             ...culturalAppearance,
             ...facialFeatures,
@@ -498,6 +558,7 @@ export function generateBaseProfile(noise: ValueNoise, context: { era: Historica
             affect,
             hairstyle,
             palette: clothingPalette,
+            markings: markings.length > 0 ? markings : undefined
         };
 
         const maxHealth = 80 + stats.constitution * 2;

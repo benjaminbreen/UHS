@@ -158,4 +158,10 @@ export enum BiomeType {
   SHRINE = 'SHRINE',
   TREE = 'TREE',
   CARPET = 'CARPET',
+  
+  // Natural ground types for special maps
+  GRASS_GROUND = 'GRASS_GROUND',
+  DIRT_GROUND = 'DIRT_GROUND',
+  STONE_GROUND = 'STONE_GROUND',
+  WALL_LOW = 'WALL_LOW', // Low walls for tribal structures
 }

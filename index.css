@@ -3,3 +3,99 @@
   50% { transform: scale(1.1) translateY(-2px); }
   100% { transform: scale(1) translateY(0); }
 }
+
+@keyframes kangarooPunch {
+  0% { transform: scale(1) translateX(0) rotate(0deg); }
+  20% { transform: scale(1.1) translateX(-4px) rotate(-5deg); }
+  50% { transform: scale(1.15) translateX(-8px) rotate(-10deg); }
+  70% { transform: scale(1.2) translateX(4px) rotate(3deg); }
+  100% { transform: scale(1) translateX(0) rotate(0deg); }
+}
+
+.animate-kangaroo-punch {
+  animation: kangarooPunch 0.6s ease-in-out;
+}
+
+@keyframes lionPounce {
+  0% { transform: scale(1) translateY(0) rotate(0deg); }
+  30% { transform: scale(1.1) translateY(-8px) rotate(-5deg); }
+  60% { transform: scale(1.15) translateY(-4px) translateX(6px) rotate(5deg); }
+  100% { transform: scale(1) translateY(0) rotate(0deg); }
+}
+
+.animate-lion-pounce {
+  animation: lionPounce 0.8s ease-in-out;
+}
+
+@keyframes tigerStrike {
+  0% { transform: scale(1) translateX(0) rotate(0deg); }
+  25% { transform: scale(1.05) translateX(-6px) rotate(-8deg); }
+  50% { transform: scale(1.1) translateX(-2px) rotate(0deg); }
+  75% { transform: scale(1.15) translateX(8px) rotate(5deg); }
+  100% { transform: scale(1) translateX(0) rotate(0deg); }
+}
+
+.animate-tiger-strike {
+  animation: tigerStrike 0.7s ease-in-out;
+}
+
+@keyframes bearSwipe {
+  0% { transform: scale(1) translateX(0) rotate(0deg); }
+  20% { transform: scale(1.05) translateX(-3px) rotate(-5deg); }
+  50% { transform: scale(1.1) translateX(2px) rotate(0deg); }
+  80% { transform: scale(1.15) translateX(6px) rotate(8deg); }
+  100% { transform: scale(1) translateX(0) rotate(0deg); }
+}
+
+.animate-bear-swipe {
+  animation: bearSwipe 0.9s ease-in-out;
+}
+
+@keyframes leopardPounce {
+  0% { transform: scale(1) translateY(0) translateX(0) rotate(0deg); }
+  25% { transform: scale(1.05) translateY(-6px) translateX(-3px) rotate(-3deg); }
+  50% { transform: scale(1.1) translateY(-10px) translateX(2px) rotate(2deg); }
+  75% { transform: scale(1.15) translateY(-4px) translateX(6px) rotate(4deg); }
+  100% { transform: scale(1) translateY(0) translateX(0) rotate(0deg); }
+}
+
+.animate-leopard-pounce {
+  animation: leopardPounce 0.75s ease-in-out;
+}
+
+@keyframes elephantStomp {
+  0% { transform: scale(1) translateY(0) rotate(0deg); }
+  20% { transform: scale(1.02) translateY(-2px) rotate(-1deg); }
+  50% { transform: scale(1.05) translateY(3px) rotate(1deg); }
+  80% { transform: scale(1.08) translateY(-1px) rotate(-0.5deg); }
+  100% { transform: scale(1) translateY(0) rotate(0deg); }
+}
+
+.animate-elephant-stomp {
+  animation: elephantStomp 1.2s ease-in-out;
+}
+
+@keyframes rhinoCharge {
+  0% { transform: scale(1) translateX(0) rotate(0deg); }
+  25% { transform: scale(1.03) translateX(-2px) rotate(-2deg); }
+  50% { transform: scale(1.06) translateX(4px) rotate(1deg); }
+  75% { transform: scale(1.1) translateX(8px) rotate(3deg); }
+  100% { transform: scale(1) translateX(0) rotate(0deg); }
+}
+
+.animate-rhino-charge {
+  animation: rhinoCharge 1.0s ease-in-out;
+}
+
+@keyframes eagleSwoop {
+  0% { transform: scale(1) translateY(0) translateX(0) rotate(0deg); }
+  20% { transform: scale(1.05) translateY(-8px) translateX(-2px) rotate(-8deg); }
+  40% { transform: scale(1.1) translateY(-12px) translateX(4px) rotate(-3deg); }
+  60% { transform: scale(1.15) translateY(-6px) translateX(8px) rotate(5deg); }
+  80% { transform: scale(1.1) translateY(-2px) translateX(4px) rotate(2deg); }
+  100% { transform: scale(1) translateY(0) translateX(0) rotate(0deg); }
+}
+
+.animate-eagle-swoop {
+  animation: eagleSwoop 0.8s ease-in-out;
+}

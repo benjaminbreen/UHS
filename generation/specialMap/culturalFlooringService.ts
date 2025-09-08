@@ -33,7 +33,7 @@ export function applyCulturalFlooring(
     applyEastAsianPattern(tiles, bounds, pattern, noise);
   } else if (config.culturalZone === 'NORTH_AMERICAN_PRE_COLUMBIAN') {
     applyPreColumbianPattern(tiles, bounds, pattern, noise, config.era);
-  } else if (config.culturalZone === 'SOUTH_AMERICAN_PRE_COLUMBIAN') {
+  } else if (config.culturalZone === 'SOUTH_AMERICAN') {
     applySouthAmericanPattern(tiles, bounds, pattern, noise, config.era);
   } else if (config.culturalZone === 'SUB_SAHARAN_AFRICAN') {
     applyAfricanPattern(tiles, bounds, pattern, noise);
@@ -88,7 +88,7 @@ function getCulturalFlooringPattern(
         };
       }
       
-    case 'SOUTH_AMERICAN_PRE_COLUMBIAN':
+    case 'SOUTH_AMERICAN':
       if (era === 'EARLY_MODERN' || era === 'RENAISSANCE') {
         return {
           primary: BiomeType.FLOOR_MARBLE, // Baroque marble
@@ -369,7 +369,7 @@ function applyIncaStonePattern(
       const relY = y - bounds.y;
       
       // Irregular fitted stone pattern
-      const stoneSize = 3 + Math.floor(noise.get(x * 0.1, y * 0.1) * 3);
+      const stoneSize = 3 + Math.floor(noise.noise(x * 0.1, y * 0.1) * 3);
       const stoneX = Math.floor(relX / stoneSize);
       const stoneY = Math.floor(relY / stoneSize);
       

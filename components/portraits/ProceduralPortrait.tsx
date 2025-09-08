@@ -52,7 +52,7 @@ interface ProceduralPortraitProps {
       hairTexture?: 'straight' | 'wavy' | 'curly' | 'coily' | 'kinky';
       hairLength?: 'bald' | 'very_short' | 'short' | 'medium' | 'long' | 'very_long';
       facialHair: boolean;
-      facialHairStyle?: 'full_beard' | 'goatee' | 'mustache' | 'stubble' | 'van_dyke' | 'soul_patch' | 'mutton_chops';
+      facialHairStyle?: 'full_beard' | 'goatee' | 'mustache' | 'stubble' | 'van_dyke' | 'soul_patch' | 'mutton_chops' | 'imperial' | 'handlebar' | 'forked_beard' | 'chin_curtain' | 'verdi';
       facialHairThickness?: 'sparse' | 'medium' | 'thick';
 
       // Skin details
@@ -185,6 +185,13 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
 
   const appearanceWithDefaults = defaultAppearance;
 
+  const headgearName =
+  (
+    useEquippedItems
+      ? character.equippedItems?.head?.name
+      : appearanceWithDefaults.headgear?.name
+  ) || 'none';
+
   // Utility function to get item color from equipped items
   const getItemColor = (item: any): string => {
     if (!item?.color) return appearanceWithDefaults.palette.primary;
@@ -227,111 +234,71 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
     return colorMap[item.color] || appearanceWithDefaults.palette.primary;
   };
 
-  // Parse hairstyle name to get actual style and length
-  const parseHairstyle = (hairstyle: string): { length: typeof appearanceWithDefaults.hairLength; style: string; texture?: typeof appearanceWithDefaults.hairTexture } => {
-    const lower = hairstyle.toLowerCase();
-    
-    // Check for specific styles first
-    if (lower.includes('bald') || lower === 'none') return { length: 'bald', style: 'none' };
-    
-    // Compound styles - check for combinations first
-    if (lower.includes('braided bun') || lower.includes('bun') && lower.includes('braid')) return { length: 'medium', style: 'braided_bun' };
-    if (lower.includes('braided_crown') || lower.includes('braided crown')) return { length: 'long', style: 'braided_crown' };
-    
-    if (lower.includes('elaborate braid')) return { length: 'long', style: 'braided', texture: 'straight' };
-    if (lower.includes('braid')) return { length: 'medium', style: 'braided' };
-    if (lower.includes('novice')) return { length: 'short', style: 'simple' };
-    if (lower.includes('ponytail')) return { length: 'long', style: 'ponytail' };
-    if (lower.includes('bun')) return { length: 'medium', style: 'bun' };
-    if (lower.includes('mohawk')) return { length: 'short', style: 'mohawk' };
-    if (lower.includes('afro')) return { length: 'medium', style: 'afro', texture: 'kinky' };
-    if (lower.includes('dreadlock') || lower.includes('locs')) return { length: 'long', style: 'locs', texture: 'coily' };
-    if (lower.includes('crew') || lower.includes('military')) return { length: 'very_short', style: 'crew' };
-    if (lower.includes('bob')) return { length: 'short', style: 'bob' };
-    if (lower.includes('pixie')) return { length: 'very_short', style: 'pixie' };
-    if (lower.includes('topknot')) return { length: 'medium', style: 'topknot' };
-    if (lower.includes('queue')) return { length: 'long', style: 'queue' };
-    
-    // Medieval/historical styles
-    if (lower.includes('page cut') || lower.includes('pageboy')) return { length: 'short', style: 'pageboy' };
-    if (lower.includes('bowl cut') || lower.includes('bowl')) return { length: 'short', style: 'bowl_cut' };
-    
-    // Renaissance styles
-    if (lower.includes('renaissance_rolls') || lower.includes('renaissance rolls')) return { length: 'medium', style: 'renaissance_rolls' };
-    if (lower.includes('elaborate_braids')) return { length: 'long', style: 'braided' };
-    if (lower.includes('side_curls')) return { length: 'medium', style: 'side_curls' };
-    if (lower.includes('high_forehead')) return { length: 'medium', style: 'high_forehead' };
-    if (lower.includes('pearl_net')) return { length: 'medium', style: 'covered' };
-    if (lower.includes('shoulder_curled')) return { length: 'medium', style: 'curled' };
-    if (lower.includes('courtier_locks')) return { length: 'long', style: 'flowing' };
-    if (lower.includes('artist_mane')) return { length: 'long', style: 'flowing' };
-    if (lower.includes('renaissance_bob')) return { length: 'short', style: 'bob' };
-    
-    // Antiquity styles
-    if (lower.includes('greek_bun')) return { length: 'medium', style: 'bun' };
-    if (lower.includes('roman_waves')) return { length: 'medium', style: 'wavy' };
-    if (lower.includes('braided_crown')) return { length: 'long', style: 'braided' };
-    if (lower.includes('goddess_locks')) return { length: 'long', style: 'flowing' };
-    if (lower.includes('priestess_style')) return { length: 'long', style: 'covered' };
-    if (lower.includes('short_cropped')) return { length: 'very_short', style: 'simple' };
-    if (lower.includes('medium_curled')) return { length: 'medium', style: 'curled' };
-    if (lower.includes('senator_style')) return { length: 'short', style: 'formal' };
-    
-    // Medieval styles
-    if (lower.includes('long_plaits')) return { length: 'long', style: 'braided' };
-    if (lower.includes('maiden_braids')) return { length: 'long', style: 'braided' };
-    if (lower.includes('braided_buns')) return { length: 'medium', style: 'braided_bun' };
-    if (lower.includes('covered_hair')) return { length: 'medium', style: 'covered' };
-    if (lower.includes('courtly_braids')) return { length: 'long', style: 'braided' };
-    if (lower.includes('noble_wimple')) return { length: 'medium', style: 'covered' };
-    if (lower.includes('shoulder_length')) return { length: 'medium', style: 'simple' };
-    if (lower.includes('monk_style')) return { length: 'short', style: 'tonsure' };
-    if (lower.includes('knight_cut')) return { length: 'short', style: 'simple' };
-    if (lower.includes('noble_waves')) return { length: 'medium', style: 'wavy' };
-    
-    // Industrial era styles
-    if (lower.includes('gibson_girl')) return { length: 'long', style: 'elaborate_updo' };
-    if (lower.includes('victorian_updo')) return { length: 'long', style: 'elaborate_updo' };
-    if (lower.includes('elaborate_bun')) return { length: 'medium', style: 'elaborate_bun' };
-    if (lower.includes('chignon')) return { length: 'medium', style: 'chignon' };
-    if (lower.includes('matron_waves')) return { length: 'medium', style: 'wavy' };
-    if (lower.includes('side_part')) return { length: 'short', style: 'parted' };
-    if (lower.includes('slicked_back')) return { length: 'short', style: 'slicked' };
-    if (lower.includes('gentleman_cut')) return { length: 'short', style: 'formal' };
-    if (lower.includes('victorian_waves')) return { length: 'medium', style: 'wavy' };
-    
-    // Modern era styles
-    if (lower.includes('finger_waves')) return { length: 'short', style: 'finger_waves' };
-    if (lower.includes('flapper_style')) return { length: 'short', style: 'flapper' };
-    if (lower.includes('pin_curls')) return { length: 'short', style: 'pin_curls' };
-    if (lower.includes('victory_rolls')) return { length: 'medium', style: 'victory_rolls' };
-    if (lower.includes('marcel_waves')) return { length: 'medium', style: 'marcel_waves' };
-    if (lower.includes('pompadour')) return { length: 'short', style: 'pompadour' };
-    if (lower.includes('professional_cut')) return { length: 'short', style: 'professional' };
-    
-    // Prehistoric styles
-    if (lower.includes('long_wild')) return { length: 'very_long', style: 'wild' };
-    if (lower.includes('medium_messy')) return { length: 'medium', style: 'messy' };
-    if (lower.includes('tied_back')) return { length: 'long', style: 'tied_back' };
-    if (lower.includes('warrior_knot')) return { length: 'medium', style: 'topknot' };
-    if (lower.includes('shaman_braids')) return { length: 'long', style: 'braided' };
-    if (lower.includes('tribal_braids')) return { length: 'long', style: 'braided' };
-    
-    // General age/condition styles
-    if (lower.includes('balding')) return { length: 'very_short', style: 'balding' };
-    if (lower.includes('thin_long')) return { length: 'long', style: 'thin' };
-    if (lower.includes('elder_') || lower.includes('old_')) return { length: 'medium', style: 'elder' };
-    
-    // Check for length indicators
-    if (lower.includes('very short')) return { length: 'very_short', style: 'simple' };
-    if (lower.includes('very long')) return { length: 'very_long', style: 'flowing' };
-    if (lower.includes('short')) return { length: 'short', style: 'simple' };
-    if (lower.includes('long')) return { length: 'long', style: 'flowing' };
-    if (lower.includes('medium')) return { length: 'medium', style: 'simple' };
-    
-    // Default fallback
-    return { length: appearanceWithDefaults.hairLength || 'medium', style: 'simple' };
-  };
+  // Parse hairstyle name to get length, style, and texture
+const parseHairstyle = (
+  hairstyle: string
+): {
+  length: NonNullable<typeof appearanceWithDefaults.hairLength>;
+  style: string;
+  texture?: NonNullable<typeof appearanceWithDefaults.hairTexture>;
+} => {
+  const raw = (hairstyle || '').toLowerCase().trim();
+
+  // fast exits
+  if (!raw || raw === 'none') return { length: 'medium', style: 'simple' };
+  if (raw.includes('bald')) return { length: 'bald', style: 'none' };
+
+  // detect texture words anywhere
+  const hasCurly  = /\bcurly|ringlet|perm(ed)?\b/.test(raw);
+  const hasWavy   = /\bwavy|waves\b/.test(raw);
+  const hasCoily  = /\bcoily\b/.test(raw);
+  const hasKinky  = /\bkinky\b/.test(raw);
+  const hasStraight = /\bstraight\b/.test(raw);
+
+  // resolve texture (respect explicit appearance.hairTexture fallback)
+  let texture: NonNullable<typeof appearanceWithDefaults.hairTexture> | undefined =
+    (hasCurly && 'curly') ||
+    (hasWavy && 'wavy') ||
+    (hasCoily && 'coily') ||
+    (hasKinky && 'kinky') ||
+    (hasStraight && 'straight') ||
+    appearanceWithDefaults.hairTexture ||
+    'straight';
+
+  // resolve length from text, else from appearance, else medium
+  let length: NonNullable<typeof appearanceWithDefaults.hairLength> =
+    (/\bvery\s*short\b/.test(raw) && 'very_short') ||
+    (/\bvery\s*long\b/.test(raw) && 'very_long') ||
+    (/\blong\b/.test(raw) && 'long') ||
+    (/\bmedium|shoulder\b/.test(raw) && 'medium') ||
+    (/\bshort\b/.test(raw) && 'short') ||
+    appearanceWithDefaults.hairLength ||
+    'medium';
+
+  // choose a style the renderer knows how to paint a scalp for
+  // (use flowing for medium/long by default; simple for short)
+  let style = 'simple';
+  if (/\bafro\b/.test(raw)) style = 'afro';
+  else if (/\bloc(s|ks)?\b|dread/.test(raw)) { style = 'locs'; texture = 'coily'; }
+  else if (/\bbraid(ed|s)?\b/.test(raw)) style = 'braided';
+  else if (/\bbun\b/.test(raw)) style = 'bun';
+  else if (/\bponytail\b/.test(raw)) style = 'ponytail';
+  else if (/\btopknot\b|warrior_knot/.test(raw)) style = 'topknot';
+  else if (/\bmohawk\b/.test(raw)) style = 'mohawk';
+  else if (/\bpage(boy| cut)\b/.test(raw)) style = 'pageboy';
+  else if (/\bbowl\b/.test(raw)) style = 'bowl_cut';
+  else if (/\brenaissance_rolls\b/.test(raw)) style = 'renaissance_rolls';
+  else if (/\bbraided[_ ]crown\b/.test(raw)) style = 'braided_crown';
+  else if (/\bbraided[_ ]bun\b/.test(raw)) style = 'braided_bun';
+  else {
+    // generic fallback: make long/very_long “flowing”; short “simple”
+    style = (length === 'long' || length === 'very_long' || length === 'medium') ? 'flowing' : 'simple';
+    // if text mentions “curly/wavy/...”, keep that texture but still use a style we paint
+  }
+
+  return { length, style, texture };
+};
+
 
   const parsedHair = parseHairstyle(appearanceWithDefaults.hairstyle);
   const hairLength = parsedHair.length;
@@ -485,23 +452,39 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
   const exprIsSad = expr === 'sad';
   const exprIsConcern = expr === 'concern';
   const exprIsSmileFamily = expr === 'smile' || exprIsApprove || exprIsSmirk;
+  const exprIsSkeptical = expr === 'skeptical';
+  const exprIsConfused = expr === 'confused';
+  const exprIsThinking = expr === 'thinking';
+  const exprIsAnnoyed = expr === 'annoyed';
+  const exprIsDetermined = expr === 'determined';
+  const exprIsTired = expr === 'tired';
+  const exprIsExcited = expr === 'excited';
 
   if (expr) {
     switch (expr) {
       case 'smile':
       case 'approve':
       case 'smirk':
+      case 'excited':
         expressionType = 1; // smile family
         break;
       case 'scowl':
       case 'sad':
+      case 'annoyed':
+      case 'tired':
         expressionType = 2; // frown family
         break;
       case 'concern':
+      case 'confused':
+      case 'thinking':
         expressionType = 4; // pursed/concern
         break;
       case 'surprise':
         expressionType = 0; // eyes widen; mouth neutral (handled in eyes)
+        break;
+      case 'skeptical':
+      case 'determined':
+        expressionType = 3; // neutral-ish with specific brow
         break;
     }
   }
@@ -726,126 +709,132 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
   // ----- HEAD -----
 const renderHead = useMemo(() => {
   const elements: JSX.Element[] = [];
-  const faceShape = appearanceWithDefaults.faceShape || 'oval';
-  const jawline = appearanceWithDefaults.jawline || 'soft';
-  const cheekbones = appearanceWithDefaults.cheekbones || 'average';
-  const skinTexture = appearanceWithDefaults.skinTexture || 'smooth';
+  const faceShape = (appearanceWithDefaults.faceShape || 'oval').toLowerCase();
+  const jawline = (appearanceWithDefaults.jawline || 'soft').toLowerCase();
+  const cheekbones = (appearanceWithDefaults.cheekbones || 'average').toLowerCase();
+  const skinTexture = (appearanceWithDefaults.skinTexture || 'smooth').toLowerCase();
 
-  // helpers
+  // ── helpers ────────────────────────────────────────────────
   const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
   const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-  const smooth01 = (x: number) => {
-    const t = clamp((x - 0) / 1, 0, 1);
-    return t * t * (3 - 2 * t); // classic smoothstep
+  const smooth01 = (x: number) => { const t = clamp(x, 0, 1); return t * t * (3 - 2 * t); };
+
+  type ShapeParams = {
+    crownRoundness: number; // fraction of height to reach near max width
+    cheekTop: number;       // cheek band start (fraction of height)
+    cheekBot: number;       // cheek band end   (fraction of height)
+    chinTaper: number;      // 0..1 smaller = pointier chin (handled below)
+    jawSoftness: number;    // extra drop near very bottom (avoids flat line)
+    topW: number;           // normalized width at very top
+    cheekW: number;         // normalized width at widest rows
+    chinW: number;          // normalized width at the chin
   };
-  const smooth = (a: number, b: number, x: number, x0: number, x1: number) =>
-    lerp(a, b, smooth01(clamp((x - x0) / (x1 - x0), 0, 1)));
-  const bell = (t: number, m = 0.5, s = 0.22) =>
-    Math.exp(-((t - m) * (t - m)) / (2 * s * s));
 
-  // anchor defaults by face shape
-  // values are normalized width multipliers (relative to headDim.width)
-  let topW   = 0.82;
-  let cheekW = 1.00;
-  let chinW  = 0.70;
-  let tPeak  = 0.54; // where max width occurs (0=top, 1=chin)
+  // Base shape curves + anchor widths per face shape
+  const baseCurve: Record<string, Omit<ShapeParams, 'topW' | 'cheekW' | 'chinW'>> = {
+    oval:     { crownRoundness: 0.34, cheekTop: 0.40, cheekBot: 0.72, chinTaper: 0.36, jawSoftness: 0.08 },
+    round:    { crownRoundness: 0.30, cheekTop: 0.45, cheekBot: 0.78, chinTaper: 0.46, jawSoftness: 0.05 },
+    square:   { crownRoundness: 0.36, cheekTop: 0.46, cheekBot: 0.70, chinTaper: 0.50, jawSoftness: 0.03 },
+    heart:    { crownRoundness: 0.32, cheekTop: 0.40, cheekBot: 0.68, chinTaper: 0.28, jawSoftness: 0.10 },
+    diamond:  { crownRoundness: 0.33, cheekTop: 0.42, cheekBot: 0.70, chinTaper: 0.34, jawSoftness: 0.09 },
+    long:     { crownRoundness: 0.36, cheekTop: 0.46, cheekBot: 0.76, chinTaper: 0.38, jawSoftness: 0.07 },
+  };
+  const widthAnchors: Record<string, { topW: number; cheekW: number; chinW: number }> = {
+    oval:    { topW: 0.78, cheekW: 1.00, chinW: 0.68 },
+    round:   { topW: 0.82, cheekW: 1.04, chinW: 0.78 },
+    square:  { topW: 0.80, cheekW: 1.02, chinW: 0.84 },
+    heart:   { topW: 0.82, cheekW: 1.02, chinW: 0.58 },
+    diamond: { topW: 0.74, cheekW: 1.06, chinW: 0.66 },
+    long:    { topW: 0.76, cheekW: 0.98, chinW: 0.64 },
+  };
 
-  switch (faceShape) {
-    case 'round':
-      topW = 0.86; cheekW = 1.02; chinW = 0.78; tPeak = 0.52; break;
-    case 'oval':
-      topW = 0.82; cheekW = 1.00; chinW = 0.70; tPeak = 0.54; break;
-    case 'square':
-      topW = 0.84; cheekW = 1.02; chinW = 0.84; tPeak = 0.53; break;
-    case 'heart':
-      topW = 0.86; cheekW = 1.02; chinW = 0.56; tPeak = 0.50; break;
-    case 'diamond':
-      topW = 0.76; cheekW = 1.06; chinW = 0.68; tPeak = 0.55; break;
-    case 'long':
-      topW = 0.80; cheekW = 0.96; chinW = 0.66; tPeak = 0.58; break;
-  }
+  const W = headDim.width;
+  const H = headDim.height;
+  const cx = headX + Math.floor(W / 2);
 
-  // jawline influence (only widens/narrows lower third anchors)
+  // Assemble params with feature influences
+  const curve = baseCurve[faceShape] ?? baseCurve.oval;
+  let { topW, cheekW, chinW } = widthAnchors[faceShape] ?? widthAnchors.oval;
+
+  // jawline -> lower third width
   if (jawline === 'square') chinW += 0.10;
   else if (jawline === 'sharp') chinW -= 0.08;
 
-  // cheekbone influence (only boosts cheek anchor)
+  // cheekbones -> cheek anchor
   if (cheekbones === 'high') cheekW += 0.04;
   else if (cheekbones === 'low') cheekW -= 0.03;
 
-  // hair length subtly affects the crown
+  // hair length -> crown slightly wider for bald/very short (less lift)
   if (hairLength === 'bald' || hairLength === 'very_short') topW += 0.02;
 
-  // hard safety clamps on anchors
-  topW = clamp(topW, 0.72, 0.92);
-  cheekW = clamp(cheekW, 0.92, 1.10);
+  // clamp anchors
+  topW = clamp(topW, 0.70, 0.90);
+  cheekW = clamp(cheekW, 0.94, 1.10);
   chinW = clamp(chinW, 0.52, 0.90);
-  tPeak = clamp(tPeak, 0.48, 0.62);
 
-  // precompute row widths with a strictly unimodal baseline
-  const H = headDim.height;
-  const widthsNorm: number[] = new Array(H);
+  // lightweight PRNG for stable asymmetry
+  const seedVal = ((headX << 2) ^ (headY << 1) ^ (W * 31) ^ (H * 17)) >>> 0;
+  const makeRng = (s: number) => {
+    let n = s || 1;
+    return () => ((n = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b)) >>> 0) / 0xffffffff;
+  };
+  const rng = makeRng(seedVal);
+  const leftBias = (rng() * 2 - 1) * 0.8;   // pixels
+  const rightBias = (rng() * 2 - 1) * 0.8;  // pixels
+  const cheekVariance = (rng() * 2 - 1) * 0.5;
 
-  for (let y = 0; y < H; y++) {
-    const t = H > 1 ? y / (H - 1) : 0.0;
+  // compute half-width (in px) for a normalized y (0 top → 1 chin)
+  const halfWidthAtT = (t: number) => {
+    let wNorm: number;
 
-    // piecewise smoothstep from top→cheek, then cheek→chin
-    const base =
-      t <= tPeak
-        ? smooth(topW, cheekW, t, 0, tPeak)
-        : smooth(cheekW, chinW, t, tPeak, 1);
+    if (t < curve.crownRoundness) {
+      const u = smooth01(t / curve.crownRoundness);
+      wNorm = lerp(topW, cheekW, u);
+    } else if (t < curve.cheekBot) {
+      const u = (t - curve.crownRoundness) / (curve.cheekBot - curve.crownRoundness);
+      const bulge = 1 - 0.06 * Math.cos(u * Math.PI); // gentle cheek swelling
+      wNorm = cheekW * bulge;
+    } else {
+      const u = smooth01((t - curve.cheekBot) / (1 - curve.cheekBot));
+      wNorm = lerp(cheekW, chinW, u);
+      // soften jaw near very bottom to avoid a straight bottom edge
+      wNorm -= curve.jawSoftness * Math.pow(Math.max(0, t - 0.80), 1.8) * (W / Math.max(W, 24));
+    }
 
-    // gentle additive styling that NEVER subtracts width (prevents pinches)
-    let styled = base;
+    wNorm = clamp(wNorm, 0.50, 1.12);
+    const full = Math.max(6, Math.round(W * wNorm));
+    return Math.floor(full / 2);
+  };
 
-    // cheek emphasis
-    const cheekBoost =
-      faceShape === 'round'   ? 0.06 :
-      faceShape === 'diamond' ? 0.08 :
-      faceShape === 'square'  ? 0.04 :
-      faceShape === 'heart'   ? 0.05 :
-      faceShape === 'long'    ? 0.03 :
-      0.05;
-    styled += cheekBoost * bell(t, tPeak, 0.18);
+  // row-by-row fill using per-side edges (allows asymmetry)
+  for (let yi = 0; yi < H; yi++) {
+    const y = headY + yi;
+    const t = H > 1 ? yi / (H - 1) : 0;
+    const hw = halfWidthAtT(t);
 
-    // slight crown smoothing (only adds)
-    styled += 0.02 * bell(t, 0.12, 0.10);
+    // asymmetry strength varies with height (more below the cheeks)
+    const asymCurve = (t - 0.25) * 1.2;
+    const leftX = Math.round(
+      cx - hw + leftBias * asymCurve + (t > curve.cheekTop && t < curve.cheekBot ? cheekVariance : 0)
+    );
+    const rightX = Math.round(cx + hw + rightBias * asymCurve);
 
-    // final normalized width with guard rails
-    widthsNorm[y] = clamp(styled, 0.50, 1.12);
-  }
-
-  // ---- UNIMODAL SWEEP (strictly no waist) ----
-  // ensure non-decreasing from top to peak
-  const peakY = Math.round(tPeak * (H - 1));
-  for (let y = 1; y <= peakY; y++) {
-    if (widthsNorm[y] < widthsNorm[y - 1]) widthsNorm[y] = widthsNorm[y - 1];
-  }
-  // ensure non-increasing from peak to chin
-  for (let y = H - 2; y >= peakY; y--) {
-    if (widthsNorm[y] < widthsNorm[y + 1]) widthsNorm[y] = widthsNorm[y + 1];
-  }
-
-  // draw
-  for (let y = 0; y < H; y++) {
-    const t = H > 1 ? y / (H - 1) : 0.0;
-    const wNorm = widthsNorm[y];
-    const rowWidth = Math.max(6, Math.round(headDim.width * wNorm));
-    const startX = headX + Math.floor((headDim.width - rowWidth) / 2);
-
-    // outlines
+    // side outlines (outer glow + main outline)
     elements.push(
-      <rect key={`outline-outer-l-${y}`} x={startX - 2} y={headY + y} width="1" height="1" fill={createShadow(outlineColor, 0.7)} className="pixel" />,
-      <rect key={`outline-outer-r-${y}`} x={startX + rowWidth + 1} y={headY + y} width="1" height="1" fill={createShadow(outlineColor, 0.7)} className="pixel" />,
-      <rect key={`outline-l-${y}`}        x={startX - 1} y={headY + y} width="1" height="1" fill={outlineColor} className="pixel" />,
-      <rect key={`outline-r-${y}`}        x={startX + rowWidth} y={headY + y} width="1" height="1" fill={outlineColor} className="pixel" />
+      <rect key={`outline-outer-l-${yi}`} x={leftX - 2}  y={y} width="1" height="1" fill={createShadow(outlineColor, 0.7)} className="pixel" />,
+      <rect key={`outline-outer-r-${yi}`} x={rightX + 2} y={y} width="1" height="1" fill={createShadow(outlineColor, 0.7)} className="pixel" />,
+      <rect key={`outline-l-${yi}`}        x={leftX - 1}  y={y} width="1" height="1" fill={outlineColor} className="pixel" />,
+      <rect key={`outline-r-${yi}`}        x={rightX + 1} y={y} width="1" height="1" fill={outlineColor} className="pixel" />
     );
 
-    // fill & shading (kept consistent with your previous logic)
-    for (let x = 0; x < rowWidth; x++) {
+    // fill line between leftX..rightX (inclusive)
+    const rowWidth = rightX - leftX + 1;
+    for (let x = leftX; x <= rightX; x++) {
+      const xLocal = x - leftX;
+      const xRatio = rowWidth > 1 ? xLocal / (rowWidth - 1) : 0.5;
       let faceColor = skinTone;
-      const xRatio = x / rowWidth;
 
+      // your existing lateral shading
       if (xRatio < 0.15) faceColor = skinBrightHighlight;
       else if (xRatio < 0.25) faceColor = skinHighlight;
       else if (xRatio < 0.4) faceColor = createHighlight(skinTone, 1.08);
@@ -853,38 +842,41 @@ const renderHead = useMemo(() => {
       else if (xRatio > 0.75) faceColor = skinShadow;
       else if (xRatio > 0.6) faceColor = skinMidtone;
 
-      const relativeY = t;
-      if (relativeY > 0.3 && relativeY < 0.5) {
-        if (x < 3 || x > rowWidth - 4) faceColor = skinSubsurface;
+      // subsurface edge band (temples)
+      if (t > 0.3 && t < 0.5) {
+        if (xLocal < 3 || xLocal > rowWidth - 4) faceColor = skinSubsurface;
       }
 
-      if (cheekbones !== 'low' && relativeY > 0.4 && relativeY < 0.65) {
+      // cheekbone lift
+      if (cheekbones !== 'low' && t > 0.4 && t < 0.65) {
         const cheekboneIntensity = cheekbones === 'high' ? 0.12 : 0.08;
         if (Math.abs(xRatio - 0.22) < cheekboneIntensity || Math.abs(xRatio - 0.78) < cheekboneIntensity) {
           faceColor = createHighlight(faceColor, xRatio < 0.5 ? 1.1 : 1.05);
         }
       }
 
-      if (relativeY > 0.25 && relativeY < 0.65 && Math.abs(x - rowWidth / 2) < 2) {
-        faceColor = createHighlight(faceColor, 1.12); // nose bridge
+      // nose bridge
+      if (t > 0.25 && t < 0.65 && Math.abs(xLocal - rowWidth / 2) < 2) {
+        faceColor = createHighlight(faceColor, 1.12);
       }
 
+      // texture / age
       if (skinTexture === 'freckled' && rand(x * 100 + y * 1000) > 0.92) {
         faceColor = createShadow(faceColor, 0.85);
       } else if (skinTexture === 'weathered' && rand(x * 50 + y * 500) > 0.88) {
         faceColor = createShadow(faceColor, 0.92);
       }
-      if (hasAgeSpots && relativeY > 0.3 && relativeY < 0.7 && rand(x * 200 + y * 2000) > 0.96) {
+      if (hasAgeSpots && t > 0.3 && t < 0.7 && rand(x * 200 + y * 2000) > 0.96) {
         faceColor = createShadow(faceColor, 0.75);
       }
       if (hasWrinkles) {
-        if ((relativeY > 0.18 && relativeY < 0.32) && y % 4 === 0) faceColor = createShadow(faceColor, 0.88);
-        if ((relativeY > 0.35 && relativeY < 0.45) && (xRatio < 0.15 || xRatio > 0.85) && ((x + y) % 3 === 0)) faceColor = createShadow(faceColor, 0.9);
-        if ((relativeY > 0.55 && relativeY < 0.75) && (xRatio < 0.3 || xRatio > 0.7) && ((x - Math.floor(rowWidth / 2)) % 4 === 0)) faceColor = createShadow(faceColor, 0.89);
+        if ((t > 0.18 && t < 0.32) && yi % 4 === 0) faceColor = createShadow(faceColor, 0.88);
+        if ((t > 0.35 && t < 0.45) && (xRatio < 0.15 || xRatio > 0.85) && ((xLocal + yi) % 3 === 0)) faceColor = createShadow(faceColor, 0.9);
+        if ((t > 0.55 && t < 0.75) && (xRatio < 0.3 || xRatio > 0.7) && (((xLocal - Math.floor(rowWidth / 2)) % 4) === 0)) faceColor = createShadow(faceColor, 0.89);
       }
 
       elements.push(
-        <rect key={`face-${y}-${x}`} x={startX + x} y={headY + y} width="1" height="1" fill={faceColor} className="pixel" />
+        <rect key={`face-${yi}-${x}`} x={x} y={y} width="1" height="1" fill={faceColor} className="pixel" />
       );
     }
   }
@@ -894,6 +886,7 @@ const renderHead = useMemo(() => {
   appearanceWithDefaults.cheekbones,
   appearanceWithDefaults.faceShape,
   appearanceWithDefaults.jawline,
+  appearanceWithDefaults.skinTexture,
   hairLength,
   headDim.height,
   headDim.width,
@@ -911,11 +904,113 @@ const renderHead = useMemo(() => {
   skinTone
 ]);
 
+
   // ----- HAIR -----
-  const renderHair = useMemo(() => {
-    const elements: JSX.Element[] = [];
-    const hairLen = hairLength;
-    if (hairLen === 'bald') return <g key="hair" />;
+  // ----- HAIR -----
+const renderHair = useMemo(() => {
+  const elements: JSX.Element[] = [];
+  const hairLen = hairLength;
+  const centerX = headX + headDim.width / 2; // Move centerX to the top
+
+  const CLIP_HAIR_TO_HEADGEAR = false; 
+
+  // ⬇️ #2: ADD THIS LINE EXACTLY HERE
+  const hgName = (headgearName || 'none').toLowerCase();
+
+  if (hairLen === 'bald') return <g key="hair" />;
+
+  // Determine headgear coverage for hair clipping
+  const getHeadgearCoverage = () => {
+    // ⬇️ use hgName instead of recomputing from appearance
+    const name = hgName;
+
+    // Full coverage - no hair visible on top or sides
+    if (/(helmet|helm|coif|wimple|hijab|hood|biggins|zukin)/.test(name)) {
+      return { top: true, sides: true, back: true, front: true };
+    }
+
+    // Top coverage only - sideburns and back visible
+    if (/(cap|beret|kippah|yarmulke|fez|kufi|beanie|tuque)/.test(name)) {
+      return { top: true, sides: false, back: false, front: true };
+    }
+
+    // Partial top - allows some front hair (bangs)
+    if (/(crown|tiara|circlet|headband|bandana|flower|garland)/.test(name)) {
+      return { top: false, sides: false, back: false, front: false };
+    }
+
+    // Wide brim hats - top covered but hair visible at sides
+    if (/(hat|panama|fedora|sombrero|tricorn|straw)/.test(name)) {
+      return { top: true, sides: false, back: false, front: true };
+    }
+
+    // Turbans - wraps around but might show some front
+    if (/(turban|pagri)/.test(name)) {
+      return { top: true, sides: true, back: true, front: false };
+    }
+
+    // Default - no coverage
+    return { top: false, sides: false, back: false, front: false };
+  };
+
+  const coverage = getHeadgearCoverage();
+
+    // ---- helper: paint scalp cap across the crown (top-of-head) ----
+const paintScalpCap = (opts?: { buzz?: boolean }) => {
+if (hairLen === 'bald') return;
+
+  const buzz = !!opts?.buzz;
+  // Use a fuller thickness for cap; for buzz/crew, make it tight to the scalp
+  const capThickness = buzz ? 1.0 : 0.95;
+  const capTop = headY - (hairLen === 'very_short' ? 2 : hairLen === 'short' ? 3 : 6);
+  const cx = centerX;
+
+  for (let layer = 0; layer < 2; layer++) {
+    for (let y = capTop; y < headY + 6; y++) {
+      const rowHalf =
+        y < headY + 2
+          ? (headDim.width / 2 + 4) * capThickness
+          : (headDim.width / 2 + 2 - layer);
+
+      const left = Math.round(cx - rowHalf + layer);
+      const right = Math.round(cx + rowHalf - layer);
+
+      for (let x = left; x <= right; x++) {
+        // Keep face center reasonably clear except at the top hairline
+        const relY = y - headY;
+        const relX = x - headX;
+        const inFace =
+          !buzz &&
+          relY >= 4 && relY <= headDim.height - 3 &&
+          Math.abs(x - cx) <= (headDim.width / 2 - 2);
+
+        // respect headgear coverage masks
+        const isTop = relY < 0;
+        const isSides = relX < 2 || relX > headDim.width - 2;
+        const isFront = relY < 3 && relX >= 2 && relX <= headDim.width - 2;
+        const isBack = relY >= headDim.height - 2;
+
+        const masked =
+          (coverage.top && isTop) ||
+          (coverage.sides && isSides) ||
+          (coverage.front && isFront) ||
+          (coverage.back && isBack);
+
+        if (!inFace && !masked) {
+          const p = getHairPattern(x, y);
+          let col = layer === 0 ? naturalHairShadow : naturalBaseHair;
+          if (p > 0.35) col = layer === 0 ? naturalBaseHair : naturalHairHighlight;
+          elements.push(
+            <rect key={`cap-${layer}-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />
+          );
+        }
+      }
+    }
+  }
+};
+
+// paintScalpCap call moved down after dependencies are defined
+
 
     const getHairPattern = (x: number, y: number): number => {
       switch (hairTexture) {
@@ -955,8 +1050,12 @@ const renderHead = useMemo(() => {
     const naturalHairHighlight = createHighlight(naturalBaseHair, 1.2);
     const naturalHairBrightHighlight = createHighlight(naturalBaseHair, 1.4);
 
+    // Now it's safe to call paintScalpCap (after centerX, getHairPattern, and natural colors are defined)
+    const isBuzz = hairLen === 'very_short' || hairStyle === 'crew' || hairStyle === 'pixie' || hairStyle === 'finger_waves';
+    paintScalpCap({ buzz: isBuzz });
+
     // Special style rendering
-    const centerX = headX + headDim.width / 2;
+    // (centerX already declared above)
     
   // Render braids (outside the face + behind/around ears)
 if (hairStyle === 'braided') {
@@ -1063,7 +1162,25 @@ if (hairStyle === 'braided') {
             }
 
             if (draw) {
-              elements.push(<rect key={`bun-base-${layer}-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
+              // Check coverage mask
+              const relX = x - headX;
+              const relY = y - headY;
+              const isTop = relY < 0;
+              const isSides = relX < 2 || relX > headDim.width - 2;
+              const isFront = relY < 3 && relX >= 2 && relX <= headDim.width - 2;
+              const isBack = relY >= headDim.height - 2;
+              
+            const shouldSkip =
+  CLIP_HAIR_TO_HEADGEAR && (
+    (coverage.top && isTop) ||
+    (coverage.sides && isSides) ||
+    (coverage.front && isFront) ||
+    (coverage.back && isBack)
+  );
+
+              if (!shouldSkip) {
+                elements.push(<rect key={`bun-base-${layer}-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
+              }
             }
           }
         }
@@ -1162,7 +1279,26 @@ if (hairStyle === 'braided') {
               const layer = dist < afroRadius * 0.6 ? 2 : dist < afroRadius * 0.85 ? 1 : 0;
               const col = layer === 0 ? hairDeepShadow : layer === 1 ? baseHair : noise > 0.2 ? hairHighlight : baseHair;
               
-              elements.push(<rect key={`afro-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
+              // Check coverage mask
+              const relX = x - headX;
+              const relY = y - headY;
+              const isTop = relY < 0;
+              const isSides = relX < 2 || relX > headDim.width - 2;
+              const isFront = relY < 3 && relX >= 2 && relX <= headDim.width - 2;
+              const isBack = relY >= headDim.height - 2;
+              
+             const shouldSkip =
+               CLIP_HAIR_TO_HEADGEAR && (
+                 (coverage.top && isTop) ||
+                 (coverage.sides && isSides) ||
+                 (coverage.front && isFront) ||
+                 (coverage.back && isBack)
+               );
+
+              
+              if (!shouldSkip) {
+                elements.push(<rect key={`afro-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
+              }
             }
           }
         }
@@ -1195,7 +1331,26 @@ if (hairStyle === 'braided') {
             }
 
             if (draw) {
-              elements.push(<rect key={`pageboy-${layer}-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
+              // Check coverage mask
+              const relX = x - headX;
+              const relY = y - headY;
+              const isTop = relY < 0;
+              const isSides = relX < 2 || relX > headDim.width - 2;
+              const isFront = relY < 3 && relX >= 2 && relX <= headDim.width - 2;
+              const isBack = relY >= headDim.height - 2;
+              
+            const shouldSkip =
+  CLIP_HAIR_TO_HEADGEAR && (
+    (coverage.top && isTop) ||
+    (coverage.sides && isSides) ||
+    (coverage.front && isFront) ||
+    (coverage.back && isBack)
+  );
+
+              
+              if (!shouldSkip) {
+                elements.push(<rect key={`pageboy-${layer}-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
+              }
             }
           }
         }
@@ -1228,7 +1383,26 @@ if (hairStyle === 'braided') {
             }
 
             if (draw) {
-              elements.push(<rect key={`bowl-${layer}-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
+              // Check coverage mask
+              const relX = x - headX;
+              const relY = y - headY;
+              const isTop = relY < 0;
+              const isSides = relX < 2 || relX > headDim.width - 2;
+              const isFront = relY < 3 && relX >= 2 && relX <= headDim.width - 2;
+              const isBack = relY >= headDim.height - 2;
+              
+             const shouldSkip =
+  CLIP_HAIR_TO_HEADGEAR && (
+    (coverage.top && isTop) ||
+    (coverage.sides && isSides) ||
+    (coverage.front && isFront) ||
+    (coverage.back && isBack)
+  );
+
+              
+              if (!shouldSkip) {
+                elements.push(<rect key={`bowl-${layer}-${x}-${y}`} x={x} y={y} width="1" height="1" fill={col} className="pixel" />);
+              }
             }
           }
         }
@@ -1433,7 +1607,12 @@ if (hairStyle === 'braided') {
     }
     
     // Default hair rendering for simple/flowing styles - FIXED with full scalp coverage
-    if (hairStyle === 'simple' || hairStyle === 'flowing' || hairStyle === 'bob' || hairStyle === 'pixie' || hairStyle === 'crew') {
+const defaultCapStyles = new Set([
+  'simple','flowing','bob','pixie','crew',
+  'wavy','curly','formal','parted','slicked',
+  'finger_waves','flapper','pin_curls','pompadour','professional','marcel_waves'
+]);
+if (defaultCapStyles.has(hairStyle)) {
       // Add helpers for buzz cuts
       const isBuzz = hairLen === 'very_short' || hairStyle === 'crew' || hairStyle === 'pixie';
       const coverThickness = isBuzz ? 1 : thickness;   // ignore age thinning for buzz/crew
@@ -1482,7 +1661,26 @@ if (hairStyle === 'braided') {
             if (p > 0.3) col = layer === 2 ? hairBrightHighlight : hairHighlight;
             else if (p < -0.3) col = hairDeepShadow;
             if (rand(x * 10 + y * 100 + layer * 500) > 0.8) col = createHighlight(col, 1.1);
-            elements.push(<rect key={`hair-${layer}-${x}-${y}`} x={x + p * 0.3} y={y} width="1" height="1" fill={col} className="pixel" />);
+            // Check coverage mask
+            const relX = x - headX;
+            const relY = y - headY;
+            const isTop = relY < 0;
+            const isSides = relX < 2 || relX > headDim.width - 2;
+            const isFront = relY < 3 && relX >= 2 && relX <= headDim.width - 2;
+            const isBack = relY >= headDim.height - 2;
+            
+       const shouldSkip =
+  CLIP_HAIR_TO_HEADGEAR && (
+    (coverage.top && isTop) ||
+    (coverage.sides && isSides) ||
+    (coverage.front && isFront) ||
+    (coverage.back && isBack)
+  );
+
+            
+            if (!shouldSkip) {
+              elements.push(<rect key={`hair-${layer}-${x}-${y}`} x={x + p * 0.3} y={y} width="1" height="1" fill={col} className="pixel" />);
+            }
           }
         }
       }
@@ -1504,7 +1702,14 @@ if (hairStyle === 'braided') {
             let col = strand === 0 ? naturalHairShadow : strand === 1 ? naturalBaseHair : naturalHairHighlight;
             if (s > 0.2 && strand === 2) col = naturalHairBrightHighlight;
             if (!isOld || rand(x + y + strand * 1000) > 0.4) {
-              elements.push(<rect key={`hair-left-${strand}-${x}-${y}`} x={x + s * 0.4 + p + flow} y={y} width="1" height="1" fill={col} className="pixel" />);
+              // Check coverage mask for side hair
+              const relX = (x + s * 0.4 + p + flow) - headX;
+              const relY = y - headY;
+              const isSides = relX < 2 || relX > headDim.width - 2;
+              
+              if (!(coverage.sides && isSides)) {
+                elements.push(<rect key={`hair-left-${strand}-${x}-${y}`} x={x + s * 0.4 + p + flow} y={y} width="1" height="1" fill={col} className="pixel" />);
+              }
             }
           }
           for (let x = headX + headDim.width - 4 + strandOffset; x < headX + headDim.width + 6 - widthReduction - strandOffset; x++) {
@@ -1513,7 +1718,14 @@ if (hairStyle === 'braided') {
             let col = strand === 0 ? naturalHairShadow : strand === 1 ? naturalBaseHair : naturalHairHighlight;
             if (s > 0.2 && strand === 2) col = naturalHairBrightHighlight;
             if (!isOld || rand(x + y + strand * 1000) > 0.4) {
-              elements.push(<rect key={`hair-right-${strand}-${x}-${y}`} x={x - s * 0.4 - p - flow} y={y} width="1" height="1" fill={col} className="pixel" />);
+              // Check coverage mask for side hair
+              const relX = (x - s * 0.4 - p - flow) - headX;
+              const relY = y - headY;
+              const isSides = relX < 2 || relX > headDim.width - 2;
+              
+              if (!(coverage.sides && isSides)) {
+                elements.push(<rect key={`hair-right-${strand}-${x}-${y}`} x={x - s * 0.4 - p - flow} y={y} width="1" height="1" fill={col} className="pixel" />);
+              }
             }
           }
         }
@@ -1521,7 +1733,7 @@ if (hairStyle === 'braided') {
     }
 
     return <g key="hair">{elements}</g>;
-  }, [hairTexture, hairStyle, baseHair, hairBrightHighlight, hairDeepShadow, hairHighlight, hairShadow, headDim.width, headX, headY, hairLength, isOld, isYoung, skinTone, isFemale]);
+  }, [hairTexture, hairStyle, baseHair, hairBrightHighlight, hairDeepShadow, hairHighlight, hairShadow, headDim.width, headX, headY, hairLength, isOld, isYoung, skinTone, isFemale, headgearName]);
 
   // ----- EYES (with expression tweaks) -----
   const renderEyes = () => {
@@ -1606,7 +1818,16 @@ if (hairStyle === 'braided') {
       <rect key="iris-r" x={rightEyeX + irisOffset} y={irisY} width={irisSize} height={eyeHeight} fill={appearanceWithDefaults.eyeColor} className="pixel" />
     );
 
-    const pupilSize = microExpression === 0 ? 1 : 1.5;
+    // Pupil size varies with expression and microExpression
+    let pupilSize = microExpression === 0 ? 1 : 1.5;
+    if (exprIsSurprised || exprIsExcited) {
+      pupilSize = 2; // Dilated pupils
+    } else if (exprIsDetermined || exprIsAnnoyed) {
+      pupilSize = 1; // Constricted pupils  
+    } else if (exprIsSkeptical) {
+      pupilSize = 1.2; // Slightly constricted
+    }
+    
     elements.push(
       <rect key="pupil-l" x={leftEyeX + irisOffset + 0.5} y={irisY + 0.5} width={pupilSize} height={pupilSize} fill="rgb(0,0,0)" className="pixel" />,
       <rect key="pupil-r" x={rightEyeX + irisOffset + 0.5} y={irisY + 0.5} width={pupilSize} height={pupilSize} fill="rgb(0,0,0)" className="pixel" />
@@ -1624,17 +1845,22 @@ if (hairStyle === 'braided') {
     const browColor = hasGrayHair ? 'rgb(169,169,169)' : baseHair;
 
     const isSmiling = exprIsSmileFamily || expressionType === 1;
-    const browLift = isSmiling ? 2 : 0;
-    const scowlDrop = exprIsScowl ? 2 : 0;
-    const concernDrop = exprIsConcern ? 1 : 0;
+    const browLift = isSmiling ? 2 : exprIsExcited ? 3 : 0;
+    const scowlDrop = exprIsScowl ? 2 : exprIsAnnoyed ? 1 : 0;
+    const concernDrop = exprIsConcern ? 1 : exprIsConfused ? 2 : 0;
 
-    // Allow asymmetric lift for smirk (lift right a bit)
+    // Allow asymmetric lift for smirk and skeptical
     const smirkRightLift = exprIsSmirk ? 1 : 0;
     const smirkLeftLift = 0;
+    const skepticalLeftOnly = exprIsSkeptical ? 2 : 0;
+    const confusedAsymmetry = exprIsConfused ? 1 : 0; // Right brow higher
+    const thinkingLift = exprIsThinking ? 1 : 0; // Slight arch
+    const determinedDrop = exprIsDetermined ? 1 : 0; // Lowered, focused
+    const tiredDrop = exprIsTired ? 2 : 0; // Drooping
 
     const browYBase = eyeY - 3 - (microExpression === 2 ? 1 : 0);
-    const browYLeft = browYBase - browLift + scowlDrop + concernDrop - smirkLeftLift;
-    const browYRight = browYBase - browLift + scowlDrop + concernDrop - smirkRightLift;
+    const browYLeft = browYBase - browLift + scowlDrop + concernDrop + determinedDrop + tiredDrop - smirkLeftLift - skepticalLeftOnly - thinkingLift;
+    const browYRight = browYBase - browLift + scowlDrop + concernDrop + determinedDrop + tiredDrop - smirkRightLift - confusedAsymmetry - thinkingLift;
 
     const browT = eyebrowThickness === 'thick' ? 2 : eyebrowThickness === 'bushy' ? 3 : 1;
 
@@ -1676,11 +1902,34 @@ if (hairStyle === 'braided') {
       }
     }
 
-    // Extra brow/forehead detail for scowl/concern: small furrow between brows
-    if (exprIsScowl || exprIsConcern) {
+    // Extra brow/forehead detail for different expressions
+    if (exprIsScowl || exprIsConcern || exprIsAnnoyed || exprIsDetermined) {
+      // Furrow between brows
       elements.push(
         <rect key="furrow-1" x={centerX - 1} y={browYBase - 1} width="2" height="1" fill={createShadow(skinTone, 0.7)} className="pixel" />,
         <rect key="furrow-2" x={centerX - 1} y={browYBase} width="2" height="1" fill={createShadow(skinTone, 0.8)} className="pixel" />
+      );
+    }
+    
+    // Add crow's feet for smiling/excited expressions
+    if (exprIsSmileFamily || exprIsExcited) {
+      const crowsFeetColor = createShadow(skinTone, 0.9);
+      elements.push(
+        <rect key="crows-l1" x={leftEyeX - 3} y={eyeY} width="1" height="1" fill={crowsFeetColor} className="pixel" />,
+        <rect key="crows-l2" x={leftEyeX - 3} y={eyeY + 1} width="1" height="1" fill={crowsFeetColor} className="pixel" />,
+        <rect key="crows-r1" x={rightEyeX + 5} y={eyeY} width="1" height="1" fill={crowsFeetColor} className="pixel" />,
+        <rect key="crows-r2" x={rightEyeX + 5} y={eyeY + 1} width="1" height="1" fill={crowsFeetColor} className="pixel" />
+      );
+    }
+    
+    // Add under-eye shadows for tired expression
+    if (exprIsTired) {
+      const shadowColor = createShadow(skinTone, 0.85);
+      elements.push(
+        <rect key="tired-l1" x={leftEyeX - 1} y={eyeY + eyeHeight + 1} width="4" height="1" fill={shadowColor} className="pixel" />,
+        <rect key="tired-l2" x={leftEyeX} y={eyeY + eyeHeight + 2} width="3" height="1" fill={shadowColor} opacity={0.5} className="pixel" />,
+        <rect key="tired-r1" x={rightEyeX - 1} y={eyeY + eyeHeight + 1} width="4" height="1" fill={shadowColor} className="pixel" />,
+        <rect key="tired-r2" x={rightEyeX} y={eyeY + eyeHeight + 2} width="3" height="1" fill={shadowColor} opacity={0.5} className="pixel" />
       );
     }
 
@@ -2124,6 +2373,130 @@ if (hairStyle === 'braided') {
           elements.push(<rect key={`m-under-${dx}`} x={centerX + dx} y={my - 1} width="1" height="1" fill={beardShadow} className="pixel" />);
         }
       }
+    } else if (style === 'imperial') {
+      // Imperial mustache (Napoleon III style) - wide with upward curls
+      const my = mouthY - 1;
+      const centerX = headX + Math.floor(headDim.width / 2);
+      // Main mustache body
+      for (let dx = -6; dx <= 6; dx++) {
+        const thick = thickness === 'thick' ? 2 : 1;
+        for (let t = 0; t < thick; t++) {
+          elements.push(<rect key={`imp-m-${dx}-${t}`} x={centerX + dx} y={my + t} width="1" height="1" fill={beardColor} className="pixel" />);
+        }
+      }
+      // Upward curls at ends
+      for (let curl = 0; curl < 3; curl++) {
+        elements.push(
+          <rect key={`imp-curl-l-${curl}`} x={centerX - 7 - curl} y={my - curl} width="1" height="1" fill={beardHighlight} className="pixel" />,
+          <rect key={`imp-curl-r-${curl}`} x={centerX + 7 + curl} y={my - curl} width="1" height="1" fill={beardHighlight} className="pixel" />
+        );
+      }
+      // Small chin beard
+      for (let y = 0; y < 4; y++) {
+        const width = Math.max(1, 3 - y);
+        for (let x = 0; x < width; x++) {
+          elements.push(<rect key={`imp-chin-${x}-${y}`} x={centerX - Math.floor(width/2) + x} y={mouthY + 2 + y} width="1" height="1" fill={beardColor} className="pixel" />);
+        }
+      }
+    } else if (style === 'handlebar') {
+      // Handlebar mustache - thick with dramatic curls
+      const my = mouthY - 1;
+      const centerX = headX + Math.floor(headDim.width / 2);
+      // Thick center
+      for (let dx = -5; dx <= 5; dx++) {
+        for (let t = 0; t < 2; t++) {
+          const col = Math.abs(dx) < 2 ? beardHighlight : beardColor;
+          elements.push(<rect key={`hb-m-${dx}-${t}`} x={centerX + dx} y={my + t} width="1" height="1" fill={col} className="pixel" />);
+        }
+      }
+      // Extended curled ends
+      for (let ext = 0; ext < 5; ext++) {
+        const curve = Math.floor(Math.sin(ext * 0.5) * 2);
+        elements.push(
+          <rect key={`hb-ext-l-${ext}`} x={centerX - 6 - ext} y={my - curve} width="1" height="1" fill={beardColor} className="pixel" />,
+          <rect key={`hb-ext-r-${ext}`} x={centerX + 6 + ext} y={my - curve} width="1" height="1" fill={beardColor} className="pixel" />
+        );
+      }
+    } else if (style === 'forked_beard') {
+      // Medieval/Renaissance forked beard
+      const centerX = headX + Math.floor(headDim.width / 2);
+      // Mustache
+      for (let dx = -5; dx <= 5; dx++) {
+        elements.push(<rect key={`fork-m-${dx}`} x={centerX + dx} y={mouthY - 1} width="1" height="1" fill={beardColor} className="pixel" />);
+      }
+      // Main beard that splits
+      for (let y = 0; y < 10; y++) {
+        if (y < 5) {
+          // United upper portion
+          const width = 8 - Math.floor(y * 0.5);
+          for (let x = 0; x < width; x++) {
+            const col = x === Math.floor(width/2) ? beardHighlight : beardColor;
+            elements.push(<rect key={`fork-main-${x}-${y}`} x={centerX - Math.floor(width/2) + x} y={mouthY + 1 + y} width="1" height="1" fill={col} className="pixel" />);
+          }
+        } else {
+          // Forked lower portion
+          const forkOffset = Math.floor((y - 5) * 0.8) + 2;
+          const forkWidth = 4;
+          // Left fork
+          for (let x = 0; x < forkWidth; x++) {
+            elements.push(<rect key={`fork-l-${x}-${y}`} x={centerX - forkOffset - forkWidth + x} y={mouthY + 1 + y} width="1" height="1" fill={beardColor} className="pixel" />);
+          }
+          // Right fork
+          for (let x = 0; x < forkWidth; x++) {
+            elements.push(<rect key={`fork-r-${x}-${y}`} x={centerX + forkOffset + x} y={mouthY + 1 + y} width="1" height="1" fill={beardColor} className="pixel" />);
+          }
+        }
+      }
+    } else if (style === 'chin_curtain') {
+      // Amish/Lincoln style - beard along jawline, no mustache
+      const centerX = headX + Math.floor(headDim.width / 2);
+      // Sideburns connecting to jaw beard
+      for (let y = -5; y < 15; y++) {
+        // Side portions
+        for (let side = 0; side < 2; side++) {
+          const sideX = side === 0 ? headX - 1 : headX + headDim.width;
+          const width = y < 0 ? 2 : y < 8 ? 3 : 4;
+          for (let w = 0; w < width; w++) {
+            const px = side === 0 ? sideX - w : sideX + w;
+            if (y > -3 || w < 2) { // Taper at top
+              elements.push(<rect key={`curtain-${side}-${w}-${y}`} x={px} y={baseY + y} width="1" height="1" fill={y < 0 ? beardShadow : beardColor} className="pixel" />);
+            }
+          }
+        }
+        // Bottom chin connection
+        if (y > 8) {
+          const chinWidth = headDim.width - 2;
+          for (let x = 0; x < chinWidth; x++) {
+            if (Math.abs(x - chinWidth/2) > 2) { // Leave center gap for authentic look
+              elements.push(<rect key={`curtain-chin-${x}-${y}`} x={headX + 1 + x} y={baseY + y} width="1" height="1" fill={beardDeepShadow} className="pixel" />);
+            }
+          }
+        }
+      }
+    } else if (style === 'verdi') {
+      // Verdi beard - short rounded beard with styled mustache
+      const centerX = headX + Math.floor(headDim.width / 2);
+      // Styled mustache with slight separation from beard
+      for (let dx = -6; dx <= 6; dx++) {
+        const col = Math.abs(dx) < 2 ? beardHighlight : beardColor;
+        elements.push(<rect key={`verdi-m-${dx}`} x={centerX + dx} y={mouthY - 1} width="1" height="1" fill={col} className="pixel" />);
+      }
+      // Gap between mustache and beard
+      // (intentionally left empty for mouthY row)
+      // Short, rounded beard
+      for (let y = 1; y < 8; y++) {
+        const radius = Math.max(2, 7 - y);
+        for (let x = -radius; x <= radius; x++) {
+          // Create rounded shape
+          const dist = Math.sqrt(x * x + (y - 4) * (y - 4));
+          if (dist <= radius) {
+            let col = beardColor;
+            if (x === 0) col = beardHighlight;
+            else if (Math.abs(x) === radius) col = beardShadow;
+            elements.push(<rect key={`verdi-b-${x}-${y}`} x={centerX + x} y={mouthY + y} width="1" height="1" fill={col} className="pixel" />);
+          }
+        }
+      }
     }
 
     return <g key="facial-hair">{elements}</g>;
@@ -2371,13 +2744,77 @@ if (hairStyle === 'braided') {
         }
       }
       
-      // Add armor plates/details
-      if (isArmor && y % 4 === 0 && y > 5 && y < bodyHeight - 10) {
-        const plateWidth = Math.floor(torsoWidth * 0.8);
-        const plateX = 32 - (plateWidth / 2);
-        for (let px = 0; px < plateWidth; px++) {
-          const plateCol = createHighlight(clothingColor, 1.3);
-          elements.push(<rect key={`plate-${y}-${px}`} x={plateX + px} y={bodyStartY + y} width="1" height="1" fill={plateCol} className="pixel" />);
+      // Add armor plates/details with historical accuracy
+      if (isArmor) {
+        const armorType = garmentName.includes('plate') ? 'plate' : 
+                         garmentName.includes('mail') || garmentName.includes('chain') ? 'chainmail' :
+                         garmentName.includes('cuirass') ? 'cuirass' :
+                         garmentName.includes('brigandine') ? 'brigandine' :
+                         garmentName.includes('lamellar') ? 'lamellar' : 'generic';
+        
+        if (armorType === 'plate' && y % 4 === 0 && y > 5 && y < bodyHeight - 10) {
+          // Plate armor with articulated segments
+          const plateWidth = Math.floor(torsoWidth * 0.8);
+          const plateX = 32 - (plateWidth / 2);
+          for (let px = 0; px < plateWidth; px++) {
+            const isEdge = px === 0 || px === plateWidth - 1;
+            const plateCol = isEdge ? createShadow(clothingColor, 0.7) : createHighlight(clothingColor, 1.5);
+            elements.push(<rect key={`plate-${y}-${px}`} x={plateX + px} y={bodyStartY + y} width="1" height="1" fill={plateCol} className="pixel" />);
+          }
+          // Rivet details
+          if (y % 8 === 0) {
+            elements.push(
+              <rect key={`rivet-l-${y}`} x={plateX + 2} y={bodyStartY + y} width="1" height="1" fill="#2F2F2F" className="pixel" />,
+              <rect key={`rivet-r-${y}`} x={plateX + plateWidth - 3} y={bodyStartY + y} width="1" height="1" fill="#2F2F2F" className="pixel" />
+            );
+          }
+        } else if (armorType === 'chainmail' && (x + y) % 2 === 0) {
+          // Chainmail ring pattern
+          const ringCol = ((x + y) % 4 === 0) ? createHighlight(clothingColor, 1.3) : clothingColor;
+          elements.push(<rect key={`mail-${x}-${y}`} x={32 - Math.floor(torsoWidth/2) + x} y={bodyStartY + y} width="1" height="1" fill={ringCol} className="pixel" />);
+        } else if (armorType === 'cuirass' && y > 3 && y < bodyHeight - 15) {
+          // Muscled breastplate
+          const chestCenterX = 32;
+          if (y < bodyHeight / 3) {
+            // Pectoral muscle definition
+            const muscleOffset = Math.floor(torsoWidth * 0.25);
+            const leftPec = Math.abs(x - (torsoWidth/2 - muscleOffset)) < 3;
+            const rightPec = Math.abs(x - (torsoWidth/2 + muscleOffset)) < 3;
+            if (leftPec || rightPec) {
+              const muscleCol = createHighlight(clothingColor, 1.6);
+              elements.push(<rect key={`pec-${x}-${y}`} x={32 - Math.floor(torsoWidth/2) + x} y={bodyStartY + y} width="1" height="1" fill={muscleCol} className="pixel" />);
+            }
+          }
+          // Center ridge
+          if (x === Math.floor(torsoWidth / 2)) {
+            elements.push(<rect key={`ridge-${y}`} x={chestCenterX} y={bodyStartY + y} width="1" height="1" fill={createShadow(clothingColor, 0.8)} className="pixel" />);
+          }
+        } else if (armorType === 'brigandine' && y % 3 === 0 && x % 3 === 0) {
+          // Studded brigandine pattern
+          elements.push(<rect key={`stud-${x}-${y}`} x={32 - Math.floor(torsoWidth/2) + x} y={bodyStartY + y} width="1" height="1" fill={createHighlight(clothingColor, 1.8)} className="pixel" />);
+        } else if (armorType === 'lamellar' && y % 2 === 0 && x % 3 === 0) {
+          // Overlapping lamellar plates
+          for (let lx = 0; lx < 2 && x + lx < torsoWidth; lx++) {
+            const lameCol = lx === 0 ? createHighlight(clothingColor, 1.4) : clothingColor;
+            elements.push(<rect key={`lame-${x}-${y}-${lx}`} x={32 - Math.floor(torsoWidth/2) + x + lx} y={bodyStartY + y} width="1" height="1" fill={lameCol} className="pixel" />);
+          }
+        } else if (armorType === 'generic' && y % 4 === 0 && y > 5 && y < bodyHeight - 10) {
+          // Generic armor plates
+          const plateWidth = Math.floor(torsoWidth * 0.8);
+          const plateX = 32 - (plateWidth / 2);
+          for (let px = 0; px < plateWidth; px++) {
+            const plateCol = createHighlight(clothingColor, 1.3);
+            elements.push(<rect key={`gen-plate-${y}-${px}`} x={plateX + px} y={bodyStartY + y} width="1" height="1" fill={plateCol} className="pixel" />);
+          }
+        }
+        
+        // Pauldrons (shoulder armor) for all armor types
+        if (y >= 0 && y < 6) {
+          const shoulderExtend = 4 - Math.floor(y / 2);
+          if (x < shoulderExtend || x > torsoWidth - shoulderExtend) {
+            const pauldronCol = createHighlight(clothingColor, 1.4);
+            elements.push(<rect key={`pauldron-${x}-${y}`} x={32 - Math.floor(torsoWidth/2) + x} y={bodyStartY + y} width="1" height="1" fill={pauldronCol} className="pixel" />);
+          }
         }
       }
       
@@ -2636,8 +3073,56 @@ if (hairStyle === 'braided') {
       }
     }
 
-    // VEILS / HIJAB / WRAPS / SCARF / DUPATTA / MANTILLA
-    else if (nameContains('veil', 'hijab', 'keffiyeh', 'dupatta', 'gele', 'mantilla', 'ghoonghat', 'head wrap', 'headwrap', 'kerchief', 'scarf', 'coif', 'bonnet')) {
+    // COIF & MEDIEVAL FITTED CAPS (coif, biggins, topi, zukin)
+    else if (nameContains('coif', 'biggins', 'topi', 'zukin')) {
+      const coifColor = material.includes('white') || material.includes('linen') ? '#F5F5DC' : base;
+      const coifShade = createShadow(coifColor, 0.85);
+      
+      // Simple fitted cap - covers top and sides of head, frames face
+      // Top part - rounded cap
+      for (let y = headY - 2; y <= headY + 3; y++) {
+        const yOffset = y - headY;
+        const width = yOffset < 0 ? headDim.width - Math.abs(yOffset) : headDim.width + 2;
+        const startX = centerX - Math.floor(width / 2);
+        
+        for (let x = 0; x < width; x++) {
+          const xPos = startX + x;
+          const isEdge = x === 0 || x === width - 1 || y === headY - 2;
+          const color = isEdge ? coifShade : coifColor;
+          elements.push(<rect key={`coif-top-${x}-${y}`} x={xPos} y={y} width="1" height="1" fill={color} className="pixel" />);
+        }
+      }
+      
+      // Side panels - frames the face, leaves center open
+      for (let y = headY + 4; y < headY + headDim.height - 2; y++) {
+        // Left side panel
+        for (let x = 0; x < 3; x++) {
+          const xPos = headX - 1 + x;
+          const color = x === 0 ? coifShade : coifColor;
+          elements.push(<rect key={`coif-left-${x}-${y}`} x={xPos} y={y} width="1" height="1" fill={color} className="pixel" />);
+        }
+        
+        // Right side panel
+        for (let x = 0; x < 3; x++) {
+          const xPos = headX + headDim.width - 2 + x;
+          const color = x === 2 ? coifShade : coifColor;
+          elements.push(<rect key={`coif-right-${x}-${y}`} x={xPos} y={y} width="1" height="1" fill={color} className="pixel" />);
+        }
+      }
+      
+      // Simple chin tie if wealthy or secured
+      if (isWealthy || name.includes('tied')) {
+        const chinY = headY + headDim.height - 1;
+        elements.push(
+          <rect key="coif-tie-l" x={headX + 1} y={chinY} width="1" height="2" fill={coifShade} className="pixel" />,
+          <rect key="coif-tie-r" x={headX + headDim.width - 2} y={chinY} width="1" height="2" fill={coifShade} className="pixel" />
+        );
+      }
+    }
+    
+    // VEILS / HIJAB / WRAPS / SCARF / CULTURAL HEAD COVERINGS
+    else if (nameContains('veil', 'hijab', 'keffiyeh', 'dupatta', 'gele', 'mantilla', 'ghoonghat', 
+                          'head wrap', 'headwrap', 'kerchief', 'scarf', 'bonnet', 'tichel')) {
       const fullCover = nameContains('hijab', 'dupatta', 'gele', 'mantilla', 'ghoonghat');
       const depth = fullCover ? 12 : 8;
 
@@ -2728,8 +3213,10 @@ if (hairStyle === 'braided') {
       }
     }
 
-    // HATS & CAPS (beret, fez/kufi, brimmed, knit/chullo, generic cap)
-    else if (nameContains('cap', 'beret', 'fez', 'kufi', 'fedora', 'homburg', 'chullo', 'beanie', 'tuque', 'pith', 'snapback', 'petasos', 'chaperon')) {
+    // HATS & CAPS (various styles including flat caps)
+    else if (nameContains('cap', 'beret', 'fez', 'kufi', 'fedora', 'homburg', 'chullo', 'beanie', 
+                          'tuque', 'pith', 'snapback', 'petasos', 'chaperon', 'flat cap', 
+                          'cheese-cutter', 'gandhi cap', 'kofia', 'mao cap', 'futou')) {
       const hatStyle =
         name.includes('top') ? 'top' :
         name.includes('beret') ? 'beret' :
@@ -2967,8 +3454,10 @@ if (hairStyle === 'braided') {
       }
     }
     
-    // STRAW / CONICAL (rice hat, sedge hat)
-    else if (nameContains('straw', 'rice hat', 'conical', 'bamboo hat', 'sedge hat', 'coolie')) {
+    // STRAW / CONICAL HATS (including Asian & tropical styles)
+    else if (nameContains('straw', 'rice hat', 'conical', 'bamboo hat', 'sedge hat', 'coolie', 
+                          'douli', 'li', 'sugegasa', 'panama hat', 'lauhala', 'harvest cap', 
+                          'rush hat', 'sun visor', 'bamboo dou li', 'toquilla')) {
   // Use the actual item color if available (e.g., black straw hat), otherwise default straw color
   const straw = base;  // base is already the resolved color from resolveHeadgearColor()
   const strawDark = createShadow(straw, 0.78);
@@ -3057,6 +3546,142 @@ if (hairStyle === 'braided') {
         if (nameContains('jewel')) elements.push(<rect key="comb-gem" x={cx + 1} y={headY - 3} width="1" height="1" fill="#DC143C" className="pixel" />);
       }
     }
+    
+    // CROWNED HEADS (crowns, tiaras, diadems, coronets)
+    else if (nameContains('crown', 'tiara', 'diadem', 'coronet', 'circlet')) {
+      const metalColor = material.includes('gold') ? '#FFD700' : 
+                        material.includes('silver') ? '#C0C0C0' : 
+                        material.includes('copper') ? '#B87333' : '#FFD700';
+      const gemColor = name.includes('ruby') ? '#DC143C' : 
+                      name.includes('emerald') ? '#50C878' : 
+                      name.includes('sapphire') ? '#0F52BA' : 
+                      name.includes('diamond') ? '#B9F2FF' : '#DC143C';
+      
+      // Base band
+      for (let x = headX + 2; x < headX + headDim.width - 2; x++) {
+        elements.push(<rect key={`crown-base-${x}`} x={x} y={headY - 3} width="1" height="2" fill={metalColor} className="pixel" />);
+      }
+      
+      // Crown points/peaks
+      const peaks = name.includes('tiara') ? 3 : 5;
+      const spacing = Math.floor(headDim.width / (peaks + 1));
+      for (let i = 1; i <= peaks; i++) {
+        const peakX = headX + i * spacing;
+        const peakHeight = i === Math.ceil(peaks/2) ? 5 : 3; // Center peak taller
+        for (let h = 0; h < peakHeight; h++) {
+          elements.push(<rect key={`crown-peak-${i}-${h}`} x={peakX} y={headY - 4 - h} width="1" height="1" fill={metalColor} className="pixel" />);
+        }
+        // Gem at peak
+        if (isWealthy || isNoble) {
+          elements.push(<rect key={`crown-gem-${i}`} x={peakX} y={headY - 4 - peakHeight} width="1" height="1" fill={gemColor} className="pixel" />);
+        }
+      }
+    }
+    
+    // BANDANAS & HEADBANDS
+    else if (nameContains('bandana', 'headband', 'sweatband')) {
+      const bandColor = base;
+      const pattern = name.includes('paisley') || name.includes('bandana');
+      
+      // Main band wrapping around head
+      for (let y = headY - 1; y < headY + 3; y++) {
+        for (let x = headX - 1; x < headX + headDim.width + 1; x++) {
+          const dx = x - centerX;
+          const dy = y - headY;
+          
+          // Only draw where it would be visible (not covered by hair in center)
+          if (Math.abs(dx) > headDim.width * 0.3 || dy < 1) {
+            // Add pattern
+            let color = bandColor;
+            if (pattern && ((x + y) % 3 === 0)) {
+              color = createHighlight(bandColor, 1.2);
+            }
+            elements.push(<rect key={`band-${x}-${y}`} x={x} y={y} width="1" height="1" fill={color} className="pixel" />);
+          }
+        }
+      }
+      
+      // Knot at back/side for bandana
+      if (name.includes('bandana')) {
+        const knotX = headX + headDim.width;
+        elements.push(
+          <rect key="bandana-knot-1" x={knotX} y={headY} width="2" height="2" fill={createShadow(bandColor, 0.8)} className="pixel" />,
+          <rect key="bandana-tail-1" x={knotX + 1} y={headY + 2} width="1" height="3" fill={bandColor} className="pixel" />,
+          <rect key="bandana-tail-2" x={knotX + 2} y={headY + 2} width="1" height="2" fill={bandColor} className="pixel" />
+        );
+      }
+    }
+    
+    // ACADEMIC CAPS (mortarboard, biretta, doctoral cap)
+    else if (nameContains('mortarboard', 'biretta', 'doctoral', 'academic', 'graduation')) {
+      const capColor = name.includes('doctoral') ? '#DC143C' : '#000000';
+      
+      if (name.includes('mortarboard')) {
+        // Square board on top
+        for (let y = headY - 5; y < headY - 3; y++) {
+          for (let x = headX - 3; x < headX + headDim.width + 3; x++) {
+            elements.push(<rect key={`board-${x}-${y}`} x={x} y={y} width="1" height="1" fill={capColor} className="pixel" />);
+          }
+        }
+        // Cap underneath
+        for (let y = headY - 3; y < headY + 2; y++) {
+          for (let x = headX; x < headX + headDim.width; x++) {
+            elements.push(<rect key={`cap-${x}-${y}`} x={x} y={y} width="1" height="1" fill={capColor} className="pixel" />);
+          }
+        }
+        // Tassel
+        const tasselX = centerX + Math.floor(headDim.width * 0.3);
+        for (let t = 0; t < 4; t++) {
+          elements.push(<rect key={`tassel-${t}`} x={tasselX} y={headY - 5 + t} width="1" height="1" fill="#FFD700" className="pixel" />);
+        }
+      } else if (name.includes('biretta')) {
+        // Three or four ridged square cap
+        for (let ridge = 0; ridge < 3; ridge++) {
+          const ridgeY = headY - 4 + ridge;
+          for (let x = headX + ridge; x < headX + headDim.width - ridge; x++) {
+            elements.push(<rect key={`biretta-${ridge}-${x}`} x={x} y={ridgeY} width="1" height="1" fill={capColor} className="pixel" />);
+          }
+        }
+        // Pom-pom on top
+        elements.push(<rect key="biretta-pom" x={centerX} y={headY - 5} width="1" height="1" fill="#DC143C" className="pixel" />);
+      }
+    }
+    
+    // RELIGIOUS HEADWEAR (mitre, zucchetto, kippah)
+    else if (nameContains('mitre', 'zucchetto', 'kippah', 'yarmulke', 'skullcap')) {
+      const relColor = material.includes('white') ? '#FFFFFF' : 
+                      material.includes('red') ? '#DC143C' : 
+                      material.includes('purple') ? '#800080' : '#000000';
+      
+      if (name.includes('mitre')) {
+        // Tall pointed bishop's hat
+        const mitreHeight = 8;
+        for (let h = 0; h < mitreHeight; h++) {
+          const width = Math.max(2, mitreHeight - h);
+          const startX = centerX - Math.floor(width / 2);
+          for (let w = 0; w < width; w++) {
+            elements.push(<rect key={`mitre-${h}-${w}`} x={startX + w} y={headY - mitreHeight + h} width="1" height="1" fill={relColor} className="pixel" />);
+          }
+        }
+        // Cross decoration
+        if (isWealthy) {
+          elements.push(
+            <rect key="mitre-cross-v" x={centerX} y={headY - 5} width="1" height="3" fill="#FFD700" className="pixel" />,
+            <rect key="mitre-cross-h" x={centerX - 1} y={headY - 4} width="3" height="1" fill="#FFD700" className="pixel" />
+          );
+        }
+      } else {
+        // Simple skullcap (kippah/zucchetto)
+        const radius = Math.floor(headDim.width * 0.4);
+        for (let y = -radius; y <= 0; y++) {
+          const width = Math.round(Math.sqrt(radius * radius - y * y) * 2);
+          const startX = centerX - Math.floor(width / 2);
+          for (let x = 0; x < width; x++) {
+            elements.push(<rect key={`skull-${x}-${y}`} x={startX + x} y={headY + y} width="1" height="1" fill={relColor} className="pixel" />);
+          }
+        }
+      }
+    }
 
     // Otherwise, simple band as a safe default
     else {
@@ -3106,43 +3731,146 @@ if (hairStyle === 'braided') {
 
       switch (piece.type) {
         case 'necklace': {
-          const necklaceY = headY + headDim.height + 6;
+          const necklaceY = headY + headDim.height + 2; // Closer to neck
           const centerX = headX + Math.floor(headDim.width / 2);
-          const chainPattern = style === 'delicate' ? 2 : style === 'chunky' ? 1 : 3;
-          for (let x = centerX - 10; x <= centerX + 10; x++) {
-            const distFromCenter = Math.abs(x - centerX);
-            const yOffset = Math.floor(distFromCenter * 0.4);
-            if (x % chainPattern === 0) {
-              elements.push(<rect key={`necklace-${index}-${x}`} x={x} y={necklaceY + yOffset} width={style === 'chunky' ? 2 : 1} height="1" fill={jewelryColor} className="pixel" />);
+          
+          // Different chain styles based on style attribute
+          if (style === 'delicate') {
+            // Delicate chain - thin links
+            for (let x = centerX - 12; x <= centerX + 12; x++) {
+              const distFromCenter = Math.abs(x - centerX);
+              const yOffset = Math.floor(Math.sqrt(144 - distFromCenter * distFromCenter) * 0.12); // Natural curve
+              if (x % 2 === 0) {
+                elements.push(<rect key={`necklace-${index}-${x}`} x={x} y={necklaceY + yOffset} width="1" height="1" fill={jewelryColor} className="pixel" />);
+              }
             }
-            if (material === 'gems' && x % 5 === 0) {
-              const gemColor = gemColors[Math.abs(Math.floor(x / 5)) % gemColors.length];
-              elements.push(<rect key={`necklace-gem-${index}-${x}`} x={x} y={necklaceY + yOffset} width="1" height="1" fill={gemColor} className="pixel" />);
+          } else if (style === 'chunky') {
+            // Chunky chain - thick linked appearance
+            for (let x = centerX - 10; x <= centerX + 10; x++) {
+              const distFromCenter = Math.abs(x - centerX);
+              const yOffset = Math.floor(Math.sqrt(100 - distFromCenter * distFromCenter) * 0.15);
+              if (x % 3 <= 1) {
+                elements.push(<rect key={`necklace-${index}-${x}`} x={x} y={necklaceY + yOffset} width="2" height="2" fill={jewelryColor} className="pixel" />);
+                if (x % 3 === 0) {
+                  elements.push(<rect key={`necklace-sh-${index}-${x}`} x={x + 1} y={necklaceY + yOffset + 1} width="1" height="1" fill={createShadow(jewelryColor, 0.8)} className="pixel" />);
+                }
+              }
+            }
+          } else {
+            // Standard chain with proper links
+            for (let x = centerX - 11; x <= centerX + 11; x++) {
+              const distFromCenter = Math.abs(x - centerX);
+              const yOffset = Math.floor(Math.sqrt(121 - distFromCenter * distFromCenter) * 0.13);
+              
+              // Create interlocking link pattern
+              if (x % 3 === 0) {
+                elements.push(<rect key={`necklace-${index}-${x}`} x={x} y={necklaceY + yOffset} width="1" height="1" fill={jewelryColor} className="pixel" />);
+                elements.push(<rect key={`necklace-l-${index}-${x}`} x={x} y={necklaceY + yOffset + 1} width="1" height="1" fill={jewelryColor} className="pixel" />);
+              } else if (x % 3 === 1) {
+                elements.push(<rect key={`necklace-${index}-${x}`} x={x} y={necklaceY + yOffset + 1} width="1" height="1" fill={jewelryColor} className="pixel" />);
+              }
             }
           }
+          
+          // Add beads or gems if specified
+          if (material === 'gems' || material === 'pearl') {
+            for (let x = centerX - 9; x <= centerX + 9; x += 4) {
+              const distFromCenter = Math.abs(x - centerX);
+              const yOffset = Math.floor(Math.sqrt(81 - distFromCenter * distFromCenter) * 0.15);
+              const gemColor = material === 'pearl' ? '#FFF8DC' : gemColors[Math.abs(Math.floor(x / 4)) % gemColors.length];
+              // Bead/gem with highlight
+              elements.push(
+                <rect key={`bead-${index}-${x}`} x={x} y={necklaceY + yOffset} width="2" height="2" fill={gemColor} className="pixel" />,
+                <rect key={`bead-hl-${index}-${x}`} x={x} y={necklaceY + yOffset} width="1" height="1" fill={createHighlight(gemColor, 1.3)} className="pixel" />
+              );
+            }
+          }
+          
+          // Ornate pendant
           if (style === 'ornate') {
+            const pendantY = necklaceY + 6;
+            // Detailed ornate pendant
             elements.push(
-              <rect key={`pendant-base-${index}`} x={centerX - 2} y={necklaceY + 5} width="5" height="4" fill={jewelryColor} className="pixel" />,
-              <rect key={`pendant-gem-${index}`} x={centerX} y={necklaceY + 6} width="1" height="2" fill={gemColors[0]} className="pixel" />
+              // Bail (connector to chain)
+              <rect key={`bail-${index}`} x={centerX} y={pendantY - 1} width="1" height="2" fill={jewelryColor} className="pixel" />,
+              // Pendant body
+              <rect key={`pendant-t-${index}`} x={centerX - 2} y={pendantY + 1} width="5" height="1" fill={jewelryColor} className="pixel" />,
+              <rect key={`pendant-m-${index}`} x={centerX - 3} y={pendantY + 2} width="7" height="3" fill={jewelryColor} className="pixel" />,
+              <rect key={`pendant-b-${index}`} x={centerX - 2} y={pendantY + 5} width="5" height="1" fill={jewelryColor} className="pixel" />,
+              // Highlight and shadow
+              <rect key={`pendant-hl-${index}`} x={centerX - 2} y={pendantY + 2} width="1" height="1" fill={createHighlight(jewelryColor, 1.3)} className="pixel" />,
+              <rect key={`pendant-sh-${index}`} x={centerX + 2} y={pendantY + 4} width="1" height="1" fill={createShadow(jewelryColor, 0.7)} className="pixel" />,
+              // Central gem
+              <rect key={`pendant-gem-${index}`} x={centerX - 1} y={pendantY + 3} width="3" height="1" fill={gemColors[0]} className="pixel" />,
+              <rect key={`pendant-gem-hl-${index}`} x={centerX} y={pendantY + 3} width="1" height="1" fill={createHighlight(gemColors[0], 1.4)} className="pixel" />
             );
           }
           break;
         }
         case 'earrings': {
           const earY = headY + Math.floor(headDim.height * 0.4) + 4;
+          const earLX = headX - 1;
+          const earRX = headX + headDim.width;
+          
           if (style === 'simple') {
+            // Stud earrings with highlight
             elements.push(
-              <rect key={`earring-l-${index}`} x={headX - 1} y={earY} width="1" height="1" fill={jewelryColor} className="pixel" />,
-              <rect key={`earring-r-${index}`} x={headX + headDim.width} y={earY} width="1" height="1" fill={jewelryColor} className="pixel" />
+              <rect key={`earring-l-${index}`} x={earLX} y={earY} width="2" height="2" fill={jewelryColor} className="pixel" />,
+              <rect key={`earring-l-hl-${index}`} x={earLX} y={earY} width="1" height="1" fill={createHighlight(jewelryColor, 1.3)} className="pixel" />,
+              <rect key={`earring-r-${index}`} x={earRX} y={earY} width="2" height="2" fill={jewelryColor} className="pixel" />,
+              <rect key={`earring-r-hl-${index}`} x={earRX} y={earY} width="1" height="1" fill={createHighlight(jewelryColor, 1.3)} className="pixel" />
             );
-          } else if (style === 'ornate' || style === 'delicate') {
-            const length = style === 'ornate' ? 4 : 3;
-            for (let d = 0; d < length; d++) {
+            
+            if (material === 'gems' || material === 'pearl') {
+              const gemCol = material === 'pearl' ? '#FFF8DC' : gemColors[0];
               elements.push(
-                <rect key={`earring-l-drop-${index}-${d}`} x={headX - 1} y={earY + d} width="1" height="1" fill={d === length - 1 && material === 'gems' ? gemColors[0] : jewelryColor} className="pixel" />,
-                <rect key={`earring-r-drop-${index}-${d}`} x={headX + headDim.width} y={earY + d} width="1" height="1" fill={d === length - 1 && material === 'gems' ? gemColors[0] : jewelryColor} className="pixel" />
+                <rect key={`earring-l-gem-${index}`} x={earLX} y={earY} width="1" height="1" fill={gemCol} className="pixel" />,
+                <rect key={`earring-r-gem-${index}`} x={earRX} y={earY} width="1" height="1" fill={gemCol} className="pixel" />
               );
             }
+          } else if (style === 'ornate' || style === 'delicate') {
+            // Dangling earrings
+            const length = style === 'ornate' ? 5 : 3;
+            
+            // Hook/post
+            elements.push(
+              <rect key={`earring-l-hook-${index}`} x={earLX} y={earY - 1} width="1" height="2" fill={jewelryColor} className="pixel" />,
+              <rect key={`earring-r-hook-${index}`} x={earRX} y={earY - 1} width="1" height="2" fill={jewelryColor} className="pixel" />
+            );
+            
+            // Dangling elements
+            for (let d = 0; d < length; d++) {
+              const isGem = d === length - 1 && material === 'gems';
+              const col = isGem ? gemColors[0] : jewelryColor;
+              const width = (d === length - 1) ? 2 : 1;
+              
+              elements.push(
+                <rect key={`earring-l-drop-${index}-${d}`} x={earLX - Math.floor(d * 0.2)} y={earY + d + 1} width={width} height="1" fill={col} className="pixel" />,
+                <rect key={`earring-r-drop-${index}-${d}`} x={earRX - Math.floor(d * 0.2)} y={earY + d + 1} width={width} height="1" fill={col} className="pixel" />
+              );
+              
+              if (isGem) {
+                elements.push(
+                  <rect key={`earring-l-gem-hl-${index}`} x={earLX} y={earY + d + 1} width="1" height="1" fill={createHighlight(col, 1.4)} className="pixel" />,
+                  <rect key={`earring-r-gem-hl-${index}`} x={earRX} y={earY + d + 1} width="1" height="1" fill={createHighlight(col, 1.4)} className="pixel" />
+                );
+              }
+            }
+          } else if (style === 'chunky') {
+            // Hoop earrings
+            const hoopSize = 3;
+            for (let h = 0; h < hoopSize; h++) {
+              elements.push(
+                <rect key={`earring-l-hoop-${index}-${h}`} x={earLX - h} y={earY + h} width="1" height="1" fill={jewelryColor} className="pixel" />,
+                <rect key={`earring-l-hoop-b-${index}-${h}`} x={earLX - h + 1} y={earY + hoopSize} width="1" height="1" fill={jewelryColor} className="pixel" />,
+                <rect key={`earring-r-hoop-${index}-${h}`} x={earRX + h} y={earY + h} width="1" height="1" fill={jewelryColor} className="pixel" />,
+                <rect key={`earring-r-hoop-b-${index}-${h}`} x={earRX + h - 1} y={earY + hoopSize} width="1" height="1" fill={jewelryColor} className="pixel" />
+              );
+            }
+            elements.push(
+              <rect key={`earring-l-hoop-hl-${index}`} x={earLX} y={earY} width="1" height="1" fill={createHighlight(jewelryColor, 1.3)} className="pixel" />,
+              <rect key={`earring-r-hoop-hl-${index}`} x={earRX} y={earY} width="1" height="1" fill={createHighlight(jewelryColor, 1.3)} className="pixel" />
+            );
           }
           break;
         }
@@ -3213,71 +3941,568 @@ if (hairStyle === 'braided') {
     
     const elements: JSX.Element[] = [];
     const centerX = headX + Math.floor(headDim.width / 2);
-    const neckY = headY + headDim.height + 3;
+    const neckY = headY + headDim.height + 1; // Closer to actual neck position
     
-    // Get amulet color
+    // Get amulet color and material
     const amuletColor = getItemColor(amuletItem);
     const amuletShadow = createShadow(amuletColor, 0.7);
+    const amuletHighlight = createHighlight(amuletColor, 1.2);
+    const amuletDeepShadow = createShadow(amuletColor, 0.5);
     
-    // Chain
-    for (let x = centerX - 8; x <= centerX + 8; x++) {
-      const distFromCenter = Math.abs(x - centerX);
-      const yOffset = Math.floor(distFromCenter * 0.3);
-      if (x % 2 === 0) {
-        elements.push(<rect key={`amulet-chain-${x}`} x={x} y={neckY + yOffset} width="1" height="1" fill="#C0C0C0" className="pixel" />);
+    // Determine chain material and style
+    const material = amuletItem.material?.toLowerCase() || '';
+    const name = amuletItem.name?.toLowerCase() || '';
+    
+    // More varied chain colors based on material
+    const chainColor = material.includes('gold') ? '#FFD700' : 
+                       material.includes('silver') ? '#C0C0C0' : 
+                       material.includes('bronze') ? '#CD7F32' :
+                       material.includes('copper') ? '#B87333' :
+                       material.includes('iron') ? '#708090' :
+                       material.includes('leather') ? '#8B4513' :
+                       material.includes('rope') || material.includes('cord') ? '#DEB887' :
+                       material.includes('beads') || material.includes('bead') ? '#F4A460' :
+                       material.includes('wood') ? '#8B4513' : '#C0C0C0';
+    const chainShade = createShadow(chainColor, 0.75);
+    const chainHighlight = createHighlight(chainColor, 1.15);
+    
+    // Enhanced chain rendering with different styles
+    const isBeaded = material.includes('bead') || name.includes('rosary') || name.includes('prayer');
+    const isLeather = material.includes('leather') || material.includes('cord') || material.includes('rope');
+    const isChain = !isBeaded && !isLeather;
+    
+    if (isBeaded) {
+      // Beaded necklace/rosary
+      for (let x = centerX - 11; x <= centerX + 11; x += 2) {
+        const distFromCenter = Math.abs(x - centerX);
+        const yOffset = Math.floor(Math.sqrt(121 - distFromCenter * distFromCenter) * 0.13);
+        elements.push(
+          <rect key={`bead-${x}`} x={x} y={neckY + yOffset} width="2" height="2" fill={chainColor} className="pixel" />,
+          <rect key={`bead-hl-${x}`} x={x} y={neckY + yOffset} width="1" height="1" fill={chainHighlight} className="pixel" />
+        );
+      }
+    } else if (isLeather) {
+      // Leather cord - continuous thick line
+      for (let x = centerX - 11; x <= centerX + 11; x++) {
+        const distFromCenter = Math.abs(x - centerX);
+        const yOffset = Math.floor(Math.sqrt(121 - distFromCenter * distFromCenter) * 0.13);
+        elements.push(
+          <rect key={`cord-${x}`} x={x} y={neckY + yOffset} width="1" height="2" fill={chainColor} className="pixel" />
+        );
+        if (x % 4 === 0) {
+          elements.push(<rect key={`cord-tex-${x}`} x={x} y={neckY + yOffset + 1} width="1" height="1" fill={chainShade} className="pixel" />);
+        }
+      }
+    } else {
+      // Metal chain with realistic interlocking links
+      for (let x = centerX - 11; x <= centerX + 11; x++) {
+        const distFromCenter = Math.abs(x - centerX);
+        const yOffset = Math.floor(Math.sqrt(121 - distFromCenter * distFromCenter) * 0.13);
+        
+        // Create interlocking oval links pattern
+        const linkPhase = x % 4;
+        if (linkPhase === 0 || linkPhase === 1) {
+          elements.push(
+            <rect key={`link-${x}`} x={x} y={neckY + yOffset} width="1" height="1" fill={chainColor} className="pixel" />,
+            <rect key={`link-b-${x}`} x={x} y={neckY + yOffset + 1} width="1" height="1" fill={chainColor} className="pixel" />
+          );
+          if (linkPhase === 0) {
+            elements.push(<rect key={`link-hl-${x}`} x={x} y={neckY + yOffset} width="1" height="1" fill={chainHighlight} className="pixel" />);
+          }
+        } else if (linkPhase === 2) {
+          elements.push(<rect key={`link-mid-${x}`} x={x} y={neckY + yOffset} width="1" height="1" fill={chainShade} className="pixel" />);
+        }
       }
     }
     
-    // Pendant shape based on amulet name/material
-    const name = amuletItem.name?.toLowerCase() || '';
-    const material = amuletItem.material?.toLowerCase() || '';
+    // Enhanced pendant rendering based on type
+    const pendantY = neckY + 5; // Slightly lower for better visibility
     
     if (name.includes('cross') || name.includes('crucifix')) {
-      // Cross shape
+      // Detailed cross with thickness and shadows
+      const isOrnate = name.includes('ornate') || material.includes('gold') || material.includes('silver');
+      
+      // Vertical beam
       elements.push(
-        <rect key="cross-v" x={centerX} y={neckY + 4} width="1" height="5" fill={amuletColor} className="pixel" />,
-        <rect key="cross-h" x={centerX - 1} y={neckY + 6} width="3" height="1" fill={amuletColor} className="pixel" />
+        <rect key="cross-v" x={centerX} y={pendantY} width="1" height="7" fill={amuletColor} className="pixel" />,
+        <rect key="cross-v-l" x={centerX - 1} y={pendantY + 1} width="1" height="5" fill={amuletColor} className="pixel" />,
+        <rect key="cross-v-r" x={centerX + 1} y={pendantY + 1} width="1" height="5" fill={amuletColor} className="pixel" />
       );
-    } else if (name.includes('star') || name.includes('pentagram')) {
-      // Star shape
+      
+      // Horizontal beam
       elements.push(
-        <rect key="star-c" x={centerX} y={neckY + 5} width="1" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="star-t" x={centerX} y={neckY + 3} width="1" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="star-bl" x={centerX - 2} y={neckY + 7} width="1" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="star-br" x={centerX + 2} y={neckY + 7} width="1" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="star-l" x={centerX - 1} y={neckY + 4} width="1" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="star-r" x={centerX + 1} y={neckY + 4} width="1" height="1" fill={amuletColor} className="pixel" />
+        <rect key="cross-h" x={centerX - 3} y={pendantY + 2} width="7" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="cross-h-t" x={centerX - 2} y={pendantY + 1} width="5" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="cross-h-b" x={centerX - 2} y={pendantY + 3} width="5" height="1" fill={amuletColor} className="pixel" />
       );
-    } else if (name.includes('circle') || name.includes('ring') || name.includes('medallion')) {
-      // Circular pendant
-      const radius = 2;
+      
+      // Highlights and shadows for depth
+      elements.push(
+        <rect key="cross-hl-c" x={centerX} y={pendantY + 2} width="1" height="1" fill={amuletHighlight} className="pixel" />,
+        <rect key="cross-hl-t" x={centerX} y={pendantY} width="1" height="1" fill={amuletHighlight} className="pixel" />,
+        <rect key="cross-sh-r" x={centerX + 1} y={pendantY + 3} width="1" height="3" fill={amuletShadow} className="pixel" />,
+        <rect key="cross-sh-b" x={centerX - 2} y={pendantY + 6} width="3" height="1" fill={amuletDeepShadow} className="pixel" />
+      );
+      
+      if (isOrnate) {
+        // Add decorative elements
+        elements.push(
+          <rect key="cross-dec-tl" x={centerX - 3} y={pendantY + 1} width="1" height="1" fill={amuletHighlight} className="pixel" />,
+          <rect key="cross-dec-tr" x={centerX + 3} y={pendantY + 1} width="1" height="1" fill={amuletHighlight} className="pixel" />
+        );
+      }
+      
+      if (name.includes('crucifix')) {
+        // Add figure (simplified)
+        elements.push(
+          <rect key="fig-head" x={centerX} y={pendantY + 1} width="1" height="1" fill={createShadow(amuletColor, 0.6)} className="pixel" />,
+          <rect key="fig-arms" x={centerX - 2} y={pendantY + 2} width="5" height="1" fill={createShadow(amuletColor, 0.6)} className="pixel" />
+        );
+      }
+    } else if (name.includes('ankh')) {
+      // Egyptian ankh
+      elements.push(
+        // Loop
+        <rect key="ankh-loop-t" x={centerX - 1} y={pendantY} width="3" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="ankh-loop-l" x={centerX - 2} y={pendantY + 1} width="1" height="2" fill={amuletColor} className="pixel" />,
+        <rect key="ankh-loop-r" x={centerX + 2} y={pendantY + 1} width="1" height="2" fill={amuletColor} className="pixel" />,
+        <rect key="ankh-loop-b" x={centerX - 1} y={pendantY + 2} width="3" height="1" fill={amuletColor} className="pixel" />,
+        // Stem
+        <rect key="ankh-v" x={centerX} y={pendantY + 3} width="1" height="3" fill={amuletColor} className="pixel" />,
+        <rect key="ankh-h" x={centerX - 1} y={pendantY + 4} width="3" height="1" fill={amuletColor} className="pixel" />
+      );
+    } else if (name.includes('crescent') || name.includes('moon')) {
+      // Crescent moon
+      elements.push(
+        <rect key="moon-1" x={centerX - 2} y={pendantY + 1} width="1" height="3" fill={amuletColor} className="pixel" />,
+        <rect key="moon-2" x={centerX - 1} y={pendantY} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="moon-3" x={centerX - 1} y={pendantY + 4} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="moon-4" x={centerX} y={pendantY + 5} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="moon-5" x={centerX + 1} y={pendantY + 5} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="moon-6" x={centerX + 2} y={pendantY + 2} width="1" height="2" fill={amuletColor} className="pixel" />,
+        <rect key="moon-hl" x={centerX - 1} y={pendantY + 2} width="1" height="1" fill={amuletHighlight} className="pixel" />
+      );
+    } else if (name.includes('star') || name.includes('david')) {
+      // Six-pointed star (Star of David)
+      elements.push(
+        // Upper triangle
+        <rect key="star-t" x={centerX} y={pendantY} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="star-tl" x={centerX - 1} y={pendantY + 1} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="star-tr" x={centerX + 1} y={pendantY + 1} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="star-bl2" x={centerX - 2} y={pendantY + 2} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="star-br2" x={centerX + 2} y={pendantY + 2} width="1" height="1" fill={amuletColor} className="pixel" />,
+        // Lower triangle
+        <rect key="star-b" x={centerX} y={pendantY + 4} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="star-ml" x={centerX - 1} y={pendantY + 3} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="star-mr" x={centerX + 1} y={pendantY + 3} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="star-c" x={centerX} y={pendantY + 2} width="1" height="1" fill={amuletHighlight} className="pixel" />
+      );
+    } else if (name.includes('heart') || name.includes('locket')) {
+      // Heart shape / locket
+      elements.push(
+        <rect key="heart-tl" x={centerX - 2} y={pendantY + 1} width="2" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="heart-tr" x={centerX + 1} y={pendantY + 1} width="2" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="heart-ml" x={centerX - 2} y={pendantY + 2} width="2" height="2" fill={amuletColor} className="pixel" />,
+        <rect key="heart-mr" x={centerX + 1} y={pendantY + 2} width="2" height="2" fill={amuletColor} className="pixel" />,
+        <rect key="heart-c" x={centerX} y={pendantY + 2} width="1" height="2" fill={amuletColor} className="pixel" />,
+        <rect key="heart-bl" x={centerX - 1} y={pendantY + 4} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="heart-br" x={centerX + 1} y={pendantY + 4} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="heart-b" x={centerX} y={pendantY + 5} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="heart-hl" x={centerX - 1} y={pendantY + 2} width="1" height="1" fill={amuletHighlight} className="pixel" />
+      );
+    } else if (name.includes('medallion') || name.includes('coin')) {
+      // Round medallion with detail
+      const radius = 3;
       for (let dx = -radius; dx <= radius; dx++) {
         for (let dy = -radius; dy <= radius; dy++) {
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist <= radius && dist >= radius - 1) {
-            elements.push(<rect key={`circle-${dx}-${dy}`} x={centerX + dx} y={neckY + 5 + dy} width="1" height="1" fill={amuletColor} className="pixel" />);
+          if (dist <= radius) {
+            const isEdge = dist >= radius - 0.5;
+            const color = isEdge ? amuletShadow : (dx === -1 && dy === -1) ? amuletHighlight : amuletColor;
+            elements.push(<rect key={`medal-${dx}-${dy}`} x={centerX + dx} y={pendantY + 2 + dy} width="1" height="1" fill={color} className="pixel" />);
           }
         }
       }
-      // Center gem
-      elements.push(<rect key="circle-gem" x={centerX} y={neckY + 5} width="1" height="1" fill="#DC143C" className="pixel" />);
-    } else {
-      // Default rectangular pendant
+      // Center design (could be portrait, symbol, etc)
+      if (name.includes('saint') || name.includes('religious')) {
+        elements.push(<rect key="medal-cross" x={centerX} y={pendantY + 2} width="1" height="2" fill={amuletShadow} className="pixel" />);
+      }
+    } else if (name.includes('teardrop') || name.includes('pearl')) {
+      // Teardrop/pearl pendant
       elements.push(
-        <rect key="pendant-1" x={centerX - 1} y={neckY + 4} width="3" height="3" fill={amuletColor} className="pixel" />,
-        <rect key="pendant-2" x={centerX} y={neckY + 5} width="1" height="1" fill={amuletShadow} className="pixel" />
+        <rect key="tear-t" x={centerX} y={pendantY} width="1" height="1" fill={amuletHighlight} className="pixel" />,
+        <rect key="tear-m1" x={centerX - 1} y={pendantY + 1} width="3" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="tear-m2" x={centerX - 1} y={pendantY + 2} width="3" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="tear-m3" x={centerX - 1} y={pendantY + 3} width="3" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="tear-b1" x={centerX} y={pendantY + 4} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="tear-b2" x={centerX} y={pendantY + 5} width="1" height="1" fill={amuletShadow} className="pixel" />
       );
+    } else {
+      // Default oval pendant with gemstone
+      elements.push(
+        <rect key="pendant-t" x={centerX - 1} y={pendantY} width="3" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="pendant-m" x={centerX - 2} y={pendantY + 1} width="5" height="3" fill={amuletColor} className="pixel" />,
+        <rect key="pendant-b" x={centerX - 1} y={pendantY + 4} width="3" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="pendant-hl" x={centerX - 1} y={pendantY + 1} width="1" height="1" fill={amuletHighlight} className="pixel" />,
+        <rect key="pendant-sh" x={centerX + 1} y={pendantY + 3} width="1" height="1" fill={amuletShadow} className="pixel" />
+      );
+      // Add gemstone if mentioned
+      if (name.includes('ruby') || name.includes('emerald') || name.includes('sapphire') || name.includes('gem')) {
+        const gemColor = name.includes('ruby') ? '#DC143C' : 
+                        name.includes('emerald') ? '#50C878' : 
+                        name.includes('sapphire') ? '#0F52BA' : '#9966CC';
+        elements.push(<rect key="pendant-gem" x={centerX} y={pendantY + 2} width="1" height="1" fill={gemColor} className="pixel" />);
+      }
     }
     
     return <g key="amulet">{elements}</g>;
   }, [character.equippedItems, useEquippedItems, headDim.height, headDim.width, headX, headY]);
 
+  // ----- ACCESSORIES (ring2 slot, cultural ornamentations) -----
+  const renderAccessories = useMemo(() => {
+    const elements: JSX.Element[] = [];
+    
+    // Check for accessory slot items
+    let accessoryItem = null;
+    if (useEquippedItems && character.equippedItems !== undefined) {
+      accessoryItem = character.equippedItems.accessory;
+    }
+    
+    if (!accessoryItem) return <g key="accessories" />;
+    
+    const name = accessoryItem.name?.toLowerCase() || '';
+    const material = accessoryItem.material?.toLowerCase() || '';
+    const centerX = headX + Math.floor(headDim.width / 2);
+    
+    // Determine accessory color based on material
+    const accessoryColor = material.includes('gold') ? '#FFD700' :
+                          material.includes('silver') ? '#C0C0C0' :
+                          material.includes('bronze') ? '#CD7F32' :
+                          material.includes('copper') ? '#B87333' :
+                          material.includes('bone') ? '#F5DEB3' :
+                          material.includes('jade') ? '#00A86B' :
+                          material.includes('turquoise') ? '#40E0D0' :
+                          material.includes('obsidian') ? '#1C1C1C' :
+                          material.includes('coral') ? '#FF6B6B' :
+                          material.includes('ivory') ? '#FFFFF0' :
+                          material.includes('wood') ? '#8B4513' :
+                          getItemColor(accessoryItem);
+    
+    const accessoryHighlight = createHighlight(accessoryColor, 1.3);
+    
+    // Render based on accessory type
+    if (name.includes('earring') || name.includes('ear')) {
+      // Earrings
+      const earY = headY + Math.floor(headDim.height * 0.4) + 4;
+      const earLX = headX - 1;
+      const earRX = headX + headDim.width;
+      
+      if (name.includes('hoop')) {
+        // Hoop earrings
+        for (let h = 0; h < 4; h++) {
+          elements.push(
+            <rect key={`acc-hoop-l-${h}`} x={earLX - h} y={earY + h} width="1" height="1" fill={accessoryColor} className="pixel" />,
+            <rect key={`acc-hoop-r-${h}`} x={earRX + h} y={earY + h} width="1" height="1" fill={accessoryColor} className="pixel" />
+          );
+        }
+        elements.push(
+          <rect key="acc-hoop-l-hl" x={earLX} y={earY} width="1" height="1" fill={accessoryHighlight} className="pixel" />,
+          <rect key="acc-hoop-r-hl" x={earRX} y={earY} width="1" height="1" fill={accessoryHighlight} className="pixel" />
+        );
+      } else {
+        // Stud/dangling earrings
+        elements.push(
+          <rect key="acc-stud-l" x={earLX} y={earY} width="2" height="2" fill={accessoryColor} className="pixel" />,
+          <rect key="acc-stud-l-hl" x={earLX} y={earY} width="1" height="1" fill={accessoryHighlight} className="pixel" />,
+          <rect key="acc-stud-r" x={earRX} y={earY} width="2" height="2" fill={accessoryColor} className="pixel" />,
+          <rect key="acc-stud-r-hl" x={earRX} y={earY} width="1" height="1" fill={accessoryHighlight} className="pixel" />
+        );
+      }
+    } else if (name.includes('nose') || name.includes('septum') || name.includes('nostril')) {
+      // Nose piercings
+      const noseY = headY + Math.floor(headDim.height * 0.5);
+      
+      if (name.includes('septum')) {
+        // Septum ring
+        elements.push(
+          <rect key="septum-c" x={centerX} y={noseY + 1} width="1" height="1" fill={accessoryColor} className="pixel" />,
+          <rect key="septum-l" x={centerX - 1} y={noseY + 2} width="1" height="1" fill={accessoryColor} className="pixel" />,
+          <rect key="septum-r" x={centerX + 1} y={noseY + 2} width="1" height="1" fill={accessoryColor} className="pixel" />,
+          <rect key="septum-hl" x={centerX} y={noseY + 1} width="1" height="1" fill={accessoryHighlight} opacity={0.6} className="pixel" />
+        );
+      } else {
+        // Nostril stud
+        elements.push(
+          <rect key="nostril" x={centerX - 2} y={noseY} width="1" height="1" fill={accessoryColor} className="pixel" />,
+          <rect key="nostril-hl" x={centerX - 2} y={noseY} width="1" height="1" fill={accessoryHighlight} opacity={0.7} className="pixel" />
+        );
+      }
+    } else if (name.includes('bindi') || name.includes('tilaka') || name.includes('tikka')) {
+      // Forehead ornaments (South Asian)
+      const foreheadY = headY + 3;
+      
+      // Central ornament
+      elements.push(
+        <rect key="bindi-c" x={centerX} y={foreheadY} width="1" height="1" fill={accessoryColor} className="pixel" />,
+        <rect key="bindi-t" x={centerX} y={foreheadY - 1} width="1" height="1" fill={accessoryColor} className="pixel" />,
+        <rect key="bindi-b" x={centerX} y={foreheadY + 1} width="1" height="1" fill={accessoryColor} className="pixel" />,
+        <rect key="bindi-l" x={centerX - 1} y={foreheadY} width="1" height="1" fill={accessoryColor} className="pixel" />,
+        <rect key="bindi-r" x={centerX + 1} y={foreheadY} width="1" height="1" fill={accessoryColor} className="pixel" />,
+        <rect key="bindi-hl" x={centerX} y={foreheadY} width="1" height="1" fill={accessoryHighlight} opacity={0.8} className="pixel" />
+      );
+    }
+    
+    return <g key="accessories">{elements}</g>;
+  }, [useEquippedItems, character.equippedItems, headDim.width, headDim.height, headX, headY, getItemColor]);
+
+  // ----- GLASSES/SPECTACLES (Historical) -----
+  const renderGlasses = useMemo(() => {
+    if (!appearanceWithDefaults.hasGlasses) return <g key="glasses" />;
+    
+    const elements: JSX.Element[] = [];
+    const glassesStyle = appearanceWithDefaults.glassesStyle || 'round';
+    const eyeY = headY + Math.floor(headDim.height * 0.48);
+    const eyeSpacing = Math.floor(headDim.width * 0.22);
+    const centerX = headX + Math.floor(headDim.width / 2);
+    const leftX = centerX - eyeSpacing;
+    const rightX = centerX + eyeSpacing;
+    
+    // Frame color - historically accurate materials
+    const isWealthy = character.wealthLevel === 'wealthy' || character.wealthLevel === 'noble';
+    const frameColor = isWealthy ? '#8B7355' : '#2F2F2F'; // tortoiseshell vs iron/steel
+    const frameHighlight = createHighlight(frameColor, 1.3);
+    const frameShadow = createShadow(frameColor, 0.7);
+    
+    switch (glassesStyle) {
+      case 'round': {
+        // Historical round spectacles (14th century onwards)
+        const radius = 5;
+        // Left lens
+        for (let angle = 0; angle < Math.PI * 2; angle += 0.3) {
+          const lx = Math.round(leftX + Math.cos(angle) * radius);
+          const ly = Math.round(eyeY + Math.sin(angle) * radius);
+          elements.push(<rect key={`glass-l-${angle}`} x={lx} y={ly} width="1" height="1" fill={frameColor} className="pixel" />);
+        }
+        // Right lens
+        for (let angle = 0; angle < Math.PI * 2; angle += 0.3) {
+          const rx = Math.round(rightX + Math.cos(angle) * radius);
+          const ry = Math.round(eyeY + Math.sin(angle) * radius);
+          elements.push(<rect key={`glass-r-${angle}`} x={rx} y={ry} width="1" height="1" fill={frameColor} className="pixel" />);
+        }
+        // Bridge
+        for (let bx = leftX + radius; bx <= rightX - radius; bx++) {
+          elements.push(<rect key={`bridge-${bx}`} x={bx} y={eyeY} width="1" height="1" fill={frameShadow} className="pixel" />);
+        }
+        // Lens glare
+        elements.push(
+          <rect key="glare-l" x={leftX - 2} y={eyeY - 2} width="2" height="1" fill="#FFFFFF" opacity="0.7" className="pixel" />,
+          <rect key="glare-r" x={rightX - 2} y={eyeY - 2} width="2" height="1" fill="#FFFFFF" opacity="0.7" className="pixel" />
+        );
+        break;
+      }
+      case 'square': {
+        // Later period rectangular spectacles
+        const size = 5;
+        // Left frame
+        for (let dx = -size; dx <= size; dx++) {
+          elements.push(
+            <rect key={`sq-l-t-${dx}`} x={leftX + dx} y={eyeY - size} width="1" height="1" fill={frameColor} className="pixel" />,
+            <rect key={`sq-l-b-${dx}`} x={leftX + dx} y={eyeY + size} width="1" height="1" fill={frameShadow} className="pixel" />
+          );
+        }
+        for (let dy = -size; dy <= size; dy++) {
+          elements.push(
+            <rect key={`sq-l-l-${dy}`} x={leftX - size} y={eyeY + dy} width="1" height="1" fill={frameHighlight} className="pixel" />,
+            <rect key={`sq-l-r-${dy}`} x={leftX + size} y={eyeY + dy} width="1" height="1" fill={frameShadow} className="pixel" />
+          );
+        }
+        // Right frame
+        for (let dx = -size; dx <= size; dx++) {
+          elements.push(
+            <rect key={`sq-r-t-${dx}`} x={rightX + dx} y={eyeY - size} width="1" height="1" fill={frameColor} className="pixel" />,
+            <rect key={`sq-r-b-${dx}`} x={rightX + dx} y={eyeY + size} width="1" height="1" fill={frameShadow} className="pixel" />
+          );
+        }
+        for (let dy = -size; dy <= size; dy++) {
+          elements.push(
+            <rect key={`sq-r-l-${dy}`} x={rightX - size} y={eyeY + dy} width="1" height="1" fill={frameHighlight} className="pixel" />,
+            <rect key={`sq-r-r-${dy}`} x={rightX + size} y={eyeY + dy} width="1" height="1" fill={frameShadow} className="pixel" />
+          );
+        }
+        // Bridge
+        for (let bx = leftX + size + 1; bx < rightX - size; bx++) {
+          elements.push(<rect key={`sq-bridge-${bx}`} x={bx} y={eyeY} width="1" height="1" fill={frameShadow} className="pixel" />);
+        }
+        // Lens glare
+        elements.push(
+          <rect key="sq-glare-l" x={leftX - 3} y={eyeY - 3} width="2" height="1" fill="#FFFFFF" opacity="0.6" className="pixel" />,
+          <rect key="sq-glare-r" x={rightX - 3} y={eyeY - 3} width="2" height="1" fill="#FFFFFF" opacity="0.6" className="pixel" />
+        );
+        break;
+      }
+      case 'oval': {
+        // Oval pince-nez style (19th century)
+        const rx = 5, ry = 4;
+        // Left lens
+        for (let angle = 0; angle < Math.PI * 2; angle += 0.25) {
+          const lx = Math.round(leftX + Math.cos(angle) * rx);
+          const ly = Math.round(eyeY + Math.sin(angle) * ry);
+          elements.push(<rect key={`oval-l-${angle}`} x={lx} y={ly} width="1" height="1" fill={frameColor} className="pixel" />);
+        }
+        // Right lens
+        for (let angle = 0; angle < Math.PI * 2; angle += 0.25) {
+          const rxp = Math.round(rightX + Math.cos(angle) * rx);
+          const ryp = Math.round(eyeY + Math.sin(angle) * ry);
+          elements.push(<rect key={`oval-r-${angle}`} x={rxp} y={ryp} width="1" height="1" fill={frameColor} className="pixel" />);
+        }
+        // Spring bridge (pince-nez)
+        const bridgeY = eyeY - 1;
+        for (let bx = leftX + rx; bx <= rightX - rx; bx++) {
+          const curve = Math.sin((bx - leftX) * 0.3) * 2;
+          elements.push(<rect key={`oval-bridge-${bx}`} x={bx} y={bridgeY + Math.round(curve)} width="1" height="1" fill={frameHighlight} className="pixel" />);
+        }
+        break;
+      }
+      case 'half_rim': {
+        // Half-rim reading glasses (later period)
+        const size = 5;
+        // Left lens - only bottom half rim
+        for (let dx = -size; dx <= size; dx++) {
+          const dist = Math.abs(dx);
+          if (dist <= size - 1) {
+            elements.push(<rect key={`hr-l-b-${dx}`} x={leftX + dx} y={eyeY + size} width="1" height="1" fill={frameColor} className="pixel" />);
+          }
+        }
+        for (let dy = 0; dy <= size; dy++) {
+          elements.push(
+            <rect key={`hr-l-l-${dy}`} x={leftX - size} y={eyeY + dy} width="1" height="1" fill={frameShadow} className="pixel" />,
+            <rect key={`hr-l-r-${dy}`} x={leftX + size} y={eyeY + dy} width="1" height="1" fill={frameShadow} className="pixel" />
+          );
+        }
+        // Right lens - only bottom half rim
+        for (let dx = -size; dx <= size; dx++) {
+          const dist = Math.abs(dx);
+          if (dist <= size - 1) {
+            elements.push(<rect key={`hr-r-b-${dx}`} x={rightX + dx} y={eyeY + size} width="1" height="1" fill={frameColor} className="pixel" />);
+          }
+        }
+        for (let dy = 0; dy <= size; dy++) {
+          elements.push(
+            <rect key={`hr-r-l-${dy}`} x={rightX - size} y={eyeY + dy} width="1" height="1" fill={frameShadow} className="pixel" />,
+            <rect key={`hr-r-r-${dy}`} x={rightX + size} y={eyeY + dy} width="1" height="1" fill={frameShadow} className="pixel" />
+          );
+        }
+        // Thin bridge at top
+        for (let bx = leftX + size; bx <= rightX - size; bx++) {
+          elements.push(<rect key={`hr-bridge-${bx}`} x={bx} y={eyeY - size + 1} width="1" height="1" fill={frameHighlight} opacity="0.7" className="pixel" />);
+        }
+        break;
+      }
+    }
+    
+    // Temple arms (simplified, going behind ears)
+    if (glassesStyle !== 'oval') { // pince-nez doesn't have temples
+      // Left temple
+      for (let tx = 0; tx < 4; tx++) {
+        elements.push(<rect key={`temple-l-${tx}`} x={headX - tx} y={eyeY} width="1" height="1" fill={frameShadow} className="pixel" />);
+      }
+      // Right temple
+      for (let tx = 0; tx < 4; tx++) {
+        elements.push(<rect key={`temple-r-${tx}`} x={headX + headDim.width + tx} y={eyeY} width="1" height="1" fill={frameShadow} className="pixel" />);
+      }
+    }
+    
+    return <g key="glasses">{elements}</g>;
+  }, [appearanceWithDefaults.hasGlasses, appearanceWithDefaults.glassesStyle, character.wealthLevel, headDim.width, headDim.height, headX, headY]);
+
   // ----- MARKINGS -----
   const renderMarkings = useMemo(() => {
-    if (!appearanceWithDefaults.markings || appearanceWithDefaults.markings.length === 0) return <g key="markings" />;
     const elements: JSX.Element[] = [];
+    const centerX = headX + Math.floor(headDim.width / 2); // Define centerX for markings
+    
+    // Process equipped accessories as markings
+    const accessoryMarkings: Array<{
+      type: 'scar' | 'tattoo' | 'paint' | 'beauty_mark' | 'freckles' | 'mole' | 'birthmark';
+      location: string;
+      color: string;
+      size: 'small' | 'medium' | 'large';
+      pattern?: string;
+    }> = [];
+    
+    if (useEquippedItems && character.equippedItems?.accessory) {
+      const accessory = character.equippedItems.accessory;
+      const specialType = (accessory as any).specialType;
+      const name = accessory.name.toLowerCase();
+      
+      // Debug logging for tattoos
+      if (specialType) {
+        console.log('[Portrait] Rendering special accessory:', specialType, name, 'for culture:', culturalZone);
+      }
+      
+      if (specialType === 'tattoo') {
+        // Determine pattern from cultural context and name
+        let pattern = 'lines';
+        if (culturalZone === 'OCEANIA' || name.includes('maori') || name.includes('ta moko')) {
+          pattern = 'ta_moko';
+        } else if (culturalZone === 'SUB_SAHARAN_AFRICAN' || name.includes('scarification')) {
+          pattern = 'scarification';
+        } else if (culturalZone === 'MENA' || name.includes('berber') || name.includes('amazigh')) {
+          pattern = 'berber';
+        } else if (culturalZone === 'EUROPEAN' && (name.includes('norse') || name.includes('celtic'))) {
+          pattern = 'celtic';
+        }
+        
+        accessoryMarkings.push({
+          type: 'tattoo',
+          location: 'face',
+          color: '#2F4F4F',
+          size: 'medium',
+          pattern
+        });
+      } else if (specialType === 'scarification') {
+        accessoryMarkings.push({
+          type: 'tattoo',
+          location: 'face',
+          color: createHighlight(skinTone, 1.2),
+          size: 'medium',
+          pattern: 'scarification'
+        });
+      } else if (specialType === 'face_paint') {
+        const duration = (accessory as any).duration || 24;
+        const paintColor = culturalZone === 'NORTH_AMERICAN_PRE_COLUMBIAN' ? '#B22222' :
+                          culturalZone === 'SUB_SAHARAN_AFRICAN' ? '#8B4513' :
+                          culturalZone === 'OCEANIA' ? '#000000' : '#4169E1';
+        
+        accessoryMarkings.push({
+          type: 'paint',
+          location: 'face',
+          color: paintColor,
+          size: 'large',
+          pattern: name.includes('war') ? 'stripes' : 'dots'
+        });
+      } else if (specialType === 'henna') {
+        const duration = (accessory as any).duration || 72;
+        const hennaColor = duration > 48 ? '#8B0000' : duration > 24 ? '#A0522D' : '#D2691E';
+        
+        accessoryMarkings.push({
+          type: 'paint',
+          location: 'face',
+          color: hennaColor,
+          size: 'medium',
+          pattern: 'intricate'
+        });
+      }
+    }
+    
+    // Combine appearance markings with accessory markings
+    const allMarkings = [
+      ...(appearanceWithDefaults.markings || []),
+      ...accessoryMarkings
+    ];
 
-    appearanceWithDefaults.markings.forEach((marking, index) => {
+    if (allMarkings.length === 0) return <g key="markings" />;
+
+    allMarkings.forEach((marking, index) => {
       const markingColor = marking.color;
       switch (marking.type) {
         case 'scar': {
@@ -3292,31 +4517,306 @@ if (hairStyle === 'braided') {
           break;
         }
         case 'tattoo': {
-          if (marking.location === 'face' && culturalZone === 'OCEANIA') {
-            const pattern = marking.pattern || 'lines';
-            if (pattern === 'lines') {
-              for (let y = 0; y < 4; y++) {
-                for (let x = -2; x <= 2; x++) {
-                  if (Math.abs(x) + y < 4) {
-                    elements.push(
-                      <rect key={`tattoo-${index}-${x}-${y}`} x={headX + Math.floor(headDim.width / 2) + x} y={headY + headDim.height - 6 + y} width="1" height="1" fill={markingColor} className="pixel" />
-                    );
-                  }
+          const pattern = marking.pattern || 'lines';
+          const tattooOpacity = 0.7; // Tattoos blend with skin
+          
+          if (marking.location === 'face' || marking.location === 'forehead' || marking.location === 'cheek' || marking.location === 'chin') {
+            // Facial tattoos for various cultures
+            if (culturalZone === 'OCEANIA' || pattern === 'maori_spiral' || pattern === 'maori_full' || pattern === 'ta_moko') {
+              // Maori-style facial tattoos (Ta moko)
+              const chinY = headY + headDim.height - 3;
+              const cheekY = headY + Math.floor(headDim.height * 0.6);
+              
+              // Chin spiral patterns
+              for (let x = -2; x <= 2; x++) {
+                elements.push(
+                  <rect key={`tattoo-chin-${index}-${x}`} x={centerX + x} y={chinY} width="1" height="1" fill={markingColor} opacity={tattooOpacity} className="pixel" />,
+                  <rect key={`tattoo-chin2-${index}-${x}`} x={centerX + x * 2} y={chinY - 1} width="1" height="1" fill={markingColor} opacity={tattooOpacity} className="pixel" />
+                );
+              }
+              
+              // Cheek curves
+              for (let i = 0; i < 3; i++) {
+                elements.push(
+                  <rect key={`tattoo-cheek-l-${index}-${i}`} x={headX + 2 + i} y={cheekY + i} width="1" height="1" fill={markingColor} opacity={tattooOpacity} className="pixel" />,
+                  <rect key={`tattoo-cheek-r-${index}-${i}`} x={headX + headDim.width - 3 - i} y={cheekY + i} width="1" height="1" fill={markingColor} opacity={tattooOpacity} className="pixel" />
+                );
+              }
+            } else if (culturalZone === 'SUB_SAHARAN_AFRICAN' || pattern === 'scarification' || pattern === 'vertical_lines' || pattern === 'horizontal_lines' || pattern === 'geometric') {
+              // African scarification patterns
+              if (pattern === 'vertical_lines' && marking.location === 'cheek') {
+                // Yoruba-style vertical cheek marks
+                const cheekY = headY + Math.floor(headDim.height * 0.5);
+                for (let i = 0; i < 3; i++) {
+                  elements.push(
+                    <rect key={`vlines-l-${index}-${i}`} x={headX + 2} y={cheekY + i * 2} width="1" height="3" fill={createHighlight(skinTone, 1.2)} className="pixel" />,
+                    <rect key={`vlines-r-${index}-${i}`} x={headX + headDim.width - 3} y={cheekY + i * 2} width="1" height="3" fill={createHighlight(skinTone, 1.2)} className="pixel" />
+                  );
                 }
+              } else if (pattern === 'horizontal_lines' && marking.location === 'forehead') {
+                // Dinka-style forehead marks
+                const foreheadY = headY + 2;
+                for (let i = 0; i < 4; i++) {
+                  elements.push(
+                    <rect key={`hlines-${index}-${i}`} x={centerX - 4 + i * 2} y={foreheadY} width="3" height="1" fill={createHighlight(skinTone, 1.2)} className="pixel" />
+                  );
+                }
+              } else {
+                // Default dot pattern
+                const foreheadY = headY + 2;
+                const patterns = [
+                  [0, 0], [2, 0], [4, 0], // Forehead dots
+                  [-1, 2], [1, 2], [3, 2], // Second row
+                ];
+                patterns.forEach(([dx, dy], i) => {
+                  elements.push(
+                    <rect key={`scar-${index}-${i}`} x={centerX - 2 + dx} y={foreheadY + dy} width="1" height="1" fill={createHighlight(skinTone, 1.2)} className="pixel" />
+                  );
+                });
+              }
+            } else if (pattern === 'norse' || pattern === 'celtic') {
+              // Norse/Celtic knotwork on temples
+              const templeY = headY + Math.floor(headDim.height * 0.3);
+              const knotPattern = [
+                [0, 0], [1, 0], [2, 1], [1, 2], [0, 2], [-1, 1]
+              ];
+              knotPattern.forEach(([dx, dy], i) => {
+                elements.push(
+                  <rect key={`knot-l-${index}-${i}`} x={headX + 1 + dx} y={templeY + dy} width="1" height="1" fill={markingColor} opacity={tattooOpacity} className="pixel" />,
+                  <rect key={`knot-r-${index}-${i}`} x={headX + headDim.width - 2 - dx} y={templeY + dy} width="1" height="1" fill={markingColor} opacity={tattooOpacity} className="pixel" />
+                );
+              });
+            } else if (pattern === 'berber' || culturalZone === 'MENA') {
+              // Berber/Amazigh chin and forehead tattoos
+              const foreheadY = headY + 3;
+              const chinY = headY + headDim.height - 4;
+              
+              // Forehead symbol
+              elements.push(
+                <rect key={`berber-fh-${index}`} x={centerX} y={foreheadY} width="1" height="3" fill={markingColor} opacity={tattooOpacity} className="pixel" />,
+                <rect key={`berber-fh-l-${index}`} x={centerX - 2} y={foreheadY + 1} width="1" height="1" fill={markingColor} opacity={tattooOpacity} className="pixel" />,
+                <rect key={`berber-fh-r-${index}`} x={centerX + 2} y={foreheadY + 1} width="1" height="1" fill={markingColor} opacity={tattooOpacity} className="pixel" />
+              );
+              
+              // Chin tattoo
+              for (let x = -1; x <= 1; x++) {
+                elements.push(
+                  <rect key={`berber-chin-${index}-${x}`} x={centerX + x} y={chinY} width="1" height="2" fill={markingColor} opacity={tattooOpacity} className="pixel" />
+                );
+              }
+            } else if (pattern === 'tears' || pattern === 'prison') {
+              // Teardrop tattoos
+              const tearY = headY + Math.floor(headDim.height * 0.45);
+              elements.push(
+                <rect key={`tear-${index}`} x={headX + 3} y={tearY} width="1" height="2" fill={markingColor} opacity={tattooOpacity} className="pixel" />,
+                <rect key={`tear-b-${index}`} x={headX + 3} y={tearY + 2} width="1" height="1" fill={markingColor} opacity={0.5} className="pixel" />
+              );
+            }
+          } else if (marking.location === 'neck') {
+            // Neck tattoos
+            const neckY = headY + headDim.height + 2;
+            if (pattern === 'barcode' || pattern === 'modern') {
+              // Modern style neck tattoo
+              for (let x = 0; x < 5; x++) {
+                const height = 2 + (x % 2);
+                elements.push(
+                  <rect key={`neck-bar-${index}-${x}`} x={centerX - 2 + x} y={neckY} width="1" height={height} fill={markingColor} opacity={tattooOpacity} className="pixel" />
+                );
+              }
+            } else {
+              // Traditional neck band
+              for (let x = centerX - 6; x <= centerX + 6; x++) {
+                if (x % 2 === 0) {
+                  elements.push(
+                    <rect key={`neck-band-${index}-${x}`} x={x} y={neckY} width="1" height="1" fill={markingColor} opacity={tattooOpacity} className="pixel" />
+                  );
+                }
+              }
+            }
+          } else if (marking.location === 'arm' || marking.location === 'shoulder') {
+            // Arm/shoulder tattoos (visible part)
+            const shoulderY = bodyStartY + 2;
+            const shoulderX = headX - 3;
+            
+            if (pattern === 'tribal' || pattern === 'polynesian') {
+              // Tribal band
+              for (let i = 0; i < 4; i++) {
+                elements.push(
+                  <rect key={`tribal-${index}-${i}`} x={shoulderX} y={shoulderY + i} width="2" height="1" fill={markingColor} opacity={tattooOpacity} className="pixel" />,
+                  <rect key={`tribal-r-${index}-${i}`} x={headX + headDim.width + 2} y={shoulderY + i} width="2" height="1" fill={markingColor} opacity={tattooOpacity} className="pixel" />
+                );
               }
             }
           }
           break;
         }
+        case 'henna': {
+          // Henna designs (primarily on arms, but we show hints on visible areas)
+          if (marking.location === 'arm' || marking.location === 'face') {
+            const pattern = marking.pattern || 'geometric';
+            if (pattern === 'floral' || pattern === 'geometric') {
+              // Show small henna dots on visible hand area
+              const handY = bodyStartY + 8;
+              const handX = headX - 2;
+              elements.push(
+                <rect key={`henna-${index}-1`} x={handX} y={handY} width="1" height="1" fill={markingColor} opacity={0.6} className="pixel" />,
+                <rect key={`henna-${index}-2`} x={handX + 1} y={handY + 1} width="1" height="1" fill={markingColor} opacity={0.6} className="pixel" />,
+                <rect key={`henna-${index}-3`} x={handX - 1} y={handY + 1} width="1" height="1" fill={markingColor} opacity={0.6} className="pixel" />
+              );
+            }
+          }
+          break;
+        }
+        case 'ash': {
+          // Sacred ash marks (vibhuti, ash cross)
+          const pattern = marking.pattern || 'three_lines';
+          if (pattern === 'three_lines' && marking.location === 'forehead') {
+            // Three horizontal lines (Shaiva tilaka)
+            const foreheadY = headY + 4;
+            for (let i = 0; i < 3; i++) {
+              elements.push(
+                <rect key={`ash-line-${index}-${i}`} x={centerX - 3} y={foreheadY + i * 2} width="7" height="1" fill={markingColor} opacity={0.7} className="pixel" />
+              );
+            }
+          } else if (pattern === 'cross' && marking.location === 'forehead') {
+            // Christian ash cross
+            const foreheadY = headY + 5;
+            elements.push(
+              <rect key={`ash-cross-v-${index}`} x={centerX} y={foreheadY - 1} width="1" height="3" fill={markingColor} opacity={0.8} className="pixel" />,
+              <rect key={`ash-cross-h-${index}`} x={centerX - 1} y={foreheadY} width="3" height="1" fill={markingColor} opacity={0.8} className="pixel" />
+            );
+          }
+          break;
+        }
+        case 'piercing': {
+          // Enhanced piercing visualization
+          if (marking.location === 'nose') {
+            const noseY = headY + Math.floor(headDim.height * 0.5);
+            if (marking.pattern === 'septum' || marking.pattern === 'ring') {
+              // Septum ring (center of nose)
+              elements.push(
+                <rect key={`septum-${index}`} x={centerX} y={noseY + 1} width="1" height="2" fill="#8B7355" className="pixel" />,
+                <rect key={`septum-hl-${index}`} x={centerX} y={noseY + 1} width="1" height="1" fill="#FFD700" opacity={0.6} className="pixel" />
+              );
+            } else if (marking.pattern === 'stud') {
+              // Nostril stud (side of nose)
+              const noseX = centerX - 2;
+              elements.push(
+                <rect key={`nose-stud-${index}`} x={noseX} y={noseY} width="1" height="1" fill="#FFD700" className="pixel" />,
+                <rect key={`nose-stud-hl-${index}`} x={noseX} y={noseY} width="1" height="1" fill="#FFFFFF" opacity={0.7} className="pixel" />
+              );
+            } else if (marking.pattern === 'plug') {
+              // Larger ear/nose plugs
+              elements.push(
+                <rect key={`plug-${index}`} x={centerX - 1} y={noseY} width="2" height="2" fill="#8B4513" className="pixel" />,
+                <rect key={`plug-center-${index}`} x={centerX - 1} y={noseY} width="2" height="2" fill="#000000" opacity={0.5} className="pixel" />
+              );
+            }
+          } else if (marking.location === 'eyebrow') {
+            const browY = headY + Math.floor(headDim.height * 0.3) - 2;
+            const browX = marking.pattern === 'left' ? headX + 3 : headX + headDim.width - 4;
+            elements.push(
+              <rect key={`brow-bar-${index}`} x={browX} y={browY} width="2" height="1" fill="#C0C0C0" className="pixel" />,
+              <rect key={`brow-ball-${index}`} x={browX} y={browY} width="1" height="1" fill="#FFFFFF" opacity={0.6} className="pixel" />
+            );
+          } else if (marking.location === 'lip') {
+            const lipY = headY + Math.floor(headDim.height * 0.7);
+            elements.push(
+              <rect key={`lip-ring-${index}`} x={centerX - 2} y={lipY} width="1" height="1" fill="#C0C0C0" className="pixel" />,
+              <rect key={`lip-ring-hl-${index}`} x={centerX - 2} y={lipY} width="1" height="1" fill="#FFFFFF" opacity={0.5} className="pixel" />
+            );
+          }
+          break;
+        }
         case 'paint': {
-          if (marking.location === 'face') {
+          if (marking.location === 'face' || marking.location === 'forehead' || marking.location === 'cheek') {
             const paintPattern = marking.pattern || 'stripes';
-            if (paintPattern === 'stripes') {
+            
+            // Religious forehead marks (bindi, tilaka)
+            if (marking.location === 'forehead') {
+              if (paintPattern === 'dot') {
+                // Bindi dot
+                const foreheadY = headY + 5;
+                elements.push(
+                  <rect key={`bindi-${index}`} x={centerX} y={foreheadY} width="2" height="2" fill={markingColor} className="pixel" />,
+                  <rect key={`bindi-hl-${index}`} x={centerX} y={foreheadY} width="1" height="1" fill="#FFFFFF" opacity={0.3} className="pixel" />
+                );
+              } else if (paintPattern === 'vertical_v') {
+                // Vaishnava tilaka (V shape)
+                const foreheadY = headY + 4;
+                for (let i = 0; i < 4; i++) {
+                  elements.push(
+                    <rect key={`tilaka-l-${index}-${i}`} x={centerX - 1 - Math.floor(i/2)} y={foreheadY + i} width="1" height="1" fill={markingColor} className="pixel" />,
+                    <rect key={`tilaka-r-${index}-${i}`} x={centerX + 1 + Math.floor(i/2)} y={foreheadY + i} width="1" height="1" fill={markingColor} className="pixel" />
+                  );
+                }
+                // Red dot in center
+                elements.push(
+                  <rect key={`tilaka-dot-${index}`} x={centerX} y={foreheadY + 2} width="1" height="1" fill="#DC143C" className="pixel" />
+                );
+              } else if (paintPattern === 'flower') {
+                // Huadian flower mark (Chinese)
+                const foreheadY = headY + 5;
+                elements.push(
+                  <rect key={`flower-c-${index}`} x={centerX} y={foreheadY} width="1" height="1" fill={markingColor} className="pixel" />,
+                  <rect key={`flower-t-${index}`} x={centerX} y={foreheadY - 1} width="1" height="1" fill={markingColor} opacity={0.7} className="pixel" />,
+                  <rect key={`flower-b-${index}`} x={centerX} y={foreheadY + 1} width="1" height="1" fill={markingColor} opacity={0.7} className="pixel" />,
+                  <rect key={`flower-l-${index}`} x={centerX - 1} y={foreheadY} width="1" height="1" fill={markingColor} opacity={0.7} className="pixel" />,
+                  <rect key={`flower-r-${index}`} x={centerX + 1} y={foreheadY} width="1" height="1" fill={markingColor} opacity={0.7} className="pixel" />
+                );
+              } else if (paintPattern === 'solid' || paintPattern === 'horizontal_stripes') {
+                // Forehead band (red ochre streak)
+                const foreheadY = headY + 3;
+                elements.push(
+                  <rect key={`paint-forehead-${index}`} x={headX + 2} y={foreheadY} width={headDim.width - 4} height="2" fill={markingColor} opacity={0.8} className="pixel" />
+                );
+              }
+            }
+            // Single cheek paint
+            else if (marking.location === 'cheek' && paintPattern === 'solid') {
+              const cheekY = headY + Math.floor(headDim.height * 0.5);
+              // Paint on left cheek only for asymmetric look
+              elements.push(
+                <rect key={`paint-cheek-${index}`} x={headX + 2} y={cheekY} width="3" height="4" fill={markingColor} opacity={0.7} className="pixel" />
+              );
+            }
+            // War paint stripes
+            else if (paintPattern === 'horizontal_stripes' || paintPattern === 'stripes') {
               elements.push(
                 <rect key={`paint-stripe1-${index}`} x={headX + 2} y={headY + 10} width={headDim.width - 4} height="1" fill={markingColor} className="pixel" />,
                 <rect key={`paint-stripe2-${index}`} x={headX + 2} y={headY + 13} width={headDim.width - 4} height="1" fill={markingColor} className="pixel" />
               );
-            } else if (paintPattern === 'dots') {
+            }
+            // Lightning/zigzag pattern
+            else if (paintPattern === 'zigzag') {
+              const cheekY = headY + Math.floor(headDim.height * 0.45);
+              for (let i = 0; i < 4; i++) {
+                const x = headX + 3 + (i % 2);
+                elements.push(
+                  <rect key={`zigzag-l-${index}-${i}`} x={x} y={cheekY + i} width="2" height="1" fill={markingColor} className="pixel" />,
+                  <rect key={`zigzag-r-${index}-${i}`} x={headX + headDim.width - 5 + (i % 2)} y={cheekY + i} width="2" height="1" fill={markingColor} className="pixel" />
+                );
+              }
+            }
+            // Hand print pattern
+            else if (paintPattern === 'handprint') {
+              const cheekY = headY + Math.floor(headDim.height * 0.5);
+              // Simplified hand print on cheek
+              elements.push(
+                <rect key={`hand-palm-${index}`} x={headX + headDim.width - 5} y={cheekY} width="3" height="3" fill={markingColor} opacity={0.8} className="pixel" />,
+                <rect key={`hand-f1-${index}`} x={headX + headDim.width - 5} y={cheekY - 1} width="1" height="1" fill={markingColor} opacity={0.6} className="pixel" />,
+                <rect key={`hand-f2-${index}`} x={headX + headDim.width - 3} y={cheekY - 1} width="1" height="1" fill={markingColor} opacity={0.6} className="pixel" />
+              );
+            }
+            // Eye band (mourning paint)
+            else if (paintPattern === 'eye_band') {
+              const eyeY = headY + Math.floor(headDim.height * 0.4);
+              elements.push(
+                <rect key={`eye-band-${index}`} x={headX + 2} y={eyeY} width={headDim.width - 4} height="3" fill={markingColor} opacity={0.9} className="pixel" />
+              );
+            }
+            // Dots pattern
+            else if (paintPattern === 'dots') {
               for (let y = 0; y < 3; y++) {
                 for (let x = 0; x < 3; x++) {
                   if ((x + y) % 2 === 0) {
@@ -3326,6 +4826,15 @@ if (hairStyle === 'braided') {
                   }
                 }
               }
+            }
+            // Spots (jaguar pattern)
+            else if (paintPattern === 'spots') {
+              const spots = [[2, 3], [5, 4], [3, 6], [6, 7], [1, 8]];
+              spots.forEach(([dx, dy], i) => {
+                elements.push(
+                  <rect key={`spot-${index}-${i}`} x={headX + dx} y={headY + dy} width="2" height="2" fill={markingColor} opacity={0.8} className="pixel" />
+                );
+              });
             }
           }
           break;
@@ -3342,7 +4851,7 @@ if (hairStyle === 'braided') {
     });
 
     return <g key="markings">{elements}</g>;
-  }, [appearanceWithDefaults.markings, culturalZone, headDim.height, headDim.width, headX, headY, skinTone, skinHighlight]);
+  }, [appearanceWithDefaults.markings, culturalZone, headDim.height, headDim.width, headX, headY, skinTone, skinHighlight, useEquippedItems, character.equippedItems]);
 
   // ========================= SVG =========================
   return (
@@ -3384,6 +4893,9 @@ if (hairStyle === 'braided') {
       {renderMouth}
       {renderFacialHair}
 
+      {/* Glasses (after face but before headgear) */}
+      {renderGlasses}
+
       {/* Markings */}
       {renderMarkings}
 
@@ -3391,6 +4903,7 @@ if (hairStyle === 'braided') {
       {renderHeadgear}
       {renderJewelry}
       {renderAmulet}
+      {renderAccessories}
     </svg>
   );
 };

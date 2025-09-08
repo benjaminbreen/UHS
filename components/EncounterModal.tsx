@@ -22,7 +22,9 @@ import NpcHouseholdPanel from './NpcHouseholdPanel';
 import DiseaseContractedModal from './DiseaseContractedModal';
 import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
+import { getAnimalTexts } from '../constants/gameData/animalTexts';
 import { useGame } from '../contexts/GameContext';
+import { npcPersistenceService } from '../services/npcPersistenceService';
 import { 
     attemptTaming, 
     checkAnimalOwnership, 
@@ -90,9 +92,10 @@ interface EncounterModalProps {
   onClose: (history: DialogueEntry[]) => void;
   onInitiateCombat: (target: EncounterableEntity) => void;
   onOpenInfo: (target: EncounterableEntity) => void;
+  onUpdateNpc?: (updatedNpc: NpcEntity) => void;
 }
 
-const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter, allNpcs, mapData, onClose, onInitiateCombat, onOpenInfo }) => {
+const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter, allNpcs, mapData, onClose, onInitiateCombat, onOpenInfo, onUpdateNpc }) => {
     const { showToast, setCurrentEvent } = useUI();
     const { worldData } = useMap();
     const { gameDate } = useGame();
@@ -375,12 +378,20 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                     } else if (summary.sentiment === 'negative') {
                         target.memory.opinionOfPlayer = Math.max(0, (target.memory.opinionOfPlayer || 50) - 10);
                     }
+                    
+                    // Save NPC to session storage for temporary persistence
+                    npcPersistenceService.saveNpcToSession(target);
+                    
+                    // Update the NPC in the parent component's state
+                    if (onUpdateNpc) {
+                        onUpdateNpc(target);
+                    }
                 } catch (error) {
                     console.error('Failed to save conversation summary:', error);
                 }
             }, 0);
         }
-    }, [target, history, onClose]);
+    }, [target, history, onClose, onUpdateNpc]);
 
 
     // Check animal ownership on mount
@@ -438,7 +449,8 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                 setIsLoading(false);
             });
         } else if (!isNpc(target)) {
-            const fallbackText = `The ${targetName ? targetName.toLowerCase() : 'creature'} watches you warily.`;
+            const animalTexts = getAnimalTexts(targetName || 'creature');
+            const fallbackText = animalTexts.encounterText;
             setHistory([{ speaker: 'npc', text: fallbackText, timestamp: new Date() }]);
             setIsLoading(false);
         }
@@ -988,6 +1000,11 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                                             {canCompleteQuest.objective.type === 'deliver_item' ? (
                                                 <button
                                                     onClick={() => {
+                                                        // Trigger quest progress check for item delivery
+                                                        if (playerCharacter && playerCharacter.x !== undefined && playerCharacter.y !== undefined) {
+                                                            questService.checkQuestProgress(playerCharacter.x, playerCharacter.y, 'item_delivery');
+                                                        }
+                                                        
                                                         const result = questCompletionService.completeObjective(
                                                             canCompleteQuest.quest,
                                                             canCompleteQuest.objective,

@@ -3303,6 +3303,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       seed={seed + tile.x * 31 + tile.y * 37}
                       multiTileData={(tile as any).multiTileData}
                       specialArchetype={(mapData as any).specialArchetype}
+                      tile={tile}
+                      materialSubtype={(tile as any).materialSubtype}
                     />
                   );
                 })}
@@ -3312,7 +3314,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {/* Overlay objects layer - furniture and objects on top of floor tiles */}
             {isSpecialMap && mapData && (() => {
               const overlayTiles = mapData.tiles.flat().filter(tile => tile.overlayObject);
-              console.log('[Overlay Debug] Found overlay tiles:', overlayTiles.length, overlayTiles);
+              // Overlay tiles found: ${overlayTiles.length} (debug log removed to reduce console spam)
               if (overlayTiles.length > 0) {
                 return (
                   <g className="overlay-objects-layer">
@@ -3842,8 +3844,80 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               </g>
             )}
 
+            {/* Special Map Lighting Effects - Glow around light sources */}
+            {isSpecialMap && mapData && (() => {
+              const lightSources = mapData.tiles.flat().filter(tile => 
+                tile.biome === BiomeType.TORCH || 
+                tile.biome === BiomeType.BRAZIER || 
+                tile.biome === BiomeType.FIRE_PIT || 
+                tile.biome === BiomeType.HEARTH ||
+                tile.biome === BiomeType.CHANDELIER ||
+                tile.biome === BiomeType.LANTERN ||
+                (tile.overlayObject?.type && ['CANDELABRA', 'TORCH', 'BRAZIER'].includes(tile.overlayObject.type.toString()))
+              );
+              
+              // Light sources found for glow effects
+              
+              return (
+                <g className="lighting-effects">
+                  <defs>
+                    {/* Light source glow gradients */}
+                    <radialGradient id="warm-light-glow" cx="50%" cy="50%" r="100%">
+                      <stop offset="0%" stopColor="#ffb347" stopOpacity="0.15" />
+                      <stop offset="30%" stopColor="#ff8c00" stopOpacity="0.08" />
+                      <stop offset="60%" stopColor="#ff6b35" stopOpacity="0.04" />
+                      <stop offset="100%" stopColor="#d2691e" stopOpacity="0" />
+                    </radialGradient>
+                    
+                    <radialGradient id="cool-light-glow" cx="50%" cy="50%" r="100%">
+                      <stop offset="0%" stopColor="#87ceeb" stopOpacity="0.3" />
+                      <stop offset="30%" stopColor="#4682b4" stopOpacity="0.18" />
+                      <stop offset="60%" stopColor="#2f4f4f" stopOpacity="0.08" />
+                      <stop offset="100%" stopColor="#000080" stopOpacity="0" />
+                    </radialGradient>
+                    
+                    <filter id="light-blur" x="-100%" y="-100%" width="300%" height="300%">
+                      <feGaussianBlur in="SourceGraphic" stdDeviation="8"/>
+                    </filter>
+                  </defs>
+                  
+                  {lightSources.map(tile => {
+                    const lightType = tile.biome === BiomeType.LANTERN || 
+                                    (tile.overlayObject?.type === 'LANTERN') ? 'cool' : 'warm';
+                    const radius = tile.biome === BiomeType.CHANDELIER ? TILE_SIZE_PX * 2.5 :
+                                  tile.biome === BiomeType.HEARTH || tile.biome === BiomeType.FIRE_PIT ? TILE_SIZE_PX * 2 :
+                                  TILE_SIZE_PX * 1.5;
+                    
+                    return (
+                      <g key={`light-${tile.x}-${tile.y}`}>
+                        {/* Large soft glow */}
+                        <circle
+                          cx={tile.x * TILE_SIZE_PX + TILE_SIZE_PX / 2}
+                          cy={tile.y * TILE_SIZE_PX + TILE_SIZE_PX / 2}
+                          r={radius}
+                          fill={`url(#${lightType}-light-glow)`}
+                          filter="url(#light-blur)"
+                          opacity={0.2}
+                        />
+                        
+                        {/* Smaller bright core */}
+                        <circle
+                          cx={tile.x * TILE_SIZE_PX + TILE_SIZE_PX / 2}
+                          cy={tile.y * TILE_SIZE_PX + TILE_SIZE_PX / 2}
+                          r={radius * 0.3}
+                          fill={lightType === 'cool' ? '#add8e6' : '#ffd700'}
+                          opacity={0.1}
+                          filter="url(#light-blur)"
+                        />
+                      </g>
+                    );
+                  })}
+                </g>
+              );
+            })()}
+
             {/* Guard Alert Indicators - Render inside SVG */}
-            {guardAlerts && npcs && console.log(`[MapDisplay] Guard alerts size: ${guardAlerts.size}, NPCs count: ${npcs.length}`) && (
+            {guardAlerts && npcs && (
               <g id="guard-alerts">
                 {npcs.filter(npc => {
                   // Only show alerts for NPCs within 10 tiles of player
@@ -3894,16 +3968,68 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
 
       {/* Enhanced vignette effect */}
       <div className="absolute inset-0 pointer-events-none" style={{ mixBlendMode: 'normal' }}>
-        <div className="absolute inset-0 bg-map-vignette-gradient opacity-80" />
-        
-        
-        <div className={`absolute inset-0 transition-all duration-1000 ${
-          season === 'winter' ? 'opacity-30 bg-gradient-to-b from-blue-200/25 to-transparent mix-blend-overlay' : 
-          season === 'fall' ? 'opacity-25 bg-gradient-to-b from-orange-300/20 to-transparent mix-blend-overlay' : 
-          season === 'spring' ? 'opacity-20 bg-gradient-to-b from-green-200/15 to-transparent mix-blend-hard-light' : 
-          'opacity-0'
-        }`} />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-60" />
+        {isSpecialMap ? (
+          // Special interior vignette for immersive indoor atmosphere
+          <>
+            {/* Subtle interior vignette - darkens edges to simulate walls */}
+            <div className="absolute inset-0 opacity-35" 
+                 style={{
+                   background: 'radial-gradient(ellipse 75% 65% at center, transparent 45%, rgba(0,0,0,0.15) 80%, rgba(0,0,0,0.4) 100%)'
+                 }}
+            />
+            
+            {/* Very subtle ambient lighting based on archetype */}
+            <div className="absolute inset-0 transition-all duration-1000 opacity-20"
+                 style={{
+                   background: (mapData as any)?.specialArchetype === 'SACRED_COMPLEX' ? 
+                     'linear-gradient(to bottom, rgba(255,215,0,0.02), transparent, rgba(139,69,19,0.03))' :
+                   (mapData as any)?.specialArchetype === 'ESTATES' || (mapData as any)?.specialArchetype === 'PALACE_COMPLEX' ?
+                     'linear-gradient(to bottom, rgba(255,215,0,0.025), transparent, rgba(139,69,19,0.03))' :
+                   (mapData as any)?.specialArchetype === 'MARKET_BAZAAR' || (mapData as any)?.specialArchetype === 'MARKET_EXHIBITION' ?
+                     'linear-gradient(to bottom, rgba(255,140,0,0.02), transparent, rgba(160,82,45,0.025))' :
+                   (mapData as any)?.specialArchetype === 'UNIVERSITY' || (mapData as any)?.specialArchetype === 'UNIVERSITY_MONASTERY' ?
+                     'linear-gradient(to bottom, rgba(70,130,180,0.02), transparent, rgba(25,25,112,0.025))' :
+                   'linear-gradient(to bottom, rgba(128,128,128,0.015), transparent, rgba(64,64,64,0.02))'
+                 }}
+            />
+            
+            {/* Very subtle ceiling shadow */}
+            <div className="absolute inset-0 opacity-20" 
+                 style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.08), transparent 25%)' }}
+            />
+            
+            {/* Very subtle floor shadow */}
+            <div className="absolute inset-0 opacity-15" 
+                 style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.06), transparent 25%)' }}
+            />
+          </>
+        ) : (
+          // Standard outdoor vignette - using inline styles since CSS class might not exist
+          <>
+            <div className="absolute inset-0 opacity-80" 
+                 style={{
+                   background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.4) 100%)'
+                 }}
+            />
+            
+            <div className={`absolute inset-0 transition-all duration-1000 ${
+              season === 'winter' ? 'opacity-30 mix-blend-overlay' : 
+              season === 'fall' ? 'opacity-25 mix-blend-overlay' : 
+              season === 'spring' ? 'opacity-20 mix-blend-hard-light' : 
+              'opacity-0'
+            }`} 
+                 style={{
+                   background: season === 'winter' ? 'linear-gradient(to bottom, rgba(191,219,254,0.25), transparent)' :
+                              season === 'fall' ? 'linear-gradient(to bottom, rgba(253,186,116,0.2), transparent)' :
+                              season === 'spring' ? 'linear-gradient(to bottom, rgba(187,247,208,0.15), transparent)' :
+                              'transparent'
+                 }}
+            />
+            <div className="absolute inset-0 opacity-60" 
+                 style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.25), transparent)' }}
+            />
+          </>
+        )}
       </div>
       
       {/* POI Hover Tooltip */}
@@ -3957,18 +4083,18 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Profession:</span>
-                  <span className="text-blue-300">{hoveredNPC.profession}</span>
+                  <span className="text-blue-300">{hoveredNPC.role}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Class:</span>
-                  <span className="text-purple-300">{hoveredNPC.socialClass}</span>
+                  <span className="text-purple-300">{hoveredNPC.class}</span>
                 </div>
                 {hoveredNPC.stats && (
                   <>
                     <div className="border-t border-slate-700 mt-1 pt-1">
                       <div className="flex justify-between">
                         <span className="text-slate-400">Health:</span>
-                        <span>{hoveredNPC.health?.hp || hoveredNPC.health}/{hoveredNPC.maxHealth || hoveredNPC.health?.maxHp}</span>
+                        <span>{hoveredNPC.maxHealth || 'Unknown'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">STR/CON:</span>
@@ -3999,7 +4125,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Health:</span>
-                  <span>{hoveredAnimal.health?.hp || hoveredAnimal.health}/{hoveredAnimal.maxHealth || hoveredAnimal.health?.maxHp}</span>
+                  <span>{hoveredAnimal.maxHealth || 'Unknown'}</span>
                 </div>
                 {hoveredAnimal.stats && (
                   <div className="flex justify-between">

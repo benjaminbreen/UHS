@@ -1167,7 +1167,7 @@ export async function generateCombatTalkResponse(
 
     const instructions = isAnimal(opponent)
         ? `Describe the animal's reaction (a gesture or sound, not speech). Decide if this action could plausibly end the fight (e.g., calming or scaring it). A hungry predator is unlikely to be calmed.`
-        : `Respond in character with a short, spoken line. Decide if the player's words are convincing enough to make you stop fighting.`;
+        : `You are a real person being attacked who is confused and scared. Respond naturally to what the player said. If they're trying to de-escalate or explain, you might be willing to stop fighting. NO theatrical responses - sound like a real person in a real crisis.`;
 
     const prompt = `
         CONTEXT:
@@ -1232,7 +1232,7 @@ export async function generateCombatSkillResponse(
 
     const instructions = isAnimal(opponent)
         ? `Describe the animal's visceral reaction (pain, fear, aggression) to the skill attack. The reaction should be realistic and brief (e.g., a wolf might howl in pain, a bear might roar in fury).`
-        : `Respond with a short, spoken line reacting to the skill attack. Express pain, fear, anger, or surprise. Keep it brief and in-character for your historical period and role.`;
+        : `You are a real person in genuine pain and fear. React naturally to being hurt - cry out, gasp, express real terror or desperation. NO theatrical quips or bravado. Sound like someone actually being injured.`;
 
     const skillDescriptions: Record<string, string> = {
         'BURN': 'engulfs you in magical flames',
@@ -1321,7 +1321,7 @@ export async function generateCombatLowHealthResponse(
 
     const instructions = isAnimal(opponent)
         ? `Describe the animal's behavior as it becomes critically wounded. Show its weakening state through physical descriptions (limping, labored breathing, defensive posture).`
-        : `Respond with a short, desperate or defiant line as you realize you're badly wounded. Express pain, fear, desperation, or grim determination. Keep it historically appropriate and in-character.`;
+        : `You are a real person who is badly hurt and dying. You would be in shock, pleading for mercy, or desperately trying to survive. NO heroic last stands or tough guy dialogue. Express genuine terror, pain, or desperate bargaining for your life.`;
 
     const prompt = `
         CONTEXT:
@@ -1382,6 +1382,87 @@ export async function generateCombatLowHealthResponse(
     }
 }
 
+export async function generateCombatStartResponse(
+  playerCharacter: PlayerCharacter,
+  opponent: EncounterableEntity
+): Promise<{ dialogue: string }> {
+    const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+
+    if (isAnimal(opponent)) {
+        // Animals don't speak, just show behavioral reactions
+        const animalReactions = [
+            `*The ${opponent.speciesName} startles and bares its teeth defensively*`,
+            `*The ${opponent.speciesName} backs away, growling low in warning*`,
+            `*The ${opponent.speciesName} flattens its ears and hisses*`,
+            `*The ${opponent.speciesName} rears up, ready to defend itself*`,
+            `*The ${opponent.speciesName} circles warily, eyes locked on you*`
+        ];
+        return { dialogue: animalReactions[Math.floor(Math.random() * animalReactions.length)] };
+    }
+
+    const prompt = `
+        CONTEXT:
+        You are roleplaying as ${opponent.name}, a ${opponent.age}-year-old ${opponent.role}.
+        Your personality: ${opponent.backstory}
+        You are a normal person going about your day when ${playerCharacter.name} suddenly confronts you aggressively.
+        This is the START of combat - you are confused, scared, and don't understand why this is happening.
+
+        CRITICAL INSTRUCTIONS:
+        - You are a REAL PERSON, not a video game character
+        - You would be CONFUSED and FRIGHTENED by a random stranger attacking you
+        - You would try to DE-ESCALATE or understand what's happening
+        - NO theatrical dialogue, no tough-guy quotes, no bravado
+        - Sound like an actual human being in genuine distress
+        - Keep it under 12 words
+
+        REALISTIC REACTIONS (examples of the tone to match):
+        - "Wait, what? What are you doing?!"
+        - "Please don't hurt me! What do you want?"
+        - "Stop! I don't understand why you're doing this!"
+        - "What did I do wrong? Please, I have a family!"
+        - "Help! Someone help me!"
+        - "I don't want to fight you!"
+
+        Return a valid JSON object with one key:
+           - "dialogue": (string) Your genuine, frightened reaction to being attacked
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-lite',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                temperature: 0.8
+            }
+        });
+
+        const jsonStr = response.text.trim();
+        const parsed = JSON.parse(jsonStr);
+        
+        if (!parsed.dialogue) {
+            throw new Error("Missing dialogue in response");
+        }
+        
+        return { dialogue: parsed.dialogue };
+    } catch (error) {
+        console.error("Error generating combat start dialogue:", error);
+        
+        // Realistic fallback responses
+        const fallbacks = [
+            "What are you doing?! Stop!",
+            "Please don't hurt me!",
+            "I don't want to fight!",
+            "Why are you attacking me?!",
+            "Help! Somebody help!",
+            "Wait, wait! What did I do?",
+            "Please, I have children!",
+            "Stop this madness!"
+        ];
+        return { dialogue: fallbacks[Math.floor(Math.random() * fallbacks.length)] };
+    }
+}
+
 export async function generateCombatItemResponse(
   playerCharacter: PlayerCharacter,
   opponent: EncounterableEntity,
@@ -1395,7 +1476,7 @@ export async function generateCombatItemResponse(
 
     const instructions = isAnimal(opponent)
         ? `Describe the animal's reaction (a gesture or sound, not speech) to the item. The reaction should be realistic (e.g., a wolf might ignore a book but react to meat).`
-        : `Respond with a short, spoken line, reacting to the item being used on you. Your reaction should be in-character.`;
+        : `You are a real person in combat who is confused and scared. React naturally to this strange item being used. You might be confused, suspicious, or desperate. NO witty comebacks - sound like a real person in a real crisis.`;
 
     const prompt = `
         CONTEXT:
@@ -1855,6 +1936,55 @@ export async function generateNpcQuestOffer(
             questDialogue: "I have nothing that requires your assistance at the moment.",
             urgency: 'low'
         };
+    }
+}
+
+/**
+ * Generate brief narrative description when an NPC approaches the player
+ * Optimized for speed and cost - very short outputs
+ */
+export async function generateNPCApproachNarration(
+    npc: NpcEntity, 
+    playerCharacter: PlayerCharacter,
+    approachType: 'hostile' | 'friendly' | 'merchant' | 'quest' | 'beggar' | 'guard' | 'theft',
+    distance: number
+): Promise<string> {
+    const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+    
+    const prompt = `
+        Briefly describe what happens when ${npc.name}, a ${npc.role || 'person'}, approaches ${playerCharacter.name}.
+        
+        Context:
+        - Approach type: ${approachType}
+        - Distance: ${distance.toFixed(1)} tiles away
+        - NPC appearance: ${formatAppearance(npc)}
+        - Time period: ${npc.era?.toLowerCase().replace(/_/g, ' ') || 'historical'}
+        
+        Write ONE short sentence (max 15 words) from narrator perspective.
+        Focus on visual movement and body language, not dialogue.
+        Examples: "John strides purposefully toward you with determined eyes."
+        "A hooded merchant shuffles closer, eyeing your coin purse."
+    `;
+    
+    try {
+        const response = await ai.models.generateContent({ 
+            model: 'gemini-2.5-flash-lite', // Fastest, cheapest model
+            contents: prompt 
+        });
+        return response.text.trim() || `${npc.name} approaches you.`;
+    } catch (error) {
+        console.error('Failed to generate approach narration:', error);
+        // Fallback to basic description
+        const approachVerbs = {
+            hostile: 'strides aggressively toward',
+            friendly: 'walks over to',
+            merchant: 'approaches with goods',
+            guard: 'marches up to',
+            beggar: 'shuffles toward',
+            quest: 'hurries toward',
+            theft: 'casually wanders near'
+        };
+        return `${npc.name} ${approachVerbs[approachType]} you.`;
     }
 }
 

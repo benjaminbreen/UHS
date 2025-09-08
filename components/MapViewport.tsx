@@ -73,7 +73,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
         handleExitInteriorView, handleEntityInteraction,
         onEnterBuilding, onBuyItem, onSellItem, viewMode,
     } = usePlayer();
-    
+
     const { 
         sunPosition, formattedDate, season, ambianceText, 
         actionableTile, contextualMessage, gameTimeHours, gameTimeMinutes,
@@ -87,7 +87,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
     const [showAmbientText, setShowAmbientText] = useState(false); // Hidden by default
     const { isMobile } = useDeviceDetection();
     
-    // Guard warning state
+    // Guard warning state - ALL hooks must come before early return
     const [guardWarning, setGuardWarning] = useState<{
         message: string;
         guardName?: string;
@@ -96,28 +96,19 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
     } | null>(null);
     const [guardAlerts, setGuardAlerts] = useState<Map<string, 'detecting' | 'warning' | 'pursuing'>>(new Map());
     const [guardsAlreadyWarned, setGuardsAlreadyWarned] = useState<Set<string>>(new Set());
-    
-    // Track current room in special maps
+
+    // ALL REMAINING HOOKS must be called before early return
+    // Track current room in special maps (safe to call with null values)
     const specialMapData = isSpecialMap && mapData ? mapData as SpecialMapData : null;
-    // The archetype field is called 'specialArchetype' in the actual data
     const mapArchetype = (mapData as any)?.specialArchetype || specialMapData?.archetype;
     
-    // Debug: Only log when in special map to reduce spam
-    if (isSpecialMap && mapArchetype) {
-        console.log('[MapViewport] Special map active:', {
-            archetype: mapArchetype,
-            npcCount: visibleNpcs?.length
-        });
-    }
-    
     const currentRoom = useSpecialMapLocation(
-        controlledIconX,
-        controlledIconY,
+        controlledIconX ?? 0,
+        controlledIconY ?? 0,
         specialMapData?.rooms
     );
     
-    // Enable special map NPC behavior (guard detection, etc.)
-    // Create a player object with the actual position
+    // Enable special map NPC behavior (safe to call with fallback values)
     const playerWithPosition = {
         ...playerCharacter,
         x: controlledIconX ?? 0,
@@ -440,11 +431,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
             // Check if this is a special map (interior government building, etc.)
             if (isSpecialMap && mapData) {
                 const specialData = mapData as any;
-                console.log('[MapViewport] Special map render - isSpecialMap:', isSpecialMap, 
-                    'mapType:', specialData.mapType,
-                    'specialArchetype:', specialData.specialArchetype,
-                    'hasInteractionZones:', !!specialData.interactionZones,
-                    'tilesSample:', specialData.tiles?.[0]?.[0]?.biome);
+                // Special map render debug log removed to reduce console spam
                 // For now, render special maps with the same display but it will show architectural biomes
                 // In the future, we could create a dedicated SpecialMapDisplay component
             }
@@ -784,14 +771,22 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
               
               {/* Only show ambient text when toggled on */}
               {showAmbientText && <AmbianceDisplay ambianceText={ambianceText} />}
-              {/* Toggle button for mobile */}
+              {/* Toggle button for mobile - bigger and better positioned */}
               {isMobile && actionableTile && (
                 <button
                   onClick={() => setShowBottomPanel(!showBottomPanel)}
-                  className="fixed bottom-2 right-4 z-40 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-200 flex items-center gap-2"
+                  className="fixed z-40 px-5 py-3 bg-blue-600 active:bg-blue-700 text-white rounded-full shadow-xl transition-all duration-200 flex items-center gap-2.5"
+                  style={{
+                    bottom: showBottomPanel ? 'calc(env(safe-area-inset-bottom) + 240px)' : 'calc(env(safe-area-inset-bottom) + 20px)',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    minWidth: '120px',
+                    fontSize: '16px',
+                    fontWeight: '600'
+                  }}
                 >
-                  <span className="text-lg">{showBottomPanel ? '✕' : '🧭'}</span>
-                  <span className="text-sm font-medium">{showBottomPanel ? 'Hide' : 'Actions'}</span>
+                  <span className="text-xl">{showBottomPanel ? '✕' : '🧭'}</span>
+                  <span>{showBottomPanel ? 'Hide' : 'Actions'}</span>
                 </button>
               )}
               {(showBottomPanel || !isMobile) && (

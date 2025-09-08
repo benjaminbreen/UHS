@@ -394,7 +394,7 @@ export const CLOTHING_DATA: ClothingData = {
                     ],
                     headgear: [
                         { name: 'Coif', material: 'Linen', adjectives: ['Simple'] },
-                        { name: 'Straw Hat', material: 'Woven Straw' },
+                        { name: 'Harvest Cap', material: 'Rye Straw', adjectives: ['Wide-brimmed'] },
                         { name: 'None', material: 'None' }
                     ],
                     footwear: [
@@ -554,8 +554,8 @@ export const CLOTHING_DATA: ClothingData = {
                         { name: 'Simple Hose', material: 'Wool', adjectives: ['Darned'] }
                     ],
                     headgear: [
-                        { name: 'Wool Cap', material: 'Rough Wool' },
-                        { name: 'Straw Hat', material: 'Woven Straw' }
+                        { name: 'Biggins', material: 'Rough Wool', adjectives: ['Close-fitting'] },
+                        { name: 'Rush Hat', material: 'Woven Rushes', adjectives: ['Pointed'] }
                     ],
                     footwear: [
                         { name: 'Wooden Shoes', material: 'Oak' },
@@ -703,8 +703,8 @@ export const CLOTHING_DATA: ClothingData = {
                         { name: 'Mill Smock', material: 'Canvas', adjectives: ['Heavy'] }
                     ],
                     headgear: [
-                        { name: 'Worker Cap', material: 'Wool', adjectives: ['Flat'] },
-                        { name: 'Cloth Cap', material: 'Cotton', adjectives: ['Worn'] }
+                        { name: 'Flat Cap', material: 'Tweed', adjectives: ['Eight-panel'] },
+                        { name: 'Cheese-cutter', material: 'Cotton Duck', adjectives: ['Worn'] }
                     ],
                     footwear: [
                         { name: 'Work Boots', material: 'Thick Leather', adjectives: ['Hobnailed'] },
@@ -1003,7 +1003,7 @@ export const CLOTHING_DATA: ClothingData = {
                         { name: 'Grass Cloak', material: 'Woven Grass', adjectives: ['Rain'] }
                     ],
                     headgear: [
-                        { name: 'Straw Hat', material: 'Woven Straw', adjectives: ['Conical'] },
+                        { name: 'Douli', material: 'Bamboo Strips', adjectives: ['Conical'] },
                         { name: 'None', material: 'None' }
                     ],
                     footwear: [
@@ -1051,8 +1051,8 @@ export const CLOTHING_DATA: ClothingData = {
                         { name: 'Peasant Tunic', material: 'Ramie', adjectives: ['Plain'] }
                     ],
                     headgear: [
-                        { name: 'Hemp Cap', material: 'Woven Hemp' },
-                        { name: 'Straw Hat', material: 'Rice Straw' },
+                        { name: 'Futou', material: 'Hemp Cloth', adjectives: ['Wrapped'] },
+                        { name: 'Li', material: 'Rice Straw', adjectives: ['Wide-brimmed'] },
                         { name: 'None', material: 'None' }
                     ],
                     footwear: [
@@ -1190,8 +1190,8 @@ export const CLOTHING_DATA: ClothingData = {
                         { name: 'Peasant Tunic', material: 'Ramie' }
                     ],
                     headgear: [
-                        { name: 'Straw Hat', material: 'Rice Straw' },
-                        { name: 'Cotton Cap', material: 'Rough Cotton' }
+                        { name: 'Sugegasa', material: 'Sedge Grass', adjectives: ['Conical'] },
+                        { name: 'Zukin', material: 'Rough Cotton', adjectives: ['Tied'] }
                     ],
                     footwear: [
                         { name: 'Straw Sandals', material: 'Woven Straw' },
@@ -1484,8 +1484,8 @@ export const CLOTHING_DATA: ClothingData = {
                         { name: 'Peasant Robe', material: 'Rough Cotton' }
                     ],
                     headgear: [
-                        { name: 'Cotton Cap', material: 'Faded Cotton' },
-                        { name: 'Straw Hat', material: 'Woven Straw' }
+                        { name: 'Mao Cap', material: 'Faded Cotton', adjectives: ['Five-pointed'] },
+                        { name: 'Bamboo Dou Li', material: 'Split Bamboo', adjectives: ['Peaked'] }
                     ],
                     footwear: [
                         { name: 'Canvas Shoes', material: 'Cotton Canvas' },
@@ -2279,7 +2279,7 @@ OCEANIA: {
                     { name: 'Tapa Wrap', material: 'Local Bark Cloth' }
                 ],
                 headgear: [
-                    { name: 'Straw Hat', material: 'Woven Straw' },
+                    { name: 'Lauhala Hat', material: 'Pandanus Leaves', adjectives: ['Plaited'] },
                     { name: 'None', material: 'None' }
                 ],
                 footwear: [
@@ -2569,7 +2569,7 @@ OCEANIA: {
                     { name: 'Tank Top', material: 'Cotton' }
                 ],
                 headgear: [
-                    { name: 'Straw Hat', material: 'Woven Straw' },
+                    { name: 'Sun Visor', material: 'Woven Coconut Fronds', adjectives: ['Wide'] },
                     { name: 'None', material: 'None' }
                 ],
                 footwear: [
@@ -3216,7 +3216,7 @@ SOUTH_AMERICAN: {
                    { name: 'Canvas Pants', material: 'Heavy Canvas' }
                ],
                headgear: [
-                   { name: 'Straw Hat', material: 'Woven Straw' },
+                   { name: 'Panama Hat', material: 'Toquilla Palm', adjectives: ['Wide-brimmed'] },
                    { name: 'None', material: 'None' }
                ],
                footwear: [
@@ -3747,7 +3747,7 @@ SOUTH_ASIAN: {
                    { name: 'Pajama', material: 'Plain Cotton' }
                ],
                headgear: [
-                   { name: 'Cloth Cap', material: 'Cotton' },
+                   { name: 'Topi', material: 'Cotton Khadi', adjectives: ['Simple'] },
                    { name: 'None', material: 'None' }
                ],
                footwear: [
@@ -4793,7 +4793,7 @@ SUB_SAHARAN_AFRICAN: {
                    { name: 'Khaki Shorts', material: 'Canvas' }
                ],
                headgear: [
-                   { name: 'Cloth Cap', material: 'Cotton' },
+                   { name: 'Kofia', material: 'Cotton Twill', adjectives: ['Worn'] },
                    { name: 'None', material: 'None' }
                ],
                footwear: [
@@ -5053,7 +5053,390 @@ SUB_SAHARAN_AFRICAN: {
            }
        }
    }
-}
+},
+    NORTH_AMERICAN_PRE_COLUMBIAN: {
+        [HistoricalEra.PREHISTORY]: {
+            poor: {
+                Male: {
+                    garments: [
+                        { name: 'Hide Leggings', material: 'Deer Hide' },
+                        { name: 'Breechcloth', material: 'Soft Leather' }
+                    ],
+                    headgear: [
+                        { name: 'Feather Band', material: 'Eagle Feathers' },
+                        { name: 'None', material: 'None' }
+                    ],
+                    footwear: [
+                        { name: 'Moccasins', material: 'Soft Hide' }
+                    ],
+                    belts: [
+                        { name: 'Woven Sash', material: 'Plant Fibers' }
+                    ],
+                    accessories: [
+                        { name: 'Bone Necklace', material: 'Animal Bone' }
+                    ],
+                    palette: PREHISTORIC_COLORS
+                },
+                Female: {
+                    garments: [
+                        { name: 'Hide Dress', material: 'Soft Deer Hide' },
+                        { name: 'Leather Skirt', material: 'Tanned Hide' }
+                    ],
+                    headgear: [
+                        { name: 'Beaded Band', material: 'Shell Beads' },
+                        { name: 'None', material: 'None' }
+                    ],
+                    footwear: [
+                        { name: 'Moccasins', material: 'Soft Hide' }
+                    ],
+                    belts: [
+                        { name: 'Woven Belt', material: 'Plant Fibers' }
+                    ],
+                    accessories: [
+                        { name: 'Shell Earrings', material: 'River Shells' }
+                    ],
+                    palette: PREHISTORIC_COLORS
+                }
+            },
+            common: {
+                Male: {
+                    garments: [
+                        { name: 'Buckskin Shirt', material: 'Buckskin' },
+                        { name: 'Hide Leggings', material: 'Elk Hide' }
+                    ],
+                    headgear: [
+                        { name: 'Feather Headdress', material: 'Hawk Feathers' },
+                        { name: 'Fur Headband', material: 'Beaver Fur' }
+                    ],
+                    footwear: [
+                        { name: 'Decorated Moccasins', material: 'Painted Hide' }
+                    ],
+                    belts: [
+                        { name: 'Beaded Belt', material: 'Hide with Quillwork' }
+                    ],
+                    accessories: [
+                        { name: 'Bear Claw Necklace', material: 'Bear Claws' }
+                    ],
+                    palette: PREHISTORIC_COLORS
+                },
+                Female: {
+                    garments: [
+                        { name: 'Decorated Dress', material: 'Painted Buckskin' },
+                        { name: 'Fringed Tunic', material: 'Elk Hide' }
+                    ],
+                    headgear: [
+                        { name: 'Beaded Headband', material: 'Turquoise Beads' },
+                        { name: 'None', material: 'None' }
+                    ],
+                    footwear: [
+                        { name: 'Beaded Moccasins', material: 'Decorated Hide' }
+                    ],
+                    belts: [
+                        { name: 'Quillwork Belt', material: 'Porcupine Quills' }
+                    ],
+                    accessories: [
+                        { name: 'Turquoise Earrings', material: 'Turquoise Stone' }
+                    ],
+                    palette: PREHISTORIC_COLORS
+                }
+            },
+            wealthy: {
+                Male: {
+                    garments: [
+                        { name: 'Chief Robe', material: 'Buffalo Hide', adjectives: ['Painted'] },
+                        { name: 'War Shirt', material: 'Sacred Buckskin', adjectives: ['Decorated'] }
+                    ],
+                    headgear: [
+                        { name: 'War Bonnet', material: 'Eagle Feathers' },
+                        { name: 'Sacred Headdress', material: 'Golden Eagle Plumes' }
+                    ],
+                    footwear: [
+                        { name: 'Ceremonial Moccasins', material: 'White Buckskin' }
+                    ],
+                    belts: [
+                        { name: 'Wampum Belt', material: 'Shell Beads' }
+                    ],
+                    accessories: [
+                        { name: 'Medicine Bundle', material: 'Sacred Items' },
+                        { name: 'Eagle Bone Whistle', material: 'Eagle Bone' }
+                    ],
+                    palette: PREHISTORIC_COLORS
+                },
+                Female: {
+                    garments: [
+                        { name: 'Ceremonial Dress', material: 'White Buckskin', adjectives: ['Beaded'] },
+                        { name: 'Elk Tooth Dress', material: 'Decorated Hide' }
+                    ],
+                    headgear: [
+                        { name: 'Shell Crown', material: 'Abalone Shell' },
+                        { name: 'Sacred Feathers', material: 'Swan Feathers' }
+                    ],
+                    footwear: [
+                        { name: 'White Moccasins', material: 'Ermine Trim' }
+                    ],
+                    belts: [
+                        { name: 'Silver Concho Belt', material: 'Silver and Leather' }
+                    ],
+                    accessories: [
+                        { name: 'Turquoise Necklace', material: 'Turquoise and Silver' }
+                    ],
+                    palette: PREHISTORIC_COLORS
+                }
+            }
+        },
+        [HistoricalEra.ANCIENT_ERA]: {
+            poor: {
+                Male: {
+                    garments: [
+                        { name: 'Hide Leggings', material: 'Deer Hide' },
+                        { name: 'Breechcloth', material: 'Woven Cloth' }
+                    ],
+                    headgear: [
+                        { name: 'Simple Headband', material: 'Leather Strip' },
+                        { name: 'None', material: 'None' }
+                    ],
+                    footwear: [
+                        { name: 'Plain Moccasins', material: 'Hide' }
+                    ],
+                    belts: [
+                        { name: 'Rope Belt', material: 'Hemp Rope' }
+                    ],
+                    accessories: [
+                        { name: 'Clay Beads', material: 'Fired Clay' }
+                    ],
+                    palette: ANCIENT_COLORS
+                },
+                Female: {
+                    garments: [
+                        { name: 'Simple Dress', material: 'Woven Fibers' },
+                        { name: 'Hide Skirt', material: 'Deer Hide' }
+                    ],
+                    headgear: [
+                        { name: 'None', material: 'None' }
+                    ],
+                    footwear: [
+                        { name: 'Soft Moccasins', material: 'Hide' }
+                    ],
+                    belts: [
+                        { name: 'Fiber Belt', material: 'Woven Grass' }
+                    ],
+                    accessories: [
+                        { name: 'Seed Necklace', material: 'Plant Seeds' }
+                    ],
+                    palette: ANCIENT_COLORS
+                }
+            },
+            common: {
+                Male: {
+                    garments: [
+                        { name: 'Cotton Shirt', material: 'Woven Cotton' },
+                        { name: 'Leather Leggings', material: 'Tanned Hide' }
+                    ],
+                    headgear: [
+                        { name: 'Feather Band', material: 'Turkey Feathers' },
+                        { name: 'Fur Cap', material: 'Rabbit Fur' }
+                    ],
+                    footwear: [
+                        { name: 'Decorated Moccasins', material: 'Painted Hide' }
+                    ],
+                    belts: [
+                        { name: 'Woven Belt', material: 'Dyed Fibers' }
+                    ],
+                    accessories: [
+                        { name: 'Copper Ornaments', material: 'Hammered Copper' }
+                    ],
+                    palette: ANCIENT_COLORS
+                },
+                Female: {
+                    garments: [
+                        { name: 'Woven Dress', material: 'Cotton Cloth' },
+                        { name: 'Decorated Tunic', material: 'Painted Fabric' }
+                    ],
+                    headgear: [
+                        { name: 'Bead Headband', material: 'Trade Beads' },
+                        { name: 'None', material: 'None' }
+                    ],
+                    footwear: [
+                        { name: 'Beaded Moccasins', material: 'Decorated Hide' }
+                    ],
+                    belts: [
+                        { name: 'Sash Belt', material: 'Woven Wool' }
+                    ],
+                    accessories: [
+                        { name: 'Shell Earrings', material: 'Polished Shell' }
+                    ],
+                    palette: ANCIENT_COLORS
+                }
+            },
+            wealthy: {
+                Male: {
+                    garments: [
+                        { name: 'Feathered Cloak', material: 'Parrot Feathers' },
+                        { name: 'Painted Robe', material: 'Buffalo Hide' }
+                    ],
+                    headgear: [
+                        { name: 'Feather Crown', material: 'Macaw Feathers' },
+                        { name: 'Jade Headband', material: 'Carved Jade' }
+                    ],
+                    footwear: [
+                        { name: 'Ornate Moccasins', material: 'Dyed Leather' }
+                    ],
+                    belts: [
+                        { name: 'Gold Belt', material: 'Gold Plates' }
+                    ],
+                    accessories: [
+                        { name: 'Obsidian Jewelry', material: 'Volcanic Glass' }
+                    ],
+                    palette: ANCIENT_COLORS
+                },
+                Female: {
+                    garments: [
+                        { name: 'Feathered Dress', material: 'Quetzal Feathers' },
+                        { name: 'Ceremonial Robe', material: 'Painted Cotton' }
+                    ],
+                    headgear: [
+                        { name: 'Jade Crown', material: 'Carved Jade' },
+                        { name: 'Feather Headdress', material: 'Tropical Bird Plumes' }
+                    ],
+                    footwear: [
+                        { name: 'Gold Sandals', material: 'Gold and Leather' }
+                    ],
+                    belts: [
+                        { name: 'Jade Belt', material: 'Jade Links' }
+                    ],
+                    accessories: [
+                        { name: 'Gold Earrings', material: 'Hammered Gold' }
+                    ],
+                    palette: ANCIENT_COLORS
+                }
+            }
+        },
+        [HistoricalEra.MEDIEVAL_ERA]: {
+            poor: {
+                Male: {
+                    garments: [
+                        { name: 'Hide Shirt', material: 'Buckskin' },
+                        { name: 'Leather Leggings', material: 'Deer Hide' }
+                    ],
+                    headgear: [
+                        { name: 'None', material: 'None' }
+                    ],
+                    footwear: [
+                        { name: 'Simple Moccasins', material: 'Raw Hide' }
+                    ],
+                    belts: [
+                        { name: 'Leather Thong', material: 'Rawhide' }
+                    ],
+                    accessories: [
+                        { name: 'Bone Beads', material: 'Animal Bone' }
+                    ],
+                    palette: MEDIEVAL_COLORS
+                },
+                Female: {
+                    garments: [
+                        { name: 'Hide Dress', material: 'Soft Leather' }
+                    ],
+                    headgear: [
+                        { name: 'None', material: 'None' }
+                    ],
+                    footwear: [
+                        { name: 'Soft Moccasins', material: 'Deer Hide' }
+                    ],
+                    belts: [
+                        { name: 'Braided Belt', material: 'Leather Strips' }
+                    ],
+                    accessories: [
+                        { name: 'Shell Beads', material: 'River Shells' }
+                    ],
+                    palette: MEDIEVAL_COLORS
+                }
+            },
+            common: {
+                Male: {
+                    garments: [
+                        { name: 'Buckskin Tunic', material: 'Tanned Buckskin' },
+                        { name: 'Fringed Leggings', material: 'Elk Hide' }
+                    ],
+                    headgear: [
+                        { name: 'Feather Band', material: 'Eagle Feathers' },
+                        { name: 'Fur Hat', material: 'Beaver Fur' }
+                    ],
+                    footwear: [
+                        { name: 'Decorated Moccasins', material: 'Beaded Hide' }
+                    ],
+                    belts: [
+                        { name: 'Beaded Belt', material: 'Leather with Beadwork' }
+                    ],
+                    accessories: [
+                        { name: 'Claw Necklace', material: 'Bear Claws' }
+                    ],
+                    palette: MEDIEVAL_COLORS
+                },
+                Female: {
+                    garments: [
+                        { name: 'Decorated Dress', material: 'Painted Buckskin' },
+                        { name: 'Fringed Shawl', material: 'Woven Wool' }
+                    ],
+                    headgear: [
+                        { name: 'Beaded Band', material: 'Glass Beads' },
+                        { name: 'None', material: 'None' }
+                    ],
+                    footwear: [
+                        { name: 'Beaded Moccasins', material: 'Decorated Hide' }
+                    ],
+                    belts: [
+                        { name: 'Woven Sash', material: 'Colored Fibers' }
+                    ],
+                    accessories: [
+                        { name: 'Turquoise Earrings', material: 'Turquoise' }
+                    ],
+                    palette: MEDIEVAL_COLORS
+                }
+            },
+            wealthy: {
+                Male: {
+                    garments: [
+                        { name: 'Buffalo Robe', material: 'Painted Buffalo Hide' },
+                        { name: 'War Shirt', material: 'Sacred Buckskin' }
+                    ],
+                    headgear: [
+                        { name: 'War Bonnet', material: 'Eagle Feathers' },
+                        { name: 'Horned Headdress', material: 'Buffalo Horns' }
+                    ],
+                    footwear: [
+                        { name: 'Ceremonial Moccasins', material: 'White Buckskin' }
+                    ],
+                    belts: [
+                        { name: 'Wampum Belt', material: 'Shell Beads' }
+                    ],
+                    accessories: [
+                        { name: 'Peace Pipe', material: 'Sacred Redstone' }
+                    ],
+                    palette: MEDIEVAL_COLORS
+                },
+                Female: {
+                    garments: [
+                        { name: 'Elk Tooth Dress', material: 'Decorated Buckskin' },
+                        { name: 'Ceremonial Robe', material: 'Painted Hide' }
+                    ],
+                    headgear: [
+                        { name: 'Feather Crown', material: 'Swan Feathers' },
+                        { name: 'Shell Headdress', material: 'Abalone Shell' }
+                    ],
+                    footwear: [
+                        { name: 'White Moccasins', material: 'Ermine Fur' }
+                    ],
+                    belts: [
+                        { name: 'Silver Belt', material: 'Silver Conchos' }
+                    ],
+                    accessories: [
+                        { name: 'Turquoise Necklace', material: 'Turquoise and Silver' }
+                    ],
+                    palette: MEDIEVAL_COLORS
+                }
+            }
+        }
+    }
 };
 
 /**

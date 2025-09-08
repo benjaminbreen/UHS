@@ -18,13 +18,28 @@ export function useSpecialMapLocation(
     }
     
     // Find the room that contains the player's position
+    // Handle both new format (r.bounds) and legacy format (r.x, r.y)
     const room = rooms.find(r => {
-      return (
-        playerX >= r.bounds.x &&
-        playerX < r.bounds.x + r.bounds.width &&
-        playerY >= r.bounds.y &&
-        playerY < r.bounds.y + r.bounds.height
-      );
+      // New format: room has bounds property
+      if (r.bounds) {
+        return (
+          playerX >= r.bounds.x &&
+          playerX < r.bounds.x + r.bounds.width &&
+          playerY >= r.bounds.y &&
+          playerY < r.bounds.y + r.bounds.height
+        );
+      }
+      // Legacy format: room has x, y directly
+      else if (typeof r.x === 'number' && typeof r.y === 'number') {
+        return (
+          playerX >= r.x &&
+          playerX < r.x + (r.width || 0) &&
+          playerY >= r.y &&
+          playerY < r.y + (r.height || 0)
+        );
+      }
+      // Malformed room data
+      return false;
     });
     
     // Only update if room has changed (to avoid unnecessary re-renders)

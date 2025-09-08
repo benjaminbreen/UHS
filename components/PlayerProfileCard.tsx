@@ -33,7 +33,7 @@ const PlayerProfileCard: React.FC<PlayerProfileCardProps> = ({
   const healthPercent = useMemo(() => (playerCharacter.health / playerCharacter.maxHealth) * 100, [playerCharacter.health, playerCharacter.maxHealth]);
   const fatiguePercent = useMemo(() => (playerCharacter.fatigue / playerCharacter.maxFatigue) * 100, [playerCharacter.fatigue, playerCharacter.maxFatigue]);
   const xpPercent = useMemo(() => (playerCharacter.experience / playerCharacter.maxExperience) * 100, [playerCharacter.experience, playerCharacter.maxExperience]);
-  const repPercent = useMemo(() => playerCharacter.reputation || 0, [playerCharacter.reputation]);
+  const repPercent = useMemo(() => playerCharacter.mapReputation || 0, [playerCharacter.mapReputation]);
   
   const statusInfo = useMemo(() => {
     if (!playerCharacter) return { text: 'Feeling okay', hasDisease: false, diseaseName: null };

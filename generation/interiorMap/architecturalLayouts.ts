@@ -1,7 +1,8 @@
 /**
  * Architectural layouts for specific building types with historically accurate floor plans
  */
-import { Point } from '../../types';
+import { Point, CulturalZone, HistoricalEra } from '../../types';
+import { getHolyPlaceBuildingLayout } from './holyPlaceInteriorIntegration';
 
 export interface ArchitecturalSpace {
     id: string;
@@ -674,7 +675,8 @@ export function selectBuildingLayout(
     religion?: string,
     culturalZone?: string,
     size?: 'small' | 'medium' | 'large',
-    seed?: number
+    seed?: number,
+    era?: HistoricalEra
 ): BuildingLayout {
     console.log('🏗️ [ArchitecturalLayouts] Selecting layout for:', {
         buildingType,
@@ -726,26 +728,42 @@ export function selectBuildingLayout(
     if (buildingType === 'holy_place' || buildingType === 'temple') {
         const lowerReligion = (religion || '').toLowerCase();
         console.log('⛪ [ArchitecturalLayouts] Processing holy place with religion:', lowerReligion);
+        console.log('🌍 Cultural zone:', culturalZone, 'Era:', era);
         
+        // Try to use our culturally-specific holy place layouts first
+        if (culturalZone && era) {
+            const culturalLayout = getHolyPlaceBuildingLayout(
+                culturalZone as CulturalZone,
+                era,
+                religion
+            );
+            
+            if (culturalLayout) {
+                console.log('✨ Using culturally-specific holy place layout:', culturalLayout.name);
+                return culturalLayout;
+            }
+        }
+        
+        // Fallback to religion-based selection if no cultural layout found
         if (lowerReligion.includes('islam') || lowerReligion.includes('sunni') || lowerReligion.includes('shia')) {
-            console.log('🕌 Selected: MOSQUE_LAYOUT');
+            console.log('🕌 Selected: MOSQUE_LAYOUT (religion fallback)');
             return MOSQUE_LAYOUT;
         }
         if (lowerReligion.includes('buddhism') || lowerReligion.includes('buddhist')) {
-            console.log('🏛️ Selected: BUDDHIST_TEMPLE_LAYOUT');
+            console.log('🏛️ Selected: BUDDHIST_TEMPLE_LAYOUT (religion fallback)');
             return BUDDHIST_TEMPLE_LAYOUT;
         }
         if (lowerReligion.includes('judaism') || lowerReligion.includes('jewish')) {
-            console.log('✡️ Selected: SYNAGOGUE_LAYOUT');
+            console.log('✡️ Selected: SYNAGOGUE_LAYOUT (religion fallback)');
             return SYNAGOGUE_LAYOUT;
         }
         if (lowerReligion.includes('catholic') || lowerReligion.includes('orthodox') || 
             (lowerReligion.includes('christian') && size === 'large')) {
-            console.log('⛪ Selected: CATHEDRAL_LAYOUT');
+            console.log('⛪ Selected: CATHEDRAL_LAYOUT (religion fallback)');
             return CATHEDRAL_LAYOUT;
         }
         if (lowerReligion.includes('christian') || lowerReligion.includes('protestant')) {
-            console.log('⛪ Selected: CHURCH_LAYOUT');
+            console.log('⛪ Selected: CHURCH_LAYOUT (religion fallback)');
             return CHURCH_LAYOUT;
         }
         

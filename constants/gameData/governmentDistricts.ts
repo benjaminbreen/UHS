@@ -461,23 +461,23 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'terp_settlement_moot', name: 'Terp Settlement Moot', archetype: SpecialMapArchetype.OPEN_FIELD, description: 'Raised-mound community meeting ground for water management and kin arbitration.', districtType: 'assembly', symbolType: 'OpenAirCouncilSymbol', priority: 9 }
     ],
     [HistoricalEra.ANTIQUITY]: [
-      { id: 'batavian_canal_forum', name: 'Canal-Side Forum', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Roman administrative forum adapted to wetlands and canals.', districtType: 'forum', symbolType: 'RomanForumSymbol', priority: 10 }
+      { id: 'batavian_canal_forum', name: 'Canal-Side Forum', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Roman administrative forum adapted to wetlands and canals.', districtType: 'forum', symbolType: 'RomanForumSymbol', priority: 10 }
     ],
     [HistoricalEra.MEDIEVAL]: [
-      { id: 'schepenbank', name: 'Schepenbank', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Bench of aldermen for a chartered town; guilds and merchants nearby.', districtType: 'municipal_court', symbolType: 'TownHallSymbol', priority: 10 },
-      { id: 'waterboard_hof', name: 'Water Board Hall', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Polder and dike administration (heemraadschap).', districtType: 'water_management', symbolType: 'TownHallSymbol', priority: 9 }
+      { id: 'schepenbank', name: 'Schepenbank', archetype: SpecialMapArchetype.COURT_CHAMBER, description: 'Bench of aldermen for a chartered town; guilds and merchants nearby.', districtType: 'municipal_court', symbolType: 'TownHallSymbol', priority: 10 },
+      { id: 'waterboard_hof', name: 'Water Board Hall', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Polder and dike administration (heemraadschap).', districtType: 'water_management', symbolType: 'TownHallSymbol', priority: 9 }
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
-      { id: 'stadhuis', name: 'Stadhuis', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Civic town hall with carillon and market loggias.', districtType: 'municipal', symbolType: 'TownHallSymbol', priority: 10 }
+      { id: 'stadhuis', name: 'Stadhuis', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Civic town hall with carillon and market loggias.', districtType: 'municipal', symbolType: 'TownHallSymbol', priority: 10 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-      { id: 'parliament_binnenhof', name: 'Binnenhof Complex', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Parliamentary complex in a constitutional monarchy.', districtType: 'national_legislature', symbolType: 'CityHallSymbol', priority: 10 }
+      { id: 'parliament_binnenhof', name: 'Binnenhof Complex', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Parliamentary complex in a constitutional monarchy.', districtType: 'national_legislature', symbolType: 'CityHallSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
-      { id: 'eu_council_quarter', name: 'European Council Quarter', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Intergovernmental council and commission buildings.', districtType: 'supranational_government', symbolType: 'ModernParliamentSymbol', priority: 10 }
+      { id: 'eu_council_quarter', name: 'European Council Quarter', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Intergovernmental council and commission buildings.', districtType: 'supranational_government', symbolType: 'ModernParliamentSymbol', priority: 10 }
     ],
     [HistoricalEra.FUTURE_ERA]: [
-      { id: 'delta_resilience_hub', name: 'Delta Resilience Hub', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Climate governance center coordinating adaptive waterworks.', districtType: 'climate_governance', symbolType: 'AdminCenterSymbol', priority: 10 }
+      { id: 'delta_resilience_hub', name: 'Delta Resilience Hub', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Climate governance center coordinating adaptive waterworks.', districtType: 'climate_governance', symbolType: 'AdminCenterSymbol', priority: 10 }
     ]
   },
 
@@ -486,23 +486,23 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'tell_hill_moot', name: 'Tell-Hill Moot', archetype: SpecialMapArchetype.OPEN_FIELD, description: 'Hilltop gathering near fortified tells for seasonal dispute settlement.', districtType: 'assembly', symbolType: 'OpenAirCouncilSymbol', priority: 8 }
     ],
     [HistoricalEra.ANTIQUITY]: [
-      { id: 'polis_bouleuterion', name: 'Bouleuterion', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Council house of a Balkan polis with Roman overlays along the Via Egnatia.', districtType: 'city_council', symbolType: 'RomanForumSymbol', priority: 10 }
+      { id: 'polis_bouleuterion', name: 'Bouleuterion', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Council house of a Balkan polis with Roman overlays along the Via Egnatia.', districtType: 'city_council', symbolType: 'RomanForumSymbol', priority: 10 }
     ],
     [HistoricalEra.MEDIEVAL]: [
       { id: 'zupan_court', name: 'Župan’s Court', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'Court of a regional lord with ecclesiastical influence.', districtType: 'feudal_court', symbolType: 'FeudalHallSymbol', priority: 8 },
-      { id: 'communal_loggia', name: 'Communal Loggia', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Coastal commune hall for merchant and civic deliberations.', districtType: 'municipal', symbolType: 'TownHallSymbol', priority: 8 }
+      { id: 'communal_loggia', name: 'Communal Loggia', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Coastal commune hall for merchant and civic deliberations.', districtType: 'municipal', symbolType: 'TownHallSymbol', priority: 8 }
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
       { id: 'divan_kapija', name: 'Divan Kapija', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'Ottoman provincial divan chamber within a fortress-town.', districtType: 'provincial_council', symbolType: 'CaliphCourtSymbol', priority: 10 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-      { id: 'skupstina', name: 'Skupština Hall', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Constitutional assembly in a newly nationalizing state.', districtType: 'national_assembly', symbolType: 'CityHallSymbol', priority: 10 }
+      { id: 'skupstina', name: 'Skupština Hall', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Constitutional assembly in a newly nationalizing state.', districtType: 'national_assembly', symbolType: 'CityHallSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
-      { id: 'parliament_balkan', name: 'Parliament', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Modern parliamentary complex in the capital.', districtType: 'parliament', symbolType: 'ModernParliamentSymbol', priority: 10 }
+      { id: 'parliament_balkan', name: 'Parliament', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Modern parliamentary complex in the capital.', districtType: 'parliament', symbolType: 'ModernParliamentSymbol', priority: 10 }
     ],
     [HistoricalEra.FUTURE_ERA]: [
-      { id: 'balkan_cooperation_forum', name: 'Regional Cooperation Forum', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Cross-border council balancing energy, migration, and heritage.', districtType: 'regional_cooperation', symbolType: 'AdminCenterSymbol', priority: 9 }
+      { id: 'balkan_cooperation_forum', name: 'Regional Cooperation Forum', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Cross-border council balancing energy, migration, and heritage.', districtType: 'regional_cooperation', symbolType: 'AdminCenterSymbol', priority: 9 }
     ]
   },
 
@@ -511,23 +511,23 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'oppidum_moot', name: 'Oppidum Moot', archetype: SpecialMapArchetype.MILITARY_FORTRESS, description: 'Hilltop enclosure used for seasonal councils and trade feasts.', districtType: 'tribal_assembly', symbolType: 'FeudalHallSymbol', priority: 9 }
     ],
     [HistoricalEra.ANTIQUITY]: [
-      { id: 'roman_colonia_forum', name: 'Colonia Forum', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Forum-basilica complex of a Roman colonia on the Danube frontier.', districtType: 'forum', symbolType: 'RomanForumSymbol', priority: 10 }
+      { id: 'roman_colonia_forum', name: 'Colonia Forum', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Forum-basilica complex of a Roman colonia on the Danube frontier.', districtType: 'forum', symbolType: 'RomanForumSymbol', priority: 10 }
     ],
     [HistoricalEra.MEDIEVAL]: [
-      { id: 'burgher_rathaus', name: 'Rathaus', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Town hall of a burgher city under princely or episcopal overlordship.', districtType: 'municipal', symbolType: 'TownHallSymbol', priority: 10 },
+      { id: 'burgher_rathaus', name: 'Rathaus', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Town hall of a burgher city under princely or episcopal overlordship.', districtType: 'municipal', symbolType: 'TownHallSymbol', priority: 10 },
       { id: 'princely_residenz', name: 'Residenz', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'Princely residence and chancery with a court chapel.', districtType: 'princely_court', symbolType: 'FeudalHallSymbol', priority: 8 }
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
-      { id: 'imperial_diet_ce', name: 'Imperial Diet Chamber', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Assembly hall used by estates of the empire.', districtType: 'diet', symbolType: 'TownHallSymbol', priority: 9 }
+      { id: 'imperial_diet_ce', name: 'Imperial Diet Chamber', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Assembly hall used by estates of the empire.', districtType: 'diet', symbolType: 'TownHallSymbol', priority: 9 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-      { id: 'constitutional_parliament_ce', name: 'Constitutional Parliament', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Legislature of a constitutional monarchy or federal state.', districtType: 'parliament', symbolType: 'CityHallSymbol', priority: 10 }
+      { id: 'constitutional_parliament_ce', name: 'Constitutional Parliament', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Legislature of a constitutional monarchy or federal state.', districtType: 'parliament', symbolType: 'CityHallSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
-      { id: 'federal_chancellery', name: 'Federal Chancellery', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Executive and parliamentary complex in a federal capital.', districtType: 'executive_legislative', symbolType: 'ModernParliamentSymbol', priority: 10 }
+      { id: 'federal_chancellery', name: 'Federal Chancellery', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Executive and parliamentary complex in a federal capital.', districtType: 'executive_legislative', symbolType: 'ModernParliamentSymbol', priority: 10 }
     ],
     [HistoricalEra.FUTURE_ERA]: [
-      { id: 'green_transition_ministry', name: 'Green Transition Ministry', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Cabinet hub coordinating energy transition, rail and river corridors.', districtType: 'executive_policy_hub', symbolType: 'AdminCenterSymbol', priority: 9 }
+      { id: 'green_transition_ministry', name: 'Green Transition Ministry', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Cabinet hub coordinating energy transition, rail and river corridors.', districtType: 'executive_policy_hub', symbolType: 'AdminCenterSymbol', priority: 9 }
     ]
   },
 
@@ -546,13 +546,13 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'hetmanate_rada', name: 'Cossack Rada', archetype: SpecialMapArchetype.OPEN_FIELD, description: 'Elective assembly of hosts and regiments.', districtType: 'military_assembly', symbolType: 'TownHallSymbol', priority: 9 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-      { id: 'duma_chamber', name: 'Duma Chamber', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Representative assembly hall in an imperial capital.', districtType: 'parliament', symbolType: 'CityHallSymbol', priority: 10 }
+      { id: 'duma_chamber', name: 'Duma Chamber', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Representative assembly hall in an imperial capital.', districtType: 'parliament', symbolType: 'CityHallSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
-      { id: 'parliament_square_ee', name: 'Parliament Complex', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Modern legislature and government quarter.', districtType: 'legislature', symbolType: 'ModernParliamentSymbol', priority: 10 }
+      { id: 'parliament_square_ee', name: 'Parliament Complex', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Modern legislature and government quarter.', districtType: 'legislature', symbolType: 'ModernParliamentSymbol', priority: 10 }
     ],
     [HistoricalEra.FUTURE_ERA]: [
-      { id: 'eastern_partnership_forum', name: 'Eastern Partnership Forum', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Regional development and security council.', districtType: 'regional_forum', symbolType: 'AdminCenterSymbol', priority: 8 }
+      { id: 'eastern_partnership_forum', name: 'Eastern Partnership Forum', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Regional development and security council.', districtType: 'regional_forum', symbolType: 'AdminCenterSymbol', priority: 8 }
     ]
   },
 
@@ -564,13 +564,13 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'fur_route_post', name: 'Fur Route Post', archetype: SpecialMapArchetype.MARKET_BAZAAR, description: 'Trading-post governance with shrine and weighing shed.', districtType: 'trade_admin', symbolType: 'TownHallSymbol', priority: 7 }
     ],
     [HistoricalEra.MEDIEVAL]: [
-      { id: 'pogost', name: 'Pogost Court', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Rural administrative yard with church and granary.', districtType: 'rural_admin', symbolType: 'TownHallSymbol', priority: 8 }
+      { id: 'pogost', name: 'Pogost Court', archetype: SpecialMapArchetype.COURT_CHAMBER, description: 'Rural administrative yard with church and granary.', districtType: 'rural_admin', symbolType: 'TownHallSymbol', priority: 8 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-      { id: 'okrug_board', name: 'Okrug Administration', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'District board managing mines, rails, and exile colonies.', districtType: 'district_admin', symbolType: 'CityHallSymbol', priority: 9 }
+      { id: 'okrug_board', name: 'Okrug Administration', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'District board managing mines, rails, and exile colonies.', districtType: 'district_admin', symbolType: 'CityHallSymbol', priority: 9 }
     ],
     [HistoricalEra.MODERN_ERA]: [
-      { id: 'arctic_oblast_center', name: 'Arctic Oblast Center', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Resource governance and indigenous affairs office.', districtType: 'regional_admin', symbolType: 'ModernParliamentSymbol', priority: 9 }
+      { id: 'arctic_oblast_center', name: 'Arctic Oblast Center', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Resource governance and indigenous affairs office.', districtType: 'regional_admin', symbolType: 'ModernParliamentSymbol', priority: 9 }
     ],
     [HistoricalEra.FUTURE_ERA]: [
       { id: 'polar_council', name: 'Polar Council', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'International polar shipping & climate authority.', districtType: 'international_council', symbolType: 'AdminCenterSymbol', priority: 9 }
@@ -582,19 +582,19 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'insular_council', name: 'Insular Council', archetype: SpecialMapArchetype.OPEN_FIELD, description: 'Local elder councils on Atlantic archipelagos.', districtType: 'council', symbolType: 'OpenAirCouncilSymbol', priority: 7 }
     ],
     [HistoricalEra.MEDIEVAL]: [
-      { id: 'senao_concelho', name: 'Concelho Hall', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Municipal chamber for early colonization efforts.', districtType: 'municipal', symbolType: 'TownHallSymbol', priority: 8 }
+      { id: 'senao_concelho', name: 'Concelho Hall', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Municipal chamber for early colonization efforts.', districtType: 'municipal', symbolType: 'TownHallSymbol', priority: 8 }
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
-      { id: 'capitania_house', name: 'Capitania House', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Captaincy administration over sugar, vines, and ports.', districtType: 'colonial_admin', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+      { id: 'capitania_house', name: 'Capitania House', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Captaincy administration over sugar, vines, and ports.', districtType: 'colonial_admin', symbolType: 'ColonialOfficeSymbol', priority: 10 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
       { id: 'governors_palace_ai', name: 'Governor’s Palace', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'Island governor and customs house complex.', districtType: 'colonial_government', symbolType: 'CityHallSymbol', priority: 9 }
     ],
     [HistoricalEra.MODERN_ERA]: [
-      { id: 'autonomous_parliament', name: 'Autonomous Parliament', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Regional assembly within a European state.', districtType: 'regional_assembly', symbolType: 'ModernParliamentSymbol', priority: 10 }
+      { id: 'autonomous_parliament', name: 'Autonomous Parliament', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Regional assembly within a European state.', districtType: 'regional_assembly', symbolType: 'ModernParliamentSymbol', priority: 10 }
     ],
     [HistoricalEra.FUTURE_ERA]: [
-      { id: 'oceanic_energy_directorate', name: 'Oceanic Energy Directorate', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Marine wind, wave, and hydrogen governance hub.', districtType: 'energy_directorate', symbolType: 'AdminCenterSymbol', priority: 9 }
+      { id: 'oceanic_energy_directorate', name: 'Oceanic Energy Directorate', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Marine wind, wave, and hydrogen governance hub.', districtType: 'energy_directorate', symbolType: 'AdminCenterSymbol', priority: 9 }
     ]
   },
 
@@ -613,7 +613,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
   },
   "Levant": {
     [HistoricalEra.ANTIQUITY]: [
-      { id: 'phoenician_council', name: 'Phoenician Council Hall', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The administrative hall of a Phoenician merchant city-state like Tyre or Sidon.', districtType: 'merchant_council', symbolType: 'PhoenicianCouncilSymbol', priority: 10 },
+      { id: 'phoenician_council', name: 'Phoenician Council Hall', archetype: SpecialMapArchetype.TOWN_HALL, description: 'The administrative hall of a Phoenician merchant city-state like Tyre or Sidon.', districtType: 'merchant_council', symbolType: 'PhoenicianCouncilSymbol', priority: 10 },
       { id: 'herodian_palace', name: 'Herodian Palace', archetype: SpecialMapArchetype.MILITARY_FORTRESS, description: 'A fortified palace-complex serving as the seat of a Roman client king.', districtType: 'client_kingdom_seat', symbolType: 'RomanForumSymbol', priority: 8 }
     ],
     [HistoricalEra.MEDIEVAL]: [
@@ -669,13 +669,13 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'makurian_palace', name: 'Makurian Court', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'Christian Nubian palace-church compound.', districtType: 'royal_admin', symbolType: 'FeudalHallSymbol', priority: 8 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-      { id: 'anglo_egyptian_governor', name: 'Anglo-Egyptian Governorate', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Colonial district headquarters along the Nile.', districtType: 'colonial_district', symbolType: 'ColonialOfficeSymbol', priority: 9 }
+      { id: 'anglo_egyptian_governor', name: 'Anglo-Egyptian Governorate', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Colonial district headquarters along the Nile.', districtType: 'colonial_district', symbolType: 'ColonialOfficeSymbol', priority: 9 }
     ]
   },
 
   "Maghreb": {
     [HistoricalEra.ANTIQUITY]: [
-      { id: 'punic_council', name: 'Punic Council House', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Council of elders in a Carthaginian or Punic town.', districtType: 'city_council', symbolType: 'RomanForumSymbol', priority: 9 }
+      { id: 'punic_council', name: 'Punic Council House', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Council of elders in a Carthaginian or Punic town.', districtType: 'city_council', symbolType: 'RomanForumSymbol', priority: 9 }
     ],
     [HistoricalEra.MEDIEVAL]: [
       { id: 'kasbah_diwan', name: 'Kasbah Dīwān', archetype: SpecialMapArchetype.MILITARY_FORTRESS, description: 'Citadel quarter with administrative diwan and suq.', districtType: 'urban_admin', symbolType: 'CaliphCourtSymbol', priority: 10 }
@@ -684,7 +684,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'marinid_palace', name: 'Palace-Madrasa Complex', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'Court with madrasa and qadi courts.', districtType: 'royal_court', symbolType: 'CaliphCourtSymbol', priority: 9 }
     ],
     [HistoricalEra.MODERN_ERA]: [
-      { id: 'parliament_maghreb', name: 'Parliament/Assembly', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Post-colonial legislature and ministries.', districtType: 'parliament', symbolType: 'ModernParliamentSymbol', priority: 10 }
+      { id: 'parliament_maghreb', name: 'Parliament/Assembly', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Post-colonial legislature and ministries.', districtType: 'parliament', symbolType: 'ModernParliamentSymbol', priority: 10 }
     ]
   },
 
@@ -696,7 +696,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'khans_citadel', name: 'Khan’s Citadel', archetype: SpecialMapArchetype.MILITARY_FORTRESS, description: 'Citadel with diwan-khana for governance.', districtType: 'khanship_admin', symbolType: 'CaliphCourtSymbol', priority: 8 }
     ],
     [HistoricalEra.MODERN_ERA]: [
-      { id: 'parliament_caucasus', name: 'National Assembly', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Modern national assembly in the mountain republics.', districtType: 'parliament', symbolType: 'ModernParliamentSymbol', priority: 10 }
+      { id: 'parliament_caucasus', name: 'National Assembly', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Modern national assembly in the mountain republics.', districtType: 'parliament', symbolType: 'ModernParliamentSymbol', priority: 10 }
     ]
   },
 
@@ -769,7 +769,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'datu_longhouse', name: 'Datu\'s Council Longhouse', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The communal longhouse where the local Datu holds council with village elders.', districtType: 'tribal_council', symbolType: 'LonghouseSymbol', priority: 10 }
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
-      { id: 'spanish_cabildo', name: 'Spanish Cabildo', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The municipal government hall in a Spanish colonial city like Manila.', districtType: 'colonial_municipal_hall', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+      { id: 'spanish_cabildo', name: 'Spanish Cabildo', archetype: SpecialMapArchetype.TOWN_HALL, description: 'The municipal government hall in a Spanish colonial city like Manila.', districtType: 'colonial_municipal_hall', symbolType: 'ColonialOfficeSymbol', priority: 10 }
     ]
   },
 
@@ -781,7 +781,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'han_commandery', name: 'Commandery Headquarters', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The administrative headquarters of an imperial commandery during the Han Dynasty.', districtType: 'imperial_admin', symbolType: 'MandateHallSymbol', priority: 10 }
     ],
     [HistoricalEra.MEDIEVAL]: [
-      { id: 'tang_ministry_hall', name: 'Hall of a Tang Ministry', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'A grand hall in the imperial city of Chang\'an, housing one of the Three Departments or Six Ministries.', districtType: 'imperial_ministry', symbolType: 'MandateHallSymbol', priority: 10 }
+      { id: 'tang_ministry_hall', name: 'Hall of a Tang Ministry', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'A grand hall in the imperial city of Chang\'an, housing one of the Three Departments or Six Ministries.', districtType: 'imperial_ministry', symbolType: 'MandateHallSymbol', priority: 10 }
     ]
   },
   "South China": {
@@ -834,7 +834,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
       { id: 'askiyas_court', name: 'Askia\'s Court', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The imperial court of the Askia dynasty of the Songhai Empire in Gao.', districtType: 'imperial_court', symbolType: 'AfricanChiefdomSymbol', priority: 10 },
-      { id: 'sokoto_caliphate_diwan', name: 'Sokoto Caliphate Diwan', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The administrative council of the Sokoto Caliphate, a major Islamic state governed by Sharia.', districtType: 'caliphate_admin', symbolType: 'CaliphCourtSymbol', priority: 8 }
+      { id: 'sokoto_caliphate_diwan', name: 'Sokoto Caliphate Diwan', archetype: SpecialMapArchetype.COURT_CHAMBER, description: 'The administrative council of the Sokoto Caliphate, a major Islamic state governed by Sharia.', districtType: 'caliphate_admin', symbolType: 'CaliphCourtSymbol', priority: 8 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [{ id: 'french_cercle_hq', name: 'Cercle Headquarters', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The administrative headquarters of a French colonial "Cercle" in French West Africa.', districtType: 'colonial_administration', symbolType: 'ColonialOfficeSymbol', priority: 10 }],
     [HistoricalEra.MODERN_ERA]: [{ id: 'palais_presidentiel', name: 'Palais Présidentiel', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The presidential palace of a modern Sahelian republic.', districtType: 'presidential_palace', symbolType: 'AdminCenterSymbol', priority: 10 }],
@@ -862,7 +862,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
   "Southern Africa": {
     [HistoricalEra.MEDIEVAL]: [{ id: 'mapungubwe_hill_palace', name: 'Mapungubwe Hill Palace', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The elite palace complex atop Mapungubwe Hill, the capital of a prosperous pre-Zimbabwe kingdom.', districtType: 'royal_palace', symbolType: 'AfricanChiefdomSymbol', priority: 10 }],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-        { id: 'cape_parliament', name: 'Cape Parliament Building', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The legislative building of the self-governing Cape Colony.', districtType: 'colonial_legislature', symbolType: 'CityHallSymbol', priority: 10 },
+        { id: 'cape_parliament', name: 'Cape Parliament Building', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'The legislative building of the self-governing Cape Colony.', districtType: 'colonial_legislature', symbolType: 'CityHallSymbol', priority: 10 },
         { id: 'voortrekker_raadsaal', name: 'Volksraadsaal', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The parliament building of a Boer Republic like the Transvaal or Orange Free State.', districtType: 'republican_parliament', symbolType: 'TownHallSymbol', priority: 8 }
     ],
     [HistoricalEra.MODERN_ERA]: [{ id: 'union_buildings', name: 'Union Buildings', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The official seat of the South African government in Pretoria.', districtType: 'national_administration', symbolType: 'AdminCenterSymbol', priority: 10 }]
@@ -874,7 +874,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
   "West African Forests": {
     [HistoricalEra.MEDIEVAL]: [{ id: 'ife_palace_complex', name: 'Ooni of Ife\'s Palace', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'The sacred palace complex of the Ooni, the spiritual leader of the Yoruba people, in the city of Ife.', districtType: 'sacred_palace', symbolType: 'AfricanChiefdomSymbol', priority: 10 }],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [{ id: 'dahomey_royal_palaces', name: 'Royal Palaces of Abomey', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The extensive earthen palace compound of the Fon kings of Dahomey.', districtType: 'royal_palace', symbolType: 'AfricanChiefdomSymbol', priority: 10 }],
-    [HistoricalEra.MODERN_ERA]: [{ id: 'regional_house_chiefs', name: 'Regional House of Chiefs', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Advisory chamber of paramount and divisional chiefs.', districtType: 'traditional_authority', symbolType: 'AdminCenterSymbol', priority: 9 }]
+    [HistoricalEra.MODERN_ERA]: [{ id: 'regional_house_chiefs', name: 'Regional House of Chiefs', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Advisory chamber of paramount and divisional chiefs.', districtType: 'traditional_authority', symbolType: 'AdminCenterSymbol', priority: 9 }]
   },
   "Madagascar and Islands": {
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [{ id: 'merina_rova_antananarivo', name: 'Rova of Antananarivo', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The royal palace complex of the Merina Kingdom, fortified on a high hill, center of an expanding empire.', districtType: 'royal_palace', symbolType: 'AfricanChiefdomSymbol', priority: 10 }],
@@ -891,23 +891,23 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'spanish_mission_admin', name: 'Mission Headquarters', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'The administrative office of a Spanish mission, governing the religious and economic life of local Indigenous peoples.', districtType: 'theocratic_administration', symbolType: 'ColonialOfficeSymbol', priority: 10 },
       { id: 'spanish_presidio', name: 'Presidio Commandancia', archetype: SpecialMapArchetype.MILITARY_FORTRESS, description: 'The headquarters of a Spanish military fort (Presidio), the center of colonial authority.', districtType: 'colonial_fort', symbolType: 'ColonialOfficeSymbol', priority: 9 }
     ],
-    [HistoricalEra.INDUSTRIAL_ERA]: [{ id: 'mexican_ayuntamiento', name: 'Ayuntamiento Hall', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The municipal council hall for a pueblo under Mexican rule.', districtType: 'municipal_government', symbolType: 'TownHallSymbol', priority: 10 }]
+    [HistoricalEra.INDUSTRIAL_ERA]: [{ id: 'mexican_ayuntamiento', name: 'Ayuntamiento Hall', archetype: SpecialMapArchetype.TOWN_HALL, description: 'The municipal council hall for a pueblo under Mexican rule.', districtType: 'municipal_government', symbolType: 'TownHallSymbol', priority: 10 }]
   },
   "Southwest": {
     [HistoricalEra.ANTIQUITY]: [{ id: 'chaco_great_house_pueblo_bonito', name: 'Pueblo Bonito Great House', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'The largest and best-known great house in Chaco Canyon, a major center for ceremony and administration.', districtType: 'ceremonial_center', symbolType: 'OpenAirCouncilSymbol', priority: 10 }],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [{ id: 'pueblo_council_kiva', name: 'Pueblo Council Kiva', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'A large kiva where the council of a Puebloan village meets in secret to make decisions, resisting colonial rule.', districtType: 'tribal_council', symbolType: 'OpenAirCouncilSymbol', priority: 10 }]
   },
   "Great Plains": {
-    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [{ id: 'cheyenne_council_of_44', name: 'Council of Forty-Four Lodge', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The central council lodge where the Council of Forty-Four, the unifying government of the Cheyenne people, convenes.', districtType: 'confederacy_council', symbolType: 'LonghouseCouncilSymbol', priority: 10 }],
+    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [{ id: 'cheyenne_council_of_44', name: 'Council of Forty-Four Lodge', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'The central council lodge where the Council of Forty-Four, the unifying government of the Cheyenne people, convenes.', districtType: 'confederacy_council', symbolType: 'LonghouseCouncilSymbol', priority: 10 }],
     [HistoricalEra.INDUSTRIAL_ERA]: [{ id: 'bison_treaty_council_site', name: 'Treaty Council Site', archetype: SpecialMapArchetype.OPEN_FIELD, description: 'A temporary encampment where Plains tribes meet with US government representatives to negotiate treaties.', districtType: 'diplomatic_ground', symbolType: 'OpenAirCouncilSymbol', priority: 10 }]
   },
   "Northeastern Seaboard": {
-    [HistoricalEra.MEDIEVAL]: [{ id: 'haudenosaunee_council_fire_onondaga', name: 'Haudenosaunee Council Fire at Onondaga', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The central meeting place and capital for the Grand Council of the Iroquois (Haudenosaunee) Confederacy.', districtType: 'confederacy_council', symbolType: 'LonghouseCouncilSymbol', priority: 10 }],
+    [HistoricalEra.MEDIEVAL]: [{ id: 'haudenosaunee_council_fire_onondaga', name: 'Haudenosaunee Council Fire at Onondaga', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'The central meeting place and capital for the Grand Council of the Iroquois (Haudenosaunee) Confederacy.', districtType: 'confederacy_council', symbolType: 'LonghouseCouncilSymbol', priority: 10 }],
     [HistoricalEra.INDUSTRIAL_ERA]: [{ id: 'us_capitol_building', name: 'U.S. Capitol Building', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The seat of the United States Congress, the legislative branch of the federal government.', districtType: 'national_legislature', symbolType: 'ModernParliamentSymbol', priority: 10 }],
     [HistoricalEra.MODERN_ERA]: [{ id: 'un_headquarters', name: 'United Nations Headquarters', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The headquarters of the United Nations, an international organization for peace and cooperation.', districtType: 'international_government', symbolType: 'AdminCenterSymbol', priority: 10 }]
   },
   "Southeast": {
-    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [{ id: 'creek_confederacy_council', name: 'Muscogee (Creek) Council House', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The central council house of a major Muscogee town, the heart of the Creek Confederacy.', districtType: 'confederacy_council', symbolType: 'LonghouseCouncilSymbol', priority: 10 }],
+    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [{ id: 'creek_confederacy_council', name: 'Muscogee (Creek) Council House', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'The central council house of a major Muscogee town, the heart of the Creek Confederacy.', districtType: 'confederacy_council', symbolType: 'LonghouseCouncilSymbol', priority: 10 }],
     [HistoricalEra.INDUSTRIAL_ERA]: [{ id: 'confederate_capitol', name: 'Confederate States Capitol', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The capitol building of the Confederate States of America in Richmond, Virginia.', districtType: 'national_legislature', symbolType: 'CityHallSymbol', priority: 7 }]
   },
   "The Caribbean": {
@@ -923,13 +923,13 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'winter_ceremonial_hall', name: 'Winter Ceremonial Hall', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'Ceremonial governance tied to potlatch economies.', districtType: 'ceremonial_admin', symbolType: 'LonghouseCouncilSymbol', priority: 9 }
     ],
     [HistoricalEra.MEDIEVAL]: [
-      { id: 'confederated_village_council', name: 'Village Council House', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Regional council coordinating fisheries and peace ties.', districtType: 'intervillage_council', symbolType: 'TownHallSymbol', priority: 8 }
+      { id: 'confederated_village_council', name: 'Village Council House', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Regional council coordinating fisheries and peace ties.', districtType: 'intervillage_council', symbolType: 'TownHallSymbol', priority: 8 }
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
-      { id: 'spanish_cabildo_pacific', name: 'Cabildo (Coastal)', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Spanish municipal council in mission-port towns.', districtType: 'colonial_municipal', symbolType: 'ColonialOfficeSymbol', priority: 8 }
+      { id: 'spanish_cabildo_pacific', name: 'Cabildo (Coastal)', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Spanish municipal council in mission-port towns.', districtType: 'colonial_municipal', symbolType: 'ColonialOfficeSymbol', priority: 8 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-      { id: 'city_hall_pacific', name: 'City Hall', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Council chamber of a booming port city.', districtType: 'municipal', symbolType: 'CityHallSymbol', priority: 10 }
+      { id: 'city_hall_pacific', name: 'City Hall', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Council chamber of a booming port city.', districtType: 'municipal', symbolType: 'CityHallSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
       { id: 'state_capitol_pc', name: 'State Capitol', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Legislative and executive complex of a Pacific state.', districtType: 'state_government', symbolType: 'ModernParliamentSymbol', priority: 10 }
@@ -944,7 +944,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'wintu_assembly', name: 'Assembly Grove', archetype: SpecialMapArchetype.OPEN_FIELD, description: 'Oak grove council for river, salmon, and acorn trade stewardship.', districtType: 'council', symbolType: 'OpenAirCouncilSymbol', priority: 9 }
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
-      { id: 'spanish_cabildo_nc', name: 'Spanish Cabildo', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Cabildo associated with presidio/mission corridor.', districtType: 'colonial_municipal', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+      { id: 'spanish_cabildo_nc', name: 'Spanish Cabildo', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Cabildo associated with presidio/mission corridor.', districtType: 'colonial_municipal', symbolType: 'ColonialOfficeSymbol', priority: 10 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
       { id: 'california_state_capitol', name: 'California State Capitol', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Gold Rush to railroad era legislature and governor’s office.', districtType: 'state_government', symbolType: 'CityHallSymbol', priority: 10 }
@@ -965,7 +965,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'presidio_cabildo', name: 'Presidio Cabildo', archetype: SpecialMapArchetype.MILITARY_FORTRESS, description: 'Garrison administration with mission and port links.', districtType: 'colonial_admin', symbolType: 'ColonialOfficeSymbol', priority: 10 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-      { id: 'county_courthouse', name: 'County Courthouse', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Seat for county commissioners, land deeds, and rail disputes.', districtType: 'county_admin', symbolType: 'CityHallSymbol', priority: 10 }
+      { id: 'county_courthouse', name: 'County Courthouse', archetype: SpecialMapArchetype.COURT_CHAMBER, description: 'Seat for county commissioners, land deeds, and rail disputes.', districtType: 'county_admin', symbolType: 'CityHallSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
       { id: 'coastal_commission_office', name: 'Coastal Commission Office', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Permitting and conservation authority for shoreline use.', districtType: 'coastal_regulator', symbolType: 'ModernParliamentSymbol', priority: 10 }
@@ -980,7 +980,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'alcaldia', name: 'Alcaldía', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Spanish municipal hall managing ranchos and mission labor.', districtType: 'colonial_municipal', symbolType: 'ColonialOfficeSymbol', priority: 10 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-      { id: 'city_hall_sc', name: 'City Hall', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Rapidly growing metropolis with harbor board.', districtType: 'municipal', symbolType: 'CityHallSymbol', priority: 10 }
+      { id: 'city_hall_sc', name: 'City Hall', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Rapidly growing metropolis with harbor board.', districtType: 'municipal', symbolType: 'CityHallSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
       { id: 'port_authority', name: 'Port Authority HQ', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Harbor, air, and logistics governance for a mega-region.', districtType: 'port_governance', symbolType: 'ModernParliamentSymbol', priority: 9 }
@@ -995,13 +995,13 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'chaco_central_complex', name: 'Central Great House Court', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'Great House court coordinating roads, storage, and rites.', districtType: 'regional_admin', symbolType: 'OpenAirCouncilSymbol', priority: 9 }
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
-      { id: 'cabildo_southwest', name: 'Cabildo (Frontier)', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Spanish frontier municipal hall near presidios.', districtType: 'colonial_municipal', symbolType: 'ColonialOfficeSymbol', priority: 9 }
+      { id: 'cabildo_southwest', name: 'Cabildo (Frontier)', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Spanish frontier municipal hall near presidios.', districtType: 'colonial_municipal', symbolType: 'ColonialOfficeSymbol', priority: 9 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
       { id: 'territorial_capitol', name: 'Territorial Capitol', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Capitol of a U.S. territory transitioning to statehood.', districtType: 'territorial_admin', symbolType: 'CityHallSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
-      { id: 'tribal_nation_council', name: 'Nation Council House', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Modern elected council for a sovereign tribal nation.', districtType: 'tribal_government', symbolType: 'TownHallSymbol', priority: 10 }
+      { id: 'tribal_nation_council', name: 'Nation Council House', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Modern elected council for a sovereign tribal nation.', districtType: 'tribal_government', symbolType: 'TownHallSymbol', priority: 10 }
     ]
   },
 
@@ -1013,7 +1013,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'earthlodge_council', name: 'Earthlodge Council', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Sedentary village council coordinating farming and trade.', districtType: 'village_council', symbolType: 'LonghouseCouncilSymbol', priority: 9 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-      { id: 'territorial_courthouse', name: 'Territorial Courthouse', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Railhead county seat and land office.', districtType: 'county_admin', symbolType: 'CityHallSymbol', priority: 10 }
+      { id: 'territorial_courthouse', name: 'Territorial Courthouse', archetype: SpecialMapArchetype.COURT_CHAMBER, description: 'Railhead county seat and land office.', districtType: 'county_admin', symbolType: 'CityHallSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
       { id: 'statehouse_gp', name: 'Statehouse', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Plains state legislature and governor wing.', districtType: 'state_gov', symbolType: 'ModernParliamentSymbol', priority: 10 }
@@ -1034,7 +1034,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
 
   "Northeastern Seaboard": {
     [HistoricalEra.MEDIEVAL]: [
-      { id: 'longhouse_confederacy', name: 'Longhouse of a Confederacy', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Grand council longhouse for diplomacy and law.', districtType: 'confederacy_council', symbolType: 'LonghouseCouncilSymbol', priority: 10 }
+      { id: 'longhouse_confederacy', name: 'Longhouse of a Confederacy', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Grand council longhouse for diplomacy and law.', districtType: 'confederacy_council', symbolType: 'LonghouseCouncilSymbol', priority: 10 }
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
       { id: 'colonial_council_chamber', name: 'Colonial Council Chamber', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Governor’s council and assembly chamber.', districtType: 'colonial_legislature', symbolType: 'ColonialOfficeSymbol', priority: 9 }
@@ -1043,7 +1043,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'state_house_ne', name: 'State House', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Commonwealth legislature and cabinet rooms.', districtType: 'state_gov', symbolType: 'CityHallSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
-      { id: 'city_hall_ne', name: 'Metropolitan City Hall', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Municipal government with planning commission.', districtType: 'municipal', symbolType: 'ModernParliamentSymbol', priority: 10 }
+      { id: 'city_hall_ne', name: 'Metropolitan City Hall', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Municipal government with planning commission.', districtType: 'municipal', symbolType: 'ModernParliamentSymbol', priority: 10 }
     ]
   },
 
@@ -1052,7 +1052,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'council_house_se', name: 'Council House', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Central council of a plaza town.', districtType: 'council', symbolType: 'LonghouseCouncilSymbol', priority: 10 }
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
-      { id: 'colonial_assembly_se', name: 'Colonial Assembly', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Elected lower house and appointed council.', districtType: 'colonial_legislature', symbolType: 'ColonialOfficeSymbol', priority: 9 }
+      { id: 'colonial_assembly_se', name: 'Colonial Assembly', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Elected lower house and appointed council.', districtType: 'colonial_legislature', symbolType: 'ColonialOfficeSymbol', priority: 9 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
       { id: 'state_capitol_se', name: 'State Capitol', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Statehouse on a hill with dome and rotunda.', districtType: 'state_gov', symbolType: 'CityHallSymbol', priority: 10 }
@@ -1067,7 +1067,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'trading_company_post', name: 'Trading Company Post', archetype: SpecialMapArchetype.MILITARY_FORTRESS, description: 'Fort and factor’s hall for fur trade governance.', districtType: 'chartered_company', symbolType: 'ColonialOfficeSymbol', priority: 9 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-      { id: 'dominion_parliament', name: 'Dominion Parliament', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Confederation-era parliament buildings.', districtType: 'national_parliament', symbolType: 'CityHallSymbol', priority: 10 }
+      { id: 'dominion_parliament', name: 'Dominion Parliament', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Confederation-era parliament buildings.', districtType: 'national_parliament', symbolType: 'CityHallSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
       { id: 'provincial_legislature', name: 'Provincial Legislature', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Provincial legislative assembly and cabinet.', districtType: 'provincial_gov', symbolType: 'ModernParliamentSymbol', priority: 10 }
@@ -1082,7 +1082,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'northern_council', name: 'Northern Council Chambers', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Regional assembly emphasizing indigenous self-government.', districtType: 'regional_assembly', symbolType: 'ModernParliamentSymbol', priority: 10 }
     ],
     [HistoricalEra.FUTURE_ERA]: [
-      { id: 'circumpolar_forum', name: 'Circumpolar Forum', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Pan-Arctic forum for shipping lanes, fisheries, and ice monitoring.', districtType: 'international_forum', symbolType: 'AdminCenterSymbol', priority: 10 }
+      { id: 'circumpolar_forum', name: 'Circumpolar Forum', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Pan-Arctic forum for shipping lanes, fisheries, and ice monitoring.', districtType: 'international_forum', symbolType: 'AdminCenterSymbol', priority: 10 }
     ]
   },
 
@@ -1094,13 +1094,13 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'tlatocan', name: 'Tlatocan (Council of Lords)', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'Mexica council within the royal precinct near the Templo Mayor.', districtType: 'imperial_council', symbolType: 'PyramidGovernmentSymbol', priority: 10 }
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
-      { id: 'cabildo_mexico', name: 'Ayuntamiento (Cabildo)', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Spanish municipal cabildo in the viceregal capital region.', districtType: 'colonial_municipal', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+      { id: 'cabildo_mexico', name: 'Ayuntamiento (Cabildo)', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Spanish municipal cabildo in the viceregal capital region.', districtType: 'colonial_municipal', symbolType: 'ColonialOfficeSymbol', priority: 10 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
       { id: 'national_palace', name: 'National Palace', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'Presidential and ministerial offices facing the main plaza.', districtType: 'executive', symbolType: 'CityHallSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
-      { id: 'federal_congress', name: 'Federal Congress', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Bicameral legislature complex.', districtType: 'national_legislature', symbolType: 'ModernParliamentSymbol', priority: 10 }
+      { id: 'federal_congress', name: 'Federal Congress', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Bicameral legislature complex.', districtType: 'national_legislature', symbolType: 'ModernParliamentSymbol', priority: 10 }
     ]
   },
 
@@ -1112,7 +1112,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'audiencia', name: 'Real Audiencia', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'High court and administrative council of a captaincy.', districtType: 'royal_audience', symbolType: 'ColonialOfficeSymbol', priority: 9 }
     ],
     [HistoricalEra.MODERN_ERA]: [
-      { id: 'central_american_parliament', name: 'Regional Parliament', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Supranational deliberative body in the isthmus.', districtType: 'regional_parliament', symbolType: 'ModernParliamentSymbol', priority: 8 }
+      { id: 'central_american_parliament', name: 'Regional Parliament', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Supranational deliberative body in the isthmus.', districtType: 'regional_parliament', symbolType: 'ModernParliamentSymbol', priority: 8 }
     ]
   },
 
@@ -1121,13 +1121,13 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'ballcourt_council', name: 'Ballcourt Council Ground', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'Ceremonial-municipal court among island chiefdoms.', districtType: 'ceremonial_council', symbolType: 'PyramidGovernmentSymbol', priority: 8 }
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
-      { id: 'colonial_cabildo_carib', name: 'Cabildo of a Port', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Harbor cabildo regulating customs and shipping.', districtType: 'colonial_municipal', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+      { id: 'colonial_cabildo_carib', name: 'Cabildo of a Port', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Harbor cabildo regulating customs and shipping.', districtType: 'colonial_municipal', symbolType: 'ColonialOfficeSymbol', priority: 10 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
       { id: 'governors_house_carib', name: 'Governor’s House', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'Executive residence with customs house and jail.', districtType: 'colonial_governor', symbolType: 'CityHallSymbol', priority: 8 }
     ],
     [HistoricalEra.MODERN_ERA]: [
-      { id: 'island_parliament', name: 'Island Parliament', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Post-colonial legislature and cabinet offices.', districtType: 'parliament', symbolType: 'ModernParliamentSymbol', priority: 10 }
+      { id: 'island_parliament', name: 'Island Parliament', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Post-colonial legislature and cabinet offices.', districtType: 'parliament', symbolType: 'ModernParliamentSymbol', priority: 10 }
     ]
   },
 
@@ -1145,10 +1145,10 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
 
   "Atlantic Coast": {
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
-      { id: 'colonial_assembly_ac', name: 'Colonial Assembly Hall', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Elected assembly managing trade and militia.', districtType: 'colonial_legislature', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+      { id: 'colonial_assembly_ac', name: 'Colonial Assembly Hall', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Elected assembly managing trade and militia.', districtType: 'colonial_legislature', symbolType: 'ColonialOfficeSymbol', priority: 10 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-      { id: 'municipal_hall_ac', name: 'Municipal Hall', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Harbor board, quarantine office, and customs.', districtType: 'municipal', symbolType: 'CityHallSymbol', priority: 10 }
+      { id: 'municipal_hall_ac', name: 'Municipal Hall', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Harbor board, quarantine office, and customs.', districtType: 'municipal', symbolType: 'CityHallSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
       { id: 'statehouse_ac', name: 'Statehouse', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Atlantic state legislature and executive offices.', districtType: 'state_gov', symbolType: 'ModernParliamentSymbol', priority: 10 }
@@ -1162,13 +1162,13 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'moche_huaca_court', name: 'Huaca Court', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'Platform and plaza complex coordinating irrigation and craft guilds.', districtType: 'ceremonial_admin', symbolType: 'PyramidGovernmentSymbol', priority: 10 }
     ],
     [HistoricalEra.MEDIEVAL]: [
-      { id: 'curaca_court', name: 'Curaca Court', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Regional lord coordinating mit’a labor obligations.', districtType: 'provincial_admin', symbolType: 'PyramidGovernmentSymbol', priority: 9 }
+      { id: 'curaca_court', name: 'Curaca Court', archetype: SpecialMapArchetype.COURT_CHAMBER, description: 'Regional lord coordinating mit’a labor obligations.', districtType: 'provincial_admin', symbolType: 'PyramidGovernmentSymbol', priority: 9 }
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
       { id: 'audiencia_quito', name: 'Real Audiencia (Quito)', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'High court and viceregal chamber in the northern Andes.', districtType: 'royal_audience', symbolType: 'ColonialOfficeSymbol', priority: 10 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-      { id: 'republic_congress_andes_n', name: 'Republican Congress', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Post-independence legislature with national palace nearby.', districtType: 'legislature', symbolType: 'CityHallSymbol', priority: 10 }
+      { id: 'republic_congress_andes_n', name: 'Republican Congress', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Post-independence legislature with national palace nearby.', districtType: 'legislature', symbolType: 'CityHallSymbol', priority: 10 }
     ]
   },
 
@@ -1177,7 +1177,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'inca_kallanka_as', name: 'Inca Kallanka Hall', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Large hall for state ceremonies, feasts, and musters.', districtType: 'imperial_admin', symbolType: 'PyramidGovernmentSymbol', priority: 10 }
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
-      { id: 'cabildo_cuzco', name: 'Cabildo (High Andes)', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Spanish municipal hall regulating encomiendas and trade.', districtType: 'colonial_municipal', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+      { id: 'cabildo_cuzco', name: 'Cabildo (High Andes)', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Spanish municipal hall regulating encomiendas and trade.', districtType: 'colonial_municipal', symbolType: 'ColonialOfficeSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
       { id: 'regional_governorship', name: 'Regional Governorship', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Regional government focused on mining and tourism corridors.', districtType: 'regional_admin', symbolType: 'ModernParliamentSymbol', priority: 9 }
@@ -1189,7 +1189,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'earthwork_plaza', name: 'Earthwork Plaza', archetype: SpecialMapArchetype.OPEN_FIELD, description: 'Geometric earthworks with council and ritual spheres.', districtType: 'village_council', symbolType: 'OpenAirCouncilSymbol', priority: 9 }
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
-      { id: 'mission_town_council', name: 'Mission Town Council', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Jesuit or Franciscan mission town cabildo.', districtType: 'mission_municipal', symbolType: 'ColonialOfficeSymbol', priority: 9 }
+      { id: 'mission_town_council', name: 'Mission Town Council', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Jesuit or Franciscan mission town cabildo.', districtType: 'mission_municipal', symbolType: 'ColonialOfficeSymbol', priority: 9 }
     ],
     [HistoricalEra.MODERN_ERA]: [
       { id: 'basin_authority', name: 'River Basin Authority', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Trans-state governance for forests, waterways, and indigenous rights.', districtType: 'basin_governance', symbolType: 'AdminCenterSymbol', priority: 10 }
@@ -1198,10 +1198,10 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
 
   "Gran Chaco and Pampas": {
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
-      { id: 'cabildo_river_plate', name: 'Cabildo del Río de la Plata', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Municipal hall of a river-port town.', districtType: 'colonial_municipal', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+      { id: 'cabildo_river_plate', name: 'Cabildo del Río de la Plata', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Municipal hall of a river-port town.', districtType: 'colonial_municipal', symbolType: 'ColonialOfficeSymbol', priority: 10 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-      { id: 'national_congress_gp', name: 'National Congress', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Constitutional legislature with federal layout.', districtType: 'national_legislature', symbolType: 'CityHallSymbol', priority: 10 }
+      { id: 'national_congress_gp', name: 'National Congress', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Constitutional legislature with federal layout.', districtType: 'national_legislature', symbolType: 'CityHallSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
       { id: 'provincial_casa_gobierno', name: 'Casa de Gobierno', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'Provincial executive and legislative house.', districtType: 'provincial_government', symbolType: 'ModernParliamentSymbol', priority: 9 }
@@ -1213,7 +1213,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'fortified_factory', name: 'Fortified Factory', archetype: SpecialMapArchetype.MILITARY_FORTRESS, description: 'Chartered company fort and administrative house.', districtType: 'chartered_company', symbolType: 'ColonialOfficeSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
-      { id: 'departmental_prefecture', name: 'Departmental Prefecture', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Departmental government coordinating forests and spaceport or mines.', districtType: 'department_admin', symbolType: 'AdminCenterSymbol', priority: 9 }
+      { id: 'departmental_prefecture', name: 'Departmental Prefecture', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Departmental government coordinating forests and spaceport or mines.', districtType: 'department_admin', symbolType: 'AdminCenterSymbol', priority: 9 }
     ]
   },
 
@@ -1234,13 +1234,13 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'audiencia_charcas', name: 'Audiencia de Charcas', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'High court and treasury for silver highlands.', districtType: 'royal_audience', symbolType: 'ColonialOfficeSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
-      { id: 'plurinational_assembly', name: 'Plurinational Assembly', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Assembly incorporating indigenous representation.', districtType: 'national_legislature', symbolType: 'ModernParliamentSymbol', priority: 10 }
+      { id: 'plurinational_assembly', name: 'Plurinational Assembly', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Assembly incorporating indigenous representation.', districtType: 'national_legislature', symbolType: 'ModernParliamentSymbol', priority: 10 }
     ]
   },
 
   "Llanos and Orinoco": {
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
-      { id: 'cabildo_llanos', name: 'Cabildo Llanero', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Cabildo among cattle plains and river ports.', districtType: 'colonial_municipal', symbolType: 'ColonialOfficeSymbol', priority: 9 }
+      { id: 'cabildo_llanos', name: 'Cabildo Llanero', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Cabildo among cattle plains and river ports.', districtType: 'colonial_municipal', symbolType: 'ColonialOfficeSymbol', priority: 9 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
       { id: 'federal_capitol_llanos', name: 'Federal Capitol', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Oil and river-trade era legislature.', districtType: 'national_legislature', symbolType: 'CityHallSymbol', priority: 10 }
@@ -1285,10 +1285,10 @@ export const CULTURAL_ZONE_DISTRICTS: Record<string, Record<HistoricalEra, Gover
       { id: 'port_alii', name: 'Aliʻi Council House', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'Paramount chiefs’ court in port towns engaging Pacific trade.', districtType: 'royal_court', symbolType: 'ChieflyPlatformSymbol', priority: 9 }
     ],
     [HistoricalEra.MODERN_ERA]: [
-      { id: 'national_parliament_oce', name: 'National Parliament', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Post-colonial parliamentary complex.', districtType: 'parliament', symbolType: 'ModernParliamentSymbol', priority: 10 }
+      { id: 'national_parliament_oce', name: 'National Parliament', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Post-colonial parliamentary complex.', districtType: 'parliament', symbolType: 'ModernParliamentSymbol', priority: 10 }
     ],
     [HistoricalEra.FUTURE_ERA]: [
-      { id: 'climate_mobility_court', name: 'Climate Mobility Court', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Regional venue for maritime borders and climate relocation.', districtType: 'regional_court', symbolType: 'AdminCenterSymbol', priority: 9 }
+      { id: 'climate_mobility_court', name: 'Climate Mobility Court', archetype: SpecialMapArchetype.COURT_CHAMBER, description: 'Regional venue for maritime borders and climate relocation.', districtType: 'regional_court', symbolType: 'AdminCenterSymbol', priority: 9 }
     ]
   },
   
@@ -1405,13 +1405,13 @@ export const CULTURAL_ZONE_DISTRICTS: Record<string, Record<HistoricalEra, Gover
       { id: 'mughal_darbar', name: 'Mughal Darbar', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'Mughal imperial court.', districtType: 'imperial_darbar', symbolType: 'CaliphCourtSymbol', priority: 10 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-      { id: 'raj_secretariat', name: 'British Secretariat', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'British Raj administrative building.', districtType: 'colonial_secretariat', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+      { id: 'raj_secretariat', name: 'British Secretariat', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'British Raj administrative building.', districtType: 'colonial_secretariat', symbolType: 'ColonialOfficeSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
-      { id: 'parliament_house_sa', name: 'Parliament House', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Democratic parliament building.', districtType: 'national_parliament', symbolType: 'ModernParliamentSymbol', priority: 10 }
+      { id: 'parliament_house_sa', name: 'Parliament House', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Democratic parliament building.', districtType: 'national_parliament', symbolType: 'ModernParliamentSymbol', priority: 10 }
     ],
     [HistoricalEra.FUTURE_ERA]: [
-      { id: 'saarc_secretariat', name: 'SAARC Secretariat', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Headquarters for the South Asian Association for Regional Cooperation.', districtType: 'regional_cooperation', symbolType: 'AdminCenterSymbol', priority: 10 }
+      { id: 'saarc_secretariat', name: 'SAARC Secretariat', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Headquarters for the South Asian Association for Regional Cooperation.', districtType: 'regional_cooperation', symbolType: 'AdminCenterSymbol', priority: 10 }
     ]
   },
 
@@ -1449,7 +1449,7 @@ export const CULTURAL_ZONE_DISTRICTS: Record<string, Record<HistoricalEra, Gover
       { id: 'great_kiva', name: 'Great Kiva', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'An Ancestral Puebloan ceremonial chamber for spiritual and political governance.', districtType: 'ceremonial_center', symbolType: 'OpenAirCouncilSymbol', priority: 8 }
     ],
     [HistoricalEra.MEDIEVAL]: [
-      { id: 'longhouse_council_ia', name: 'Confederacy Longhouse', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'A grand council house, the political heart of a powerful confederacy like the Haudenosaunee.', districtType: 'confederacy_council', symbolType: 'LonghouseCouncilSymbol', priority: 10 }
+      { id: 'longhouse_council_ia', name: 'Confederacy Longhouse', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'A grand council house, the political heart of a powerful confederacy like the Haudenosaunee.', districtType: 'confederacy_council', symbolType: 'LonghouseCouncilSymbol', priority: 10 }
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
       { id: 'confederacy_fire', name: 'Council Fire', archetype: SpecialMapArchetype.OPEN_FIELD, description: 'The central diplomatic and ceremonial meeting place for an inter-tribal confederacy.', districtType: 'diplomatic_ground', symbolType: 'OpenAirCouncilSymbol', priority: 10 }
@@ -1470,13 +1470,13 @@ export const CULTURAL_ZONE_DISTRICTS: Record<string, Record<HistoricalEra, Gover
         { id: 'viceregal_palace', name: 'Palace of the Viceroy', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The seat of Spanish colonial administration for a Viceroyalty.', districtType: 'colonial_administration', symbolType: 'ColonialOfficeSymbol', priority: 10 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-        { id: 'republican_congress', name: 'National Congress', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The legislative palace of a newly independent South American republic.', districtType: 'national_legislature', symbolType: 'CityHallSymbol', priority: 10 }
+        { id: 'republican_congress', name: 'National Congress', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'The legislative palace of a newly independent South American republic.', districtType: 'national_legislature', symbolType: 'CityHallSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
         { id: 'presidential_palace', name: 'Presidential Palace', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The official office and residence of the head of state.', districtType: 'presidential_palace', symbolType: 'AdminCenterSymbol', priority: 10 }
     ],
     [HistoricalEra.FUTURE_ERA]: [
-        { id: 'mercosur_parliament', name: 'Mercosur Parliament', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The parliamentary body for the Mercosur trade bloc, representing regional integration.', districtType: 'regional_parliament', symbolType: 'AdminCenterSymbol', priority: 10 }
+        { id: 'mercosur_parliament', name: 'Mercosur Parliament', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'The parliamentary body for the Mercosur trade bloc, representing regional integration.', districtType: 'regional_parliament', symbolType: 'AdminCenterSymbol', priority: 10 }
     ]
   },
 
@@ -1496,10 +1496,10 @@ export const CULTURAL_ZONE_DISTRICTS: Record<string, Record<HistoricalEra, Gover
       { id: 'pashas_palace', name: 'Pasha\'s Palace', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The administrative seat of a provincial governor (Pasha) within a large empire like the Ottomans or Safavids.', districtType: 'provincial_administration', symbolType: 'CaliphCourtSymbol', priority: 10 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-      { id: 'mandate_administration_hq', name: 'Mandate Administration HQ', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The headquarters of a European mandate authority or colonial power governing a territory.', districtType: 'colonial_mandate', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+      { id: 'mandate_administration_hq', name: 'Mandate Administration HQ', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'The headquarters of a European mandate authority or colonial power governing a territory.', districtType: 'colonial_mandate', symbolType: 'ColonialOfficeSymbol', priority: 10 }
     ],
     [HistoricalEra.MODERN_ERA]: [
-      { id: 'ministry_building', name: 'Ministry Building', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'A modern government ministry building for a post-independence national republic or monarchy.', districtType: 'government_ministry', symbolType: 'AdminCenterSymbol', priority: 10 },
+      { id: 'ministry_building', name: 'Ministry Building', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'A modern government ministry building for a post-independence national republic or monarchy.', districtType: 'government_ministry', symbolType: 'AdminCenterSymbol', priority: 10 },
       { id: 'royal_diwan', name: 'Royal Diwan', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The administrative office and court of a modern monarch in the Middle East.', districtType: 'royal_administration', symbolType: 'AdminCenterSymbol', priority: 8 }
     ],
     [HistoricalEra.FUTURE_ERA]: [
@@ -1523,15 +1523,15 @@ export const CULTURAL_ZONE_DISTRICTS: Record<string, Record<HistoricalEra, Gover
       { id: 'shogunate_hq', name: 'Shogunate Headquarters', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The central administrative center for the military government (Shogunate).', districtType: 'shogunate_government', symbolType: 'MandateHallSymbol', priority: 9 }
     ],
     [HistoricalEra.INDUSTRIAL_ERA]: [
-      { id: 'prefectural_office', name: 'Prefectural Office', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'A modernized, often Western-style, government building for regional administration.', districtType: 'modern_prefecture', symbolType: 'CityHallSymbol', priority: 10 },
+      { id: 'prefectural_office', name: 'Prefectural Office', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'A modernized, often Western-style, government building for regional administration.', districtType: 'modern_prefecture', symbolType: 'CityHallSymbol', priority: 10 },
       { id: 'treaty_port_concession', name: 'Foreign Concession Office', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The administrative office for a foreign concession in a treaty port, exercising extraterritorial authority.', districtType: 'colonial_administration', symbolType: 'ColonialOfficeSymbol', priority: 8 }
     ],
     [HistoricalEra.MODERN_ERA]: [
-      { id: 'national_assembly_hall', name: 'National Assembly Hall', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The central building for the national legislature, be it a Parliament, Diet, or People\'s Congress.', districtType: 'national_legislature', symbolType: 'ModernParliamentSymbol', priority: 10 },
+      { id: 'national_assembly_hall', name: 'National Assembly Hall', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'The central building for the national legislature, be it a Parliament, Diet, or People\'s Congress.', districtType: 'national_legislature', symbolType: 'ModernParliamentSymbol', priority: 10 },
       { id: 'party_headquarters', name: 'Ruling Party Headquarters', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'The administrative and political center for a dominant or single-party state.', districtType: 'party_headquarters', symbolType: 'SovietPalaceSymbol', priority: 9 }
     ],
     [HistoricalEra.FUTURE_ERA]: [
-      { id: 'asean_secretariat', name: 'Regional Economic Forum HQ', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'A headquarters for a major regional economic and diplomatic body like ASEAN or APEC.', districtType: 'regional_cooperation', symbolType: 'AdminCenterSymbol', priority: 10 }
+      { id: 'asean_secretariat', name: 'Regional Economic Forum HQ', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'A headquarters for a major regional economic and diplomatic body like ASEAN or APEC.', districtType: 'regional_cooperation', symbolType: 'AdminCenterSymbol', priority: 10 }
     ]
   }
 

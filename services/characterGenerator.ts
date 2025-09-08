@@ -12,6 +12,7 @@ import { hexToColorName } from '../utils/colorUtils';
 import { CharacterSpecification } from './worldWeaverService';
 import DiseaseService from './diseaseService';
 import { AttributeBadgeService } from './attributeBadgeService';
+import { getMarkingsForCharacter, selectRandomMarking, getRandomPattern, convertToAppearanceMarking, getMarkingProbability } from '../constants/characterData/culturalMarkings';
 
 let characterIdCounter = 0;
 
@@ -495,6 +496,40 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
         }
     }
     
+    // Generate cultural markings based on culture, profession, and context
+    const markingProbability = getMarkingProbability(culturalZone, generationContext.era, spec?.profession || role);
+    const markings: any[] = [];
+    
+    console.log(`[CharGen Spec] Marking probability for ${culturalZone}/${generationContext.era}/${spec?.profession || role}: ${markingProbability}`);
+    
+    if (noise.random() < markingProbability) {
+        const availableMarkings = getMarkingsForCharacter(
+            culturalZone,
+            generationContext.era,
+            spec?.profession || role,
+            spec?.gender?.toLowerCase() as 'male' | 'female' || 'male',
+            baseProfile.wealthLevel,
+            spec?.age || baseProfile.age,
+            'daily' // Default occasion
+        );
+        
+        console.log(`[CharGen Spec] Found ${availableMarkings.length} available markings for character`);
+        
+        const selectedMarking = selectRandomMarking(availableMarkings, noise.random());
+        if (selectedMarking) {
+            const pattern = getRandomPattern(selectedMarking, noise.random());
+            if (pattern) {
+                const appearanceMarking = convertToAppearanceMarking(selectedMarking, pattern);
+                markings.push(appearanceMarking);
+                console.log(`[CharGen Spec] Added cultural marking: ${pattern.localName || pattern.name} (${selectedMarking.type})`);
+            }
+        } else {
+            console.log(`[CharGen Spec] No marking selected from available options`);
+        }
+    } else {
+        console.log(`[CharGen Spec] Random check failed: ${noise.random()} >= ${markingProbability}`);
+    }
+
     const finalAppearance: Appearance = {
         ...baseProfile.appearance,
         palette: palette,
@@ -510,9 +545,10 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
         belt: equippedItems.belt 
             ? { name: equippedItems.belt.name, material: equippedItems.belt.material || 'leather' } 
             : baseProfile.appearance.belt,
-        accessory: equippedItems.amulet 
-            ? { name: equippedItems.amulet.name, material: equippedItems.amulet.material || 'metal' } 
+        accessory: equippedItems.accessory 
+            ? { name: equippedItems.accessory.name, material: equippedItems.accessory.material || 'metal' } 
             : baseProfile.appearance.accessory,
+        markings: markings.length > 0 ? markings : undefined
     };
     
     // Calculate health based on potentially modified stats
@@ -789,6 +825,40 @@ export function generateCharacter(context: GenerationContext): PlayerCharacter {
         }
     }
     
+    // Generate cultural markings based on culture, profession, and context
+    const markingProbability = getMarkingProbability(culturalZone, generationContext.era, role);
+    const markings: any[] = [];
+    
+    console.log(`[CharGen] Marking probability for ${culturalZone}/${generationContext.era}/${role}: ${markingProbability}`);
+    
+    if (noise.random() < markingProbability) {
+        const availableMarkings = getMarkingsForCharacter(
+            culturalZone,
+            generationContext.era,
+            role,
+            baseProfile.gender?.toLowerCase() as 'male' | 'female' || 'male',
+            baseProfile.wealthLevel || 'modest',
+            baseProfile.age,
+            'daily' // Default occasion
+        );
+        
+        console.log(`[CharGen] Found ${availableMarkings.length} available markings for character`);
+        
+        const selectedMarking = selectRandomMarking(availableMarkings, noise.random());
+        if (selectedMarking) {
+            const pattern = getRandomPattern(selectedMarking, noise.random());
+            if (pattern) {
+                const appearanceMarking = convertToAppearanceMarking(selectedMarking, pattern);
+                markings.push(appearanceMarking);
+                console.log(`[CharGen] Added cultural marking: ${pattern.localName || pattern.name} (${selectedMarking.type})`);
+            }
+        } else {
+            console.log(`[CharGen] No marking selected from available options`);
+        }
+    } else {
+        console.log(`[CharGen] Random check failed: ${noise.random()} >= ${markingProbability}`);
+    }
+
     // Build the final appearance object, prioritizing equipped items for the description
     const finalAppearance: Appearance = {
         ...baseProfile.appearance,
@@ -805,9 +875,10 @@ export function generateCharacter(context: GenerationContext): PlayerCharacter {
         belt: equippedItems.belt 
             ? { name: equippedItems.belt.name, material: equippedItems.belt.material || 'leather' } 
             : baseProfile.appearance.belt,
-        accessory: equippedItems.amulet 
-            ? { name: equippedItems.amulet.name, material: equippedItems.amulet.material || 'metal' } 
+        accessory: equippedItems.accessory 
+            ? { name: equippedItems.accessory.name, material: equippedItems.accessory.material || 'metal' } 
             : baseProfile.appearance.accessory,
+        markings: markings.length > 0 ? markings : undefined
     };
     
     const maxHealth = 80 + baseProfile.stats.constitution * 2 + baseProfile.stats.strength;

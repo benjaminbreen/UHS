@@ -937,10 +937,8 @@ export function generateProceduralItem(
   // Get era-appropriate material
   const baseMaterial = baseItem.material || 'Wood';
   
-  // For headgear, keep the inherent material (e.g., "Straw" for straw hats, "Felt" for felt hats)
-  // This prevents nonsense like "Wool Straw Hat"
-  const isHeadgear = baseItem.equipmentSlot === 'head';
-  const eraAppropriateMaterial = isHeadgear ? baseMaterial : getEraAppropriateMaterial(baseMaterial, era, baseItem.category);
+  // Get era-appropriate material for all items including headgear
+  const eraAppropriateMaterial = getEraAppropriateMaterial(baseMaterial, era, baseItem.category);
   
   // Get cultural style
   const culturalStyle = options.culture ? getCulturalStyle(options.culture, eraAppropriateMaterial) : undefined;

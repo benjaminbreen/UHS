@@ -25,6 +25,7 @@ import {
   BookshelfSymbol,
   CabinetSymbol,
   WallSymbol,
+  WallLowSymbol,
   DoorSymbol,
   ArchwaySymbol,
   WallGateSymbol,
@@ -99,6 +100,7 @@ interface SpecialMapSymbolRendererProps {
   };
   specialArchetype?: SpecialMapArchetype;
   tile?: any; // Add tile prop to check for overlays
+  materialSubtype?: string; // For tiles with material variations
 }
 
 export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> = ({
@@ -111,7 +113,9 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
   year,
   seed = 0,
   nightIntensity = 0,
-  multiTileData
+  multiTileData,
+  tile,
+  materialSubtype
 }) => {
   // Apply night filter if needed
   const nightFilter = nightIntensity > 0 ? `brightness(${1 - nightIntensity * 0.5})` : undefined;
@@ -144,7 +148,8 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
         return <TableRight x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} material="wood" />;
       
       case BiomeType.CHAIR:
-        return <ChairSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} />;
+        const chairRotation = tile?.overlayObject?.rotation || 0;
+        return <ChairSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} rotation={chairRotation} />;
       
       case BiomeType.BENCH:
         return <BenchSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
@@ -216,6 +221,8 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
       // Additional architectural biomes that might be in the map
       case BiomeType.WALL:
         return <WallSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} />;
+      case BiomeType.WALL_LOW:
+        return <WallLowSymbol biome={biome} x={0} y={0} tileSize={size} materialSubtype={materialSubtype || tile?.materialSubtype} />;
       case BiomeType.WALL_GATE:
         return <WallGateSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
       case BiomeType.WALL_WINDOW:

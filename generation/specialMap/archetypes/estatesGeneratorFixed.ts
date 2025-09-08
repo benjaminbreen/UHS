@@ -149,6 +149,34 @@ export function generateEstates(
   const exitZones: ExitZone[] = [];
   const rooms: RoomDefinition[] = [];
   
+  // Determine estate type based on districtType
+  let estateType = 'palace'; // default
+  if (config.districtType) {
+    switch (config.districtType) {
+      case 'palace':
+      case 'royal_hall':
+        estateType = 'royal_palace'; // Grand monarchy
+        break;
+      case 'castle':
+      case 'hillfort':
+        estateType = 'fortress_palace'; // Military stronghold
+        break;
+      case 'royal_temple':
+      case 'sacred_council':
+        estateType = 'temple_palace'; // Religious compound
+        break;
+      case 'chiefly_court':
+      case 'compound':
+        estateType = 'tribal_compound'; // Tribal chief's residence
+        break;
+      case 'settlement_council':
+        estateType = 'manor_house'; // Small settlement leader
+        break;
+      default:
+        estateType = 'palace';
+    }
+  }
+  
   // Determine landscape border
   const borderSize = config.hasLandscape ? 
     LANDSCAPE_BORDER_ROWS[config.mapSize || 'medium'] : 0;
@@ -673,8 +701,82 @@ function generateMediumEstate(
   tiles[antechamberY][centerX].biome = BiomeType.DOOR;
   tiles[antechamberY][centerX].isBlocking = false;
   
-  // Throne with dais platform (place before procedural furnishing)
-  placeThroneWithDais(tiles, centerX, startY + 2, config);
+  // Place central feature based on district type
+  if (config.districtType) {
+    switch (config.districtType) {
+      case 'royal_temple':
+      case 'sacred_council':
+        // Temple palace: altar instead of throne
+        const altarY = startY + 3;
+        tiles[altarY][centerX].biome = BiomeType.ALTAR;
+        tiles[altarY][centerX].isBlocking = true;
+        // Add religious decorations
+        for (let dx = -2; dx <= 2; dx += 4) {
+          tiles[altarY][centerX + dx].overlayObject = {
+            type: OverlayObjectType.TORCH,
+            rotation: 0,
+            variant: 'candle'
+          };
+        }
+        break;
+        
+      case 'castle':
+      case 'hillfort':
+        // Military fortress: weapon displays
+        placeThroneWithDais(tiles, centerX, startY + 2, config);
+        // Add weapon racks on sides
+        tiles[startY + 3][centerX - 4].overlayObject = {
+          type: OverlayObjectType.WEAPON_RACK,
+          rotation: 0,
+          variant: config.culturalZone
+        };
+        tiles[startY + 3][centerX + 4].overlayObject = {
+          type: OverlayObjectType.WEAPON_RACK,
+          rotation: 0,
+          variant: config.culturalZone
+        };
+        break;
+        
+      case 'chiefly_court':
+      case 'compound':
+        // Tribal compound: central firepit with seating
+        tiles[startY + 4][centerX].biome = BiomeType.FIREPIT;
+        // Stone seating around fire
+        for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 3) {
+          const fx = centerX + Math.round(Math.cos(angle) * 3);
+          const fy = startY + 4 + Math.round(Math.sin(angle) * 2);
+          if (tiles[fy] && tiles[fy][fx]) {
+            tiles[fy][fx].overlayObject = {
+              type: OverlayObjectType.BENCH,
+              rotation: 0,
+              variant: 'stone'
+            };
+          }
+        }
+        break;
+        
+      case 'settlement_council':
+        // Manor house: modest throne with table
+        placeThroneWithDais(tiles, centerX, startY + 2, config);
+        // Add council table
+        for (let x = centerX - 2; x <= centerX + 2; x++) {
+          tiles[startY + 6][x].overlayObject = {
+            type: OverlayObjectType.TABLE,
+            rotation: 0,
+            variant: 'wood'
+          };
+        }
+        break;
+        
+      default:
+        // Default royal palace: grand throne
+        placeThroneWithDais(tiles, centerX, startY + 2, config);
+        break;
+    }
+  } else {
+    // No district type, use default throne
+    placeThroneWithDais(tiles, centerX, startY + 2, config);
+  }
   
   // Use procedural furnishing for throne room (will add everything else)
   procedurallyFurnishRoom(tiles, startX + 1, startY + 1, width - 2, throneRoomHeight - 1, 'throne_room', config);

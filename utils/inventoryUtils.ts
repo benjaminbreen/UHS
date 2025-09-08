@@ -7,6 +7,10 @@ import { generateProceduralItemDescription } from '../services/itemDescriptionGe
 import { createTamedAnimal, addToParty } from '../services/animalTamingService';
 import { createColoredItemInstance, applyColorsToAllItems, generateContextualWeapon } from '../services/itemGenerationService';
 import { generateContextualHeadgear, generateContextualStartingPackage } from '../services/headgearGenerationService';
+import { generateContextualTorso, GENERIC_TORSO_ITEMS } from '../services/torsoGenerationService';
+import { generateContextualAccessory, GENERIC_ACCESSORIES } from '../services/accessoryGenerationService';
+import { getAccessoriesForCharacter, selectRandomAccessory } from '../constants/characterData/accessories';
+import { generateCulturalAccessory, generateAccessorySet } from '../services/culturalAccessoryService';
 
 let itemIdCounter = 1000; // Start high to avoid collision with other potential item sources
 
@@ -354,6 +358,40 @@ function calculateAmuletChance(era?: HistoricalEra, culture?: CulturalZone, prof
 }
 
 /**
+ * Add a quality adjective to amulet/jewelry names based on privilege level
+ */
+function addQualityAdjective(itemName: string, privilege: number): string {
+    // Skip if name already has an adjective
+    if (itemName.toLowerCase().includes('legendary') || 
+        itemName.toLowerCase().includes('ornate') ||
+        itemName.toLowerCase().includes('polished') ||
+        itemName.toLowerCase().includes('beautiful')) {
+        return itemName;
+    }
+    
+    const qualityAdjectives = {
+        poor: ['Battered', 'Worn', 'Simple', 'Crude', 'Plain', 'Humble', 'Weathered'],
+        common: ['Well-made', 'Sturdy', 'Decent', 'Solid', 'Reliable', 'Functional'],
+        wealthy: ['Fine', 'Polished', 'Elegant', 'Beautiful', 'Ornate', 'Exquisite', 'Masterful'],
+        legendary: ['Legendary', 'Ancient', 'Sacred', 'Blessed', 'Magnificent', 'Divine']
+    };
+    
+    let adjectives: string[];
+    if (privilege < 0.2) {
+        adjectives = qualityAdjectives.poor;
+    } else if (privilege < 0.6) {
+        adjectives = qualityAdjectives.common;
+    } else if (privilege < 0.9) {
+        adjectives = qualityAdjectives.wealthy;
+    } else {
+        adjectives = qualityAdjectives.legendary;
+    }
+    
+    const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    return `${randomAdjective} ${itemName}`;
+}
+
+/**
  * Select a culturally appropriate amulet based on era, culture, and privilege
  */
 function selectCulturalAmulet(era: HistoricalEra, culture: CulturalZone, privilege: number): string | null {
@@ -583,25 +621,140 @@ export function assembleStartingPackage(
         }
     }
     
-    // ADD AMULET ASSIGNMENT LOGIC
-    if (!equippedItems.amulet && colorOptions) {
+    // Replace generic torso items OR add if missing
+    const shouldReplaceTorso = !equippedItems.torso || 
+                               (equippedItems.torso && GENERIC_TORSO_ITEMS.includes(equippedItems.torso.baseId));
+    
+    if (shouldReplaceTorso && colorOptions) {
+        const torsoId = generateContextualTorso(profession, {
+            era: colorOptions.era,
+            culture: colorOptions.culture,
+            privilege: colorOptions.privilege
+        });
+        
+        if (torsoId) {
+            const torsoItem = createItemInstance(torsoId);
+            if (torsoItem) {
+                equippedItems.torso = torsoItem;
+            }
+        }
+    }
+    
+    // Replace generic amulet OR add if missing
+    const shouldReplaceAmulet = !equippedItems.amulet || 
+                                (equippedItems.amulet && GENERIC_ACCESSORIES.includes(equippedItems.amulet.baseId));
+    
+    if (shouldReplaceAmulet && colorOptions) {
         const amuletChance = calculateAmuletChance(colorOptions.era, colorOptions.culture, profession);
         
         if (Math.random() < amuletChance) {
-            const appropriateAmulet = selectCulturalAmulet(
-                colorOptions.era || HistoricalEra.MEDIEVAL,
-                colorOptions.culture || 'EUROPEAN',
-                colorOptions.privilege || 0.5
-            );
+            const amuletId = generateContextualAccessory(profession, {
+                era: colorOptions.era,
+                culture: colorOptions.culture,
+                privilege: colorOptions.privilege,
+                slot: 'amulet'
+            });
             
-            if (appropriateAmulet) {
-                const amuletItem = colorOptions.culture ? 
-                    createColoredItemInstance(appropriateAmulet, colorOptions.culture, colorOptions.privilege, colorOptions.era) :
-                    createItemInstance(appropriateAmulet);
-                    
+            if (amuletId) {
+                const amuletItem = createItemInstance(amuletId);
                 if (amuletItem) {
+                    // Add quality adjective instead of color/material prefix
+                    amuletItem.name = addQualityAdjective(amuletItem.name, colorOptions.privilege || 0.5);
                     equippedItems.amulet = amuletItem;
-                    console.log(`[Amulet] Added ${amuletItem.name} to ${profession} (${colorOptions.culture}/${colorOptions.era})`);
+                }
+            }
+        }
+    }
+    
+    // Replace generic ring OR add if missing (ring1 slot)
+    const shouldReplaceRing = !equippedItems.ring1 || 
+                             (equippedItems.ring1 && GENERIC_ACCESSORIES.includes(equippedItems.ring1.baseId));
+    
+    if (shouldReplaceRing && colorOptions) {
+        const ringChance = 0.3 + (colorOptions.privilege || 0.5) * 0.4; // 30-70% chance based on privilege
+        
+        if (Math.random() < ringChance) {
+            const ringId = generateContextualAccessory(profession, {
+                era: colorOptions.era,
+                culture: colorOptions.culture,
+                privilege: colorOptions.privilege,
+                slot: 'ring'
+            });
+            
+            if (ringId) {
+                const ringItem = createItemInstance(ringId);
+                if (ringItem) {
+                    ringItem.name = addQualityAdjective(ringItem.name, colorOptions.privilege || 0.5);
+                    equippedItems.ring1 = ringItem;
+                }
+            }
+        }
+    }
+    
+    // Add cultural accessory (earrings, nose rings, bindis, etc.) - Phase 2 Enhanced
+    if (!equippedItems.accessory && colorOptions && playerCharacter) {
+        // Use culture-specific accessory chance
+        let baseChance = 0.30; // Default 30%
+        
+        // Cultures with near-universal tattoo/marking traditions
+        if (colorOptions.culture === 'OCEANIA') {
+            baseChance = 1.0; // Everyone in Polynesian/Maori culture has tattoos
+        } else if (colorOptions.culture === 'NORTH_AMERICAN_PRE_COLUMBIAN') {
+            baseChance = 0.85; // Very common tattoos and face paint
+        } else if (colorOptions.culture === 'SUB_SAHARAN_AFRICAN') {
+            baseChance = 0.80; // Scarification, tattoos, and ornaments very common
+        } else if (colorOptions.culture === 'SOUTH_AMERICAN') {
+            baseChance = 0.75; // Body modifications common in many cultures
+        } else if (colorOptions.culture === 'SOUTH_ASIAN') {
+            baseChance = 0.70; // Bindis, nose rings, henna very common especially for women
+        } else if (colorOptions.culture === 'MENA') {
+            baseChance = 0.60; // Kohl, henna, tattoos common
+        } else if (colorOptions.culture === 'EAST_ASIAN') {
+            baseChance = 0.45; // Hair ornaments, some cultural markings
+        } else if (colorOptions.culture === 'EUROPEAN') {
+            baseChance = 0.35; // Lower base rate, more jewelry than markings
+        }
+        
+        // Privilege can still modify the base chance slightly
+        const accessoryChance = Math.min(1.0, baseChance + (colorOptions.privilege || 0.5) * 0.1)
+        
+        if (Math.random() < accessoryChance) {
+            // Determine wealth level
+            const wealthLevel = colorOptions.privilege && colorOptions.privilege > 0.7 ? 'wealthy' :
+                               colorOptions.privilege && colorOptions.privilege > 0.5 ? 'comfortable' :
+                               colorOptions.privilege && colorOptions.privilege > 0.3 ? 'modest' : 'poor';
+            
+            // Generate culturally appropriate accessory with procedural naming
+            const accessoryItem = generateCulturalAccessory({
+                culture: colorOptions.culture || 'EUROPEAN',
+                era: colorOptions.era,
+                wealth: wealthLevel,
+                gender: playerCharacter.gender || 'male',
+                profession: profession
+            });
+            
+            if (accessoryItem) {
+                equippedItems.accessory = accessoryItem;
+                
+                // For wealthy/noble characters, potentially add multiple accessories to inventory
+                if (wealthLevel === 'wealthy' || wealthLevel === 'comfortable') {
+                    const extraChance = wealthLevel === 'wealthy' ? 0.5 : 0.3;
+                    if (Math.random() < extraChance) {
+                        const extraAccessories = generateAccessorySet({
+                            culture: colorOptions.culture || 'EUROPEAN',
+                            era: colorOptions.era,
+                            wealth: wealthLevel,
+                            gender: playerCharacter.gender || 'male',
+                            profession: profession
+                        }, wealthLevel === 'wealthy' ? 2 : 1);
+                        
+                        // Add extra accessories to inventory
+                        extraAccessories.forEach(extra => {
+                            if (extra && extra.baseId !== accessoryItem.baseId) {
+                                inventory.push(extra);
+                            }
+                        });
+                    }
                 }
             }
         }

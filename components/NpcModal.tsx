@@ -18,6 +18,7 @@ import DiseaseModal from './DiseaseModal';
 import { ActiveDisease } from '../types/diseaseTypes';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { useGame } from '../contexts/GameContext';
+import AccessoryMaintenanceService from '../services/accessoryMaintenanceService';
 import { AttributeBadgeList } from './AttributeBadge';
 import AttributeModal from './AttributeModal';
 
@@ -244,7 +245,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
     const items = [
       { label: 'Headgear', value: formatAppearanceText(e.equippedItems?.head || a?.headgear, a?.palette?.secondary) },
       { label: 'Garment', value: formatAppearanceText(e.equippedItems?.torso || a?.garment, a?.palette?.primary) },
-      { label: 'Accessory', value: formatAppearanceText(e.equippedItems?.amulet || a?.accessory, a?.palette?.accent) },
+      { label: 'Accessory', value: formatAppearanceText(e.equippedItems?.accessory || e.equippedItems?.amulet || a?.accessory, a?.palette?.accent) },
       { label: 'Belt', value: formatAppearanceText(e.equippedItems?.belt || a?.belt, a?.palette?.secondary) },
       { label: 'Footwear', value: formatAppearanceText(e.equippedItems?.feet || a?.footwear, a?.palette?.secondary) },
     ].filter(x => x.value && !x.value.toLowerCase().includes('nothing'));
@@ -311,6 +312,105 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
             </p>
           </div>
         </section>
+
+        {/* Cultural Markings - New display for markings from appearance */}
+        {appearanceToUse?.markings && appearanceToUse.markings.length > 0 && (
+          <section>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-purple-300 mb-3 flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Cultural Markings
+            </h3>
+            <div className="space-y-2">
+              {appearanceToUse.markings.map((marking: any, idx: number) => (
+                <div key={idx} className="rounded-lg border border-slate-700/50 bg-slate-800/40 p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      {marking.type === 'tattoo' && <span className="text-lg">🖤</span>}
+                      {marking.type === 'scarification' && <span className="text-lg">⚡</span>}
+                      {marking.type === 'paint' && <span className="text-lg">🎨</span>}
+                      {marking.type === 'henna' && <span className="text-lg">🌿</span>}
+                      {marking.type === 'ash' && <span className="text-lg">⚪</span>}
+                      {marking.type === 'piercing' && <span className="text-lg">💍</span>}
+                      <div>
+                        <p className="text-sm font-semibold text-white">
+                          {marking.name || `${marking.location.charAt(0).toUpperCase() + marking.location.slice(1)} ${marking.type}`}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          {marking.pattern?.replace(/_/g, ' ') || marking.type}
+                        </p>
+                      </div>
+                    </div>
+                    {marking.isPermanent ? (
+                      <span className="px-2 py-1 rounded-full bg-purple-700/50 text-purple-200 text-xs font-bold">
+                        Permanent
+                      </span>
+                    ) : marking.duration && (
+                      <span className="px-2 py-1 rounded-full bg-yellow-600/70 text-yellow-200 text-xs font-bold">
+                        {marking.duration < 24 ? `${marking.duration}h` : `${Math.floor(marking.duration / 24)}d`}
+                      </span>
+                    )}
+                  </div>
+                  {marking.culturalSignificance && (
+                    <p className="text-xs text-slate-300 italic">
+                      {marking.culturalSignificance}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Body Modifications - Legacy support for equipped accessories */}
+        {!isPlayer && (npc as NpcEntity).equippedItems?.accessory && !appearanceToUse?.markings && (
+          (() => {
+            const accessory = (npc as NpcEntity).equippedItems.accessory;
+            const specialType = (accessory as any).specialType;
+            const isPermanent = (accessory as any).isPermanent;
+            const duration = (accessory as any).duration;
+            
+            if (specialType) {
+              return (
+                <section>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-purple-300 mb-3 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    Body Modifications
+                  </h3>
+                  <div className="rounded-lg border border-slate-700/50 bg-slate-800/40 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {specialType === 'tattoo' && <span className="text-lg">🖤</span>}
+                        {specialType === 'scarification' && <span className="text-lg">⚡</span>}
+                        {specialType === 'face_paint' && <span className="text-lg">🎨</span>}
+                        {specialType === 'henna' && <span className="text-lg">🌿</span>}
+                        <div>
+                          <p className="text-sm font-semibold text-white">{accessory.name}</p>
+                          <p className="text-xs text-slate-400 capitalize">{specialType.replace('_', ' ')}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        {isPermanent && (
+                          <span className="px-2 py-1 rounded-full bg-red-600/70 text-red-200 text-xs font-bold">
+                            Permanent
+                          </span>
+                        )}
+                        {duration && (
+                          <span className="px-2 py-1 rounded-full bg-yellow-600/70 text-yellow-200 text-xs font-bold">
+                            {AccessoryMaintenanceService.getTemporaryAccessoryDisplay(accessory)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-300 italic">
+                      {AccessoryMaintenanceService.getCulturalSignificance(accessory)}
+                    </p>
+                  </div>
+                </section>
+              );
+            }
+            return null;
+          })()
+        )}
 
         <section>
           <h3 className="text-xs font-bold uppercase tracking-wider text-purple-300 mb-3">Personality</h3>

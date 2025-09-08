@@ -20,9 +20,24 @@ import {
   RoomDefinition
 } from '../../types/specialMapTypes';
 import { ValueNoise } from '../../utils/noise';
+
+// Validation system for archetype enum
+function validateArchetype(archetype: string): boolean {
+  const validArchetypes = Object.values(SpecialMapArchetype) as string[];
+  if (!validArchetypes.includes(archetype)) {
+    console.warn(`[SpecialMapGen] Invalid archetype "${archetype}", falling back to GOVERNMENT_FORUM`);
+    console.warn(`[SpecialMapGen] Valid archetypes:`, validArchetypes);
+    return false;
+  }
+  return true;
+}
+
 // Archetype generators - ONE per archetype type
 import { generateEstates } from './archetypes/estatesGeneratorFixed';
-import { generateGovernmentForumFixed } from './archetypes/governmentForumFixed';
+import { generatePalaceVariant } from './archetypes/palaceVariantGenerator';
+import { generateGovernmentForum } from './archetypes/governmentGenerator';
+import { generateTribalCouncil } from './archetypes/tribalCouncilGenerator';
+import { generateCourtChamber } from './archetypes/courtChamberGenerator';
 import { generateMarketBazaar } from './archetypes/marketGenerator';
 import { generateSacredComplex } from './archetypes/sacredGenerator';
 import generateUniversityAcademy from './archetypes/universityGeneratorV2';
@@ -145,6 +160,12 @@ export function generateSpecialMap(
   console.log(`[SpecialMapGen] Full config:`, config);
   console.log(`[SpecialMapGen] Parent map data:`, parentMapData);
   
+  // Validate archetype and fallback if invalid
+  if (!validateArchetype(config.archetype)) {
+    config.archetype = SpecialMapArchetype.GOVERNMENT_FORUM;
+    console.log(`[SpecialMapGen] Using fallback archetype: ${config.archetype}`);
+  }
+  
   // Ensure we have a valid climate
   const climate = config.climate || parentMapData.climate || ClimateType.TEMPERATE;
   console.log(`[SpecialMapGen] Using climate: ${climate}`);
@@ -197,9 +218,15 @@ export function generateSpecialMap(
   
   switch (config.archetype) {
     case SpecialMapArchetype.PALACE_COMPLEX:
-      // Legacy palace complex - redirect to estates
+      // Legacy palace complex - redirect to estates with variant logic
       config.archetype = SpecialMapArchetype.ESTATES;
-      generatedData = generateEstates(tiles, config, noise, size);
+      // Use palace variant generator if we have a districtType
+      if ((config as any).districtType) {
+        console.log('🏰 PALACE_COMPLEX using variant for districtType:', (config as any).districtType);
+        generatedData = generatePalaceVariant(tiles, config as any, noise, size);
+      } else {
+        generatedData = generateEstates(tiles, config, noise, size);
+      }
       tiles = generatedData.tiles;
       interactionZones = generatedData.interactionZones;
       exitZones = generatedData.exitZones;
@@ -219,7 +246,58 @@ export function generateSpecialMap(
     case SpecialMapArchetype.GOVERNMENT_FORUM:
     case SpecialMapArchetype.GOVERNMENT:  // New simplified archetype
       // Use fixed government forum with proper organization
-      generatedData = generateGovernmentForumFixed(tiles, config, noise, size);
+      generatedData = generateGovernmentForum(tiles, config, noise, size);
+      tiles = generatedData.tiles;
+      interactionZones = generatedData.interactionZones;
+      exitZones = generatedData.exitZones;
+      rooms = generatedData.rooms || [];
+      multiTileObjects = (generatedData as any).multiTileObjects || [];
+      break;
+    
+    // NEW: Route new government archetypes to specific generators
+    case SpecialMapArchetype.TRIBAL_COUNCIL:
+      console.log(`[SpecialMapGen] TRIBAL_COUNCIL archetype - using dedicated tribal council generator`);
+      generatedData = generateTribalCouncil(tiles, config, noise, size);
+      tiles = generatedData.tiles;
+      interactionZones = generatedData.interactionZones;
+      exitZones = generatedData.exitZones;
+      rooms = generatedData.rooms || [];
+      multiTileObjects = (generatedData as any).multiTileObjects || [];
+      break;
+      
+    case SpecialMapArchetype.COURT_CHAMBER:
+      console.log(`[SpecialMapGen] COURT_CHAMBER archetype - using dedicated court chamber generator`);
+      generatedData = generateCourtChamber(tiles, config, noise, size);
+      tiles = generatedData.tiles;
+      interactionZones = generatedData.interactionZones;
+      exitZones = generatedData.exitZones;
+      rooms = generatedData.rooms || [];
+      multiTileObjects = (generatedData as any).multiTileObjects || [];
+      break;
+      
+    case SpecialMapArchetype.TOWN_HALL:
+      console.log(`[SpecialMapGen] TOWN_HALL archetype - using enhanced government generator`);
+      generatedData = generateGovernmentForum(tiles, config, noise, size, 'town_hall');
+      tiles = generatedData.tiles;
+      interactionZones = generatedData.interactionZones;
+      exitZones = generatedData.exitZones;
+      rooms = generatedData.rooms || [];
+      multiTileObjects = (generatedData as any).multiTileObjects || [];
+      break;
+      
+    case SpecialMapArchetype.ASSEMBLY_HALL:
+      console.log(`[SpecialMapGen] ASSEMBLY_HALL archetype - using enhanced government generator`);
+      generatedData = generateGovernmentForum(tiles, config, noise, size, 'assembly_hall');
+      tiles = generatedData.tiles;
+      interactionZones = generatedData.interactionZones;
+      exitZones = generatedData.exitZones;
+      rooms = generatedData.rooms || [];
+      multiTileObjects = (generatedData as any).multiTileObjects || [];
+      break;
+      
+    case SpecialMapArchetype.ADMINISTRATIVE_COMPLEX:
+      console.log(`[SpecialMapGen] ADMINISTRATIVE_COMPLEX archetype - using enhanced government generator`);
+      generatedData = generateGovernmentForum(tiles, config, noise, size, 'administrative_complex');
       tiles = generatedData.tiles;
       interactionZones = generatedData.interactionZones;
       exitZones = generatedData.exitZones;
@@ -306,7 +384,14 @@ export function generateSpecialMap(
       
     // New simplified archetypes
     case SpecialMapArchetype.ESTATES:
-      generatedData = generateEstates(tiles, config, noise, size);
+      // Use palace variant generator if we have a districtType
+      if ((config as any).districtType) {
+        console.log('🏰 Using palace variant generator for districtType:', (config as any).districtType);
+        generatedData = generatePalaceVariant(tiles, config as any, noise, size);
+      } else {
+        console.log('🏰 Using standard estates generator (no districtType)');
+        generatedData = generateEstates(tiles, config, noise, size);
+      }
       tiles = generatedData.tiles;
       interactionZones = generatedData.interactionZones;
       exitZones = generatedData.exitZones;
@@ -462,6 +547,23 @@ function createBiomeInterpretations(config: SpecialMapConfig): Map<BiomeType, st
       interpretations.set(BiomeType.WALL, 'Decorated plaster walls');
       interpretations.set(BiomeType.FLOOR_MARBLE, 'Marble floors');
     }
+  } else if (config.culturalZone === 'SOUTH_AMERICAN') {
+    if (config.era === HistoricalEra.ANTIQUITY || config.era === HistoricalEra.MEDIEVAL) {
+      interpretations.set(BiomeType.WALL, 'Precisely fitted stone blocks');
+      interpretations.set(BiomeType.FLOOR_STONE, 'Polygonal stone paving');
+    } else if (config.era === HistoricalEra.RENAISSANCE_EARLY_MODERN) {
+      interpretations.set(BiomeType.WALL, 'Colonial adobe and stone walls');
+      interpretations.set(BiomeType.FLOOR_TILE, 'Ceramic tile with Andean motifs');
+    }
+  } else if (config.culturalZone === 'NORTH_AMERICAN_PRE_COLUMBIAN') {
+    interpretations.set(BiomeType.WALL, 'Bark and timber palisade');
+    interpretations.set(BiomeType.FLOOR_WOOD, 'Wooden plank floors');
+  } else if (config.culturalZone === 'SUB_SAHARAN_AFRICAN') {
+    interpretations.set(BiomeType.WALL, 'Adobe walls with decorative relief');
+    interpretations.set(BiomeType.FLOOR_WOOD, 'Hardwood floors with geometric patterns');
+  } else if (config.culturalZone === 'SOUTH_ASIAN') {
+    interpretations.set(BiomeType.WALL, 'Carved sandstone walls');
+    interpretations.set(BiomeType.FLOOR_MARBLE, 'Inlaid marble floors');
   }
   
   return interpretations;
@@ -516,6 +618,37 @@ function createHistoricalMetadata(config: SpecialMapConfig) {
       metadata.architecturalStyle = 'Ottoman';
       metadata.primaryMaterials = ['stone', 'marble', 'ceramic'];
     }
+  } else if (config.culturalZone === 'SOUTH_AMERICAN') {
+    if (config.era === HistoricalEra.ANTIQUITY || config.era === HistoricalEra.MEDIEVAL) {
+      metadata.architecturalStyle = 'Inca/Pre-Columbian Andean';
+      metadata.primaryMaterials = ['fitted stone', 'adobe', 'timber'];
+    } else if (config.era === HistoricalEra.RENAISSANCE_EARLY_MODERN) {
+      metadata.architecturalStyle = 'Colonial Spanish-Andean';
+      metadata.primaryMaterials = ['stone', 'adobe', 'tile'];
+    } else {
+      metadata.architecturalStyle = 'Modern Latin American';
+      metadata.primaryMaterials = ['concrete', 'steel', 'adobe'];
+    }
+  } else if (config.culturalZone === 'NORTH_AMERICAN_PRE_COLUMBIAN') {
+    metadata.architecturalStyle = 'Indigenous North American';
+    metadata.primaryMaterials = ['wood', 'bark', 'earth'];
+  } else if (config.culturalZone === 'NORTH_AMERICAN_COLONIAL') {
+    metadata.architecturalStyle = 'Colonial American';
+    metadata.primaryMaterials = ['wood', 'brick', 'stone'];
+  } else if (config.culturalZone === 'SUB_SAHARAN_AFRICAN') {
+    metadata.architecturalStyle = 'Traditional African';
+    metadata.primaryMaterials = ['mud brick', 'thatch', 'wood'];
+  } else if (config.culturalZone === 'SOUTH_ASIAN') {
+    if (config.era === HistoricalEra.MEDIEVAL) {
+      metadata.architecturalStyle = 'Indo-Islamic';
+      metadata.primaryMaterials = ['sandstone', 'marble', 'brick'];
+    } else if (config.era === HistoricalEra.RENAISSANCE_EARLY_MODERN) {
+      metadata.architecturalStyle = 'Mughal';
+      metadata.primaryMaterials = ['marble', 'red sandstone', 'inlay'];
+    }
+  } else if (config.culturalZone === 'OCEANIA') {
+    metadata.architecturalStyle = 'Pacific Islander';
+    metadata.primaryMaterials = ['bamboo', 'palm thatch', 'coral stone'];
   }
   
   // Set construction period based on era

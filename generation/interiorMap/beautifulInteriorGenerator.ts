@@ -368,7 +368,8 @@ export function generateBeautifulInterior(config: InteriorGenerationConfig): Bea
         religion,
         culturalZone,
         selectedSize,
-        seedNum // Pass seed for additional randomization
+        seedNum, // Pass seed for additional randomization
+        dateInfo.era as HistoricalEra
     );
     
     // console.log('[BeautifulInteriorGenerator] Selected layout:', layout.name);

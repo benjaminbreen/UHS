@@ -7,31 +7,54 @@ import { Tile, BiomeType, HistoricalEra } from '../../../types';
 import { OverlayObjectType } from '../../../types/core/tile';
 import { SpecialMapConfig, InteractionZone, ExitZone, RoomDefinition, ProfessionCategory } from '../../../types/specialMapTypes';
 import { ValueNoise } from '../../../utils/noise';
-import { placeWallRectangle, fillArea } from '../mapLayoutUtils';
-import { generateEnhancedGovernmentForum } from './governmentGeneratorEnhanced';
+import { 
+  placeWallRectangle, 
+  fillArea, 
+  placeCulturalWallRectangle, 
+  fillCulturalFloor,
+  placeCulturalSymbol
+} from '../mapLayoutUtils';
+import { 
+  generateCircularFloor, 
+  generateOctagonalFloor,
+  generateHexagonalFloor 
+} from '../sacredShapeUtils';
+import { applyCulturalFlooring } from '../culturalFlooringService';
+import { 
+  getCulturalFurnitureSet,
+  placeSeatingArrangement,
+  placeCulturalLighting
+} from '../culturalFurnitureSystem';
+
+// Utility function to safely set tile properties with bounds checking
+function safeTileSet(tiles: Tile[][], y: number, x: number, updates: Partial<Tile>): boolean {
+  if (y >= 0 && y < tiles.length && x >= 0 && x < tiles[0].length) {
+    Object.assign(tiles[y][x], updates);
+    return true;
+  }
+  return false;
+}
 
 export function generateGovernmentForum(
   tiles: Tile[][],
   config: SpecialMapConfig,
   noise: ValueNoise,
-  size: { width: number, height: number }
+  size: { width: number, height: number },
+  subtype?: 'town_hall' | 'assembly_hall' | 'administrative_complex'
 ): { tiles: Tile[][], interactionZones: InteractionZone[], exitZones: ExitZone[], rooms: RoomDefinition[] } {
   
-  // Use enhanced multi-room generator for more modern eras and certain cultures
-  const useEnhanced = (
-    (config.era === HistoricalEra.INDUSTRIAL_ERA || config.era === HistoricalEra.MODERN_ERA) ||
-    (config.era === HistoricalEra.RENAISSANCE_EARLY_MODERN && config.culturalZone === 'EUROPEAN')
-  );
-  
-  if (useEnhanced) {
-    // Use the new enhanced multi-room generator
-    return generateEnhancedGovernmentForum(tiles, config, noise, size);
-  }
-  
-  // Otherwise use the original culture-specific generators
   const interactionZones: InteractionZone[] = [];
   const exitZones: ExitZone[] = [];
   const rooms: RoomDefinition[] = [];
+  
+  // Branch based on subtype if provided
+  if (subtype === 'town_hall') {
+    return generateTownHall(tiles, config, noise, size, interactionZones, exitZones, rooms);
+  } else if (subtype === 'assembly_hall') {
+    return generateAssemblyHall(tiles, config, noise, size, interactionZones, exitZones, rooms);
+  } else if (subtype === 'administrative_complex') {
+    return generateAdministrativeComplex(tiles, config, noise, size, interactionZones, exitZones, rooms);
+  }
   
   // Choose generation style based on culture and era
   if (config.culturalZone === 'EUROPEAN') {
@@ -44,24 +67,28 @@ export function generateGovernmentForum(
     }
   } else if (config.culturalZone === 'EAST_ASIAN') {
     if (config.region === 'china') {
-      generateChineseImperialCourt(tiles, config, noise, size, interactionZones);
+      generateChineseImperialCourt(tiles, config, noise, size, interactionZones, rooms);
     } else if (config.region === 'japan') {
-      generateJapaneseDaimyoHall(tiles, config, noise, size, interactionZones);
+      generateJapaneseDaimyoHall(tiles, config, noise, size, interactionZones, rooms);
     } else {
-      generateAsianCouncilHall(tiles, config, noise, size, interactionZones);
+      generateAsianCouncilHall(tiles, config, noise, size, interactionZones, rooms);
     }
   } else if (config.culturalZone === 'MENA') {
     if (config.era === HistoricalEra.MEDIEVAL || config.era === HistoricalEra.RENAISSANCE_EARLY_MODERN) {
-      generateIslamicMajlis(tiles, config, noise, size, interactionZones);
+      generateIslamicMajlis(tiles, config, noise, size, interactionZones, rooms);
     } else {
-      generateModernAssembly(tiles, config, noise, size, interactionZones);
+      generateModernAssembly(tiles, config, noise, size, interactionZones, rooms);
     }
   } else if (config.culturalZone === 'SUB_SAHARAN_AFRICAN') {
-    generateAfricanCouncilGround(tiles, config, noise, size, interactionZones);
+    generateAfricanCouncilGround(tiles, config, noise, size, interactionZones, rooms);
   } else if (config.culturalZone === 'SOUTH_ASIAN') {
-    generateIndianDurbar(tiles, config, noise, size, interactionZones);
+    generateIndianDurbar(tiles, config, noise, size, interactionZones, rooms);
+  } else if (config.culturalZone === 'SOUTH_AMERICAN') {
+    generateAndeanKallanka(tiles, config, noise, size, interactionZones, rooms);
+  } else if (config.culturalZone === 'NORTH_AMERICAN_PRE_COLUMBIAN' || config.culturalZone === 'NORTH_AMERICAN_COLONIAL') {
+    generateIndigenousCouncilGround(tiles, config, noise, size, interactionZones, rooms);
   } else {
-    generateDefaultForum(tiles, config, noise, size, interactionZones);
+    generateDefaultForum(tiles, config, noise, size, interactionZones, rooms);
   }
   
   // Common exit zones
@@ -70,6 +97,19 @@ export function generateGovernmentForum(
     { id: 'main_exit', location: [centerX, size.height - 1], label: 'Exit Forum', destination: 'parent_map' },
     { id: 'north_exit', location: [centerX, 0], label: 'North Gate', destination: 'parent_map' }
   );
+  
+  // Ensure at least one room exists for NPC generation
+  if (rooms.length === 0) {
+    rooms.push({
+      id: 'default_forum_hall',
+      name: 'Forum Hall',
+      bounds: { x: 1, y: 1, width: size.width - 2, height: size.height - 2 },
+      description: 'The main government assembly hall',
+      roomType: 'assembly',
+      accessLevel: 'public',
+      npcDensity: 'normal'
+    });
+  }
   
   return { tiles, interactionZones, exitZones, rooms };
 }
@@ -138,12 +178,12 @@ function generateRomanSenate(
   tiles[rostraY][centerX].biome = BiomeType.FLOOR_MARBLE;
   tiles[rostraY][centerX].materialSubtype = 'speaking_platform';
   
-  // Columns along walls
+  // Columns along walls (culturally appropriate)
   for (let y = 10; y < size.height - 5; y += 6) {
-    tiles[y][2].biome = BiomeType.PILLAR;
-    tiles[y][2].materialSubtype = 'corinthian';
-    tiles[y][size.width - 3].biome = BiomeType.PILLAR;
-    tiles[y][size.width - 3].materialSubtype = 'corinthian';
+    placeCulturalSymbol(tiles, 2, y, BiomeType.PILLAR, 
+      config.culturalZone, config.era, 'corinthian');
+    placeCulturalSymbol(tiles, size.width - 3, y, BiomeType.PILLAR, 
+      config.culturalZone, config.era, 'corinthian');
   }
   
   // Statue of goddess or emperor
@@ -226,16 +266,18 @@ function generateMedievalCouncilChamber(
   size: { width: number, height: number },
   interactionZones: InteractionZone[]
 ) {
-  // Stone walls with multiple entrances
-  placeWallRectangle(tiles, 0, 0, size.width, size.height, [
-    { side: 'south', offset: Math.floor(size.width / 2) },
-    { side: 'north', offset: Math.floor(size.width / 2) },
-    { side: 'east', offset: Math.floor(size.height / 2) },
-    { side: 'west', offset: Math.floor(size.height / 2) }
-  ]);
+  // Culturally appropriate walls with multiple entrances
+  placeCulturalWallRectangle(tiles, 0, 0, size.width, size.height,
+    config.culturalZone, config.era, [
+      { side: 'south', offset: Math.floor(size.width / 2) },
+      { side: 'north', offset: Math.floor(size.width / 2) },
+      { side: 'east', offset: Math.floor(size.height / 2) },
+      { side: 'west', offset: Math.floor(size.height / 2) }
+    ]);
   
-  // Stone floor
-  fillArea(tiles, 1, 1, size.width - 2, size.height - 2, BiomeType.FLOOR_STONE);
+  // Culturally appropriate floor
+  fillCulturalFloor(tiles, 1, 1, size.width - 2, size.height - 2,
+    config.culturalZone, config.era);
   
   const centerX = Math.floor(size.width / 2);
   const centerY = Math.floor(size.height / 2);
@@ -244,39 +286,52 @@ function generateMedievalCouncilChamber(
   const tableLength = Math.min(size.height - 16, 20);
   const tableY = centerY - tableLength / 2;
   
-  // Long council table
-  for (let y = tableY; y < tableY + tableLength; y++) {
-    tiles[y][centerX].biome = BiomeType.TABLE;
-    tiles[y][centerX].materialSubtype = 'oak_table';
-    
-    // Chairs on both sides
-    tiles[y][centerX - 2].biome = BiomeType.CHAIR;
-    tiles[y][centerX + 2].biome = BiomeType.CHAIR;
+  // Long council table with bounds checking
+  for (let y = Math.max(1, Math.floor(tableY)); y < Math.min(size.height - 1, Math.floor(tableY + tableLength)); y++) {
+    if (y >= 0 && y < tiles.length && centerX >= 0 && centerX < tiles[0].length) {
+      tiles[y][centerX].biome = BiomeType.TABLE;
+      tiles[y][centerX].materialSubtype = 'oak_table';
+      
+      // Chairs on both sides with bounds checking
+      if (centerX - 2 >= 0) tiles[y][centerX - 2].biome = BiomeType.CHAIR;
+      if (centerX + 2 < tiles[0].length) tiles[y][centerX + 2].biome = BiomeType.CHAIR;
+    }
   }
   
-  // Lord's throne at head of table using overlay system
-  tiles[tableY - 3][centerX].overlayObject = {
-    type: OverlayObjectType.THRONE,
-    rotation: 180,
-    variant: 'high_seat'
-  };
-  tiles[tableY - 3][centerX].isBlocking = true;
-  
-  // Benches along walls for petitioners
-  for (let y = 10; y < size.height - 10; y += 2) {
-    tiles[y][3].biome = BiomeType.CHAIR;
-    tiles[y][3].materialSubtype = 'wooden_bench';
-    tiles[y][size.width - 4].biome = BiomeType.CHAIR;
-    tiles[y][size.width - 4].materialSubtype = 'wooden_bench';
+  // Lord's throne at head of table using overlay system with bounds checking
+  const throneY = Math.max(1, Math.floor(tableY - 3));
+  if (throneY >= 0 && throneY < tiles.length && centerX >= 0 && centerX < tiles[0].length) {
+    tiles[throneY][centerX].overlayObject = {
+      type: OverlayObjectType.THRONE,
+      rotation: 180,
+      variant: 'high_seat'
+    };
+    tiles[throneY][centerX].isBlocking = true;
   }
   
-  // Fireplace/hearth using overlay system
-  tiles[5][centerX].overlayObject = {
-    type: OverlayObjectType.BRAZIER,
-    rotation: 0,
-    variant: 'great_hearth'
-  };
-  tiles[5][centerX].isBlocking = true;
+  // Benches along walls for petitioners with bounds checking
+  for (let y = Math.max(1, 10); y < Math.min(size.height - 1, size.height - 10); y += 2) {
+    if (y >= 0 && y < tiles.length) {
+      if (3 >= 0 && 3 < tiles[0].length) {
+        tiles[y][3].biome = BiomeType.CHAIR;
+        tiles[y][3].materialSubtype = 'wooden_bench';
+      }
+      if (size.width - 4 >= 0 && size.width - 4 < tiles[0].length) {
+        tiles[y][size.width - 4].biome = BiomeType.CHAIR;
+        tiles[y][size.width - 4].materialSubtype = 'wooden_bench';
+      }
+    }
+  }
+  
+  // Fireplace/hearth using overlay system with bounds checking
+  if (5 >= 0 && 5 < tiles.length && centerX >= 0 && centerX < tiles[0].length) {
+    tiles[5][centerX].overlayObject = {
+      type: OverlayObjectType.BRAZIER,
+      rotation: 0,
+      variant: 'great_hearth'
+    };
+    tiles[5][centerX].isBlocking = true;
+  }
   
   // Tapestries on walls
   for (let x = 8; x < size.width - 8; x += 8) {
@@ -315,7 +370,8 @@ function generateChineseImperialCourt(
   config: SpecialMapConfig,
   noise: ValueNoise,
   size: { width: number, height: number },
-  interactionZones: InteractionZone[]
+  interactionZones: InteractionZone[],
+  rooms: RoomDefinition[]
 ) {
   // Outer walls with ceremonial gates
   placeWallRectangle(tiles, 0, 0, size.width, size.height, [
@@ -1194,41 +1250,151 @@ function generateModernParliament(
 }
 
 /**
- * Default forum generation
+ * Default forum generation with cultural layout patterns
  */
 function generateDefaultForum(
   tiles: Tile[][],
   config: SpecialMapConfig,
   noise: ValueNoise,
   size: { width: number, height: number },
-  interactionZones: InteractionZone[]
+  interactionZones: InteractionZone[],
+  rooms: RoomDefinition[]
 ) {
-  placeWallRectangle(tiles, 0, 0, size.width, size.height, [
-    { side: 'south', offset: Math.floor(size.width / 2) }
-  ]);
-  
-  const floorType = config.era === HistoricalEra.ANTIQUITY 
-    ? BiomeType.FLOOR_STONE 
-    : BiomeType.FLOOR_MARBLE;
-  fillArea(tiles, 1, 1, size.width - 2, size.height - 2, floorType);
-  
   const centerX = Math.floor(size.width / 2);
   const centerY = Math.floor(size.height / 2);
   
-  // Simple amphitheater layout
-  for (let tier = 1; tier <= 3; tier++) {
-    const radius = 8 + tier * 3;
-    for (let angle = 0; angle <= Math.PI; angle += 0.1) {
-      const x = Math.floor(centerX + Math.cos(angle) * radius);
-      const y = Math.floor(centerY - Math.sin(angle) * radius);
-      if (y > 0 && y < size.height - 1 && x > 0 && x < size.width - 1) {
-        tiles[y][x].biome = BiomeType.CHAIR;
+  // Choose layout pattern based on culture
+  let layoutPattern: 'circular' | 'rectangular' | 'octagonal' | 'hexagonal' = 'rectangular';
+  
+  if (config.culturalZone === 'MENA' || config.culturalZone === 'SUB_SAHARAN_AFRICAN') {
+    layoutPattern = 'circular'; // Circular councils common in these cultures
+  } else if (config.culturalZone === 'EAST_ASIAN' && config.era !== HistoricalEra.MODERN_ERA) {
+    layoutPattern = 'octagonal'; // Bagua/octagonal influence
+  } else if (config.culturalZone === 'SOUTH_ASIAN') {
+    layoutPattern = 'hexagonal'; // Mandala-inspired
+  }
+  
+  // Apply the chosen layout pattern
+  if (layoutPattern === 'circular') {
+    // Circular walls and floor
+    placeCulturalWallRectangle(tiles, 0, 0, size.width, size.height, 
+      config.culturalZone, config.era, [
+        { side: 'south', offset: centerX }
+      ]);
+    
+    // Create circular floor pattern
+    const radius = Math.min(size.width, size.height) / 2 - 3;
+    generateCircularFloor(tiles, centerX, centerY, radius);
+    
+    // Apply cultural floor material to the circular area
+    for (let y = 0; y < size.height; y++) {
+      for (let x = 0; x < size.width; x++) {
+        if (tiles[y][x].biome === BiomeType.FLOOR_STONE) {
+          fillCulturalFloor(tiles, x, y, 1, 1, config.culturalZone, config.era);
+        }
+      }
+    }
+    
+    // Circular seating arrangement
+    for (let tier = 1; tier <= 3; tier++) {
+      const seatRadius = radius - tier * 3;
+      for (let angle = 0; angle < Math.PI * 2; angle += 0.2) {
+        const x = Math.floor(centerX + Math.cos(angle) * seatRadius);
+        const y = Math.floor(centerY + Math.sin(angle) * seatRadius);
+        if (y > 0 && y < size.height - 1 && x > 0 && x < size.width - 1) {
+          tiles[y][x].biome = BiomeType.CHAIR;
+        }
+      }
+    }
+  } else if (layoutPattern === 'octagonal') {
+    // Octagonal layout
+    placeCulturalWallRectangle(tiles, 0, 0, size.width, size.height, 
+      config.culturalZone, config.era, [
+        { side: 'south', offset: centerX }
+      ]);
+    
+    const radius = Math.min(size.width, size.height) / 2 - 3;
+    generateOctagonalFloor(tiles, centerX, centerY, radius);
+    
+    // Apply cultural floor material
+    for (let y = 0; y < size.height; y++) {
+      for (let x = 0; x < size.width; x++) {
+        if (tiles[y][x].biome === BiomeType.FLOOR_TILE) {
+          fillCulturalFloor(tiles, x, y, 1, 1, config.culturalZone, config.era);
+        }
+      }
+    }
+  } else if (layoutPattern === 'hexagonal') {
+    // Hexagonal layout
+    placeCulturalWallRectangle(tiles, 0, 0, size.width, size.height, 
+      config.culturalZone, config.era, [
+        { side: 'south', offset: centerX }
+      ]);
+    
+    const radius = Math.min(size.width, size.height) / 2 - 3;
+    generateHexagonalFloor(tiles, centerX, centerY, radius);
+    
+    // Apply cultural floor material
+    for (let y = 0; y < size.height; y++) {
+      for (let x = 0; x < size.width; x++) {
+        if (tiles[y][x].biome === BiomeType.FLOOR_PATTERN) {
+          fillCulturalFloor(tiles, x, y, 1, 1, config.culturalZone, config.era);
+        }
+      }
+    }
+  } else {
+    // Default rectangular layout
+    placeCulturalWallRectangle(tiles, 0, 0, size.width, size.height, 
+      config.culturalZone, config.era, [
+        { side: 'south', offset: centerX }
+      ]);
+    
+    fillCulturalFloor(tiles, 1, 1, size.width - 2, size.height - 2, 
+      config.culturalZone, config.era);
+    
+    // Traditional amphitheater seating
+    for (let tier = 1; tier <= 3; tier++) {
+      const radius = 8 + tier * 3;
+      for (let angle = 0; angle <= Math.PI; angle += 0.1) {
+        const x = Math.floor(centerX + Math.cos(angle) * radius);
+        const y = Math.floor(centerY - Math.sin(angle) * radius);
+        if (y > 0 && y < size.height - 1 && x > 0 && x < size.width - 1) {
+          tiles[y][x].biome = BiomeType.CHAIR;
+        }
       }
     }
   }
   
-  // Central speaking area
-  tiles[centerY][centerX].biome = BiomeType.FLOOR_MARBLE;
+  // Apply cultural flooring patterns to the central area
+  applyCulturalFlooring(
+    tiles,
+    { x: centerX - 5, y: centerY - 5, width: 10, height: 10 },
+    config,
+    noise,
+    'ceremonial'
+  );
+  
+  // Central feature - culturally appropriate
+  if (config.culturalZone === 'NORTH_AMERICAN_PRE_COLUMBIAN' || 
+      config.culturalZone === 'NATIVE_AMERICAN') {
+    // Central sacred fire instead of speaking platform
+    tiles[centerY][centerX].biome = BiomeType.FIRE_PIT;
+    tiles[centerY][centerX].materialSubtype = 'sacred_fire';
+  } else {
+    // Default speaking area
+    tiles[centerY][centerX].biome = BiomeType.FLOOR_MARBLE;
+  }
+  
+  // Add culturally appropriate lighting around the forum
+  const furnitureSet = getCulturalFurnitureSet(config, 'government');
+  
+  // Place lighting at corners of the room
+  if (furnitureSet.lighting && furnitureSet.lighting.length > 0) {
+    placeCulturalLighting(tiles, 3, 3, config);
+    placeCulturalLighting(tiles, size.width - 4, 3, config);
+    placeCulturalLighting(tiles, 3, size.height - 4, config);
+    placeCulturalLighting(tiles, size.width - 4, size.height - 4, config);
+  }
   
   interactionZones.push({
     id: 'forum_center',
@@ -1236,4 +1402,523 @@ function generateDefaultForum(
     type: 'council',
     interactions: ['speak', 'debate', 'vote']
   });
+  
+  // Add default room definition
+  rooms.push({
+    id: 'main_forum',
+    name: 'Forum Hall',
+    bounds: { x: 1, y: 1, width: size.width - 2, height: size.height - 2 },
+    description: 'The main assembly hall',
+    roomType: 'assembly',
+    accessLevel: 'public',
+    npcDensity: 'normal'
+  });
+}
+
+/**
+ * Generate Andean Kallanka (Inca administrative/ceremonial hall)
+ * Long rectangular structure for ceremonies, feasts, and state administration
+ */
+function generateAndeanKallanka(
+  tiles: Tile[][],
+  config: SpecialMapConfig,
+  noise: ValueNoise,
+  size: { width: number, height: number },
+  interactionZones: InteractionZone[],
+  rooms: RoomDefinition[]
+) {
+  // Characteristic long rectangular hall with culturally appropriate walls
+  placeCulturalWallRectangle(tiles, 0, 0, size.width, size.height,
+    config.culturalZone, config.era, [
+      { side: 'south', offset: Math.floor(size.width / 2) },
+      { side: 'north', offset: Math.floor(size.width / 2) }
+    ]);
+  
+  // Culturally appropriate floor - will be sandstone for pre-Columbian Americas
+  fillCulturalFloor(tiles, 1, 1, size.width - 2, size.height - 2,
+    config.culturalZone, config.era);
+  
+  // Apply cultural flooring patterns for Andean architecture
+  applyCulturalFlooring(
+    tiles,
+    { x: 1, y: 1, width: size.width - 2, height: size.height - 2 },
+    config,
+    noise,
+    'ceremonial'
+  );
+  
+  // Apply Inca stonework pattern to floor tiles as additional detail
+  for (let y = 1; y < size.height - 1; y++) {
+    for (let x = 1; x < size.width - 1; x++) {
+      tiles[y][x].materialSubtype = 'inca_fitted_stone';
+    }
+  }
+  
+  const centerX = Math.floor(size.width / 2);
+  const centerY = Math.floor(size.height / 2);
+  
+  // Raised ceremonial platform (ushnu) at the far end
+  const platformWidth = Math.min(12, size.width - 4);
+  const platformHeight = 4;
+  const platformX = centerX - platformWidth / 2;
+  const platformY = 2;
+  
+  fillArea(tiles, platformX, platformY, platformWidth, platformHeight, BiomeType.FLOOR_STONE);
+  for (let y = platformY; y < platformY + platformHeight; y++) {
+    for (let x = platformX; x < platformX + platformWidth; x++) {
+      tiles[y][x].materialSubtype = 'ceremonial_stone_platform';
+      tiles[y][x].elevation = 1; // Raised platform
+    }
+  }
+  
+  // Central throne/seat for the Curaca or Sapa Inca
+  const throneX = centerX;
+  const throneY = platformY + 1;
+  tiles[throneY][throneX].overlayObject = {
+    type: OverlayObjectType.THRONE,
+    rotation: 180,
+    variant: 'inca_stone_throne'
+  };
+  tiles[throneY][throneX].materialSubtype = 'carved_andesite';
+  tiles[throneY][throneX].isBlocking = true;
+  
+  // Stone pillars supporting the roof - characteristic Inca trapezoidal openings
+  const pillarSpacing = Math.floor((size.width - 4) / 4);
+  for (let i = 1; i <= 3; i++) {
+    const x1 = 2 + i * pillarSpacing;
+    const x2 = size.width - 2 - i * pillarSpacing;
+    
+    // Left side supports (culturally appropriate)
+    if (x1 < size.width - 1) {
+      placeCulturalSymbol(tiles, x1, centerY - 2, BiomeType.PILLAR,
+        config.culturalZone, config.era, 'inca_stone_pillar');
+      placeCulturalSymbol(tiles, x1, centerY + 2, BiomeType.PILLAR,
+        config.culturalZone, config.era, 'inca_stone_pillar');
+    }
+    
+    // Right side supports (culturally appropriate)
+    if (x2 > 0 && x2 !== x1) {
+      placeCulturalSymbol(tiles, x2, centerY - 2, BiomeType.PILLAR,
+        config.culturalZone, config.era, 'inca_stone_pillar');
+      placeCulturalSymbol(tiles, x2, centerY + 2, BiomeType.PILLAR,
+        config.culturalZone, config.era, 'inca_stone_pillar');
+    }
+  }
+  
+  // Ceremonial fire pits/braziers along the sides for illumination and rituals
+  const brazierY1 = centerY - 4;
+  const brazierY2 = centerY + 4;
+  
+  for (let i = 0; i < 3; i++) {
+    const brazierX = 4 + i * Math.floor((size.width - 8) / 3);
+    if (brazierX < size.width - 2) {
+      // Left side braziers
+      tiles[brazierY1][brazierX].overlayObject = {
+        type: OverlayObjectType.BRAZIER,
+        rotation: 0,
+        variant: 'stone_fire_bowl'
+      };
+      tiles[brazierY1][brazierX].materialSubtype = 'ceremonial_fire_bowl';
+      
+      // Right side braziers
+      if (brazierY2 < size.height - 1) {
+        tiles[brazierY2][brazierX].overlayObject = {
+          type: OverlayObjectType.BRAZIER,
+          rotation: 0,
+          variant: 'stone_fire_bowl'
+        };
+        tiles[brazierY2][brazierX].materialSubtype = 'ceremonial_fire_bowl';
+      }
+    }
+  }
+  
+  // Sacred niches (tocapu) along the walls for ceremonial objects
+  const nicheY = Math.floor(size.height * 0.3);
+  for (let x = 3; x < size.width - 3; x += 6) {
+    tiles[nicheY][x].overlayObject = {
+      type: OverlayObjectType.WALL_NICHE,
+      rotation: 0,
+      variant: 'inca_ceremonial_niche'
+    };
+    tiles[nicheY][x].materialSubtype = 'sacred_wall_niche';
+  }
+  
+  // Interaction zones
+  interactionZones.push({
+    id: 'inca_throne',
+    bounds: { x: throneX - 2, y: throneY - 1, width: 4, height: 3 },
+    type: 'throne',
+    interactions: ['hold_court', 'receive_tribute', 'conduct_ceremony']
+  });
+  
+  interactionZones.push({
+    id: 'ceremonial_platform',
+    bounds: { x: platformX, y: platformY, width: platformWidth, height: platformHeight },
+    type: 'ceremony',
+    interactions: ['perform_ritual', 'make_proclamation', 'feast_ceremony']
+  });
+  
+  interactionZones.push({
+    id: 'assembly_hall',
+    bounds: { x: 2, y: centerY - 6, width: size.width - 4, height: 12 },
+    type: 'assembly',
+    interactions: ['tribal_council', 'administrative_meeting', 'receive_delegates']
+  });
+  
+  // Room definition for the entire kallanka
+  rooms.push({
+    id: 'main_kallanka_hall',
+    name: config.era === HistoricalEra.MEDIEVAL ? 'Great Kallanka' : 'Administrative Hall',
+    bounds: { x: 1, y: 1, width: size.width - 2, height: size.height - 2 },
+    roomType: 'ceremonial_hall',
+    description: 'A grand Andean assembly hall built from precisely fitted stone blocks, used for state ceremonies, feasts, and administrative functions.',
+    culturalContext: 'Inca imperial architecture featuring trapezoidal openings and ceremonial platforms',
+    isEntryPoint: true
+  });
+}
+
+/**
+ * Generate Indigenous North American council ground
+ */
+function generateIndigenousCouncilGround(
+  tiles: Tile[][],
+  config: SpecialMapConfig,
+  noise: ValueNoise,
+  size: { width: number, height: number },
+  interactionZones: InteractionZone[]
+) {
+  // Open-air or longhouse design based on region/era
+  if (config.region === 'northeast' || config.era === HistoricalEra.MEDIEVAL) {
+    // Iroquois longhouse style
+    const wallLength = Math.min(size.width - 2, size.height - 2);
+    placeWallRectangle(tiles, 1, 1, size.width - 2, size.height - 2, [
+      { side: 'east', offset: Math.floor(size.height / 2) },
+      { side: 'west', offset: Math.floor(size.height / 2) }
+    ]);
+    
+    // Bark/wood floor
+    fillArea(tiles, 2, 2, size.width - 4, size.height - 4, BiomeType.FLOOR_WOOD);
+    
+    // Central fire pit
+    const centerX = Math.floor(size.width / 2);
+    const centerY = Math.floor(size.height / 2);
+    tiles[centerY][centerX].overlayObject = {
+      type: OverlayObjectType.FIRE_PIT,
+      rotation: 0,
+      variant: 'council_fire'
+    };
+  } else {
+    // Open-air council circle
+    fillArea(tiles, 0, 0, size.width, size.height, BiomeType.GRASS);
+    
+    const centerX = Math.floor(size.width / 2);
+    const centerY = Math.floor(size.height / 2);
+    
+    // Sacred fire at center
+    tiles[centerY][centerX].overlayObject = {
+      type: OverlayObjectType.FIRE_PIT,
+      rotation: 0,
+      variant: 'sacred_council_fire'
+    };
+    
+    // Circle of seating stones
+    const radius = Math.min(size.width, size.height) / 3;
+    for (let angle = 0; angle < 2 * Math.PI; angle += Math.PI / 8) {
+      const x = Math.floor(centerX + Math.cos(angle) * radius);
+      const y = Math.floor(centerY + Math.sin(angle) * radius);
+      if (x > 0 && x < size.width - 1 && y > 0 && y < size.height - 1) {
+        tiles[y][x].biome = BiomeType.CHAIR;
+        tiles[y][x].materialSubtype = 'council_stone';
+      }
+    }
+  }
+  
+  const centerX = Math.floor(size.width / 2);
+  const centerY = Math.floor(size.height / 2);
+  
+  interactionZones.push({
+    id: 'council_fire',
+    bounds: { x: centerX - 3, y: centerY - 3, width: 6, height: 6 },
+    type: 'sacred_fire',
+    interactions: ['speak_to_council', 'pass_talking_stick', 'make_treaty']
+  });
+}
+
+// SUBTYPE GENERATORS - Enhanced layouts for specific government building types
+
+function generateTownHall(
+  tiles: Tile[][],
+  config: SpecialMapConfig,
+  noise: ValueNoise,
+  size: { width: number, height: number },
+  interactionZones: InteractionZone[],
+  exitZones: ExitZone[],
+  rooms: RoomDefinition[]
+): { tiles: Tile[][], interactionZones: InteractionZone[], exitZones: ExitZone[], rooms: RoomDefinition[] } {
+  
+  const centerX = Math.floor(size.width / 2);
+  
+  // Create walls and floor
+  placeCulturalWallRectangle(tiles, 0, 0, size.width, size.height,
+    config.culturalZone, config.era, [
+      { side: 'south', offset: centerX }
+    ]);
+  
+  fillCulturalFloor(tiles, 1, 1, size.width - 2, size.height - 2,
+    config.culturalZone, config.era);
+  
+  // MAIN COUNCIL CHAMBER - North section
+  const councilY = 3;
+  const councilWidth = size.width - 4;
+  
+  // Council table - central meeting space
+  for (let x = 2; x < size.width - 2; x += 2) {
+    safeTileSet(tiles, councilY, x, { 
+      biome: BiomeType.TABLE,
+      materialSubtype: 'council_table'
+    });
+  }
+  
+  // MUNICIPAL OFFICES - Side rooms
+  const officeWidth = Math.floor((size.width - 6) / 2);
+  
+  // Left office - Records and permits
+  for (let y = councilY + 3; y < councilY + 6; y++) {
+    for (let x = 1; x < 1 + officeWidth; x++) {
+      if (x === 1 || y === councilY + 3) continue; // Entrance
+      safeTileSet(tiles, y, x, { biome: BiomeType.WALL });
+    }
+  }
+  
+  // Office furniture
+  safeTileSet(tiles, councilY + 4, 2, { 
+    biome: BiomeType.TABLE,
+    materialSubtype: 'clerk_desk'
+  });
+  
+  // Right office - Tax collection
+  for (let y = councilY + 3; y < councilY + 6; y++) {
+    for (let x = size.width - 1 - officeWidth; x < size.width - 1; x++) {
+      if (x === size.width - 1 - officeWidth || y === councilY + 3) continue;
+      safeTileSet(tiles, y, x, { biome: BiomeType.WALL });
+    }
+  }
+  
+  safeTileSet(tiles, councilY + 4, size.width - 3, { 
+    biome: BiomeType.TABLE,
+    materialSubtype: 'tax_desk'
+  });
+  
+  // PUBLIC RECEPTION AREA - South section
+  const receptionY = councilY + 7;
+  
+  // Waiting benches
+  for (let x = 3; x < size.width - 3; x += 3) {
+    safeTileSet(tiles, receptionY, x, { 
+      biome: BiomeType.CHAIR,
+      materialSubtype: 'waiting_bench'
+    });
+  }
+  
+  // Rooms for NPC placement
+  rooms.push(
+    {
+      id: 'council_chamber',
+      name: 'Council Chamber',
+      bounds: { x: 1, y: 1, width: size.width - 2, height: councilY + 2 },
+      description: 'Where municipal decisions are made',
+      roomType: 'council',
+      accessLevel: 'restricted',
+      npcDensity: 'low'
+    },
+    {
+      id: 'public_area',
+      name: 'Public Reception',
+      bounds: { x: 1, y: receptionY, width: size.width - 2, height: size.height - receptionY - 1 },
+      description: 'Where citizens conduct municipal business',
+      roomType: 'reception',
+      accessLevel: 'public',
+      npcDensity: 'normal'
+    }
+  );
+  
+  return { tiles, interactionZones, exitZones, rooms };
+}
+
+function generateAssemblyHall(
+  tiles: Tile[][],
+  config: SpecialMapConfig,
+  noise: ValueNoise,
+  size: { width: number, height: number },
+  interactionZones: InteractionZone[],
+  exitZones: ExitZone[],
+  rooms: RoomDefinition[]
+): { tiles: Tile[][], interactionZones: InteractionZone[], exitZones: ExitZone[], rooms: RoomDefinition[] } {
+  
+  const centerX = Math.floor(size.width / 2);
+  
+  // Create walls and floor
+  placeCulturalWallRectangle(tiles, 0, 0, size.width, size.height,
+    config.culturalZone, config.era, [
+      { side: 'south', offset: centerX }
+    ]);
+  
+  fillCulturalFloor(tiles, 1, 1, size.width - 2, size.height - 2,
+    config.culturalZone, config.era);
+  
+  // SPEAKER'S PODIUM - North center
+  const podiumY = 2;
+  safeTileSet(tiles, podiumY, centerX, { 
+    biome: BiomeType.FLOOR_MARBLE,
+    materialSubtype: 'speaker_platform'
+  });
+  
+  if (safeTileSet(tiles, podiumY, centerX, { biome: BiomeType.TABLE })) {
+    tiles[podiumY][centerX].overlayObject = {
+      type: OverlayObjectType.PODIUM,
+      rotation: 180,
+      variant: 'parliamentary'
+    };
+  }
+  
+  // SEMICIRCULAR SEATING - Modern parliamentary style
+  const seatRadius = Math.min(5, Math.floor(size.height / 2));
+  const seatY = podiumY + 3;
+  
+  for (let row = 0; row < 3; row++) {
+    const currentRadius = seatRadius + row;
+    const seatsInRow = Math.floor(currentRadius * Math.PI / 2); // Semicircle
+    
+    for (let seat = 0; seat < seatsInRow; seat++) {
+      const angle = (seat / seatsInRow) * Math.PI; // 0 to PI (semicircle)
+      const seatX = Math.floor(centerX + currentRadius * Math.cos(angle));
+      const y = Math.floor(seatY + currentRadius * Math.sin(angle));
+      
+      if (y < size.height - 1 && seatX >= 1 && seatX < size.width - 1) {
+        safeTileSet(tiles, y, seatX, { 
+          biome: BiomeType.CHAIR,
+          materialSubtype: 'assembly_seat'
+        });
+      }
+    }
+  }
+  
+  // VOTING SYSTEM - Modern assemblies have electronic voting
+  if (config.era === HistoricalEra.INDUSTRIAL_ERA || config.era === HistoricalEra.MODERN) {
+    safeTileSet(tiles, podiumY, centerX - 2, {
+      biome: BiomeType.TABLE,
+      materialSubtype: 'voting_machine'
+    });
+  }
+  
+  rooms.push({
+    id: 'assembly_chamber',
+    name: 'Assembly Hall',
+    bounds: { x: 1, y: 1, width: size.width - 2, height: size.height - 2 },
+    description: 'Democratic assembly chamber for legislative proceedings',
+    roomType: 'assembly',
+    accessLevel: 'restricted',
+    npcDensity: 'high'
+  });
+  
+  return { tiles, interactionZones, exitZones, rooms };
+}
+
+function generateAdministrativeComplex(
+  tiles: Tile[][],
+  config: SpecialMapConfig,
+  noise: ValueNoise,
+  size: { width: number, height: number },
+  interactionZones: InteractionZone[],
+  exitZones: ExitZone[],
+  rooms: RoomDefinition[]
+): { tiles: Tile[][], interactionZones: InteractionZone[], exitZones: ExitZone[], rooms: RoomDefinition[] } {
+  
+  const centerX = Math.floor(size.width / 2);
+  
+  // Create walls and floor
+  placeCulturalWallRectangle(tiles, 0, 0, size.width, size.height,
+    config.culturalZone, config.era, [
+      { side: 'south', offset: centerX }
+    ]);
+  
+  fillCulturalFloor(tiles, 1, 1, size.width - 2, size.height - 2,
+    config.culturalZone, config.era);
+  
+  // CUBICLES/OFFICE SPACES - Grid layout for bureaucracy
+  const officeSize = 3;
+  const officesPerRow = Math.floor((size.width - 2) / officeSize);
+  const officeRows = Math.floor((size.height - 4) / officeSize);
+  
+  for (let row = 0; row < officeRows; row++) {
+    for (let col = 0; col < officesPerRow; col++) {
+      const startX = 1 + col * officeSize;
+      const startY = 2 + row * officeSize;
+      
+      // Office walls (cubicle partitions)
+      if (col > 0) { // Vertical partition
+        for (let y = startY; y < startY + officeSize - 1; y++) {
+          safeTileSet(tiles, y, startX, { 
+            biome: BiomeType.WALL_LOW,
+            materialSubtype: 'office_partition'
+          });
+        }
+      }
+      
+      if (row > 0) { // Horizontal partition
+        for (let x = startX; x < startX + officeSize - 1; x++) {
+          safeTileSet(tiles, startY, x, { 
+            biome: BiomeType.WALL_LOW,
+            materialSubtype: 'office_partition'
+          });
+        }
+      }
+      
+      // Desk in each office
+      safeTileSet(tiles, startY + 1, startX + 1, { 
+        biome: BiomeType.TABLE,
+        materialSubtype: 'office_desk'
+      });
+      
+      // Chair
+      safeTileSet(tiles, startY + 2, startX + 1, { 
+        biome: BiomeType.CHAIR,
+        materialSubtype: 'office_chair'
+      });
+    }
+  }
+  
+  // CENTRAL CORRIDOR
+  const corridorY = Math.floor(size.height / 2);
+  for (let x = 1; x < size.width - 1; x++) {
+    safeTileSet(tiles, corridorY, x, { 
+      biome: BiomeType.FLOOR_STONE,
+      materialSubtype: 'office_corridor'
+    });
+  }
+  
+  // ARCHIVE/FILING ROOM - Corner office
+  const archiveX = size.width - 4;
+  const archiveY = 2;
+  
+  for (let y = archiveY; y < archiveY + 3; y++) {
+    for (let x = archiveX; x < size.width - 1; x++) {
+      safeTileSet(tiles, y, x, { 
+        biome: BiomeType.CHEST,
+        materialSubtype: 'filing_cabinet'
+      });
+    }
+  }
+  
+  rooms.push({
+    id: 'office_complex',
+    name: 'Administrative Offices',
+    bounds: { x: 1, y: 1, width: size.width - 2, height: size.height - 2 },
+    description: 'Bureaucratic offices for government administration',
+    roomType: 'office',
+    accessLevel: 'restricted',
+    npcDensity: 'high'
+  });
+  
+  return { tiles, interactionZones, exitZones, rooms };
 }

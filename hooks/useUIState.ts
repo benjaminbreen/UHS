@@ -20,8 +20,9 @@ import { parseDateString } from '../utils/dateUtils';
 import { ANIMAL_DATA } from '../constants/index';
 import { isSafari } from '../utils/safariUtils';
 import { TamedAnimal } from '../services/animalTamingService';
-import { specialMapNpcBehaviorService } from '../services/specialMapNpcBehaviorService';
+import { specialMapNpcBehaviorService, isGuardType } from '../services/specialMapNpcBehaviorService';
 import { eventBus } from '../services/eventBus';
+import { questService } from '../services/questService';
 
 export interface VictoryDetails {
     xpGained: number;
@@ -606,8 +607,12 @@ export const useUIState = () => {
             // Store recent NPC and conversation for narration context
             setRecentNpc(encounterTarget);
             
+            // Check quest progress for NPC interactions
+            if (playerCharacter && playerCharacter.x !== undefined && playerCharacter.y !== undefined) {
+                questService.checkQuestProgress(playerCharacter.x, playerCharacter.y, 'npc_interaction');
+            }
+            
             // Check if this was a guard encounter and clear the alert state
-            const { isGuardType } = specialMapNpcBehaviorService;
             if (isGuardType(encounterTarget)) {
                 // Emit reset event to clear guard warning and alert states
                 eventBus.emit('guard:resolved', { npcId: encounterTarget.id });
@@ -638,7 +643,7 @@ export const useUIState = () => {
             });
         }
         setEncounterTarget(null);
-    }, [encounterTarget, setNpcs]);
+    }, [encounterTarget, setNpcs, playerCharacter]);
 
     const handleInitiateCombat = useCallback((target: EncounterableEntity) => {
         setEncounterTarget(null);

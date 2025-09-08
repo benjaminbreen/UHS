@@ -21,6 +21,13 @@ export enum SpecialMapArchetype {
   VESSEL = 'VESSEL',
   PLAYER_HOME = 'PLAYER_HOME',
   
+  // NEW: Historically accurate government archetypes
+  TRIBAL_COUNCIL = 'TRIBAL_COUNCIL',
+  COURT_CHAMBER = 'COURT_CHAMBER',
+  TOWN_HALL = 'TOWN_HALL',
+  ASSEMBLY_HALL = 'ASSEMBLY_HALL',
+  ADMINISTRATIVE_COMPLEX = 'ADMINISTRATIVE_COMPLEX',
+  
   // Legacy archetypes (will be mapped to new ones)
   PALACE_COMPLEX = 'PALACE_COMPLEX',
   MARKET_BAZAAR = 'MARKET_BAZAAR',
@@ -160,6 +167,9 @@ export interface SpecialMapConfig {
   innerMapName?: string;       // Custom name for interior
   isPrivate?: boolean;         // Requires elite access
   density?: 'sparse' | 'normal' | 'dense';
+  
+  // Government type specification (from governmentDistricts.ts)
+  districtType?: string;       // 'sacred_council', 'parliament', 'military_council', 'forum', 'palace', etc.
   
   // Legacy archetype-specific configurations (will be deprecated)
   concentricCourts?: number;

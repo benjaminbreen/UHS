@@ -3,3 +3,5 @@
  */
 
 export * from './interiorMapGenerator';
+export * from './holyPlaceLayouts';
+export * from './holyPlaceInteriorIntegration';

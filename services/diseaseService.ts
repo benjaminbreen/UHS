@@ -217,7 +217,8 @@ class DiseaseService {
         targetEntity,
         disease,
         'proximity',
-        exposureEvent.exposureStrength
+        exposureEvent.exposureStrength,
+        currentYear
       );
 
       if (transmissionResult.transmitted) {
@@ -287,7 +288,8 @@ class DiseaseService {
         targetEntity,
         disease,
         'direct_contact',
-        exposureEvent.exposureStrength
+        exposureEvent.exposureStrength,
+        currentYear
       );
 
       if (transmissionResult.transmitted) {
@@ -771,7 +773,8 @@ class DiseaseService {
     target: PlayerCharacter | NpcEntity | AnimalEntity,
     disease: Disease,
     contactType: 'proximity' | 'direct_contact',
-    exposureStrength: number
+    exposureStrength: number,
+    currentYear: number
   ): { transmitted: boolean; newDisease?: ActiveDisease } {
     // Check if target is immune
     if (target.health?.immunities?.some(immunity => 
@@ -782,7 +785,7 @@ class DiseaseService {
 
     // GUARANTEED TRANSMISSION for direct contact (talking to NPCs/animals)
     if (contactType === 'direct_contact') {
-      const newDisease = this.createActiveDisease(disease, 2024); // TODO: Use actual current year
+      const newDisease = this.createActiveDisease(disease, currentYear);
       return { transmitted: true, newDisease };
     }
 
@@ -799,7 +802,7 @@ class DiseaseService {
     transmissionChance *= constitutionModifier;
 
     if (Math.random() < transmissionChance) {
-      const newDisease = this.createActiveDisease(disease, 2024); // TODO: Use actual current year
+      const newDisease = this.createActiveDisease(disease, currentYear);
       return { transmitted: true, newDisease };
     }
 

@@ -9,6 +9,7 @@ import { parseDateString } from '../../../utils/dateUtils';
 import { determineReligion } from '../../common/npcUtils';
 import { getFactoryType, FactoryType } from '../../../constants/gameData/factoryTypes';
 import { MINE_FREQUENCY_BY_ERA, QUARRY_FREQUENCY_BY_ERA, getRandomMaterial } from '../../../constants/gameData/mineQuarryMaterials';
+import { selectGovernmentType } from '../../../constants/gameData/governmentDistricts';
 
 
 let structureIdCounter = 0;
@@ -255,7 +256,7 @@ function findPlacementCandidates(
     return candidates;
 }
 
-export function generateTerrainStructures(mapData: MapData, noise: ValueNoise, region: string | undefined, societalProfile: SocietalProfile, hasCities: boolean = false) {
+export function generateTerrainStructures(mapData: MapData, noise: ValueNoise, region: string | undefined, societalProfile: SocietalProfile, hasCities: boolean = false, seed: number) {
     console.log("Generating terrain structures...");
     if (!mapData.terrainStructures) {
       mapData.terrainStructures = [];
@@ -505,6 +506,25 @@ export function generateTerrainStructures(mapData: MapData, noise: ValueNoise, r
                 if (structureType === 'fortress' || structureType === 'government_district') {
                     (finalStructure as any).era = dateInfo.era;
                     (finalStructure as any).culturalZone = culturalZone;
+                    
+                    // For government districts, determine and store the district type
+                    if (structureType === 'government_district') {
+                        // Use selectGovernmentType to get the district type
+                        const govType = selectGovernmentType(
+                            region,
+                            culturalZone,
+                            dateInfo.era,
+                            candidate.tile.x,
+                            candidate.tile.y,
+                            seed
+                        );
+                        
+                        if (govType) {
+                            (finalStructure as any).districtType = govType.districtType;
+                            // Also update the name to be more specific
+                            finalStructure.name = govType.name;
+                        }
+                    }
                 }
             }
             

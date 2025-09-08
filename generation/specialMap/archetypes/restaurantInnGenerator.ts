@@ -25,6 +25,7 @@ import {
   placeFireplace,
   getCulturalLighting 
 } from '../advancedLightingSystem';
+import { getCulturalStorage } from '../storageUtilitySystem';
 import {
   placeWineRack,
   placeKitchenWorkTriangle,

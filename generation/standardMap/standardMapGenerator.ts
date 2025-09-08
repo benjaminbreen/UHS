@@ -1212,7 +1212,7 @@ export function proceduralGenerateMap(
         if (hasCities) break;
       }
       console.log(`[Gen] Map has cities: ${hasCities}`);
-      generateTerrainStructures(mapDataObject, featurePlacementNoise, region, societalProfile, hasCities);
+      generateTerrainStructures(mapDataObject, featurePlacementNoise, region, societalProfile, hasCities, seed);
     }
   } else {
     console.log("[Gen] Skipping all structures for special zone:", localArea);
