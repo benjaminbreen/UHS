@@ -13,6 +13,16 @@ import { spatialDescriptionService } from './spatialDescriptionService';
 import { HistoricalEra } from '../types/ambiance';
 import { CulturalZone } from '../types/characterData';
 import { GameModeType } from '../types/eventTypes';
+import { 
+  getStructureLocation, 
+  getStructureType, 
+  isStructureType, 
+  calculateDistance,
+  findStructuresInRadius,
+  findNearestStructure,
+  validateStructure 
+} from './structureUtils';
+import { questTemplateService } from './questTemplateService';
 
 export class QuestService {
   private activeQuests: Quest[] = [];
@@ -25,58 +35,108 @@ export class QuestService {
     // Clear old placeholder quests on initialization
     this.clearPlaceholderQuests();
     
-    // Load saved quests from localStorage
-    const savedActive = localStorage.getItem('activeQuests');
-    if (savedActive) {
-      try {
-        const quests = JSON.parse(savedActive);
-        // Only keep LLM-generated quests
-        this.activeQuests = quests.filter((quest: Quest) => quest.isLLMGenerated === true);
-      } catch (e) {
-        console.error('Failed to load active quests:', e);
-      }
-    }
-
-    const savedCompleted = localStorage.getItem('completedQuests');
-    if (savedCompleted) {
-      try {
-        const quests = JSON.parse(savedCompleted);
-        // Only keep LLM-generated quests
-        this.completedQuests = quests.filter((quest: Quest) => quest.isLLMGenerated === true);
-      } catch (e) {
-        console.error('Failed to load completed quests:', e);
-      }
-    }
+    // Don't load saved quests - quests should reset on each game reload
+    // This ensures fresh quests for each new character/map generation
+    this.activeQuests = [];
+    this.completedQuests = [];
+    this.questChains = [];
+    this.questMarkers = [];
+    this.locationInteractions.clear();
+    
+    // Clear any existing localStorage quest data
+    localStorage.removeItem('activeQuests');
+    localStorage.removeItem('completedQuests');
+    localStorage.removeItem('questChains');
+    localStorage.removeItem('questService_initialized'); // Clear any initialization flags
+    
+    console.log('[QuestService] Constructor: All quest data cleared for fresh game start');
   }
 
   /**
-   * Clear placeholder/fake quests that might be in localStorage
+   * Check if a quest is a placeholder/test quest
+   */
+  private isPlaceholderQuest(quest: any): boolean {
+    if (!quest) return true;
+    
+    const title = (quest.title || '').toLowerCase();
+    const description = (quest.description || '').toLowerCase();
+    
+    // List of placeholder indicators
+    const placeholderIndicators = [
+      'first sign',
+      'placeholder',
+      'test quest',
+      'example quest',
+      'sample quest',
+      'debug quest',
+      'dummy quest',
+      'temp quest',
+      'todo',
+      'unfinished'
+    ];
+    
+    // Check if any placeholder indicator is in title or description
+    const hasPlaceholderText = placeholderIndicators.some(indicator => 
+      title.includes(indicator) || description.includes(indicator)
+    );
+    
+    // Check for other signs of placeholder quests
+    const hasNoObjectives = !quest.objectives || quest.objectives.length === 0;
+    const hasInvalidId = !quest.id || quest.id === 'test' || quest.id.includes('placeholder');
+    const hasNoRewards = !quest.rewards || quest.rewards.length === 0;
+    
+    return hasPlaceholderText || hasNoObjectives || hasInvalidId || (hasNoRewards && !quest.isProceduralQuest);
+  }
+  
+  /**
+   * Check if a quest is valid and complete
+   */
+  private isValidQuest(quest: any): boolean {
+    if (!quest) return false;
+    if (!quest.id || typeof quest.id !== 'string') return false;
+    if (!quest.title || typeof quest.title !== 'string') return false;
+    if (!quest.description || typeof quest.description !== 'string') return false;
+    if (!quest.objectives || !Array.isArray(quest.objectives)) return false;
+    if (quest.objectives.length === 0) return false;
+    if (!quest.category) return false;
+    if (!quest.status) return false;
+    
+    // Check that objectives have required fields
+    const hasValidObjectives = quest.objectives.every((obj: any) => 
+      obj && obj.id && obj.description && obj.type
+    );
+    
+    return hasValidObjectives;
+  }
+  
+  /**
+   * Clear placeholder/fake quests - now simplified since quests don't persist
    */
   private clearPlaceholderQuests(): void {
-    try {
-      const savedActive = localStorage.getItem('activeQuests');
-      if (savedActive) {
-        const quests = JSON.parse(savedActive);
-        const placeholderQuests = quests.filter((quest: any) => 
-          !quest.isLLMGenerated || 
-          quest.title?.toLowerCase().includes('first sign') ||
-          quest.title?.toLowerCase().includes('placeholder') ||
-          quest.title?.toLowerCase().includes('test quest')
-        );
-        
-        if (placeholderQuests.length > 0) {
-          console.log(`[QuestService] Clearing ${placeholderQuests.length} placeholder quests`);
-          // Remove placeholder quests and save clean list
-          const cleanQuests = quests.filter((quest: any) => quest.isLLMGenerated === true);
-          localStorage.setItem('activeQuests', JSON.stringify(cleanQuests));
-        }
-      }
-    } catch (e) {
-      console.error('Error clearing placeholder quests:', e);
-      // If there's an error, clear all quests to start fresh
-      localStorage.removeItem('activeQuests');
-      localStorage.removeItem('completedQuests');
-    }
+    // Since quests no longer persist, just ensure localStorage is clean
+    localStorage.removeItem('activeQuests');
+    localStorage.removeItem('completedQuests'); 
+    localStorage.removeItem('questChains');
+  }
+
+  /**
+   * Completely reset the quest service - used for fresh game starts
+   */
+  public resetQuestService(): void {
+    console.log('[QuestService] Full reset requested');
+    this.activeQuests = [];
+    this.completedQuests = [];
+    this.questChains = [];
+    this.questMarkers = [];
+    this.locationInteractions.clear();
+    
+    // Clear all localStorage quest data
+    localStorage.removeItem('activeQuests');
+    localStorage.removeItem('completedQuests');
+    localStorage.removeItem('questChains');
+    localStorage.removeItem('questService_initialized');
+    
+    console.log('[QuestService] Full reset completed - all quest data cleared');
   }
 
   /**
@@ -726,6 +786,32 @@ export class QuestService {
    * Add a new quest
    */
   addQuest(quest: Quest): void {
+    // Validate quest before adding
+    if (!this.isValidQuest(quest)) {
+      console.warn('[QuestService] Attempted to add invalid quest:', quest.title);
+      return;
+    }
+    
+    // Check if it's a placeholder quest
+    if (this.isPlaceholderQuest(quest)) {
+      console.warn('[QuestService] Blocked placeholder quest:', quest.title);
+      return;
+    }
+    
+    // Check for duplicate quests
+    const isDuplicate = this.activeQuests.some(q => 
+      q.id === quest.id || 
+      (q.title === quest.title && q.description === quest.description)
+    );
+    
+    if (isDuplicate) {
+      console.warn('[QuestService] Blocked duplicate quest:', quest.title);
+      return;
+    }
+    
+    // Add quest markers for map display
+    this.updateQuestMarkers(quest);
+    
     this.activeQuests.push(quest);
     this.saveQuests();
     console.log('[QuestService] Added quest:', quest.title);
@@ -894,43 +980,214 @@ export class QuestService {
   }
 
   /**
-   * Process quest rewards using the loot service
+   * Process quest rewards and apply them to the player
+   * This properly handles all reward types including health, reputation, etc.
    */
   private processQuestRewards(quest: Quest): {
     items: any[];
     otherRewards: any[];
     totalValue: number;
+    appliedRewards: string[];
   } {
     // Get cultural zone and era from quest context
     const culturalZone = quest.culturalZone || 'EUROPEAN';
     const era = quest.era || 'MEDIEVAL';
     
-    // Process rewards through loot service
+    // Track what rewards were actually applied
+    const appliedRewards: string[] = [];
+    const otherRewards: any[] = [];
+    
+    // Process item rewards through loot service
+    const itemRewards = quest.rewards.filter(r => r.type === 'item' || r.type === 'money');
     const rewardResult = lootService.processQuestRewards(
-      quest.rewards,
+      itemRewards,
       culturalZone,
       era
     );
     
-    // Calculate total value
-    const totalValue = rewardResult.items.reduce((sum, item) => sum + item.value, 0);
+    // Process non-item rewards directly
+    quest.rewards.forEach(reward => {
+      // Check if reward should be given based on chance
+      if (reward.guaranteed === false && reward.chance) {
+        if (Math.random() > reward.chance) {
+          return; // Skip this reward
+        }
+      }
+      
+      switch (reward.type) {
+        case 'reputation':
+          // Emit event for reputation change
+          const repValue = reward.value as number;
+          window.dispatchEvent(new CustomEvent('reputationChange', {
+            detail: { 
+              amount: repValue, 
+              source: `Quest: ${quest.title}`,
+              questId: quest.id 
+            }
+          }));
+          appliedRewards.push(`Reputation +${repValue}`);
+          otherRewards.push({ type: 'reputation', value: repValue, description: reward.description });
+          break;
+          
+        case 'health':
+          // Emit event for health change
+          const healthValue = reward.value as number;
+          window.dispatchEvent(new CustomEvent('playerHealthChange', {
+            detail: { 
+              amount: healthValue, 
+              source: `Quest: ${quest.title}`,
+              questId: quest.id 
+            }
+          }));
+          appliedRewards.push(`Health +${healthValue}`);
+          otherRewards.push({ type: 'health', value: healthValue, description: reward.description });
+          break;
+          
+        case 'experience':
+          // Emit event for experience gain
+          const expValue = reward.value as number;
+          window.dispatchEvent(new CustomEvent('experienceGain', {
+            detail: { 
+              amount: expValue, 
+              source: `Quest: ${quest.title}`,
+              questId: quest.id 
+            }
+          }));
+          appliedRewards.push(`Experience +${expValue}`);
+          otherRewards.push({ type: 'experience', value: expValue, description: reward.description });
+          break;
+          
+        case 'knowledge':
+          // Emit event for knowledge gain
+          window.dispatchEvent(new CustomEvent('knowledgeGain', {
+            detail: { 
+              knowledge: reward.value, 
+              source: `Quest: ${quest.title}`,
+              questId: quest.id 
+            }
+          }));
+          appliedRewards.push(`Knowledge: ${reward.description}`);
+          otherRewards.push({ type: 'knowledge', value: reward.value, description: reward.description });
+          break;
+          
+        case 'skill':
+          // Emit event for skill gain
+          window.dispatchEvent(new CustomEvent('skillGain', {
+            detail: { 
+              skill: reward.value, 
+              source: `Quest: ${quest.title}`,
+              questId: quest.id 
+            }
+          }));
+          appliedRewards.push(`Skill: ${reward.description}`);
+          otherRewards.push({ type: 'skill', value: reward.value, description: reward.description });
+          break;
+          
+        case 'blessing':
+        case 'curse':
+          // Emit event for blessing/curse
+          window.dispatchEvent(new CustomEvent('statusEffectApplied', {
+            detail: { 
+              effect: reward.type,
+              value: reward.value,
+              description: reward.description,
+              source: `Quest: ${quest.title}`,
+              questId: quest.id 
+            }
+          }));
+          appliedRewards.push(`${reward.type === 'blessing' ? 'Blessing' : 'Curse'}: ${reward.description}`);
+          otherRewards.push({ type: reward.type, value: reward.value, description: reward.description });
+          break;
+          
+        case 'title':
+          // Emit event for title gain
+          window.dispatchEvent(new CustomEvent('titleGranted', {
+            detail: { 
+              title: reward.value,
+              source: `Quest: ${quest.title}`,
+              questId: quest.id 
+            }
+          }));
+          appliedRewards.push(`Title: ${reward.value}`);
+          otherRewards.push({ type: 'title', value: reward.value, description: reward.description });
+          break;
+          
+        case 'relationship':
+          // Emit event for relationship change
+          window.dispatchEvent(new CustomEvent('relationshipChange', {
+            detail: { 
+              target: reward.value,
+              description: reward.description,
+              source: `Quest: ${quest.title}`,
+              questId: quest.id 
+            }
+          }));
+          appliedRewards.push(`Relationship: ${reward.description}`);
+          otherRewards.push({ type: 'relationship', value: reward.value, description: reward.description });
+          break;
+          
+        case 'map_reveal':
+          // Emit event for map reveal
+          window.dispatchEvent(new CustomEvent('mapAreaRevealed', {
+            detail: { 
+              area: reward.value,
+              source: `Quest: ${quest.title}`,
+              questId: quest.id 
+            }
+          }));
+          appliedRewards.push(`Map Revealed: ${reward.description}`);
+          otherRewards.push({ type: 'map_reveal', value: reward.value, description: reward.description });
+          break;
+          
+        case 'quest_unlock':
+          // Unlock follow-up quest
+          if (reward.value && typeof reward.value === 'string') {
+            // TODO: Implement quest unlocking system
+            console.log(`[QuestService] Unlocked quest: ${reward.value}`);
+          }
+          appliedRewards.push(`New Quest: ${reward.description}`);
+          otherRewards.push({ type: 'quest_unlock', value: reward.value, description: reward.description });
+          break;
+          
+        case 'special_ability':
+          // Emit event for special ability gain
+          window.dispatchEvent(new CustomEvent('specialAbilityGranted', {
+            detail: { 
+              ability: reward.value,
+              description: reward.description,
+              source: `Quest: ${quest.title}`,
+              questId: quest.id 
+            }
+          }));
+          appliedRewards.push(`Ability: ${reward.description}`);
+          otherRewards.push({ type: 'special_ability', value: reward.value, description: reward.description });
+          break;
+      }
+    });
     
-    // Emit reward event for UI notification
+    // Calculate total value
+    const totalValue = rewardResult.items.reduce((sum, item) => sum + (item.value || 0), 0);
+    
+    // Emit comprehensive reward event for UI notification
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('questRewardsReceived', {
         detail: {
           questTitle: quest.title,
           items: rewardResult.items,
-          otherRewards: rewardResult.otherRewards,
+          otherRewards: [...rewardResult.otherRewards, ...otherRewards],
+          appliedRewards,
           totalValue
         }
       }));
     }
     
+    console.log(`[QuestService] Applied rewards for quest "${quest.title}":`, appliedRewards);
+    
     return {
       items: rewardResult.items,
-      otherRewards: rewardResult.otherRewards,
-      totalValue
+      otherRewards: [...rewardResult.otherRewards, ...otherRewards],
+      totalValue,
+      appliedRewards
     };
   }
 
@@ -973,8 +1230,37 @@ export class QuestService {
    * Save quests to localStorage
    */
   private saveQuests(): void {
-    localStorage.setItem('activeQuests', JSON.stringify(this.activeQuests));
-    localStorage.setItem('completedQuests', JSON.stringify(this.completedQuests));
+    // Quests no longer persist - reset on each game reload
+  }
+  
+  /**
+   * Get current time of day
+   */
+  private getTimeOfDay(): string {
+    const hour = new Date().getHours(); // This would ideally use game time
+    if (hour >= 6 && hour < 12) return 'morning';
+    if (hour >= 12 && hour < 18) return 'afternoon';
+    if (hour >= 18 && hour < 22) return 'evening';
+    return 'night';
+  }
+  
+  /**
+   * Get current weather (placeholder - would be connected to weather system)
+   */
+  private getCurrentWeather(): string {
+    const weathers = ['clear', 'rain', 'cloudy', 'snow', 'fog'];
+    return weathers[Math.floor(Math.random() * weathers.length)];
+  }
+  
+  /**
+   * Get current season (placeholder - would be connected to date system)
+   */
+  private getCurrentSeason(): string {
+    const month = new Date().getMonth();
+    if (month >= 2 && month <= 4) return 'spring';
+    if (month >= 5 && month <= 7) return 'summer';
+    if (month >= 8 && month <= 10) return 'autumn';
+    return 'winter';
   }
 
   /**
@@ -999,26 +1285,53 @@ export class QuestService {
     playerLocation: { x: number; y: number },
     culturalZone: string,
     era: string,
-    mapData?: any
+    mapData?: any,
+    playerStats?: any
   ): Quest[] {
     const quests: Quest[] = [];
     
-    // Always generate 1-2 procedural quests based on nearby features
-    const proceduralQuests = this.generateProceduralQuests(
-      mapStructures,
+    // Find all nearby structures within reasonable distance
+    const nearbyStructures = findStructuresInRadius(mapStructures, playerLocation, 50);
+    
+    // Create context for template-based generation
+    const questContext = {
       playerLocation,
+      playerStats: playerStats || { health: 50, reputation: 10, wealth: 10 },
+      nearbyStructures,
       culturalZone,
       era,
-      mapData
-    );
+      gameMode,
+      timeOfDay: this.getTimeOfDay(),
+      weather: this.getCurrentWeather(),
+      currentSeason: this.getCurrentSeason()
+    };
     
-    // Add the procedural quests first (guaranteed)
-    proceduralQuests.forEach(quest => {
-      if (quest) {
+    // Generate 2-3 contextual quests using the template service
+    const contextualQuests = questTemplateService.generateContextualQuests(questContext, 3);
+    contextualQuests.forEach(quest => {
+      if (quest && quests.length < 5) {
         quests.push(quest);
         this.addQuest(quest);
       }
     });
+    
+    // If we don't have enough quests, fall back to procedural generation
+    if (quests.length < 2) {
+      const proceduralQuests = this.generateProceduralQuests(
+        mapStructures,
+        playerLocation,
+        culturalZone,
+        era,
+        mapData
+      );
+      
+      proceduralQuests.forEach(quest => {
+        if (quest && quests.length < 3) {
+          quests.push(quest);
+          this.addQuest(quest);
+        }
+      });
+    }
     
     // Then add mode-specific quests if we have room (max 3 total)
     if (quests.length < 3) {
@@ -1073,13 +1386,6 @@ export class QuestService {
   ): Quest[] {
     const quests: Quest[] = [];
     const searchRadius = 20; // Increased search radius for more options
-    
-    // Helper to get location from structure (handles different field names)
-    const getStructureLocation = (s: TerrainStructure): { x: number; y: number } | null => {
-      if (s.location) return s.location;
-      if (s.x !== undefined && s.y !== undefined) return { x: s.x, y: s.y };
-      return null;
-    };
     
     // Find nearby ruins (check both type and structureType fields)
     const nearbyRuins = mapStructures.filter(s => {

@@ -7,6 +7,48 @@
 import { NpcEntity, PlayerCharacter, MapData } from '../types';
 import { generateEncounterDialogue } from './llmService';
 
+/**
+ * Check if two religions have historical conflicts
+ */
+function checkReligiousConflict(playerReligion: string, npcReligion: string): boolean {
+  const conflicts = [
+    ['Christian', 'Muslim'],
+    ['Christian', 'Pagan'],
+    ['Muslim', 'Pagan'],
+    ['Catholic', 'Protestant'],
+    ['Sunni', 'Shia'],
+    ['Buddhist', 'Hindu'],
+    ['Traditional', 'Christian'],
+    ['Traditional', 'Muslim']
+  ];
+  
+  return conflicts.some(([rel1, rel2]) => 
+    (playerReligion.includes(rel1) && npcReligion.includes(rel2)) ||
+    (playerReligion.includes(rel2) && npcReligion.includes(rel1))
+  );
+}
+
+/**
+ * Check if two factions have conflicts
+ */
+function checkFactionalConflict(playerFaction: string, npcFaction: string): boolean {
+  const conflicts = [
+    ['Royalist', 'Republican'],
+    ['Imperial', 'Rebel'],
+    ['Conservative', 'Revolutionary'],
+    ['Nobility', 'Peasantry'],
+    ['Merchant', 'Artisan'],
+    ['Urban', 'Rural'],
+    ['Military', 'Civilian'],
+    ['Tribal', 'Settler']
+  ];
+  
+  return conflicts.some(([fac1, fac2]) => 
+    (playerFaction.includes(fac1) && npcFaction.includes(fac2)) ||
+    (playerFaction.includes(fac2) && npcFaction.includes(fac1))
+  );
+}
+
 export interface NPCApproachResult {
   npcId: string;
   npcName: string;
@@ -83,7 +125,7 @@ function calculateApproachProbability(
     if (context.playerWealth > 30) baseProbability *= 2;
   }
   
-  else if (occupation.includes('thief') || (npc.personality?.includes('greedy'))) {
+  else if (occupation.includes('thief') || (npc.personality && typeof npc.personality === 'string' && npc.personality.includes('greedy'))) {
     if (context.playerWealth > 40) {
       baseProbability *= 1.5;
       approachType = 'theft';
@@ -93,6 +135,78 @@ function calculateApproachProbability(
     // More likely at night
     if (context.timeOfDay > 20 || context.timeOfDay < 6) {
       baseProbability *= 2;
+    }
+  }
+
+  // Quest approach logic - NPCs with urgent needs or interesting information
+  else if (
+    // Scholars, nobles, officials might have quests
+    occupation.includes('scholar') || occupation.includes('noble') || 
+    occupation.includes('official') || occupation.includes('priest') ||
+    occupation.includes('elder') || occupation.includes('captain') ||
+    // Or any NPC with high charisma/reputation who might need help
+    (npc.charisma && npc.charisma > 12) ||
+    // Or NPCs in distress (low health)
+    (npc.health && npc.health < 50)
+  ) {
+    // Base 4% chance for quest approaches
+    baseProbability = Math.max(baseProbability, 0.04);
+    approachType = 'quest';
+    priority = 4; // High priority - quests are important
+    
+    // Higher reputation players get more quest offers
+    if (context.playerReputation > 60) {
+      baseProbability *= 2.5;
+    } else if (context.playerReputation > 30) {
+      baseProbability *= 1.5;
+    }
+    
+    // NPCs with very low health approach more often
+    if (npc.health && npc.health < 30) baseProbability *= 3;
+  }
+
+  // Religion/Faction confrontation logic
+  if (playerCharacter.religion && npc.religion && 
+      playerCharacter.religion !== npc.religion) {
+    
+    // Check for known religious conflicts
+    const hasReligiousConflict = checkReligiousConflict(
+      playerCharacter.religion, 
+      npc.religion
+    );
+    
+    if (hasReligiousConflict) {
+      baseProbability *= 3; // 3x more likely to approach
+      approachType = 'hostile';
+      priority = 4;
+    }
+  }
+
+  // Faction conflict logic
+  if (playerCharacter.faction && npc.faction && 
+      playerCharacter.faction !== npc.faction) {
+    
+    const hasFactionalConflict = checkFactionalConflict(
+      playerCharacter.faction, 
+      npc.faction
+    );
+    
+    if (hasFactionalConflict) {
+      baseProbability *= 2.5;
+      approachType = 'hostile';
+      priority = 3;
+    }
+  }
+
+  // Personality-based confrontation
+  if (npc.personality && typeof npc.personality === 'string') {
+    if (npc.personality.includes('aggressive') || npc.personality.includes('confrontational')) {
+      baseProbability *= 2;
+      if (Math.random() < 0.3) approachType = 'hostile';
+    }
+    
+    if (npc.personality.includes('extroverted') || npc.personality.includes('social')) {
+      baseProbability *= 1.5; // More likely to approach
     }
   }
 

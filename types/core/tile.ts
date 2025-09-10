@@ -193,6 +193,17 @@ export enum OverlayObjectType {
   PRAYER_MAT = 'PRAYER_MAT',
   CANDELABRA = 'CANDELABRA',
   
+  // Native American / Indigenous
+  TOTEM_POLE = 'TOTEM_POLE',
+  DRUM = 'DRUM',
+  ROCK = 'ROCK',
+  LADDER = 'LADDER',
+  WELL = 'WELL',
+  BUFFALO_SKULL = 'BUFFALO_SKULL',
+  MEDICINE_BUNDLE = 'MEDICINE_BUNDLE',
+  PEACE_PIPE = 'PEACE_PIPE',
+  DREAM_CATCHER = 'DREAM_CATCHER',
+  
   // Multi-tile 
   PILLAR_BASE = 'PILLAR_BASE',
   PILLAR_TOP = 'PILLAR_TOP',

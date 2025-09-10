@@ -332,6 +332,8 @@ export const useMapState = (props: useMapStateProps) => {
         // Use area-specific economicActivityLevel if provided, otherwise fall back to state value
         const effectiveEconomicLevel = areaEconomicActivityLevel !== undefined ? areaEconomicActivityLevel : economicActivityLevel;
         const generationParams: MapGenerationParams = { isAgricultural, isPastoral, economicActivityLevel: effectiveEconomicLevel };
+        // FIXED: Pass zoneToUse as continent (it's the zone name like "Europe"), and regionToUse as region
+        // The standardMapGenerator will derive the cultural zone from the continent parameter
         const newMap = proceduralGenerateMap( seedToUse, archetypeToUse, climateToUse,  generateHarbor, generateLargeCity,  altitudeOverride || userSelectedBaseAltitude, isVolcanic || forceVolcanicActivity, zoneToUse, regionToUse, localAreaToUse, String(gameState.gameDate.year), generationParams, neighboringEdges, hasLakes, undefined, undefined, undefined ); 
         const newAnimals = newMap.animals || []; 
         let newNpcs = newMap.npcs || [];
@@ -680,6 +682,8 @@ export const useMapState = (props: useMapStateProps) => {
         if (!mapData) return;
         setGameState.setIsLoading(true);
         const { continent, localArea: currentLocalArea, region: currentRegion } = mapData;
+        // FIXED: Pass continent (which contains the zone) as the zone parameter (8th position)
+        // and region in the correct position (7th position) 
         const newMapEntry = generateAndCacheMapInternal(
             currentMapSeed, userSelectedBaseArchetype, userSelectedBaseClimate, 
             currentWorldCoords.x, currentWorldCoords.y, 
@@ -704,13 +708,20 @@ export const useMapState = (props: useMapStateProps) => {
             return;
         }
         
+        // Clear any URL restoration data when manually starting a new world
+        console.log('[onStartNewWorldWithCurrentSettings] Clearing URL restoration data');
+        localStorage.removeItem('urlCharacterData');
+        localStorage.removeItem('urlGameMode');
+        localStorage.removeItem('urlConfigGameMode');
+        localStorage.removeItem('pendingGameMode');
+        
         // If we already have a player character and no characterSpec, we're likely being called redundantly
         if (playerState.playerCharacter && !characterSpec) {
             console.log('[onStartNewWorldWithCurrentSettings] Player character already exists without new spec, skipping regeneration');
             return;
         }
         
-        // Reset the seed manager with a new seed
+        // Always reset seed when manually starting new world
         seedManager.reset();
         const seedStr = seedManager.getSeed();
         let hash = 0;
@@ -1010,8 +1021,24 @@ export const useMapState = (props: useMapStateProps) => {
         
         console.log('[onStartNewWorldAtLocation] Success! Found area:', foundAreaDef.name, 'in region:', foundRegion);
         
-        // Generate new seed and reset
-        seedManager.reset();
+        // Update the game date FIRST if an override year was provided
+        if (overrideYear !== undefined) {
+            console.log('[onStartNewWorldAtLocation] Setting year BEFORE map generation to:', overrideYear);
+            setGameState.onMapConfigDateChange({ year: overrideYear });
+        }
+        
+        // Check if we should use existing seed or generate new one
+        const currentSeed = seedManager.getSeed();
+        console.log('[onStartNewWorldAtLocation] Current seed manager seed:', currentSeed);
+        
+        // Only reset if we have the default seed (not from URL)
+        if (currentSeed === 'ABCD1234' || !currentSeed) {
+            console.log('[onStartNewWorldAtLocation] No URL seed found, generating new seed');
+            seedManager.reset();
+        } else {
+            console.log('[onStartNewWorldAtLocation] Using existing seed from URL:', currentSeed);
+        }
+        
         const seedStr = seedManager.getSeed();
         let hash = 0;
         for (let i = 0; i < seedStr.length; i++) {
@@ -1020,6 +1047,7 @@ export const useMapState = (props: useMapStateProps) => {
             hash = hash & hash;
         }
         const newSeed = Math.abs(hash) % 1000000;
+        console.log('[onStartNewWorldAtLocation] Final numeric seed for map generation:', newSeed);
         setInitialGameSeed(newSeed);
         setMapDataCache(new Map());
         setCurrentWorldCoords({ x: 0, y: 0 });
@@ -1112,10 +1140,7 @@ export const useMapState = (props: useMapStateProps) => {
             setPlayerState.setPlayerMode(initialPos.mode);
         }
         
-        // Update the game date if an override year was provided
-        if (overrideYear !== undefined) {
-            setGameState.onMapConfigDateChange({ year: overrideYear });
-        }
+        // Date was already set before map generation
         
         setGameState.setIsLoading(false);
     }, [setPlayerState, setGameState, generateHarbor, generateLargeCity, userSelectedBaseAltitude, 
@@ -1135,8 +1160,11 @@ export const useMapState = (props: useMapStateProps) => {
             console.log('[onStartNewWorldAtZoneRegion] No zone/region specified, generating random world');
             // Directly generate a random world without the checks in onStartNewWorldWithCurrentSettings
             
-            // Reset the seed manager with a new seed
-            seedManager.reset();
+            // Check if we should use existing seed or generate new one
+            const currentSeed = seedManager.getSeed();
+            if (currentSeed === 'ABCD1234' || !currentSeed) {
+                seedManager.reset();
+            }
             const seedStr = seedManager.getSeed();
             let hash = 0;
             for (let i = 0; i < seedStr.length; i++) {

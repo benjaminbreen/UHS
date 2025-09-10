@@ -16,7 +16,8 @@ import {
   getCulturalStorage,
   getCulturalFloorPattern
 } from '../culturalFurnitureSystem';
-import { LANDSCAPE_BORDER_ROWS } from '../../../constants/specialMaps/specialMapAugmentation';
+// Simple border size - removed specialMapAugmentation dependency
+const LANDSCAPE_BORDER_ROWS = 2; // Smaller border for markets
 import {
   lightRoom,
   placeChandelier,

@@ -59,42 +59,64 @@ export function generateNpcName(
 ): string {
     try {
         let nameKeyToUse: string | undefined = professionNameKey;
+        
+        // console.log(`[NameGen] Starting name generation:`, {
+        //     culturalZone,
+        //     region,
+        //     year,
+        //     professionNameKey
+        // });
 
         // 1. Check for a region/year specific override first
         if (!nameKeyToUse && region) {
             // For North American regions after colonization, check NORTH_AMERICAN_COLONIAL mappings
             if (culturalZone === 'NORTH_AMERICAN_PRE_COLUMBIAN' && year > 1600) {
+                // console.log(`[NameGen] Checking NORTH_AMERICAN_COLONIAL for post-1600`);
                 const colonialRules = REGION_NAME_MAPPING['NORTH_AMERICAN_COLONIAL']?.[region];
                 if (colonialRules) {
+                    // console.log(`[NameGen] Found colonial rules for region "${region}":`, colonialRules);
                     for (const rule of colonialRules) {
                         const beforeMatch = rule.before ? year < rule.before : true;
                         const afterMatch = rule.after ? year >= rule.after : true;
                         if (beforeMatch && afterMatch) {
                             nameKeyToUse = rule.keys[Math.floor(noise.random() * rule.keys.length)];
+                            // console.log(`[NameGen] Selected from colonial mapping: ${nameKeyToUse}`);
                             break;
                         }
                     }
+                } else {
+                    // console.log(`[NameGen] No colonial rules found for region "${region}"`);
                 }
             }
             
             // If not found in colonial mappings or not applicable, check the original cultural zone
             if (!nameKeyToUse && REGION_NAME_MAPPING[culturalZone as keyof typeof REGION_NAME_MAPPING]) {
+                // console.log(`[NameGen] Checking REGION_NAME_MAPPING["${culturalZone}"]["${region}"]`);
                 const regionRules = REGION_NAME_MAPPING[culturalZone as keyof typeof REGION_NAME_MAPPING][region];
                 if (regionRules) {
+                    // console.log(`[NameGen] Found regional rules:`, regionRules);
                     for (const rule of regionRules) {
                         const beforeMatch = rule.before ? year < rule.before : true;
                         const afterMatch = rule.after ? year >= rule.after : true;
+                        // console.log(`[NameGen] Rule check: before=${rule.before}, after=${rule.after}, year=${year}, matches=${beforeMatch && afterMatch}`);
                         if (beforeMatch && afterMatch) {
                             nameKeyToUse = rule.keys[Math.floor(noise.random() * rule.keys.length)];
+                            // console.log(`[NameGen] Selected from regional mapping: ${nameKeyToUse}`);
                             break;
                         }
                     }
+                } else {
+                    // console.log(`[NameGen] No regional rules found for "${culturalZone}"/"${region}"`);
+                    // console.log(`[NameGen] Available regions in ${culturalZone}:`, Object.keys(REGION_NAME_MAPPING[culturalZone as keyof typeof REGION_NAME_MAPPING] || {}));
                 }
+            } else if (!nameKeyToUse) {
+                // console.log(`[NameGen] REGION_NAME_MAPPING["${culturalZone}"] does not exist`);
             }
         }
         
         // 2. Fallback - check for specific region matching before using broad cultural zone
         if (!nameKeyToUse) {
+            // console.log(`[NameGen] No name key found yet, entering fallback logic`);
             // For East Asian, check specific regions
             if (culturalZone === 'EAST_ASIAN' && region) {
                 // Map region to specific name set based on region name
@@ -116,14 +138,18 @@ export function generateNpcName(
                     nameKeyToUse = culturalZone;
                 }
             } else {
+                // console.log(`[NameGen] Using cultural zone as fallback: ${culturalZone}`);
                 nameKeyToUse = culturalZone;
             }
         }
+        
+        // console.log(`[NameGen] Final nameKeyToUse: ${nameKeyToUse}`);
 
         const normalizedGender = gender === 'Male' ? 'Male' : 'Female';
         
         // 3. Get the name list, with a final fallback to EUROPEAN
         const names = CHARACTER_NAMES[nameKeyToUse] || CHARACTER_NAMES.EUROPEAN;
+        // console.log(`[NameGen] Found names for key "${nameKeyToUse}":`, names ? 'YES' : 'NO (using EUROPEAN fallback)');
         
         const maleNames = names.male || ['Thomas', 'John', 'William'];
         const femaleNames = names.female || ['Mary', 'Elizabeth', 'Margaret'];

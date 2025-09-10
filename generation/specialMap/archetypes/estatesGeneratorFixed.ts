@@ -6,7 +6,8 @@ import { Tile } from '../../../types/mapTypes';
 import { BiomeType } from '../../../types/biomes/base';
 import { OverlayObjectType } from '../../../types/core/tile';
 import { SpecialMapConfig, InteractionZone, ExitZone, RoomDefinition } from '../../../types/specialMapTypes';
-import { LANDSCAPE_BORDER_ROWS } from '../../../constants/specialMaps/specialMapAugmentation';
+// Simple landscape border size - removed specialMapAugmentation dependency
+const LANDSCAPE_BORDER_ROWS = 3; // Default border size for estates
 
 type MaterialType = 'white_marble' | 'grey_stone' | 'red_lacquer' | 'sandstone' | 'wood' | 'steel' | 'earth' | 'hide';
 import { placePillar, placeTable, placeLightSource, placeFirepit } from '../multiTileSystem';

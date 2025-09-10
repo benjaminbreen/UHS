@@ -1,19 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { Disease, PlayerCharacter } from '../types';
 import { DISEASE_QUOTES } from '../constants/gameData/diseaseQuotes';
+import { culturalMedicalKnowledge } from '../services/culturalMedicalKnowledge';
+import { HistoricalEra } from '../types/ambiance';
+import { CulturalZone } from '../types/characterData';
+import { Scroll } from 'lucide-react';
 
 interface DiseaseContractedModalProps {
   isOpen: boolean;
   onClose: () => void;
   disease: Disease;
   playerCharacter: PlayerCharacter;
+  gameDate?: { year: number; month: number; day: number };
 }
 
 const DiseaseContractedModal: React.FC<DiseaseContractedModalProps> = ({ 
   isOpen, 
   onClose, 
   disease, 
-  playerCharacter 
+  playerCharacter,
+  gameDate 
 }) => {
   const [survivalRate, setSurvivalRate] = useState<number>(50);
   const [quote, setQuote] = useState<string>('');
@@ -62,20 +68,10 @@ const DiseaseContractedModal: React.FC<DiseaseContractedModalProps> = ({
     // Cap between 1% and 99%
     setSurvivalRate(Math.max(1, Math.min(99, Math.round(baseRate))));
     
-    // Get a relevant quote if available
-    const diseaseQuotes = DISEASE_QUOTES?.[disease.id] || [];
-    if (diseaseQuotes.length > 0) {
-      setQuote(diseaseQuotes[Math.floor(Math.random() * diseaseQuotes.length)]);
-    } else {
-      // Fallback quotes
-      const fallbackQuotes = [
-        "The pestilence spread through the town like wildfire, sparing neither rich nor poor.",
-        "Many fell ill with the terrible disease, and the physicians could offer no remedy.",
-        "The sickness came upon them suddenly, and within days many were confined to their beds.",
-        "It was a plague most grievous, and all who could fled from the afflicted areas."
-      ];
-      setQuote(fallbackQuotes[Math.floor(Math.random() * fallbackQuotes.length)]);
-    }
+    // Get a real historical quote based on era
+    const historicalEra = (era || 'Medieval').toUpperCase().replace(' ', '_') as HistoricalEra;
+    const historicalQuote = culturalMedicalKnowledge.getHistoricalQuote(historicalEra);
+    setQuote(historicalQuote);
   }, [disease, playerCharacter]);
 
   if (!isOpen || !disease) return null;
@@ -131,12 +127,12 @@ const DiseaseContractedModal: React.FC<DiseaseContractedModalProps> = ({
 
           {/* Historical Quote */}
           {quote && (
-            <div className="bg-slate-800/50 p-4 rounded-lg border-l-4 border-amber-600">
-              <p className="text-amber-200 italic text-sm leading-relaxed">
-                "{quote}"
+            <div className="bg-gradient-to-r from-amber-900/20 to-gray-800/50 rounded-lg p-4 border border-amber-700/30">
+              <p className="text-amber-100 italic text-sm leading-relaxed">
+                {quote}
               </p>
-              <p className="text-amber-600 text-xs mt-2">
-                — Historical Account, {playerCharacter.era || 'Historical'} Period
+              <p className="text-xs text-amber-600 mt-2">
+                — Historical Account, {playerCharacter.era || 'Medieval'} Period
               </p>
             </div>
           )}
@@ -144,7 +140,7 @@ const DiseaseContractedModal: React.FC<DiseaseContractedModalProps> = ({
           {/* Symptoms */}
           <div className="bg-slate-800/30 p-4 rounded-lg">
             <h4 className="text-white font-bold mb-3 flex items-center gap-2">
-              <span className="text-yellow-500">🩺</span> Symptoms You Are Experiencing:
+              <span className="text-yellow-500">🩺</span> Symptoms You May Experience:
             </h4>
             <div className="grid grid-cols-2 gap-2">
               {disease.symptoms?.map((symptom, idx) => (
@@ -199,31 +195,43 @@ const DiseaseContractedModal: React.FC<DiseaseContractedModalProps> = ({
             </div>
           </div>
 
-          {/* Stat Effects */}
-          <div className="bg-red-950/30 p-4 rounded-lg border border-red-800/50">
-            <h4 className="text-white font-bold mb-2 flex items-center gap-2">
-              <span className="text-red-500">📉</span> Effects on Your Abilities:
-            </h4>
-            <div className="grid grid-cols-3 gap-3 text-sm">
-              {disease.statEffects && Object.entries(disease.statEffects).map(([stat, effect]) => (
-                effect !== 0 && (
-                  <div key={stat} className="flex justify-between">
-                    <span className="text-gray-400 capitalize">{stat}:</span>
-                    <span className={effect < 0 ? 'text-red-400' : 'text-green-400'}>
-                      {effect > 0 ? '+' : ''}{effect}
-                    </span>
+          {/* Historical Perception - How the character understands their illness */}
+          {(() => {
+            // Determine cultural zone from player character location or default
+            const culturalZone = (playerCharacter.culturalZone || playerCharacter.culture || 'EUROPEAN') as CulturalZone;
+            const historicalEra = ((playerCharacter.era || 'Medieval').toUpperCase().replace(' ', '_')) as HistoricalEra;
+            const year = gameDate?.year || parseInt(playerCharacter.birthYear || '1500') || 1500;
+            
+            const medicalResponse = culturalMedicalKnowledge.getCulturalMedicalResponse({
+              era: historicalEra,
+              zone: culturalZone,
+              year: year,
+              disease: disease,
+              severity: disease.severity
+            });
+            const urgency = culturalMedicalKnowledge.getUrgencyModifier(disease.severity);
+            
+            return (
+              <div className="bg-gradient-to-b from-gray-800 to-gray-900 rounded-lg p-4 border border-gray-700">
+                <div className="flex items-center gap-2 mb-3">
+                  <Scroll className="w-4 h-4 text-purple-400" />
+                  <h3 className="text-sm font-semibold text-purple-400">Historical Perception</h3>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase mb-1">Your Understanding:</p>
+                    <p className="text-gray-200 text-sm italic">"{medicalResponse.characterPerception}"</p>
                   </div>
-                )
-              ))}
-            </div>
-          </div>
+                  <div className="bg-gray-900/50 rounded p-3 border border-yellow-800/30">
+                    <p className="text-yellow-300 text-xs font-semibold mb-1">⚠️ Seek Treatment {urgency.toUpperCase()}</p>
+                    <p className="text-gray-300 text-sm">{medicalResponse.recommendedAction}</p>
+                    <p className="text-gray-400 text-xs mt-1">Look for: <span className="text-gray-200">{medicalResponse.practitionerTitle}</span></p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
-          {/* Warning Message */}
-          <div className="bg-red-900/20 border border-red-600/50 p-4 rounded-lg">
-            <p className="text-red-300 text-sm text-center font-semibold">
-              ⚠️ Seek immediate treatment! Avoid contact with others to prevent spreading the disease.
-            </p>
-          </div>
         </div>
 
         {/* Action Buttons */}

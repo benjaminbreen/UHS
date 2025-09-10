@@ -6,7 +6,7 @@ import { AnimalEntity, NpcEntity, DialogueEntry, PlayerContext, PlayerCharacter,
 import { SpecialMapData, SpecialMapArchetype } from '../types/specialMapTypes';
 import { generateEncounterDialogue as generateLlmDialogue } from './llmService';
 import { REGION_SPECIFIC_DISTRICTS, CULTURAL_ZONE_DISTRICTS } from '../constants/gameData/governmentDistricts';
-import { augmentGovernmentDistrict } from '../constants/specialMaps/specialMapAugmentation';
+// Removed unused import of specialMapAugmentation
 
 type EncounterableEntity = AnimalEntity | NpcEntity;
 
@@ -155,4 +155,145 @@ export function generateEncounterDialogue(
     
     // Regular encounter for non-special maps
     return generateLlmDialogue(target, history, playerInput, playerCharacter, allNpcs, mapData, useRealLanguage);
+}
+
+/**
+ * Theft attempt result interface
+ */
+export interface TheftAttempt {
+  success: boolean;
+  detected: boolean;
+  stolenItem?: any; // Item type from inventory
+  npcEscaped: boolean;
+  reputationLoss: number;
+  dialogueText: string;
+}
+
+/**
+ * Execute a complete theft attempt by an NPC
+ */
+export function attemptTheft(
+  npc: NpcEntity, 
+  playerCharacter: PlayerCharacter
+): TheftAttempt {
+  
+  // Calculate theft success chance based on stats
+  const npcDexterity = npc.dexterity || 10;
+  const playerPerception = playerCharacter.stats.perception || 10;
+  const npcTheftSkill = npc.occupation?.toLowerCase().includes('thief') ? 5 : 0;
+  
+  // Calculate base probabilities
+  const theftChance = Math.min(0.8, 
+    (npcDexterity + npcTheftSkill - playerPerception + 10) / 30
+  );
+  
+  const detectionChance = Math.min(0.9,
+    (playerPerception - npcDexterity + 15) / 25
+  );
+  
+  // Roll for success and detection
+  const success = Math.random() < theftChance;
+  const detected = Math.random() < detectionChance;
+  
+  let stolenItem: any = undefined;
+  let reputationLoss = 0;
+  let dialogueText = '';
+  
+  if (success && playerCharacter.inventory && playerCharacter.inventory.length > 0) {
+    // Choose item to steal (prefer valuable items)
+    const valuableItems = playerCharacter.inventory.filter(item => 
+      item.value && item.value > 10 && 
+      item.name !== 'Basic Clothing' && 
+      !item.name.toLowerCase().includes('equipped')
+    );
+    
+    const targetItems = valuableItems.length > 0 ? valuableItems : playerCharacter.inventory;
+    const randomIndex = Math.floor(Math.random() * targetItems.length);
+    stolenItem = targetItems[randomIndex];
+    
+    // Remove from player inventory
+    const itemIndex = playerCharacter.inventory.findIndex(item => 
+      item.id === stolenItem.id || 
+      (item.name === stolenItem.name && item.value === stolenItem.value)
+    );
+    
+    if (itemIndex !== -1) {
+      playerCharacter.inventory.splice(itemIndex, 1);
+      
+      // Add to NPC inventory
+      if (!npc.inventory) npc.inventory = [];
+      npc.inventory.push(stolenItem);
+    }
+  }
+  
+  // Handle different outcome scenarios
+  if (detected && success) {
+    // Caught red-handed with stolen item
+    reputationLoss = 15;
+    dialogueText = `You catch ${npc.name} red-handed stealing your ${stolenItem?.name}! "I... I was just looking at it!" they stammer before trying to flee.`;
+  } else if (detected && !success) {
+    // Caught attempting but failed
+    reputationLoss = 5;
+    dialogueText = `You notice ${npc.name}'s hand reaching for your belongings! "What do you think you're doing?" you demand. They pull back quickly, looking embarrassed.`;
+  } else if (!detected && success) {
+    // Successful undetected theft
+    dialogueText = `${npc.name} chats with you casually about the weather while subtly examining your belongings. You notice nothing amiss at the time...`;
+  } else {
+    // Failed undetected attempt
+    dialogueText = `${npc.name} approaches you with a friendly greeting, lingering a bit longer than usual before continuing on their way.`;
+  }
+  
+  // Apply reputation loss
+  if (detected && reputationLoss > 0) {
+    playerCharacter.reputation = Math.max(0, (playerCharacter.reputation || 50) - reputationLoss);
+    if (playerCharacter.mapReputation) {
+      playerCharacter.mapReputation = Math.max(0, playerCharacter.mapReputation - reputationLoss);
+    }
+  }
+  
+  const npcEscaped = success && !detected; // They escape if successful and undetected
+  
+  return {
+    success,
+    detected,
+    stolenItem,
+    npcEscaped,
+    reputationLoss,
+    dialogueText
+  };
+}
+
+/**
+ * Handle post-theft player actions (pursue, forgive, etc.)
+ */
+export function handleTheftResponse(
+  action: 'pursue' | 'forgive' | 'confront',
+  npc: NpcEntity,
+  playerCharacter: PlayerCharacter,
+  theftResult: TheftAttempt
+): string {
+  
+  switch (action) {
+    case 'pursue':
+      if (theftResult.npcEscaped) {
+        return `You give chase, but ${npc.name} has already melted into the crowd. Your ${theftResult.stolenItem?.name} is gone.`;
+      } else {
+        return `You grab ${npc.name} by the arm. "Give that back!" you demand. They reluctantly return your ${theftResult.stolenItem?.name}.`;
+      }
+      
+    case 'forgive':
+      // Slight reputation gain for showing mercy
+      playerCharacter.reputation = Math.min(100, (playerCharacter.reputation || 50) + 2);
+      return `You decide to show mercy. "${npc.name}, I forgive you this time, but don't let me catch you again." They look surprised and grateful.`;
+      
+    case 'confront':
+      if (theftResult.detected) {
+        return `"I saw what you were trying to do," you say sternly. ${npc.name} looks ashamed. "I'm sorry, I was desperate. Times are hard."`;
+      } else {
+        return `"Something doesn't feel right about our interaction," you say suspiciously. ${npc.name} tries to look innocent but avoids your gaze.`;
+      }
+      
+    default:
+      return `You're not sure how to respond to ${npc.name}'s behavior.`;
+  }
 }

@@ -371,7 +371,27 @@ export async function generateEncounterDialogue(
     };
 
     const prompt = `
-        You are roleplaying as ${target.name}, a ${target.age}-year-old ${target.role} in ${mapData.timeSlice} ${mapData.localArea}. ${isSpecialMapNpc ? `You work within the ${specialMapContext.displayName}.` : ''} To roleplay effectively, imagine this npc as a real person with a detailed, realistic backtstory appropriate to the setting. They won't share everything (who does?) but they might drop hints. Consider whether the npc and the player might realistically already be acquainted - if so, invent a backstory for that relationship. If not, respond to them as a complete stranger.
+        **CRITICAL HISTORICAL CONTEXT - YOU MUST READ THIS:**
+        THE YEAR IS ${mapData.timeSlice}. This is ${mapData.timeSlice} CE/AD.
+        LOCATION: ${mapData.localArea}
+        
+        **FORBIDDEN ANACHRONISMS - NEVER MENTION:**
+        ${parseInt(mapData.timeSlice) < 1492 ? '- European colonization of the Americas (hasn\'t happened yet!)' : ''}
+        ${parseInt(mapData.timeSlice) < 1500 ? '- Portuguese or Spanish colonial empires (don\'t exist yet!)' : ''}
+        ${parseInt(mapData.timeSlice) < 1000 ? '- Gunpowder weapons in Europe (not invented yet!)' : ''}
+        ${parseInt(mapData.timeSlice) < 1450 ? '- The printing press (not invented yet!)' : ''}
+        ${parseInt(mapData.timeSlice) < 622 ? '- Islam or Muslims (religion doesn\'t exist yet!)' : ''}
+        ${parseInt(mapData.timeSlice) < 1 ? '- Christianity or Christians (religion doesn\'t exist yet!)' : ''}
+        ${parseInt(mapData.timeSlice) < 1776 ? '- United States or Americans (country doesn\'t exist yet!)' : ''}
+        - Any technology, nation, religion, or concept that doesn't exist in ${mapData.timeSlice}
+        
+        **WHAT EXISTS IN ${mapData.timeSlice} ${mapData.localArea}:**
+        ${parseInt(mapData.timeSlice) === 1001 && mapData.localArea.includes('South America') ? 
+            '- Complex indigenous civilizations like Tiwanaku, Wari, early Chimú\n        - NO EUROPEANS - they won\'t arrive for 500 years!\n        - Local empires and chiefdoms with their own politics\n        - Trade networks between indigenous groups only\n        - Indigenous religions and belief systems\n        - You have NEVER heard of Portugal, Spain, or any European nation' : ''}
+        ${parseInt(mapData.timeSlice) < 1492 && (mapData.localArea.includes('America') || mapData.localArea.includes('Mesoamerica')) ? 
+            '- ONLY indigenous peoples and cultures exist here\n        - NO European presence whatsoever - they haven\'t discovered this continent\n        - NO knowledge of Europe, Africa, or Asia - these continents are unknown to you\n        - You know ONLY about local indigenous groups, empires, and cultures\n        - Any "foreigners" are from neighboring indigenous groups, NOT from across the ocean' : ''}
+        
+        You are roleplaying as ${target.name}, a ${target.age}-year-old ${target.role} living in ${mapData.timeSlice} ${mapData.localArea}. ${isSpecialMapNpc ? `You work within the ${specialMapContext.displayName}.` : ''} To roleplay effectively, imagine this NPC as a real person from THIS EXACT TIME PERIOD with knowledge ONLY of things that exist in ${mapData.timeSlice}. They won't share everything (who does?) but they might drop hints. Consider whether the npc and the player might realistically already be acquainted - if so, invent a backstory for that relationship. If not, respond to them as a complete stranger.
         
         ${getSpecialMapIntroduction()}
         
@@ -440,7 +460,9 @@ export async function generateEncounterDialogue(
         (Notice: Recent military context makes origin significant)
         
         **NOW YOUR SITUATION:**
-        Setting: ${mapData.timeSlice} ${mapData.localArea}
+        THE YEAR IS ${mapData.timeSlice} CE/AD
+        Setting: ${mapData.localArea} in the year ${mapData.timeSlice}
+        Remember: You live in ${mapData.timeSlice} and know NOTHING about events after this year
         You see: ${playerCharacter.name}, appearing to be a ${playerCharacter.profession}
         They just said: "${playerInput}"
         
@@ -506,14 +528,24 @@ export async function generateEncounterDialogue(
 
         
         **CRITICAL RULES:**
+        - THE YEAR IS ${mapData.timeSlice} - NEVER reference events, peoples, or technologies from after this date!
+        - You have ZERO knowledge of anything that happens after ${mapData.timeSlice}
         - ONLY provide dialogue, no actions or narration
-        - Stay in character for your role, age, and social class
-        - Know about major events of your time (wars, plagues, discoveries, people)
+        - Stay in character for your role, age, and social class IN THE YEAR ${mapData.timeSlice}
+        - Know about major events of your time that happened BEFORE ${mapData.timeSlice} (wars, plagues, discoveries, people)
         - NEVER repeat the same information - always add something new
         - If discussing immediate dangers, be PROACTIVE and direct, even blunt or rude
         - If the player is confused after multiple exchanges, CHANGE YOUR APPROACH
         - Show appropriate emotional responses (fear about dangers, worry about disease, truculence, melancholy about sick family, etc.)
         - Your personality (courage/compassion/greed) should color HOW you speak
+        - HISTORICAL ACCURACY IS MANDATORY - No Portuguese in pre-Columbian Americas!
+        
+        **CONVERSATION ENDINGS:**
+        - Not all conversations need to continue indefinitely
+        - If the conversation has reached a natural ending point, you may politely excuse yourself
+        - Use farewell phrases like "I must be going", "farewell", "I should get back to work" when appropriate
+        - Consider ending the conversation if: you've completed your business, you're busy, you're uncomfortable, or there's nothing more to discuss
+        - After 4-5 exchanges, consider whether it's natural to end the conversation
     `;
     
     // Create a more sophisticated prompt for reputation analysis
@@ -625,9 +657,28 @@ export async function generateEncounterDialogue(
         // Process the parsed response
         const npcText = dialogueText;
         
+        // Check if NPC wants to leave naturally based on their dialogue
+        const farewellPhrases = [
+            'farewell', 'goodbye', 'good day', 'good night', 'good evening',
+            'must go', 'need to leave', 'have to go', 'should be going', 
+            'take my leave', 'until next time', 'be on my way', 'duties call',
+            'work to do', 'must return', 'time for me to', 'excuse me',
+            'been pleasant', 'nice talking', 'see you around', 'take care',
+            'safe travels', 'best be off', 'should get back', 'need to get back'
+        ];
+        
+        const wantsToLeaveNaturally = farewellPhrases.some(phrase => 
+            npcText.toLowerCase().includes(phrase)
+        );
+        
+        // Log when NPC wants to leave naturally
+        if (wantsToLeaveNaturally) {
+            console.log(`[NPC Dialogue] ${target.name} wants to leave naturally. Dialogue: "${npcText}"`);
+        }
+        
         // Determine additional flags based on reputation change and NPC type
         const shouldCallAuthorities = reputationChange <= -100;
-        const shouldLeave = shouldCallAuthorities || reputationChange <= -70;
+        const shouldLeave = shouldCallAuthorities || reputationChange <= -70 || wantsToLeaveNaturally;
         
         // Guards should attack if player is defiant/threatening and they're a guard
         // Check both the reputation change and if this is a guard or soldier
@@ -778,7 +829,7 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
         **Overall Ambiance:** ${generateAmbianceText(context.ambianceContext)}
     `;
 
-    const metaKeywords = ['game', 'real', 'simulation', 'exist', 'purpose', 'developer', 'code', 'AI', 'reality', 'app', 'developer'];
+    const metaKeywords = ['game', 'ChatGPT', 'simulation', 'software', 'developer', 'code', 'AI', 'reality', 'app', 'developer'];
     const isMetaQuestion = metaKeywords.some(kw => playerQuery.toLowerCase().includes(kw));
     const isComplexQuery = playerQuery.toLowerCase().includes('what are') || playerQuery.toLowerCase().includes('explain') || playerQuery.length > 50;
     
@@ -792,7 +843,7 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
     }
 
     const prompt = `
-        You are a world-class narrator AI for an immersive, historically accurate simulation game. Your persona and response length must adapt based on the player's query.
+        You are a world-class narrator AI for an immersive, historically accurate simulation game. Your persona and response length must adapt based on the player's query. If a player asks about their character's backstory or life, invent something compelling, brutally realistic, remarkably authentic, and specific, not too long. If a query is purely didactic or educational - like "how can i learn more about this?" and the like, then go into "historian mode" where you simply offer high quality academic secondary source suggestions (peer reviewed books or articles) or references to scholars and scholarship that help understand the given setting. But only do this if the player seems to want to learn. Otherwise:
 
         **Current Persona Instruction:** ${personaInstruction}
 

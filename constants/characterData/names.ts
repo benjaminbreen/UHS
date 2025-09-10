@@ -150,6 +150,38 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
         surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
     },
     
+    // === MESOAMERICAN CULTURES ===
+    MAYA: {
+        male: ['Kinich', 'Itzamna', 'Hunab', 'Ahau', 'Balam', 'Kanek', 'Tepeu', 'Ahkin', 'Ah Mun', 'Bolon', 'Canul', 'Dzul', 'Hunac', 'Ixbalanque', 'Hunahpu', 'Kukulkan', 'Akbal', 'Cauac', 'Chicchan', 'Cimi', 'Eb', 'Etznab', 'Kan', 'Muluc', 'Oc', 'Uayeb', 'Yaxkin', 'Zotz', 'Pop', 'Ceh'],
+        female: ['Ixchel', 'Itzel', 'Akna', 'Citlali', 'Nicte', 'Sak', 'Itzayani', 'Ixkawil', 'Ixnikte', 'Ixchup', 'Colel', 'Alitzel', 'Xunah', 'Yatzil', 'Zumanil', 'Ixtab', 'Ixcacao', 'Ixik', 'Naab', 'Sacnikte', 'Chimalmat', 'Xoc', 'Xquic', 'Blood Moon', 'Jade Sky', 'Shell Star', 'Flower Serpent', 'Moon Bird', 'Water Lily', 'Dawn Star'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    
+    ZAPOTEC: {
+        male: ['Cosijoeza', 'Cosijopii', 'Zaachila', 'Huijatoo', 'Ozomatli', 'Petela', 'Bixabeani', 'Quiabelagayo', 'Pitao', 'Cocijo', 'Cocijobi', 'Cosana', 'Huechaana', 'Lachi', 'Nadodo', 'Pecala', 'Quialana', 'Teitipac', 'Xadani', 'Yagul', 'Zachila', 'Zoque', 'Guigu', 'Niza', 'Bixidu'],
+        female: ['Donaji', 'Xunaxhi', 'Guenda', 'Itandehui', 'Nayeli', 'Lupita', 'Benda', 'Dani', 'Guela', 'Laxsi', 'Naxieli', 'Stina', 'Xhopa', 'Yadira', 'Zianya', 'Belazi', 'Celia', 'Gabi', 'Ixel', 'Janu'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    
+    MIXTEC: {
+        male: ['Dzahuindanda', 'Ocoñaña', 'Atonal', 'Tilantongo', 'Tututepec', 'Yahui', 'Savi', 'Ndikandii', 'Tayuva', 'Tikuun', 'Tikaa', 'Tniumi', 'Ndaa', 'Yuku', 'Kava', 'Koo', 'Kuii', 'Ndiyo', 'Soko', 'Tachi'],
+        female: ['Dzehe', 'Sitna', 'Yuku', 'Ndaa', 'Savi', 'Ita', 'Yodo', 'Dzita', 'Nuu', 'Yuta', 'Ndivi', 'Sii', 'Yaa', 'Xini', 'Tinduu', 'Kuñu', 'Nduchi', 'Yutsa', 'Ñuhu', 'Xiyo'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    
+    // === CARIBBEAN ===
+    TAINO: {
+        male: ['Guacanagarix', 'Caonabo', 'Cacimar', 'Guarionex', 'Agueybana', 'Hatuey', 'Guacanagari', 'Behequio', 'Cayacoa', 'Mayobanex', 'Caguax', 'Guarocuya', 'Arasibo', 'Bairoa', 'Caguas', 'Daguao', 'Humacao', 'Jayuya', 'Loiza', 'Mabodamaca', 'Orocobix', 'Tabonuco', 'Urayoan', 'Yabucoa', 'Yuisa'],
+        female: ['Anacaona', 'Yuisa', 'Casiguaya', 'Guasabara', 'Higuenamota', 'Nimita', 'Abey', 'Aji', 'Anani', 'Bagua', 'Bayoya', 'Cacica', 'Caona', 'Catalina', 'Ceiba', 'Cuaba', 'Guabina', 'Guama', 'Jagua', 'Maroya', 'Ocama', 'Siboney', 'Tonina', 'Yaima', 'Zunilda'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    
+    CARIB: {
+        male: ['Kalinago', 'Tegremond', 'Waikeri', 'Arouca', 'Chatoyer', 'Caribice', 'Kairouane', 'Mabouka', 'Ouacabo', 'Pakiri', 'Tourouya', 'Yarima', 'Kenaima', 'Makuri', 'Parima', 'Tamosi', 'Warapa', 'Wowora', 'Yarikuri', 'Yukuma'],
+        female: ['Abari', 'Akuriyo', 'Amana', 'Apina', 'Bibi', 'Duna', 'Kariti', 'Kurina', 'Maima', 'Naira', 'Pakara', 'Pasiba', 'Peneri', 'Sibiri', 'Tarina', 'Tibiri', 'Wamari', 'Wanadi', 'Yarawa', 'Yukuna'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    
     // === SWAHILI COAST ===
     SWAHILI: {
         male: ['Musa', 'Ali', 'Hassan', 'Omar', 'Yusuf', 'Ibrahim', 'Hamza', 'Juma', 'Salim', 'Bakari', 'Hamisi', 'Sefu', 'Zuberi', 'Jabari', 'Rashidi', 'Faraji', 'Daudi', 'Amani', 'Baraka', 'Kipenda'],
@@ -296,6 +328,50 @@ export const CHARACTER_NAMES: Record<string, NameList> = {
         male: ['Chayton', 'Ezhno', 'Hakan', 'Kuruk', 'Nantan', 'Pachu', 'Sani', 'Takoda', 'Wapi', 'Aiukli', 'Bidziil', 'Dibe', 'Gad', 'Hosteen', 'Naalnish', 'Ahiga', 'Chaytan', 'Elan', 'Honiahaka', 'Kangee', 'Napayshni', 'Otaktay', 'Sicheii', 'Tokala', 'Wambli', 'Mahpe', 'Tatanka', 'Wicahpi', 'Takala', 'Ohanzee'],
         female: ['Aiyana', 'Chenoa', 'Dyani', 'Halona', 'Imala', 'Kachina', 'Leotie', 'Nayeli', 'Orenda', 'Papina', 'Sacnite', 'Taini', 'Weeko', 'Aponi', 'Chickoa', 'Enola', 'Haloke', 'Istas', 'Kimama', 'Migina', 'Nita', 'Shada', 'Tala', 'Winona', 'Zitkala', 'Mahpe', 'Ptesanwi', 'Wicahpi', 'Takala', 'Ohanzee'],
         surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    
+    // === NORTH AMERICAN CULTURES ===
+    MISSISSIPPIAN: {
+        male: ['Tuscaloosa', 'Tuskaloosa', 'Cofitachequi', 'Pacaha', 'Casqui', 'Coosa', 'Ocute', 'Altamaha', 'Ocmulgee', 'Etowah', 'Nikwasi', 'Kituwah', 'Talomeco', 'Olamico', 'Quizquiz', 'Aquixo', 'Guachoya', 'Anilco', 'Tula', 'Tanico'],
+        female: ['Coosa', 'Talisi', 'Selu', 'Ama', 'Atsila', 'Gola', 'Inola', 'Nanye', 'Salali', 'Tayanita', 'Tsula', 'Woya', 'Yona', 'Awenasa', 'Galilahi', 'Hiawassee', 'Kamama', 'Leotie', 'Nadie', 'Ocoee'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    
+    PACIFIC_NORTHWEST: {
+        male: ['Kwakwaka', 'Haida', 'Tlingit', 'Tsimshian', 'Nootka', 'Salish', 'Chinook', 'Tillamook', 'Kalapuya', 'Siletz', 'Klamath', 'Modoc', 'Wiyot', 'Yurok', 'Karuk', 'Hupa', 'Tolowa', 'Coos', 'Umpqua', 'Siuslaw'],
+        female: ['Kaliska', 'Kiona', 'Leotie', 'Lomasi', 'Mahala', 'Minaku', 'Nahimana', 'Odina', 'Pelipa', 'Sahalie', 'Shasta', 'Tallulah', 'Wakanda', 'Winema', 'Yamka', 'Zaltana', 'Adsila', 'Bena', 'Chepi', 'Doli'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    
+    CALIFORNIA_NATIVE: {
+        male: ['Ishi', 'Sequoyah', 'Miwok', 'Pomo', 'Ohlone', 'Chumash', 'Yokuts', 'Maidu', 'Wintu', 'Modoc', 'Achomawi', 'Atsugewi', 'Shasta', 'Karuk', 'Yurok', 'Wiyot', 'Tolowa', 'Hupa', 'Cahuilla', 'Serrano'],
+        female: ['Aiyana', 'Alameda', 'Huyana', 'Kimi', 'Litonya', 'Luyu', 'Migina', 'Nita', 'Olathe', 'Poloma', 'Sahale', 'Talasi', 'Tiva', 'Topanga', 'Uma', 'Wachiwi', 'Yoomee', 'Zaltana', 'Aponi', 'Bly'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    
+    // === SOUTH AMERICAN CULTURES ===
+    INCA: {
+        male: ['Inti', 'Manco', 'Tupac', 'Huascar', 'Atahualpa', 'Pachacuti', 'Viracocha', 'Ayar', 'Sinchi', 'Capac', 'Quispe', 'Yupanqui', 'Amaru', 'Condor', 'Puma', 'Waman', 'Kuntur', 'Qori', 'Rumi', 'Sami'],
+        female: ['Mama', 'Coya', 'Ñusta', 'Palla', 'Quilla', 'Killa', 'Chaska', 'Illapa', 'Mayu', 'Qoyllur', 'Sisa', 'Tika', 'Wara', 'Yma', 'Sumaq', 'Munay', 'Nayra', 'Pallay', 'Qara', 'Rimay'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    
+    TUPI: {
+        male: ['Peri', 'Caubi', 'Guaraci', 'Jaci', 'Tupã', 'Anhangá', 'Curupira', 'Iara', 'Boitatá', 'Saci', 'Caipora', 'Ubirajara', 'Iberê', 'Itiberê', 'Piatã', 'Raoni', 'Ubiratan', 'Cauã', 'Kaique', 'Murilo'],
+        female: ['Iracema', 'Jandira', 'Jurema', 'Taina', 'Yara', 'Araci', 'Janaina', 'Moema', 'Potira', 'Iara', 'Jacira', 'Mara', 'Nina', 'Raissa', 'Samara', 'Thaynara', 'Uira', 'Vitoria', 'Xavante', 'Yasmin'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    
+    MUISCA: {
+        male: ['Bacatá', 'Zipa', 'Zaque', 'Tisquesusa', 'Nemequene', 'Quemuenchatocha', 'Aquiminzaque', 'Hunzahúa', 'Thomagata', 'Fomagata', 'Idacansas', 'Bochica', 'Chiminigagua', 'Chibchacum', 'Saguamanchica', 'Meicuchuca', 'Tutazua', 'Sugamuxi', 'Tundama', 'Saymoso'],
+        female: ['Bachué', 'Huitaca', 'Chía', 'Furatena', 'Uaia', 'Faravita', 'Gualcalá', 'Ata', 'Bague', 'Caga', 'Fucha', 'Gaia', 'Ie', 'Muyquyta', 'Oba', 'Paba', 'Quica', 'Suba', 'Tiba', 'Usa'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
+    },
+    
+    MAPUCHE: {
+        male: ['Lautaro', 'Caupolicán', 'Colocolo', 'Galvarino', 'Leftrarü', 'Pelantaro', 'Lientur', 'Quilapán', 'Nahuel', 'Huenul', 'Curiche', 'Millal', 'Rayen', 'Newen', 'Antü', 'Kalfu', 'Kurü', 'Lafken', 'Likan', 'Meli'],
+        female: ['Millaray', 'Sayen', 'Ayelen', 'Rayen', 'Amaru', 'Ayelén', 'Inara', 'Inti', 'Mailen', 'Nahiara', 'Paloma', 'Quillén', 'Rayén', 'Suyai', 'Tahiel', 'Uyara', 'Waikura', 'Xaviera', 'Yaima', 'Zulema'],
+        surname: ['(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)', '(No Surname)']
     },
 
     // === CONTINUE WITH EXISTING CULTURES (keeping the good ones as-is) ===
@@ -965,6 +1041,13 @@ export const REGION_NAME_MAPPING: Record<string, Record<string, Array<{
         { after: 793, before: 1100, keys: ['SCANDINAVIAN', 'ICELANDIC'] }, // Viking Age
         { after: 1100, keys: ['SCANDINAVIAN', 'ICELANDIC'] }
     ],
+    // Atlantic Islands (Iceland, Faroe Islands, Azores, etc.)
+    "Atlantic Islands": [
+        { before: 870, keys: ['SCANDINAVIAN'] }, // Norse settlement of Iceland
+        { after: 870, before: 1100, keys: ['SCANDINAVIAN', 'ICELANDIC'] }, // Viking Age
+        { after: 1100, before: 1400, keys: ['ICELANDIC', 'SCANDINAVIAN'] }, // Medieval Iceland
+        { after: 1400, keys: ['ICELANDIC', 'SCANDINAVIAN', 'IRISH', 'PORTUGUESE'] } // Later periods with diverse settlements
+    ],
     // Eastern Europe
     "Eastern Europe": [
        { before: -100, keys: ['PREHISTORIC_PROTO_INDO_EUROPEAN'] },
@@ -1005,12 +1088,94 @@ export const REGION_NAME_MAPPING: Record<string, Record<string, Array<{
         { after: 800, keys: ['SCANDINAVIAN', 'ENGLISH', 'FRENCH', 'SPANISH_CASTILIAN', 'ITALIAN', 'GREEK'] }
     ]
 },
+    "NORTH_AMERICAN_PRE_COLUMBIAN": {
+        // Pacific Coast & California
+        "Pacific Coast": [
+            { keys: ['PACIFIC_NORTHWEST', 'CALIFORNIA_NATIVE'] }
+        ],
+        "Northern California": [
+            { keys: ['CALIFORNIA_NATIVE'] }
+        ],
+        "Central California Coast": [
+            { keys: ['CALIFORNIA_NATIVE'] }
+        ],
+        "Southern California": [
+            { keys: ['CALIFORNIA_NATIVE'] }
+        ],
+        // Southwest & Great Plains
+        "Southwest": [
+            { keys: ['PUEBLO', 'SOUTHWEST_NATIVE', 'APACHE'] }
+        ],
+        "Great Plains": [
+            { keys: ['PLAINS_NATIVE', 'LAKOTA_SIOUX', 'APACHE'] }
+        ],
+        // East and Midwest
+        "Mississippi Valley": [
+            { keys: ['MISSISSIPPIAN', 'CREEK_MUSKOGEE', 'ALGONQUIAN'] }
+        ],
+        "Northeast Woodlands": [
+            { keys: ['IROQUOIS_HAUDENOSAUNEE', 'ALGONQUIAN'] }
+        ],
+        "Southeast": [
+            { keys: ['CHEROKEE', 'CREEK_MUSKOGEE', 'MISSISSIPPIAN'] }
+        ],
+        "Atlantic Coast": [
+            { keys: ['ALGONQUIAN'] }
+        ],
+        // North
+        "Arctic and Subarctic": [
+            { keys: ['INUIT', 'SUBARCTIC_NATIVE'] }
+        ],
+        "Canada": [
+            { keys: ['ALGONQUIAN', 'IROQUOIS_HAUDENOSAUNEE', 'INUIT'] }
+        ],
+        "Hudson Bay": [
+            { keys: ['INUIT', 'SUBARCTIC_NATIVE'] }
+        ],
+        "Northwest Territory": [
+            { keys: ['GREAT_BASIN_NATIVE', 'PLAINS_NATIVE'] }
+        ],
+        // Mexico & Central America
+        "Mexico and Central Highlands": [
+            { keys: ['AZTEC'] }
+        ],
+        "Valley of Mexico": [
+            { keys: ['AZTEC'] }
+        ],
+        "Central America": [
+            { keys: ['MAYA', 'MIXTEC', 'ZAPOTEC'] }
+        ],
+        "Mayan Lowlands": [
+            { keys: ['MAYA'] }
+        ],
+        "Yucatán Peninsula": [
+            { keys: ['MAYA'] }
+        ],
+        "Oaxaca Highlands": [
+            { keys: ['ZAPOTEC', 'MIXTEC'] }
+        ],
+        "Mosquito Coast": [
+            { keys: ['MAYA', 'CARIB'] }
+        ],
+        "Panama Isthmus": [
+            { keys: ['MUISCA', 'CARIB'] }
+        ],
+        "The Caribbean": [
+            { keys: ['TAINO', 'CARIB'] }
+        ],
+        "Greater Antilles": [
+            { keys: ['TAINO'] }
+        ],
+        "Lesser Antilles": [
+            { keys: ['CARIB'] }
+        ]
+    },
     "NORTH_AMERICAN": {
         // Pacific Coast & California
         "Pacific Coast": [
-            { before: 1769, keys: ['PACIFIC_NORTHWEST_COAST', 'CALIFORNIA_NATIVE'] },
-            { after: 1769, before: 1848, keys: ['PACIFIC_NORTHWEST_COAST', 'SPANISH_CASTILIAN', 'RUSSIAN'] },
-            { after: 1848, keys: ['ENGLISH', 'CHINESE_CANTONESE', 'SPANISH_LATIN_AMERICAN', 'PACIFIC_NORTHWEST_COAST'] }
+            { before: 1769, keys: ['PACIFIC_NORTHWEST', 'CALIFORNIA_NATIVE'] },
+            { after: 1769, before: 1848, keys: ['PACIFIC_NORTHWEST', 'SPANISH_CASTILIAN', 'RUSSIAN'] },
+            { after: 1848, keys: ['ENGLISH', 'CHINESE_CANTONESE', 'SPANISH_LATIN_AMERICAN', 'PACIFIC_NORTHWEST'] }
         ],
         "Northern California": [
             { before: 1769, keys: ['CALIFORNIA_NATIVE'] },
@@ -1040,7 +1205,7 @@ export const REGION_NAME_MAPPING: Record<string, Record<string, Array<{
         ],
         // East and Midwest
         "Mississippi Valley": [
-            { before: 1673, keys: ['CREEK_MUSKOGEE', 'ALGONQUIAN'] }, // Mississippian culture
+            { before: 1673, keys: ['MISSISSIPPIAN', 'CREEK_MUSKOGEE', 'ALGONQUIAN'] },
             { after: 1673, before: 1803, keys: ['FRENCH', 'CREEK_MUSKOGEE', 'SPANISH_CASTILIAN'] },
             { after: 1803, keys: ['NORTH_AMERICAN_COLONIAL', 'AFRICAN_AMERICAN', 'GERMAN', 'CELTIC_IRISH'] }
         ],
@@ -1081,57 +1246,121 @@ export const REGION_NAME_MAPPING: Record<string, Record<string, Array<{
             { after: 1821, keys: ['SPANISH_LATIN_AMERICAN'] }
         ],
         "Central America": [
-            { before: 1520, keys: ['AZTEC'] }, // proxy for Mayan/etc
-            { after: 1520, before: 1821, keys: ['SPANISH_CASTILIAN'] },
-            { after: 1821, keys: ['SPANISH_LATIN_AMERICAN', 'AFRICAN_AMERICAN'] }
+            { before: 1520, keys: ['MAYA', 'MIXTEC', 'ZAPOTEC'] },
+            { after: 1520, before: 1821, keys: ['SPANISH_CASTILIAN', 'MAYA'] },
+            { after: 1821, keys: ['SPANISH_LATIN_AMERICAN', 'MAYA', 'AFRICAN_AMERICAN'] }
+        ],
+        "Mayan Lowlands": [
+            { before: 1520, keys: ['MAYA'] },
+            { after: 1520, before: 1821, keys: ['SPANISH_CASTILIAN', 'MAYA'] },
+            { after: 1821, keys: ['SPANISH_LATIN_AMERICAN', 'MAYA'] }
+        ],
+        "Yucatán Peninsula": [
+            { before: 1520, keys: ['MAYA'] },
+            { after: 1520, before: 1821, keys: ['SPANISH_CASTILIAN', 'MAYA'] },
+            { after: 1821, keys: ['SPANISH_LATIN_AMERICAN', 'MAYA'] }
+        ],
+        "Oaxaca Highlands": [
+            { before: 1521, keys: ['ZAPOTEC', 'MIXTEC'] },
+            { after: 1521, before: 1821, keys: ['SPANISH_CASTILIAN', 'ZAPOTEC', 'MIXTEC'] },
+            { after: 1821, keys: ['SPANISH_LATIN_AMERICAN', 'ZAPOTEC', 'MIXTEC'] }
+        ],
+        "Mosquito Coast": [
+            { before: 1630, keys: ['MAYA', 'CARIB'] },
+            { after: 1630, before: 1860, keys: ['ENGLISH', 'CARIB', 'MAYA', 'AFRICAN_AMERICAN'] },
+            { after: 1860, keys: ['SPANISH_LATIN_AMERICAN', 'ENGLISH', 'CARIB', 'AFRICAN_AMERICAN'] }
+        ],
+        "Panama Isthmus": [
+            { before: 1510, keys: ['MUISCA', 'CARIB'] },
+            { after: 1510, before: 1821, keys: ['SPANISH_CASTILIAN', 'AFRICAN_AMERICAN'] },
+            { after: 1821, keys: ['SPANISH_LATIN_AMERICAN', 'AFRICAN_AMERICAN', 'CHINESE_CANTONESE'] }
         ],
         "The Caribbean": [
-            { before: 1492, keys: ['SOUTH_AMERICAN'] }, // proxy for Taino/Arawak
-            { after: 1492, before: 1898, keys: ['SPANISH_CASTILIAN', 'AFRICAN_AMERICAN', 'FRENCH', 'ENGLISH', 'DUTCH'] },
+            { before: 1492, keys: ['TAINO', 'CARIB'] },
+            { after: 1492, before: 1898, keys: ['SPANISH_CASTILIAN', 'AFRICAN_AMERICAN', 'FRENCH', 'ENGLISH', 'DUTCH', 'TAINO'] },
             { after: 1898, keys: ['PUERTO_RICAN', 'SPANISH_LATIN_AMERICAN', 'AFRICAN_AMERICAN', 'ENGLISH', 'FRENCH'] }
+        ],
+        "Greater Antilles": [
+            { before: 1492, keys: ['TAINO'] },
+            { after: 1492, before: 1898, keys: ['SPANISH_CASTILIAN', 'AFRICAN_AMERICAN', 'TAINO'] },
+            { after: 1898, keys: ['PUERTO_RICAN', 'SPANISH_LATIN_AMERICAN', 'AFRICAN_AMERICAN'] }
+        ],
+        "Lesser Antilles": [
+            { before: 1492, keys: ['CARIB'] },
+            { after: 1492, before: 1800, keys: ['FRENCH', 'ENGLISH', 'DUTCH', 'CARIB', 'AFRICAN_AMERICAN'] },
+            { after: 1800, keys: ['ENGLISH', 'FRENCH', 'AFRICAN_AMERICAN', 'SPANISH_LATIN_AMERICAN'] }
         ]
     },
     "SOUTH_AMERICAN": {
         "Andes North": [
-            { before: 1533, keys: ['ANDEAN_QUECHUA'] },
-            { after: 1533, before: 1820, keys: ['SPANISH_CASTILIAN', 'ANDEAN_QUECHUA'] },
-            { after: 1820, keys: ['SPANISH_LATIN_AMERICAN', 'ANDEAN_QUECHUA'] }
+            { keys: ['INCA', 'MUISCA'] }
         ],
         "Andes South": [
-            { before: 1533, keys: ['ANDEAN_QUECHUA'] },
-            { after: 1533, before: 1820, keys: ['SPANISH_CASTILIAN', 'ANDEAN_QUECHUA'] },
-            { after: 1820, keys: ['SPANISH_LATIN_AMERICAN', 'GERMAN', 'ITALIAN', 'ANDEAN_QUECHUA'] }
+            { keys: ['INCA', 'MAPUCHE'] }
         ],
         "Amazon Basin": [
-            { before: 1541, keys: ['GUARANI', 'ANDEAN_QUECHUA'] },
-            { after: 1541, keys: ['PORTUGUESE_BRAZIL', 'SPANISH_LATIN_AMERICAN', 'GUARANI'] }
+            { keys: ['TUPI', 'GUARANI', 'INCA'] }
         ],
         "Gran Chaco and Pampas": [
-            { before: 1536, keys: ['GUARANI'] },
-            { after: 1536, before: 1816, keys: ['SPANISH_CASTILIAN', 'GUARANI'] },
+            { keys: ['GUARANI', 'MAPUCHE'] }
+        ],
+        "Atlantic Coast": [
+            { keys: ['TUPI', 'GUARANI'] }
+        ],
+        "Guiana Shield": [
+            { keys: ['CARIB', 'TUPI', 'GUARANI'] }
+        ],
+        "Patagonia": [
+            { keys: ['MAPUCHE'] }
+        ],
+        "Southern Highlands": [
+            { keys: ['INCA'] }
+        ],
+        "Llanos and Orinoco": [
+            { keys: ['MUISCA', 'CARIB'] }
+        ]
+    },
+    "SOUTH_AMERICAN_COLONIAL": {
+        "Andes North": [
+            { before: 1533, keys: ['INCA', 'MUISCA'] },
+            { after: 1533, before: 1820, keys: ['SPANISH_CASTILIAN', 'INCA', 'MUISCA'] },
+            { after: 1820, keys: ['SPANISH_LATIN_AMERICAN', 'INCA', 'MUISCA'] }
+        ],
+        "Andes South": [
+            { before: 1533, keys: ['INCA', 'MAPUCHE'] },
+            { after: 1533, before: 1820, keys: ['SPANISH_CASTILIAN', 'INCA', 'MAPUCHE'] },
+            { after: 1820, keys: ['SPANISH_LATIN_AMERICAN', 'GERMAN', 'ITALIAN', 'MAPUCHE', 'INCA'] }
+        ],
+        "Amazon Basin": [
+            { before: 1541, keys: ['TUPI', 'GUARANI', 'INCA'] },
+            { after: 1541, keys: ['PORTUGUESE_BRAZIL', 'SPANISH_LATIN_AMERICAN', 'TUPI', 'GUARANI'] }
+        ],
+        "Gran Chaco and Pampas": [
+            { before: 1536, keys: ['GUARANI', 'MAPUCHE'] },
+            { after: 1536, before: 1816, keys: ['SPANISH_CASTILIAN', 'GUARANI', 'MAPUCHE'] },
             { after: 1816, keys: ['SPANISH_LATIN_AMERICAN', 'ITALIAN', 'GERMAN', 'GUARANI'] }
         ],
         "Atlantic Coast": [
-            { before: 1500, keys: ['GUARANI'] },
-            { after: 1500, before: 1822, keys: ['PORTUGUESE', 'AFRICAN_AMERICAN', 'GUARANI', 'DUTCH'] },
+            { before: 1500, keys: ['TUPI', 'GUARANI'] },
+            { after: 1500, before: 1822, keys: ['PORTUGUESE', 'AFRICAN_AMERICAN', 'TUPI', 'GUARANI', 'DUTCH'] },
             { after: 1822, keys: ['PORTUGUESE_BRAZIL', 'AFRICAN_AMERICAN', 'ITALIAN', 'GERMAN', 'JAPANESE'] }
         ],
         "Guiana Shield": [
-            { before: 1600, keys: ['GUARANI', 'SOUTH_AMERICAN'] },
-            { after: 1600, keys: ['DUTCH', 'ENGLISH', 'FRENCH', 'AFRICAN_AMERICAN', 'HINDI'] }
+            { before: 1600, keys: ['CARIB', 'TUPI', 'GUARANI'] },
+            { after: 1600, keys: ['DUTCH', 'ENGLISH', 'FRENCH', 'AFRICAN_AMERICAN', 'HINDI', 'CARIB'] }
         ],
         "Patagonia": [
-            { before: 1880, keys: ['GUARANI', 'SOUTH_AMERICAN'] },
-            { after: 1880, keys: ['SPANISH_LATIN_AMERICAN', 'WELSH', 'GERMAN'] }
+            { before: 1880, keys: ['MAPUCHE'] },
+            { after: 1880, keys: ['SPANISH_LATIN_AMERICAN', 'WELSH', 'GERMAN', 'MAPUCHE'] }
         ],
         "Southern Highlands": [
-            { before: 1538, keys: ['ANDEAN_QUECHUA'] },
-            { after: 1538, before: 1825, keys: ['SPANISH_CASTILIAN', 'ANDEAN_QUECHUA'] },
-            { after: 1825, keys: ['SPANISH_LATIN_AMERICAN', 'ANDEAN_QUECHUA'] }
+            { before: 1538, keys: ['INCA'] },
+            { after: 1538, before: 1825, keys: ['SPANISH_CASTILIAN', 'INCA'] },
+            { after: 1825, keys: ['SPANISH_LATIN_AMERICAN', 'INCA'] }
         ],
         "Llanos and Orinoco": [
-            { before: 1531, keys: ['SOUTH_AMERICAN'] },
-            { after: 1531, before: 1811, keys: ['SPANISH_CASTILIAN'] },
+            { before: 1531, keys: ['MUISCA', 'CARIB'] },
+            { after: 1531, before: 1811, keys: ['SPANISH_CASTILIAN', 'MUISCA'] },
             { after: 1811, keys: ['SPANISH_LATIN_AMERICAN'] }
         ]
     },
@@ -1441,6 +1670,92 @@ export function getCulturalGroupsForRegion(
     
     return [];
 }
+
+/**
+ * Mapping of continents to period-appropriate name groups
+ */
+const PERIOD_NAME_MAPPING: Record<string, Record<string, string[]>> = {
+    'EUROPEAN': {
+        'antiquity': ['ANCIENT_ROMAN', 'ANCIENT_GREEK', 'CELTIC_ANCIENT'],
+        'early_medieval': ['ENGLISH_ANGLO_SAXON', 'FRANKISH_MEROVINGIAN', 'SCANDINAVIAN'],
+        'high_medieval': ['ENGLISH_MEDIEVAL', 'FRENCH_MEDIEVAL', 'GERMAN', 'SCANDINAVIAN'],
+        'late_medieval': ['ENGLISH_MEDIEVAL', 'FRENCH_MEDIEVAL', 'ITALIAN', 'SPANISH_CASTILIAN'],
+        'renaissance': ['ITALIAN', 'FRENCH', 'ENGLISH', 'SPANISH_CASTILIAN'],
+        'early_modern': ['ENGLISH', 'FRENCH', 'SPANISH_CASTILIAN', 'GERMAN'],
+        'industrial': ['ENGLISH', 'FRENCH', 'GERMAN', 'ITALIAN'],
+        'modern': ['ENGLISH', 'FRENCH', 'GERMAN', 'ITALIAN', 'SPANISH_CASTILIAN']
+    },
+    'EAST_ASIAN': {
+        'antiquity': ['CHINESE_MANDARIN', 'JAPANESE'],
+        'early_medieval': ['CHINESE_MANDARIN', 'JAPANESE'],
+        'high_medieval': ['CHINESE_MANDARIN', 'JAPANESE'],
+        'late_medieval': ['CHINESE_MANDARIN', 'JAPANESE'],
+        'renaissance': ['CHINESE_MANDARIN', 'JAPANESE'],
+        'early_modern': ['CHINESE_MANDARIN', 'JAPANESE'],
+        'industrial': ['CHINESE_MANDARIN', 'JAPANESE'],
+        'modern': ['CHINESE_MANDARIN', 'JAPANESE', 'KOREAN']
+    },
+    'MENA': {
+        'antiquity': ['EGYPTIAN_COPTIC', 'PERSIAN_ANCIENT', 'HEBREW'],
+        'early_medieval': ['ARABIAN_HEJAZ', 'PERSIAN_FARSI', 'HEBREW'],
+        'high_medieval': ['ARABIAN_HEJAZ', 'PERSIAN_FARSI', 'TURKISH'],
+        'late_medieval': ['ARABIAN_HEJAZ', 'PERSIAN_FARSI', 'TURKISH', 'MAGHREBI'],
+        'renaissance': ['TURKISH', 'PERSIAN_FARSI', 'ARABIAN_HEJAZ'],
+        'early_modern': ['TURKISH', 'PERSIAN_FARSI', 'ARABIAN_HEJAZ'],
+        'industrial': ['TURKISH', 'PERSIAN_FARSI', 'ARABIAN_HEJAZ'],
+        'modern': ['ARABIAN_HEJAZ', 'PERSIAN_FARSI', 'TURKISH']
+    },
+    'SOUTH_ASIAN': {
+        'antiquity': ['SANSKRIT_CLASSICAL', 'TAMIL'],
+        'early_medieval': ['SANSKRIT_CLASSICAL', 'TAMIL', 'BENGALI'],
+        'high_medieval': ['SANSKRIT_CLASSICAL', 'TAMIL', 'BENGALI', 'HINDI'],
+        'late_medieval': ['PERSIAN_FARSI', 'SANSKRIT_CLASSICAL', 'TAMIL', 'BENGALI'],
+        'renaissance': ['PERSIAN_FARSI', 'SANSKRIT_CLASSICAL', 'HINDI', 'BENGALI'],
+        'early_modern': ['PERSIAN_FARSI', 'HINDI', 'BENGALI', 'TAMIL'],
+        'industrial': ['ENGLISH', 'HINDI', 'BENGALI', 'TAMIL'],
+        'modern': ['HINDI', 'BENGALI', 'TAMIL', 'PUNJABI']
+    },
+    'SUB_SAHARAN_AFRICAN': {
+        'antiquity': ['NUBIAN', 'ETHIOPIAN_HIGHLAND'],
+        'early_medieval': ['NUBIAN', 'ETHIOPIAN_HIGHLAND', 'SWAHILI'],
+        'high_medieval': ['WEST_AFRICAN_SAHEL', 'SWAHILI', 'ETHIOPIAN_HIGHLAND'],
+        'late_medieval': ['WEST_AFRICAN_SAHEL', 'SWAHILI', 'ETHIOPIAN_HIGHLAND'],
+        'renaissance': ['WEST_AFRICAN_SAHEL', 'SWAHILI', 'ETHIOPIAN_HIGHLAND'],
+        'early_modern': ['WEST_AFRICAN_SAHEL', 'SWAHILI', 'ETHIOPIAN_HIGHLAND'],
+        'industrial': ['WEST_AFRICAN_SAHEL', 'SWAHILI', 'ETHIOPIAN_HIGHLAND'],
+        'modern': ['WEST_AFRICAN_SAHEL', 'SWAHILI', 'ETHIOPIAN_HIGHLAND', 'ENGLISH', 'FRENCH']
+    },
+    'NORTH_AMERICAN_PRE_COLUMBIAN': {
+        'antiquity': ['AZTEC', 'INUIT'],
+        'early_medieval': ['AZTEC', 'INUIT', 'ALGONQUIAN'],
+        'high_medieval': ['AZTEC', 'INUIT', 'ALGONQUIAN'],
+        'late_medieval': ['AZTEC', 'INUIT', 'ALGONQUIAN'],
+        'renaissance': ['AZTEC', 'INUIT', 'ALGONQUIAN'],
+        'early_modern': ['AZTEC', 'INUIT', 'ALGONQUIAN', 'ENGLISH', 'FRENCH'],
+        'industrial': ['ENGLISH', 'FRENCH', 'SPANISH_CASTILIAN'],
+        'modern': ['ENGLISH', 'FRENCH', 'SPANISH_CASTILIAN']
+    },
+    'SOUTH_AMERICAN': {
+        'antiquity': ['ANDEAN_QUECHUA', 'TUPI'],
+        'early_medieval': ['ANDEAN_QUECHUA', 'TUPI'],
+        'high_medieval': ['ANDEAN_QUECHUA', 'TUPI'],
+        'late_medieval': ['ANDEAN_QUECHUA', 'TUPI'],
+        'renaissance': ['ANDEAN_QUECHUA', 'TUPI', 'SPANISH_CASTILIAN', 'PORTUGUESE'],
+        'early_modern': ['SPANISH_CASTILIAN', 'PORTUGUESE', 'ANDEAN_QUECHUA'],
+        'industrial': ['SPANISH_CASTILIAN', 'PORTUGUESE'],
+        'modern': ['SPANISH_CASTILIAN', 'PORTUGUESE']
+    },
+    'OCEANIA': {
+        'antiquity': ['POLYNESIAN', 'MELANESIAN'],
+        'early_medieval': ['POLYNESIAN', 'MELANESIAN'],
+        'high_medieval': ['POLYNESIAN', 'MELANESIAN'],
+        'late_medieval': ['POLYNESIAN', 'MELANESIAN'],
+        'renaissance': ['POLYNESIAN', 'MELANESIAN'],
+        'early_modern': ['POLYNESIAN', 'MELANESIAN', 'ENGLISH'],
+        'industrial': ['ENGLISH', 'POLYNESIAN', 'MELANESIAN'],
+        'modern': ['ENGLISH', 'POLYNESIAN', 'MELANESIAN']
+    }
+};
 
 /**
  * Helper function to get cultural groups by historical period

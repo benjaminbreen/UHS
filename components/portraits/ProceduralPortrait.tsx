@@ -115,6 +115,13 @@ interface ProceduralPortraitProps {
     | 'sad'
     | 'smirk'
     | 'concern'
+    | 'excited'
+    | 'annoyed'
+    | 'tired'
+    | 'confused'
+    | 'thinking'
+    | 'skeptical'
+    | 'determined'
     | null;
 
   onExpressionComplete?: () => void;
@@ -4420,6 +4427,11 @@ if (defaultCapStyles.has(hairStyle)) {
     const elements: JSX.Element[] = [];
     const centerX = headX + Math.floor(headDim.width / 2); // Define centerX for markings
     
+    // Calculate body positions for markings (same as in renderBody)
+    const neckY = headY + headDim.height;
+    const neckHeight = 5;
+    const bodyStartY = neckY + neckHeight;
+    
     // Process equipped accessories as markings
     const accessoryMarkings: Array<{
       type: 'scar' | 'tattoo' | 'paint' | 'beauty_mark' | 'freckles' | 'mole' | 'birthmark';
@@ -4544,13 +4556,15 @@ if (defaultCapStyles.has(hairStyle)) {
               }
             } else if (culturalZone === 'SUB_SAHARAN_AFRICAN' || pattern === 'scarification' || pattern === 'vertical_lines' || pattern === 'horizontal_lines' || pattern === 'geometric') {
               // African scarification patterns
+              const scarColor = createHighlight(skinTone, 1.3); // More prominent than tattoos
+              
               if (pattern === 'vertical_lines' && marking.location === 'cheek') {
                 // Yoruba-style vertical cheek marks
                 const cheekY = headY + Math.floor(headDim.height * 0.5);
                 for (let i = 0; i < 3; i++) {
                   elements.push(
-                    <rect key={`vlines-l-${index}-${i}`} x={headX + 2} y={cheekY + i * 2} width="1" height="3" fill={createHighlight(skinTone, 1.2)} className="pixel" />,
-                    <rect key={`vlines-r-${index}-${i}`} x={headX + headDim.width - 3} y={cheekY + i * 2} width="1" height="3" fill={createHighlight(skinTone, 1.2)} className="pixel" />
+                    <rect key={`vlines-l-${index}-${i}`} x={headX + 2} y={cheekY + i * 2} width="1" height="3" fill={scarColor} className="pixel" />,
+                    <rect key={`vlines-r-${index}-${i}`} x={headX + headDim.width - 3} y={cheekY + i * 2} width="1" height="3" fill={scarColor} className="pixel" />
                   );
                 }
               } else if (pattern === 'horizontal_lines' && marking.location === 'forehead') {
@@ -4558,9 +4572,23 @@ if (defaultCapStyles.has(hairStyle)) {
                 const foreheadY = headY + 2;
                 for (let i = 0; i < 4; i++) {
                   elements.push(
-                    <rect key={`hlines-${index}-${i}`} x={centerX - 4 + i * 2} y={foreheadY} width="3" height="1" fill={createHighlight(skinTone, 1.2)} className="pixel" />
+                    <rect key={`hlines-${index}-${i}`} x={centerX - 4 + i * 2} y={foreheadY} width="3" height="1" fill={scarColor} className="pixel" />
                   );
                 }
+              } else if (pattern === 'scarification') {
+                // Generic scarification pattern - raised scars on cheeks
+                const cheekY = headY + Math.floor(headDim.height * 0.5);
+                const scarPattern = [
+                  [1, 0], [2, 0], [3, 0], // Horizontal line
+                  [1, 2], [2, 2], [3, 2], // Second line
+                  [2, 1] // Middle dot
+                ];
+                scarPattern.forEach(([dx, dy], i) => {
+                  elements.push(
+                    <rect key={`scar-l-${index}-${i}`} x={headX + dx} y={cheekY + dy} width="1" height="1" fill={scarColor} className="pixel" />,
+                    <rect key={`scar-r-${index}-${i}`} x={headX + headDim.width - 4 + dx} y={cheekY + dy} width="1" height="1" fill={scarColor} className="pixel" />
+                  );
+                });
               } else {
                 // Default dot pattern
                 const foreheadY = headY + 2;
@@ -4570,7 +4598,7 @@ if (defaultCapStyles.has(hairStyle)) {
                 ];
                 patterns.forEach(([dx, dy], i) => {
                   elements.push(
-                    <rect key={`scar-${index}-${i}`} x={centerX - 2 + dx} y={foreheadY + dy} width="1" height="1" fill={createHighlight(skinTone, 1.2)} className="pixel" />
+                    <rect key={`scar-${index}-${i}`} x={centerX - 2 + dx} y={foreheadY + dy} width="1" height="1" fill={scarColor} className="pixel" />
                   );
                 });
               }
@@ -4611,6 +4639,18 @@ if (defaultCapStyles.has(hairStyle)) {
                 <rect key={`tear-${index}`} x={headX + 3} y={tearY} width="1" height="2" fill={markingColor} opacity={tattooOpacity} className="pixel" />,
                 <rect key={`tear-b-${index}`} x={headX + 3} y={tearY + 2} width="1" height="1" fill={markingColor} opacity={0.5} className="pixel" />
               );
+            } else {
+              // Default tattoo rendering for any unrecognized patterns
+              console.log(`[Portrait] Rendering fallback tattoo pattern: ${pattern} at ${marking.location}`);
+              const tattooY = headY + Math.floor(headDim.height * 0.4);
+              const tattooX = centerX - 1;
+              
+              // Simple line tattoo as fallback
+              for (let i = 0; i < 3; i++) {
+                elements.push(
+                  <rect key={`fallback-tattoo-${index}-${i}`} x={tattooX + i} y={tattooY + i} width="1" height="1" fill={markingColor} opacity={tattooOpacity} className="pixel" />
+                );
+              }
             }
           } else if (marking.location === 'neck') {
             // Neck tattoos
@@ -4651,19 +4691,53 @@ if (defaultCapStyles.has(hairStyle)) {
           break;
         }
         case 'henna': {
-          // Henna designs (primarily on arms, but we show hints on visible areas)
-          if (marking.location === 'arm' || marking.location === 'face') {
-            const pattern = marking.pattern || 'geometric';
-            if (pattern === 'floral' || pattern === 'geometric') {
-              // Show small henna dots on visible hand area
-              const handY = bodyStartY + 8;
-              const handX = headX - 2;
-              elements.push(
-                <rect key={`henna-${index}-1`} x={handX} y={handY} width="1" height="1" fill={markingColor} opacity={0.6} className="pixel" />,
-                <rect key={`henna-${index}-2`} x={handX + 1} y={handY + 1} width="1" height="1" fill={markingColor} opacity={0.6} className="pixel" />,
-                <rect key={`henna-${index}-3`} x={handX - 1} y={handY + 1} width="1" height="1" fill={markingColor} opacity={0.6} className="pixel" />
-              );
+          // Henna designs (show on hands/arms and forehead for Indian celebrations)
+          const hennaOpacity = 0.7;
+          const hennaColor = markingColor || '#8B4513';
+          
+          if (marking.location === 'arm') {
+            // Show henna on visible hand/wrist area
+            const handY = bodyStartY + 8;
+            const handX = headX - 2;
+            
+            if (marking.pattern === 'floral') {
+              // Floral henna pattern
+              const floralPattern = [
+                [0, 0], [1, 0], [2, 0], // Center line
+                [1, -1], [1, 1], // Cross
+                [0, 1], [2, 1], // Lower dots
+                [-1, 0], [3, 0] // Side dots
+              ];
+              floralPattern.forEach(([dx, dy], i) => {
+                elements.push(
+                  <rect key={`henna-floral-${index}-${i}`} x={handX + dx} y={handY + dy} width="1" height="1" fill={hennaColor} opacity={hennaOpacity} className="pixel" />
+                );
+              });
+            } else {
+              // Geometric henna pattern  
+              const geomPattern = [
+                [0, 0], [2, 0], [4, 0], // Top line
+                [1, 1], [3, 1], // Middle
+                [0, 2], [2, 2], [4, 2] // Bottom line
+              ];
+              geomPattern.forEach(([dx, dy], i) => {
+                elements.push(
+                  <rect key={`henna-geom-${index}-${i}`} x={handX + dx} y={handY + dy} width="1" height="1" fill={hennaColor} opacity={hennaOpacity} className="pixel" />
+                );
+              });
             }
+          } else if (marking.location === 'forehead') {
+            // Bridal henna on forehead (special occasions)
+            const foreheadY = headY + 3;
+            const foreheadPattern = [
+              [0, 0], [-1, 1], [0, 1], [1, 1], // Flower shape
+              [-2, 2], [0, 2], [2, 2] // Base dots
+            ];
+            foreheadPattern.forEach(([dx, dy], i) => {
+              elements.push(
+                <rect key={`henna-forehead-${index}-${i}`} x={centerX + dx} y={foreheadY + dy} width="1" height="1" fill={hennaColor} opacity={hennaOpacity} className="pixel" />
+              );
+            });
           }
           break;
         }
@@ -4725,6 +4799,94 @@ if (defaultCapStyles.has(hairStyle)) {
               <rect key={`lip-ring-${index}`} x={centerX - 2} y={lipY} width="1" height="1" fill="#C0C0C0" className="pixel" />,
               <rect key={`lip-ring-hl-${index}`} x={centerX - 2} y={lipY} width="1" height="1" fill="#FFFFFF" opacity={0.5} className="pixel" />
             );
+          } else if (marking.location === 'chin' && marking.pattern === 'plate') {
+            // Lip plate - large disc in lower lip
+            const chinY = headY + Math.floor(headDim.height * 0.8);
+            const plateColor = marking.color || '#8B7355'; // Clay/wood color
+            const plateSize = marking.size === 'large' ? 4 : 3;
+            const halfPlateSize = Math.floor(plateSize / 2);
+            
+            // Draw circular lip plate
+            for (let x = -halfPlateSize; x <= halfPlateSize; x++) {
+              for (let y = 0; y < plateSize; y++) {
+                if (Math.abs(x) + y <= plateSize) {
+                  elements.push(
+                    <rect key={`lip-plate-${index}-${x}-${y}`} 
+                      x={centerX + x} 
+                      y={chinY + y} 
+                      width="1" 
+                      height="1" 
+                      fill={plateColor} 
+                      className="pixel" />
+                  );
+                }
+              }
+            }
+            // Add decorative edge
+            elements.push(
+              <rect key={`lip-plate-edge-${index}`} x={centerX - halfPlateSize} y={chinY} width={plateSize} height="1" fill="#654321" opacity={0.5} className="pixel" />
+            );
+          } else if (marking.location === 'neck' && marking.pattern === 'coils') {
+            // Neck rings/coils - brass or copper coils
+            const neckY = headY + headDim.height + 1;
+            const coilColor = marking.color || '#B8860B'; // Brass color
+            const coilCount = marking.size === 'large' ? 4 : 3;
+            
+            // Draw stacked neck rings
+            for (let i = 0; i < coilCount; i++) {
+              const ringY = neckY + i * 2;
+              // Main ring
+              for (let x = -3; x <= 3; x++) {
+                elements.push(
+                  <rect key={`neck-ring-${index}-${i}-${x}`} 
+                    x={centerX + x} 
+                    y={ringY} 
+                    width="1" 
+                    height="1" 
+                    fill={coilColor} 
+                    className="pixel" />
+                );
+              }
+              // Highlight on ring
+              elements.push(
+                <rect key={`neck-ring-hl-${index}-${i}`} x={centerX - 2} y={ringY} width="2" height="1" fill="#FFD700" opacity={0.4} className="pixel" />
+              );
+            }
+          } else if (marking.location === 'cheek' && marking.pattern === 'cheek_plug') {
+            // Cheek plugs - wooden discs through cheeks
+            const cheekY = headY + Math.floor(headDim.height * 0.55);
+            const plugColor = marking.color || '#8B4513';
+            
+            // Left cheek plug
+            elements.push(
+              <rect key={`cheek-plug-l-${index}`} x={headX + 1} y={cheekY} width="2" height="2" fill={plugColor} className="pixel" />,
+              <rect key={`cheek-plug-l-center-${index}`} x={headX + 1} y={cheekY} width="2" height="2" fill="#000000" opacity={0.3} className="pixel" />
+            );
+            // Right cheek plug
+            elements.push(
+              <rect key={`cheek-plug-r-${index}`} x={headX + headDim.width - 3} y={cheekY} width="2" height="2" fill={plugColor} className="pixel" />,
+              <rect key={`cheek-plug-r-center-${index}`} x={headX + headDim.width - 3} y={cheekY} width="2" height="2" fill="#000000" opacity={0.3} className="pixel" />
+            );
+          } else if (marking.location === 'face' && (marking.pattern === 'teeth_inlay' || marking.pattern === 'teeth_filed')) {
+            // Tooth modifications - show when mouth is visible
+            const mouthY = headY + Math.floor(headDim.height * 0.65);
+            
+            if (marking.pattern === 'teeth_inlay') {
+              // Gold or jade tooth inlay
+              const inlayColor = marking.color || '#FFD700';
+              elements.push(
+                <rect key={`tooth-inlay-${index}`} x={centerX - 1} y={mouthY} width="1" height="1" fill={inlayColor} className="pixel" />,
+                <rect key={`tooth-shine-${index}`} x={centerX - 1} y={mouthY} width="1" height="1" fill="#FFFFFF" opacity={0.6} className="pixel" />
+              );
+            } else if (marking.pattern === 'teeth_filed') {
+              // Filed teeth - sharper appearance
+              const toothColor = marking.color || '#F5F5DC';
+              for (let x = -1; x <= 1; x++) {
+                elements.push(
+                  <rect key={`filed-tooth-${index}-${x}`} x={centerX + x} y={mouthY} width="1" height="1" fill={toothColor} opacity={0.8} className="pixel" />
+                );
+              }
+            }
           }
           break;
         }
@@ -4808,12 +4970,34 @@ if (defaultCapStyles.has(hairStyle)) {
                 <rect key={`hand-f2-${index}`} x={headX + headDim.width - 3} y={cheekY - 1} width="1" height="1" fill={markingColor} opacity={0.6} className="pixel" />
               );
             }
-            // Eye band (mourning paint)
-            else if (paintPattern === 'eye_band') {
+            // Eye band (kohl/mourning paint/eye liner)
+            else if (paintPattern === 'eye_band' || paintPattern === 'eye_liner') {
               const eyeY = headY + Math.floor(headDim.height * 0.4);
-              elements.push(
-                <rect key={`eye-band-${index}`} x={headX + 2} y={eyeY} width={headDim.width - 4} height="3" fill={markingColor} opacity={0.9} className="pixel" />
-              );
+              
+              if (paintPattern === 'eye_liner' || markingColor === '#000000') {
+                // Kohl eye liner - more delicate around eyes
+                const leftEyeX = headX + Math.floor(headDim.width * 0.3);
+                const rightEyeX = headX + Math.floor(headDim.width * 0.7);
+                
+                // Left eye liner
+                elements.push(
+                  <rect key={`kohl-l-top-${index}`} x={leftEyeX - 1} y={eyeY - 1} width="3" height="1" fill={markingColor} opacity={0.9} className="pixel" />,
+                  <rect key={`kohl-l-bot-${index}`} x={leftEyeX - 1} y={eyeY + 2} width="3" height="1" fill={markingColor} opacity={0.9} className="pixel" />,
+                  <rect key={`kohl-l-side-${index}`} x={leftEyeX - 2} y={eyeY} width="1" height="2" fill={markingColor} opacity={0.7} className="pixel" />
+                );
+                
+                // Right eye liner
+                elements.push(
+                  <rect key={`kohl-r-top-${index}`} x={rightEyeX - 1} y={eyeY - 1} width="3" height="1" fill={markingColor} opacity={0.9} className="pixel" />,
+                  <rect key={`kohl-r-bot-${index}`} x={rightEyeX - 1} y={eyeY + 2} width="3" height="1" fill={markingColor} opacity={0.9} className="pixel" />,
+                  <rect key={`kohl-r-side-${index}`} x={rightEyeX + 2} y={eyeY} width="1" height="2" fill={markingColor} opacity={0.7} className="pixel" />
+                );
+              } else {
+                // Full eye band (mourning paint or warrior paint)
+                elements.push(
+                  <rect key={`eye-band-${index}`} x={headX + 2} y={eyeY} width={headDim.width - 4} height="3" fill={markingColor} opacity={0.9} className="pixel" />
+                );
+              }
             }
             // Dots pattern
             else if (paintPattern === 'dots') {
@@ -4835,6 +5019,91 @@ if (defaultCapStyles.has(hairStyle)) {
                   <rect key={`spot-${index}-${i}`} x={headX + dx} y={headY + dy} width="2" height="2" fill={markingColor} opacity={0.8} className="pixel" />
                 );
               });
+            }
+            // Fallback for unrecognized paint patterns
+            else {
+              console.log(`[Portrait] Rendering fallback paint pattern: ${paintPattern} at ${marking.location}`);
+              if (marking.location === 'forehead') {
+                // Default forehead paint
+                const foreheadY = headY + 4;
+                elements.push(
+                  <rect key={`fallback-paint-fh-${index}`} x={centerX - 2} y={foreheadY} width="5" height="2" fill={markingColor} opacity={0.8} className="pixel" />
+                );
+              } else if (marking.location === 'cheek') {
+                // Default cheek paint
+                const cheekY = headY + Math.floor(headDim.height * 0.5);
+                elements.push(
+                  <rect key={`fallback-paint-cheek-${index}`} x={headX + 2} y={cheekY} width="3" height="3" fill={markingColor} opacity={0.7} className="pixel" />
+                );
+              } else {
+                // Default face paint
+                const faceY = headY + Math.floor(headDim.height * 0.4);
+                elements.push(
+                  <rect key={`fallback-paint-face-${index}`} x={centerX - 1} y={faceY} width="3" height="2" fill={markingColor} opacity={0.8} className="pixel" />
+                );
+              }
+            }
+          } else if (marking.location === 'face' && marking.pattern === 'teeth_black') {
+            // Tooth blackening (Ohaguro)
+            const mouthY = headY + Math.floor(headDim.height * 0.65);
+            const blackColor = marking.color || '#1C1C1C';
+            
+            // Black teeth visible when smiling/mouth open
+            for (let x = -2; x <= 2; x++) {
+              elements.push(
+                <rect key={`black-teeth-${index}-${x}`} 
+                  x={centerX + x} 
+                  y={mouthY} 
+                  width="1" 
+                  height="1" 
+                  fill={blackColor} 
+                  opacity={0.9} 
+                  className="pixel" />
+              );
+            }
+          } else if (marking.location === 'forehead' && marking.pattern === 'hair_ochre') {
+            // Hair ochre treatment (Himba/Maasai style)
+            const ochreColor = marking.color || '#CC4125';
+            const hairlineY = headY - 2;
+            
+            // Ochre-covered hair extending from forehead
+            for (let y = 0; y < 4; y++) {
+              for (let x = -3; x <= 3; x++) {
+                if (Math.abs(x) <= 3 - Math.floor(y/2)) {
+                  elements.push(
+                    <rect key={`ochre-hair-${index}-${x}-${y}`} 
+                      x={centerX + x} 
+                      y={hairlineY + y} 
+                      width="1" 
+                      height="1" 
+                      fill={ochreColor} 
+                      opacity={0.8} 
+                      className="pixel" />
+                  );
+                }
+              }
+            }
+            // Add shine effect
+            elements.push(
+              <rect key={`ochre-shine-${index}`} x={centerX - 2} y={hairlineY + 1} width="2" height="1" fill="#E97451" opacity={0.6} className="pixel" />
+            );
+          } else if (marking.location === 'forehead' && marking.pattern === 'cranial_elongation') {
+            // Cranial modification - subtle visual indication
+            // This would be better shown by modifying the actual head shape,
+            // but for now we'll add a subtle visual marker
+            const crownY = headY - 1;
+            
+            // Extended forehead area
+            for (let x = -2; x <= 2; x++) {
+              elements.push(
+                <rect key={`cranial-${index}-${x}`} 
+                  x={centerX + x} 
+                  y={crownY} 
+                  width="1" 
+                  height="1" 
+                  fill={skinTone} 
+                  className="pixel" />
+              );
             }
           }
           break;

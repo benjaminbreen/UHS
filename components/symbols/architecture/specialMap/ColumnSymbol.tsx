@@ -13,6 +13,7 @@ interface ColumnSymbolProps {
   culturalZone: CulturalZone | string;
   era: HistoricalEra;
   seed?: number;
+  variant?: string;
 }
 
 export const ColumnSymbol: React.FC<ColumnSymbolProps> = ({ 
@@ -21,9 +22,15 @@ export const ColumnSymbol: React.FC<ColumnSymbolProps> = ({
   size = 32,
   culturalZone,
   era,
-  seed = 0
+  seed = 0,
+  variant
 }) => {
   const getColumnStyle = () => {
+    // Handle special variants first
+    if (variant === 'carved_ancestor') {
+      return { color: '#8B4513', capital: 'carved', style: 'wooden_carved' };
+    }
+    
     if (era < 500) {
       if (culturalZone === 'MENA' || culturalZone === 'NORTH_AFRICAN') {
         return { color: '#DEB887', capital: 'lotus', style: 'tapered' };
@@ -31,6 +38,8 @@ export const ColumnSymbol: React.FC<ColumnSymbolProps> = ({
         return { color: '#D3D3D3', capital: 'doric', style: 'fluted' };
       } else if (culturalZone === 'EAST_ASIAN') {
         return { color: '#8B4513', capital: 'bracket', style: 'wooden' };
+      } else if (culturalZone === 'OCEANIA') {
+        return { color: '#A0522D', capital: 'carved', style: 'wooden_post' };
       }
       return { color: '#D3D3D3', capital: 'simple', style: 'plain' };
     }
@@ -42,6 +51,8 @@ export const ColumnSymbol: React.FC<ColumnSymbolProps> = ({
         return { color: '#DEB887', capital: 'horseshoe', style: 'twisted' };
       } else if (culturalZone === 'EAST_ASIAN') {
         return { color: '#A0522D', capital: 'pagoda', style: 'tiered' };
+      } else if (culturalZone === 'OCEANIA') {
+        return { color: '#8B4513', capital: 'carved', style: 'wooden_post' };
       }
       return { color: '#A9A9A9', capital: 'simple', style: 'plain' };
     }

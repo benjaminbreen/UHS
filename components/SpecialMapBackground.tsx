@@ -41,17 +41,17 @@ const SpecialMapBackground: React.FC<SpecialMapBackgroundProps> = ({
     loadBackground();
   }, [config]);
 
-  // Apply time-of-day lighting overlay
+  // Apply time-of-day lighting overlay (reduced intensity)
   const getLightingOverlay = () => {
     switch (timeOfDay) {
       case 'Dawn':
-        return 'rgba(255, 200, 150, 0.2)';
+        return 'rgba(255, 230, 200, 0.08)'; // Much more subtle warm tint
       case 'Day':
-        return 'rgba(255, 255, 255, 0.05)';
+        return 'rgba(255, 255, 255, 0.02)'; // Barely perceptible
       case 'Dusk':
-        return 'rgba(255, 150, 100, 0.3)';
+        return 'rgba(255, 180, 140, 0.12)'; // Reduced orange intensity
       case 'Night':
-        return 'rgba(20, 30, 60, 0.4)';
+        return 'rgba(20, 30, 60, 0.25)'; // Reduced night overlay
       default:
         return 'transparent';
     }
@@ -78,15 +78,15 @@ const SpecialMapBackground: React.FC<SpecialMapBackgroundProps> = ({
         className="absolute inset-0 z-1 pointer-events-none"
         style={{
           backgroundColor: getLightingOverlay(),
-          mixBlendMode: 'multiply'
+          mixBlendMode: 'overlay'
         }}
       />
       
-      {/* Vignette effect for depth */}
+      {/* Vignette effect for depth (reduced intensity) */}
       <div
         className="absolute inset-0 z-2 pointer-events-none"
         style={{
-          background: 'radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.4) 100%)'
+          background: 'radial-gradient(circle at center, transparent 60%, rgba(0,0,0,0.15) 100%)'
         }}
       />
       

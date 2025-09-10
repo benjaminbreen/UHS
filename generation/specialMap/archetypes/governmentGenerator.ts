@@ -25,6 +25,14 @@ import {
   placeSeatingArrangement,
   placeCulturalLighting
 } from '../culturalFurnitureSystem';
+import { getCulturalGenerator } from '../culturalGeneratorRegistry';
+
+// Import cultural generators to ensure they register
+import '../archetypes/cultures/nativeAmericanGenerators';
+import '../archetypes/cultures/asianGenerators';
+import '../archetypes/cultures/africanGenerators';
+import '../archetypes/cultures/middleEasternGenerators';
+import '../archetypes/cultures/europeanGenerators';
 
 // Utility function to safely set tile properties with bounds checking
 function safeTileSet(tiles: Tile[][], y: number, x: number, updates: Partial<Tile>): boolean {
@@ -46,6 +54,25 @@ export function generateGovernmentForum(
   const interactionZones: InteractionZone[] = [];
   const exitZones: ExitZone[] = [];
   const rooms: RoomDefinition[] = [];
+  
+  console.log(`[GovernmentGenerator] Generating government forum for culture: ${config.culturalZone}, era: ${config.era}, region: ${config.region}`);
+  
+  // First check if there's a registered cultural generator
+  const culturalGenerator = getCulturalGenerator('GOVERNMENT_FORUM', config.culturalZone);
+  if (culturalGenerator) {
+    console.log(`[GovernmentGenerator] Using registered cultural generator for ${config.culturalZone}`);
+    culturalGenerator(tiles, size, config, interactionZones, rooms, noise);
+    
+    // Add standard exit zones
+    const centerX = Math.floor(size.width / 2);
+    exitZones.push(
+      { id: 'main_exit', location: [centerX, size.height - 1], label: 'Exit Building', destination: 'parent_map' }
+    );
+    
+    return { tiles, interactionZones, exitZones, rooms };
+  }
+  
+  console.log(`[GovernmentGenerator] No registered generator for ${config.culturalZone}, using built-in`);
   
   // Branch based on subtype if provided
   if (subtype === 'town_hall') {

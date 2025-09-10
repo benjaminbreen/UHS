@@ -6,7 +6,7 @@
 import { Tile, BiomeType, OverlayObjectType } from '../../../types';
 import { SpecialMapConfig, InteractionZone, ExitZone, RoomDefinition } from '../../../types/specialMapTypes';
 import { ValueNoise } from '../../../utils/noise';
-import { LANDSCAPE_BORDER_ROWS } from '../../../constants/specialMaps/specialMapAugmentation';
+// Removed import of deprecated specialMapAugmentation
 import { 
   placeDeskWithChair, 
   placeBookshelfAgainstWall, 

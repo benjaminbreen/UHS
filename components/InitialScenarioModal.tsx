@@ -9,6 +9,8 @@ import { parseDateString, formatDateWithSeason, getSeasonFromDate } from '../uti
 import { getDetailedHistoricalDescription } from '../utils/historicalPeriodUtils';
 import { URLGameConfig } from '../services/urlConfigService';
 import { SeedManager } from '../services/seedService';
+import { shareableStateService } from '../services/shareableStateService';
+import { findZoneForMapArea } from '../services/zoneDetectionService';
 import PopulationChart from './charts/PopulationChart';
 import MiniLocationMap from './charts/MiniLocationMap';
 
@@ -244,10 +246,55 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     // Generate shareable URL when requested
     React.useEffect(() => {
         if (showShareLink) {
-            const url = seedManager.createShareableURL(window.location.origin);
+            // Detect zone from map area if currentZone is empty or invalid
+            let finalZone = currentZone;
+            let finalRegion = currentRegion;
+            
+            if (!currentZone || currentZone === '' || currentZone === '...') {
+                console.log('[ShareableState] Current zone is empty, detecting from map area:', localArea);
+                const detected = findZoneForMapArea(localArea);
+                if (detected) {
+                    finalZone = detected.zone;
+                    finalRegion = detected.region;
+                    console.log('[ShareableState] Detected zone:', finalZone, 'region:', finalRegion);
+                } else {
+                    console.error('[ShareableState] Could not detect zone for map area:', localArea);
+                    finalZone = 'Europe'; // Fallback
+                    finalRegion = '';
+                }
+            }
+            
+            // Create comprehensive shareable state with validated zone
+            const shareableState = {
+                year: gameDate.year,
+                month: gameDate.month || 1,
+                day: gameDate.day || 1,
+                mapArea: localArea,
+                zone: finalZone,
+                region: finalRegion,
+                gameMode: gameMode?.id || 'survival',
+                character: {
+                    name: playerCharacter.name,
+                    profession: playerCharacter.occupation || playerCharacter.profession || 'traveler',
+                    gender: playerCharacter.gender?.toLowerCase() as 'male' | 'female' || 'male',
+                    age: playerCharacter.age || 25,
+                    socialClass: playerCharacter.class || 'commoner',
+                    health: playerCharacter.diseaseHealth?.overallHealthStatus || 'healthy'
+                },
+                mapSeed: gameSeed,
+                scenarioType: 'procedural' as const,
+                version: '2.0', // Bump version to indicate improved format
+                _validated: true // Flag to indicate this state has been validated
+            };
+            
+            // Generate the shareable URL with full state
+            const url = shareableStateService.generateShareableURL(shareableState);
             setShareableURL(url);
+            
+            // Also save to localStorage for recovery
+            shareableStateService.saveStateToLocal(shareableState);
         }
-    }, [showShareLink]);
+    }, [showShareLink, gameDate, localArea, currentZone, currentRegion, gameMode, playerCharacter, gameSeed]);
     
     // Try to get a more specific historical description based on the exact year
     const detailedDescription = getDetailedHistoricalDescription(culturalZone, era, gameDate.year);
@@ -456,9 +503,11 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                             {/* Mini Location Map */}
                             <MiniLocationMap
                                 continent={currentZone === 'North America' || currentZone === 'Central America' ? 'northAmerica' : 
+                                         currentZone === 'South America' ? 'southAmerica' :
                                          currentZone === 'Europe' ? 'europe' :
                                          currentZone === 'Asia' ? 'asia' :
-                                         currentZone === 'Africa' ? 'africa' : 'northAmerica'}
+                                         currentZone === 'Africa' ? 'africa' :
+                                         currentZone === 'Oceania' ? 'oceania' : 'northAmerica'}
                                 region={currentRegion}
                                 mapSeed={gameSeed}
                             />

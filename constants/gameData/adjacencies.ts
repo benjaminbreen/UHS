@@ -517,11 +517,11 @@ export const ADJACENCIES: Record<string, AdjacencyData> = {
   "Diyala Valley": { N: "Zagros Foothills", W: "Babylon Region", S: "Isfahan Basin" },
 
   // Maghreb
-  "Atlas Mountains": { N: "Fez Plateau", S: "Timbuktu Basin", E: "Tripolitania", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
-  "Fez Plateau": { S: "Atlas Mountains", E: "Tunisian Sahel", W: "Rif Coast", N: "Rif Coast" },
-  "Tunisian Sahel": { W: "Fez Plateau", E: "Bay of Naples", S: "Tripolitania" },
+  "Atlas Mountains": { N: "Rif Coast", S: "Draa Valley", E: "Tunisian Sahel", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
+  "Fez Plateau": { S: "Atlas Mountains", E: "Atlas Mountains", W: "Rif Coast", N: "Rif Coast" },
+  "Tunisian Sahel": { W: "Atlas Mountains", S: "Tripolitania" },
   "Rif Coast": { E: "Fez Plateau", N: "Strait of Gibraltar", S: "Atlas Mountains", W: "LIMINAL_ATLANTIC_TO_AMERICAS" },
-  "Draa Valley": { N: "Atlas Mountains", S: "Timbuktu Basin", E: "Timbuktu Basin" },
+  "Draa Valley": { N: "Atlas Mountains", S: "Timbuktu Basin" },
   "Tripolitania": { N: "Tunisian Sahel", S: "Lake Chad", W: "Atlas Mountains", E: "Alexandria Coast" },
 
   // Arabian Peninsula

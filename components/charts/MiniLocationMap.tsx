@@ -30,8 +30,13 @@ const regionCoordinates: Record<string, [number, number]> = {
   'British Isles': [-3, 54],
   'Iberian Peninsula': [-5, 40],
   'Italian Peninsula': [12, 42],
+  'Italy': [12, 42],
   'Balkans': [22, 44],
   'Central Europe': [15, 50],
+  'France': [2, 46],
+  'Germanic Lands': [10, 51],
+  'Greece and Aegean': [23, 38],
+  'Ural and Arctic Europe': [60, 65],
   
   // Asia
   'East Asia': [110, 35],
@@ -43,6 +48,27 @@ const regionCoordinates: Record<string, [number, number]> = {
   'Japan': [138, 36],
   'China': [105, 35],
   'India': [78, 20],
+  'Korea': [127, 37],
+  'Mongolia and Manchuria': [110, 45],
+  'North China Plain': [115, 38],
+  'South China': [110, 23],
+  'West China and Tibet': [85, 32],
+  'Xinjiang': [85, 42],
+  'Taiwan and East China Sea': [121, 24],
+  'Taiwan and Ryukyu': [122, 25],
+  'Central Asian Oases': [65, 40],
+  'Kazakh Steppes': [70, 50],
+  'Indochina Interior': [102, 18],
+  'Mainland Southeast Asia': [100, 15],
+  'Maritime Southeast Asia': [115, -2],
+  'Philippines': [122, 12],
+  'Indonesian and Melanesian Islands': [130, -5],
+  'Himalayas and Northeast': [88, 28],
+  'Central India': [78, 22],
+  'Deccan Plateau': [77, 17],
+  'Gangetic Plain': [82, 26],
+  'Indus Valley': [70, 28],
+  'Sri Lanka': [80, 7],
   
   // Africa
   'North Africa': [15, 25],
@@ -56,23 +82,58 @@ const regionCoordinates: Record<string, [number, number]> = {
   'Madagascar and Islands': [47, -20],
   'Comoros': [43, -12],
   'Comoros Archipelago': [43, -12],
+  'Maghreb': [-2, 32],
+  'Sahel': [5, 15],
+  'Upper Guinea': [-10, 10],
+  'Lower Guinea and Congo Basin': [15, -5],
+  'West African Forests': [-7, 6],
+  'Horn of Africa': [45, 8],
+  'East African Rift': [35, -3],
+  'Nubian Corridor': [32, 20],
   
   // Americas
   'North America': [-100, 45],
   'Central America': [-90, 15],
   'South America': [-60, -15],
   'Caribbean': [-75, 20],
+  'The Caribbean': [-75, 20],
   'Andes': [-70, -20],
   'Amazon': [-60, -5],
   'Great Plains': [-100, 40],
   'Eastern Woodlands': [-80, 40],
   'Mexico': [-100, 23],
+  'Mexico and Central Highlands': [-100, 20],
+  'Canada': [-95, 55],
+  'Arctic and Subarctic': [-100, 65],
+  'Northeastern Seaboard': [-73, 42],
+  'Mississippi Valley': [-90, 35],
+  'Southeast': [-85, 32],
+  'Southwest': [-108, 35],
+  'Northern Rockies': [-115, 48],
+  'Pacific Coast': [-122, 45],
+  'Northern California': [-122, 40],
+  'Central California Coast': [-121, 36],
+  'Southern California': [-118, 34],
+  
+  // South America regions
+  'Patagonia': [-68, -45],
+  'Andes North': [-75, -5],
+  'Andes South': [-70, -25],
+  'Amazon Basin': [-60, -5],
+  'Gran Chaco and Pampas': [-60, -32],
+  'Atlantic Coast': [-45, -20],
+  'Guiana Shield': [-62, 5],
+  'Southern Highlands': [-65, -18],
+  'Llanos and Orinoco': [-68, 7],
   
   // Oceania
   'Australia': [135, -25],
   'Australia – West and Desert': [120, -25],
   'Australia - West and Desert': [120, -25],
   'Australia – West': [120, -25],
+  'Australia – North and Queensland': [142, -18],
+  'Australia – Outback and Center': [134, -24],
+  'Australia – Southeast': [145, -35],
   'West and Desert': [120, -25],
   'Great Sandy Desert': [125, -20],
   'New Zealand': [175, -41],
@@ -81,6 +142,20 @@ const regionCoordinates: Record<string, [number, number]> = {
   'Micronesia': [160, 7],
   'Pacific & Oceania': [160, -10],
   'Pacific and Oceania': [160, -10],
+  'New Guinea and Melanesia': [145, -6],
+  'Hawaii and Central Pacific': [-157, 21],
+  
+  // Middle East (MENA)
+  'Arabian Peninsula': [45, 23],
+  'Mesopotamia': [44, 33],
+  'Levant': [35, 32],
+  'Anatolia': [35, 39],
+  'Persian Plateau': [53, 32],
+  'Caucasus': [45, 42],
+  
+  // Other regions
+  'Atlantic Islands': [-20, 30],
+  'European Waters': [0, 50],
   
   // Default
   'Unknown': [0, 0]
@@ -112,39 +187,39 @@ const MiniLocationMap: React.FC<MiniLocationMapProps> = ({ continent, region }) 
     return [0, 0];
   }, [continent, region]);
 
-  // Determine zoom and center based on region or continent
-  const mapConfig = useMemo(() => {
-    // Check for specific regions first
-    if (region?.includes('Australia') || region?.includes('Desert')) {
-      return { center: [135, -25], zoom: 2.5 };
+  // Determine zoom level based on region specificity
+  const zoomLevel = useMemo(() => {
+    // Higher zoom for smaller/more specific regions
+    if (region?.includes('Madagascar') || region?.includes('Sri Lanka')) {
+      return 8;
     }
-    if (region?.includes('Madagascar')) {
-      return { center: [47, -20], zoom: 4 };
+    if (region?.includes('Japan') || region?.includes('Korea') || region?.includes('Philippines')) {
+      return 6;
     }
-    if (region?.includes('Pacific')) {
-      return { center: [160, -10], zoom: 2 };
+    if (region?.includes('British Isles') || region?.includes('Italy') || region?.includes('Greece')) {
+      return 5;
     }
-    
-    // Then check continent
-    switch (continent?.toLowerCase()) {
-      case 'europe':
-        return { center: [15, 50], zoom: 3 };
-      case 'asia':
-        return { center: [90, 30], zoom: 2 };
-      case 'africa':
-        return { center: [20, 0], zoom: 2.5 };
-      case 'northamerica':
-      case 'north america':
-        return { center: [-100, 45], zoom: 2.5 };
-      case 'southamerica':
-      case 'south america':
-        return { center: [-60, -15], zoom: 2.5 };
-      case 'oceania':
-      case 'australia':
-        return { center: [135, -25], zoom: 2.5 };
-      default:
-        return { center: [0, 0], zoom: 1.5 };
+    if (region?.includes('France') || region?.includes('Germanic Lands') || region?.includes('Iberian')) {
+      return 4;
     }
+    if (region?.includes('Pacific') || region?.includes('Ocean') || region?.includes('Sea')) {
+      return 3;
+    }
+    // Medium zoom for most regions
+    if (region?.includes('Desert') || region?.includes('Basin') || region?.includes('Valley')) {
+      return 4;
+    }
+    // Default zoom for larger regions
+    if (continent?.toLowerCase() === 'europe') {
+      return 4;
+    }
+    if (continent?.toLowerCase().includes('america')) {
+      return 3;
+    }
+    if (continent?.toLowerCase() === 'asia') {
+      return 3;
+    }
+    return 4; // Default regional zoom
   }, [continent, region]);
 
   return (
@@ -163,8 +238,8 @@ const MiniLocationMap: React.FC<MiniLocationMapProps> = ({ continent, region }) 
         <ComposableMap
           projection="geoMercator"
           projectionConfig={{
-            center: mapConfig.center,
-            scale: 100 * mapConfig.zoom
+            center: playerCoords,
+            scale: 100 * zoomLevel
           }}
           style={{
             width: "100%",
@@ -283,29 +358,118 @@ const MiniLocationMap: React.FC<MiniLocationMapProps> = ({ continent, region }) 
 // Helper function to get climate based on region
 function getClimateForRegion(region: string): string {
   const climates: Record<string, string> = {
+    // Cold regions
     'Scandinavia': 'Cold',
     'Siberia': 'Cold',
     'Canada': 'Cold',
+    'Arctic and Subarctic': 'Cold',
+    'Patagonia': 'Cold',
+    'Southern Highlands': 'Cold',
+    'Northern Rockies': 'Cold',
+    'Ural and Arctic Europe': 'Cold',
+    'Himalayas and Northeast': 'Cold',
+    'West China and Tibet': 'Cold',
+    
+    // Arid regions
     'Sahara': 'Arid',
     'Middle East': 'Arid',
+    'Arabian Peninsula': 'Arid',
+    'Atacama': 'Arid',
+    'Gran Chaco': 'Arid',
+    'Sahel': 'Arid',
+    'Nubian Corridor': 'Arid',
+    'Persian Plateau': 'Arid',
+    'Xinjiang': 'Arid',
+    'Central Asian Oases': 'Arid',
+    'Kazakh Steppes': 'Arid',
+    'Australia – Outback': 'Arid',
+    'Southwest': 'Arid',
+    
+    // Mediterranean regions
     'Mediterranean': 'Mediterranean',
+    'Maghreb': 'Mediterranean',
+    'Levant': 'Mediterranean',
+    'Southern California': 'Mediterranean',
+    'Greece and Aegean': 'Mediterranean',
+    'Anatolia': 'Mediterranean',
+    
+    // Tropical regions
     'Caribbean': 'Tropical',
+    'The Caribbean': 'Tropical',
     'Amazon': 'Tropical',
+    'Amazon Basin': 'Tropical',
+    'Guiana Shield': 'Tropical',
+    'Llanos and Orinoco': 'Tropical',
     'Southeast Asia': 'Tropical',
+    'Maritime Southeast Asia': 'Tropical',
+    'Mainland Southeast Asia': 'Tropical',
+    'Indochina Interior': 'Tropical',
+    'Philippines': 'Tropical',
+    'Indonesian and Melanesian Islands': 'Tropical',
     'Central America': 'Tropical',
+    'Mexico and Central Highlands': 'Tropical',
     'India': 'Tropical',
+    'Central India': 'Tropical',
+    'Deccan Plateau': 'Tropical',
+    'Sri Lanka': 'Tropical',
     'East Africa': 'Tropical',
+    'East African Rift': 'Tropical',
+    'Horn of Africa': 'Tropical',
     'West Africa': 'Tropical',
+    'West African Forests': 'Tropical',
+    'Upper Guinea': 'Tropical',
+    'Lower Guinea and Congo Basin': 'Tropical',
     'Central Africa': 'Tropical',
+    'Atlantic Coast': 'Tropical',
+    'Hawaii and Central Pacific': 'Tropical',
+    'Polynesia': 'Tropical',
+    'Melanesia': 'Tropical',
+    'New Guinea and Melanesia': 'Tropical',
+    'Micronesia': 'Tropical',
+    'Australia – North and Queensland': 'Tropical',
+    
+    // Temperate regions
     'Western Europe': 'Temperate',
     'Eastern Europe': 'Temperate',
     'Central Europe': 'Temperate',
     'Low Countries': 'Temperate',
     'British Isles': 'Temperate',
+    'France': 'Temperate',
+    'Germanic Lands': 'Temperate',
+    'Italy': 'Temperate',
+    'Balkans': 'Temperate',
+    'Caucasus': 'Temperate',
     'East Asia': 'Temperate',
+    'North China Plain': 'Temperate',
+    'South China': 'Temperate',
+    'Korea': 'Temperate',
+    'Japan': 'Temperate',
+    'Taiwan and Ryukyu': 'Temperate',
+    'Mongolia and Manchuria': 'Temperate',
     'North America': 'Temperate',
+    'Northeastern Seaboard': 'Temperate',
+    'Mississippi Valley': 'Temperate',
+    'Southeast': 'Temperate',
+    'Pacific Coast': 'Temperate',
+    'Northern California': 'Temperate',
+    'Central California Coast': 'Temperate',
+    'Great Plains': 'Temperate',
+    'Eastern Woodlands': 'Temperate',
+    'Andes North': 'Temperate',
+    'Andes South': 'Temperate',
+    'Gran Chaco and Pampas': 'Temperate',
+    'Gangetic Plain': 'Temperate',
+    'Indus Valley': 'Temperate',
+    'Mesopotamia': 'Temperate',
+    'New Zealand': 'Temperate',
+    'Australia – Southeast': 'Temperate',
+    'Southern Africa': 'Temperate',
+    'Madagascar': 'Temperate',
+    'Atlantic Islands': 'Temperate',
+    
+    // Variable climate
     'Australia': 'Variable',
-    'New Zealand': 'Temperate'
+    'Australia – West and Desert': 'Variable'
   };
   
   for (const [key, climate] of Object.entries(climates)) {

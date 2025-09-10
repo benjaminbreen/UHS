@@ -314,14 +314,14 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
         </section>
 
         {/* Cultural Markings - New display for markings from appearance */}
-        {appearanceToUse?.markings && appearanceToUse.markings.length > 0 && (
+        {appearance?.markings && appearance.markings.length > 0 && (
           <section>
             <h3 className="text-xs font-bold uppercase tracking-wider text-purple-300 mb-3 flex items-center gap-2">
               <Sparkles className="w-4 h-4" />
               Cultural Markings
             </h3>
             <div className="space-y-2">
-              {appearanceToUse.markings.map((marking: any, idx: number) => (
+              {appearance.markings.map((marking: any, idx: number) => (
                 <div key={idx} className="rounded-lg border border-slate-700/50 bg-slate-800/40 p-3">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
@@ -362,7 +362,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
         )}
 
         {/* Body Modifications - Legacy support for equipped accessories */}
-        {!isPlayer && (npc as NpcEntity).equippedItems?.accessory && !appearanceToUse?.markings && (
+        {!isPlayer && (npc as NpcEntity).equippedItems?.accessory && !appearance?.markings && (
           (() => {
             const accessory = (npc as NpcEntity).equippedItems.accessory;
             const specialType = (accessory as any).specialType;

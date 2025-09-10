@@ -847,6 +847,67 @@ export const LANGUAGES: Record<string, LanguageData> = {
     llmPrompt: 'Emulate Yolngu Matha grammar. This is an agglutinative language. Word order is relatively free. A crucial cultural and linguistic feature to reflect is the highly complex kinship system, which is deeply embedded in the pronoun system and forms of address. The tone should reflect a society with a rich ceremonial and spiritual life.',
   },
 
+  // Philippine Languages
+  OLD_TAGALOG: {
+    id: 'OLD_TAGALOG',
+    name: 'Old Tagalog',
+    nativeName: 'Tagalog',
+    family: LANGUAGE_FAMILIES.AUSTRONESIAN,
+    script: 'Baybayin',
+    period: [900, 1600],
+    regions: ['Luzon', 'Philippines', 'Luzon Highlands', 'Philippine Sea'],
+    culturalZones: ['SOUTH_ASIAN' as CulturalZone], // Philippines is under South Asia in geography
+    successors: ['MODERN_TAGALOG'],
+    greetings: {
+      hello: 'Magandang araw',
+      goodbye: 'Paalam',
+      yes: 'Oo',
+      no: 'Hindi',
+      thanks: 'Salamat',
+    },
+    llmPrompt: 'Emulate Old Tagalog from pre-Spanish contact era (before 1565). Use Verb-Subject-Object word order with flexibility. Include focus markers (ang, ng, sa). The vocabulary should be purely Austronesian with Sanskrit/Malay loanwords only for trade, religious, and political terms. No Spanish influence. The tone should reflect a maritime trading culture with sophisticated political structures (barangays, datus).',
+  },
+
+  OLD_CEBUANO: {
+    id: 'OLD_CEBUANO',
+    name: 'Old Cebuano',
+    nativeName: 'Sinugbuanon',
+    family: LANGUAGE_FAMILIES.AUSTRONESIAN,
+    script: 'Baybayin',
+    period: [900, 1600],
+    regions: ['Visayas', 'Visayan Sea', 'Cebu'],
+    culturalZones: ['SOUTH_ASIAN' as CulturalZone],
+    successors: ['MODERN_CEBUANO'],
+    greetings: {
+      hello: 'Maayong adlaw',
+      goodbye: 'Babay',
+      yes: 'Oo',
+      no: 'Dili',
+      thanks: 'Salamat',
+    },
+    llmPrompt: 'Emulate Old Cebuano/Visayan from pre-Spanish contact. Use VSO word order. Include focus markers similar to Tagalog. The vocabulary should be Austronesian with some Malay trading terms. Reflect the maritime culture of the Visayan islands and their role in Southeast Asian trade networks.',
+  },
+
+  OLD_MALAY: {
+    id: 'OLD_MALAY',
+    name: 'Old Malay',
+    nativeName: 'Bahasa Melayu Kuno',
+    family: LANGUAGE_FAMILIES.AUSTRONESIAN,
+    script: 'Pallava/Kawi',
+    period: [600, 1500],
+    regions: ['Mindanao', 'Sulu Sea', 'Palawan', 'Borneo', 'Sumatra', 'Java', 'Sulawesi', 'Spice Islands', 'Makassar', 'Malacca'],
+    culturalZones: ['SOUTH_ASIAN' as CulturalZone],
+    successors: ['CLASSICAL_MALAY'],
+    greetings: {
+      hello: 'Salam',
+      goodbye: 'Selamat tinggal',
+      yes: 'Ya',
+      no: 'Tidak',
+      thanks: 'Terima kasih',
+    },
+    llmPrompt: 'Emulate Old Malay as used in maritime Southeast Asia (7th-15th century). This was the lingua franca of trade. Use SVO word order. Include Sanskrit loanwords for religious/political concepts and Arabic loanwords for Islamic terms (after 1200 CE). The tone should be formal and suitable for trade negotiations, diplomatic correspondence, and religious texts.',
+  },
+
   // Polynesian Languages
   HAWAIIAN: {
     id: 'HAWAIIAN',
@@ -886,6 +947,46 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: 'Kia ora',
     },
     llmPrompt: 'Emulate Māori grammar. The syntax is typically Verb-Subject-Object (VSO), but can be flexible. Like other Polynesian languages, it relies heavily on particles before nouns and verbs to convey grammatical information (tense, possession, etc.). The tone should be suitable for a culture with strong oral traditions, formal oratory (whaikōrero), and a focus on genealogy (whakapapa).',
+  },
+
+  // More Southeast Asian Languages
+  OLD_JAVANESE: {
+    id: 'OLD_JAVANESE',
+    name: 'Old Javanese (Kawi)',
+    nativeName: 'Bhāṣa Jawa Kuna',
+    family: LANGUAGE_FAMILIES.AUSTRONESIAN,
+    script: 'Kawi',
+    period: [800, 1500],
+    regions: ['Java', 'Central Java', 'Java Sea', 'Bali'],
+    culturalZones: ['SOUTH_ASIAN' as CulturalZone],
+    successors: ['MIDDLE_JAVANESE'],
+    greetings: {
+      hello: 'Sugeng rawuh',
+      goodbye: 'Sugeng tindak',
+      yes: 'Inggih',
+      no: 'Mboten',
+      thanks: 'Matur nuwun',
+    },
+    llmPrompt: 'Emulate Old Javanese/Kawi from the Hindu-Buddhist period. Heavy Sanskrit influence in vocabulary, especially for religious, philosophical, and courtly terms. Use SOV word order. The tone should be highly formal and poetic, suitable for court literature and religious texts.',
+  },
+
+  CHAM: {
+    id: 'CHAM',
+    name: 'Cham',
+    nativeName: 'Akhar Cam',
+    family: LANGUAGE_FAMILIES.AUSTRONESIAN,
+    script: 'Cham',
+    period: [200, 2024],
+    regions: ['Annam', 'Mekong', 'Indochina', 'Annam Highlands'],
+    culturalZones: ['SOUTH_ASIAN' as CulturalZone],
+    greetings: {
+      hello: 'Bani səlamat',
+      goodbye: 'Lơ̆w həi',
+      yes: 'Huê',
+      no: 'O oh',
+      thanks: 'Tabik',
+    },
+    llmPrompt: 'Emulate Cham language from the Champa kingdom period. This is an Austronesian language with significant Sanskrit and later Malay influence. Use SVO word order. The tone should reflect a Hindu-Buddhist maritime kingdom with strong trade connections.',
   },
 
   // Trade and Pidgin Languages

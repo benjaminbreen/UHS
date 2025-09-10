@@ -3,7 +3,7 @@
  */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { EncounterableEntity, NpcEntity, DialogueEntry, PlayerCharacter, MapData } from '../types';
-import { generateEncounterDialogue } from '../services/encounterService';
+import { generateEncounterDialogue, attemptTheft, handleTheftResponse, TheftAttempt } from '../services/encounterService';
 import { summarizeConversation, generateInternalMonologue, generateNpcQuestOffer } from '../services/llmService';
 import { TypewriterText } from '../hooks/useTypewriter';
 import NpcTradeInterface from './NpcTradeInterface';
@@ -35,7 +35,7 @@ import {
 import { eventService } from '../services/eventService';
 import { getLanguageForCharacter, getLanguageComprehension, LANGUAGES } from '../constants/gameData/languages';
 import { triggerArrest, ArrestScenario } from '../services/arrestService';
-import { usePortraitExpression, mapRepDeltaToExpr, mapEventToExpr } from '../hooks/usePortraitExpression';
+import { usePortraitExpression, mapRepDeltaToExpr, mapEventToExpr, mapPersonalityToExpr } from '../hooks/usePortraitExpression';
 import { diseaseService } from '../services/diseaseService';
 
 function isNpc(target: EncounterableEntity): target is NpcEntity {
@@ -106,7 +106,21 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
     const [history, setHistory] = useState<DialogueEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [playerInput, setPlayerInput] = useState('');
-    const [activeTab, setActiveTab] = useState<'dialogue' | 'history' | 'trade' | 'medical' | 'household' | 'quest'>('dialogue');
+    
+    // Check if this NPC recently approached with a quest by looking for specific occupations or low health
+    const isLikelyQuestNpc = isNpc(target) && (
+        (target.occupation?.toLowerCase().includes('scholar')) ||
+        (target.occupation?.toLowerCase().includes('noble')) ||
+        (target.occupation?.toLowerCase().includes('official')) ||
+        (target.occupation?.toLowerCase().includes('priest')) ||
+        (target.occupation?.toLowerCase().includes('elder')) ||
+        (target.occupation?.toLowerCase().includes('captain')) ||
+        (target.health && target.health < 50)
+    );
+    
+    const [activeTab, setActiveTab] = useState<'dialogue' | 'history' | 'trade' | 'medical' | 'household' | 'quest'>(
+        isLikelyQuestNpc ? 'quest' : 'dialogue'
+    );
     
     const [useRealLanguage, setUseRealLanguage] = useState(false);
     const [showTradeInterface, setShowTradeInterface] = useState(false);
@@ -132,6 +146,11 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
     const [animalOwner, setAnimalOwner] = useState<NpcEntity | null>(null);
     const [isTheft, setIsTheft] = useState(false);
     
+    // Theft-related states
+    const [theftResult, setTheftResult] = useState<TheftAttempt | null>(null);
+    const [showTheftOptions, setShowTheftOptions] = useState(false);
+    const [theftProcessed, setTheftProcessed] = useState(false);
+    
     // Internal monologue states
     const [showMonologue, setShowMonologue] = useState(false);
     const [monologueText, setMonologueText] = useState('');
@@ -145,6 +164,83 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
     const [questOffer, setQuestOffer] = useState<any>(null);
     const [canCompleteQuest, setCanCompleteQuest] = useState<{ quest: Quest; objective: any } | null>(null);
     const [useHistoricalQuests, setUseHistoricalQuests] = useState(true); // Default to historical system
+    
+    // Auto-generate quest for quest NPCs when quest tab is active
+    useEffect(() => {
+        if (activeTab === 'quest' && isLikelyQuestNpc && !hasCheckedForQuest && !isLoadingQuest) {
+            // Automatically generate a quest for this NPC
+            setTimeout(async () => {
+                setIsLoadingQuest(true);
+                setHasCheckedForQuest(true);
+                
+                try {
+                    if (useHistoricalQuests) {
+                        // Use historical quest system
+                        const year = parseInt(mapData?.timeSlice || '1500');
+                        const era = year < -3000 ? HistoricalEra.PREHISTORY :
+                                   year < 500 ? HistoricalEra.ANTIQUITY :
+                                   year < 1400 ? HistoricalEra.MEDIEVAL :
+                                   year < 1800 ? HistoricalEra.RENAISSANCE_EARLY_MODERN :
+                                   year < 1950 ? HistoricalEra.INDUSTRIAL_ERA :
+                                   year < 2100 ? HistoricalEra.MODERN_ERA :
+                                   HistoricalEra.FUTURE_ERA;
+                        
+                        const culturalZone = (mapData?.culturalZone || 'EUROPEAN') as CulturalZone;
+                        const gameMode = 'exploration' as GameModeType; // Default for now
+                        
+                        const quest = questService.generateHistoricalQuest(
+                            era,
+                            culturalZone,
+                            gameMode,
+                            mapData!,
+                            allNpcs,
+                            { x: playerCharacter.x || 50, y: playerCharacter.y || 50 },
+                            target
+                        );
+                        
+                        if (quest) {
+                            // Create a quest offer from the generated quest
+                            const spatialDesc = quest.objectives[0]?.spatialDescription || 'a nearby location';
+                            setQuestOffer({
+                                hasQuest: true,
+                                questTitle: quest.title,
+                                questDescription: quest.description,
+                                questType: quest.category,
+                                questDialogue: `I need someone to help with a task. ${quest.description} The destination is ${spatialDesc}.`,
+                                questReward: quest.rewards?.map(r => r.description).join(', '),
+                                urgency: 'medium',
+                                _generatedQuest: quest // Store the quest for later
+                            });
+                        } else {
+                            setQuestOffer({
+                                hasQuest: false,
+                                questDialogue: "I don't have any work for you right now."
+                            });
+                        }
+                    } else {
+                        // Use LLM system
+                        const nearbyStructures: any[] = [];
+                        const questData = await generateNpcQuestOffer(target, {
+                            playerCharacter,
+                            mapData: mapData!,
+                            nearbyStructures,
+                            gameDate: { year: parseInt(mapData?.timeSlice || '1500'), month: 6, day: 15 },
+                            playerReputation: playerCharacter.mapReputation || 50
+                        });
+                        setQuestOffer(questData);
+                    }
+                } catch (error) {
+                    console.error('Error auto-generating quest:', error);
+                    setQuestOffer({
+                        hasQuest: false,
+                        questDialogue: "I'm not sure what work I have available right now."
+                    });
+                }
+                
+                setIsLoadingQuest(false);
+            }, 500); // Small delay to let the UI render
+        }
+    }, [activeTab, isLikelyQuestNpc, hasCheckedForQuest, isLoadingQuest, useHistoricalQuests, mapData, target, playerCharacter, allNpcs]);
     
     const hasFetchedInitialDialogue = useRef(false);
     const dialogueLogRef = useRef<HTMLDivElement>(null);
@@ -406,6 +502,43 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
         }
     }, [target, allNpcs]);
     
+    // Check for theft attempts when modal opens with NPC
+    useEffect(() => {
+        if (isNpc(target) && !theftProcessed && playerCharacter) {
+            // Check if this NPC has a history of theft behavior or was approaching with theft intent
+            const isThief = target.occupation?.toLowerCase().includes('thief') ||
+                          (target.personality && typeof target.personality === 'string' && target.personality.includes('greedy'));
+            
+            // 30% chance for known thieves to attempt theft when encountered
+            // 5% chance for other NPCs if they're desperate (low health)
+            const theftChance = isThief ? 0.3 : 
+                              (target.health && target.health < 30) ? 0.05 : 0;
+            
+            if (Math.random() < theftChance) {
+                console.log(`[Theft] ${target.name} attempting theft on encounter`);
+                const result = attemptTheft(target, playerCharacter);
+                setTheftResult(result);
+                setTheftProcessed(true);
+                
+                // Set initial dialogue to the theft result
+                setDialogue(result.dialogueText);
+                
+                // Show theft response options if detected
+                if (result.detected) {
+                    setShowTheftOptions(true);
+                } else if (result.success && !result.detected) {
+                    // Delayed notification for undetected successful theft
+                    setTimeout(() => {
+                        setDialogue(prev => prev + `\n\n[Later] Wait... where is your ${result.stolenItem?.name}? You realize it's missing!`);
+                        setShowTheftOptions(true);
+                    }, 5000);
+                }
+            } else {
+                setTheftProcessed(true);
+            }
+        }
+    }, [target, playerCharacter, theftProcessed]);
+    
     // Check if this NPC can complete any active quests
     useEffect(() => {
         if (isNpc(target) && playerCharacter) {
@@ -504,6 +637,29 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                 }
             } catch (error) {
                 console.error('Error checking disease transmission from target:', error);
+            }
+        }
+        
+        // Set initial expression based on NPC personality/state
+        if (isNpc(target)) {
+            // Check personality (ensure it exists and is a string)
+            if (target.personality && typeof target.personality === 'string') {
+                const personalityExpr = mapPersonalityToExpr(target.personality);
+                if (personalityExpr) {
+                    flashPortrait(personalityExpr, 3000);
+                }
+            }
+            // Check health status
+            else if (target.health?.currentDiseases?.length > 0) {
+                flashPortrait('tired', 3000);
+            }
+            // Check hostile/friendly status
+            else if (target.isHostile) {
+                flashPortrait('scowl', 3000);
+            }
+            // Low health
+            else if (target.currentHealth && target.maxHealth && target.currentHealth < target.maxHealth * 0.3) {
+                flashPortrait('concern', 3000);
             }
         }
         
@@ -720,9 +876,20 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
         else if (response.shouldLeave) {
             // NPC ends conversation
             setNpcWantsToLeave(true);
-            setTimeout(() => {
-                handleClose();
-            }, 2000);
+            console.log(`[EncounterModal] ${target.name} is leaving the conversation`);
+            
+            // Show a farewell message if it's a natural goodbye
+            if (response.reputationChange === undefined || response.reputationChange >= -50) {
+                // Natural farewell - shorter delay
+                setTimeout(() => {
+                    handleClose();
+                }, 1500);
+            } else {
+                // Hostile exit - longer delay for dramatic effect
+                setTimeout(() => {
+                    handleClose();
+                }, 2000);
+            }
         }
     };
     
@@ -937,7 +1104,10 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                         <button onClick={() => setActiveTab('dialogue')} className={`flex-1 py-3 px-2 text-center text-sm font-semibold transition-all duration-200 border-b-2 ${activeTab === 'dialogue' ? 'text-white border-blue-400 bg-slate-700/50' : 'text-slate-300 border-transparent hover:bg-slate-700/40 hover:text-white'}`}>Dialogue</button>
                         <button onClick={() => setActiveTab('history')} className={`flex-1 py-3 px-2 text-center text-sm font-semibold transition-all duration-200 border-b-2 ${activeTab === 'history' ? 'text-white border-blue-400 bg-slate-700/50' : 'text-slate-300 border-transparent hover:bg-slate-700/40 hover:text-white'}`}>History</button>
                         <button onClick={() => setActiveTab('household')} className={`flex-1 py-3 px-2 text-center text-sm font-semibold transition-all duration-200 border-b-2 ${activeTab === 'household' ? 'text-white border-blue-400 bg-slate-700/50' : 'text-slate-300 border-transparent hover:bg-slate-700/40 hover:text-white'}`}>Household</button>
-                        <button onClick={() => setActiveTab('trade')} className={`flex-1 py-3 px-2 text-center text-sm font-semibold transition-all duration-200 border-b-2 ${activeTab === 'trade' ? 'text-white border-blue-400 bg-slate-700/50' : 'text-slate-300 border-transparent hover:bg-slate-700/40 hover:text-white'}`}>Trade</button>
+                        <button onClick={() => {
+                            setActiveTab('trade');
+                            flashPortrait('thinking', 2000); // NPC considers trade
+                        }} className={`flex-1 py-3 px-2 text-center text-sm font-semibold transition-all duration-200 border-b-2 ${activeTab === 'trade' ? 'text-white border-blue-400 bg-slate-700/50' : 'text-slate-300 border-transparent hover:bg-slate-700/40 hover:text-white'}`}>Trade</button>
                         <button onClick={() => setActiveTab('quest')} className={`flex-1 py-3 px-2 text-center text-sm font-semibold transition-all duration-200 border-b-2 ${activeTab === 'quest' ? 'text-white border-blue-400 bg-slate-700/50' : 'text-slate-300 border-transparent hover:bg-slate-700/40 hover:text-white'}`}>
                             <span className="flex items-center justify-center gap-1">
                                 <Target className="w-3 h-3" />
@@ -1513,6 +1683,9 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                                             <div className="flex gap-2">
                                                 <button 
                                                     onClick={() => {
+                                                        // Show approval expression for quest acceptance
+                                                        flashPortrait('approve', 2500);
+                                                        
                                                         // Check if we already have a generated quest (historical system)
                                                         if ((questOffer as any)._generatedQuest) {
                                                             const quest = (questOffer as any)._generatedQuest as Quest;
@@ -1634,6 +1807,8 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                                                 </button>
                                                 <button 
                                                     onClick={() => {
+                                                        // Show sad expression for quest decline
+                                                        flashPortrait('sad', 2500);
                                                         setQuestOffer(null);
                                                         setHasCheckedForQuest(false);
                                                     }}
@@ -1690,6 +1865,79 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                         >
                           Send
                         </button>
+                    </div>
+                )}
+
+                {/* Theft Response Options */}
+                {showTheftOptions && theftResult && isNpc(target) && (
+                    <div className="mb-4 p-4 bg-red-900/30 border border-red-600 rounded-lg">
+                        <h4 className="text-red-400 font-semibold mb-3 flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4" />
+                            Theft Detected!
+                        </h4>
+                        {theftResult.success && theftResult.stolenItem && (
+                            <p className="text-red-300 text-sm mb-3">
+                                Your <strong>{theftResult.stolenItem.name}</strong> has been taken!
+                            </p>
+                        )}
+                        <div className="flex gap-2 flex-wrap">
+                            {theftResult.detected && (
+                                <>
+                                    <button
+                                        onClick={() => {
+                                            const response = handleTheftResponse('pursue', target, playerCharacter, theftResult);
+                                            setDialogue(prev => prev + `\n\n${response}`);
+                                            setShowTheftOptions(false);
+                                            
+                                            // If pursuit was successful, return the item
+                                            if (!theftResult.npcEscaped && theftResult.stolenItem) {
+                                                playerCharacter.inventory = playerCharacter.inventory || [];
+                                                playerCharacter.inventory.push(theftResult.stolenItem);
+                                                
+                                                // Remove from NPC inventory
+                                                if (target.inventory) {
+                                                    const itemIndex = target.inventory.findIndex(item => 
+                                                        item.id === theftResult.stolenItem!.id
+                                                    );
+                                                    if (itemIndex !== -1) {
+                                                        target.inventory.splice(itemIndex, 1);
+                                                    }
+                                                }
+                                            }
+                                        }}
+                                        className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded transition-colors"
+                                    >
+                                        Pursue
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            const response = handleTheftResponse('confront', target, playerCharacter, theftResult);
+                                            setDialogue(prev => prev + `\n\n${response}`);
+                                            setShowTheftOptions(false);
+                                        }}
+                                        className="px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded transition-colors"
+                                    >
+                                        Confront
+                                    </button>
+                                </>
+                            )}
+                            <button
+                                onClick={() => {
+                                    const response = handleTheftResponse('forgive', target, playerCharacter, theftResult);
+                                    setDialogue(prev => prev + `\n\n${response}`);
+                                    setShowTheftOptions(false);
+                                }}
+                                className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded transition-colors"
+                            >
+                                Forgive
+                            </button>
+                            <button
+                                onClick={() => setShowTheftOptions(false)}
+                                className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded transition-colors"
+                            >
+                                Ignore
+                            </button>
+                        </div>
                     </div>
                 )}
 
@@ -2100,6 +2348,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                     onClose={() => setShowDiseaseModal(false)}
                     disease={contractedDisease}
                     playerCharacter={playerCharacter}
+                    gameDate={gameDate}
                 />
             )}
         </div>

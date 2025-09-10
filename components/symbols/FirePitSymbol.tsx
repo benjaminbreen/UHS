@@ -84,35 +84,85 @@ const FirePitSymbol: React.FC<FirePitSymbolProps> = ({
         
         {/* Flames (if lit) */}
         {lit && (
-          <g className="animate-fireFlicker">
-            {/* Outer flame */}
-            <path 
-              d={`M ${size * 0.5} ${size * 0.6} 
-                  Q ${size * 0.42} ${size * 0.5} ${size * 0.45} ${size * 0.38}
-                  Q ${size * 0.48} ${size * 0.42} ${size * 0.5} ${size * 0.35}
-                  Q ${size * 0.52} ${size * 0.42} ${size * 0.55} ${size * 0.38}
-                  Q ${size * 0.58} ${size * 0.5} ${size * 0.5} ${size * 0.6}`}
-              fill="#ff6b35" 
-              opacity="0.8" 
-            />
-            {/* Inner flame */}
-            <path 
-              d={`M ${size * 0.5} ${size * 0.55} 
-                  Q ${size * 0.46} ${size * 0.5} ${size * 0.48} ${size * 0.42}
-                  Q ${size * 0.5} ${size * 0.45} ${size * 0.52} ${size * 0.42}
-                  Q ${size * 0.54} ${size * 0.5} ${size * 0.5} ${size * 0.55}`}
-              fill="#ffa500" 
-              opacity="0.9" 
-            />
-            {/* Hot center */}
-            <ellipse 
+          <g>
+            {/* Glow effect layer */}
+            <defs>
+              <radialGradient id={`fireGlow-${x}-${y}`} cx="50%" cy="50%">
+                <stop offset="0%" stopColor="#ff4500" stopOpacity="0.3" />
+                <stop offset="40%" stopColor="#ff6b35" stopOpacity="0.2" />
+                <stop offset="100%" stopColor="#ff0000" stopOpacity="0" />
+              </radialGradient>
+              <filter id={`fireBlur-${x}-${y}`}>
+                <feGaussianBlur stdDeviation="1.5"/>
+              </filter>
+            </defs>
+            
+            {/* Localized glow circle */}
+            <circle 
               cx={size * 0.5} 
-              cy={size * 0.52} 
-              rx={size * 0.05} 
-              ry={size * 0.08} 
-              fill="#ffff99" 
-              opacity="0.8" 
+              cy={size * 0.5} 
+              r={size * 0.45} 
+              fill={`url(#fireGlow-${x}-${y})`}
+              filter={`url(#fireBlur-${x}-${y})`}
+              className="animate-fireGlow"
             />
+            
+            {/* Multiple flame layers for realistic animation */}
+            <g className="animate-fireFlicker1">
+              {/* Base flame */}
+              <path 
+                d={`M ${size * 0.5} ${size * 0.6} 
+                    Q ${size * 0.40} ${size * 0.52} ${size * 0.43} ${size * 0.40}
+                    Q ${size * 0.46} ${size * 0.44} ${size * 0.5} ${size * 0.36}
+                    Q ${size * 0.54} ${size * 0.44} ${size * 0.57} ${size * 0.40}
+                    Q ${size * 0.60} ${size * 0.52} ${size * 0.5} ${size * 0.6}`}
+                fill="#ff4500" 
+                opacity="0.9"
+              />
+            </g>
+            
+            <g className="animate-fireFlicker2">
+              {/* Secondary flame */}
+              <path 
+                d={`M ${size * 0.5} ${size * 0.58} 
+                    Q ${size * 0.44} ${size * 0.50} ${size * 0.47} ${size * 0.38}
+                    Q ${size * 0.50} ${size * 0.42} ${size * 0.53} ${size * 0.38}
+                    Q ${size * 0.56} ${size * 0.50} ${size * 0.5} ${size * 0.58}`}
+                fill="#ff6b35" 
+                opacity="0.8"
+              />
+            </g>
+            
+            <g className="animate-fireFlicker3">
+              {/* Inner bright flame */}
+              <path 
+                d={`M ${size * 0.5} ${size * 0.55} 
+                    Q ${size * 0.46} ${size * 0.48} ${size * 0.48} ${size * 0.40}
+                    Q ${size * 0.50} ${size * 0.43} ${size * 0.52} ${size * 0.40}
+                    Q ${size * 0.54} ${size * 0.48} ${size * 0.5} ${size * 0.55}`}
+                fill="#ffa500" 
+                opacity="0.9"
+              />
+            </g>
+            
+            <g className="animate-fireFlicker4">
+              {/* Hot center core */}
+              <ellipse 
+                cx={size * 0.5} 
+                cy={size * 0.50} 
+                rx={size * 0.06} 
+                ry={size * 0.10} 
+                fill="#ffff99" 
+                opacity="0.95"
+              />
+            </g>
+            
+            {/* Sparks/embers */}
+            <g className="animate-sparks">
+              <circle cx={size * 0.45} cy={size * 0.40} r="0.5" fill="#ffaa00" opacity="0.8" />
+              <circle cx={size * 0.55} cy={size * 0.42} r="0.3" fill="#ff6600" opacity="0.7" />
+              <circle cx={size * 0.52} cy={size * 0.35} r="0.4" fill="#ffff99" opacity="0.6" />
+            </g>
           </g>
         )}
       </g>
@@ -170,17 +220,60 @@ const FirePitSymbol: React.FC<FirePitSymbolProps> = ({
         
         {/* Fire (if lit) */}
         {lit && (
-          <g className="animate-fireFlicker">
-            <path 
-              d={`M ${size * 0.5} ${size * 0.65} 
-                  Q ${size * 0.4} ${size * 0.55} ${size * 0.42} ${size * 0.45}
-                  Q ${size * 0.46} ${size * 0.48} ${size * 0.5} ${size * 0.42}
-                  Q ${size * 0.54} ${size * 0.48} ${size * 0.58} ${size * 0.45}
-                  Q ${size * 0.6} ${size * 0.55} ${size * 0.5} ${size * 0.65}`}
-              fill="#ff6b35" 
-              opacity="0.8" 
+          <g>
+            {/* Glow effect for hearth */}
+            <defs>
+              <radialGradient id={`hearthGlow-${x}-${y}`} cx="50%" cy="60%">
+                <stop offset="0%" stopColor="#ff4500" stopOpacity="0.4" />
+                <stop offset="50%" stopColor="#ff6b35" stopOpacity="0.2" />
+                <stop offset="100%" stopColor="#ff0000" stopOpacity="0" />
+              </radialGradient>
+            </defs>
+            
+            {/* Hearth glow */}
+            <ellipse 
+              cx={size * 0.5} 
+              cy={size * 0.55} 
+              rx={size * 0.35} 
+              ry={size * 0.25} 
+              fill={`url(#hearthGlow-${x}-${y})`}
+              className="animate-fireGlow"
             />
-            <ellipse cx={size * 0.5} cy={size * 0.6} rx={size * 0.08} ry={size * 0.1} fill="#ffa500" opacity="0.9" />
+            
+            <g className="animate-fireFlicker1">
+              <path 
+                d={`M ${size * 0.5} ${size * 0.65} 
+                    Q ${size * 0.38} ${size * 0.57} ${size * 0.41} ${size * 0.47}
+                    Q ${size * 0.45} ${size * 0.50} ${size * 0.5} ${size * 0.44}
+                    Q ${size * 0.55} ${size * 0.50} ${size * 0.59} ${size * 0.47}
+                    Q ${size * 0.62} ${size * 0.57} ${size * 0.5} ${size * 0.65}`}
+                fill="#ff4500" 
+                opacity="0.9" 
+              />
+            </g>
+            
+            <g className="animate-fireFlicker2">
+              <path 
+                d={`M ${size * 0.5} ${size * 0.62} 
+                    Q ${size * 0.42} ${size * 0.54} ${size * 0.44} ${size * 0.46}
+                    Q ${size * 0.48} ${size * 0.48} ${size * 0.5} ${size * 0.43}
+                    Q ${size * 0.52} ${size * 0.48} ${size * 0.56} ${size * 0.46}
+                    Q ${size * 0.58} ${size * 0.54} ${size * 0.5} ${size * 0.62}`}
+                fill="#ff6b35" 
+                opacity="0.8" 
+              />
+            </g>
+            
+            <g className="animate-fireFlicker3">
+              <ellipse 
+                cx={size * 0.5} 
+                cy={size * 0.58} 
+                rx={size * 0.08} 
+                ry={size * 0.12} 
+                fill="#ffa500" 
+                opacity="0.9" 
+              />
+            </g>
           </g>
         )}
         
@@ -227,16 +320,59 @@ const FirePitSymbol: React.FC<FirePitSymbolProps> = ({
         
         {/* Fire (if lit) */}
         {lit && (
-          <g className="animate-fireFlicker">
-            <path 
-              d={`M ${size * 0.5} ${size * 0.5} 
-                  Q ${size * 0.44} ${size * 0.42} ${size * 0.46} ${size * 0.32}
-                  Q ${size * 0.5} ${size * 0.35} ${size * 0.54} ${size * 0.32}
-                  Q ${size * 0.56} ${size * 0.42} ${size * 0.5} ${size * 0.5}`}
-              fill="#ff6b35" 
-              opacity="0.8" 
+          <g>
+            {/* Glow effect for brazier */}
+            <defs>
+              <radialGradient id={`brazierGlow-${x}-${y}`} cx="50%" cy="40%">
+                <stop offset="0%" stopColor="#ff4500" stopOpacity="0.5" />
+                <stop offset="60%" stopColor="#ff6b35" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="#ff0000" stopOpacity="0" />
+              </radialGradient>
+            </defs>
+            
+            {/* Brazier glow */}
+            <ellipse 
+              cx={size * 0.5} 
+              cy={size * 0.42} 
+              rx={size * 0.4} 
+              ry={size * 0.3} 
+              fill={`url(#brazierGlow-${x}-${y})`}
+              className="animate-fireGlow"
             />
-            <ellipse cx={size * 0.5} cy={size * 0.45} rx={size * 0.06} ry={size * 0.08} fill="#ffa500" opacity="0.9" />
+            
+            <g className="animate-fireFlicker1">
+              <path 
+                d={`M ${size * 0.5} ${size * 0.50} 
+                    Q ${size * 0.42} ${size * 0.44} ${size * 0.45} ${size * 0.34}
+                    Q ${size * 0.48} ${size * 0.37} ${size * 0.5} ${size * 0.30}
+                    Q ${size * 0.52} ${size * 0.37} ${size * 0.55} ${size * 0.34}
+                    Q ${size * 0.58} ${size * 0.44} ${size * 0.5} ${size * 0.50}`}
+                fill="#ff4500" 
+                opacity="0.9" 
+              />
+            </g>
+            
+            <g className="animate-fireFlicker2">
+              <path 
+                d={`M ${size * 0.5} ${size * 0.48} 
+                    Q ${size * 0.44} ${size * 0.42} ${size * 0.47} ${size * 0.33}
+                    Q ${size * 0.5} ${size * 0.36} ${size * 0.53} ${size * 0.33}
+                    Q ${size * 0.56} ${size * 0.42} ${size * 0.5} ${size * 0.48}`}
+                fill="#ff6b35" 
+                opacity="0.8" 
+              />
+            </g>
+            
+            <g className="animate-fireFlicker3">
+              <ellipse 
+                cx={size * 0.5} 
+                cy={size * 0.43} 
+                rx={size * 0.07} 
+                ry={size * 0.09} 
+                fill="#ffa500" 
+                opacity="0.9" 
+              />
+            </g>
           </g>
         )}
       </g>

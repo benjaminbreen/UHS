@@ -50,14 +50,19 @@ import { generateCampground } from './archetypes/campgroundGenerator';
 import { generateRestaurantInn } from './archetypes/restaurantInnGenerator';
 import { generateSpecialMapNpcs } from './specialMapNpcGenerator';
 import { getEraAppropriateName } from '../../utils/governmentDistrictFallback';
-import { 
-  SimplifiedArchetype,
-  ARCHETYPE_MAPPING,
-  augmentGovernmentDistrict,
-  LANDSCAPE_BORDER_ROWS,
-  MapSize,
-  ClimateType as LandscapeClimate
-} from '../../constants/specialMaps/specialMapAugmentation';
+// Map size type for special maps
+export type MapSize = 'xs' | 'small' | 'medium' | 'large' | 'xl' | 'xxl';
+
+// Import cultural generators to ensure they're registered
+import './archetypes/cultures/nativeAmericanGenerators';
+import './archetypes/cultures/africanGenerators';
+import './archetypes/cultures/asianGenerators';
+import './archetypes/cultures/europeanGenerators';
+import './archetypes/cultures/middleEasternGenerators';
+import './archetypes/cultures/southAsianGenerators';
+import './archetypes/cultures/southeastAsianGenerators';
+import './archetypes/cultures/preColumbianGenerators';
+import './archetypes/cultures/oceaniaGenerators';
 
 // Map size configurations - NEW SIMPLIFIED SIZES
 const MAP_SIZES = {
@@ -94,9 +99,20 @@ function determineMapSize(archetype: SpecialMapArchetype, era: HistoricalEra, sp
       min: 'large', 
       max: era === HistoricalEra.MODERN_ERA || era === HistoricalEra.INDUSTRIAL_ERA ? 'xxl' : 'xl' 
     },
+    // Town halls should be at least medium size, regardless of era
+    [SpecialMapArchetype.TOWN_HALL]: { min: 'medium', max: 'large' },
+    // Court chambers need space for proceedings
+    [SpecialMapArchetype.COURT_CHAMBER]: { min: 'medium', max: 'large' },
+    // Tribal councils can be smaller but still need gathering space  
+    [SpecialMapArchetype.TRIBAL_COUNCIL]: { min: 'small', max: 'medium' },
+    // Assembly halls need significant space
+    [SpecialMapArchetype.ASSEMBLY_HALL]: { min: 'large', max: 'xl' },
+    // Administrative complexes grow with bureaucracy
+    [SpecialMapArchetype.ADMINISTRATIVE_COMPLEX]: { min: 'medium', max: 'xl' },
     // Estates scale dramatically with era
     [SpecialMapArchetype.ESTATES]: { min: 'xs', max: 'xl' },
-    [SpecialMapArchetype.PALACE_COMPLEX]: { min: 'xs', max: 'xl' },
+    // FIXED: Royal palaces should be at least medium size, even in antiquity
+    [SpecialMapArchetype.PALACE_COMPLEX]: { min: 'medium', max: 'xl' },
     // Vessels are constrained
     [SpecialMapArchetype.VESSEL]: { min: 'xs', max: 'small' },
     // Campgrounds are temporary
@@ -115,7 +131,8 @@ function determineMapSize(archetype: SpecialMapArchetype, era: HistoricalEra, sp
     [SpecialMapArchetype.ARENA]: { min: 'medium', max: 'large' },
     // Military/sacred stay medium to large
     [SpecialMapArchetype.MILITARY_FORTRESS]: { min: 'medium', max: 'large' },
-    [SpecialMapArchetype.SACRED_COMPLEX]: { min: 'small', max: 'large' }
+    // Sacred complexes can be grand in later eras
+    [SpecialMapArchetype.SACRED_COMPLEX]: { min: 'small', max: 'xl' }
   };
   
   let baseSize = eraDefaults[era] || 'medium';
@@ -123,7 +140,7 @@ function determineMapSize(archetype: SpecialMapArchetype, era: HistoricalEra, sp
   // Apply archetype constraints
   const constraints = archetypeOverrides[archetype];
   if (constraints) {
-    const sizeOrder: MapSize[] = ['xs', 'small', 'medium', 'large', 'xl'];
+    const sizeOrder: MapSize[] = ['xs', 'small', 'medium', 'large', 'xl', 'xxl'];
     const baseIndex = sizeOrder.indexOf(baseSize);
     const minIndex = sizeOrder.indexOf(constraints.min);
     const maxIndex = sizeOrder.indexOf(constraints.max);
@@ -310,6 +327,7 @@ export function generateSpecialMap(
       tiles = generatedData.tiles;
       interactionZones = generatedData.interactionZones;
       exitZones = generatedData.exitZones;
+      rooms = generatedData.rooms || [];
       break;
       
     case SpecialMapArchetype.MILITARY_FORTRESS:

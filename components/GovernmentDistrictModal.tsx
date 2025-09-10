@@ -35,12 +35,16 @@ import {
 import { selectGovernmentType, getLeaderTitles } from '../constants/gameData/governmentDistricts';
 import { SpecialMapArchetype, SpecialMapConfig } from '../types/specialMapTypes';
 import { SPECIAL_MAP_REGISTRY } from '../constants/specialMaps/specialGeography';
+import { normalizeCulturalZone } from '../utils/specialMapUtils';
 import GovernmentDistrictBanner from './GovernmentDistrictBanner';
 import TimeAwareBackground from './TimeAwareBackground';
 import { ProceduralPortrait } from './portraits';
 import { getFactionData } from '../constants/gameData/factionIcons';
 import { FACTION_DATA } from '../constants/gameData/factions';
 import { weatherService } from '../services/weatherService';
+import { generateHistoricalName, getHistoricalPeriod } from '../constants/characterData/names';
+import { generateBaseProfile } from '../generation/common/npcUtils';
+import { ValueNoise } from '../utils/noise';
 
 import {
   FaLandmark,
@@ -185,6 +189,153 @@ const formatDisplayDate = (formattedDate?: string | { year: number }): string =>
     return formattedDate.year < 0 ? `${Math.abs(formattedDate.year)} BCE` : `${formattedDate.year} CE`;
   }
   return String(formattedDate);
+};
+
+/* ================================================================================================
+   Leader Appearance Helper Functions
+================================================================================================ */
+
+const getLeaderGarment = (zone: CulturalZone | string, era: HistoricalEra, year: number) => {
+  const garments: Record<string, Record<string, { name: string; material: string }>> = {
+    'EUROPEAN': {
+      [HistoricalEra.ANTIQUITY]: { name: 'toga praetexta', material: 'fine wool' },
+      [HistoricalEra.MEDIEVAL]: { name: 'noble tunic', material: 'silk' },
+      [HistoricalEra.RENAISSANCE_EARLY_MODERN]: { name: 'doublet', material: 'velvet' },
+      [HistoricalEra.INDUSTRIAL_ERA]: { name: 'formal coat', material: 'wool' },
+      [HistoricalEra.MODERN_ERA]: { name: 'business suit', material: 'wool' },
+    },
+    'EAST_ASIAN': {
+      [HistoricalEra.ANTIQUITY]: { name: 'hanfu robes', material: 'silk' },
+      [HistoricalEra.MEDIEVAL]: { name: 'court robes', material: 'brocade' },
+      [HistoricalEra.RENAISSANCE_EARLY_MODERN]: { name: 'mandarin robes', material: 'silk' },
+      [HistoricalEra.INDUSTRIAL_ERA]: { name: 'changshan', material: 'silk' },
+      [HistoricalEra.MODERN_ERA]: { name: 'formal attire', material: 'wool' },
+    },
+    'MENA': {
+      [HistoricalEra.ANTIQUITY]: { name: 'fine tunic', material: 'linen' },
+      [HistoricalEra.MEDIEVAL]: { name: 'embroidered robes', material: 'silk' },
+      [HistoricalEra.RENAISSANCE_EARLY_MODERN]: { name: 'kaftan', material: 'brocade' },
+      [HistoricalEra.INDUSTRIAL_ERA]: { name: 'formal robes', material: 'wool' },
+      [HistoricalEra.MODERN_ERA]: { name: 'thobe', material: 'cotton' },
+    },
+    'SOUTH_ASIAN': {
+      [HistoricalEra.ANTIQUITY]: { name: 'royal dhoti', material: 'silk' },
+      [HistoricalEra.MEDIEVAL]: { name: 'court attire', material: 'muslin' },
+      [HistoricalEra.RENAISSANCE_EARLY_MODERN]: { name: 'sherwani', material: 'brocade' },
+      [HistoricalEra.INDUSTRIAL_ERA]: { name: 'achkan', material: 'silk' },
+      [HistoricalEra.MODERN_ERA]: { name: 'formal kurta', material: 'silk' },
+    },
+    'SUB_SAHARAN_AFRICAN': {
+      [HistoricalEra.ANTIQUITY]: { name: 'leopard skin robe', material: 'fur' },
+      [HistoricalEra.MEDIEVAL]: { name: 'royal kente', material: 'woven cloth' },
+      [HistoricalEra.RENAISSANCE_EARLY_MODERN]: { name: 'embroidered robes', material: 'cotton' },
+      [HistoricalEra.INDUSTRIAL_ERA]: { name: 'agbada', material: 'embroidered cotton' },
+      [HistoricalEra.MODERN_ERA]: { name: 'formal attire', material: 'cotton' },
+    },
+    'NORTH_AMERICAN_PRE_COLUMBIAN': {
+      [HistoricalEra.ANTIQUITY]: { name: 'ceremonial robes', material: 'deerskin' },
+      [HistoricalEra.MEDIEVAL]: { name: 'decorated tunic', material: 'buffalo hide' },
+      [HistoricalEra.RENAISSANCE_EARLY_MODERN]: { name: 'chief regalia', material: 'decorated leather' },
+      [HistoricalEra.INDUSTRIAL_ERA]: { name: 'ceremonial dress', material: 'cloth and leather' },
+      [HistoricalEra.MODERN_ERA]: { name: 'traditional regalia', material: 'mixed materials' },
+    },
+    'SOUTH_AMERICAN': {
+      [HistoricalEra.ANTIQUITY]: { name: 'feathered cloak', material: 'feathers and cloth' },
+      [HistoricalEra.MEDIEVAL]: { name: 'royal tunic', material: 'vicuña wool' },
+      [HistoricalEra.RENAISSANCE_EARLY_MODERN]: { name: 'decorated poncho', material: 'alpaca wool' },
+      [HistoricalEra.INDUSTRIAL_ERA]: { name: 'formal poncho', material: 'wool' },
+      [HistoricalEra.MODERN_ERA]: { name: 'formal attire', material: 'wool' },
+    },
+    'OCEANIA': {
+      [HistoricalEra.ANTIQUITY]: { name: 'tapa cloth robes', material: 'bark cloth' },
+      [HistoricalEra.MEDIEVAL]: { name: 'chief cloak', material: 'feathers' },
+      [HistoricalEra.RENAISSANCE_EARLY_MODERN]: { name: 'ceremonial cape', material: 'woven fibers' },
+      [HistoricalEra.INDUSTRIAL_ERA]: { name: 'formal sarong', material: 'cotton' },
+      [HistoricalEra.MODERN_ERA]: { name: 'formal attire', material: 'cotton' },
+    },
+  };
+  
+  const defaultGarment = { name: 'formal robes', material: 'fine cloth' };
+  return garments[zone]?.[era] || defaultGarment;
+};
+
+const getLeaderHeadgear = (zone: CulturalZone | string, era: HistoricalEra, title: string) => {
+  const headgear: Record<string, Record<string, { name: string; material: string }>> = {
+    'EUROPEAN': {
+      [HistoricalEra.ANTIQUITY]: { name: 'laurel wreath', material: 'gold leaf' },
+      [HistoricalEra.MEDIEVAL]: { name: 'coronet', material: 'gold' },
+      [HistoricalEra.RENAISSANCE_EARLY_MODERN]: { name: 'velvet cap', material: 'velvet' },
+      [HistoricalEra.INDUSTRIAL_ERA]: { name: 'top hat', material: 'felt' },
+      [HistoricalEra.MODERN_ERA]: { name: 'none', material: 'none' },
+    },
+    'EAST_ASIAN': {
+      [HistoricalEra.ANTIQUITY]: { name: 'ceremonial crown', material: 'jade and gold' },
+      [HistoricalEra.MEDIEVAL]: { name: 'official hat', material: 'silk' },
+      [HistoricalEra.RENAISSANCE_EARLY_MODERN]: { name: 'mandarin cap', material: 'silk' },
+      [HistoricalEra.INDUSTRIAL_ERA]: { name: 'formal cap', material: 'silk' },
+      [HistoricalEra.MODERN_ERA]: { name: 'none', material: 'none' },
+    },
+    'MENA': {
+      [HistoricalEra.ANTIQUITY]: { name: 'diadem', material: 'gold' },
+      [HistoricalEra.MEDIEVAL]: { name: 'turban', material: 'silk' },
+      [HistoricalEra.RENAISSANCE_EARLY_MODERN]: { name: 'ornate turban', material: 'brocade' },
+      [HistoricalEra.INDUSTRIAL_ERA]: { name: 'fez', material: 'felt' },
+      [HistoricalEra.MODERN_ERA]: { name: 'keffiyeh', material: 'cotton' },
+    },
+    'SOUTH_ASIAN': {
+      [HistoricalEra.ANTIQUITY]: { name: 'crown', material: 'gold' },
+      [HistoricalEra.MEDIEVAL]: { name: 'turban', material: 'silk' },
+      [HistoricalEra.RENAISSANCE_EARLY_MODERN]: { name: 'jeweled turban', material: 'silk and gems' },
+      [HistoricalEra.INDUSTRIAL_ERA]: { name: 'pagri', material: 'silk' },
+      [HistoricalEra.MODERN_ERA]: { name: 'formal turban', material: 'silk' },
+    },
+    'SUB_SAHARAN_AFRICAN': {
+      [HistoricalEra.ANTIQUITY]: { name: 'beaded crown', material: 'beads and gold' },
+      [HistoricalEra.MEDIEVAL]: { name: 'royal cap', material: 'woven cloth' },
+      [HistoricalEra.RENAISSANCE_EARLY_MODERN]: { name: 'ceremonial headdress', material: 'cloth and beads' },
+      [HistoricalEra.INDUSTRIAL_ERA]: { name: 'kufi', material: 'embroidered cloth' },
+      [HistoricalEra.MODERN_ERA]: { name: 'traditional cap', material: 'cloth' },
+    },
+    'NORTH_AMERICAN_PRE_COLUMBIAN': {
+      [HistoricalEra.ANTIQUITY]: { name: 'feather headdress', material: 'eagle feathers' },
+      [HistoricalEra.MEDIEVAL]: { name: 'ceremonial band', material: 'leather and beads' },
+      [HistoricalEra.RENAISSANCE_EARLY_MODERN]: { name: 'war bonnet', material: 'feathers' },
+      [HistoricalEra.INDUSTRIAL_ERA]: { name: 'headband', material: 'beaded leather' },
+      [HistoricalEra.MODERN_ERA]: { name: 'traditional headdress', material: 'mixed' },
+    },
+    'SOUTH_AMERICAN': {
+      [HistoricalEra.ANTIQUITY]: { name: 'feathered crown', material: 'tropical feathers' },
+      [HistoricalEra.MEDIEVAL]: { name: 'llautu', material: 'colored cord' },
+      [HistoricalEra.RENAISSANCE_EARLY_MODERN]: { name: 'ceremonial band', material: 'woven cloth' },
+      [HistoricalEra.INDUSTRIAL_ERA]: { name: 'traditional hat', material: 'wool' },
+      [HistoricalEra.MODERN_ERA]: { name: 'formal hat', material: 'felt' },
+    },
+    'OCEANIA': {
+      [HistoricalEra.ANTIQUITY]: { name: 'shell crown', material: 'shells and fiber' },
+      [HistoricalEra.MEDIEVAL]: { name: 'feather headdress', material: 'bird feathers' },
+      [HistoricalEra.RENAISSANCE_EARLY_MODERN]: { name: 'ceremonial lei', material: 'flowers and leaves' },
+      [HistoricalEra.INDUSTRIAL_ERA]: { name: 'traditional headdress', material: 'mixed materials' },
+      [HistoricalEra.MODERN_ERA]: { name: 'none', material: 'none' },
+    },
+  };
+  
+  const defaultHeadgear = { name: 'ceremonial cap', material: 'fine cloth' };
+  return headgear[zone]?.[era] || defaultHeadgear;
+};
+
+const getLeaderPalette = (zone: CulturalZone | string, era: HistoricalEra) => {
+  const palettes: Record<string, { primary: string; secondary: string; accent: string }> = {
+    'EUROPEAN': { primary: '#800020', secondary: '#FFD700', accent: '#FFFFFF' },
+    'EAST_ASIAN': { primary: '#FFD700', secondary: '#DC143C', accent: '#000000' },
+    'MENA': { primary: '#006400', secondary: '#FFD700', accent: '#FFFFFF' },
+    'SOUTH_ASIAN': { primary: '#FF6347', secondary: '#FFD700', accent: '#FFFFFF' },
+    'SUB_SAHARAN_AFRICAN': { primary: '#FFD700', secondary: '#8B0000', accent: '#000000' },
+    'NORTH_AMERICAN_PRE_COLUMBIAN': { primary: '#8B4513', secondary: '#40E0D0', accent: '#FFD700' },
+    'SOUTH_AMERICAN': { primary: '#DC143C', secondary: '#FFD700', accent: '#4B0082' },
+    'OCEANIA': { primary: '#8B4513', secondary: '#FF6347', accent: '#F0E68C' },
+  };
+  
+  return palettes[zone] || { primary: '#8B4513', secondary: '#DAA520', accent: '#FFD700' };
 };
 
 /* ================================================================================================
@@ -385,42 +536,81 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
   }, [governmentType, leaderTitles, structure.location]);
 
   const governmentLeader = useMemo(() => {
-    const L = governmentInfo.leader;
+    const L = governmentInfo.leader; // This is the title
     if (!L) return null;
 
-    const leaderSeed = structure.location[0] * 1000 + structure.location[1] + 555;
-    const base = 5 + ((leaderSeed % 4) + 1);
+    // Better seed generation using structure ID and location
+    const structureIdHash = structure.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const leaderSeed = (structure.location[0] * 7919 + structure.location[1] * 6271 + structureIdHash * 31 + year) % 1000000;
+    const rng = seeded(leaderSeed);
+    
+    // Determine gender (with some cultural considerations)
+    const gender = rng.next() > 0.7 ? 'Female' : 'Male'; // Most leaders historically male, but not all
+    const age = 35 + rng.rangeInt(0, 30); // Leaders tend to be older
+    
+    // Generate proper name based on cultural zone and time period
+    // The generateHistoricalName expects a continent string that matches PERIOD_NAME_MAPPING keys
+    // CulturalZone values like 'NORTH_AMERICAN_PRE_COLUMBIAN' should match exactly
+    const nameData = generateHistoricalName(
+      culturalZone as string, // continent - using CulturalZone directly as it matches mapping keys
+      mapData.region || '', // region
+      year,
+      gender.toLowerCase() as 'male' | 'female'
+    );
+    
+    // Create a pseudo-noise object for NPC generation functions
+    const pseudoNoise: ValueNoise = {
+      random: () => rng.next(),
+      get: (x: number, y: number) => rng.next(),
+      getNormalized: (x: number, y: number) => rng.next()
+    };
+    
+    // Generate full NPC profile with culturally appropriate appearance
+    const baseProfile = generateBaseProfile(pseudoNoise, { 
+      era, 
+      culturalZone, 
+      region: mapData.region || '' 
+    });
+    
+    // Override certain properties for a leader
+    const leaderName = `${nameData.firstName} ${nameData.surname}`;
+    
+    // Enhance stats for a leader position
+    const enhancedStats = {
+      ...baseProfile.stats,
+      intelligence: Math.min(10, baseProfile.stats.intelligence + 2),
+      charisma: Math.min(10, baseProfile.stats.charisma + 3),
+      wisdom: Math.min(10, (baseProfile.stats.wisdom || 5) + 2),
+    };
+    
+    // Improve clothing for wealthy leader status
+    const leaderAppearance = {
+      ...baseProfile.appearance,
+      garment: getLeaderGarment(culturalZone, era, year),
+      headgear: getLeaderHeadgear(culturalZone, era, L),
+      palette: getLeaderPalette(culturalZone, era),
+      facialHair: gender === 'Male' && rng.next() > 0.3,
+    };
 
     return {
-      name: `${L}`,
-      age: 35 + (leaderSeed % 25),
-      gender: (leaderSeed % 3 === 0 ? 'Female' : 'Male') as 'Male' | 'Female',
-      health: 90 + (leaderSeed % 10),
+      name: leaderName,
+      title: L,
+      age,
+      gender: gender as 'Male' | 'Female',
+      health: 90 + rng.rangeInt(0, 10),
       maxHealth: 100,
-      stats: {
-        strength: Math.max(4, base - 2),
-        intelligence: Math.min(10, base + 2),
-        charisma: Math.min(10, base + 3),
-        constitution: base,
-      },
-      appearance: {
-        skinColor: 'tan',
-        hairColor: 'brown',
-        eyeColor: 'brown',
-        hairstyle: 'short',
-        build: 'average' as const,
-        facialHair: leaderSeed % 2 === 0,
-        garment: { name: 'formal robes', material: 'silk' },
-        headgear: { name: 'ceremonial cap', material: 'cloth' },
-        palette: { primary: '#8B4513', secondary: '#DAA520', accent: '#FFD700' },
-      },
+      stats: enhancedStats,
+      appearance: leaderAppearance,
       wealthLevel: 'wealthy' as const,
-      class: governmentInfo.leader,
+      class: `${L} of ${structure.name}`,
       era: year < 0 ? `${Math.abs(year)} BCE` : `${year} CE`,
       culturalZone,
       portraitSeed: leaderSeed,
+      // Include other properties from baseProfile that might be needed
+      personality: baseProfile.personality,
+      socialContext: baseProfile.socialContext,
     };
-  }, [governmentInfo, culturalZone, year, structure.location]);
+  }, [governmentInfo, culturalZone, year, structure, mapData.region, era]);
 
   const dominantFaction = useMemo(() => {
     if (!factionData) return null;
@@ -488,10 +678,10 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
       const building = availableSpecialMaps[index];
       const config: SpecialMapConfig = {
         archetype: governmentType?.archetype || building.archetype,
-        culturalZone,
+        culturalZone: normalizeCulturalZone(culturalZone),
         era,
         region: mapData.region,
-        mapSize: 'medium',
+        // Let the special map generator determine size based on era and archetype
         structureId: structure.id,
         structureName: governmentType?.name || building.name,
         climate: mapData.climate,  // Pass climate to avoid undefined
@@ -688,6 +878,9 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
                       </div>
                       <div className="flex-1">
                         <h4 className="text-xl font-bold text-amber-200 mb-1">{governmentLeader.name}</h4>
+                        <p className="text-sm text-amber-400/90 font-semibold mb-1">
+                          {governmentLeader.title}
+                        </p>
                         <p className="text-sm text-amber-400/80 mb-2">
                           {governmentLeader.age} years old • {governmentLeader.gender}
                         </p>
@@ -796,10 +989,10 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
                       if (!onEnterSpecialMap || !governmentType) return;
                       const config: SpecialMapConfig = {
                         archetype: governmentType.archetype,
-                        culturalZone,
+                        culturalZone: normalizeCulturalZone(culturalZone),
                         era,
                         region: mapData.region,
-                        mapSize: 'medium',
+                        // Let the special map generator determine size based on era and archetype
                         structureId: structure.id,
                         structureName: governmentType.name,
                         climate: mapData.climate,  // Pass climate to avoid undefined

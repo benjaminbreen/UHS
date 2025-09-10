@@ -3,7 +3,8 @@
  * Supports base, middle (1-3 tiles), and top sections for imposing architecture
  */
 import React from 'react';
-import { MaterialType } from '../../constants/specialMaps/specialMapAugmentation';
+// Material type for pillar variations
+type MaterialType = 'white_marble' | 'grey_stone' | 'red_lacquer' | 'sandstone' | 'wood' | 'steel';
 
 interface PillarSymbolProps {
   x: number;

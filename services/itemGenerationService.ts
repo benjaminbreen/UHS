@@ -525,8 +525,8 @@ const ERA_MATERIALS_BY_CATEGORY: Record<HistoricalEra, { clothing: string[], wea
   'INDUSTRIAL_ERA': {
     clothing: ['Cotton', 'Wool', 'Leather', 'Denim', 'Canvas'],
     weapons: ['Steel', 'Iron', 'Brass'],
-    tools: ['Steel', 'Iron', 'Brass', 'Rubber'],
-    all: ['Steel', 'Iron', 'Coal', 'Brass', 'Cotton', 'Wool', 'Glass', 'Rubber']
+    tools: ['Steel', 'Iron', 'Brass'],
+    all: ['Steel', 'Iron', 'Coal', 'Brass', 'Cotton', 'Wool', 'Glass', ]
   },
   'MODERN_ERA': {
     clothing: ['Cotton', 'Polyester', 'Nylon', 'Leather', 'Denim'],
@@ -537,8 +537,8 @@ const ERA_MATERIALS_BY_CATEGORY: Record<HistoricalEra, { clothing: string[], wea
   'FUTURE_ERA': {
     clothing: ['Merino Wool', 'Recycled Polyester', 'Organic Cotton', 'Hemp', 'Bamboo Fiber', 'Technical Fabrics'],
     weapons: ['Carbon Fiber', 'Advanced Polymers', 'Titanium Alloy', 'Kevlar'],
-    tools: ['Carbon Fiber', 'Lithium', 'Rare Earth Metals', 'Silicon', 'Graphene', 'Advanced Ceramics'],
-    all: ['Carbon Fiber', 'Lithium', 'Rare Earth Metals', 'Silicon', 'Graphene', 'Advanced Ceramics', 'Recycled Polyester', 'Hemp', 'Bamboo Fiber']
+    tools: ['Carbon Fiber', 'Silicon', 'Graphene', 'Advanced Ceramics'],
+    all: ['Carbon Fiber', 'Silicon', 'Graphene', 'Advanced Ceramics', 'Recycled Polyester', 'Hemp', 'Bamboo Fiber']
   }
 };
 

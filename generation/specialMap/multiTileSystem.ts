@@ -5,7 +5,9 @@
 
 import { Tile, BiomeType } from '../../types';
 import { SpecialMapConfig } from '../../types/specialMapTypes';
-import { MapSize, MaterialType, MULTI_TILE_CONFIGS } from '../../constants/specialMaps/specialMapAugmentation';
+// Types for multi-tile system
+export type MapSize = 'xs' | 'small' | 'medium' | 'large' | 'xl' | 'xxl';
+export type MaterialType = 'white_marble' | 'grey_stone' | 'red_lacquer' | 'sandstone' | 'wood' | 'steel';
 
 export interface MultiTileObject {
   type: 'pillar' | 'table' | 'light' | 'dais' | 'tomb' | 'firepit';

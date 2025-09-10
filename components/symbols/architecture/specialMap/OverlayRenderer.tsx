@@ -80,6 +80,19 @@ import {
   VaseOverlay
 } from '../../overlays';
 
+// Import Native American symbols
+import {
+  TotemPoleSymbol,
+  DrumSymbol,
+  SacredRockSymbol,
+  LadderSymbol,
+  WellSymbol,
+  BuffaloSkullSymbol,
+  MedicineBundleSymbol,
+  PeacePipeSymbol,
+  DreamCatcherSymbol
+} from '../../overlays/NativeAmericanSymbols';
+
 interface OverlayRendererProps {
   tile: Tile;
   x: number;
@@ -396,6 +409,34 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = ({
       case OverlayObjectType.OFFERING_TABLE:
         // Sacred offering table for ceremonial sites
         return <TableSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} />;
+      
+      // Native American symbols
+      case OverlayObjectType.TOTEM_POLE:
+        return <TotemPoleSymbol x={0} y={0} size={size} variant={variant || 'pacific_northwest'} />;
+      
+      case OverlayObjectType.DRUM:
+        return <DrumSymbol x={0} y={0} size={size} variant={variant || 'ceremonial'} />;
+      
+      case OverlayObjectType.ROCK:
+        return <SacredRockSymbol x={0} y={0} size={size} variant={variant || 'standing'} />;
+      
+      case OverlayObjectType.LADDER:
+        return <LadderSymbol x={0} y={0} size={size} variant={variant || 'kiva'} />;
+      
+      case OverlayObjectType.WELL:
+        return <WellSymbol x={0} y={0} size={size} variant={variant || 'stone'} />;
+      
+      case OverlayObjectType.BUFFALO_SKULL:
+        return <BuffaloSkullSymbol x={0} y={0} size={size} variant={variant || 'ceremonial'} />;
+      
+      case OverlayObjectType.MEDICINE_BUNDLE:
+        return <MedicineBundleSymbol x={0} y={0} size={size} variant={variant || 'sacred'} />;
+      
+      case OverlayObjectType.PEACE_PIPE:
+        return <PeacePipeSymbol x={0} y={0} size={size} variant={variant || 'ceremonial'} />;
+      
+      case OverlayObjectType.DREAM_CATCHER:
+        return <DreamCatcherSymbol x={0} y={0} size={size} variant={variant || 'traditional'} />;
       
       default:
         // Return a placeholder for unimplemented types

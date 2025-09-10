@@ -129,13 +129,23 @@ const useCoreLoops = () => {
   const INITIAL_REPEAT_DELAY_MS = 200; // delay after the very first step of a hold
   const CONTINUOUS_REPEAT_MS = 400; // cadence while key is held
 
+  // Reset quest initialization when map changes
+  useEffect(() => {
+    questsInitialized.current = false;
+    // console.log('[QuestInit] Reset questsInitialized flag for new map');
+  }, [mapData]);
+  
   // Quest Initialization - Generate quests when map and player are ready
   useEffect(() => {
     if (!mapData || !playerCharacter || questsInitialized.current) return;
     
+    // Always reset quest service for fresh game starts
+    // console.log('[QuestInit] Resetting quest service for fresh game start');
+    questService.resetQuestService();
+    
     // Don't initialize quests for special maps
     if (isSpecialMap) {
-      console.log('[QuestInit] Skipping quest generation for special map');
+      // console.log('[QuestInit] Skipping quest generation for special map');
       return;
     }
 
@@ -167,19 +177,28 @@ const useCoreLoops = () => {
     const numQuests = validStructures.length > 0 
       ? Math.min(10, Math.max(1, Math.floor(validStructures.length / 3)))
       : 2; // Generate at least 2 wilderness quests if no structures
-    console.log(`[QuestInit] Generating ${numQuests} initial quests from ${validStructures.length} structures`);
+    // console.log(`[QuestInit] Generating ${numQuests} initial quests from ${validStructures.length} structures`);
 
     try {
       const culturalZone = mapLocationToCulture(currentZone, gameDate.year);
       const dateInfo = parseDateString(String(gameDate.year));
 
+      const playerStats = playerCharacter ? {
+        health: playerCharacter.health || 50,
+        reputation: playerCharacter.reputation || 10,
+        wealth: playerCharacter.inventory?.filter(item => item.value).reduce((sum, item) => sum + (item.value || 0), 0) || 10,
+        intelligence: playerCharacter.stats?.intelligence || 10,
+        strength: playerCharacter.stats?.strength || 10
+      } : undefined;
+      
       const generatedQuests = questService.generateInitialQuests(
         'standard',
         mapData.terrainStructures || [],
         { x: controlledIconX || 50, y: controlledIconY || 50 },
         culturalZone,
         dateInfo.era,
-        mapData
+        mapData,
+        playerStats
       );
 
       const currentQuestCount = questService.getActiveQuests().length;
@@ -222,7 +241,7 @@ const useCoreLoops = () => {
       }
 
       const finalQuestCount = questService.getActiveQuests().length;
-      console.log(`[QuestInit] Successfully initialized ${finalQuestCount} quests`);
+      // console.log(`[QuestInit] Successfully initialized ${finalQuestCount} quests`);
       questsInitialized.current = true;
     } catch (error) {
       console.error('[QuestInit] Failed to generate initial quests:', error);
@@ -537,6 +556,18 @@ const useCoreLoops = () => {
                 }
                 if (Math.abs(approachingNPC.y - controlledIconY) > 1) {
                   approachingNPC.y += dy;
+                }
+                
+                // Automatically open encounter modal for different approach types
+                if (approach.approachType === 'quest' || approach.approachType === 'theft' || 
+                    approach.approachType === 'hostile' || approach.approachType === 'guard') {
+                  setTimeout(() => {
+                    // Only trigger if no other modal is open
+                    if (!isAnyModalOpen) {
+                      console.log(`[NPCApproach] ${approachingNPC.name} approaching with ${approach.approachType}, opening encounter modal`);
+                      handleEncounter(approachingNPC);
+                    }
+                  }, approach.approachType === 'theft' ? 1000 : 2000); // Quicker for theft attempts
                 }
               }
             }

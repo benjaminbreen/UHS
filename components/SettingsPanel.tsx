@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PerformanceDiagnostics from './PerformanceDiagnostics';
 import { eventService } from '../services/eventService';
-import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText } from 'lucide-react';
+import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users } from 'lucide-react';
 import DiseaseService from '../services/diseaseService';
 import { DISEASE_DATABASE, DISEASE_PREVALENCE } from '../constants/gameData/diseases';
 import { HistoricalEra } from '../types/ambiance';
@@ -9,6 +9,7 @@ import { CulturalZone } from '../types/characterData';
 import SpecialMapTestMenu from './SpecialMapTestMenu';
 import InteriorMapTestMenu from './InteriorMapTestMenu';
 import QuestTestingPanel from './QuestTestingPanel';
+import NpcTestingPanel from './NpcTestingPanel';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -83,6 +84,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [showSpecialMapTest, setShowSpecialMapTest] = useState(false);
   const [showInteriorMapTest, setShowInteriorMapTest] = useState(false);
   const [showQuestTestPanel, setShowQuestTestPanel] = useState(false);
+  const [showNpcTestPanel, setShowNpcTestPanel] = useState(false);
   const [apiStats, setApiStats] = useState(eventService.getAPIUsageStats());
   const [llmHistory, setLLMHistory] = useState(eventService.getLLMHistory());
   
@@ -459,6 +461,22 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </section>
 
           <section className="mt-6">
+            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Character Testing</h3>
+            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70 space-y-3">
+              <button
+                onClick={() => setShowNpcTestPanel(true)}
+                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-purple-600 to-pink-600 rounded-md hover:from-purple-700 hover:to-pink-700 flex items-center justify-center gap-2"
+              >
+                <Users className="w-4 h-4" />
+                <span>NPC Testing Panel</span>
+              </button>
+              <p className="mt-2 text-xs text-slate-400">
+                Test NPC generation with specific cultural zones, body modifications, and clothing. Preview portraits and modal UI.
+              </p>
+            </div>
+          </section>
+
+          <section className="mt-6">
             <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Quest Testing</h3>
             <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
               <button
@@ -671,6 +689,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         onClose={() => setShowInteriorMapTest(false)}
       />
       
+      {/* NPC Testing Panel */}
+      <NpcTestingPanel
+        isOpen={showNpcTestPanel}
+        onClose={() => setShowNpcTestPanel(false)}
+      />
+
       {/* Quest Testing Panel */}
       <QuestTestingPanel
         isOpen={showQuestTestPanel}

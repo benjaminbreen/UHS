@@ -7,7 +7,12 @@ import { NpcEntity, HistoricalEra, CulturalZone, BiomeType } from '../../types';
 import { SpecialMapArchetype, SpecialMapConfig, RoomDefinition, ProfessionCategory } from '../../types/specialMapTypes';
 import { ValueNoise } from '../../utils/noise';
 import { generateBaseProfile } from '../common/npcUtils';
-import { getProfessionsByCategory, getCategoryForProfession, getSocialClassForProfession } from '../../constants/specialMaps/professionMapping';
+import { 
+  getProfessionsByCategory, 
+  getCategoryForProfession, 
+  getSocialClassForProfession,
+  getCultureDefaultProfessions 
+} from '../../constants/specialMaps/professionMapping';
 import { getApplicableRules, getHistoricalGenderRestriction, AccessRule } from '../../constants/specialMaps/historicalAccessRules';
 import { PROFESSIONS } from '../../constants/characterData/professions';
 
@@ -449,27 +454,13 @@ function selectProfessionsForRoom(
     });
   }
   
-  // If no professions found, use defaults based on room type
+  // If no professions found, use culture-aware defaults
   if (availableProfessions.length === 0) {
-    switch (room.roomType) {
-      case 'throne_room':
-        availableProfessions = ['Noble', 'Guard', 'Courtier'];
-        break;
-      case 'marketplace':
-        availableProfessions = ['Merchant', 'Trader', 'Customer'];
-        break;
-      case 'sanctuary':
-        availableProfessions = ['Priest', 'Monk', 'Pilgrim'];
-        break;
-      case 'barracks':
-        availableProfessions = ['Soldier', 'Guard'];
-        break;
-      case 'library':
-        availableProfessions = ['Scholar', 'Scribe', 'Student'];
-        break;
-      default:
-        availableProfessions = ['Citizen', 'Worker'];
-    }
+    availableProfessions = getCultureDefaultProfessions(
+      config.culturalZone,
+      room.roomType
+    );
+    console.log(`[NPCGen] Using culture defaults for ${config.culturalZone}/${room.roomType}:`, availableProfessions);
   }
   
   return availableProfessions;
@@ -741,7 +732,8 @@ function generateEntranceGuards(
         pos,
         config.culturalZone as string,
         config.era as string,
-        noise
+        noise,
+        config.region
       );
       
       // Make guards face toward restricted areas
@@ -818,7 +810,8 @@ function generateWanderingNpcs(
         position,
         config.culturalZone,
         config.era,
-        noise
+        noise,
+        config.region
       );
       if (npc) {
         npcs.push(npc);
@@ -922,7 +915,8 @@ function generateLegacyNpcs(
           position,
           config.culturalZone,
           config.era,
-          noise
+          noise,
+          config.region
         );
         if (npc) {
           npcs.push(npc);
@@ -1137,7 +1131,8 @@ function createSpecialMapNpc(
   position: { x: number, y: number },
   culturalZone: string,
   era: string,
-  noise: ValueNoise
+  noise: ValueNoise,
+  region?: string
 ): NpcEntity {
   const names = getNamesByProfession(profession, culturalZone);
   const firstName = names[Math.floor(noise.random() * names.length)];
@@ -1148,7 +1143,7 @@ function createSpecialMapNpc(
   const baseProfile = generateBaseProfile(noise, {
     era: era as HistoricalEra,
     culturalZone: normalizeZone(culturalZone) as CulturalZone,
-    region: culturalZone
+    region: region || culturalZone
   });
   
   // Select age based on profession

@@ -4,7 +4,9 @@
  */
 
 import { Tile, BiomeType, CulturalZone, HistoricalEra } from '../../types';
-import { CULTURE_MATERIALS, MaterialType } from '../../constants/specialMaps/specialMapAugmentation';
+// Material type for cultural variations
+export type MaterialType = 'white_marble' | 'grey_stone' | 'red_lacquer' | 'sandstone' | 'wood' | 'steel' | 
+                          'mud_brick' | 'thatch' | 'bamboo' | 'adobe' | 'brick';
 
 /**
  * Place a rectangular wall with optional openings
@@ -95,23 +97,36 @@ function getEraKey(era: HistoricalEra): string {
  * Get the material type for a given culture and era
  */
 export function getCulturalMaterial(culturalZone: CulturalZone | string, era: HistoricalEra): MaterialType {
-  // Map specific cultural zones to the broader categories used in CULTURE_MATERIALS
-  const materialZone = culturalZone === 'SUB_SAHARAN_AFRICAN' ? 'AFRICAN' :
-                      culturalZone === 'SOUTH_ASIAN' ? 'EAST_ASIAN' :
-                      culturalZone === 'SOUTH_AMERICAN' || culturalZone === 'NORTH_AMERICAN_PRE_COLUMBIAN' || 
-                      culturalZone === 'NORTH_AMERICAN_COLONIAL' || culturalZone === 'NATIVE_AMERICAN' ? 'AMERICAS' :
-                      culturalZone === 'OCEANIA' ? 'OCEANIA' :
-                      culturalZone;
-  
+  // Simple material selection based on culture and era
   const eraKey = getEraKey(era);
-  const materials = CULTURE_MATERIALS[materialZone];
   
-  if (materials && materials[eraKey]) {
-    return materials[eraKey];
+  // Basic material mapping - cultural generators can override these
+  if (culturalZone === 'EAST_ASIAN' || culturalZone === 'CHINESE' || culturalZone === 'JAPANESE') {
+    return eraKey === 'modern' ? 'steel' : 'red_lacquer';
   }
   
-  // Fallback to a sensible default
-  return 'grey_stone';
+  if (culturalZone === 'MENA' || culturalZone === 'ISLAMIC' || culturalZone === 'ARAB') {
+    return eraKey === 'modern' ? 'steel' : 'sandstone';
+  }
+  
+  if (culturalZone.includes('AFRICAN')) {
+    return eraKey === 'modern' ? 'steel' : eraKey === 'prehistoric' ? 'wood' : 'sandstone';
+  }
+  
+  if (culturalZone.includes('AMERICAN') || culturalZone === 'NATIVE_AMERICAN') {
+    return eraKey === 'modern' ? 'steel' : eraKey === 'industrial' ? 'grey_stone' : 'wood';
+  }
+  
+  if (culturalZone === 'OCEANIA' || culturalZone === 'OCEANIC') {
+    return eraKey === 'modern' ? 'steel' : 'wood';
+  }
+  
+  // European default
+  if (eraKey === 'modern') return 'steel';
+  if (eraKey === 'industrial') return 'grey_stone';
+  if (eraKey === 'earlyModern' || eraKey === 'antiquity') return 'white_marble';
+  if (eraKey === 'medieval') return 'grey_stone';
+  return 'wood'; // prehistoric
 }
 
 /**

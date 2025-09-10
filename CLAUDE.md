@@ -3,7 +3,30 @@
 ## Project Overview
 - **Creator**: Benjamin Breen, Historian at UCSC
 - **Purpose**: Educational history simulation game for casual players and history students
-- **Current Phase**: Event System Complete (Phases 1-3) - Procedural & LLM Enhancement
+- **Current Phase**: Core Systems Complete - Focus on Polish & Educational Features
+
+## Current State Summary (December 2024)
+
+### ✅ Fully Implemented Systems
+- **Event System**: 8 game modes, procedural + LLM generation, victory tracking
+- **URL Sharing**: Complete state encoding/decoding with character preservation
+- **Quest System**: Location-based quests tied to map structures (resets on reload as intended)
+- **Special Maps**: 5+ new government archetypes with cultural variations (TRIBAL_COUNCIL, COURT_CHAMBER, etc.)
+- **NPC Generation**: Culturally accurate names, professions, appearances
+- **Primary Sources**: 42 shards covering all zones/eras with smart search
+- **NPC Internal Monologue**: Click NPC portraits up to 3 times for LLM-generated inner thoughts
+- **Professions System**: 4000+ lines of culturally-specific professions across all eras/zones
+
+### ⚠️ Partially Implemented
+- **NPC Testing Panel**: Basic testing works, missing dialogue/trade testing
+- **World Weaver**: Basic prompt interpretation, needs scenario expansion
+- **Theft Mechanic**: NPCs can approach with theft intent, but actual stealing not fully implemented
+
+### ❌ Not Yet Implemented
+- **Save/Load System**: Planned for future (currently resets on reload)
+- **Educational Assessment**: Not started
+- **Learning Objectives**: Not started
+- **Complete Theft Mechanic**: Only approach behavior exists, no item stealing
 
 ## ✅ COMPLETED: Event System (December 2024)
 
@@ -47,153 +70,322 @@
 - Modern era: Unemployment, recession, technology challenges
 
 
-## Implementation Report - August 19, 2025
+## Implementation Report - December 10, 2024
 
-### PHASE 1 & 2 COMPLETED: URL-Based Configuration & Game Seed System
+### COMPLETED: Full Seed/URL Sharing System Implementation
+
+#### Problem Identified
+The seed sharing system was completely broken:
+- URLs showed `random/random/random` instead of actual game values
+- Seeds didn't encode character information
+- Sharing a URL didn't reproduce the same game setup
+- Character name, profession, date, and location weren't preserved
+
+#### Solution Implemented
+
+**1. Created Comprehensive Shareable State Service** (`services/shareableStateService.ts`)
+- Encodes complete game state including:
+  - Year, month, day
+  - Map area, zone, region
+  - Game mode
+  - Character details (name, profession, age, gender, social class)
+  - Map generation seed
+  - Scenario type (procedural/worldweaver)
+- Uses URL-safe base64 encoding with JSON
+- Supports both encoding and decoding
+- Includes localStorage backup for recovery
+
+**2. Updated URL Generation** (InitialScenarioModal.tsx)
+- Share button now generates URLs with full state: `/1473/north-china-plain/survival?state=ENCODED_DATA`
+- Character data is properly captured and encoded
+- URLs show actual values instead of "random"
+- Automatic localStorage backup when sharing
+
+**3. Fixed URL Parsing** (App.tsx)
+- Checks for `?state=` query parameter first
+- Decodes full game state from URL
+- Falls back to legacy path-based parsing
+- Stores character data for restoration during generation
+
+**4. Character Restoration** (characterGenerator.ts)
+- Checks for URL character data during generation
+- Restores exact character specifications (name, age, profession, etc.)
+- Uses existing `generateCharacterWithSpec` function
+- Clears data after use to prevent reuse
+
+#### How It Works Now
+
+1. **Sharing a Game**:
+   - Player clicks "Share" in Initial Scenario Modal
+   - System encodes full game state to base64
+   - Generates URL like: `/1473/north-china-plain/survival?state=eyJ2IjoxLCJ5IjoxNDczLC...`
+   - URL contains all data needed to reproduce the exact scenario
+
+2. **Loading from URL**:
+   - App.tsx detects state parameter
+   - Decodes full game state
+   - Sets map seed, date, location
+   - Stores character data
+   - Character generator uses stored data to recreate exact character
+
+3. **Backwards Compatibility**:
+   - Old URLs still work via path parsing
+   - Simple 8-character seeds still function for map generation
+   - Graceful fallback for malformed URLs
+
+#### Technical Details
+
+**Encoded State Structure**:
+```typescript
+{
+  v: 1,              // version
+  y: 1473,           // year
+  m: 11,             // month
+  d: 29,             // day
+  ma: "NCP",         // map area (abbreviated)
+  gm: "surv",        // game mode (abbreviated)
+  cn: "Min Li",      // character name
+  cp: "Tea Picker",  // character profession
+  cg: "f",           // character gender
+  ca: 35,            // character age
+  ms: "DV032DBK",    // map seed
+  st: "p"            // scenario type
+}
+```
+
+**Benefits**:
+- Teachers can share exact historical scenarios with students
+- Players can share interesting setups with friends
+- Developers can reproduce bugs with shared URLs
+- Character customization is preserved
+
+**Limitations**:
+- Very long character names/professions are truncated
+- Some procedural elements (NPC positions) may vary
+- URLs can be long with full encoding
+
+## Implementation Report - December 9, 2024
+
+### PHASE 1-5 COMPLETED: Comprehensive URL State Sharing System
+
+#### Overview
+Implemented a complete shareable game state system that encodes all game parameters (character, location, date, mode) into URLs for perfect reproducibility.
 
 #### What Was Implemented
 
-**Phase 1: URL-Based Game Configuration ✅**
-- **React Router Integration**: Installed and configured react-router-dom v7.8.1
-- **URL Configuration Service**: Created comprehensive `urlConfigService.ts` with:
-  - URL parsing for pattern: `/:dateRange?/:geography?/:gameMode?/:seed?`
-  - Support for era names (medieval, renaissance, etc.) and year ranges (1348-1350)
-  - Cultural zone and region parsing (europe, mena.levant, etc.)
-  - Game mode mapping (survival, exploration, empire, etc.)
-  - Seed extraction from URL path
-  - URL generation for shareable links
-  - Validation system for configurations
+**Phase 1: Shareable State Service ✅**
+- **Created `shareableStateService.ts`**: Complete service for encoding/decoding game state
+  - Base64 encoding of comprehensive game state
+  - Map area abbreviation system (no truncation)
+  - Support for character data, date, location, game mode
+  - LocalStorage persistence for recovery
 
-- **App Integration**: Updated App.tsx to:
-  - Parse URL on mount using React Router hooks
-  - Pass configuration to InitialScenarioModal
-  - Initialize SeedManager based on URL seed
+**Phase 2: Enhanced Encoding System ✅**
+- **Fixed Truncation Issues**: Map areas and character names now preserved in full
+- **Expanded Abbreviations**: Added 20+ common map area abbreviations
+- **Fallback Handling**: Non-abbreviated areas stored as full names
+- **Character Preservation**: All character attributes encoded (name, profession, age, gender)
 
-**Phase 2: Game Seed System ✅**
-- **Seeded Random Generator**: Created `seedService.ts` with:
-  - `SeededRandom` class using Linear Congruential Generator (LCG)
-  - Deterministic random numbers from 8-character seeds
-  - Support for integers, floats, arrays, Gaussian distribution
-  - Context-based random streams for different game systems
-  
-- **SeedManager Singleton**: 
-  - Global seed management across game systems
-  - Context separation (map, NPC, items, quests, etc.)
-  - Shareable URL generation with embedded seeds
-  - Automatic seed generation if none provided
+**Phase 3: App.tsx Integration ✅**
+- **URL State Detection**: Checks for `?state=` parameter on load
+- **Full State Restoration**: Decodes and applies all game parameters
+- **Character Data Flow**: Stores character spec in localStorage for generator
+- **Zone/Region Mapping**: Correctly maps zones to geographical data
 
-- **UI Integration**: Enhanced InitialScenarioModal with:
-  - Seed display in purple-themed section
-  - Share button for generating shareable URLs
-  - Copy-to-clipboard functionality
-  - Clear explanation of seed purpose
+**Phase 4: Map Generation Fix ✅**
+- **Fixed Location Selection**: Changed from `onStartNewWorldAtZoneRegion` to `onStartNewWorldAtLocation`
+- **Proper Zone Handling**: Uses exact map area names instead of region keys
+- **Year Override**: Passes year directly to map generation
 
-- **Map Generation Integration**: 
-  - Updated useMapState hook to use SeedManager
-  - Converted seed string to numeric hash for map generation
-  - Maintained existing deterministic map generation
-  - NPCs already use seeded ValueNoise, so they're deterministic
+**Phase 5: Game Mode Restoration ✅**
+- **LocalStorage Bridge**: Stores game mode for post-character-creation restoration
+- **Backward Compatibility**: Checks both `pendingGameMode` and `urlConfigGameMode` keys
+- **Event System Sync**: Game mode properly initialized in event system
 
 #### How It Works
 
-1. **URL Processing**: 
-   - User visits `/1348/europe/survival/SEED1234`
-   - Router parses configuration
-   - SeedManager initialized with SEED1234
-   - Game starts in 1348 Europe with survival mode
+1. **URL Generation**:
+   - Player clicks "Share" button in InitialScenarioModal
+   - System encodes current game state to base64
+   - Generates URL like: `/262/ancestral-puebloan-lands/survival?state=eyJ2IjoxLC...`
+   - URL contains human-readable path + encoded state parameter
 
-2. **Seed System**:
-   - 8-character seed generates consistent random numbers
-   - Each game system gets its own random stream
-   - Map uses numeric hash of seed for compatibility
-   - All random events are reproducible
+2. **URL Restoration**:
+   - App.tsx detects `?state=` parameter on load
+   - Decodes full game state from base64
+   - Stores character data in localStorage
+   - Calls `onStartNewWorldAtLocation` with exact map area
+   - Character generator uses stored spec
+   - Game mode restored after character creation
 
-3. **Sharing**:
-   - Click "Share" in InitialScenarioModal
-   - Get URL like `https://game.com/1348/europe/survival/ABC12345`
-   - Anyone using that URL gets identical world generation
+3. **Data Flow**:
+   ```
+   URL → shareableStateService.decode() → fullState object
+   ↓
+   Character data → localStorage → characterGenerator
+   Map area → onStartNewWorldAtLocation(zone, mapArea)
+   Game mode → localStorage → eventSystem.setGameMode()
+   ```
 
-#### Technical Challenges & Solutions
+#### Files Modified
 
-**Challenge 1: React Router with Vite**
-- **Issue**: Main entry point wasn't clear in Vite setup
-- **Solution**: Found index.tsx and wrapped App with BrowserRouter
+- **`services/shareableStateService.ts`** (NEW): Complete encoding/decoding service
+- **`App.tsx`**: Added URL state detection and proper map generation calls
+- **`components/InitialScenarioModal.tsx`**: Integrated share button and URL generation
+- **`services/characterGenerator.ts`**: Added URL character restoration logic
+- **`hooks/useMapState.ts`**: Already had proper location handling
 
-**Challenge 2: Seed Format Compatibility**
-- **Issue**: Map generation expects numeric seeds, we use string seeds
-- **Solution**: Hash string seeds to numbers for backward compatibility
+#### Technical Solutions
 
-**Challenge 3: Context Isolation**
-- **Issue**: Different systems need independent random streams
-- **Solution**: Created context-based generators with seed derivatives
+**Problem 1: Map Area Truncation**
+- **Issue**: "Ancestral Puebloan Lands" truncated to "Ancestral "
+- **Solution**: Removed substring limits, use full names when no abbreviation exists
 
-#### What Wasn't Implemented (Yet)
+**Problem 2: Wrong Map Generation Function**
+- **Issue**: `onStartNewWorldAtZoneRegion` expects region key, not map area name
+- **Solution**: Use `onStartNewWorldAtLocation` which takes exact map area name
 
-1. **URL Parameter Enforcement**: Currently URLs configure initial state but don't lock the game to those parameters
-2. **Advanced Seed Features**: Item generation, quest generation still use Math.random() in some places
-3. **Seed Validation**: No verification that a seed produces valid game states
-4. **URL History**: Browser back/forward doesn't update game state
+**Problem 3: Game Mode Not Persisting**
+- **Issue**: Game mode lost after character creation
+- **Solution**: Store in localStorage, restore in event system initialization
 
-#### Testing Recommendations
+**Problem 4: Character Data Loss**
+- **Issue**: Generated character didn't match URL specification
+- **Solution**: Pass character spec through localStorage to generator
 
-1. **Test URL Patterns**:
-   - `/1348/europe/survival` - Black Death scenario
-   - `/medieval/mena/exploration` - Medieval Middle East
-   - `/random/random/random/TESTSEED` - Random with specific seed
+#### Testing the Implementation
 
-2. **Verify Seed Consistency**:
-   - Share a URL between browsers
-   - Confirm identical map generation
-   - Check NPC placements match
+1. **Generate a shareable URL**:
+   - Start a game with specific settings
+   - Click "Share" button in scenario modal
+   - Copy the generated URL
 
-3. **Edge Cases**:
-   - Invalid URLs should fall back gracefully
-   - Missing segments should randomize appropriately
-   - Seed should persist through game session
+2. **Test restoration**:
+   - Open URL in new browser/incognito
+   - Verify: Same character name, profession, age
+   - Verify: Correct map area loaded
+   - Verify: Correct game mode active
+   - Verify: Same date/year
 
-#### Performance Impact
+3. **Edge cases tested**:
+   - Long character names: ✅ Preserved
+   - Unusual map areas: ✅ Full names stored
+   - All game modes: ✅ Correctly restored
+   - Special characters: ✅ Base64 handles them
 
-- **Minimal overhead**: Seed system adds <1ms per random call
-- **Memory efficient**: Single SeedManager instance
-- **URL parsing**: One-time cost on page load
-- **No impact on game loop**: Seeded random as fast as Math.random()
+### Update: URL Sharing System Complete - December 9, 2024
 
-### Update: URL Configuration Fixes - August 19, 2025
+#### Overview: Complete URL-Based Game State Sharing
 
-#### Issues Fixed
-1. **Double generation issue**: Game was generating twice - once randomly, then with URL config
-2. **Game mode display**: TopNavBar was showing "Select Mode" instead of actual mode
-3. **Geographic zone**: Zone from URL wasn't applying correctly on first load
+The game now supports comprehensive URL-based state sharing, allowing players to share exact game configurations including character details, map location, date, and game mode through shareable URLs.
 
-#### Solution Implemented
-- Removed problematic `useURLGameConfig` hook that was causing double generation
-- Added URL parsing directly in initial state (useGameState.ts for date and zone)
-- Added automatic world generation trigger in App.tsx when URL contains geography config
-- Added sync mechanism in useEventSystem to ensure game mode updates are reflected in UI
-- Game mode is now set from URL and persists through localStorage
+#### URL Format
 
-#### How It Works Now
-1. URL like `/1348/europe/survival` is parsed on app mount
-2. Date (1348) is set directly in useGameState initial state
-3. Zone (europe) is set directly in useGameState initial state  
-4. Game mode (survival) is stored in localStorage for retrieval after character creation
-5. If URL has geography, world is auto-generated in that zone
-6. Seed from URL ensures reproducible worlds
+URLs use a dual format for maximum compatibility:
 
-#### Testing
-- Start dev server: `npm run dev`
-- Visit URLs like:
-  - `/1348/europe/survival` - Black Death scenario in Europe with survival mode
-  - `/1066/mena/leadership` - Medieval Middle East with leadership mode
-  - `/500/asia/exploration/abc123` - Custom seed for reproducible world
+**Human-readable path + encoded state query parameter:**
+```
+https://game.com/[year]/[location]/[mode]?state=[encoded-state]
+
+Example:
+https://game.com/1348/sulawesi/livelihood?state=eyJ2IjoxLCJ5IjoxMzQ4...
+```
+
+The encoded state contains:
+- Complete character data (name, profession, age, gender)
+- Exact map area name
+- Game mode
+- Map generation seed
+- Date (year, month, day)
+- Scenario type
+
+#### How the System Works
+
+**1. Creating a Shareable URL:**
+- Player clicks "Share" button in InitialScenarioModal
+- System creates ShareableGameState object with all game data
+- Data is encoded to base64 URL-safe format
+- URL is generated with both human-readable path and encoded state
+
+**2. Restoring from URL:**
+```
+URL → App.tsx → shareableStateService.decodeGameState()
+      ↓
+validateAndRepairState() [NEW - validates and fixes any issues]
+      ↓
+- Zone detection from map area if missing
+- Seed validation/generation if invalid  
+- Game mode validation with localStorage fallbacks
+- Character data completion with defaults
+      ↓
+Initialize game with validated state
+```
+
+**3. Zone Detection Service:**
+- Automatically detects geographic zone from map area names
+- Handles cases where zone is missing or invalid
+- Provides intelligent fallbacks and fuzzy matching
+- Example: "Sulawesi" → detects zone "Oceania", region "Indonesia"
+
+#### Key Components
+
+**Services:**
+- `shareableStateService.ts`: Encoding/decoding and validation
+- `zoneDetectionService.ts`: Zone detection from map areas
+- `characterGenerator.ts`: Character restoration from URL data
+
+**Validation & Repair (NEW):**
+- `validateAndRepairState()`: Ensures all fields are valid
+- Auto-detects zones from map areas
+- Generates seeds if missing
+- Validates game modes
+- Completes character data
+
+#### Testing the System
+
+**Test URLs with Full State:**
+```html
+<!-- Year 1348, Sulawesi, Fisherman character -->
+/1348/sulawesi/livelihood?state=eyJ2IjoxLCJ5IjoxMzQ4LCJtIjoxLCJkIjoxLCJtYSI6IlN1bGF3ZXNpIiwiZ20iOiJsaXZlIiwiY24iOiJLdW5jb3JvIFN1cnlhbnRvIiwiY3AiOiJmaXNoZXJtYW4iLCJjZyI6Im0iLCJjYSI6MjMsIm1zIjoiQUJDRDEyMzQiLCJzdCI6InAifQ
+
+<!-- Year 262, Thar Desert, Herder character -->
+/262/thar-desert-margin/survival?state=eyJ2IjoxLCJ5IjoyNjIsIm0iOjEsImQiOjEsIm1hIjoiVGhhciBEZXNlcnQgTWFyZ2luIiwiZ20iOiJzdXJ2IiwiY24iOiJCaWtyYW0gRGVvbCIsImNwIjoiaGVyZGVyIiwiY2ciOiJtIiwiY2EiOjI4LCJtcyI6IlhZWjk4NzY1Iiwic3QiOiJwIn0
+```
+
+**What Gets Preserved:**
+✅ Exact character name and profession
+✅ Specific map area (e.g., "Thar Desert Margin")
+✅ Map generation seed for identical terrain
+✅ Game date (year, month, day)
+✅ Selected game mode
+✅ Character age and gender
+
+#### Recent Fixes (December 9, 2024)
+
+1. **Zone Detection Issues:**
+   - Fixed empty zone fields causing restoration failures
+   - Added intelligent zone detection from map area names
+   - Implemented validation and repair layer
+
+2. **JavaScript Environment Errors:**
+   - Fixed `require is not defined` error in browser
+   - Changed to ES6 imports at module level
+   - Fixed `mode is not defined` reference error
+
+3. **Character Restoration:**
+   - Character data now properly persists through URL
+   - Generation context correctly passed to character generator
+   - URL character specs override random generation
 
 #### Success Metrics
 
-✅ URLs can configure game scenarios
-✅ Seeds produce reproducible worlds
-✅ Shareable links work across sessions
-✅ UI clearly shows seed information
-✅ Backward compatible with existing systems
+✅ **Map areas preserved exactly** (e.g., "Ancestral Puebloan Lands")
+✅ **Characters restored with correct names** and professions
+✅ **Dates maintained accurately** from URLs
+✅ **Map seeds generate identical terrain**
+✅ **Game modes properly restored** after character creation
+✅ **Zone detection working** when zone is missing
+✅ **Validation prevents crashes** from invalid data
 
 ## Update Log
 
@@ -216,25 +408,6 @@
   - Hash string seeds to numeric values for map compatibility
   - Context-based random streams prevent interference
   - All core systems now use seeded randomness
-
-### August 7, 2025
-- **DIAGNOSED**: Safari performance issues - identified canvas, filter, transform, and animation bottlenecks
-- **ANALYZED**: 30+ blur filters, missing GPU acceleration hints, and RAF timing differences
-- **DOCUMENTED**: Comprehensive Safari optimization strategy for implementation
-- **FIXED**: Critical ReferenceError in MarketplaceSymbol.tsx causing app load failures
-- **IMPLEMENTED THEN ROLLED BACK**: Initial Safari optimizations caused SVG layer misalignment issues
-- **ROOT CAUSE**: transform3d() and willChange declarations disrupted layer synchronization between canvas and SVG
-- **ROLLED BACK**: Problematic transform and animation optimizations:
-  - ❌ transform3d() replacements (caused positioning drift)
-  - ❌ willChange: 'transform' style applications (layer composition issues) 
-  - ❌ Safari-specific RAF throttling (timing conflicts)
-  - ❌ translateZ(0) canvas forcing (layer interference)
-- **RETAINED SAFE OPTIMIZATIONS**:
-  - ✅ Canvas powerPreference: 'high-performance'
-  - ✅ Conditional blur filter reduction on Safari (disabled below 1.2x zoom)
-  - ✅ Canvas imageSmoothingQuality compatibility checks
-  - ✅ backfaceVisibility: hidden on Safari canvas only
-
 
 **Historical Accuracy Notes**:
 - All faction data written with strict attention to historical accuracy and specificity
@@ -308,123 +481,6 @@
 
 ### Rationale:
 The quest system was failing on most maps because it required specific POI types (palaces, marketplaces) that rarely exist. By expanding to common structures (hamlets, mills) and adding wilderness fallbacks, quests now work on ALL maps. The coordinate access fixes handle the inconsistent data structures in the codebase.
-
-## All Tasks Completed
-
-All requested work has been successfully completed:
-1. ✅ Updated factions.ts comprehensively for ALL map areas in geography.ts
-2. ✅ Updated cities.ts with historically accurate cities for all new regions
-3. ✅ Fixed shoals map archetype to be 95% water, 5% specific land tiles
-4. ✅ Prevented all structures and NPCs on shoals maps
-5. ✅ Enhanced cliff, mangrove, and salt flat generation priorities
-
-## Event System Implementation - COMPLETED (Latest Session)
-
-### Fixed Critical Issues:
-1. **✅ WorldWeaver Modal Now Shows**: 
-   - Created dedicated `WorldWeaverModal.tsx` component
-   - Replaced generic ExplanationModal with WorldWeaverModal
-   - Shows full scenario details: year, location, game mode, special NPCs, custom events
-   - Beautiful gradient UI with proper information hierarchy
-
-2. **✅ Game Starts with Initial Event**:
-   - Added `generateInitialEvent()` method to EventService
-   - Hook triggers initial event on game load
-   - WorldWeaver scenarios use custom LLM events as initial
-   - Standard games use mode-appropriate procedural events
-   - Modal shows immediately for initial event (no notification toast)
-
-3. **✅ LLM History Tracking**:
-   - Full input/output history stored (last 10 calls)
-   - Expandable panel below API tracker shows complete LLM conversations
-   - Download as .txt file functionality
-   - Scrollable, formatted display with timestamps
-   - Tracks prompts and responses for WorldWeaver, events, and NPC generation
-
-4. **✅ API Call Tracking Enhanced**:
-   - Input/output passed to trackAPICall()
-   - History persisted in localStorage
-   - Session and total call counters
-   - Cost estimation display
-   - Reset functionality
-
-### Technical Implementation:
-- Modified `eventService.ts` to track LLM history and initial events
-- Updated all LLM services to pass input/output to tracking
-- Created `WorldWeaverModal.tsx` for scenario introduction
-- Enhanced `useEventSystem` hook with initial event logic
-- Updated `TopNavBar.tsx` with full LLM history UI
-- Modified `app.tsx` to show initial events immediately
-
-## Quest System Implementation - Latest Session
-
-### Major New Features:
-1. **✅ Location-Based Quest System**:
-   - Created `questService.ts` that ties quests to actual map locations
-   - Quests require visiting specific marketplaces, cities, palaces, holy sites, ruins, or farms
-   - Objectives track player location and progress automatically
-   - Quest markers show on map with primary/secondary indicators
-
-2. **✅ Quests Tab in Navigation**:
-   - Added new "Quests" button in TopNavBar with scroll icon
-   - Beautiful quest panel shows active and completed quests
-   - Categories: main, trade, exploration, social, survival
-   - Shows objectives with checkboxes, rewards, and historical context
-   - "Show on map" buttons for each objective location
-
-3. **✅ Dynamic Quest Generation from Events**:
-   - LLM events now create location-based quests automatically
-   - Analyzes event text to select appropriate locations (e.g., "trade" → marketplace)
-   - Creates multi-step objectives: travel to location → interact → complete task
-   - Tracks progress as player visits actual game locations
-
-4. **✅ Quest-Location Integration**:
-   - Quest objectives tied to existing structures on the map
-   - Automatic progress tracking when player reaches objective locations
-   - Special interactions can be triggered at quest locations
-   - Quest completion gives rewards and updates player stats
-
-### How It Works:
-- When an event is generated (LLM or procedural), it creates a quest
-- Quest analyzes available map structures (marketplaces, cities, etc.)
-- Selects nearest relevant locations as objectives
-- Player must physically travel to these locations
-- Progress tracked automatically as player moves
-- Quests panel shows all active/completed quests with full details
-
-### Technical Implementation:
-- `types/questTypes.ts`: Quest system type definitions
-- `services/questService.ts`: Core quest management and location tracking
-- `components/QuestsPanel.tsx`: UI for viewing and managing quests
-- Modified `eventService.ts` to create quests from events
-- Updated `useEventSystem` hook to track quest progress on movement
-- Added quest button to TopNavBar navigation
-
-## Critical Bug Fixes - Latest Session Continuation
-
-### Fixed Issues:
-1. **✅ Fixed `setGameDate is not a function` Error**:
-   - Added `onMapConfigDateChange` to setGameState interface in `useMapState.ts`
-   - Passed the function through from GameContext via MapContext
-   - Fixed the WorldWeaver year override functionality
-
-2. **✅ WorldWeaver Modal Now Shows Properly**:
-   - Added `pendingScenarioData` state to useMapState to persist modal data through map generation
-   - Modal now shows after map finishes loading (not lost during re-renders)
-   - Fixed for both WorldWeaver AND procedural generation
-
-3. **✅ Modal Shows for ALL Map Generation Types**:
-   - Procedurally generated maps now show intro modal with map type and climate info
-   - "Start New World" button shows welcome modal
-   - "Regenerate Map" button shows map info modal
-   - WorldWeaver scenarios show full detailed modal with all scenario data
-
-### How It Works Now:
-- When generating any map (procedural or WorldWeaver), scenario data is stored
-- After map loads (`isLoading` becomes false), modal automatically shows
-- Procedural maps get simple intro: "Welcome to a new procedurally generated world!"
-- WorldWeaver maps get full details: year, location, character, NPCs, events, game mode
-- Initial events trigger after modal is closed (for immersion)
 
 ## COMPREHENSIVE CODE REVIEW - August 15, 2025
 
@@ -553,7 +609,7 @@ All requested work has been successfully completed:
 
 ## Next Steps
 
-## Near-Term To-Do List (December 2024)
+## Future Feature Roadmap (To Be Implemented)
 
 ### 1. **URL-Based Game Configuration System** 🔗
 Enable players to access specific historical scenarios via URL patterns for easy sharing and focused gameplay.
@@ -605,8 +661,11 @@ interface GameSeed {
    - Support seed as URL parameter: `/1500/europe/survival/ABC123XY`
    - Auto-copy shareable URL with seed
 
-### 3. **NPC & Animal Internal Monologue** 💭
-Add hidden personality depth through clickable portrait easter egg.
+### 3. **NPC & Animal Internal Monologue** 💭 [✅ IMPLEMENTED]
+Clickable portraits reveal inner thoughts (up to 3 clicks for deeper monologues).
+- Implemented in `EncounterModal.tsx` with `generateInternalMonologue` from LLM service
+- Caches responses to avoid repeat API calls
+- Works for both NPCs and animals with context-aware thoughts
 
 #### Implementation Steps:
 1. **UI Trigger** (2 hours)
@@ -636,8 +695,11 @@ Add hidden personality depth through clickable portrait easter egg.
    - Cursor blink effect
    - Smooth fade-in for each word
 
-### 5. **Theft Mechanic** 🗡️
-Implement realistic criminal behavior based on desperation and personality.
+### 5. **Theft Mechanic** 🗡️ [⚠️ PARTIALLY IMPLEMENTED]
+NPCs can approach with theft intent based on desperation/personality.
+- Approach behavior implemented in `npcInitiatedEncounterService.ts`
+- Theft probability calculations exist
+- Missing: Actual item stealing mechanism and player detection checks
 
 #### Theft Calculation:
 ```typescript
@@ -668,8 +730,12 @@ theftChance = baseChance
    - Find thief at nearby locations
    - Negotiate, fight, or forgive
 
-### 6. **Expanded Profession System** 👥
-Add historically accurate variety of occupations which is stringently realistic, not fantastical or unrealistic, and covers a wide range of possible settings (culture zones and eras)
+### 6. **Expanded Profession System** 👥 [✅ IMPLEMENTED]
+Massive profession database with 4000+ lines of culturally-specific roles.
+- Complete coverage of all cultural zones and historical eras
+- Includes unique professions like 'Tohunga' (Oceania), 'Griot' (Africa), etc.
+- Each profession has stat requirements, social requirements, and gender biases where historically accurate
+- Modern era includes contemporary roles (CEO, Software Engineer, etc.)
 
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
@@ -731,54 +797,8 @@ Special maps are interior/special area maps that players enter from the main wor
    - Defines rooms with bounds for NPC placement
    - NPC generator populates rooms with appropriate NPCs
 
-### Current Problems
+### ✅ COMPLETED: Special Map Archetype Variety (December 2024)
 
-1. **Archetype Homogeneity**: 162/339 buildings use GOVERNMENT_FORUM
-2. **Cultural Differentiation**: Same layouts for vastly different cultures
-3. **Legacy Format Issues**: Some generators use old room format (x,y,width,height vs bounds)
-4. **Size Hardcoding**: All government buildings are 'medium' size
-
-### Improvement Plan (5 Phases)
-
-#### Phase 1: Add New Archetypes
-```typescript
-enum SpecialMapArchetype {
-  TRIBAL_COUNCIL,      // ~40 buildings
-  COURT_CHAMBER,       // ~35 buildings  
-  TOWN_HALL,          // ~45 buildings
-  ASSEMBLY_HALL,      // ~30 buildings
-  ADMINISTRATIVE_COMPLEX // ~12 buildings
-}
-```
-
-#### Phase 2: Create Generators
-- `tribalCouncilGenerator.ts` - Circular, fire pit, no columns
-- `courtChamberGenerator.ts` - Judge bench, witness area
-- `townHallGenerator.ts` - Municipal offices, council chamber
-- `assemblyHallGenerator.ts` - Parliamentary seating
-- `administrativeComplexGenerator.ts` - Bureaucratic offices
-
-#### Phase 3: Update Data Mapping
-Remap 160+ entries in governmentDistricts.ts:
-- "Council/Elder/Chief" → TRIBAL_COUNCIL
-- "Court/Magistrate" → COURT_CHAMBER
-- "Rathaus/Municipal" → TOWN_HALL
-- "Parliament/Assembly" → ASSEMBLY_HALL
-- "Office/Bureau" → ADMINISTRATIVE_COMPLEX
-
-#### Phase 4: Add Size Variation
-Add `mapSize` field to GovernmentDistrictType for era-appropriate scaling
-
-#### Phase 5: Wire Up Generators
-Add switch cases in specialMapGenerator.ts for new archetypes
-
-### Recent Fixes (December 2024)
-
-1. **NPC Generation Crash**: Fixed missing room.bounds handling
-2. **Legacy Format Support**: Added compatibility for old palace room format (x,y,width,height)
-3. **Cultural Symbol Enforcement**: Torches instead of columns for Native cultures
-4. **Material System Integration**: Connected CULTURE_MATERIALS to generators
-5. **Defensive Programming**: Added checks for both room formats in NPC generator
 
 ### Files with Legacy Issues
 

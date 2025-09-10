@@ -11,7 +11,14 @@ export type PortraitExpression =
   | 'scowl'
   | 'sad'
   | 'smirk'
-  | 'concern';
+  | 'concern'
+  | 'excited'
+  | 'annoyed'
+  | 'tired'
+  | 'confused'
+  | 'thinking'
+  | 'skeptical'
+  | 'determined';
 
 export function usePortraitExpression() {
   const [expr, setExpr] = useState<PortraitExpression | null>(null);
@@ -58,16 +65,103 @@ export function mapEventToExpr(eventType: string): PortraitExpression | null {
   switch (eventType) {
     case 'quest_accept': return 'approve';
     case 'quest_decline': return 'sad';
+    case 'quest_complete': return 'excited';
     case 'trade_success': return 'approve';
     case 'trade_fail': return 'concern';
+    case 'trade_negotiation': return 'thinking';
     case 'threat': return 'scowl';
     case 'attack': return 'scowl';
-    case 'disease': return 'concern';
+    case 'victory': return 'excited';
+    case 'defeat': return 'sad';
+    case 'disease': return 'tired';
+    case 'healing': return 'smile';
     case 'greeting': return 'smile';
-    case 'confusion': return 'concern';
+    case 'confusion': return 'confused';
     case 'understanding': return 'smirk';
     case 'authorities': return 'sad';
     case 'hostile': return 'scowl';
+    case 'thinking': return 'thinking';
+    case 'skeptical': return 'skeptical';
+    default: return null;
+  }
+}
+
+/**
+ * Map tile types to appropriate expressions
+ */
+export function mapTileToExpr(biomeType: string): PortraitExpression | null {
+  switch (biomeType) {
+    case 'HOLY_SITE': return 'thinking';
+    case 'MARKETPLACE': return 'smirk';
+    case 'RUINS': return 'concern';
+    case 'BATTLEFIELD': return 'sad';
+    case 'PALACE': return 'approve';
+    case 'CITY_CENTER': return 'smile';
+    case 'DENSE_CITY': return 'annoyed'; // crowded
+    case 'FARMLAND': return 'smile';
+    case 'DESERT': return 'tired'; // harsh environment
+    case 'SNOW': return 'annoyed'; // cold
+    case 'SWAMP': return 'annoyed'; // unpleasant
+    case 'MOUNTAIN': return 'determined'; // challenging terrain
+    default: return null;
+  }
+}
+
+/**
+ * Map player status to expressions
+ */
+export function mapStatusToExpr(status: {
+  health?: number;
+  maxHealth?: number;
+  temperature?: number;
+  hunger?: number;
+  thirst?: number;
+  fatigue?: number;
+}): PortraitExpression | null {
+  const healthPercent = (status.health && status.maxHealth) 
+    ? status.health / status.maxHealth 
+    : 1;
+  
+  // Critical conditions take priority
+  if (healthPercent < 0.2) return 'sad';
+  if (healthPercent < 0.4) return 'concern';
+  
+  // Temperature extremes
+  if (status.temperature !== undefined) {
+    if (status.temperature < -10 || status.temperature > 40) return 'tired';
+    if (status.temperature < 0 || status.temperature > 30) return 'annoyed';
+  }
+  
+  // Hunger/thirst
+  if (status.hunger !== undefined && status.hunger < 20) return 'tired';
+  if (status.thirst !== undefined && status.thirst < 20) return 'tired';
+  
+  // Fatigue
+  if (status.fatigue !== undefined && status.fatigue > 80) return 'tired';
+  
+  // Good health
+  if (healthPercent > 0.9 && (!status.hunger || status.hunger > 80)) return 'smile';
+  
+  return null;
+}
+
+/**
+ * Map NPC personality to default expression
+ */
+export function mapPersonalityToExpr(personality?: string): PortraitExpression | null {
+  if (!personality || typeof personality !== 'string') return null;
+  
+  switch (personality.toLowerCase()) {
+    case 'aggressive': return 'scowl';
+    case 'friendly': return 'smile';
+    case 'nervous': return 'concern';
+    case 'confident': return 'smirk';
+    case 'scholarly': return 'thinking';
+    case 'suspicious': return 'skeptical';
+    case 'tired': return 'tired';
+    case 'excited': return 'excited';
+    case 'sad': return 'sad';
+    case 'determined': return 'determined';
     default: return null;
   }
 }

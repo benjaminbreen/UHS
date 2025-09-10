@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, Activity, TrendingUp, Heart, AlertTriangle, Zap, BookOpen, CheckCircle } from 'lucide-react';
+import { X, Activity, TrendingUp, Heart, AlertTriangle, Zap, BookOpen, CheckCircle, Scroll } from 'lucide-react';
 import { ActiveDisease } from '../types/diseaseTypes';
 import { primarySourceService } from '../services/primarySourceService';
+import { culturalMedicalKnowledge } from '../services/culturalMedicalKnowledge';
+import { HistoricalEra } from '../types/ambiance';
+import { CulturalZone } from '../types/characterData';
 
 interface DiseaseModalProps {
   disease?: ActiveDisease;
@@ -9,6 +12,7 @@ interface DiseaseModalProps {
   onClose: () => void;
   currentYear?: number;
   culturalZone?: string;
+  historicalEra?: HistoricalEra;
   mode?: 'active' | 'recovery';
   recoveredDiseaseName?: string;
 }
@@ -19,6 +23,7 @@ const DiseaseModal: React.FC<DiseaseModalProps> = ({
   onClose,
   currentYear = 1500,
   culturalZone = 'EUROPEAN',
+  historicalEra = 'MEDIEVAL',
   mode = 'active',
   recoveredDiseaseName
 }) => {
@@ -34,54 +39,12 @@ const DiseaseModal: React.FC<DiseaseModalProps> = ({
   const loadPrimarySource = async () => {
     setIsLoadingSource(true);
     try {
-      // Search for relevant primary sources about this disease
-      // Try multiple keywords to find relevant sources
-      const keywords = [
-        disease.disease.name.toLowerCase(),
-        disease.disease.type,
-        'plague',
-        'sickness',
-        'medicine',
-        'disease',
-        'illness'
-      ];
-      
-      let allSources: any[] = [];
-      
-      // Search for each keyword
-      for (const keyword of keywords) {
-        try {
-          const sources = await primarySourceService.searchByKeyword(
-            keyword,
-            undefined, // Let it determine era from year
-            culturalZone as any
-          );
-          if (sources && sources.length > 0) {
-            allSources = [...allSources, ...sources];
-          }
-        } catch (err) {
-          // Ignore individual keyword search errors
-        }
-      }
-      
-      // Remove duplicates based on id
-      const uniqueSources = Array.from(new Map(allSources.map(s => [s.id, s])).values());
-      
-      if (uniqueSources.length > 0) {
-        const randomSource = uniqueSources[Math.floor(Math.random() * uniqueSources.length)];
-        setPrimarySource(`"${randomSource.excerpt}" - ${randomSource.author}, ${randomSource.year}`);
-      } else {
-        // Fallback quotes if no sources found
-        const fallbackQuotes = [
-          `"The ${disease.disease.type} ailments spread swiftly through the crowded quarters..." - Anonymous physician`,
-          `"Those afflicted with this malady showed signs of ${disease.disease.symptoms[0]?.description || 'great suffering'}..." - Medieval chronicle`,
-          `"The disease, known to locals as a common affliction, required careful treatment..." - Historical medical text`
-        ];
-        setPrimarySource(fallbackQuotes[Math.floor(Math.random() * fallbackQuotes.length)]);
-      }
+      // Get a real historical quote about fever/disease
+      const historicalQuote = culturalMedicalKnowledge.getHistoricalQuote(historicalEra);
+      setPrimarySource(historicalQuote);
     } catch (error) {
       console.error('Failed to load primary source:', error);
-      setPrimarySource(`"This ${disease.disease.severity} ${disease.disease.type} disease has been known since ancient times."`);
+      setPrimarySource('The fever burns within you.');
     }
     setIsLoadingSource(false);
   };
@@ -185,34 +148,38 @@ const DiseaseModal: React.FC<DiseaseModalProps> = ({
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-900 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-700">
         {/* Header */}
-        <div className="sticky top-0 bg-gray-900 border-b border-gray-700 p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="text-3xl">{disease.disease.badgeIcon}</div>
-            <div>
-              <h2 className="text-xl font-bold text-white">{disease.disease.name}</h2>
-              <p className="text-sm text-gray-400 capitalize">{disease.disease.type} Disease</p>
+        <div className="sticky top-0 bg-gradient-to-b from-red-950/90 to-gray-900 border-b border-red-800/50 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2 text-red-300">
+              <div className="text-2xl">{disease.disease.badgeIcon}</div>
+              <div className="text-sm font-semibold uppercase tracking-wider">DISEASE CONTRACTED!</div>
             </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-800 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-400" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-800 rounded-full transition-colors"
-          >
-            <X className="w-5 h-5 text-gray-400" />
-          </button>
+          <div>
+            <h2 className="text-2xl font-bold text-white">{disease.disease.name}</h2>
+            <p className="text-sm text-yellow-400 uppercase mt-1">
+              {disease.disease.severity.toUpperCase()} {disease.disease.type.toUpperCase()} DISEASE
+            </p>
+          </div>
         </div>
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Primary Source Quote */}
-          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-            <div className="flex items-start gap-2 mb-2">
-              <BookOpen className="w-4 h-4 text-blue-400 mt-1" />
-              <h3 className="text-sm font-semibold text-blue-400">Historical Account</h3>
-            </div>
+          {/* Historical Quote */}
+          <div className="bg-gradient-to-r from-amber-900/20 to-gray-800/50 rounded-lg p-4 border border-amber-700/30">
             {isLoadingSource ? (
-              <p className="text-gray-400 italic">Loading historical source...</p>
+              <p className="text-gray-400 italic">Loading historical account...</p>
             ) : (
-              <p className="text-gray-300 italic text-sm leading-relaxed">{primarySource}</p>
+              <div>
+                <p className="text-amber-100 italic text-sm leading-relaxed mb-2">{primarySource}</p>
+                <p className="text-xs text-amber-600">— Historical Account, {historicalEra === 'MEDIEVAL' ? 'Medieval' : historicalEra === 'ANCIENT' ? 'Ancient' : historicalEra === 'EARLY_MODERN' ? 'Early Modern' : historicalEra} Period</p>
+              </div>
             )}
           </div>
 
@@ -343,7 +310,7 @@ const DiseaseModal: React.FC<DiseaseModalProps> = ({
           <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
             <div className="flex items-center gap-2 mb-3">
               <Heart className="w-4 h-4 text-red-400" />
-              <h3 className="text-sm font-semibold text-gray-300">Symptoms</h3>
+              <h3 className="text-sm font-semibold text-gray-300">Symptoms You May Experience</h3>
             </div>
             <div className="space-y-2">
               {disease.disease.symptoms.map((symptom, index) => (
@@ -358,24 +325,37 @@ const DiseaseModal: React.FC<DiseaseModalProps> = ({
             </div>
           </div>
 
-          {/* Stat Effects */}
-          {disease.disease.statEffects && (
-            <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-              <h3 className="text-sm font-semibold text-gray-300 mb-3">Character Effects</h3>
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                {Object.entries(disease.disease.statEffects).map(([stat, value]) => (
-                  value !== 0 && (
-                    <div key={stat} className="flex justify-between bg-gray-900 rounded px-2 py-1">
-                      <span className="text-gray-400 capitalize">{stat}:</span>
-                      <span className={value < 0 ? 'text-red-400' : 'text-green-400'}>
-                        {value > 0 ? '+' : ''}{value}
-                      </span>
-                    </div>
-                  )
-                ))}
+          {/* Historical Perception - How the character understands their illness */}
+          {(() => {
+            const medicalResponse = culturalMedicalKnowledge.getCulturalMedicalResponse({
+              era: historicalEra,
+              zone: culturalZone as CulturalZone,
+              year: currentYear,
+              disease: disease.disease,
+              severity: disease.disease.severity
+            });
+            const urgency = culturalMedicalKnowledge.getUrgencyModifier(disease.disease.severity);
+            
+            return (
+              <div className="bg-gradient-to-b from-gray-800 to-gray-900 rounded-lg p-4 border border-gray-700">
+                <div className="flex items-center gap-2 mb-3">
+                  <Scroll className="w-4 h-4 text-purple-400" />
+                  <h3 className="text-sm font-semibold text-purple-400">Historical Perception</h3>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase mb-1">Your Understanding:</p>
+                    <p className="text-gray-200 text-sm italic">"{medicalResponse.characterPerception}"</p>
+                  </div>
+                  <div className="bg-gray-900/50 rounded p-3 border border-yellow-800/30">
+                    <p className="text-yellow-300 text-xs font-semibold mb-1">⚠️ Seek Treatment {urgency.toUpperCase()}</p>
+                    <p className="text-gray-300 text-sm">{medicalResponse.recommendedAction}</p>
+                    <p className="text-gray-400 text-xs mt-1">Look for: <span className="text-gray-200">{medicalResponse.practitionerTitle}</span></p>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Immunity Info */}
           {disease.disease.grantsImmunity && (

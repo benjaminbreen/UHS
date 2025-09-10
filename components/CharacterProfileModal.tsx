@@ -793,53 +793,90 @@ const CharacterProfileModal: React.FC<Props> = ({
                     </div>
 
                     {/* Body Modifications */}
-                    {character.equippedItems?.accessory && (
+                    {(character.equippedItems?.accessory || character.appearance?.markings?.length > 0) && (
                       (() => {
-                        const accessory = character.equippedItems.accessory;
-                        const specialType = (accessory as any).specialType;
-                        const isPermanent = (accessory as any).isPermanent;
-                        const duration = (accessory as any).duration;
+                        const modifications: Array<{
+                          name: string;
+                          type: string;
+                          isPermanent: boolean;
+                          duration?: number;
+                          significance?: string;
+                        }> = [];
                         
-                        if (specialType) {
-                          return (
-                            <div className="p-4 rounded-lg border border-slate-700/60 bg-slate-800/50">
-                              <h4 className="text-xs font-bold uppercase tracking-wider text-purple-300 mb-3 flex items-center gap-2">
-                                <Sparkles className="w-4 h-4" />
-                                Body Modifications
-                              </h4>
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between p-2 rounded bg-slate-900/50">
+                        // Add equipped accessory if it's a body modification
+                        if (character.equippedItems?.accessory) {
+                          const accessory = character.equippedItems.accessory;
+                          const specialType = (accessory as any).specialType;
+                          if (specialType) {
+                            modifications.push({
+                              name: accessory.name,
+                              type: specialType,
+                              isPermanent: (accessory as any).isPermanent || false,
+                              duration: (accessory as any).duration,
+                              significance: AccessoryMaintenanceService.getCulturalSignificance(accessory)
+                            });
+                          }
+                        }
+                        
+                        // Add cultural markings from appearance
+                        if (character.appearance?.markings) {
+                          character.appearance.markings.forEach((marking: any) => {
+                            modifications.push({
+                              name: marking.name || `${marking.type} marking`,
+                              type: marking.type,
+                              isPermanent: marking.isPermanent !== false,
+                              duration: marking.duration,
+                              significance: marking.culturalSignificance
+                            });
+                          });
+                        }
+                        
+                        if (modifications.length === 0) return null;
+                        
+                        return (
+                          <div className="p-4 rounded-lg border border-slate-700/60 bg-slate-800/50">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-purple-300 mb-3 flex items-center gap-2">
+                              <Sparkles className="w-4 h-4" />
+                              Body Modifications
+                            </h4>
+                            <div className="space-y-2">
+                              {modifications.map((mod, index) => (
+                                <div key={index} className="flex items-center justify-between p-2 rounded bg-slate-900/50">
                                   <div className="flex items-center gap-2">
-                                    {specialType === 'tattoo' && <span className="text-lg">🖤</span>}
-                                    {specialType === 'scarification' && <span className="text-lg">⚡</span>}
-                                    {specialType === 'face_paint' && <span className="text-lg">🎨</span>}
-                                    {specialType === 'henna' && <span className="text-lg">🌿</span>}
+                                    {mod.type === 'tattoo' && <span className="text-lg">🖤</span>}
+                                    {mod.type === 'scarification' && <span className="text-lg">⚡</span>}
+                                    {mod.type === 'face_paint' && <span className="text-lg">🎨</span>}
+                                    {mod.type === 'paint' && <span className="text-lg">🎨</span>}
+                                    {mod.type === 'henna' && <span className="text-lg">🌿</span>}
+                                    {mod.type === 'piercing' && <span className="text-lg">💍</span>}
+                                    {mod.type === 'ash' && <span className="text-lg">⚱️</span>}
                                     <div>
-                                      <p className="text-sm font-semibold text-white">{accessory.name}</p>
-                                      <p className="text-xs text-slate-400 capitalize">{specialType.replace('_', ' ')}</p>
+                                      <p className="text-sm font-semibold text-white">{mod.name}</p>
+                                      <p className="text-xs text-slate-400 capitalize">{mod.type.replace('_', ' ')}</p>
                                     </div>
                                   </div>
                                   <div className="text-right">
-                                    {isPermanent && (
+                                    {mod.isPermanent && (
                                       <span className="px-2 py-1 rounded-full bg-red-600/70 text-red-200 text-xs font-bold">
                                         Permanent
                                       </span>
                                     )}
-                                    {duration && (
+                                    {mod.duration && (
                                       <span className="px-2 py-1 rounded-full bg-yellow-600/70 text-yellow-200 text-xs font-bold">
-                                        {AccessoryMaintenanceService.getTemporaryAccessoryDisplay(accessory)}
+                                        Temporary ({mod.duration}h)
                                       </span>
                                     )}
                                   </div>
                                 </div>
-                                <p className="text-xs text-slate-300 italic">
-                                  {AccessoryMaintenanceService.getCulturalSignificance(accessory)}
+                              ))}
+                              {modifications[0]?.significance && (
+                                <p className="text-xs text-slate-300 italic mt-2">
+                                  {modifications[0].significance}
                                 </p>
-                              </div>
+                              )}
                             </div>
-                          );
-                        }
-                        return null;
+                          </div>
+                        );
                       })()
                     )}
                   </div>

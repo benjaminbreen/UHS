@@ -7,7 +7,8 @@ import { Tile, BiomeType, ClimateType } from '../../../types';
 import { SpecialMapConfig, InteractionZone, ExitZone } from '../../../types/specialMapTypes';
 import { ValueNoise } from '../../../utils/noise';
 import { placeFirepit, applyMaterial } from '../multiTileSystem';
-import { LANDSCAPE_BORDER_ROWS } from '../../../constants/specialMaps/specialMapAugmentation';
+// Simple border size - removed specialMapAugmentation dependency
+const LANDSCAPE_BORDER_ROWS = 1; // Minimal border for camps
 
 export function generateCampground(
   tiles: Tile[][],

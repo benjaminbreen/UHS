@@ -126,7 +126,7 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
       BiomeType.FLOOR_STONE, BiomeType.FLOOR_WOOD, BiomeType.FLOOR_MARBLE,
       BiomeType.FLOOR_TILE, BiomeType.FLOOR_CHECKERED, BiomeType.FLOOR_PATTERN,
       BiomeType.FLOOR_MOSAIC, BiomeType.FLOOR_MAT, BiomeType.CARPET,
-      BiomeType.DIRT, BiomeType.GRASS
+      BiomeType.DIRT, BiomeType.GRASS, BiomeType.DIRT_PATH
     ].includes(biome);
     
     // For floor tiles, just render the floor and let MapDisplayOptimized handle overlays
@@ -194,7 +194,8 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
         }
       
       case BiomeType.COLUMN:
-        return <ColumnSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+        const columnVariant = tile?.overlayObject?.variant;
+        return <ColumnSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} variant={columnVariant} />;
         
       case BiomeType.CARPET:
         return <CarpetSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
@@ -323,6 +324,10 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
         else if (culturalZone === 'MENA') pathVariant = 'marble';
         else if (era < 1000) pathVariant = 'dirt';
         return <PathSymbol x={0} y={0} size={size} variant={pathVariant} isNight={nightIntensity > 0.3} />;
+        
+      case BiomeType.DIRT_PATH:
+        // Always render as dirt path regardless of culture/era
+        return <PathSymbol x={0} y={0} size={size} variant="dirt" isNight={nightIntensity > 0.3} />;
         
       // Furniture - Storage
       case BiomeType.CHEST:

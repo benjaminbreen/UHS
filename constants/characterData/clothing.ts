@@ -505,7 +505,8 @@ export const CLOTHING_DATA: ClothingData = {
                     ],
                     headgear: [
                         { name: 'Ducal Coronet', material: 'Gold and Gems' },
-                        { name: 'Velvet Cap', material: 'Rich Velvet', adjectives: ['Plumed'] }
+                        { name: 'Velvet Cap', material: 'Rich Velvet', adjectives: ['Plumed'] },
+                        { name: 'Mitre', material: 'White Silk and Gold', adjectives: ['Episcopal'] }
                     ],
                     footwear: [
                         { name: 'Noble Boots', material: 'Fine Leather', adjectives: ['Gilded'] },
@@ -704,7 +705,8 @@ export const CLOTHING_DATA: ClothingData = {
                     ],
                     headgear: [
                         { name: 'Flat Cap', material: 'Tweed', adjectives: ['Eight-panel'] },
-                        { name: 'Cheese-cutter', material: 'Cotton Duck', adjectives: ['Worn'] }
+                        { name: 'Cheese-cutter', material: 'Cotton Duck', adjectives: ['Worn'] },
+                        { name: 'Phrygian Cap', material: 'Red Wool', adjectives: ['Revolutionary'] }
                     ],
                     footwear: [
                         { name: 'Work Boots', material: 'Thick Leather', adjectives: ['Hobnailed'] },
@@ -853,7 +855,8 @@ export const CLOTHING_DATA: ClothingData = {
                     ],
                     headgear: [
                         { name: 'Newsboy Cap', material: 'Wool Tweed' },
-                        { name: 'Flat Cap', material: 'Cotton', adjectives: ['Worn'] }
+                        { name: 'Flat Cap', material: 'Cotton', adjectives: ['Worn'] },
+                        { name: 'Ushanka', material: 'Rabbit Fur', adjectives: ['Winter'] }
                     ],
                     footwear: [
                         { name: 'Work Boots', material: 'Thick Leather', adjectives: ['Steel-toed'] },
@@ -1821,7 +1824,11 @@ export const CLOTHING_DATA: ClothingData = {
             poor: {
                 Male: {
                     garments: [{ name: 'Thobe', material: 'Cotton' }, { name: 'Robe', material: 'Wool' }],
-                    headgear: [{ name: 'Keffiyeh', material: 'Cotton' }, { name: 'Turban', material: 'Linen' }],
+                    headgear: [
+                        { name: 'Keffiyeh', material: 'Cotton' }, 
+                        { name: 'Turban', material: 'Linen' },
+                        { name: 'Taqiyah', material: 'Cotton', adjectives: ['White'] }
+                    ],
                     footwear: [{ name: 'Sandals', material: 'Leather' }],
                     belts: [{ name: 'Belt', material: 'Leather' }],
                     accessories: [{ name: 'Prayer Beads', material: 'Wood' }],
@@ -1829,7 +1836,11 @@ export const CLOTHING_DATA: ClothingData = {
                 },
                 Female: {
                     garments: [{ name: 'Abaya', material: 'Cotton' }, { name: 'Robe', material: 'Linen' }],
-                    headgear: [{ name: 'Hijab', material: 'Cotton' }],
+                    headgear: [
+                        { name: 'Hijab', material: 'Cotton' },
+                        { name: 'Niqab', material: 'Black Cotton' },
+                        { name: 'None', material: 'None' }
+                    ],
                     footwear: [{ name: 'Slippers', material: 'Leather' }],
                     belts: [{ name: 'Sash', material: 'Cotton' }],
                     accessories: [{ name: 'Bracelet', material: 'Silver' }],
@@ -1859,7 +1870,11 @@ export const CLOTHING_DATA: ClothingData = {
             common: {
                 Male: {
                     garments: [{ name: 'Thobe', material: 'Fine Cotton' }, { name: 'Jacket', material: 'Wool', adjectives: ['Western-style'] }],
-                    headgear: [{ name: 'Fez', material: 'Felt' }, { name: 'Keffiyeh', material: 'Cotton' }],
+                    headgear: [
+                        { name: 'Fez', material: 'Felt' }, 
+                        { name: 'Keffiyeh', material: 'Cotton' },
+                        { name: 'Taqiyah', material: 'White Cotton' }
+                    ],
                     footwear: [{ name: 'Boots', material: 'Leather' }],
                     belts: [{ name: 'Belt', material: 'Leather' }],
                     accessories: [{ name: 'Watch', material: 'Gold', adjectives: ['Pocket'] }],
@@ -5488,16 +5503,30 @@ export const getClothingData = (
         }
     }
 
-    // Fallback strategy 4: Try opposite gender in same context
+    // Fallback strategy 4: Try similar cultures in different eras
+    if (CULTURAL_SIMILARITY[fallbackCulture] && ERA_PROGRESSION[era]) {
+        for (const altCulture of CULTURAL_SIMILARITY[fallbackCulture]!) {
+            for (const altEra of ERA_PROGRESSION[era]) {
+                const crossCulturalFallback = CLOTHING_DATA[altCulture]?.[altEra]?.[simplifiedWealth]?.[gender];
+                if (crossCulturalFallback) return adaptClothingForCulture(crossCulturalFallback, culturalZone, era);
+            }
+        }
+    }
+
+    // Fallback strategy 5: Try opposite gender in same context
     const oppositeGender = gender === 'Male' ? 'Female' : 'Male';
     const genderFallback = CLOTHING_DATA[effectiveCulturalZone]?.[era]?.[simplifiedWealth]?.[oppositeGender];
     if (genderFallback) return adaptClothingForGender(genderFallback, gender);
 
-    // Final fallback: Use European Medieval Common as universal base
-    const finalFallback = CLOTHING_DATA.EUROPEAN?.[HistoricalEra.MEDIEVAL]?.['common']?.[gender];
-    if (finalFallback) return adaptClothingForContext(finalFallback, culturalZone, era, simplifiedWealth);
+    // Fallback strategy 6: Try the most populated era for the culture
+    const culturalEras = Object.keys(CLOTHING_DATA[effectiveCulturalZone] || {}) as HistoricalEra[];
+    if (culturalEras.length > 0) {
+        const bestEra = culturalEras[0];
+        const bestEraFallback = CLOTHING_DATA[effectiveCulturalZone]?.[bestEra]?.[simplifiedWealth]?.[gender];
+        if (bestEraFallback) return adaptClothingForEra(bestEraFallback, era);
+    }
 
-    // Ultimate fallback: Generate basic clothing
+    // Final fallback: Generate basic clothing (which now returns None for headgear)
     return generateBasicClothing(culturalZone, era, simplifiedWealth, gender);
 };
 
@@ -5627,11 +5656,35 @@ function adaptClothingForCulture(
             break;
         case 'MENA':
             adapted.palette = MENA_COLORS;
+            // Prefer hijabs/turbans over generic headgear for MENA
+            if (adapted.headgear && adapted.headgear.length > 0) {
+                const hasAppropriate = adapted.headgear.some(h => 
+                    h.name.toLowerCase().includes('hijab') || 
+                    h.name.toLowerCase().includes('turban') ||
+                    h.name.toLowerCase().includes('keffiyeh') ||
+                    h.name.toLowerCase().includes('fez') ||
+                    h.name === 'None'
+                );
+                if (!hasAppropriate) {
+                    adapted.headgear = [{ name: 'None', material: 'None' }];
+                }
+            }
             break;
         case 'OCEANIA':
         case 'SUB_SAHARAN_AFRICAN':
         case 'SOUTH_AMERICAN':
             adapted.palette = TROPICAL_COLORS;
+            // Tropical cultures often don't wear headgear
+            if (adapted.headgear && adapted.headgear.length > 0) {
+                const hasAppropriate = adapted.headgear.some(h => 
+                    h.name === 'None' || 
+                    h.name.toLowerCase().includes('feather') ||
+                    h.name.toLowerCase().includes('flower')
+                );
+                if (!hasAppropriate) {
+                    adapted.headgear = [{ name: 'None', material: 'None' }];
+                }
+            }
             break;
         default:
             adapted.palette = getEraBasePalette(era);
@@ -5702,7 +5755,7 @@ function generateBasicClothing(
     
     return {
         garments: [{ name: basicGarment, material: basicMaterial }],
-        headgear: [{ name: isTropicalCulture ? 'None' : 'Simple Cap', material: isTropicalCulture ? 'None' : basicMaterial }],
+        headgear: [{ name: 'None', material: 'None' }], // Changed to always return None as fallback
         footwear: [{ name: isTropicalCulture ? 'Barefoot' : 'Simple Shoes', material: isTropicalCulture ? 'None' : 'Leather' }],
         belts: [{ name: 'Cord Belt', material: isEarlyEra ? 'Plant Fiber' : 'Leather' }],
         accessories: [{ name: 'Simple Ornament', material: wealthLevel === 'wealthy' ? 'Silver' : 'Wood' }],

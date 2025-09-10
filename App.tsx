@@ -29,6 +29,8 @@ import { eventService } from './services/eventService';
 import QuestRewardNotification from './components/QuestRewardNotification';
 import { parseURLConfig, URLGameConfig } from './services/urlConfigService';
 import { SeedManager } from './services/seedService';
+import { shareableStateService } from './services/shareableStateService';
+import { findZoneForMapArea, findSimilarMapArea } from './services/zoneDetectionService';
 import { useURLGameConfig } from './hooks/useURLGameConfig';
 import FactionsModal from './components/FactionsModal';
 import FactionTooltip from './components/FactionTooltip';
@@ -39,6 +41,63 @@ const AppContent: React.FC = () => {
     
     // Parse URL config FIRST, before any hooks that use game state
     const urlConfig = React.useMemo(() => {
+        // First check for new state parameter format
+        const searchParams = new URLSearchParams(location.search);
+        const stateParam = searchParams.get('state');
+        
+        if (stateParam) {
+            // Try to decode the comprehensive state
+            const decodedState = shareableStateService.decodeGameState(stateParam);
+            if (decodedState) {
+                // Validate and repair the state to ensure all fields are valid
+                const fullState = shareableStateService.validateAndRepairState(decodedState);
+                
+                console.log('╔═══════════════════════════════════════════════════════');
+                console.log('║ URL RESTORATION - STEP 1: STATE DECODED & VALIDATED');
+                console.log('╠═══════════════════════════════════════════════════════');
+                console.log('║ Year:', fullState.year);
+                console.log('║ Map Area:', fullState.mapArea);
+                console.log('║ Zone:', fullState.zone, '(validated/repaired)');
+                console.log('║ Region:', fullState.region);
+                console.log('║ Game Mode:', fullState.gameMode, '(validated)');
+                console.log('║ Map Seed:', fullState.mapSeed, '(validated)');
+                console.log('║ Character:', fullState.character?.name, '|', fullState.character?.profession);
+                console.log('╚═══════════════════════════════════════════════════════');
+                
+                // Initialize seed manager with the validated map seed
+                console.log('[URL_RESTORE] Step 2: Initializing SeedManager with seed:', fullState.mapSeed);
+                SeedManager.getInstance(fullState.mapSeed);
+                
+                // Store character data for later restoration
+                console.log('[URL_RESTORE] Step 3: Storing character data in localStorage');
+                localStorage.setItem('urlCharacterData', JSON.stringify(fullState.character));
+                localStorage.setItem('urlGameMode', fullState.gameMode);
+                
+                // Convert to URLGameConfig format for compatibility
+                const config: URLGameConfig & { fullState?: any } = {
+                    dateRange: {
+                        startYear: fullState.year,
+                        endYear: fullState.year
+                    },
+                    geography: {
+                        // We'll need to determine cultural zone from the map area
+                        // This is a simplified mapping - you may need to expand this
+                        culturalZone: fullState.zone as any,
+                        region: fullState.region as any
+                    },
+                    gameMode: fullState.gameMode as any,
+                    seed: fullState.mapSeed,
+                    fullState: fullState
+                };
+                
+                // Store game mode preference
+                localStorage.setItem('urlConfigGameMode', fullState.gameMode);
+                
+                return config;
+            }
+        }
+        
+        // Fall back to old URL parsing
         const config = parseURLConfig(location.pathname);
         
         // Initialize seed if provided in URL
@@ -60,7 +119,9 @@ const AppContent: React.FC = () => {
     const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, debugSettings, isTestModeEnabled } = useUI();
     const { playerCharacter } = usePlayer();
     const { gameDate, currentZone, currentRegion, isLoading } = useGame();
-    const { localArea, mapData, onStartNewWorldAtZoneRegion, isSpecialMap, isEnteringSpecialMap } = useMap();
+    const mapContext = useMap();
+    const { localArea, mapData, onStartNewWorldAtZoneRegion, onStartNewWorldAtLocation, isSpecialMap, isEnteringSpecialMap } = mapContext;
+    
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState<'left' | 'right' | null>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
     const [showInitialScenarioModal, setShowInitialScenarioModal] = React.useState(false);
@@ -70,6 +131,9 @@ const AppContent: React.FC = () => {
     const [delayInitialMap, setDelayInitialMap] = React.useState(true);
     const [isGeneratingMap, setIsGeneratingMap] = React.useState(false);
     const [mapVisible, setMapVisible] = React.useState(true); // Easter egg state
+    
+    // Use a ref to ensure we only generate once from URL
+    const hasGeneratedFromURLRef = React.useRef(false);
     
     // Store whether we should wait for URL config
     const shouldWaitForURLConfig = React.useMemo(() => {
@@ -111,13 +175,20 @@ const AppContent: React.FC = () => {
             return;
         }
         
+        // Additional guard using ref to prevent double generation
+        if (hasGeneratedFromURLRef.current) {
+            console.log('[App] Already generated from URL, skipping duplicate generation');
+            return;
+        }
+        
         console.log('[App] Initiating world generation...');
         setHasInitializedFromURL(true);
         setIsGeneratingMap(true);
+        hasGeneratedFromURLRef.current = true;
         
         // If we have URL config, generate based on that
         if (shouldWaitForURLConfig) {
-            console.log('[App] Generating initial world from URL config');
+            console.log('[URL_RESTORE] Step 3.5: Starting world generation from URL config');
             
             // Map cultural zone to the actual zone key used in GEOGRAPHICAL_DATA
             const zoneMapping: Record<string, string> = {
@@ -131,18 +202,102 @@ const AppContent: React.FC = () => {
                 'OCEANIA': 'Oceania'
             };
             
-            const targetZone = urlConfig.geography?.culturalZone 
-                ? (zoneMapping[urlConfig.geography.culturalZone] || 'Europe')
-                : currentZone; // Use the zone from initial state if no geography in URL
-            const targetRegion = urlConfig.geography?.region || '';
+            // Check if we have full state data from new URL format
+            const fullState = (urlConfig as any).fullState;
             
-            // Create character spec if we have date config
-            const characterSpec = urlConfig.dateRange ? { year: urlConfig.dateRange.startYear } : undefined;
+            let targetZone: string;
+            let targetRegion: string;
+            let characterSpec: any;
             
-            console.log('[App] Starting world generation from URL:', targetZone, targetRegion, characterSpec);
-            
-            // Start world generation immediately
-            onStartNewWorldAtZoneRegion(targetZone, targetRegion, characterSpec);
+            if (fullState) {
+                // Use the specific map area from the full state
+                console.log('[App] Using full state from URL:', fullState);
+                
+                // Intelligently determine zone and region
+                let finalZone = fullState.zone;
+                let finalRegion = fullState.region;
+                const mapArea = fullState.mapArea;
+                
+                // If zone is empty or invalid, detect it from map area
+                if (!finalZone || finalZone === '' || finalZone === '...') {
+                    console.log('[URL_RESTORE] Zone is empty/invalid, detecting from map area:', mapArea);
+                    const detected = findZoneForMapArea(mapArea);
+                    if (detected) {
+                        finalZone = detected.zone;
+                        finalRegion = detected.region;
+                        console.log('[URL_RESTORE] Detected zone:', finalZone, 'region:', finalRegion);
+                    } else {
+                        // Try fuzzy matching
+                        console.log('[URL_RESTORE] Exact match failed, trying similar areas...');
+                        const similar = findSimilarMapArea(mapArea);
+                        if (similar) {
+                            finalZone = similar.zone;
+                            finalRegion = similar.region;
+                            console.log('[URL_RESTORE] Found similar area in zone:', finalZone);
+                        } else {
+                            console.error('[URL_RESTORE] Could not find zone for map area:', mapArea);
+                            finalZone = 'Europe'; // Ultimate fallback
+                            finalRegion = '';
+                        }
+                    }
+                }
+                
+                // Store complete generation context for character
+                const generationContext = {
+                    date: String(fullState.year),
+                    location: finalZone,
+                    region: finalRegion,
+                    mapArea: mapArea
+                };
+                localStorage.setItem('urlGenerationContext', JSON.stringify(generationContext));
+                
+                targetZone = finalZone;
+                targetRegion = finalRegion;
+                characterSpec = { 
+                    year: fullState.year,
+                    mapArea: mapArea,
+                    zone: finalZone,
+                    region: finalRegion
+                };
+                
+                // Store game mode in localStorage for restoration after character creation
+                if (fullState.gameMode) {
+                    localStorage.setItem('urlConfigGameMode', fullState.gameMode);
+                    console.log('[URL_RESTORE] Stored game mode for restoration:', fullState.gameMode);
+                }
+                
+                console.log('[URL_RESTORE] Final world generation params:');
+                console.log('[URL_RESTORE]   - Zone:', targetZone);
+                console.log('[URL_RESTORE]   - Map Area:', mapArea);
+                console.log('[URL_RESTORE]   - Region:', targetRegion);
+                console.log('[URL_RESTORE]   - Year:', fullState.year);
+                
+                // Try to use onStartNewWorldAtLocation if available
+                if (typeof onStartNewWorldAtLocation === 'function') {
+                    console.log('[URL_RESTORE] Step 4: Calling onStartNewWorldAtLocation');
+                    onStartNewWorldAtLocation(targetZone, mapArea, characterSpec, fullState.year);
+                } else {
+                    // Fallback: use onStartNewWorldAtZoneRegion
+                    console.log('[URL_RESTORE] Step 4 FALLBACK: onStartNewWorldAtLocation not available');
+                    onStartNewWorldAtZoneRegion(targetZone, targetRegion || '', characterSpec);
+                }
+            } else if (urlConfig.geography?.culturalZone || urlConfig.geography?.region) {
+                // Fall back to old URL parsing with zone/region
+                targetZone = urlConfig.geography?.culturalZone 
+                    ? (zoneMapping[urlConfig.geography.culturalZone] || 'Europe')
+                    : currentZone;
+                targetRegion = urlConfig.geography?.region || '';
+                characterSpec = urlConfig.dateRange ? { year: urlConfig.dateRange.startYear } : undefined;
+                
+                console.log('[App] Legacy URL world generation - Zone:', targetZone, 'Region:', targetRegion);
+                
+                // Use onStartNewWorldAtZoneRegion for legacy URLs
+                onStartNewWorldAtZoneRegion(targetZone, targetRegion, characterSpec);
+            } else {
+                // No geography in URL - generate a default random map
+                console.log('[App] Generating default random world (no URL geography)');
+                onStartNewWorldAtZoneRegion('', ''); // Empty strings will trigger random selection
+            }
         } else {
             // No URL config - generate a default random map
             console.log('[App] Generating default random world (no URL config)');
@@ -151,7 +306,7 @@ const AppContent: React.FC = () => {
         
         // Reset generating flag after a delay
         setTimeout(() => setIsGeneratingMap(false), 5000);
-    }, [hasInitializedFromURL, delayInitialMap, shouldWaitForURLConfig, urlConfig, onStartNewWorldAtZoneRegion, currentZone, isGeneratingMap, isLoading, mapData, isSpecialMap, isEnteringSpecialMap]);
+    }, [hasInitializedFromURL, delayInitialMap, shouldWaitForURLConfig, urlConfig, onStartNewWorldAtZoneRegion, onStartNewWorldAtLocation, currentZone, isGeneratingMap, isLoading, mapData, isSpecialMap, isEnteringSpecialMap]);
     
     // Initialize event system
     const { 
@@ -193,6 +348,8 @@ const AppContent: React.FC = () => {
     const hasAppliedURLModeRef = React.useRef(false);
     
     // Reset event system when starting new games, then set game mode
+    const processedCharacterRef = React.useRef<string | null>(null);
+    
     React.useEffect(() => {
         if (playerCharacter) {
             // Don't reset if we're entering a special map - the game mode should persist
@@ -202,62 +359,72 @@ const AppContent: React.FC = () => {
                 return;
             }
             
+            // Only process if this is a new character
+            if (processedCharacterRef.current === playerCharacter.name) {
+                return; // Already processed this character
+            }
+            processedCharacterRef.current = playerCharacter.name;
+            
             console.log('[GameMode] New character detected, resetting event system');
             resetForNewGame();
             // Reset initial scenario modal state for new character
             setHasShownInitialScenario(false);
             
-            // Check if we have a URL-configured game mode (only apply once)
-            const urlGameMode = localStorage.getItem('urlConfigGameMode');
-            let mode;
-            
-            if (urlGameMode && !hasAppliedURLModeRef.current) {
-                // Use the URL-specified game mode using the getGameModeById function
-                mode = getGameModeById(urlGameMode);
-                if (mode) {
-                    console.log('[GameMode] Using URL-configured mode:', urlGameMode);
-                    hasAppliedURLModeRef.current = true;
-                    // Don't clear it yet - let it persist for the correct character
-                } else {
-                    console.warn('[GameMode] Invalid game mode from URL:', urlGameMode);
-                }
-            }
-            
-            if (!mode) {
-                // Fall back to procedural mode selection
-                mode = suggestGameMode(
-                    playerCharacter.occupation,
-                    undefined, // location
-                    playerCharacter.historicalEra,
-                    {
-                        health: playerCharacter.health,
-                        intelligence: playerCharacter.stats.intelligence,
-                        charisma: playerCharacter.stats.charisma,
-                        strength: playerCharacter.stats.strength,
-                        privilege: playerCharacter.socialContext.privilege,
-                        constitution: playerCharacter.stats.constitution
+            // Try to get URL game mode with retries
+            const attemptGameModeRestore = (attemptNum: number = 0) => {
+                // Check if we have a URL-configured game mode (only apply once)
+                const urlGameMode = 
+                    localStorage.getItem('urlConfigGameMode') ||
+                    localStorage.getItem('urlGameMode') ||
+                    localStorage.getItem('pendingGameMode');
+                
+                if (urlGameMode && !hasAppliedURLModeRef.current) {
+                    // Use the URL-specified game mode
+                    const mode = getGameModeById(urlGameMode);
+                    if (mode) {
+                        console.log('[URL_RESTORE] Successfully restored game mode from URL:', urlGameMode);
+                        setGameMode(mode);
+                        hasAppliedURLModeRef.current = true;
+                        
+                        // Clear storage after successful application
+                        setTimeout(() => {
+                            localStorage.removeItem('urlConfigGameMode');
+                            localStorage.removeItem('urlGameMode');
+                            localStorage.removeItem('pendingGameMode');
+                        }, 2000);
+                        return true;
+                    } else {
+                        console.warn('[GameMode] Invalid game mode from URL:', urlGameMode);
                     }
-                );
-            }
+                } else if (attemptNum < 5 && !hasAppliedURLModeRef.current) {
+                    // Retry after a delay
+                    setTimeout(() => attemptGameModeRestore(attemptNum + 1), 500);
+                    return false;
+                }
+                
+                // If no URL mode or all attempts failed, use suggested mode
+                if (!hasAppliedURLModeRef.current) {
+                    const suggestedMode = suggestGameMode(
+                        playerCharacter.occupation,
+                        undefined,
+                        playerCharacter.historicalEra,
+                        {
+                            health: playerCharacter.health,
+                            intelligence: playerCharacter.stats.intelligence,
+                            charisma: playerCharacter.stats.charisma,
+                            strength: playerCharacter.stats.strength,
+                            privilege: playerCharacter.socialContext.privilege,
+                            constitution: playerCharacter.stats.constitution
+                        }
+                    );
+                    console.log('[GameMode] Using suggested mode:', suggestedMode?.name);
+                    setGameMode(suggestedMode);
+                }
+                return false;
+            };
             
-            // Set mode immediately after reset to avoid race condition
-            setGameMode(mode);
-            
-            console.log('═══════════════════════════════════════════════════════');
-            console.log('[GameMode] MODE SELECTION COMPLETE');
-            console.log('═══════════════════════════════════════════════════════');
-            console.log('Selected Mode:', mode?.name || 'NONE');
-            console.log('Mode was from URL:', !!urlGameMode && hasAppliedURLModeRef.current);
-            console.log('Character:', playerCharacter.name, '|', playerCharacter.occupation);
-            console.log('Era:', playerCharacter.historicalEra);
-            if (mode) {
-                console.log('Mode ID:', mode.id);
-                console.log('Mode Description:', mode.description);
-                console.log('Victory Conditions:', mode.victoryConditions?.map(v => v.description) || 'None');
-            } else {
-                console.error('[GameMode] ERROR: No mode was selected!');
-            }
-            console.log('═══════════════════════════════════════════════════════');
+            // Start the game mode restoration attempt
+            attemptGameModeRestore();
         }
     }, [playerCharacter?.name, resetForNewGame, setGameMode]); // Only reset when character name changes (new character)
     

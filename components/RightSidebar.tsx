@@ -23,10 +23,10 @@ const ACTION_BUTTONS_KEY = 'rhs.actionButtons';
 type RightSidebarTab = 'narrator' | 'inventory' | 'beliefs';
 
 const RightSidebar: React.FC = () => {
-  const { setIsCharacterProfileModalOpen, onUseSkill, onSend, onCraft } = useUI();
-  const { narrationHistory, playerInput, onPlayerInputChange, isNarratorLoading } = useGame();
+  const { setIsCharacterProfileModalOpen, onUseSkill, onSend, onCraft, combatant } = useUI();
+  const { narrationHistory, playerInput, onPlayerInputChange, isNarratorLoading, gameTimeHours, contextualMessage } = useGame();
   const { playerCharacter, controlledIconX, controlledIconY, setShipDockX, setShipDockY, setCurrentVessel } = usePlayer();
-  const { deployVesselToMap } = useMap();
+  const { deployVesselToMap, mapData } = useMap();
 
   /* ---------------------------- state & persistence --------------------------- */
   const [activeTab, setActiveTab] = useState<RightSidebarTab>('narrator');
@@ -178,7 +178,17 @@ const RightSidebar: React.FC = () => {
                       <div className="absolute inset-0 z-10 pointer-events-none rounded-full bg-gradient-to-br from-transparent via-transparent to-black/50"></div>
                       <div className="absolute inset-0 z-10 pointer-events-none rounded-full bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
                       <div className="flex items-center justify-center w-full h-full">
-                        <AnimatedPortrait character={playerCharacter} size={96} trackChanges={true} />
+                        <AnimatedPortrait 
+                          character={playerCharacter} 
+                          size={96} 
+                          trackChanges={true}
+                          currentTile={mapData && controlledIconX !== null && controlledIconY !== null 
+                            ? mapData[controlledIconY]?.[controlledIconX] 
+                            : undefined}
+                          gameTimeHours={gameTimeHours}
+                          isInCombat={!!combatant}
+                          contextualMessage={contextualMessage}
+                        />
                       </div>
                     </div>
                     {/* XP ring: subtle progress arc behind avatar */}

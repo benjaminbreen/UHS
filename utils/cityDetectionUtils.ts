@@ -61,7 +61,7 @@ export function detectCitiesForArea(
             const areaCities = CITIES_DATA[areaName] || [];
             
             if (verbose && areaCities.length > 0) {
-                console.log(`[CityDetection] Found ${areaCities.length} total cities in cities.ts for "${areaName}"`);
+                // console.log(`[CityDetection] Found ${areaCities.length} total cities in cities.ts for "${areaName}"`);
             }
             
             const activeCities = areaCities.filter((city: any) => 
@@ -89,7 +89,7 @@ export function detectCitiesForArea(
                 }
                 return result; // Found cities, stop searching
             } else if (verbose && areaCities.length > 0) {
-                console.log(`[CityDetection] Found cities in "${areaName}" but none active for year ${year}`);
+                // console.log(`[CityDetection] Found cities in "${areaName}" but none active for year ${year}`);
             }
         } catch (error) {
             console.error(`[CityDetection] Error checking cities.ts for "${areaName}":`, error);

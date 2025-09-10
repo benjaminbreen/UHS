@@ -516,8 +516,8 @@ export function generateVegetation(mapData: MapData, noise: ValueNoise): Vegetat
   const finalTreeCount = vegetation.filter(v => ['deciduous_tree', 'coniferous_tree', 'palm_tree'].includes(v.baseType)).length;
   const finalNonTreeCount = vegetation.length - finalTreeCount;
   
-  console.log(`[Gen] Placed ${vegetation.length} vegetation entities (${finalTreeCount} trees, ${finalNonTreeCount} bushes/cacti) for ${climate} climate.`);
-  console.log(`[Gen] Climate limits: ${maxTrees} trees, ${maxNonTrees}. Utilization: ${((finalTreeCount/maxTrees)*100).toFixed(1)}% trees, ${((finalNonTreeCount/maxNonTrees)*100).toFixed(1)}% other.`);
+  // console.log(`[Gen] Placed ${vegetation.length} vegetation entities (${finalTreeCount} trees, ${finalNonTreeCount} bushes/cacti) for ${climate} climate.`);
+  // console.log(`[Gen] Climate limits: ${maxTrees} trees, ${maxNonTrees}. Utilization: ${((finalTreeCount/maxTrees)*100).toFixed(1)}% trees, ${((finalNonTreeCount/maxNonTrees)*100).toFixed(1)}% other.`);
   
   return vegetation;
 }

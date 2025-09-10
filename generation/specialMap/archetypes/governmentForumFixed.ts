@@ -7,7 +7,8 @@ import { Tile, OverlayObjectType } from '../../../types/core/tile';
 import { BiomeType } from '../../../types/biomes/base';
 import { SpecialMapConfig, InteractionZone, ExitZone, RoomDefinition } from '../../../types/specialMapTypes';
 import { ValueNoise } from '../../../utils/valueNoise';
-import { CULTURAL_LAYOUT_PATTERNS, LANDSCAPE_BORDER_ROWS } from '../../../constants/specialMaps/specialMapAugmentation';
+// Removed specialMapAugmentation dependency - cultural layouts handled by generators
+const LANDSCAPE_BORDER_ROWS = 2; // Default border for government buildings
 import { MultiTileObjectManager } from '../../../services/multiTileObjectService';
 import { getFurnitureMaterial } from '../../../services/materialMappingService';
 import { 

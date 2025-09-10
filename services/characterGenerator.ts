@@ -122,7 +122,7 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
     const generationContext = { 
         era: dateInfo.era as HistoricalEra, 
         culturalZone,
-        region: context.region,
+        region: finalContext.region,
     };
     
     // Generate base profile but allow overrides from spec
@@ -500,9 +500,37 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
     const markingProbability = getMarkingProbability(culturalZone, generationContext.era, spec?.profession || role);
     const markings: any[] = [];
     
-    console.log(`[CharGen Spec] Marking probability for ${culturalZone}/${generationContext.era}/${spec?.profession || role}: ${markingProbability}`);
+    // console.log(`[CharGen Spec] Marking probability for ${culturalZone}/${generationContext.era}/${spec?.profession || role}: ${markingProbability}`);
     
+    // Determine how many markings to add based on culture - MORE historically accurate
+    let numMarkings = 0;
     if (noise.random() < markingProbability) {
+        // Higher probability cultures often have multiple markings
+        if (culturalZone === 'OCEANIA' || culturalZone === 'NORTH_AMERICAN_PRE_COLUMBIAN' || 
+            culturalZone === 'SUB_SAHARAN_AFRICAN' || culturalZone === 'SOUTH_AMERICAN') {
+            // These cultures almost always had multiple types of body modifications
+            const roll = noise.random();
+            if (roll < 0.4) numMarkings = 3;       // 40% chance for 3 markings
+            else if (roll < 0.8) numMarkings = 2;  // 40% chance for 2 markings
+            else numMarkings = 1;                  // 20% chance for 1 marking
+            
+            // Minimum 2 for adults in these cultures
+            if (baseProfile.age > 18) numMarkings = Math.max(2, numMarkings);
+        } else if (culturalZone === 'SOUTH_ASIAN' || culturalZone === 'MENA') {
+            // Often have both daily (bindi/kohl) and special (henna) markings
+            numMarkings = noise.random() < 0.7 ? 2 : 1; // 70% chance for 2
+            // Women often have more markings
+            if (baseProfile.gender?.toLowerCase() === 'female') {
+                numMarkings = Math.max(2, numMarkings);
+            }
+        } else {
+            // Even European/East Asian cultures often had some daily markings
+            numMarkings = noise.random() < 0.3 ? 2 : 1; // 30% chance for 2
+        }
+    }
+    
+    const usedTypes = new Set<string>();
+    for (let i = 0; i < numMarkings; i++) {
         const availableMarkings = getMarkingsForCharacter(
             culturalZone,
             generationContext.era,
@@ -510,24 +538,21 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
             spec?.gender?.toLowerCase() as 'male' | 'female' || 'male',
             baseProfile.wealthLevel,
             spec?.age || baseProfile.age,
-            'daily' // Default occasion
-        );
+            i === 0 ? 'daily' : (noise.random() < 0.5 ? 'ceremony' : 'daily')
+        ).filter(m => !usedTypes.has(m.type)); // Don't repeat marking types
         
-        console.log(`[CharGen Spec] Found ${availableMarkings.length} available markings for character`);
+        // console.log(`[CharGen Spec] Found ${availableMarkings.length} available markings for slot ${i+1}`);
         
         const selectedMarking = selectRandomMarking(availableMarkings, noise.random());
         if (selectedMarking) {
+            usedTypes.add(selectedMarking.type);
             const pattern = getRandomPattern(selectedMarking, noise.random());
             if (pattern) {
                 const appearanceMarking = convertToAppearanceMarking(selectedMarking, pattern);
                 markings.push(appearanceMarking);
-                console.log(`[CharGen Spec] Added cultural marking: ${pattern.localName || pattern.name} (${selectedMarking.type})`);
+                // console.log(`[CharGen Spec] Added cultural marking: ${pattern.localName || pattern.name} (${selectedMarking.type}`);
             }
-        } else {
-            console.log(`[CharGen Spec] No marking selected from available options`);
         }
-    } else {
-        console.log(`[CharGen Spec] Random check failed: ${noise.random()} >= ${markingProbability}`);
     }
 
     const finalAppearance: Appearance = {
@@ -724,7 +749,7 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
                 console.log(`[Character Generator] No diseases available for custom character in era ${generationContext.era}`);
             }
         } else {
-            console.log(`[Character Generator] Custom character spawned healthy (disease chance was ${(diseaseChance * 100).toFixed(1)}%)`);
+            // console.log(`[Character Generator] Custom character spawned healthy (disease chance was ${(diseaseChance * 100).toFixed(1)}%`);
         }
     }
     
@@ -761,13 +786,81 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
 export function generateCharacter(context: GenerationContext): PlayerCharacter {
     console.log('[Character Generator] Starting enhanced character generation');
     
+    // Check for URL generation context to override the passed context
+    const urlGenerationContext = localStorage.getItem('urlGenerationContext');
+    let finalContext = context;
+    
+    if (urlGenerationContext) {
+        try {
+            const urlCtx = JSON.parse(urlGenerationContext);
+            console.log('[URL_RESTORE] Using URL generation context:', urlCtx);
+            
+            // Override context with URL values
+            finalContext = {
+                date: urlCtx.date || context.date,
+                location: urlCtx.location || context.location,
+                region: urlCtx.region || context.region
+            };
+            
+            // Clear after use to prevent reuse
+            localStorage.removeItem('urlGenerationContext');
+        } catch (error) {
+            console.error('[Character Generator] Failed to parse URL generation context:', error);
+        }
+    }
+    
+    // Check for character data from URL
+    const urlCharacterData = localStorage.getItem('urlCharacterData');
+    if (urlCharacterData) {
+        try {
+            const charData = JSON.parse(urlCharacterData);
+            
+            // Check if this data has already been used
+            if (!charData._used) {
+                console.log('[URL_RESTORE] Step 5: Using URL character data:', charData);
+                
+                // Mark as used but don't remove yet - in case of re-renders
+                charData._used = true;
+                localStorage.setItem('urlCharacterData', JSON.stringify(charData));
+                
+                // Schedule removal after a delay to handle React re-renders
+                setTimeout(() => {
+                    console.log('[URL_RESTORE] Clearing used character data from localStorage');
+                    localStorage.removeItem('urlCharacterData');
+                    localStorage.removeItem('urlGenerationContext');
+                }, 5000);
+                
+                // Generate character with the specified data using the correct context
+                const spec: CharacterSpecification = {
+                    name: charData.name,
+                    age: charData.age,
+                    gender: charData.gender,
+                    profession: charData.profession,
+                    socialClass: charData.socialClass,
+                    health: charData.health as any
+                };
+                
+                return generateCharacterWithSpec(finalContext, spec);
+            } else {
+                console.log('[URL_RESTORE] Character data already used, generating new character');
+                // Data was already used, remove it and generate normally
+                localStorage.removeItem('urlCharacterData');
+                localStorage.removeItem('urlGenerationContext');
+            }
+        } catch (error) {
+            console.error('[Character Generator] Failed to parse URL character data:', error);
+            localStorage.removeItem('urlCharacterData');
+            localStorage.removeItem('urlGenerationContext');
+        }
+    }
+    
     const noise = new ValueNoise(Date.now() + Math.random() * 10000);
-    const dateInfo = parseDateString(context.date);
-    const culturalZone = mapLocationToCulture(context.location, dateInfo.year);
+    const dateInfo = parseDateString(finalContext.date);
+    const culturalZone = mapLocationToCulture(finalContext.location, dateInfo.year);
     const generationContext = { 
         era: dateInfo.era as HistoricalEra, 
         culturalZone,
-        region: context.region,
+        region: finalContext.region,
     };
     
     const baseProfile = generateBaseProfile(noise, generationContext);
@@ -829,9 +922,37 @@ export function generateCharacter(context: GenerationContext): PlayerCharacter {
     const markingProbability = getMarkingProbability(culturalZone, generationContext.era, role);
     const markings: any[] = [];
     
-    console.log(`[CharGen] Marking probability for ${culturalZone}/${generationContext.era}/${role}: ${markingProbability}`);
+    // console.log(`[CharGen] Marking probability for ${culturalZone}/${generationContext.era}/${role}: ${markingProbability}`);
     
+    // Determine how many markings to add based on culture - MORE historically accurate
+    let numMarkings = 0;
     if (noise.random() < markingProbability) {
+        // Higher probability cultures often have multiple markings
+        if (culturalZone === 'OCEANIA' || culturalZone === 'NORTH_AMERICAN_PRE_COLUMBIAN' || 
+            culturalZone === 'SUB_SAHARAN_AFRICAN' || culturalZone === 'SOUTH_AMERICAN') {
+            // These cultures almost always had multiple types of body modifications
+            const roll = noise.random();
+            if (roll < 0.4) numMarkings = 3;       // 40% chance for 3 markings
+            else if (roll < 0.8) numMarkings = 2;  // 40% chance for 2 markings
+            else numMarkings = 1;                  // 20% chance for 1 marking
+            
+            // Minimum 2 for adults in these cultures
+            if (baseProfile.age > 18) numMarkings = Math.max(2, numMarkings);
+        } else if (culturalZone === 'SOUTH_ASIAN' || culturalZone === 'MENA') {
+            // Often have both daily (bindi/kohl) and special (henna) markings
+            numMarkings = noise.random() < 0.7 ? 2 : 1; // 70% chance for 2
+            // Women often have more markings
+            if (baseProfile.gender?.toLowerCase() === 'female') {
+                numMarkings = Math.max(2, numMarkings);
+            }
+        } else {
+            // Even European/East Asian cultures often had some daily markings
+            numMarkings = noise.random() < 0.3 ? 2 : 1; // 30% chance for 2
+        }
+    }
+    
+    const usedTypes = new Set<string>();
+    for (let i = 0; i < numMarkings; i++) {
         const availableMarkings = getMarkingsForCharacter(
             culturalZone,
             generationContext.era,
@@ -839,24 +960,21 @@ export function generateCharacter(context: GenerationContext): PlayerCharacter {
             baseProfile.gender?.toLowerCase() as 'male' | 'female' || 'male',
             baseProfile.wealthLevel || 'modest',
             baseProfile.age,
-            'daily' // Default occasion
-        );
+            i === 0 ? 'daily' : (noise.random() < 0.5 ? 'ceremony' : 'daily')
+        ).filter(m => !usedTypes.has(m.type)); // Don't repeat marking types
         
-        console.log(`[CharGen] Found ${availableMarkings.length} available markings for character`);
+        // console.log(`[CharGen] Found ${availableMarkings.length} available markings for slot ${i+1}`);
         
         const selectedMarking = selectRandomMarking(availableMarkings, noise.random());
         if (selectedMarking) {
+            usedTypes.add(selectedMarking.type);
             const pattern = getRandomPattern(selectedMarking, noise.random());
             if (pattern) {
                 const appearanceMarking = convertToAppearanceMarking(selectedMarking, pattern);
                 markings.push(appearanceMarking);
-                console.log(`[CharGen] Added cultural marking: ${pattern.localName || pattern.name} (${selectedMarking.type})`);
+                // console.log(`[CharGen] Added cultural marking: ${pattern.localName || pattern.name} (${selectedMarking.type}`);
             }
-        } else {
-            console.log(`[CharGen] No marking selected from available options`);
         }
-    } else {
-        console.log(`[CharGen] Random check failed: ${noise.random()} >= ${markingProbability}`);
     }
 
     // Build the final appearance object, prioritizing equipped items for the description
@@ -1001,7 +1119,7 @@ export function generateCharacter(context: GenerationContext): PlayerCharacter {
             console.log(`[Character Generator] No diseases available for era ${generationContext.era} in ${culturalZone}`);
         }
     } else {
-        console.log(`[Character Generator] Character spawned healthy (disease chance was ${(diseaseChance * 100).toFixed(1)}%)`);
+        // console.log(`[Character Generator] Character spawned healthy (disease chance was ${(diseaseChance * 100).toFixed(1)}%`);
     }
 
     // Generate attribute badges based on stats, culture, and era

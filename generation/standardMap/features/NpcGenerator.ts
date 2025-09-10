@@ -546,6 +546,9 @@ function createNpc(
         createAndEquip('belt', appearance.belt, appearance.palette?.accent);
         createAndEquip('amulet', appearance.accessory, appearance.palette?.accent);
         
+        // Determine if NPC is wealthy based on wealth level
+        const isWealthy = baseProfile.wealthLevel === 'wealthy' || baseProfile.wealthLevel === 'comfortable';
+        
         // Generate historically appropriate legs/trousers
         generateLegsEquipment(context.era, context.culturalZone, role, isWealthy, newEquippedItems, appearance.palette?.primary);
         

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Restoration Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+        .test-link {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            background: #2a2a2a;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .test-link:hover {
+            background: #3a3a3a;
+        }
+        .description {
+            color: #888;
+            font-size: 0.9em;
+        }
+        h1 {
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+        }
+        h2 {
+            color: #00ff00;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>URL Restoration Test Suite</h1>
+    
+    <h2>Test Cases with Encoded State</h2>
+    <p class="description">These URLs contain full encoded game state in the query parameter</p>
+    
+    <a href="http://localhost:5179/1348/sulawesi/livelihood?state=eyJ2IjoxLCJ5IjoxMzQ4LCJtIjoxLCJkIjoxLCJtYSI6IlN1bGF3ZXNpIiwiZ20iOiJsaXZlIiwiY24iOiJLdW5jb3JvIFN1cnlhbnRvIiwiY3AiOiJmc2hlcm1hbiIsImNnIjoibSIsImNhIjoyMywibXMiOiJBQkNEMTIzNCIsInN0IjoicCJ9" class="test-link" target="_blank">
+        Test 1: Sulawesi 1348 - Fisherman Kuncoro Suryanto
+        <div class="description">Should restore: Year 1348, Sulawesi map, Livelihood mode, Character: Kuncoro Suryanto (fisherman)</div>
+    </a>
+    
+    <a href="http://localhost:5179/262/thar-desert-margin/survival?state=eyJ2IjoxLCJ5IjoyNjIsIm0iOjEsImQiOjEsIm1hIjoiVGhhciBEZXNlcnQgTWFyZ2luIiwiZ20iOiJzdXJ2IiwiY24iOiJCaWtyYW0gRGVvbCIsImNwIjoiaGVyZGVyIiwiY2ciOiJtIiwiY2EiOjI4LCJtcyI6IlhZWjk4NzY1Iiwic3QiOiJwIn0=" class="test-link" target="_blank">
+        Test 2: Thar Desert 262 - Herder Bikram Deol
+        <div class="description">Should restore: Year 262, Thar Desert Margin, Survival mode, Character: Bikram Deol (herder)</div>
+    </a>
+    
+    <a href="http://localhost:5179/1066/thames-estuary/leadership?state=eyJ2IjoxLCJ5IjoxMDY2LCJtIjoxLCJkIjoxLCJtYSI6IlRoYW1lcyBFc3R1YXJ5IiwiZ20iOiJsZWFkIiwiY24iOiJXaWxsaWFtIFRoZSBDb25xdWVyb3IiLCJjcCI6Im5vYmxlIiwiY2ciOiJtIiwiY2EiOjM5LCJtcyI6Ik5PUk1BTjY2Iiwic3QiOiJwIn0=" class="test-link" target="_blank">
+        Test 3: Thames 1066 - Noble William The Conqueror
+        <div class="description">Should restore: Year 1066, Thames Estuary, Leadership mode, Character: William The Conqueror (noble)</div>
+    </a>
+    
+    <a href="http://localhost:5179/1500/ancestral-puebloan-lands/exploration?state=eyJ2IjoxLCJ5IjoxNTAwLCJtIjoxLCJkIjoxLCJtYSI6IkFuY2VzdHJhbCBQdWVibG9hbiBMYW5kcyIsImdtIjoiZXhwbCIsImNuIjoiU2t5IFdhbGtlciIsImNwIjoidHJhZGVyIiwiY2ciOiJmIiwiY2EiOjI1LCJtcyI6IlBVRUJMTzAwIiwic3QiOiJwIn0=" class="test-link" target="_blank">
+        Test 4: Ancestral Puebloan 1500 - Trader Sky Walker
+        <div class="description">Should restore: Year 1500, Ancestral Puebloan Lands, Exploration mode, Character: Sky Walker (trader, female)</div>
+    </a>
+    
+    <h2>Legacy URL Format (without state)</h2>
+    <p class="description">These URLs use the old path-based format</p>
+    
+    <a href="http://localhost:5179/1348/europe/survival/SEED1234" class="test-link" target="_blank">
+        Legacy: Black Death Europe
+        <div class="description">Should generate: Year 1348 in Europe with survival mode</div>
+    </a>
+    
+    <a href="http://localhost:5179/1066/mena/leadership" class="test-link" target="_blank">
+        Legacy: Medieval Middle East
+        <div class="description">Should generate: Year 1066 in MENA with leadership mode</div>
+    </a>
+    
+    <h2>Instructions</h2>
+    <ol style="color: #888;">
+        <li>Click each test link to open in a new tab</li>
+        <li>Wait for the game to load</li>
+        <li>Verify that:
+            <ul>
+                <li>The year matches what's expected</li>
+                <li>The map area/zone is correct</li>
+                <li>The character name and profession match</li>
+                <li>The game mode is correctly set</li>
+            </ul>
+        </li>
+        <li>Check the browser console for validation logs</li>
+    </ol>
+    
+    <h2>Expected Console Output</h2>
+    <pre style="background: #2a2a2a; padding: 10px; border-radius: 4px; color: #888;">
+╔═══════════════════════════════════════════════════════
+║ URL RESTORATION - STEP 1: STATE DECODED & VALIDATED
+╠═══════════════════════════════════════════════════════
+║ Year: [correct year]
+║ Map Area: [correct area]
+║ Zone: [correct zone] (validated/repaired)
+║ Region: [if applicable]
+║ Game Mode: [correct mode] (validated)
+║ Map Seed: [8-char seed] (validated)
+║ Character: [name] | [profession]
+╚═══════════════════════════════════════════════════════
+    </pre>
+</body>
+</html>

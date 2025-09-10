@@ -362,3 +362,173 @@ export function getSocialClassForProfession(
   
   return null;
 }
+
+/**
+ * Comprehensive culture-profession mappings by room type
+ * These provide fallbacks when specific professions aren't defined
+ */
+export const CULTURE_PROFESSION_DEFAULTS: Record<string, Record<string, string[]>> = {
+  // Native American cultures
+  'NORTH_AMERICAN_PRE_COLUMBIAN': {
+    'sanctuary': ['Shaman', 'Elder', 'Vision_Seeker', 'Medicine_Woman', 'Warrior'],
+    'council': ['Chief', 'Elder', 'Warrior', 'Hunter', 'Scout'],
+    'marketplace': ['Trader', 'Craftsman', 'Hunter', 'Farmer', 'Weaver'],
+    'hall': ['Elder', 'Warrior', 'Villager', 'Hunter', 'Gatherer'],
+    'throne_room': ['Chief', 'Elder', 'Shaman', 'Warrior'],
+    'courtyard': ['Hunter', 'Scout', 'Gatherer', 'Youth'],
+    'library': ['Storyteller', 'Elder', 'Keeper_of_Records'],
+    'barracks': ['Warrior', 'Scout', 'Hunter'],
+    'default': ['Villager', 'Hunter', 'Gatherer']
+  },
+  
+  'NORTH_AMERICAN_COLONIAL': {
+    'sanctuary': ['Shaman', 'Elder', 'Medicine_Man', 'Healer'],
+    'council': ['Chief', 'Elder', 'Warrior', 'Hunter'],
+    'marketplace': ['Trader', 'Trapper', 'Craftsman', 'Farmer'],
+    'hall': ['Elder', 'Warrior', 'Settler', 'Hunter'],
+    'default': ['Villager', 'Hunter', 'Farmer']
+  },
+  
+  'NATIVE_AMERICAN': {
+    'sanctuary': ['Shaman', 'Elder', 'Healer', 'Vision_Seeker'],
+    'council': ['Chief', 'Elder', 'Warrior', 'Scout'],
+    'marketplace': ['Trader', 'Craftsman', 'Hunter'],
+    'hall': ['Elder', 'Warrior', 'Villager'],
+    'default': ['Villager', 'Hunter', 'Gatherer']
+  },
+  
+  // African cultures
+  'SUB_SAHARAN_AFRICAN': {
+    'sanctuary': ['Priest', 'Griot', 'Healer', 'Diviner', 'Elder'],
+    'council': ['Chief', 'Elder', 'Warrior', 'Noble', 'Griot'],
+    'marketplace': ['Trader', 'Craftsman', 'Farmer', 'Herder', 'Merchant'],
+    'hall': ['Noble', 'Warrior', 'Citizen', 'Craftsman'],
+    'throne_room': ['King', 'Queen_Mother', 'Noble', 'Griot', 'Warrior'],
+    'courtyard': ['Warrior', 'Craftsman', 'Farmer', 'Youth'],
+    'library': ['Griot', 'Scholar', 'Scribe'],
+    'barracks': ['Warrior', 'Guard', 'Scout'],
+    'default': ['Citizen', 'Farmer', 'Herder']
+  },
+  
+  // Asian cultures
+  'EAST_ASIAN': {
+    'sanctuary': ['Monk', 'Priest', 'Abbot', 'Pilgrim', 'Acolyte'],
+    'council': ['Mandarin', 'Scholar', 'Official', 'Magistrate'],
+    'marketplace': ['Merchant', 'Trader', 'Craftsman', 'Customer', 'Porter'],
+    'hall': ['Scholar', 'Official', 'Citizen', 'Servant'],
+    'throne_room': ['Emperor', 'Mandarin', 'Eunuch', 'Court_Lady', 'Guard'],
+    'courtyard': ['Scholar', 'Student', 'Gardener', 'Servant'],
+    'library': ['Scholar', 'Scribe', 'Librarian', 'Student'],
+    'barracks': ['Samurai', 'Soldier', 'Guard', 'Captain'],
+    'default': ['Citizen', 'Farmer', 'Merchant']
+  },
+  
+  'SOUTH_ASIAN': {
+    'sanctuary': ['Priest', 'Brahmin', 'Sadhu', 'Pilgrim', 'Devotee'],
+    'council': ['Raja', 'Minister', 'Advisor', 'Noble'],
+    'marketplace': ['Merchant', 'Trader', 'Craftsman', 'Customer'],
+    'hall': ['Noble', 'Scholar', 'Citizen', 'Servant'],
+    'throne_room': ['Raja', 'Rani', 'Minister', 'Guard', 'Courtier'],
+    'courtyard': ['Merchant', 'Craftsman', 'Citizen'],
+    'library': ['Pandit', 'Scholar', 'Scribe', 'Student'],
+    'barracks': ['Warrior', 'Guard', 'Soldier'],
+    'default': ['Citizen', 'Farmer', 'Merchant']
+  },
+  
+  // Middle Eastern cultures
+  'MENA': {
+    'sanctuary': ['Imam', 'Muezzin', 'Scholar', 'Pilgrim', 'Dervish'],
+    'council': ['Vizier', 'Emir', 'Qadi', 'Sheikh', 'Merchant'],
+    'marketplace': ['Merchant', 'Trader', 'Craftsman', 'Customer', 'Porter'],
+    'hall': ['Official', 'Scholar', 'Citizen', 'Guard'],
+    'throne_room': ['Sultan', 'Vizier', 'Emir', 'Guard', 'Eunuch'],
+    'courtyard': ['Merchant', 'Craftsman', 'Scholar', 'Citizen'],
+    'library': ['Scholar', 'Scribe', 'Astronomer', 'Student'],
+    'barracks': ['Mamluk', 'Janissary', 'Guard', 'Soldier'],
+    'default': ['Citizen', 'Merchant', 'Craftsman']
+  },
+  
+  // European cultures
+  'EUROPEAN': {
+    'sanctuary': ['Priest', 'Monk', 'Bishop', 'Pilgrim', 'Nun'],
+    'council': ['Senator', 'Magistrate', 'Councilor', 'Noble'],
+    'marketplace': ['Merchant', 'Trader', 'Craftsman', 'Customer', 'Guard'],
+    'hall': ['Noble', 'Knight', 'Citizen', 'Servant'],
+    'throne_room': ['King', 'Queen', 'Duke', 'Knight', 'Courtier'],
+    'courtyard': ['Knight', 'Squire', 'Citizen', 'Servant'],
+    'library': ['Scholar', 'Scribe', 'Monk', 'Student'],
+    'barracks': ['Knight', 'Soldier', 'Guard', 'Captain'],
+    'default': ['Citizen', 'Peasant', 'Merchant']
+  },
+  
+  // South American cultures
+  'SOUTH_AMERICAN': {
+    'sanctuary': ['Priest', 'Shaman', 'Oracle', 'Acolyte'],
+    'council': ['Inca', 'Noble', 'Priest', 'General'],
+    'marketplace': ['Trader', 'Craftsman', 'Farmer', 'Porter'],
+    'hall': ['Noble', 'Warrior', 'Citizen', 'Servant'],
+    'throne_room': ['Inca', 'Queen', 'Priest', 'Noble', 'Guard'],
+    'courtyard': ['Warrior', 'Craftsman', 'Farmer'],
+    'library': ['Quipu_Keeper', 'Scribe', 'Priest'],
+    'barracks': ['Warrior', 'Guard', 'Scout'],
+    'default': ['Citizen', 'Farmer', 'Porter']
+  },
+  
+  // Oceanic cultures
+  'OCEANIA': {
+    'sanctuary': ['Kahuna', 'Priest', 'Elder', 'Healer'],
+    'council': ['Chief', 'Elder', 'Navigator', 'Warrior'],
+    'marketplace': ['Trader', 'Fisherman', 'Craftsman', 'Farmer'],
+    'hall': ['Elder', 'Warrior', 'Islander', 'Fisherman'],
+    'throne_room': ['Chief', 'Queen', 'Elder', 'Warrior'],
+    'courtyard': ['Warrior', 'Fisherman', 'Craftsman'],
+    'library': ['Navigator', 'Storyteller', 'Elder'],
+    'barracks': ['Warrior', 'Guard', 'Scout'],
+    'default': ['Islander', 'Fisherman', 'Farmer']
+  },
+  
+  'OCEANIC': {
+    'sanctuary': ['Kahuna', 'Priest', 'Elder', 'Healer'],
+    'council': ['Chief', 'Elder', 'Navigator', 'Warrior'],
+    'marketplace': ['Trader', 'Fisherman', 'Craftsman'],
+    'hall': ['Elder', 'Warrior', 'Islander'],
+    'default': ['Islander', 'Fisherman', 'Farmer']
+  }
+};
+
+/**
+ * Get culture-appropriate default professions for a room type
+ */
+export function getCultureDefaultProfessions(
+  culture: string,
+  roomType: string
+): string[] {
+  // Check for exact culture match
+  const cultureProfessions = CULTURE_PROFESSION_DEFAULTS[culture];
+  if (cultureProfessions) {
+    // Check for exact room type match
+    if (cultureProfessions[roomType]) {
+      return cultureProfessions[roomType];
+    }
+    // Fall back to default for this culture
+    if (cultureProfessions['default']) {
+      return cultureProfessions['default'];
+    }
+  }
+  
+  // Universal fallbacks by room type
+  const universalDefaults: Record<string, string[]> = {
+    'sanctuary': ['Priest', 'Pilgrim', 'Worshipper', 'Acolyte'],
+    'council': ['Elder', 'Official', 'Guard', 'Noble'],
+    'marketplace': ['Merchant', 'Customer', 'Guard', 'Trader'],
+    'hall': ['Citizen', 'Worker', 'Visitor', 'Guard'],
+    'throne_room': ['Noble', 'Guard', 'Courtier', 'Servant'],
+    'courtyard': ['Citizen', 'Guard', 'Worker'],
+    'library': ['Scholar', 'Scribe', 'Student'],
+    'barracks': ['Soldier', 'Guard', 'Captain'],
+    'assembly': ['Official', 'Elder', 'Citizen'],
+    'forum': ['Senator', 'Citizen', 'Merchant']
+  };
+  
+  return universalDefaults[roomType] || ['Citizen', 'Worker', 'Visitor'];
+}

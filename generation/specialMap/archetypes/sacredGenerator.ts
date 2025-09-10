@@ -6,50 +6,72 @@
 
 import { Tile, BiomeType, HistoricalEra } from '../../../types';
 import { OverlayObjectType } from '../../../types/core/tile';
-import { SpecialMapConfig, InteractionZone, ExitZone } from '../../../types/specialMapTypes';
+import { SpecialMapConfig, InteractionZone, ExitZone, RoomDefinition } from '../../../types/specialMapTypes';
 import { ValueNoise } from '../../../utils/noise';
 import { placeWallRectangle, fillArea } from '../mapLayoutUtils';
+import { createRoom, ensureRoomsDefined, RoomTemplates } from '../types/roomHelpers';
+import { getCulturalGenerator } from '../culturalGeneratorRegistry';
+
+// Import cultural generators to ensure they register
+import '../archetypes/cultures/nativeAmericanGenerators';
+import '../archetypes/cultures/asianGenerators';
+import '../archetypes/cultures/africanGenerators';
+import '../archetypes/cultures/middleEasternGenerators';
+import '../archetypes/cultures/europeanGenerators';
 
 export function generateSacredComplex(
   tiles: Tile[][],
   config: SpecialMapConfig,
   noise: ValueNoise,
   size: { width: number, height: number }
-): { tiles: Tile[][], interactionZones: InteractionZone[], exitZones: ExitZone[] } {
+): { tiles: Tile[][], interactionZones: InteractionZone[], exitZones: ExitZone[], rooms: RoomDefinition[] } {
   
   const interactionZones: InteractionZone[] = [];
   const exitZones: ExitZone[] = [];
+  const rooms: RoomDefinition[] = [];
   
   console.log(`[SacredGenerator] Generating sacred complex for culture: ${config.culturalZone}, era: ${config.era}, region: ${config.region}`);
   
-  // Route to culturally appropriate generator
-  switch (config.culturalZone) {
+  // First check if there's a registered cultural generator
+  const culturalGenerator = getCulturalGenerator('SACRED_COMPLEX', config.culturalZone);
+  if (culturalGenerator) {
+    console.log(`[SacredGenerator] Using registered cultural generator for ${config.culturalZone}`);
+    culturalGenerator(tiles, size, config, interactionZones, rooms, noise);
+  } else {
+    console.log(`[SacredGenerator] No registered generator for ${config.culturalZone}, using built-in`);
+    // Fall back to built-in switch statement
+    switch (config.culturalZone) {
     case 'EUROPEAN':
-      generateEuropeanSacred(tiles, size, config, interactionZones, noise);
+      generateEuropeanSacred(tiles, size, config, interactionZones, rooms, noise);
       break;
     case 'MENA':
-      generateMENASacred(tiles, size, config, interactionZones, noise);
+      generateMENASacred(tiles, size, config, interactionZones, rooms, noise);
       break;
     case 'EAST_ASIAN':
-      generateEastAsianSacred(tiles, size, config, interactionZones, noise);
+      generateEastAsianSacred(tiles, size, config, interactionZones, rooms, noise);
       break;
     case 'SOUTH_ASIAN':
-      generateSouthAsianSacred(tiles, size, config, interactionZones, noise);
+      generateSouthAsianSacred(tiles, size, config, interactionZones, rooms, noise);
       break;
     case 'SUB_SAHARAN_AFRICAN':
-      generateAfricanSacred(tiles, size, config, interactionZones, noise);
+      generateAfricanSacred(tiles, size, config, interactionZones, rooms, noise);
       break;
     case 'INDIGENOUS_AMERICAN':
     case 'NORTH_AMERICAN': // Handle both names
-      generateIndigenousAmericanSacred(tiles, size, config, interactionZones, noise);
+    case 'NORTH_AMERICAN_PRE_COLUMBIAN': // Also handle this variant
+    case 'NORTH_AMERICAN_COLONIAL':
+    case 'NATIVE_AMERICAN':
+      generateIndigenousAmericanSacred(tiles, size, config, interactionZones, rooms, noise);
       break;
     case 'OCEANIC':
-      generateOceanicSacred(tiles, size, config, interactionZones, noise);
+    case 'OCEANIA':
+      generateOceanicSacred(tiles, size, config, interactionZones, rooms, noise);
       break;
     default:
       console.log(`[SacredGenerator] Using fallback for unknown culture: ${config.culturalZone}`);
-      generateGenericSacred(tiles, size, config, interactionZones, noise);
+      generateGenericSacred(tiles, size, config, interactionZones, rooms, noise);
       break;
+    }
   }
   
   // Main exit at bottom center
@@ -60,7 +82,10 @@ export function generateSacredComplex(
     destination: 'parent_map'
   });
   
-  return { tiles, interactionZones, exitZones };
+  // Ensure at least one room is defined for NPC spawning
+  const validatedRooms = ensureRoomsDefined(rooms, 'SACRED_COMPLEX', size);
+  
+  return { tiles, interactionZones, exitZones, rooms: validatedRooms };
 }
 
 /**
@@ -72,10 +97,14 @@ function generateEuropeanSacred(
   size: { width: number, height: number },
   config: SpecialMapConfig,
   interactionZones: InteractionZone[],
+  rooms: RoomDefinition[],
   noise: ValueNoise
 ) {
   const centerX = Math.floor(size.width / 2);
   const centerY = Math.floor(size.height / 2);
+  
+  // Create sanctuary room for this sacred space
+  rooms.push(RoomTemplates.sanctuary(centerX, centerY, Math.min(8, Math.floor(Math.min(size.width, size.height) / 3))));
   
   if (config.era === HistoricalEra.ANTIQUITY) {
     generateClassicalTemple(tiles, size, centerX, centerY, config, interactionZones);
@@ -249,10 +278,23 @@ function generateMENASacred(
   size: { width: number, height: number },
   config: SpecialMapConfig,
   interactionZones: InteractionZone[],
+  rooms: RoomDefinition[],
   noise: ValueNoise
 ) {
   const centerX = Math.floor(size.width / 2);
   const centerY = Math.floor(size.height / 2);
+  
+  // Create prayer hall room
+  rooms.push(createRoom(
+    'prayer_hall',
+    'Prayer Hall',
+    2,
+    2,
+    size.width - 4,
+    size.height - 4,
+    'sanctuary',
+    'normal'
+  ));
   
   if (config.era >= HistoricalEra.MEDIEVAL) {
     generateIslamicMosque(tiles, size, centerX, centerY, config, interactionZones);
@@ -351,10 +393,24 @@ function generateIndigenousAmericanSacred(
   size: { width: number, height: number },
   config: SpecialMapConfig,
   interactionZones: InteractionZone[],
+  rooms: RoomDefinition[],
   noise: ValueNoise
 ) {
   const centerX = Math.floor(size.width / 2);
   const centerY = Math.floor(size.height / 2);
+  
+  // Create ceremonial room for Native American sacred space
+  const radius = Math.min(8, Math.floor(Math.min(size.width, size.height) / 3));
+  rooms.push(createRoom(
+    'ceremonial_circle',
+    'Sacred Ceremonial Circle',
+    centerX - radius,
+    centerY - radius,
+    radius * 2,
+    radius * 2,
+    'sanctuary',
+    'normal'  // Normal density for community gathering
+  ));
   
   // Determine specific type based on region
   if (config.region?.includes('mound') || config.structureName?.toLowerCase().includes('mound')) {
@@ -466,6 +522,7 @@ function generateEastAsianSacred(
   size: { width: number, height: number },
   config: SpecialMapConfig,
   interactionZones: InteractionZone[],
+  rooms: RoomDefinition[],
   noise: ValueNoise
 ) {
   const centerX = Math.floor(size.width / 2);
@@ -558,12 +615,16 @@ function generateGenericSacred(
   size: { width: number, height: number },
   config: SpecialMapConfig,
   interactionZones: InteractionZone[],
+  rooms: RoomDefinition[],
   noise: ValueNoise
 ) {
   console.log(`[SacredGenerator] Using enhanced procedural sacred layout`);
   
   const centerX = Math.floor(size.width / 2);
   const centerY = Math.floor(size.height / 2);
+  
+  // Create generic sanctuary room
+  rooms.push(RoomTemplates.sanctuary(centerX, centerY, Math.min(8, Math.floor(Math.min(size.width, size.height) / 3))));
   
   // Choose random layout style
   const layoutStyle = Math.floor(noise.random() * 4);
@@ -845,7 +906,7 @@ function generateBuddhistTempleComplex(tiles: Tile[][], size: { width: number, h
   generateShintoShrine(tiles, size, centerX, centerY, config, interactionZones);
 }
 
-function generateSouthAsianSacred(tiles: Tile[][], size: { width: number, height: number }, config: SpecialMapConfig, interactionZones: InteractionZone[], noise: ValueNoise) {
+function generateSouthAsianSacred(tiles: Tile[][], size: { width: number, height: number }, config: SpecialMapConfig, interactionZones: InteractionZone[], rooms: RoomDefinition[], noise: ValueNoise) {
   const centerX = Math.floor(size.width / 2);
   const centerY = Math.floor(size.height / 2);
   
@@ -991,7 +1052,7 @@ function generateSouthAsianSacred(tiles: Tile[][], size: { width: number, height
   });
 }
 
-function generateAfricanSacred(tiles: Tile[][], size: { width: number, height: number }, config: SpecialMapConfig, interactionZones: InteractionZone[], noise: ValueNoise) {
+function generateAfricanSacred(tiles: Tile[][], size: { width: number, height: number }, config: SpecialMapConfig, interactionZones: InteractionZone[], rooms: RoomDefinition[], noise: ValueNoise) {
   const centerX = Math.floor(size.width / 2);
   const centerY = Math.floor(size.height / 2);
   
@@ -1123,7 +1184,7 @@ function generateAfricanSacred(tiles: Tile[][], size: { width: number, height: n
   });
 }
 
-function generateOceanicSacred(tiles: Tile[][], size: { width: number, height: number }, config: SpecialMapConfig, interactionZones: InteractionZone[], noise: ValueNoise) {
+function generateOceanicSacred(tiles: Tile[][], size: { width: number, height: number }, config: SpecialMapConfig, interactionZones: InteractionZone[], rooms: RoomDefinition[], noise: ValueNoise) {
   const centerX = Math.floor(size.width / 2);
   const centerY = Math.floor(size.height / 2);
   

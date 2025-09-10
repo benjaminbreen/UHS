@@ -408,7 +408,7 @@ export const CULTURAL_MARKINGS: CulturalMarking[] = [
   {
     baseId: 'KOHL_EYES',
     type: 'paint',
-    culturalZones: ['MENA'],
+    culturalZones: ['MENA', 'SOUTH_ASIAN', 'SUB_SAHARAN_AFRICAN', 'EUROPEAN'],
     patterns: [
       {
         id: 'kohl_liner',
@@ -426,8 +426,84 @@ export const CULTURAL_MARKINGS: CulturalMarking[] = [
     gender: 'any',
     ageGroups: ['child', 'young', 'adult', 'elder'],
     occasions: ['daily'],
-    weight: 8,
+    weight: 10, // Very common daily practice
     culturalSignificance: 'Protection from evil eye and sun glare'
+  },
+  {
+    baseId: 'DAILY_OCHRE',
+    type: 'paint',
+    culturalZones: ['SUB_SAHARAN_AFRICAN', 'OCEANIA', 'SOUTH_AMERICAN'],
+    patterns: [
+      {
+        id: 'daily_ochre',
+        name: 'Daily Ochre Paint',
+        description: 'Earth pigment for sun protection',
+        pattern: 'solid',
+        locations: ['forehead', 'cheek'],
+        colors: ['#CD5C5C', '#D2691E', '#8B4513'],
+        size: 'medium'
+      }
+    ],
+    isPermanent: false,
+    duration: 12,
+    gender: 'any',
+    occasions: ['daily'],
+    weight: 9, // Extremely common
+    culturalSignificance: 'Sun protection and insect repellent'
+  },
+  {
+    baseId: 'DAILY_FACE_PAINT',
+    type: 'paint',
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN', 'SOUTH_AMERICAN', 'OCEANIA'],
+    patterns: [
+      {
+        id: 'daily_stripes',
+        name: 'Daily Face Stripes',
+        description: 'Simple daily face paint',
+        pattern: 'stripes',
+        locations: ['face'],
+        colors: ['#FFFFFF', '#FF0000', '#000000'],
+        size: 'small'
+      },
+      {
+        id: 'daily_dots',
+        name: 'Daily Dot Pattern',
+        description: 'Protective dots',
+        pattern: 'dots',
+        locations: ['forehead', 'cheek'],
+        colors: ['#FFFFFF', '#FFD700'],
+        size: 'small'
+      }
+    ],
+    isPermanent: false,
+    duration: 24,
+    gender: 'any',
+    occasions: ['daily'],
+    weight: 8,
+    culturalSignificance: 'Daily spiritual protection and social identity'
+  },
+  {
+    baseId: 'CHARCOAL_EYES',
+    type: 'paint',
+    culturalZones: ['OCEANIA', 'SUB_SAHARAN_AFRICAN', 'NORTH_AMERICAN_PRE_COLUMBIAN'],
+    patterns: [
+      {
+        id: 'charcoal_eyes',
+        name: 'Charcoal Eye Paint',
+        description: 'Charcoal around eyes for glare reduction',
+        pattern: 'eye_band',
+        locations: ['face'],
+        colors: ['#2F2F2F'],
+        size: 'small'
+      }
+    ],
+    isPermanent: false,
+    duration: 24,
+    gender: 'any',
+    professions: ['Hunter', 'Warrior', 'Fisher', 'Navigator'],
+    occasions: ['daily'],
+    weight: 9,
+    culturalSignificance: 'Reduces glare during hunting and warfare'
   },
   {
     baseId: 'HENNA_HANDS',
@@ -599,6 +675,29 @@ export const CULTURAL_MARKINGS: CulturalMarking[] = [
     culturalSignificance: 'Intimidation and warrior spirit'
   },
   {
+    baseId: 'DAILY_CLAY',
+    type: 'paint',
+    culturalZones: ['EUROPEAN'],
+    eras: ['PREHISTORY', 'ANTIQUITY'],
+    patterns: [
+      {
+        id: 'clay_dots',
+        name: 'Clay Face Dots',
+        description: 'White clay for daily protection',
+        pattern: 'dots',
+        locations: ['forehead', 'cheek'],
+        colors: ['#F5F5DC', '#FFFAF0'],
+        size: 'small'
+      }
+    ],
+    isPermanent: false,
+    duration: 12,
+    gender: 'any',
+    occasions: ['daily'],
+    weight: 7,
+    culturalSignificance: 'Sun protection and tribal identity'
+  },
+  {
     baseId: 'PILGRIM_ASH',
     type: 'ash',
     culturalZones: ['EUROPEAN'],
@@ -650,7 +749,7 @@ export const CULTURAL_MARKINGS: CulturalMarking[] = [
   {
     baseId: 'NOSE_PIERCING',
     type: 'piercing',
-    culturalZones: ['SOUTH_ASIAN', 'MENA', 'SUB_SAHARAN_AFRICAN', 'OCEANIA'],
+    culturalZones: ['SOUTH_ASIAN', 'MENA', 'SUB_SAHARAN_AFRICAN', 'OCEANIA', 'SOUTH_AMERICAN'],
     patterns: [
       {
         id: 'nostril_stud',
@@ -664,8 +763,28 @@ export const CULTURAL_MARKINGS: CulturalMarking[] = [
     ],
     isPermanent: true,
     gender: 'female',
-    weight: 6,
+    weight: 9, // Very common in these cultures
     culturalSignificance: 'Beauty and marital status'
+  },
+  {
+    baseId: 'MULTIPLE_EAR_PIERCINGS',
+    type: 'piercing',
+    culturalZones: ['OCEANIA', 'SUB_SAHARAN_AFRICAN', 'SOUTH_ASIAN', 'MENA', 'SOUTH_AMERICAN', 'NORTH_AMERICAN_PRE_COLUMBIAN'],
+    patterns: [
+      {
+        id: 'multiple_ears',
+        name: 'Multiple Ear Piercings',
+        description: 'Several ear piercings with rings or studs',
+        pattern: 'multiple',
+        locations: ['ear'],
+        colors: ['#FFD700', '#C0C0C0', '#CD7F32'],
+        size: 'small'
+      }
+    ],
+    isPermanent: true,
+    gender: 'any',
+    weight: 8, // Extremely common across cultures
+    culturalSignificance: 'Social status and wealth display'
   },
   {
     baseId: 'SEPTUM_PIERCING',
@@ -708,6 +827,293 @@ export const CULTURAL_MARKINGS: CulturalMarking[] = [
     socialClasses: ['comfortable', 'wealthy', 'noble'],
     weight: 3,
     culturalSignificance: 'Beauty and social status'
+  },
+
+  // ========== STRUCTURAL BODY MODIFICATIONS ==========
+  // Anthropologically documented practices that modify body structure
+
+  // Lip plates - Mursi, Suri (Ethiopia), Kayapó (Brazil), Sara-Kaba (Chad)
+  {
+    baseId: 'LIP_PLATE',
+    type: 'piercing',
+    culturalZones: ['SUB_SAHARAN_AFRICAN', 'SOUTH_AMERICAN'],
+    patterns: [
+      {
+        id: 'lower_lip_plate',
+        name: 'Lower Lip Plate',
+        localName: 'Dhebi a Tugoin', // Mursi term
+        description: 'Clay or wooden disc inserted in lower lip',
+        pattern: 'plate',
+        locations: ['chin'], // Lower lip area
+        colors: ['#8B7355', '#D2691E'], // Clay/wood colors
+        size: 'large'
+      }
+    ],
+    isPermanent: true,
+    gender: 'female', // Primarily female in most cultures
+    ageGroups: ['adult', 'elder'],
+    socialClasses: ['modest', 'comfortable', 'wealthy'],
+    occasions: ['daily'],
+    weight: 6, // Common in specific ethnic groups
+    culturalSignificance: 'Marriageability, beauty, and cultural identity'
+  },
+
+  // Neck rings/coils - Kayan (Myanmar/Thailand), Ndebele (South Africa)
+  {
+    baseId: 'NECK_RINGS',
+    type: 'piercing', // Using piercing type for structural mods
+    culturalZones: ['SUB_SAHARAN_AFRICAN', 'EAST_ASIAN'],
+    patterns: [
+      {
+        id: 'brass_neck_coils',
+        name: 'Neck Rings',
+        localName: 'Dzilla', // Ndebele term
+        description: 'Brass or copper coils worn around neck',
+        pattern: 'coils',
+        locations: ['neck'],
+        colors: ['#B8860B', '#CD7F32'], // Brass/copper
+        size: 'large'
+      }
+    ],
+    isPermanent: true,
+    gender: 'female',
+    ageGroups: ['young', 'adult', 'elder'],
+    socialClasses: ['modest', 'comfortable', 'wealthy'],
+    occasions: ['daily'],
+    weight: 5,
+    culturalSignificance: 'Beauty ideal, cultural identity, protection from tigers (Kayan belief)'
+  },
+
+  // Tooth blackening - Japan (Ohaguro), Vietnam, Philippines, Pacific Islands
+  {
+    baseId: 'TOOTH_BLACKENING',
+    type: 'paint', // Technically a dye/stain
+    culturalZones: ['EAST_ASIAN', 'OCEANIA'],
+    eras: ['ANTIQUITY', 'MEDIEVAL', 'RENAISSANCE_EARLY_MODERN'],
+    patterns: [
+      {
+        id: 'blackened_teeth',
+        name: 'Blackened Teeth',
+        localName: 'Ohaguro', // Japanese term
+        description: 'Teeth dyed black with iron solution',
+        pattern: 'teeth_black',
+        locations: ['face'], // Mouth area
+        colors: ['#1C1C1C'],
+        size: 'small'
+      }
+    ],
+    isPermanent: false,
+    duration: 720, // Lasts about a month
+    gender: 'any', // Both genders in different cultures
+    ageGroups: ['adult', 'elder'],
+    socialClasses: ['comfortable', 'wealthy', 'noble'],
+    occasions: ['daily'],
+    weight: 7, // Very common in certain periods
+    culturalSignificance: 'Beauty, maturity, and marital status'
+  },
+
+  // Tooth filing/sharpening - Bali, Maya, various African cultures
+  {
+    baseId: 'TOOTH_FILING',
+    type: 'scarification', // Permanent body modification
+    culturalZones: ['OCEANIA', 'SUB_SAHARAN_AFRICAN', 'SOUTH_AMERICAN'],
+    patterns: [
+      {
+        id: 'filed_teeth',
+        name: 'Filed Teeth',
+        localName: 'Metatah', // Balinese term
+        description: 'Teeth filed to points or patterns',
+        pattern: 'teeth_filed',
+        locations: ['face'],
+        colors: ['#F5F5DC'], // Ivory/tooth color
+        size: 'small'
+      }
+    ],
+    isPermanent: true,
+    gender: 'any',
+    ageGroups: ['young', 'adult'], // Coming of age ritual
+    occasions: ['daily'],
+    weight: 5,
+    culturalSignificance: 'Coming of age, beauty, spiritual balance'
+  },
+
+  // Tooth inlays - Maya jade, Filipino gold
+  {
+    baseId: 'TOOTH_INLAY',
+    type: 'piercing', // Permanent modification
+    culturalZones: ['SOUTH_AMERICAN', 'OCEANIA'],
+    eras: ['ANTIQUITY', 'MEDIEVAL'],
+    patterns: [
+      {
+        id: 'jade_inlay',
+        name: 'Jade Tooth Inlay',
+        description: 'Jade or gold inlaid in teeth',
+        pattern: 'teeth_inlay',
+        locations: ['face'],
+        colors: ['#00A86B', '#FFD700'], // Jade green or gold
+        size: 'small'
+      }
+    ],
+    isPermanent: true,
+    gender: 'any',
+    socialClasses: ['wealthy', 'noble'], // Expensive procedure
+    occasions: ['daily'],
+    weight: 3,
+    culturalSignificance: 'Wealth, status, and divine connection'
+  },
+
+  // Cranial modification - Maya, Inca, Huns, some African groups
+  {
+    baseId: 'CRANIAL_SHAPING',
+    type: 'scarification', // Permanent modification
+    culturalZones: ['SOUTH_AMERICAN', 'NORTH_AMERICAN_PRE_COLUMBIAN'],
+    eras: ['PREHISTORY', 'ANTIQUITY', 'MEDIEVAL'],
+    patterns: [
+      {
+        id: 'elongated_skull',
+        name: 'Cranial Elongation',
+        description: 'Skull shaped through binding in infancy',
+        pattern: 'cranial_elongation',
+        locations: ['forehead'],
+        colors: ['#000000'], // Not visible as marking
+        size: 'large'
+      }
+    ],
+    isPermanent: true,
+    gender: 'any',
+    ageGroups: ['young', 'adult', 'elder'], // Done in infancy, visible throughout life
+    socialClasses: ['comfortable', 'wealthy', 'noble'],
+    occasions: ['daily'],
+    weight: 4,
+    culturalSignificance: 'Elite status, beauty ideal, ethnic identity'
+  },
+
+  // Hair treatments as modification - Himba red ochre, Maasai red clay
+  {
+    baseId: 'HAIR_OCHRE',
+    type: 'paint',
+    culturalZones: ['SUB_SAHARAN_AFRICAN'],
+    patterns: [
+      {
+        id: 'ochre_hair',
+        name: 'Ochre Hair Treatment',
+        localName: 'Otjize', // Himba term
+        description: 'Hair coated with ochre and butterfat mixture',
+        pattern: 'hair_ochre',
+        locations: ['forehead'], // Hair/head area
+        colors: ['#CC4125', '#8B4513'], // Red-brown ochre
+        size: 'large'
+      }
+    ],
+    isPermanent: false,
+    duration: 168, // Reapplied weekly
+    gender: 'any',
+    ageGroups: ['young', 'adult', 'elder'],
+    occasions: ['daily'],
+    weight: 8, // Very common daily practice
+    culturalSignificance: 'Sun protection, beauty, cultural identity'
+  },
+
+  // Cheek plugs/discs - Various Amazon tribes
+  {
+    baseId: 'CHEEK_PLUGS',
+    type: 'piercing',
+    culturalZones: ['SOUTH_AMERICAN'],
+    patterns: [
+      {
+        id: 'cheek_disc',
+        name: 'Cheek Plugs',
+        description: 'Wooden discs through cheeks',
+        pattern: 'cheek_plug',
+        locations: ['cheek'],
+        colors: ['#8B4513', '#654321'], // Wood colors
+        size: 'medium'
+      }
+    ],
+    isPermanent: true,
+    gender: 'any',
+    professions: ['Warrior', 'Hunter', 'Chief'],
+    ageGroups: ['adult', 'elder'],
+    occasions: ['daily'],
+    weight: 3,
+    culturalSignificance: 'Warrior status and fierceness'
+  },
+
+  // Finger amputation - Dani people (Papua)
+  {
+    baseId: 'RITUAL_AMPUTATION',
+    type: 'scarification',
+    culturalZones: ['OCEANIA'],
+    patterns: [
+      {
+        id: 'finger_amputation',
+        name: 'Mourning Amputation',
+        localName: 'Ikipalin', // Dani term
+        description: 'Finger joint removed in mourning',
+        pattern: 'amputation',
+        locations: ['arm'], // Hand/finger area
+        colors: ['#8B7355'], // Scar color
+        size: 'small'
+      }
+    ],
+    isPermanent: true,
+    gender: 'female', // Primarily female practice
+    ageGroups: ['adult', 'elder'],
+    occasions: ['mourning'],
+    weight: 2, // Specific to mourning rituals
+    culturalSignificance: 'Grief expression and spiritual connection to deceased'
+  },
+
+  // Subincision - Australian Aboriginal initiation
+  {
+    baseId: 'SUBINCISION',
+    type: 'scarification',
+    culturalZones: ['OCEANIA'],
+    patterns: [
+      {
+        id: 'ritual_subincision',
+        name: 'Initiation Mark',
+        description: 'Ritual genital modification',
+        pattern: 'ritual_scar',
+        locations: ['chest'], // Symbolic location for portrait
+        colors: ['#8B7355'],
+        size: 'medium'
+      }
+    ],
+    isPermanent: true,
+    gender: 'male',
+    ageGroups: ['young', 'adult'], // Initiation rite
+    professions: ['Warrior', 'Hunter', 'Elder'],
+    occasions: ['ceremony'],
+    weight: 3,
+    culturalSignificance: 'Male initiation and spiritual transformation'
+  },
+
+  // Foot binding - Chinese practice (Song to early 20th century)
+  {
+    baseId: 'FOOT_BINDING',
+    type: 'scarification', // Permanent modification
+    culturalZones: ['EAST_ASIAN'],
+    eras: ['MEDIEVAL', 'RENAISSANCE_EARLY_MODERN', 'INDUSTRIAL_ERA'],
+    patterns: [
+      {
+        id: 'bound_feet',
+        name: 'Lotus Feet',
+        localName: 'Chanzu', // Chinese term
+        description: 'Feet bound to alter shape',
+        pattern: 'foot_binding',
+        locations: ['chest'], // Not visible in portrait
+        colors: ['#000000'],
+        size: 'small'
+      }
+    ],
+    isPermanent: true,
+    gender: 'female',
+    ageGroups: ['young', 'adult', 'elder'], // Started in childhood
+    socialClasses: ['comfortable', 'wealthy', 'noble'],
+    occasions: ['daily'],
+    weight: 5, // Common among upper classes
+    culturalSignificance: 'Beauty ideal, status, marriageability'
   }
 ];
 
@@ -790,6 +1196,7 @@ export function getRandomPattern(
 }
 
 // Convert marking to appearance format for ProceduralPortrait
+// Maps cultural marking patterns to renderer-compatible patterns
 export function convertToAppearanceMarking(
   marking: CulturalMarking,
   pattern: MarkingPattern
@@ -797,12 +1204,72 @@ export function convertToAppearanceMarking(
   // Get the primary location
   const location = pattern.locations[0] || 'face';
   
+  // Map cultural patterns to renderer-compatible patterns
+  let rendererPattern = pattern.pattern;
+  
+  // Fix pattern mapping for specific cultural types
+  if (marking.type === 'tattoo') {
+    // Map tattoo patterns to renderer-expected names
+    if (pattern.pattern === 'maori_spiral' || pattern.pattern === 'maori_full') {
+      rendererPattern = pattern.pattern; // Keep as-is
+    } else if (pattern.pattern === 'berber_geometric') {
+      rendererPattern = 'berber';
+    } else if (pattern.pattern === 'vertical_lines' || pattern.pattern === 'horizontal_lines' || pattern.pattern === 'geometric') {
+      rendererPattern = 'scarification'; // Map African patterns to scarification
+    } else if (pattern.pattern === 'swirls') {
+      rendererPattern = 'celtic'; // Map Celtic patterns
+    } else {
+      rendererPattern = 'lines'; // Default fallback
+    }
+  } else if (marking.type === 'paint') {
+    // Map paint patterns to renderer-expected names
+    if (pattern.pattern === 'horizontal_stripes') {
+      rendererPattern = 'stripes';
+    } else if (pattern.pattern === 'geometric_bands') {
+      rendererPattern = 'stripes';
+    } else if (pattern.pattern === 'three_lines') {
+      rendererPattern = location === 'forehead' ? 'three_lines' : 'stripes';
+    } else if (pattern.pattern === 'eye_liner') {
+      rendererPattern = 'eye_band';
+    } else {
+      rendererPattern = pattern.pattern; // Keep dot, flower, solid, zigzag, handprint, etc.
+    }
+  } else if (marking.type === 'scarification') {
+    // Scarification should render as tattoo with scarification pattern
+    return {
+      type: 'tattoo', // Renderer processes scarification as tattoo
+      location: location,
+      color: pattern.colors[0] || '#8B7355', // Scarification color
+      size: pattern.size,
+      pattern: 'scarification', // Force scarification pattern
+      name: pattern.localName || pattern.name,
+      isPermanent: marking.isPermanent,
+      duration: marking.duration,
+      culturalSignificance: marking.culturalSignificance
+    };
+  } else if (marking.type === 'piercing') {
+    // Map piercing types
+    return {
+      type: 'piercing', // Keep as piercing type
+      location: location,
+      color: pattern.colors[0] || '#FFD700',
+      size: pattern.size,
+      pattern: pattern.pattern === 'ring' ? 'ring' : 
+               pattern.pattern === 'stud' ? 'stud' : 
+               location === 'nose' ? 'septum' : 'stud',
+      name: pattern.localName || pattern.name,
+      isPermanent: marking.isPermanent,
+      duration: marking.duration,
+      culturalSignificance: marking.culturalSignificance
+    };
+  }
+  
   return {
-    type: marking.type === 'piercing' ? 'tattoo' : marking.type, // Piercings render as tattoos for now
+    type: marking.type,
     location: location,
     color: pattern.colors[0] || '#000000',
     size: pattern.size,
-    pattern: pattern.pattern,
+    pattern: rendererPattern,
     name: pattern.localName || pattern.name,
     isPermanent: marking.isPermanent,
     duration: marking.duration,
@@ -811,43 +1278,80 @@ export function convertToAppearanceMarking(
 }
 
 // Get marking probability based on culture and context
+// Based on anthropological and historical evidence
 export function getMarkingProbability(
   culturalZone: CulturalZone,
   era?: HistoricalEra,
   profession?: string
 ): number {
-  // Base probabilities by culture
+  // Base probabilities by culture - historically accurate
+  // These reflect actual anthropological data on body modification prevalence
   const baseProbabilities: Record<CulturalZone, number> = {
-    OCEANIA: 0.8,
-    NORTH_AMERICAN_PRE_COLUMBIAN: 0.7,
-    SUB_SAHARAN_AFRICAN: 0.65,
-    SOUTH_AMERICAN: 0.6,
-    SOUTH_ASIAN: 0.5,
-    MENA: 0.4,
-    EAST_ASIAN: 0.2,
-    EUROPEAN: 0.1,
-    NORTH_AMERICAN_COLONIAL: 0.05
+    // Oceania: Ta moko, pe'a, and other tattoos were near-universal markers of adulthood
+    OCEANIA: 0.95,
+    
+    // Pre-Columbian Americas: Face/body paint was daily wear, tattoos/piercings very common
+    NORTH_AMERICAN_PRE_COLUMBIAN: 0.90,
+    SOUTH_AMERICAN: 0.85,
+    
+    // Sub-Saharan Africa: Scarification, body paint, and piercings were standard
+    SUB_SAHARAN_AFRICAN: 0.85,
+    
+    // South Asia: Bindi/tilaka daily for most, henna for celebrations, nose rings common
+    SOUTH_ASIAN: 0.75,
+    
+    // MENA: Kohl was universal (sun protection), henna common, tattoos for Berbers
+    MENA: 0.70,
+    
+    // East Asia: Varies by era - high in ancient times, lower in Confucian periods
+    EAST_ASIAN: 0.35,
+    
+    // Europe: Celtic/Germanic tribes had high rates, declined with Christianity
+    EUROPEAN: 0.25,
+    
+    // Colonial America: Mostly limited to sailors, criminals, and Native peoples
+    NORTH_AMERICAN_COLONIAL: 0.15
   };
   
-  let probability = baseProbabilities[culturalZone] || 0.1;
+  let probability = baseProbabilities[culturalZone] || 0.2;
   
-  // Adjust for era
-  if (era === 'PREHISTORY' || era === 'ANTIQUITY') {
-    probability *= 1.5;
-  } else if (era === 'MODERN_ERA' || era === 'INDUSTRIAL_ERA') {
-    probability *= 0.3;
+  // Era adjustments - more accurate to historical periods
+  if (era === 'PREHISTORY') {
+    // Almost universal body modification in prehistoric times
+    probability = Math.min(probability * 1.3, 0.95);
+  } else if (era === 'ANTIQUITY') {
+    // High rates in ancient civilizations
+    probability = Math.min(probability * 1.2, 0.90);
+  } else if (era === 'MEDIEVAL') {
+    // Varies by region - high in non-Christian areas
+    if (culturalZone === 'EUROPEAN') {
+      probability *= 0.5; // Christianity discouraged it
+    }
+  } else if (era === 'INDUSTRIAL_ERA' || era === 'MODERN_ERA') {
+    // Declined with colonialism and modernization
+    probability *= 0.4;
   }
   
-  // Adjust for profession
+  // Profession adjustments - certain roles had mandatory markings
   if (profession) {
     const profLower = profession.toLowerCase();
+    
+    // These professions almost always had markings
     if (profLower.includes('warrior') || profLower.includes('shaman') || 
-        profLower.includes('priest') || profLower.includes('chief')) {
-      probability *= 1.5;
-    } else if (profLower.includes('merchant') || profLower.includes('scholar')) {
-      probability *= 0.7;
+        profLower.includes('priest') || profLower.includes('monk') ||
+        profLower.includes('chief') || profLower.includes('mystic') ||
+        profLower.includes('medicine')) {
+      probability = Math.min(probability * 1.4, 0.95);
+    } 
+    // Sailors commonly had tattoos across many cultures
+    else if (profLower.includes('sailor') || profLower.includes('pirate')) {
+      probability = Math.min(probability * 1.3, 0.85);
+    }
+    // Lower for merchants and scholars in some cultures
+    else if (profLower.includes('merchant') || profLower.includes('scholar')) {
+      probability *= 0.9; // Still common, just slightly less
     }
   }
   
-  return Math.min(probability, 1.0);
+  return Math.min(probability, 0.98); // Cap at 98% to allow some variety
 }

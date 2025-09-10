@@ -66,7 +66,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       {
         id: 'protectorate_office',
         name: 'Aboriginal Protectorate Office',
-        archetype: SpecialMapArchetype.GOVERNMENT_FORUM,
+        archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX,
         description: 'Colonial administration for Aboriginal affairs.',
         districtType: 'colonial_office',
         symbolType: 'ColonialOfficeSymbol',
@@ -80,7 +80,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       {
         id: 'maori_settlement',
         name: 'Kainga Council',
-        archetype: SpecialMapArchetype.GOVERNMENT_FORUM,
+        archetype: SpecialMapArchetype.TRIBAL_COUNCIL,
         description: 'Early Māori settlement governance.',
         districtType: 'settlement_council',
         symbolType: 'TribalCouncilSymbol',
@@ -111,7 +111,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       {
         id: 'colonial_office_nz',
         name: 'Colonial Secretary Office',
-        archetype: SpecialMapArchetype.GOVERNMENT_FORUM,
+        archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX,
         description: 'British colonial government in New Zealand.',
         districtType: 'colonial_office',
         symbolType: 'ColonialOfficeSymbol',
@@ -125,7 +125,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       {
         id: 'longhouse_council',
         name: 'Longhouse Council',
-        archetype: SpecialMapArchetype.GOVERNMENT_FORUM,
+        archetype: SpecialMapArchetype.TRIBAL_COUNCIL,
         description: 'Great communal house where clan leaders make decisions.',
         districtType: 'council',
         symbolType: 'LonghouseSymbol',
@@ -136,7 +136,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       {
         id: 'big_man_compound',
         name: "Big Man's Compound",
-        archetype: SpecialMapArchetype.GOVERNMENT_FORUM,
+        archetype: SpecialMapArchetype.TRIBAL_COUNCIL,
         description: 'Center of traditional Melanesian leadership.',
         districtType: 'compound',
         symbolType: 'TribalCouncilSymbol',
@@ -773,7 +773,72 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
     ]
   },
 
+  // == SIBERIAN REGIONS ==
+  "Eastern Siberia": {
+    [HistoricalEra.PREHISTORY]: [
+      { id: 'tungus_shamanic_council', name: 'Tungus Shamanic Council', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'Sacred gathering place where Tungusic shamans and clan elders make decisions for the reindeer herders.', districtType: 'shamanic_council', symbolType: 'TribalCouncilSymbol', priority: 10 }
+    ],
+    [HistoricalEra.ANTIQUITY]: [
+      { id: 'even_clan_gathering', name: 'Even Clan Gathering', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Traditional assembly of Even clan leaders in the Siberian taiga.', districtType: 'clan_assembly', symbolType: 'TribalCouncilSymbol', priority: 10 }
+    ],
+    [HistoricalEra.MEDIEVAL]: [
+      { id: 'yakut_clan_assembly', name: 'Yakut Clan Assembly', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'The council ground of Sakha (Yakut) clan leaders in the Lena River valley.', districtType: 'clan_assembly', symbolType: 'TribalCouncilSymbol', priority: 10 }
+    ],
+    [HistoricalEra.INDUSTRIAL_ERA]: [
+      { id: 'russian_siberian_outpost', name: 'Russian Colonial Outpost', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Remote Russian administrative post governing the indigenous peoples of Eastern Siberia.', districtType: 'colonial_administration', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+    ]
+  },
 
+  "Western Siberia": {
+    [HistoricalEra.PREHISTORY]: [
+      { id: 'ugric_clan_council', name: 'Ugric Clan Council', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Council house of Ugric-speaking peoples in the West Siberian taiga.', districtType: 'clan_council', symbolType: 'TribalCouncilSymbol', priority: 10 }
+    ],
+    [HistoricalEra.MEDIEVAL]: [
+      { id: 'siberian_khanate_court', name: 'Siberian Khanate Court', archetype: SpecialMapArchetype.COURT_CHAMBER, description: 'The court of the Khanate of Sibir, ruling from Qashliq over Siberian Tatars and tributaries.', districtType: 'khanate_court', symbolType: 'TribalCouncilSymbol', priority: 10 }
+    ],
+    [HistoricalEra.INDUSTRIAL_ERA]: [
+      { id: 'russian_guberniya_office', name: 'Guberniya Administrative Office', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Russian provincial government office administering Western Siberia.', districtType: 'provincial_administration', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+    ]
+  },
+
+  "Central Siberia": {
+    [HistoricalEra.PREHISTORY]: [
+      { id: 'scythian_tribal_assembly', name: 'Scythian Tribal Assembly', archetype: SpecialMapArchetype.OPEN_FIELD, description: 'Open-air assembly ground of Scythian warriors and clan leaders.', districtType: 'nomadic_assembly', symbolType: 'TribalCouncilSymbol', priority: 10 }
+    ],
+    [HistoricalEra.MEDIEVAL]: [
+      { id: 'mongol_yam_station', name: 'Mongol Yam Station', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Administrative relay station of the Mongol postal system controlling the steppes.', districtType: 'postal_administration', symbolType: 'TribalCouncilSymbol', priority: 10 }
+    ],
+    [HistoricalEra.INDUSTRIAL_ERA]: [
+      { id: 'trans_siberian_administration', name: 'Trans-Siberian Railway Administration', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Russian administrative center managing railway construction and regional development.', districtType: 'railway_administration', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+    ]
+  },
+
+  // == STEPPE REGIONS ==
+  "Mongolian Steppes": {
+    [HistoricalEra.PREHISTORY]: [
+      { id: 'nomadic_kurultai', name: 'Nomadic Kurultai', archetype: SpecialMapArchetype.OPEN_FIELD, description: 'Traditional assembly of nomadic clan leaders on the Mongolian steppes.', districtType: 'nomadic_assembly', symbolType: 'TribalCouncilSymbol', priority: 10 }
+    ],
+    [HistoricalEra.ANTIQUITY]: [
+      { id: 'xiongnu_confederation_council', name: 'Xiongnu Confederation Council', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Council gathering of the powerful Xiongnu nomadic confederation.', districtType: 'confederation_council', symbolType: 'TribalCouncilSymbol', priority: 10 }
+    ],
+    [HistoricalEra.MEDIEVAL]: [
+      { id: 'great_kurultai', name: 'Great Kurultai', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'The supreme assembly of Mongol nobles and clan leaders choosing the Great Khan.', districtType: 'imperial_assembly', symbolType: 'TribalCouncilSymbol', priority: 10 },
+      { id: 'khans_mobile_court', name: "Khan's Mobile Court", archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The traveling court of a Mongol Khan with his administrative staff and guards.', districtType: 'nomadic_court', symbolType: 'TribalCouncilSymbol', priority: 8 }
+    ]
+  },
+
+  "Kazakh Steppes": {
+    [HistoricalEra.PREHISTORY]: [
+      { id: 'saka_tribal_council', name: 'Saka Tribal Council', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Council of Saka warrior-nomads on the Kazakh steppes.', districtType: 'tribal_council', symbolType: 'TribalCouncilSymbol', priority: 10 }
+    ],
+    [HistoricalEra.MEDIEVAL]: [
+      { id: 'golden_horde_administration', name: 'Golden Horde Administrative Center', archetype: SpecialMapArchetype.COURT_CHAMBER, description: 'Administrative center of the Golden Horde governing the western steppes.', districtType: 'horde_administration', symbolType: 'TribalCouncilSymbol', priority: 10 },
+      { id: 'kazakh_zhuz_assembly', name: 'Kazakh Zhuz Assembly', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Council of elders from the Great, Middle, or Little Horde of the Kazakhs.', districtType: 'horde_council', symbolType: 'TribalCouncilSymbol', priority: 8 }
+    ],
+    [HistoricalEra.INDUSTRIAL_ERA]: [
+      { id: 'tsarist_steppe_fort', name: 'Tsarist Steppe Fortress', archetype: SpecialMapArchetype.MILITARY_FORTRESS, description: 'Russian military-administrative fortress controlling the Kazakh steppes.', districtType: 'frontier_administration', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+    ]
+  },
 
   // == EAST ASIAN REGIONS (Comprehensive) ==
   "North China Plain": {
@@ -920,7 +985,7 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'plankhouse_council', name: 'Plankhouse Council', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Cedar plankhouse of coastal peoples for feasts, trade, and law.', districtType: 'council', symbolType: 'LonghouseCouncilSymbol', priority: 10 }
     ],
     [HistoricalEra.ANTIQUITY]: [
-      { id: 'winter_ceremonial_hall', name: 'Winter Ceremonial Hall', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'Ceremonial governance tied to potlatch economies.', districtType: 'ceremonial_admin', symbolType: 'LonghouseCouncilSymbol', priority: 9 }
+      { id: 'winter_ceremonial_hall', name: 'Winter Ceremonial Hall', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Ceremonial governance tied to potlatch economies.', districtType: 'ceremonial_admin', symbolType: 'LonghouseCouncilSymbol', priority: 9 }
     ],
     [HistoricalEra.MEDIEVAL]: [
       { id: 'confederated_village_council', name: 'Village Council House', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Regional council coordinating fisheries and peace ties.', districtType: 'intervillage_council', symbolType: 'TownHallSymbol', priority: 8 }
@@ -1249,7 +1314,79 @@ export const REGION_SPECIFIC_DISTRICTS: Record<string, Record<HistoricalEra, Gov
       { id: 'orinoco_basin_council', name: 'Orinoco Basin Council', archetype: SpecialMapArchetype.GOVERNMENT_FORUM, description: 'Multi-state river basin governance.', districtType: 'basin_governance', symbolType: 'AdminCenterSymbol', priority: 9 }
     ]
   },
-  
+
+  // == ADDITIONAL PRIORITY REGIONS ==
+  "Australian Outback": {
+    [HistoricalEra.PREHISTORY]: [
+      { id: 'dreamtime_law_ground', name: 'Dreamtime Law Ground', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'Sacred site where Aboriginal elders gather to maintain traditional law and conduct ceremonies.', districtType: 'sacred_council', symbolType: 'OpenAirCouncilSymbol', priority: 10 }
+    ],
+    [HistoricalEra.ANTIQUITY]: [
+      { id: 'inter_tribal_corroboree', name: 'Inter-tribal Corroboree Ground', archetype: SpecialMapArchetype.OPEN_FIELD, description: 'Large gathering place where multiple Aboriginal groups conduct law-giving ceremonies and trade.', districtType: 'intertribal_council', symbolType: 'OpenAirCouncilSymbol', priority: 10 }
+    ],
+    [HistoricalEra.INDUSTRIAL_ERA]: [
+      { id: 'pastoral_station_office', name: 'Pastoral Station Office', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Colonial administrative center of a vast cattle or sheep station in the Australian interior.', districtType: 'pastoral_administration', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+    ]
+  },
+
+  "Papua New Guinea Highlands": {
+    [HistoricalEra.PREHISTORY]: [
+      { id: 'big_man_compound_png', name: "Big Man's Compound", archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Traditional center of Melanesian leadership where big men organize feasts and resolve disputes.', districtType: 'big_man_leadership', symbolType: 'TribalCouncilSymbol', priority: 10 }
+    ],
+    [HistoricalEra.ANTIQUITY]: [
+      { id: 'highland_alliance_council', name: 'Highland Warfare Alliance Council', archetype: SpecialMapArchetype.MILITARY_FORTRESS, description: 'Fortified meeting place where highland clans form alliances for warfare and trade.', districtType: 'war_alliance', symbolType: 'TribalCouncilSymbol', priority: 10 }
+    ],
+    [HistoricalEra.INDUSTRIAL_ERA]: [
+      { id: 'german_colonial_station', name: 'German Colonial Station', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'German colonial administrative post in the New Guinea highlands.', districtType: 'colonial_station', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+    ]
+  },
+
+  "Andes Mountains": {
+    [HistoricalEra.ANTIQUITY]: [
+      { id: 'inca_tambo_administration', name: 'Inca Tambo', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Inca administrative and storage center along the royal road system.', districtType: 'imperial_station', symbolType: 'AfricanChiefdomSymbol', priority: 10 }
+    ],
+    [HistoricalEra.MEDIEVAL]: [
+      { id: 'inca_royal_court', name: 'Inca Royal Court', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'The court of the Sapa Inca in Cusco, center of the Inca Empire.', districtType: 'imperial_court', symbolType: 'AfricanChiefdomSymbol', priority: 10 }
+    ],
+    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
+      { id: 'spanish_audiencia', name: 'Spanish Audiencia', archetype: SpecialMapArchetype.COURT_CHAMBER, description: 'Spanish colonial high court and administrative body governing the Andes.', districtType: 'colonial_court', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+    ]
+  },
+
+  "Southeast Asian Highlands": {
+    [HistoricalEra.PREHISTORY]: [
+      { id: 'hill_tribe_council_house', name: 'Hill Tribe Council House', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Traditional longhouse where hill tribe elders make decisions for the community.', districtType: 'tribal_longhouse', symbolType: 'LonghouseSymbol', priority: 10 }
+    ],
+    [HistoricalEra.MEDIEVAL]: [
+      { id: 'tai_muang_administration', name: 'Tai Muang', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Administrative center of a Tai principality in the Southeast Asian highlands.', districtType: 'principality_center', symbolType: 'MandateHallSymbol', priority: 10 }
+    ],
+    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
+      { id: 'burmese_provincial_office', name: 'Burmese Provincial Office', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Burmese royal administration governing highland tributary states.', districtType: 'tributary_administration', symbolType: 'MandateHallSymbol', priority: 10 }
+    ]
+  },
+
+  "Iranian Plateau": {
+    [HistoricalEra.ANTIQUITY]: [
+      { id: 'sassanid_fire_temple_court', name: 'Sassanid Fire Temple Court', archetype: SpecialMapArchetype.SACRED_COMPLEX, description: 'Zoroastrian fire temple complex where Sassanid administrators and priests governed.', districtType: 'theocratic_administration', symbolType: 'CaliphCourtSymbol', priority: 10 }
+    ],
+    [HistoricalEra.MEDIEVAL]: [
+      { id: 'islamic_diwan', name: 'Islamic Diwan', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Government administrative office under Islamic rule in Persia.', districtType: 'islamic_administration', symbolType: 'CaliphCourtSymbol', priority: 10 }
+    ],
+    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
+      { id: 'safavid_provincial_office', name: 'Safavid Provincial Office', archetype: SpecialMapArchetype.PALACE_COMPLEX, description: 'Provincial administration of the Safavid Empire governing the Iranian plateau.', districtType: 'safavid_administration', symbolType: 'CaliphCourtSymbol', priority: 10 }
+    ]
+  },
+
+  "Patagonian Steppe": {
+    [HistoricalEra.PREHISTORY]: [
+      { id: 'tehuelche_tribal_council', name: 'Tehuelche Tribal Council', archetype: SpecialMapArchetype.OPEN_FIELD, description: 'Nomadic assembly ground of the Tehuelche people on the Patagonian steppes.', districtType: 'nomadic_council', symbolType: 'OpenAirCouncilSymbol', priority: 10 }
+    ],
+    [HistoricalEra.MEDIEVAL]: [
+      { id: 'mapuche_confederation_council', name: 'Mapuche Confederation Council', archetype: SpecialMapArchetype.TRIBAL_COUNCIL, description: 'Council of Mapuche lonkos (chiefs) organizing resistance against Inca and Spanish expansion.', districtType: 'confederation_council', symbolType: 'TribalCouncilSymbol', priority: 10 }
+    ],
+    [HistoricalEra.INDUSTRIAL_ERA]: [
+      { id: 'argentine_frontier_fort', name: 'Argentine Frontier Fort', archetype: SpecialMapArchetype.MILITARY_FORTRESS, description: 'Military fort and administrative center during the Argentine Conquest of the Desert.', districtType: 'frontier_fort', symbolType: 'ColonialOfficeSymbol', priority: 10 }
+    ]
+  }
   
 };
 
@@ -1453,6 +1590,18 @@ export const CULTURAL_ZONE_DISTRICTS: Record<string, Record<HistoricalEra, Gover
     ],
     [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [
       { id: 'confederacy_fire', name: 'Council Fire', archetype: SpecialMapArchetype.OPEN_FIELD, description: 'The central diplomatic and ceremonial meeting place for an inter-tribal confederacy.', districtType: 'diplomatic_ground', symbolType: 'OpenAirCouncilSymbol', priority: 10 }
+    ],
+    [HistoricalEra.INDUSTRIAL_ERA]: [
+      { id: 'tribal_agency', name: 'Tribal Agency', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Bureau of Indian Affairs agency office.', districtType: 'federal_agency', symbolType: 'AdminCenterSymbol', priority: 10 },
+      { id: 'reservation_council', name: 'Reservation Council Hall', archetype: SpecialMapArchetype.TOWN_HALL, description: 'Modern tribal government meeting hall.', districtType: 'tribal_government', symbolType: 'TownHallSymbol', priority: 8 }
+    ],
+    [HistoricalEra.MODERN_ERA]: [
+      { id: 'tribal_headquarters', name: 'Tribal Headquarters', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Modern tribal government complex.', districtType: 'tribal_administration', symbolType: 'AdminCenterSymbol', priority: 10 },
+      { id: 'cultural_center', name: 'Cultural Center', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Community center for tribal meetings and cultural events.', districtType: 'community_center', symbolType: 'AssemblyHallSymbol', priority: 8 }
+    ],
+    [HistoricalEra.FUTURE_ERA]: [
+      { id: 'sovereign_council', name: 'Sovereign Nation Council', archetype: SpecialMapArchetype.ASSEMBLY_HALL, description: 'Autonomous indigenous government assembly.', districtType: 'sovereign_assembly', symbolType: 'AssemblyHallSymbol', priority: 10 },
+      { id: 'heritage_complex', name: 'Heritage Administrative Complex', archetype: SpecialMapArchetype.ADMINISTRATIVE_COMPLEX, description: 'Advanced indigenous governance center.', districtType: 'heritage_admin', symbolType: 'AdminCenterSymbol', priority: 8 }
     ]
   },
 
@@ -1602,7 +1751,10 @@ export const FALLBACK_LEADER_TITLES: Record<string, Record<HistoricalEra, string
     [HistoricalEra.PREHISTORY]: ['Band Chief', 'Elder', 'Shaman'],
     [HistoricalEra.ANTIQUITY]: ['Great Sun', 'Cacique', 'Peace Chief', 'War Chief'],
     [HistoricalEra.MEDIEVAL]: ['Sachem', 'Clan Mother', 'Head Chief'],
-    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: ['Paramount Chief', 'Head Sachem', 'Keeper of the Fire']
+    [HistoricalEra.RENAISSANCE_EARLY_MODERN]: ['Paramount Chief', 'Head Sachem', 'Keeper of the Fire'],
+    [HistoricalEra.INDUSTRIAL_ERA]: ['Tribal Chairman', 'Council Member', 'Agent'],
+    [HistoricalEra.MODERN_ERA]: ['Tribal President', 'Council Chair', 'Cultural Director'],
+    [HistoricalEra.FUTURE_ERA]: ['Sovereign Leader', 'Heritage Keeper', 'Nation Speaker']
   },
 
   SOUTH_AMERICAN: {

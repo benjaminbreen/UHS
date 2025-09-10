@@ -3,7 +3,7 @@
  * Population distribution bell curve showing where player falls in human history
  */
 import React, { useMemo } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Dot } from 'recharts';
 import { motion } from 'framer-motion';
 
 interface PopulationChartProps {
@@ -105,14 +105,75 @@ const calculateHistoricalPosition = (year: number) => {
 };
 
 const PopulationChart: React.FC<PopulationChartProps> = ({ currentYear, region }) => {
-  const data = useMemo(() => generatePopulationCurve(), []);
+  const baseData = useMemo(() => generatePopulationCurve(), []);
   const position = useMemo(() => calculateHistoricalPosition(currentYear), [currentYear]);
   
-  // Find current population
+  // Find current population with proper interpolation
   const currentPop = useMemo(() => {
-    const point = data.find(d => Math.abs(d.year - currentYear) < 50);
-    return point ? point.population : 100;
-  }, [data, currentYear]);
+    // Find the exact population value by interpolation
+    const years = baseData.map(d => d.year);
+    
+    // Find the two data points that bracket the current year
+    let lowerPoint = null;
+    let upperPoint = null;
+    
+    for (let i = 0; i < baseData.length - 1; i++) {
+      if (baseData[i].year <= currentYear && baseData[i + 1].year >= currentYear) {
+        lowerPoint = baseData[i];
+        upperPoint = baseData[i + 1];
+        break;
+      }
+    }
+    
+    // If we found bracketing points, interpolate
+    if (lowerPoint && upperPoint) {
+      const yearRange = upperPoint.year - lowerPoint.year;
+      const yearOffset = currentYear - lowerPoint.year;
+      const ratio = yearOffset / yearRange;
+      const interpolatedPop = lowerPoint.population + (upperPoint.population - lowerPoint.population) * ratio;
+      return interpolatedPop;
+    }
+    
+    // Edge cases: before first year or after last year
+    if (currentYear <= baseData[0].year) {
+      return baseData[0].population;
+    }
+    if (currentYear >= baseData[baseData.length - 1].year) {
+      return baseData[baseData.length - 1].population;
+    }
+    
+    // Fallback (shouldn't reach here)
+    return 100;
+  }, [baseData, currentYear]);
+  
+  // Create data with the current year point included
+  const data = useMemo(() => {
+    // Copy the base data
+    const chartData = [...baseData];
+    
+    // Add the current year as a data point with a special marker
+    const currentPoint = {
+      year: currentYear,
+      population: currentPop,
+      displayYear: currentYear < 0 ? `${Math.abs(currentYear)} BC` : `${currentYear} AD`,
+      isCurrentYear: true
+    };
+    
+    // Insert the current point in the right position
+    let inserted = false;
+    for (let i = 0; i < chartData.length; i++) {
+      if (chartData[i].year > currentYear) {
+        chartData.splice(i, 0, currentPoint);
+        inserted = true;
+        break;
+      }
+    }
+    if (!inserted) {
+      chartData.push(currentPoint);
+    }
+    
+    return chartData;
+  }, [baseData, currentYear, currentPop]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload[0]) {
@@ -131,9 +192,38 @@ const PopulationChart: React.FC<PopulationChartProps> = ({ currentYear, region }
     return null;
   };
 
-  // Find the data point for the current year to position the dot
-  const currentDataPoint = data.find(d => Math.abs(d.year - currentYear) < 50) || data[0];
-  const currentIndex = data.indexOf(currentDataPoint);
+  // Custom dot component for the current year
+  const renderCustomDot = (props: any) => {
+    const { cx, cy, payload } = props;
+    
+    if (payload.isCurrentYear) {
+      return (
+        <g>
+          {/* Pulsing glow animation */}
+          <circle cx={cx} cy={cy} r="8" fill="#f59e0b" opacity="0.3">
+            <animate attributeName="r" values="6;12;6" dur="2s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.5;0.1;0.5" dur="2s" repeatCount="indefinite" />
+          </circle>
+          {/* Main dot */}
+          <circle cx={cx} cy={cy} r="4" fill="#f59e0b" stroke="#fbbf24" strokeWidth="2" />
+          {/* Inner bright spot */}
+          <circle cx={cx} cy={cy} r="1.5" fill="#ffffff" opacity="0.9" />
+          {/* Year label */}
+          <text 
+            x={cx} 
+            y={cy + 20} 
+            textAnchor="middle" 
+            fill="#f59e0b" 
+            fontSize="11" 
+            fontWeight="bold"
+          >
+            {payload.displayYear}
+          </text>
+        </g>
+      );
+    }
+    return null;
+  };
   
   return (
     <motion.div
@@ -190,45 +280,18 @@ const PopulationChart: React.FC<PopulationChartProps> = ({ currentYear, region }
             fill="url(#populationGradient)"
             animationDuration={1500}
             animationBegin={100}
-          />
-          
-          <ReferenceLine 
-            x={currentYear} 
-            stroke="#f59e0b"
-            strokeWidth={2}
-            strokeDasharray="none"
+            dot={renderCustomDot}
           />
           
         </AreaChart>
         </ResponsiveContainer>
-        
-        {/* Overlay dot for current year - positioned absolutely */}
-        <div 
-          className="absolute pointer-events-none"
-          style={{
-            left: `${((currentYear + 5000) / 7000) * 100}%`,
-            top: '50%',
-            transform: 'translate(-50%, -50%)'
-          }}
-        >
-          <div className="relative">
-            {/* Pulsing glow */}
-            <div className="absolute w-4 h-4 bg-amber-500 rounded-full animate-ping opacity-75" />
-            {/* Main dot */}
-            <div className="w-4 h-4 bg-amber-400 rounded-full border-2 border-amber-200" />
-          </div>
-          {/* Year label */}
-          <div className="absolute top-5 left-1/2 transform -translate-x-1/2 text-xs font-bold text-amber-400 whitespace-nowrap">
-            {currentYear < 0 ? `${Math.abs(currentYear)} BC` : `${currentYear} AD`}
-          </div>
-        </div>
       </div>
       
       <div className="mt-2">
         <div className="flex justify-between text-xs mb-1">
           <span className="text-slate-500">Current population:</span>
           <span className="text-amber-400 font-semibold">
-            ~{currentPop.toFixed(0)} million
+            ~{Math.round(currentPop)} million
           </span>
         </div>
         <div className="text-xs text-slate-400 italic">

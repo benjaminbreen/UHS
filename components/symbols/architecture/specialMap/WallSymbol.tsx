@@ -3,7 +3,8 @@
  * Stardew Valley inspired with dollhouse perspective
  */
 import React from 'react';
-import { MaterialType } from '../../constants/specialMaps/specialMapAugmentation';
+// Material type for wall variations
+type MaterialType = 'white_marble' | 'grey_stone' | 'red_lacquer' | 'sandstone' | 'wood' | 'steel';
 
 interface WallSymbolProps {
   x: number;

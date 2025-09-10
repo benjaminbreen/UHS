@@ -21,12 +21,12 @@ import { normalizeZoneName, normalizeRegionName } from '../utils/worldWeaverHelp
 import { eventService } from '../services/eventService';
 import { useEventSystem } from '../hooks/useEventSystem';
 import { usePlayer } from '../contexts/PlayerContext';
+import { questService } from '../services/questService';
 
 // Button group configurations for better organization
 const NAV_BUTTON_GROUPS = {
   game: [
     { id: 'world-map', icon: Globe, label: 'World Map', color: 'slate' },
-    { id: 'quests', icon: ScrollText, label: 'Quests', color: 'slate' },
   ],
   info: [
     { id: 'about', icon: Info, label: 'About', color: 'slate' },
@@ -134,6 +134,21 @@ const TopNavBarPolished: React.FC = () => {
   const [llmHistory, setLLMHistory] = useState(eventService.getLLMHistory());
   const [showQuestsPanel, setShowQuestsPanel] = useState(false);
   const [showGameModeTooltip, setShowGameModeTooltip] = useState(false);
+  
+  // Auto-open quests panel when there are active quests (for better UX)
+  // Only do this once on initial load, not continuously
+  const [hasAutoOpenedQuests, setHasAutoOpenedQuests] = useState(false);
+  
+  useEffect(() => {
+    if (!hasAutoOpenedQuests) {
+      const activeQuests = questService.getActiveQuests();
+      if (activeQuests.length > 0) {
+        console.log(`[UI] Auto-opening quests panel - ${activeQuests.length} active quests found`);
+        setShowQuestsPanel(true);
+        setHasAutoOpenedQuests(true); // Only auto-open once per session
+      }
+    }
+  }, [hasAutoOpenedQuests]);
   const [showGameModePanel, setShowGameModePanel] = useState(false);
   const [worldWeaverModalData, setWorldWeaverModalData] = useState<{
     isOpen: boolean;
@@ -260,9 +275,6 @@ const TopNavBarPolished: React.FC = () => {
 
   const handleNavAction = (actionId: string) => {
     switch (actionId) {
-      case 'quests':
-        setShowQuestsPanel(true);
-        break;
       case 'world-map':
         setIsWorldMapModalOpen(true);
         break;
@@ -407,9 +419,34 @@ const TopNavBarPolished: React.FC = () => {
                     </div>
                   )}
                 </div>
+              
+              {/* Quests Button - Right next to Game Mode */}
+              <div className="relative ml-2">
+                <button
+                  onClick={() => setShowQuestsPanel(prev => !prev)}
+                  className={getOptimizedButtonClassName(`
+                    px-3 py-1.5 text-xs font-medium text-white rounded-md
+                    transition-all duration-200 flex items-center gap-1.5
+                    bg-slate-700/60 hover:bg-slate-600/60
+                    shadow-sm hover:shadow-md hover:scale-105
+                    ${showQuestsPanel ? 'ring-2 ring-purple-500/50 bg-purple-900/30' : ''}
+                  `)}
+                  title="Quests & Objectives"
+                >
+                  <ScrollText className="w-4 h-4" />
+                  <span className="hidden lg:inline">Quests</span>
+                </button>
+                
+                {/* Helpful UI text when active */}
+                {showQuestsPanel && (
+                  <span className="absolute -right-2 top-full mt-1 text-[10px] text-slate-400 whitespace-nowrap animate-pulse">
+                    click to close
+                  </span>
+                )}
+              </div>
             </div>
 
-            {/* WorldWeaver Input - Desktop */}
+            {/* WorldWeaver Input - Desktop (Centered with flex-1) */}
             {!isMobile && (
               <div className="flex-1 max-w-lg mx-4">
                 <div className="relative">
@@ -620,6 +657,26 @@ const TopNavBarPolished: React.FC = () => {
                     </button>
                   );
                 })}
+                
+                {/* Quests button for mobile */}
+                <button
+                  onClick={() => {
+                    setShowQuestsPanel(prev => !prev);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`
+                    w-full px-3 py-2.5 text-sm font-medium text-white rounded-lg
+                    transition-all duration-200 flex items-center gap-2
+                    bg-slate-700/30 hover:bg-slate-600/40
+                    ${showQuestsPanel ? 'ring-2 ring-purple-500/50 bg-purple-900/30' : ''}
+                  `}
+                >
+                  <ScrollText className="w-4 h-4" />
+                  Quests
+                  {showQuestsPanel && (
+                    <span className="ml-auto text-xs text-slate-400">(open)</span>
+                  )}
+                </button>
               </div>
 
               {/* Info Actions */}

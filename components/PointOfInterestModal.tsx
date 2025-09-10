@@ -2,7 +2,7 @@
  * components/PointOfInterestModal.tsx - A specialized modal for unique structures.
  */
 import React, { useMemo, useCallback } from 'react';
-import { TerrainStructure, MapData, HistoricalEra, CulturalZone, NpcEntity, GameDate, SpecialMapConfig, SimplifiedArchetype } from '../types';
+import { TerrainStructure, MapData, HistoricalEra, CulturalZone, NpcEntity, GameDate, SpecialMapConfig } from '../types';
 import { SOCIETAL_PROFILES, ITEM_DEFINITIONS, FACTION_DATA } from '../constants/index';
 import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
@@ -279,7 +279,7 @@ const PointOfInterestModal: React.FC<PointOfInterestModalProps> = ({ structure, 
                                         <button 
                                             onClick={() => {
                                                 const config: SpecialMapConfig = {
-                                                    archetype: SimplifiedArchetype.SACRED_COMPLEX,
+                                                    // archetype: SimplifiedArchetype.SACRED_COMPLEX, (commented out pending wiring this up to newer specialmap system)
                                                     culturalZone: culturalZone,
                                                     era: era,
                                                     region: mapData.region,

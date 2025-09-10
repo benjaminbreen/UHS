@@ -1976,13 +1976,68 @@ const CombatModal: React.FC<CombatModalProps> = ({
   const opponentHealthValue = typeof opponent.health === 'number' ? opponent.health : (opponent.health?.current || 0);
   const opponentHealthPercent = (opponentHealthValue / enhancedMaxHealth) * 100;
 
-  // Determine current biome for background
+  // Determine current biome for background with smart fallbacks
   const getCurrentBiome = (): string => {
     const playerPos = { x: playerCharacter.x || 0, y: playerCharacter.y || 0 };
     const tile = mapData?.tiles?.[playerPos.y]?.[playerPos.x];
+    
+    console.log('[CombatModal] Debug biome detection:', {
+      playerPos,
+      tile: tile ? {
+        x: tile.x,
+        y: tile.y,
+        biome: tile.biome,
+        isLand: tile.isLand,
+        altitude: tile.altitude
+      } : 'no tile found',
+      mapDataExists: !!mapData,
+      tilesExists: !!mapData?.tiles,
+      rowExists: !!mapData?.tiles?.[playerPos.y],
+      tileBiome: tile?.biome
+    });
+    
     if (tile?.biome) {
-      return tile.biome.toLowerCase().replace(/\s+/g, '_');
+      let biome = tile.biome.toLowerCase().replace(/\s+/g, '_');
+      
+      // Handle specific biome mappings that might not have exact file matches
+      const biomeMapping: { [key: string]: string } = {
+        'deep_ocean': 'riverbank',
+        'shallow_ocean': 'riverbank', 
+        'major_river': 'riverbank',
+        'river': 'riverbank',
+        'beach': 'grassland',
+        'oasis': 'desert',
+        'reef': 'riverbank',
+        'volcanic_soil': 'hills',
+        'volcanic_rock': 'hills',
+        'active_lava': 'desert',
+        'shoals_tile': 'riverbank',
+        'salt_flats': 'desert',
+        'hot_springs': 'riverbank',
+        'ruins': 'grassland',
+        'estuary': 'wetlands',
+        'freshwater_lake': 'riverbank',
+        'cliff': 'hills',
+        'palace': 'urban',
+        'holy_site': 'urban',
+        'farmland': 'grassland',
+        'marketplace': 'urban',
+        'government_district': 'urban',
+        'city_center': 'dense_city',
+        'low_density_city': 'urban',
+        'high_peak': 'mountain'
+      };
+      
+      // Use mapping if exists, otherwise use the biome directly
+      if (biomeMapping[biome]) {
+        biome = biomeMapping[biome];
+        console.log('[CombatModal] Mapped biome to:', biome);
+      }
+      
+      console.log('[CombatModal] Using biome:', biome);
+      return biome;
     }
+    console.log('[CombatModal] Using fallback: grassland');
     return 'grassland'; // default fallback
   };
 
@@ -2011,20 +2066,43 @@ const CombatModal: React.FC<CombatModalProps> = ({
     generateStartDialogue();
   }, []); // Only run once when component mounts
 
-  // Check for biome background image
+  // Check for biome background image with fallbacks
   useEffect(() => {
     const checkBackgroundImage = async () => {
-      const imagePath = `/combat-backgrounds/${currentBiome}.png`;
+      const primaryPath = `/combat-backgrounds/${currentBiome}.png`;
+      console.log('[CombatModal] Checking background image:', primaryPath);
+      
       try {
-        const response = await fetch(imagePath, { method: 'HEAD' });
+        const response = await fetch(primaryPath, { method: 'HEAD' });
         if (response.ok) {
-          setBackgroundImage(imagePath);
-        } else {
-          setBackgroundImage(null);
+          console.log('[CombatModal] Background image found:', primaryPath);
+          setBackgroundImage(primaryPath);
+          return;
         }
-      } catch {
-        setBackgroundImage(null);
+      } catch (error) {
+        console.log('[CombatModal] Error checking primary background:', primaryPath, error);
       }
+      
+      // Try fallback backgrounds if primary doesn't exist
+      const fallbacks = ['grassland', 'hills', 'forest', 'desert'];
+      console.log('[CombatModal] Primary background not found, trying fallbacks...');
+      
+      for (const fallback of fallbacks) {
+        const fallbackPath = `/combat-backgrounds/${fallback}.png`;
+        try {
+          const response = await fetch(fallbackPath, { method: 'HEAD' });
+          if (response.ok) {
+            console.log('[CombatModal] Using fallback background:', fallbackPath);
+            setBackgroundImage(fallbackPath);
+            return;
+          }
+        } catch (error) {
+          console.log('[CombatModal] Fallback failed:', fallbackPath, error);
+        }
+      }
+      
+      console.log('[CombatModal] No background image available');
+      setBackgroundImage(null);
     };
     checkBackgroundImage();
   }, [currentBiome]);

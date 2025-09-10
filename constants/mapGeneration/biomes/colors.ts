@@ -55,6 +55,7 @@ export const BIOME_COLORS: Record<BiomeType, string> = {
   [BiomeType.CITY_CENTER]: '#d0c0a0',
   [BiomeType.PARK]: '#5a9a40', // Green park color for modern urban parks
   [BiomeType.ROAD]: '#505050', // Dark gray for paved roads
+  [BiomeType.DIRT_PATH]: '#8b7355', // Brown dirt path color
   [BiomeType.PLAZA]: '#c8b88b', // Light stone/brick color for plazas
   [BiomeType.HARBOR_DISTRICT]: '#7090a0', // Blue-gray for harbor areas
   [BiomeType.INDUSTRIAL_DISTRICT]: '#8a7060', // Brown-gray for industrial zones
@@ -81,6 +82,13 @@ export const BIOME_COLORS: Record<BiomeType, string> = {
   [BiomeType.FLOOR_WOOD]: '#8b6633', // Wood brown
   [BiomeType.FLOOR_MARBLE]: '#e8e8e8', // White marble
   [BiomeType.FLOOR_TILE]: '#c4a574', // Terracotta tile
+  [BiomeType.FLOOR_DIRT]: '#8b7355', // Dirt floor - same as dirt path
+  [BiomeType.FLOOR_CHECKERED]: '#d3d3d3', // Light gray checkered
+  [BiomeType.FLOOR_PATTERN]: '#a8a694', // Patterned stone floor
+  [BiomeType.FLOOR_MOSAIC]: '#b8860b', // Mosaic gold/brown
+  [BiomeType.FLOOR_MOSAIC_CENTER]: '#daa520', // Brighter mosaic center
+  [BiomeType.FLOOR_MOSAIC_BORDER]: '#8b7d6b', // Darker mosaic border
+  [BiomeType.FLOOR_CARPET]: '#8b0000', // Red carpet floor
   [BiomeType.TABLE]: '#6b4423', // Dark wood
   [BiomeType.TABLE_LEFT]: '#6b4423', // Dark wood (left end)
   [BiomeType.TABLE_CENTER]: '#6b4423', // Dark wood (center)
