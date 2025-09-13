@@ -36,7 +36,7 @@ interface FishingHutBannerProps {
 }
 
 /* ───────────────────────── Layout constants ───────────────────────── */
-export const GROUND_Y_DEFAULT = 110;
+export const GROUND_Y_DEFAULT = 125;  // Increased from 110 to reduce ocean height
 export const WATER_OFFSET = 15;
 
 /* ───────────────────────── Utilities ───────────────────────── */
@@ -847,7 +847,7 @@ const FishingHutBanner: React.FC<FishingHutBannerProps> = ({
           {/* Early Modern/Industrial: Proper crates and barrels */}
           {(isEarlyModern || isIndustrial) && (
             <>
-              <rect x={cx - 45} y={GROUND_Y - 5} width={6} height={5} fill="#8B4513" stroke="#654321" strokeWidth={0.5} />
+              <rect x={cx - 45} y={GROUND_Y - 5} width={6} height={5} fill="#8B4513" stroke="#654321" strokeWidth="0.5" />
               <line x1={cx - 45} y1={GROUND_Y - 3} x2={cx - 39} y2={GROUND_Y - 3} stroke="#654321" strokeWidth="0.3" />
               <line x1={cx - 42} y1={GROUND_Y - 5} x2={cx - 42} y2={GROUND_Y} stroke="#654321" strokeWidth="0.3" />
               <ellipse cx={cx - 42} cy={GROUND_Y - 5} rx={3} ry={1} fill="#A0826D" stroke="#654321" strokeWidth="0.3" />
@@ -863,9 +863,9 @@ const FishingHutBanner: React.FC<FishingHutBannerProps> = ({
           {/* Modern: Metal containers and coolers */}
           {isModernEra && (
             <>
-              <rect x={cx - 45} y={GROUND_Y - 6} width={8} height={6} fill="#A9A9A9" stroke="#606060" strokeWidth={0.5} />
+              <rect x={cx - 45} y={GROUND_Y - 6} width={8} height={6} fill="#A9A9A9" stroke="#606060" strokeWidth="0.5" />
               <rect x={cx - 44} y={GROUND_Y - 5.5} width={6} height={1} fill="#C0C0C0" />
-              <rect x={cx - 55} y={GROUND_Y - 8} width={8} height={8} fill="#4169E1" stroke="#000080" strokeWidth={0.5} />
+              <rect x={cx - 55} y={GROUND_Y - 8} width={8} height={8} fill="#4169E1" stroke="#000080" strokeWidth="0.5" />
               <rect x={cx - 54} y={GROUND_Y - 7} width={6} height={1} fill="#FFFFFF" />
               <text x={cx - 51} y={GROUND_Y - 4.5} textAnchor="middle" fill="#FFFFFF" fontSize="3" fontFamily="sans-serif">ICE</text>
             </>

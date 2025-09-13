@@ -163,12 +163,6 @@ const useCoreLoops = () => {
     questService.resetQuestService();
     questTriggerService.reset(); // Reset quest trigger state for new game
     
-    // DISABLED: Automatic quest generation on game start
-    // Quests will now be triggered organically through player actions
-    // console.log('[QuestInit] Automatic quest generation disabled - quests will be triggered by player actions');
-    return;
-    
-    // OLD CODE (disabled):
     // Don't initialize quests for special maps
     if (isSpecialMap) {
       // console.log('[QuestInit] Skipping quest generation for special map');
@@ -199,44 +193,9 @@ const useCoreLoops = () => {
           playerStats
         );
 
-        const currentQuestCount = questService.getActiveQuests().length;
-        if (currentQuestCount < numQuests) {
-          const additionalNeeded = numQuests - currentQuestCount;
-          const shuffledStructures = [...validStructures].sort(() => Math.random() - 0.5);
-
-          for (let i = 0; i < additionalNeeded && i < shuffledStructures.length; i++) {
-            const structure = shuffledStructures[i];
-            const simpleQuest = {
-              id: `quest_explore_${structure.id}_${Date.now()}`,
-              title: `Investigate the ${structure.structureType.replace('_', ' ')}`,
-              description: `There's a ${structure.structureType.replace('_', ' ')} nearby that might be worth investigating.`,
-              category: 'exploration' as const,
-              objectives: [
-                {
-                  id: 'obj_1',
-                  description: `Visit the ${structure.structureType.replace('_', ' ')}`,
-                  type: 'visit_location' as const,
-                  targetLocation: { x: structure.location[0], y: structure.location[1] },
-                  targetType: structure.structureType as any,
-                  completed: false,
-                },
-              ],
-              currentObjectiveIndex: 0,
-              rewards: [
-                {
-                  type: 'reputation' as const,
-                  value: 5,
-                  description: 'Reputation +5',
-                },
-              ],
-              startLocation: { x: controlledIconX || 50, y: controlledIconY || 50 },
-              startTime: Date.now(),
-              status: 'active' as const,
-              isProceduralQuest: true,
-            };
-            questService.addQuest(simpleQuest);
-          }
-        }
+        // DEPRECATED: This code was trying to add additional procedural quests
+        // but numQuests and validStructures are undefined, causing runtime errors
+        // The unified quest pipeline now handles all quest generation
 
         const finalQuestCount = questService.getActiveQuests().length;
         // console.log(`[QuestInit] Successfully initialized ${finalQuestCount} quests`);
@@ -1072,6 +1031,20 @@ const useCoreLoops = () => {
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         if (isAnyModalOpen && !combatant) return;
         if (document.activeElement && ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+        // Check if player is in elevated state and prevent movement
+        if (playerCharacter?.elevatedState && viewMode === 'standard') {
+          e.preventDefault();
+          // Add a narration message about being elevated
+          if (setNarrationHistory) {
+            setNarrationHistory(prev => [...prev, {
+              sender: 'narrator',
+              text: `You are ${playerCharacter.elevationDescription || 'in an elevated position'}! You need to climb down before you can move elsewhere.`
+            }]);
+          }
+          return;
+        }
+
         e.preventDefault();
         if (viewMode === 'standard') {
           activeKeys.current.add(e.key);

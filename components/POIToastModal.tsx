@@ -5,7 +5,14 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TerrainStructure } from '../types';
 import { WorkerDialogue, ServiceOption } from '../services/poiDialogueService';
-import { useUIState } from '../hooks/useUIState';
+import { useUI } from '../contexts/UIContext';
+import { usePlayer } from '../contexts/PlayerContext';
+import QuarryBanner from './QuarryBanner';
+import MineColonyBanner from './MineColonyBanner';
+import FortressBanner from './FortressBanner';
+import MillBanner from './MillBanner';
+import FactoryBanner from './FactoryBanner';
+import LumberCampBanner from './LumberCampBanner';
 
 const POITypeIcon: React.FC<{ type: string }> = ({ type }) => {
   const iconMap: Record<string, string> = {
@@ -18,139 +25,34 @@ const POITypeIcon: React.FC<{ type: string }> = ({ type }) => {
   };
   
   return (
-    <motion.div
-      initial={{ scale: 0, rotate: -180 }}
-      animate={{ scale: 1, rotate: 0 }}
-      transition={{ duration: 0.4, delay: 0.2 }}
-      className="w-7 h-7 text-xl flex items-center justify-center"
-    >
+    <div className="w-8 h-8 text-2xl flex items-center justify-center">
       {iconMap[type] || '🏗️'}
-    </motion.div>
-  );
-};
-
-const POIBanner: React.FC<{ type: string }> = ({ type }) => {
-  const getBannerStyle = () => {
-    switch(type) {
-      case 'quarry':
-        // Stone quarry - gray rocky texture
-        return {
-          background: 'linear-gradient(180deg, #78716c 0%, #57534e 40%, #292524 80%, #0f172a 100%)',
-          pattern: (
-            <div className="absolute inset-0 opacity-30">
-              <div style={{
-                backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 20px),
-                                 repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px)`
-              }} className="w-full h-full" />
-            </div>
-          )
-        };
-      case 'mine':
-        // Mine - dark with metallic hints
-        return {
-          background: 'linear-gradient(180deg, #52525b 0%, #3f3f46 40%, #18181b 80%, #0f172a 100%)',
-          pattern: (
-            <div className="absolute inset-0 opacity-20">
-              <div style={{
-                backgroundImage: `repeating-linear-gradient(90deg, transparent, transparent 15px, rgba(255,255,255,0.02) 15px, rgba(255,255,255,0.02) 30px)`
-              }} className="w-full h-full" />
-            </div>
-          )
-        };
-      case 'mill':
-        // Mill - warm wheat/grain colors
-        return {
-          background: 'linear-gradient(180deg, #d97706 0%, #b45309 40%, #7c2d12 80%, #0f172a 100%)',
-          pattern: (
-            <div className="absolute inset-0 opacity-25">
-              <div style={{
-                backgroundImage: `radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
-                                 radial-gradient(circle at 80% 50%, rgba(255,255,255,0.1) 0%, transparent 50%)`
-              }} className="w-full h-full" />
-            </div>
-          )
-        };
-      case 'factory':
-        // Factory - industrial gray
-        return {
-          background: 'linear-gradient(180deg, #6b7280 0%, #4b5563 40%, #1f2937 80%, #0f172a 100%)',
-          pattern: (
-            <div className="absolute inset-0 opacity-15">
-              <div style={{
-                backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(0,0,0,0.1) 20px, rgba(0,0,0,0.1) 40px)`
-              }} className="w-full h-full" />
-            </div>
-          )
-        };
-      case 'fortress':
-        // Fortress - strong red/burgundy
-        return {
-          background: 'linear-gradient(180deg, #991b1b 0%, #7f1d1d 40%, #450a0a 80%, #0f172a 100%)',
-          pattern: (
-            <div className="absolute inset-0 opacity-20">
-              <div style={{
-                backgroundImage: `repeating-linear-gradient(90deg, transparent, transparent 30px, rgba(0,0,0,0.2) 30px, rgba(0,0,0,0.2) 60px)`
-              }} className="w-full h-full" />
-            </div>
-          )
-        };
-      case 'woodcutter':
-        // Woodcutter - forest green with wood grain
-        return {
-          background: 'linear-gradient(180deg, #166534 0%, #15803d 40%, #166534 80%, #0f172a 100%)',
-          pattern: (
-            <div className="absolute inset-0 opacity-25">
-              <div style={{
-                backgroundImage: `repeating-linear-gradient(25deg, rgba(120,113,108,0.1) 0px, rgba(120,113,108,0.1) 2px, transparent 2px, transparent 15px),
-                                 repeating-linear-gradient(-25deg, rgba(87,83,78,0.05) 0px, rgba(87,83,78,0.05) 1px, transparent 1px, transparent 8px)`
-              }} className="w-full h-full" />
-            </div>
-          )
-        };
-      default:
-        return {
-          background: 'linear-gradient(180deg, #a16207 0%, #92400e 40%, #451a03 80%, #0f172a 100%)',
-          pattern: null
-        };
-    }
-  };
-
-  const style = getBannerStyle();
-
-  return (
-    <div className="absolute inset-0" style={{ background: style.background }}>
-      {style.pattern}
-      {/* Noise texture overlay for realism */}
-      <div className="absolute inset-0 opacity-[0.03]" style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
-      }} />
     </div>
   );
 };
 
 export function POIToastModal() {
-  const { poiToastData, hidePoiToast } = useUIState();
+  const { poiToastData, setPoiToastData } = useUI();
+  const { playerCharacter } = usePlayer();
   const [selectedService, setSelectedService] = useState<string | null>(null);
-  const [isClosing, setIsClosing] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   
-  console.log('POIToastModal render - poiToastData:', poiToastData);
-  
-  if (!poiToastData) {
-    console.log('POIToastModal: No poiToastData, returning null');
-    return null;
-  }
-  
-  console.log('POIToastModal: Rendering modal with data:', {
-    type: poiToastData.structure?.type,
-    name: poiToastData.structure?.name,
-    hasDescription: !!poiToastData.description,
-    hasDialogue: !!poiToastData.dialogue
-  });
-
-  const { structure, description, dialogue } = poiToastData;
-
-  // Auto-close on ESC key
+  // Check if mobile on mount and resize
   useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Auto-close on ESC key - MUST be before any conditional returns
+  useEffect(() => {
+    if (!poiToastData) return;
+    
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         handleClose();
@@ -161,14 +63,22 @@ export function POIToastModal() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [poiToastData]);
+
+  // Trigger entrance animation
+  useEffect(() => {
+    if (poiToastData) {
+      setIsAnimating(true);
+      const timer = setTimeout(() => setIsAnimating(false), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [poiToastData]);
 
   const handleClose = () => {
     console.log('POIToastModal: Closing modal');
-    setIsClosing(true);
+    setIsAnimating(true);
     setTimeout(() => {
-      hidePoiToast();
-      setIsClosing(false);
+      setPoiToastData(null);
     }, 300);
   };
 
@@ -193,18 +103,35 @@ export function POIToastModal() {
   const getStructureDetail = (structure: TerrainStructure, detail: string): string => {
     switch (detail) {
       case 'workers':
-        const workerCount = structure.workers || Math.floor(Math.random() * 5) + 2;
+        // Use actual structure data or derive from structure ID for consistency
+        const workerCount = structure.workers || 
+          (structure.id ? (structure.id.charCodeAt(0) % 5) + 2 : 4);
         return `${workerCount} workers`;
       case 'material':
+        // Extract material from structure name or use structure-specific logic
+        if (structure.name) {
+          const nameWords = structure.name.toLowerCase().split(' ');
+          const knownMaterials = ['sandstone', 'limestone', 'granite', 'marble', 'iron', 'copper', 'gold', 'silver', 'coal'];
+          const foundMaterial = knownMaterials.find(material => 
+            nameWords.some(word => word.includes(material))
+          );
+          if (foundMaterial) {
+            return foundMaterial.charAt(0).toUpperCase() + foundMaterial.slice(1);
+          }
+        }
+        
+        // Fallback to structure type defaults (using consistent seed)
         const materials: Record<string, string[]> = {
-          quarry: ['Limestone', 'Granite', 'Marble', 'Sandstone'],
+          quarry: ['Sandstone', 'Limestone', 'Granite', 'Marble'],
           mine: ['Iron Ore', 'Copper', 'Gold', 'Silver'],
           mill: ['Wheat', 'Barley', 'Oats', 'Rice'],
           factory: ['Textiles', 'Tools', 'Pottery', 'Goods'],
           woodcutter: ['Oak', 'Pine', 'Cedar', 'Birch']
         };
         const typeMatls = materials[structure.type || 'quarry'] || ['Stone'];
-        return typeMatls[Math.floor(Math.random() * typeMatls.length)];
+        // Use structure ID for consistent material selection
+        const materialIndex = structure.id ? (structure.id.charCodeAt(0) % typeMatls.length) : 0;
+        return typeMatls[materialIndex];
       case 'status':
         return structure.state === 'active' ? 'Active' : 'Operating';
       default:
@@ -212,202 +139,589 @@ export function POIToastModal() {
     }
   };
 
-  console.log('POIToastModal: About to render with classes: "fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[700px]"');
+  // Check if player has required items in inventory
+  const hasInventoryItem = (itemType: string): boolean => {
+    if (!playerCharacter?.inventory) return false;
+    
+    const itemChecks: Record<string, (itemName: string) => boolean> = {
+      stone: (name: string) => name.toLowerCase().includes('stone') && !name.toLowerCase().includes('cut'),
+      wood: (name: string) => name.toLowerCase().includes('wood') || name.toLowerCase().includes('log') || name.toLowerCase().includes('timber'),
+      grain: (name: string) => name.toLowerCase().includes('grain') || name.toLowerCase().includes('wheat') || name.toLowerCase().includes('barley'),
+      ore: (name: string) => name.toLowerCase().includes('ore') || name.toLowerCase().includes('iron') || name.toLowerCase().includes('copper'),
+      raw_materials: (name: string) => name.toLowerCase().includes('raw') || name.toLowerCase().includes('uncut') || name.toLowerCase().includes('rough')
+    };
+    
+    const checkFn = itemChecks[itemType];
+    if (!checkFn) return false;
+    
+    return playerCharacter.inventory.some(item => checkFn(item.name));
+  };
+
+  // Render the appropriate banner component based on POI type
+  const renderBanner = (structure: TerrainStructure) => {
+    const structureType = structure.structureType || structure.type || 'quarry';
+    const bannerProps = {
+      structure,
+      era: 'medieval', // Default era
+      culturalZone: 'europe', // Default zone
+      climate: 'temperate' as const,
+      season: 'spring' as const,
+      timeOfDay: 'day' as const,
+      width: 1000,
+      height: 130,
+      seed: 12345,
+      adjacentBiomes: ['grassland' as const],
+      isRuined: false
+    };
+
+    switch (structureType) {
+      case 'quarry':
+        return <QuarryBanner {...bannerProps} />;
+      case 'mine':
+      case 'mining_colony':
+        return <MineColonyBanner {...bannerProps} />;
+      case 'fortress':
+        return <FortressBanner {...bannerProps} />;
+      case 'mill':
+        return <MillBanner {...bannerProps} />;
+      case 'factory':
+        return <FactoryBanner {...bannerProps} />;
+      case 'woodcutter':
+      case 'lumber_camp':
+        return <LumberCampBanner {...bannerProps} />;
+      default:
+        // Fallback to MillBanner for unknown types
+        return <MillBanner {...bannerProps} />;
+    }
+  };
+
+  // Position styles for bottom-center toast with slide-up animation
+  const getPositionStyles = () => {
+    const baseTransform = isAnimating ? 'translate-y-full' : 'translate-y-0';
+    return `bottom-6 left-1/2 -translate-x-1/2 ${baseTransform}`;
+  };
+
+  console.log('POIToastModal render - poiToastData:', poiToastData);
+  
+  if (!poiToastData) {
+    console.log('POIToastModal: No poiToastData, returning null');
+    return null;
+  }
+  
+  console.log('POIToastModal: Rendering modal with data:', {
+    type: poiToastData.structure?.type,
+    name: poiToastData.structure?.name,
+    hasDescription: !!poiToastData.description,
+    hasDialogue: !!poiToastData.dialogue,
+    isMobile
+  });
+
+  const { structure, description, dialogue } = poiToastData;
 
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ 
-          opacity: isClosing ? 0 : 1,
-          scale: isClosing ? 0.9 : 1,
-          y: isClosing ? 20 : 0
-        }}
-        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        transition={{ 
-          type: "spring", 
-          damping: 20, 
-          stiffness: 250,
-          duration: 0.3
-        }}
-        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[700px] max-w-[95vw] z-[60] bg-red-500"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* TESTING - Red background to make it obvious */}
-        <div className="bg-slate-900/98 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-600/50 overflow-hidden min-h-[400px]">
-          <div className="text-white p-4">
-            <h2>DEBUG: POI Modal is rendering!</h2>
-            <p>Type: {structure?.type}</p>
-            <p>Name: {structure?.name || 'No name'}</p>
-            <button onClick={handleClose} className="bg-red-600 text-white px-4 py-2 rounded">
-              Close Debug Modal
-            </button>
-          </div>
+      {/* Toast positioned at bottom-center, slides up from bottom */}
+      <div className={`fixed z-50 ${getPositionStyles()} transition-transform duration-300 ease-out`}>
+        <div className={`
+          ${isMobile 
+            ? 'w-[95vw] max-h-[70vh]' 
+            : 'w-[1000px] max-w-[95vw] max-h-[60vh]'
+          } 
+          bg-slate-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-600/50 overflow-hidden
+        `}>
           
-          {/* Banner Section */}
-          <div className="relative h-[200px] overflow-hidden rounded-t-2xl">
-            {/* Banner Background with POI-specific styling */}
-            <POIBanner type={structure.type || 'quarry'} />
-            
-            {/* Strong fade overlay at bottom for text readability */}
-            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-slate-900 via-slate-900/90 to-transparent" />
-            
-            {/* Header content overlaid on banner */}
-            <div className="absolute bottom-0 left-0 right-0 px-5 pb-3">
-              <div className="flex items-center gap-2">
-                <POITypeIcon type={structure.type || 'quarry'} />
-                <h3 className="text-2xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                  {structure.name || getDefaultPOIName(structure.type || 'quarry')}
-                </h3>
+          {/* POI Banner - Only on desktop */}
+          {!isMobile && (
+            <div className="relative h-[200px] overflow-hidden rounded-t-2xl">
+              {/* SVG Banner Component - Offset to show quarry structure, not sky */}
+              <div className="absolute inset-0">
+                <div className="w-full h-full relative" style={{ top: '-60px' }}>
+                  {renderBanner(structure)}
+                </div>
               </div>
-            </div>
-            
-            {/* Close button in top right */}
-            <button
-              onClick={handleClose}
-              className="absolute top-3 right-3 text-gray-300 hover:text-white transition-colors p-1.5 rounded-full bg-black/30 hover:bg-black/50 backdrop-blur-sm"
-              aria-label="Close"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          
-          <div className="p-5 pt-4">
-            {/* POI Details Strip */}
-            <motion.div 
-              className="flex items-center justify-between text-xs text-gray-400 mb-4 pb-3 border-b border-slate-700/50"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              <div className="flex gap-2 flex-wrap">
-                <span className="flex items-center gap-1 bg-slate-800/40 px-2.5 py-1 rounded-md border border-slate-700/50">
-                  <span className="text-amber-400 text-sm">👥</span> 
-                  <span className="text-slate-300">{getStructureDetail(structure, 'workers')}</span>
-                </span>
-                <span className="flex items-center gap-1 bg-slate-800/40 px-2.5 py-1 rounded-md border border-slate-700/50">
-                  <span className="text-blue-400 text-sm">⛏️</span>
-                  <span className="text-slate-300">{getStructureDetail(structure, 'material')}</span>
-                </span>
-                <span className="flex items-center gap-1 bg-slate-800/40 px-2.5 py-1 rounded-md border border-slate-700/50">
-                  <span className="text-green-400 text-sm">●</span>
-                  <span className="text-slate-300">{getStructureDetail(structure, 'status')}</span>
-                </span>
-                {structure.owner && (
-                  <span className="flex items-center gap-1 bg-slate-800/40 px-2.5 py-1 rounded-md border border-slate-700/50">
-                    <span className="text-purple-400 text-sm">👑</span>
-                    <span className="text-slate-300">{structure.owner}</span>
-                  </span>
-                )}
-              </div>
-            </motion.div>
-            
-            {/* Description */}
-            <motion.p 
-              className="text-gray-300 text-sm leading-relaxed mb-4 poi-description-text"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-            >
-              {description}
-            </motion.p>
-
-            {/* Worker Dialogue */}
-            {dialogue && (
-              <motion.div 
-                className="bg-slate-800/60 rounded-lg p-4 mb-4"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-full bg-amber-700/30 flex items-center justify-center flex-shrink-0 poi-worker-avatar">
-                    <span className="text-amber-400 text-lg">👤</span>
+              
+              {/* Text overlay with gradient background for readability */}
+              <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/60 via-black/40 to-transparent" />
+              
+              {/* Header content overlaid on banner */}
+              <div className="absolute bottom-3 left-6 right-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <POITypeIcon type={structure.type || 'quarry'} />
+                    <h2 className="text-2xl font-bold text-white drop-shadow-lg">
+                      {structure.name || getDefaultPOIName(structure.type || 'quarry')}
+                    </h2>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-amber-300 font-medium text-sm mb-1">
-                      {dialogue.speaker}
-                    </p>
-                    <p className="text-gray-300 text-sm italic">
-                      "{dialogue.greeting}"
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg text-xs backdrop-blur-sm">
+                      <span className="text-amber-400">👥</span>
+                      <span className="text-white">{getStructureDetail(structure, 'workers')}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg text-xs backdrop-blur-sm">
+                      <span className="text-blue-400">⛏️</span>
+                      <span className="text-white">{getStructureDetail(structure, 'material')}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg text-xs backdrop-blur-sm">
+                      <span className="text-green-400">●</span>
+                      <span className="text-white">{getStructureDetail(structure, 'status')}</span>
+                    </span>
                   </div>
                 </div>
-              </motion.div>
-            )}
-
-            {/* Service Options */}
-            {dialogue?.services && (
-              <motion.div 
-                className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-              >
-                {dialogue.services.slice(0, 4).map((service, index) => (
-                  <motion.button
-                    key={service.id}
-                    onClick={() => handleServiceClick(service)}
-                    disabled={!service.available}
-                    className={`p-3 rounded-lg transition-all duration-200 text-left poi-service-button ${
-                      selectedService === service.id
-                        ? 'bg-amber-600/30 border border-amber-500 ring-2 ring-amber-500/20'
-                        : service.available
-                        ? 'bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600 hover:border-slate-500'
-                        : 'bg-slate-800/50 border border-slate-700 opacity-50 cursor-not-allowed'
-                    }`}
-                    whileHover={service.available ? { scale: 1.02 } : {}}
-                    whileTap={service.available ? { scale: 0.98 } : {}}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 + index * 0.1 }}
-                  >
-                    <div className="text-white font-medium text-sm mb-1">
-                      {service.name}
-                    </div>
-                    <div className="text-gray-400 text-xs mb-2 leading-tight">
-                      {service.description}
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div className="text-amber-400 text-xs font-bold poi-service-cost">
-                        {service.cost}
-                      </div>
-                      {service.requirements && service.requirements.length > 0 && (
-                        <div className="text-red-400 text-xs">
-                          Requires: {service.requirements[0]}
-                        </div>
-                      )}
-                    </div>
-                  </motion.button>
-                ))}
-              </motion.div>
-            )}
-
-            {/* Footer */}
-            <motion.div 
-              className="flex justify-between items-center pt-2 border-t border-slate-700/50"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-            >
-              <div className="text-xs text-gray-500 flex items-center gap-2">
-                <span>⌨️</span>
-                <span>Press ESC or click away to leave</span>
               </div>
-              <div className="flex gap-2">
+              
+              {/* ESC hint overlaid on banner */}
+              <div className="absolute top-3 left-6">
+                <span className="text-white/70 text-xs bg-black/40 px-2 py-1 rounded backdrop-blur-sm">
+                  Press ESC to leave
+                </span>
+              </div>
+              
+              {/* Close button */}
+              <button
+                onClick={handleClose}
+                className="absolute top-3 right-3 text-white/70 hover:text-white transition-colors p-1.5 rounded-full bg-black/30 hover:bg-black/50 backdrop-blur-sm"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
+          
+          {/* Content - 2 column layout on desktop, single column on mobile */}
+          <div className={`${isMobile ? 'p-4' : 'p-6'} ${isMobile ? 'max-h-[70vh] overflow-y-auto' : ''}`}>
+            
+            {/* Mobile header (when no banner) */}
+            {isMobile && (
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-700/50">
+                <div className="flex items-center gap-3">
+                  <POITypeIcon type={structure.type || 'quarry'} />
+                  <h2 className="text-xl font-bold text-white">
+                    {structure.name || getDefaultPOIName(structure.type || 'quarry')}
+                  </h2>
+                </div>
                 <button
                   onClick={handleClose}
-                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors"
+                  className="text-white/70 hover:text-white transition-colors p-1.5 rounded-full bg-slate-800/50 hover:bg-slate-700/50"
                 >
-                  Leave
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
-            </motion.div>
+            )}
+            
+            <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-2 gap-6'}`}>
+              {/* Left Column - Details and Description */}
+              <div className="space-y-4">
+                
+                {/* Description */}
+                <div>
+                  <p className="text-gray-300 text-sm leading-relaxed">
+                    {description}
+                  </p>
+                </div>
+
+                {/* Worker Dialogue */}
+                {dialogue && (
+                  <div className="bg-slate-800/60 rounded-lg p-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-amber-700/30 flex items-center justify-center flex-shrink-0">
+                        <span className="text-amber-400 text-lg">👤</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-amber-300 font-medium text-sm mb-1">
+                          {dialogue.speaker}
+                        </p>
+                        <p className="text-gray-300 text-xs italic leading-relaxed">
+                          "{dialogue.greeting}"
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Right Column - Services */}
+              <div className="space-y-4">
+                {/* Service Options */}
+                {dialogue?.services && (
+                  <div>
+                    <div className="space-y-2">
+                      {dialogue.services.slice(0, 4).map((service) => (
+                        <button
+                          key={service.id}
+                          onClick={() => handleServiceClick(service)}
+                          disabled={!service.available}
+                          className={`w-full p-3 rounded-lg transition-all text-left ${
+                            selectedService === service.id
+                              ? 'bg-amber-600/30 border border-amber-500 ring-1 ring-amber-500/20'
+                              : service.available
+                              ? 'bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600'
+                              : 'bg-slate-800/50 border border-slate-700 opacity-50 cursor-not-allowed'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start mb-1">
+                            <div className="text-white font-medium text-sm">
+                              {service.name}
+                            </div>
+                            <div className="text-amber-400 text-xs font-bold">
+                              {service.cost}
+                            </div>
+                          </div>
+                          <div className="text-gray-400 text-xs leading-tight">
+                            {service.description}
+                          </div>
+                          {service.requirements && service.requirements.length > 0 && (
+                            <div className="text-red-400 text-xs mt-1">
+                              Req: {service.requirements[0]}
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Fortress-specific Actions */}
+                {(structure.type === 'fortress' || structure.structureType === 'fortress') && (
+                  <div>
+                    <h3 className="text-white font-medium text-sm mb-3">Fortress Actions</h3>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => {
+                          console.log('POIToastModal: Ask to see commander clicked');
+                          // TODO: Trigger fortress interior map with military commander
+                        }}
+                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                      >
+                        <div className="text-white font-medium text-sm mb-1">
+                          🏛️ Ask to see the Commander
+                        </div>
+                        <div className="text-gray-400 text-xs leading-tight">
+                          Request an audience with the fortress commander
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          console.log('POIToastModal: Inquire about enlistment clicked');
+                          // TODO: Trigger enlistment dialogue
+                        }}
+                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                      >
+                        <div className="text-white font-medium text-sm mb-1">
+                          ⚔️ Inquire about Enlistment
+                        </div>
+                        <div className="text-gray-400 text-xs leading-tight">
+                          Ask about joining the military forces
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          console.log('POIToastModal: Request supplies clicked');
+                          // TODO: Trigger supply trade dialogue
+                        }}
+                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                      >
+                        <div className="text-white font-medium text-sm mb-1">
+                          📦 Request Supplies
+                        </div>
+                        <div className="text-gray-400 text-xs leading-tight">
+                          Ask for military supplies or provisions
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Mill-specific Actions */}
+                {(structure.type === 'mill' || structure.structureType === 'mill') && (
+                  <div>
+                    <h3 className="text-white font-medium text-sm mb-3">Mill Services</h3>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => {
+                          console.log('POIToastModal: Mill grain clicked');
+                          // TODO: Trigger grain milling interface
+                        }}
+                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                      >
+                        <div className="text-white font-medium text-sm mb-1">
+                          🌾 Mill Your Grain
+                        </div>
+                        <div className="text-gray-400 text-xs leading-tight">
+                          Process raw grain into flour for a fee
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          console.log('POIToastModal: Buy grain clicked');
+                          // TODO: Trigger grain purchase interface
+                        }}
+                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                      >
+                        <div className="text-white font-medium text-sm mb-1">
+                          🛒 Buy Grain & Flour
+                        </div>
+                        <div className="text-gray-400 text-xs leading-tight">
+                          Purchase processed grain products
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          console.log('POIToastModal: Sell grain clicked');
+                          // TODO: Trigger grain selling interface
+                        }}
+                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                      >
+                        <div className="text-white font-medium text-sm mb-1">
+                          💰 Sell Raw Grain
+                        </div>
+                        <div className="text-gray-400 text-xs leading-tight">
+                          Trade your grain harvest for coin
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Woodcutter-specific Actions */}
+                {(structure.type === 'woodcutter' || structure.structureType === 'woodcutter' || structure.type === 'lumber_camp' || structure.structureType === 'lumber_camp') && (
+                  <div>
+                    <h3 className="text-white font-medium text-sm mb-3">Woodcutter Services</h3>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => {
+                          console.log('POIToastModal: Saw logs clicked');
+                          // TODO: Trigger log sawing interface
+                        }}
+                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                      >
+                        <div className="text-white font-medium text-sm mb-1">
+                          🪚 Saw Your Logs
+                        </div>
+                        <div className="text-gray-400 text-xs leading-tight">
+                          Have your timber cut into planks and boards
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          console.log('POIToastModal: Buy lumber clicked');
+                          // TODO: Trigger lumber purchase interface
+                        }}
+                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                      >
+                        <div className="text-white font-medium text-sm mb-1">
+                          🛒 Buy Lumber & Planks
+                        </div>
+                        <div className="text-gray-400 text-xs leading-tight">
+                          Purchase finished wood products
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          console.log('POIToastModal: Sell logs clicked');
+                          // TODO: Trigger log selling interface
+                        }}
+                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                      >
+                        <div className="text-white font-medium text-sm mb-1">
+                          💰 Sell Raw Logs
+                        </div>
+                        <div className="text-gray-400 text-xs leading-tight">
+                          Trade your timber for coin
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Quarry-specific Actions */}
+                {(structure.type === 'quarry' || structure.structureType === 'quarry') && (
+                  <div>
+                    <h3 className="text-white font-medium text-sm mb-3">Quarry Services</h3>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => {
+                          console.log('POIToastModal: Polish stones clicked');
+                          // TODO: Trigger stone polishing interface
+                        }}
+                        disabled={!hasInventoryItem('stone')}
+                        className={`w-full p-3 rounded-lg transition-all text-left border ${
+                          hasInventoryItem('stone')
+                            ? 'bg-slate-700/50 hover:bg-slate-600/60 border-slate-600 cursor-pointer'
+                            : 'bg-slate-800/30 border-slate-700/50 cursor-not-allowed opacity-50'
+                        }`}
+                      >
+                        <div className={`font-medium text-sm mb-1 ${
+                          hasInventoryItem('stone') ? 'text-white' : 'text-gray-500'
+                        }`}>
+                          ✨ Polish Your Stones
+                        </div>
+                        <div className="text-gray-400 text-xs leading-tight">
+                          Have raw stone cut and polished {!hasInventoryItem('stone') && '(Need raw stone)'}
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          console.log('POIToastModal: Buy stone clicked');
+                          // TODO: Trigger stone purchase interface
+                        }}
+                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                      >
+                        <div className="text-white font-medium text-sm mb-1">
+                          🛒 Buy Cut Stone
+                        </div>
+                        <div className="text-gray-400 text-xs leading-tight">
+                          Purchase finished stone blocks
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          console.log('POIToastModal: Sell raw stone clicked');
+                          // TODO: Trigger raw stone selling interface
+                        }}
+                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                      >
+                        <div className="text-white font-medium text-sm mb-1">
+                          💰 Sell Raw Stone
+                        </div>
+                        <div className="text-gray-400 text-xs leading-tight">
+                          Trade uncut stone for coin
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Mine-specific Actions */}
+                {(structure.type === 'mine' || structure.structureType === 'mine' || structure.type === 'mining_colony' || structure.structureType === 'mining_colony') && (
+                  <div>
+                    <h3 className="text-white font-medium text-sm mb-3">Mining Services</h3>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => {
+                          console.log('POIToastModal: Refine ore clicked');
+                          // TODO: Trigger ore refining interface
+                        }}
+                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                      >
+                        <div className="text-white font-medium text-sm mb-1">
+                          🔥 Refine Your Ore
+                        </div>
+                        <div className="text-gray-400 text-xs leading-tight">
+                          Smelt raw ore into metal ingots
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          console.log('POIToastModal: Buy metals clicked');
+                          // TODO: Trigger metal purchase interface
+                        }}
+                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                      >
+                        <div className="text-white font-medium text-sm mb-1">
+                          🛒 Buy Refined Metals
+                        </div>
+                        <div className="text-gray-400 text-xs leading-tight">
+                          Purchase smelted iron, copper, and precious metals
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          console.log('POIToastModal: Sell ore clicked');
+                          // TODO: Trigger ore selling interface
+                        }}
+                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                      >
+                        <div className="text-white font-medium text-sm mb-1">
+                          💰 Sell Raw Ore
+                        </div>
+                        <div className="text-gray-400 text-xs leading-tight">
+                          Trade unrefined ore for coin
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Factory-specific Actions */}
+                {(structure.type === 'factory' || structure.structureType === 'factory') && (
+                  <div>
+                    <h3 className="text-white font-medium text-sm mb-3">Workshop Services</h3>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => {
+                          console.log('POIToastModal: Craft items clicked');
+                          // TODO: Trigger item crafting interface
+                        }}
+                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                      >
+                        <div className="text-white font-medium text-sm mb-1">
+                          🔨 Commission Crafting
+                        </div>
+                        <div className="text-gray-400 text-xs leading-tight">
+                          Have tools and goods crafted from materials
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          console.log('POIToastModal: Buy manufactured goods clicked');
+                          // TODO: Trigger goods purchase interface
+                        }}
+                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                      >
+                        <div className="text-white font-medium text-sm mb-1">
+                          🛒 Buy Manufactured Goods
+                        </div>
+                        <div className="text-gray-400 text-xs leading-tight">
+                          Purchase finished tools, textiles, and goods
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          console.log('POIToastModal: Repair items clicked');
+                          // TODO: Trigger item repair interface
+                        }}
+                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600"
+                      >
+                        <div className="text-white font-medium text-sm mb-1">
+                          🔧 Repair Items
+                        </div>
+                        <div className="text-gray-400 text-xs leading-tight">
+                          Fix damaged tools and equipment
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Footer */}
+                <div className="flex justify-end items-center pt-3 border-t border-slate-700/50">
+                  <button
+                    onClick={handleClose}
+                    className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Leave
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     </AnimatePresence>
   );
 }

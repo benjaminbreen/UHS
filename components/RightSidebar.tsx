@@ -305,6 +305,22 @@ const RightSidebar: React.FC = () => {
                     />
                   </div>
                 </div>
+
+                {/* Elevated State Indicator */}
+                {playerCharacter.elevatedState && (
+                  <div className="mt-3 px-2 py-1 bg-gradient-to-r from-purple-900/40 to-indigo-900/40 border border-purple-700/30 rounded-lg">
+                    <div className="flex items-center justify-between text-[0.625rem] font-semibold tracking-widest">
+                      <span className="text-purple-300">🌲 ELEVATED</span>
+                      <span className="text-purple-200 capitalize">{playerCharacter.elevatedState.replace('_', ' ')}</span>
+                    </div>
+                    <div className="text-[0.575rem] text-purple-300/80 mt-1">
+                      {playerCharacter.elevationDescription || 'In elevated position'}
+                    </div>
+                    <div className="text-[0.55rem] text-purple-400/60 mt-1">
+                      Use "climb down" to return to ground
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

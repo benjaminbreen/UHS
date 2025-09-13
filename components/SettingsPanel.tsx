@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PerformanceDiagnostics from './PerformanceDiagnostics';
 import { eventService } from '../services/eventService';
-import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save } from 'lucide-react';
+import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save, Palette, Database } from 'lucide-react';
 import DiseaseService from '../services/diseaseService';
 import { DISEASE_DATABASE, DISEASE_PREVALENCE } from '../constants/gameData/diseases';
 import { HistoricalEra } from '../types/ambiance';
@@ -19,6 +19,8 @@ import { ClimateType } from '../types/biomes/climate';
 import { SavedGamesModal } from './SavedGamesModal';
 import { SavedGame } from '../services/saveGameService';
 import SoundTestPanel from './SoundTestPanel';
+import IconTestPanel from './IconTestPanel';
+import { PrimarySourcesDevPanel } from './PrimarySourcesDevPanel';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -104,6 +106,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [showSimpleFishing, setShowSimpleFishing] = useState(false);
   const [showSavedGamesModal, setShowSavedGamesModal] = useState(false);
   const [showSoundTestPanel, setShowSoundTestPanel] = useState(false);
+  const [showIconTestPanel, setShowIconTestPanel] = useState(false);
+  const [showPrimarySourcesDevPanel, setShowPrimarySourcesDevPanel] = useState(false);
   const [apiStats, setApiStats] = useState(eventService.getAPIUsageStats());
   const [llmHistory, setLLMHistory] = useState(eventService.getLLMHistory());
   
@@ -512,6 +516,22 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </section>
 
           <section className="mt-6">
+            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Primary Sources Development</h3>
+            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70 space-y-3">
+              <button
+                onClick={() => setShowPrimarySourcesDevPanel(true)}
+                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-amber-600 to-orange-600 rounded-md hover:from-amber-700 hover:to-orange-700 flex items-center justify-center gap-2"
+              >
+                <Database className="w-4 h-4" />
+                <span>Primary Sources Dev Panel</span>
+              </button>
+              <p className="mt-2 text-xs text-slate-400">
+                Inspect all primary source shards, view metadata analysis, search sources by keywords and filters. Shows automatic detection of new sources for bug checking.
+              </p>
+            </div>
+          </section>
+
+          <section className="mt-6">
             <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Quest Testing</h3>
             <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
               <button
@@ -592,8 +612,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 <FlaskConical className="w-4 h-4" />
                 <span>Open Sound Test Panel</span>
               </button>
+              <button
+                onClick={() => setShowIconTestPanel(true)}
+                className="w-full px-4 py-3 mt-2 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-md hover:from-purple-700 hover:to-indigo-700 flex items-center justify-center gap-2"
+              >
+                <Palette className="w-4 h-4" />
+                <span>Open Icon Test Panel</span>
+              </button>
               <p className="mt-2 text-xs text-gray-400">
-                Test special map archetypes, interior building layouts, and all game sounds
+                Test special map archetypes, interior building layouts, all game sounds, and generative icons
               </p>
             </div>
           </section>
@@ -783,6 +810,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         isOpen={showQuestTestPanel}
         onClose={() => setShowQuestTestPanel(false)}
       />
+
+      {/* Primary Sources Dev Panel */}
+      <PrimarySourcesDevPanel
+        isOpen={showPrimarySourcesDevPanel}
+        onClose={() => setShowPrimarySourcesDevPanel(false)}
+      />
       
       {/* Fishing Test Panel */}
       <FishingTestPanel
@@ -819,6 +852,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
       <SoundTestPanel
         isOpen={showSoundTestPanel}
         onClose={() => setShowSoundTestPanel(false)}
+      />
+
+      {/* Icon Test Panel */}
+      <IconTestPanel
+        isOpen={showIconTestPanel}
+        onClose={() => setShowIconTestPanel(false)}
       />
       
       {/* Alternative Fishing Modal */}

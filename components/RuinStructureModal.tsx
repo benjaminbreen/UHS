@@ -7,6 +7,9 @@ import RuinBanner from './RuinBanner';
 import RoguelikeDisplayEnhanced from './RoguelikeDisplayEnhanced';
 import { ruinSourcesService, PrimarySource } from '../services/ruinSourcesService';
 import { ruinProgressService } from '../services/ruinProgressService';
+import { questService } from '../services/questService';
+import { generateRuinQuest } from '../constants/questTemplates/ruinQuestTemplates';
+import { parseDateString } from '../utils/dateUtils';
 import { 
     FaSkull, 
     FaScroll, 
@@ -138,7 +141,7 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
     const originalEra = customData?.originalEra || 'Unknown Era';
     const age = customData?.age || 'Centuries old';
     
-    // Load discoverable primary sources when component mounts
+    // Load discoverable primary sources and generate quest when component mounts
     useEffect(() => {
         const loadSources = async () => {
             try {
@@ -151,6 +154,71 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
         
         loadSources();
     }, [mapData, age]);
+    
+    // Generate automatic ruin exploration quest when entering ruins
+    useEffect(() => {
+        // Check if we should generate a ruin quest for this location
+        const ruinLocation = { x: location[0], y: location[1] };
+        const hasExistingRuinQuest = questService.getActiveQuests().some(quest => {
+            const isRuinQuest = (quest as any).isRuinQuest;
+            if (!isRuinQuest) return false;
+            
+            // Check if quest is for this ruin location
+            if (quest.startLocation) {
+                const distance = Math.sqrt(
+                    Math.pow(quest.startLocation.x - ruinLocation.x, 2) +
+                    Math.pow(quest.startLocation.y - ruinLocation.y, 2)
+                );
+                return distance < 1; // Exact location match
+            }
+            return false;
+        });
+        
+        if (!hasExistingRuinQuest) {
+            // Get the current era from the map data
+            const dateInfo = parseDateString(mapData.timeSlice || '1500');
+            const era = dateInfo.era;
+            
+            // Generate an automatic ruin exploration quest
+            const ruinQuest = generateRuinQuest(
+                era,
+                ruinType,
+                true, // isAutomatic
+                undefined, // no NPC for automatic quests
+                ruinLocation
+            );
+            
+            if (ruinQuest) {
+                // Add quest metadata
+                const completeQuest = {
+                    ...ruinQuest,
+                    id: ruinQuest.id || `ruin_quest_${Date.now()}`,
+                    status: 'available' as const,
+                    startTime: Date.now(),
+                    isRuinQuest: true
+                };
+                
+                // Add the quest to the quest service
+                questService.addQuest(completeQuest as any);
+                console.log('[RuinStructureModal] Generated automatic ruin exploration quest:', completeQuest.title);
+                
+                // Show a notification
+                const notification = document.createElement('div');
+                notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-amber-900/90 text-amber-200 px-6 py-3 rounded-lg border border-amber-700 z-50 animate-fade-in shadow-xl';
+                notification.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">🏛️</span>
+                        <div>
+                            <div class="font-bold">New Quest: ${completeQuest.title}</div>
+                            <div class="text-sm opacity-90">Explore these ancient ruins</div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 4000);
+            }
+        }
+    }, [location, ruinType, mapData.timeSlice]);
     
     // Use structure location as seed for consistent random values
     const structureSeed = structure.location[0] * 1000 + structure.location[1];

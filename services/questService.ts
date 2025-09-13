@@ -2167,8 +2167,13 @@ export class QuestService {
   ): Promise<Quest[]> {
     const quests: Quest[] = [];
     
-    // Clear any existing quests to prevent duplicates
-    this.activeQuests = [];
+    // Note: resetQuestService() should have been called before this
+    // If we already have quests at this point, they were likely added
+    // after reset (e.g., ruin exploration quest), so preserve them
+    if (this.activeQuests.length > 0) {
+      console.log('[QuestService] Preserving', this.activeQuests.length, 'quests added after reset');
+      quests.push(...this.activeQuests);
+    }
     
     // Create unified quest generation context
     const context: QuestGenerationContext = {
@@ -2177,8 +2182,8 @@ export class QuestService {
       playerStats,
       zone: culturalZone,
       era,
-      year: new Date().getFullYear(), // Default - would be better to pass actual game year
-      season: 'spring', // Default
+      year: mapData?.year || parseInt(mapData?.timeSlice) || 1500, // Use actual game year
+      season: mapData?.season || 'spring',
       gameMode,
       triggerType: 'manual',
       nearbyStructures: mapStructures,
@@ -2194,52 +2199,193 @@ export class QuestService {
       structures: mapContext.structureTypes
     });
 
-    // Generate 3-4 diverse quests using the unified pipeline
-    const maxQuests = 4;
-    
+    // Generate only ONE seasonal quest appropriate to the game mode
+    // All other quests should emerge from player actions (NPCs, ruins, marketplace, etc.)
     try {
-      // Use the enhanced generation that tries all sources
-      const generatedQuests = await unifiedQuestPipeline.generateMultipleQuests(context, maxQuests);
+      // Generate a single seasonal quest
+      const seasonalQuest = await this.generateSeasonalQuest(context, mapContext);
       
-      for (const quest of generatedQuests) {
-        // Validate quest is appropriate for map context
-        if (isQuestAppropriateForContext(quest.category, quest.title, mapContext, era)) {
-          quests.push(quest);
-          this.addQuest(quest);
-        } else {
-          console.log(`[QuestService] Rejected inappropriate quest: ${quest.title} for ${mapContext.primaryTerrain} map`);
-        }
+      if (seasonalQuest && isQuestAppropriateForContext(seasonalQuest.category, seasonalQuest.title, mapContext, era)) {
+        quests.push(seasonalQuest);
+        this.addQuest(seasonalQuest);
+        console.log(`[QuestService] Generated seasonal quest: "${seasonalQuest.title}" for ${context.season} in ${gameMode} mode`);
+      } else {
+        console.log(`[QuestService] No appropriate seasonal quest for current context`);
       }
       
-      console.log(`[QuestService] Generated ${quests.length} unified quests for ${gameMode} mode`);
-      
     } catch (error) {
-      console.error('[QuestService] Error generating unified quests:', error);
+      console.error('[QuestService] Error generating seasonal quest:', error);
       
-      // Fallback to legacy approach if unified pipeline fails
-      console.log('[QuestService] Falling back to legacy quest generation');
-      return this.generateLegacyInitialQuests(gameMode, mapStructures, playerLocation, culturalZone, era, mapData, playerStats);
-    }
-    
-    // If we couldn't generate enough context-appropriate quests, add basic wilderness quests
-    if (quests.length < 2) {
-      const wildernessQuest = this.generateContextAwareWildernessQuest(
-        playerLocation, 
-        culturalZone, 
-        era, 
-        mapContext
-      );
-      if (wildernessQuest) {
-        quests.push(wildernessQuest);
-        this.addQuest(wildernessQuest);
+      // Fallback to a simple survival quest
+      const fallbackQuest = this.generateSimpleFallbackQuest(context, mapContext);
+      if (fallbackQuest) {
+        quests.push(fallbackQuest);
+        this.addQuest(fallbackQuest);
       }
     }
     
     // Log quest generation results
-    console.log(`[QuestService] Generated ${quests.length} context-aware quests:`, 
+    console.log(`[QuestService] Generated ${quests.length} initial quest${quests.length !== 1 ? 's' : ''}:`, 
       quests.map(q => `${q.category}: ${q.title}`).join(', '));
+    console.log(`[QuestService] Additional quests will emerge from player actions (NPCs, ruins, marketplace, government, new areas)`);
     
     return quests;
+  }
+
+  /**
+   * Generate a single seasonal quest appropriate to the game mode and season
+   */
+  private async generateSeasonalQuest(
+    context: QuestGenerationContext,
+    mapContext: any
+  ): Promise<Quest | null> {
+    const { gameMode, season, zone, era, year } = context;
+    
+    // Seasonal quest templates based on game mode and season
+    const seasonalTemplates: Record<string, Record<string, any>> = {
+      'survival': {
+        'winter': { 
+          title: 'Winter Preparations', 
+          description: 'Gather resources to survive the harsh winter months.',
+          objectives: [{ type: 'collect_item', description: 'Collect firewood', targetAmount: 10 }],
+          category: 'survival'
+        },
+        'spring': { 
+          title: 'Spring Renewal', 
+          description: 'Take advantage of the changing season to gather fresh resources.',
+          objectives: [{ type: 'collect_item', description: 'Gather fresh herbs', targetAmount: 5 }],
+          category: 'survival'
+        },
+        'summer': { 
+          title: 'Summer Preparation', 
+          description: 'Store resources for the coming seasons.',
+          objectives: [{ type: 'collect_item', description: 'Preserve food for winter', targetAmount: 8 }],
+          category: 'survival'
+        },
+        'autumn': { 
+          title: 'Harvest Season', 
+          description: 'Gather the autumn harvest before winter arrives.',
+          objectives: [{ type: 'collect_item', description: 'Collect autumn harvest', targetAmount: 12 }],
+          category: 'survival'
+        }
+      },
+      'exploration': {
+        'spring': { 
+          title: 'Chart the Unknown', 
+          description: 'Explore unmapped regions and document your discoveries.',
+          objectives: [{ type: 'travel', description: 'Travel at least 10 tiles from your starting position' }],
+          category: 'exploration'
+        },
+        'summer': { 
+          title: 'Summer Expedition', 
+          description: 'Use the favorable weather to explore distant lands.',
+          objectives: [{ type: 'explore_area', description: 'Discover 3 new landmarks' }],
+          category: 'exploration'
+        }
+      },
+      'commerce': {
+        'spring': { 
+          title: 'Trading Season', 
+          description: 'Establish trade connections as travel becomes easier.',
+          objectives: [{ type: 'trade', description: 'Complete 3 successful trades' }],
+          category: 'trade'
+        }
+      },
+      'scholarship': {
+        'winter': { 
+          title: 'Winter Studies', 
+          description: 'Use the quiet winter months for learning and research.',
+          objectives: [{ type: 'investigate', description: 'Study ancient texts or artifacts' }],
+          category: 'scholarship'
+        }
+      }
+    };
+    
+    const template = seasonalTemplates[gameMode]?.[season] || seasonalTemplates['survival'][season || 'spring'];
+    if (!template) return null;
+    
+    // Add historical context
+    const historicalContext = await historicalContextEngine.getContext(zone, era, year);
+    const historicalFlavor = this.getHistoricalFlavor(zone, era, historicalContext);
+    
+    const quest: Quest = {
+      id: `seasonal_${gameMode}_${season}_${Date.now()}`,
+      title: template.title,
+      description: template.description + (historicalFlavor ? ` ${historicalFlavor}` : ''),
+      category: template.category,
+      objectives: template.objectives.map((obj: any, idx: number) => ({
+        id: `obj_${idx}`,
+        type: obj.type,
+        description: obj.description,
+        targetAmount: obj.targetAmount,
+        completed: false
+      })),
+      currentObjectiveIndex: 0,
+      rewards: [{
+        type: 'experience',
+        amount: 50,
+        description: 'Experience gained'
+      }, {
+        type: 'reputation',
+        amount: 10,
+        description: 'Regional reputation +10'
+      }],
+      startLocation: context.playerLocation,
+      status: 'available',
+      startTime: Date.now(),
+      isSeasonalQuest: true
+    };
+    
+    return quest;
+  }
+  
+  /**
+   * Add historical flavor text based on era and zone
+   */
+  private getHistoricalFlavor(zone: string, era: string, context: any): string {
+    const flavorMap: Record<string, Record<string, string>> = {
+      'ANTIQUITY': {
+        'SUB_SAHARAN_AFRICAN': 'Explorers in ANTIQUITY SUB_SAHARAN_AFRICAN were driven by curiosity and the promise of discovery.',
+        'EUROPEAN': 'In ancient times, such endeavors required courage and determination.',
+        'EAST_ASIAN': 'The wise ancients understood the importance of seasonal preparation.'
+      },
+      'MEDIEVAL': {
+        'EUROPEAN': 'In these medieval times, survival depends on preparation and providence.',
+        'MENA': 'The seasonal cycles guide the faithful in their daily struggles.'
+      }
+    };
+    
+    return flavorMap[era]?.[zone] || '';
+  }
+  
+  /**
+   * Generate a simple fallback quest if seasonal generation fails
+   */
+  private generateSimpleFallbackQuest(
+    context: QuestGenerationContext,
+    mapContext: any
+  ): Quest | null {
+    return {
+      id: `fallback_${Date.now()}`,
+      title: 'Establish Yourself',
+      description: 'Begin your journey by exploring your immediate surroundings.',
+      category: 'exploration',
+      objectives: [{
+        id: 'obj_1',
+        type: 'explore_area',
+        description: 'Explore the nearby area',
+        completed: false
+      }],
+      currentObjectiveIndex: 0,
+      rewards: [{
+        type: 'experience',
+        amount: 25,
+        description: 'Experience gained'
+      }],
+      startLocation: context.playerLocation,
+      status: 'available',
+      startTime: Date.now()
+    };
   }
 
   /**

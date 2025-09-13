@@ -3141,9 +3141,17 @@ class GameSoundsService {
 
     // Stop dungeon music
     this.stopDungeonMusic();
+    this.stopDungeonMusicWithRandomTiming();
 
     // Stop victory melody
     this.stopVictoryMelody();
+    // Stop new special map music
+    this.stopGovernmentMusic();
+    this.stopEstatesMusic();
+    this.stopTempleMusic();
+    this.stopDangerMusic();
+    this.stopModernCityMusic();
+    this.stopFF6CombatMusic();
   }
 
   /**
@@ -4017,6 +4025,2268 @@ class GameSoundsService {
     });
     this.dungeonNodes = [];
     this.dungeonPlaying = false;
+  }
+
+  /**
+   * DUNGEON MUSIC WITH RANDOM TIMING - For roguelike gameplay
+   */
+  private dungeonRandomNodes: AudioNode[] = [];
+  private dungeonRandomPlaying = false;
+  private dungeonRandomTimeout: NodeJS.Timeout | null = null;
+
+  public playDungeonMusicWithRandomTiming() {
+    if (this.isMuted || this.dungeonRandomPlaying) return;
+    
+    this.dungeonRandomPlaying = true;
+    this.startRandomDungeonCycle();
+  }
+
+  private startRandomDungeonCycle() {
+    if (!this.dungeonRandomPlaying) return;
+    
+    // Random delay before music starts (5-20 seconds)
+    const initialDelay = (5 + Math.random() * 15) * 1000;
+    
+    this.dungeonRandomTimeout = setTimeout(() => {
+      if (!this.dungeonRandomPlaying) return;
+      
+      this.playDungeonMusicSegment();
+    }, initialDelay);
+  }
+
+  private playDungeonMusicSegment() {
+    if (!this.dungeonRandomPlaying) return;
+    
+    const ctx = this.ensureAudioContext();
+    if (!ctx) return;
+
+    try {
+      this.dungeonRandomNodes = [];
+      const now = ctx.currentTime;
+      const segmentDuration = 48; // 48 seconds of music
+      
+      // Create master gain with fade-in
+      const masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(0, now);
+      masterGain.gain.linearRampToValueAtTime(0.15 * this.masterVolume, now + 3); // 3-second fade-in
+      masterGain.connect(ctx.destination);
+      this.dungeonRandomNodes.push(masterGain);
+
+      // Create the same mysterious musical layers as regular dungeon music
+      this.createSubtleDrums(ctx, now, segmentDuration, masterGain);
+      this.createMysteriousBass(ctx, now, segmentDuration, masterGain);
+      this.createEtherealPads(ctx, now, segmentDuration, masterGain);
+      this.createHauntingMelody(ctx, now, segmentDuration, masterGain);
+      this.createAmbientTextures(ctx, now, segmentDuration, masterGain);
+      this.createCrystallineArpeggio(ctx, now, segmentDuration, masterGain);
+      
+      // Schedule fade-out near end
+      setTimeout(() => {
+        if (this.dungeonRandomPlaying && masterGain.gain) {
+          masterGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 2);
+        }
+      }, (segmentDuration - 2) * 1000);
+      
+      // Schedule next cycle with random silence period
+      setTimeout(() => {
+        if (this.dungeonRandomPlaying) {
+          // Clean up current nodes
+          this.dungeonRandomNodes.forEach(node => {
+            try {
+              if (node.stop) {
+                node.stop();
+              }
+            } catch (e) {
+              // Node may already be stopped
+            }
+          });
+          this.dungeonRandomNodes = [];
+          
+          // Random silence period (5-20 seconds) then restart cycle
+          const silenceDelay = (5 + Math.random() * 15) * 1000;
+          this.dungeonRandomTimeout = setTimeout(() => {
+            if (this.dungeonRandomPlaying) {
+              this.playDungeonMusicSegment();
+            }
+          }, silenceDelay);
+        }
+      }, segmentDuration * 1000);
+      
+    } catch (error) {
+      console.error('Error playing random dungeon music:', error);
+      this.dungeonRandomPlaying = false;
+    }
+  }
+
+  public stopDungeonMusicWithRandomTiming() {
+    this.dungeonRandomPlaying = false;
+    
+    if (this.dungeonRandomTimeout) {
+      clearTimeout(this.dungeonRandomTimeout);
+      this.dungeonRandomTimeout = null;
+    }
+    
+    this.dungeonRandomNodes.forEach(node => {
+      try {
+        if (node.stop) {
+          node.stop();
+        }
+      } catch (e) {
+        // Node may already be stopped
+      }
+    });
+    this.dungeonRandomNodes = [];
+  }
+
+  /**
+   * GOVERNMENT FORUM MUSIC - Complex Bach-like composition with authority
+   */
+  private governmentNodes: AudioNode[] = [];
+  private governmentPlaying = false;
+
+  public playGovernmentMusic() {
+    if (this.isMuted || this.governmentPlaying) return;
+    const ctx = this.ensureAudioContext();
+    if (!ctx) return;
+
+    try {
+      this.governmentPlaying = true;
+      this.governmentNodes = [];
+      const now = ctx.currentTime;
+      const loopDuration = 30; // 30 seconds per loop
+      
+      // Master gain with fade-in like FF6 style
+      const masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(0, now);
+      masterGain.gain.linearRampToValueAtTime(0.16 * this.masterVolume, now + 5); // 5 second fade-in
+      masterGain.connect(ctx.destination);
+      this.governmentNodes.push(masterGain);
+
+      // Create FF6-style musical layers
+      this.createGovernmentBass(ctx, now, loopDuration, masterGain);
+      this.createGovernmentDrums(ctx, now, loopDuration, masterGain);
+      this.createGovernmentBrass(ctx, now, loopDuration, masterGain);
+      this.createGovernmentStrings(ctx, now, loopDuration, masterGain);
+      this.createGovernmentMelody(ctx, now, loopDuration, masterGain);
+      
+      // Schedule loop
+      setTimeout(() => {
+        if (this.governmentPlaying) {
+          this.stopGovernmentMusic();
+          this.playGovernmentMusic();
+        }
+      }, loopDuration * 1000);
+      
+    } catch (error) {
+      console.error('Error playing government music:', error);
+      this.governmentPlaying = false;
+    }
+  }
+
+  private createGovernmentBass(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const bassGain = ctx.createGain();
+    bassGain.gain.setValueAtTime(0.35, startTime);
+    bassGain.connect(masterGain);
+
+    // Much better progression: Dm - Bb - Gm - A (i-VI-iv-V in D minor)
+    const bassNotes = [146.83, 116.54, 97.999, 110]; // D3, Bb2, G2, A2
+    const noteLength = 1.5; // Slightly faster for more energy
+
+    for (let i = 0; i < duration; i += noteLength) {
+      const noteIndex = Math.floor(i / noteLength) % bassNotes.length;
+      const bass = ctx.createOscillator();
+      const noteGain = ctx.createGain();
+      
+      bass.connect(noteGain);
+      noteGain.connect(bassGain);
+      
+      bass.type = 'sawtooth';
+      bass.frequency.value = bassNotes[noteIndex];
+      
+      noteGain.gain.setValueAtTime(0.9, startTime + i);
+      noteGain.gain.exponentialRampToValueAtTime(0.6, startTime + i + noteLength * 0.8);
+      noteGain.gain.exponentialRampToValueAtTime(0.01, startTime + i + noteLength);
+      
+      bass.start(startTime + i);
+      bass.stop(startTime + i + noteLength);
+      this.governmentNodes.push(bass, noteGain);
+    }
+    
+    this.governmentNodes.push(bassGain);
+  }
+
+  private createGovernmentDrums(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const drumGain = ctx.createGain();
+    drumGain.gain.setValueAtTime(0.4, startTime);
+    drumGain.connect(masterGain);
+    
+    const beatInterval = 0.5; // More driving 120 BPM
+    
+    for (let i = 0; i < duration; i += beatInterval) {
+      const beat = Math.floor(i / beatInterval) % 4;
+      
+      if (beat === 0 || beat === 2) {
+        // Powerful kick drum on 1 and 3
+        this.createGovernmentKick(ctx, startTime + i, drumGain);
+      }
+      
+      if (beat === 1 || beat === 3) {
+        // Snare on 2 and 4
+        this.createGovernmentSnare(ctx, startTime + i, drumGain);
+      }
+      
+      // Add hi-hat on every beat for drive
+      this.createGovernmentHiHat(ctx, startTime + i, drumGain);
+    }
+    
+    this.governmentNodes.push(drumGain);
+  }
+
+  private createGovernmentHiHat(ctx: AudioContext, startTime: number, drumGain: GainNode) {
+    const hihat = ctx.createOscillator();
+    const hihatGain = ctx.createGain();
+    const hihatFilter = ctx.createBiquadFilter();
+    
+    hihat.type = 'square';
+    hihat.frequency.value = 8000;
+    
+    hihatFilter.type = 'highpass';
+    hihatFilter.frequency.value = 6000;
+    
+    hihatGain.gain.setValueAtTime(0.2, startTime);
+    hihatGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.05);
+    
+    hihat.connect(hihatFilter);
+    hihatFilter.connect(hihatGain);
+    hihatGain.connect(drumGain);
+    
+    hihat.start(startTime);
+    hihat.stop(startTime + 0.05);
+    this.governmentNodes.push(hihat, hihatGain, hihatFilter);
+  }
+
+  private createGovernmentKick(ctx: AudioContext, startTime: number, drumGain: GainNode) {
+    const kick = ctx.createOscillator();
+    const kickGain = ctx.createGain();
+    const kickFilter = ctx.createBiquadFilter();
+    
+    kick.type = 'sine';
+    kick.frequency.setValueAtTime(60, startTime);
+    kick.frequency.exponentialRampToValueAtTime(30, startTime + 0.1);
+    
+    kickFilter.type = 'lowpass';
+    kickFilter.frequency.value = 100;
+    
+    kickGain.gain.setValueAtTime(1.2, startTime);
+    kickGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
+    
+    kick.connect(kickFilter);
+    kickFilter.connect(kickGain);
+    kickGain.connect(drumGain);
+    
+    kick.start(startTime);
+    kick.stop(startTime + 0.3);
+    this.governmentNodes.push(kick, kickGain, kickFilter);
+  }
+
+  private createGovernmentSnare(ctx: AudioContext, startTime: number, drumGain: GainNode) {
+    const snare = ctx.createOscillator();
+    const snareGain = ctx.createGain();
+    const snareFilter = ctx.createBiquadFilter();
+    
+    snare.type = 'square';
+    snare.frequency.value = 200;
+    
+    snareFilter.type = 'highpass';
+    snareFilter.frequency.value = 1000;
+    
+    snareGain.gain.setValueAtTime(0.8, startTime);
+    snareGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.1);
+    
+    snare.connect(snareFilter);
+    snareFilter.connect(snareGain);
+    snareGain.connect(drumGain);
+    
+    snare.start(startTime);
+    snare.stop(startTime + 0.1);
+    this.governmentNodes.push(snare, snareGain, snareFilter);
+  }
+
+  private createGovernmentBrass(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const brassGain = ctx.createGain();
+    brassGain.gain.setValueAtTime(0.25, startTime);
+    brassGain.connect(masterGain);
+
+    // Heroic brass fanfares every 4 beats
+    for (let i = 0; i < duration; i += 4) {
+      const fanfareTime = startTime + i;
+      
+      // Trumpet call: D - F - A (Dm triad)
+      const notes = [293.66, 349.23, 440];
+      
+      notes.forEach((freq, noteIndex) => {
+        const trumpet = ctx.createOscillator();
+        const trumpetGain = ctx.createGain();
+        const trumpetFilter = ctx.createBiquadFilter();
+        
+        trumpet.type = 'sawtooth';
+        trumpet.frequency.value = freq;
+        
+        trumpetFilter.type = 'bandpass';
+        trumpetFilter.frequency.value = 1200;
+        trumpetFilter.Q.value = 2;
+        
+        trumpetGain.gain.setValueAtTime(0, fanfareTime + noteIndex * 0.3);
+        trumpetGain.gain.linearRampToValueAtTime(0.7, fanfareTime + noteIndex * 0.3 + 0.1);
+        trumpetGain.gain.linearRampToValueAtTime(0.5, fanfareTime + noteIndex * 0.3 + 0.8);
+        trumpetGain.gain.exponentialRampToValueAtTime(0.01, fanfareTime + noteIndex * 0.3 + 1.2);
+        
+        trumpet.connect(trumpetFilter);
+        trumpetFilter.connect(trumpetGain);
+        trumpetGain.connect(brassGain);
+        
+        trumpet.start(fanfareTime + noteIndex * 0.3);
+        trumpet.stop(fanfareTime + noteIndex * 0.3 + 1.2);
+        this.governmentNodes.push(trumpet, trumpetGain, trumpetFilter);
+      });
+    }
+    
+    this.governmentNodes.push(brassGain);
+  }
+
+  private createGovernmentStrings(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const stringGain = ctx.createGain();
+    stringGain.gain.setValueAtTime(0.2, startTime);
+    stringGain.connect(masterGain);
+
+    // Sweeping string chords following the bass progression
+    const chords = [
+      [146.83, 220, 293.66, 349.23], // Dm: D-A-D-F
+      [116.54, 174.61, 233.08, 293.66], // Bb: Bb-F-Bb-D
+      [174.61, 261.63, 349.23, 440], // F: F-C-F-A
+      [130.81, 196, 261.63, 329.63] // C: C-G-C-E
+    ];
+
+    for (let i = 0; i < duration; i += 8) {
+      const chordIndex = Math.floor(i / 8) % chords.length;
+      const chordTime = startTime + i;
+      
+      chords[chordIndex].forEach(freq => {
+        const string = ctx.createOscillator();
+        const stringGainNode = ctx.createGain();
+        const stringFilter = ctx.createBiquadFilter();
+        
+        string.type = 'sawtooth';
+        string.frequency.value = freq;
+        
+        stringFilter.type = 'lowpass';
+        stringFilter.frequency.value = 800;
+        stringFilter.Q.value = 1;
+        
+        stringGainNode.gain.setValueAtTime(0, chordTime);
+        stringGainNode.gain.linearRampToValueAtTime(0.4, chordTime + 1);
+        stringGainNode.gain.setValueAtTime(0.4, chordTime + 6);
+        stringGainNode.gain.linearRampToValueAtTime(0.01, chordTime + 8);
+        
+        string.connect(stringFilter);
+        stringFilter.connect(stringGainNode);
+        stringGainNode.connect(stringGain);
+        
+        string.start(chordTime);
+        string.stop(chordTime + 8);
+        this.governmentNodes.push(string, stringGainNode, stringFilter);
+      });
+    }
+    
+    this.governmentNodes.push(stringGain);
+  }
+
+  private createGovernmentMelody(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const melodyGain = ctx.createGain();
+    melodyGain.gain.setValueAtTime(0.3, startTime);
+    melodyGain.connect(masterGain);
+
+    // Memorable, powerful government theme - like FF6 Terra's Theme style
+    const melody = [
+      // First phrase (measures 1-2)
+      { freq: 587.33, time: 0, length: 0.75 },    // D5
+      { freq: 659.25, time: 0.75, length: 0.75 }, // E5
+      { freq: 698.46, time: 1.5, length: 1.5 },   // F5 (longer)
+      { freq: 659.25, time: 3, length: 0.75 },    // E5
+      { freq: 587.33, time: 3.75, length: 1.25 }, // D5 (longer)
+      
+      // Second phrase (measures 3-4)
+      { freq: 466.16, time: 6, length: 0.75 },    // Bb4
+      { freq: 523.25, time: 6.75, length: 0.75 }, // C5
+      { freq: 587.33, time: 7.5, length: 1.5 },   // D5 (longer)
+      { freq: 523.25, time: 9, length: 0.75 },    // C5
+      { freq: 466.16, time: 9.75, length: 1.25 }, // Bb4 (longer)
+      
+      // Climactic phrase (measures 5-6)
+      { freq: 880, time: 12, length: 1 },         // A5 (high climax!)
+      { freq: 783.99, time: 13, length: 0.5 },    // G5
+      { freq: 698.46, time: 13.5, length: 0.5 },  // F5
+      { freq: 659.25, time: 14, length: 1 },      // E5
+      { freq: 587.33, time: 15, length: 3 },      // D5 (very long resolution)
+      
+      // Echo phrase (measures 7-8)
+      { freq: 880, time: 18, length: 0.75 },      // A5 (echo the climax)
+      { freq: 783.99, time: 18.75, length: 0.75 }, // G5
+      { freq: 698.46, time: 19.5, length: 1.5 },  // F5
+      { freq: 587.33, time: 21, length: 3 }       // D5 (final resolution)
+    ];
+
+    melody.forEach(note => {
+      if (note.time < duration) {
+        const noteTime = startTime + note.time;
+        
+        const osc = ctx.createOscillator();
+        const noteGain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+        
+        osc.type = 'triangle';
+        osc.frequency.value = note.freq;
+        
+        filter.type = 'bandpass';
+        filter.frequency.value = 1200;
+        filter.Q.value = 1.5;
+        
+        noteGain.gain.setValueAtTime(0, noteTime);
+        noteGain.gain.linearRampToValueAtTime(0.9, noteTime + 0.05);
+        noteGain.gain.linearRampToValueAtTime(0.7, noteTime + note.length * 0.8);
+        noteGain.gain.exponentialRampToValueAtTime(0.01, noteTime + note.length);
+        
+        osc.connect(filter);
+        filter.connect(noteGain);
+        noteGain.connect(melodyGain);
+        
+        osc.start(noteTime);
+        osc.stop(noteTime + note.length);
+        this.governmentNodes.push(osc, noteGain, filter);
+      }
+    });
+    
+    this.governmentNodes.push(melodyGain);
+  }
+
+  public stopGovernmentMusic() {
+    this.governmentNodes.forEach(node => {
+      try {
+        if (node.stop) {
+          node.stop();
+        }
+      } catch (e) {
+        // Already stopped
+      }
+    });
+    this.governmentNodes = [];
+    this.governmentPlaying = false;
+  }
+
+  /**
+   * ESTATES MUSIC - Solemn authority for elite leaders' abodes
+   */
+  private estatesNodes: AudioNode[] = [];
+  private estatesPlaying = false;
+
+  public playEstatesMusic() {
+    if (this.isMuted || this.estatesPlaying) return;
+    const ctx = this.ensureAudioContext();
+    if (!ctx) return;
+
+    try {
+      this.estatesPlaying = true;
+      this.estatesNodes = [];
+      const now = ctx.currentTime;
+      const loopDuration = 32; // 32 seconds per loop
+      
+      // Master gain with gentle fade-in like successful music
+      const masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(0, now);
+      masterGain.gain.linearRampToValueAtTime(0.14 * this.masterVolume, now + 5); // 5 second fade-in
+      masterGain.connect(ctx.destination);
+      this.estatesNodes.push(masterGain);
+
+      // Create orchestral estates theme with rich layering
+      this.createEstatesWarmBass(ctx, now, loopDuration, masterGain);
+      this.createEstatesGentleMelody(ctx, now, loopDuration, masterGain);
+      this.createEstatesHarmonyPads(ctx, now, loopDuration, masterGain);
+      this.createEstatesAmbientWash(ctx, now, loopDuration, masterGain); // New orchestral wash
+      this.createEstatesArpeggio(ctx, now, loopDuration, masterGain);
+      this.createEstatesAccents(ctx, now, loopDuration, masterGain);
+      
+      // Loop like the successful fishing music
+      const loopEstates = () => {
+        if (this.estatesPlaying) {
+          setTimeout(() => {
+            if (this.estatesPlaying) {
+              // Clear old nodes but keep master gain
+              this.estatesNodes = this.estatesNodes.filter(node => node === masterGain);
+              // Restart the loop
+              const loopTime = ctx.currentTime;
+              this.createEstatesWarmBass(ctx, loopTime, loopDuration, masterGain);
+              this.createEstatesGentleMelody(ctx, loopTime, loopDuration, masterGain);
+              this.createEstatesHarmonyPads(ctx, loopTime, loopDuration, masterGain);
+              this.createEstatesAmbientWash(ctx, loopTime, loopDuration, masterGain);
+              this.createEstatesArpeggio(ctx, loopTime, loopDuration, masterGain);
+              this.createEstatesAccents(ctx, loopTime, loopDuration, masterGain);
+              loopEstates();
+            }
+          }, loopDuration * 1000);
+        }
+      };
+      
+      loopEstates();
+      
+    } catch (error) {
+      console.error('Error playing estates music:', error);
+      this.estatesPlaying = false;
+    }
+  }
+
+  private createEstatesWarmBass(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const bassGain = ctx.createGain();
+    bassGain.gain.setValueAtTime(0.3, startTime);
+    bassGain.connect(masterGain);
+
+    // Warm, Stardew Valley-style bass progression: C - Am - F - G
+    const bassNotes = [130.81, 110, 87.307, 97.999]; // C3, A2, F2, G2
+    const noteLength = 2.0; // 2 seconds per note for warmth
+
+    for (let i = 0; i < duration; i += noteLength) {
+      const noteIndex = Math.floor(i / noteLength) % bassNotes.length;
+      const bass = ctx.createOscillator();
+      const noteGain = ctx.createGain();
+      
+      bass.connect(noteGain);
+      noteGain.connect(bassGain);
+      
+      bass.type = 'sine'; // Warm, not harsh
+      bass.frequency.value = bassNotes[noteIndex];
+      
+      noteGain.gain.setValueAtTime(0.7, startTime + i);
+      noteGain.gain.exponentialRampToValueAtTime(0.4, startTime + i + noteLength * 0.8);
+      noteGain.gain.exponentialRampToValueAtTime(0.01, startTime + i + noteLength);
+      
+      bass.start(startTime + i);
+      bass.stop(startTime + i + noteLength);
+      this.estatesNodes.push(bass, noteGain);
+    }
+    
+    this.estatesNodes.push(bassGain);
+  }
+
+  private createEstatesGentleMelody(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const melodyGain = ctx.createGain();
+    melodyGain.gain.setValueAtTime(0.25, startTime);
+    melodyGain.connect(masterGain);
+
+    // Beautiful, flowing melody like Stardew Valley
+    const melody = [
+      { freq: 523.25, time: 0, length: 1.5 },   // C5
+      { freq: 587.33, time: 1.5, length: 1 },   // D5
+      { freq: 659.25, time: 2.5, length: 1.5 }, // E5
+      { freq: 523.25, time: 4, length: 1 },     // C5
+      { freq: 440, time: 5, length: 1 },        // A4
+      { freq: 493.88, time: 6, length: 1 },     // B4
+      { freq: 523.25, time: 7, length: 1 },     // C5
+      { freq: 587.33, time: 8, length: 2 },     // D5 (long)
+      { freq: 659.25, time: 10, length: 1 },    // E5
+      { freq: 698.46, time: 11, length: 1 },    // F5
+      { freq: 659.25, time: 12, length: 1.5 },  // E5
+      { freq: 587.33, time: 13.5, length: 1 },  // D5
+      { freq: 523.25, time: 14.5, length: 1.5 }, // C5
+      { freq: 440, time: 16, length: 4 }        // A4 (very long)
+    ];
+
+    melody.forEach(note => {
+      if (note.time < duration) {
+        const noteTime = startTime + note.time;
+        
+        const osc = ctx.createOscillator();
+        const noteGain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+        
+        osc.type = 'triangle'; // Warm, gentle tone
+        osc.frequency.value = note.freq;
+        
+        filter.type = 'lowpass';
+        filter.frequency.value = 1200;
+        filter.Q.value = 1;
+        
+        noteGain.gain.setValueAtTime(0, noteTime);
+        noteGain.gain.linearRampToValueAtTime(0.6, noteTime + 0.1);
+        noteGain.gain.linearRampToValueAtTime(0.4, noteTime + note.length * 0.8);
+        noteGain.gain.exponentialRampToValueAtTime(0.01, noteTime + note.length);
+        
+        osc.connect(filter);
+        filter.connect(noteGain);
+        noteGain.connect(melodyGain);
+        
+        osc.start(noteTime);
+        osc.stop(noteTime + note.length);
+        this.estatesNodes.push(osc, noteGain, filter);
+      }
+    });
+    
+    this.estatesNodes.push(melodyGain);
+  }
+
+  // Orchestral String Washes: Lush harmonic foundation
+  private createEstatesHarmonyPads(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const padGain = ctx.createGain();
+    padGain.gain.setValueAtTime(0.25, startTime); // Increased for richer sound
+    padGain.connect(masterGain);
+    
+    // Rich orchestral chord progressions - more sophisticated harmony
+    const chordProgression = [
+      // Extended chords for orchestral richness
+      {chords: [261.63, 329.63, 392.00, 523.25], duration: 6.5, delay: 0},    // Cmaj7
+      {chords: [220.00, 261.63, 329.63, 440.00], duration: 6.5, delay: 6.5},  // Am7
+      {chords: [174.61, 220.00, 261.63, 349.23], duration: 6.5, delay: 13},   // Fmaj7
+      {chords: [196.00, 246.94, 293.66, 392.00], duration: 6.5, delay: 19.5}, // G7
+    ];
+    
+    for (const {chords, duration: chordDuration, delay} of chordProgression) {
+      if (delay < duration) {
+        chords.forEach((freq, voiceIndex) => {
+          const pad = ctx.createOscillator();
+          const padNoteGain = ctx.createGain();
+          const padFilter = ctx.createBiquadFilter();
+          const chordTime = startTime + delay;
+          
+          pad.connect(padFilter);
+          padFilter.connect(padNoteGain);
+          padNoteGain.connect(padGain);
+          
+          // Different waveforms for orchestral texture
+          pad.type = voiceIndex < 2 ? 'triangle' : 'sine'; // Lower voices warmer
+          pad.frequency.value = freq;
+          
+          // Enhanced filtering for orchestral strings
+          padFilter.type = 'lowpass';
+          padFilter.frequency.value = 1500 - (voiceIndex * 200); // Lower voices darker
+          padFilter.Q.value = 0.7;
+          
+          // Staggered entrances for orchestral realism
+          const voiceDelay = voiceIndex * 0.1;
+          padNoteGain.gain.setValueAtTime(0, chordTime + voiceDelay);
+          padNoteGain.gain.linearRampToValueAtTime(0.5, chordTime + voiceDelay + 1.5);
+          padNoteGain.gain.setValueAtTime(0.5, chordTime + chordDuration - 1);
+          padNoteGain.gain.linearRampToValueAtTime(0.01, chordTime + chordDuration);
+          
+          pad.start(chordTime + voiceDelay);
+          pad.stop(chordTime + chordDuration);
+          this.estatesNodes.push(pad, padNoteGain, padFilter);
+        });
+      }
+    }
+    
+    this.estatesNodes.push(padGain);
+  }
+
+  // Ethereal Ambient Wash: Additional atmospheric layer
+  private createEstatesAmbientWash(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const washGain = ctx.createGain();
+    washGain.gain.setValueAtTime(0.2, startTime);
+    washGain.connect(masterGain);
+
+    // Ethereal high pad that adds shimmer and atmosphere
+    const shimmerFreqs = [
+      1046.5,  // C6 - high ethereal tones
+      1174.66, // D6
+      1318.51, // E6
+      1396.91, // F6
+      1567.98  // G6
+    ];
+
+    // Create slow, evolving wash texture
+    for (let i = 0; i < duration; i += 4) { // Every 4 seconds, new wash texture
+      const washTime = startTime + i;
+      
+      // Use 2-3 frequencies for each wash
+      const numVoices = 2 + Math.floor(Math.random() * 2);
+      
+      for (let voice = 0; voice < numVoices; voice++) {
+        const freq = shimmerFreqs[Math.floor(Math.random() * shimmerFreqs.length)];
+        const voiceDelay = voice * 0.3; // Stagger voice entrances
+        
+        const wash = ctx.createOscillator();
+        const washNoteGain = ctx.createGain();
+        const washFilter = ctx.createBiquadFilter();
+        
+        wash.connect(washFilter);
+        washFilter.connect(washNoteGain);
+        washNoteGain.connect(washGain);
+        
+        wash.type = 'sine'; // Pure, ethereal tone
+        wash.frequency.value = freq;
+        
+        // Soft low-pass filtering for dreaminess
+        washFilter.type = 'lowpass';
+        washFilter.frequency.value = 3000;
+        washFilter.Q.value = 0.3;
+        
+        // Very slow, gentle fades
+        const noteTime = washTime + voiceDelay;
+        const noteDuration = Math.min(6 + Math.random() * 4, duration - i); // 6-10 second notes
+        
+        washNoteGain.gain.setValueAtTime(0, noteTime);
+        washNoteGain.gain.linearRampToValueAtTime(0.4, noteTime + 2);
+        washNoteGain.gain.setValueAtTime(0.4, noteTime + noteDuration - 2);
+        washNoteGain.gain.linearRampToValueAtTime(0.01, noteTime + noteDuration);
+        
+        wash.start(noteTime);
+        wash.stop(noteTime + noteDuration);
+        this.estatesNodes.push(wash, washNoteGain, washFilter);
+      }
+    }
+    
+    this.estatesNodes.push(washGain);
+  }
+
+  private createEstatesArpeggio(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const arpeggioGain = ctx.createGain();
+    arpeggioGain.gain.setValueAtTime(0.12, startTime);
+    arpeggioGain.connect(masterGain);
+    
+    // Gentle arpeggiated pattern like fishing music
+    const arpeggioNotes = [
+      523.25, 659.25, 783.99, 880.00, // C5, E5, G5, A5
+      783.99, 659.25, 523.25, 440.00, // G5, E5, C5, A4
+      493.88, 659.25, 783.99, 880.00, // B4, E5, G5, A5
+      783.99, 659.25, 493.88, 392.00  // G5, E5, B4, G4
+    ];
+    
+    const noteLength = 0.4; // Quick, gentle notes
+    const startDelay = 4; // Start after other instruments establish
+    
+    for (let i = 0; i < (duration - startDelay) / noteLength; i++) {
+      const noteIndex = i % arpeggioNotes.length;
+      const noteTime = startTime + startDelay + i * noteLength;
+      
+      const arp = ctx.createOscillator();
+      const arpGain = ctx.createGain();
+      const arpFilter = ctx.createBiquadFilter();
+      
+      arp.type = 'sine'; // Pure, crystalline
+      arp.frequency.value = arpeggioNotes[noteIndex];
+      
+      arpFilter.type = 'highpass';
+      arpFilter.frequency.value = 200;
+      arpFilter.Q.value = 0.5;
+      
+      arpGain.gain.setValueAtTime(0.3, noteTime);
+      arpGain.gain.exponentialRampToValueAtTime(0.01, noteTime + noteLength * 0.8);
+      
+      arp.connect(arpFilter);
+      arpFilter.connect(arpGain);
+      arpGain.connect(arpeggioGain);
+      
+      arp.start(noteTime);
+      arp.stop(noteTime + noteLength);
+      this.estatesNodes.push(arp, arpGain, arpFilter);
+    }
+    
+    this.estatesNodes.push(arpeggioGain);
+  }
+
+  private createEstatesAccents(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const accentGain = ctx.createGain();
+    accentGain.gain.setValueAtTime(0.1, startTime);
+    accentGain.connect(masterGain);
+
+    // Subtle bell-like accents for elegance
+    const accents = [
+      { time: 8, freq: 1046.5 },   // C6 - high, gentle
+      { time: 16, freq: 1318.5 },  // E6
+      { time: 24, freq: 1046.5 }   // C6
+    ];
+
+    accents.forEach(accent => {
+      if (accent.time < duration) {
+        const accentTime = startTime + accent.time;
+        
+        const bell = ctx.createOscillator();
+        const bellGain = ctx.createGain();
+        const bellFilter = ctx.createBiquadFilter();
+        
+        bell.type = 'sine';
+        bell.frequency.value = accent.freq;
+        
+        bellFilter.type = 'bandpass';
+        bellFilter.frequency.value = 2000;
+        bellFilter.Q.value = 2;
+        
+        bellGain.gain.setValueAtTime(0, accentTime);
+        bellGain.gain.linearRampToValueAtTime(0.4, accentTime + 0.1);
+        bellGain.gain.exponentialRampToValueAtTime(0.01, accentTime + 2);
+        
+        bell.connect(bellFilter);
+        bellFilter.connect(bellGain);
+        bellGain.connect(accentGain);
+        
+        bell.start(accentTime);
+        bell.stop(accentTime + 2);
+        this.estatesNodes.push(bell, bellGain, bellFilter);
+      }
+    });
+    
+    this.estatesNodes.push(accentGain);
+  }
+
+  public stopEstatesMusic() {
+    this.estatesNodes.forEach(node => {
+      try {
+        if (node.stop) {
+          node.stop();
+        }
+      } catch (e) {
+        // Already stopped
+      }
+    });
+    this.estatesNodes = [];
+    this.estatesPlaying = false;
+  }
+
+  // Keep the old marketplace method names for backward compatibility
+  public playMarketplaceMusic() { this.playEstatesMusic(); }
+  public stopMarketplaceMusic() { this.stopEstatesMusic(); }
+
+  /**
+   * DANGER MUSIC - Dark FF6-style atmospheric theme for arrests/confrontations
+   */
+  private dangerNodes: AudioNode[] = [];
+  private dangerPlaying = false;
+
+  public playDangerMusic() {
+    if (this.isMuted || this.dangerPlaying) return;
+    const ctx = this.ensureAudioContext();
+    if (!ctx) return;
+
+    try {
+      this.dangerPlaying = true;
+      this.dangerNodes = [];
+      const now = ctx.currentTime;
+      const loopDuration = 28; // 28 seconds per loop
+      
+      // Master gain with ominous fade-in
+      const masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(0, now);
+      masterGain.gain.linearRampToValueAtTime(0.18 * this.masterVolume, now + 4);
+      masterGain.connect(ctx.destination);
+      this.dangerNodes.push(masterGain);
+
+      // Create dark atmospheric layers
+      this.createDangerDroneBase(ctx, now, loopDuration, masterGain);
+      this.createDangerTensionStrings(ctx, now, loopDuration, masterGain);
+      this.createDangerOminousBells(ctx, now, loopDuration, masterGain);
+      this.createDangerDissonantHarmony(ctx, now, loopDuration, masterGain);
+      this.createDangerDarkMelody(ctx, now, loopDuration, masterGain);
+      
+      // Schedule loop
+      setTimeout(() => {
+        if (this.dangerPlaying) {
+          this.stopDangerMusic();
+          this.playDangerMusic();
+        }
+      }, loopDuration * 1000);
+      
+    } catch (error) {
+      console.error('Error playing danger music:', error);
+      this.dangerPlaying = false;
+    }
+  }
+
+  private createDangerDroneBase(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const droneGain = ctx.createGain();
+    droneGain.gain.setValueAtTime(0.4, startTime);
+    droneGain.connect(masterGain);
+
+    // Deep, ominous drone on D and A (perfect 5th, but dark)
+    const droneFreqs = [73.42, 110]; // D2, A2
+    
+    droneFreqs.forEach(freq => {
+      const drone = ctx.createOscillator();
+      const droneGainNode = ctx.createGain();
+      const droneFilter = ctx.createBiquadFilter();
+      
+      drone.type = 'sawtooth';
+      drone.frequency.value = freq;
+      
+      droneFilter.type = 'lowpass';
+      droneFilter.frequency.value = 120;
+      droneFilter.Q.value = 2;
+      
+      droneGainNode.gain.setValueAtTime(0, startTime);
+      droneGainNode.gain.linearRampToValueAtTime(0.8, startTime + 3);
+      droneGainNode.gain.setValueAtTime(0.8, startTime + duration - 3);
+      droneGainNode.gain.linearRampToValueAtTime(0.01, startTime + duration);
+      
+      drone.connect(droneFilter);
+      droneFilter.connect(droneGainNode);
+      droneGainNode.connect(droneGain);
+      
+      drone.start(startTime);
+      drone.stop(startTime + duration);
+      this.dangerNodes.push(drone, droneGainNode, droneFilter);
+    });
+    
+    this.dangerNodes.push(droneGain);
+  }
+
+  private createDangerTensionStrings(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const stringGain = ctx.createGain();
+    stringGain.gain.setValueAtTime(0.2, startTime);
+    stringGain.connect(masterGain);
+
+    // Dissonant string clusters that create tension
+    const clusters = [
+      [293.66, 311.13, 329.63], // D4-Eb4-E4 (very dissonant)
+      [349.23, 369.99, 392],     // F4-F#4-G4
+      [220, 233.08, 246.94],     // A3-Bb3-B3
+      [261.63, 277.18, 293.66]   // C4-C#4-D4
+    ];
+
+    clusters.forEach((cluster, clusterIndex) => {
+      const clusterTime = startTime + clusterIndex * 7;
+      
+      cluster.forEach(freq => {
+        const string = ctx.createOscillator();
+        const stringGainNode = ctx.createGain();
+        const stringFilter = ctx.createBiquadFilter();
+        
+        string.type = 'sawtooth';
+        string.frequency.value = freq;
+        
+        stringFilter.type = 'bandpass';
+        stringFilter.frequency.value = 600;
+        stringFilter.Q.value = 3; // High Q for tension
+        
+        stringGainNode.gain.setValueAtTime(0, clusterTime);
+        stringGainNode.gain.linearRampToValueAtTime(0.3, clusterTime + 1);
+        stringGainNode.gain.setValueAtTime(0.3, clusterTime + 5);
+        stringGainNode.gain.exponentialRampToValueAtTime(0.01, clusterTime + 7);
+        
+        string.connect(stringFilter);
+        stringFilter.connect(stringGainNode);
+        stringGainNode.connect(stringGain);
+        
+        string.start(clusterTime);
+        string.stop(clusterTime + 7);
+        this.dangerNodes.push(string, stringGainNode, stringFilter);
+      });
+    });
+    
+    this.dangerNodes.push(stringGain);
+  }
+
+  private createDangerOminousBells(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const bellGain = ctx.createGain();
+    bellGain.gain.setValueAtTime(0.15, startTime);
+    bellGain.connect(masterGain);
+
+    // Sparse, ominous bell tolls at irregular intervals
+    const bellTimes = [5, 12, 19, 25];
+    const bellFreqs = [466.16, 415.30, 369.99, 440]; // Bb4, Ab4, F#4, A4
+    
+    bellTimes.forEach((time, index) => {
+      if (time < duration) {
+        const bellTime = startTime + time;
+        
+        const bell = ctx.createOscillator();
+        const bellGainNode = ctx.createGain();
+        const bellFilter = ctx.createBiquadFilter();
+        
+        bell.type = 'sine';
+        bell.frequency.value = bellFreqs[index];
+        
+        bellFilter.type = 'bandpass';
+        bellFilter.frequency.value = 800;
+        bellFilter.Q.value = 2;
+        
+        bellGainNode.gain.setValueAtTime(0, bellTime);
+        bellGainNode.gain.linearRampToValueAtTime(0.6, bellTime + 0.1);
+        bellGainNode.gain.exponentialRampToValueAtTime(0.01, bellTime + 4);
+        
+        bell.connect(bellFilter);
+        bellFilter.connect(bellGainNode);
+        bellGainNode.connect(bellGain);
+        
+        bell.start(bellTime);
+        bell.stop(bellTime + 4);
+        this.dangerNodes.push(bell, bellGainNode, bellFilter);
+      }
+    });
+    
+    this.dangerNodes.push(bellGain);
+  }
+
+  private createDangerDissonantHarmony(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const harmonyGain = ctx.createGain();
+    harmonyGain.gain.setValueAtTime(0.12, startTime);
+    harmonyGain.connect(masterGain);
+
+    // Minor 2nd and tritone intervals for maximum dissonance
+    const dissonantPairs = [
+      [146.83, 155.56], // D3-Eb3 (minor 2nd)
+      [207.65, 293.66], // Ab3-D4 (tritone)
+      [174.61, 184.997], // F3-F#3 (minor 2nd)
+      [123.47, 174.61]   // B2-F3 (tritone)
+    ];
+
+    dissonantPairs.forEach((pair, pairIndex) => {
+      const pairTime = startTime + pairIndex * 7;
+      
+      pair.forEach(freq => {
+        const harm = ctx.createOscillator();
+        const harmGain = ctx.createGain();
+        const harmFilter = ctx.createBiquadFilter();
+        
+        harm.type = 'triangle';
+        harm.frequency.value = freq;
+        
+        harmFilter.type = 'lowpass';
+        harmFilter.frequency.value = 400;
+        harmFilter.Q.value = 1.5;
+        
+        harmGain.gain.setValueAtTime(0, pairTime);
+        harmGain.gain.linearRampToValueAtTime(0.3, pairTime + 2);
+        harmGain.gain.setValueAtTime(0.3, pairTime + 5);
+        harmGain.gain.exponentialRampToValueAtTime(0.01, pairTime + 7);
+        
+        harm.connect(harmFilter);
+        harmFilter.connect(harmGain);
+        harmGain.connect(harmonyGain);
+        
+        harm.start(pairTime);
+        harm.stop(pairTime + 7);
+        this.dangerNodes.push(harm, harmGain, harmFilter);
+      });
+    });
+    
+    this.dangerNodes.push(harmonyGain);
+  }
+
+  private createDangerDarkMelody(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const melodyGain = ctx.createGain();
+    melodyGain.gain.setValueAtTime(0.25, startTime);
+    melodyGain.connect(masterGain);
+
+    // Dark, descending melody that suggests doom
+    const darkMelody = [
+      { freq: 587.33, time: 8, length: 2 },   // D5 (start high)
+      { freq: 554.37, time: 10, length: 1 },  // Db5 (half-step down)
+      { freq: 523.25, time: 11, length: 2 },  // C5
+      { freq: 466.16, time: 13, length: 1.5 }, // Bb4
+      { freq: 415.30, time: 14.5, length: 1.5 }, // Ab4
+      { freq: 369.99, time: 16, length: 2 },  // F#4 (tritone, very dark)
+      { freq: 329.63, time: 18, length: 3 },  // E4 (resolution, but still minor)
+      
+      // Echo the darkness
+      { freq: 466.16, time: 22, length: 1 },  // Bb4 (echo)
+      { freq: 415.30, time: 23, length: 1 },  // Ab4
+      { freq: 369.99, time: 24, length: 2 },  // F#4
+      { freq: 293.66, time: 26, length: 2 }   // D4 (final dark resolution)
+    ];
+
+    darkMelody.forEach(note => {
+      if (note.time < duration) {
+        const noteTime = startTime + note.time;
+        
+        const osc = ctx.createOscillator();
+        const noteGain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+        
+        osc.type = 'triangle';
+        osc.frequency.value = note.freq;
+        
+        filter.type = 'lowpass';
+        filter.frequency.value = 800;
+        filter.Q.value = 2;
+        
+        noteGain.gain.setValueAtTime(0, noteTime);
+        noteGain.gain.linearRampToValueAtTime(0.7, noteTime + 0.1);
+        noteGain.gain.linearRampToValueAtTime(0.4, noteTime + note.length * 0.8);
+        noteGain.gain.exponentialRampToValueAtTime(0.01, noteTime + note.length);
+        
+        osc.connect(filter);
+        filter.connect(noteGain);
+        noteGain.connect(melodyGain);
+        
+        osc.start(noteTime);
+        osc.stop(noteTime + note.length);
+        this.dangerNodes.push(osc, noteGain, filter);
+      }
+    });
+    
+    this.dangerNodes.push(melodyGain);
+  }
+
+  public stopDangerMusic() {
+    this.dangerNodes.forEach(node => {
+      try {
+        if (node.stop) {
+          node.stop();
+        }
+      } catch (e) {
+        // Already stopped
+      }
+    });
+    this.dangerNodes = [];
+    this.dangerPlaying = false;
+  }
+
+  /**
+   * MODERN CITY MUSIC - Upbeat urban theme for modern settings
+   */
+  private modernCityNodes: AudioNode[] = [];
+  private modernCityPlaying = false;
+
+  public playModernCityMusic() {
+    if (this.isMuted || this.modernCityPlaying) return;
+    const ctx = this.ensureAudioContext();
+    if (!ctx) return;
+
+    try {
+      this.modernCityPlaying = true;
+      this.modernCityNodes = [];
+      const now = ctx.currentTime;
+      const loopDuration = 24; // 24 seconds per loop
+      
+      // Master gain with energetic fade-in
+      const masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(0, now);
+      masterGain.gain.linearRampToValueAtTime(0.2 * this.masterVolume, now + 1);
+      masterGain.connect(ctx.destination);
+      this.modernCityNodes.push(masterGain);
+
+      // Create modern urban music layers
+      this.createCityDrivingBass(ctx, now, loopDuration, masterGain);
+      this.createCityPowerfulDrums(ctx, now, loopDuration, masterGain);
+      this.createCityEpicMelody(ctx, now, loopDuration, masterGain);
+      this.createCityHeroicBrass(ctx, now, loopDuration, masterGain);
+      this.createCityEnergeticStrings(ctx, now, loopDuration, masterGain);
+      
+      // Schedule loop
+      setTimeout(() => {
+        if (this.modernCityPlaying) {
+          this.stopModernCityMusic();
+          this.playModernCityMusic();
+        }
+      }, loopDuration * 1000);
+      
+    } catch (error) {
+      console.error('Error playing modern city music:', error);
+      this.modernCityPlaying = false;
+    }
+  }
+
+  private createCityDrivingBass(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const bassGain = ctx.createGain();
+    bassGain.gain.setValueAtTime(0.4, startTime);
+    bassGain.connect(masterGain);
+
+    // Driving bass progression: Em - C - G - D (vi-IV-I-V in G major, very energetic)
+    const bassNotes = [164.81, 130.81, 196, 146.83]; // E3, C3, G3, D3
+    const noteLength = 1.0; // Fast 1-second changes for energy
+
+    for (let i = 0; i < duration; i += noteLength) {
+      const noteIndex = Math.floor(i / noteLength) % bassNotes.length;
+      const bass = ctx.createOscillator();
+      const noteGain = ctx.createGain();
+      const bassFilter = ctx.createBiquadFilter();
+      
+      bass.connect(bassFilter);
+      bassFilter.connect(noteGain);
+      noteGain.connect(bassGain);
+      
+      bass.type = 'sawtooth';
+      bass.frequency.value = bassNotes[noteIndex];
+      
+      bassFilter.type = 'lowpass';
+      bassFilter.frequency.value = 200;
+      bassFilter.Q.value = 1;
+      
+      noteGain.gain.setValueAtTime(1.0, startTime + i);
+      noteGain.gain.exponentialRampToValueAtTime(0.7, startTime + i + noteLength * 0.8);
+      noteGain.gain.exponentialRampToValueAtTime(0.01, startTime + i + noteLength);
+      
+      bass.start(startTime + i);
+      bass.stop(startTime + i + noteLength);
+      this.modernCityNodes.push(bass, noteGain, bassFilter);
+    }
+    
+    this.modernCityNodes.push(bassGain);
+  }
+
+  private createCityPowerfulDrums(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const drumGain = ctx.createGain();
+    drumGain.gain.setValueAtTime(0.5, startTime);
+    drumGain.connect(masterGain);
+    
+    const beatInterval = 0.25; // Very fast 240 BPM for intensity
+    
+    for (let i = 0; i < duration; i += beatInterval) {
+      const beat = Math.floor(i / beatInterval) % 8;
+      
+      // Powerful kick pattern
+      if (beat === 0 || beat === 2 || beat === 4 || beat === 6) {
+        this.createCityKick(ctx, startTime + i, drumGain, beat === 0 || beat === 4);
+      }
+      
+      // Snare on off-beats
+      if (beat === 2 || beat === 6) {
+        this.createCitySnare(ctx, startTime + i, drumGain);
+      }
+      
+      // Hi-hat on every beat for drive
+      this.createCityHiHat(ctx, startTime + i, drumGain);
+    }
+    
+    this.modernCityNodes.push(drumGain);
+  }
+
+  private createCityKick(ctx: AudioContext, startTime: number, drumGain: GainNode, isAccent: boolean) {
+    const kick = ctx.createOscillator();
+    const kickGain = ctx.createGain();
+    const kickFilter = ctx.createBiquadFilter();
+    
+    kick.type = 'sine';
+    kick.frequency.setValueAtTime(70, startTime);
+    kick.frequency.exponentialRampToValueAtTime(30, startTime + 0.1);
+    
+    kickFilter.type = 'lowpass';
+    kickFilter.frequency.value = 100;
+    
+    kickGain.gain.setValueAtTime(isAccent ? 1.4 : 1.0, startTime);
+    kickGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.2);
+    
+    kick.connect(kickFilter);
+    kickFilter.connect(kickGain);
+    kickGain.connect(drumGain);
+    
+    kick.start(startTime);
+    kick.stop(startTime + 0.2);
+    this.modernCityNodes.push(kick, kickGain, kickFilter);
+  }
+
+  private createCitySnare(ctx: AudioContext, startTime: number, drumGain: GainNode) {
+    const snare = ctx.createOscillator();
+    const snareGain = ctx.createGain();
+    const snareFilter = ctx.createBiquadFilter();
+    
+    snare.type = 'square';
+    snare.frequency.value = 220;
+    
+    snareFilter.type = 'highpass';
+    snareFilter.frequency.value = 1200;
+    
+    snareGain.gain.setValueAtTime(0.9, startTime);
+    snareGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.08);
+    
+    snare.connect(snareFilter);
+    snareFilter.connect(snareGain);
+    snareGain.connect(drumGain);
+    
+    snare.start(startTime);
+    snare.stop(startTime + 0.08);
+    this.modernCityNodes.push(snare, snareGain, snareFilter);
+  }
+
+  private createCityHiHat(ctx: AudioContext, startTime: number, drumGain: GainNode) {
+    const hihat = ctx.createOscillator();
+    const hihatGain = ctx.createGain();
+    const hihatFilter = ctx.createBiquadFilter();
+    
+    hihat.type = 'square';
+    hihat.frequency.value = 10000;
+    
+    hihatFilter.type = 'highpass';
+    hihatFilter.frequency.value = 8000;
+    
+    hihatGain.gain.setValueAtTime(0.15, startTime);
+    hihatGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.03);
+    
+    hihat.connect(hihatFilter);
+    hihatFilter.connect(hihatGain);
+    hihatGain.connect(drumGain);
+    
+    hihat.start(startTime);
+    hihat.stop(startTime + 0.03);
+    this.modernCityNodes.push(hihat, hihatGain, hihatFilter);
+  }
+
+  private createCityEpicMelody(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const melodyGain = ctx.createGain();
+    melodyGain.gain.setValueAtTime(0.35, startTime);
+    melodyGain.connect(masterGain);
+
+    // Incredibly catchy FF6-style combat melody - heroic and memorable
+    const melody = [
+      // Opening heroic phrase (measures 1-2)
+      { freq: 783.99, time: 0, length: 0.5 },     // G5 (strong opening)
+      { freq: 659.25, time: 0.5, length: 0.5 },   // E5
+      { freq: 523.25, time: 1, length: 1 },       // C5 (longer)
+      { freq: 587.33, time: 2, length: 0.5 },     // D5
+      { freq: 659.25, time: 2.5, length: 0.5 },   // E5
+      { freq: 783.99, time: 3, length: 1 },       // G5 (back to top)
+      
+      // Answering phrase (measures 3-4)
+      { freq: 880, time: 4, length: 0.5 },        // A5 (even higher!)
+      { freq: 783.99, time: 4.5, length: 0.5 },   // G5
+      { freq: 659.25, time: 5, length: 1 },       // E5 (longer)
+      { freq: 698.46, time: 6, length: 0.5 },     // F5
+      { freq: 783.99, time: 6.5, length: 0.5 },   // G5
+      { freq: 880, time: 7, length: 1 },          // A5 (resolution)
+      
+      // Development phrase (measures 5-6)
+      { freq: 1046.5, time: 8, length: 0.5 },     // C6 (climax!)
+      { freq: 880, time: 8.5, length: 0.5 },      // A5
+      { freq: 783.99, time: 9, length: 0.5 },     // G5
+      { freq: 659.25, time: 9.5, length: 0.5 },   // E5
+      { freq: 587.33, time: 10, length: 1 },      // D5
+      { freq: 523.25, time: 11, length: 1 },      // C5
+      
+      // Final heroic phrase (measures 7-8)
+      { freq: 783.99, time: 12, length: 0.75 },   // G5 (return of opening)
+      { freq: 880, time: 12.75, length: 0.25 },   // A5 (quick)
+      { freq: 1046.5, time: 13, length: 1 },      // C6 (big finish)
+      { freq: 880, time: 14, length: 0.5 },       // A5
+      { freq: 783.99, time: 14.5, length: 0.5 },  // G5
+      { freq: 659.25, time: 15, length: 1 }       // E5 (final resolution)
+    ];
+
+    melody.forEach(note => {
+      if (note.time < duration) {
+        const noteTime = startTime + note.time;
+        
+        const osc = ctx.createOscillator();
+        const noteGain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+        
+        osc.type = 'triangle';
+        osc.frequency.value = note.freq;
+        
+        filter.type = 'bandpass';
+        filter.frequency.value = 1500;
+        filter.Q.value = 2;
+        
+        noteGain.gain.setValueAtTime(0, noteTime);
+        noteGain.gain.linearRampToValueAtTime(1.0, noteTime + 0.05);
+        noteGain.gain.linearRampToValueAtTime(0.8, noteTime + note.length * 0.8);
+        noteGain.gain.exponentialRampToValueAtTime(0.01, noteTime + note.length);
+        
+        osc.connect(filter);
+        filter.connect(noteGain);
+        noteGain.connect(melodyGain);
+        
+        osc.start(noteTime);
+        osc.stop(noteTime + note.length);
+        this.modernCityNodes.push(osc, noteGain, filter);
+      }
+    });
+    
+    this.modernCityNodes.push(melodyGain);
+  }
+
+  private createCityHeroicBrass(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const brassGain = ctx.createGain();
+    brassGain.gain.setValueAtTime(0.3, startTime);
+    brassGain.connect(masterGain);
+
+    // Powerful brass stabs on strong beats
+    for (let i = 0; i < duration; i += 4) {
+      const brassTime = startTime + i;
+      
+      // Epic brass chord: Em chord (E-G-B)
+      const brassChord = [659.25, 783.99, 987.77]; // E5, G5, B5
+      
+      brassChord.forEach(freq => {
+        const brass = ctx.createOscillator();
+        const brassGainNode = ctx.createGain();
+        const brassFilter = ctx.createBiquadFilter();
+        
+        brass.type = 'sawtooth';
+        brass.frequency.value = freq;
+        
+        brassFilter.type = 'bandpass';
+        brassFilter.frequency.value = 1400;
+        brassFilter.Q.value = 3;
+        
+        brassGainNode.gain.setValueAtTime(0, brassTime);
+        brassGainNode.gain.linearRampToValueAtTime(0.8, brassTime + 0.1);
+        brassGainNode.gain.linearRampToValueAtTime(0.6, brassTime + 1.5);
+        brassGainNode.gain.exponentialRampToValueAtTime(0.01, brassTime + 2);
+        
+        brass.connect(brassFilter);
+        brassFilter.connect(brassGainNode);
+        brassGainNode.connect(brassGain);
+        
+        brass.start(brassTime);
+        brass.stop(brassTime + 2);
+        this.modernCityNodes.push(brass, brassGainNode, brassFilter);
+      });
+    }
+    
+    this.modernCityNodes.push(brassGain);
+  }
+
+  private createCityEnergeticStrings(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const stringGain = ctx.createGain();
+    stringGain.gain.setValueAtTime(0.25, startTime);
+    stringGain.connect(masterGain);
+
+    // Fast string arpeggios for energy
+    const arpeggioPattern = [329.63, 392, 493.88, 659.25]; // E4-G4-B4-E5
+    const noteLength = 0.125; // Very fast eighth notes
+    
+    for (let i = 0; i < duration; i += noteLength) {
+      const noteIndex = Math.floor(i / noteLength) % arpeggioPattern.length;
+      const noteTime = startTime + i;
+      
+      const string = ctx.createOscillator();
+      const stringGainNode = ctx.createGain();
+      const stringFilter = ctx.createBiquadFilter();
+      
+      string.type = 'sawtooth';
+      string.frequency.value = arpeggioPattern[noteIndex];
+      
+      stringFilter.type = 'highpass';
+      stringFilter.frequency.value = 300;
+      stringFilter.Q.value = 1;
+      
+      stringGainNode.gain.setValueAtTime(0.4, noteTime);
+      stringGainNode.gain.exponentialRampToValueAtTime(0.01, noteTime + noteLength * 0.8);
+      
+      string.connect(stringFilter);
+      stringFilter.connect(stringGainNode);
+      stringGainNode.connect(stringGain);
+      
+      string.start(noteTime);
+      string.stop(noteTime + noteLength);
+      this.modernCityNodes.push(string, stringGainNode, stringFilter);
+    }
+    
+    this.modernCityNodes.push(stringGain);
+  }
+
+  public stopModernCityMusic() {
+    this.modernCityNodes.forEach(node => {
+      try {
+        if (node.stop) {
+          node.stop();
+        }
+      } catch (e) {
+        // Already stopped
+      }
+    });
+    this.modernCityNodes = [];
+    this.modernCityPlaying = false;
+  }
+
+  /**
+   * TRUE FF6 COMBAT MUSIC - Intense, looping Bach-fugue style melodic fragments
+   */
+  private ff6CombatNodes: AudioNode[] = [];
+  private ff6CombatPlaying = false;
+
+  public playFF6CombatMusic() {
+    if (this.isMuted || this.ff6CombatPlaying) return;
+    const ctx = this.ensureAudioContext();
+    if (!ctx) return;
+
+    try {
+      this.ff6CombatPlaying = true;
+      this.ff6CombatNodes = [];
+      const now = ctx.currentTime;
+      const loopDuration = 30; // 30 seconds per loop
+      
+      // Master gain with slow fade-in at 50% volume for quiet battle music
+      const masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(0, now);
+      masterGain.gain.linearRampToValueAtTime(0.15 * this.masterVolume, now + 3); // 3 second fade-in
+      masterGain.connect(ctx.destination);
+      this.ff6CombatNodes.push(masterGain);
+
+      // Create proper FF6 battle theme: bass, drums, and ambient wash
+      this.createFF6BattleBass(ctx, now, loopDuration, masterGain);
+      this.createFF6BattleDrums(ctx, now, loopDuration, masterGain);
+      this.createFF6AmbientWash(ctx, now, loopDuration, masterGain);
+      
+      // Schedule loop
+      setTimeout(() => {
+        if (this.ff6CombatPlaying) {
+          this.stopFF6CombatMusic();
+          this.playFF6CombatMusic();
+        }
+      }, loopDuration * 1000);
+      
+    } catch (error) {
+      console.error('Error playing FF6 combat music:', error);
+      this.ff6CombatPlaying = false;
+    }
+  }
+
+  // FF6 Battle Bass: Ostinato pattern following i-bVII-bVI-V-i progression
+  private createFF6BattleBass(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const bassGain = ctx.createGain();
+    bassGain.gain.setValueAtTime(0.5, startTime);
+    bassGain.connect(masterGain);
+
+    // FF6 Bass progression: Am-G-F-E-Am (i-bVII-bVI-V-i)
+    const bassChords = [
+      110,    // A2 (i)
+      98,     // G2 (bVII) 
+      87.31,  // F2 (bVI)
+      82.41,  // E2 (V)
+      110     // A2 (i)
+    ];
+    
+    const chordDuration = 6; // 6 seconds per chord in 30-second loop
+    const beatLength = 0.5;  // 120 BPM driving ostinato
+
+    for (let chordIndex = 0; chordIndex < bassChords.length; chordIndex++) {
+      const chordStartTime = chordIndex * chordDuration;
+      if (chordStartTime >= duration) break;
+      
+      const rootFreq = bassChords[chordIndex];
+      const actualChordDuration = Math.min(chordDuration, duration - chordStartTime);
+      
+      // Create driving ostinato pattern within each chord
+      for (let beat = 0; beat < actualChordDuration; beat += beatLength) {
+        const bass = ctx.createOscillator();
+        const noteGain = ctx.createGain();
+        const bassFilter = ctx.createBiquadFilter();
+        
+        bass.connect(bassFilter);
+        bassFilter.connect(noteGain);
+        noteGain.connect(bassGain);
+        
+        bass.type = 'sawtooth';
+        bass.frequency.value = rootFreq;
+        
+        bassFilter.type = 'lowpass';
+        bassFilter.frequency.value = 200;
+        bassFilter.Q.value = 3;
+        
+        const noteTime = startTime + chordStartTime + beat;
+        noteGain.gain.setValueAtTime(0.8, noteTime);
+        noteGain.gain.exponentialRampToValueAtTime(0.1, noteTime + beatLength * 0.8);
+        noteGain.gain.exponentialRampToValueAtTime(0.01, noteTime + beatLength);
+        
+        bass.start(noteTime);
+        bass.stop(noteTime + beatLength);
+        this.ff6CombatNodes.push(bass, noteGain, bassFilter);
+      }
+    }
+    
+    this.ff6CombatNodes.push(bassGain);
+  }
+
+  // FF6 Battle Drums: Complex driving rhythm with fills and variations
+  private createFF6BattleDrums(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const drumGain = ctx.createGain();
+    drumGain.gain.setValueAtTime(0.4, startTime); // Reduced from 0.7
+    drumGain.connect(masterGain);
+    
+    const sixteenthNote = 0.125; // 16th notes at 120 BPM
+    const beatInterval = 0.5; // Quarter notes
+    
+    for (let i = 0; i < duration; i += sixteenthNote) {
+      const sixteenthPosition = Math.floor(i / sixteenthNote) % 16; // 16 sixteenth notes per measure
+      const beat = Math.floor(sixteenthPosition / 4); // Which quarter note (0-3)
+      const subBeat = sixteenthPosition % 4; // Which sixteenth within the beat (0-3)
+      const measure = Math.floor(i / (beatInterval * 4));
+      const measureInLoop = measure % 8; // 8-measure pattern
+      
+      // KICK PATTERN - More complex with syncopation
+      if (sixteenthPosition === 0 || // Beat 1
+          sixteenthPosition === 6 || // Syncopated kick
+          sixteenthPosition === 8 || // Beat 3
+          (sixteenthPosition === 14 && measureInLoop % 2 === 1)) { // Occasional syncopation
+        this.createFF6Kick(ctx, startTime + i, drumGain);
+      }
+      
+      // SNARE PATTERN - Backbeat with ghost notes
+      if (sixteenthPosition === 4 || sixteenthPosition === 12) { // Beats 2 and 4 (main snare)
+        this.createFF6Snare(ctx, startTime + i, drumGain);
+      } else if (sixteenthPosition === 2 || sixteenthPosition === 10) { // Ghost notes
+        this.createFF6GhostSnare(ctx, startTime + i, drumGain);
+      }
+      
+      // HI-HAT PATTERN - Steady 8th notes with accents (very quiet)
+      if (subBeat === 0 || subBeat === 2) { // 8th note hi-hats
+        if (beat === 1 || beat === 3) { // Accent on backbeat
+          this.createFF6HiHat(ctx, startTime + i, drumGain, 0.06); // Further reduced
+        } else {
+          this.createFF6HiHat(ctx, startTime + i, drumGain, 0.03); // Very quiet
+        }
+      }
+      
+      // CRASH CYMBALS - Strategic placement
+      if (sixteenthPosition === 0 && measure % 8 === 0) {
+        this.createFF6Crash(ctx, startTime + i, drumGain);
+      }
+      
+      // DRUM FILLS - Every 4th measure
+      if (measureInLoop === 3 && sixteenthPosition >= 12) { // Last beat of 4th measure
+        this.createFF6TomFill(ctx, startTime + i, drumGain, sixteenthPosition - 12);
+      }
+    }
+    
+    this.ff6CombatNodes.push(drumGain);
+  }
+
+  private createFF6Kick(ctx: AudioContext, startTime: number, drumGain: GainNode) {
+    const kick = ctx.createOscillator();
+    const kickGain = ctx.createGain();
+    
+    kick.type = 'sine';
+    kick.frequency.setValueAtTime(60, startTime);
+    kick.frequency.exponentialRampToValueAtTime(25, startTime + 0.08);
+    
+    kickGain.gain.setValueAtTime(1.2, startTime);
+    kickGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.15);
+    
+    kick.connect(kickGain);
+    kickGain.connect(drumGain);
+    
+    kick.start(startTime);
+    kick.stop(startTime + 0.15);
+    this.ff6CombatNodes.push(kick, kickGain);
+  }
+
+  private createFF6Snare(ctx: AudioContext, startTime: number, drumGain: GainNode) {
+    const snare = ctx.createOscillator();
+    const snareGain = ctx.createGain();
+    const snareFilter = ctx.createBiquadFilter();
+    
+    snare.type = 'square';
+    snare.frequency.value = 200;
+    
+    snareFilter.type = 'bandpass';
+    snareFilter.frequency.value = 1200;
+    snareFilter.Q.value = 2;
+    
+    snareGain.gain.setValueAtTime(0.9, startTime);
+    snareGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.1);
+    
+    snare.connect(snareFilter);
+    snareFilter.connect(snareGain);
+    snareGain.connect(drumGain);
+    
+    snare.start(startTime);
+    snare.stop(startTime + 0.1);
+    this.ff6CombatNodes.push(snare, snareGain, snareFilter);
+  }
+  
+  private createFF6Crash(ctx: AudioContext, startTime: number, drumGain: GainNode) {
+    const crash = ctx.createOscillator();
+    const crashGain = ctx.createGain();
+    const crashFilter = ctx.createBiquadFilter();
+    
+    crash.type = 'square';
+    crash.frequency.value = 3000;
+    
+    crashFilter.type = 'highpass';
+    crashFilter.frequency.value = 2000;
+    crashFilter.Q.value = 0.5;
+    
+    crashGain.gain.setValueAtTime(0.15, startTime); // Much quieter crash
+    crashGain.gain.exponentialRampToValueAtTime(0.01, startTime + 1.5);
+    
+    crash.connect(crashFilter);
+    crashFilter.connect(crashGain);
+    crashGain.connect(drumGain);
+    
+    crash.start(startTime);
+    crash.stop(startTime + 1.5);
+    this.ff6CombatNodes.push(crash, crashGain, crashFilter);
+  }
+  
+  private createFF6Ride(ctx: AudioContext, startTime: number, drumGain: GainNode) {
+    const ride = ctx.createOscillator();
+    const rideGain = ctx.createGain();
+    const rideFilter = ctx.createBiquadFilter();
+    
+    ride.type = 'triangle';
+    ride.frequency.value = 2400;
+    
+    rideFilter.type = 'bandpass';
+    rideFilter.frequency.value = 2000;
+    rideFilter.Q.value = 1;
+    
+    rideGain.gain.setValueAtTime(0.15, startTime);
+    rideGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
+    
+    ride.connect(rideFilter);
+    rideFilter.connect(rideGain);
+    rideGain.connect(drumGain);
+    
+    ride.start(startTime);
+    ride.stop(startTime + 0.3);
+    this.ff6CombatNodes.push(ride, rideGain, rideFilter);
+  }
+  
+  private createFF6GhostSnare(ctx: AudioContext, startTime: number, drumGain: GainNode) {
+    const snare = ctx.createOscillator();
+    const snareGain = ctx.createGain();
+    const snareFilter = ctx.createBiquadFilter();
+    
+    snare.type = 'square';
+    snare.frequency.value = 200;
+    
+    snareFilter.type = 'bandpass';
+    snareFilter.frequency.value = 1200;
+    snareFilter.Q.value = 2;
+    
+    snareGain.gain.setValueAtTime(0.2, startTime); // Much quieter than main snare
+    snareGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.05);
+    
+    snare.connect(snareFilter);
+    snareFilter.connect(snareGain);
+    snareGain.connect(drumGain);
+    
+    snare.start(startTime);
+    snare.stop(startTime + 0.05);
+    this.ff6CombatNodes.push(snare, snareGain, snareFilter);
+  }
+  
+  private createFF6HiHat(ctx: AudioContext, startTime: number, drumGain: GainNode, volume: number = 0.25) {
+    const hihat = ctx.createOscillator();
+    const hihatGain = ctx.createGain();
+    const hihatFilter = ctx.createBiquadFilter();
+    
+    hihat.type = 'square';
+    hihat.frequency.value = 4000;
+    
+    hihatFilter.type = 'highpass';
+    hihatFilter.frequency.value = 3000;
+    hihatFilter.Q.value = 1;
+    
+    hihatGain.gain.setValueAtTime(volume, startTime);
+    hihatGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.1);
+    
+    hihat.connect(hihatFilter);
+    hihatFilter.connect(hihatGain);
+    hihatGain.connect(drumGain);
+    
+    hihat.start(startTime);
+    hihat.stop(startTime + 0.1);
+    this.ff6CombatNodes.push(hihat, hihatGain, hihatFilter);
+  }
+  
+  private createFF6TomFill(ctx: AudioContext, startTime: number, drumGain: GainNode, fillPosition: number) {
+    const tomFreqs = [120, 100, 80, 60]; // High, mid, low, floor tom
+    const tomFreq = tomFreqs[fillPosition] || 100;
+    
+    const tom = ctx.createOscillator();
+    const tomGain = ctx.createGain();
+    const tomFilter = ctx.createBiquadFilter();
+    
+    tom.type = 'sine';
+    tom.frequency.setValueAtTime(tomFreq, startTime);
+    tom.frequency.exponentialRampToValueAtTime(tomFreq * 0.5, startTime + 0.1);
+    
+    tomFilter.type = 'bandpass';
+    tomFilter.frequency.value = tomFreq * 3;
+    tomFilter.Q.value = 2;
+    
+    tomGain.gain.setValueAtTime(0.6, startTime);
+    tomGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.2);
+    
+    tom.connect(tomFilter);
+    tomFilter.connect(tomGain);
+    tomGain.connect(drumGain);
+    
+    tom.start(startTime);
+    tom.stop(startTime + 0.2);
+    this.ff6CombatNodes.push(tom, tomGain, tomFilter);
+  }
+
+  // FF6 Ambient Wash: Harmonic pad that follows and accents the bass progression
+  private createFF6AmbientWash(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const washGain = ctx.createGain();
+    washGain.gain.setValueAtTime(0.3, startTime); // Increased volume
+    washGain.connect(masterGain);
+
+    // Ambient wash following the bass progression: Am-G-F-E-Am
+    const washChords = [
+      [220, 262, 330],    // Am chord (A3-C4-E4)
+      [196, 247, 294],    // G chord (G3-B3-D4) 
+      [175, 220, 262],    // F chord (F3-A3-C4)
+      [165, 208, 247],    // E chord (E3-G#3-B3)
+      [220, 262, 330]     // Am chord (A3-C4-E4)
+    ];
+    
+    const chordDuration = 6; // 6 seconds per chord, matching bass
+    
+    washChords.forEach((chord, chordIndex) => {
+      const chordStartTime = chordIndex * chordDuration;
+      if (chordStartTime >= duration) return;
+      
+      const actualDuration = Math.min(chordDuration, duration - chordStartTime);
+      
+      chord.forEach(freq => {
+        const wash = ctx.createOscillator();
+        const noteGain = ctx.createGain();
+        const washFilter = ctx.createBiquadFilter();
+        
+        wash.connect(washFilter);
+        washFilter.connect(noteGain);
+        noteGain.connect(washGain);
+        
+        wash.type = 'triangle'; // Smooth, warm tone
+        wash.frequency.value = freq;
+        
+        // Low-pass filter for ambient smoothness
+        washFilter.type = 'lowpass';
+        washFilter.frequency.value = 800;
+        washFilter.Q.value = 0.5;
+        
+        const noteTime = startTime + chordStartTime;
+        noteGain.gain.setValueAtTime(0, noteTime);
+        noteGain.gain.linearRampToValueAtTime(0.3, noteTime + 1); // Slow fade in
+        noteGain.gain.setValueAtTime(0.3, noteTime + actualDuration - 1);
+        noteGain.gain.linearRampToValueAtTime(0.01, noteTime + actualDuration); // Slow fade out
+        
+        wash.start(noteTime);
+        wash.stop(noteTime + actualDuration);
+        this.ff6CombatNodes.push(wash, noteGain, washFilter);
+      });
+    });
+    
+    this.ff6CombatNodes.push(washGain);
+  }
+
+  // FF6 Power Chords: i-bVII-bVI-V-i progression (Am-G-F-E-Am)
+  private createFF6BattlePowerChords(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const chordGain = ctx.createGain();
+    chordGain.gain.setValueAtTime(0.4, startTime);
+    chordGain.connect(masterGain);
+
+    // FF6 power chord progression in A minor
+    const powerChords = [
+      [220, 330],     // Am power chord (A3-E4)
+      [196, 293.66],  // G power chord (G3-D4) 
+      [174.61, 261.63], // F power chord (F3-C4)
+      [164.81, 246.94], // E power chord (E3-B3)
+      [220, 330]      // Am power chord (A3-E4)
+    ];
+    
+    const chordDuration = 6; // 6 seconds per chord
+    const attackLength = 0.25; // Sharp attack
+
+    powerChords.forEach((chord, chordIndex) => {
+      const chordTime = startTime + chordIndex * chordDuration;
+      if (chordTime >= duration) return;
+      
+      // Create multiple attacks per chord for driving feel
+      for (let attack = 0; attack < 12; attack++) { // 12 attacks per 6-second chord
+        const attackTime = chordTime + attack * 0.5;
+        if (attackTime >= startTime + duration) break;
+        
+        chord.forEach(freq => {
+          const osc = ctx.createOscillator();
+          const oscGain = ctx.createGain();
+          const filter = ctx.createBiquadFilter();
+          
+          osc.connect(filter);
+          filter.connect(oscGain);
+          oscGain.connect(chordGain);
+          
+          osc.type = 'sawtooth';
+          osc.frequency.value = freq;
+          
+          filter.type = 'bandpass';
+          filter.frequency.value = 800;
+          filter.Q.value = 2;
+          
+          oscGain.gain.setValueAtTime(0.6, attackTime);
+          oscGain.gain.exponentialRampToValueAtTime(0.2, attackTime + attackLength * 0.7);
+          oscGain.gain.exponentialRampToValueAtTime(0.01, attackTime + attackLength);
+          
+          osc.start(attackTime);
+          osc.stop(attackTime + attackLength);
+          this.ff6CombatNodes.push(osc, oscGain, filter);
+        });
+      }
+    });
+    
+    this.ff6CombatNodes.push(chordGain);
+  }
+
+  // FF6 Battle Riff: Muscular riff-based writing around 1-♭7-♭6-5 (A-G-F-E)
+  private createFF6BattleRiff(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const riffGain = ctx.createGain();
+    riffGain.gain.setValueAtTime(0.45, startTime);
+    riffGain.connect(masterGain);
+
+    // Muscular riff motifs around A-G-F-E (scale degrees 1-♭7-♭6-5)
+    const riffPattern = [
+      // Main motif: descending Aeolian cell (A-G-F-E)
+      { freq: 440, time: 0, length: 0.25 },      // A4
+      { freq: 392, time: 0.25, length: 0.25 },   // G4
+      { freq: 349.23, time: 0.5, length: 0.25 }, // F4
+      { freq: 329.63, time: 0.75, length: 0.25 }, // E4
+      
+      // Sequence up by step (B-A-G-F#)
+      { freq: 493.88, time: 1, length: 0.25 },   // B4
+      { freq: 440, time: 1.25, length: 0.25 },   // A4
+      { freq: 392, time: 1.5, length: 0.25 },    // G4
+      { freq: 369.99, time: 1.75, length: 0.25 }, // F#4
+      
+      // Octave doubling (A5-G5-F5-E5)
+      { freq: 880, time: 2, length: 0.25 },      // A5
+      { freq: 783.99, time: 2.25, length: 0.25 }, // G5
+      { freq: 698.46, time: 2.5, length: 0.25 },  // F5
+      { freq: 659.25, time: 2.75, length: 0.25 }, // E5
+      
+      // Resolution back to tonic
+      { freq: 440, time: 3, length: 0.5 }        // A4 (sustained)
+    ];
+    
+    const motifDuration = 3.5; // 3.5 seconds per motif
+    const motifsPerLoop = Math.floor(duration / motifDuration);
+    
+    for (let motifIndex = 0; motifIndex < motifsPerLoop; motifIndex++) {
+      const motifStartTime = motifIndex * motifDuration;
+      
+      riffPattern.forEach(note => {
+        const noteTime = startTime + motifStartTime + note.time;
+        if (noteTime >= startTime + duration) return;
+        
+        const osc = ctx.createOscillator();
+        const noteGain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+        
+        osc.connect(filter);
+        filter.connect(noteGain);
+        noteGain.connect(riffGain);
+        
+        osc.type = 'square';
+        osc.frequency.value = note.freq;
+        
+        filter.type = 'bandpass';
+        filter.frequency.value = 1200;
+        filter.Q.value = 1.5;
+        
+        noteGain.gain.setValueAtTime(0, noteTime);
+        noteGain.gain.linearRampToValueAtTime(0.8, noteTime + 0.01);
+        noteGain.gain.linearRampToValueAtTime(0.6, noteTime + note.length * 0.8);
+        noteGain.gain.exponentialRampToValueAtTime(0.01, noteTime + note.length);
+        
+        osc.start(noteTime);
+        osc.stop(noteTime + note.length);
+        this.ff6CombatNodes.push(osc, noteGain, filter);
+      });
+    }
+    
+    this.ff6CombatNodes.push(riffGain);
+  }
+
+  // FF6 Harmonic Support: Melody doubles in thirds/sixths
+  private createFF6BattleHarmony(ctx: AudioContext, startTime: number, duration: number, masterGain: GainNode) {
+    const harmonyGain = ctx.createGain();
+    harmonyGain.gain.setValueAtTime(0.25, startTime);
+    harmonyGain.connect(masterGain);
+
+    // Harmony lines doubling the riff in thirds and sixths
+    const harmonyPattern = [
+      // Thirds above main riff (A-G-F-E becomes C-B-A-G)
+      { freq: 523.25, time: 0, length: 0.25 },   // C5 (third above A)
+      { freq: 493.88, time: 0.25, length: 0.25 }, // B4 (third above G)
+      { freq: 440, time: 0.5, length: 0.25 },    // A4 (third above F)
+      { freq: 392, time: 0.75, length: 0.25 },   // G4 (third above E)
+      
+      // Sixths above (A-G-F-E becomes F-E-D-C)
+      { freq: 698.46, time: 1, length: 0.25 },   // F5 (sixth above A)
+      { freq: 659.25, time: 1.25, length: 0.25 }, // E5 (sixth above G) 
+      { freq: 587.33, time: 1.5, length: 0.25 },  // D5 (sixth above F)
+      { freq: 523.25, time: 1.75, length: 0.25 }, // C5 (sixth above E)
+      
+      // Higher octave doubling
+      { freq: 1046.5, time: 2, length: 0.25 },   // C6
+      { freq: 987.77, time: 2.25, length: 0.25 }, // B5
+      { freq: 880, time: 2.5, length: 0.25 },    // A5
+      { freq: 783.99, time: 2.75, length: 0.25 }, // G5
+      
+      // Resolution harmony
+      { freq: 523.25, time: 3, length: 0.5 }     // C5 (sustained)
+    ];
+    
+    const motifDuration = 3.5;
+    const motifsPerLoop = Math.floor(duration / motifDuration);
+    
+    for (let motifIndex = 0; motifIndex < motifsPerLoop; motifIndex++) {
+      const motifStartTime = motifIndex * motifDuration;
+      
+      harmonyPattern.forEach(note => {
+        const noteTime = startTime + motifStartTime + note.time;
+        if (noteTime >= startTime + duration) return;
+        
+        const osc = ctx.createOscillator();
+        const noteGain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+        
+        osc.connect(filter);
+        filter.connect(noteGain);
+        noteGain.connect(harmonyGain);
+        
+        osc.type = 'triangle';
+        osc.frequency.value = note.freq;
+        
+        filter.type = 'lowpass';
+        filter.frequency.value = 2000;
+        filter.Q.value = 1;
+        
+        noteGain.gain.setValueAtTime(0, noteTime);
+        noteGain.gain.linearRampToValueAtTime(0.4, noteTime + 0.02);
+        noteGain.gain.linearRampToValueAtTime(0.3, noteTime + note.length * 0.8);
+        noteGain.gain.exponentialRampToValueAtTime(0.01, noteTime + note.length);
+        
+        osc.start(noteTime);
+        osc.stop(noteTime + note.length);
+        this.ff6CombatNodes.push(osc, noteGain, filter);
+      });
+    }
+    
+    this.ff6CombatNodes.push(harmonyGain);
+  }
+
+  public stopFF6CombatMusic() {
+    this.ff6CombatNodes.forEach(node => {
+      try {
+        if (node.stop) {
+          node.stop();
+        }
+      } catch (e) {
+        // Already stopped
+      }
+    });
+    this.ff6CombatNodes = [];
+    this.ff6CombatPlaying = false;
+  }
+
+  /**
+   * TEMPLE/SACRED MUSIC - Reverent, mystical, ethereal
+   */
+  private templeNodes: AudioNode[] = [];
+  private templePlaying = false;
+
+  public playTempleMusic() {
+    if (this.isMuted || this.templePlaying) return;
+    const ctx = this.ensureAudioContext();
+    if (!ctx) return;
+
+    try {
+      this.templePlaying = true;
+      this.templeNodes = [];
+      const now = ctx.currentTime;
+      const loopDuration = 45; // 45 seconds per loop
+      
+      // Master gain - soft for reverence
+      const masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(0.08 * this.masterVolume, now);
+      masterGain.connect(ctx.destination);
+      this.templeNodes.push(masterGain);
+
+      // 1. Deep drone (continuous om-like sound)
+      const createDrone = () => {
+        const droneGain = ctx.createGain();
+        droneGain.gain.value = 0.3;
+        droneGain.connect(masterGain);
+        
+        // Multiple oscillators for rich drone
+        [55, 82.5, 110, 165].forEach(freq => { // A1, E2, A2, E3
+          const drone = ctx.createOscillator();
+          const droneGain2 = ctx.createGain();
+          const droneFilter = ctx.createBiquadFilter();
+          
+          drone.type = 'sine';
+          drone.frequency.value = freq;
+          
+          droneFilter.type = 'lowpass';
+          droneFilter.frequency.value = 200;
+          droneFilter.Q.value = 5;
+          
+          droneGain2.gain.setValueAtTime(0, now);
+          droneGain2.gain.linearRampToValueAtTime(0.1, now + 3);
+          droneGain2.gain.setValueAtTime(0.1, now + loopDuration - 3);
+          droneGain2.gain.linearRampToValueAtTime(0, now + loopDuration);
+          
+          drone.connect(droneFilter);
+          droneFilter.connect(droneGain2);
+          droneGain2.connect(droneGain);
+          
+          drone.start(now);
+          drone.stop(now + loopDuration);
+          this.templeNodes.push(drone);
+        });
+      };
+      
+      // 2. Tibetan bowl strikes
+      const createBowls = () => {
+        const bowlGain = ctx.createGain();
+        bowlGain.gain.value = 0.25;
+        bowlGain.connect(masterGain);
+        
+        // Bowl strikes at sacred intervals
+        const strikeTimes = [0, 9, 18, 27, 36];
+        
+        strikeTimes.forEach(strikeTime => {
+          const strike = now + strikeTime;
+          
+          // Multiple harmonics for bowl sound
+          [220, 440, 660, 880, 1320].forEach((freq, index) => {
+            const bowl = ctx.createOscillator();
+            const bowlGain2 = ctx.createGain();
+            const bowlFilter = ctx.createBiquadFilter();
+            
+            bowl.type = 'sine';
+            bowl.frequency.value = freq;
+            
+            bowlFilter.type = 'bandpass';
+            bowlFilter.frequency.value = freq;
+            bowlFilter.Q.value = 50;
+            
+            // Longer decay for higher harmonics
+            const decay = 5 + index * 2;
+            bowlGain2.gain.setValueAtTime(0.2 / (index + 1), strike);
+            bowlGain2.gain.exponentialRampToValueAtTime(0.001, strike + decay);
+            
+            bowl.connect(bowlFilter);
+            bowlFilter.connect(bowlGain2);
+            bowlGain2.connect(bowlGain);
+            
+            bowl.start(strike);
+            bowl.stop(strike + decay);
+            this.templeNodes.push(bowl);
+          });
+        });
+      };
+      
+      // 3. Gregorian chant-like voices
+      const createChant = () => {
+        const chantGain = ctx.createGain();
+        chantGain.gain.value = 0.15;
+        chantGain.connect(masterGain);
+        
+        // Simple pentatonic phrases
+        const phrases = [
+          [220, 247, 294, 330, 294, 247, 220], // A3 B3 D4 E4 D4 B3 A3
+          [294, 330, 392, 440, 392, 330, 294], // D4 E4 G4 A4 G4 E4 D4
+        ];
+        
+        phrases.forEach((phrase, phraseIndex) => {
+          const phraseStart = now + phraseIndex * 20;
+          
+          phrase.forEach((note, noteIndex) => {
+            const noteTime = phraseStart + noteIndex * 2;
+            
+            // Multiple oscillators for voice-like timbre
+            ['sine', 'triangle'].forEach(waveform => {
+              const voice = ctx.createOscillator();
+              const voiceGain = ctx.createGain();
+              const voiceFilter = ctx.createBiquadFilter();
+              
+              voice.type = waveform as OscillatorType;
+              voice.frequency.value = note;
+              
+              voiceFilter.type = 'lowpass';
+              voiceFilter.frequency.value = 800;
+              voiceFilter.Q.value = 2;
+              
+              const gainValue = waveform === 'sine' ? 0.1 : 0.05;
+              voiceGain.gain.setValueAtTime(0, noteTime);
+              voiceGain.gain.linearRampToValueAtTime(gainValue, noteTime + 0.3);
+              voiceGain.gain.setValueAtTime(gainValue, noteTime + 1.5);
+              voiceGain.gain.linearRampToValueAtTime(0, noteTime + 2);
+              
+              voice.connect(voiceFilter);
+              voiceFilter.connect(voiceGain);
+              voiceGain.connect(chantGain);
+              
+              voice.start(noteTime);
+              voice.stop(noteTime + 2);
+              this.templeNodes.push(voice);
+            });
+          });
+        });
+      };
+      
+      // 4. Wind chimes (occasional)
+      const createWindChimes = () => {
+        const chimeGain = ctx.createGain();
+        chimeGain.gain.value = 0.06;
+        chimeGain.connect(masterGain);
+        
+        // Random gentle chimes
+        for (let i = 0; i < 20; i++) {
+          const chimeTime = now + Math.random() * loopDuration;
+          
+          // Pentatonic scale for harmonious chimes
+          const pentatonic = [523, 587, 659, 784, 880, 1047]; // C5 D5 E5 G5 A5 C6
+          
+          for (let j = 0; j < 3; j++) {
+            const chime = ctx.createOscillator();
+            const chimeGain2 = ctx.createGain();
+            const chimeFilter = ctx.createBiquadFilter();
+            
+            chime.type = 'sine';
+            chime.frequency.value = pentatonic[Math.floor(Math.random() * pentatonic.length)];
+            
+            chimeFilter.type = 'highpass';
+            chimeFilter.frequency.value = 500;
+            chimeFilter.Q.value = 1;
+            
+            chimeGain2.gain.setValueAtTime(0.04, chimeTime + j * 0.1);
+            chimeGain2.gain.exponentialRampToValueAtTime(0.001, chimeTime + j * 0.1 + 2);
+            
+            chime.connect(chimeFilter);
+            chimeFilter.connect(chimeGain2);
+            chimeGain2.connect(chimeGain);
+            
+            chime.start(chimeTime + j * 0.1);
+            chime.stop(chimeTime + j * 0.1 + 2);
+            this.templeNodes.push(chime);
+          }
+        }
+      };
+      
+      // Create all layers
+      createDrone();
+      createBowls();
+      createChant();
+      createWindChimes();
+      
+      // Schedule loop
+      setTimeout(() => {
+        if (this.templePlaying) {
+          this.stopTempleMusic();
+          this.playTempleMusic();
+        }
+      }, loopDuration * 1000);
+      
+    } catch (error) {
+      console.error('Error playing temple music:', error);
+      this.templePlaying = false;
+    }
+  }
+
+  public stopTempleMusic() {
+    this.templeNodes.forEach(node => {
+      try {
+        if (node.stop) {
+          node.stop();
+        }
+      } catch (e) {
+        // Already stopped
+      }
+    });
+    this.templeNodes = [];
+    this.templePlaying = false;
   }
 
   /**
@@ -6582,7 +8852,7 @@ class GameSoundsService {
       // Create master gain for the entire composition with fade-in
       const masterGain = ctx.createGain();
       masterGain.gain.setValueAtTime(0, now);
-      masterGain.gain.linearRampToValueAtTime(0.15 * this.masterVolume, now + 2); // 2 second fade-in
+      masterGain.gain.linearRampToValueAtTime(0.15 * this.masterVolume, now + 5); // 5 second fade-in
       masterGain.connect(ctx.destination);
       this.genericMusicNodes.push(masterGain);
 

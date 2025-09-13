@@ -16,6 +16,7 @@ import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { SeedManager } from '../services/seedService';
 import { npcPersistenceService } from '../services/npcPersistenceService';
+import gameSoundsService from '../services/gameSoundsService';
 
 /**
  * Convert MapArchetype enum to a readable area name for display
@@ -906,6 +907,26 @@ export const useMapState = (props: useMapStateProps) => {
         setSpecialMapInteractionZones(specialMapData.interactionZones || []);
         setSpecialMapExitZones(specialMapData.exitZones || []);
         
+        // Play appropriate music based on special map archetype
+        const archetype = specialMapData.specialArchetype;
+        console.log('[enterSpecialMap] Playing music for archetype:', archetype);
+        
+        // Stop any existing music first
+        gameSoundsService.stopAllMusic();
+        
+        // Play music based on archetype with 5-second fade-ins
+        if (archetype === 'ESTATES' || archetype === 'PALACE_COMPLEX') {
+            gameSoundsService.playEstatesMusic();
+        } else if (archetype === 'GOVERNMENT_FORUM' || archetype === 'GOVERNMENT' || 
+                   archetype === 'TRIBAL_COUNCIL' || archetype === 'COURT_CHAMBER' || 
+                   archetype === 'TOWN_HALL' || archetype === 'ASSEMBLY_HALL' || 
+                   archetype === 'ADMINISTRATIVE_COMPLEX') {
+            gameSoundsService.playGovernmentMusic();
+        } else if (archetype === 'RESTAURANT_INN') {
+            gameSoundsService.playGenericMusic();
+        }
+        // Other archetypes will have no background music
+        
         // Set NPCs from special map data
         setAnimals([]); // Clear animals for now
         setNpcs(specialMapData.npcs || []); // Use NPCs from special map
@@ -980,6 +1001,10 @@ export const useMapState = (props: useMapStateProps) => {
         setSpecialMapInteractionZones([]);
         setSpecialMapExitZones([]);
         setSpecialMapReturnData(null);
+        
+        // Stop special map music when exiting
+        console.log('[exitSpecialMap] Stopping special map music');
+        gameSoundsService.stopAllMusic();
     }, [specialMapReturnData, mapDataCache, setPlayerState, onRegenerateMapWithCurrentSettings]);
 
     const onStartNewWorldAtLocation = useCallback((targetZone: string, targetMapArea: string, characterSpec?: any, overrideYear?: number) => {

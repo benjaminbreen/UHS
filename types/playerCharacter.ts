@@ -144,4 +144,8 @@ export interface PlayerCharacter {
     // Abilities and Skills
     abilities?: CharacterAbilities;
     medicalSkills?: MedicalSkills;
+
+    // Physical Feat System - Elevated States
+    elevatedState?: 'in_tree' | 'on_roof' | 'on_wall';
+    elevationDescription?: string;
 }

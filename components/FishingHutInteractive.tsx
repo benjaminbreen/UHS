@@ -34,6 +34,7 @@ function getCreatureType(speciesName: string): string {
   if (name.includes('octopus')) return 'octopus';
   if (name.includes('squid')) return 'squid';
   if (name.includes('urchin')) return 'sea_urchin';
+  if (name.includes('star')) return 'sea_star';
   if (name.includes('crab')) return 'crab';
   if (name.includes('lobster')) return 'lobster';
   if (name.includes('ray') || name.includes('skate')) return 'ray';
@@ -96,22 +97,45 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number>();
   const lastTimeRef = useRef<number>(0);
-  const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
-  
-  // Responsive dimensions that fill viewport
+  const [dimensions, setDimensions] = useState({ width: 800, height: 600 }); // Default dimensions
+
+  // Responsive dimensions that fill container
   const GAME_WIDTH = dimensions.width;
   const GAME_HEIGHT = dimensions.height;
-  const GROUND_Y = Math.round(GAME_HEIGHT * 0.20); // Higher water level for more underwater space
+  const GROUND_Y = Math.round(GAME_HEIGHT * 0.22); // Higher water level for more underwater space
   const WATER_Y = GROUND_Y + 5;
-  const MAX_DEPTH = GAME_HEIGHT - WATER_Y - 10;
+  const OCEAN_FLOOR_HEIGHT = 20; // Increased height of ocean floor layer for better visibility
+  const MAX_DEPTH = GAME_HEIGHT - WATER_Y - OCEAN_FLOOR_HEIGHT - 5; // Stop 5px above ocean floor
   
-  // Handle window resize
+  // Handle container resize
   useEffect(() => {
-    const handleResize = () => {
-      setDimensions({ width: window.innerWidth, height: window.innerHeight });
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setDimensions({ width: rect.width, height: rect.height });
+      }
     };
+
+    // Initial dimensions
+    updateDimensions();
+
+    // Update on resize
+    const handleResize = () => updateDimensions();
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+
+    // Use ResizeObserver if available for more accurate container resizing
+    let resizeObserver: ResizeObserver | null = null;
+    if (containerRef.current && typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(updateDimensions);
+      resizeObserver.observe(containerRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+    };
   }, []);
   
   // Game state
@@ -561,20 +585,68 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
     //   availableFishNames: availableFish.map(f => f.name)
     // });
     
-    if (currentFish.length === 0) {
+    if (currentFish.length < 8) { // Maintain minimum fish population
       // console.log('🚀 FORCE SPAWNING FISH - no current fish detected');
       
       // Use the actual available fish species - they should always be provided
       // console.log('🐠 Using fish variety:', availableFish.map(f => f.name));
       const fishSpecies = availableFish;
       
-      // Spawn 8-12 fish at various depths
-      const fishCount = 10;
+      // Spawn fish to reach target population
+      const targetFishCount = 4;
+      const fishCount = targetFishCount - currentFish.length;
       // console.log(`🐟 Spawning ${fishCount} fish using species:`, fishSpecies.map(f => f.name));
       
+      // Add sea urchins and sea stars on the ocean floor
+      if (!isFreshwater && Math.random() < 0.4) {
+        // Sea urchins
+        const urchinCount = 1 + Math.floor(Math.random() * 2);
+        for (let u = 0; u < urchinCount; u++) {
+          const seaUrchin: GameFish = {
+            id: `sea_urchin_${u}_${Date.now()}`,
+            species: { name: 'Purple Sea Urchin', rarity: 'common' as const, size: { min: 2, max: 4 }, value: 25 },
+            x: 100 + Math.random() * (GAME_WIDTH - 200),
+            y: GAME_HEIGHT - OCEAN_FLOOR_HEIGHT - 5 - Math.random() * 5, // On ocean floor
+            vx: 0, // Sea urchins don't move
+            vy: 0,
+            size: 3 + Math.random() * 2,
+            weight: 2 + Math.random() * 2,
+            direction: 'right',
+            interested: false,
+            hooked: false,
+            escaping: false,
+            stamina: 100,
+            distanceToHook: 1000
+          };
+          fishingGameState.registerFish(seaUrchin);
+        }
+
+        // Sea stars
+        const starCount = 1 + Math.floor(Math.random() * 2);
+        for (let s = 0; s < starCount; s++) {
+          const seaStar: GameFish = {
+            id: `sea_star_${s}_${Date.now()}`,
+            species: { name: 'Orange Sea Star', rarity: 'uncommon' as const, size: { min: 3, max: 6 }, value: 35 },
+            x: 150 + Math.random() * (GAME_WIDTH - 300),
+            y: GAME_HEIGHT - OCEAN_FLOOR_HEIGHT - 3 - Math.random() * 5, // On ocean floor
+            vx: 0, // Sea stars don't move
+            vy: 0,
+            size: 4 + Math.random() * 3,
+            weight: 3 + Math.random() * 3,
+            direction: 'right',
+            interested: false,
+            hooked: false,
+            escaping: false,
+            stamina: 100,
+            distanceToHook: 1000
+          };
+          fishingGameState.registerFish(seaStar);
+        }
+      }
+
       for (let i = 0; i < fishCount; i++) {
         // Mix cycling through species with some randomization for more variety
-        const speciesIndex = Math.random() < 0.7 ? 
+        const speciesIndex = Math.random() < 0.7 ?
           i % fishSpecies.length : // Cycle through species 70% of the time
           Math.floor(Math.random() * fishSpecies.length); // Random species 30% of the time
         const species = fishSpecies[speciesIndex];
@@ -616,7 +688,7 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
       gameFish.forEach(fish => {
         // Initialize velocity if not set
         if (fish.vx === undefined) {
-          const speed = 0.4 + Math.random() * 0.4;
+          const speed = 0.8 + Math.random() * 0.4;
           fish.vx = Math.random() > 0.5 ? speed : -speed;
         }
         
@@ -1125,32 +1197,53 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
           </pattern>
         </defs>
         
-        {/* Main water body with climate-aware gradient */}
-        <rect x={0} y={WATER_Y} width={GAME_WIDTH} height={GAME_HEIGHT - WATER_Y} fill="url(#waterDepth)" />
-        
-        {/* Mid-depth murkiness layer */}
-        <rect
-          x={0}
-          y={WATER_Y + 100}
-          width={GAME_WIDTH}
-          height={150}
-          fill={isFreshwater ? '#4A5D4A' : '#2A3D5A'}
-          opacity="0.3"
-          pointerEvents="none"
-        />
-        
-        {/* Deep water distortion layer */}
-        <g opacity="0.5">
+        {/* Single smooth water - no bands */}
+        <rect x={0} y={WATER_Y} width={GAME_WIDTH} height={GAME_HEIGHT - WATER_Y} fill="url(#oceanDepth)" />
+
+        {/* Ocean floor - sandy bottom with texture */}
+        <g>
+          {/* Main ocean floor */}
           <rect
             x={0}
-            y={WATER_Y + 250}
+            y={GAME_HEIGHT - OCEAN_FLOOR_HEIGHT}
             width={GAME_WIDTH}
-            height={200}
-            fill={isFreshwater ? '#3A4D3A' : '#1A2D4A'}
-            opacity="0.4"
+            height={OCEAN_FLOOR_HEIGHT}
+            fill={isFreshwater ? "#4A3D2A" : "#3D342A"}
           />
+          {/* Sandy texture overlay */}
+          <rect
+            x={0}
+            y={GAME_HEIGHT - OCEAN_FLOOR_HEIGHT}
+            width={GAME_WIDTH}
+            height={OCEAN_FLOOR_HEIGHT}
+            fill={isFreshwater ? "#5C4E3C" : "#4A3F33"}
+            opacity={0.6}
+          />
+          {/* Some rocks and pebbles on the ocean floor */}
+          {Array.from({ length: 8 }, (_, i) => (
+            <ellipse
+              key={`rock_${i}`}
+              cx={100 + i * (GAME_WIDTH / 8) + Math.sin(i * 2) * 30}
+              cy={GAME_HEIGHT - OCEAN_FLOOR_HEIGHT + 5 + Math.cos(i * 3) * 5}
+              rx={15 + Math.sin(i * 4) * 8}
+              ry={8 + Math.cos(i * 2) * 3}
+              fill="#2C2520"
+              opacity={0.7}
+            />
+          ))}
+          {/* Small pebbles */}
+          {Array.from({ length: 15 }, (_, i) => (
+            <circle
+              key={`pebble_${i}`}
+              cx={50 + i * (GAME_WIDTH / 15) + Math.sin(i * 5) * 20}
+              cy={GAME_HEIGHT - OCEAN_FLOOR_HEIGHT + 15 + Math.cos(i * 7) * 8}
+              r={2 + Math.sin(i * 3) * 1.5}
+              fill="#3A312A"
+              opacity={0.5}
+            />
+          ))}
         </g>
-        
+
         {/* Enhanced ripples when line is cast - more beautiful */}
         {lineState.cast && (
           <g>
@@ -1208,24 +1301,7 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
           );
         })}
         
-        {/* Main depth fog overlay */}
-        <rect 
-          x={0} 
-          y={WATER_Y} 
-          width={GAME_WIDTH} 
-          height={GAME_HEIGHT - WATER_Y}
-          fill="url(#depthFog)"
-          pointerEvents="none"
-        />
-        
-        {/* Murky depth overlay with noise pattern */}
-        <rect 
-          x={0} 
-          y={WATER_Y + (GAME_HEIGHT - WATER_Y) * 0.4} 
-          width={GAME_WIDTH} 
-          height={(GAME_HEIGHT - WATER_Y) * 0.6} 
-          fill="url(#underwaterNoise)" 
-        />
+        {/* Clean ocean - no fog or noise overlays */}
         
         {/* Enhanced water surface effects */}
         <g opacity={0.7}>
@@ -1337,15 +1413,8 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
           })}
         </g>
         
-        {/* Water plants and lily pads for decoration */}
+        {/* Clean water surface - no lily pads */}
         <g opacity={0.5}>
-          {/* Lily pads on surface */}
-          <ellipse cx={GAME_WIDTH * 0.12} cy={WATER_Y + 15} rx={32} ry={18} fill="#2d5016" opacity={0.6} />
-          <ellipse cx={GAME_WIDTH * 0.12 + 3} cy={WATER_Y + 13} rx={25} ry={14} fill="#3a6318" opacity={0.7} />
-          <circle cx={GAME_WIDTH * 0.12 + 8} cy={WATER_Y + 12} r={2} fill="#ffeb3b" opacity={0.4} />
-          
-          <ellipse cx={GAME_WIDTH * 0.78} cy={WATER_Y + 25} rx={28} ry={16} fill="#2d5016" opacity={0.6} />
-          <ellipse cx={GAME_WIDTH * 0.78 - 2} cy={WATER_Y + 23} rx={22} ry={12} fill="#3a6318" opacity={0.7} />
           
           {/* Seaweed swaying */}
           <path
@@ -1955,6 +2024,42 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
                                     />
                                   );
                                 })}
+                              </g>
+                            );
+
+                          case 'sea_star':
+                            return (
+                              <g transform={`translate(${fish.x}, ${fish.y + hookedYOffset})`}>
+                                {/* Sea star with 5 arms */}
+                                {Array.from({ length: 5 }, (_, i) => {
+                                  const angle = (i * Math.PI * 2) / 5 - Math.PI / 2;
+                                  const armLength = scaledSize * 1.8;
+                                  const armWidth = scaledSize * 0.6;
+                                  const wiggle = Math.sin(time * 0.5 + i) * 2;
+
+                                  return (
+                                    <g key={i} transform={`rotate(${(i * 72) + wiggle})`}>
+                                      {/* Each arm */}
+                                      <ellipse
+                                        cx={0}
+                                        cy={-armLength / 2}
+                                        rx={armWidth}
+                                        ry={armLength}
+                                        fill="#FF6B35"
+                                        stroke="#D65529"
+                                        strokeWidth={1}
+                                      />
+                                      {/* Texture dots on arms */}
+                                      <circle cx={0} cy={-armLength * 0.7} r={scaledSize * 0.1} fill="#D65529" opacity={0.6} />
+                                      <circle cx={armWidth * 0.3} cy={-armLength * 0.5} r={scaledSize * 0.08} fill="#D65529" opacity={0.5} />
+                                      <circle cx={-armWidth * 0.3} cy={-armLength * 0.5} r={scaledSize * 0.08} fill="#D65529" opacity={0.5} />
+                                    </g>
+                                  );
+                                })}
+                                {/* Central body */}
+                                <circle cx={0} cy={0} r={scaledSize * 0.8} fill="#FF8C42" stroke="#D65529" strokeWidth={1} />
+                                {/* Center detail */}
+                                <circle cx={0} cy={0} r={scaledSize * 0.3} fill="#FFa65C" opacity={0.7} />
                               </g>
                             );
 
@@ -2588,7 +2693,7 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
                 }}
                 className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-bold px-8 py-4 rounded-full shadow-xl hover:scale-110 transition-all duration-200 animate-pulse border-2 border-white/50"
               >
-                <span className="text-2xl">🎣 HOOK NOW!</span>
+                <span className="text-2xl"></span>
               </button>
             </div>
           );
@@ -2635,7 +2740,7 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
         
         if (catchableFish) {
           return (
-            <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2" style={{ zIndex: 25 }}>
+            <div className="absolute bottom-22 left-1/2 transform -translate-x-1/2" style={{ zIndex: 25 }}>
               <div className="bg-green-600/60 backdrop-blur-sm rounded-lg px-4 py-2 border border-green-400/40">
                 <div className="flex items-center gap-3">
                   <span className="text-white font-medium text-sm">

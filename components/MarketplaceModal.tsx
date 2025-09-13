@@ -2491,12 +2491,12 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         {/* Enhanced tab navigation with historical theming */}
         <div className="flex bg-gradient-to-r from-slate-800/80 via-slate-800/60 to-slate-800/80 border-b border-amber-900/30">
           {[
-            { id: 'buy', label: 'Browse Wares', icon: '🛒' },
-            { id: 'sell', label: 'Sell Goods', icon: '💰' },
+            { id: 'buy', label: 'Buy', icon: '🛒' },
+            { id: 'sell', label: 'Sell', icon: '💰' },
             { id: 'trade', label: 'Merchants', icon: '🤝' },
             { id: 'people', label: 'People', icon: '👥' },
-            { id: 'info', label: 'Market Info', icon: '📜' },
-            { id: 'analysis', label: 'Market Analysis', icon: '📊' }
+            { id: 'info', label: 'Info', icon: '📜' },
+            { id: 'analysis', label: 'Trends', icon: '📊' }
           ].map(tab => (
             <button
               key={tab.id}

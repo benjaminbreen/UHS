@@ -110,7 +110,7 @@ const QuestTestingPanel: React.FC<QuestTestingPanelProps> = ({ isOpen, onClose }
         era: era,
         year: gameDate?.year || 1500,
         season: 'spring',
-        gameMode: currentMode || 'exploration',
+        gameMode: currentMode?.name || 'exploration',
         triggerType: triggerType as any || 'manual',
         nearbyStructures: mapData.terrainStructures || [],
         nearbyNPCs: npcs || []
@@ -153,7 +153,7 @@ const QuestTestingPanel: React.FC<QuestTestingPanelProps> = ({ isOpen, onClose }
         zone: getCulturalZone(),
         era: getEraFromDate(gameDate?.year || 1500),
         year: gameDate?.year || 1500,
-        gameMode: currentMode || 'exploration',
+        gameMode: currentMode?.name || 'exploration',
         nearbyStructures: mapData.terrainStructures || [],
         nearbyNPCs: npcs || []
       };
@@ -631,7 +631,7 @@ const QuestTestingPanel: React.FC<QuestTestingPanelProps> = ({ isOpen, onClose }
               <div className="space-y-0.5 text-xs text-slate-300">
                 <div>Era: {getEraFromDate(gameDate?.year || 1500)}</div>
                 <div>Zone: {getCulturalZone()}</div>
-                <div>Mode: {currentMode || 'exploration'}</div>
+                <div>Mode: {typeof currentMode === 'string' ? currentMode : currentMode?.name || 'exploration'}</div>
                 <div>Year: {gameDate?.year || 1500}</div>
               </div>
             </div>

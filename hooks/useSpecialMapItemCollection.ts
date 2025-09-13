@@ -62,9 +62,13 @@ export function useSpecialMapItemCollection({
       const isContainer = containerTypes.some(type => overlayType.includes(type));
 
       if (isContainer) {
+        console.log('[ItemCollection] Standing on container, showing toast');
         // Show a toast prompt to open the container
         if (onShowToast) {
+          console.log('[ItemCollection] Calling onShowToast with container message');
           onShowToast('📦 Press E or click to open container', 'info');
+        } else {
+          console.log('[ItemCollection] onShowToast not available');
         }
       }
     }
@@ -108,7 +112,7 @@ export function useSpecialMapItemCollection({
         theft: result.triggerTheftAwareness
       });
     }
-  }, [tiles, playerX, playerY, playerCharacter, isSpecialMap, showToast, onInventoryUpdate, onTheftDetected]);
+  }, [tiles, playerX, playerY, playerCharacter, isSpecialMap, showToast, onInventoryUpdate, onTheftDetected, onShowToast]);
   
   // Check for items whenever player position changes
   useEffect(() => {

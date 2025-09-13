@@ -19,15 +19,22 @@ const VictoryModal: React.FC<VictoryModalProps> = ({
   opponentEmoji,
   opponent
 }) => {
-  // Play victory melody when modal opens
+  // Play appropriate music based on opponent type
   useEffect(() => {
-    gameSoundsService.playVictoryMelody();
+    if (isNpc(opponent)) {
+      // Play dark danger music for NPC defeats
+      gameSoundsService.playDangerMusic();
+    } else {
+      // Play FF6 battle music for animal defeats
+      gameSoundsService.playIntenseBattleMusic();
+    }
     
-    // Cleanup: stop melody when modal closes
+    // Cleanup: stop all music when modal closes
     return () => {
-      gameSoundsService.stopVictoryMelody();
+      gameSoundsService.stopIntenseBattleMusic();
+      gameSoundsService.stopDangerMusic();
     };
-  }, []);
+  }, [opponent]);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -35,27 +42,67 @@ const VictoryModal: React.FC<VictoryModalProps> = ({
         className="ff-panel w-full max-w-2xl p-6" 
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-center text-4xl font-press-start mb-4 text-yellow-400">
-          🎉 VICTORY! 🎉
-        </h3>
-        
-        <div className="text-6xl text-center my-8">{opponentEmoji}</div>
-        
-        <p className="text-center text-lg mb-8">
-          You have successfully defeated <strong className="text-yellow-400">{opponentName}</strong>!
-        </p>
+        {isNpc(opponent) ? (
+          // Somber header for NPC defeats
+          <>
+            <h3 className="text-center text-3xl font-press-start mb-4 text-red-400">
+              💀 WHAT HAVE YOU DONE? 💀
+            </h3>
+            
+            <div className="text-6xl text-center my-8 grayscale">{opponentEmoji}</div>
+            
+            <div className="text-center mb-8 p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
+              <p className="text-lg mb-4 text-red-300">
+                You just killed <strong className="text-red-400">{opponentName}</strong> - a human being.
+              </p>
+              <p className="text-base mb-3 text-slate-300">
+                You have committed a grave act of evil, and your life will be forever altered by this disastrous and tragic event.
+              </p>
+              <p className="text-base text-orange-300 font-semibold">
+                You had best watch your back going forward...
+              </p>
+            </div>
+          </>
+        ) : (
+          // Celebratory header for animal defeats
+          <>
+            <h3 className="text-center text-4xl font-press-start mb-4 text-yellow-400">
+              🎉 VICTORY! 🎉
+            </h3>
+            
+            <div className="text-6xl text-center my-8">{opponentEmoji}</div>
+            
+            <p className="text-center text-lg mb-8">
+              You have successfully defeated <strong className="text-yellow-400">{opponentName}</strong>!
+            </p>
+          </>
+        )}
 
-        <div className="p-4 bg-black/20 rounded-lg border border-blue-500/30 mb-8 space-y-4">
+        <div className={`p-4 bg-black/20 rounded-lg border mb-8 space-y-4 ${
+          isNpc(opponent) 
+            ? 'border-red-500/30' 
+            : 'border-blue-500/30'
+        }`}>
           <div className="flex justify-between items-baseline text-lg font-semibold">
-            <span className="text-green-400 flex items-center gap-2">🌟 Experience Gained</span>
-            <span className="text-yellow-400 font-press-start text-xl">
+            <span className={`flex items-center gap-2 ${
+              isNpc(opponent) 
+                ? 'text-red-400' 
+                : 'text-green-400'
+            }`}>
+              {isNpc(opponent) ? '🩸' : '🌟'} Experience Gained
+            </span>
+            <span className={`font-press-start text-xl ${
+              isNpc(opponent) 
+                ? 'text-red-400' 
+                : 'text-yellow-400'
+            }`}>
               +{xpGained} XP
             </span>
           </div>
 
           {isNpc(opponent) ? (
-              <p className="text-sm text-slate-400 italic text-center pt-2">
-                You may now loot the body.
+              <p className="text-sm text-red-400 italic text-center pt-2">
+                If you must, you may now search the corpse...
               </p>
           ) : itemsGained.length > 0 ? (
             <div>
@@ -97,10 +144,14 @@ const VictoryModal: React.FC<VictoryModalProps> = ({
         </div>
 
         <button 
-          className="ff-action-button w-52 mx-auto block" 
+          className={`w-52 mx-auto block ${
+            isNpc(opponent)
+              ? 'bg-red-700 hover:bg-red-600 text-white border-red-500 font-press-start text-sm py-3 px-6 rounded border-2 transition-colors'
+              : 'ff-action-button'
+          }`}
           onClick={onClose}
         >
-          Continue
+          {isNpc(opponent) ? 'Carry This Burden...' : 'Continue'}
         </button>
       </div>
     </div>

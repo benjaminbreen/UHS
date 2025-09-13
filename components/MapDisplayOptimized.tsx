@@ -443,7 +443,15 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   
   // Memoized noise generators - OPTIMIZED: Only recreate when mapData.seed changes
   const noiseGenerators = useMemo(() => {
-    if (!mapData) return null;
+    // Always return the same structure to avoid hooks count mismatch
+    if (!mapData) {
+      return {
+        shoreline: null,
+        cactusPlacement: null,
+        ambientDetail: null,
+        shoalBlend: null
+      };
+    }
     return {
       shoreline: new ValueNoise(mapData.seed + 300),
       cactusPlacement: new ValueNoise(mapData.seed + 200),
@@ -624,8 +632,13 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   // Enhanced icon animation
   useEffect(() => {
     if (logicalControlledIconX !== null && logicalControlledIconY !== null) {
-      const targetPixelX = logicalControlledIconX * TILE_SIZE_PX + TILE_SIZE_PX / 2;
-      const targetPixelY = logicalControlledIconY * TILE_SIZE_PX + TILE_SIZE_PX / 2;
+      const basePixelX = logicalControlledIconX * TILE_SIZE_PX + TILE_SIZE_PX / 2;
+      const basePixelY = logicalControlledIconY * TILE_SIZE_PX + TILE_SIZE_PX / 2;
+
+      // Apply elevation offset if player is in elevated state
+      const elevationOffset = playerCharacter?.elevatedState ? -15 : 0; // Move up 15 pixels when elevated
+      const targetPixelX = basePixelX;
+      const targetPixelY = basePixelY + elevationOffset;
 
       const needsAnimation = displayPixelIconX !== targetPixelX || displayPixelIconY !== targetPixelY;
 
@@ -699,7 +712,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, [logicalControlledIconX, logicalControlledIconY, onIconAnimationComplete]);
+  }, [logicalControlledIconX, logicalControlledIconY, onIconAnimationComplete, playerCharacter?.elevatedState]);
 
   // Reset centering flag when map changes
   useEffect(() => {
@@ -3396,30 +3409,12 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       // Check if container has items - either floor items or cached container contents
                       const hasFloorItem = tile.collectibleItem && !tile.collectibleItem.collected;
 
-                      // Import and check container cache dynamically
-                      const [hasContainerItems, setHasContainerItems] = React.useState(false);
-                      const [isValuable, setIsValuable] = React.useState(false);
+                      // For containers, we'll use a simpler approach without hooks inside the map
+                      // Assume containers have items by default, and valuable ones glow gold
+                      const hasContainerItems = isClickableContainer; // Containers always show as having items until opened
+                      const isValuable = isClickableContainer && (tile.roomPrivacy === 'private' || tile.roomPrivacy === 'restricted');
 
-                      React.useEffect(() => {
-                        if (isClickableContainer) {
-                          import('../services/containerCacheService').then(({ getCachedContents, isContainerEmpty }) => {
-                            const mapId = isSpecialMap ? 'special_map' : 'main_map';
-                            const cached = getCachedContents(mapId, tile.x, tile.y);
-                            if (cached) {
-                              // Container has been opened before - check if it still has items
-                              setHasContainerItems(!isContainerEmpty(mapId, tile.x, tile.y));
-                              setIsValuable(cached.isValuable || false);
-                            } else {
-                              // Container hasn't been opened - assume it has items
-                              setHasContainerItems(true);
-                              // Valuable containers glow gold
-                              setIsValuable(tile.roomPrivacy === 'private' || tile.roomPrivacy === 'restricted');
-                            }
-                          });
-                        }
-                      }, [isClickableContainer, tile.x, tile.y]);
-
-                      const hasItems = hasFloorItem || (isClickableContainer && hasContainerItems);
+                      const hasItems = hasFloorItem || hasContainerItems;
                       
                       return (
                         <g

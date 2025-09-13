@@ -147,6 +147,17 @@ const CombatModal: React.FC<CombatModalProps> = ({
     setTamedAnimalAnimation(animationMap);
   }, []);
   
+  // Start quiet combat music when combat begins
+  useEffect(() => {
+    // Start FF6 combat music at 50% volume for atmospheric background
+    gameSoundsService.playFF6CombatMusic();
+    
+    // Clean up music when combat ends
+    return () => {
+      gameSoundsService.stopFF6CombatMusic();
+    };
+  }, []); // Only run once when component mounts
+  
   // Show initial combat message for animals
   useEffect(() => {
     if (isAnimal(combatant)) {
@@ -871,8 +882,24 @@ const CombatModal: React.FC<CombatModalProps> = ({
       
       // Play opponent attack sound based on their type
       if (isAnimal(opponent)) {
-          // Animal attack sounds (bite, claw, etc.)
-          gameSoundsService.playBiteSound();
+          // Play specific animal sound based on animal type
+          const animalName = (opponent.name || opponent.speciesName || '').toLowerCase();
+          if (animalName.includes('cow') || animalName.includes('bull') || animalName.includes('ox')) {
+              gameSoundsService.playCowSound();
+          } else if (animalName.includes('dog') || animalName.includes('hound')) {
+              gameSoundsService.playDogSound();
+          } else if (animalName.includes('horse') || animalName.includes('stallion') || animalName.includes('mare')) {
+              gameSoundsService.playHorseSound();
+          } else if (animalName.includes('cat') || animalName.includes('feline')) {
+              gameSoundsService.playCatSound();
+          } else if (animalName.includes('wolf') || animalName.includes('wolves')) {
+              gameSoundsService.playWolfSound();
+          } else if (animalName.includes('bear')) {
+              gameSoundsService.playBearSound();
+          } else {
+              // Default to bite sound for other animals
+              gameSoundsService.playBiteSound();
+          }
       } else if (isNpc(opponent)) {
           // NPC uses weapon sounds based on their equipment
           const opponentWeapon = (opponent as NpcEntity).equippedItems?.main_hand?.name.toLowerCase() || '';

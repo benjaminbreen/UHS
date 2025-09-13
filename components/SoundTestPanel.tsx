@@ -107,6 +107,12 @@ const SoundTestPanel: React.FC<SoundTestPanelProps> = ({ isOpen, onClose }) => {
         { name: 'Intense Battle Music', method: () => gameSoundsService.playIntenseBattleMusic(), description: 'Dark FF6-style combat theme' },
         { name: 'Peaceful Fishing Music', method: () => gameSoundsService.playFishingMusic(), description: 'Soft, looping ambient music for fishing' },
         { name: 'Dungeon Music', method: () => gameSoundsService.playDungeonMusic(), description: 'Mysterious, peaceful dungeon exploration music' },
+        { name: 'Government Forum Music', method: () => gameSoundsService.playGovernmentMusic(), description: 'Memorable FF6-style theme with powerful melody and driving beat' },
+        { name: 'Estates Music', method: () => gameSoundsService.playEstatesMusic(), description: 'Warm, Stardew Valley-style music for elite leaders\' abodes' },
+        { name: 'Temple/Sacred Music', method: () => gameSoundsService.playTempleMusic(), description: 'Reverent, mystical music for religious buildings' },
+        { name: 'Danger Music', method: () => gameSoundsService.playDangerMusic(), description: 'Dark, atmospheric FF6-style music for arrests and confrontations' },
+        { name: 'Modern City Music', method: () => gameSoundsService.playModernCityMusic(), description: 'Upbeat urban theme for modern city settings' },
+        { name: 'FF6 Combat Music', method: () => gameSoundsService.playFF6CombatMusic(), description: 'Intense FF6-style combat with looping Bach-fugue melodic fragments' },
         { name: 'Stop All Music', method: () => gameSoundsService.stopAllMusic(), description: 'Stops all background music' },
       ]
     },

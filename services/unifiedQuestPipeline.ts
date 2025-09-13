@@ -46,6 +46,7 @@ import { historicalContextEngine } from './historicalContextEngine';
 import { getAvailableCategories, filterDuplicateCategories } from './questVarietyService';
 import { getOceanQuests } from './oceanQuestTemplates';
 import { getApplicableQuestTemplates, generateQuestFromTemplate } from '../constants/questTemplates/economicQuestTemplates';
+import { generateRuinQuest, RELIC_RETRIEVAL_QUESTS } from '../constants/questTemplates/ruinQuestTemplates';
 import { CulturalZone, HistoricalEra } from '../types/characterData';
 
 export interface QuestGenerationContext {
@@ -66,6 +67,8 @@ export interface QuestGenerationContext {
   triggerType?: 'event' | 'exploration' | 'npc' | 'crisis' | 'manual';
   triggerEntity?: string; // Entity ID that triggered quest
   customPrompt?: string; // For LLM-generated quests
+  nearbyStructures?: TerrainStructure[]; // Structures near player
+  nearbyNPCs?: NpcEntity[]; // NPCs near player
 }
 
 export interface QuestTemplate {
@@ -225,6 +228,18 @@ class UnifiedQuestPipeline {
           context.zone, context.era, context.year
         );
         return this.generateTradeRouteQuest(context, historicalContext);
+      }
+    });
+
+    // Ruin Exploration Templates
+    this.registerTemplate({
+      id: 'relic_retrieval',
+      name: 'Retrieve Relic from Ruins',
+      category: 'exploration',
+      requiredEntities: ['npc'],
+      weight: 6,
+      generator: async (context) => {
+        return this.generateRelicRetrievalQuest(context);
       }
     });
   }
@@ -1071,6 +1086,71 @@ class UnifiedQuestPipeline {
       startTime: Date.now(),
       status: 'active'
     };
+  }
+
+  /**
+   * Generate a relic retrieval quest from an NPC
+   */
+  private async generateRelicRetrievalQuest(
+    context: QuestGenerationContext
+  ): Promise<Quest | null> {
+    // Find nearby ruins
+    const ruins = context.nearbyStructures?.filter(s => 
+      s.structureType === 'ruin' || 
+      s.name?.toLowerCase().includes('ruin')
+    ) || [];
+    
+    if (ruins.length === 0) {
+      return null; // No ruins nearby
+    }
+    
+    // Find a suitable NPC to give the quest
+    const scholars = worldEntityRegistry.queryEntities({
+      type: 'npc',
+      attributes: { profession: 'scholar' },
+      maxDistance: 30,
+      active: true
+    });
+    
+    const merchants = worldEntityRegistry.queryEntities({
+      type: 'npc',
+      attributes: { profession: 'merchant' },
+      maxDistance: 30,
+      active: true
+    });
+    
+    const potentialGivers = [...scholars, ...merchants];
+    if (potentialGivers.length === 0) {
+      return null; // No suitable NPCs
+    }
+    
+    const giver = potentialGivers[Math.floor(Math.random() * potentialGivers.length)];
+    const ruin = ruins[Math.floor(Math.random() * ruins.length)];
+    const ruinLocation = { 
+      x: ruin.location?.[0] || ruin.x || context.playerLocation.x + 10, 
+      y: ruin.location?.[1] || ruin.y || context.playerLocation.y + 10 
+    };
+    
+    // Generate the quest using the template
+    const questData = generateRuinQuest(
+      context.era as HistoricalEra,
+      ruin.name || 'ancient ruins',
+      false, // not automatic, NPC-requested
+      giver.name,
+      ruinLocation
+    );
+    
+    if (!questData) return null;
+    
+    return {
+      ...questData,
+      id: questData.id || `relic_quest_${Date.now()}`,
+      objectives: questData.objectives || [],
+      rewards: questData.rewards || [],
+      status: 'available',
+      startTime: Date.now(),
+      isRuinQuest: true
+    } as Quest;
   }
 
   private async generateTradeRouteQuest(

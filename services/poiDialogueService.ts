@@ -51,40 +51,33 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
       'Stone Singer'
     ],
     greetings: [
-      "Stranger, you seek the sacred stone? I can help you.",
-      "The spirits guide your path here. What do you need?",
-      "These rocks hold ancient power. What would you have me craft?",
-      "Welcome, traveler. The stone speaks of your coming.",
-      "I have worked this quarry since the spring floods. How may I serve you?"
+      "What do you want?",
+      "Make it quick. We're busy here.",
+      "Stone for sale. That's all.",
+      "Don't touch anything. What do you need?",
+      "Hmph. Another traveler looking for stone."
     ],
     services: [
       {
-        id: 'buy_raw',
-        nameTemplate: 'Purchase Raw {material}',
-        descriptionTemplate: 'Unworked {material} stones, carefully selected',
-        costTemplate: '{price} trade goods per piece',
+        id: 'buy',
+        nameTemplate: 'Buy Stone',
+        descriptionTemplate: 'Purchase raw or cut stone',
+        costTemplate: '{price} {currency}',
         requirements: []
       },
       {
-        id: 'commission_tools',
-        nameTemplate: 'Commission {material} Tools',
-        descriptionTemplate: 'Expertly knapped blades, points, and scrapers',
-        costTemplate: '{price} goods + your materials',
-        requirements: ['Good standing with tribe']
+        id: 'sell',
+        nameTemplate: 'Sell Stone',
+        descriptionTemplate: 'Trade your stone for coin',
+        costTemplate: 'Market rate',
+        requirements: []
       },
       {
-        id: 'learn_technique',
-        nameTemplate: 'Learn Stone-Knapping',
-        descriptionTemplate: 'Ancient knowledge of working stone',
-        costTemplate: 'Time and respect for the craft',
-        requirements: ['Intelligence 12+', 'Patience']
-      },
-      {
-        id: 'blessing_tools',
-        nameTemplate: 'Bless Weapons',
-        descriptionTemplate: 'Ritual blessing for hunting tools',
-        costTemplate: 'Sacred offerings + goodwill',
-        requirements: ['Wisdom 10+']
+        id: 'craft',
+        nameTemplate: 'Cut Stone',
+        descriptionTemplate: 'Shape your raw stone into blocks',
+        costTemplate: 'Uses your materials',
+        requirements: ['Have stone in inventory']
       }
     ]
   },
@@ -455,16 +448,43 @@ const PRICING_DATA = {
 };
 
 class POIDialogueService {
+  private mapCulturalZone(zone: CulturalZone): string {
+    const mapping: Record<CulturalZone, string> = {
+      'EUROPEAN': 'Europe',
+      'EAST_ASIAN': 'Asia', 
+      'MENA': 'Middle East',
+      'NORTH_AMERICAN_PRE_COLUMBIAN': 'North America',
+      'NORTH_AMERICAN_COLONIAL': 'North America',
+      'OCEANIA': 'Oceania',
+      'SOUTH_ASIAN': 'Asia',
+      'SOUTH_AMERICAN': 'South America',
+      'SUB_SAHARAN_AFRICAN': 'Africa'
+    };
+    return mapping[zone] || 'Europe'; // Fallback to Europe
+  }
+
   private findTemplate(
     poiType: string,
     culturalZone: CulturalZone, 
     era: HistoricalEra
   ): DialogueTemplate | null {
+    const mappedZone = this.mapCulturalZone(culturalZone);
+    
+    // Convert era to string to ensure comparison works
+    const eraString = typeof era === 'string' ? era : (era ? era.toString() : 'MEDIEVAL');
+    
     return DIALOGUE_TEMPLATES.find(
-      template =>
-        template.type === poiType &&
-        template.culturalZone === culturalZone &&
-        template.era === era
+      template => {
+        // Safe conversion with fallback
+        const templateEraString = typeof template.era === 'string' 
+          ? template.era 
+          : (template.era ? template.era.toString() : 'MEDIEVAL');
+        return (
+          template.type === poiType &&
+          template.culturalZone === mappedZone &&
+          templateEraString === eraString
+        );
+      }
     ) || null;
   }
 
@@ -504,24 +524,41 @@ class POIDialogueService {
     era: HistoricalEra,
     materialType: string = 'stone'
   ): WorkerDialogue {
+    console.log('[POI Dialogue] Generating dialogue for:', {
+      poiType,
+      culturalZone,
+      era,
+      materialType
+    });
+    
     const template = this.findTemplate(poiType, culturalZone, era);
     
     if (!template) {
+      console.log('[POI Dialogue] No template found, using fallback');
       // Fallback dialogue for unsupported combinations
       return {
-        speaker: 'Local Worker',
-        greeting: `Welcome, traveler. I work this ${poiType} and can offer you services for fair payment.`,
+        speaker: 'Worker',
+        greeting: `What? This is a ${poiType}. Buy something or leave.`,
         services: [
           {
-            id: 'basic_service',
-            name: `Use ${poiType} Services`,
-            description: 'Basic processing and trade services',
-            cost: '2-5 goods',
+            id: 'buy',
+            name: `Buy Materials`,
+            description: 'Purchase what we produce',
+            cost: 'Market rate',
+            available: true
+          },
+          {
+            id: 'sell',
+            name: `Sell Materials`,
+            description: 'Trade your goods for coin',
+            cost: 'Market rate',
             available: true
           }
         ]
       };
     }
+    
+    console.log('[POI Dialogue] Template found:', template.type, template.culturalZone, template.era);
 
     const pricing = this.getPricing(culturalZone, era, poiType);
     

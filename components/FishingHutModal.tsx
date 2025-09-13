@@ -273,20 +273,22 @@ const FishingHutModal: React.FC<FishingHutModalProps> = ({
     >
       {/* Banner header with fishing hut scene */}
       <div className="relative h-48 md:h-56 overflow-hidden flex-shrink-0">
-        <FishingHutBanner
-          structure={structure}
-          era={year.toString()}
-          culturalZone={culturalZone.toLowerCase() as any}
-          climate={climate}
-          season={season}
-          timeOfDay={timeOfDay}
-          width={typeof window !== 'undefined' ? window.innerWidth : 1200}
-          height={224}
-          weather={weather}
-          adjacentBiomes={[biome]}
-          gameMode={false}
-        />
-        
+        <div style={{ transform: 'translateX(-25%)', width: '150%' }}>
+          <FishingHutBanner
+            structure={structure}
+            era={year.toString()}
+            culturalZone={culturalZone.toLowerCase() as any}
+            climate={climate}
+            season={season}
+            timeOfDay={timeOfDay}
+            width={typeof window !== 'undefined' ? Math.max(800, window.innerWidth * 0.75) : 800}
+            height={224}
+            weather={weather}
+            adjacentBiomes={[biome]}
+            gameMode={false}
+          />
+        </div>
+
         {/* Dark gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-900/90 pointer-events-none" />
         

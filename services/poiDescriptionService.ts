@@ -727,6 +727,63 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
         "The roar of machinery grows louder as you approach"
       ]
     }
+  },
+  
+  // ==================== FORTRESS TEMPLATES ====================
+  // Basic fortress templates - keep them simple and universal
+  {
+    type: 'fortress',
+    culturalZone: 'Europe',
+    era: HistoricalEra.ANTIQUITY,
+    templates: {
+      setting: [
+        "A military {materialType} fortress commands the {terrain}, its walls weathered by countless seasons",
+        "This fortified position overlooks the {biomeDescription}, built from local {materialType}"
+      ],
+      materials: [
+        "The {color} {materialType} walls show signs of recent repair work",
+        "Defensive positions built from {materialType} line the ramparts"
+      ],
+      atmosphere: [
+        "Guards patrol the walls with practiced vigilance",
+        "The sound of military drills echoes from the courtyard"
+      ],
+      workers: [
+        "A gruff {workerType} in {clothing} barely acknowledges your presence",
+        "The {workerType} eyes you with suspicion before returning to their duties"
+      ],
+      approach: [
+        "Armed sentries watch your approach with professional interest",
+        "The fortress gate stands partially open, guards visible within"
+      ]
+    }
+  },
+  {
+    type: 'fortress',
+    culturalZone: 'Asia',
+    era: HistoricalEra.ANTIQUITY,
+    templates: {
+      setting: [
+        "This {materialType} fortress guards the strategic {terrain} position",
+        "Military fortifications of {materialType} dominate the {biomeDescription}"
+      ],
+      materials: [
+        "Walls of {color} {materialType} rise imposingly above",
+        "The fortress is built from solid {materialType} blocks"
+      ],
+      atmosphere: [
+        "The fortress maintains an air of watchful readiness",
+        "Military discipline is evident in every aspect of the fortress"
+      ],
+      workers: [
+        "A stern {workerType} in {clothing} watches you carefully",
+        "The {workerType} gives you a hard look before looking away"
+      ],
+      approach: [
+        "Guards at the gate eye all visitors with suspicion",
+        "The fortress entrance is heavily guarded"
+      ]
+    }
   }
 ];
 
@@ -765,6 +822,13 @@ const CULTURAL_POI_DATA = {
         clothing: ['rough tunics', 'leather straps', 'linen wrappings', 'bronze buckles'],
         tools: ['iron chisels', 'wooden wedges', 'rope pulleys', 'bronze picks'],
         colors: ['white', 'gray', 'pink', 'black', 'cream']
+      },
+      fortress: {
+        materials: ['stone', 'brick', 'timber', 'limestone', 'granite'],
+        workers: ['guard', 'sentry', 'garrison soldier', 'watchman', 'centurion'],
+        clothing: ['worn armor', 'military tunics', 'leather gear', 'iron helmets'],
+        tools: ['spears', 'shields', 'crossbows', 'signal horns'],
+        colors: ['gray', 'brown', 'weathered', 'dark', 'stained']
       }
     },
     [HistoricalEra.MEDIEVAL]: {
@@ -785,6 +849,13 @@ const CULTURAL_POI_DATA = {
         clothing: ['silk robes', 'hemp tunics', 'leather aprons', 'bamboo hats'],
         tools: ['bronze chisels', 'jade hammers', 'bamboo wedges', 'water saws'],
         colors: ['green', 'white', 'gray', 'black', 'yellow']
+      },
+      fortress: {
+        materials: ['stone', 'rammed earth', 'brick', 'timber', 'tile'],
+        workers: ['guard', 'soldier', 'watchman', 'garrison commander', 'sentry'],
+        clothing: ['lamellar armor', 'military robes', 'leather guards', 'iron helmets'],
+        tools: ['halberds', 'crossbows', 'signal drums', 'watchtower bells'],
+        colors: ['gray', 'earthen', 'dark', 'weathered', 'red']
       }
     },
     [HistoricalEra.MEDIEVAL]: {
@@ -901,17 +972,74 @@ const BIOME_DESCRIPTORS = {
 };
 
 class POIDescriptionService {
+  private mapCulturalZone(zone: CulturalZone): string {
+    const mapping: Record<CulturalZone, string> = {
+      'EUROPEAN': 'Europe',
+      'EAST_ASIAN': 'Asia', 
+      'MENA': 'Middle East',
+      'NORTH_AMERICAN_PRE_COLUMBIAN': 'North America',
+      'NORTH_AMERICAN_COLONIAL': 'North America',
+      'OCEANIA': 'Oceania',
+      'SOUTH_ASIAN': 'Asia',
+      'SOUTH_AMERICAN': 'South America',
+      'SUB_SAHARAN_AFRICAN': 'Africa'
+    };
+    return mapping[zone] || 'Europe'; // Fallback to Europe
+  }
+
   private findTemplate(
     poiType: string, 
     culturalZone: CulturalZone, 
     era: HistoricalEra
   ): POIDescriptionTemplate | null {
-    return DESCRIPTION_TEMPLATES.find(
-      template => 
-        template.type === poiType &&
-        template.culturalZone === culturalZone &&
-        template.era === era
-    ) || null;
+    const mappedZone = this.mapCulturalZone(culturalZone);
+    
+    console.log('[POI Description] Searching for template:', {
+      poiType,
+      originalZone: culturalZone,
+      mappedZone,
+      era
+    });
+    
+    // Convert era to string to ensure comparison works
+    const eraString = typeof era === 'string' ? era : (era ? era.toString() : 'MEDIEVAL');
+    
+    const template = DESCRIPTION_TEMPLATES.find(
+      template => {
+        const templateEraString = typeof template.era === 'string' ? template.era : (template.era ? template.era.toString() : 'MEDIEVAL');
+        return (
+          template.type === poiType &&
+          template.culturalZone === mappedZone &&
+          templateEraString === eraString
+        );
+      }
+    );
+    
+    if (!template) {
+      console.log('[POI Description] No exact match found. Debugging info:');
+      console.log('Looking for:', { type: poiType, zone: mappedZone, era: era });
+      console.log('Era comparison:', { searchEra: era, eraType: typeof era });
+      
+      // Check first quarry template specifically
+      const firstQuarry = DESCRIPTION_TEMPLATES.find(t => t.type === 'quarry');
+      if (firstQuarry) {
+        console.log('First quarry template:', {
+          type: firstQuarry.type,
+          zone: firstQuarry.culturalZone,
+          era: firstQuarry.era,
+          eraType: typeof firstQuarry.era,
+          eraValue: JSON.stringify(firstQuarry.era)
+        });
+        console.log('Comparisons:', {
+          typeMatch: firstQuarry.type === poiType,
+          zoneMatch: firstQuarry.culturalZone === mappedZone,
+          eraMatch: firstQuarry.era === era,
+          eraComparison: `"${firstQuarry.era}" === "${era}"`
+        });
+      }
+    }
+    
+    return template || null;
   }
 
   private buildContext(
@@ -971,9 +1099,28 @@ class POIDescriptionService {
     biome: BiomeType,
     structure: TerrainStructure
   ): string {
+    try {
+      console.log('[POI Description] Service called with params:', {
+        poiType: typeof poiType + ':' + JSON.stringify(poiType),
+        culturalZone: typeof culturalZone + ':' + JSON.stringify(culturalZone),
+        era: typeof era + ':' + JSON.stringify(era),
+        biome: typeof biome + ':' + JSON.stringify(biome),
+        structureName: structure?.name,
+        structureType: structure?.structureType,
+        structureAnyType: structure?.type,
+        totalTemplates: DESCRIPTION_TEMPLATES.length
+      });
+    } catch (debugError) {
+      console.error('[POI Description] Error in debug logging:', debugError);
+    }
+    
     const template = this.findTemplate(poiType, culturalZone, era);
     
+    console.log('[POI Description] Template found:', template ? 'YES' : 'NO');
     if (!template) {
+      console.log('[POI Description] Available templates for debugging:', 
+        DESCRIPTION_TEMPLATES.map(t => `${t.type}/${t.culturalZone}/${t.era}`).slice(0, 5)
+      );
       return `This ${poiType} shows signs of recent activity. Workers here process materials according to local customs and available resources.`;
     }
 

@@ -1005,6 +1005,27 @@ NEVER proactively create documentation files (*.md) or README files. Only create
 
 Special maps are interior/special area maps that players enter from the main world map. When a player enters certain structures (government districts, palaces, marketplaces, holy sites), they transition to a detailed interior map with NPCs, furniture, and cultural theming.
 
+### ✅ Container System (December 2024)
+
+Players can interact with containers (chests, barrels, crates, cabinets, etc.) in special maps:
+
+**Core Components:**
+- **`specialMapContainerService.ts`** - Generates culturally appropriate container contents with theft detection
+- **`containerCacheService.ts`** - Caches container contents to prevent regeneration
+- **`ContainerModal.tsx`** - Modern UI for container interaction with theft warnings
+- **`useSpecialMapItemCollection.ts`** - Handles container detection and "Press E" toast notifications
+
+**Player Interaction:**
+- Walk onto container tile → "Press E or click to open container" toast appears
+- Press E key or click container → ContainerModal opens with items
+- Take items → NPCs within line-of-sight may confront player for theft
+- Container contents persist via caching system
+
+**Theft System:**
+- NPCs detect item theft based on line-of-sight and item ownership
+- Valuable/owned items trigger NPC confrontations
+- `npcAwarenessService.ts` handles theft detection and NPC reactions
+
 ### Core Files
 
 #### Generation Pipeline

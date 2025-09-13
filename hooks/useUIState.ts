@@ -587,7 +587,7 @@ export const useUIState = () => {
                 
                 if (evaluation.possible) {
                     // Execute the feat
-                    const result = await executePhysicalFeat(featAttempt, evaluation, playerCharacter);
+                    const result = await executePhysicalFeat(featAttempt, evaluation, playerCharacter, mapData);
                     
                     // Apply effects
                     if (result.effects) {
@@ -617,6 +617,12 @@ export const useUIState = () => {
                             // Move the player to the new position
                             setControlledIconX(result.effects.newPosition.x);
                             setControlledIconY(result.effects.newPosition.y);
+                        }
+
+                        if (result.success && result.effects.elevatedState !== undefined) {
+                            // Set or clear elevated state (like being in a tree)
+                            newCharacter.elevatedState = result.effects.elevatedState || undefined;
+                            newCharacter.elevationDescription = result.effects.elevationDescription || undefined;
                         }
                         
                         setPlayerCharacter(newCharacter);

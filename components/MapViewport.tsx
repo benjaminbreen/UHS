@@ -21,7 +21,7 @@ import CityModal from './CityModal';
 import RuinStructureModal from './RuinStructureModal';
 import GovernmentDistrictModal from './GovernmentDistrictModal';
 import FishingHutModal from './FishingHutModal';
-import { DevTooltipDisplayData, Tile, PlayerCharacter, BiomeType, DeployedVessel, TimeOfDay } from '../types';
+import { DevTooltipDisplayData, Tile, PlayerCharacter, BiomeType, DeployedVessel, TimeOfDay, HistoricalEra } from '../types';
 import { getHistoricalPeriod } from '../constants/characterData/names';
 import TimeAwareBackground from './TimeAwareBackground';
 import HorizonLayer from './HorizonLayer';
@@ -66,8 +66,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
         activeRuinModal, setActiveRuinModal, activeGovernmentModal, setActiveGovernmentModal, activeFishingHutModal, setActiveFishingHutModal, inRuinRoguelike, setInRuinRoguelike, useLlmForDescriptions, handleEncounter, setInfoModalTarget,
         setActiveMiningModal, setActivePoi, debugSettings,
         poiToastData, setPoiToastData,
-        handleCompanionClick, handlePlayerClick, handleNewAreaEntry, setContainerModalData,
-        showToast
+        handleCompanionClick, handlePlayerClick, handleNewAreaEntry, setContainerModalData
     } = useUI();
     
     const [isMapTransitioning, setIsMapTransitioning] = useState(false);
@@ -92,8 +91,54 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
         sunPosition, currentTimeOfDay, formattedDate, season, ambianceText, 
         actionableTile, contextualMessage, gameTimeHours, gameTimeMinutes,
         isLoading, isLoadingFromCache, setGameDate, gameDate, currentRegion,
-        currentZone, currentEra
+        currentZone
     } = useGame();
+    
+    // Calculate current era from formatted date
+    const currentEra = (() => {
+        // Parse year from formatted date like "June 3, 238 BC" or "June 3, 1500 CE"
+        const yearMatch = formattedDate.match(/(\d+)\s*(BC|BCE|AD|CE)?/);
+        let year = yearMatch ? parseInt(yearMatch[1]) : 0;
+        if (yearMatch && (yearMatch[2] === 'BC' || yearMatch[2] === 'BCE')) {
+            year = -year;
+        }
+        if (year < 500) return HistoricalEra.ANTIQUITY;
+        if (year < 1450) return HistoricalEra.MEDIEVAL; 
+        if (year < 1800) return HistoricalEra.RENAISSANCE_EARLY_MODERN;
+        if (year < 1900) return HistoricalEra.INDUSTRIAL_ERA;
+        return HistoricalEra.MODERN_ERA;
+    })();
+    
+    // Convert currentZone string to CulturalZone type
+    const currentCulturalZone = (() => {
+        // First check if currentZone is already a CulturalZone enum value
+        const culturalZoneValues = [
+            'EUROPEAN', 'EAST_ASIAN', 'MENA', 
+            'NORTH_AMERICAN_PRE_COLUMBIAN', 'NORTH_AMERICAN_COLONIAL',
+            'OCEANIA', 'SOUTH_ASIAN', 'SOUTH_AMERICAN', 'SUB_SAHARAN_AFRICAN'
+        ];
+        
+        // If it's already a CulturalZone value, use it directly
+        if (culturalZoneValues.includes(currentZone)) {
+            return currentZone;
+        }
+        
+        // Otherwise map geographic names to CulturalZone values
+        const zoneMapping: Record<string, string> = {
+            'Europe': 'EUROPEAN',
+            'Asia': 'EAST_ASIAN',
+            'East Asia': 'EAST_ASIAN',  // Add specific mapping
+            'South Asia': 'SOUTH_ASIAN',  // Add specific mapping
+            'Middle East': 'MENA',
+            'North America': 'NORTH_AMERICAN_PRE_COLUMBIAN',
+            'Oceania': 'OCEANIA',
+            'South America': 'SOUTH_AMERICAN',
+            'Africa': 'SUB_SAHARAN_AFRICAN'
+        };
+        
+        // Fallback to EUROPEAN if no mapping found
+        return zoneMapping[currentZone] || 'EUROPEAN';
+    })();
     
     const eventSystem = useEventSystem();
     
@@ -285,7 +330,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                 return { ...prev, inventory: newInventory };
             });
         },
-        onShowToast: showToast,
+        onShowToast: showInventoryToast,
         onTheftDetected: (item) => {
             console.log('[ItemCollection] Theft detected for item:', item.name);
             
@@ -575,17 +620,27 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
             // Generate procedural description and dialogue
             try {
                 const structureType = poiStructure.structureType || poiStructure.type || 'quarry';
+                console.log('[POI Services] Calling generateDescription with:', {
+                    structureType,
+                    currentZone,
+                    currentCulturalZone,
+                    currentEra,
+                    biome: currentTile.biome
+                });
+                
                 const description = poiDescriptionService.generateDescription(
                     structureType,
-                    currentZone as any, // CulturalZone
+                    currentCulturalZone,
                     currentEra,
                     currentTile.biome,
                     poiStructure
                 );
                 
+                console.log('[POI Services] Generated description:', description);
+                
                 const dialogue = poiDialogueService.generateDialogue(
                     structureType,
-                    currentZone as any, // CulturalZone
+                    currentCulturalZone,
                     currentEra,
                     'stone' // Default material - could be enhanced later
                 );
@@ -596,7 +651,8 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                     dialogue
                 });
             } catch (error) {
-                console.warn('[MapViewport] Error generating POI description/dialogue:', error);
+                console.error('[MapViewport] Error generating POI description/dialogue:', error);
+                console.error('[MapViewport] Error stack:', error.stack);
                 // Fallback to basic toast
                 const fallbackType = poiStructure.structureType || poiStructure.type || 'work site';
                 setPoiToastData({

@@ -73,9 +73,10 @@ export function detectPhysicalFeatIntent(input: string): PhysicalFeatAttempt | n
   
   // Climbing patterns - require explicit climbable objects
   const climbingPatterns = [
-    /\b(climb|scale)\s+(up\s+)?(the\s+|a\s+)?(tree|wall|cliff|rock|mountain|tower|fence|ladder)/i,
-    /\b(ascend|scale)\s+(the\s+)(wall|cliff|fortress|castle|peak|mountain)/i,
-    /\b(try|attempt|want)\s+to\s+(climb|scale|ascend)\s+(up\s+)?(the\s+|a\s+)?(\w+)/i
+    /\b(climb|scale)\s+(up\s+)?(the\s+|a\s+)?(tree|wall|cliff|rock|mountain|tower|fence|ladder)(\s+(to\s+the\s+)?(north|south|east|west))?/i,
+    /\b(ascend|scale)\s+(the\s+)(wall|cliff|fortress|castle|peak|mountain)(\s+(to\s+the\s+)?(north|south|east|west))?/i,
+    /\b(try|attempt|want)\s+to\s+(climb|scale|ascend)\s+(up\s+)?(the\s+|a\s+)?(\w+)(\s+(to\s+the\s+)?(north|south|east|west))?/i,
+    /\b(climb|get|come)\s+(down|out)(\s+(from|of)\s+(the\s+)?(tree|wall|cliff|rock|mountain|tower))?/i
   ];
   
   // Jumping patterns - require explicit gaps or obstacles
@@ -110,9 +111,12 @@ export function detectPhysicalFeatIntent(input: string): PhysicalFeatAttempt | n
   for (const pattern of climbingPatterns) {
     const match = lowercaseInput.match(pattern);
     if (match) {
+      // Extract direction if present in the climbing pattern
+      const directionMatch = match[0].match(/\b(north|south|east|west)\b/i);
       return {
         type: 'climb',
-        targetDescription: match[0]
+        targetDescription: match[0],
+        direction: directionMatch ? directionMatch[1].toLowerCase() as any : undefined
       };
     }
   }
@@ -189,13 +193,13 @@ IMPORTANT: Be generous with success chances. This is a game where players should
 - For medium risk: 50-70% success chance
 - For high risk: 30-50% success chance
 - For extreme risk: 10-30% success chance
-Player stats should significantly boost these base rates. Aim for fun gameplay over harsh realism.`;
+Player stats should significantly boost these base rates. Aim for fun gameplay over harsh realism. Trees are easy to climb.`;
 
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.5-flash-lite',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -483,12 +487,95 @@ function getFallbackEvaluation(
 }
 
 /**
+ * Auto-detect target tile for movement based on feat type and surrounding terrain
+ */
+function detectTargetTile(
+  attempt: PhysicalFeatAttempt,
+  player: PlayerCharacter,
+  mapData: MapData
+): { direction?: 'north' | 'south' | 'east' | 'west', targetTile?: Tile } | null {
+  if (!mapData?.tiles || !player.location) return null;
+
+  const currentX = player.location.x;
+  const currentY = player.location.y;
+
+  // Get adjacent tiles
+  const adjacentTiles = [
+    { direction: 'north' as const, x: currentX, y: currentY - 1 },
+    { direction: 'south' as const, x: currentX, y: currentY + 1 },
+    { direction: 'east' as const, x: currentX + 1, y: currentY },
+    { direction: 'west' as const, x: currentX - 1, y: currentY }
+  ].filter(({x, y}) =>
+    y >= 0 && y < mapData.tiles.length &&
+    x >= 0 && x < mapData.tiles[0].length
+  ).map(({direction, x, y}) => ({
+    direction,
+    x,
+    y,
+    tile: mapData.tiles[y][x]
+  }));
+
+  // For climbing, look for higher elevation or climbable terrain
+  if (attempt.type === 'climb') {
+    const currentTile = mapData.tiles[currentY][currentX];
+    const climbableTargets = adjacentTiles.filter(({tile}) => {
+      // Look for higher elevation or climbable biomes
+      return tile.altitude > currentTile.altitude ||
+             ['MOUNTAIN', 'HILLS', 'ROCKY_OUTCROPS'].includes(tile.biome as any);
+    });
+
+    if (climbableTargets.length === 1) {
+      // Only one climbable target, auto-select it
+      const target = climbableTargets[0];
+      return {
+        direction: target.direction,
+        targetTile: target.tile
+      };
+    }
+  }
+
+  // For fording, look for water tiles
+  if (attempt.type === 'ford') {
+    const waterTargets = adjacentTiles.filter(({tile}) =>
+      ['RIVER', 'STREAM', 'SHOALS'].includes(tile.biome as any)
+    );
+
+    if (waterTargets.length === 1) {
+      const target = waterTargets[0];
+      return {
+        direction: target.direction,
+        targetTile: target.tile
+      };
+    }
+  }
+
+  // For jumping, look for gaps or obstacles to cross
+  if (attempt.type === 'jump') {
+    const jumpTargets = adjacentTiles.filter(({tile}) =>
+      ['CHASM', 'RAVINE', 'STREAM'].includes(tile.biome as any) ||
+      tile.altitude < mapData.tiles[currentY][currentX].altitude - 2
+    );
+
+    if (jumpTargets.length === 1) {
+      const target = jumpTargets[0];
+      return {
+        direction: target.direction,
+        targetTile: target.tile
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
  * Executes a physical feat after evaluation
  */
 export async function executePhysicalFeat(
   attempt: PhysicalFeatAttempt,
   evaluation: PhysicalFeatResult,
-  player: PlayerCharacter
+  player: PlayerCharacter,
+  mapData?: MapData
 ): Promise<{
   success: boolean;
   message: string;
@@ -521,9 +608,39 @@ export async function executePhysicalFeat(
     }
     
     // Calculate new position if applicable
-    if (attempt.direction) {
+    let targetDirection = attempt.direction;
+    let targetTile = attempt.targetTile;
+
+    // If no direction specified, try auto-detection
+    if (!targetDirection && mapData) {
+      const autoTarget = detectTargetTile(attempt, player, mapData);
+      if (autoTarget) {
+        targetDirection = autoTarget.direction;
+        targetTile = autoTarget.targetTile;
+      }
+    }
+
+    // Check if this is tree climbing or climbing down
+    const isTreeClimbing = attempt.type === 'climb' &&
+      attempt.targetDescription.toLowerCase().includes('tree') &&
+      !attempt.targetDescription.toLowerCase().includes('down');
+
+    const isClimbingDown = attempt.type === 'climb' &&
+      (attempt.targetDescription.toLowerCase().includes('down') ||
+       attempt.targetDescription.toLowerCase().includes('out'));
+
+    if (isTreeClimbing) {
+      // Tree climbing: stay on same tile but set elevated state
+      effects.elevatedState = 'in_tree';
+      effects.elevationDescription = 'up in the tree branches';
+    } else if (isClimbingDown) {
+      // Climbing down: remove elevated state
+      effects.elevatedState = null;
+      effects.elevationDescription = null;
+    } else if (targetDirection) {
+      // Normal movement to adjacent tile
       const currentPos = { x: player.location.x, y: player.location.y };
-      switch (attempt.direction) {
+      switch (targetDirection) {
         case 'north':
           effects.newPosition = { x: currentPos.x, y: currentPos.y - 1 };
           break;
