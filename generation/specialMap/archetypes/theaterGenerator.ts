@@ -12,6 +12,8 @@ import { placeWallRectangle, fillArea } from '../mapLayoutUtils';
 import { addCulturalLighting } from '../culturalFurnitureSystem';
 import { addStorageFurniture } from '../../../components/symbols/architecture/specialMap/index';
 import { addFurnitureToArea, addDecorativeElements } from '../../../generation/specialMap/specialMapGenerator';
+import { applyNorthBackWall } from '../backWallUtils';
+import { placePillar } from '../multiTileSystem';
 
 /**
  * Theater zone types for spatial analysis and procedural furnishing
@@ -754,16 +756,35 @@ export function generateTheater(
   const interactionZones: InteractionZone[] = [];
   const exitZones: ExitZone[] = [];
   
+  // Get cultural theater configuration
+  const theaterConfig = getCulturalTheaterConfig(config.culturalZone, config.era);
+  
+  // Add back wall for stage backdrop - CRITICAL for theater atmosphere
+  applyNorthBackWall(tiles, 0, 0, size.width, config, {
+    hasWindows: false,  // Theaters need darkness for performances
+    windowSpacing: 0
+  });
+  
   // Create perimeter walls with main entrance at south
   placeWallRectangle(tiles, 0, 0, size.width, size.height, [
     { side: 'south', offset: Math.floor(size.width / 2) }
   ]);
   
-  // Get cultural theater configuration
-  const theaterConfig = getCulturalTheaterConfig(config.culturalZone, config.era);
-  
   // Fill with culturally appropriate flooring
   fillArea(tiles, 1, 1, size.width - 2, size.height - 2, theaterConfig.floorMaterial);
+  
+  // Add pillars for grand theaters (Greek/Roman amphitheaters, opera houses)
+  const year = config.specificYear || 1500;
+  if (theaterConfig.stageType === 'amphitheater' && size.width >= 20) {
+    // Classical columns around the perimeter
+    for (let x = 3; x < size.width - 3; x += 4) {
+      placePillar(tiles, x, 2, 'white_marble', year);
+    }
+  } else if (theaterConfig.name === 'Opera House' && size.width >= 15) {
+    // Ornate pillars in the foyer
+    placePillar(tiles, 4, size.height - 4, 'white_marble', year);
+    placePillar(tiles, size.width - 5, size.height - 4, 'white_marble', year);
+  }
   
   // Define theater zones based on cultural configuration
   const zones = defineTheaterZones(tiles, size, theaterConfig);

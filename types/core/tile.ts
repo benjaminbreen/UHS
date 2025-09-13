@@ -109,6 +109,15 @@ export interface Tile {
   // NEW: Overlay system for furniture and objects
   overlayObject?: OverlayObject; // Object that overlays this tile (chair, table, etc.)
   isBlocking?: boolean; // Whether this tile blocks movement (can be from overlay or base biome)
+  
+  // Collectible item system for special maps
+  collectibleItem?: {
+    item: any; // Item type from inventory system
+    collected: boolean;
+    containerType?: OverlayObjectType; // If item is in a container (CHEST, BARREL, etc.)
+    ownerNpc?: string; // ID of NPC who owns this item/container
+    isValuable?: boolean; // Whether taking this triggers theft awareness
+  };
 }
 
 /**

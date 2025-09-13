@@ -11,6 +11,8 @@ import { ValueNoise } from '../../../utils/noise';
 import { placeWallRectangle, fillArea } from '../mapLayoutUtils';
 import { createRoom, ensureRoomsDefined, RoomTemplates } from '../types/roomHelpers';
 import { getCulturalGenerator } from '../culturalGeneratorRegistry';
+import { applyNorthBackWall, applyRoomDivider } from '../backWallUtils';
+import { placePillar } from '../multiTileSystem';
 
 // Import cultural generators to ensure they register
 import '../archetypes/cultures/nativeAmericanGenerators';
@@ -128,19 +130,30 @@ function generateClassicalTemple(
   // Fill with marble floors
   fillArea(tiles, 0, 0, size.width, size.height, BiomeType.FLOOR_MARBLE);
   
-  // Outer colonnade - massive columns around perimeter
+  // Add back wall to north edge for depth
+  applyNorthBackWall(tiles, 0, 0, size.width, config, {
+    hasWindows: false, // Temples typically have solid back walls
+    windowSpacing: 8
+  });
+  
+  // Use proper multi-tile pillars for Greek/Roman temples
+  const year = config.specificYear || -300; // Default to Classical period
+  
+  // Outer colonnade - massive marble columns around perimeter
   for (let x = 2; x < size.width - 2; x += 3) {
-    tiles[2][x].overlayObject = { type: OverlayObjectType.COLUMN, rotation: 0 };
-    tiles[2][x].isBlocking = true;
-    tiles[size.height - 3][x].overlayObject = { type: OverlayObjectType.COLUMN, rotation: 0 };
-    tiles[size.height - 3][x].isBlocking = true;
+    // Front row of pillars (using multi-tile system)
+    placePillar(tiles, x, size.height - 3, 'white_marble', year);
+    
+    // Back row against back wall
+    if (x > 4 && x < size.width - 5) { // Don't put pillars too close to edges
+      placePillar(tiles, x, 3, 'white_marble', year);
+    }
   }
   
-  for (let y = 2; y < size.height - 2; y += 3) {
-    tiles[y][2].overlayObject = { type: OverlayObjectType.COLUMN, rotation: 0 };
-    tiles[y][2].isBlocking = true;
-    tiles[y][size.width - 3].overlayObject = { type: OverlayObjectType.COLUMN, rotation: 0 };
-    tiles[y][size.width - 3].isBlocking = true;
+  // Side pillars
+  for (let y = 5; y < size.height - 5; y += 3) {
+    placePillar(tiles, 2, y, 'white_marble', year);
+    placePillar(tiles, size.width - 3, y, 'white_marble', year);
   }
   
   // Inner cella (sanctuary)
@@ -153,6 +166,12 @@ function generateClassicalTemple(
   placeWallRectangle(tiles, cellaX, cellaY, cellaWidth, cellaHeight, [
     { side: 'south', offset: Math.floor(cellaWidth / 2) }
   ]);
+  
+  // Add back wall inside the cella for the inner sanctuary
+  applyNorthBackWall(tiles, cellaX + 1, cellaY + 1, cellaWidth - 2, config, {
+    hasWindows: false,
+    windowSpacing: 0
+  });
   
   // Sacred altar at back of cella
   tiles[cellaY + 2][centerX].overlayObject = { type: OverlayObjectType.ALTAR, rotation: 0 };
@@ -192,6 +211,12 @@ function generateMedievalChurch(
 ) {
   // Stone floor base
   fillArea(tiles, 0, 0, size.width, size.height, BiomeType.FLOOR_STONE);
+  
+  // Add back wall with Gothic windows
+  applyNorthBackWall(tiles, 0, 0, size.width, config, {
+    hasWindows: true,
+    windowSpacing: 4  // Gothic churches have more windows
+  });
   
   // Cruciform layout - nave, transept, chancel
   const naveLength = Math.floor(size.height * 0.7);
@@ -315,6 +340,12 @@ function generateIslamicMosque(
 ) {
   // Geometric tile patterns throughout
   fillArea(tiles, 0, 0, size.width, size.height, BiomeType.FLOOR_TILE);
+  
+  // Add decorated back wall with geometric patterns (no windows in qibla wall)
+  applyNorthBackWall(tiles, 0, 0, size.width, config, {
+    hasWindows: false,  // Qibla wall traditionally has no windows
+    windowSpacing: 0
+  });
   
   // Prayer hall - large open space
   const hallWidth = size.width - 6;

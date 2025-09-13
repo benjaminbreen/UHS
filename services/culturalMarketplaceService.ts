@@ -661,6 +661,24 @@ export class CulturalMarketplaceService {
   }
   
   /**
+   * Format item names properly (CLOTH -> Cloth, SOUTH_AMERICAN -> South American)
+   */
+  private formatItemName(name: string): string {
+    // First handle cultural zone names (SOUTH_AMERICAN -> South American)
+    const formatted = name.replace(/_/g, ' ');
+    
+    // Capitalize each word properly
+    return formatted.split(' ').map(word => {
+      // Keep certain acronyms uppercase
+      if (['USA', 'UK', 'EU', 'NATO', 'UN'].includes(word)) {
+        return word;
+      }
+      // Otherwise proper case
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    }).join(' ');
+  }
+
+  /**
    * Create a market good with cultural context
    */
   private createMarketGood(
@@ -676,9 +694,12 @@ export class CulturalMarketplaceService {
     const basePrice = definition.value || 10;
     const currentPrice = Math.round(basePrice * priceModifier);
     
+    // Format the name properly
+    const formattedName = this.formatItemName(definition.name);
+    
     return {
       itemId,
-      name: definition.name,
+      name: formattedName,
       culturalName: this.getCulturalName(itemId, culturalZone),
       basePrice,
       currentPrice,

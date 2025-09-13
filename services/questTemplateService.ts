@@ -111,9 +111,9 @@ export class QuestTemplateService {
       generateRewards: (context, difficulty) => {
         const baseRewards: QuestReward[] = [
           {
-            type: 'experience',
-            value: difficulty === 'easy' ? 10 : difficulty === 'medium' ? 25 : 50,
-            description: 'Experience gained from exploration'
+            type: 'level_up',
+            value: 1,
+            description: 'Level up!'
           },
           {
             type: 'map_reveal',
@@ -497,21 +497,14 @@ export class QuestTemplateService {
       },
       generateRewards: (context, difficulty) => [
         {
-          type: 'knowledge',
-          value: this.generateKnowledgeType(context),
-          description: 'Ancient wisdom discovered'
+          type: 'level_up',
+          value: 1,
+          description: 'Level up!'
         },
         {
           type: 'experience',
           value: difficulty === 'easy' ? 15 : difficulty === 'medium' ? 30 : 50,
-          description: 'Experience from study'
-        },
-        {
-          type: 'special_ability',
-          value: 'scholar',
-          description: 'Enhanced learning ability',
-          guaranteed: false,
-          chance: 0.4
+          description: 'Experience gained'
         }
       ]
     });
@@ -820,7 +813,7 @@ export class QuestTemplateService {
     };
     
     const eraContexts = contexts[String(context.era)] || contexts['MEDIEVAL'];
-    return eraContexts[String(context.culturalZone)] || 'Adventure awaits in these lands.';
+    return eraContexts[String(context.culturalZone)] || null;
   }
 }
 

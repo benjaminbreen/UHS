@@ -79,5 +79,5 @@ export * from './gameData/primarysources'; // NEW: Export primary sources data
 export * from './gameData/societalProfiles';
 export * from './gameData/beliefs'; // NEW: Export beliefs data
 export * from './gameData/factoryTypes'; // NEW: Export factory types
-export * from './characterData/clothing'; // NEW: Export clothing data
+// export * from './characterData/clothing'; // Lazy loaded to improve startup performance
 export * from './gameData/goals'; // NEW: Export goal data

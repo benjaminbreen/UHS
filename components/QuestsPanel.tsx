@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, MapPin, CheckCircle, Circle, ChevronRight, Target, Award, Clock } from 'lucide-react';
+import { X, MapPin, CheckCircle, Circle, ChevronRight, Target, Award, Clock, Shield, Zap, BookOpen, Navigation, Users } from 'lucide-react';
 import { questService } from '../services/questService';
 import { Quest, QuestObjective } from '../types/questTypes';
 
@@ -14,6 +14,7 @@ const QuestsPanel: React.FC<QuestsPanelProps> = ({ isOpen, onClose, onNavigateTo
   const [completedQuests, setCompletedQuests] = useState<Quest[]>([]);
   const [selectedTab, setSelectedTab] = useState<'active' | 'completed'>('active');
   const [expandedQuest, setExpandedQuest] = useState<string | null>(null);
+  const [completionAnimation, setCompletionAnimation] = useState<{ questId: string; show: boolean } | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -34,12 +35,47 @@ const QuestsPanel: React.FC<QuestsPanelProps> = ({ isOpen, onClose, onNavigateTo
       setCompletedQuests(questService.getCompletedQuests());
     };
     
+    const handleQuestProgressUpdated = () => {
+      // Refresh quests when progress changes (e.g., objective auto-completed)
+      setActiveQuests(questService.getActiveQuests());
+    };
+    
+    const handleQuestObjectiveComplete = (event: CustomEvent) => {
+      // Show a brief notification when an objective is completed
+      console.log('Quest objective completed:', event.detail.message);
+      setActiveQuests(questService.getActiveQuests());
+    };
+    
+    const handleQuestComplete = (event: CustomEvent) => {
+      // Trigger completion animation
+      const questId = event.detail.quest?.id;
+      if (questId) {
+        setCompletionAnimation({ questId, show: true });
+        setTimeout(() => setCompletionAnimation(null), 3000);
+      }
+      setActiveQuests(questService.getActiveQuests());
+      setCompletedQuests(questService.getCompletedQuests());
+    };
+    
+    const handleActiveQuestChanged = () => {
+      // Refresh quest data when active quest changes
+      setActiveQuests(questService.getActiveQuests());
+    };
+    
     window.addEventListener('questAdded', handleQuestAdded);
     window.addEventListener('questCompleted', handleQuestCompleted);
+    window.addEventListener('questProgressUpdated', handleQuestProgressUpdated);
+    window.addEventListener('questObjectiveComplete', handleQuestObjectiveComplete as EventListener);
+    window.addEventListener('questComplete', handleQuestComplete as EventListener);
+    window.addEventListener('activeQuestChanged', handleActiveQuestChanged);
     
     return () => {
       window.removeEventListener('questAdded', handleQuestAdded);
       window.removeEventListener('questCompleted', handleQuestCompleted);
+      window.removeEventListener('questProgressUpdated', handleQuestProgressUpdated);
+      window.removeEventListener('questObjectiveComplete', handleQuestObjectiveComplete as EventListener);
+      window.removeEventListener('questComplete', handleQuestComplete as EventListener);
+      window.removeEventListener('activeQuestChanged', handleActiveQuestChanged);
     };
   }, []);
 
@@ -57,11 +93,43 @@ const QuestsPanel: React.FC<QuestsPanelProps> = ({ isOpen, onClose, onNavigateTo
       case 'exploration': return 'text-blue-400 bg-blue-900/20';
       case 'social': return 'text-purple-400 bg-purple-900/20';
       case 'survival': return 'text-red-400 bg-red-900/20';
+      case 'combat': return 'text-orange-400 bg-orange-900/20';
+      case 'diplomacy': return 'text-indigo-400 bg-indigo-900/20';
+      case 'scholarship': return 'text-cyan-400 bg-cyan-900/20';
       default: return 'text-gray-400 bg-gray-900/20';
     }
   };
+  
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'combat': return Shield;
+      case 'exploration': return Navigation;
+      case 'social': return Users;
+      case 'scholarship': return BookOpen;
+      case 'survival': return Zap;
+      default: return Target;
+    }
+  };
+  
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'easy': return 'text-green-400';
+      case 'medium': return 'text-yellow-400';
+      case 'hard': return 'text-red-400';
+      default: return 'text-gray-400';
+    }
+  };
+  
+  const calculateDistance = (from: { x: number; y: number }, to: { x: number; y: number }) => {
+    return Math.floor(Math.sqrt(Math.pow(to.x - from.x, 2) + Math.pow(to.y - from.y, 2)));
+  };
 
   const renderObjective = (objective: QuestObjective, isCurrentObjective: boolean) => {
+    // Enhanced objective description with actual entity names
+    const enhancedDescription = objective.targetNpcName 
+      ? objective.description.replace(/NPC|npc|person/, objective.targetNpcName)
+      : objective.description;
+      
     return (
       <div 
         key={objective.id}
@@ -84,7 +152,7 @@ const QuestsPanel: React.FC<QuestsPanelProps> = ({ isOpen, onClose, onNavigateTo
           <p className={`text-xs ${
             objective.completed ? 'line-through text-gray-500' : 'text-gray-300'
           }`}>
-            {objective.description}
+            {enhancedDescription}
           </p>
           {objective.targetLocation && !objective.completed && (
             <button
@@ -95,7 +163,13 @@ const QuestsPanel: React.FC<QuestsPanelProps> = ({ isOpen, onClose, onNavigateTo
               className="flex items-center gap-1 mt-1 text-xs text-blue-400 hover:text-blue-300"
             >
               <MapPin className="w-3 h-3" />
-              Show on map ({objective.targetLocation.x}, {objective.targetLocation.y})
+              {(() => {
+                const distance = calculateDistance(
+                  { x: 0, y: 0 }, // Would need player position here
+                  objective.targetLocation!
+                );
+                return `Tile [${Math.floor(objective.targetLocation!.x)}, ${Math.floor(objective.targetLocation!.y)}] • ~${distance} tiles away`;
+              })()}
             </button>
           )}
         </div>
@@ -107,21 +181,44 @@ const QuestsPanel: React.FC<QuestsPanelProps> = ({ isOpen, onClose, onNavigateTo
     const isExpanded = expandedQuest === quest.id;
     const progress = quest.objectives.filter(o => o.completed).length;
     const total = quest.objectives.length;
+    const progressPercentage = questService.getQuestProgress(quest);
+    const currentObjective = quest.objectives[quest.currentObjectiveIndex];
+    const objectiveProgress = currentObjective ? questService.getObjectiveProgress(currentObjective) : '';
 
+    const hasCompletionAnimation = completionAnimation?.questId === quest.id && completionAnimation?.show;
+    
     return (
       <div
         key={quest.id}
-        className="bg-slate-800/50 rounded-lg border border-slate-700 overflow-hidden"
+        className={`bg-slate-800/50 rounded-lg border border-slate-700 overflow-hidden relative ${
+          hasCompletionAnimation ? 'animate-pulse ring-2 ring-yellow-400 ring-opacity-75' : ''
+        }`}
       >
+        {/* Completion sparkle effect */}
+        {hasCompletionAnimation && (
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-green-400/20 animate-pulse" />
+            <div className="absolute top-2 right-2 text-2xl animate-bounce">🎉</div>
+          </div>
+        )}
         <button
           onClick={() => setExpandedQuest(isExpanded ? null : quest.id)}
           className="w-full p-3 flex items-start gap-3 hover:bg-slate-700/30 transition-colors"
         >
           <div className="flex-1 text-left">
             <div className="flex items-center gap-2 mb-1">
+              {(() => {
+                const Icon = getCategoryIcon(quest.category);
+                return <Icon className="w-3 h-3 text-gray-400" />;
+              })()}
               <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${getCategoryColor(quest.category)}`}>
                 {quest.category.toUpperCase()}
               </span>
+              {quest.difficulty && (
+                <span className={`text-[10px] font-medium ${getDifficultyColor(quest.difficulty)}`}>
+                  {quest.difficulty.toUpperCase()}
+                </span>
+              )}
               {quest.isLLMGenerated && (
                 <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-purple-900/20 text-purple-400">
                   DYNAMIC
@@ -129,6 +226,19 @@ const QuestsPanel: React.FC<QuestsPanelProps> = ({ isOpen, onClose, onNavigateTo
               )}
             </div>
             <h3 className="text-sm font-semibold text-white mb-1">{quest.title}</h3>
+            
+            {/* Progress Bar */}
+            {quest.status === 'active' && (
+              <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
+                <div 
+                  className="bg-gradient-to-r from-blue-500 to-blue-400 h-2 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${progressPercentage}%` }}
+                >
+                  <div className="h-full rounded-full bg-white/20 animate-pulse" />
+                </div>
+              </div>
+            )}
+            
             <div className="flex items-center gap-4 text-xs text-gray-400">
               <span className="flex items-center gap-1">
                 <Target className="w-3 h-3" />
@@ -141,6 +251,13 @@ const QuestsPanel: React.FC<QuestsPanelProps> = ({ isOpen, onClose, onNavigateTo
                 </span>
               )}
             </div>
+            
+            {/* Current Objective Progress (for collection quests) */}
+            {objectiveProgress && quest.status === 'active' && (
+              <div className="mt-1 text-xs text-blue-400">
+                Progress: {objectiveProgress}
+              </div>
+            )}
           </div>
           <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${
             isExpanded ? 'rotate-90' : ''
@@ -152,11 +269,35 @@ const QuestsPanel: React.FC<QuestsPanelProps> = ({ isOpen, onClose, onNavigateTo
             <p className="text-xs text-gray-300 mt-3 mb-3">
               {quest.description}
             </p>
+            
+            {/* Quest Activation Button */}
+            {selectedTab === 'active' && (
+              <div className="mb-3">
+                <button
+                  onClick={() => {
+                    if (quest.isActiveQuest) {
+                      questService.deactivateAllQuests();
+                    } else {
+                      questService.setActiveQuest(quest.id);
+                    }
+                    // Refresh quest data
+                    setActiveQuests(questService.getActiveQuests());
+                  }}
+                  className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                    quest.isActiveQuest
+                      ? 'bg-purple-600 hover:bg-purple-700 text-white border border-purple-500'
+                      : 'bg-slate-600 hover:bg-slate-500 text-slate-300 border border-slate-500'
+                  }`}
+                >
+                  {quest.isActiveQuest ? 'Active Quest' : 'Activate'}
+                </button>
+              </div>
+            )}
 
             {quest.historicalContext && (
               <div className="bg-amber-900/10 border border-amber-600/20 rounded p-2 mb-3">
                 <p className="text-xs text-amber-400/80 italic">
-                  Historical Context: {quest.historicalContext}
+                  📜 {quest.historicalContext}
                 </p>
               </div>
             )}
@@ -189,7 +330,17 @@ const QuestsPanel: React.FC<QuestsPanelProps> = ({ isOpen, onClose, onNavigateTo
     );
   };
 
-  const questsToDisplay = selectedTab === 'active' ? activeQuests : completedQuests;
+  // Sort quests by category for better organization
+  const sortQuests = (quests: Quest[]) => {
+    const categoryOrder = ['main', 'survival', 'exploration', 'trade', 'social', 'combat', 'diplomacy', 'scholarship'];
+    return [...quests].sort((a, b) => {
+      const aIndex = categoryOrder.indexOf(a.category) !== -1 ? categoryOrder.indexOf(a.category) : 999;
+      const bIndex = categoryOrder.indexOf(b.category) !== -1 ? categoryOrder.indexOf(b.category) : 999;
+      return aIndex - bIndex;
+    });
+  };
+  
+  const questsToDisplay = sortQuests(selectedTab === 'active' ? activeQuests : completedQuests);
 
   return (
     <div className={`
@@ -257,6 +408,18 @@ const QuestsPanel: React.FC<QuestsPanelProps> = ({ isOpen, onClose, onNavigateTo
           ) : (
             <div className="space-y-2">
               {questsToDisplay.map(quest => renderQuest(quest))}
+              
+              {selectedTab === 'completed' && completedQuests.length > 0 && (
+                <button
+                  onClick={() => {
+                    questService.clearCompletedQuests();
+                    setCompletedQuests([]);
+                  }}
+                  className="w-full mt-4 px-3 py-2 bg-red-900/20 hover:bg-red-900/30 border border-red-600/30 rounded text-xs text-red-400 transition-colors"
+                >
+                  Clear All Completed Quests
+                </button>
+              )}
             </div>
           )}
         </div>

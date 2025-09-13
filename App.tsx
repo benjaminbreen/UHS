@@ -27,6 +27,7 @@ import { suggestGameMode, GAME_MODES, getGameModeById } from './constants/gameDa
 import InitialScenarioModal from './components/InitialScenarioModal';
 import { eventService } from './services/eventService';
 import QuestRewardNotification from './components/QuestRewardNotification';
+import QuestNotificationToast from './components/QuestNotification';
 import { parseURLConfig, URLGameConfig } from './services/urlConfigService';
 import { SeedManager } from './services/seedService';
 import { shareableStateService } from './services/shareableStateService';
@@ -34,6 +35,8 @@ import { findZoneForMapArea, findSimilarMapArea } from './services/zoneDetection
 import { useURLGameConfig } from './hooks/useURLGameConfig';
 import FactionsModal from './components/FactionsModal';
 import FactionTooltip from './components/FactionTooltip';
+import { SavedGame } from './services/saveGameService';
+import FloatingText from './components/ui/FloatingText';
 
 const AppContent: React.FC = () => {
     const location = useLocation();
@@ -41,7 +44,54 @@ const AppContent: React.FC = () => {
     
     // Parse URL config FIRST, before any hooks that use game state
     const urlConfig = React.useMemo(() => {
-        // First check for new state parameter format
+        // Check for pending save load FIRST
+        const pendingSaveLoadString = localStorage.getItem('pendingSaveLoad');
+        if (pendingSaveLoadString) {
+            try {
+                const savedGame: SavedGame = JSON.parse(pendingSaveLoadString);
+                localStorage.removeItem('pendingSaveLoad'); // Clear it immediately
+                
+                console.log('╔═══════════════════════════════════════════════════════');
+                console.log('║ LOADING SAVED GAME');
+                console.log('╠═══════════════════════════════════════════════════════');
+                console.log('║ Save Name:', savedGame.name);
+                console.log('║ Character:', savedGame.playerCharacter.name);
+                console.log('║ Location:', savedGame.mapArea);
+                console.log('║ Date: Year', savedGame.year, 'Month', savedGame.month, 'Day', savedGame.day);
+                console.log('╚═══════════════════════════════════════════════════════');
+                
+                // Store the full saved game data for restoration
+                localStorage.setItem('restoringFromSave', 'true');
+                localStorage.setItem('savedGameData', JSON.stringify(savedGame));
+                
+                // Initialize seed manager with the saved seed
+                SeedManager.getInstance(savedGame.mapSeed);
+                
+                // Store character and game mode for restoration
+                localStorage.setItem('urlCharacterData', JSON.stringify(savedGame.playerCharacter));
+                localStorage.setItem('urlGameMode', savedGame.gameMode);
+                
+                // Return a config that will trigger the proper map generation
+                return {
+                    dateRange: {
+                        startYear: savedGame.year,
+                        endYear: savedGame.year
+                    },
+                    geography: {
+                        culturalZone: savedGame.zone as any,
+                        region: savedGame.region as any
+                    },
+                    gameMode: savedGame.gameMode as any,
+                    seed: savedGame.mapSeed,
+                    savedGame: savedGame
+                } as URLGameConfig & { savedGame?: SavedGame };
+            } catch (error) {
+                console.error('[App] Error loading saved game:', error);
+                localStorage.removeItem('pendingSaveLoad');
+            }
+        }
+        
+        // Then check for new state parameter format
         const searchParams = new URLSearchParams(location.search);
         const stateParam = searchParams.get('state');
         
@@ -116,7 +166,7 @@ const AppContent: React.FC = () => {
     }, []); // Only parse once on mount
     
     useCoreLoops();
-    const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, debugSettings, isTestModeEnabled } = useUI();
+    const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, debugSettings, isTestModeEnabled, floatingTextMessages, removeFloatingText } = useUI();
     const { playerCharacter } = usePlayer();
     const { gameDate, currentZone, currentRegion, isLoading } = useGame();
     const mapContext = useMap();
@@ -503,6 +553,9 @@ const AppContent: React.FC = () => {
 
     return (
       <div className="bg-slate-900 text-gray-100 flex flex-col h-screen overflow-hidden">
+        {/* Quest Notifications */}
+        <QuestNotificationToast />
+        
         <div className="relative z-10 flex flex-col h-full">
             {/* Desktop Navigation */}
             {!isMobile && <TopNavBarPolished />}
@@ -706,6 +759,12 @@ const AppContent: React.FC = () => {
             urlConfig={urlConfig}
           />
         )}
+
+        {/* Floating Text System */}
+        <FloatingText 
+          messages={floatingTextMessages} 
+          onMessageComplete={removeFloatingText} 
+        />
       </div>
     );
 };

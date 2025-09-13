@@ -212,7 +212,9 @@ export function renderStubble(opts: StubbleOpts) {
 
       if (field > threshold) {
         const jitter = (x + y) % 7 === 0 ? 1 : 0;
-        plotPixel(elements, x + jitter, y, stubbleColor, 'stubble');
+        // Add a unique identifier to prevent duplicate keys when jitter causes overlap
+        const uniqueId = `${x}-${y}-${jitter}`;
+        plotPixel(elements, x + jitter, y, stubbleColor, `stubble-${uniqueId}`);
       }
     }
   }

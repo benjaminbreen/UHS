@@ -2,7 +2,7 @@
  * components/TerrainStructureModal.tsx - Enhanced modal for terrain structures with larger banner display
  */
 import React, { useMemo, useState } from 'react';
-import { TerrainStructure, MapData, Tile, BiomeType, Season, TimeOfDay, NpcEntity, HistoricalEra } from '../types';
+import { TerrainStructure, MapData, Tile, BiomeType, Season, TimeOfDay, NpcEntity, HistoricalEra, ClimateType } from '../types';
 import { calculatePrices } from '../services/economyService';
 import { STRUCTURE_BLUEPRINTS } from '../constants/index';
 import { getPrimaryIndustry, getRegionalIndustries, IndustryData } from '../constants/gameData/economicSectors';
@@ -11,6 +11,8 @@ import TerrainStructureBanner from './TerrainStructureBanner';
 import { getFactionData } from '../constants/gameData/factionIcons';
 import FactionsModal from './FactionsModal';
 import RuinStructureModal from './RuinStructureModal';
+import FishingHutModal from './FishingHutModal';
+import { CulturalZone } from '../types/characterData';
 
 // Helper to find the nearest urban center to a given point.
 const findNearestUrbanSettlement = (startPoint: [number, number], tiles: Tile[][]): { tile: Tile, distance: number } | null => {
@@ -90,6 +92,8 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
 }) => {
     // State for factions modal
     const [showFactionsModal, setShowFactionsModal] = useState(false);
+    // State for fishing modal
+    const [showFishingModal, setShowFishingModal] = useState(false);
     
     // Parse era from formatted date
     const getEraFromDate = (dateInput?: any): string => {
@@ -592,9 +596,19 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
                     <div className="text-xs text-slate-500">
                         {formattedDate && <span>Year {era} • {currentLocation}</span>}
                     </div>
-                    <button onClick={onClose} className="ff-action-button px-6 py-2 text-sm">
-                        Close
-                    </button>
+                    <div className="flex gap-2">
+                        {structureType === 'fishing_hut' && (
+                            <button 
+                                onClick={() => setShowFishingModal(true)} 
+                                className="ff-action-button px-6 py-2 text-sm bg-blue-600 hover:bg-blue-700"
+                            >
+                                🎣 Enter Fishing Hut
+                            </button>
+                        )}
+                        <button onClick={onClose} className="ff-action-button px-6 py-2 text-sm">
+                            Close
+                        </button>
+                    </div>
                 </footer>
             </div>
             
@@ -606,6 +620,38 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
                     currentRegion={mapData?.region}
                     dominantPower={allegianceGroup}
                     allegianceGroups={[]} // Could be expanded to include other local powers
+                />
+            )}
+            
+            {/* Fishing Hut Modal */}
+            {showFishingModal && (
+                <FishingHutModal
+                    isOpen={showFishingModal}
+                    onClose={() => setShowFishingModal(false)}
+                    structure={structure}
+                    culturalZone={mapData?.localArea as CulturalZone || 'EUROPEAN'}
+                    historicalEra={
+                        year < 500 ? HistoricalEra.ANTIQUITY :
+                        year < 1500 ? HistoricalEra.MEDIEVAL :
+                        year < 1800 ? HistoricalEra.RENAISSANCE_EARLY_MODERN :
+                        year < 1900 ? HistoricalEra.INDUSTRIAL_ERA :
+                        HistoricalEra.MODERN_ERA
+                    }
+                    climate={mapData?.climate || ClimateType.TEMPERATE}
+                    biome={stats.biome || BiomeType.PLAINS}
+                    season={season}
+                    year={year}
+                    isCoastal={stats.biome === BiomeType.BEACH || stats.biome === BiomeType.SHALLOW_WATER}
+                    isFreshwater={stats.biome === BiomeType.WETLANDS || stats.biome === BiomeType.RAINFOREST}
+                    timeOfDay={timeOfDay}
+                    playerCharacter={playerCharacter}
+                    onInventoryUpdate={(newItem) => {
+                        // Add item to player inventory
+                        if (playerCharacter) {
+                            if (!playerCharacter.inventory) playerCharacter.inventory = [];
+                            playerCharacter.inventory.push(newItem);
+                        }
+                    }}
                 />
             )}
         </div>

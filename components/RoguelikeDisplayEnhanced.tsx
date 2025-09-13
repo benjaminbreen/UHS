@@ -9,6 +9,7 @@ import { generateNPCDialogue } from '../services/llmService';
 import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { ruinProgressService } from '../services/ruinProgressService';
+import gameSounds from '../services/gameSoundsService';
 
 interface RoguelikeDisplayEnhancedProps {
     ruinType: {
@@ -738,15 +739,18 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             
             if (!result.hit) {
                 addMessage(`Your attack misses the ${entity.name}!`);
+                gameSounds.playRoguelikeAttackSound(false); // Miss sound
             } else {
                 const critText = result.critical ? ' CRITICAL HIT!' : '';
                 addMessage(`You strike the ${entity.name} for ${result.damage} damage!${critText}`);
+                gameSounds.playRoguelikeAttackSound(true); // Hit sound
                 
                 setEntities(prev => prev.map(e => {
                     if (e.id === entity.id) {
                         const newHp = Math.max(0, e.hp - result.damage);
                         if (newHp === 0) {
                             addMessage(`✦ You defeated the ${e.name}!`);
+                            gameSounds.playEnemyDefeatSound();
                             
                             // Handle loot
                             if (e.loot && Array.isArray(e.loot) && e.loot.length > 0) {
@@ -778,6 +782,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                                     newP.defense += 1;
                                     newP.nextLevelExp = nextLevel * 1.5;
                                     addMessage(`☆ LEVEL UP! You are now level ${newP.level}! ☆`);
+                                    gameSounds.playLevelUpSound();
                                 }
                                 
                                 return newP;
@@ -804,9 +809,11 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             
             if (!result.hit) {
                 addMessage(`The ${entity.name}'s attack misses!`);
+                gameSounds.playRoguelikeAttackSound(false); // Enemy miss
             } else {
                 const critText = result.critical ? ' CRITICAL HIT!' : '';
                 addMessage(`The ${entity.name} attacks you for ${result.damage} damage!${critText}`);
+                gameSounds.playDamageSound(result.critical ? 'heavy' : result.damage > 10 ? 'medium' : 'light');
                 
                 setPlayer(prev => {
                     const newHp = Math.max(0, prev.hp - result.damage);
@@ -825,6 +832,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         setCombatState({ active: true, enemy: entity, playerTurn: true });
         addMessage(`⚔ Combat with ${entity.name} begins!`);
         addMessage(`  ${entity.name}: HP ${entity.hp}/${entity.maxHp}, Level ${entity.level}`);
+        gameSounds.playRoguelikeCombatSound();
     }, [addMessage]);
 
     // Move entities
@@ -880,6 +888,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             // Can't move through walls
             if (tile.type === 'wall') {
                 addMessage('You bump into a wall.');
+                gameSounds.playWallBumpSound();
                 return prev;
             }
             
@@ -906,6 +915,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                         newPlayer.gold += tile.hasGold;
                         addMessage(`You found ${tile.hasGold} gold!`);
                         onGoldChange?.(newPlayer.gold);
+                        gameSounds.playGoldPickupSound();
                         setDungeon(prevDungeon => {
                             const newDungeon = [...prevDungeon];
                             newDungeon[newY][newX] = { ...tile, type: 'floor', hasGold: undefined };
@@ -916,6 +926,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                         newPlayer.inventory.push(tile.hasItem);
                         addMessage(`You found: ${tile.hasItem.name}!`);
                         onInventoryAdd?.(tile.hasItem);
+                        gameSounds.playItemPickupSound('generic');
                         setDungeon(prevDungeon => {
                             const newDungeon = [...prevDungeon];
                             newDungeon[newY][newX] = { ...tile, type: 'floor', hasItem: undefined };
@@ -929,6 +940,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                         newPlayer.manuscripts.push(tile.hasManuscript);
                         addMessage(`You discovered: "${tile.hasManuscript.title}"!`);
                         addMessage('Press M to read the manuscript.');
+                        gameSounds.playManuscriptSound();
                         setDiscoveredSources(prev => [...prev, tile.hasManuscript]);
                         setDungeon(prevDungeon => {
                             const newDungeon = [...prevDungeon];
@@ -943,6 +955,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                         const damage = 10 + Math.floor(Math.random() * 15);
                         newPlayer.hp = Math.max(0, newPlayer.hp - damage);
                         addMessage(`You triggered a trap! Lost ${damage} HP.`);
+                        gameSounds.playTrapSound();
                         onHealthChange?.(newPlayer.hp);
                         setDungeon(prevDungeon => {
                             const newDungeon = [...prevDungeon];
@@ -954,16 +967,19 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     
                 case 'stairs_down':
                     addMessage('You found stairs leading deeper. Press > to descend.');
+                    gameSounds.playStairsSound();
                     break;
                     
                 case 'altar':
                     addMessage('You examine the ancient altar. Mysterious energies emanate from it.');
+                    gameSounds.playAltarSound();
                     break;
                     
                 case 'food':
                     if (tile.hasFood) {
                         newPlayer.hunger = Math.min((newPlayer.maxHunger || 100), (newPlayer.hunger || 0) + 30);
                         addMessage(`You eat the ${tile.hasFood}. Hunger restored!`);
+                        gameSounds.playItemPickupSound('food');
                         setDungeon(prevDungeon => {
                             const newDungeon = [...prevDungeon];
                             newDungeon[newY][newX] = { ...tile, type: 'floor', hasFood: undefined };
@@ -977,6 +993,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                         newPlayer.hasTorch = true;
                         newPlayer.torchTurns = 100;
                         addMessage('You picked up a torch! Your vision range increased.');
+                        gameSounds.playTorchSound();
                         setDungeon(prevDungeon => {
                             const newDungeon = [...prevDungeon];
                             newDungeon[newY][newX] = { ...tile, type: 'floor', hasTorch: undefined };
@@ -984,6 +1001,11 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                         });
                     }
                     break;
+            }
+            
+            // Play footstep sound if player actually moved
+            if (newPlayer.x !== prev.x || newPlayer.y !== prev.y) {
+                gameSounds.playFootstepSound();
             }
             
             setTurnCount(prev => prev + 1);

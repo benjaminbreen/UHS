@@ -24,6 +24,7 @@ import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
 import { getAnimalTexts } from '../constants/gameData/animalTexts';
 import { useGame } from '../contexts/GameContext';
+import gameSounds from '../services/gameSoundsService';
 import { npcPersistenceService } from '../services/npcPersistenceService';
 import { 
     attemptTaming, 
@@ -37,6 +38,7 @@ import { getLanguageForCharacter, getLanguageComprehension, LANGUAGES } from '..
 import { triggerArrest, ArrestScenario } from '../services/arrestService';
 import { usePortraitExpression, mapRepDeltaToExpr, mapEventToExpr, mapPersonalityToExpr } from '../hooks/usePortraitExpression';
 import { diseaseService } from '../services/diseaseService';
+import { crisisDetectionService } from '../services/crisisDetectionService';
 
 function isNpc(target: EncounterableEntity): target is NpcEntity {
     return 'role' in target;
@@ -572,6 +574,16 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                 const initialEntry: DialogueEntry = { speaker: 'npc', text: response.text, timestamp: new Date() };
                 setHistory([initialEntry]);
                 
+                // Check for crisis mentions in NPC dialogue
+                if (mapData) {
+                    const location = { x: target.x, y: target.y };
+                    const crisis = crisisDetectionService.detectCrisis(response.text, target, location);
+                    if (crisis) {
+                        console.log(`[Crisis] Detected crisis from ${target.name}: ${crisis.pattern.id}`);
+                        showToast(`⚠️ ${target.name} mentioned troubling news about ${crisis.pattern.flavorText.toLowerCase()}`);
+                    }
+                }
+                
                 // Check for hostile or dismissive response
                 checkNpcReaction(response);
                 setIsLoading(false);
@@ -594,6 +606,133 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
             dialogueLogRef.current.scrollTop = dialogueLogRef.current.scrollHeight;
         }
     }, [history, isLoading]);
+
+    // Play animal sound when modal opens for animals
+    useEffect(() => {
+        // Check if target is an animal (has speciesName property)
+        if ((target as any).speciesName) {
+            const species = (target as any).speciesName?.toUpperCase();
+            
+            // Play appropriate animal sound based on species
+            switch(species) {
+                case 'SHEEP':
+                case 'GOAT':
+                    gameSounds.playSheepSound();
+                    break;
+                case 'COW':
+                case 'MULE':
+                case 'WATER_BUFFALO':
+                case 'YAK':
+                case 'GAUR':
+                    gameSounds.playCowSound();
+                    break;
+                case 'HORSE':
+                case 'WILD_HORSE':
+                case 'DONKEY':
+                    gameSounds.playHorseSound();
+                    break;
+                case 'DOG':
+                    gameSounds.playDogSound();
+                    break;
+                case 'CAT':
+                    gameSounds.playCatSound();
+                    break;
+                case 'PIG':
+                case 'BOAR':
+                case 'WARTHOG':
+                case 'PECCARY':
+                    gameSounds.playPigSound();
+                    break;
+                case 'CHICKEN':
+                case 'TURKEY':
+                    gameSounds.playBirdSound();
+                    break;
+                case 'DUCK':
+                    gameSounds.playDuckSound();
+                    break;
+                case 'ROOSTER':
+                    gameSounds.playRoosterSound();
+                    break;
+                case 'WOLF':
+                case 'HYENA':
+                    gameSounds.playWolfSound();
+                    break;
+                case 'BEAR':
+                case 'PANDA':
+                    gameSounds.playBearSound();
+                    break;
+                case 'TIGER':
+                case 'LION':
+                case 'LEOPARD':
+                case 'CHEETAH':
+                case 'JAGUAR':
+                case 'PUMA':
+                    gameSounds.playTigerSound();
+                    break;
+                case 'ELEPHANT':
+                case 'HIPPOPOTAMUS':
+                case 'RHINOCEROS':
+                    gameSounds.playElephantSound();
+                    break;
+                case 'MONKEY':
+                case 'GORILLA':
+                case 'BABOON':
+                case 'ORANGUTAN':
+                    gameSounds.playMonkeySound();
+                    break;
+                case 'SNAKE':
+                    gameSounds.playSnakeSound();
+                    break;
+                case 'CROCODILE':
+                    gameSounds.playCrocodileSound();
+                    break;
+                case 'EAGLE':
+                case 'PEACOCK':
+                case 'PARROT':
+                case 'FLAMINGO':
+                    gameSounds.playEagleSound();
+                    break;
+                case 'OWL':
+                    gameSounds.playOwlSound();
+                    break;
+                case 'FROG':
+                    gameSounds.playFrogSound();
+                    break;
+                case 'CRICKET':
+                    gameSounds.playCricketSound();
+                    break;
+                case 'FISH':
+                case 'WHALE':
+                case 'JELLYFISH':
+                case 'LOBSTER':
+                case 'OCTOPUS':
+                    gameSounds.playFishSound();
+                    break;
+                case 'CAMEL':
+                    gameSounds.playCamelSound();
+                    break;
+                case 'RABBIT':
+                case 'HEDGEHOG':
+                case 'SQUIRREL':
+                    gameSounds.playRabbitSound();
+                    break;
+                case 'DEER':
+                case 'MOOSE':
+                case 'ELK':
+                case 'CARIBOU':
+                case 'LLAMA':
+                case 'GIRAFFE':
+                case 'ZEBRA':
+                case 'KANGAROO':
+                case 'ANTELOPE':
+                case 'WILDEBEEST':
+                case 'IBEX':
+                    // Use dog sound as a placeholder for deer-like animals
+                    gameSounds.playDogSound();
+                    break;
+            }
+        }
+    }, []); // Only run once when modal opens
 
     // Check for disease transmission on encounter start (bidirectional)
     useEffect(() => {
@@ -936,6 +1075,16 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
             const response = await generateEncounterDialogue(target, newHistory, currentInput, playerCharacter, allNpcs, mapData, useRealLanguage);
             const newNpcEntry: DialogueEntry = { speaker: 'npc', text: response.text, timestamp: new Date() };
             setHistory(prev => [...prev, newNpcEntry]);
+            
+            // Check for crisis mentions in NPC dialogue
+            if (mapData && isNpc(target)) {
+                const location = { x: target.x, y: target.y };
+                const crisis = crisisDetectionService.detectCrisis(response.text, target, location);
+                if (crisis) {
+                    console.log(`[Crisis] Detected crisis from ${target.name}: ${crisis.pattern.id}`);
+                    showToast(`⚠️ ${target.name} speaks of ${crisis.pattern.flavorText.toLowerCase()}`);
+                }
+            }
             
             // Check NPC's reaction (may add additional reputation changes)
             checkNpcReaction(response);

@@ -254,7 +254,7 @@ export const useMapState = (props: useMapStateProps) => {
             console.warn('[removeVegetation] BLOCKED - special map active, ref:', isSpecialMapRef.current, ', state:', isSpecialMap);
             return;
         }
-        console.log('[removeVegetation] Running - ref:', isSpecialMapRef.current, ', state:', isSpecialMap);
+        // console.log('[removeVegetation] Running - ref:', isSpecialMapRef.current, ', state:', isSpecialMap);
         
         setMapData(prevMapData => {
             if (!prevMapData) return null;
@@ -263,7 +263,7 @@ export const useMapState = (props: useMapStateProps) => {
             if (!vegetationToRemove) return prevMapData;
 
             // Create deep copies for immutable update
-            const newTiles = JSON.parse(JSON.stringify(prevMapData.tiles));
+            const newTiles = structuredClone(prevMapData.tiles);
             
             // Update tile
             newTiles[vegetationToRemove.y][vegetationToRemove.x].vegetationId = undefined;
@@ -282,14 +282,14 @@ export const useMapState = (props: useMapStateProps) => {
     const updateMineralDeposit = useCallback((x: number, y: number, amountToDecrement: number) => {
         // Don't modify special maps
         if (isSpecialMap) {
-            console.log('[updateMineralDeposit] Blocked - special map active');
+            // console.log('[updateMineralDeposit] Blocked - special map active');
             return;
         }
         
         setMapData(prevMapData => {
             if (!prevMapData) return null;
 
-            const newTiles = JSON.parse(JSON.stringify(prevMapData.tiles));
+            const newTiles = structuredClone(prevMapData.tiles);
             const tile = newTiles[y]?.[x];
 
             if (tile && tile.mineralDeposit) {
@@ -480,7 +480,7 @@ export const useMapState = (props: useMapStateProps) => {
                 if (gameState.liminalTravelState) {
                     // We're in a liminal zone - generate based on current archetype
                     const currentArchetype = gameState.liminalTravelState.sequence[gameState.liminalTravelState.progress];
-                    console.log(`[Map Generation] Generating liminal map for archetype: ${currentArchetype}`);
+                    // console.log(`[Map Generation] Generating liminal map for archetype: ${currentArchetype}`);
                     
                     // Determine climate based on origin area
                     const originAreaInfo = findMapAreaDefinition(gameState.liminalTravelState.originArea);
@@ -532,7 +532,7 @@ export const useMapState = (props: useMapStateProps) => {
 
 
     const handleMapTransition = useCallback((direction: AdjacencyDirection, entryX: number, entryY: number) => {
-        console.log(`[Map Transition] Initiated. Direction: ${direction}, From: ${localArea}`);
+        // console.log(`[Map Transition] Initiated. Direction: ${direction}, From: ${localArea}`);
         if (playerState.pendingIconTransitionInfo) {
             console.warn("[Map Transition] Aborted: Icon transition already in progress.");
             return;
@@ -541,7 +541,7 @@ export const useMapState = (props: useMapStateProps) => {
         // Special handling for ethereal realms - go to random map area
         const etherealRealms = ['Outer Space', 'Heaven', 'Undersea Kingdom', 'Storm Realm', 'Frozen Wastes', 'Typhoon Realm'];
         if (etherealRealms.includes(localArea)) {
-            console.log(`[Ethereal Realm] Leaving ${localArea}, transitioning to random area`);
+            // console.log(`[Ethereal Realm] Leaving ${localArea}, transitioning to random area`);
             
             // Get all available map areas except special zones
             const allAreas: string[] = [];
@@ -565,7 +565,7 @@ export const useMapState = (props: useMapStateProps) => {
             
             // Pick a random area
             const randomArea = allAreas[Math.floor(Math.random() * allAreas.length)];
-            console.log(`[Special Zone] Randomly selected: ${randomArea}`);
+            // console.log(`[Special Zone] Randomly selected: ${randomArea}`);
             setLocalArea(randomArea);
             
             // Place player at center of new map
@@ -581,7 +581,7 @@ export const useMapState = (props: useMapStateProps) => {
         
         // Handle liminal travel progression
         if (gameState.liminalTravelState) {
-            console.log(`[Liminal Travel] Continuing in liminal sequence. Current progress: ${gameState.liminalTravelState.progress}`);
+            // console.log(`[Liminal Travel] Continuing in liminal sequence. Current progress: ${gameState.liminalTravelState.progress}`);
             const { sequence, progress, destination, originArea, originDirection } = gameState.liminalTravelState;
             
             // If we're moving in the original direction, advance through sequence
@@ -590,13 +590,13 @@ export const useMapState = (props: useMapStateProps) => {
                 
                 if (nextProgress >= sequence.length) {
                     // End of sequence - arrive at destination
-                    console.log(`[Liminal Travel] Sequence complete. Arriving at: ${destination}`);
+                    // console.log(`[Liminal Travel] Sequence complete. Arriving at: ${destination}`);
                     setGameState.setLiminalTravelState(null);
                     setLocalArea(destination);
                 } else {
                     // Move to next archetype in sequence
                     const nextArchetype = sequence[nextProgress];
-                    console.log(`[Liminal Travel] Advancing to: ${getArchetypeName(nextArchetype)} (${nextProgress + 1}/${sequence.length})`);
+                    // console.log(`[Liminal Travel] Advancing to: ${getArchetypeName(nextArchetype)} (${nextProgress + 1}/${sequence.length}`);
                     setGameState.setLiminalTravelState({
                         ...gameState.liminalTravelState,
                         progress: nextProgress
@@ -609,13 +609,13 @@ export const useMapState = (props: useMapStateProps) => {
                 
                 if (nextProgress < 0) {
                     // Back to origin
-                    console.log(`[Liminal Travel] Returning to origin: ${originArea}`);
+                    // console.log(`[Liminal Travel] Returning to origin: ${originArea}`);
                     setGameState.setLiminalTravelState(null);
                     setLocalArea(originArea);
                 } else {
                     // Move to previous archetype in sequence  
                     const prevArchetype = sequence[nextProgress];
-                    console.log(`[Liminal Travel] Retreating to: ${getArchetypeName(prevArchetype)} (${nextProgress + 1}/${sequence.length})`);
+                    // console.log(`[Liminal Travel] Retreating to: ${getArchetypeName(prevArchetype)} (${nextProgress + 1}/${sequence.length}`);
                     setGameState.setLiminalTravelState({
                         ...gameState.liminalTravelState,
                         progress: nextProgress
@@ -639,7 +639,7 @@ export const useMapState = (props: useMapStateProps) => {
             else if (direction === 'E') targetWorldX++;
 
             if (nextMapResult.type === 'liminal') {
-                console.log(`[Map Transition] Entering liminal sequence: ${nextMapResult.key}`);
+                // console.log(`[Map Transition] Entering liminal sequence: ${nextMapResult.key}`);
                 const firstArchetype = nextMapResult.sequence[0];
                 console.log(`[Map Transition] Starting with archetype: ${firstArchetype}`);
                 setGameState.setLiminalTravelState({ 

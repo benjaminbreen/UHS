@@ -3,6 +3,7 @@ import { Tile, PlayerCharacter, MapData, Season, Item, BiomeType, ActionableTile
 import { getSafariOptimizedClassName, getOptimizedButtonClassName } from '../utils/safariUtils';
 import { weatherService } from '../services/weatherService';
 import { METALS } from '../constants/gameData/metals';
+import { gameSounds } from '../services/gameSoundsService';
 
 interface BottomPanelProps {
     actionableTile: ActionableTile | null;
@@ -16,6 +17,7 @@ interface BottomPanelProps {
     onEnterRuin: (tile: Tile) => void;
     onEnterBuilding: (tile: Tile) => void;
     onEnterFarm: (tile: Tile) => void;
+    onEnterFishingHut: (tile: Tile) => void;
     onEnterMine: (structure: TerrainStructure) => void;
     toastMessage: string | null;
     season?: Season;
@@ -97,6 +99,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
     onEnterRuin,
     onEnterBuilding,
     onEnterFarm,
+    onEnterFishingHut,
     onEnterMine,
     toastMessage,
     season = 'summer',
@@ -258,7 +261,10 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                     buttonText = 'Enter Marketplace';
                     buttonIcon = '💰';
                     locationIcon = '🏪';
-                    onClickAction = () => onEnterMarketplace(tile);
+                    onClickAction = () => {
+                        gameSounds.playButtonClickSound();
+                        onEnterMarketplace(tile);
+                    };
                     helperText = "Trade goods, hire mercenaries, and gather rumors from across the region.";
                 }
                 contextualInfo = (
@@ -280,7 +286,10 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                     buttonText = 'Explore Ruins';
                     buttonIcon = '🏚️';
                     locationIcon = '🏛️';
-                    onClickAction = () => onEnterRuin(tile);
+                    onClickAction = () => {
+                        gameSounds.playMysteriousRuinsSound();
+                        onEnterRuin(tile);
+                    };
                     helperText = "Investigate the ancient ruins and uncover forgotten treasures.";
                 }
                 contextualInfo = (
@@ -301,6 +310,24 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                     <LocationDisplay
                         title={biomeName}
                         subtitle="Intriguing Structure"
+                        icon={locationIcon}
+                    />
+                );
+                break;
+            case 'fishing_hut':
+                buttonText = 'Enter Fishing Hut';
+                buttonIcon = '🎣';
+                locationIcon = '🏠';
+                onClickAction = () => {
+                    console.log('[BottomPanel] Fishing hut button clicked!', tile);
+                    gameSounds.playButtonClickSound();
+                    onEnterFishingHut(tile);
+                };
+                helperText = "Visit the fishing hut to catch fish, trade supplies, and sell your catch.";
+                contextualInfo = (
+                    <LocationDisplay
+                        title="Fishing Hut"
+                        subtitle={structure?.name || "Fishing grounds"}
                         icon={locationIcon}
                     />
                 );

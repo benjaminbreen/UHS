@@ -30,7 +30,7 @@ interface ProceduralPortraitProps {
       head?: { name: string; material?: string; color?: string };
       torso?: { name: string; material?: string; color?: string };
       cloak?: { name: string; material?: string; color?: string };
-      amulet?: { name: string; material?: string; color?: string };
+      necklace?: { name: string; material?: string; color?: string };
       [key: string]: any;
     };
     appearance: {
@@ -1218,7 +1218,7 @@ if (hairStyle === 'braided') {
       const tailLength = hairLen === 'long' ? 20 : 12;
       for (let y = tieY + 2; y < tieY + tailLength; y++) {
         const sway = Math.sin(y * 0.2) * 2;
-        const width = 4 - Math.floor((y - tieY) / 8);
+        const width = Math.max(0, 4 - Math.floor((y - tieY) / 8));
         for (let layer = 0; layer < 3; layer++) {
           const col = layer === 0 ? naturalHairShadow : layer === 1 ? naturalBaseHair : naturalHairHighlight;
           for (let x = -width; x <= width; x++) {
@@ -1248,7 +1248,7 @@ if (hairStyle === 'braided') {
       const mohawkHeight = 8;
       for (let y = headY - mohawkHeight; y < headY + 5; y++) {
         const heightProgress = (y - (headY - mohawkHeight)) / (mohawkHeight + 5);
-        const width = heightProgress < 0.5 ? 2 : 2 - Math.floor(heightProgress * 2);
+        const width = Math.max(0, heightProgress < 0.5 ? 2 : 2 - Math.floor(heightProgress * 2));
         for (let layer = 0; layer < 2; layer++) {
           const col = layer === 0 ? naturalHairShadow : naturalBaseHair;
           for (let x = -width; x <= width; x++) {
@@ -2053,11 +2053,11 @@ if (defaultCapStyles.has(hairStyle)) {
     }
 
     elements.push(
-      <rect key="nose-body" x={noseX} y={noseStartY} width={noseWidth - 1} height={noseLen} fill={skinTone} className="pixel" />
+      <rect key="nose-body" x={noseX} y={noseStartY} width={Math.max(1, noseWidth - 1)} height={noseLen} fill={skinTone} className="pixel" />
     );
 
     elements.push(
-      <rect key="nose-side-l" x={noseX - 1} y={noseStartY + 1} width="1" height={Math.max(2, noseLen - 1)} fill={skinShadow} className="pixel" />,
+      <rect key="nose-side-l" x={noseX - 1} y={noseStartY + 1} width="1" height={Math.max(1, noseLen - 1)} fill={skinShadow} className="pixel" />,
       <rect key="nose-side-r" x={noseX + noseWidth - 1} y={noseStartY + 1} width="1" height={Math.max(1, noseLen - 2)} fill={skinHighlight} className="pixel" />
     );
 
@@ -2277,7 +2277,7 @@ if (defaultCapStyles.has(hairStyle)) {
         let rowWidth;
         if (y < 2) rowWidth = Math.floor(chinWidth * 0.8);
         else if (y < 8) rowWidth = Math.floor(chinWidth * 1.0);
-        else rowWidth = Math.floor(chinWidth * (1.0 - (y - 8) / 30));
+        else rowWidth = Math.max(0, Math.floor(chinWidth * (1.0 - (y - 8) / 30)));
 
         const startX = headX + Math.floor((headDim.width - rowWidth) / 2);
 
@@ -3939,26 +3939,26 @@ if (defaultCapStyles.has(hairStyle)) {
 
   // ----- EQUIPPED AMULET -----
   const renderAmulet = useMemo(() => {
-    let amuletItem = null;
+    let necklaceItem = null;
     if (useEquippedItems && character.equippedItems !== undefined) {
-      amuletItem = character.equippedItems.amulet;
+      necklaceItem = character.equippedItems.necklace;
     }
     
-    if (!amuletItem) return <g key="amulet" />;
+    if (!necklaceItem) return <g key="necklace" />;
     
     const elements: JSX.Element[] = [];
     const centerX = headX + Math.floor(headDim.width / 2);
     const neckY = headY + headDim.height + 1; // Closer to actual neck position
     
-    // Get amulet color and material
-    const amuletColor = getItemColor(amuletItem);
-    const amuletShadow = createShadow(amuletColor, 0.7);
-    const amuletHighlight = createHighlight(amuletColor, 1.2);
-    const amuletDeepShadow = createShadow(amuletColor, 0.5);
+    // Get necklace color and material
+    const necklaceColor = getItemColor(necklaceItem);
+    const necklaceShadow = createShadow(necklaceColor, 0.7);
+    const necklaceHighlight = createHighlight(necklaceColor, 1.2);
+    const necklaceDeepShadow = createShadow(necklaceColor, 0.5);
     
     // Determine chain material and style
-    const material = amuletItem.material?.toLowerCase() || '';
-    const name = amuletItem.name?.toLowerCase() || '';
+    const material = necklaceItem.material?.toLowerCase() || '';
+    const name = necklaceItem.name?.toLowerCase() || '';
     
     // More varied chain colors based on material
     const chainColor = material.includes('gold') ? '#FFD700' : 
@@ -4031,91 +4031,91 @@ if (defaultCapStyles.has(hairStyle)) {
       
       // Vertical beam
       elements.push(
-        <rect key="cross-v" x={centerX} y={pendantY} width="1" height="7" fill={amuletColor} className="pixel" />,
-        <rect key="cross-v-l" x={centerX - 1} y={pendantY + 1} width="1" height="5" fill={amuletColor} className="pixel" />,
-        <rect key="cross-v-r" x={centerX + 1} y={pendantY + 1} width="1" height="5" fill={amuletColor} className="pixel" />
+        <rect key="cross-v" x={centerX} y={pendantY} width="1" height="7" fill={necklaceColor} className="pixel" />,
+        <rect key="cross-v-l" x={centerX - 1} y={pendantY + 1} width="1" height="5" fill={necklaceColor} className="pixel" />,
+        <rect key="cross-v-r" x={centerX + 1} y={pendantY + 1} width="1" height="5" fill={necklaceColor} className="pixel" />
       );
       
       // Horizontal beam
       elements.push(
-        <rect key="cross-h" x={centerX - 3} y={pendantY + 2} width="7" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="cross-h-t" x={centerX - 2} y={pendantY + 1} width="5" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="cross-h-b" x={centerX - 2} y={pendantY + 3} width="5" height="1" fill={amuletColor} className="pixel" />
+        <rect key="cross-h" x={centerX - 3} y={pendantY + 2} width="7" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="cross-h-t" x={centerX - 2} y={pendantY + 1} width="5" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="cross-h-b" x={centerX - 2} y={pendantY + 3} width="5" height="1" fill={necklaceColor} className="pixel" />
       );
       
       // Highlights and shadows for depth
       elements.push(
-        <rect key="cross-hl-c" x={centerX} y={pendantY + 2} width="1" height="1" fill={amuletHighlight} className="pixel" />,
-        <rect key="cross-hl-t" x={centerX} y={pendantY} width="1" height="1" fill={amuletHighlight} className="pixel" />,
-        <rect key="cross-sh-r" x={centerX + 1} y={pendantY + 3} width="1" height="3" fill={amuletShadow} className="pixel" />,
-        <rect key="cross-sh-b" x={centerX - 2} y={pendantY + 6} width="3" height="1" fill={amuletDeepShadow} className="pixel" />
+        <rect key="cross-hl-c" x={centerX} y={pendantY + 2} width="1" height="1" fill={necklaceHighlight} className="pixel" />,
+        <rect key="cross-hl-t" x={centerX} y={pendantY} width="1" height="1" fill={necklaceHighlight} className="pixel" />,
+        <rect key="cross-sh-r" x={centerX + 1} y={pendantY + 3} width="1" height="3" fill={necklaceShadow} className="pixel" />,
+        <rect key="cross-sh-b" x={centerX - 2} y={pendantY + 6} width="3" height="1" fill={necklaceDeepShadow} className="pixel" />
       );
       
       if (isOrnate) {
         // Add decorative elements
         elements.push(
-          <rect key="cross-dec-tl" x={centerX - 3} y={pendantY + 1} width="1" height="1" fill={amuletHighlight} className="pixel" />,
-          <rect key="cross-dec-tr" x={centerX + 3} y={pendantY + 1} width="1" height="1" fill={amuletHighlight} className="pixel" />
+          <rect key="cross-dec-tl" x={centerX - 3} y={pendantY + 1} width="1" height="1" fill={necklaceHighlight} className="pixel" />,
+          <rect key="cross-dec-tr" x={centerX + 3} y={pendantY + 1} width="1" height="1" fill={necklaceHighlight} className="pixel" />
         );
       }
       
       if (name.includes('crucifix')) {
         // Add figure (simplified)
         elements.push(
-          <rect key="fig-head" x={centerX} y={pendantY + 1} width="1" height="1" fill={createShadow(amuletColor, 0.6)} className="pixel" />,
-          <rect key="fig-arms" x={centerX - 2} y={pendantY + 2} width="5" height="1" fill={createShadow(amuletColor, 0.6)} className="pixel" />
+          <rect key="fig-head" x={centerX} y={pendantY + 1} width="1" height="1" fill={createShadow(necklaceColor, 0.6)} className="pixel" />,
+          <rect key="fig-arms" x={centerX - 2} y={pendantY + 2} width="5" height="1" fill={createShadow(necklaceColor, 0.6)} className="pixel" />
         );
       }
     } else if (name.includes('ankh')) {
       // Egyptian ankh
       elements.push(
         // Loop
-        <rect key="ankh-loop-t" x={centerX - 1} y={pendantY} width="3" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="ankh-loop-l" x={centerX - 2} y={pendantY + 1} width="1" height="2" fill={amuletColor} className="pixel" />,
-        <rect key="ankh-loop-r" x={centerX + 2} y={pendantY + 1} width="1" height="2" fill={amuletColor} className="pixel" />,
-        <rect key="ankh-loop-b" x={centerX - 1} y={pendantY + 2} width="3" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="ankh-loop-t" x={centerX - 1} y={pendantY} width="3" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="ankh-loop-l" x={centerX - 2} y={pendantY + 1} width="1" height="2" fill={necklaceColor} className="pixel" />,
+        <rect key="ankh-loop-r" x={centerX + 2} y={pendantY + 1} width="1" height="2" fill={necklaceColor} className="pixel" />,
+        <rect key="ankh-loop-b" x={centerX - 1} y={pendantY + 2} width="3" height="1" fill={necklaceColor} className="pixel" />,
         // Stem
-        <rect key="ankh-v" x={centerX} y={pendantY + 3} width="1" height="3" fill={amuletColor} className="pixel" />,
-        <rect key="ankh-h" x={centerX - 1} y={pendantY + 4} width="3" height="1" fill={amuletColor} className="pixel" />
+        <rect key="ankh-v" x={centerX} y={pendantY + 3} width="1" height="3" fill={necklaceColor} className="pixel" />,
+        <rect key="ankh-h" x={centerX - 1} y={pendantY + 4} width="3" height="1" fill={necklaceColor} className="pixel" />
       );
     } else if (name.includes('crescent') || name.includes('moon')) {
       // Crescent moon
       elements.push(
-        <rect key="moon-1" x={centerX - 2} y={pendantY + 1} width="1" height="3" fill={amuletColor} className="pixel" />,
-        <rect key="moon-2" x={centerX - 1} y={pendantY} width="1" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="moon-3" x={centerX - 1} y={pendantY + 4} width="1" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="moon-4" x={centerX} y={pendantY + 5} width="1" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="moon-5" x={centerX + 1} y={pendantY + 5} width="1" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="moon-6" x={centerX + 2} y={pendantY + 2} width="1" height="2" fill={amuletColor} className="pixel" />,
-        <rect key="moon-hl" x={centerX - 1} y={pendantY + 2} width="1" height="1" fill={amuletHighlight} className="pixel" />
+        <rect key="moon-1" x={centerX - 2} y={pendantY + 1} width="1" height="3" fill={necklaceColor} className="pixel" />,
+        <rect key="moon-2" x={centerX - 1} y={pendantY} width="1" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="moon-3" x={centerX - 1} y={pendantY + 4} width="1" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="moon-4" x={centerX} y={pendantY + 5} width="1" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="moon-5" x={centerX + 1} y={pendantY + 5} width="1" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="moon-6" x={centerX + 2} y={pendantY + 2} width="1" height="2" fill={necklaceColor} className="pixel" />,
+        <rect key="moon-hl" x={centerX - 1} y={pendantY + 2} width="1" height="1" fill={necklaceHighlight} className="pixel" />
       );
     } else if (name.includes('star') || name.includes('david')) {
       // Six-pointed star (Star of David)
       elements.push(
         // Upper triangle
-        <rect key="star-t" x={centerX} y={pendantY} width="1" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="star-tl" x={centerX - 1} y={pendantY + 1} width="1" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="star-tr" x={centerX + 1} y={pendantY + 1} width="1" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="star-bl2" x={centerX - 2} y={pendantY + 2} width="1" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="star-br2" x={centerX + 2} y={pendantY + 2} width="1" height="1" fill={amuletColor} className="pixel" />,
+        <rect key="star-t" x={centerX} y={pendantY} width="1" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="star-tl" x={centerX - 1} y={pendantY + 1} width="1" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="star-tr" x={centerX + 1} y={pendantY + 1} width="1" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="star-bl2" x={centerX - 2} y={pendantY + 2} width="1" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="star-br2" x={centerX + 2} y={pendantY + 2} width="1" height="1" fill={necklaceColor} className="pixel" />,
         // Lower triangle
-        <rect key="star-b" x={centerX} y={pendantY + 4} width="1" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="star-ml" x={centerX - 1} y={pendantY + 3} width="1" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="star-mr" x={centerX + 1} y={pendantY + 3} width="1" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="star-c" x={centerX} y={pendantY + 2} width="1" height="1" fill={amuletHighlight} className="pixel" />
+        <rect key="star-b" x={centerX} y={pendantY + 4} width="1" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="star-ml" x={centerX - 1} y={pendantY + 3} width="1" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="star-mr" x={centerX + 1} y={pendantY + 3} width="1" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="star-c" x={centerX} y={pendantY + 2} width="1" height="1" fill={necklaceHighlight} className="pixel" />
       );
     } else if (name.includes('heart') || name.includes('locket')) {
       // Heart shape / locket
       elements.push(
-        <rect key="heart-tl" x={centerX - 2} y={pendantY + 1} width="2" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="heart-tr" x={centerX + 1} y={pendantY + 1} width="2" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="heart-ml" x={centerX - 2} y={pendantY + 2} width="2" height="2" fill={amuletColor} className="pixel" />,
-        <rect key="heart-mr" x={centerX + 1} y={pendantY + 2} width="2" height="2" fill={amuletColor} className="pixel" />,
-        <rect key="heart-c" x={centerX} y={pendantY + 2} width="1" height="2" fill={amuletColor} className="pixel" />,
-        <rect key="heart-bl" x={centerX - 1} y={pendantY + 4} width="1" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="heart-br" x={centerX + 1} y={pendantY + 4} width="1" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="heart-b" x={centerX} y={pendantY + 5} width="1" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="heart-hl" x={centerX - 1} y={pendantY + 2} width="1" height="1" fill={amuletHighlight} className="pixel" />
+        <rect key="heart-tl" x={centerX - 2} y={pendantY + 1} width="2" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="heart-tr" x={centerX + 1} y={pendantY + 1} width="2" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="heart-ml" x={centerX - 2} y={pendantY + 2} width="2" height="2" fill={necklaceColor} className="pixel" />,
+        <rect key="heart-mr" x={centerX + 1} y={pendantY + 2} width="2" height="2" fill={necklaceColor} className="pixel" />,
+        <rect key="heart-c" x={centerX} y={pendantY + 2} width="1" height="2" fill={necklaceColor} className="pixel" />,
+        <rect key="heart-bl" x={centerX - 1} y={pendantY + 4} width="1" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="heart-br" x={centerX + 1} y={pendantY + 4} width="1" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="heart-b" x={centerX} y={pendantY + 5} width="1" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="heart-hl" x={centerX - 1} y={pendantY + 2} width="1" height="1" fill={necklaceHighlight} className="pixel" />
       );
     } else if (name.includes('medallion') || name.includes('coin')) {
       // Round medallion with detail
@@ -4125,33 +4125,33 @@ if (defaultCapStyles.has(hairStyle)) {
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist <= radius) {
             const isEdge = dist >= radius - 0.5;
-            const color = isEdge ? amuletShadow : (dx === -1 && dy === -1) ? amuletHighlight : amuletColor;
+            const color = isEdge ? necklaceShadow : (dx === -1 && dy === -1) ? necklaceHighlight : necklaceColor;
             elements.push(<rect key={`medal-${dx}-${dy}`} x={centerX + dx} y={pendantY + 2 + dy} width="1" height="1" fill={color} className="pixel" />);
           }
         }
       }
       // Center design (could be portrait, symbol, etc)
       if (name.includes('saint') || name.includes('religious')) {
-        elements.push(<rect key="medal-cross" x={centerX} y={pendantY + 2} width="1" height="2" fill={amuletShadow} className="pixel" />);
+        elements.push(<rect key="medal-cross" x={centerX} y={pendantY + 2} width="1" height="2" fill={necklaceShadow} className="pixel" />);
       }
     } else if (name.includes('teardrop') || name.includes('pearl')) {
       // Teardrop/pearl pendant
       elements.push(
-        <rect key="tear-t" x={centerX} y={pendantY} width="1" height="1" fill={amuletHighlight} className="pixel" />,
-        <rect key="tear-m1" x={centerX - 1} y={pendantY + 1} width="3" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="tear-m2" x={centerX - 1} y={pendantY + 2} width="3" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="tear-m3" x={centerX - 1} y={pendantY + 3} width="3" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="tear-b1" x={centerX} y={pendantY + 4} width="1" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="tear-b2" x={centerX} y={pendantY + 5} width="1" height="1" fill={amuletShadow} className="pixel" />
+        <rect key="tear-t" x={centerX} y={pendantY} width="1" height="1" fill={necklaceHighlight} className="pixel" />,
+        <rect key="tear-m1" x={centerX - 1} y={pendantY + 1} width="3" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="tear-m2" x={centerX - 1} y={pendantY + 2} width="3" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="tear-m3" x={centerX - 1} y={pendantY + 3} width="3" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="tear-b1" x={centerX} y={pendantY + 4} width="1" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="tear-b2" x={centerX} y={pendantY + 5} width="1" height="1" fill={necklaceShadow} className="pixel" />
       );
     } else {
       // Default oval pendant with gemstone
       elements.push(
-        <rect key="pendant-t" x={centerX - 1} y={pendantY} width="3" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="pendant-m" x={centerX - 2} y={pendantY + 1} width="5" height="3" fill={amuletColor} className="pixel" />,
-        <rect key="pendant-b" x={centerX - 1} y={pendantY + 4} width="3" height="1" fill={amuletColor} className="pixel" />,
-        <rect key="pendant-hl" x={centerX - 1} y={pendantY + 1} width="1" height="1" fill={amuletHighlight} className="pixel" />,
-        <rect key="pendant-sh" x={centerX + 1} y={pendantY + 3} width="1" height="1" fill={amuletShadow} className="pixel" />
+        <rect key="pendant-t" x={centerX - 1} y={pendantY} width="3" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="pendant-m" x={centerX - 2} y={pendantY + 1} width="5" height="3" fill={necklaceColor} className="pixel" />,
+        <rect key="pendant-b" x={centerX - 1} y={pendantY + 4} width="3" height="1" fill={necklaceColor} className="pixel" />,
+        <rect key="pendant-hl" x={centerX - 1} y={pendantY + 1} width="1" height="1" fill={necklaceHighlight} className="pixel" />,
+        <rect key="pendant-sh" x={centerX + 1} y={pendantY + 3} width="1" height="1" fill={necklaceShadow} className="pixel" />
       );
       // Add gemstone if mentioned
       if (name.includes('ruby') || name.includes('emerald') || name.includes('sapphire') || name.includes('gem')) {
@@ -4162,7 +4162,7 @@ if (defaultCapStyles.has(hairStyle)) {
       }
     }
     
-    return <g key="amulet">{elements}</g>;
+    return <g key="necklace">{elements}</g>;
   }, [character.equippedItems, useEquippedItems, headDim.height, headDim.width, headX, headY]);
 
   // ----- ACCESSORIES (ring2 slot, cultural ornamentations) -----
@@ -4434,11 +4434,13 @@ if (defaultCapStyles.has(hairStyle)) {
     
     // Process equipped accessories as markings
     const accessoryMarkings: Array<{
-      type: 'scar' | 'tattoo' | 'paint' | 'beauty_mark' | 'freckles' | 'mole' | 'birthmark';
+      type: 'scar' | 'tattoo' | 'paint' | 'beauty_mark' | 'freckles' | 'mole' | 'birthmark' | 'structural' | 'piercing';
       location: string;
       color: string;
       size: 'small' | 'medium' | 'large';
       pattern?: string;
+      name?: string;
+      localName?: string;
     }> = [];
     
     if (useEquippedItems && character.equippedItems?.accessory) {
@@ -4446,12 +4448,85 @@ if (defaultCapStyles.has(hairStyle)) {
       const specialType = (accessory as any).specialType;
       const name = accessory.name.toLowerCase();
       
-      // Debug logging for tattoos
+      // Debug logging for special accessories
       if (specialType) {
         console.log('[Portrait] Rendering special accessory:', specialType, name, 'for culture:', culturalZone);
       }
       
-      if (specialType === 'tattoo') {
+      // Check for structural modifications first (neck rings, lip plates, etc.)
+      if (name.includes('neck ring') || name.includes('neck coil') || name.includes('dzilla')) {
+        accessoryMarkings.push({
+          type: 'structural',
+          location: 'neck',
+          color: '#B8860B', // Brass color
+          size: 'large',
+          pattern: 'coils',
+          name: 'Neck Rings'
+        });
+      } else if (name.includes('lip plate') || name.includes('lip disc')) {
+        accessoryMarkings.push({
+          type: 'structural',
+          location: 'chin',
+          color: '#8B7355', // Clay color
+          size: 'medium',
+          pattern: 'plate',
+          name: 'Lip Plate'
+        });
+      } else if (name.includes('ear plug') || name.includes('ear stretch')) {
+        accessoryMarkings.push({
+          type: 'structural',
+          location: 'face',
+          color: '#000000',
+          size: 'medium',
+          pattern: 'plug',
+          name: 'Ear Plugs'
+        });
+      } else if (name.includes('blackened teeth') || name.includes('ohaguro')) {
+        accessoryMarkings.push({
+          type: 'structural',
+          location: 'face',
+          color: '#1C1C1C',
+          size: 'small',
+          pattern: 'teeth_black',
+          name: 'Blackened Teeth'
+        });
+      } else if (name.includes('filed teeth') || name.includes('tooth filing')) {
+        accessoryMarkings.push({
+          type: 'structural',
+          location: 'face',
+          color: '#F5F5DC',
+          size: 'small',
+          pattern: 'teeth_filed',
+          name: 'Filed Teeth'
+        });
+      } else if (name.includes('tooth inlay') || name.includes('jade teeth') || name.includes('gold teeth')) {
+        accessoryMarkings.push({
+          type: 'structural',
+          location: 'face',
+          color: name.includes('jade') ? '#00A86B' : '#FFD700',
+          size: 'small',
+          pattern: 'teeth_inlay',
+          name: 'Tooth Inlay'
+        });
+      } else if (name.includes('cheek plug') || name.includes('cheek disc')) {
+        accessoryMarkings.push({
+          type: 'structural',
+          location: 'cheek',
+          color: '#8B4513',
+          size: 'medium',
+          pattern: 'cheek_plug',
+          name: 'Cheek Plugs'
+        });
+      } else if (name.includes('nose ring') || name.includes('septum')) {
+        accessoryMarkings.push({
+          type: 'piercing',
+          location: 'nose',
+          color: '#FFD700',
+          size: 'small',
+          pattern: name.includes('septum') ? 'septum' : 'stud',
+          name: 'Nose Ring'
+        });
+      } else if (specialType === 'tattoo') {
         // Determine pattern from cultural context and name
         let pattern = 'lines';
         if (culturalZone === 'OCEANIA' || name.includes('maori') || name.includes('ta moko')) {
@@ -4762,6 +4837,108 @@ if (defaultCapStyles.has(hairStyle)) {
           }
           break;
         }
+        case 'structural': {
+          // Structural body modifications (neck rings, lip plates, etc.)
+          if (marking.location === 'neck') {
+            // Neck rings/coils
+            const neckStartY = neckY + 1;
+            const ringColor = marking.color || '#B8860B'; // Brass/copper
+            const highlightColor = '#FFD700'; // Gold highlight
+            const numRings = marking.size === 'large' ? 5 : marking.size === 'medium' ? 3 : 2;
+            
+            for (let i = 0; i < numRings; i++) {
+              const ringY = neckStartY + i;
+              // Main ring
+              elements.push(
+                <rect key={`neck-ring-${index}-${i}`} x={headX + 2} y={ringY} width={Math.max(1, headDim.width - 4)} height="1" fill={ringColor} className="pixel" />
+              );
+              // Metallic highlight on left edge
+              elements.push(
+                <rect key={`neck-ring-hl-${index}-${i}`} x={headX + 2} y={ringY} width="1" height="1" fill={highlightColor} opacity={0.6} className="pixel" />
+              );
+              // Shadow on right edge
+              elements.push(
+                <rect key={`neck-ring-shadow-${index}-${i}`} x={headX + headDim.width - 3} y={ringY} width="1" height="1" fill="#654321" opacity={0.4} className="pixel" />
+              );
+            }
+          } else if (marking.location === 'chin' && marking.pattern === 'plate') {
+            // Lip plate
+            const chinY = headY + headDim.height - 2;
+            const plateSize = marking.size === 'large' ? 4 : marking.size === 'medium' ? 3 : 2;
+            const plateColor = marking.color || '#8B7355'; // Clay/wood color
+            
+            // Draw circular/disc shape
+            for (let dy = 0; dy < plateSize; dy++) {
+              const width = plateSize - Math.abs(dy - Math.floor(plateSize / 2));
+              const xOffset = centerX - Math.floor(width / 2);
+              elements.push(
+                <rect key={`lip-plate-${index}-${dy}`} x={xOffset} y={chinY + dy} width={width} height="1" fill={plateColor} className="pixel" />
+              );
+            }
+            // Add central decoration
+            elements.push(
+              <rect key={`lip-plate-center-${index}`} x={centerX} y={chinY + Math.floor(plateSize / 2)} width="1" height="1" fill="#654321" className="pixel" />
+            );
+          } else if (marking.location === 'face' && (marking.pattern === 'teeth_black' || marking.pattern === 'teeth_filed' || marking.pattern === 'teeth_inlay')) {
+            // Tooth modifications (visible when mouth is shown)
+            const mouthY = headY + Math.floor(headDim.height * 0.65);
+            
+            if (marking.pattern === 'teeth_black') {
+              // Blackened teeth
+              elements.push(
+                <rect key={`teeth-black-${index}`} x={centerX - 2} y={mouthY} width="5" height="1" fill="#1C1C1C" className="pixel" />
+              );
+            } else if (marking.pattern === 'teeth_filed') {
+              // Filed/pointed teeth
+              const toothPattern = [-2, -1, 0, 1, 2];
+              toothPattern.forEach((dx, i) => {
+                const toothHeight = i % 2 === 0 ? 1 : 2; // Alternating heights for filed look
+                elements.push(
+                  <rect key={`teeth-filed-${index}-${i}`} x={centerX + dx} y={mouthY - (toothHeight - 1)} width="1" height={toothHeight} fill="#F5F5DC" className="pixel" />
+                );
+              });
+            } else if (marking.pattern === 'teeth_inlay') {
+              // Jade/gold inlays
+              const inlayColor = marking.color || '#00A86B'; // Default jade green
+              elements.push(
+                <rect key={`teeth-base-${index}`} x={centerX - 2} y={mouthY} width="5" height="1" fill="#F5F5DC" className="pixel" />,
+                <rect key={`teeth-inlay-1-${index}`} x={centerX - 1} y={mouthY} width="1" height="1" fill={inlayColor} className="pixel" />,
+                <rect key={`teeth-inlay-2-${index}`} x={centerX + 1} y={mouthY} width="1" height="1" fill={inlayColor} className="pixel" />
+              );
+            }
+          } else if (marking.location === 'cheek' && marking.pattern === 'cheek_plug') {
+            // Cheek plugs/discs
+            const cheekY = headY + Math.floor(headDim.height * 0.55);
+            const plugSize = marking.size === 'large' ? 3 : 2;
+            const plugColor = marking.color || '#8B4513'; // Wood color
+            
+            // Left cheek plug
+            elements.push(
+              <rect key={`cheek-plug-l-${index}`} x={headX + 1} y={cheekY} width={plugSize} height={plugSize} fill={plugColor} className="pixel" />,
+              <rect key={`cheek-plug-l-center-${index}`} x={headX + 1 + Math.floor(plugSize / 2)} y={cheekY + Math.floor(plugSize / 2)} width="1" height="1" fill="#654321" className="pixel" />
+            );
+            // Right cheek plug
+            elements.push(
+              <rect key={`cheek-plug-r-${index}`} x={headX + headDim.width - plugSize - 1} y={cheekY} width={plugSize} height={plugSize} fill={plugColor} className="pixel" />,
+              <rect key={`cheek-plug-r-center-${index}`} x={headX + headDim.width - plugSize - 1 + Math.floor(plugSize / 2)} y={cheekY + Math.floor(plugSize / 2)} width="1" height="1" fill="#654321" className="pixel" />
+            );
+          } else if (marking.location === 'face' && marking.pattern === 'plug') {
+            // Ear stretching/plugs
+            const earY = headY + Math.floor(headDim.height * 0.4);
+            const plugSize = marking.size === 'large' ? 3 : marking.size === 'medium' ? 2 : 1;
+            const plugColor = marking.color || '#000000';
+            
+            // Left ear plug
+            elements.push(
+              <rect key={`ear-plug-l-${index}`} x={headX - 1} y={earY} width={plugSize} height={plugSize} fill={plugColor} className="pixel" />
+            );
+            // Right ear plug
+            elements.push(
+              <rect key={`ear-plug-r-${index}`} x={headX + headDim.width} y={earY} width={plugSize} height={plugSize} fill={plugColor} className="pixel" />
+            );
+          }
+          break;
+        }
         case 'piercing': {
           // Enhanced piercing visualization
           if (marking.location === 'nose') {
@@ -4930,7 +5107,7 @@ if (defaultCapStyles.has(hairStyle)) {
                 // Forehead band (red ochre streak)
                 const foreheadY = headY + 3;
                 elements.push(
-                  <rect key={`paint-forehead-${index}`} x={headX + 2} y={foreheadY} width={headDim.width - 4} height="2" fill={markingColor} opacity={0.8} className="pixel" />
+                  <rect key={`paint-forehead-${index}`} x={headX + 2} y={foreheadY} width={Math.max(1, headDim.width - 4)} height="2" fill={markingColor} opacity={0.8} className="pixel" />
                 );
               }
             }
@@ -4945,8 +5122,8 @@ if (defaultCapStyles.has(hairStyle)) {
             // War paint stripes
             else if (paintPattern === 'horizontal_stripes' || paintPattern === 'stripes') {
               elements.push(
-                <rect key={`paint-stripe1-${index}`} x={headX + 2} y={headY + 10} width={headDim.width - 4} height="1" fill={markingColor} className="pixel" />,
-                <rect key={`paint-stripe2-${index}`} x={headX + 2} y={headY + 13} width={headDim.width - 4} height="1" fill={markingColor} className="pixel" />
+                <rect key={`paint-stripe1-${index}`} x={headX + 2} y={headY + 10} width={Math.max(1, headDim.width - 4)} height="1" fill={markingColor} className="pixel" />,
+                <rect key={`paint-stripe2-${index}`} x={headX + 2} y={headY + 13} width={Math.max(1, headDim.width - 4)} height="1" fill={markingColor} className="pixel" />
               );
             }
             // Lightning/zigzag pattern
@@ -4995,7 +5172,7 @@ if (defaultCapStyles.has(hairStyle)) {
               } else {
                 // Full eye band (mourning paint or warrior paint)
                 elements.push(
-                  <rect key={`eye-band-${index}`} x={headX + 2} y={eyeY} width={headDim.width - 4} height="3" fill={markingColor} opacity={0.9} className="pixel" />
+                  <rect key={`eye-band-${index}`} x={headX + 2} y={eyeY} width={Math.max(1, headDim.width - 4)} height="3" fill={markingColor} opacity={0.9} className="pixel" />
                 );
               }
             }

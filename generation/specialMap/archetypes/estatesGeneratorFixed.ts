@@ -11,6 +11,37 @@ const LANDSCAPE_BORDER_ROWS = 3; // Default border size for estates
 
 type MaterialType = 'white_marble' | 'grey_stone' | 'red_lacquer' | 'sandstone' | 'wood' | 'steel' | 'earth' | 'hide';
 import { placePillar, placeTable, placeLightSource, placeFirepit } from '../multiTileSystem';
+import { applyNorthBackWall } from '../backWallUtils';
+
+/**
+ * Place stairs to basement or upper floor
+ */
+function placeStairs(
+  tiles: Tile[][],
+  x: number,
+  y: number,
+  direction: 'up' | 'down',
+  config: SpecialMapConfig,
+  interactionZones: InteractionZone[]
+): void {
+  if (y < 0 || y >= tiles.length || x < 0 || x >= tiles[0].length) return;
+  
+  const stairsBiome = direction === 'up' ? BiomeType.STAIRS_UP : BiomeType.STAIRS_DOWN;
+  tiles[y][x].biome = stairsBiome;
+  tiles[y][x].isBlocking = false; // Can walk on stairs
+  tiles[y][x].materialSubtype = getMaterialForWalls(config.culturalZone, config.specificYear || 1400);
+  
+  // Add interaction zone
+  interactionZones.push({
+    id: `stairs_${direction}_${x}_${y}`,
+    location: [x, y],
+    label: direction === 'up' ? 'Stairs to Upper Floor' : 'Stairs to Basement',
+    action: 'examine',
+    description: direction === 'up' ? 
+      'Stone steps leading to the upper chambers' : 
+      'Stone steps descending into the estate\'s basement chambers'
+  });
+}
 import { 
   placeDeskWithChair, 
   placeBookshelfAgainstWall, 
@@ -634,11 +665,31 @@ function generateSmallEstate(
   // Single-tile thick walls
   drawWalls(tiles, startX, startY, width, height, wallMaterial);
   
+  // Add back wall to north edge for SNES RPG dollhouse view (always at Y=0, the true north)
+  applyNorthBackWall(tiles, startX, 0, width, config, {
+    hasWindows: false,
+    windowSpacing: 0
+  });
+  
   // Throne at north with dais platform (place before procedural furnishing)
   placeThroneWithDais(tiles, centerX, startY + 2, config);
   
   // Use new procedural furnishing system (will add everything else)
   procedurallyFurnishRoom(tiles, startX + 1, startY + 1, width - 2, height - 2, 'throne_room', config);
+  
+  // Add ceremonial carpet runner from entrance to throne (AFTER procedural furnishing)
+  for (let y = startY + 4; y < startY + height - 1; y++) {
+    tiles[y][centerX].biome = BiomeType.CARPET;
+    tiles[y][centerX].materialSubtype = 'royal_red';
+  }
+  
+  // Add pillars for small estates (AFTER procedural furnishing)
+  const year = config.specificYear || 1200;
+  if (width >= 10) {  // Always add pillars if there's space
+    const pillarMaterial = getMaterialForPillar(config);
+    placePillar(tiles, centerX - 3, startY + 4, pillarMaterial, year);
+    placePillar(tiles, centerX + 3, startY + 4, pillarMaterial, year);
+  }
   
   // Entrance at south
   tiles[startY + height - 1][centerX].biome = BiomeType.DOOR;
@@ -683,6 +734,12 @@ function generateMediumEstate(
   
   // Outer walls
   drawWalls(tiles, startX, startY, width, height, wallMaterial);
+  
+  // Add back wall to north edge (always at Y=0, the true north)
+  applyNorthBackWall(tiles, startX, 0, width, config, {
+    hasWindows: true,
+    windowSpacing: 4
+  });
   
   // Symmetrical room division
   const throneRoomHeight = Math.floor(height * 0.5);
@@ -795,6 +852,11 @@ function generateMediumEstate(
   tiles[startY + height - 1][centerX].biome = openingType;
   tiles[startY + height - 1][centerX].isBlocking = false;
   
+  // Add basement stairs in corner of antechamber (medium estates get basement access)
+  const stairX = startX + width - 3; // Near the corner
+  const stairY = antechamberY + 3;
+  placeStairs(tiles, stairX, stairY, 'down', config, interactionZones);
+  
   // Room definitions
   rooms.push({
     id: 'throne_room',
@@ -811,6 +873,32 @@ function generateMediumEstate(
     roomType: 'foyer',
     accessLevel: 'public'
   });
+  
+  // Add ceremonial carpet runner AFTER procedural furnishing
+  for (let y = startY + 3; y < antechamberY; y++) {
+    tiles[y][centerX].biome = BiomeType.CARPET;
+    tiles[y][centerX].materialSubtype = 'royal_red';
+    // Wider carpet near throne
+    if (y < startY + 6) {
+      if (tiles[y][centerX - 1]) {
+        tiles[y][centerX - 1].biome = BiomeType.CARPET;
+        tiles[y][centerX - 1].materialSubtype = 'royal_red';
+      }
+      if (tiles[y][centerX + 1]) {
+        tiles[y][centerX + 1].biome = BiomeType.CARPET;
+        tiles[y][centerX + 1].materialSubtype = 'royal_red';
+      }
+    }
+  }
+  
+  // Add pillars for medium estates AFTER procedural furnishing
+  if (width >= 14) {  // Always add if there's space
+    const pillarMaterial = getMaterialForPillar(config);
+    const year = config.specificYear || 1200;
+    // Flanking pillars near throne
+    placePillar(tiles, centerX - 4, startY + 5, pillarMaterial, year);
+    placePillar(tiles, centerX + 4, startY + 5, pillarMaterial, year);
+  }
   
   exitZones.push({
     id: 'main_exit',
@@ -840,6 +928,12 @@ function generateLargeEstate(
   
   // Outer walls
   drawWalls(tiles, startX, startY, width, height, wallMaterial);
+  
+  // Add back wall to north edge for large estates (always at Y=0, the true north)
+  applyNorthBackWall(tiles, startX, 0, width, config, {
+    hasWindows: true,
+    windowSpacing: 3  // More windows for grand halls
+  });
   
   // Create symmetrical room layout
   // Reception hall at bottom (30%)
@@ -905,6 +999,27 @@ function generateLargeEstate(
   // Throne with dais platform
   placeThroneWithDais(tiles, centerX, startY + 2, config);
   
+  // Add grand carpet runner from entrance through reception to throne
+  // Through reception hall
+  for (let y = receptionY + 1; y < startY + height - 1; y++) {
+    tiles[y][centerX].biome = BiomeType.CARPET;
+    tiles[y][centerX].materialSubtype = 'royal_red';
+  }
+  // Through throne room
+  for (let y = startY + 3; y < receptionY; y++) {
+    tiles[y][centerX].biome = BiomeType.CARPET;
+    tiles[y][centerX].materialSubtype = 'royal_red';
+    // Extra wide carpet near throne (3x3 area)
+    if (y < startY + 6) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (tiles[y][centerX + dx]) {
+          tiles[y][centerX + dx].biome = BiomeType.CARPET;
+          tiles[y][centerX + dx].materialSubtype = 'royal_red';
+        }
+      }
+    }
+  }
+  
   // Use procedural furnishing for all rooms
   // Throne room
   procedurallyFurnishRoom(tiles, startX + hallwayWidth + 1, startY + 1,
@@ -926,14 +1041,26 @@ function generateLargeEstate(
                          hallwayWidth - 1, receptionY - startY - 1,
                          'corridor', config);
   
-  // Symmetrical pillars in throne room
+  // Symmetrical pillars in throne room (always add if there's space)
   const throneRoomWidth = width - (2 * hallwayWidth) - 2;
   if (throneRoomWidth >= 8) {
     const pillarY = startY + Math.floor(throneRoomHeight / 2);
-    const pillarMaterial = getCulturalPillarMaterial(config);
-    placePillar(tiles, centerX - 3, pillarY, pillarMaterial, config.specificYear || 1500);
-    placePillar(tiles, centerX + 3, pillarY, pillarMaterial, config.specificYear || 1500);
+    const pillarMaterial = getMaterialForPillar(config);
+    const year = config.specificYear || 1500;
+    placePillar(tiles, centerX - 3, pillarY, pillarMaterial, year);
+    placePillar(tiles, centerX + 3, pillarY, pillarMaterial, year);
   }
+  
+  // Add basement and upper floor stairs for large estates
+  // Basement stairs in back hallway
+  const basementStairX = startX + 2;
+  const basementStairY = startY + throneRoomHeight + 2;
+  placeStairs(tiles, basementStairX, basementStairY, 'down', config, interactionZones);
+  
+  // Upper floor stairs in side hallway
+  const upperStairX = startX + width - 3;
+  const upperStairY = startY + throneRoomHeight + 2;
+  placeStairs(tiles, upperStairX, upperStairY, 'up', config, interactionZones);
   
   // Room definitions
   rooms.push({
@@ -1021,7 +1148,7 @@ function generateXLEstate(
   
   // Add grand colonnade of pillars in throne room
   if (width >= 24) {
-    const pillarMaterial = getCulturalPillarMaterial(config);
+    const pillarMaterial = getMaterialForPillar(config);
     // Double row of pillars
     for (let i = 0; i < 3; i++) {
       const pillarX1 = centerX - 8 + (i * 4);
@@ -1212,6 +1339,56 @@ function placeThroneWithDais(tiles: Tile[][], throneX: number, throneY: number, 
   // Add cultural decorations behind throne
   if (tiles[throneY - 1]?.[throneX]) {
     placeCulturalDecoration(tiles, throneX, throneY - 1, config.culturalZone || 'EUROPEAN', 'royal');
+  }
+  
+  // Add banners on either side of the throne area
+  if (tiles[throneY - 1]?.[throneX - 3]) {
+    tiles[throneY - 1][throneX - 3].overlayObject = {
+      type: OverlayObjectType.BANNER,
+      rotation: 0,
+      variant: 'royal_authority'
+    };
+  }
+  if (tiles[throneY - 1]?.[throneX + 3]) {
+    tiles[throneY - 1][throneX + 3].overlayObject = {
+      type: OverlayObjectType.BANNER,
+      rotation: 0,
+      variant: 'royal_authority'
+    };
+  }
+  
+  // Add seating for courtiers on the sides
+  if (tiles[throneY + 2]?.[throneX - 4]) {
+    tiles[throneY + 2][throneX - 4].overlayObject = {
+      type: OverlayObjectType.BENCH,
+      rotation: 90, // Facing toward throne
+      variant: 'noble_seating'
+    };
+  }
+  if (tiles[throneY + 2]?.[throneX + 4]) {
+    tiles[throneY + 2][throneX + 4].overlayObject = {
+      type: OverlayObjectType.BENCH,
+      rotation: 270, // Facing toward throne
+      variant: 'noble_seating'
+    };
+  }
+  
+  // Add decorative vases or statues in the corners
+  if (tiles[throneY + 1]?.[throneX - 5]) {
+    tiles[throneY + 1][throneX - 5].overlayObject = {
+      type: OverlayObjectType.VASE,
+      rotation: 0,
+      variant: config.culturalZone === 'EAST_ASIAN' ? 'porcelain' : 'ceramic'
+    };
+    tiles[throneY + 1][throneX - 5].isBlocking = true;
+  }
+  if (tiles[throneY + 1]?.[throneX + 5]) {
+    tiles[throneY + 1][throneX + 5].overlayObject = {
+      type: OverlayObjectType.VASE,
+      rotation: 0,
+      variant: config.culturalZone === 'EAST_ASIAN' ? 'porcelain' : 'ceramic'
+    };
+    tiles[throneY + 1][throneX + 5].isBlocking = true;
   }
 }
 
@@ -1810,4 +1987,53 @@ function generateGreatHall(
     label: 'The seat of power',
     type: 'throne'
   });
+}
+
+
+/**
+ * Get appropriate material for pillars based on culture
+ */
+function getMaterialForPillar(config: SpecialMapConfig): MaterialType {
+  const { culturalZone, mapSize } = config;
+  const year = config.specificYear || 1200;
+  const isSmallEstate = mapSize === 'xs' || mapSize === 'small';
+  
+  switch (culturalZone) {
+    case 'EUROPEAN':
+      if (year < 500) return 'white_marble';  // Classical
+      if (year < 1200) return 'grey_stone';   // Medieval
+      if (year < 1800) return 'white_marble'; // Renaissance
+      return 'steel';                          // Modern
+      
+    case 'MENA':
+      if (year < 0) return 'sandstone';       // Ancient Egyptian/Mesopotamian
+      if (year < 1500) return 'sandstone';    // Islamic golden age
+      return 'white_marble';                   // Modern palaces
+      
+    case 'EAST_ASIAN':
+      if (config.region === 'japan') return 'wood';  // Japanese always use wood
+      return 'red_lacquer';                          // Chinese use lacquered wood
+      
+    case 'SOUTH_ASIAN':
+      if (year < 500) return 'sandstone';     // Ancient Indian
+      return 'red_lacquer';                    // Mughal and later
+      
+    case 'SUB_SAHARAN_AFRICAN':
+      return isSmallEstate ? 'wood' : 'grey_stone';  // Wood for small, stone for large
+      
+    case 'AMERICAS':
+    case 'NORTH_AMERICAN_PRE_COLUMBIAN':
+    case 'NORTH_AMERICAN':
+      // North America always wood
+      if (config.region && config.region.includes('north')) return 'wood';
+      // South America: wood for small estates, stone for large (Inca/Maya)
+      return isSmallEstate ? 'wood' : 'grey_stone';
+      
+    case 'OCEANIA':
+    case 'OCEANIC':
+      return 'wood';  // Pacific islands use wood
+      
+    default:
+      return 'grey_stone';
+  }
 }

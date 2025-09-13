@@ -87,7 +87,7 @@ const qualityClass: Record<string, string> = {
 
 const slotIconMap: Record<EquipmentSlot, React.ReactNode> = {
   head: <Crown className="w-5 h-5" />,
-  amulet: <Gem className="w-5 h-5" />,
+  necklace: <Gem className="w-5 h-5" />,
   torso: <Shirt className="w-5 h-5" />,
   cloak: <Wind className="w-5 h-5" />,
   main_hand: <Sword className="w-5 h-5" />,
@@ -392,7 +392,7 @@ const SLOT_ORDER: EquipmentSlot[] = [
   'ring1',
   'head',
   'accessory',
-  'amulet',
+  'necklace',
   'torso',
   'cloak',
   'main_hand',
@@ -526,7 +526,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
 
     // Exact-slot wearables
     chooseBest('head', (it) => (it.equipmentSlot as any) === 'head');
-    chooseBest('amulet', (it) => (it.equipmentSlot as any) === 'amulet');
+    chooseBest('necklace', (it) => (it.equipmentSlot as any) === 'necklace');
     chooseBest('torso', (it) => (it.equipmentSlot as any) === 'torso');
     chooseBest('cloak', (it) => (it.equipmentSlot as any) === 'cloak');
     chooseBest('legs', (it) => (it.equipmentSlot as any) === 'legs');

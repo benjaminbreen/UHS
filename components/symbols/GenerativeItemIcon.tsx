@@ -448,7 +448,8 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
     if (name.includes('sextant')) return 'sextant';
     
     // === MATERIALS ===
-    if (name.includes('ore') || name.includes('ingot')) return 'ore';
+    if (name.includes('ingot') || name.includes(' bar') || name.includes(' ingot')) return 'ingot';
+    if (name.includes('ore')) return 'ore';
     if (name.includes('cloth') || name.includes('fabric') || name.includes('textile')) return 'cloth';
     if (name.includes('leather') || name.includes('hide') || name.includes('pelt')) return 'leather';
     if (name.includes('wood') || name.includes('plank') || name.includes('timber')) return 'wood';
@@ -488,6 +489,8 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
 if (name.includes('broom')) return 'broom';
 if (name.includes('coal')) return 'coal';
 if (name.includes('clay')) return 'clay';
+// Specific pottery items (more specific than generic clay)
+if (name.includes('clay lamp') || name.includes('pottery shard') || name.includes('ceramic pot')) return 'pottery';
 if (name.includes('smartphone') || name.includes('cell phone') || name.includes('mobile phone')) return 'smartphone';
 if (name.includes('flashlight')) return 'flashlight'; // (kept separate from medieval 'torch')
 if (name.includes('syringe') || name.includes('needle') && cat.includes('medical')) return 'syringe';
@@ -1930,7 +1933,38 @@ if (name.includes('cheese')) return 'cheese';
           [10,8],[13,10],[9,11],
         ], '#FFFFFF', 0.6);
         break;
-        
+
+      case 'ingot':
+        // Metal ingot/bar - rectangular with metallic sheen
+        svgContent = pixels([
+          // Base bar (3D perspective)
+          [7,10],[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],
+          [7,11],[8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],[16,11],
+          [7,12],[8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],[16,12],
+        ], colors.primary) +
+        pixels([
+          // Top face (lighter)
+          [7,8],[8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],[16,8],
+          [8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],[17,9],
+        ], colors.accent) +
+        pixels([
+          // Right edge (darker for depth)
+          [16,9],[17,9],
+          [16,10],[17,10],
+          [16,11],[17,11],
+        ], colors.secondary) +
+        pixels([
+          // Metallic highlights
+          [9,9],[11,9],[13,9],[15,9],
+          [8,10],[12,10],[16,10],
+        ], '#FFFFFF', 0.4) +
+        pixels([
+          // Quality mark/stamp
+          [11,10],[12,10],[13,10],
+          [11,11],[13,11],
+        ], colors.secondary, 0.8);
+        break;
+
       case 'pickaxe':
         svgContent = pixels([
           // Pick head - left point
@@ -4456,6 +4490,138 @@ case 'cheese': {
           // Front pocket
           [10,9],[11,9],[12,9],[13,9],[14,9],
         ], colors.accent);
+        break;
+
+      case 'headwrap':
+        // Traditional head wrap/turban
+        svgContent = pixels([
+          // Base wrap around head
+          [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],
+          [8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],
+          [8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],[16,10],
+          [9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],
+        ], colors.primary) +
+        pixels([
+          // Draped section
+          [7,9],[7,10],[7,11],[7,12],
+          [17,9],[17,10],
+        ], colors.secondary) +
+        pixels([
+          // Fold lines/texture
+          [10,9],[12,9],[14,9],
+          [9,10],[13,10],[15,10],
+        ], colors.accent, 0.6);
+        break;
+
+      case 'bracelet':
+        // Circular bracelet
+        svgContent = pixels([
+          // Outer ring
+          [10,8],[11,8],[12,8],[13,8],[14,8],
+          [9,9],[15,9],
+          [8,10],[16,10],
+          [8,11],[16,11],
+          [9,12],[15,12],
+          [10,13],[11,13],[12,13],[13,13],[14,13],
+        ], colors.primary) +
+        pixels([
+          // Inner ring (hollow)
+          [11,9],[12,9],[13,9],
+          [10,10],[14,10],
+          [10,11],[14,11],
+          [11,12],[12,12],[13,12],
+        ], colors.secondary) +
+        pixels([
+          // Decorative elements
+          [12,8],[8,10],[16,10],[12,13],
+        ], colors.accent);
+        break;
+
+      case 'flask':
+        // Water flask/bottle
+        svgContent = pixels([
+          // Neck
+          [11,6],[12,6],[13,6],
+          [11,7],[12,7],[13,7],
+        ], colors.primary) +
+        pixels([
+          // Body
+          [10,8],[11,8],[12,8],[13,8],[14,8],
+          [9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],
+          [9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],
+          [9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],
+          [9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],
+          [10,13],[11,13],[12,13],[13,13],[14,13],
+          [11,14],[12,14],[13,14],
+        ], colors.primary) +
+        pixels([
+          // Cork/stopper
+          [11,5],[12,5],[13,5],
+        ], '#8B4513') +
+        pixels([
+          // Water line/contents
+          [10,11],[11,11],[12,11],[13,11],[14,11],
+          [10,12],[11,12],[12,12],[13,12],[14,12],
+        ], '#87CEEB', 0.6);
+        break;
+
+      case 'box':
+        // Storage box/crate
+        svgContent = pixels([
+          // Front face
+          [8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8],
+          [8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],
+          [8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10],
+          [8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],
+          [8,12],[9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],
+        ], colors.primary) +
+        pixels([
+          // Top face (3D perspective)
+          [9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],[16,7],
+          [10,8],[11,8],[12,8],[13,8],[14,8],[15,8],[16,8],
+        ], colors.accent) +
+        pixels([
+          // Right face (darker)
+          [15,8],[16,8],
+          [15,9],[16,9],
+          [15,10],[16,10],
+          [15,11],[16,11],
+          [15,12],[16,12],
+        ], colors.secondary) +
+        pixels([
+          // Corner reinforcements
+          [8,8],[15,8],[8,12],[15,12],
+        ], colors.secondary, 0.8);
+        break;
+
+      case 'pottery':
+        // Pottery items like clay lamp, ceramic pot
+        svgContent = pixels([
+          // Bowl/lamp base
+          [10,11],[11,11],[12,11],[13,11],[14,11],
+          [9,12],[10,12],[11,12],[12,12],[13,12],[14,12],[15,12],
+          [9,13],[10,13],[11,13],[12,13],[13,13],[14,13],[15,13],
+          [10,14],[11,14],[12,14],[13,14],[14,14],
+        ], colors.primary) +
+        pixels([
+          // Rim/lip
+          [9,11],[15,11],
+          [8,12],[16,12],
+        ], colors.accent) +
+        pixels([
+          // Spout (for lamps)
+          [7,11],[8,11],
+          [6,12],[7,12],
+        ], colors.primary) +
+        pixels([
+          // Base/foot
+          [11,15],[12,15],[13,15],
+        ], colors.secondary) +
+        pixels([
+          // Decorative bands
+          [9,12],[15,12],
+          [10,13],[14,13],
+        ], colors.secondary, 0.6);
         break;
 
       default:

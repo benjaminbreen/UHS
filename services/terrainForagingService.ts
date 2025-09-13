@@ -3,9 +3,14 @@
  * Provides realistic resource gathering based on terrain type
  */
 
-import { Tile, BiomeType, Item, PlayerCharacter } from '../types';
+import { Tile, BiomeType, Item, PlayerCharacter, MapData } from '../types';
 import { createItemInstance } from '../utils/inventoryUtils';
 import { ITEM_DEFINITIONS } from '../constants/gameData/itemDefinitions';
+import { 
+  isNearFreshwater, 
+  getWaterSourceMessage, 
+  getWaterCollectionAmount 
+} from './waterDetectionService';
 
 export interface TerrainActionResult {
   success: boolean;
@@ -23,8 +28,34 @@ export interface TerrainActionResult {
 export function executeTerrainDig(
   tile: Tile, 
   player: PlayerCharacter,
-  isUrbanTile: boolean = false
+  isUrbanTile: boolean = false,
+  mapData?: MapData,
+  playerLocation?: { x: number; y: number }
 ): TerrainActionResult {
+  
+  // Check for freshwater collection when digging near water
+  if (mapData && playerLocation) {
+    const waterSource = isNearFreshwater(playerLocation, mapData);
+    if (waterSource) {
+      const waterItem = createItemInstance('FRESH_WATER');
+      if (waterItem) {
+        const amount = getWaterCollectionAmount(waterSource);
+        waterItem.quantity = amount;
+        
+        const sourceMessage = getWaterSourceMessage(waterSource);
+        const collectionMessage = amount > 1 
+          ? `You dig a small collection pool and gather ${amount} liters of fresh water.`
+          : `You dig a small collection pool and gather 1 liter of fresh water.`;
+        
+        return {
+          success: true,
+          item: waterItem,
+          message: `${sourceMessage} ${collectionMessage}`,
+          xpGained: 2 // Slightly more XP for digging
+        };
+      }
+    }
+  }
   
   // Salt flats - always get salt
   if (tile.biome === BiomeType.SALT_FLATS) {
@@ -185,8 +216,34 @@ export function executeTerrainDig(
 export function executeTerrainForage(
   tile: Tile,
   player: PlayerCharacter,
-  isUrbanTile: boolean = false
+  isUrbanTile: boolean = false,
+  mapData?: MapData,
+  playerLocation?: { x: number; y: number }
 ): TerrainActionResult {
+  
+  // Check for freshwater collection first (highest priority)
+  if (mapData && playerLocation) {
+    const waterSource = isNearFreshwater(playerLocation, mapData);
+    if (waterSource) {
+      const waterItem = createItemInstance('FRESH_WATER');
+      if (waterItem) {
+        const amount = getWaterCollectionAmount(waterSource);
+        waterItem.quantity = amount;
+        
+        const sourceMessage = getWaterSourceMessage(waterSource);
+        const collectionMessage = amount > 1 
+          ? `You collect ${amount} liters of fresh water.`
+          : `You collect 1 liter of fresh water.`;
+        
+        return {
+          success: true,
+          item: waterItem,
+          message: `${sourceMessage} ${collectionMessage}`,
+          xpGained: 1
+        };
+      }
+    }
+  }
   
   // Salt flats - salt crystals and minerals
   if (tile.biome === BiomeType.SALT_FLATS) {

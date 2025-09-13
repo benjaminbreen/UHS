@@ -125,7 +125,7 @@ function calculateApproachProbability(
     if (context.playerWealth > 30) baseProbability *= 2;
   }
   
-  else if (occupation.includes('thief') || (npc.personality && typeof npc.personality === 'string' && npc.personality.includes('greedy'))) {
+  else if (occupation.includes('thief') || (npc.personality && npc.personality.agreeableness < 0.3)) { // Low agreeableness = greedy
     if (context.playerWealth > 40) {
       baseProbability *= 1.5;
       approachType = 'theft';
@@ -166,12 +166,12 @@ function calculateApproachProbability(
   }
 
   // Religion/Faction confrontation logic
-  if (playerCharacter.religion && npc.religion && 
-      playerCharacter.religion !== npc.religion) {
+  if (context.playerReligion && npc.religion && 
+      context.playerReligion !== npc.religion) {
     
     // Check for known religious conflicts
     const hasReligiousConflict = checkReligiousConflict(
-      playerCharacter.religion, 
+      context.playerReligion, 
       npc.religion
     );
     
@@ -183,11 +183,11 @@ function calculateApproachProbability(
   }
 
   // Faction conflict logic
-  if (playerCharacter.faction && npc.faction && 
-      playerCharacter.faction !== npc.faction) {
+  if (context.playerFaction && npc.faction && 
+      context.playerFaction !== npc.faction) {
     
     const hasFactionalConflict = checkFactionalConflict(
-      playerCharacter.faction, 
+      context.playerFaction, 
       npc.faction
     );
     
@@ -198,14 +198,16 @@ function calculateApproachProbability(
     }
   }
 
-  // Personality-based confrontation
-  if (npc.personality && typeof npc.personality === 'string') {
-    if (npc.personality.includes('aggressive') || npc.personality.includes('confrontational')) {
+  // Personality-based confrontation (using numeric traits)
+  if (npc.personality) {
+    // Low agreeableness and high neuroticism = aggressive/confrontational
+    if (npc.personality.agreeableness < 0.3 && npc.personality.neuroticism > 0.6) {
       baseProbability *= 2;
       if (Math.random() < 0.3) approachType = 'hostile';
     }
     
-    if (npc.personality.includes('extroverted') || npc.personality.includes('social')) {
+    // High extraversion = social/extroverted
+    if (npc.personality.extraversion > 0.7) {
       baseProbability *= 1.5; // More likely to approach
     }
   }

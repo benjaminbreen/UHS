@@ -23,6 +23,8 @@ import { TamedAnimal } from '../services/animalTamingService';
 import { specialMapNpcBehaviorService, isGuardType } from '../services/specialMapNpcBehaviorService';
 import { eventBus } from '../services/eventBus';
 import { questService } from '../services/questService';
+import { questTriggerService } from '../services/questTriggerService';
+import { FloatingTextMessage } from '../components/ui/FloatingText';
 
 export interface VictoryDetails {
     xpGained: number;
@@ -59,6 +61,7 @@ export const useUIState = () => {
     const [portraitModalCharacter, setPortraitModalCharacter] = useState<PlayerCharacter | NpcEntity | null>(null);
     const [isCraftingModalOpen, setIsCraftingModalOpen] = useState(false);
     const [craftingModalData, setCraftingModalData] = useState<CraftingModalData | null>(null);
+    const [selectedPrimarySource, setSelectedPrimarySource] = useState<any>(null);
     
     // Dev Tooltip
     const [hoveredDevData, setHoveredDevData] = useState<DevTooltipDisplayData | null>(null);
@@ -98,6 +101,7 @@ export const useUIState = () => {
     const [activeRuinModal, setActiveRuinModal] = useState<{ tile: Tile } | null>(null);
     const [inRuinRoguelike, setInRuinRoguelike] = useState(false);
     const [activeGovernmentModal, setActiveGovernmentModal] = useState<{ structure: TerrainStructure; tile: Tile } | null>(null);
+    const [activeFishingHutModal, setActiveFishingHutModal] = useState<{ structure: TerrainStructure; tile: Tile } | null>(null);
     const [activeMiningModal, setActiveMiningModal] = useState<TerrainStructure | null>(null);
     const [interactionModalData, setInteractionModalData] = useState<any>(null); // For container loot
     const [encounterTarget, setEncounterTarget] = useState<EncounterableEntity | null>(null);
@@ -105,6 +109,17 @@ export const useUIState = () => {
     const [victoryDetails, setVictoryDetails] = useState<VictoryDetails | null>(null);
     const [lootModalData, setLootModalData] = useState<LootModalData | null>(null);
     const [activePoi, setActivePoi] = useState<TerrainStructure | null>(null);
+    const [poiToastData, setPoiToastData] = useState<{
+        structure: TerrainStructure;
+        description: string;
+        dialogue: any;
+    } | null>(null);
+    const [containerModalData, setContainerModalData] = useState<{
+        containerType: any;
+        contents: any;
+        position: { x: number; y: number };
+        isAnimating: boolean;
+    } | null>(null);
     
     // Skills
     const [isSkillsModalOpen, setIsSkillsModalOpen] = useState<boolean>(false);
@@ -114,6 +129,7 @@ export const useUIState = () => {
     // Notifications
     const [toastMessage, setToastMessage] = useState<string | null>(null);
     const [panelNotificationItem, setPanelNotificationItem] = useState<Item | null>(null);
+    const [floatingTextMessages, setFloatingTextMessages] = useState<FloatingTextMessage[]>([]);
 
     const setActiveMarketplaceModal = useCallback((data: { tile: Tile } | null) => {
         _setActiveMarketplaceModal(data);
@@ -141,16 +157,74 @@ export const useUIState = () => {
     const isAnyModalOpen = useMemo(() =>
         isSettingsModalOpen || isAboutModalOpen || isWorldMapModalOpen || isCharacterProfileModalOpen || isMapDetailsModalOpen ||
         !!tileInfoModalProps || !!infoModalTarget || !!structureModalTarget || !!activeSettlementInfo ||
-        !!interactionModalData || isSkillsModalOpen || !!encounterTarget || !!combatant || !!victoryDetails || !!lootModalData || !!activeMarketplaceModal || !!activeCityModal || isLevelUpModalOpen || isPortraitModalOpen || isCraftingModalOpen || !!activeMiningModal || !!activePoi || !!activeRuinModal || !!activeGovernmentModal,
+        !!interactionModalData || isSkillsModalOpen || !!encounterTarget || !!combatant || !!victoryDetails || !!lootModalData || !!activeMarketplaceModal || !!activeCityModal || isLevelUpModalOpen || isPortraitModalOpen || isCraftingModalOpen || !!activeMiningModal || !!activePoi || !!activeRuinModal || !!activeGovernmentModal || !!activeFishingHutModal || !!containerModalData,
         [isSettingsModalOpen, isAboutModalOpen, isWorldMapModalOpen, isCharacterProfileModalOpen, isMapDetailsModalOpen,
          tileInfoModalProps, infoModalTarget, structureModalTarget, activeSettlementInfo,
-         interactionModalData, isSkillsModalOpen, encounterTarget, combatant, victoryDetails, lootModalData, activeMarketplaceModal, activeCityModal, isLevelUpModalOpen, isPortraitModalOpen, isCraftingModalOpen, activeMiningModal, activePoi, activeRuinModal, activeGovernmentModal]
+         interactionModalData, isSkillsModalOpen, encounterTarget, combatant, victoryDetails, lootModalData, activeMarketplaceModal, activeCityModal, isLevelUpModalOpen, isPortraitModalOpen, isCraftingModalOpen, activeMiningModal, activePoi, activeRuinModal, activeGovernmentModal, activeFishingHutModal, containerModalData]
     );
 
     // Handlers
-    const showToast = useCallback((message: string) => {
+    const showToast = useCallback((message: string, type: 'success' | 'warning' | 'error' | 'info' = 'info') => {
+        // Play appropriate sound based on toast type
+        import('../services/gameSoundsService').then(({ default: gameSounds }) => {
+            // Analyze message content for specific sound effects
+            const lowerMessage = message.toLowerCase();
+            
+            // Check for specific game events first
+            if (lowerMessage.includes('embarked') || lowerMessage.includes('disembarked')) {
+                gameSounds.playEmbarkSound();
+            } else if (lowerMessage.includes('level up') || lowerMessage.includes('level!')) {
+                gameSounds.playLevelUpSound();
+            } else if (lowerMessage.includes('quest complete') || lowerMessage.includes('quest accepted')) {
+                gameSounds.playQuestAcceptedSound();
+            } else if (lowerMessage.includes('healed') || lowerMessage.includes('health restored')) {
+                gameSounds.playHealingSound();
+            } else if (lowerMessage.includes('item') || lowerMessage.includes('acquired') || lowerMessage.includes('picked up')) {
+                // Determine item type from message
+                if (lowerMessage.includes('gold') || lowerMessage.includes('coin')) {
+                    gameSounds.playItemPickupSound('gold');
+                } else if (lowerMessage.includes('weapon') || lowerMessage.includes('sword') || lowerMessage.includes('dagger')) {
+                    gameSounds.playItemPickupSound('weapon');
+                } else if (lowerMessage.includes('food') || lowerMessage.includes('bread') || lowerMessage.includes('meat')) {
+                    gameSounds.playItemPickupSound('food');
+                } else if (lowerMessage.includes('document') || lowerMessage.includes('scroll') || lowerMessage.includes('letter')) {
+                    gameSounds.playItemPickupSound('document');
+                } else {
+                    gameSounds.playItemPickupSound('generic');
+                }
+            } else if (lowerMessage.includes('trade') || lowerMessage.includes('sold') || lowerMessage.includes('bought')) {
+                gameSounds.playTradeSuccessSound();
+            } else if (lowerMessage.includes('combat') || lowerMessage.includes('battle') || lowerMessage.includes('fight')) {
+                gameSounds.playCombatStartSound();
+            } else if (lowerMessage.includes('discovered') || lowerMessage.includes('found')) {
+                gameSounds.playDiscoverySound();
+            }
+            // No default notification sound - only play sounds for specific events
+        }).catch(err => {
+            console.error('Failed to play sound:', err);
+        });
+        
         setToastMessage(message);
         setTimeout(() => setToastMessage(null), 3000);
+    }, []);
+
+    // Function to show floating text at specific screen coordinates
+    const showFloatingText = useCallback((text: string, type: FloatingTextMessage['type'], x: number, y: number, duration?: number) => {
+        const id = `floating-${Date.now()}-${Math.random()}`;
+        const newMessage: FloatingTextMessage = {
+            id,
+            text,
+            type,
+            x,
+            y,
+            duration: duration || 2000
+        };
+        
+        setFloatingTextMessages(prev => [...prev, newMessage]);
+    }, []);
+
+    const removeFloatingText = useCallback((id: string) => {
+        setFloatingTextMessages(prev => prev.filter(msg => msg.id !== id));
     }, []);
 
     const closeAllModals = useCallback(() => {
@@ -171,6 +245,7 @@ export const useUIState = () => {
         setActiveMarketplaceModal(null);
         setActiveCityModal(null);
         setActiveGovernmentModal(null);
+        setActiveFishingHutModal(null);
         setIsLevelUpModalOpen(false);
         setIsPortraitModalOpen(false);
         setPortraitModalCharacter(null);
@@ -178,6 +253,7 @@ export const useUIState = () => {
         setCraftingModalData(null);
         setActiveMiningModal(null);
         setActivePoi(null);
+        setContainerModalData(null);
     }, []);
     
     useEffect(() => {
@@ -186,6 +262,26 @@ export const useUIState = () => {
             setIsLevelUpModalOpen(true);
         }
     }, [playerCharacter, isLevelUpModalOpen, combatant]);
+
+    // Listen for quest reward level ups
+    useEffect(() => {
+        const handleQuestLevelUp = (e: CustomEvent) => {
+            const { levels, source } = e.detail;
+            console.log(`[LevelUp] Quest reward level up: ${levels} level(s) from ${source}`);
+            
+            // Open the level up modal
+            if (playerCharacter && !isLevelUpModalOpen) {
+                setLevelUpCharacter(playerCharacter);
+                setIsLevelUpModalOpen(true);
+                showToast(`🎉 ${source} granted you a level up!`);
+            }
+        };
+
+        window.addEventListener('playerLevelUp', handleQuestLevelUp as EventListener);
+        return () => {
+            window.removeEventListener('playerLevelUp', handleQuestLevelUp as EventListener);
+        };
+    }, [playerCharacter, isLevelUpModalOpen]);
 
     const handleLevelUp = useCallback((statToUpgrade?: keyof PlayerCharacter['stats'], newProfession?: string) => {
         onCharacterUpdate(prev => {
@@ -262,7 +358,12 @@ export const useUIState = () => {
         setIsLevelUpModalOpen(false);
         setLevelUpCharacter(null);
         showToast(`Leveled up to ${playerCharacter!.level + 1}!`);
-    }, [onCharacterUpdate, showToast, playerCharacter]);
+        
+        // Show floating text for level up
+        const screenCenterX = window.innerWidth / 2;
+        const screenCenterY = window.innerHeight / 2;
+        showFloatingText(`Level Up! Lv.${playerCharacter!.level + 1}`, 'experience', screenCenterX, screenCenterY, 3000);
+    }, [onCharacterUpdate, showToast, playerCharacter, showFloatingText]);
 
     const handleDevHover = useCallback((data: DevTooltipDisplayData | null) => {
         if (!isTooltipPinnedOpen) {
@@ -360,6 +461,11 @@ export const useUIState = () => {
             setPanelNotificationItem(result.item);
             setTimeout(() => setPanelNotificationItem(null), 2500);
             
+            // Show floating text for item found
+            const screenX = window.innerWidth / 2 + (Math.random() - 0.5) * 200; // Add some randomness
+            const screenY = window.innerHeight / 2 + 100;
+            showFloatingText(`Found ${result.item.name}!`, 'success', screenX, screenY);
+            
             // Remove vegetation if it was foraged from a bush
             if (result.entityToRemoveId) {
                 removeVegetation(result.entityToRemoveId);
@@ -433,7 +539,7 @@ export const useUIState = () => {
 
         setSkillResult(result);
         setIsSkillLoading(false);
-    }, [playerCharacter, mapData, controlledIconX, controlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, gameDate, currentMapArchetype, currentMapClimate, currentTimeOfDay, currentZone, currentMapSeed, gameTimeHours, animals, npcs, terrainStructures, setPlayerCharacter, addItemsToInventory, removeVegetation, updateMineralDeposit]);
+    }, [playerCharacter, mapData, controlledIconX, controlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, gameDate, currentMapArchetype, currentMapClimate, currentTimeOfDay, currentZone, currentMapSeed, gameTimeHours, animals, npcs, terrainStructures, setPlayerCharacter, addItemsToInventory, removeVegetation, updateMineralDeposit, showFloatingText]);
 
     const onSend = useCallback(async () => {
         if (!playerInput.trim() || !playerCharacter || !mapData || controlledIconX === null || controlledIconY === null) return;
@@ -610,6 +716,24 @@ export const useUIState = () => {
             // Check quest progress for NPC interactions
             if (playerCharacter && playerCharacter.x !== undefined && playerCharacter.y !== undefined) {
                 questService.checkQuestProgress(playerCharacter.x, playerCharacter.y, 'npc_interaction');
+                
+                // Trigger contextual quest generation based on NPC interaction
+                if (mapData && mapData.tiles && controlledIconY !== null && controlledIconX !== null) {
+                    const tile = mapData.tiles[controlledIconY]?.[controlledIconX];
+                    if (tile) {
+                        const context = {
+                            player: playerCharacter,
+                            tile: tile,
+                            mapData: mapData,
+                            culturalZone: currentZone as any,
+                            era: parseDateString(String(gameDate.year)).era,
+                            gameMode: undefined // Will be filled from event service if needed
+                        };
+                        
+                        // Check for NPC interaction quest triggers
+                        questTriggerService.onNPCInteraction(context, encounterTarget);
+                    }
+                }
             }
             
             // Check if this was a guard encounter and clear the alert state
@@ -801,10 +925,15 @@ export const useUIState = () => {
 
         if (playerCharacter) {
             setPlayerCharacter(p => p ? {...p, experience: p.experience + xpGained} : p);
+            
+            // Show floating text for XP gain
+            const screenCenterX = window.innerWidth / 2;
+            const screenCenterY = window.innerHeight / 2 + 50; // Slightly below center
+            showFloatingText(`+${xpGained} XP`, 'experience', screenCenterX, screenCenterY, 2500);
         }
         
         setCombatant(null);
-    }, [playerCharacter, setPlayerCharacter]);
+    }, [playerCharacter, setPlayerCharacter, showFloatingText]);
 
     const handleVictoryClose = useCallback(() => {
         if (!victoryDetails) return;
@@ -910,14 +1039,17 @@ export const useUIState = () => {
         isTestModeEnabled, debugSettings, isDevBuildingModeOpen,
         isWorldMapModalOpen, interactionModalData, isSkillsModalOpen, isSkillLoading, skillResult,
         isMapDetailsModalOpen, encounterTarget, combatant, victoryDetails, isCharacterProfileModalOpen,
-        isAnyModalOpen, activeMarketplaceModal, activeCityModal, activeRuinModal, activeGovernmentModal, activeMiningModal,
+        isAnyModalOpen, activeMarketplaceModal, activeCityModal, activeRuinModal, activeGovernmentModal, activeFishingHutModal, activeMiningModal,
         isLeftSidebarExpanded, activeMapSubTab, activeLens, toastMessage, panelNotificationItem,
+        floatingTextMessages,
         lootModalData, setLootModalData,
         isLevelUpModalOpen, levelUpCharacter,
         isPortraitModalOpen, portraitModalCharacter,
         isCraftingModalOpen, craftingModalData,
         activePoi,
+        poiToastData,
         inRuinRoguelike,
+        containerModalData,
         
         // Handlers
         handleDevHover, handleCondenseTooltip, togglePinnedTooltip,
@@ -928,14 +1060,19 @@ export const useUIState = () => {
         setIsSkillsModalOpen, setIsMapDetailsModalOpen,
         handleEncounter, handleCloseEncounter, handleInitiateCombat,
         setCombatant, handleCombatVictory, setVictoryDetails, setIsCharacterProfileModalOpen,
-        closeAllModals, setActiveMarketplaceModal, setActiveCityModal, setActiveRuinModal, setActiveGovernmentModal, setActiveMiningModal, setInRuinRoguelike,
+        closeAllModals, setActiveMarketplaceModal, setActiveCityModal, setActiveRuinModal, setActiveGovernmentModal, setActiveFishingHutModal, setActiveMiningModal, setInRuinRoguelike,
         setIsLeftSidebarExpanded, setActiveMapSubTab, setActiveLens, showToast, setPanelNotificationItem,
+        showFloatingText, removeFloatingText,
         handleLooting, handleCloseLootModal, onTakeCoins,
         handleVictoryClose,
         handleLevelUp,
         setIsPortraitModalOpen, setPortraitModalCharacter,
         onCraft, handleExecuteCrafting,
         setActivePoi,
+        setPoiToastData,
+        setContainerModalData,
+        selectedPrimarySource,
+        setSelectedPrimarySource,
         
         // Actions passed down from Player/Game contexts
         onUseSkill,

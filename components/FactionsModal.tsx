@@ -4,7 +4,20 @@
  */
 import React, { useState } from 'react';
 import { FaTimes } from 'react-icons/fa';
-import { FACTION_ICONS, FactionData } from '../constants/gameData/factionIcons';
+import { FactionData } from '../constants/gameData/factionIcons';
+
+// Lazy load faction icons to improve startup performance
+let factionIconsModule: any = null;
+let factionIconsPromise: Promise<any> | null = null;
+
+const ensureFactionIcons = () => {
+  if (!factionIconsPromise && !factionIconsModule) {
+    factionIconsPromise = import('../constants/gameData/factionIcons').then(module => {
+      factionIconsModule = module;
+      return module;
+    });
+  }
+};
 import { generateHistoricalSummary } from '../services/llmService';
 import { useGame } from '../contexts/GameContext';
 
@@ -97,7 +110,8 @@ const FactionsModal: React.FC<FactionsModalProps> = ({
         icon: FaTimes
       };
     }
-    return FACTION_ICONS[factionName] || {
+    ensureFactionIcons();
+    return (factionIconsModule?.FACTION_ICONS || {})[factionName] || {
       name: factionName,
       color: '#808080',
       icon: FaTimes

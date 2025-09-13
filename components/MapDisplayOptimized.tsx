@@ -261,6 +261,7 @@ interface MapDisplayOptimizedProps {
   onMapEdgeCrossing?: (direction: 'north' | 'south' | 'east' | 'west') => void;
   isSpecialMap?: boolean;
   guardAlerts?: Map<string, 'detecting' | 'warning' | 'pursuing'>;
+  onContainerClick?: (x: number, y: number, tile: Tile) => void;
 }
 
 export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({ 
@@ -301,7 +302,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   onCompanionClick,
   onMapEdgeCrossing,
   isSpecialMap = false,
-  guardAlerts
+  guardAlerts,
+  onContainerClick
 }) => {
   // State management with performance considerations
   // Start zoomed out for the zoom-in animation
@@ -383,23 +385,38 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     setTamedAnimals(animals);
   }, [logicalControlledIconX, logicalControlledIconY]);
   
-  // Listen for fire changes and update immediately
+  // Listen for fire changes and batch updates with RAF
   useEffect(() => {
+    let rafId: number | null = null;
+    let pendingUpdate = false;
+    
+    // Batch fire updates using requestAnimationFrame
+    const batchedFireUpdate = () => {
+      if (!pendingUpdate) return;
+      pendingUpdate = false;
+      setFireUpdateTrigger(prev => prev + 1);
+    };
+    
     // Subscribe to fire changes
     const unsubscribe = fireService.onFireChange(() => {
-      setFireUpdateTrigger(prev => prev + 1);
+      pendingUpdate = true;
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(batchedFireUpdate);
     });
     
-    // Also update periodically for animation
+    // Also update periodically for animation (reduced frequency with RAF batching)
     const fireUpdateInterval = setInterval(() => {
       // Force re-render if there are active fires for animation
       if (fireService.getAllFires().length > 0) {
-        setFireUpdateTrigger(prev => prev + 1);
+        pendingUpdate = true;
+        if (rafId !== null) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(batchedFireUpdate);
       }
-    }, 500); // Update twice per second for smoother animation
+    }, 1000); // Reduced to once per second since RAF handles smoother updates
     
     return () => {
       clearInterval(fireUpdateInterval);
+      if (rafId !== null) cancelAnimationFrame(rafId);
       unsubscribe();
     };
   }, []);
@@ -434,6 +451,11 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       shoalBlend: new ValueNoise(mapData.seed + 400)
     };
   }, [mapData?.seed]);
+
+  // Memoized flattened tiles array - PERFORMANCE: Avoid flattening 10k elements 14x per render
+  const flatTiles = useMemo(() => {
+    return mapData?.tiles?.flat() || [];
+  }, [mapData?.tiles]);
 
   // Sync state with refs for panning
   useEffect(() => {
@@ -773,6 +795,40 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     
     return () => clearTimeout(timeoutId);
   }, [mapData, logicalControlledIconX, logicalControlledIconY]);
+
+  // Listen for center map events from quest panel
+  useEffect(() => {
+    const handleCenterMapOnLocation = (e: CustomEvent) => {
+      const { x, y } = e.detail;
+      if (!containerRef.current || !mapData) return;
+      
+      const containerWidth = containerRef.current.clientWidth;
+      const containerHeight = containerRef.current.clientHeight;
+      
+      // Calculate pan values to center the map on the target location
+      const targetX = x * TILE_SIZE_PX + TILE_SIZE_PX / 2;
+      const targetY = y * TILE_SIZE_PX + TILE_SIZE_PX / 2;
+      
+      const newPanX = containerWidth / 2 - targetX * zoomLevel;
+      const newPanY = containerHeight / 2 - targetY * zoomLevel;
+      
+      // Smoothly animate to the new position
+      setPanX(newPanX);
+      setPanY(newPanY);
+      targetPanX.current = newPanX;
+      targetPanY.current = newPanY;
+      currentPanX.current = newPanX;
+      currentPanY.current = newPanY;
+      
+      // Enable free pan mode so camera doesn't snap back to player
+      setIsFreePanMode(true);
+    };
+    
+    window.addEventListener('centerMapOnLocation', handleCenterMapOnLocation as EventListener);
+    return () => {
+      window.removeEventListener('centerMapOnLocation', handleCenterMapOnLocation as EventListener);
+    };
+  }, [mapData, zoomLevel]);
 
   const throttledOnDevHover = useCallback(rafThrottle(onDevHover, 16), [onDevHover]);
 
@@ -3254,7 +3310,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {/* Special Map Symbols for Architectural Biomes */}
             {isSpecialMap && mapData && (
               <g>
-                {mapData.tiles.flat().filter(tile => {
+                {flatTiles.filter(tile => {
                   // Render ALL special map biomes that need custom symbols
                   // This includes walls, floors, and furniture for proper 2.5D rendering
                   const specialMapBiomes = [
@@ -3313,9 +3369,19 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
 
             {/* Overlay objects layer - furniture and objects on top of floor tiles */}
             {isSpecialMap && mapData && (() => {
-              const overlayTiles = mapData.tiles.flat().filter(tile => tile.overlayObject);
+              const overlayTiles = flatTiles.filter(tile => tile.overlayObject);
               // Overlay tiles found: ${overlayTiles.length} (debug log removed to reduce console spam)
               if (overlayTiles.length > 0) {
+                // Container types that can be clicked to open
+                const CLICKABLE_CONTAINERS = [
+                  'CHEST', 'BARREL', 'CRATE', 'CABINET', 'BOOKSHELF', 'FILING_CABINET',
+                  'TANSU', 'SPICE_CABINET', 'WEAPON_RACK', 'ARMOR_STAND', 'TOOL_CHEST',
+                  'TOOL_CABINET', 'CHEST_ORNATE', 'CHEST_REINFORCED', 'ARMOIRE',
+                  'WARDROBE', 'PANTRY_CABINET', 'RICE_CHEST', 'SCROLL_RACK',
+                  'LACQUER_BOX', 'CEDAR_CHEST', 'GRANARY_BASKET', 'WOVEN_CHEST',
+                  'BASKET', 'ICE_BOX', 'WINE_RACK', 'SPICE_RACK'
+                ];
+                
                 return (
                   <g className="overlay-objects-layer">
                     {overlayTiles.map(tile => {
@@ -3324,19 +3390,85 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                       const culturalZone = mapData.culturalZone || 
                                           mapLocationToCulture(mapData.continent || currentLocation || 'Europe', year);
                       
+                      const isClickableContainer = tile.overlayObject &&
+                                                 CLICKABLE_CONTAINERS.includes(tile.overlayObject.type as string);
+
+                      // Check if container has items - either floor items or cached container contents
+                      const hasFloorItem = tile.collectibleItem && !tile.collectibleItem.collected;
+
+                      // Import and check container cache dynamically
+                      const [hasContainerItems, setHasContainerItems] = React.useState(false);
+                      const [isValuable, setIsValuable] = React.useState(false);
+
+                      React.useEffect(() => {
+                        if (isClickableContainer) {
+                          import('../services/containerCacheService').then(({ getCachedContents, isContainerEmpty }) => {
+                            const mapId = isSpecialMap ? 'special_map' : 'main_map';
+                            const cached = getCachedContents(mapId, tile.x, tile.y);
+                            if (cached) {
+                              // Container has been opened before - check if it still has items
+                              setHasContainerItems(!isContainerEmpty(mapId, tile.x, tile.y));
+                              setIsValuable(cached.isValuable || false);
+                            } else {
+                              // Container hasn't been opened - assume it has items
+                              setHasContainerItems(true);
+                              // Valuable containers glow gold
+                              setIsValuable(tile.roomPrivacy === 'private' || tile.roomPrivacy === 'restricted');
+                            }
+                          });
+                        }
+                      }, [isClickableContainer, tile.x, tile.y]);
+
+                      const hasItems = hasFloorItem || (isClickableContainer && hasContainerItems);
+                      
                       return (
-                        <OverlayRenderer
+                        <g
                           key={`overlay-${tile.x}-${tile.y}`}
-                          tile={tile}
-                          x={tile.x * TILE_SIZE_PX}
-                          y={tile.y * TILE_SIZE_PX}
-                          size={TILE_SIZE_PX}
-                          culturalZone={culturalZone}
-                          era={parseDateString(formattedDate).era}
-                          seed={seed + tile.x * 31 + tile.y * 37}
-                          nightIntensity={timeOfDayData.nightIntensity}
-                          specialArchetype={(mapData as any).specialArchetype}
-                        />
+                          style={{
+                            cursor: isClickableContainer ? 'pointer' : 'default',
+                            filter: hasItems ? (
+                              isValuable ?
+                                'drop-shadow(0 0 5px rgba(255, 215, 0, 0.8))' : // Gold glow for valuable
+                                'drop-shadow(0 0 3px rgba(135, 206, 235, 0.6))'  // Blue glow for normal
+                            ) : undefined
+                          }}
+                          className={hasItems ? (isValuable ? 'container-with-valuable-loot' : 'container-with-loot') : ''}
+                          onClick={isClickableContainer ? (e) => {
+                            e.stopPropagation();
+                            onContainerClick?.(tile.x, tile.y, tile);
+                          } : undefined}
+                        >
+                          <OverlayRenderer
+                            tile={tile}
+                            x={tile.x * TILE_SIZE_PX}
+                            y={tile.y * TILE_SIZE_PX}
+                            size={TILE_SIZE_PX}
+                            culturalZone={culturalZone}
+                            era={parseDateString(formattedDate).era}
+                            seed={seed + tile.x * 31 + tile.y * 37}
+                            nightIntensity={timeOfDayData.nightIntensity}
+                            specialArchetype={(mapData as any).specialArchetype}
+                          />
+                          {hasItems && (
+                            <circle
+                              cx={tile.x * TILE_SIZE_PX + TILE_SIZE_PX * 0.8}
+                              cy={tile.y * TILE_SIZE_PX + TILE_SIZE_PX * 0.2}
+                              r={isValuable ? 4 : 3}
+                              fill={isValuable ? "gold" : "lightblue"}
+                              stroke={isValuable ? "darkorange" : "steelblue"}
+                              strokeWidth={1}
+                              opacity={0.9}
+                              className={isValuable ? "valuable-loot-indicator" : "loot-indicator"}
+                            >
+                              <animate
+                                attributeName="opacity"
+                                values={isValuable ? "0.6;1;0.6" : "0.5;0.9;0.5"}
+                                dur={isValuable ? "1.5s" : "2s"}
+                                repeatCount="indefinite"
+                              />
+                            </circle>
+                          )}
+                        </g>
                       );
                     })}
                   </g>
@@ -3365,7 +3497,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             )}
 
             {/* Mineral deposits layer - subtle glints on the map */}
-            {mapData && shouldRenderAnimations && mapData.tiles.flat().filter(tile => 
+            {mapData && shouldRenderAnimations && flatTiles.filter(tile => 
               tile.mineralDeposit && tile.mineralDeposit.quantity > 0
             ).map(tile => (
               <MineralGlintSymbol
@@ -3846,7 +3978,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
 
             {/* Special Map Lighting Effects - Glow around light sources */}
             {isSpecialMap && mapData && (() => {
-              const lightSources = mapData.tiles.flat().filter(tile => 
+              const lightSources = flatTiles.filter(tile => 
                 tile.biome === BiomeType.TORCH || 
                 tile.biome === BiomeType.BRAZIER || 
                 tile.biome === BiomeType.FIRE_PIT || 

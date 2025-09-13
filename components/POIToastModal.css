@@ -1,0 +1,211 @@
+/**
+ * POI Toast Modal Styling - Glassmorphism and professional UI
+ */
+
+.poi-toast-modal {
+  /* Glassmorphism effect */
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  
+  /* Gradient background */
+  background: linear-gradient(135deg, 
+    rgba(15, 23, 42, 0.95) 0%, 
+    rgba(30, 41, 59, 0.92) 50%,
+    rgba(15, 23, 42, 0.95) 100%
+  );
+  
+  /* Multiple box shadows for depth */
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.4),
+    0 10px 10px -5px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  
+  /* Border styling */
+  border: 1px solid rgba(71, 85, 105, 0.4);
+  
+  /* Smooth transitions */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.poi-toast-modal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(251, 191, 36, 0.8) 20%,
+    rgba(251, 191, 36, 0.6) 50%, 
+    rgba(251, 191, 36, 0.8) 80%,
+    transparent 100%
+  );
+  border-radius: 1rem 1rem 0 0;
+}
+
+/* Service button hover effects */
+.poi-service-button {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.poi-service-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(251, 191, 36, 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.poi-service-button:hover::before {
+  left: 100%;
+}
+
+.poi-service-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.poi-service-button:active {
+  transform: translateY(0px);
+}
+
+/* Worker avatar glow effect */
+.poi-worker-avatar {
+  background: radial-gradient(
+    circle at center,
+    rgba(251, 191, 36, 0.3) 0%,
+    rgba(251, 191, 36, 0.1) 40%,
+    transparent 70%
+  );
+  border: 2px solid rgba(251, 191, 36, 0.2);
+  transition: all 0.3s ease;
+}
+
+.poi-worker-avatar:hover {
+  border-color: rgba(251, 191, 36, 0.4);
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
+}
+
+/* Text animation for description */
+.poi-description-text {
+  animation: fadeInUp 0.6s ease-out 0.3s both;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Service grid responsive adjustments */
+@media (max-width: 768px) {
+  .poi-toast-modal {
+    margin: 1rem;
+    max-width: calc(100vw - 2rem);
+  }
+  
+  .poi-service-button {
+    padding: 0.75rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* Loading shimmer effect for services */
+.poi-service-loading {
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.1) 25%,
+    rgba(148, 163, 184, 0.2) 50%,
+    rgba(148, 163, 184, 0.1) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Toast slide-in animation enhancements */
+.poi-toast-enter {
+  transform: translateY(100px) scale(0.95);
+  opacity: 0;
+}
+
+.poi-toast-enter-active {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.poi-toast-exit {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+.poi-toast-exit-active {
+  transform: translateY(100px) scale(0.95);
+  opacity: 0;
+  transition: all 0.2s ease-in;
+}
+
+/* Icon animation */
+.poi-type-icon {
+  animation: iconBounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s both;
+}
+
+@keyframes iconBounce {
+  0% {
+    transform: scale(0) rotate(-180deg);
+  }
+  50% {
+    transform: scale(1.1) rotate(-90deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* Enhanced focus states for accessibility */
+.poi-service-button:focus {
+  outline: 2px solid rgba(251, 191, 36, 0.5);
+  outline-offset: 2px;
+}
+
+.poi-close-button:focus {
+  outline: 2px solid rgba(148, 163, 184, 0.5);
+  outline-offset: 2px;
+}
+
+/* Cost text styling */
+.poi-service-cost {
+  background: linear-gradient(135deg, 
+    rgba(251, 191, 36, 0.1) 0%, 
+    rgba(245, 158, 11, 0.1) 100%
+  );
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  border: 1px solid rgba(251, 191, 36, 0.2);
+}

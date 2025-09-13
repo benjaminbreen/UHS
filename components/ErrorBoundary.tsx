@@ -39,6 +39,26 @@ class ErrorBoundary extends Component<Props, State> {
     console.error('ErrorBoundary caught an error:', error);
     console.error('Error info:', errorInfo);
     
+    // Check for specific error types
+    const isSvgError = error.message.includes('rect') || 
+                      error.message.includes('width') || 
+                      error.message.includes('height') ||
+                      error.message.includes('SVG') ||
+                      error.message.includes('negative');
+
+    const isChartError = error.message.includes('ResponsiveContainer') ||
+                        error.message.includes('Recharts') ||
+                        error.message.includes('AreaChart') ||
+                        error.message.includes('chart');
+
+    if (isSvgError) {
+      console.warn('SVG rendering error detected - likely dimension calculation issue');
+    }
+
+    if (isChartError) {
+      console.warn('Chart rendering error detected - consider using ChartErrorBoundary');
+    }
+    
     // Update state with error details
     this.setState({
       error,

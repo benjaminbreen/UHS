@@ -51,11 +51,24 @@ export function usePortraitExpression() {
  * Map reputation delta to a short-lived facial expression
  */
 export function mapRepDeltaToExpr(delta: number): PortraitExpression | null {
-  if (delta >= 25) return 'approve';   // strong positive
-  if (delta > 0)  return 'smile';      // mild positive
-  if (delta <= -40) return 'scowl';    // strong negative / hostility
-  if (delta < 0)  return 'concern';    // mild negative / worry
-  return null;
+  // Extreme changes (rare but impactful)
+  if (delta >= 50) return 'excited';    // exceptional positive interaction
+  if (delta <= -50) return 'scowl';     // extreme hostility/anger
+  
+  // Large positive changes  
+  if (delta >= 15) return 'approve';    // strong approval
+  if (delta >= 10) return 'smile';      // clear happiness
+  if (delta >= 5) return 'smirk';       // mild approval/amusement
+  if (delta >= 1) return 'surprise';    // pleasant surprise, mild positive
+  
+  // Large negative changes
+  if (delta <= -25) return 'annoyed';   // strong disapproval
+  if (delta <= -15) return 'sad';       // disappointment
+  if (delta <= -10) return 'concern';   // worry/unease
+  if (delta <= -5) return 'skeptical';  // doubt/suspicion
+  if (delta <= -1) return 'confused';   // mild confusion/displeasure
+  
+  return null; // exactly 0
 }
 
 /**

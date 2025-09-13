@@ -135,20 +135,6 @@ const TopNavBarPolished: React.FC = () => {
   const [showQuestsPanel, setShowQuestsPanel] = useState(false);
   const [showGameModeTooltip, setShowGameModeTooltip] = useState(false);
   
-  // Auto-open quests panel when there are active quests (for better UX)
-  // Only do this once on initial load, not continuously
-  const [hasAutoOpenedQuests, setHasAutoOpenedQuests] = useState(false);
-  
-  useEffect(() => {
-    if (!hasAutoOpenedQuests) {
-      const activeQuests = questService.getActiveQuests();
-      if (activeQuests.length > 0) {
-        console.log(`[UI] Auto-opening quests panel - ${activeQuests.length} active quests found`);
-        setShowQuestsPanel(true);
-        setHasAutoOpenedQuests(true); // Only auto-open once per session
-      }
-    }
-  }, [hasAutoOpenedQuests]);
   const [showGameModePanel, setShowGameModePanel] = useState(false);
   const [worldWeaverModalData, setWorldWeaverModalData] = useState<{
     isOpen: boolean;
@@ -161,6 +147,7 @@ const TopNavBarPolished: React.FC = () => {
     gameMode?: any;
     specialNPCs?: any[];
     customEventsCount?: number;
+    quest?: any; // Add quest data
   }>({
     isOpen: false,
     year: 1000,
@@ -250,14 +237,12 @@ const TopNavBarPolished: React.FC = () => {
           characterSpec: result.characterSpec,
           gameMode: result.gameMode,
           specialNPCs: result.specialNPCs,
-          customEventsCount: result.customEvents?.length || 0
+          customEventsCount: result.customEvents?.length || 0,
+          quest: result.quest // Pass the quest!
         };
         
+        // Only set pendingScenarioData, let the useEffect handle opening the modal
         setPendingScenarioData(scenarioData);
-        setWorldWeaverModalData({
-          isOpen: true,
-          ...scenarioData
-        });
         
         setWorldWeaverInput('');
       } else {
@@ -1032,21 +1017,25 @@ const TopNavBarPolished: React.FC = () => {
         gameMode={worldWeaverModalData.gameMode}
         specialNPCs={worldWeaverModalData.specialNPCs}
         customEventsCount={worldWeaverModalData.customEventsCount}
+        quest={worldWeaverModalData.quest}
       />
       
       <QuestsPanel
         isOpen={showQuestsPanel}
         onClose={() => setShowQuestsPanel(false)}
         onNavigateToQuest={(x, y) => {
-          console.log('Navigating to quest at:', x, y);
-          // Move the player to the quest location
-          setControlledIconX(x);
-          setControlledIconY(y);
+          console.log('Centering map on quest at:', x, y);
+          // Center the map view on the quest location WITHOUT moving the player
+          // We'll dispatch a custom event that MapDisplayOptimized can listen for
+          const centerEvent = new CustomEvent('centerMapOnLocation', {
+            detail: { x, y }
+          });
+          window.dispatchEvent(centerEvent);
           setShowQuestsPanel(false);
-          // Show a notification that we're navigating
+          // Show a notification that we're centering the view
           const notification = document.createElement('div');
           notification.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-[60] animate-in fade-in slide-in-from-top-4 duration-300';
-          notification.textContent = `Navigating to quest objective at (${x}, ${y})`;
+          notification.textContent = `Showing quest objective at (${x}, ${y})`;
           document.body.appendChild(notification);
           setTimeout(() => {
             notification.classList.add('animate-out', 'fade-out', 'slide-out-to-top-4');

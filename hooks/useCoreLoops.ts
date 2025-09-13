@@ -29,7 +29,9 @@ import { createItemInstance, addItemToInventory } from '../utils/inventoryUtils'
 import { LogService } from '../services/logService';
 import DiseaseService from '../services/diseaseService';
 import { questService } from '../services/questService';
+import { questTriggerService } from '../services/questTriggerService';
 import { isTerrainPassable, getTerrainBlockMessage, getTerrainDamage } from '../constants/terrainPassability';
+import gameSounds from '../services/gameSoundsService';
 
 const useCoreLoops = () => {
   const {
@@ -135,6 +137,23 @@ const useCoreLoops = () => {
     // console.log('[QuestInit] Reset questsInitialized flag for new map');
   }, [mapData]);
   
+  // Update quest service context when game data changes
+  useEffect(() => {
+    if (!mapData || !playerCharacter || !currentZone) return;
+    
+    const culturalZone = mapLocationToCulture(currentZone, gameDate.year);
+    const dateInfo = parseDateString(String(gameDate.year));
+    const playerLocation = { 
+      x: controlledIconX || 50, 
+      y: controlledIconY || 50 
+    };
+    
+    // Update quest service with current context
+    questService.updateContext(culturalZone, dateInfo.era, playerLocation);
+    
+    // console.log('[QuestService] Context updated:', { zone: culturalZone, era: dateInfo.era, location: playerLocation });
+  }, [mapData, currentZone, gameDate.year, controlledIconX, controlledIconY]);
+  
   // Quest Initialization - Generate quests when map and player are ready
   useEffect(() => {
     if (!mapData || !playerCharacter || questsInitialized.current) return;
@@ -142,110 +161,93 @@ const useCoreLoops = () => {
     // Always reset quest service for fresh game starts
     // console.log('[QuestInit] Resetting quest service for fresh game start');
     questService.resetQuestService();
+    questTriggerService.reset(); // Reset quest trigger state for new game
     
+    // DISABLED: Automatic quest generation on game start
+    // Quests will now be triggered organically through player actions
+    // console.log('[QuestInit] Automatic quest generation disabled - quests will be triggered by player actions');
+    return;
+    
+    // OLD CODE (disabled):
     // Don't initialize quests for special maps
     if (isSpecialMap) {
       // console.log('[QuestInit] Skipping quest generation for special map');
       return;
     }
 
-    // Expand valid structures to include ALL structure types that can host quests
-    const validStructures =
-      mapData.terrainStructures?.filter((s) => {
-        // Include original high-value structures
-        const highValueTypes = ['ruins', 'palace', 'marketplace', 'urban', 'holy_site', 'farm'];
-        // Add common structures that should work for quests
-        const commonTypes = ['hamlet', 'bridge', 'mill', 'fortress', 'well', 'watchtower'];
-        // Check both structureType and type fields (different structure objects use different fields)
-        const structureType = s.structureType || s.type || '';
-        // Also check if the name contains these keywords (fallback for non-standard structures)
-        const structureName = s.name?.toLowerCase() || '';
+    // Defer quest generation by 1 second to improve initial load performance
+    const questGenerationTimeout = setTimeout(async () => {
+      try {
+        const culturalZone = mapLocationToCulture(currentZone, gameDate.year);
+        const dateInfo = parseDateString(String(gameDate.year));
+
+        const playerStats = playerCharacter ? {
+          health: playerCharacter.health || 50,
+          reputation: playerCharacter.reputation || 10,
+          wealth: playerCharacter.inventory?.filter(item => item.value).reduce((sum, item) => sum + (item.value || 0), 0) || 10,
+          intelligence: playerCharacter.stats?.intelligence || 10,
+          strength: playerCharacter.stats?.strength || 10
+        } : undefined;
         
-        return highValueTypes.includes(structureType) || 
-               commonTypes.includes(structureType) ||
-               structureName.includes('hamlet') ||
-               structureName.includes('mill') ||
-               structureName.includes('base') ||
-               structureName.includes('fortress');
-      }) || [];
+        const generatedQuests = await questService.generateInitialQuests(
+          'standard',
+          mapData.terrainStructures || [],
+          { x: controlledIconX || 50, y: controlledIconY || 50 },
+          culturalZone,
+          dateInfo.era,
+          mapData,
+          playerStats
+        );
 
-    // Even if no structures exist, we should still generate quests (they'll use wilderness locations)
-    if (validStructures.length === 0) {
-      console.log('[QuestInit] No valid structures found, will generate wilderness-based quests');
-    }
+        const currentQuestCount = questService.getActiveQuests().length;
+        if (currentQuestCount < numQuests) {
+          const additionalNeeded = numQuests - currentQuestCount;
+          const shuffledStructures = [...validStructures].sort(() => Math.random() - 0.5);
 
-    const numQuests = validStructures.length > 0 
-      ? Math.min(10, Math.max(1, Math.floor(validStructures.length / 3)))
-      : 2; // Generate at least 2 wilderness quests if no structures
-    // console.log(`[QuestInit] Generating ${numQuests} initial quests from ${validStructures.length} structures`);
-
-    try {
-      const culturalZone = mapLocationToCulture(currentZone, gameDate.year);
-      const dateInfo = parseDateString(String(gameDate.year));
-
-      const playerStats = playerCharacter ? {
-        health: playerCharacter.health || 50,
-        reputation: playerCharacter.reputation || 10,
-        wealth: playerCharacter.inventory?.filter(item => item.value).reduce((sum, item) => sum + (item.value || 0), 0) || 10,
-        intelligence: playerCharacter.stats?.intelligence || 10,
-        strength: playerCharacter.stats?.strength || 10
-      } : undefined;
-      
-      const generatedQuests = questService.generateInitialQuests(
-        'standard',
-        mapData.terrainStructures || [],
-        { x: controlledIconX || 50, y: controlledIconY || 50 },
-        culturalZone,
-        dateInfo.era,
-        mapData,
-        playerStats
-      );
-
-      const currentQuestCount = questService.getActiveQuests().length;
-      if (currentQuestCount < numQuests) {
-        const additionalNeeded = numQuests - currentQuestCount;
-        const shuffledStructures = [...validStructures].sort(() => Math.random() - 0.5);
-
-        for (let i = 0; i < additionalNeeded && i < shuffledStructures.length; i++) {
-          const structure = shuffledStructures[i];
-          const simpleQuest = {
-            id: `quest_explore_${structure.id}_${Date.now()}`,
-            title: `Investigate the ${structure.structureType.replace('_', ' ')}`,
-            description: `There's a ${structure.structureType.replace('_', ' ')} nearby that might be worth investigating.`,
-            category: 'exploration' as const,
-            objectives: [
-              {
-                id: 'obj_1',
-                description: `Visit the ${structure.structureType.replace('_', ' ')}`,
-                type: 'visit_location' as const,
-                targetLocation: { x: structure.location[0], y: structure.location[1] },
-                targetType: structure.structureType as any,
-                completed: false,
-              },
-            ],
-            currentObjectiveIndex: 0,
-            rewards: [
-              {
-                type: 'reputation' as const,
-                value: 5,
-                description: 'Reputation +5',
-              },
-            ],
-            startLocation: { x: controlledIconX || 50, y: controlledIconY || 50 },
-            startTime: Date.now(),
-            status: 'active' as const,
-            isProceduralQuest: true,
-          };
-          questService.addQuest(simpleQuest);
+          for (let i = 0; i < additionalNeeded && i < shuffledStructures.length; i++) {
+            const structure = shuffledStructures[i];
+            const simpleQuest = {
+              id: `quest_explore_${structure.id}_${Date.now()}`,
+              title: `Investigate the ${structure.structureType.replace('_', ' ')}`,
+              description: `There's a ${structure.structureType.replace('_', ' ')} nearby that might be worth investigating.`,
+              category: 'exploration' as const,
+              objectives: [
+                {
+                  id: 'obj_1',
+                  description: `Visit the ${structure.structureType.replace('_', ' ')}`,
+                  type: 'visit_location' as const,
+                  targetLocation: { x: structure.location[0], y: structure.location[1] },
+                  targetType: structure.structureType as any,
+                  completed: false,
+                },
+              ],
+              currentObjectiveIndex: 0,
+              rewards: [
+                {
+                  type: 'reputation' as const,
+                  value: 5,
+                  description: 'Reputation +5',
+                },
+              ],
+              startLocation: { x: controlledIconX || 50, y: controlledIconY || 50 },
+              startTime: Date.now(),
+              status: 'active' as const,
+              isProceduralQuest: true,
+            };
+            questService.addQuest(simpleQuest);
+          }
         }
-      }
 
-      const finalQuestCount = questService.getActiveQuests().length;
-      // console.log(`[QuestInit] Successfully initialized ${finalQuestCount} quests`);
-      questsInitialized.current = true;
-    } catch (error) {
-      console.error('[QuestInit] Failed to generate initial quests:', error);
-    }
+        const finalQuestCount = questService.getActiveQuests().length;
+        // console.log(`[QuestInit] Successfully initialized ${finalQuestCount} quests`);
+        questsInitialized.current = true;
+      } catch (error) {
+        console.error('[QuestInit] Failed to generate initial quests:', error);
+      }
+    }, 1000);
+
+    // Cleanup timeout if component unmounts
+    return () => clearTimeout(questGenerationTimeout);
   }, [mapData, playerCharacter, controlledIconX, controlledIconY, currentZone, gameDate, isSpecialMap]);
 
   // Game Clock
@@ -308,6 +310,7 @@ const useCoreLoops = () => {
         if (newMinutes === 0) {
           setGameTimeHours((prevHours) => {
             const newHours = (prevHours + 1) % 24;
+            
             if (newHours === 0) {
               setGameDate((prevDate) => {
                 let { day, month, year } = prevDate;
@@ -327,11 +330,11 @@ const useCoreLoops = () => {
                   const result = diseaseService.updateDiseaseProgression(playerCharacter, year);
 
                   result.progressionEvents.forEach((event) => {
-                    console.log(`[DISEASE] ${event}`);
+                    // console.log(`[DISEASE] ${event}`);
                   });
 
                   result.recoveryEvents.forEach((event) => {
-                    console.log(`[DISEASE RECOVERY] ${event}`);
+                    // console.log(`[DISEASE RECOVERY] ${event}`);
                     if (typeof window !== 'undefined' && (window as any).showNotification) {
                       (window as any).showNotification('You have recovered from your illness!', 'success');
                     }
@@ -347,7 +350,7 @@ const useCoreLoops = () => {
                     const deathChance = mostSevere.disease.mortalityRate * mostSevere.severity;
 
                     if (Math.random() < deathChance) {
-                      console.log(`[DISEASE DEATH] Player has died from ${mostSevere.disease.name}!`);
+                      // console.log(`[DISEASE DEATH] Player has died from ${mostSevere.disease.name}!`);
                       // Use immediate alert without setTimeout to avoid memory leak
                       alert(`Death feature to be implemented.\n\nYour character has succumbed to ${mostSevere.disease.name}.`);
                     }
@@ -940,6 +943,11 @@ const useCoreLoops = () => {
           setActionableTile({ type: 'mine', tile: currentTile, structure: structureOnTile });
           return;
         }
+        if (structureType === 'fishing_hut') {
+          console.log('[useCoreLoops] Detected fishing hut structure, setting actionable tile');
+          setActionableTile({ type: 'fishing_hut', tile: currentTile, structure: structureOnTile });
+          return;
+        }
         // Auto-open government district modal when walking on it
         if (structureType === 'government_district' && !structureOnTile.isRuined) {
           // Only set the modal target if it's not already open
@@ -1247,6 +1255,9 @@ useEffect(() => {
           sender: 'narrator',
           text: blockMessage
         }]);
+        
+        // Play damage sound for impassable terrain (light damage for bumping into things)
+        gameSounds.playDamageSound('light');
       }
       
       // Apply damage if applicable
@@ -1254,6 +1265,11 @@ useEffect(() => {
       if (terrainDamage && playerCharacter) {
         const newHealth = Math.max(0, playerCharacter.health - terrainDamage.damage);
         setPlayerCharacter(prev => prev ? { ...prev, health: newHealth } : null);
+        
+        // Play damage sound based on severity
+        const severity = terrainDamage.damage >= 20 ? 'heavy' : 
+                        terrainDamage.damage >= 10 ? 'medium' : 'light';
+        gameSounds.playDamageSound(severity);
         
         // Show damage notification
         const damageMessage = terrainDamage.type === 'heat' ? 'The intense heat burns you!' :
@@ -1324,8 +1340,11 @@ useEffect(() => {
         setShipDockY(controlledIconY);
         setControlledIconX(newLogicalX);
         setControlledIconY(newLogicalY);
+        gameSounds.playEmbarkSound(); // Disembark sound (same as embark but improved)
         showToast('Disembarked!');
       } else {
+        // Ship movement on water - play splash sound
+        gameSounds.playShipMovementSplash();
         setControlledIconX(newLogicalX);
         setControlledIconY(newLogicalY);
       }
@@ -1336,10 +1355,49 @@ useEffect(() => {
         setControlledIconY(shipDockY!);
         setShipDockX(null);
         setShipDockY(null);
+        gameSounds.playEmbarkSound(); // Embark sound (improved with higher pitched footsteps)
         showToast('Embarked!');
       } else if (targetTile.isLand) {
         setControlledIconX(newLogicalX);
         setControlledIconY(newLogicalY);
+        
+        // Play footstep sound for special maps based on floor type
+        if (isSpecialMap) {
+          const floorType = targetTile.biome;
+          switch(floorType) {
+            case BiomeType.FLOOR_STONE:
+              gameSounds.playFootstepSound('stone');
+              break;
+            case BiomeType.FLOOR_MARBLE:
+              gameSounds.playFootstepSound('marble');
+              break;
+            case BiomeType.FLOOR_WOOD:
+              gameSounds.playFootstepSound('wood');
+              break;
+            case BiomeType.FLOOR_CARPET:
+              gameSounds.playFootstepSound('carpet');
+              break;
+            case BiomeType.FLOOR_TILE:
+            case BiomeType.FLOOR_MOSAIC:
+            case BiomeType.FLOOR_MOSAIC_CENTER:
+            case BiomeType.FLOOR_MOSAIC_BORDER:
+            case BiomeType.FLOOR_CHECKERED:
+              gameSounds.playFootstepSound('tile');
+              break;
+            case BiomeType.FLOOR_PATTERN:
+              gameSounds.playFootstepSound('tatami');
+              break;
+            case BiomeType.SAND:
+            case BiomeType.BEACH:
+              gameSounds.playFootstepSound('sand');
+              break;
+            default:
+              // Default step sound for special maps (no specific floor type)
+              gameSounds.playStepSound();
+              break;
+          }
+        }
+        // Note: No footstep sound for standard maps as requested
         
         // Check if player stepped on stairs - exit special map
         if (isSpecialMap && targetTile.biome === BiomeType.STAIRS_UP) {

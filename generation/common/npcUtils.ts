@@ -2,7 +2,21 @@
  * generation/common/npcUtils.ts - Enhanced NPC utility functions with portrait generation.
  */
 import { NpcEntity, NpcStats, NpcPersonality, NpcSocialContext, HistoricalEra, CharacterStats, CharacterPersonality, CharacterSocialContext, WealthLevel, Gender, TerrainStructure, PlayerCharacter, Ideology, Appearance, ClothingPiece, ClothingPalette, MapAreaDefinition, FactionData, TerrainStructureType, PersonalGoal } from '../../types';
-import { PROFESSIONS, CulturalZone, SocialClassMap, ProfessionDefinition, CHARACTER_NAMES, REGION_NAME_MAPPING, RELIGION_DATA, GEOGRAPHICAL_DATA, IDEOLOGIES, PERSONAL_BELIEFS, CLOTHING_DATA, ADJACENCIES, getClothingData, getRandomClothingPiece, FACTION_DATA } from '../../constants/index';
+import { PROFESSIONS, CulturalZone, SocialClassMap, ProfessionDefinition, CHARACTER_NAMES, REGION_NAME_MAPPING, RELIGION_DATA, GEOGRAPHICAL_DATA, IDEOLOGIES, PERSONAL_BELIEFS, ADJACENCIES, FACTION_DATA } from '../../constants/index';
+
+// Lazy load clothing data - only loaded when first NPC is generated
+let clothingModule: any = null;
+let clothingModulePromise: Promise<any> | null = null;
+
+// Start loading the module asynchronously when first accessed
+const ensureClothingModule = () => {
+    if (!clothingModulePromise && !clothingModule) {
+        clothingModulePromise = import('../../constants/characterData/clothing').then(module => {
+            clothingModule = module;
+            return module;
+        });
+    }
+};
 import { ValueNoise } from '../../utils/noise';
 import { generatePersonalGoal } from '../../services/goalService';
 import { getProfessionContext, getFallbackContext, ProfessionContext } from '../../services/professionContextService';
@@ -143,13 +157,10 @@ export function generateNpcName(
             }
         }
         
-        // console.log(`[NameGen] Final nameKeyToUse: ${nameKeyToUse}`);
-
         const normalizedGender = gender === 'Male' ? 'Male' : 'Female';
         
         // 3. Get the name list, with a final fallback to EUROPEAN
         const names = CHARACTER_NAMES[nameKeyToUse] || CHARACTER_NAMES.EUROPEAN;
-        // console.log(`[NameGen] Found names for key "${nameKeyToUse}":`, names ? 'YES' : 'NO (using EUROPEAN fallback)');
         
         const maleNames = names.male || ['Thomas', 'John', 'William'];
         const femaleNames = names.female || ['Mary', 'Elizabeth', 'Margaret'];
@@ -315,7 +326,8 @@ export function generateClothingPalette(wealthLevel: WealthLevel, era: Historica
         effectiveCulturalZone = 'EUROPEAN' as CulturalZone;
     }
     
-    const eraData = CLOTHING_DATA[effectiveCulturalZone]?.[era];
+    ensureClothingModule(); // Start loading if not already loaded
+    const eraData = (clothingModule?.CLOTHING_DATA || {})[effectiveCulturalZone]?.[era];
     const specificClothingSet = eraData?.[clothingTier]?.[gender];
     const palette = specificClothingSet?.palette;
     
@@ -429,7 +441,10 @@ export function generateCompleteOutfit(
     belt: ClothingPiece;
     accessory: ClothingPiece;
 } {
-    const clothingSet = getClothingData(culturalZone, era, wealthLevel, gender);
+    ensureClothingModule(); // Start loading if not already loaded
+    const clothingSet = clothingModule?.getClothingData ? 
+        clothingModule.getClothingData(culturalZone, era, wealthLevel, gender) :
+        { garments: [], headgear: [], footwear: [], belts: [], accessories: [], palette: { primary: [], secondary: [], accent: [] } };
     
     // Filter out inappropriate items based on occupation
     const filterByOccupation = (items: ClothingPiece[], category: string): ClothingPiece[] => {
@@ -471,7 +486,10 @@ export function generateCompleteOutfit(
     // Ensure we have at least one item in each category
     const safeGetRandom = (filtered: ClothingPiece[], original: ClothingPiece[]) => {
         if (filtered.length > 0) {
-            return getRandomClothingPiece(filtered);
+            ensureClothingModule(); // Start loading if not already loaded
+            return clothingModule?.getRandomClothingPiece ? 
+                clothingModule.getRandomClothingPiece(filtered) : 
+                filtered[0] || null;
         }
         // Fallback to basic item if all filtered out
         return { name: 'Simple Cloth', material: 'Cotton' };

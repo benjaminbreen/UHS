@@ -22,22 +22,23 @@ const QuestMarkers: React.FC<QuestMarkersProps> = ({
   viewportOffsetY 
 }) => {
   const [activeQuests, setActiveQuests] = useState<Quest[]>([]);
-  const [currentObjectives, setCurrentObjectives] = useState<QuestObjective[]>([]);
+  const [currentObjectives, setCurrentObjectives] = useState<(QuestObjective & { questId: string })[]>([]);
 
   useEffect(() => {
-    // Load active quests and their current objectives
+    // Load active quest and its current objectives (only show markers for active quest)
     const loadQuests = () => {
-      const quests = questService.getActiveQuests();
-      setActiveQuests(quests);
+      const activeQuest = questService.getCurrentlyActiveQuest();
+      const allQuests = questService.getActiveQuests();
+      setActiveQuests(allQuests);
       
-      // Get current objectives from all active quests
-      const objectives: QuestObjective[] = [];
-      quests.forEach(quest => {
-        const currentObj = quest.objectives[quest.currentObjectiveIndex];
+      // Get current objectives only from the currently active quest
+      const objectives: (QuestObjective & { questId: string })[] = [];
+      if (activeQuest) {
+        const currentObj = activeQuest.objectives[activeQuest.currentObjectiveIndex];
         if (currentObj && !currentObj.completed && currentObj.targetLocation) {
-          objectives.push(currentObj);
+          objectives.push({...currentObj, questId: activeQuest.id});
         }
-      });
+      }
       setCurrentObjectives(objectives);
     };
 
@@ -48,11 +49,13 @@ const QuestMarkers: React.FC<QuestMarkersProps> = ({
     window.addEventListener('questAdded', handleQuestUpdate);
     window.addEventListener('questCompleted', handleQuestUpdate);
     window.addEventListener('questProgress', handleQuestUpdate);
+    window.addEventListener('activeQuestChanged', handleQuestUpdate);
 
     return () => {
       window.removeEventListener('questAdded', handleQuestUpdate);
       window.removeEventListener('questCompleted', handleQuestUpdate);
       window.removeEventListener('questProgress', handleQuestUpdate);
+      window.removeEventListener('activeQuestChanged', handleQuestUpdate);
     };
   }, []);
 
@@ -84,7 +87,7 @@ const QuestMarkers: React.FC<QuestMarkersProps> = ({
         
         return (
           <div
-            key={`${objective.id}-${x}-${y}`}
+            key={`marker-${objective.questId}-${objective.id}-${x}-${y}`}
             className="absolute transform -translate-x-1/2 -translate-y-1/2"
             style={{
               left: `${screenX}px`,
@@ -156,7 +159,7 @@ const QuestMarkers: React.FC<QuestMarkersProps> = ({
         
         return (
           <div
-            key={`arrow-${objective.id}`}
+            key={`arrow-${objective.questId}-${objective.id}`}
             className="absolute"
             style={{
               left: `${arrowX}px`,

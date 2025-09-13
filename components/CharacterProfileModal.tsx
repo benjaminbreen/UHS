@@ -125,16 +125,33 @@ const DetailRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label,
   </div>
 );
 
-const StatBar: React.FC<{ label: string; value: number; max?: number; Icon: any; color: string }> = ({
+// Utility function to get gameplay impact explanations for stats
+const getStatImpact = (statName: string, value: number): string => {
+  const impacts: Record<string, (val: number) => string> = {
+    strength: (val) => `Combat damage +${Math.round((val - 10) * 5)}%, carrying capacity +${Math.round((val - 10) * 10)}%`,
+    dexterity: (val) => `Combat hit chance +${Math.round((val - 10) * 3)}%, crafting precision +${Math.round((val - 10) * 4)}%`,
+    constitution: (val) => `Max health +${Math.round((val - 10) * 8)}%, disease resistance +${Math.round((val - 10) * 6)}%`,
+    intelligence: (val) => `Learning speed +${Math.round((val - 10) * 7)}%, medical knowledge +${Math.round((val - 10) * 5)}%`,
+    persuasion: (val) => `Trade prices ${val >= 10 ? 'better' : 'worse'} by ${Math.abs(Math.round((val - 10) * 2))}%, NPC relations +${Math.round((val - 10) * 4)}%`,
+    perception: (val) => `Quest discovery +${Math.round((val - 10) * 6)}%, hidden items +${Math.round((val - 10) * 8)}%`,
+  };
+  
+  return impacts[statName.toLowerCase()]?.(value) || `Affects various gameplay mechanics based on value of ${value}`;
+};
+
+const StatBar: React.FC<{ label: string; value: number; max?: number; Icon: any; color: string; tooltip?: string }> = ({
   label,
   value,
   max = 20,
   Icon,
   color,
+  tooltip,
 }) => {
   const pct = Math.max(0, Math.min(100, (value / max) * 100));
+  const impact = tooltip || getStatImpact(label, value);
+  
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3 group relative">
       <div className="w-40 text-sm text-slate-300 flex items-center gap-2">
         <Icon className="w-4 h-4" />
         <span className="font-medium">{label}</span>
@@ -150,6 +167,15 @@ const StatBar: React.FC<{ label: string; value: number; max?: number; Icon: any;
         />
       </div>
       <span className="w-8 text-right font-bold text-white">{value}</span>
+      
+      {/* Tooltip */}
+      <div className="absolute left-0 bottom-full mb-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 z-50">
+        <div className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-200 shadow-xl max-w-xs">
+          <div className="font-semibold text-white mb-1">{label} {value}</div>
+          <div className="text-slate-300">{impact}</div>
+          <div className="absolute top-full left-6 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900"></div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -1049,11 +1075,46 @@ const CharacterProfileModal: React.FC<Props> = ({
                     <div>
                       <h3 className="text-slate-300 font-bold uppercase tracking-wider mb-4">Personality</h3>
                       <div className="space-y-4">
-                        <StatBar label="Openness" value={Math.round(character.personality.openness * 100)} max={100} Icon={Sparkles} color="#60a5fa" />
-                        <StatBar label="Conscientiousness" value={Math.round(character.personality.conscientiousness * 100)} max={100} Icon={Shield} color="#34d399" />
-                        <StatBar label="Extraversion" value={Math.round(character.personality.extraversion * 100)} max={100} Icon={Handshake} color="#a78bfa" />
-                        <StatBar label="Agreeableness" value={Math.round(character.personality.agreeableness * 100)} max={100} Icon={Heart} color="#fb7185" />
-                        <StatBar label="Neuroticism" value={Math.round(character.personality.neuroticism * 100)} max={100} Icon={Activity} color="#f59e0b" />
+                        <StatBar 
+                          label="Openness" 
+                          value={Math.round(character.personality.openness * 100)} 
+                          max={100} 
+                          Icon={Sparkles} 
+                          color="#60a5fa"
+                          tooltip="Affects curiosity, creativity, and willingness to try new experiences or learn new skills"
+                        />
+                        <StatBar 
+                          label="Conscientiousness" 
+                          value={Math.round(character.personality.conscientiousness * 100)} 
+                          max={100} 
+                          Icon={Shield} 
+                          color="#34d399"
+                          tooltip="Influences work quality, reliability, and tendency to complete tasks thoroughly"
+                        />
+                        <StatBar 
+                          label="Extraversion" 
+                          value={Math.round(character.personality.extraversion * 100)} 
+                          max={100} 
+                          Icon={Handshake} 
+                          color="#a78bfa"
+                          tooltip="Determines social energy, leadership tendencies, and comfort in group situations"
+                        />
+                        <StatBar 
+                          label="Agreeableness" 
+                          value={Math.round(character.personality.agreeableness * 100)} 
+                          max={100} 
+                          Icon={Heart} 
+                          color="#fb7185"
+                          tooltip="Affects cooperation, trust, and willingness to help others or avoid conflict"
+                        />
+                        <StatBar 
+                          label="Neuroticism" 
+                          value={Math.round(character.personality.neuroticism * 100)} 
+                          max={100} 
+                          Icon={Activity} 
+                          color="#f59e0b"
+                          tooltip="Influences emotional stability, stress response, and susceptibility to anxiety"
+                        />
                       </div>
                     </div>
                   </div>

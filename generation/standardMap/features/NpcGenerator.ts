@@ -12,6 +12,7 @@ import { generateNpcFamilyAndLifeEvents, findNpcFriends } from '../../../service
 import { createItemInstance } from '../../../utils/inventoryUtils';
 import { detectCitiesForArea } from '../../../utils/cityDetectionUtils';
 import { generateCulturalAccessory } from '../../../services/culturalAccessoryService';
+import { worldEntityRegistry } from '../../../services/worldEntityRegistry';
 
 /**
  * Generate historically appropriate legs/trousers equipment
@@ -709,6 +710,9 @@ function createNpc(
         statsTracker.byWealth[npc.wealthLevel] = (statsTracker.byWealth[npc.wealthLevel] || 0) + 1;
         statsTracker.byCulture[npc.culturalZone] = (statsTracker.byCulture[npc.culturalZone] || 0) + 1;
 
+        // Register NPC with World Entity Registry
+        worldEntityRegistry.registerNpc(npc);
+
         return npc;
     } catch (error) {
         statsTracker.failed++;
@@ -806,6 +810,9 @@ export function generateNpcsForStandardMap(
         console.log(`[NPC] Skipping NPC generation for SHOALS archetype`);
         return [];
     }
+    
+    // Note: Clothing module will be lazy-loaded on first access in npcUtils
+    
     const npcPositions = new Set<string>();
     
     // Initialize stats tracking

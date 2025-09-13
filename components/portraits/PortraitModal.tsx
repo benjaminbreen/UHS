@@ -22,8 +22,85 @@ const PortraitModal: React.FC<PortraitModalProps> = ({ character, onClose }) => 
     
     if (!appearance) return null;
     
+    // Play a nice click sound effect using Web Audio API
+    const playClickSound = () => {
+        try {
+            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const now = audioContext.currentTime;
+            
+            // Create a short, pleasant click sound
+            // Main click - a quick sine wave burst
+            const clickOsc = audioContext.createOscillator();
+            const clickGain = audioContext.createGain();
+            
+            clickOsc.connect(clickGain);
+            clickGain.connect(audioContext.destination);
+            
+            // Use a higher frequency for a "lighter" click
+            clickOsc.frequency.value = 800; // High pitched click
+            clickOsc.type = 'sine';
+            
+            // Quick attack and decay for crisp click
+            clickGain.gain.setValueAtTime(0, now);
+            clickGain.gain.linearRampToValueAtTime(0.3, now + 0.001); // Very quick attack
+            clickGain.gain.exponentialRampToValueAtTime(0.01, now + 0.05); // Quick decay
+            
+            clickOsc.start(now);
+            clickOsc.stop(now + 0.05);
+            
+            // Add a subtle "pop" sound for depth
+            const popOsc = audioContext.createOscillator();
+            const popGain = audioContext.createGain();
+            const popFilter = audioContext.createBiquadFilter();
+            
+            popOsc.connect(popFilter);
+            popFilter.connect(popGain);
+            popGain.connect(audioContext.destination);
+            
+            popOsc.frequency.value = 150; // Low frequency pop
+            popOsc.type = 'triangle';
+            popFilter.type = 'lowpass';
+            popFilter.frequency.value = 200;
+            
+            popGain.gain.setValueAtTime(0, now);
+            popGain.gain.linearRampToValueAtTime(0.15, now + 0.002);
+            popGain.gain.exponentialRampToValueAtTime(0.01, now + 0.03);
+            
+            popOsc.start(now);
+            popOsc.stop(now + 0.03);
+            
+            // Add a tiny bit of white noise for texture
+            const noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.02, audioContext.sampleRate);
+            const noiseData = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < noiseData.length; i++) {
+                noiseData[i] = (Math.random() - 0.5) * 0.1; // Very quiet white noise
+            }
+            
+            const noiseSource = audioContext.createBufferSource();
+            const noiseGain = audioContext.createGain();
+            const noiseFilter = audioContext.createBiquadFilter();
+            
+            noiseSource.buffer = noiseBuffer;
+            noiseSource.connect(noiseFilter);
+            noiseFilter.connect(noiseGain);
+            noiseGain.connect(audioContext.destination);
+            
+            noiseFilter.type = 'highpass';
+            noiseFilter.frequency.value = 2000;
+            
+            noiseGain.gain.setValueAtTime(0.05, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+            
+            noiseSource.start(now);
+            
+        } catch (error) {
+            console.log('Could not play click sound:', error);
+        }
+    };
+    
     // Handle portrait click for testing smile animation
     const handlePortraitClick = () => {
+        playClickSound(); // Play the click sound
         const expressions: Array<'smile' | 'surprise'> = ['smile', 'surprise'];
         const expression = expressions[clickCount % 2];
         setTemporaryExpression(expression);

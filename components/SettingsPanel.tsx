@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PerformanceDiagnostics from './PerformanceDiagnostics';
 import { eventService } from '../services/eventService';
-import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users } from 'lucide-react';
+import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save } from 'lucide-react';
 import DiseaseService from '../services/diseaseService';
 import { DISEASE_DATABASE, DISEASE_PREVALENCE } from '../constants/gameData/diseases';
 import { HistoricalEra } from '../types/ambiance';
@@ -10,6 +10,15 @@ import SpecialMapTestMenu from './SpecialMapTestMenu';
 import InteriorMapTestMenu from './InteriorMapTestMenu';
 import QuestTestingPanel from './QuestTestingPanel';
 import NpcTestingPanel from './NpcTestingPanel';
+import FishingTestPanel from './FishingTestPanel';
+import FishingGameCanvas from './FishingGameCanvas';
+import FishingSystemTest from './FishingSystemTest';
+import FishingHutSimple from './FishingHutSimple';
+import { FishingDataService, FishSpecies } from '../services/fishingDataService';
+import { ClimateType } from '../types/biomes/climate';
+import { SavedGamesModal } from './SavedGamesModal';
+import { SavedGame } from '../services/saveGameService';
+import SoundTestPanel from './SoundTestPanel';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -30,6 +39,8 @@ interface SettingsPanelProps {
   mapData?: any;
   currentZone?: string;
   currentYear?: number;
+  onLoadGame?: (save: SavedGame) => void;
+  currentGameState?: any;
 }
 
 const SettingsToggle: React.FC<{
@@ -77,6 +88,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   mapData,
   currentZone,
   currentYear,
+  onLoadGame,
+  currentGameState,
 }) => {
   const [showPerformanceDiagnostics, setShowPerformanceDiagnostics] = useState(false);
   const [showLLMTracker, setShowLLMTracker] = useState(false);
@@ -85,6 +98,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [showInteriorMapTest, setShowInteriorMapTest] = useState(false);
   const [showQuestTestPanel, setShowQuestTestPanel] = useState(false);
   const [showNpcTestPanel, setShowNpcTestPanel] = useState(false);
+  const [showFishingTestPanel, setShowFishingTestPanel] = useState(false);
+  const [showAlternativeFishing, setShowAlternativeFishing] = useState(false);
+  const [showFishingSystemTest, setShowFishingSystemTest] = useState(false);
+  const [showSimpleFishing, setShowSimpleFishing] = useState(false);
+  const [showSavedGamesModal, setShowSavedGamesModal] = useState(false);
+  const [showSoundTestPanel, setShowSoundTestPanel] = useState(false);
   const [apiStats, setApiStats] = useState(eventService.getAPIUsageStats());
   const [llmHistory, setLLMHistory] = useState(eventService.getLLMHistory());
   
@@ -313,6 +332,22 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <p className="mt-1.5 text-xs text-slate-500">Changing this will start a new world from (0,0).</p>
             </div>
           </section>
+
+          <section className="mb-6">
+            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Save/Load Game</h3>
+            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+              <button
+                onClick={() => setShowSavedGamesModal(true)}
+                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-green-600 to-emerald-600 rounded-md hover:from-green-700 hover:to-emerald-700 flex items-center justify-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                <span>Manage Saved Games</span>
+              </button>
+              <p className="mt-2 text-xs text-slate-400">
+                Save your current game or load a previously saved game. Up to 10 saves stored locally.
+              </p>
+            </div>
+          </section>
           
           <section className="mb-6">
             <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">AI Features</h3>
@@ -493,6 +528,47 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </section>
 
           <section className="mt-6">
+            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Fishing System Testing</h3>
+            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+              <button
+                onClick={() => setShowFishingTestPanel(true)}
+                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-md hover:from-blue-700 hover:to-cyan-700 flex items-center justify-center gap-2"
+              >
+                <span className="text-lg">🎣</span>
+                <span>Open Fishing Test Panel</span>
+              </button>
+              
+              <button
+                onClick={() => setShowAlternativeFishing(true)}
+                className="w-full px-4 py-3 mt-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-purple-600 to-pink-600 rounded-md hover:from-purple-700 hover:to-pink-700 flex items-center justify-center gap-2"
+              >
+                <span className="text-lg">🐟</span>
+                <span>Alternative Fishing Game</span>
+              </button>
+              
+              <button
+                onClick={() => setShowFishingSystemTest(true)}
+                className="w-full px-4 py-3 mt-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-green-600 to-emerald-600 rounded-md hover:from-green-700 hover:to-emerald-700 flex items-center justify-center gap-2"
+              >
+                <span className="text-lg">🧪</span>
+                <span>Automated System Tests</span>
+              </button>
+              
+              <button
+                onClick={() => setShowSimpleFishing(true)}
+                className="w-full px-4 py-3 mt-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-orange-600 to-red-600 rounded-md hover:from-orange-700 hover:to-red-700 flex items-center justify-center gap-2"
+              >
+                <span className="text-lg">🎯</span>
+                <span>Simple Fishing (NEW)</span>
+              </button>
+              
+              <p className="mt-2 text-xs text-slate-400">
+                Test fishing minigame in different eras, cultures, climates, and water types. Debug fish spawning and mechanics. Run automated tests to verify system integrity.
+              </p>
+            </div>
+          </section>
+
+          <section className="mt-6">
             <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Map Testing</h3>
             <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70 space-y-3">
               <button
@@ -509,8 +585,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 <MapIcon className="w-4 h-4" />
                 <span>Open Interior Map Test Suite</span>
               </button>
+              <button
+                onClick={() => setShowSoundTestPanel(true)}
+                className="w-full px-4 py-3 mt-2 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-green-600 to-teal-600 rounded-md hover:from-green-700 hover:to-teal-700 flex items-center justify-center gap-2"
+              >
+                <FlaskConical className="w-4 h-4" />
+                <span>Open Sound Test Panel</span>
+              </button>
               <p className="mt-2 text-xs text-gray-400">
-                Test special map archetypes and interior building layouts with all cultural variants
+                Test special map archetypes, interior building layouts, and all game sounds
               </p>
             </div>
           </section>
@@ -700,6 +783,90 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         isOpen={showQuestTestPanel}
         onClose={() => setShowQuestTestPanel(false)}
       />
+      
+      {/* Fishing Test Panel */}
+      <FishingTestPanel
+        isOpen={showFishingTestPanel}
+        onClose={() => setShowFishingTestPanel(false)}
+      />
+      
+      {/* Fishing System Test Modal */}
+      {showFishingSystemTest && (
+        <FishingSystemTest onClose={() => setShowFishingSystemTest(false)} />
+      )}
+      
+      {/* Simple Fishing Modal */}
+      {showSimpleFishing && (
+        <div className="fixed inset-0 z-50 bg-black">
+          <FishingHutSimple
+            culturalZone={'western_europe' as any}
+            climate={ClimateType.TEMPERATE}
+            season={'spring' as any}
+            timeOfDay={'day' as any}
+            availableFish={[]}
+            historicalEra={HistoricalEra.MEDIEVAL}
+            isFreshwater={false}
+            onCatch={(fish, weight, length) => {
+              console.log('Caught:', fish.name, weight, length);
+            }}
+            onExit={() => setShowSimpleFishing(false)}
+            fishingService={new FishingDataService()}
+          />
+        </div>
+      )}
+      
+      {/* Sound Test Panel */}
+      <SoundTestPanel
+        isOpen={showSoundTestPanel}
+        onClose={() => setShowSoundTestPanel(false)}
+      />
+      
+      {/* Alternative Fishing Modal */}
+      {showAlternativeFishing && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 rounded-lg border border-slate-700 w-full max-w-7xl h-[90vh] relative overflow-hidden">
+            <div className="absolute top-4 right-4 z-10">
+              <button
+                onClick={() => setShowAlternativeFishing(false)}
+                className="w-8 h-8 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="w-full h-full">
+              <FishingGameCanvas
+                availableFish={[
+                  { id: 'bass', name: 'Bass', description: 'Common freshwater fish', color: '#4A5D23', size: { min: 1, max: 5 }, value: 10, rarity: 'common', speed: 0.5, waterType: 'freshwater' } as FishSpecies,
+                  { id: 'trout', name: 'Trout', description: 'Mountain stream fish', color: '#8B7355', size: { min: 0.5, max: 3 }, value: 8, rarity: 'common', speed: 0.8, waterType: 'freshwater' } as FishSpecies,
+                  { id: 'salmon', name: 'Salmon', description: 'Migratory fish', color: '#FA8072', size: { min: 2, max: 15 }, value: 25, rarity: 'uncommon', speed: 1.2, waterType: 'freshwater' } as FishSpecies,
+                  { id: 'pike', name: 'Pike', description: 'Aggressive predator', color: '#556B2F', size: { min: 3, max: 20 }, value: 40, rarity: 'rare', speed: 1.5, waterType: 'freshwater' } as FishSpecies
+                ]}
+                culturalZone={'European' as CulturalZone}
+                historicalEra={HistoricalEra.MEDIEVAL}
+                climate={ClimateType.TEMPERATE}
+                season={'spring' as any}
+                timeOfDay="Morning"
+                isFreshwater={true}
+                onCatch={(fish, weight, length) => {
+                  console.log(`Caught ${fish.name}: ${weight}kg, ${length}cm`);
+                }}
+                onExit={() => setShowAlternativeFishing(false)}
+                fishingService={new FishingDataService()}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Saved Games Modal */}
+      {showSavedGamesModal && onLoadGame && (
+        <SavedGamesModal
+          isOpen={showSavedGamesModal}
+          onClose={() => setShowSavedGamesModal(false)}
+          onLoadGame={onLoadGame}
+          currentGameState={currentGameState}
+        />
+      )}
     </>
   );
 };

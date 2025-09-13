@@ -23,10 +23,18 @@ import { generateNpcGreeting, generateNpcResponse, generateNpcMonologue, createD
 import { questService } from '../services/questService';
 import { llmQuestService } from '../services/llmQuestService';
 import { Quest } from '../types/questTypes';
+import { unifiedQuestPipeline, QuestGenerationContext } from '../services/unifiedQuestPipeline';
+import { worldEntityRegistry } from '../services/worldEntityRegistry';
 import { Sparkles, ScrollText, Package, TrendingUp, AlertTriangle, Calendar, Award } from 'lucide-react';
 import { marketEventSystem } from '../services/marketEventSystem';
 import { npcMarketParticipationService } from '../services/npcMarketParticipationService';
 import { marketVolatilityService } from '../services/marketVolatilityService';
+import { crisisDetectionService, ActiveMarketCrisis } from '../services/crisisDetectionService';
+import { merchantMemoryService } from '../services/merchantMemoryService';
+import { merchantBehaviorService, MerchantBehavior } from '../services/merchantBehaviorService';
+import { priceHistoryService, PriceComparison, MarketTrend } from '../services/priceHistoryService';
+import { economicVictoryService, EconomicMilestone, EconomicAchievement } from '../services/economicVictoryService';
+import { useUI } from '../contexts/UIContext';
 
 interface MarketplaceModalProps {
   tile: Tile;
@@ -50,6 +58,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   tile, playerCharacter, mapData, npcs, mapAnalysisData, gameTimeHours, season,
   onClose, onBuy, onSell, weather, onAddPersistedNpc
 }) => {
+  const { showToast } = useUI();
   const [activeTab, setActiveTab] = useState<TabType>('buy');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,14 +78,88 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   const [npcQuests, setNpcQuests] = useState<Map<string, Quest[]>>(new Map());
   const [showQuestOffer, setShowQuestOffer] = useState<{ npc: NpcEntity; quest: Quest } | null>(null);
   const [questGenerating, setQuestGenerating] = useState<Set<string>>(new Set());
-  const [marketTrends, setMarketTrends] = useState<any[]>([]);
+  const [volatilityTrends, setVolatilityTrends] = useState<any[]>([]);
   const [volatilityEvents, setVolatilityEvents] = useState<any[]>([]);
   const [marketCycle, setMarketCycle] = useState<any | null>(null);
   const [visitingNpcs, setVisitingNpcs] = useState<NpcEntity[]>([]);
   const [showMarketAnalysis, setShowMarketAnalysis] = useState(false);
+  const [activeCrises, setActiveCrises] = useState<ActiveMarketCrisis[]>([]);
+  const [economicQuests, setEconomicQuests] = useState<Quest[]>([]);
+  const [merchantBehaviors, setMerchantBehaviors] = useState<Map<string, MerchantBehavior>>(new Map());
+  const [priceComparisons, setPriceComparisons] = useState<PriceComparison[]>([]);
+  const [marketTrends, setMarketTrends] = useState<MarketTrend | null>(null);
+  const [victoryProgress, setVictoryProgress] = useState<any>(null);
+  const [showVictoryModal, setShowVictoryModal] = useState(false);
+  const [latestAchievement, setLatestAchievement] = useState<EconomicAchievement | null>(null);
+  const [latestMilestone, setLatestMilestone] = useState<EconomicMilestone | null>(null);
+  const [dismissedCrises, setDismissedCrises] = useState<Set<string>>(new Set());
+  const [marketplaceDataLoading, setMarketplaceDataLoading] = useState(true);
   
   // Detect mobile
   const isMobile = useMemo(() => window.innerWidth <= 768, []);
+  
+  // Load dismissed crises from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem('dismissedMarketCrises');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setDismissedCrises(new Set(parsed));
+      } catch (e) {
+        console.error('Failed to parse dismissed crises:', e);
+      }
+    }
+  }, []);
+  
+  // Check for expired crisis quests periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      questService.checkExpiredQuests();
+      // Force re-render to update timers
+      setEconomicQuests(prev => [...prev]);
+    }, 5000); // Check every 5 seconds
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  // Check if an item is related to any active quest
+  const isQuestItem = useCallback((itemId: string): { isQuest: boolean; questName?: string; action?: 'buy' | 'sell' } => {
+    const normalizedItemId = itemId.toLowerCase();
+    const activeQuests = questService.getActiveQuests();
+    
+    for (const quest of activeQuests) {
+      for (const objective of quest.objectives) {
+        if (objective.completed) continue;
+        
+        const targetItem = ((objective as any).targetItem || (objective as any).itemId || '').toLowerCase();
+        
+        // Check for buy objectives
+        if ((objective.type === 'deliver_item' || objective.type === 'collect_item') && targetItem === normalizedItemId) {
+          return { isQuest: true, questName: quest.title, action: 'buy' };
+        }
+        
+        // Check for sell objectives
+        if ((objective.type === 'trade' || objective.type === 'sell_item') && targetItem === normalizedItemId) {
+          return { isQuest: true, questName: quest.title, action: 'sell' };
+        }
+        
+        // Check economic quest context
+        if ((quest as any).isEconomicQuest) {
+          const context = (quest as any).economicContext;
+          if (context) {
+            if (context.itemScarcity && context.itemScarcity.map((id: string) => id.toLowerCase()).includes(normalizedItemId)) {
+              return { isQuest: true, questName: quest.title, action: 'buy' };
+            }
+            if (context.itemSurplus && context.itemSurplus.map((id: string) => id.toLowerCase()).includes(normalizedItemId)) {
+              return { isQuest: true, questName: quest.title, action: 'sell' };
+            }
+          }
+        }
+      }
+    }
+    
+    return { isQuest: false };
+  }, []);
   
   // Filter representative inhabitants (non-merchant NPCs in the area)
   const inhabitantsNpcs = useMemo(() => {
@@ -129,21 +212,40 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   // Check which NPCs have quests available
   useEffect(() => {
     const generateQuests = async () => {
-      const activeQuests = questService.getActiveQuests();
-      const questsByNpc = new Map<string, Quest[]>();
+      try {
+        const activeQuests = questService.getActiveQuests();
+        const questsByNpc = new Map<string, Quest[]>();
       
       // Check for already active quests from these NPCs
       const activeQuestGivers = new Set(activeQuests.map(q => q.giver).filter(Boolean));
       
-      // Generate potential quests for merchants
+      // First, assign economic quests to merchants using merchantId
+      for (const quest of economicQuests) {
+        const merchantId = (quest as any).merchantId;
+        const merchantName = (quest as any).merchantName || quest.giver;
+        
+        // Try to match by ID first, then by name
+        const merchant = merchantId 
+          ? merchantNpcs.find(m => m.id === merchantId)
+          : merchantNpcs.find(m => m.name === merchantName);
+          
+        if (merchant && !activeQuestGivers.has(merchant.name)) {
+          const existing = questsByNpc.get(merchant.id) || [];
+          existing.push(quest);
+          questsByNpc.set(merchant.id, existing);
+          console.log(`[Marketplace] Assigned quest "${quest.title}" to merchant ${merchant.name}`);
+        }
+      }
+      
+      // Generate additional potential quests for merchants without economic quests
       for (const merchant of merchantNpcs) {
-        // Skip if merchant already has an active quest
-        if (activeQuestGivers.has(merchant.name)) {
+        // Skip if merchant already has an active quest or economic quest
+        if (activeQuestGivers.has(merchant.name) || questsByNpc.has(merchant.id)) {
           continue;
         }
         
         // Check if merchant could offer a trade quest
-        if (Math.random() < 0.3) { // 30% chance
+        if (Math.random() < 0.2) { // 20% chance (reduced since we have economic quests)
           setQuestGenerating(prev => new Set(prev).add(merchant.id));
           const potentialQuest = await generateMerchantQuest(merchant, tile, mapData);
           setQuestGenerating(prev => {
@@ -167,7 +269,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         }
         
         if (Math.random() < 0.2) { // 20% chance for regular NPCs
-          const potentialQuest = generateNpcQuest(npc, tile, mapData);
+          const potentialQuest = await generateNpcQuest(npc, tile, mapData);
           if (potentialQuest) {
             const existing = questsByNpc.get(npc.id) || [];
             existing.push(potentialQuest);
@@ -176,11 +278,15 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         }
       }
       
-      setNpcQuests(questsByNpc);
+        setNpcQuests(questsByNpc);
+      } catch (error) {
+        console.error('[Marketplace] Error generating NPC quests:', error);
+        setNpcQuests(new Map()); // Fallback to empty map
+      }
     };
     
     generateQuests();
-  }, [merchantNpcs, inhabitantsNpcs, tile, mapData]);
+  }, [merchantNpcs, inhabitantsNpcs, tile, mapData, economicQuests]);
   
   // Generate merchant-specific quest
   const generateMerchantQuest = async (merchant: NpcEntity, location: Tile, map: MapData): Promise<Quest | null> => {
@@ -273,40 +379,82 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     };
   };
   
-  // Generate regular NPC quest
-  const generateNpcQuest = (npc: NpcEntity, location: Tile, map: MapData): Quest | null => {
-    const questTypes = [
-      {
-        title: 'Local Troubles',
-        description: `${npc.name} is worried about recent problems in the area.`,
-        type: 'social' as const,
-        objectives: [{
-          id: 'obj_1',
-          type: 'investigate' as const,
-          description: 'Investigate the disturbances',
-          targetLocation: { x: location.x + 5, y: location.y + 5 },
-          completed: false
-        }],
-        rewards: [{
-          type: 'reputation' as const,
-          amount: 10,
-          description: 'Local reputation +10'
-        }]
+  // Generate NPC quest using unified pipeline for historical accuracy
+  const generateNpcQuest = async (npc: NpcEntity, location: Tile, map: MapData): Promise<Quest | null> => {
+    try {
+      // Determine era and cultural zone
+      const year = mapData.year || 1500;
+      const dateInfo = parseDateString(String(year));
+      const currentZone = mapData.zone || 'Europe';
+      const culturalZone = mapLocationToCulture(currentZone, year);
+      
+      // Build quest generation context
+      const context: QuestGenerationContext = {
+        mapData: map,
+        playerLocation: { x: location.x, y: location.y },
+        playerStats: {
+          health: playerCharacter.health || 50,
+          reputation: playerCharacter.reputation || 10,
+          wealth: playerCharacter.currency || 10,
+          intelligence: playerCharacter.stats?.intelligence || 10,
+          strength: playerCharacter.stats?.strength || 10
+        },
+        zone: culturalZone,
+        era: dateInfo.era,
+        year: year,
+        season: season,
+        gameMode: 'commerce', // Marketplace context suggests commerce mode
+        triggerType: 'npc',
+        triggerEntity: npc.id,
+        nearbyStructures: mapData.terrainStructures || [],
+        nearbyNPCs: npcs
+      };
+
+      // Generate quest through unified pipeline
+      const quest = await unifiedQuestPipeline.generateQuest(context);
+      
+      if (quest) {
+        // Customize quest to come from this specific NPC
+        quest.giver = npc.name;
+        quest.giverLocation = { x: npc.x, y: npc.y };
+        quest.status = 'available' as const;
+        
+        // Ensure the first objective references the NPC if it's a social quest
+        if (quest.category === 'social' && quest.objectives.length > 0) {
+          quest.objectives[0].targetNpcId = npc.id;
+          quest.objectives[0].targetNpcName = npc.name;
+        }
+        
+        return quest;
       }
-    ];
+    } catch (error) {
+      console.warn('[MarketplaceModal] Failed to generate unified quest:', error);
+    }
     
-    const questTemplate = questTypes[0];
-    
+    // Fallback to simple quest if unified pipeline fails
     return {
-      id: `quest_npc_${npc.id}_${Date.now()}`,
-      title: questTemplate.title,
-      description: questTemplate.description,
-      category: questTemplate.type,
-      objectives: questTemplate.objectives,
-      currentObjectiveIndex: 0,
-      rewards: questTemplate.rewards,
+      id: `quest_${npc.id}_${Date.now()}`,
+      title: 'Local Request',
+      description: `${npc.name} needs assistance with a local matter.`,
+      historicalContext: `Marketplace interactions often led to opportunities for trade and service.`,
+      category: 'social',
       giver: npc.name,
-      giverLocation: { x: location.x, y: location.y },
+      giverLocation: { x: npc.x, y: npc.y },
+      objectives: [{
+        id: 'obj_1',
+        type: 'talk_to_npc',
+        description: `Speak with ${npc.name} about their needs`,
+        targetNpcId: npc.id,
+        targetNpcName: npc.name,
+        targetLocation: { x: npc.x, y: npc.y },
+        completed: false
+      }],
+      currentObjectiveIndex: 0,
+      rewards: [{
+        type: 'reputation',
+        amount: 5,
+        description: 'Local reputation +5'
+      }],
       startLocation: { x: location.x, y: location.y },
       startTime: Date.now(),
       status: 'available' as const,
@@ -348,6 +496,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     
     // Load faction data for custom marketplace names and allegiances
     const loadMarketplaceData = async () => {
+      setMarketplaceDataLoading(true);
       try {
         const factionModule = await loadFactionData(culturalZone);
         const factionData = factionModule.default || Object.values(factionModule)[0];
@@ -381,12 +530,32 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         }
       } catch (error) {
         console.error('Failed to load faction data for marketplace:', error);
+      } finally {
+        setMarketplaceDataLoading(false);
       }
     };
     
     loadMarketplaceData();
   }, [tile, mapData, npcs, culturalZone, era]);
   
+  // Check for active crises affecting this market and record price history
+  useEffect(() => {
+    const marketLocation = { x: tile.x, y: tile.y };
+    const marketId = `market-${tile.x}-${tile.y}`;
+    const crises = crisisDetectionService.getActiveCrisesForMarket(marketLocation);
+    setActiveCrises(crises);
+    console.log(`[Marketplace] Active crises:`, crises);
+    
+    // Mark market visit for price comparison
+    priceHistoryService.markMarketVisit(marketId);
+    
+    // Generate economic quests if appropriate
+    if (questService.shouldGenerateEconomicQuests(marketLocation) && marketConditions) {
+      // We need marketInventory data, but it's in a useMemo - we'll generate after inventory is ready
+      console.log(`[Marketplace] Should generate economic quests for crises`);
+    }
+  }, [tile, marketConditions]);
+
   // Generate culturally-aware market inventory with biome integration
   const marketInventory = useMemo(() => {
     // Get region name from map data
@@ -428,9 +597,6 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       climate
     );
     culturalGoods = volatilityResults.updatedMarketplace;
-    setMarketTrends(volatilityResults.trends);
-    setVolatilityEvents(volatilityResults.volatilityEvents);
-    setMarketCycle(volatilityResults.marketCycle);
     
     // Process NPC market participation
     const npcParticipation = npcMarketParticipationService.processMarketParticipation(
@@ -443,7 +609,12 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       era
     );
     culturalGoods = npcParticipation.updatedMarketplace;
-    setVisitingNpcs(npcParticipation.visitingNpcs);
+    
+    // Store service results to update state later (moved out of useMemo)
+    (window as any).__marketServiceResults = {
+      volatilityResults,
+      npcParticipation
+    };
     
     // Apply dynamic pricing to all goods
     culturalGoods = culturalGoods.map(good => {
@@ -464,17 +635,64 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       };
     });
     
+    // Apply crisis effects to prices and quantities
+    const marketLocation = { x: tile.x, y: tile.y };
+    const crisisEffects = crisisDetectionService.calculateMarketEffects(marketLocation);
+    
+    if (crisisEffects.size > 0) {
+      culturalGoods = culturalGoods.map(good => {
+        const effect = crisisEffects.get(good.category);
+        if (effect) {
+          return {
+            ...good,
+            basePrice: Math.round(good.basePrice * effect.priceMultiplier),
+            currentPrice: Math.round(good.currentPrice * effect.priceMultiplier),
+            quantity: Math.round(good.quantity * effect.quantityMultiplier),
+            crisisAffected: true
+          };
+        }
+        return good;
+      });
+    }
+    
     // Convert cultural goods to trade goods format and apply filters
-    const goods: TradeGood[] = culturalGoods.map(culturalGood => ({
-      itemId: culturalGood.itemId,
-      name: culturalGood.culturalName || culturalGood.name,
-      basePrice: culturalGood.basePrice,
-      currentPrice: culturalGood.currentPrice,
-      quantity: culturalGood.quantity,
-      quality: culturalGood.quality,
-      origin: culturalGood.origin,
-      category: culturalGood.category as any
-    }));
+    // Track seen item names to handle duplicates
+    const seenItems = new Map<string, number>();
+    
+    const goods: TradeGood[] = culturalGoods.map(culturalGood => {
+      let displayName = culturalGood.culturalName || culturalGood.name;
+      
+      // Check if we've seen this exact name before
+      const baseName = displayName.toLowerCase();
+      const count = seenItems.get(baseName) || 0;
+      seenItems.set(baseName, count + 1);
+      
+      // If duplicate, differentiate by origin or quality
+      if (count > 0) {
+        if (culturalGood.origin === 'regional') {
+          displayName = `Fine ${displayName}`;
+        } else if (culturalGood.origin === 'distant') {
+          displayName = `Imported ${displayName}`;
+        } else if (culturalGood.origin === 'exotic') {
+          displayName = `Exotic ${displayName}`;
+        } else if (culturalGood.quality === 'fine' || culturalGood.quality === 'exceptional') {
+          displayName = `Superior ${displayName}`;
+        } else {
+          displayName = `${displayName} (Variant)`;
+        }
+      }
+      
+      return {
+        itemId: culturalGood.itemId,
+        name: displayName,
+        basePrice: culturalGood.basePrice,
+        currentPrice: culturalGood.currentPrice,
+        quantity: culturalGood.quantity,
+        quality: culturalGood.quality,
+        origin: culturalGood.origin,
+        category: culturalGood.category as any
+      };
+    });
     
     // Add goods from existing merchant NPCs to maintain compatibility
     merchantNpcs.forEach(merchant => {
@@ -487,12 +705,202 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     });
     
     // Filter and search
-    return goods.filter(good => {
+    const filtered = goods.filter(good => {
       if (categoryFilter !== 'all' && good.category !== categoryFilter) return false;
       if (searchQuery && !good.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       return true;
     });
+    
+    return filtered;
   }, [marketConditions, merchantNpcs, mapData, categoryFilter, searchQuery, era, culturalZone, season, npcs]);
+  
+  // Update state from market service results (moved out of useMemo to prevent infinite re-renders)
+  useEffect(() => {
+    const results = (window as any).__marketServiceResults;
+    if (results) {
+      try {
+        setVolatilityTrends(results.volatilityResults?.trends || []);
+        setVolatilityEvents(results.volatilityResults?.volatilityEvents || []);
+        setMarketCycle(results.volatilityResults?.marketCycle || null);
+        setVisitingNpcs(results.npcParticipation?.visitingNpcs || []);
+        
+        // Clean up temporary storage
+        delete (window as any).__marketServiceResults;
+      } catch (error) {
+        console.error('[Marketplace] Error updating service results:', error);
+        // Set safe defaults
+        setVolatilityTrends([]);
+        setVolatilityEvents([]);
+        setMarketCycle(null);
+        setVisitingNpcs([]);
+      }
+    }
+  }, [marketInventory]); // Only depend on marketInventory changes
+  
+  // Generate economic quests based on market conditions and crises
+  useEffect(() => {
+    if (!marketConditions || !marketInventory || merchantNpcs.length === 0) return;
+    
+    const marketLocation = { x: tile.x, y: tile.y };
+    
+    // First check if there are already active economic quests for this market
+    const existingEconomicQuests = questService.getActiveEconomicQuests(marketLocation);
+    if (existingEconomicQuests.length > 0) {
+      setEconomicQuests(existingEconomicQuests);
+      console.log(`[Marketplace] Found ${existingEconomicQuests.length} existing economic quests`);
+      return;
+    }
+    
+    // Check if we should generate new economic quests
+    if (questService.shouldGenerateEconomicQuests(marketLocation)) {
+      const quests = questService.generateEconomicQuests(
+        marketConditions,
+        marketInventory,
+        merchantNpcs,
+        mapData,
+        marketLocation
+      );
+      
+      // Add economic quests to the active quest system
+      quests.forEach(quest => {
+        questService.addQuest(quest);
+      });
+      
+      setEconomicQuests(quests);
+      questService.markEconomicQuestsGenerated(marketLocation);
+      
+      if (quests.length > 0) {
+        console.log(`[Marketplace] Generated ${quests.length} economic quests and added to active quests`);
+      }
+    }
+  }, [marketInventory, marketConditions, merchantNpcs, mapData, tile, activeCrises]);
+  
+  // Load merchant behaviors and apply relationship modifiers
+  useEffect(() => {
+    if (merchantNpcs.length === 0) return;
+    
+    const behaviors = new Map<string, MerchantBehavior>();
+    const marketLocation = { x: tile.x, y: tile.y };
+    
+    merchantNpcs.forEach(merchant => {
+      const behavior = merchantBehaviorService.getMerchantBehavior(
+        merchant,
+        playerCharacter.id,
+        marketLocation
+      );
+      behaviors.set(merchant.id, behavior);
+      
+      // Get memory for relationship info
+      const memory = merchantMemoryService.getMerchantMemory(merchant, playerCharacter.id);
+      const stats = merchantMemoryService.getTradeStatistics(merchant.id, playerCharacter.id);
+      
+      console.log(`[Marketplace] ${merchant.name}:`, {
+        trustLevel: memory.trustLevel,
+        reputation: memory.economicReputation,
+        strategy: behavior.strategy,
+        priceModifier: behavior.priceAdjustment * memory.priceModifier,
+        totalTrades: stats.totalTrades
+      });
+    });
+    
+    setMerchantBehaviors(behaviors);
+  }, [merchantNpcs, playerCharacter.id, tile, activeCrises]);
+  
+  // Record price snapshot and generate comparisons
+  useEffect(() => {
+    if (marketInventory.length === 0) return;
+    
+    const marketId = `market-${tile.x}-${tile.y}`;
+    const gameDate = {
+      year: parseInt(mapData.timeSlice || '1500'),
+      month: Math.floor(gameTimeHours / (24 * 30)) % 12 + 1,
+      day: Math.floor(gameTimeHours / 24) % 30 + 1
+    };
+    
+    // Record snapshot
+    priceHistoryService.recordSnapshot(
+      marketId,
+      marketInventory,
+      gameDate,
+      {
+        activeCrises: activeCrises.map(c => c.pattern.id),
+        volatilityLevel: volatilityEvents.length,
+        marketCycle: marketCycle?.stage || 'stable'
+      }
+    );
+    
+    // Get price comparisons
+    const comparisons = priceHistoryService.getPriceComparisons(marketId, marketInventory);
+    setPriceComparisons(comparisons);
+    
+    // Get market trends
+    const trends = priceHistoryService.getMarketTrends(marketId, '7d');
+    setMarketTrends(trends);
+    
+    console.log(`[PriceHistory] Recorded snapshot, ${comparisons.length} comparisons available`);
+  }, [marketInventory, tile, mapData.timeSlice, gameTimeHours, activeCrises, volatilityEvents, marketCycle]);
+  
+  // Track economic victory progress
+  useEffect(() => {
+    // Update wealth
+    economicVictoryService.updateWealth(playerCharacter.currency);
+    
+    // Get current progress
+    const progress = economicVictoryService.getVictoryProgress();
+    setVictoryProgress(progress);
+    
+    // Listen for achievements
+    const handleAchievement = (e: CustomEvent) => {
+      setLatestAchievement(e.detail);
+      setTimeout(() => setLatestAchievement(null), 5000);
+    };
+    
+    const handleMilestone = (e: CustomEvent) => {
+      setLatestMilestone(e.detail);
+      setTimeout(() => setLatestMilestone(null), 5000);
+    };
+    
+    const handleVictory = (e: CustomEvent) => {
+      setShowVictoryModal(true);
+      showToast(`🏆 Economic Victory! You have achieved economic domination through ${e.detail}!`);
+    };
+    
+    // Listen for quest completions to show rewards
+    const handleQuestCompleted = (e: CustomEvent) => {
+      const { quest, rewards } = e.detail;
+      
+      // Check if it's an economic quest completed in this marketplace
+      if ((quest as any).isEconomicQuest) {
+        // Show reward notification
+        let rewardMessage = `✅ Quest "${quest.title}" completed!`;
+        if (rewards && rewards.totalValue > 0) {
+          rewardMessage += ` Earned ${rewards.totalValue} coins`;
+        }
+        if (rewards && rewards.items && rewards.items.length > 0) {
+          rewardMessage += ` and ${rewards.items.length} item(s)`;
+        }
+        
+        showToast(rewardMessage);
+        
+        // Refresh economic quests to remove completed one
+        const marketLocation = { x: tile.x, y: tile.y };
+        const updatedQuests = questService.getActiveEconomicQuests(marketLocation);
+        setEconomicQuests(updatedQuests);
+      }
+    };
+    
+    window.addEventListener('economicAchievement', handleAchievement as any);
+    window.addEventListener('economicMilestone', handleMilestone as any);
+    window.addEventListener('economicVictory', handleVictory as any);
+    window.addEventListener('questCompleted', handleQuestCompleted as any);
+    
+    return () => {
+      window.removeEventListener('economicAchievement', handleAchievement as any);
+      window.removeEventListener('economicMilestone', handleMilestone as any);
+      window.removeEventListener('economicVictory', handleVictory as any);
+      window.removeEventListener('questCompleted', handleQuestCompleted as any);
+    };
+  }, [playerCharacter.currency, tile, showToast]);
   
   // Player sellable items with dynamic pricing (including tamed animals)
   const playerSellableItems = useMemo(() => {
@@ -558,9 +966,63 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   }, [mapData, tile]);
   
   // Handle buy action
-  const handleBuy = useCallback((good: TradeGood) => {
+  const handleBuy = useCallback((good: TradeGood, merchantId?: string) => {
     if (playerCharacter.currency >= good.currentPrice) {
       onBuy(good.itemId, good.currentPrice);
+      
+      // Record transaction in merchant memory
+      if (merchantId) {
+        const merchant = merchantNpcs.find(m => m.id === merchantId);
+        if (merchant) {
+          merchantMemoryService.recordTransaction(
+            merchant,
+            playerCharacter.id,
+            { id: good.itemId, name: good.name, baseId: good.itemId },
+            'buy',
+            good.currentPrice,
+            1,
+            good.basePrice || good.currentPrice
+          );
+          
+          // Update behavior after transaction
+          const newBehavior = merchantBehaviorService.getMerchantBehavior(
+            merchant,
+            playerCharacter.id,
+            { x: tile.x, y: tile.y }
+          );
+          setMerchantBehaviors(prev => new Map(prev).set(merchantId, newBehavior));
+          
+          // Update economic victory progress
+          economicVictoryService.updateTradeProgress(
+            'buy',
+            good.currentPrice,
+            undefined,
+            merchantId,
+            good.itemId,
+            1,
+            activeCrises.length > 0
+          );
+          economicVictoryService.updateMerchantRelationship(merchantId, playerCharacter.id);
+        }
+      }
+      
+      // Check if this completes any quest objectives (normalize item ID)
+      const normalizedItemId = good.itemId.toLowerCase().replace(/\s+/g, '_');
+      questService.checkTradeObjective(
+        'buy',
+        normalizedItemId,
+        1,
+        merchantId,
+        { x: tile.x, y: tile.y }
+      );
+      // Also check with original ID in case quest uses that
+      questService.checkTradeObjective(
+        'buy',
+        good.itemId,
+        1,
+        merchantId,
+        { x: tile.x, y: tile.y }
+      );
       
       // Update market conditions
       if (marketConditions) {
@@ -568,10 +1030,10 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         marketConditions.supply.set(good.itemId, Math.max(0, currentSupply - 1));
       }
     }
-  }, [playerCharacter.currency, onBuy, marketConditions]);
+  }, [playerCharacter, onBuy, marketConditions, merchantNpcs, tile, activeCrises]);
   
   // Handle sell action (items and animals)
-  const handleSell = useCallback((item: any) => {
+  const handleSell = useCallback((item: any, merchantId?: string) => {
     if (item.itemType === 'animal') {
       // Selling a tamed animal
       const animal = item.animalData as TamedAnimal;
@@ -596,14 +1058,61 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     } else {
       // Regular item sale
       onSell(item, item.sellPrice);
+      
+      // Record transaction in merchant memory and victory progress
+      if (merchantId) {
+        const merchant = merchantNpcs.find(m => m.id === merchantId);
+        if (merchant) {
+          merchantMemoryService.recordTransaction(
+            merchant,
+            playerCharacter.id,
+            item,
+            'sell',
+            item.sellPrice,
+            1,
+            item.value || item.sellPrice
+          );
+          
+          // Update economic victory progress
+          const profit = item.sellPrice - (item.value || item.sellPrice);
+          economicVictoryService.updateTradeProgress(
+            'sell',
+            item.sellPrice,
+            profit,
+            merchantId,
+            item.baseId,
+            1,
+            activeCrises.length > 0
+          );
+        }
+      }
     }
+    
+    // Check if this completes any quest objectives (normalize item ID)
+    const itemId = item.baseId || item.id;
+    const normalizedItemId = itemId.toLowerCase().replace(/\s+/g, '_');
+    questService.checkTradeObjective(
+      'sell',
+      normalizedItemId,
+      1,
+      merchantId,
+      { x: tile.x, y: tile.y }
+    );
+    // Also check with original ID in case quest uses that
+    questService.checkTradeObjective(
+      'sell',
+      itemId,
+      1,
+      merchantId,
+      { x: tile.x, y: tile.y }
+    );
     
     // Update market conditions
     if (marketConditions) {
       const currentSupply = marketConditions.supply.get(item.baseId) || 0;
       marketConditions.supply.set(item.baseId, currentSupply + 1);
     }
-  }, [onSell, marketConditions]);
+  }, [onSell, marketConditions, tile]);
 
   // Handle NPC greeting/interaction
   const handleNpcClick = useCallback(async (npc: NpcEntity) => {
@@ -720,7 +1229,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                 />
                 <span className="absolute right-3 top-3 text-amber-600/50">🔍</span>
               </div>
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-1.5 sm:gap-2 flex-wrap">
                 {[
                   { id: 'all', label: 'All Goods', icon: '📦' },
                   { id: 'food', label: 'Provisions', icon: '🍞' },
@@ -735,7 +1244,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   <button
                     key={cat.id}
                     onClick={() => setCategoryFilter(cat.id as CategoryFilter)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all transform hover:scale-105 ${
+                    className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs font-medium transition-all transform hover:scale-105 ${
                       categoryFilter === cat.id 
                         ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg shadow-amber-900/40' 
                         : 'bg-slate-800/70 text-amber-200/70 hover:bg-slate-700/70 hover:text-amber-200 border border-slate-700/50'
@@ -758,19 +1267,60 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                 </div>
               ) : (
                 <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 xl:grid-cols-3'}`}>
-                  {marketInventory.map((good, index) => (
+                  {marketInventory.map((good, index) => {
+                    const questInfo = isQuestItem(good.itemId);
+                    return (
                     <div
                       key={`${good.itemId}-${index}`}
-                      className="group bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-slate-700/50 rounded-md p-4 hover:border-amber-600/50 hover:shadow-lg hover:shadow-amber-900/20 transition-all duration-200 backdrop-blur-sm"
+                      className={`group bg-gradient-to-br from-slate-800/80 to-slate-900/60 border rounded-md p-4 hover:shadow-lg transition-all duration-200 backdrop-blur-sm ${
+                        questInfo.isQuest 
+                          ? 'border-yellow-600/50 hover:border-yellow-500/70 hover:shadow-yellow-900/30' 
+                          : (good as any).crisisAffected 
+                            ? 'border-red-600/50 hover:border-red-500/70 hover:shadow-red-900/30' 
+                            : 'border-slate-700/50 hover:border-amber-600/50 hover:shadow-amber-900/20'
+                      }`}
                     >
+                      {questInfo.isQuest && (
+                        <div className="bg-gradient-to-r from-yellow-900/50 to-amber-900/30 rounded px-2 py-1 mb-2 flex items-center gap-1">
+                          <span className="text-yellow-400 text-sm">📋</span>
+                          <span className="text-xs text-yellow-200 font-medium truncate" title={questInfo.questName}>
+                            Quest: {questInfo.questName}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex justify-between items-start mb-3">
                         <div>
-                          <h4 className="font-semibold text-amber-50 capitalize text-sm lg:text-base">
+                          <h4 className="font-semibold text-amber-50 capitalize text-sm lg:text-base flex items-center gap-2">
                             {good.name}
+                            {(good as any).crisisAffected && (
+                              <span className="text-xs text-red-400 animate-pulse" title="Affected by crisis">
+                                ⚠️
+                              </span>
+                            )}
+                            {(() => {
+                              const comparison = priceComparisons.find(c => c.itemId === good.itemId);
+                              if (comparison?.trend && comparison.percentChange) {
+                                return comparison.trend === 'up' ? (
+                                  <span className="text-xs text-red-400" title={`Price up ${Math.abs(comparison.percentChange).toFixed(0)}% since yesterday`}>
+                                    ↑
+                                  </span>
+                                ) : comparison.trend === 'down' ? (
+                                  <span className="text-xs text-green-400" title={`Price down ${Math.abs(comparison.percentChange).toFixed(0)}% since yesterday`}>
+                                    ↓
+                                  </span>
+                                ) : null;
+                              }
+                              return null;
+                            })()}
                           </h4>
                           {good.origin && (
                             <div className="flex items-center gap-1 mt-0.5">
-                              <span className={`text-xs px-1.5 py-0.5 rounded ${
+                              <span 
+                                title={`Origin: ${good.origin === 'local' ? 'Produced locally, fresh and affordable' :
+                                               good.origin === 'regional' ? 'From neighboring regions, moderate transport costs' :
+                                               good.origin === 'distant' ? 'Imported from far lands, higher prices' :
+                                               'Exotic goods from unknown lands, very expensive'}`}
+                                className={`text-xs px-1.5 py-0.5 rounded cursor-help ${
                                 good.origin === 'local' ? 'bg-green-900/30 text-green-300' :
                                 good.origin === 'regional' ? 'bg-blue-900/30 text-blue-300' :
                                 good.origin === 'distant' ? 'bg-purple-900/30 text-purple-300' :
@@ -784,7 +1334,12 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                             </div>
                           )}
                         </div>
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        <span 
+                          title={`Quality: ${good.quality === 'exceptional' ? 'Exceptional quality items are rare and highly sought after' : 
+                                          good.quality === 'fine' ? 'Fine quality items are well-crafted and durable' :
+                                          good.quality === 'poor' ? 'Poor quality items may break or spoil quickly' :
+                                          'Standard quality items meet basic needs'}`}
+                          className={`text-xs px-2 py-1 rounded-full font-medium cursor-help ${
                           good.quality === 'exceptional' ? 'bg-purple-900/40 text-purple-300 border border-purple-700/50' :
                           good.quality === 'fine' ? 'bg-blue-900/40 text-blue-300 border border-blue-700/50' :
                           good.quality === 'poor' ? 'bg-red-900/40 text-red-300 border border-red-700/50' :
@@ -793,7 +1348,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                           {good.quality === 'exceptional' ? '✨ Exceptional' :
                            good.quality === 'fine' ? '⭐ Fine' :
                            good.quality === 'poor' ? '⚠️ Poor' :
-                           '● Standard'}
+                           'Standard'}
                         </span>
                       </div>
                       
@@ -801,8 +1356,8 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                         <div className="flex justify-between items-center text-sm">
                           <span className="text-amber-200/60">Stock:</span>
                           <span className={`font-medium ${
-                            good.quantity < 5 ? 'text-red-400' :
-                            good.quantity < 20 ? 'text-yellow-400' :
+                            good.quantity <= 5 ? 'text-red-400' :
+                            good.quantity <= 15 ? 'text-yellow-400' :
                             'text-green-400'
                           }`}>
                             {good.quantity} units
@@ -841,11 +1396,11 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                               : 'bg-slate-700/50 text-slate-500 cursor-not-allowed opacity-50'
                           }`}
                         >
-                          {playerCharacter.currency >= good.currentPrice ? 'Purchase' : 'Too Costly'}
+                          {playerCharacter.currency >= good.currentPrice ? 'Buy' : 'Too Costly'}
                         </button>
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               )}
             </div>
@@ -872,13 +1427,17 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                     const profitMargin = item.sellPrice > (item.value || 0) ? 
                       ((item.sellPrice - (item.value || 0)) / (item.value || 1) * 100) : 0;
                     
+                    const questInfo = item.itemType !== 'animal' ? isQuestItem(item.baseId || item.id) : { isQuest: false };
+                    
                     return (
                       <div
                         key={item.id}
                         className={`group flex items-center justify-between p-4 rounded-lg transition-all backdrop-blur-sm hover:shadow-lg ${
-                          item.itemType === 'animal' 
-                            ? 'bg-gradient-to-r from-green-900/30 to-emerald-900/20 border border-green-700/50 hover:border-green-600/70 hover:shadow-green-900/30' 
-                            : 'bg-gradient-to-r from-slate-800/80 to-slate-900/60 border border-slate-700/50 hover:border-amber-600/50 hover:shadow-amber-900/20'
+                          questInfo.isQuest
+                            ? 'bg-gradient-to-r from-yellow-900/30 to-amber-900/20 border border-yellow-600/50 hover:border-yellow-500/70 hover:shadow-yellow-900/30'
+                            : item.itemType === 'animal' 
+                              ? 'bg-gradient-to-r from-green-900/30 to-emerald-900/20 border border-green-700/50 hover:border-green-600/70 hover:shadow-green-900/30' 
+                              : 'bg-gradient-to-r from-slate-800/80 to-slate-900/60 border border-slate-700/50 hover:border-amber-600/50 hover:shadow-amber-900/20'
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -891,6 +1450,11 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                               {item.itemType === 'animal' && (
                                 <span className="ml-2 text-xs px-2 py-0.5 bg-green-600/30 text-green-300 rounded-full border border-green-600/50">
                                   🐾 Companion
+                                </span>
+                              )}
+                              {questInfo.isQuest && questInfo.action === 'sell' && (
+                                <span className="ml-2 text-xs px-2 py-0.5 bg-yellow-600/30 text-yellow-300 rounded-full border border-yellow-600/50">
+                                  📋 Quest
                                 </span>
                               )}
                             </p>
@@ -957,8 +1521,10 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                                         'from-blue-600 to-blue-700';
                     
                     const hasQuest = npcQuests.has(merchant.id);
-                    const questCount = npcQuests.get(merchant.id)?.length || 0;
+                    const quests = npcQuests.get(merchant.id) || [];
+                    const questCount = quests.length;
                     const isGenerating = questGenerating.has(merchant.id);
+                    const hasCrisisQuest = quests.some(q => (q as any).isEconomicQuest && (q as any).economicContext?.crisis);
                     
                     return (
                       <div
@@ -972,8 +1538,16 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                           </div>
                         )}
                         {hasQuest && !isGenerating && (
-                          <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-500 to-amber-500 text-white rounded-full w-8 h-8 flex items-center justify-center animate-pulse shadow-lg">
-                            <ScrollText className="w-4 h-4" />
+                          <div className={`absolute -top-2 -right-2 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg ${
+                            hasCrisisQuest 
+                              ? 'bg-gradient-to-r from-red-500 to-orange-500 animate-pulse' 
+                              : 'bg-gradient-to-r from-yellow-500 to-amber-500 animate-pulse'
+                          }`}>
+                            {hasCrisisQuest ? (
+                              <AlertTriangle className="w-4 h-4" />
+                            ) : (
+                              <ScrollText className="w-4 h-4" />
+                            )}
                             {questCount > 1 && (
                               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
                                 {questCount}
@@ -1071,7 +1645,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   </div>
                   <div className="bg-slate-900/40 rounded-md p-2">
                     <p className="text-xs text-cyan-300/60 mb-1">Cultural Zone</p>
-                    <p className="text-sm text-amber-50 font-medium">{culturalZone}</p>
+                    <p className="text-sm text-amber-50 font-medium">{culturalZone.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
                   </div>
                 </div>
                 {marketAllegiance && (
@@ -1310,6 +1884,332 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
             </div>
             <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-900/20 to-slate-900/40 space-y-4">
               
+              {/* Crisis Quests Card */}
+              {economicQuests.length > 0 && economicQuests.some(q => (q as any).economicContext?.crisis) && (
+                <div className="bg-gradient-to-br from-orange-900/30 to-red-950/20 border border-orange-700/40 rounded-lg p-4 backdrop-blur-sm">
+                  <h4 className="text-sm font-semibold text-orange-400 mb-3 uppercase tracking-wide flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    Crisis Opportunities
+                  </h4>
+                  <div className="space-y-2">
+                    {economicQuests.filter(q => (q as any).economicContext?.crisis).map((quest, idx) => {
+                      const completedObjectives = quest.objectives.filter(o => o.completed).length;
+                      const totalObjectives = quest.objectives.length;
+                      const progress = (completedObjectives / totalObjectives) * 100;
+                      
+                      // Calculate time remaining for crisis quests
+                      const timeLimit = (quest as any).timeLimit;
+                      const startTime = quest.startTime || Date.now();
+                      const elapsed = Date.now() - startTime;
+                      const remaining = timeLimit ? Math.max(0, timeLimit - elapsed) : null;
+                      const urgencyLevel = remaining 
+                        ? remaining < 60000 ? 'critical' 
+                        : remaining < 180000 ? 'urgent' 
+                        : 'normal'
+                        : 'normal';
+                      
+                      return (
+                      <div key={idx} className={`bg-slate-900/40 rounded-md p-2 ${
+                        urgencyLevel === 'critical' ? 'border-l-4 border-red-500 animate-pulse' :
+                        urgencyLevel === 'urgent' ? 'border-l-4 border-orange-500' :
+                        ''
+                      }`}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex-1">
+                            <p className="text-sm text-amber-50 font-medium flex items-center gap-2">
+                              {quest.title}
+                              {urgencyLevel === 'critical' && (
+                                <span className="text-xs bg-red-600/30 text-red-300 px-2 py-0.5 rounded-full animate-pulse">
+                                  ⚠️ URGENT
+                                </span>
+                              )}
+                            </p>
+                            <div className="flex items-center gap-3 mt-0.5">
+                              <p className="text-xs text-amber-200/60">From: {quest.giver}</p>
+                              {remaining && (
+                                <p className={`text-xs font-medium ${
+                                  urgencyLevel === 'critical' ? 'text-red-400' :
+                                  urgencyLevel === 'urgent' ? 'text-orange-400' :
+                                  'text-amber-300'
+                                }`}>
+                                  ⏱️ {Math.floor(remaining / 60000)}:{String(Math.floor((remaining % 60000) / 1000)).padStart(2, '0')}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-orange-300">Reward:</p>
+                            <p className="text-sm text-amber-300 font-medium">
+                              {quest.rewards?.[0]?.amount} coins
+                              {(quest as any).economicContext?.crisis && (
+                                <span className="text-xs text-green-400 block">+50% crisis bonus</span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        {quest.status === 'active' && (
+                          <div className="mt-2">
+                            <div className="flex items-center justify-between text-xs mb-1">
+                              <span className="text-amber-200/60">Progress</span>
+                              <span className="text-amber-300">{completedObjectives}/{totalObjectives}</span>
+                            </div>
+                            <div className="h-1 bg-slate-800/60 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-gradient-to-r from-orange-500 to-amber-500 transition-all"
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-amber-200/50 mt-3 italic">
+                    Visit merchants to accept these urgent quests
+                  </p>
+                </div>
+              )}
+              
+              {/* Active Crises Card */}
+              {activeCrises.length > 0 && (
+                <div className="bg-gradient-to-br from-red-900/30 to-red-950/20 border border-red-700/40 rounded-lg p-4 backdrop-blur-sm">
+                  <h4 className="text-sm font-semibold text-red-400 mb-3 uppercase tracking-wide flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 animate-pulse" />
+                    Active Crises
+                  </h4>
+                  <div className="space-y-3">
+                    {activeCrises.map((crisis, idx) => (
+                      <div key={idx} className="bg-slate-900/40 rounded-md p-3 border-l-4 border-red-500/50">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="text-sm font-medium text-amber-50 capitalize">
+                              {crisis.pattern.category} Crisis: {crisis.pattern.id.replace(/_/g, ' ')}
+                            </p>
+                            <p className="text-xs text-red-300 mt-1">
+                              Severity: {'⚠️'.repeat(crisis.pattern.severity)}
+                            </p>
+                          </div>
+                          <span className="text-xs text-amber-200/50">
+                            {Math.ceil((crisis.expiresAt - Date.now()) / (1000 * 60 * 60))}h remaining
+                          </span>
+                        </div>
+                        <p className="text-xs text-amber-200/70 mb-2">{crisis.pattern.flavorText}</p>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="bg-red-900/20 rounded px-2 py-1">
+                            <span className="text-red-400">Prices:</span>
+                            <span className="text-amber-200 ml-1">
+                              {crisis.pattern.marketEffect.priceMultiplier > 1 ? '+' : ''}
+                              {Math.round((crisis.pattern.marketEffect.priceMultiplier - 1) * 100)}%
+                            </span>
+                          </div>
+                          <div className="bg-red-900/20 rounded px-2 py-1">
+                            <span className="text-red-400">Supply:</span>
+                            <span className="text-amber-200 ml-1">
+                              {Math.round(crisis.pattern.marketEffect.quantityMultiplier * 100)}%
+                            </span>
+                          </div>
+                        </div>
+                        <div className="mt-2 text-xs text-amber-200/50">
+                          Reported by: {crisis.sourceNpcs.map(n => n.npcName).join(', ')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Price History & Trends Card */}
+              {marketTrends && priceComparisons.length > 0 && (
+                <div className="bg-gradient-to-br from-indigo-900/30 to-purple-950/20 border border-indigo-700/40 rounded-lg p-4 backdrop-blur-sm">
+                  <h4 className="text-sm font-semibold text-indigo-400 mb-3 uppercase tracking-wide flex items-center gap-2">
+                    📈 Price Trends (Last 7 Days)
+                  </h4>
+                  
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div className="bg-slate-900/40 rounded-md p-2">
+                      <p className="text-xs text-indigo-300 mb-1">Market Trend</p>
+                      <p className={`text-sm font-bold ${
+                        marketTrends.overallTrend === 'bull' ? 'text-green-400' :
+                        marketTrends.overallTrend === 'bear' ? 'text-red-400' :
+                        'text-amber-400'
+                      }`}>
+                        {marketTrends.overallTrend === 'bull' ? '📈 Bull Market' :
+                         marketTrends.overallTrend === 'bear' ? '📉 Bear Market' :
+                         '➡️ Stable'}
+                      </p>
+                    </div>
+                    <div className="bg-slate-900/40 rounded-md p-2">
+                      <p className="text-xs text-indigo-300 mb-1">Avg Change</p>
+                      <p className={`text-sm font-bold ${
+                        marketTrends.averagePriceChange > 0 ? 'text-green-400' :
+                        marketTrends.averagePriceChange < 0 ? 'text-red-400' :
+                        'text-amber-400'
+                      }`}>
+                        {marketTrends.averagePriceChange > 0 ? '+' : ''}
+                        {marketTrends.averagePriceChange.toFixed(1)}%
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Most volatile items */}
+                  {marketTrends.mostVolatile.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-xs text-indigo-300 mb-2">Most Volatile</p>
+                      <div className="space-y-1">
+                        {marketTrends.mostVolatile.slice(0, 3).map(itemId => {
+                          const comparison = priceComparisons.find(c => c.itemId === itemId);
+                          if (!comparison) return null;
+                          return (
+                            <div key={itemId} className="flex items-center justify-between text-xs bg-slate-900/30 rounded px-2 py-1">
+                              <span className="text-amber-200">{comparison.name}</span>
+                              <span className={comparison.percentChange && comparison.percentChange > 0 ? 'text-red-400' : 'text-green-400'}>
+                                {comparison.percentChange ? `${comparison.percentChange > 0 ? '+' : ''}${comparison.percentChange.toFixed(0)}%` : 'N/A'}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Since last visit comparison */}
+                  {priceComparisons.some(c => c.sinceLastVisit !== undefined) && (
+                    <div className="border-t border-indigo-700/30 pt-3">
+                      <p className="text-xs text-indigo-300 mb-2">Since Your Last Visit</p>
+                      <div className="space-y-1">
+                        {priceComparisons
+                          .filter(c => c.sinceLastVisit !== undefined && c.sinceLastVisit !== 0)
+                          .sort((a, b) => Math.abs(b.sinceLastVisit!) - Math.abs(a.sinceLastVisit!))
+                          .slice(0, 3)
+                          .map(comparison => (
+                            <div key={comparison.itemId} className="flex items-center justify-between text-xs bg-slate-900/30 rounded px-2 py-1">
+                              <span className="text-amber-200">{comparison.name}</span>
+                              <span className={comparison.sinceLastVisit! > 0 ? 'text-red-400' : 'text-green-400'}>
+                                {comparison.sinceLastVisit! > 0 ? '+' : ''}{comparison.sinceLastVisit} coins
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Victory Progress Card */}
+              {victoryProgress && (
+                <div className="bg-gradient-to-br from-yellow-900/30 to-amber-950/20 border border-yellow-700/40 rounded-lg p-4 backdrop-blur-sm">
+                  <h4 className="text-sm font-semibold text-yellow-400 mb-3 uppercase tracking-wide flex items-center gap-2">
+                    🏆 Economic Victory Progress
+                  </h4>
+                  
+                  {/* Overall Progress Bar */}
+                  <div className="mb-4">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs text-amber-200">Overall Progress</span>
+                      <span className="text-xs text-yellow-400 font-bold">
+                        {victoryProgress.overallProgress.toFixed(0)}%
+                      </span>
+                    </div>
+                    <div className="h-2 bg-slate-900/60 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-yellow-500 to-amber-500 transition-all duration-500"
+                        style={{ width: `${victoryProgress.overallProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Victory Mode */}
+                  <div className="bg-slate-900/40 rounded-md p-2 mb-3">
+                    <p className="text-xs text-yellow-300 mb-1">Victory Mode</p>
+                    <p className="text-sm font-bold text-amber-100 capitalize">
+                      {victoryProgress.mode.replace(/_/g, ' ')}
+                    </p>
+                  </div>
+                  
+                  {/* Key Metrics */}
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div className="bg-slate-900/30 rounded px-2 py-1">
+                      <p className="text-xs text-yellow-300">Wealth</p>
+                      <p className="text-sm text-amber-100 font-medium">
+                        {victoryProgress.conditions.currentWealth} / {victoryProgress.conditions.wealthGoal}
+                      </p>
+                    </div>
+                    <div className="bg-slate-900/30 rounded px-2 py-1">
+                      <p className="text-xs text-yellow-300">Total Traded</p>
+                      <p className="text-sm text-amber-100 font-medium">
+                        {victoryProgress.conditions.totalTraded}
+                      </p>
+                    </div>
+                    <div className="bg-slate-900/30 rounded px-2 py-1">
+                      <p className="text-xs text-yellow-300">VIP Status</p>
+                      <p className="text-sm text-amber-100 font-medium">
+                        {victoryProgress.conditions.vipStatuses.length} / {victoryProgress.conditions.vipStatusGoal}
+                      </p>
+                    </div>
+                    <div className="bg-slate-900/30 rounded px-2 py-1">
+                      <p className="text-xs text-yellow-300">Crisis Profits</p>
+                      <p className="text-sm text-amber-100 font-medium">
+                        {victoryProgress.conditions.crisisProfits}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Nearest Milestone */}
+                  {victoryProgress.nearestMilestone && (
+                    <div className="border-t border-yellow-700/30 pt-3">
+                      <p className="text-xs text-yellow-300 mb-2">Next Milestone</p>
+                      <div className="bg-slate-900/40 rounded-md p-2">
+                        <div className="flex justify-between items-start mb-1">
+                          <p className="text-sm font-medium text-amber-100">
+                            {victoryProgress.nearestMilestone.name}
+                          </p>
+                          <span className="text-xs text-yellow-400">
+                            {victoryProgress.nearestMilestone.progress.toFixed(0)}%
+                          </span>
+                        </div>
+                        <p className="text-xs text-amber-200/70 mb-2">
+                          {victoryProgress.nearestMilestone.description}
+                        </p>
+                        <div className="h-1 bg-slate-900/60 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-yellow-600 to-amber-600"
+                            style={{ width: `${victoryProgress.nearestMilestone.progress}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Recent Achievements */}
+                  {victoryProgress.achievements.filter(a => a.unlockedAt).length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-yellow-700/30">
+                      <p className="text-xs text-yellow-300 mb-2">Achievements Unlocked</p>
+                      <div className="flex flex-wrap gap-2">
+                        {victoryProgress.achievements
+                          .filter(a => a.unlockedAt)
+                          .slice(-3)
+                          .map(achievement => (
+                            <div 
+                              key={achievement.id}
+                              className={`px-2 py-1 rounded text-xs flex items-center gap-1 ${
+                                achievement.rarity === 'legendary' ? 'bg-purple-900/40 text-purple-300' :
+                                achievement.rarity === 'epic' ? 'bg-blue-900/40 text-blue-300' :
+                                achievement.rarity === 'rare' ? 'bg-green-900/40 text-green-300' :
+                                'bg-slate-900/40 text-slate-300'
+                              }`}
+                              title={achievement.description}
+                            >
+                              <span>{achievement.icon}</span>
+                              <span>{achievement.name}</span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
               {/* Market Cycle Card */}
               {marketCycle && (
                 <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-red-700/30 rounded-lg p-4 backdrop-blur-sm">
@@ -1421,10 +2321,65 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   
   return (
     <>
+    {/* Achievement Notification */}
+    {latestAchievement && (
+      <div className="fixed top-20 right-4 z-[60] animate-pulse">
+        <div className={`bg-gradient-to-r ${
+          latestAchievement.rarity === 'legendary' ? 'from-purple-900 to-purple-700' :
+          latestAchievement.rarity === 'epic' ? 'from-blue-900 to-blue-700' :
+          latestAchievement.rarity === 'rare' ? 'from-green-900 to-green-700' :
+          'from-slate-900 to-slate-700'
+        } border ${
+          latestAchievement.rarity === 'legendary' ? 'border-purple-500' :
+          latestAchievement.rarity === 'epic' ? 'border-blue-500' :
+          latestAchievement.rarity === 'rare' ? 'border-green-500' :
+          'border-slate-500'
+        } rounded-lg p-4 shadow-2xl min-w-[300px]`}>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">{latestAchievement.icon}</span>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-white">Achievement Unlocked!</p>
+              <p className="text-base font-semibold text-amber-100">{latestAchievement.name}</p>
+              <p className="text-xs text-gray-200 mt-1">{latestAchievement.description}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+    
+    {/* Milestone Notification */}
+    {latestMilestone && (
+      <div className="fixed top-20 left-4 z-[60] animate-pulse">
+        <div className="bg-gradient-to-r from-yellow-900 to-amber-700 border border-yellow-500 rounded-lg p-4 shadow-2xl min-w-[300px]">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">🎯</span>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-white">Milestone Achieved!</p>
+              <p className="text-base font-semibold text-amber-100">{latestMilestone.name}</p>
+              <p className="text-xs text-gray-200 mt-1">{latestMilestone.description}</p>
+              {latestMilestone.reward && (
+                <p className="text-xs text-yellow-300 mt-2">Reward: {latestMilestone.reward}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+    
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className={`bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 border-2 border-amber-900/40 rounded-md shadow-2xl flex flex-col overflow-hidden ${
+      <div className={`bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 border-2 border-amber-900/40 rounded-md shadow-2xl flex flex-col overflow-hidden relative ${
         isMobile ? 'w-full h-full rounded-none' : 'w-[97%] max-w-8xl h-[72vh]'
       }`}>
+        {/* Mobile close button */}
+        {isMobile && (
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 z-50 w-8 h-8 rounded-full bg-black/60 text-white/80 hover:text-white hover:bg-black/80 flex items-center justify-center transition-all shadow-lg"
+            aria-label="Close marketplace"
+          >
+            <span className="text-xl leading-none">×</span>
+          </button>
+        )}
         {/* Enhanced header with animated banner */}
         <div className="relative h-36 overflow-hidden shrink-0">
      
@@ -1450,12 +2405,56 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         </div>
 
         
+        {/* Crisis warning banner */}
+        {activeCrises.length > 0 && !dismissedCrises.has(activeCrises[0].pattern.id) && (
+          <div className="bg-gradient-to-r from-red-900/30 to-orange-900/30 border-b border-red-700/50 px-4 py-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-400 animate-pulse" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-red-300">Active Crisis</p>
+                <p className="text-xs text-amber-200/80">
+                  {activeCrises[0].pattern.flavorText}
+                  {activeCrises[0].sourceNpcs.length > 0 && (
+                    <span className="text-amber-400/60"> (reported by {activeCrises[0].sourceNpcs[0].npcName})</span>
+                  )}
+                </p>
+              </div>
+              {activeCrises.length > 1 && (
+                <span className="text-xs bg-red-800/50 px-2 py-1 rounded-full text-red-200">
+                  +{activeCrises.length - 1} more
+                </span>
+              )}
+              <button
+                onClick={() => {
+                  const newDismissed = new Set(dismissedCrises);
+                  newDismissed.add(activeCrises[0].pattern.id);
+                  setDismissedCrises(newDismissed);
+                  localStorage.setItem('dismissedMarketCrises', JSON.stringify(Array.from(newDismissed)));
+                }}
+                className="ml-2 text-red-400 hover:text-red-300 transition-colors"
+                aria-label="Dismiss crisis banner"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+        
         {/* Enhanced marketplace header with better typography */}
         <div className="p-4 bg-gradient-to-r from-slate-800/90 via-slate-800/70 to-slate-800/90 border-b border-amber-900/30 backdrop-blur-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-amber-300 to-yellow-300 bg-clip-text text-transparent">
-                {marketplaceName}
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-amber-300 to-yellow-300 bg-clip-text text-transparent flex items-center gap-2">
+                {marketplaceDataLoading ? (
+                  <>
+                    <span className="animate-pulse">⌛</span>
+                    <span>Loading Marketplace...</span>
+                  </>
+                ) : (
+                  marketplaceName
+                )}
               </h2>
               <p className="text-sm text-amber-200/70 mt-1">
                 {mapData.localArea || mapData.continent || 'Unknown Lands'} • {marketConditionDesc}
@@ -1470,7 +2469,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                   </span>
                 )}
                 <span className="text-xs px-2 py-1 bg-cyan-900/30 text-cyan-300 rounded-md border border-cyan-700/50">
-                  🌍 {culturalZone}
+                  🌍 {culturalZone.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                 </span>
               </div>
             </div>
@@ -1548,7 +2547,15 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
           
           <div className="space-y-3 mb-4">
             <div>
-              <h4 className="text-base font-semibold text-amber-100">{showQuestOffer.quest.title}</h4>
+              <h4 className="text-base font-semibold text-amber-100 flex items-center gap-2">
+                {showQuestOffer.quest.title}
+                {(showQuestOffer.quest as any).isEconomicQuest && (showQuestOffer.quest as any).economicContext?.crisis && (
+                  <span className="text-xs bg-red-600/30 text-red-300 px-2 py-0.5 rounded-full border border-red-600/50 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" />
+                    Crisis Quest
+                  </span>
+                )}
+              </h4>
               <p className="text-sm text-gray-300 mt-1">{showQuestOffer.quest.description}</p>
             </div>
             
@@ -1556,9 +2563,34 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               <p className="text-xs text-amber-200/70 uppercase tracking-wide mb-2">Objectives:</p>
               <ul className="space-y-1">
                 {showQuestOffer.quest.objectives.slice(0, 2).map((obj, idx) => (
-                  <li key={obj.id} className="text-sm text-gray-300 flex items-start gap-2">
-                    <span className="text-amber-500 mt-0.5">•</span>
-                    <span>{obj.description}</span>
+                  <li key={obj.id} className="text-sm text-gray-300 flex flex-col gap-1">
+                    <div className="flex items-start gap-2">
+                      <span className="text-amber-500 mt-0.5">•</span>
+                      <span>{obj.description}</span>
+                    </div>
+                    {obj.targetLocation && (
+                      <button
+                        onClick={() => {
+                          // Dispatch event to center map on location
+                          const centerEvent = new CustomEvent('centerMapOnLocation', {
+                            detail: { x: obj.targetLocation!.x, y: obj.targetLocation!.y }
+                          });
+                          window.dispatchEvent(centerEvent);
+                          setShowQuestOffer(null);
+                          onClose();
+                          
+                          // Show a notification
+                          const notification = document.createElement('div');
+                          notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-blue-900/90 text-blue-200 px-4 py-2 rounded-lg border border-blue-700 z-50 animate-fade-in';
+                          notification.textContent = `📍 Map centered on location [${Math.floor(obj.targetLocation!.x)}, ${Math.floor(obj.targetLocation!.y)}]`;
+                          document.body.appendChild(notification);
+                          setTimeout(() => notification.remove(), 3000);
+                        }}
+                        className="ml-5 text-xs text-blue-400 hover:text-blue-300 hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        📍 Tile [{Math.floor(obj.targetLocation.x)}, {Math.floor(obj.targetLocation.y)}]
+                      </button>
+                    )}
                   </li>
                 ))}
                 {showQuestOffer.quest.objectives.length > 2 && (

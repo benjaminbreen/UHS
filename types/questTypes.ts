@@ -9,7 +9,11 @@ export interface QuestObjective {
   id: string;
   type: 'visit_location' | 'talk_to_npc' | 'deliver_item' | 'collect_item' | 
         'reach_destination' | 'defeat_entity' | 'survive_duration' | 'explore_area' |
-        'solve_puzzle' | 'make_choice' | 'gather_information' | 'escort_npc';
+        'solve_puzzle' | 'make_choice' | 'gather_information' | 'escort_npc' |
+        'travel_distance' | 'collect_resource' | 'survive_time' | 'craft_item' |
+        'trade' | 'observe_event' | 'patrol_area' | 'prepare_defenses' |
+        'defeat_enemies' | 'create_document' | 'deliver_message' | 'negotiate' |
+        'observe_outcome' | 'complete_task' | 'social_interaction' | 'follow_path';
   description: string;
   targetLocation?: {
     x: number;
@@ -21,6 +25,12 @@ export interface QuestObjective {
   targetEntity?: string; // For hunting/combat quests
   targetItem?: string;
   targetType?: string; // For flexible targeting
+  targetDistance?: number; // For travel_distance objectives
+  targetAmount?: number; // For collection objectives
+  targetDays?: number; // For survival time objectives
+  resourceType?: string; // For resource collection
+  itemsToCollect?: Array<{ name: string; quantity: number }>; // For collection quests
+  startLocation?: { x: number; y: number }; // For travel distance tracking
   requiredChoice?: string; // For decision-based objectives
   timeLimit?: number; // In game minutes
   completed: boolean;
@@ -59,6 +69,7 @@ export interface Quest {
   dynamicElements?: DynamicQuestElement[]; // Elements that change based on player actions
   culturalZone?: string; // For culturally appropriate rewards
   era?: string; // Historical era for context-appropriate rewards
+  isActiveQuest?: boolean; // Whether this is the currently active quest for notifications/markers
 }
 
 export interface QuestReward {

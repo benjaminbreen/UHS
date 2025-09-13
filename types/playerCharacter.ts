@@ -12,7 +12,7 @@ import { AttributeBadge } from './attributeTypes';
 
 export type EquipmentSlot = 'head' | 'torso' | 'legs' | 'feet' | 
                           'main_hand' | 'off_hand' | 
-                          'cloak' | 'belt' | 'amulet' | 'ring1' | 'accessory';
+                          'cloak' | 'belt' | 'necklace' | 'ring1' | 'accessory';
 
 export interface CharacterAbilities {
     canHeal?: boolean; // Can diagnose and treat diseases

@@ -3,7 +3,18 @@
  * Hover tooltip for faction information in LeftSidebar
  */
 import React from 'react';
-import { FACTION_ICONS } from '../constants/gameData/factionIcons';
+// Lazy load faction icons to improve startup performance
+let factionIconsModule: any = null;
+let factionIconsPromise: Promise<any> | null = null;
+
+const ensureFactionIcons = () => {
+  if (!factionIconsPromise && !factionIconsModule) {
+    factionIconsPromise = import('../constants/gameData/factionIcons').then(module => {
+      factionIconsModule = module;
+      return module;
+    });
+  }
+};
 
 interface FactionTooltipProps {
   dominantPower: string;
@@ -19,7 +30,8 @@ const FactionTooltip: React.FC<FactionTooltipProps> = ({
   y 
 }) => {
   // Get faction icon
-  const factionData = FACTION_ICONS[dominantPower] || {
+  ensureFactionIcons();
+  const factionData = (factionIconsModule?.FACTION_ICONS || {})[dominantPower] || {
     name: dominantPower,
     color: '#808080',
     icon: null

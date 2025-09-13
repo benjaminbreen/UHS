@@ -6,10 +6,10 @@ import { GameDate, HistoricalEra, MapData, NpcEntity } from '../types';
 type CulturalZone = 'EUROPEAN' | 'EAST_ASIAN' | 'MENA' | 'NORTH_AMERICAN_PRE_COLUMBIAN' | 'NORTH_AMERICAN_COLONIAL' | 'OCEANIA' | 'SOUTH_ASIAN' | 'SOUTH_AMERICAN' | 'SUB_SAHARAN_AFRICAN';
 import { HISTORY_GUIDE_DATA } from '../constants/index';
 import WikipediaArticle from './WikipediaArticle';
-import { PrimarySourceModal } from './PrimarySourceModal';
 import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { primarySourceService, PrimarySourceMetadata } from '../services/primarySourceService';
+import { useUI } from '../contexts/UIContext';
 
 interface HistoryPanelProps {
     gameDate: GameDate;
@@ -85,9 +85,9 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     mapData,
     npcs
 }) => {
+    const { setSelectedPrimarySource } = useUI();
     const [activeSubTab, setActiveSubTab] = useState<HistorySubTab>('primary_sources'); // Default to primary sources
     const [primarySources, setPrimarySources] = useState<PrimarySourceMetadata[]>([]);
-    const [selectedSource, setSelectedSource] = useState<PrimarySourceMetadata | null>(null);
     const [loading, setLoading] = useState(false);
 
     const { era, culturalZone } = useMemo(() => {
@@ -164,20 +164,12 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                         ) : (
                             <PrimarySourceDisplay 
                                 sources={primarySources} 
-                                onSourceClick={setSelectedSource}
+                                onSourceClick={setSelectedPrimarySource}
                             />
                         )
                     )}
                 </div>
             </div>
-
-            {/* Primary Source Modal */}
-            {selectedSource && (
-                <PrimarySourceModal
-                    source={selectedSource}
-                    onClose={() => setSelectedSource(null)}
-                />
-            )}
         </>
     );
 };

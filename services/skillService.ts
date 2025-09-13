@@ -46,7 +46,18 @@ async function executeForage(context: PlayerContext): Promise<ForageSkillResult>
     ) || false;
     
     // Try terrain-specific foraging first
-    const terrainResult = executeTerrainForage(tile, playerCharacter, isUrbanTile);
+    // Validate player location before proceeding
+    if (typeof context.playerX !== 'number' || typeof context.playerY !== 'number') {
+        return {
+            type: 'forage',
+            success: false,
+            message: 'Unable to determine your location for foraging.',
+            xpGained: 0
+        };
+    }
+    
+    const playerLocation = { x: context.playerX, y: context.playerY };
+    const terrainResult = executeTerrainForage(tile, playerCharacter, isUrbanTile, mapData, playerLocation);
     if (terrainResult.success) {
         const result: ForageSkillResult = {
             type: 'forage',
@@ -333,7 +344,18 @@ async function executeDig(context: PlayerContext): Promise<DigSkillResult> {
     ) || false;
     
     // Try terrain-specific digging first (salt flats, beaches, etc.)
-    const terrainResult = executeTerrainDig(tile, playerCharacter, isUrbanTile);
+    // Validate player location before proceeding
+    if (typeof context.playerX !== 'number' || typeof context.playerY !== 'number') {
+        return {
+            type: 'dig',
+            success: false,
+            message: 'Unable to determine your location for digging.',
+            xpGained: 0
+        };
+    }
+    
+    const playerLocation = { x: context.playerX, y: context.playerY };
+    const terrainResult = executeTerrainDig(tile, playerCharacter, isUrbanTile, mapData, playerLocation);
     if (terrainResult.success) {
         const result: DigSkillResult = {
             type: 'dig',

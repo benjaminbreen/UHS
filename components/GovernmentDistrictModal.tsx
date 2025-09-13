@@ -21,6 +21,7 @@ import React, {
   useCallback,
   Fragment,
 } from 'react';
+import { gameSounds } from '../services/gameSoundsService';
 
 import {
   TerrainStructure,
@@ -1093,7 +1094,10 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
                       </div>
                       <button
                         className="w-full px-4 py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-lg transition-all shadow-lg hover:shadow-amber-500/25 font-bold flex items-center justify-center gap-2"
-                        onClick={() => enterSelectedBuilding(selectedBuilding)}
+                        onClick={() => {
+                          gameSounds.playButtonClickSound();
+                          enterSelectedBuilding(selectedBuilding);
+                        }}
                       >
                         <FaDoorOpen /> Enter the {availableSpecialMaps[selectedBuilding].name}
                       </button>

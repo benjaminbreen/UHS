@@ -51,6 +51,7 @@ export function placePillar(
   era: number
 ): void {
   const height = getPillarHeight(era);
+  const objectId = `pillar_${x}_${y}_${Date.now()}`;
   
   // Place from bottom to top
   for (let i = 0; i < height; i++) {
@@ -60,19 +61,29 @@ export function placePillar(
     
     const tile = tiles[tileY][x];
     
+    // Set biome to PILLAR for all parts
+    tile.biome = BiomeType.PILLAR;
+    tile.materialSubtype = material;
+    
+    // Add multi-tile data
+    tile.multiTileData = {
+      objectId: objectId,
+      isBase: i === 0,
+      material: material,
+      height: height,
+      partIndex: i
+    };
+    
     if (i === 0) {
       // Base - impassable
-      tile.biome = BiomeType.COLUMN;
       tile.isBlocking = true;
       tile.structureType = `pillar_base_${material}`;
     } else if (i === height - 1) {
       // Top/capital
-      tile.biome = BiomeType.COLUMN;
       tile.isBlocking = false; // Top doesn't block
       tile.structureType = `pillar_top_${material}`;
     } else {
       // Middle sections
-      tile.biome = BiomeType.COLUMN;
       tile.isBlocking = false; // Middle doesn't block
       tile.structureType = `pillar_middle_${material}`;
     }

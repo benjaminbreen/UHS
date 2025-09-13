@@ -1,7 +1,7 @@
-import React from 'react';
-import { X, MapPin, Calendar, User, Sparkles, Target } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, MapPin, Calendar, User, Sparkles, Target, Scroll, Users, ChevronRight, Award } from 'lucide-react';
 import { GameMode, SpecialNPC } from '../types/eventTypes';
-import { CharacterSpecification } from '../services/worldWeaverService';
+import { CharacterSpecification, WorldWeaverQuest } from '../services/worldWeaverService';
 
 interface WorldWeaverModalProps {
   isOpen: boolean;
@@ -15,6 +15,7 @@ interface WorldWeaverModalProps {
   gameMode?: GameMode;
   specialNPCs?: SpecialNPC[];
   customEventsCount?: number;
+  quest?: WorldWeaverQuest;
 }
 
 const WorldWeaverModal: React.FC<WorldWeaverModalProps> = ({
@@ -28,8 +29,11 @@ const WorldWeaverModal: React.FC<WorldWeaverModalProps> = ({
   characterSpec,
   gameMode,
   specialNPCs,
-  customEventsCount = 0
+  customEventsCount = 0,
+  quest
 }) => {
+  const [expandedStage, setExpandedStage] = useState<string | null>(null);
+  
   if (!isOpen) return null;
 
   return (
@@ -181,8 +185,90 @@ const WorldWeaverModal: React.FC<WorldWeaverModalProps> = ({
             </div>
           )}
 
-          {/* Custom Events */}
-          {customEventsCount > 0 && (
+          {/* Quest Section - THE MAIN FEATURE */}
+          {quest && (
+            <div className="bg-gradient-to-r from-amber-900/20 to-orange-900/20 rounded-lg p-4 border border-amber-500/30">
+              <div className="flex items-center gap-2 mb-3">
+                <Scroll className="w-5 h-5 text-amber-400" />
+                <h3 className="text-lg font-bold text-amber-400">Quest: {quest.title}</h3>
+              </div>
+              
+              <p className="text-sm text-gray-200 mb-3">{quest.description}</p>
+              
+              {quest.historicalContext && (
+                <p className="text-xs text-gray-400 italic mb-3 border-l-2 border-amber-600/30 pl-2">
+                  {quest.historicalContext}
+                </p>
+              )}
+              
+              {/* Quest Stages */}
+              <div className="space-y-2 mt-3">
+                <h4 className="text-sm font-semibold text-amber-300 mb-2">Quest Stages:</h4>
+                {quest.stages.map((stage, index) => (
+                  <div 
+                    key={stage.id}
+                    className="bg-slate-800/50 rounded p-2 border border-slate-700 cursor-pointer hover:bg-slate-800/70 transition-colors"
+                    onClick={() => setExpandedStage(expandedStage === stage.id ? null : stage.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-amber-400 font-bold">{index + 1}.</span>
+                        <span className="text-sm text-white font-medium">{stage.objective}</span>
+                      </div>
+                      <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${expandedStage === stage.id ? 'rotate-90' : ''}`} />
+                    </div>
+                    
+                    {expandedStage === stage.id && (
+                      <div className="mt-2 pl-6 space-y-1">
+                        <p className="text-xs text-gray-300">{stage.description}</p>
+                        {stage.locationHint && (
+                          <p className="text-xs text-blue-400">
+                            <MapPin className="w-3 h-3 inline mr-1" />
+                            {stage.locationHint}
+                          </p>
+                        )}
+                        {stage.rewards && stage.rewards.length > 0 && (
+                          <div className="flex items-center gap-1 text-xs text-green-400">
+                            <Award className="w-3 h-3" />
+                            <span>Rewards: {stage.rewards.map(r => r.value).join(', ')}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Quest NPCs */}
+              {quest.specialNPCs && quest.specialNPCs.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-amber-600/30">
+                  <h4 className="text-sm font-semibold text-amber-300 mb-2 flex items-center gap-1">
+                    <Users className="w-4 h-4" />
+                    Key Characters:
+                  </h4>
+                  <div className="space-y-1">
+                    {quest.specialNPCs.map((npc) => (
+                      <div key={npc.id} className="text-xs">
+                        <span className="text-amber-400 font-medium">{npc.name}</span>
+                        <span className="text-gray-400"> - {npc.role}</span>
+                        {npc.profession && <span className="text-gray-500"> ({npc.profession})</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Branches indication */}
+              {quest.branches && Object.keys(quest.branches).length > 0 && (
+                <div className="mt-2 text-xs text-purple-400 italic">
+                  ⚡ This quest features branching paths based on your choices
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Custom Events (now less prominent) */}
+          {customEventsCount > 0 && !quest && (
             <div className="bg-gradient-to-r from-green-900/20 to-emerald-900/20 rounded-lg p-3 border border-green-500/30">
               <p className="text-sm text-green-400">
                 ✨ {customEventsCount} historically accurate events have been generated for this scenario

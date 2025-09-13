@@ -6,6 +6,9 @@
 import { Tile } from '../../types/mapTypes';
 import { OverlayObjectType } from '../../types/core/tile';
 import { BiomeType } from '../../types/biomes/base';
+import { generateSpecialMapContainerContents, generateFloorItems } from '../../services/specialMapContainerService';
+import { SpecialMapArchetype } from '../../types/specialMapTypes';
+import { HistoricalEra, CulturalZone } from '../../types';
 
 /**
  * Get culturally appropriate storage type
@@ -480,4 +483,169 @@ export function placeCulturalStorage(
     };
     tiles[y][x].isBlocking = true;
   }
+}
+
+/**
+ * Place a container with collectible items
+ * This is the main integration point for the collectible item system
+ */
+export function placeContainerWithItems(
+  tiles: Tile[][],
+  x: number,
+  y: number,
+  containerType: OverlayObjectType,
+  archetype: SpecialMapArchetype,
+  culturalZone: CulturalZone,
+  era: HistoricalEra,
+  roomType?: string,
+  roomPrivacy?: 'public' | 'private' | 'restricted',
+  material?: string
+): void {
+  // First place the container overlay
+  if (tiles[y]?.[x]) {
+    tiles[y][x].overlayObject = {
+      type: containerType,
+      rotation: 0,
+      material: material || 'wood'
+    };
+    tiles[y][x].isBlocking = true;
+    
+    // Generate container contents
+    const contents = generateSpecialMapContainerContents(
+      archetype,
+      containerType,
+      culturalZone,
+      era,
+      roomType,
+      roomPrivacy
+    );
+    
+    // If container has items, add them as collectible
+    if (contents.items.length > 0) {
+      tiles[y][x].collectibleItem = {
+        item: contents.items[0], // For now, just use first item (could expand to multiple)
+        collected: false,
+        containerType: containerType,
+        ownerNpc: contents.ownerNpc,
+        isValuable: contents.isValuable
+      };
+    }
+  }
+}
+
+/**
+ * Place floor items that can be collected
+ * These are items lying on the ground, not in containers
+ */
+export function placeFloorItem(
+  tiles: Tile[][],
+  x: number,
+  y: number,
+  archetype: SpecialMapArchetype,
+  culturalZone: CulturalZone,
+  era: HistoricalEra,
+  roomType?: string
+): void {
+  if (tiles[y]?.[x]) {
+    const floorItem = generateFloorItems(archetype, culturalZone, era, roomType);
+    
+    if (floorItem) {
+      tiles[y][x].collectibleItem = {
+        item: floorItem,
+        collected: false,
+        // No container for floor items
+        isValuable: floorItem.value > 50
+      };
+    }
+  }
+}
+
+/**
+ * Enhanced chest placement with items
+ */
+export function placeChestWithItems(
+  tiles: Tile[][],
+  x: number,
+  y: number,
+  archetype: SpecialMapArchetype,
+  culturalZone: CulturalZone,
+  era: HistoricalEra,
+  roomPrivacy?: 'public' | 'private' | 'restricted',
+  chestType: 'normal' | 'ornate' | 'reinforced' = 'normal'
+): void {
+  let containerType: OverlayObjectType;
+  let material: string;
+  
+  switch (chestType) {
+    case 'ornate':
+      containerType = OverlayObjectType.CHEST_ORNATE || OverlayObjectType.CHEST;
+      material = 'mahogany';
+      break;
+    case 'reinforced':
+      containerType = OverlayObjectType.CHEST_REINFORCED || OverlayObjectType.CHEST;
+      material = 'iron_bound_oak';
+      break;
+    default:
+      containerType = OverlayObjectType.CHEST;
+      material = 'oak';
+  }
+  
+  placeContainerWithItems(
+    tiles, x, y,
+    containerType,
+    archetype,
+    culturalZone,
+    era,
+    'storage', // Room type
+    roomPrivacy,
+    material
+  );
+}
+
+/**
+ * Enhanced barrel placement with items
+ */
+export function placeBarrelWithItems(
+  tiles: Tile[][],
+  x: number,
+  y: number,
+  archetype: SpecialMapArchetype,
+  culturalZone: CulturalZone,
+  era: HistoricalEra,
+  roomType?: string
+): void {
+  placeContainerWithItems(
+    tiles, x, y,
+    OverlayObjectType.BARREL,
+    archetype,
+    culturalZone,
+    era,
+    roomType || 'storage',
+    'public', // Barrels are usually in public areas
+    'oak'
+  );
+}
+
+/**
+ * Enhanced crate placement with items
+ */
+export function placeCrateWithItems(
+  tiles: Tile[][],
+  x: number,
+  y: number,
+  archetype: SpecialMapArchetype,
+  culturalZone: CulturalZone,
+  era: HistoricalEra,
+  roomType?: string
+): void {
+  placeContainerWithItems(
+    tiles, x, y,
+    OverlayObjectType.CRATE,
+    archetype,
+    culturalZone,
+    era,
+    roomType || 'storage',
+    'public', // Crates are usually in public areas
+    'wood'
+  );
 }

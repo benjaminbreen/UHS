@@ -13,6 +13,7 @@ import { spatialDescriptionService } from './spatialDescriptionService';
 import { HistoricalEra } from '../types/ambiance';
 import { CulturalZone } from '../types/characterData';
 import { GameModeType } from '../types/eventTypes';
+import { LogService } from './logService';
 import { 
   getStructureLocation, 
   getStructureType, 
@@ -23,6 +24,28 @@ import {
   validateStructure 
 } from './structureUtils';
 import { questTemplateService } from './questTemplateService';
+import { 
+  getApplicableQuestTemplates, 
+  generateQuestFromTemplate,
+  EconomicQuestTemplate,
+  CRISIS_QUEST_TEMPLATES
+} from '../constants/questTemplates/economicQuestTemplates';
+import { crisisDetectionService } from './crisisDetectionService';
+import { MarketConditions } from './tradeService';
+import { 
+  generateVariedQuest, 
+  getAvailableCategories, 
+  filterDuplicateCategories 
+} from './questVarietyService';
+import { 
+  analyzeMapContext, 
+  isQuestAppropriateForContext,
+  getAppropriateQuestThemes 
+} from './mapContextService';
+import { getOceanQuests } from './oceanQuestTemplates';
+import { questRealityBinding } from './questRealityBinding';
+import { worldEntityRegistry } from './worldEntityRegistry';
+import { unifiedQuestPipeline, QuestGenerationContext } from './unifiedQuestPipeline';
 
 export class QuestService {
   private activeQuests: Quest[] = [];
@@ -30,26 +53,191 @@ export class QuestService {
   private questChains: QuestChain[] = [];
   private questMarkers: QuestMarker[] = [];
   private locationInteractions: Map<string, LocationInteraction> = new Map();
+  private currentZone: string = '';
+  private currentEra: string = '';
+  private currentGameMode: string = '';
+  private playerLocation: { x: number; y: number } = { x: 0, y: 0 };
 
   constructor() {
-    // Clear old placeholder quests on initialization
-    this.clearPlaceholderQuests();
-    
-    // Don't load saved quests - quests should reset on each game reload
-    // This ensures fresh quests for each new character/map generation
-    this.activeQuests = [];
-    this.completedQuests = [];
-    this.questChains = [];
-    this.questMarkers = [];
+    // Initialize empty collections first
     this.locationInteractions.clear();
     
-    // Clear any existing localStorage quest data
+    // Load saved quests from localStorage
+    this.loadQuests();
+    
+    // Clear old placeholder quests after loading
+    this.clearPlaceholderQuests();
+    
+    // Remove old localStorage keys (we use uhs_quest_data now)
     localStorage.removeItem('activeQuests');
     localStorage.removeItem('completedQuests');
     localStorage.removeItem('questChains');
-    localStorage.removeItem('questService_initialized'); // Clear any initialization flags
+    localStorage.removeItem('questService_initialized');
     
-    console.log('[QuestService] Constructor: All quest data cleared for fresh game start');
+    console.log('[QuestService] Constructor: Loaded', this.activeQuests.length, 'active quests');
+  }
+
+  /**
+   * Generate economic quests based on market conditions and crises
+   */
+  generateEconomicQuests(
+    marketConditions: MarketConditions,
+    marketInventory: any[],
+    merchantNpcs: NpcEntity[],
+    mapData: MapData,
+    marketLocation: { x: number; y: number }
+  ): Quest[] {
+    const generatedQuests: Quest[] = [];
+    
+    // Check for active crises
+    const activeCrises = crisisDetectionService.getActiveCrisesForMarket(marketLocation);
+    
+    // Identify scarcity items (quantity < 5, excluding currency)
+    const scarcityItems = marketInventory
+      .filter(item => item.quantity < 5 && item.category !== 'Currency')
+      .map(item => ({ itemId: item.itemId, quantity: item.quantity, name: item.name, price: item.currentPrice }));
+    
+    // Identify surplus items (quantity > 50, excluding currency)
+    const surplusItems = marketInventory
+      .filter(item => item.quantity > 50 && item.category !== 'Currency')
+      .map(item => ({ itemId: item.itemId, quantity: item.quantity, name: item.name, price: item.currentPrice }));
+    
+    // Get applicable quest templates
+    const templates: EconomicQuestTemplate[] = [];
+    
+    // Add crisis-specific quests
+    activeCrises.forEach(crisis => {
+      const crisisTemplates = getApplicableQuestTemplates(
+        crisis.pattern,
+        scarcityItems,
+        surplusItems
+      );
+      templates.push(...crisisTemplates);
+    });
+    
+    // Add scarcity/surplus quests if no crisis
+    if (activeCrises.length === 0) {
+      const economicTemplates = getApplicableQuestTemplates(
+        undefined,
+        scarcityItems,
+        surplusItems
+      );
+      templates.push(...economicTemplates.slice(0, 2)); // Limit to 2 non-crisis quests
+    }
+    
+    // Generate quests from templates
+    const maxQuests = activeCrises.length > 0 ? 3 : 2;
+    const selectedTemplates = templates.slice(0, maxQuests);
+    
+    selectedTemplates.forEach((template, index) => {
+      // Pick a merchant to give the quest (distribute evenly if possible)
+      const merchantIndex = index % merchantNpcs.length;
+      const merchant = merchantNpcs[merchantIndex];
+      if (!merchant) return;
+      
+      // Get item for quest if needed
+      let questItem = scarcityItems[0] || surplusItems[0];
+      if (template.type === 'scarcity' && scarcityItems.length > 0) {
+        questItem = scarcityItems[Math.floor(Math.random() * scarcityItems.length)];
+      } else if (template.type === 'surplus' && surplusItems.length > 0) {
+        questItem = surplusItems[Math.floor(Math.random() * surplusItems.length)];
+      }
+      
+      const questData = generateQuestFromTemplate(
+        template,
+        merchant.name,
+        questItem?.name,
+        marketLocation,
+        questItem?.price
+      );
+      
+      const quest: Quest & { merchantId?: string; merchantName?: string } = {
+        ...questData as Quest,
+        id: questData.id || `quest_economic_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+        startTime: Date.now(),
+        status: 'available',
+        isEconomicQuest: true,
+        merchantId: merchant.id,  // Store merchant ID for reliable matching
+        merchantName: merchant.name,  // Store merchant name for display
+        economicContext: {
+          crisis: activeCrises[0]?.pattern.id,
+          itemScarcity: scarcityItems.map(i => i.itemId),
+          itemSurplus: surplusItems.map(i => i.itemId),
+          targetItem: questItem?.itemId  // Store the specific item this quest is about
+        },
+        timeLimit: activeCrises.length > 0 ? 300000 : undefined  // 5 minute timer for crisis quests
+      };
+      
+      generatedQuests.push(quest);
+      // console.log(`[QuestService] Generated economic quest: ${quest.title}`);
+    });
+    
+    return generatedQuests;
+  }
+  
+  /**
+   * Check if economic quests should be generated for a market
+   */
+  shouldGenerateEconomicQuests(marketLocation: { x: number; y: number }): boolean {
+    // Check if we already have active economic quests for this location
+    const hasActiveEconomicQuests = this.activeQuests.some(quest => {
+      const isEconomic = (quest as any).isEconomicQuest;
+      if (!isEconomic) return false;
+      
+      // Check if quest is for this market location
+      // First check giverLocation which is more reliable for marketplace quests
+      if (quest.giverLocation) {
+        const distance = Math.sqrt(
+          Math.pow(quest.giverLocation.x - marketLocation.x, 2) +
+          Math.pow(quest.giverLocation.y - marketLocation.y, 2)
+        );
+        if (distance <= 5) return true; // Within 5 tiles is considered same market
+      }
+      
+      // Also check objectives for targetLocation
+      const questLocation = quest.objectives?.[0]?.targetLocation;
+      if (questLocation) {
+        const distance = Math.sqrt(
+          Math.pow(questLocation.x - marketLocation.x, 2) +
+          Math.pow(questLocation.y - marketLocation.y, 2)
+        );
+        return distance <= 5; // Within 5 tiles is considered same market
+      }
+      return false;
+    });
+    
+    if (hasActiveEconomicQuests) {
+      // console.log(`[QuestService] Already have active economic quests for this market`);
+      return false;
+    }
+    
+    // Check if there are active crises
+    const activeCrises = crisisDetectionService.getActiveCrisesForMarket(marketLocation);
+    if (activeCrises.length > 0) {
+      // console.log(`[QuestService] Crisis active, should generate economic quests`);
+      return true;
+    }
+    
+    // Check if enough time has passed since last generation (prevent spam)
+    const lastGenKey = `lastEconomicQuestGen_${marketLocation.x}_${marketLocation.y}`;
+    const lastGen = localStorage.getItem(lastGenKey);
+    if (lastGen) {
+      const timeSinceGen = Date.now() - parseInt(lastGen);
+      if (timeSinceGen < 3600000) { // 1 hour cooldown
+        return false;
+      }
+    }
+    
+    // Random chance for non-crisis economic quests
+    return Math.random() < 0.3; // 30% chance
+  }
+  
+  /**
+   * Mark that economic quests were generated for this market
+   */
+  markEconomicQuestsGenerated(marketLocation: { x: number; y: number }): void {
+    const lastGenKey = `lastEconomicQuestGen_${marketLocation.x}_${marketLocation.y}`;
+    localStorage.setItem(lastGenKey, Date.now().toString());
   }
 
   /**
@@ -123,7 +311,7 @@ export class QuestService {
    * Completely reset the quest service - used for fresh game starts
    */
   public resetQuestService(): void {
-    console.log('[QuestService] Full reset requested');
+    // console.log('[QuestService] Full reset requested');
     this.activeQuests = [];
     this.completedQuests = [];
     this.questChains = [];
@@ -136,7 +324,7 @@ export class QuestService {
     localStorage.removeItem('questChains');
     localStorage.removeItem('questService_initialized');
     
-    console.log('[QuestService] Full reset completed - all quest data cleared');
+    // console.log('[QuestService] Full reset completed - all quest data cleared');
   }
 
   /**
@@ -572,7 +760,7 @@ export class QuestService {
 
     // If STILL no locations, create fallback wilderness locations
     if (locations.length === 0 && mapData) {
-      console.log('[QuestService] No structures found, generating wilderness locations');
+      // console.log('[QuestService] No structures found, generating wilderness locations');
       
       // Generate 3 wilderness points at different distances and directions
       const distances = [5, 10, 15];
@@ -783,9 +971,131 @@ export class QuestService {
   }
 
   /**
+   * Update game context for quest generation
+   */
+  updateContext(zone: string, era: string, playerLocation: { x: number; y: number }): void {
+    this.currentZone = zone;
+    this.currentEra = era;
+    this.playerLocation = playerLocation;
+    
+    // Update world entity registry with player location
+    worldEntityRegistry.updatePlayerLocation(playerLocation);
+    
+    // Update unified pipeline category weights based on context
+    // This could be expanded to be more sophisticated
+    unifiedQuestPipeline.updateCategoryWeights(this.currentGameMode || 'exploration');
+  }
+
+  /**
+   * Set the current game mode for quest generation
+   */
+  public setGameMode(gameMode: string): void {
+    this.currentGameMode = gameMode;
+    unifiedQuestPipeline.updateCategoryWeights(gameMode);
+  }
+
+  /**
+   * Generate quest using the unified pipeline (NEW)
+   */
+  public async generateUnifiedQuest(
+    mapData: MapData,
+    triggerType: 'event' | 'exploration' | 'npc' | 'crisis' | 'manual' = 'manual',
+    triggerEntity?: string,
+    customPrompt?: string,
+    playerStats?: {
+      health: number;
+      reputation: number;
+      wealth: number;
+      intelligence: number;
+      strength: number;
+    }
+  ): Promise<Quest | null> {
+    if (!this.currentZone || !this.currentEra || !this.playerLocation) {
+      console.warn('[QuestService] Cannot generate quest - context not set');
+      return null;
+    }
+
+    const context: QuestGenerationContext = {
+      mapData,
+      playerLocation: this.playerLocation,
+      playerStats,
+      zone: this.currentZone,
+      era: this.currentEra,
+      year: new Date().getFullYear(), // This should come from game state
+      season: 'spring', // This should come from game state
+      gameMode: this.currentGameMode,
+      triggerType,
+      triggerEntity,
+      customPrompt
+    };
+
+    try {
+      const quest = await unifiedQuestPipeline.generateQuest(context);
+      
+      if (quest) {
+        // Quest is already bound to reality and validated by the pipeline
+        this.addQuest(quest, true); // Skip binding since already done
+        console.log('[QuestService] Generated unified quest:', quest.title);
+      }
+      
+      return quest;
+    } catch (error) {
+      console.error('[QuestService] Unified quest generation failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Generate multiple quests with variety (NEW)
+   */
+  public async generateVariedQuests(
+    mapData: MapData,
+    count: number,
+    playerStats?: {
+      health: number;
+      reputation: number;
+      wealth: number;
+      intelligence: number;
+      strength: number;
+    }
+  ): Promise<Quest[]> {
+    if (!this.currentZone || !this.currentEra || !this.playerLocation) {
+      console.warn('[QuestService] Cannot generate quests - context not set');
+      return [];
+    }
+
+    const context: QuestGenerationContext = {
+      mapData,
+      playerLocation: this.playerLocation,
+      playerStats,
+      zone: this.currentZone,
+      era: this.currentEra,
+      year: new Date().getFullYear(), // This should come from game state
+      season: 'spring', // This should come from game state
+      gameMode: this.currentGameMode,
+      triggerType: 'manual'
+    };
+
+    try {
+      const quests = await unifiedQuestPipeline.generateMultipleQuests(context, count);
+      
+      // Add all generated quests
+      for (const quest of quests) {
+        this.addQuest(quest, true); // Skip binding since already done
+      }
+      
+      console.log(`[QuestService] Generated ${quests.length} varied quests`);
+      return quests;
+    } catch (error) {
+      console.error('[QuestService] Varied quest generation failed:', error);
+      return [];
+    }
+  }
+
+  /**
    * Add a new quest
    */
-  addQuest(quest: Quest): void {
+  addQuest(quest: Quest, skipBinding: boolean = false): void {
     // Validate quest before adding
     if (!this.isValidQuest(quest)) {
       console.warn('[QuestService] Attempted to add invalid quest:', quest.title);
@@ -796,6 +1106,24 @@ export class QuestService {
     if (this.isPlaceholderQuest(quest)) {
       console.warn('[QuestService] Blocked placeholder quest:', quest.title);
       return;
+    }
+    
+    // Bind quest to real world entities if we have context and not already bound
+    if (!skipBinding && this.currentZone && this.currentEra && this.playerLocation) {
+      // Check if quest is already bound (from unified pipeline)
+      const boundQuest = quest as any;
+      if (!boundQuest.boundEntities) {
+        const realBoundQuest = questRealityBinding.bindQuestToReality(
+          quest,
+          this.playerLocation,
+          this.currentZone,
+          this.currentEra
+        );
+        
+        // Replace quest with bound version
+        Object.assign(quest, realBoundQuest);
+        console.log('[QuestService] Quest bound to reality:', quest.title, 'with entities:', realBoundQuest.boundEntities);
+      }
     }
     
     // Check for duplicate quests
@@ -812,9 +1140,18 @@ export class QuestService {
     // Add quest markers for map display
     this.updateQuestMarkers(quest);
     
+    // If this is the first quest or no quest is currently active, make it active
+    const hasActiveQuest = this.activeQuests.some(q => q.isActiveQuest === true);
+    if (!hasActiveQuest) {
+      quest.isActiveQuest = true;
+      // console.log('[QuestService] Set as active quest (first/no active):', quest.title);
+    } else {
+      quest.isActiveQuest = false;
+    }
+    
     this.activeQuests.push(quest);
     this.saveQuests();
-    console.log('[QuestService] Added quest:', quest.title);
+    // console.log('[QuestService] Added quest:', quest.title);
     
     // Dispatch event for UI to listen for quest updates
     if (typeof window !== 'undefined') {
@@ -828,7 +1165,7 @@ export class QuestService {
   }
 
   /**
-   * Check if player is at a quest location
+   * Check if player is at a quest location or has met distance requirements
    */
   checkQuestProgress(playerX: number, playerY: number, interactionType?: string, structureType?: string): void {
     const tolerance = 5; // Increased tolerance to 5 tiles for better mobile/click detection
@@ -839,6 +1176,30 @@ export class QuestService {
       const currentObj = quest.objectives[quest.currentObjectiveIndex];
       if (!currentObj || currentObj.completed) return;
 
+      // Check travel distance objectives
+      if (currentObj.type === 'travel_distance') {
+        const startLoc = quest.startLocation || { x: 50, y: 50 }; // Default to center if not set
+        const distanceTraveled = Math.sqrt(
+          Math.pow(playerX - startLoc.x, 2) +
+          Math.pow(playerY - startLoc.y, 2)
+        );
+        
+        const targetDistance = (currentObj as any).targetDistance || 10;
+        
+        if (distanceTraveled >= targetDistance) {
+          // console.log(`[QuestService] 🎉 Travel objective complete! Traveled ${distanceTraveled.toFixed(1)} tiles (needed ${targetDistance})`);
+          this.completeObjective(quest.id, currentObj.id);
+          this.showQuestProgressToast(quest, currentObj, 'completed');
+          return;
+        } else {
+          // Update progress display (optional)
+          const progress = Math.min(100, (distanceTraveled / targetDistance) * 100);
+          if (progress > 0 && progress % 20 === 0) { // Show progress at 20% intervals
+            this.showQuestProgressToast(quest, currentObj, 'progress', `${Math.floor(distanceTraveled)}/${targetDistance} tiles`);
+          }
+        }
+      }
+
       // Check if player is at the target location
       if (currentObj.targetLocation) {
         const distance = Math.sqrt(
@@ -846,7 +1207,7 @@ export class QuestService {
           Math.pow(currentObj.targetLocation.y - playerY, 2)
         );
 
-        console.log(`[QuestService] Checking objective "${currentObj.description}" - Distance: ${distance.toFixed(1)}, Tolerance: ${tolerance}`);
+        // console.log(`[QuestService] Checking objective "${currentObj.description}" - Distance: ${distance.toFixed(1)}, Tolerance: ${tolerance}`);
 
         if (distance <= tolerance) {
           let canComplete = false;
@@ -854,13 +1215,13 @@ export class QuestService {
           // Visit location quests - just need to be nearby
           if (currentObj.type === 'visit_location') {
             canComplete = true;
-            console.log(`[QuestService] Visit location quest can complete at distance ${distance.toFixed(1)}`);
+            // console.log(`[QuestService] Visit location quest can complete at distance ${distance.toFixed(1)}`);
           }
           
           // NPC interaction quests - require explicit interaction trigger
           else if (currentObj.type === 'talk_to_npc' && interactionType === 'npc_interaction') {
             canComplete = true;
-            console.log(`[QuestService] NPC interaction quest triggered`);
+            // console.log(`[QuestService] NPC interaction quest triggered`);
           }
           
           // Item delivery quests - require explicit delivery trigger
@@ -872,10 +1233,112 @@ export class QuestService {
           if (canComplete) {
             console.log(`[QuestService] Completing objective: ${currentObj.description} at (${playerX}, ${playerY})`);
             this.completeObjective(quest.id, currentObj.id);
+            this.showQuestProgressToast(quest, currentObj, 'completed');
           }
         }
       }
     });
+  }
+  
+  /**
+   * Show toast notification for quest progress
+   */
+  private showQuestProgressToast(quest: Quest, objective: QuestObjective, type: 'completed' | 'progress', progressText?: string): void {
+    // Dispatch custom event for toast notification
+    if (typeof window !== 'undefined') {
+      const message = type === 'completed' 
+        ? `✅ Objective Complete: ${objective.description}`
+        : `📍 Quest Progress: ${progressText || objective.description}`;
+        
+      window.dispatchEvent(new CustomEvent('questProgressNotification', {
+        detail: {
+          type,
+          message,
+          questTitle: quest.title,
+          objective: objective.description
+        }
+      }));
+    }
+  }
+
+  /**
+   * Check for auto-completable objectives (collection, survival, etc.)
+   */
+  checkAutoCompletableObjectives(playerCharacter: any): void {
+    if (!playerCharacter) return;
+    
+    this.activeQuests.forEach(quest => {
+      if (quest.status !== 'active') return;
+      const currentObj = quest.objectives[quest.currentObjectiveIndex];
+      if (!currentObj || currentObj.completed) return;
+      
+      // Auto-complete collection objectives if player has the items
+      if (currentObj.type === 'collect_items' && currentObj.itemsToCollect) {
+        const hasAllItems = currentObj.itemsToCollect.every(item => {
+          const playerItem = playerCharacter.inventory?.find((inv: any) => 
+            inv.name?.toLowerCase() === item.name?.toLowerCase()
+          );
+          return playerItem && playerItem.quantity >= (item.quantity || 1);
+        });
+        
+        if (hasAllItems) {
+          console.log(`[QuestService] 🎉 AUTO-COMPLETING collection objective: "${currentObj.description}"`);
+          this.completeObjective(quest.id, currentObj.id);
+          this.showObjectiveCompleteNotification(currentObj, quest);
+          window.dispatchEvent(new CustomEvent('questProgressUpdated'));
+        }
+      }
+    });
+  }
+  
+  /**
+   * Show a notification when an objective is completed
+   */
+  private showObjectiveCompleteNotification(objective: any, quest: any): void {
+    // Dispatch event for quest completion animation
+    window.dispatchEvent(new CustomEvent('questObjectiveComplete', {
+      detail: {
+        objective,
+        quest,
+        message: `Objective Complete: ${objective.description}`
+      }
+    }));
+  }
+  
+  /**
+   * Get quest progress as percentage for UI display
+   */
+  getQuestProgress(quest: Quest): number {
+    if (!quest.objectives || quest.objectives.length === 0) return 0;
+    
+    const completedCount = quest.objectives.filter(obj => obj.completed).length;
+    return Math.round((completedCount / quest.objectives.length) * 100);
+  }
+  
+  /**
+   * Get detailed progress for current objective
+   */
+  getObjectiveProgress(objective: QuestObjective): string {
+    if (!objective) return '';
+    
+    if (objective.type === 'collect_items' && objective.itemsToCollect) {
+      // Return item collection progress
+      const progress = objective.itemsToCollect.map(item => {
+        const current = objective.currentProgress?.[item.name] || 0;
+        return `${item.name}: ${current}/${item.quantity || 1}`;
+      }).join(', ');
+      return progress;
+    }
+    
+    if (objective.type === 'visit_location' && objective.targetLocation) {
+      return objective.completed ? 'Location reached!' : 'Travel to destination';
+    }
+    
+    if (objective.type === 'talk_to_npc') {
+      return objective.completed ? 'Conversation complete!' : 'Find and speak with NPC';
+    }
+    
+    return objective.description;
   }
 
   /**
@@ -919,7 +1382,7 @@ export class QuestService {
   }
 
   /**
-   * Complete a quest
+   * Complete a quest with animation and sound!
    */
   private completeQuest(questId: string): void {
     const questIndex = this.activeQuests.findIndex(q => q.id === questId);
@@ -928,6 +1391,9 @@ export class QuestService {
     const quest = this.activeQuests[questIndex];
     quest.status = 'completed';
     quest.completedTime = Date.now();
+    
+    // Play completion sound and animation
+    this.playQuestCompleteEffects(quest);
 
     // Process rewards
     const rewardResult = this.processQuestRewards(quest);
@@ -965,6 +1431,27 @@ export class QuestService {
 
     console.log('[QuestService] Completed quest:', quest.title, 'Rewards:', rewardResult);
     this.saveQuests();
+    
+    // Add to game log
+    const logService = LogService.getInstance();
+    logService.addEntry({
+      type: 'quest',
+      content: `✅ Quest Completed: "${quest.title}"`,
+      category: 'quest',
+      icon: '🎯',
+      timestamp: Date.now(),
+      details: {
+        rewards: rewardResult.appliedRewards.join(', '),
+        questId: quest.id
+      }
+    });
+    
+    // Also add a showToast notification for immediate feedback
+    const rewardSummary = rewardResult.appliedRewards.slice(0, 2).join(', ');
+    const message = `✅ Quest Complete: ${quest.title}${rewardSummary ? ` - ${rewardSummary}` : ''}`;
+    if (typeof window !== 'undefined' && (window as any).showToast) {
+      (window as any).showToast(message);
+    }
     
     // Dispatch event for UI to listen for quest completion
     if (typeof window !== 'undefined') {
@@ -1029,6 +1516,36 @@ export class QuestService {
           otherRewards.push({ type: 'reputation', value: repValue, description: reward.description });
           break;
           
+        case 'currency':
+        case 'money':
+          // Emit event for currency gain
+          const moneyValue = (reward.value || reward.amount) as number;
+          window.dispatchEvent(new CustomEvent('currencyChange', {
+            detail: { 
+              amount: moneyValue, 
+              source: `Quest: ${quest.title}`,
+              questId: quest.id,
+              isEconomicQuest: (quest as any).isEconomicQuest
+            }
+          }));
+          appliedRewards.push(`Received ${moneyValue} coins`);
+          otherRewards.push({ type: 'currency', amount: moneyValue, description: reward.description });
+          
+          // Bonus rewards for crisis quests
+          if ((quest as any).isEconomicQuest && (quest as any).economicContext?.crisis) {
+            const bonus = Math.floor(moneyValue * 0.5); // 50% bonus for crisis quests
+            window.dispatchEvent(new CustomEvent('currencyChange', {
+              detail: { 
+                amount: bonus, 
+                source: `Crisis Bonus: ${quest.title}`,
+                questId: quest.id 
+              }
+            }));
+            appliedRewards.push(`Crisis bonus: +${bonus} coins`);
+            otherRewards.push({ type: 'currency', amount: bonus, description: 'Crisis completion bonus' });
+          }
+          break;
+          
         case 'health':
           // Emit event for health change
           const healthValue = reward.value as number;
@@ -1041,6 +1558,20 @@ export class QuestService {
           }));
           appliedRewards.push(`Health +${healthValue}`);
           otherRewards.push({ type: 'health', value: healthValue, description: reward.description });
+          break;
+          
+        case 'level_up':
+          // Emit event for level up
+          const levelValue = reward.value as number;
+          window.dispatchEvent(new CustomEvent('playerLevelUp', {
+            detail: { 
+              levels: levelValue, 
+              source: `Quest: ${quest.title}`,
+              questId: quest.id 
+            }
+          }));
+          appliedRewards.push(`Level up! (+${levelValue} level${levelValue > 1 ? 's' : ''})`);
+          otherRewards.push({ type: 'level_up', value: levelValue, description: reward.description });
           break;
           
         case 'experience':
@@ -1190,6 +1721,70 @@ export class QuestService {
       appliedRewards
     };
   }
+  
+  /**
+   * Play quest completion effects (sound and animation)
+   */
+  private playQuestCompleteEffects(quest: Quest): void {
+    // Play procedural completion sound using Web Audio API
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Create a pleasant completion chord (C major triad)
+      const playNote = (frequency: number, startTime: number, duration: number) => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = frequency;
+        oscillator.type = 'sine';
+        
+        // Envelope for smooth sound
+        gainNode.gain.setValueAtTime(0, startTime);
+        gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+        
+        oscillator.start(startTime);
+        oscillator.stop(startTime + duration);
+      };
+      
+      const now = audioContext.currentTime;
+      
+      // Play a pleasant completion chord (C-E-G with octave)
+      playNote(261.63, now, 0.3);        // C4
+      playNote(329.63, now + 0.05, 0.3); // E4
+      playNote(392.00, now + 0.1, 0.3);  // G4
+      playNote(523.25, now + 0.15, 0.5); // C5 (octave)
+      
+      // Add a little sparkle sound
+      const sparkle = audioContext.createOscillator();
+      const sparkleGain = audioContext.createGain();
+      sparkle.connect(sparkleGain);
+      sparkleGain.connect(audioContext.destination);
+      
+      sparkle.frequency.value = 2093; // C7 - very high
+      sparkle.type = 'sine';
+      sparkleGain.gain.setValueAtTime(0, now + 0.2);
+      sparkleGain.gain.linearRampToValueAtTime(0.1, now + 0.25);
+      sparkleGain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+      
+      sparkle.start(now + 0.2);
+      sparkle.stop(now + 0.6);
+      
+    } catch (error) {
+      console.log('[QuestService] Could not play completion sound:', error);
+    }
+    
+    // Dispatch event for visual animation
+    window.dispatchEvent(new CustomEvent('questComplete', {
+      detail: {
+        quest,
+        rewards: quest.rewards
+      }
+    }));
+  }
 
   /**
    * Get location interaction for a specific tile
@@ -1218,6 +1813,92 @@ export class QuestService {
   getCompletedQuests(): Quest[] {
     return this.completedQuests;
   }
+  
+  /**
+   * Clear all completed quests
+   */
+  clearCompletedQuests(): void {
+    this.completedQuests = [];
+    this.saveQuests();
+    console.log('[QuestService] Cleared all completed quests');
+  }
+
+  /**
+   * Get the currently active quest (for notifications and markers)
+   */
+  getCurrentlyActiveQuest(): Quest | null {
+    return this.activeQuests.find(quest => quest.isActiveQuest === true) || null;
+  }
+
+  /**
+   * Set a quest as the currently active one (deactivates others)
+   */
+  setActiveQuest(questId: string): boolean {
+    const quest = this.activeQuests.find(q => q.id === questId);
+    if (!quest) {
+      console.warn('[QuestService] Attempted to activate non-existent quest:', questId);
+      return false;
+    }
+
+    // Deactivate all other quests
+    this.activeQuests.forEach(q => {
+      q.isActiveQuest = false;
+    });
+
+    // Activate the selected quest
+    quest.isActiveQuest = true;
+    this.saveQuests();
+
+    console.log('[QuestService] Set active quest:', quest.title);
+    
+    // Dispatch event for UI updates
+    window.dispatchEvent(new CustomEvent('activeQuestChanged', { 
+      detail: { questId: questId, quest: quest }
+    }));
+
+    return true;
+  }
+
+  /**
+   * Deactivate all quests (no active quest)
+   */
+  deactivateAllQuests(): void {
+    this.activeQuests.forEach(q => {
+      q.isActiveQuest = false;
+    });
+    this.saveQuests();
+    
+    console.log('[QuestService] Deactivated all quests');
+    
+    // Dispatch event for UI updates
+    window.dispatchEvent(new CustomEvent('activeQuestChanged', { 
+      detail: { questId: null, quest: null }
+    }));
+  }
+  
+  /**
+   * Get active economic quests for a specific market
+   */
+  getActiveEconomicQuests(marketLocation?: { x: number; y: number }): Quest[] {
+    return this.activeQuests.filter(quest => {
+      const isEconomic = (quest as any).isEconomicQuest;
+      if (!isEconomic) return false;
+      
+      // If no location specified, return all economic quests
+      if (!marketLocation) return true;
+      
+      // Check if quest is for this market location
+      const questLocation = quest.objectives[0]?.targetLocation;
+      if (questLocation) {
+        const distance = Math.sqrt(
+          Math.pow(questLocation.x - marketLocation.x, 2) +
+          Math.pow(questLocation.y - marketLocation.y, 2)
+        );
+        return distance <= 5; // Within 5 tiles is considered same market
+      }
+      return true; // If no location set, include it
+    });
+  }
 
   /**
    * Get quest markers for map display
@@ -1227,10 +1908,163 @@ export class QuestService {
   }
 
   /**
+   * Check if a trade action completes any quest objectives
+   */
+  checkTradeObjective(
+    action: 'buy' | 'sell',
+    itemId: string,
+    quantity: number,
+    merchantId?: string,
+    marketLocation?: { x: number; y: number }
+  ): void {
+    this.activeQuests.forEach(quest => {
+      if (quest.status !== 'active') return;
+      
+      // Check if this is an economic quest
+      const isEconomicQuest = (quest as any).isEconomicQuest;
+      
+      quest.objectives.forEach(objective => {
+        if (objective.completed) return;
+        
+        // Normalize item IDs for case-insensitive comparison
+        const normalizedItemId = itemId.toLowerCase();
+        
+        // Check for deliver item objectives
+        if (objective.type === 'deliver_item' && action === 'buy') {
+          // Check if we're buying the required item (case-insensitive)
+          const targetItem = ((objective as any).targetItem || '').toLowerCase();
+          const objectiveItemId = ((objective as any).itemId || '').toLowerCase();
+          if (targetItem && (targetItem === normalizedItemId || objectiveItemId === normalizedItemId)) {
+            const requiredQuantity = (objective as any).quantity || 1;
+            if (quantity >= requiredQuantity) {
+              console.log(`[QuestService] Trade objective completed: bought ${quantity} ${itemId} for quest ${quest.title}`);
+              this.completeObjective(quest.id, objective.id);
+            }
+          }
+        }
+        
+        // Check for sell item objectives
+        if ((objective.type === 'trade' || objective.type === 'sell_item') && action === 'sell') {
+          const targetItem = ((objective as any).targetItem || (objective as any).itemId || '').toLowerCase();
+          if (targetItem && targetItem === normalizedItemId) {
+            const requiredQuantity = (objective as any).quantity || 1;
+            if (quantity >= requiredQuantity) {
+              console.log(`[QuestService] Trade objective completed: sold ${quantity} ${itemId} for quest ${quest.title}`);
+              this.completeObjective(quest.id, objective.id);
+            }
+          }
+        }
+        
+        // Check for collect_item objectives (common in economic quests)
+        if (objective.type === 'collect_item' && action === 'buy') {
+          const targetItem = ((objective as any).targetItem || (objective as any).itemId || '').toLowerCase();
+          if (targetItem && targetItem === normalizedItemId) {
+            const requiredQuantity = (objective as any).targetAmount || (objective as any).quantity || 1;
+            if (quantity >= requiredQuantity) {
+              console.log(`[QuestService] Collect objective completed: acquired ${quantity} ${itemId} for quest ${quest.title}`);
+              this.completeObjective(quest.id, objective.id);
+            }
+          }
+        }
+        
+        // Check for crisis supply objectives (buying items during crisis)
+        if (objective.type === 'supply_crisis' && action === 'buy' && isEconomicQuest) {
+          const context = (quest as any).economicContext;
+          if (context && context.itemScarcity) {
+            const scarcityItems = context.itemScarcity.map((id: string) => id.toLowerCase());
+            if (scarcityItems.includes(normalizedItemId)) {
+              console.log(`[QuestService] Crisis supply objective completed: acquired scarce item ${itemId}`);
+              this.completeObjective(quest.id, objective.id);
+            }
+          }
+        }
+        
+        // Check for surplus clearing objectives (selling surplus items)
+        if (objective.type === 'clear_surplus' && action === 'sell' && isEconomicQuest) {
+          const context = (quest as any).economicContext;
+          if (context && context.itemSurplus) {
+            const surplusItems = context.itemSurplus.map((id: string) => id.toLowerCase());
+            if (surplusItems.includes(normalizedItemId)) {
+              const requiredQuantity = (objective as any).quantity || 10;
+              if (quantity >= requiredQuantity) {
+                console.log(`[QuestService] Surplus clearing objective completed: sold ${quantity} surplus ${itemId}`);
+                this.completeObjective(quest.id, objective.id);
+              }
+            }
+          }
+        }
+        
+        // Check for location-based trade objectives
+        if (objective.type === 'visit' && objective.targetLocation && marketLocation) {
+          const distance = Math.sqrt(
+            Math.pow(objective.targetLocation.x - marketLocation.x, 2) +
+            Math.pow(objective.targetLocation.y - marketLocation.y, 2)
+          );
+          if (distance <= 5) {
+            console.log(`[QuestService] Location trade objective completed: traded at target market`);
+            this.completeObjective(quest.id, objective.id);
+          }
+        }
+        
+        // Check for merchant-specific objectives
+        if ((objective as any).targetMerchant && merchantId) {
+          if ((objective as any).targetMerchant === merchantId) {
+            console.log(`[QuestService] Merchant-specific objective completed: traded with ${merchantId}`);
+            this.completeObjective(quest.id, objective.id);
+          }
+        }
+      });
+    });
+  }
+
+  /**
+   * Load quests from localStorage
+   */
+  private loadQuests(): void {
+    try {
+      const savedData = localStorage.getItem('uhs_quest_data');
+      if (savedData) {
+        const questData = JSON.parse(savedData);
+        this.activeQuests = questData.activeQuests || [];
+        this.completedQuests = questData.completedQuests || [];
+        this.questChains = questData.questChains || [];
+        this.questMarkers = questData.questMarkers || [];
+        console.log('[QuestService] Loaded quests from localStorage:', this.activeQuests.length, 'active,', this.completedQuests.length, 'completed');
+      } else {
+        // Initialize empty arrays if no saved data
+        this.activeQuests = [];
+        this.completedQuests = [];
+        this.questChains = [];
+        this.questMarkers = [];
+        console.log('[QuestService] No saved quests found, initialized empty arrays');
+      }
+    } catch (error) {
+      console.error('[QuestService] Failed to load quests from localStorage:', error);
+      // Reset to empty arrays on error
+      this.activeQuests = [];
+      this.completedQuests = [];
+      this.questChains = [];
+      this.questMarkers = [];
+    }
+  }
+
+  /**
    * Save quests to localStorage
    */
   private saveQuests(): void {
-    // Quests no longer persist - reset on each game reload
+    try {
+      const questData = {
+        activeQuests: this.activeQuests,
+        completedQuests: this.completedQuests,
+        questChains: this.questChains,
+        questMarkers: this.questMarkers,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('uhs_quest_data', JSON.stringify(questData));
+      console.log('[QuestService] Saved quests to localStorage:', questData.activeQuests.length, 'active,', questData.completedQuests.length, 'completed');
+    } catch (error) {
+      console.error('[QuestService] Failed to save quests to localStorage:', error);
+    }
   }
   
   /**
@@ -1264,6 +2098,48 @@ export class QuestService {
   }
 
   /**
+   * Check for expired crisis quests and fail them
+   */
+  checkExpiredQuests(): void {
+    const now = Date.now();
+    const expiredQuests = this.activeQuests.filter(quest => {
+      const timeLimit = (quest as any).timeLimit;
+      if (!timeLimit) return false;
+      
+      const elapsed = now - (quest.startTime || now);
+      return elapsed > timeLimit;
+    });
+    
+    expiredQuests.forEach(quest => {
+      console.log(`[QuestService] ⏰ Quest expired: "${quest.title}"`);
+      quest.status = 'failed';
+      (quest as any).failureReason = 'Time limit exceeded';
+      
+      // Remove from active quests
+      const index = this.activeQuests.findIndex(q => q.id === quest.id);
+      if (index !== -1) {
+        this.activeQuests.splice(index, 1);
+      }
+      
+      // Add to completed quests as failed
+      this.completedQuests.push(quest);
+      
+      // Emit failure event
+      window.dispatchEvent(new CustomEvent('questFailed', {
+        detail: {
+          quest,
+          reason: 'Time limit exceeded',
+          penalty: 'Crisis worsened'
+        }
+      }));
+    });
+    
+    if (expiredQuests.length > 0) {
+      this.saveQuests();
+    }
+  }
+
+  /**
    * Clear all quests (for new game)
    */
   clearAllQuests(): void {
@@ -1278,8 +2154,98 @@ export class QuestService {
 
   /**
    * Generate initial procedural quests based on game mode and map
+   * UPDATED: Now uses unified quest pipeline for consistency
    */
-  generateInitialQuests(
+  async generateInitialQuests(
+    gameMode: string,
+    mapStructures: TerrainStructure[],
+    playerLocation: { x: number; y: number },
+    culturalZone: string,
+    era: string,
+    mapData?: any,
+    playerStats?: any
+  ): Promise<Quest[]> {
+    const quests: Quest[] = [];
+    
+    // Clear any existing quests to prevent duplicates
+    this.activeQuests = [];
+    
+    // Create unified quest generation context
+    const context: QuestGenerationContext = {
+      mapData,
+      playerLocation,
+      playerStats,
+      zone: culturalZone,
+      era,
+      year: new Date().getFullYear(), // Default - would be better to pass actual game year
+      season: 'spring', // Default
+      gameMode,
+      triggerType: 'manual',
+      nearbyStructures: mapStructures,
+      nearbyNPCs: mapData?.npcs || []
+    };
+
+    // Analyze the map context for additional intelligence
+    const mapContext = analyzeMapContext(mapData);
+    console.log('[QuestService] Map Context:', {
+      terrain: mapContext.primaryTerrain,
+      water: `${mapContext.waterPercentage.toFixed(1)}%`,
+      inhabited: mapContext.isInhabited,
+      structures: mapContext.structureTypes
+    });
+
+    // Generate 3-4 diverse quests using the unified pipeline
+    const maxQuests = 4;
+    
+    try {
+      // Use the enhanced generation that tries all sources
+      const generatedQuests = await unifiedQuestPipeline.generateMultipleQuests(context, maxQuests);
+      
+      for (const quest of generatedQuests) {
+        // Validate quest is appropriate for map context
+        if (isQuestAppropriateForContext(quest.category, quest.title, mapContext, era)) {
+          quests.push(quest);
+          this.addQuest(quest);
+        } else {
+          console.log(`[QuestService] Rejected inappropriate quest: ${quest.title} for ${mapContext.primaryTerrain} map`);
+        }
+      }
+      
+      console.log(`[QuestService] Generated ${quests.length} unified quests for ${gameMode} mode`);
+      
+    } catch (error) {
+      console.error('[QuestService] Error generating unified quests:', error);
+      
+      // Fallback to legacy approach if unified pipeline fails
+      console.log('[QuestService] Falling back to legacy quest generation');
+      return this.generateLegacyInitialQuests(gameMode, mapStructures, playerLocation, culturalZone, era, mapData, playerStats);
+    }
+    
+    // If we couldn't generate enough context-appropriate quests, add basic wilderness quests
+    if (quests.length < 2) {
+      const wildernessQuest = this.generateContextAwareWildernessQuest(
+        playerLocation, 
+        culturalZone, 
+        era, 
+        mapContext
+      );
+      if (wildernessQuest) {
+        quests.push(wildernessQuest);
+        this.addQuest(wildernessQuest);
+      }
+    }
+    
+    // Log quest generation results
+    console.log(`[QuestService] Generated ${quests.length} context-aware quests:`, 
+      quests.map(q => `${q.category}: ${q.title}`).join(', '));
+    
+    return quests;
+  }
+
+  /**
+   * Legacy quest generation fallback (maintains compatibility)
+   */
+  private generateLegacyInitialQuests(
     gameMode: string,
     mapStructures: TerrainStructure[],
     playerLocation: { x: number; y: number },
@@ -1290,88 +2256,267 @@ export class QuestService {
   ): Quest[] {
     const quests: Quest[] = [];
     
-    // Find all nearby structures within reasonable distance
-    const nearbyStructures = findStructuresInRadius(mapStructures, playerLocation, 50);
-    
-    // Create context for template-based generation
-    const questContext = {
-      playerLocation,
-      playerStats: playerStats || { health: 50, reputation: 10, wealth: 10 },
-      nearbyStructures,
-      culturalZone,
-      era,
-      gameMode,
-      timeOfDay: this.getTimeOfDay(),
-      weather: this.getCurrentWeather(),
-      currentSeason: this.getCurrentSeason()
-    };
-    
-    // Generate 2-3 contextual quests using the template service
-    const contextualQuests = questTemplateService.generateContextualQuests(questContext, 3);
-    contextualQuests.forEach(quest => {
-      if (quest && quests.length < 5) {
-        quests.push(quest);
-        this.addQuest(quest);
-      }
-    });
-    
-    // If we don't have enough quests, fall back to procedural generation
-    if (quests.length < 2) {
-      const proceduralQuests = this.generateProceduralQuests(
-        mapStructures,
-        playerLocation,
-        culturalZone,
+    // Special handling for ocean maps using original logic
+    const mapContext = analyzeMapContext(mapData);
+    if (mapContext.primaryTerrain === 'ocean' || mapContext.waterPercentage > 75) {
+      console.log('[QuestService] Legacy: Generating ocean-specific quests');
+      const oceanQuests = getOceanQuests(
+        mapContext.waterPercentage,
         era,
-        mapData
+        culturalZone,
+        playerLocation
       );
       
-      proceduralQuests.forEach(quest => {
-        if (quest && quests.length < 3) {
-          quests.push(quest);
-          this.addQuest(quest);
-        }
+      oceanQuests.slice(0, 3).forEach(quest => {
+        quests.push(quest);
+        this.addQuest(quest);
       });
-    }
-    
-    // Then add mode-specific quests if we have room (max 3 total)
-    if (quests.length < 3) {
-      const questTemplates = this.getQuestTemplatesForMode(gameMode, culturalZone, era);
-      const shuffled = questTemplates.sort(() => Math.random() - 0.5);
-      const numModeQuests = Math.min(1, 3 - quests.length);
-      const selectedTemplates = shuffled.slice(0, numModeQuests);
       
-      selectedTemplates.forEach((template, index) => {
-        const quest = this.createQuestFromTemplate(
-          template,
-          mapStructures,
-          playerLocation,
-          quests.length + index
-        );
-        if (quest) {
-          quests.push(quest);
-          this.addQuest(quest);
-        }
-      });
+      return quests;
     }
     
-    // Potentially start a quest chain based on game mode and context
-    if (Math.random() < 0.3) { // 30% chance to start with a quest chain
-      const availableChains = questChainService.getAvailableChains(culturalZone);
-      if (availableChains.length > 0) {
-        const chainTemplate = availableChains[Math.floor(Math.random() * availableChains.length)];
-        const chain = questChainService.startQuestChain(
-          chainTemplate.id,
-          playerLocation,
-          culturalZone,
-          era as any
-        );
-        if (chain) {
-          console.log('[QuestService] Started quest chain:', chain.name);
-        }
+    // Original land-based quest generation
+    const nearbyStructures = findStructuresInRadius(mapStructures, playerLocation, 50);
+    const hasNearbyNPCs = mapData?.npcs && mapData.npcs.length > 0;
+    
+    let availableCategories = getAvailableCategories(
+      gameMode,
+      nearbyStructures.length > 0,
+      hasNearbyNPCs
+    );
+    
+    availableCategories = filterDuplicateCategories(availableCategories, this.activeQuests);
+    
+    const maxQuests = Math.min(4, availableCategories.length);
+    let attempts = 0;
+    const maxAttempts = maxQuests * 2;
+    
+    while (quests.length < maxQuests && availableCategories.length > 0 && attempts < maxAttempts) {
+      attempts++;
+      
+      const categoryIndex = Math.floor(Math.random() * availableCategories.length);
+      const category = availableCategories[categoryIndex];
+      
+      const quest = generateVariedQuest(
+        category,
+        playerLocation,
+        mapStructures,
+        culturalZone,
+        era,
+        quests.length
+      );
+      
+      if (quest && isQuestAppropriateForContext(quest.category, quest.title, mapContext, era)) {
+        quests.push(quest);
+        this.addQuest(quest);
+        availableCategories.splice(categoryIndex, 1);
       }
     }
 
     return quests;
+  }
+  
+  /**
+   * Generate a basic wilderness quest when no structures are available
+   */
+  private generateWildernessQuest(
+    playerLocation: { x: number; y: number },
+    culturalZone: string,
+    era: string
+  ): Quest | null {
+    const wildernessQuests = [
+      {
+        title: 'Explore the Wilderness',
+        description: 'Venture into uncharted territory and discover what lies beyond.',
+        objectives: [
+          {
+            id: 'obj_1',
+            description: 'Travel at least 10 tiles from your starting position',
+            type: 'travel_distance' as const,
+            targetDistance: 10,
+            completed: false
+          },
+          {
+            id: 'obj_2',
+            description: 'Find a suitable campsite',
+            type: 'visit_location' as const,
+            targetLocation: {
+              x: playerLocation.x + Math.floor(Math.random() * 20 - 10),
+              y: playerLocation.y + Math.floor(Math.random() * 20 - 10)
+            },
+            completed: false
+          }
+        ],
+        category: 'exploration' as const
+      },
+      {
+        title: 'Basic Survival',
+        description: 'Secure the essentials for survival in this harsh environment.',
+        objectives: [
+          {
+            id: 'obj_1',
+            description: 'Find and collect fresh water',
+            type: 'visit_location' as const,
+            targetLocation: {
+              x: playerLocation.x + Math.floor(Math.random() * 15 - 7),
+              y: playerLocation.y + Math.floor(Math.random() * 15 - 7)
+            },
+            completed: false
+          },
+          {
+            id: 'obj_2',
+            description: 'Gather food supplies',
+            type: 'visit_location' as const,
+            targetLocation: {
+              x: playerLocation.x + Math.floor(Math.random() * 15 - 7),
+              y: playerLocation.y + Math.floor(Math.random() * 15 - 7)
+            },
+            completed: false
+          }
+        ],
+        category: 'survival' as const
+      }
+    ];
+    
+    const selected = wildernessQuests[Math.floor(Math.random() * wildernessQuests.length)];
+    
+    return {
+      id: `quest_wilderness_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      title: selected.title,
+      description: selected.description,
+      historicalContext: this.getContextualHistory(culturalZone, era, selected.category),
+      category: selected.category,
+      objectives: selected.objectives,
+      currentObjectiveIndex: 0,
+      rewards: [
+        { type: 'reputation', value: 5, description: 'Survival reputation +5' },
+        { type: 'experience', value: 10, description: 'Experience gained' }
+      ],
+      startLocation: playerLocation,
+      startTime: Date.now(),
+      status: 'active',
+      difficulty: 'easy'
+    };
+  }
+  
+  /**
+   * Generate context-aware wilderness quest
+   */
+  private generateContextAwareWildernessQuest(
+    playerLocation: { x: number; y: number },
+    culturalZone: string,
+    era: string,
+    mapContext: any
+  ): Quest | null {
+    // Ocean/water wilderness
+    if (mapContext.waterPercentage > 60) {
+      return {
+        id: `quest_ocean_survival_${Date.now()}`,
+        title: 'Survive the Open Waters',
+        description: 'Find a way to survive in these vast waters.',
+        historicalContext: `Sailors of ${era} ${culturalZone} faced the endless ocean with courage and skill.`,
+        category: 'survival',
+        objectives: [
+          {
+            id: 'obj_1',
+            description: 'Find any floating debris or land',
+            type: 'explore_area',
+            targetLocation: {
+              x: playerLocation.x + Math.floor(Math.random() * 20 - 10),
+              y: playerLocation.y + Math.floor(Math.random() * 20 - 10)
+            },
+            completed: false
+          },
+          {
+            id: 'obj_2',
+            description: 'Survive for 2 days',
+            type: 'survive_time',
+            targetDays: 2,
+            completed: false
+          }
+        ],
+        currentObjectiveIndex: 0,
+        rewards: [
+          { type: 'reputation', value: 10, description: 'Survivor reputation +10' },
+          { type: 'experience', value: 20, description: 'Survival experience' }
+        ],
+        startLocation: playerLocation,
+        startTime: Date.now(),
+        status: 'active',
+        difficulty: 'medium'
+      };
+    }
+    
+    // Desert wilderness
+    if (mapContext.climate === 'desert') {
+      return {
+        id: `quest_desert_survival_${Date.now()}`,
+        title: 'Desert Survival',
+        description: 'The harsh desert tests your limits. Find water and shelter.',
+        historicalContext: `Desert nomads of ${era} ${culturalZone} knew the secrets of surviving where others perished.`,
+        category: 'survival',
+        objectives: [
+          {
+            id: 'obj_1',
+            description: 'Find an oasis or water source',
+            type: 'visit_location',
+            targetLocation: {
+              x: playerLocation.x + Math.floor(Math.random() * 15 - 7),
+              y: playerLocation.y + Math.floor(Math.random() * 15 - 7)
+            },
+            completed: false
+          },
+          {
+            id: 'obj_2',
+            description: 'Find shelter from the sun',
+            type: 'visit_location',
+            targetLocation: {
+              x: playerLocation.x + Math.floor(Math.random() * 10 - 5),
+              y: playerLocation.y + Math.floor(Math.random() * 10 - 5)
+            },
+            completed: false
+          }
+        ],
+        currentObjectiveIndex: 0,
+        rewards: [
+          { type: 'reputation', value: 8, description: 'Desert survivor +8' },
+          { type: 'knowledge', value: 1, description: 'Desert survival knowledge' }
+        ],
+        startLocation: playerLocation,
+        startTime: Date.now(),
+        status: 'active',
+        difficulty: 'medium'
+      };
+    }
+    
+    // Default land wilderness
+    return this.generateWildernessQuest(playerLocation, culturalZone, era);
+  }
+  
+  /**
+   * Get contextual historical information for a quest
+   */
+  private getContextualHistory(zone: string, era: string, category: string): string {
+    const histories: Record<string, string[]> = {
+      survival: [
+        `In ${era}, travelers through ${zone} relied on local knowledge and resourcefulness to survive.`,
+        `The harsh conditions of ${zone} during ${era} tested even the most prepared adventurers.`,
+        `Traditional survival techniques from ${zone} were passed down through generations.`
+      ],
+      exploration: [
+        `Explorers in ${era} ${zone} were driven by curiosity and the promise of discovery.`,
+        `Maps of ${zone} from ${era} often marked unexplored regions with warnings and legends.`,
+        `The uncharted territories of ${zone} held both danger and opportunity for brave souls.`
+      ],
+      trade: [
+        `Trade routes through ${zone} in ${era} connected distant civilizations and cultures.`,
+        `Merchants of ${era} built fortunes by navigating the complex markets of ${zone}.`,
+        `The economy of ${zone} during ${era} depended on the flow of goods and information.`
+      ]
+    };
+    
+    const categoryHistories = histories[category] || histories.exploration;
+    return categoryHistories[Math.floor(Math.random() * categoryHistories.length)];
   }
   
   /**

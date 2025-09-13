@@ -19,7 +19,19 @@ import { AnimalEntity } from '../types/animalTypes';
 import { GameDate, PlayerCharacter } from '../types/index';
 import { HistoricalEra } from '../types/ambiance';
 import { CulturalZone } from '../types/characterData';
-import { DISEASE_DATABASE, COLUMBIAN_EXCHANGE_RESTRICTIONS, DISEASE_PREVALENCE } from '../constants/gameData/diseases';
+// Lazy load disease data to improve startup performance
+let diseaseModule: any = null;
+let diseaseModulePromise: Promise<any> | null = null;
+
+const ensureDiseaseModule = () => {
+  if (!diseaseModulePromise && !diseaseModule) {
+    diseaseModulePromise = import('../constants/gameData/diseases').then(module => {
+      diseaseModule = module;
+      return module;
+    });
+  }
+  return diseaseModule;
+};
 
 type CharacterEntity = PlayerCharacter | NpcEntity | AnimalEntity;
 
@@ -40,7 +52,8 @@ class DiseaseService {
   }
 
   private initializeDiseaseCache(): void {
-    DISEASE_DATABASE.diseases.forEach(disease => {
+    ensureDiseaseModule();
+    (diseaseModule?.DISEASE_DATABASE?.diseases || []).forEach(disease => {
       this.diseaseCache.set(disease.id, disease);
     });
   }
@@ -139,7 +152,8 @@ class DiseaseService {
     currentYear: number
   ): CharacterHealth | undefined {
     // Find the disease by ID
-    const disease = DISEASE_DATABASE.diseases.find(d => d.id === diseaseId);
+    ensureDiseaseModule();
+    const disease = (diseaseModule?.DISEASE_DATABASE?.diseases || []).find(d => d.id === diseaseId);
     
     if (!disease) {
       console.error(`[DiseaseService] Disease ${diseaseId} not found in database`);
@@ -532,7 +546,8 @@ class DiseaseService {
       return { success: false, message: 'Disease not found' };
     }
 
-    const medicine = DISEASE_DATABASE.medicines.find(m => m.id === medicineId);
+    ensureDiseaseModule();
+    const medicine = (diseaseModule?.DISEASE_DATABASE?.medicines || []).find(m => m.id === medicineId);
     if (!medicine) {
       return { success: false, message: 'Medicine not found' };
     }
@@ -624,7 +639,8 @@ class DiseaseService {
     era: string,
     region: string
   ): any[] {
-    return DISEASE_DATABASE.medicines.filter(medicine => {
+    ensureDiseaseModule();
+    return (diseaseModule?.DISEASE_DATABASE?.medicines || []).filter(medicine => {
       // Check era availability
       if (!medicine.availableEras.includes(era as any)) return false;
       // Check region availability
@@ -678,7 +694,8 @@ class DiseaseService {
   ): Disease | null {
     // Check each available disease for epidemic status
     for (const disease of availableDiseases) {
-      const prevalenceData = DISEASE_PREVALENCE.find(p =>
+      ensureDiseaseModule();
+      const prevalenceData = (diseaseModule?.DISEASE_PREVALENCE || []).find(p =>
         p.diseaseId === disease.id && p.era === era && p.region === region
       );
       
@@ -696,7 +713,8 @@ class DiseaseService {
     region: CulturalZone,
     currentYear: number
   ): Disease[] {
-    return DISEASE_DATABASE.diseases.filter(disease => {
+    ensureDiseaseModule();
+    return (diseaseModule?.DISEASE_DATABASE?.diseases || []).filter(disease => {
       // Check era availability
       if (!disease.availableEras.includes(era)) return false;
 
@@ -708,14 +726,15 @@ class DiseaseService {
       if (disease.endYear && currentYear > disease.endYear) return false;
 
       // Apply Columbian Exchange restrictions
-      if (currentYear < COLUMBIAN_EXCHANGE_RESTRICTIONS.exchangeYear) {
+      const restrictions = diseaseModule?.COLUMBIAN_EXCHANGE_RESTRICTIONS || { exchangeYear: 1492, preContactNewWorld: [], preContactOldWorld: [] };
+      if (currentYear < restrictions.exchangeYear) {
         const isNewWorld = ['NORTH_AMERICAN_PRE_COLUMBIAN', 'SOUTH_AMERICAN'].includes(region);
         const isOldWorld = !isNewWorld;
 
-        if (isNewWorld && COLUMBIAN_EXCHANGE_RESTRICTIONS.preContactNewWorld.includes(disease.id)) {
+        if (isNewWorld && restrictions.preContactNewWorld.includes(disease.id)) {
           return false;
         }
-        if (isOldWorld && COLUMBIAN_EXCHANGE_RESTRICTIONS.preContactOldWorld.includes(disease.id)) {
+        if (isOldWorld && restrictions.preContactOldWorld.includes(disease.id)) {
           return false;
         }
       }

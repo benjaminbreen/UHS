@@ -331,12 +331,20 @@ export function generateSpecialMap(
       break;
       
     case SpecialMapArchetype.MILITARY_FORTRESS:
-      // Military fortresses should be on standard map, fallback to estates
-      generatedData = generateEstates(tiles, config, noise, size);
+      // Generate a proper military fortress interior with barracks, armory, etc.
+      console.log(`[SpecialMapGen] MILITARY_FORTRESS archetype - using government generator with fortress variant`);
+      // Ensure config has required fields for government generator
+      const fortressConfig = {
+        ...config,
+        mapSize: config.mapSize || determineMapSize(config.archetype, config.era, config.specificYear),
+        districtType: 'military_fortress'  // Add explicit district type
+      };
+      generatedData = generateGovernmentForum(tiles, fortressConfig, noise, size, 'military_fortress');
       tiles = generatedData.tiles;
       interactionZones = generatedData.interactionZones;
       exitZones = generatedData.exitZones;
       rooms = generatedData.rooms || [];
+      multiTileObjects = (generatedData as any).multiTileObjects || [];
       break;
       
     case SpecialMapArchetype.UNIVERSITY:

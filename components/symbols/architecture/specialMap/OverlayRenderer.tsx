@@ -25,6 +25,7 @@ import {
   AltarSymbol,
   BathSymbol,
   MirrorSymbol,
+  BannerSymbol,
   KitchenCounterSymbol,
   KitchenSinkSymbol,
   WeaponRackSymbol,
@@ -36,6 +37,11 @@ import {
   KitchenStoveSymbol, 
   GuardPostSymbol, 
   PodiumSymbol,
+  RugSymbol,
+  ScrollSymbol,
+  PotSymbol,
+  CrateSymbol,
+  LanternSymbol,
   // Phase 1.3 Directional Variants
   BenchEastWest,
   BenchNorthSouth,
@@ -437,6 +443,223 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = ({
       
       case OverlayObjectType.DREAM_CATCHER:
         return <DreamCatcherSymbol x={0} y={0} size={size} variant={variant || 'traditional'} />;
+      
+      case OverlayObjectType.BANNER:
+        // Culturally-specific banner for throne rooms and halls
+        return <BannerSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
+      
+      // Court chamber specific symbols (placeholder implementations for now)
+      case OverlayObjectType.SCALES_OF_JUSTICE:
+        // Scales of justice symbol
+        return (
+          <g>
+            <line x1={size * 0.5} y1={size * 0.2} x2={size * 0.5} y2={size * 0.6} stroke="#8B7355" strokeWidth={2} />
+            <line x1={size * 0.2} y1={size * 0.35} x2={size * 0.8} y2={size * 0.35} stroke="#8B7355" strokeWidth={2} />
+            <path d={`M ${size * 0.2} ${size * 0.35} L ${size * 0.25} ${size * 0.5} L ${size * 0.15} ${size * 0.5} Z`} fill="#8B7355" />
+            <path d={`M ${size * 0.8} ${size * 0.35} L ${size * 0.85} ${size * 0.5} L ${size * 0.75} ${size * 0.5} Z`} fill="#8B7355" />
+          </g>
+        );
+      
+      case OverlayObjectType.ROYAL_SEAL:
+        // Royal seal or coat of arms
+        return (
+          <g>
+            <circle cx={size * 0.5} cy={size * 0.5} r={size * 0.35} fill="#8B0000" stroke="#FFD700" strokeWidth={2} />
+            <text x={size * 0.5} y={size * 0.55} textAnchor="middle" fontSize={size * 0.3} fill="#FFD700">♔</text>
+          </g>
+        );
+      
+      case OverlayObjectType.GEOMETRIC_PANEL:
+        // Islamic geometric pattern panel
+        return (
+          <g>
+            <rect x={size * 0.1} y={size * 0.1} width={size * 0.8} height={size * 0.8} fill="#1E3A5F" />
+            <circle cx={size * 0.5} cy={size * 0.5} r={size * 0.25} fill="none" stroke="#FFD700" strokeWidth={1} />
+            <rect x={size * 0.3} y={size * 0.3} width={size * 0.4} height={size * 0.4} fill="none" stroke="#FFD700" strokeWidth={1} transform={`rotate(45 ${size * 0.5} ${size * 0.5})`} />
+          </g>
+        );
+      
+      case OverlayObjectType.LANTERN:
+        // Already handled by regular LANTERN case above, but add specific handling if different
+        return <LanternSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} lit={true} />;
+      
+      case OverlayObjectType.SCROLL:
+        // Legal mandate or decorative scroll
+        return (
+          <g>
+            <rect x={size * 0.25} y={size * 0.2} width={size * 0.5} height={size * 0.6} fill="#F4E4C1" stroke="#8B4513" strokeWidth={1} />
+            <circle cx={size * 0.25} cy={size * 0.25} r={size * 0.05} fill="#8B4513" />
+            <circle cx={size * 0.75} cy={size * 0.25} r={size * 0.05} fill="#8B4513" />
+            <line x1={size * 0.35} y1={size * 0.4} x2={size * 0.65} y2={size * 0.4} stroke="#000" strokeWidth={0.5} />
+            <line x1={size * 0.35} y1={size * 0.5} x2={size * 0.65} y2={size * 0.5} stroke="#000" strokeWidth={0.5} />
+            <line x1={size * 0.35} y1={size * 0.6} x2={size * 0.65} y2={size * 0.6} stroke="#000" strokeWidth={0.5} />
+          </g>
+        );
+      
+      case OverlayObjectType.SCREEN:
+        // Decorative screen or room divider
+        return (
+          <g>
+            <rect x={size * 0.1} y={size * 0.15} width={size * 0.8} height={size * 0.7} fill="#8B4513" stroke="#654321" strokeWidth={1} />
+            <rect x={size * 0.15} y={size * 0.2} width={size * 0.2} height={size * 0.25} fill="none" stroke="#654321" strokeWidth={0.5} />
+            <rect x={size * 0.4} y={size * 0.2} width={size * 0.2} height={size * 0.25} fill="none" stroke="#654321" strokeWidth={0.5} />
+            <rect x={size * 0.65} y={size * 0.2} width={size * 0.2} height={size * 0.25} fill="none" stroke="#654321" strokeWidth={0.5} />
+            <rect x={size * 0.15} y={size * 0.5} width={size * 0.2} height={size * 0.25} fill="none" stroke="#654321" strokeWidth={0.5} />
+            <rect x={size * 0.4} y={size * 0.5} width={size * 0.2} height={size * 0.25} fill="none" stroke="#654321" strokeWidth={0.5} />
+            <rect x={size * 0.65} y={size * 0.5} width={size * 0.2} height={size * 0.25} fill="none" stroke="#654321" strokeWidth={0.5} />
+          </g>
+        );
+      
+      case OverlayObjectType.MASK:
+        // Traditional African or ceremonial mask
+        return (
+          <g>
+            <ellipse cx={size * 0.5} cy={size * 0.45} rx={size * 0.25} ry={size * 0.35} fill="#8B4513" stroke="#654321" strokeWidth={1} />
+            <ellipse cx={size * 0.4} cy={size * 0.4} rx={size * 0.05} ry={size * 0.08} fill="#000" />
+            <ellipse cx={size * 0.6} cy={size * 0.4} rx={size * 0.05} ry={size * 0.08} fill="#000" />
+            <path d={`M ${size * 0.45} ${size * 0.55} Q ${size * 0.5} ${size * 0.6} ${size * 0.55} ${size * 0.55}`} fill="none" stroke="#000" strokeWidth={1} />
+          </g>
+        );
+      
+      case OverlayObjectType.CARVED_POST:
+        // Carved ceremonial post
+        return (
+          <g>
+            <rect x={size * 0.4} y={size * 0.1} width={size * 0.2} height={size * 0.8} fill="#654321" stroke="#3A2317" strokeWidth={1} />
+            <circle cx={size * 0.5} cy={size * 0.3} r={size * 0.08} fill="none" stroke="#3A2317" strokeWidth={0.5} />
+            <path d={`M ${size * 0.42} ${size * 0.5} L ${size * 0.5} ${size * 0.45} L ${size * 0.58} ${size * 0.5}`} fill="none" stroke="#3A2317" strokeWidth={0.5} />
+            <path d={`M ${size * 0.42} ${size * 0.65} L ${size * 0.5} ${size * 0.6} L ${size * 0.58} ${size * 0.65}`} fill="none" stroke="#3A2317" strokeWidth={0.5} />
+          </g>
+        );
+      
+      case OverlayObjectType.STONE_CARVING:
+        // Stone carving or glyph
+        return (
+          <g>
+            <rect x={size * 0.2} y={size * 0.2} width={size * 0.6} height={size * 0.6} fill="#9E9E9E" stroke="#7E7E7E" strokeWidth={1} />
+            <path d={`M ${size * 0.3} ${size * 0.35} L ${size * 0.5} ${size * 0.3} L ${size * 0.7} ${size * 0.35} L ${size * 0.7} ${size * 0.55} L ${size * 0.5} ${size * 0.65} L ${size * 0.3} ${size * 0.55} Z`} 
+                  fill="none" stroke="#5E5E5E" strokeWidth={1} />
+          </g>
+        );
+      
+      case OverlayObjectType.MAT:
+        // Floor mat or rug
+        return (
+          <g>
+            <rect x={size * 0.1} y={size * 0.2} width={size * 0.8} height={size * 0.6} fill="#8B4513" stroke="#654321" strokeWidth={1} />
+            <rect x={size * 0.15} y={size * 0.25} width={size * 0.7} height={size * 0.5} fill="#A0522D" />
+            <line x1={size * 0.2} y1={size * 0.4} x2={size * 0.8} y2={size * 0.4} stroke="#654321" strokeWidth={0.5} />
+            <line x1={size * 0.2} y1={size * 0.6} x2={size * 0.8} y2={size * 0.6} stroke="#654321" strokeWidth={0.5} />
+          </g>
+        );
+      
+      case OverlayObjectType.WALL_ART:
+        // Wall-mounted art, tapestry, or mask
+        const artVariant = tile?.overlayObject?.variant || 'tapestry';
+        if (artVariant === 'mask') {
+          return (
+            <g>
+              <ellipse cx={size * 0.5} cy={size * 0.4} rx={size * 0.2} ry={size * 0.25} fill="#8B4513" stroke="#654321" strokeWidth={1} />
+              <ellipse cx={size * 0.45} cy={size * 0.35} rx={size * 0.03} ry={size * 0.05} fill="#000" />
+              <ellipse cx={size * 0.55} cy={size * 0.35} rx={size * 0.03} ry={size * 0.05} fill="#000" />
+              <path d={`M ${size * 0.47} ${size * 0.45} Q ${size * 0.5} ${size * 0.5} ${size * 0.53} ${size * 0.45}`} fill="none" stroke="#000" strokeWidth={1} />
+            </g>
+          );
+        } else {
+          // Tapestry or painting
+          return (
+            <g>
+              <rect x={size * 0.2} y={size * 0.1} width={size * 0.6} height={size * 0.6} fill="#4B0082" stroke="#2F0A4F" strokeWidth={1} />
+              <rect x={size * 0.25} y={size * 0.15} width={size * 0.5} height={size * 0.5} fill="#8A2BE2" />
+              <rect x={size * 0.3} y={size * 0.2} width={size * 0.4} height={size * 0.4} fill="#9932CC" />
+            </g>
+          );
+        }
+      
+      case OverlayObjectType.STOOL:
+        // Simple stool or carved seat
+        return (
+          <g>
+            <ellipse cx={size * 0.5} cy={size * 0.4} rx={size * 0.2} ry={size * 0.15} fill="#8B4513" stroke="#654321" strokeWidth={1} />
+            <rect x={size * 0.45} y={size * 0.4} width={size * 0.1} height={size * 0.3} fill="#654321" />
+            <rect x={size * 0.35} y={size * 0.55} width={size * 0.08} height={size * 0.15} fill="#654321" />
+            <rect x={size * 0.57} y={size * 0.55} width={size * 0.08} height={size * 0.15} fill="#654321" />
+          </g>
+        );
+      
+      case OverlayObjectType.WRITING_DESK:
+        // Desk with writing materials
+        return (
+          <g>
+            {/* Desk surface */}
+            <rect x={size * 0.1} y={size * 0.4} width={size * 0.8} height={size * 0.15} fill="#8B4513" stroke="#654321" strokeWidth={1} />
+            {/* Desk legs */}
+            <rect x={size * 0.15} y={size * 0.55} width={size * 0.05} height={size * 0.2} fill="#654321" />
+            <rect x={size * 0.8} y={size * 0.55} width={size * 0.05} height={size * 0.2} fill="#654321" />
+            {/* Writing materials */}
+            <rect x={size * 0.3} y={size * 0.35} width={size * 0.15} height={size * 0.08} fill="#F4E4C1" stroke="#8B4513" strokeWidth={0.5} />
+            <circle cx={size * 0.6} cy={size * 0.38} r={size * 0.03} fill="#000" />
+            <line x1={size * 0.65} y1={size * 0.35} x2={size * 0.7} y2={size * 0.4} stroke="#8B4513" strokeWidth={1} />
+          </g>
+        );
+      
+      case OverlayObjectType.CRATE:
+        // Storage crate or box
+        return (
+          <g>
+            <rect x={size * 0.25} y={size * 0.4} width={size * 0.5} height={size * 0.4} fill="#8B4513" stroke="#654321" strokeWidth={1} />
+            <rect x={size * 0.25} y={size * 0.35} width={size * 0.5} height={size * 0.08} fill="#A0522D" stroke="#654321" strokeWidth={1} />
+            {/* Wood grain lines */}
+            <line x1={size * 0.3} y1={size * 0.4} x2={size * 0.3} y2={size * 0.8} stroke="#654321" strokeWidth={0.5} />
+            <line x1={size * 0.5} y1={size * 0.4} x2={size * 0.5} y2={size * 0.8} stroke="#654321" strokeWidth={0.5} />
+            <line x1={size * 0.7} y1={size * 0.4} x2={size * 0.7} y2={size * 0.8} stroke="#654321" strokeWidth={0.5} />
+          </g>
+        );
+      
+      case OverlayObjectType.SCROLL_RACK:
+        // Rack for storing scrolls
+        return (
+          <g>
+            {/* Frame */}
+            <rect x={size * 0.2} y={size * 0.3} width={size * 0.6} height={size * 0.5} fill="none" stroke="#654321" strokeWidth={2} />
+            <rect x={size * 0.15} y={size * 0.75} width={size * 0.7} height={size * 0.05} fill="#654321" />
+            {/* Scrolls */}
+            <circle cx={size * 0.35} cy={size * 0.45} r={size * 0.08} fill="#F4E4C1" stroke="#8B4513" strokeWidth={1} />
+            <circle cx={size * 0.5} cy={size * 0.45} r={size * 0.08} fill="#F4E4C1" stroke="#8B4513" strokeWidth={1} />
+            <circle cx={size * 0.65} cy={size * 0.45} r={size * 0.08} fill="#F4E4C1" stroke="#8B4513" strokeWidth={1} />
+            <circle cx={size * 0.35} cy={size * 0.65} r={size * 0.08} fill="#F4E4C1" stroke="#8B4513" strokeWidth={1} />
+            <circle cx={size * 0.5} cy={size * 0.65} r={size * 0.08} fill="#F4E4C1" stroke="#8B4513" strokeWidth={1} />
+            <circle cx={size * 0.65} cy={size * 0.65} r={size * 0.08} fill="#F4E4C1" stroke="#8B4513" strokeWidth={1} />
+          </g>
+        );
+      
+      case OverlayObjectType.TANSU:
+        // Japanese chest of drawers
+        return (
+          <g>
+            {/* Main body */}
+            <rect x={size * 0.2} y={size * 0.3} width={size * 0.6} height={size * 0.5} fill="#8B4513" stroke="#654321" strokeWidth={1} />
+            {/* Drawer divisions */}
+            <line x1={size * 0.2} y1={size * 0.45} x2={size * 0.8} y2={size * 0.45} stroke="#654321" strokeWidth={1} />
+            <line x1={size * 0.2} y1={size * 0.6} x2={size * 0.8} y2={size * 0.6} stroke="#654321" strokeWidth={1} />
+            <line x1={size * 0.5} y1={size * 0.3} x2={size * 0.5} y2={size * 0.8} stroke="#654321" strokeWidth={1} />
+            {/* Drawer handles */}
+            <circle cx={size * 0.35} cy={size * 0.375} r={size * 0.02} fill="#FFD700" />
+            <circle cx={size * 0.65} cy={size * 0.375} r={size * 0.02} fill="#FFD700" />
+            <circle cx={size * 0.35} cy={size * 0.525} r={size * 0.02} fill="#FFD700" />
+            <circle cx={size * 0.65} cy={size * 0.525} r={size * 0.02} fill="#FFD700" />
+            <circle cx={size * 0.35} cy={size * 0.7} r={size * 0.02} fill="#FFD700" />
+            <circle cx={size * 0.65} cy={size * 0.7} r={size * 0.02} fill="#FFD700" />
+          </g>
+        );
+      
+      case OverlayObjectType.RUG:
+        // Import and use the RugSymbol component
+        return <RugSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} variant={variant || 'woven_mat'} />;
+      
+      case OverlayObjectType.CHAMBER_POT:
+        // Use the PotSymbol component for chamber pot
+        return <PotSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} variant="chamber_pot" />;
       
       default:
         // Return a placeholder for unimplemented types

@@ -10,6 +10,7 @@ import { determineReligion } from '../../common/npcUtils';
 import { getFactoryType, FactoryType } from '../../../constants/gameData/factoryTypes';
 import { MINE_FREQUENCY_BY_ERA, QUARRY_FREQUENCY_BY_ERA, getRandomMaterial } from '../../../constants/gameData/mineQuarryMaterials';
 import { selectGovernmentType } from '../../../constants/gameData/governmentDistricts';
+import { worldEntityRegistry } from '../../../services/worldEntityRegistry';
 
 
 let structureIdCounter = 0;
@@ -176,9 +177,11 @@ function findPlacementCandidates(
                     }
                     break;
                 case 'fishing_hut':
-                    if(tile.isCoast && tile.biome === BiomeType.BEACH) {
+                    // Temporarily more permissive for testing - any coastal or water-adjacent tile
+                    if(tile.isCoast || tile.biome === BiomeType.BEACH || tile.biome === BiomeType.WETLANDS || tile.biome === BiomeType.RIVER) {
                         isValid = true;
                         score = 1; // Simple placement for now
+                        console.log(`[StructureGen] Found valid fishing hut location at (${tile.x}, ${tile.y}) - biome: ${tile.biome}, isCoast: ${tile.isCoast}`);
                     }
                     break;
                 case 'fortress':
@@ -562,6 +565,9 @@ export function generateTerrainStructures(mapData: MapData, noise: ValueNoise, r
             mapData.terrainStructures.push(newStructure);
             placedLocations.add(posKey);
             placedCount++;
+            
+            // Register structure with World Entity Registry
+            worldEntityRegistry.registerStructure(newStructure);
         }
     }
 
@@ -656,4 +662,5 @@ export function generateTerrainStructures(mapData: MapData, noise: ValueNoise, r
     });
     
      console.log(`Generated ${mapData.terrainStructures.length} terrain structures.`);
+     console.log('[StructureGen] Structure types generated:', mapData.terrainStructures.map(s => s.structureType));
 }

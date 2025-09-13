@@ -20,7 +20,9 @@ import MarketplaceModal from './MarketplaceModal';
 import CityModal from './CityModal';
 import RuinStructureModal from './RuinStructureModal';
 import GovernmentDistrictModal from './GovernmentDistrictModal';
+import FishingHutModal from './FishingHutModal';
 import { DevTooltipDisplayData, Tile, PlayerCharacter, BiomeType, DeployedVessel, TimeOfDay } from '../types';
+import { getHistoricalPeriod } from '../constants/characterData/names';
 import TimeAwareBackground from './TimeAwareBackground';
 import HorizonLayer from './HorizonLayer';
 import CloudSystem from './CloudSystem';
@@ -31,6 +33,13 @@ import InteriorHorizon from './InteriorHorizon';
 import SpecialMapLocationDisplay from './SpecialMapLocationDisplay';
 import { useSpecialMapLocation } from '../hooks/useSpecialMapLocation';
 import { useSpecialMapNpcBehavior } from '../hooks/useSpecialMapNpcBehavior';
+import { useSpecialMapItemCollection } from '../hooks/useSpecialMapItemCollection';
+import { useInventoryToast } from '../hooks/useInventoryToast';
+import InventoryToast from './ui/InventoryToast';
+import { useReputationSystem } from '../hooks/useReputationSystem';
+import ReputationNotification from './ui/ReputationNotification';
+import NpcConfrontationModal from './NpcConfrontationModal';
+import { processNpcReactions } from '../services/npcAwarenessService';
 import { SpecialMapData } from '../types/specialMapTypes';
 import GuardWarningBox from './GuardWarningBox';
 import NpcAlertIndicator from './NpcAlertIndicator';
@@ -40,6 +49,8 @@ import { weatherService } from '../services/weatherService';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES } from '../constants';
 import { useDeviceDetection } from '../utils/deviceUtils';
 import { useWeatherEffects } from '../hooks/useWeatherEffects';
+import { poiDescriptionService } from '../services/poiDescriptionService';
+import { poiDialogueService } from '../services/poiDialogueService';
 
 type ActivePanel = 'farm' | null;
 
@@ -52,9 +63,11 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
         handleDevHover, setTileInfoModalProps, setStructureModalTarget, setActiveSettlementInfo,
         activeLens, infoModalTarget, panelNotificationItem, setPanelNotificationItem, toastMessage,
         activeMarketplaceModal, setActiveMarketplaceModal, activeCityModal, setActiveCityModal,
-        activeRuinModal, setActiveRuinModal, activeGovernmentModal, setActiveGovernmentModal, inRuinRoguelike, setInRuinRoguelike, useLlmForDescriptions, handleEncounter, setInfoModalTarget, 
+        activeRuinModal, setActiveRuinModal, activeGovernmentModal, setActiveGovernmentModal, activeFishingHutModal, setActiveFishingHutModal, inRuinRoguelike, setInRuinRoguelike, useLlmForDescriptions, handleEncounter, setInfoModalTarget,
         setActiveMiningModal, setActivePoi, debugSettings,
-        handleCompanionClick, handlePlayerClick, handleNewAreaEntry
+        poiToastData, setPoiToastData,
+        handleCompanionClick, handlePlayerClick, handleNewAreaEntry, setContainerModalData,
+        showToast
     } = useUI();
     
     const [isMapTransitioning, setIsMapTransitioning] = useState(false);
@@ -72,12 +85,14 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
         interiorViewState, interiorMapPlayerPos, onPlayerMove,
         handleExitInteriorView, handleEntityInteraction,
         onEnterBuilding, onBuyItem, onSellItem, viewMode,
+        addItemsToInventory, setPlayerCharacter
     } = usePlayer();
 
     const { 
-        sunPosition, formattedDate, season, ambianceText, 
+        sunPosition, currentTimeOfDay, formattedDate, season, ambianceText, 
         actionableTile, contextualMessage, gameTimeHours, gameTimeMinutes,
-        isLoading, isLoadingFromCache, setGameDate, gameDate, currentRegion
+        isLoading, isLoadingFromCache, setGameDate, gameDate, currentRegion,
+        currentZone, currentEra
     } = useGame();
     
     const eventSystem = useEventSystem();
@@ -137,7 +152,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
             mapData.climate,
             centerTile.biome,
             season,
-            sunPosition as TimeOfDay || 'Day',
+            currentTimeOfDay,
             centerTile.altitude || 0.5,
             gameDate?.day || 180,
             { x: mapCenterX, y: mapCenterY }
@@ -146,6 +161,189 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
     
     // Apply weather effects on player
     useWeatherEffects(currentWeather);
+    
+    // Inventory toast for item collection
+    const { toasts, showToast: showInventoryToast, hideToast } = useInventoryToast();
+    
+    // Reputation system
+    const { 
+        reputation, 
+        changeReputation, 
+        getReputationModifiers 
+    } = useReputationSystem(playerCharacter?.mapReputation || 0);
+    
+    // Reputation notification state
+    const [reputationNotification, setReputationNotification] = useState<{
+        change: number;
+        reason: string;
+        witnesses?: string[];
+    } | null>(null);
+    
+    // NPC confrontation state
+    const [confrontationModal, setConfrontationModal] = useState<{
+        npc: any;
+        item: any;
+        dialogue: string;
+    } | null>(null);
+    
+    // Listen for reputation change events from other sources
+    useEffect(() => {
+        const handleReputationChanged = (data: any) => {
+            if (data.change && data.reason) {
+                setReputationNotification({
+                    change: data.change,
+                    reason: data.reason,
+                    witnesses: data.witnesses
+                });
+            }
+        };
+        
+        eventBus.on('reputation:changed', handleReputationChanged);
+        return () => {
+            eventBus.off('reputation:changed', handleReputationChanged);
+        };
+    }, []);
+    
+    // Keyboard handler for container interaction
+    useEffect(() => {
+        const handleKeyPress = (e: KeyboardEvent) => {
+            // Check if E key is pressed and we're in a special map
+            if (e.key === 'e' || e.key === 'E') {
+                if (isSpecialMap && mapData?.tiles && controlledIconX !== null && controlledIconY !== null) {
+                    const currentTile = mapData.tiles[controlledIconY]?.[controlledIconX];
+
+                    // Check if current tile has a container
+                    if (currentTile?.overlayObject) {
+                        const containerTypes = [
+                            'CHEST', 'BARREL', 'CRATE', 'CABINET', 'BOOKSHELF',
+                            'WEAPON_RACK', 'ARMOR_STAND', 'TANSU', 'SPICE_CABINET'
+                        ];
+
+                        const overlayType = String(currentTile.overlayObject.type);
+                        const isContainer = containerTypes.some(type => overlayType.includes(type));
+
+                        if (isContainer) {
+                            // Trigger the container click handler
+                            const onContainerClick = (x: number, y: number, tile: any) => {
+                                // Use the same logic as the click handler in MapViewport
+                                Promise.all([
+                                    import('../services/specialMapContainerService'),
+                                    import('../services/containerCacheService'),
+                                    import('../types/core/tile')
+                                ]).then(([containerService, cacheService, tileTypes]) => {
+                                    const { generateSpecialMapContainerContents } = containerService;
+                                    const { getCachedContents, cacheContents } = cacheService;
+
+                                    const mapId = 'special_map';
+                                    let containerContents = getCachedContents(mapId, x, y);
+
+                                    if (!containerContents) {
+                                        containerContents = generateSpecialMapContainerContents(
+                                            mapData?.specialMapArchetype || 'GOVERNMENT_FORUM',
+                                            tile.overlayObject.type,
+                                            mapData?.culturalZone || 'EUROPEAN',
+                                            mapData?.era || 'MEDIEVAL',
+                                            tile.roomType,
+                                            tile.roomPrivacy || 'public'
+                                        );
+                                        cacheContents(mapId, x, y, containerContents);
+                                    }
+
+                                    setContainerModalData({
+                                        containerType: tile.overlayObject.type,
+                                        contents: containerContents,
+                                        position: { x, y },
+                                        isAnimating: true,
+                                        mapId
+                                    });
+                                });
+                            };
+
+                            onContainerClick(controlledIconX, controlledIconY, currentTile);
+                        }
+                    }
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, [isSpecialMap, mapData, controlledIconX, controlledIconY, setContainerModalData]);
+
+    // Item collection hook for special maps
+    useSpecialMapItemCollection({
+        tiles: isSpecialMap ? mapData?.tiles : undefined,
+        playerX: controlledIconX ?? 0,
+        playerY: controlledIconY ?? 0,
+        playerCharacter,
+        isSpecialMap,
+        onInventoryUpdate: (newInventory) => {
+            // Update player inventory through the player context
+            console.log('[ItemCollection] Inventory updated:', newInventory);
+            setPlayerCharacter(prev => {
+                if (!prev) return null;
+                return { ...prev, inventory: newInventory };
+            });
+        },
+        onShowToast: showToast,
+        onTheftDetected: (item) => {
+            console.log('[ItemCollection] Theft detected for item:', item.name);
+            
+            // Process NPC reactions if we have NPCs and tiles
+            if (isSpecialMap && visibleNpcs && mapData?.tiles) {
+                const result = processNpcReactions(
+                    {
+                        playerPos: { x: controlledIconX ?? 0, y: controlledIconY ?? 0 },
+                        item: item,
+                        isTheft: true,
+                        action: 'stolen'
+                    },
+                    visibleNpcs,
+                    mapData.tiles,
+                    reputation.current
+                );
+                
+                // Handle reputation change
+                if (result.reputationChange !== 0) {
+                    const witnesses = result.reactions
+                        .filter(r => r.reactionType === 'saw_theft' || r.reactionType === 'confronting')
+                        .map(r => r.npc.name || 'Unknown');
+                    
+                    changeReputation(
+                        result.reputationChange,
+                        `Caught stealing ${item.name}`,
+                        witnesses
+                    );
+                    
+                    // Show reputation notification
+                    setReputationNotification({
+                        change: result.reputationChange,
+                        reason: `Caught stealing ${item.name}`,
+                        witnesses
+                    });
+                }
+                
+                // Handle confrontation
+                const confrontingNpc = result.reactions.find(r => 
+                    r.reactionType === 'confronting' && r.distance <= 2
+                );
+                
+                if (confrontingNpc) {
+                    setConfrontationModal({
+                        npc: confrontingNpc.npc,
+                        item: item,
+                        dialogue: confrontingNpc.dialogue || 'Stop right there!'
+                    });
+                }
+            }
+            
+            eventBus.emit('theft:detected', { 
+                item, 
+                playerX: controlledIconX, 
+                playerY: controlledIconY 
+            });
+        }
+    });
     
     // Function to progress time by months
     const handleProgressTime = useCallback((months: number) => {
@@ -314,6 +512,117 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
         }
     }, [isLoading, isMapTransitioning]);
 
+    // POI Toast Auto-Detection System
+    useEffect(() => {
+        if (!mapData || !playerCharacter || controlledIconX === null || controlledIconY === null) {
+            return;
+        }
+
+        // Get current tile
+        const currentTile = mapData.tiles[controlledIconY]?.[controlledIconX];
+        if (!currentTile) {
+            // Clear toast if no tile
+            if (poiToastData) {
+                setPoiToastData(null);
+            }
+            return;
+        }
+
+        // Check for POI structures on current tile
+        let poiStructure = null;
+        
+        // Check if tile has a structure (singular)
+        if (currentTile.structure) {
+            const structureType = currentTile.structure.structureType || currentTile.structure.type;
+            console.log('[POI Detection] Found structure on tile:', structureType, currentTile.structure);
+            if (['mine', 'quarry', 'mill', 'factory', 'fortress', 'woodcutter'].includes(structureType || '')) {
+                poiStructure = currentTile.structure;
+                console.log('[POI Detection] Matched POI type:', structureType);
+            }
+        }
+        
+        // Also check terrainStructures array if it exists
+        if (!poiStructure && mapData.terrainStructures) {
+            console.log('[POI Detection] Checking terrainStructures, player at:', controlledIconX, controlledIconY);
+            
+            // Log all structures for debugging
+            mapData.terrainStructures.forEach(s => {
+                if (s.structureType === 'quarry' || s.type === 'quarry') {
+                    console.log('[POI Detection] Found quarry at:', s.location);
+                }
+            });
+            
+            // Find structures at current position
+            poiStructure = mapData.terrainStructures.find(s => {
+                const structureType = s.structureType || s.type;
+                const isAtLocation = s.location && 
+                    s.location[0] === controlledIconX && 
+                    s.location[1] === controlledIconY;
+                
+                if (isAtLocation) {
+                    console.log('[POI Detection] Structure at player position:', structureType, s);
+                }
+                
+                return isAtLocation && ['mine', 'quarry', 'mill', 'factory', 'fortress', 'woodcutter'].includes(structureType || '');
+            });
+            
+            if (poiStructure) {
+                console.log('[POI Detection] Matched POI from terrainStructures:', poiStructure);
+            }
+        }
+
+        if (poiStructure && !poiToastData) {
+            // Generate procedural description and dialogue
+            try {
+                const structureType = poiStructure.structureType || poiStructure.type || 'quarry';
+                const description = poiDescriptionService.generateDescription(
+                    structureType,
+                    currentZone as any, // CulturalZone
+                    currentEra,
+                    currentTile.biome,
+                    poiStructure
+                );
+                
+                const dialogue = poiDialogueService.generateDialogue(
+                    structureType,
+                    currentZone as any, // CulturalZone
+                    currentEra,
+                    'stone' // Default material - could be enhanced later
+                );
+
+                setPoiToastData({
+                    structure: poiStructure,
+                    description,
+                    dialogue
+                });
+            } catch (error) {
+                console.warn('[MapViewport] Error generating POI description/dialogue:', error);
+                // Fallback to basic toast
+                const fallbackType = poiStructure.structureType || poiStructure.type || 'work site';
+                setPoiToastData({
+                    structure: poiStructure,
+                    description: `A ${fallbackType} where local workers process materials according to traditional methods.`,
+                    dialogue: {
+                        speaker: 'Local Worker',
+                        greeting: `Welcome to our ${fallbackType}. We can help you with various services.`,
+                        services: [
+                            {
+                                id: 'basic_service',
+                                name: 'Basic Services',
+                                description: 'Standard processing and trade',
+                                cost: '2-5 goods',
+                                available: true
+                            }
+                        ]
+                    }
+                });
+            }
+        } else if (!poiStructure && poiToastData) {
+            // Clear toast when moving away from POI
+            setPoiToastData(null);
+        }
+    }, [controlledIconX, controlledIconY, mapData, playerCharacter, poiToastData, setPoiToastData, currentZone, currentEra]);
+
     const handleDevCommandClick = useCallback((data: DevTooltipDisplayData) => {
         let parentTile: Tile | null = null;
         let mapContextForModal = data.mapContext;
@@ -427,6 +736,29 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                 />
             );
         }
+        if (activeFishingHutModal && playerCharacter && mapData) {
+            // FishingHutModal replaces the map display, similar to GovernmentDistrictModal
+            return (
+                <FishingHutModal
+                    isOpen={true}
+                    onClose={() => setActiveFishingHutModal(null)}
+                    structure={activeFishingHutModal.structure}
+                    culturalZone={mapData?.culturalStyle || 'EUROPEAN' as any}
+                    historicalEra={getHistoricalPeriod(gameDate.year)}
+                    climate={mapData?.climate || 'TEMPERATE'}
+                    biome={activeFishingHutModal.tile.biome}
+                    season={season}
+                    year={gameDate.year}
+                    isCoastal={activeFishingHutModal.tile.biome === 'coastal'}
+                    isFreshwater={activeFishingHutModal.tile.biome !== 'coastal' && activeFishingHutModal.tile.biome !== 'oceanic'}
+                    timeOfDay={currentTimeOfDay}
+                    playerCharacter={playerCharacter}
+                    onBuy={onBuyItem}
+                    onSell={onSellItem}
+                    playerGold={playerCharacter.inventory?.find(item => item.id === 'COIN')?.quantity || 0}
+                />
+            );
+        }
         if (viewMode === 'standard') {
             // Check if this is a special map (interior government building, etc.)
             if (isSpecialMap && mapData) {
@@ -478,6 +810,79 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                     onCompanionClick={handleCompanionClick}
                     onMapEdgeCrossing={handleNewAreaEntry}
                     guardAlerts={guardAlerts} // Pass guard alert states for rendering indicators
+                    onContainerClick={(x, y, tile) => {
+                        // Import services needed for container interaction
+                        Promise.all([
+                            import('../services/specialMapContainerService'),
+                            import('../services/containerCacheService'),
+                            import('../types/core/tile')
+                        ]).then(([containerService, cacheService, tileTypes]) => {
+                            const { generateSpecialMapContainerContents } = containerService;
+                            const { getCachedContents, cacheContents, isContainerEmpty } = cacheService;
+                            const { OverlayObjectType } = tileTypes;
+
+                            // Check if tile has a container overlay object
+                            const hasContainer = tile.overlayObject && (
+                                tile.overlayObject.type === OverlayObjectType.CHEST ||
+                                tile.overlayObject.type === OverlayObjectType.BARREL ||
+                                tile.overlayObject.type === OverlayObjectType.CRATE ||
+                                tile.overlayObject.type === OverlayObjectType.CABINET ||
+                                tile.overlayObject.type === OverlayObjectType.BOOKSHELF ||
+                                tile.overlayObject.type === OverlayObjectType.WEAPON_RACK ||
+                                tile.overlayObject.type === OverlayObjectType.ARMOR_STAND ||
+                                tile.overlayObject.type === OverlayObjectType.TANSU ||
+                                tile.overlayObject.type === OverlayObjectType.SPICE_CABINET
+                            );
+
+                            if (hasContainer) {
+                                const mapId = isSpecialMap ? 'special_map' : 'main_map';
+
+                                // Check cache first
+                                let containerContents = getCachedContents(mapId, x, y);
+
+                                // If not cached or this is first interaction, generate contents
+                                if (!containerContents) {
+                                    // Generate contents based on container type and context
+                                    containerContents = generateSpecialMapContainerContents(
+                                        mapData?.specialMapArchetype || 'GOVERNMENT_FORUM',
+                                        tile.overlayObject.type,
+                                        mapData?.culturalZone || 'EUROPEAN',
+                                        mapData?.era || 'MEDIEVAL',
+                                        tile.roomType,
+                                        tile.roomPrivacy || 'public'
+                                    );
+
+                                    // Cache the contents
+                                    cacheContents(mapId, x, y, containerContents);
+                                }
+
+                                // Open container modal
+                                setContainerModalData({
+                                    containerType: tile.overlayObject.type,
+                                    contents: containerContents,
+                                    position: { x, y },
+                                    isAnimating: true,
+                                    mapId // Pass mapId for cache updates
+                                });
+                            }
+                            // Also handle tiles with collectible items (floor items)
+                            else if (tile.collectibleItem && !tile.collectibleItem.collected) {
+                                const containerContents = {
+                                    items: [tile.collectibleItem.item],
+                                    isCollectible: true,
+                                    ownerNpc: tile.collectibleItem.ownerNpc,
+                                    isValuable: tile.collectibleItem.isValuable || false
+                                };
+
+                                setContainerModalData({
+                                    containerType: tile.overlayObject?.type,
+                                    contents: containerContents,
+                                    position: { x, y },
+                                    isAnimating: true
+                                });
+                            }
+                        });
+                    }}
                 />
             );
         }
@@ -573,7 +978,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
             {isSpecialMap && specialMapData ? (
               <SpecialMapBackground 
                 config={specialMapData.specialConfig}
-                timeOfDay={sunPosition as TimeOfDay || 'Day'}
+                timeOfDay={currentTimeOfDay}
               />
             ) : (
               <TimeAwareBackground 
@@ -590,14 +995,14 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
             {currentWeather && currentWeather.cloudCover > 0 && (
               <CloudSystem 
                 weather={currentWeather}
-                timeOfDay={sunPosition as TimeOfDay || 'Day'}
+                timeOfDay={currentTimeOfDay}
                 windSpeed={currentWeather?.windSpeed || 0}
               />
             )}
             
             {/* Celestial Bodies - behind map but above background */}
             <CelestialBodies
-              timeOfDay={sunPosition as TimeOfDay || 'Day'}
+              timeOfDay={currentTimeOfDay}
               gameTimeHours={gameTimeHours}
               gameTimeMinutes={gameTimeMinutes}
               weather={currentWeather}
@@ -741,13 +1146,13 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                   {isSpecialMap && specialMapData ? (
                     <InteriorHorizon 
                       config={specialMapData.specialConfig}
-                      timeOfDay={sunPosition as TimeOfDay || 'Day'}
+                      timeOfDay={currentTimeOfDay}
                     />
                   ) : (
                     <HorizonLayer 
                       climate={mapData.climate}
                       mapType={mapData.archetype}
-                      timeOfDay={sunPosition as TimeOfDay || 'Day'}
+                      timeOfDay={currentTimeOfDay}
                       weather={currentWeather || undefined}
                       width={typeof window !== 'undefined' ? window.innerWidth : 1920}
                       height={80}
@@ -803,10 +1208,24 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                         onEnterRuin={(tile: Tile) => setActiveRuinModal({tile})}
                         onEnterBuilding={(tile) => onEnterBuilding(tile, mapData)} 
                         onEnterFarm={(tile) => setActivePanel('farm')}
+                        onEnterFishingHut={(tile) => {
+                            console.log('[MapViewport] onEnterFishingHut called with tile:', tile);
+                            // Find the fishing hut structure
+                            const fishingHutStructure = mapData?.terrainStructures?.find(s => 
+                                s.location[0] === tile.x && s.location[1] === tile.y && s.structureType === 'fishing_hut'
+                            );
+                            console.log('[MapViewport] Found fishing hut structure:', fishingHutStructure);
+                            if (fishingHutStructure) {
+                                console.log('[MapViewport] Setting fishing hut modal active');
+                                setActiveFishingHutModal({ structure: fishingHutStructure, tile });
+                            } else {
+                                console.log('[MapViewport] No fishing hut structure found at tile coordinates');
+                            }
+                        }}
                         onEnterMine={(structure) => setActiveMiningModal(structure)}
                         toastMessage={toastMessage}
                         season={season}
-                        timeOfDay={sunPosition as TimeOfDay || 'Day'}
+                        timeOfDay={currentTimeOfDay}
                         dayOfYear={gameDate?.day || 180}
                         onToggleAmbientText={() => setShowAmbientText(!showAmbientText)}
                         showAmbientText={showAmbientText}
@@ -840,6 +1259,76 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
               gameTimeHours={gameTimeHours}
               onProgressTime={handleProgressTime}
               onShowEvent={handleShowWorkEvent}
+            />
+          )}
+          
+          {/* Inventory Toast Notifications */}
+          {toasts.map(toast => (
+            <InventoryToast
+              key={toast.id}
+              item={toast.item}
+              action={toast.action}
+              onClose={() => hideToast(toast.id)}
+              duration={3000}
+            />
+          ))}
+          
+          {/* Reputation Notification */}
+          {reputationNotification && (
+            <ReputationNotification
+              change={reputationNotification.change}
+              reason={reputationNotification.reason}
+              witnesses={reputationNotification.witnesses}
+              onComplete={() => setReputationNotification(null)}
+            />
+          )}
+          
+          {/* NPC Confrontation Modal */}
+          {confrontationModal && playerCharacter && (
+            <NpcConfrontationModal
+              npc={confrontationModal.npc}
+              item={confrontationModal.item}
+              dialogue={confrontationModal.dialogue}
+              playerGold={playerCharacter.currency}
+              onClose={() => setConfrontationModal(null)}
+              onPayFine={(amount) => {
+                // Handle paying fine
+                if (playerCharacter.currency >= amount) {
+                  // Deduct gold
+                  console.log('[Confrontation] Player pays fine:', amount);
+                  setPlayerCharacter(prev => {
+                    if (!prev) return null;
+                    return { ...prev, currency: Math.max(0, prev.currency - amount) };
+                  });
+                  changeReputation(5, 'Paid fine to avoid trouble');
+                  setConfrontationModal(null);
+                }
+              }}
+              onFight={() => {
+                // Trigger combat with the NPC
+                console.log('[Confrontation] Player chooses to fight');
+                handleEncounter({ npc: confrontationModal.npc });
+                setConfrontationModal(null);
+              }}
+              onSurrender={() => {
+                // Handle surrender (go to jail, etc.)
+                console.log('[Confrontation] Player surrenders');
+                changeReputation(-20, 'Arrested for theft');
+                setConfrontationModal(null);
+              }}
+              onTryToEscape={() => {
+                // Handle escape attempt
+                const escapeRoll = Math.random();
+                if (escapeRoll > 0.5) {
+                  console.log('[Confrontation] Player escapes!');
+                  changeReputation(-5, 'Fled from authorities');
+                } else {
+                  console.log('[Confrontation] Escape failed!');
+                  changeReputation(-15, 'Caught trying to escape');
+                  handleEncounter({ npc: confrontationModal.npc });
+                }
+                setConfrontationModal(null);
+              }}
             />
           )}
         </main>

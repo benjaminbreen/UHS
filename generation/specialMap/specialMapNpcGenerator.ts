@@ -3,10 +3,10 @@
  * Generates culturally and historically appropriate NPCs for special maps
  */
 
-import { NpcEntity, HistoricalEra, CulturalZone, BiomeType } from '../../types';
+import { NpcEntity, HistoricalEra, CulturalZone, BiomeType, Gender } from '../../types';
 import { SpecialMapArchetype, SpecialMapConfig, RoomDefinition, ProfessionCategory } from '../../types/specialMapTypes';
 import { ValueNoise } from '../../utils/noise';
-import { generateBaseProfile } from '../common/npcUtils';
+import { generateBaseProfile, generateNpcName } from '../common/npcUtils';
 import { 
   getProfessionsByCategory, 
   getCategoryForProfession, 
@@ -15,6 +15,300 @@ import {
 } from '../../constants/specialMaps/professionMapping';
 import { getApplicableRules, getHistoricalGenderRestriction, AccessRule } from '../../constants/specialMaps/historicalAccessRules';
 import { PROFESSIONS } from '../../constants/characterData/professions';
+
+// Track if we've assigned a ruler in throne rooms
+let hasAssignedRuler = false;
+
+/**
+ * Get culturally and temporally appropriate professions for a room
+ */
+function getCulturallyAppropriateProfessions(
+  culturalZone: CulturalZone,
+  era: HistoricalEra,
+  roomType: string,
+  archetype: SpecialMapArchetype
+): string[] {
+  // Get all professions for this culture/era
+  const cultureProfessions = PROFESSIONS[culturalZone]?.[era];
+  if (!cultureProfessions) {
+    console.warn(`No professions found for ${culturalZone}/${era}, using defaults`);
+    return ['Worker', 'Citizen'];
+  }
+
+  // Collect all profession names from all social classes with their metadata
+  const allProfessions: string[] = [];
+  const professionsByPrivilege: { name: string; privilege: number }[] = [];
+  
+  Object.values(cultureProfessions).forEach((socialClass: any) => {
+    if (typeof socialClass === 'object') {
+      Object.keys(socialClass).forEach(profName => {
+        if (!allProfessions.includes(profName)) {
+          allProfessions.push(profName);
+          const profDef = socialClass[profName];
+          professionsByPrivilege.push({
+            name: profName,
+            privilege: profDef?.socialRequirements?.minPrivilege || 0
+          });
+        }
+      });
+    }
+  });
+  
+  // Sort by privilege for better hierarchy
+  professionsByPrivilege.sort((a, b) => b.privilege - a.privilege);
+
+  // Filter by room type and archetype
+  let filteredProfessions: string[] = [];
+
+  // Government buildings and throne rooms
+  if (archetype === SpecialMapArchetype.GOVERNMENT_FORUM || 
+      archetype === SpecialMapArchetype.PALACE_COMPLEX ||
+      roomType === 'throne_room' || 
+      roomType === 'council_chamber' ||
+      roomType === 'assembly') {
+    
+    // Look for leadership roles
+    const leadershipKeywords = ['chief', 'king', 'emperor', 'ruler', 'lord', 'duke', 'prince', 
+                                'sultan', 'shah', 'raja', 'daimyo', 'pharaoh', 'consul', 
+                                'governor', 'magistrate', 'elder', 'headman'];
+    const militaryKeywords = ['general', 'warrior', 'soldier', 'guard', 'captain', 'samurai'];
+    const advisorKeywords = ['advisor', 'minister', 'councillor', 'vizier', 'mandarin', 'scribe', 
+                             'herald', 'ambassador', 'diplomat'];
+    
+    // Priority 1: Leaders for throne rooms - ONLY ONE KING/EMPEROR
+    if (roomType === 'throne_room') {
+      // First try to find the highest ranking leader
+      const topLeaders = professionsByPrivilege.filter(p => 
+        leadershipKeywords.some(keyword => p.name.toLowerCase().includes(keyword)) &&
+        p.privilege >= 0.7
+      );
+      
+      if (topLeaders.length > 0) {
+        // Take only the highest ranking leader
+        filteredProfessions = [topLeaders[0].name];
+        // Add supporting nobles/officials but not more kings
+        const supporters = allProfessions.filter(p => {
+          const lower = p.toLowerCase();
+          return (advisorKeywords.some(k => lower.includes(k)) ||
+                  lower.includes('noble') || lower.includes('courtier') ||
+                  lower.includes('guard')) &&
+                 !leadershipKeywords.some(k => lower.includes(k));
+        });
+        filteredProfessions.push(...supporters);
+      } else {
+        // Fallback to high-privilege professions
+        filteredProfessions = professionsByPrivilege
+          .filter(p => p.privilege >= 0.6)
+          .map(p => p.name)
+          .slice(0, 5);
+      }
+    }
+    // Priority 2: Officials and advisors for council/assembly
+    else if (roomType === 'council_chamber' || roomType === 'assembly') {
+      filteredProfessions = allProfessions.filter(p => 
+        advisorKeywords.some(keyword => p.toLowerCase().includes(keyword)) ||
+        leadershipKeywords.some(keyword => p.toLowerCase().includes(keyword))
+      );
+    }
+    // Priority 3: Mix of officials, guards, and clerks
+    else {
+      filteredProfessions = allProfessions.filter(p => 
+        advisorKeywords.some(keyword => p.toLowerCase().includes(keyword)) ||
+        militaryKeywords.some(keyword => p.toLowerCase().includes(keyword)) ||
+        p.toLowerCase().includes('clerk') ||
+        p.toLowerCase().includes('scribe')
+      );
+    }
+  }
+
+  // Religious buildings
+  else if (archetype === SpecialMapArchetype.SACRED_COMPLEX ||
+           roomType === 'shrine' || 
+           roomType === 'sanctuary' ||
+           roomType === 'altar') {
+    
+    const religiousKeywords = ['priest', 'monk', 'nun', 'cleric', 'imam', 'rabbi', 'shaman', 
+                               'medicine', 'healer', 'oracle', 'prophet', 'tohunga', 'druid',
+                               'ayatollah', 'bishop', 'cardinal', 'pope', 'lama', 'guru',
+                               'brahmin', 'pandit', 'mullah', 'sufi', 'dervish', 'hermit'];
+    
+    filteredProfessions = allProfessions.filter(p => 
+      religiousKeywords.some(keyword => p.toLowerCase().includes(keyword)) ||
+      p.toLowerCase().includes('religious') ||
+      p.toLowerCase().includes('holy') ||
+      p.toLowerCase().includes('sacred')
+    );
+
+    // Add some pilgrims and devotees ONLY for religious buildings
+    if (filteredProfessions.length > 0 && archetype === SpecialMapArchetype.SACRED_COMPLEX) {
+      filteredProfessions.push('Pilgrim', 'Devotee', 'Acolyte');
+    }
+  }
+
+  // Market buildings
+  else if (archetype === SpecialMapArchetype.MARKETPLACE ||
+           roomType === 'market' ||
+           roomType === 'bazaar' ||
+           roomType === 'shop') {
+    
+    const merchantKeywords = ['merchant', 'trader', 'vendor', 'seller', 'buyer', 'broker',
+                             'craftsman', 'artisan', 'smith', 'weaver', 'potter', 'jeweler',
+                             'baker', 'butcher', 'fishmonger', 'grocer', 'tailor'];
+    
+    filteredProfessions = allProfessions.filter(p => 
+      merchantKeywords.some(keyword => p.toLowerCase().includes(keyword))
+    );
+  }
+
+  // Military buildings
+  else if (archetype === SpecialMapArchetype.MILITARY_FORTRESS ||
+           roomType === 'barracks' ||
+           roomType === 'armory') {
+    
+    const militaryKeywords = ['warrior', 'soldier', 'guard', 'captain', 'general', 'knight',
+                             'samurai', 'archer', 'cavalry', 'infantry', 'scout', 'ranger'];
+    
+    filteredProfessions = allProfessions.filter(p => 
+      militaryKeywords.some(keyword => p.toLowerCase().includes(keyword))
+    );
+  }
+
+  // Academic buildings
+  else if (archetype === SpecialMapArchetype.ACADEMIC_INSTITUTION ||
+           roomType === 'library' ||
+           roomType === 'study') {
+    
+    const academicKeywords = ['scholar', 'scribe', 'teacher', 'professor', 'student', 'librarian',
+                             'philosopher', 'mathematician', 'astronomer', 'alchemist', 'sage'];
+    
+    filteredProfessions = allProfessions.filter(p => 
+      academicKeywords.some(keyword => p.toLowerCase().includes(keyword))
+    );
+  }
+
+  // Default: common professions
+  if (filteredProfessions.length === 0) {
+    const commonKeywords = ['worker', 'servant', 'guard', 'clerk', 'messenger', 'attendant'];
+    filteredProfessions = allProfessions.filter(p => 
+      commonKeywords.some(keyword => p.toLowerCase().includes(keyword))
+    );
+    
+    // Last resort: return some basic professions from the culture
+    if (filteredProfessions.length === 0) {
+      filteredProfessions = allProfessions.slice(0, 5);
+    }
+  }
+
+  return filteredProfessions;
+}
+
+/**
+ * Helper to find a profession definition in the nested structure
+ */
+function findProfessionDefinition(
+  culturalZone: CulturalZone,
+  era: HistoricalEra,
+  professionName: string
+): any {
+  const cultureProfessions = PROFESSIONS[culturalZone]?.[era];
+  if (!cultureProfessions) return null;
+
+  for (const socialClass of Object.values(cultureProfessions)) {
+    if (typeof socialClass === 'object' && socialClass[professionName]) {
+      return socialClass[professionName];
+    }
+  }
+  return null;
+}
+
+/**
+ * Check if a position is near a throne
+ */
+function isNearThrone(x: number, y: number, tiles: any[][]): boolean {
+  const checkRadius = 2; // Check within 2 tiles
+  
+  for (let dy = -checkRadius; dy <= checkRadius; dy++) {
+    for (let dx = -checkRadius; dx <= checkRadius; dx++) {
+      const checkY = y + dy;
+      const checkX = x + dx;
+      
+      if (checkY >= 0 && checkY < tiles.length && 
+          checkX >= 0 && checkX < tiles[0].length) {
+        if (tiles[checkY][checkX].biome === BiomeType.THRONE) {
+          return true;
+        }
+      }
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Get appropriate ruler profession for culture and era
+ */
+function getRulerProfession(culturalZone: string, era: string): string {
+  const zone = normalizeZone(culturalZone);
+  
+  const rulerProfessions: Record<string, Record<string, string[]>> = {
+    EUROPEAN: {
+      ANTIQUITY: ['EMPEROR', 'CONSUL', 'DICTATOR'],
+      MEDIEVAL: ['KING', 'QUEEN', 'DUKE', 'DUCHESS'],
+      RENAISSANCE_EARLY_MODERN: ['KING', 'QUEEN', 'PRINCE', 'DUKE'],
+      INDUSTRIAL_ERA: ['MONARCH', 'PRIME_MINISTER', 'PRESIDENT'],
+      MODERN_ERA: ['PRESIDENT', 'PRIME_MINISTER', 'CHANCELLOR']
+    },
+    EAST_ASIAN: {
+      ANTIQUITY: ['EMPEROR', 'KING'],
+      MEDIEVAL: ['EMPEROR', 'SHOGUN', 'DAIMYO'],
+      RENAISSANCE_EARLY_MODERN: ['EMPEROR', 'SHOGUN'],
+      INDUSTRIAL_ERA: ['EMPEROR', 'REGENT'],
+      MODERN_ERA: ['PRESIDENT', 'CHAIRMAN', 'PREMIER']
+    },
+    MENA: {
+      ANTIQUITY: ['PHARAOH', 'KING'],
+      MEDIEVAL: ['CALIPH', 'SULTAN', 'EMIR'],
+      RENAISSANCE_EARLY_MODERN: ['SULTAN', 'PASHA', 'SHEIKH'],
+      INDUSTRIAL_ERA: ['SULTAN', 'KING', 'EMIR'],
+      MODERN_ERA: ['KING', 'PRESIDENT', 'EMIR']
+    },
+    SUB_SAHARAN_AFRICAN: {
+      ANTIQUITY: ['CHIEF', 'KING'],
+      MEDIEVAL: ['KING', 'EMPEROR', 'CHIEF'],
+      RENAISSANCE_EARLY_MODERN: ['KING', 'CHIEF', 'SULTAN'],
+      INDUSTRIAL_ERA: ['KING', 'CHIEF', 'PARAMOUNT_CHIEF'],
+      MODERN_ERA: ['PRESIDENT', 'PRIME_MINISTER', 'CHIEF']
+    },
+    SOUTH_ASIAN: {
+      ANTIQUITY: ['RAJA', 'MAHARAJA'],
+      MEDIEVAL: ['SULTAN', 'RAJA', 'MAHARAJA'],
+      RENAISSANCE_EARLY_MODERN: ['MUGHAL_EMPEROR', 'RAJA', 'NAWAB'],
+      INDUSTRIAL_ERA: ['MAHARAJA', 'RAJA', 'VICEROY'],
+      MODERN_ERA: ['PRESIDENT', 'PRIME_MINISTER']
+    },
+    NATIVE_AMERICAN: {
+      ANTIQUITY: ['CHIEF', 'SACHEM', 'CACIQUE'],
+      MEDIEVAL: ['CHIEF', 'SACHEM', 'TLATOANI'],
+      RENAISSANCE_EARLY_MODERN: ['CHIEF', 'SACHEM', 'CACIQUE'],
+      INDUSTRIAL_ERA: ['CHIEF', 'TRIBAL_CHAIRMAN'],
+      MODERN_ERA: ['TRIBAL_CHAIRMAN', 'CHIEF', 'PRESIDENT']
+    },
+    OCEANIA: {
+      ANTIQUITY: ['CHIEF', 'ALI\'I', 'ARIKI'],
+      MEDIEVAL: ['CHIEF', 'KING', 'ALI\'I'],
+      RENAISSANCE_EARLY_MODERN: ['CHIEF', 'KING', 'PARAMOUNT_CHIEF'],
+      INDUSTRIAL_ERA: ['KING', 'QUEEN', 'CHIEF'],
+      MODERN_ERA: ['PRESIDENT', 'PRIME_MINISTER', 'CHIEF']
+    },
+    DEFAULT: ['RULER', 'LEADER', 'CHIEF', 'GOVERNOR']
+  };
+  
+  const eraKey = era.replace('HistoricalEra.', '').toUpperCase();
+  const professions = rulerProfessions[zone]?.[eraKey] || rulerProfessions.DEFAULT;
+  
+  // Return a random ruler profession from the list
+  return professions[Math.floor(Math.random() * professions.length)];
+}
 
 /**
  * Check if a biome type blocks NPC placement
@@ -236,6 +530,9 @@ export function generateSpecialMapNpcs(
   const npcs: NpcEntity[] = [];
   let npcId = 1000; // Start with high ID to avoid conflicts
   
+  // Reset ruler assignment flag for each new map
+  hasAssignedRuler = false;
+  
   // Special case: No NPCs on vessels (just the player)
   if (config.archetype === SpecialMapArchetype.VESSEL) {
     return [];
@@ -305,24 +602,27 @@ function generateNpcsForRoom(
   startId: number
 ): NpcEntity[] {
   const npcs: NpcEntity[] = [];
+  const { roomType } = room; // Destructure roomType for easier access
+  const { archetype, culturalZone, era } = config; // Destructure config properties
   
   // Get historical rules for this room
   const rules = getApplicableRules(
-    config.archetype,
-    room.roomType,
-    config.culturalZone as CulturalZone,
-    config.era as HistoricalEra,
+    archetype,
+    roomType,
+    culturalZone as CulturalZone,
+    era as HistoricalEra,
     config.specificYear
   );
   
   // Determine NPC count based on room size and density
   const npcCount = calculateNpcCount(room);
   
-  // Get appropriate professions for this room
-  const professions = selectProfessionsForRoom(
-    room,
-    config,
-    rules
+  // Get culturally appropriate professions for this room
+  const professions = getCulturallyAppropriateProfessions(
+    normalizeZone(culturalZone) as CulturalZone,
+    era as HistoricalEra,
+    roomType || 'default',
+    archetype
   );
   
   if (professions.length === 0) {
@@ -352,17 +652,66 @@ function generateNpcsForRoom(
     npcCount
   );
   
+  // Sort positions by distance to room center for leadership placement
+  const roomCenter = {
+    x: bounds.x + bounds.width / 2,
+    y: bounds.y + bounds.height / 2
+  };
+  
+  const sortedPositions = [...positions].sort((a, b) => {
+    const distA = Math.abs(a.x - roomCenter.x) + Math.abs(a.y - roomCenter.y);
+    const distB = Math.abs(b.x - roomCenter.x) + Math.abs(b.y - roomCenter.y);
+    return distA - distB;
+  });
+
+  // Identify the single highest ranking leader (if any)
+  const kingKeywords = ['king', 'emperor', 'pharaoh', 'sultan', 'raja', 'chief', 'ruler'];
+  const religiousLeaderKeywords = ['priest', 'imam', 'rabbi', 'tohunga', 'shaman'];
+  
+  let singleLeader: string | null = null;
+  let hasAssignedSingleLeader = false;
+  
+  // For throne rooms and sacred sites, identify THE leader
+  if (roomType === 'throne_room' || archetype === SpecialMapArchetype.SACRED_COMPLEX) {
+    // Find the first (highest ranking) leader profession
+    singleLeader = professions.find(p => {
+      const lower = p.toLowerCase();
+      if (archetype === SpecialMapArchetype.SACRED_COMPLEX) {
+        return religiousLeaderKeywords.some(k => lower.includes(k));
+      } else {
+        return kingKeywords.some(k => lower.includes(k));
+      }
+    });
+  }
+  
+  // Get non-leader professions
+  const commonProfessions = professions.filter(p => p !== singleLeader);
+
   // Create NPCs
-  for (let i = 0; i < Math.min(npcCount, positions.length); i++) {
-    const profession = professions[i % professions.length];
+  for (let i = 0; i < Math.min(npcCount, sortedPositions.length); i++) {
+    let profession: string;
+    
+    // Only assign the single leader to the most central position
+    if (i === 0 && singleLeader && !hasAssignedSingleLeader) {
+      profession = singleLeader;
+      hasAssignedSingleLeader = true;
+    } else if (commonProfessions.length > 0) {
+      // All other positions get common professions
+      profession = commonProfessions[i % commonProfessions.length];
+    } else {
+      // Fallback
+      profession = professions[i % professions.length];
+    }
+    
     const npc = createRoomAppropriateNpc(
       startId + i,
       profession,
-      positions[i],
+      sortedPositions[i],
       config,
       rules,
       room,
-      noise
+      noise,
+      tiles
     );
     if (npc) {
       npcs.push(npc);
@@ -393,8 +742,8 @@ function selectProfessionsForRoom(
       for (const category of room.professionFilter.category) {
         const catProfs = getProfessionsByCategory(
           category,
-          config.culturalZone as CulturalZone,
-          config.era as HistoricalEra
+          culturalZone as CulturalZone,
+          era as HistoricalEra
         );
         availableProfessions.push(...catProfs);
       }
@@ -427,8 +776,8 @@ function selectProfessionsForRoom(
       for (const category of rules.professionCategories) {
         const catProfs = getProfessionsByCategory(
           category,
-          config.culturalZone as CulturalZone,
-          config.era as HistoricalEra
+          culturalZone as CulturalZone,
+          era as HistoricalEra
         );
         allowedFromCategories.push(...catProfs);
       }
@@ -457,10 +806,10 @@ function selectProfessionsForRoom(
   // If no professions found, use culture-aware defaults
   if (availableProfessions.length === 0) {
     availableProfessions = getCultureDefaultProfessions(
-      config.culturalZone,
-      room.roomType
+      culturalZone,
+      roomType
     );
-    console.log(`[NPCGen] Using culture defaults for ${config.culturalZone}/${room.roomType}:`, availableProfessions);
+    console.log(`[NPCGen] Using culture defaults for ${culturalZone}/${roomType}:`, availableProfessions);
   }
   
   return availableProfessions;
@@ -470,6 +819,8 @@ function selectProfessionsForRoom(
  * Calculate number of NPCs for a room
  */
 function calculateNpcCount(room: RoomDefinition): number {
+  const { roomType } = room; // Destructure roomType for easier access
+  
   // Handle both formats: room.bounds.x and room.x
   let width: number, height: number;
   
@@ -497,11 +848,11 @@ function calculateNpcCount(room: RoomDefinition): number {
   let count = Math.floor(area * density);
   
   // Minimum NPCs for certain room types
-  if (room.roomType === 'throne_room' && count < 3) {
+  if (roomType === 'throne_room' && count < 3) {
     count = 3; // At least ruler + 2 guards
-  } else if (room.roomType === 'assembly' && count < 5) {
+  } else if (roomType === 'assembly' && count < 5) {
     count = 5; // At least 5 assembly members
-  } else if (room.roomType === 'marketplace' && count < 3) {
+  } else if (roomType === 'marketplace' && count < 3) {
     count = 3; // At least 3 merchants
   }
   
@@ -550,7 +901,8 @@ function createRoomAppropriateNpc(
   config: SpecialMapConfig,
   rules: AccessRule | null,
   room: RoomDefinition,
-  noise: ValueNoise
+  noise: ValueNoise,
+  tiles?: any[][]
 ): NpcEntity | null {
   // Generate base profile
   const baseProfile = generateBaseProfile(noise, {
@@ -593,10 +945,29 @@ function createRoomAppropriateNpc(
   }
   
   const age = getAgeForProfession(profession, noise);
-  const names = getNamesByProfession(profession, config.culturalZone);
-  const firstName = names[Math.floor(noise.random() * names.length)];
-  const lastName = getLastNameByCulture(config.culturalZone, noise);
-  const fullName = `${firstName} ${lastName}`;
+  
+  // DEBUG: Log what values we're actually using for name generation
+  const normalizedZone = normalizeZone(config.culturalZone);
+  console.log('===== NPC NAME GENERATION DEBUG =====');
+  console.log('Original culturalZone:', config.culturalZone);
+  console.log('Normalized zone:', normalizedZone);
+  console.log('Region:', config.region);
+  console.log('Year:', config.specificYear || 1500);
+  console.log('Profession:', profession);
+  console.log('Gender:', gender);
+  
+  // Use the proper name generation system that handles regional/temporal specificity
+  const fullName = generateNpcName(
+    gender as Gender,
+    normalizedZone as CulturalZone,
+    config.region || config.culturalZone,
+    config.specificYear || 1500,
+    noise
+    // Don't pass profession as professionNameKey - let it use cultural zone names
+  );
+  
+  console.log('Generated name:', fullName);
+  console.log('===== END DEBUG =====');
   
   // Get the social class from profession mapping
   const socialClass = getSocialClassForProfession(
@@ -778,8 +1149,8 @@ function getGuardProfession(culturalZone: string, era: number): string {
     // Early Modern/Industrial
     return 'Guard';
   } else {
-    // Modern
-    return 'Security Officer';
+    // Modern - use Guard instead of Security Officer for consistency
+    return 'Guard';
   }
 }
 
@@ -881,6 +1252,7 @@ function generateLegacyNpcs(
   // Select NPC templates based on archetype and culture
   switch (config.archetype) {
     case SpecialMapArchetype.PALACE_COMPLEX:
+    case SpecialMapArchetype.ESTATES:  // ESTATES should use palace NPCs too!
       npcTemplates = getPalaceNpcs(config.culturalZone, config.era);
       break;
     case SpecialMapArchetype.GOVERNMENT_FORUM:
@@ -1134,17 +1506,22 @@ function createSpecialMapNpc(
   noise: ValueNoise,
   region?: string
 ): NpcEntity {
-  const names = getNamesByProfession(profession, culturalZone);
-  const firstName = names[Math.floor(noise.random() * names.length)];
-  const lastName = getLastNameByCulture(culturalZone, noise);
-  const fullName = `${firstName} ${lastName}`;
-  
-  // Generate base profile with appearance
+  // Generate base profile with appearance first to get gender
   const baseProfile = generateBaseProfile(noise, {
     era: era as HistoricalEra,
     culturalZone: normalizeZone(culturalZone) as CulturalZone,
     region: region || culturalZone
   });
+  
+  // Use the proper name generation system
+  const fullName = generateNpcName(
+    baseProfile.gender as Gender,
+    normalizeZone(culturalZone) as CulturalZone,
+    region || culturalZone,
+    1500, // Default year if not specified
+    noise
+    // Don't pass profession as professionNameKey - let it use cultural zone names
+  );
   
   // Select age based on profession
   const age = getAgeForProfession(profession, noise);
@@ -1296,7 +1673,7 @@ function getRoomAppropriateProfessions(
     'press_room': ['Scribe', 'Herald', 'Messenger', 'Clerk'],
     
     // Security rooms
-    'guard_booth': ['Guard', 'Soldier', 'Security', 'Watchman'],
+    'guard_booth': ['Guard', 'Soldier', 'Watchman'],
     'security_checkpoint': ['Guard', 'Inspector', 'Officer'],
     'armory': ['Guard', 'Quartermaster', 'Armorer'],
     
@@ -1352,7 +1729,7 @@ function getRoomAppropriateProfessions(
  * Filter professions by historical era
  */
 function filterProfessionsByEra(professions: string[], era: HistoricalEra): string[] {
-  const modernProfessions = ['Secretary', 'Receptionist', 'Security', 'Janitor', 'Inspector'];
+  const modernProfessions = ['Secretary', 'Receptionist', 'Security Officer', 'Janitor', 'Inspector'];
   const ancientProfessions = ['Scribe', 'Herald', 'Patrician', 'Senator'];
   
   if (era === HistoricalEra.ANTIQUITY || era === HistoricalEra.MEDIEVAL) {
@@ -1363,7 +1740,7 @@ function filterProfessionsByEra(professions: string[], era: HistoricalEra): stri
     professions = professions.map(p => {
       if (p === 'Secretary') return 'Scribe';
       if (p === 'Receptionist') return 'Clerk';
-      if (p === 'Security') return 'Guard';
+      if (p === 'Security' || p === 'Security Officer') return 'Guard';
       if (p === 'Janitor') return 'Servant';
       return p;
     });
@@ -1383,47 +1760,6 @@ function filterProfessionsByEra(professions: string[], era: HistoricalEra): stri
   return professions;
 }
 
-/**
- * Get culturally appropriate names by profession
- */
-function getNamesByProfession(profession: string, culturalZone: string): string[] {
-  const zone = normalizeZone(culturalZone);
-  
-  // Sample names by culture
-  const names = {
-    EUROPEAN: ['Marcus', 'Julia', 'Wilhelm', 'Isabella', 'Charles', 'Eleanor', 'Philip', 'Catherine'],
-    EAST_ASIAN: ['Li Wei', 'Mei Chen', 'Takeshi', 'Sakura', 'Jin', 'Yuki', 'Hiro', 'Ming'],
-    MENA: ['Ahmad', 'Fatima', 'Omar', 'Aisha', 'Hassan', 'Leila', 'Khalid', 'Zahra'],
-    SUB_SAHARAN_AFRICAN: ['Kwame', 'Amara', 'Juma', 'Nia', 'Kofi', 'Zara', 'Malik', 'Imani'],
-    SOUTH_ASIAN: ['Raj', 'Priya', 'Arjun', 'Kavya', 'Dev', 'Ananya', 'Vikram', 'Sita'],
-    NATIVE_AMERICAN: ['Aiyana', 'Chayton', 'Winona', 'Takoda', 'Nayeli', 'Kai', 'Nova', 'Mika'],
-    OCEANIA: ['Aroha', 'Tane', 'Moana', 'Koa', 'Leilani', 'Rangi', 'Hana', 'Kahu'],
-    DEFAULT: ['Alexander', 'Sofia', 'Dmitri', 'Natasha', 'Ivan', 'Elena', 'Mikhail', 'Anastasia']
-  };
-  
-  return names[zone] || names.DEFAULT;
-}
-
-/**
- * Get culturally appropriate last names
- */
-function getLastNameByCulture(culturalZone: string, noise: ValueNoise): string {
-  const zone = normalizeZone(culturalZone);
-  
-  const lastNames = {
-    EUROPEAN: ['Aurelius', 'von Habsburg', 'de la Cruz', 'MacDonald', 'O\'Brien', 'Romano', 'Schneider'],
-    EAST_ASIAN: ['Wang', 'Zhang', 'Tanaka', 'Kim', 'Nguyen', 'Chen', 'Yamamoto'],
-    MENA: ['al-Rashid', 'ibn Khaldun', 'el-Masri', 'al-Hakim', 'ben Yusuf', 'al-Farabi'],
-    SUB_SAHARAN_AFRICAN: ['Mbeki', 'Nkrumah', 'Okello', 'Diallo', 'Mensah', 'Kamara'],
-    SOUTH_ASIAN: ['Sharma', 'Patel', 'Khan', 'Singh', 'Gupta', 'Reddy'],
-    NATIVE_AMERICAN: ['Blackhawk', 'Running Bear', 'Silver Fox', 'White Eagle', 'Morning Star'],
-    OCEANIA: ['Kahui', 'Tama', 'Aroha', 'Manu', 'Vega', 'Tui'],
-    DEFAULT: ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones']
-  };
-  
-  const names = lastNames[zone] || lastNames.DEFAULT;
-  return names[Math.floor(noise.random() * names.length)];
-}
 
 /**
  * Determine default social class based on profession
@@ -1581,7 +1917,7 @@ function generatePersonality(noise: ValueNoise): any {
 }
 
 /**
- * Normalize cultural zone string
+ * Normalize cultural zone string to valid CulturalZone values
  */
 function normalizeZone(zone: any): string {
   // Handle undefined, null, or non-string input
@@ -1592,14 +1928,22 @@ function normalizeZone(zone: any): string {
   
   const normalized = zone.toUpperCase().replace(/-/g, '_');
   
-  // Map variations to standard zones
+  // Map variations to standard CulturalZone values - order matters!
   if (normalized.includes('EUROPE')) return 'EUROPEAN';
-  if (normalized.includes('ASIA') && !normalized.includes('SOUTH')) return 'EAST_ASIAN';
+  if (normalized.includes('SOUTH_ASIA')) return 'SOUTH_ASIAN'; // Check this before ASIA
+  if (normalized.includes('ASIA')) return 'EAST_ASIAN';
   if (normalized.includes('MIDDLE') || normalized.includes('MENA')) return 'MENA';
-  if (normalized.includes('AFRICA')) return 'SUB_SAHARAN_AFRICAN';
-  if (normalized.includes('SOUTH_ASIA')) return 'SOUTH_ASIAN';
-  if (normalized.includes('AMERICA')) return 'NATIVE_AMERICAN';
+  if (normalized.includes('SUB_SAHARAN_AFRICAN') || normalized.includes('AFRICA')) return 'SUB_SAHARAN_AFRICAN';
+  
+  // Handle Americas - map to correct CulturalZone values
+  if (normalized.includes('SOUTH_AMERICAN')) return 'SOUTH_AMERICAN'; // Keep SOUTH_AMERICAN as is
+  if (normalized.includes('NORTH_AMERICAN_PRE_COLUMBIAN')) return 'NORTH_AMERICAN_PRE_COLUMBIAN';
+  if (normalized.includes('NORTH_AMERICAN_COLONIAL')) return 'NORTH_AMERICAN_COLONIAL';
+  if (normalized.includes('NORTH_AMERICAN')) return 'NORTH_AMERICAN_PRE_COLUMBIAN'; // Default North American
+  
   if (normalized.includes('OCEAN')) return 'OCEANIA';
   
+  // Log unknown zones for debugging
+  console.warn('[normalizeZone] Unknown zone:', zone, 'normalized:', normalized, 'defaulting to EUROPEAN');
   return 'EUROPEAN'; // Default
 }

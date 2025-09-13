@@ -338,13 +338,49 @@ DO NOT create generic fetch quests. Create quests with moral complexity and hist
         }
       });
 
-      const response = result.text;
+      // When using responseMimeType: "application/json" with schema, 
+      // the response should already be parsed JSON
+      let questData: RawQuestData;
       
-      // Track API call
-      eventService.trackAPICall(prompt, response);
-      
-      // Parse response
-      const questData = JSON.parse(response) as RawQuestData;
+      if (typeof result.text === 'string') {
+        // If it's a string, try to parse it
+        try {
+          // Clean up response if it contains markdown formatting
+          let cleanedResponse = result.text;
+          
+          // Remove markdown code blocks if present
+          cleanedResponse = cleanedResponse.replace(/```json\s*/g, '');
+          cleanedResponse = cleanedResponse.replace(/```\s*/g, '');
+          
+          // Remove any leading markdown headers
+          cleanedResponse = cleanedResponse.replace(/^#+\s+.*$/gm, '');
+          
+          // Trim whitespace
+          cleanedResponse = cleanedResponse.trim();
+          
+          // Find the first { and last } to extract JSON
+          const jsonStart = cleanedResponse.indexOf('{');
+          const jsonEnd = cleanedResponse.lastIndexOf('}');
+          
+          if (jsonStart !== -1 && jsonEnd !== -1) {
+            cleanedResponse = cleanedResponse.substring(jsonStart, jsonEnd + 1);
+          }
+          
+          questData = JSON.parse(cleanedResponse) as RawQuestData;
+          
+          // Track API call
+          eventService.trackAPICall(prompt, cleanedResponse);
+        } catch (parseError) {
+          console.error('[LLMQuestService] Failed to parse response:', result.text);
+          throw parseError;
+        }
+      } else {
+        // Response is already parsed
+        questData = result.text as unknown as RawQuestData;
+        
+        // Track API call
+        eventService.trackAPICall(prompt, JSON.stringify(questData));
+      }
       
       return questData;
     } catch (error) {

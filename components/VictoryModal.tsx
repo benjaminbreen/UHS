@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Item, EncounterableEntity, isNpc } from '../types';
+import gameSoundsService from '../services/gameSoundsService';
 
 interface VictoryModalProps {
   xpGained: number;
@@ -18,6 +19,16 @@ const VictoryModal: React.FC<VictoryModalProps> = ({
   opponentEmoji,
   opponent
 }) => {
+  // Play victory melody when modal opens
+  useEffect(() => {
+    gameSoundsService.playVictoryMelody();
+    
+    // Cleanup: stop melody when modal closes
+    return () => {
+      gameSoundsService.stopVictoryMelody();
+    };
+  }, []);
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div 

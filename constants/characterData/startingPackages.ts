@@ -91,14 +91,14 @@ export const STARTING_PACKAGES: Record<string, {
     'Commoner': { equipment: { torso: 'SIMPLE_TUNIC',  legs: 'WORKER_HOSE', feet: 'SANDALS' }, inventory: ['BREAD', 'WOODEN_BOWL'] },
     'Laborer': { equipment: { torso: 'SIMPLE_TUNIC', legs: 'WORKER_TROUSERS', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'ROPE'] },
     'Peasant': { equipment: { torso: 'PEASANT_TUNIC', feet: 'SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD_CRUST', 'VEGETABLES'] },
-    'Warrior': { equipment: { torso: 'LEATHER_APRON', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['MEAT', 'WHETSTONE'],  companions: ['DOG'] },
+    'Warrior': { equipment: { torso: 'LEATHER_APRON', feet: 'LEATHER_BOOTS', main_hand: '*CONTEXTUAL*', necklace: 'BRONZE_TORC' }, inventory: ['MEAT', 'WHETSTONE'],  companions: ['DOG'] },
     'Caretaker': { equipment: { torso: 'SIMPLE_ROBE', main_hand: '*CONTEXTUAL*' }, inventory: ['HERB_BUNDLE', 'BREAD', 'BANDAGE'] },
     'Mother': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['BREAD', 'SIMPLE_RING', 'FRUIT'] },
 
     // =======================================================================
     // == HERDERS & ANIMAL-RELATED (Using procedural weapon selection)
     // =======================================================================
-    'Shepherd': { equipment: { main_hand: '*CONTEXTUAL*', torso: 'WOOL_TUNIC' }, inventory: ['BREAD', 'FLUTE'], companions: ['SHEEP', 'DOG'] },
+    'Shepherd': { equipment: { main_hand: '*CONTEXTUAL*', torso: 'WOOL_TUNIC', necklace: 'IRON_TORC' }, inventory: ['BREAD', 'FLUTE'], companions: ['SHEEP', 'DOG'] },
     'Farmer': { equipment: { head: 'STRAW_HAT', main_hand: '*CONTEXTUAL*', torso: 'LEATHER_APRON' }, inventory: ['BARLEY', 'WHEAT', 'GRAIN_FLAIL'], companions: ['COW'] },
     'Goat Herder': { equipment: { main_hand: '*CONTEXTUAL*', torso: 'WOOL_TUNIC' }, inventory: ['CHEESE'], companions: ['GOAT', 'GOAT', 'GOAT'] },
     'Cattle Herder': { equipment: { main_hand: '*CONTEXTUAL*', torso: 'WOOL_TUNIC' }, inventory: ['ROPE', 'BREAD'], companions: ['COW', 'COW'] },
@@ -113,7 +113,7 @@ export const STARTING_PACKAGES: Record<string, {
     // =======================================================================
 
     // --- PREHISTORY (Using procedural weapon selection) ---
-    'Hunter': { equipment: { torso: 'DEER_HIDE', feet: 'HIDE_BOOTS', main_hand: '*CONTEXTUAL*' }, inventory: ['FLINT_STONE', 'MEAT', 'VINE'], companions: ['DOG'] },
+    'Hunter': { equipment: { torso: 'DEER_HIDE', feet: 'HIDE_BOOTS', main_hand: '*CONTEXTUAL*', necklace: 'BRONZE_TORC' }, inventory: ['FLINT_STONE', 'MEAT', 'VINE'], companions: ['DOG'] },
     'Gatherer': { equipment: { torso: 'DEER_HIDE', main_hand: '*CONTEXTUAL*' }, inventory: ['WILD_BERRIES', 'MUSHROOM', 'ROOT', 'LEATHER_BAG'] },
     'Shaman': { equipment: { head: 'WOLF_PELT', torso: 'FUR_CLOAK', main_hand: '*CONTEXTUAL*' }, inventory: ['HERB_BUNDLE', 'SMOOTH_STONE', 'BONES', 'OWL_FEATHER'] },
     'Toolmaker': { equipment: { torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*' }, inventory: ['FLINT_STONE', 'STICK', 'VINE', 'HAMMER'] },
@@ -125,7 +125,7 @@ export const STARTING_PACKAGES: Record<string, {
     'Bone Carver': { equipment: { torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*' }, inventory: ['BONES', 'FLINT_STONE', 'KNIFE'] },
 
     // --- ANTIQUITY (Using procedural weapon selection) ---
-    'Merchant': { equipment: { torso: 'CITIZEN_TOGA', belt: 'PURSE', main_hand: '*CONTEXTUAL*' }, inventory: ['SCALE', 'COIN', 'AMPHORA', 'OLIVES'] }, // Requires AMPHORA
+    'Merchant': { equipment: { torso: 'CITIZEN_TOGA', belt: 'PURSE', main_hand: '*CONTEXTUAL*', necklace: 'BRONZE_TORC' }, inventory: ['SCALE', 'COIN', 'AMPHORA', 'OLIVES'] }, // Requires AMPHORA
     'Physician': { equipment: { torso: 'SIMPLE_ROBE', main_hand: '*CONTEXTUAL*' }, inventory: ['MEDICINAL_HERBS', 'BANDAGE', 'SCROLL', 'BRONZE_PIN'] },
     'Scribe': { equipment: { torso: 'SIMPLE_ROBE', main_hand: '*CONTEXTUAL*' }, inventory: ['SCROLL', 'QUILL', 'INK_POT', 'PARCHMENT_ROLL'] },
     'Lawyer': { equipment: { torso: 'CITIZEN_TOGA', main_hand: '*CONTEXTUAL*' }, inventory: ['BOOK', 'SCROLL', 'QUILL', 'COIN'] },
@@ -133,7 +133,7 @@ export const STARTING_PACKAGES: Record<string, {
     'Architect': { equipment: { torso: 'SIMPLE_ROBE', main_hand: '*CONTEXTUAL*' }, inventory: ['PARCHMENT_ROLL', 'SCALE', 'STONE_CHISEL'] },
     'Legionary': { equipment: { torso: 'LEATHER_APRON', feet: 'MILITARY_SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'SALT'] },
     'Auxiliary': { equipment: { torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*' }, inventory: ['SMOOTH_STONE', 'BREAD'] },
-    'Centurion': { equipment: { head: 'BATTLE_HELMET', torso: 'LEATHER_APRON', feet: 'MILITARY_SANDALS', main_hand: '*CONTEXTUAL*' }, inventory: ['BREAD', 'WHETSTONE'] },
+    'Centurion': { equipment: { head: 'BATTLE_HELMET', torso: 'LEATHER_APRON', feet: 'MILITARY_SANDALS', main_hand: '*CONTEXTUAL*', necklace: 'BRONZE_TORC' }, inventory: ['BREAD', 'WHETSTONE'] },
     'Sailor': { equipment: { torso: 'WOOL_TUNIC', legs: 'SAILOR_PANTS'}, inventory: ['ROPE', 'SMOKED_FISH', 'GOURD_FLASK'] },
     'Engineer': { equipment: { torso: 'LEATHER_APRON' }, inventory: ['HAMMER', 'ROPE', 'PARCHMENT_ROLL'] },
     'Weaver': { equipment: { torso: 'PEPLOS', main_hand: 'SPINDLE' }, inventory: ['COTTON', 'WOOL_CARDERS'] },
@@ -147,10 +147,10 @@ export const STARTING_PACKAGES: Record<string, {
     'Vintner': { equipment: { torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*' }, inventory: ['GRAPES', 'WOODEN_BOWL', 'GLASS_BOTTLE'] },
     'Miller': { equipment: { torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*' }, inventory: ['WHEAT', 'FLOUR'] },
     'Tavern Keeper': { equipment: { torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*' }, inventory: ['WOODEN_BOWL', 'BREAD', 'KEY'] },
-    'Gladiator': { equipment: { torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*' }, inventory: ['BANDAGE'] },
+    'Gladiator': { equipment: { torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*', necklace: 'IRON_TORC' }, inventory: ['BANDAGE'] },
     'Street Vendor': { equipment: { torso: 'WOOL_TUNIC' }, inventory: ['BREAD', 'FRUIT', 'PURSE'] },
     'Bathhouse Attendant': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['SOAP', 'RAG'] },
-    'Priest': { equipment: { torso: 'LINEN_ROBE', main_hand: '*CONTEXTUAL*' }, inventory: ['INCENSE', 'RELIGIOUS_TEXT', 'CLAY_LAMP'] },
+    'Priest': { equipment: { torso: 'LINEN_ROBE', main_hand: '*CONTEXTUAL*', necklace: 'SILVER_TORC' }, inventory: ['INCENSE', 'RELIGIOUS_TEXT', 'CLAY_LAMP'] },
     'Temple Keeper': { equipment: { torso: 'SIMPLE_ROBE', main_hand: '*CONTEXTUAL*' }, inventory: ['INCENSE', 'CANDLES', 'BROOM'] },
     'Oracle': { equipment: { torso: 'SILK_ROBE', main_hand: '*CONTEXTUAL*' }, inventory: ['HERB_BUNDLE', 'BLESSED_ARTIFACT'] },
 
@@ -228,7 +228,7 @@ export const STARTING_PACKAGES: Record<string, {
     'Mud Brick Maker': { equipment: { }, inventory: ['CLAY_LUMP', 'STRAW'] }, // 80% male
 
     // --- ANTIQUITY (Persian context) ---
-    'Local Governor': { equipment: { torso: 'SILK_ROBE', head: 'TURBAN', belt: 'PURSE' }, inventory: ['COIN', 'SCROLL'] },
+    'Local Governor': { equipment: { torso: 'SILK_ROBE', head: 'TURBAN', belt: 'PURSE', necklace: 'GOLD_TORC' }, inventory: ['COIN', 'SCROLL'] },
     'Courier': { equipment: { feet: 'SANDALS', head: 'KEFFIYEH' }, inventory: ['SCROLL', 'GOURD_FLASK'], companions: ['HORSE'] },
     'Tax Assessor': { equipment: { torso: 'SIMPLE_ROBE', main_hand: 'SWORD' }, inventory: ['SCROLL', 'QUILL', 'SCALE'] },
     'Bronze Caster': { equipment: { torso: 'LEATHER_APRON', main_hand: 'HAMMER' }, inventory: ['COPPER_ORE', 'TIN_ORE'] },
@@ -339,8 +339,8 @@ export const STARTING_PACKAGES: Record<string, {
     // --- ANTIQUITY ---
     'Brahmin Priest': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['RELIGIOUS_TEXT', 'INCENSE', 'PRAYER_BEADS'] },
     'Brahmin Scholar': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['BOOK', 'SCROLL', 'QUILL'] },
-    'Kshatriya Warrior': { equipment: { torso: 'JERKIN', main_hand: 'SWORD' }, inventory: ['BREAD'] },
-    'Kshatriya Chariot Driver': { equipment: { torso: 'JERKIN', main_hand: 'SWORD' }, inventory: [], companions: ['HORSE', 'HORSE'] },
+    'Kshatriya Warrior': { equipment: { torso: 'JERKIN', main_hand: 'SWORD', necklace: 'BRONZE_TORC' }, inventory: ['BREAD'] },
+    'Kshatriya Chariot Driver': { equipment: { torso: 'JERKIN', main_hand: 'SWORD', necklace: 'SILVER_TORC' }, inventory: [], companions: ['HORSE', 'HORSE'] },
     'Vaishya Merchant': { equipment: { torso: 'WOOL_TUNIC', belt: 'PURSE' }, inventory: ['SCALE', 'COIN', 'SPICE_POUCH'] },
     'Vaishya Banker': { equipment: { torso: 'WOOL_TUNIC', belt: 'PURSE' }, inventory: ['COIN', 'COIN', 'BOOK'] },
     'Shudra Farmer': { equipment: { main_hand: 'HARVEST_SICKLE' }, inventory: ['WHEAT', 'LENTILS'] },
@@ -402,7 +402,7 @@ export const STARTING_PACKAGES: Record<string, {
     'Honey Gatherer': { equipment: {}, inventory: ['BUCKET', 'ROPE'] },
 
     // --- ANTIQUITY ---
-    'Chief': { equipment: { head: 'FEATHER_CROWN', torso: 'LEOPARD_SKIN' }, inventory: ['STICK'] }, // Requires Leopard Skin
+    'Chief': { equipment: { head: 'FEATHER_CROWN', torso: 'LEOPARD_SKIN', necklace: 'GOLD_TORC' }, inventory: ['STICK'] }, // Requires Leopard Skin
     'Rain Maker': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HERB_BUNDLE', 'BONES', 'BLESSED_ARTIFACT'] },
     'War Leader': { equipment: { head: 'FEATHER_HEADDRESS', main_hand: 'STICK' }, inventory: ['OCHRE_LUMP'] },
     'Iron Smelter': { equipment: { torso: 'LEATHER_APRON', main_hand: 'HAMMER' }, inventory: ['BOG_IRON', 'BELLOWS'] },
@@ -453,7 +453,7 @@ export const STARTING_PACKAGES: Record<string, {
     'Shell Fisher': { equipment: { }, inventory: ['SHELL', 'SHELL', 'BASKET'] }, // 40% male
 
     // --- ANTIQUITY / MEDIEVAL ---
-    'Master Navigator': { equipment: { amulet: 'SHELL_NECKLACE' }, inventory: ['STICK_CHART', 'SMOKED_FISH', 'COCONUT'] }, // 90% male
+    'Master Navigator': { equipment: { necklace: 'SHELL_NECKLACE' }, inventory: ['STICK_CHART', 'SMOKED_FISH', 'COCONUT'] }, // 90% male
     'Tattoo Artist': { equipment: {}, inventory: ['OCHRE_LUMP', 'SHARP_BONE', 'KNIFE'] }, // 70% male
     'Breadfruit Cultivator': { equipment: { main_hand: 'STICK' }, inventory: ['BREADFRUIT'] }, // 65% male
     'Kava Grower': { equipment: { }, inventory: ['KAVA_ROOT', 'WOODEN_BOWL'] }, // 80% male
@@ -493,8 +493,8 @@ export const STARTING_PACKAGES: Record<string, {
     
     // --- ANTIQUITY/MEDIEVAL ---
     'Clan Mother': { equipment: { head: 'FEATHER_BAND', torso: 'DEER_HIDE' }, inventory: ['CORN', 'PRAYER_BEADS'] }, // 0% male
-    'War Chief': { equipment: { head: 'FEATHER_HEADDRESS', main_hand: 'TOMAHAWK' }, inventory: ['OCHRE_LUMP'] }, // 100% male
-    'Medicine Person': { equipment: { torso: 'DEER_HIDE', amulet: 'MEDICINE_BUNDLE' }, inventory: ['SAGE_BUNDLE', 'SWEETGRASS', 'CEDAR_BARK', 'TOBACCO'] }, // 60% male
+    'War Chief': { equipment: { head: 'FEATHER_HEADDRESS', main_hand: 'TOMAHAWK', necklace: 'BRONZE_TORC' }, inventory: ['OCHRE_LUMP'] }, // 100% male
+    'Medicine Person': { equipment: { torso: 'DEER_HIDE', necklace: 'MEDICINE_BUNDLE' }, inventory: ['SAGE_BUNDLE', 'SWEETGRASS', 'CEDAR_BARK', 'TOBACCO'] }, // 60% male
     'Canoe Maker': { equipment: { main_hand: 'AXE' }, inventory: ['PINE_RESIN', 'BARK'] }, // 90% male
     'Wampum Maker': { equipment: { main_hand: 'STONE_DRILL' }, inventory: ['QUAHOG_SHELL', 'WHELK_SHELL', 'SINEW'] }, // 50% male
     'Pemmican Maker': { equipment: { }, inventory: ['DRIED_MEAT', 'WILD_BERRIES', 'RENDERED_FAT', 'RAWHIDE_POUCH'] }, // 20% male

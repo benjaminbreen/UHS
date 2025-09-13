@@ -22,7 +22,7 @@ export interface LootModalData {
     items: Item[];
 }
 
-export type ActionableTileType = 'farm' | 'city' | 'marketplace' | 'building' | 'explore' | 'mine';
+export type ActionableTileType = 'farm' | 'city' | 'marketplace' | 'building' | 'explore' | 'mine' | 'fishing_hut';
 
 export interface ActionableTile {
     type: ActionableTileType;
@@ -32,4 +32,9 @@ export interface ActionableTile {
 
 export interface UIContext {
     activePoi: TerrainStructure | null;
+    poiToastData: {
+        structure: TerrainStructure;
+        description: string;
+        dialogue: any;
+    } | null;
 }

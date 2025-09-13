@@ -142,7 +142,7 @@ export function generateProceduralItemDefinition(baseId: string): ItemDefinition
         equipmentSlot = lowerId.includes('arrow') ? 'off_hand' : 'main_hand';
     }
     // Handle clothing items
-    else if (name.match(/\b(hide|pelt|jerkin|robe|tunic|cloak|plate|chain|wrap|shirt|dress|apron|doublet|kirtle|bodice|surcoat|houppelande|stola|peplos|palla|chiton|hanfu|agbada|dashiki|boubou|kaftan|sherwani|kurta|blouse|qipao|suit|jacket|vest|mantle|shawl|kimono|cap|helmet|hood|turban|hat|wimple|coif|diadem|crown|headdress|veil|circlet|boots|shoes|sandals|clogs|slippers|moccasins|hose|trousers|breeches|pants|skirt|leggings|belt|cord|sash|girdle|comb|necklace|pendant|amulet|chain|hairpin|ornament|brooch|pin|ring)\b/i)) {
+    else if (name.match(/\b(hide|pelt|jerkin|robe|tunic|cloak|plate|chain|wrap|shirt|dress|apron|doublet|kirtle|bodice|surcoat|houppelande|stola|peplos|palla|chiton|hanfu|agbada|dashiki|boubou|kaftan|sherwani|kurta|blouse|qipao|suit|jacket|vest|mantle|shawl|kimono|cap|helmet|hood|turban|hat|wimple|coif|diadem|crown|headdress|veil|circlet|boots|shoes|sandals|clogs|slippers|moccasins|hose|trousers|breeches|pants|skirt|leggings|belt|cord|sash|girdle|comb|necklace|pendant|necklace|chain|hairpin|ornament|brooch|pin|ring)\b/i)) {
         category = 'Apparel';
         material = 'Cloth';
         emoji = '👕';
@@ -154,7 +154,7 @@ export function generateProceduralItemDefinition(baseId: string): ItemDefinition
         const feetWords = ['boots', 'shoes', 'sandals', 'clogs', 'slippers', 'moccasins'];
         const legsWords = ['hose', 'trousers', 'breeches', 'pants', 'skirt', 'leggings'];
         const beltWords = ['belt', 'cord', 'sash', 'girdle'];
-        const amuletWords = ['comb', 'necklace', 'pendant', 'amulet', 'chain', 'hairpin', 'ornament', 'brooch', 'pin'];
+        const necklaceWords = ['comb', 'necklace', 'pendant', 'necklace', 'chain', 'hairpin', 'ornament', 'brooch', 'pin'];
         const ringWords = ['ring'];
 
         if (torsoWords.some(word => lowerId.includes(word))) equipmentSlot = 'torso';
@@ -162,7 +162,7 @@ export function generateProceduralItemDefinition(baseId: string): ItemDefinition
         else if (feetWords.some(word => lowerId.includes(word))) equipmentSlot = 'feet';
         else if (legsWords.some(word => lowerId.includes(word))) equipmentSlot = 'legs';
         else if (beltWords.some(word => lowerId.includes(word))) equipmentSlot = 'belt';
-        else if (amuletWords.some(word => lowerId.includes(word))) equipmentSlot = 'amulet';
+        else if (necklaceWords.some(word => lowerId.includes(word))) equipmentSlot = 'necklace';
         else if (ringWords.some(word => lowerId.includes(word))) equipmentSlot = 'ring1';
         
         // Override material for clothing based on keywords
@@ -333,14 +333,14 @@ function createStartingCompanion(animalBaseId: string, playerCharacter: PlayerCh
 }
 
 /**
- * Calculate the chance of having an amulet based on era, culture, and profession
+ * Calculate the chance of having an necklace based on era, culture, and profession
  */
 function calculateAmuletChance(era?: HistoricalEra, culture?: CulturalZone, profession?: string): number {
     let baseChance = 0.35; // 35% base chance
     
     // Era modifiers
     if (era === HistoricalEra.MEDIEVAL) baseChance += 0.20; // +20% for medieval (religious)
-    if (era === HistoricalEra.ANTIQUITY) baseChance += 0.15; // +15% for ancient (amulet culture)
+    if (era === HistoricalEra.ANTIQUITY) baseChance += 0.15; // +15% for ancient (necklace culture)
     if (era === HistoricalEra.RENAISSANCE_EARLY_MODERN) baseChance += 0.10; // +10% for renaissance
     
     // Culture modifiers  
@@ -358,7 +358,7 @@ function calculateAmuletChance(era?: HistoricalEra, culture?: CulturalZone, prof
 }
 
 /**
- * Add a quality adjective to amulet/jewelry names based on privilege level
+ * Add a quality adjective to necklace/jewelry names based on privilege level
  */
 function addQualityAdjective(itemName: string, privilege: number): string {
     // Skip if name already has an adjective
@@ -392,11 +392,11 @@ function addQualityAdjective(itemName: string, privilege: number): string {
 }
 
 /**
- * Select a culturally appropriate amulet based on era, culture, and privilege
+ * Select a culturally appropriate necklace based on era, culture, and privilege
  */
 function selectCulturalAmulet(era: HistoricalEra, culture: CulturalZone, privilege: number): string | null {
-    // Map era/culture to appropriate amulet items
-    const amuletMap: Record<string, string[]> = {
+    // Map era/culture to appropriate necklace items
+    const necklaceMap: Record<string, string[]> = {
         // Medieval combinations
         'MEDIEVAL_EUROPEAN': ['WOODEN_CROSS', 'PRAYER_BEADS', 'SAINTS_MEDAL', 'PILGRIM_BADGE', 'ROPE_NECKLACE'],
         'MEDIEVAL_MENA': ['HAMSA_PENDANT', 'PRAYER_BEADS', 'EVIL_EYE_AMULET', 'CORAL_BEADS'],
@@ -435,16 +435,16 @@ function selectCulturalAmulet(era: HistoricalEra, culture: CulturalZone, privile
     
     // Build key from era and culture
     const key = `${era}_${culture}`;
-    let options = amuletMap[key];
+    let options = necklaceMap[key];
     
     // If no specific match, use defaults based on wealth
     if (!options) {
         if (privilege > 0.7) {
-            options = amuletMap['DEFAULT_WEALTHY'];
+            options = necklaceMap['DEFAULT_WEALTHY'];
         } else if (privilege > 0.3) {
-            options = amuletMap['DEFAULT_COMMON'];
+            options = necklaceMap['DEFAULT_COMMON'];
         } else {
-            options = amuletMap['DEFAULT_POOR'];
+            options = necklaceMap['DEFAULT_POOR'];
         }
     }
     
@@ -640,27 +640,27 @@ export function assembleStartingPackage(
         }
     }
     
-    // Replace generic amulet OR add if missing
-    const shouldReplaceAmulet = !equippedItems.amulet || 
-                                (equippedItems.amulet && GENERIC_ACCESSORIES.includes(equippedItems.amulet.baseId));
+    // Replace generic necklace OR add if missing
+    const shouldReplaceAmulet = !equippedItems.necklace || 
+                                (equippedItems.necklace && GENERIC_ACCESSORIES.includes(equippedItems.necklace.baseId));
     
     if (shouldReplaceAmulet && colorOptions) {
-        const amuletChance = calculateAmuletChance(colorOptions.era, colorOptions.culture, profession);
+        const necklaceChance = calculateAmuletChance(colorOptions.era, colorOptions.culture, profession);
         
-        if (Math.random() < amuletChance) {
-            const amuletId = generateContextualAccessory(profession, {
+        if (Math.random() < necklaceChance) {
+            const necklaceId = generateContextualAccessory(profession, {
                 era: colorOptions.era,
                 culture: colorOptions.culture,
                 privilege: colorOptions.privilege,
-                slot: 'amulet'
+                slot: 'necklace'
             });
             
-            if (amuletId) {
-                const amuletItem = createItemInstance(amuletId);
-                if (amuletItem) {
+            if (necklaceId) {
+                const necklaceItem = createItemInstance(necklaceId);
+                if (necklaceItem) {
                     // Add quality adjective instead of color/material prefix
-                    amuletItem.name = addQualityAdjective(amuletItem.name, colorOptions.privilege || 0.5);
-                    equippedItems.amulet = amuletItem;
+                    necklaceItem.name = addQualityAdjective(necklaceItem.name, colorOptions.privilege || 0.5);
+                    equippedItems.necklace = necklaceItem;
                 }
             }
         }

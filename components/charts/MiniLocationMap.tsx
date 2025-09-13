@@ -246,7 +246,7 @@ const MiniLocationMap: React.FC<MiniLocationMapProps> = ({ continent, region }) 
             height: "100%"
           }}
         >
-          <ZoomableGroup disablePanning disableZooming>
+          <ZoomableGroup disablePanning={true} disableZooming={true}>
             <Geographies geography={geoUrl}>
               {({ geographies }) =>
                 geographies.map((geo) => (

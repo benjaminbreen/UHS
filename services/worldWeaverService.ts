@@ -33,6 +33,53 @@ export interface CharacterSpecification {
   }>;
 }
 
+export interface QuestStage {
+  id: string;
+  description: string;
+  objective: string;
+  locationHint?: string;
+  completionTrigger: 'talk_to_npc' | 'reach_location' | 'obtain_item' | 'survive_days' | 'defeat_enemy';
+  targetId?: string;
+  targetLocation?: [number, number];
+  dialogue?: string[];
+  rewards?: Array<{
+    type: 'item' | 'reputation' | 'skill' | 'knowledge';
+    value: string | number;
+  }>;
+}
+
+export interface QuestNPC {
+  id: string;
+  name: string;
+  role: string;
+  personality: string;
+  appearance?: string;
+  location?: [number, number];
+  profession?: string;
+  stages: {
+    [stageId: string]: {
+      dialogue: string[];
+      givesItem?: string;
+      triggersNextStage?: boolean;
+      requiresItem?: string;
+    };
+  };
+}
+
+export interface WorldWeaverQuest {
+  title: string;
+  description: string;
+  historicalContext: string;
+  stages: QuestStage[];
+  specialNPCs: QuestNPC[];
+  branches?: {
+    [stageId: string]: {
+      choice: string;
+      leadsTo: string; // next stage ID
+    }[];
+  };
+}
+
 export interface WorldWeaverResult {
   success: boolean;
   year?: number;
@@ -47,15 +94,16 @@ export interface WorldWeaverResult {
   gameMode?: GameMode;
   customEvents?: EventArchetype[];
   specialNPCs?: SpecialNPC[];
+  quest?: WorldWeaverQuest; // NEW: The elaborate quest
 }
 
 // Generate the exact list of valid map areas from the game data
 const MAP_AREAS_LIST = generateMapAreaListForPrompt();
-console.log('[WorldWeaverService] Generated map areas list with', MAP_AREAS_LIST.split('\n').length, 'lines');
+// console.log('[WorldWeaverService] Generated map areas list with', MAP_AREAS_LIST.split('\n').length, 'lines');
 
 // Generate list of available diseases for the prompt
 const DISEASE_LIST = DISEASES.map(d => `- ${d.id}: ${d.name} (${d.severity})`).join('\n');
-console.log('[WorldWeaverService] Generated disease list with', DISEASES.length, 'diseases');
+// console.log('[WorldWeaverService] Generated disease list with', DISEASES.length, 'diseases');
 
 const WORLD_WEAVER_PROMPT = `You are WorldWeaver, an AI that converts user prompts into historical game settings and player characters.
 
@@ -157,7 +205,7 @@ If you cannot find a suitable connection or cannot interpret the prompt, return:
 
 class WorldWeaverService {
   async interpretPrompt(userPrompt: string): Promise<WorldWeaverResult> {
-    console.log('[WorldWeaverService] interpretPrompt called with:', userPrompt);
+    // console.log('[WorldWeaverService] interpretPrompt called with:', userPrompt);
     
     if (!userPrompt || userPrompt.trim().length === 0) {
       return {
@@ -172,7 +220,7 @@ class WorldWeaverService {
     // Space keywords
     const spaceKeywords = ['space', 'cosmos', 'galaxy', 'stars', 'planet', 'alien', 'astronaut', 'moon', 'mars', 'asteroid', 'nebula', 'rocket'];
     if (spaceKeywords.some(keyword => lowerPrompt.includes(keyword))) {
-      console.log('[WorldWeaverService] Space easter egg triggered!');
+      // console.log('[WorldWeaverService] Space easter egg triggered!');
       return {
         success: true,
         year: 2150, // Future year for space
@@ -187,7 +235,7 @@ class WorldWeaverService {
     // Heaven keywords
     const heavenKeywords = ['heaven', 'paradise', 'afterlife', 'celestial', 'angels', 'divine', 'ethereal', 'pearly gates'];
     if (heavenKeywords.some(keyword => lowerPrompt.includes(keyword))) {
-      console.log('[WorldWeaverService] Heaven easter egg triggered!');
+      // console.log('[WorldWeaverService] Heaven easter egg triggered!');
       return {
         success: true,
         year: 1350, // Medieval by default
@@ -202,7 +250,7 @@ class WorldWeaverService {
     // Undersea keywords
     const underseaKeywords = ['undersea', 'underwater', 'atlantis', 'ocean depths', 'submarine', 'deep sea', 'merfolk', 'aquatic kingdom'];
     if (underseaKeywords.some(keyword => lowerPrompt.includes(keyword))) {
-      console.log('[WorldWeaverService] Undersea Kingdom easter egg triggered!');
+      // console.log('[WorldWeaverService] Undersea Kingdom easter egg triggered!');
       return {
         success: true,
         year: 1500, // Age of exploration
@@ -217,7 +265,7 @@ class WorldWeaverService {
     // Storm Realm keywords
     const stormKeywords = ['storm', 'tempest', 'maelstrom', 'chaos', 'whirlwind', 'cyclone'];
     if (stormKeywords.some(keyword => lowerPrompt.includes(keyword))) {
-      console.log('[WorldWeaverService] Storm Realm easter egg triggered!');
+      // console.log('[WorldWeaverService] Storm Realm easter egg triggered!');
       return {
         success: true,
         year: 1600,
@@ -232,7 +280,7 @@ class WorldWeaverService {
     // Frozen Wastes keywords
     const frozenKeywords = ['frozen', 'ice realm', 'crystal dimension', 'arctic void', 'eternal winter'];
     if (frozenKeywords.some(keyword => lowerPrompt.includes(keyword))) {
-      console.log('[WorldWeaverService] Frozen Wastes easter egg triggered!');
+      // console.log('[WorldWeaverService] Frozen Wastes easter egg triggered!');
       return {
         success: true,
         year: 1800,
@@ -247,7 +295,7 @@ class WorldWeaverService {
     // Typhoon Realm keywords
     const typhoonKeywords = ['typhoon', 'hurricane', 'tropical storm', 'monsoon'];
     if (typhoonKeywords.some(keyword => lowerPrompt.includes(keyword))) {
-      console.log('[WorldWeaverService] Typhoon Realm easter egg triggered!');
+      // console.log('[WorldWeaverService] Typhoon Realm easter egg triggered!');
       return {
         success: true,
         year: 1900,
@@ -263,7 +311,7 @@ class WorldWeaverService {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const fullPrompt = WORLD_WEAVER_PROMPT + `\n\nUser prompt: "${userPrompt}"\n\nCreate a historical setting or explain why you cannot.`;
       
-      console.log('[WorldWeaverService] Sending to LLM...');
+      // console.log('[WorldWeaverService] Sending to LLM...');
       const result = await ai.models.generateContent({ 
         model: 'gemini-2.5-flash-lite', 
         contents: fullPrompt,
@@ -274,20 +322,20 @@ class WorldWeaverService {
       });
       
       let response = result.text;
-      console.log('[WorldWeaverService] Raw LLM response:', response);
+      // console.log('[WorldWeaverService] Raw LLM response:', response);
       
       // Track API call with input/output
       eventService.trackAPICall(fullPrompt, response);
-      console.log('[WorldWeaverService] API call tracked with history');
+      // console.log('[WorldWeaverService] API call tracked with history');
       
       // Remove markdown code blocks if present
       response = response.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-      console.log('[WorldWeaverService] Cleaned response:', response);
+      // console.log('[WorldWeaverService] Cleaned response:', response);
 
       // Parse the JSON response
       try {
         const result = JSON.parse(response);
-        console.log('[WorldWeaverService] Parsed result:', result);
+        // console.log('[WorldWeaverService] Parsed result:', result);
         
         if (result.success) {
           // Validate that the map area is actually valid
@@ -394,15 +442,21 @@ class WorldWeaverService {
       // Set the game mode in the event service
       eventService.setGameMode(gameMode);
       
-      // Skip custom event and NPC generation for now - they're not being used
-      // and are slowing down the WorldWeaver significantly
-      console.log('[WorldWeaverService] Skipping custom event/NPC generation for performance');
+      // Generate an elaborate quest based on the scenario
+      const quest = await this.generateQuest(
+        userPrompt,
+        baseResult.year!,
+        baseResult.mapArea!,
+        baseResult.characterSpec,
+        gameMode
+      );
       
       return {
         ...baseResult,
         gameMode,
-        customEvents: [], // Empty for now
-        specialNPCs: [] // Empty for now
+        quest,
+        customEvents: [], // Empty for now - quest replaces this
+        specialNPCs: [] // Empty for now - quest NPCs replace this
       };
     } catch (error) {
       console.error('[WorldWeaverService] Error generating scenario:', error);
@@ -507,6 +561,147 @@ class WorldWeaverService {
     if (characterSpec.socialClass) parts.push(`${characterSpec.socialClass} class`);
     
     return parts.join(', ') || 'An ordinary person';
+  }
+
+  /**
+   * Generate an elaborate, historically-grounded quest
+   */
+  async generateQuest(
+    userPrompt: string,
+    year: number,
+    location: string,
+    characterSpec?: CharacterSpecification,
+    gameMode?: GameMode
+  ): Promise<WorldWeaverQuest | undefined> {
+    console.log('[WorldWeaverService] Generating quest for:', { year, location, gameMode: gameMode?.name });
+    
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      
+      const prompt = `
+You are creating a rich, multi-stage quest for an educational history simulation game.
+
+CONTEXT:
+- Year: ${year}
+- Location: ${location}
+- Player Character: ${characterSpec ? `${characterSpec.profession || 'commoner'}, ${characterSpec.socialClass || 'commoner'} class` : 'ordinary person'}
+- Game Mode: ${gameMode?.name || 'Survival'}
+- Original Request: "${userPrompt}"
+
+TASK: Create a historically accurate, branching quest with multiple stages and special NPCs.
+
+REQUIREMENTS:
+1. The quest MUST be specific to ${location} in ${year}
+2. Include real historical events, tensions, or situations from that time/place
+3. Create 4-6 quest stages with clear objectives
+4. Design 2-3 special NPCs who are integral to the quest
+5. Include branching paths where player choices matter
+6. NPCs should have period-appropriate names and occupations
+7. Dialogue should feel authentic to the era (but in modern English)
+
+QUEST STRUCTURE:
+- Title: Compelling and specific (not generic)
+- Description: 2-3 sentences setting up the situation
+- Historical Context: 1-2 sentences of real history
+- Stages: Each with clear objectives and progression
+- NPCs: Characters with personalities and roles in the story
+
+IMPORTANT STAGE TYPES:
+- "talk_to_npc": Player must find and speak with specific NPC
+- "obtain_item": Player must acquire specific item(s)
+- "reach_location": Player must travel to coordinates
+- "survive_days": Player must survive for X days
+- "defeat_enemy": Player must overcome antagonist
+
+Return JSON only:
+{
+  "title": "Quest title",
+  "description": "2-3 sentence setup",
+  "historicalContext": "Real historical context",
+  "stages": [
+    {
+      "id": "stage1",
+      "description": "What's happening",
+      "objective": "What player must do",
+      "locationHint": "Where to go (optional)",
+      "completionTrigger": "talk_to_npc|obtain_item|reach_location|survive_days|defeat_enemy",
+      "targetId": "npc_id or item_id (if applicable)",
+      "dialogue": ["Line 1", "Line 2"],
+      "rewards": [{"type": "item|reputation", "value": "item_name or amount"}]
+    }
+  ],
+  "specialNPCs": [
+    {
+      "id": "npc1",
+      "name": "Full Name",
+      "role": "Their role in the quest",
+      "personality": "Brief personality",
+      "profession": "Their job",
+      "stages": {
+        "stage1": {
+          "dialogue": ["What they say in stage 1"],
+          "triggersNextStage": true/false,
+          "givesItem": "item_id (optional)"
+        }
+      }
+    }
+  ],
+  "branches": {
+    "stage2": [
+      {"choice": "Help the merchant", "leadsTo": "stage3a"},
+      {"choice": "Report to authorities", "leadsTo": "stage3b"}
+    ]
+  }
+}`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        generationConfig: {
+          temperature: 0.8,
+          maxOutputTokens: 1500
+        }
+      });
+
+      let result = response.text;
+      console.log('[WorldWeaverService] Quest generation response:', result);
+      
+      // Track API call
+      eventService.trackAPICall(prompt, result);
+      
+      // Clean and parse response
+      result = result.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+      const quest = JSON.parse(result) as WorldWeaverQuest;
+      
+      console.log('[WorldWeaverService] Generated quest with', quest.stages.length, 'stages and', quest.specialNPCs.length, 'NPCs');
+      return quest;
+      
+    } catch (error) {
+      console.error('[WorldWeaverService] Failed to generate quest:', error);
+      // Return a simple fallback quest
+      return {
+        title: 'Survive the Times',
+        description: `Life in ${location} during ${year} is challenging. Find a way to survive and thrive.`,
+        historicalContext: `${location} in ${year} was a time of change and uncertainty.`,
+        stages: [
+          {
+            id: 'stage1',
+            description: 'Find someone who knows the local situation',
+            objective: 'Talk to a local resident',
+            completionTrigger: 'talk_to_npc',
+            dialogue: ['These are difficult times...', 'You should be careful around here.']
+          },
+          {
+            id: 'stage2', 
+            description: 'Secure basic necessities',
+            objective: 'Obtain food and shelter',
+            completionTrigger: 'obtain_item',
+            targetId: 'food'
+          }
+        ],
+        specialNPCs: []
+      };
+    }
   }
 
   /**

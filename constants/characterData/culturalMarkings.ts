@@ -20,7 +20,7 @@ export interface MarkingPattern {
 
 export interface CulturalMarking {
   baseId: string;
-  type: 'tattoo' | 'paint' | 'scarification' | 'piercing' | 'brand' | 'henna' | 'ash';
+  type: 'tattoo' | 'paint' | 'scarification' | 'piercing' | 'brand' | 'henna' | 'ash' | 'structural';
   culturalZones: CulturalZone[];
   eras?: HistoricalEra[];
   patterns: MarkingPattern[];
@@ -809,7 +809,7 @@ export const CULTURAL_MARKINGS: CulturalMarking[] = [
   },
   {
     baseId: 'EAR_STRETCHING',
-    type: 'piercing',
+    type: 'structural',
     culturalZones: ['SUB_SAHARAN_AFRICAN', 'OCEANIA', 'SOUTH_AMERICAN'],
     patterns: [
       {
@@ -835,13 +835,13 @@ export const CULTURAL_MARKINGS: CulturalMarking[] = [
   // Lip plates - Mursi, Suri (Ethiopia), Kayapó (Brazil), Sara-Kaba (Chad)
   {
     baseId: 'LIP_PLATE',
-    type: 'piercing',
+    type: 'structural',
     culturalZones: ['SUB_SAHARAN_AFRICAN', 'SOUTH_AMERICAN'],
     patterns: [
       {
         id: 'lower_lip_plate',
-        name: 'Lower Lip Plate',
-        localName: 'Dhebi a Tugoin', // Mursi term
+        name: 'Lip Plate', // Generic name
+        localName: 'Dhebi a Tugoin', // Mursi term preserved
         description: 'Clay or wooden disc inserted in lower lip',
         pattern: 'plate',
         locations: ['chin'], // Lower lip area
@@ -861,13 +861,13 @@ export const CULTURAL_MARKINGS: CulturalMarking[] = [
   // Neck rings/coils - Kayan (Myanmar/Thailand), Ndebele (South Africa)
   {
     baseId: 'NECK_RINGS',
-    type: 'piercing', // Using piercing type for structural mods
+    type: 'structural', // Proper structural modification type
     culturalZones: ['SUB_SAHARAN_AFRICAN', 'EAST_ASIAN'],
     patterns: [
       {
         id: 'brass_neck_coils',
-        name: 'Neck Rings',
-        localName: 'Dzilla', // Ndebele term
+        name: 'Neck Rings', // Generic name for cross-cultural use
+        localName: 'Dzilla', // Ndebele term preserved as metadata
         description: 'Brass or copper coils worn around neck',
         pattern: 'coils',
         locations: ['neck'],
@@ -915,7 +915,7 @@ export const CULTURAL_MARKINGS: CulturalMarking[] = [
   // Tooth filing/sharpening - Bali, Maya, various African cultures
   {
     baseId: 'TOOTH_FILING',
-    type: 'scarification', // Permanent body modification
+    type: 'structural', // Permanent dental modification
     culturalZones: ['OCEANIA', 'SUB_SAHARAN_AFRICAN', 'SOUTH_AMERICAN'],
     patterns: [
       {
@@ -940,7 +940,7 @@ export const CULTURAL_MARKINGS: CulturalMarking[] = [
   // Tooth inlays - Maya jade, Filipino gold
   {
     baseId: 'TOOTH_INLAY',
-    type: 'piercing', // Permanent modification
+    type: 'structural', // Permanent dental modification
     culturalZones: ['SOUTH_AMERICAN', 'OCEANIA'],
     eras: ['ANTIQUITY', 'MEDIEVAL'],
     patterns: [
@@ -965,7 +965,7 @@ export const CULTURAL_MARKINGS: CulturalMarking[] = [
   // Cranial modification - Maya, Inca, Huns, some African groups
   {
     baseId: 'CRANIAL_SHAPING',
-    type: 'scarification', // Permanent modification
+    type: 'structural', // Proper structural modification
     culturalZones: ['SOUTH_AMERICAN', 'NORTH_AMERICAN_PRE_COLUMBIAN'],
     eras: ['PREHISTORY', 'ANTIQUITY', 'MEDIEVAL'],
     patterns: [
@@ -1017,7 +1017,7 @@ export const CULTURAL_MARKINGS: CulturalMarking[] = [
   // Cheek plugs/discs - Various Amazon tribes
   {
     baseId: 'CHEEK_PLUGS',
-    type: 'piercing',
+    type: 'structural',
     culturalZones: ['SOUTH_AMERICAN'],
     patterns: [
       {
@@ -1067,7 +1067,7 @@ export const CULTURAL_MARKINGS: CulturalMarking[] = [
   // Subincision - Australian Aboriginal initiation
   {
     baseId: 'SUBINCISION',
-    type: 'scarification',
+    type: 'structural',
     culturalZones: ['OCEANIA'],
     patterns: [
       {
@@ -1092,7 +1092,7 @@ export const CULTURAL_MARKINGS: CulturalMarking[] = [
   // Foot binding - Chinese practice (Song to early 20th century)
   {
     baseId: 'FOOT_BINDING',
-    type: 'scarification', // Permanent modification
+    type: 'structural', // Permanent structural modification
     culturalZones: ['EAST_ASIAN'],
     eras: ['MEDIEVAL', 'RENAISSANCE_EARLY_MODERN', 'INDUSTRIAL_ERA'],
     patterns: [
@@ -1207,8 +1207,21 @@ export function convertToAppearanceMarking(
   // Map cultural patterns to renderer-compatible patterns
   let rendererPattern = pattern.pattern;
   
-  // Fix pattern mapping for specific cultural types
-  if (marking.type === 'tattoo') {
+  // Handle structural modifications (neck rings, lip plates, etc.)
+  if (marking.type === 'structural') {
+    return {
+      type: 'structural',
+      location: location,
+      color: pattern.colors[0] || '#B8860B', // Default brass/gold
+      size: pattern.size,
+      pattern: pattern.pattern, // Keep original pattern (coils, plate, etc.)
+      name: pattern.name, // Use generic name, not localName
+      localName: pattern.localName, // Preserve cultural name as metadata
+      isPermanent: marking.isPermanent,
+      duration: marking.duration,
+      culturalSignificance: marking.culturalSignificance
+    };
+  } else if (marking.type === 'tattoo') {
     // Map tattoo patterns to renderer-expected names
     if (pattern.pattern === 'maori_spiral' || pattern.pattern === 'maori_full') {
       rendererPattern = pattern.pattern; // Keep as-is

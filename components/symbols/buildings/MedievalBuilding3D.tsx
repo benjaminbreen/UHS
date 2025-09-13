@@ -14,44 +14,49 @@ const MedievalBuilding3D: React.FC<MedievalBuilding3DProps> = React.memo(({ x, y
     const uniqueId = `medieval-${tile.x}-${tile.y}`;
     const hasJetty = rand() > 0.5 && height > size * 0.5;
     const elements = [];
+    
+    // Validate dimensions to prevent negative values
+    const safeWidth = Math.max(1, width);
+    const safeHeight = Math.max(1, height);
+    const safeSize = Math.max(1, size);
 
     const wallColor = `hsl(45, 30%, ${85 + rand() * 10}%)`;
     const woodColor = `hsl(25, 45%, 30%)`;
     const thatchHighlight = `hsl(45, 50%, 70%)`;
     const outlineColor = `hsl(25, 45%, 20%)`;
-    const depth = size * 0.3;
-    const roofPitch = height * 0.5;
+    const depth = safeSize * 0.3;
+    const roofPitch = safeHeight * 0.5;
     
     // Cast Shadow
     elements.push(
-      <path key="shadow-soft" d={`M ${x + depth * 0.5} ${y + height + depth * 0.2} l ${width} 0 l ${-depth*0.5} ${depth*0.3} l ${-width} 0 Z`} fill="rgba(0,0,0,0.2)" />,
-      <path key="shadow-hard" d={`M ${x + depth} ${y + height + depth * 0.5} L ${x + width + depth} ${y + height + depth * 0.5} L ${x + width} ${y + height} L ${x} ${y + height} Z`} fill="rgba(0,0,0,0.15)" filter="url(#buildingShadow)" />
+      <path key="shadow-soft" d={`M ${x + depth * 0.5} ${y + safeHeight + depth * 0.2} l ${safeWidth} 0 l ${-depth*0.5} ${depth*0.3} l ${-safeWidth} 0 Z`} fill="rgba(0,0,0,0.2)" />,
+      <path key="shadow-hard" d={`M ${x + depth} ${y + safeHeight + depth * 0.5} L ${x + safeWidth + depth} ${y + safeHeight + depth * 0.5} L ${x + safeWidth} ${y + safeHeight} L ${x} ${y + safeHeight} Z`} fill="rgba(0,0,0,0.15)" filter="url(#buildingShadow)" />
     );
 
-    const groundFloorHeight = hasJetty ? height * 0.5 : height;
-    const groundFloorY = y + (hasJetty ? height * 0.5 : 0);
+    const groundFloorHeight = hasJetty ? safeHeight * 0.5 : safeHeight;
+    const groundFloorY = y + (hasJetty ? safeHeight * 0.5 : 0);
 
     // Ground Floor
-    elements.push(<rect key="g-wall" x={x} y={groundFloorY} width={width} height={groundFloorHeight} fill={`url(#wattlePattern-${uniqueId})`} />);
-    elements.push(<path key="g-side" d={`M ${x+width} ${groundFloorY} L ${x+width+depth} ${groundFloorY-depth*0.5} L ${x+width+depth} ${y+height-depth*0.5} L ${x+width} ${y+height} Z`} fill={`url(#wattlePattern-${uniqueId})`} style={{filter: 'brightness(0.7)'}} />);
+    elements.push(<rect key="g-wall" x={x} y={groundFloorY} width={safeWidth} height={groundFloorHeight} fill={`url(#wattlePattern-${uniqueId})`} />);
+    elements.push(<path key="g-side" d={`M ${x+safeWidth} ${groundFloorY} L ${x+safeWidth+depth} ${groundFloorY-depth*0.5} L ${x+safeWidth+depth} ${y+safeHeight-depth*0.5} L ${x+safeWidth} ${y+safeHeight} Z`} fill={`url(#wattlePattern-${uniqueId})`} style={{filter: 'brightness(0.7)'}} />);
     
     // Upper Floor (Jettied)
     if (hasJetty) {
-        const jettyWidth = width * 1.15;
-        const jettyX = x - (jettyWidth - width)/2;
+        const jettyWidth = safeWidth * 1.15;
+        const jettyX = x - (jettyWidth - safeWidth)/2;
         const jettyY = y;
-        const jettyHeight = height * 0.5;
+        const jettyHeight = safeHeight * 0.5;
         const jettyDepth = depth * 1.15;
 
         elements.push(<rect key="u-wall" x={jettyX} y={jettyY} width={jettyWidth} height={jettyHeight} fill={`url(#wattlePattern-${uniqueId})`} />);
         elements.push(<path key="u-side" d={`M ${jettyX+jettyWidth} ${jettyY} L ${jettyX+jettyWidth+jettyDepth} ${jettyY-jettyDepth*0.5} L ${jettyX+jettyWidth+jettyDepth} ${jettyY+jettyHeight-jettyDepth*0.5} L ${jettyX+jettyWidth} ${jettyY+jettyHeight} Z`} fill={`url(#wattlePattern-${uniqueId})`} style={{filter: 'brightness(0.7)'}} />);
         
         // Jetty supports
-        elements.push(<rect key="jetty-support" x={x-1} y={y+jettyHeight} width={width+2} height={3} fill={woodColor} stroke={outlineColor} strokeWidth="0.3"/>);
+        elements.push(<rect key="jetty-support" x={x-1} y={y+jettyHeight} width={safeWidth+2} height={3} fill={woodColor} stroke={outlineColor} strokeWidth="0.3"/>);
     }
     
     const roofY = hasJetty ? y : y;
-    const roofWidth = hasJetty ? width * 1.25 : width + 6;
+    const roofWidth = hasJetty ? safeWidth * 1.25 : safeWidth + 6;
     const roofX = hasJetty ? x - (roofWidth - width) / 2 : x - 3;
     const roofDepth = hasJetty ? depth * 1.15 : depth;
 
@@ -63,27 +68,27 @@ const MedievalBuilding3D: React.FC<MedievalBuilding3DProps> = React.memo(({ x, y
     if (hasTimberFrame) {
         const timberStroke = `hsl(25, 45%, 15%)`;
         // Ground Floor
-        elements.push(<rect key="g-tf-h1" x={x} y={groundFloorY} width={width} height={2} fill={woodColor} stroke={timberStroke} strokeWidth="0.2"/>);
-        elements.push(<rect key="g-tf-h2" x={x} y={y+height-2} width={width} height={2} fill={woodColor} stroke={timberStroke} strokeWidth="0.2"/>);
+        elements.push(<rect key="g-tf-h1" x={x} y={groundFloorY} width={safeWidth} height={2} fill={woodColor} stroke={timberStroke} strokeWidth="0.2"/>);
+        elements.push(<rect key="g-tf-h2" x={x} y={y+safeHeight-2} width={safeWidth} height={2} fill={woodColor} stroke={timberStroke} strokeWidth="0.2"/>);
         elements.push(<rect key="g-tf-v1" x={x} y={groundFloorY} width={2} height={groundFloorHeight} fill={woodColor} stroke={timberStroke} strokeWidth="0.2"/>);
-        elements.push(<rect key="g-tf-v2" x={x+width-2} y={groundFloorY} width={2} height={groundFloorHeight} fill={woodColor} stroke={timberStroke} strokeWidth="0.2"/>);
-        if(rand() > 0.5) elements.push(<path key="g-tf-d" d={`M ${x} ${y+height} L ${x+width} ${groundFloorY}`} stroke={woodColor} strokeWidth="2.5" />);
+        elements.push(<rect key="g-tf-v2" x={x+safeWidth-2} y={groundFloorY} width={2} height={groundFloorHeight} fill={woodColor} stroke={timberStroke} strokeWidth="0.2"/>);
+        if(rand() > 0.5) elements.push(<path key="g-tf-d" d={`M ${x} ${y+safeHeight} L ${x+safeWidth} ${groundFloorY}`} stroke={woodColor} strokeWidth="2.5" />);
         
         if(hasJetty) {
             const jettyWidth = width * 1.15;
             const jettyX = x - (jettyWidth - width)/2;
             elements.push(<rect key="u-tf-h1" x={jettyX} y={y} width={jettyWidth} height={2} fill={woodColor} stroke={timberStroke} strokeWidth="0.2"/>);
-            elements.push(<rect key="u-tf-h2" x={jettyX} y={y+height*0.5-2} width={jettyWidth} height={2} fill={woodColor} stroke={timberStroke} strokeWidth="0.2"/>);
-            elements.push(<rect key="u-tf-v1" x={jettyX} y={y} width={2} height={height*0.5} fill={woodColor} stroke={timberStroke} strokeWidth="0.2"/>);
-            elements.push(<rect key="u-tf-v2" x={jettyX+jettyWidth-2} y={y} width={2} height={height*0.5} fill={woodColor} stroke={timberStroke} strokeWidth="0.2"/>);
-            if(rand() > 0.5) elements.push(<path key="u-tf-d" d={`M ${jettyX} ${y} L ${jettyX+jettyWidth} ${y+height*0.5}`} stroke={woodColor} strokeWidth="2.5" />);
+            elements.push(<rect key="u-tf-h2" x={jettyX} y={y+safeHeight*0.5-2} width={jettyWidth} height={2} fill={woodColor} stroke={timberStroke} strokeWidth="0.2"/>);
+            elements.push(<rect key="u-tf-v1" x={jettyX} y={y} width={2} height={safeHeight*0.5} fill={woodColor} stroke={timberStroke} strokeWidth="0.2"/>);
+            elements.push(<rect key="u-tf-v2" x={jettyX+jettyWidth-2} y={y} width={2} height={safeHeight*0.5} fill={woodColor} stroke={timberStroke} strokeWidth="0.2"/>);
+            if(rand() > 0.5) elements.push(<path key="u-tf-d" d={`M ${jettyX} ${y} L ${jettyX+jettyWidth} ${y+safeHeight*0.5}`} stroke={woodColor} strokeWidth="2.5" />);
         }
     }
       
     // Door
-    const doorHeight = groundFloorHeight * 0.6;
-    const doorWidth = width * 0.25;
-    elements.push(<rect x={x + width/2 - doorWidth/2} y={y + height - doorHeight} width={doorWidth} height={doorHeight} fill={woodColor} stroke="black" strokeWidth="0.4"/>);
+    const doorHeight = Math.max(1, groundFloorHeight * 0.6);
+    const doorWidth = Math.max(1, safeWidth * 0.25);
+    elements.push(<rect key="door" x={x + safeWidth/2 - doorWidth/2} y={y + safeHeight - doorHeight} width={doorWidth} height={doorHeight} fill={woodColor} stroke="black" strokeWidth="0.4"/>);
     
     return (
         <g filter="url(#symbolShadow)">

@@ -84,6 +84,7 @@ export function proceduralGenerateMap(
   bayOutlet?: 'north' | 'south' | 'east' | 'west',
   deltaOutlet?: 'north' | 'south' | 'east' | 'west'
 ): MapData {
+  const startTime = performance.now(); // Track generation time
   console.log(`[Gen] Starting map generation - Seed: ${seed}, Archetype: ${archetype}, Climate: ${climate}`);
   
   const landNoise = new ValueNoise(seed);
@@ -142,7 +143,7 @@ export function proceduralGenerateMap(
     determinedHarborSide = Math.floor(featurePlacementNoise.random() * 4);
   }
 
-  console.log("[Gen] Phase 1: Basic landmass generation - START");
+  // console.log("[Gen] Phase 1: Basic landmass generation - START");
   const mapShortSide = Math.min(MAP_WIDTH_TILES, MAP_HEIGHT_TILES);
 
   // Economic Activity Level check: If 0, generate a map with no people/structures
@@ -546,10 +547,10 @@ export function proceduralGenerateMap(
       };
     }
   }
-  console.log("[Gen] Phase 1: Basic landmass generation - END");
+  // console.log("[Gen] Phase 1: Basic landmass generation - END");
   
   if (archetype === MapArchetype.BAY) {
-    console.log("[Gen] Carving BAY opening channel - START");
+    // console.log("[Gen] Carving BAY opening channel - START");
     const bayOpeningEdge = determinedHarborSide !== undefined ? determinedHarborSide : Math.floor(bayShapeNoise.random() * 4);
     const bayOpeningWidthChannel = Math.max(4, Math.floor(mapShortSide * BAY_OPENING_WIDTH_FACTOR * 0.7)); 
     const bayCoreTargetX = MAP_WIDTH_TILES / 2;
@@ -592,13 +593,13 @@ export function proceduralGenerateMap(
             }
         }
     }
-    console.log("[Gen] Carving BAY opening channel - END");
+    // console.log("[Gen] Carving BAY opening channel - END");
   }
 
 
   // Clean up lake edges for FRESHWATER_LAKE archetype
   if (archetype === MapArchetype.FRESHWATER_LAKE) {
-    console.log("[Gen] Phase 1.5: Lake edge cleanup - START");
+    // console.log("[Gen] Phase 1.5: Lake edge cleanup - START");
     // Remove isolated water/land patches to create cleaner lake boundaries
     for (let pass = 0; pass < 2; pass++) {
       for (let y = 1; y < MAP_HEIGHT_TILES - 1; y++) {
@@ -636,16 +637,16 @@ export function proceduralGenerateMap(
         }
       }
     }
-    console.log("[Gen] Phase 1.5: Lake edge cleanup - END");
+    // console.log("[Gen] Phase 1.5: Lake edge cleanup - END");
   }
 
-  console.log("[Gen] Phase 2: Altitude and biome assignment - START");
+  // console.log("[Gen] Phase 2: Altitude and biome assignment - START");
   generateAltitudeAndInitialBiomes(tiles, altitudeNoiseGen, biomeVariationNoise, archetype, altitudeSetting, archetype === MapArchetype.DELTA ? oceanEdgeForDelta : determinedHarborSide, neighboringEdges, hasLakes);
-  console.log("[Gen] Phase 2: Altitude and biome assignment - END");
+  // console.log("[Gen] Phase 2: Altitude and biome assignment - END");
   
-  console.log("[Gen] Phase 2.5: Volcanic Complex Generation - START");
+  // console.log("[Gen] Phase 2.5: Volcanic Complex Generation - START");
   generateVolcanicComplex(tiles, temperatureNoise, featurePlacementNoise, archetype, forceVolcanic);
-  console.log("[Gen] Phase 2.5: Volcanic Complex Generation - END");
+  // console.log("[Gen] Phase 2.5: Volcanic Complex Generation - END");
 
 
   // Special handling for ethereal realms - use special biomes
@@ -707,23 +708,23 @@ export function proceduralGenerateMap(
     }
   } else {
     // Normal generation for regular zones
-    console.log("[Gen] Phase 3: Climate-specific biome modifications - START");
+    // console.log("[Gen] Phase 3: Climate-specific biome modifications - START");
     applyClimateBiomeChanges(tiles, climate, humidityNoise, desertificationNoise, biomeVariationNoise, featurePlacementNoise);
-    console.log("[Gen] Phase 3: Climate-specific biome modifications - END");
+    // console.log("[Gen] Phase 3: Climate-specific biome modifications - END");
     
-    console.log("[Gen] Phase 3.5: Climate-Enhanced Biome Generation - START");
+    // console.log("[Gen] Phase 3.5: Climate-Enhanced Biome Generation - START");
     generateClimateEnhancedBiomes(tiles, climate, archetype, temperatureNoise, humidityNoise, featurePlacementNoise);
-    console.log("[Gen] Phase 3.5: Climate-Enhanced Biome Generation - END");
+    // console.log("[Gen] Phase 3.5: Climate-Enhanced Biome Generation - END");
 
 
-    console.log("[Gen] Phase 4: Dense forest generation - START");
+    // console.log("[Gen] Phase 4: Dense forest generation - START");
     generateDenseForests(tiles, climate, humidityNoise, biomeVariationNoise, featurePlacementNoise);
-    console.log("[Gen] Phase 4: Dense forest generation - END");
+    // console.log("[Gen] Phase 4: Dense forest generation - END");
   }
 
-  console.log("[Gen] Phase 5: Coastline processing - START");
+  // console.log("[Gen] Phase 5: Coastline processing - START");
   updateCoastlinesAndShallowOceans(tiles, featurePlacementNoise, archetype, neighboringEdges);
-  console.log("[Gen] Phase 5: Coastline processing - END");
+  // console.log("[Gen] Phase 5: Coastline processing - END");
 
 
   if (generateHarborFlag && ![MapArchetype.OPEN_OCEAN, MapArchetype.FRESHWATER_LAKE, MapArchetype.ATOLL, MapArchetype.SHOALS, MapArchetype.ALL_LAND].includes(archetype)) {
@@ -733,7 +734,7 @@ export function proceduralGenerateMap(
     console.log("[Gen] Phase 6a: Harbor generation - END");
   }
   
-  console.log("[Gen] Phase 7: Enhanced river generation - START");
+  // console.log("[Gen] Phase 7: Enhanced river generation - START");
   const oceanEdgeForDeltaRiver = (archetype === MapArchetype.DELTA) ? (seed % 4) : undefined;
   let mainRiverPortSource: Point | null = null;
 
@@ -1084,31 +1085,31 @@ export function proceduralGenerateMap(
   }
   
   updateCoastlinesAndShallowOceans(tiles, featurePlacementNoise, archetype, neighboringEdges); 
-  console.log("[Gen] Phase 7: Enhanced river generation - END");
+  // console.log("[Gen] Phase 7: Enhanced river generation - END");
 
-  console.log("[Gen] Phase 8: Riverbank generation - START");
+  // console.log("[Gen] Phase 8: Riverbank generation - START");
   generateRiverbanks(tiles, featurePlacementNoise);
-  console.log("[Gen] Phase 8: Riverbank generation - END");
+  // console.log("[Gen] Phase 8: Riverbank generation - END");
   
-  console.log("[Gen] Phase 8.5: Estuary Generation - START");
+  // console.log("[Gen] Phase 8.5: Estuary Generation - START");
   generateEstuaries(tiles, archetype, featurePlacementNoise);
   updateCoastlinesAndShallowOceans(tiles, featurePlacementNoise, archetype, neighboringEdges); 
-  console.log("[Gen] Phase 8.5: Estuary Generation - END");
+  // console.log("[Gen] Phase 8.5: Estuary Generation - END");
 
 
-  console.log("[Gen] Phase 9: Special biome features (Wetlands, Oases, Reefs) - START");
+  // console.log("[Gen] Phase 9: Special biome features (Wetlands, Oases, Reefs) - START");
   generateWetlands(tiles, climate, humidityNoise, featurePlacementNoise, archetype);
   generateOases(tiles, climate, featurePlacementNoise);
   generateReefs(tiles, climate, archetype, featurePlacementNoise);
-  console.log("[Gen] Phase 9: Special biome features - END");
+  // console.log("[Gen] Phase 9: Special biome features - END");
   
-  console.log("[Gen] Phase 9.5: Special Terrain Tiles (Salt Flats, Hot Springs, Shoals) - START");
+  // console.log("[Gen] Phase 9.5: Special Terrain Tiles (Salt Flats, Hot Springs, Shoals) - START");
   generateSpecialTerrainTiles(tiles, climate, humidityNoise, altitudeNoiseGen, thermalNoise, featurePlacementNoise, archetype);
-  console.log("[Gen] Phase 9.5: Special Terrain Tiles - END");
+  // console.log("[Gen] Phase 9.5: Special Terrain Tiles - END");
   
-  console.log("[Gen] Phase 9.75: Climate-Aware Map Stitching - START");
+  // console.log("[Gen] Phase 9.75: Climate-Aware Map Stitching - START");
   applyClimateTransitions(tiles, climate, localArea);
-  console.log("[Gen] Phase 9.75: Climate-Aware Map Stitching - END");
+  // console.log("[Gen] Phase 9.75: Climate-Aware Map Stitching - END");
 
   let mapDataObject: MapData = { 
     width: MAP_WIDTH_TILES, 
@@ -1131,11 +1132,11 @@ export function proceduralGenerateMap(
     majorCity: localArea ? generateCityInfo(localArea, timeSlice || "1650", dominantPower, seed, culturalZone) : undefined,
   };
 
-  console.log("[Gen] Phase 9.6: Stream Generation - START");
+  // console.log("[Gen] Phase 9.6: Stream Generation - START");
   generateStreams(mapDataObject, featurePlacementNoise, archetype, oceanEdgeForDelta);
-  console.log("[Gen] Phase 9.6: Stream Generation - END");
+  // console.log("[Gen] Phase 9.6: Stream Generation - END");
 
-  console.log("[Gen] Phase 10: Urban area generation - START");
+  // console.log("[Gen] Phase 10: Urban area generation - START");
   console.log(`[Gen] Urban generation check: economicActivityLevel=${generationParams?.economicActivityLevel}, localArea="${localArea}", region="${region}"`);
   
   // Skip urban areas in ethereal realms
@@ -1149,25 +1150,25 @@ export function proceduralGenerateMap(
       // Pass both region (for historical cities) and localArea (for procedural cities)
       generateUrbanAreas(tiles, featurePlacementNoise, archetype, determinedHarborSide, generateLargeCityFlag, generationParams?.economicActivityLevel, dateInfo.year, region, localArea, timeSlice, dominantPower, culturalZone);
   }
-  console.log("[Gen] Phase 10: Urban area generation - END");
+  // console.log("[Gen] Phase 10: Urban area generation - END");
   
   // NEW: Generate marketplace names after urban areas are placed
   mapDataObject.marketplaces = generateMarketplaceNames(mapDataObject);
 
-  console.log("[Gen] Phase 10.5: Farmland and Ruins Generation - START");
+  // console.log("[Gen] Phase 10.5: Farmland and Ruins Generation - START");
   // Skip structures in ethereal realms
   if (!etherealRealms.includes(localArea)) {
     generateFarmland(mapDataObject, featurePlacementNoise, continent, timeSlice, societalProfile);
     const ruins = generateRuins(tiles, featurePlacementNoise, societalProfile, mapDataObject);
     if (ruins.length > 0) mapDataObject.terrainStructures!.push(...ruins);
   }
-  console.log("[Gen] Phase 10.5: Farmland and Ruins Generation - END");
+  // console.log("[Gen] Phase 10.5: Farmland and Ruins Generation - END");
   
-  console.log("[Gen] Phase 11: Tile qualities calculation - START");
+  // console.log("[Gen] Phase 11: Tile qualities calculation - START");
   calculateTileQualities(tiles, climate, archetype, qualitiesNoise, microVariationNoise);
-  console.log("[Gen] Phase 11: Tile qualities calculation - END");
+  // console.log("[Gen] Phase 11: Tile qualities calculation - END");
   
-  console.log("[Gen] Phase 11.1: Mineral deposit generation - START");
+  // console.log("[Gen] Phase 11.1: Mineral deposit generation - START");
   generateMineralDeposits(mapDataObject, qualitiesNoise);
   const mineralDeposits = tiles.flat().filter(t => t.mineralDeposit);
   if(mineralDeposits.length > 0) {
@@ -1180,10 +1181,10 @@ export function proceduralGenerateMap(
           console.log(`  - ${type}: ${count} deposits`);
       });
   }
-  console.log("[Gen] Phase 11.1: Mineral deposit generation - END");
+  // console.log("[Gen] Phase 11.1: Mineral deposit generation - END");
 
 
-  console.log("[Gen] Phase 11.5: POI Generation (Post-Qualities) - START");
+  // console.log("[Gen] Phase 11.5: POI Generation (Post-Qualities) - START");
   // Skip POIs in ethereal realms
   if (!etherealRealms.includes(localArea)) {
     const palaces = generatePalaces(tiles, featurePlacementNoise, societalProfile, mapDataObject);
@@ -1191,9 +1192,9 @@ export function proceduralGenerateMap(
     if (palaces.length > 0) mapDataObject.terrainStructures!.push(...palaces);
     if (holyPlaces.length > 0) mapDataObject.terrainStructures!.push(...holyPlaces);
   }
-  console.log("[Gen] Phase 11.5: POI Generation (Post-Qualities) - END");
+  // console.log("[Gen] Phase 11.5: POI Generation (Post-Qualities) - END");
   
-  console.log("[Gen] Phase 11.5b: Terrain Structure Generation - START");
+  // console.log("[Gen] Phase 11.5b: Terrain Structure Generation - START");
   // Skip structures in ethereal realms
   if (!etherealRealms.includes(localArea)) {
     // Only skip structure generation if economicActivityLevel is explicitly 0
@@ -1217,9 +1218,9 @@ export function proceduralGenerateMap(
   } else {
     console.log("[Gen] Skipping all structures for special zone:", localArea);
   }
-  console.log("[Gen] Phase 11.5b: Terrain Structure Generation - END");
+  // console.log("[Gen] Phase 11.5b: Terrain Structure Generation - END");
 
-  console.log("[Gen] Phase 11.6: Animal Paddock Generation - START");
+  // console.log("[Gen] Phase 11.6: Animal Paddock Generation - START");
   // DISABLED: Old paddock generation that created fence paths
   // Now using new PaddockSymbol component for better visual representation
   // Skip animal paddocks in ethereal realms
@@ -1230,9 +1231,9 @@ export function proceduralGenerateMap(
   } else {
     console.log("[Gen] Skipping animal paddocks for special zone:", localArea);
   }
-  console.log("[Gen] Phase 11.6: Animal Paddock Generation - END");
+  // console.log("[Gen] Phase 11.6: Animal Paddock Generation - END");
 
-  console.log("[Gen] Phase 11.7: Vegetation Generation - START");
+  // console.log("[Gen] Phase 11.7: Vegetation Generation - START");
   // Skip vegetation in ethereal realms
   if (!etherealRealms.includes(localArea)) {
     mapDataObject.vegetation = generateVegetation(mapDataObject, vegetationNoise);
@@ -1240,9 +1241,9 @@ export function proceduralGenerateMap(
     mapDataObject.vegetation = [];
     console.log("[Gen] Skipping vegetation for special zone:", localArea);
   }
-  console.log("[Gen] Phase 11.7: Vegetation Generation - END");
+  // console.log("[Gen] Phase 11.7: Vegetation Generation - END");
   
-  console.log("[Gen] Phase 11.8: Animal & NPC Spawning - START");
+  // console.log("[Gen] Phase 11.8: Animal & NPC Spawning - START");
   // Only skip animal/NPC generation if economicActivityLevel is explicitly 0
   if (generationParams?.economicActivityLevel !== 0 || generationParams?.economicActivityLevel === undefined) {
     // Skip animals in Heaven but keep NPCs
@@ -1260,17 +1261,17 @@ export function proceduralGenerateMap(
       mapDataObject.npcs = generateNpcsForStandardMap(mapDataObject, climate, timeSlice || '1650', continent || 'Europe', npcNoise, region, localArea);
     }
   }
-  console.log("[Gen] Phase 11.8: Animal & NPC Spawning - END");
+  // console.log("[Gen] Phase 11.8: Animal & NPC Spawning - END");
 
-  console.log("[Gen] Phase 11.9: Road and Path Network Generation - START");
+  // console.log("[Gen] Phase 11.9: Road and Path Network Generation - START");
   // Only skip road generation if economicActivityLevel is explicitly 0
   if (generationParams?.economicActivityLevel !== 0 || generationParams?.economicActivityLevel === undefined) {
     generateRoadAndPathNetwork(mapDataObject, roadPathNoise, dateInfo.era as HistoricalEra); 
   }
-  console.log("[Gen] Phase 11.9: Road and Path Network Generation - END");
+  // console.log("[Gen] Phase 11.9: Road and Path Network Generation - END");
   
   // Generate bridges at water crossings
-  console.log("[Gen] Phase 11.10: Bridge Generation - START");
+  // console.log("[Gen] Phase 11.10: Bridge Generation - START");
   if (mapDataObject.pathObjects && mapDataObject.pathObjects.length > 0) {
     const bridges = generateBridges(
       mapDataObject.tiles,
@@ -1284,7 +1285,7 @@ export function proceduralGenerateMap(
       console.log(`[Gen] Generated ${bridges.length} bridges at water crossings`);
     }
   }
-  console.log("[Gen] Phase 11.10: Bridge Generation - END");
+  // console.log("[Gen] Phase 11.10: Bridge Generation - END");
 
   // Desert water restrictions: small lakes and oases only
   if (climate === ClimateType.ARID) {
@@ -1379,6 +1380,7 @@ export function proceduralGenerateMap(
   mapDataObject.edgeDataSet = edgeDataSet;
 
 
-  console.log("[Gen] Map generation complete!");
+  const endTime = performance.now();
+  console.log(`[Gen] Map generation complete! Time: ${Math.round(endTime - startTime)}ms`);
   return mapDataObject;
 }

@@ -5,6 +5,7 @@
 import React, { useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Dot } from 'recharts';
 import { motion } from 'framer-motion';
+import ChartErrorBoundary from '../ChartErrorBoundary';
 
 interface PopulationChartProps {
   currentYear: number;
@@ -238,53 +239,58 @@ const PopulationChart: React.FC<PopulationChartProps> = ({ currentYear, region }
       </div>
       
       <div className="relative">
-        <ResponsiveContainer width="100%" height={150}>
-        <AreaChart 
-          data={data} 
-          margin={{ top: 10, right: 10, left: -20, bottom: 20 }}
+        <ChartErrorBoundary 
+          fallbackTitle="Population Chart Error"
+          fallbackMessage="Unable to display population data"
         >
-          <defs>
-            <linearGradient id="populationGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.6}/>
-              <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.05}/>
-            </linearGradient>
-          </defs>
-          
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.2} />
-          
-          <XAxis 
-            dataKey="year"
-            domain={[-10000, 2000]}
-            ticks={[-8000, -4000, 0, 1000, 2000]}
-            tickFormatter={(value) => {
-              if (value === 0) return '1 AD';
-              return value < 0 ? `${Math.abs(value/1000)}k BC` : `${value}`;
-            }}
-            stroke="#64748b"
-            fontSize={9}
-            tick={{ fill: '#64748b' }}
-          />
-          
-          <YAxis 
-            hide={true}
-            domain={[0, 'dataMax']}
-          />
-          
-          <Tooltip content={<CustomTooltip />} />
-          
-          <Area 
-            type="monotone" 
-            dataKey="population" 
-            stroke="#f59e0b"
-            strokeWidth={1.5}
-            fill="url(#populationGradient)"
-            animationDuration={1500}
-            animationBegin={100}
-            dot={renderCustomDot}
-          />
-          
-        </AreaChart>
-        </ResponsiveContainer>
+          <ResponsiveContainer width="100%" height={150}>
+            <AreaChart 
+              data={data} 
+              margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+            >
+              <defs>
+                <linearGradient id="populationGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.6}/>
+                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.05}/>
+                </linearGradient>
+              </defs>
+              
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.2} />
+              
+              <XAxis 
+                dataKey="year"
+                domain={[-10000, 2000]}
+                ticks={[-8000, -4000, 0, 1000, 2000]}
+                tickFormatter={(value) => {
+                  if (value === 0) return '1 AD';
+                  return value < 0 ? `${Math.abs(value/1000)}k BC` : `${value}`;
+                }}
+                stroke="#64748b"
+                fontSize={9}
+                tick={{ fill: '#64748b' }}
+              />
+              
+              <YAxis 
+                hide={true}
+                domain={[0, 'dataMax']}
+              />
+              
+              <Tooltip content={<CustomTooltip />} />
+              
+              <Area 
+                type="monotone" 
+                dataKey="population" 
+                stroke="#f59e0b"
+                strokeWidth={1.5}
+                fill="url(#populationGradient)"
+                animationDuration={1500}
+                animationBegin={100}
+                dot={renderCustomDot}
+              />
+              
+            </AreaChart>
+          </ResponsiveContainer>
+        </ChartErrorBoundary>
       </div>
       
       <div className="mt-2">

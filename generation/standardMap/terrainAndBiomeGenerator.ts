@@ -4,6 +4,7 @@
 import { Tile, BiomeType, MapArchetype, ClimateType, Point, NeighboringEdges, EdgeTileInfo, AltitudeSetting } from '../../types/index';
 import { ValueNoise } from '../../utils/noise';
 import { getNeighboringClimateInfo, applyClimateTransitionsToMap } from '../../utils/climateStitchingUtils';
+import { ADJACENCIES } from '../../constants/gameData/adjacencies';
 import {
     MAP_WIDTH_TILES, MAP_HEIGHT_TILES,
     ALTITUDE_LEVELS, NOISE_SCALE_ALTITUDE, NOISE_SCALE_BIOME_VARIATION,
@@ -1645,7 +1646,15 @@ function getNeighboringAreaNames(localAreaName: string): {
     east?: string,
     west?: string
 } {
-    // This would use the geography/adjacencies data
-    // For now, return empty - will be expanded with actual adjacency data
-    return {};
+    const adjacencies = ADJACENCIES[localAreaName];
+    if (!adjacencies) {
+        return {};
+    }
+    
+    return {
+        north: adjacencies.N && !adjacencies.N.startsWith('LIMINAL_') ? adjacencies.N : undefined,
+        south: adjacencies.S && !adjacencies.S.startsWith('LIMINAL_') ? adjacencies.S : undefined,
+        east: adjacencies.E && !adjacencies.E.startsWith('LIMINAL_') ? adjacencies.E : undefined,
+        west: adjacencies.W && !adjacencies.W.startsWith('LIMINAL_') ? adjacencies.W : undefined
+    };
 }

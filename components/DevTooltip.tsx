@@ -81,7 +81,7 @@ const getQualityColor = (value: number, reverse: boolean = false): string => {
 };
 
 const getQualityBar = (value: number, reverse: boolean = false): JSX.Element => {
-  const percentage = Math.round(value * 100);
+  const percentage = Math.max(0, Math.min(100, Math.round(value * 100)));
   const colorClass = reverse 
     ? value >= 0.7 ? 'bg-red-500' : value >= 0.4 ? 'bg-yellow-500' : 'bg-green-500'
     : value >= 0.7 ? 'bg-green-500' : value >= 0.4 ? 'bg-yellow-500' : 'bg-red-500';

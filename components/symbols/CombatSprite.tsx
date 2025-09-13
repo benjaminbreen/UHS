@@ -7,7 +7,7 @@ import React, { useMemo } from 'react';
 import { PlayerCharacter, NpcEntity, Appearance, Item } from '../../types';
 import { getItemArchetypeMax } from '../../constants/items/baseSprites';
 
-type Animation = 'idle' | 'attacking' | 'item' | 'damaged' | 'defending' | 'fleeing';
+type Animation = 'idle' | 'attacking' | 'item' | 'damaged' | 'defending' | 'fleeing' | 'power_strike' | 'slashing' | 'chopping' | 'stabbing' | 'crushing' | 'shooting' | 'casting' | 'blocking' | 'dodging' | 'shouting';
 
 interface CombatSpriteProps {
   character: PlayerCharacter | NpcEntity;
@@ -455,7 +455,7 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
         const wristY = y + height * 0.85;
         
         return (
-            <g className={isWeaponArm && animation === 'attacking' ? 'animate-sprite-arm-swing' : ''}>
+            <g>
                 {/* Upper arm with shoulder */}
                 <Pixel x={x} y={y} w={shoulderWidth} h={height * 0.5} color={color} enhanced />
                 <Pixel x={x + shoulderWidth * 0.2} y={y} w={shoulderWidth * 0.6} h={2} color={shadeColor(color, 15)} />
@@ -528,8 +528,9 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
         
         const materialColors = getMaterialVariation(color, material);
         
-        // Enhanced weapon gleam effect for attacking animation
-        const showGleam = animation === 'attacking';
+        // Enhanced weapon gleam effect for attack animations
+        const showGleam = animation === 'attacking' || animation === 'slashing' || animation === 'chopping' || 
+                         animation === 'stabbing' || animation === 'crushing' || animation === 'power_strike';
         const gleamOpacity = showGleam ? 0.8 : 0;
         
         // Category-based weapon rendering with material colors
@@ -1389,8 +1390,8 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
                     </g>
                     
                     {/* Enhanced Front Arm with weapon */}
-                    <g className={animation === 'attacking' ? 'animate-sprite-arm-swing' : ''} style={{ transformOrigin: `${20}px 17px` }}>
-                       <g transform={`translate(${animation === 'defending' && offHandItem ? -4 : 0}, 0)`}>
+                    <g style={{ transformOrigin: `${20}px 17px` }}>
+                       <g transform={`translate(${animation === 'defending' || animation === 'blocking' && offHandItem ? -4 : 0}, 0)`}>
                           {animation === 'defending' && offHandItem?.name.toLowerCase().includes('shield') && renderShield()}
                           {renderArm(22, 15, 2.5, torsoHeight, clothingColor, true)}
                           {mainHandItem && animation !== 'defending' && (

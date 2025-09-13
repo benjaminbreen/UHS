@@ -16,8 +16,9 @@ import {
 import { usePlayer } from '../contexts/PlayerContext';
 import { useMap } from '../contexts/MapContext';
 import { questService } from '../services/questService';
+import { questTriggerService } from '../services/questTriggerService';
 import { useGame } from '../contexts/GameContext';
-import { getSeasonFromDate } from '../utils/dateUtils';
+import { getSeasonFromDate, parseDateString } from '../utils/dateUtils';
 
 export function useEventSystem() {
   const [currentEvent, setCurrentEvent] = useState<EventInstance | null>(null);
@@ -98,8 +99,10 @@ export function useEventSystem() {
       setHasShownInitialEvent(true);
     }
     
-    // ALWAYS generate initial procedural quests (1-2 quests) for ANY game mode
-    // This happens for ALL games, not just World Weaver scenarios
+    // DISABLED: Automatic quest generation on game start
+    // Quests will now be triggered organically through player actions
+    // OLD CODE (disabled):
+    /*
     if (currentMode && mapStructures && mapStructures.length > 0) {
       const initialQuests = questService.generateInitialQuests(
         currentMode.name,
@@ -122,17 +125,37 @@ export function useEventSystem() {
         }
       });
     }
+    */
   }, [playerCharacter, currentTile, worldData, currentMode, hasShownInitialEvent, currentEvent, currentZone, gameDate]);
 
   /**
    * Check quest progress when player moves or world changes
+   * Now with auto-completion for location objectives!
    */
   useEffect(() => {
     if (!playerCharacter || playerCharacter.x === undefined || playerCharacter.y === undefined) return;
     
-    // Check quest progress at current location
+    // Check quest progress at current location (will auto-complete location objectives)
     questService.checkQuestProgress(playerCharacter.x, playerCharacter.y);
-  }, [playerCharacter?.x, playerCharacter?.y, worldData]); // Added worldData to also check on map load
+    
+    // Also check for any auto-completable objectives
+    questService.checkAutoCompletableObjectives(playerCharacter);
+    
+    // Trigger contextual quest generation based on player movement
+    if (currentTile && worldData && currentZone && gameDate) {
+      const context = {
+        player: playerCharacter,
+        tile: currentTile,
+        mapData: worldData,
+        culturalZone: currentZone as any, // Type will be matched in service
+        era: parseDateString(String(gameDate.year)).era,
+        gameMode: currentMode?.name
+      };
+      
+      // Check for movement-based quest triggers
+      questTriggerService.onPlayerMove(context);
+    }
+  }, [playerCharacter?.x, playerCharacter?.y, worldData, currentTile, currentZone, gameDate, currentMode]); // Added dependencies for quest triggers
 
   /**
    * Check for event triggers periodically

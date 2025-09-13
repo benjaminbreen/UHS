@@ -9,6 +9,8 @@ import { SpecialMapConfig, InteractionZone, ExitZone, RoomDefinition } from '../
 import { ValueNoise } from '../../../utils/valueNoise';
 import { placeWallRectangle, fillArea } from '../mapLayoutUtils';
 import { MultiTileObjectManager } from '../../../services/multiTileObjectService';
+import { applyNorthBackWall } from '../backWallUtils';
+import { placePillar } from '../multiTileSystem';
 import { 
   getCulturalFurnitureSet, 
   getFlooringForRoom,
@@ -27,8 +29,12 @@ import {
 import {
   placeCulturalStorage,
   placeWineRack,
-  placeSpiceStorage
+  placeSpiceStorage,
+  placeContainerWithItems,
+  placeChestWithItems,
+  placeBarrelWithItems
 } from '../storageUtilitySystem';
+import { SpecialMapArchetype } from '../../../types/specialMapTypes';
 import {
   placeSmartTable,
   placeRoundTable
@@ -154,6 +160,12 @@ function generateIslamicBazaar(
   interactionZones: InteractionZone[],
   rooms: RoomDefinition[]
 ) {
+  // Add back wall for covered bazaar feel
+  applyNorthBackWall(tiles, 0, 0, size.width, config, {
+    hasWindows: true,
+    windowSpacing: 5  // Some light but mostly covered
+  });
+  
   // Outer walls with multiple entrances
   placeWallRectangle(tiles, 0, 0, size.width, size.height, [
     { side: 'south', offset: Math.floor(size.width / 2) },
@@ -403,6 +415,14 @@ function generateEuropeanMarket(
   interactionZones: InteractionZone[],
   rooms: RoomDefinition[]
 ) {
+  const year = config.specificYear || 1200;
+  
+  // Add back wall - market halls often had covered areas
+  applyNorthBackWall(tiles, 0, 0, size.width, config, {
+    hasWindows: true,
+    windowSpacing: 4  // Good lighting for merchants
+  });
+  
   // Stone walls with arched gates
   placeWallRectangle(tiles, 0, 0, size.width, size.height, [
     { side: 'south', offset: Math.floor(size.width / 2) },
@@ -416,6 +436,18 @@ function generateEuropeanMarket(
                     config.era === HistoricalEra.RENAISSANCE_EARLY_MODERN ? BiomeType.FLOOR_MARBLE :
                     BiomeType.FLOOR_TILE;
   fillArea(tiles, 1, 1, size.width - 2, size.height - 2, floorType);
+  
+  // Add pillars for Renaissance market halls (covered markets)
+  if (config.era === HistoricalEra.RENAISSANCE_EARLY_MODERN && size.width >= 15 && size.height >= 15) {
+    // Renaissance covered markets had pillars supporting the roof
+    for (let x = 4; x < size.width - 4; x += 6) {
+      for (let y = 4; y < size.height - 4; y += 6) {
+        if (x !== Math.floor(size.width / 2) && y !== Math.floor(size.height / 2)) { // Don't block center
+          placePillar(tiles, x, y, 'grey_stone', year);
+        }
+      }
+    }
+  }
   
   const centerX = Math.floor(size.width / 2);
   const centerY = Math.floor(size.height / 2);
@@ -578,9 +610,15 @@ function createMerchantStalls(tiles: Tile[][], config: SpecialMapConfig, noise: 
           tiles[loc.y + 1][loc.x].biome = BiomeType.CARPET;
         }
       }
-      // Barrels for storage
+      // Barrels for storage with market goods
       if (noise.random() > 0.6 && tiles[loc.y][loc.x + 1].biome.includes('FLOOR')) {
-        tiles[loc.y][loc.x + 1].biome = BiomeType.BARREL;
+        placeBarrelWithItems(
+          tiles, loc.x + 1, loc.y,
+          SpecialMapArchetype.MARKET_BAZAAR,
+          config.culturalZone as any,
+          config.era,
+          'market_stall'
+        );
       }
     }
   });
@@ -663,9 +701,16 @@ function createAsianMarketSections(tiles: Tile[][], config: SpecialMapConfig, no
       for (let x = section.x + 2; x < section.x + section.width - 2; x += 3) {
         if (noise.random() > 0.3) {
           tiles[y][x].biome = BiomeType.TABLE;
-          // Add storage
+          // Add storage chest with trade goods
           if (noise.random() > 0.5 && x + 1 < section.x + section.width - 1) {
-            tiles[y][x + 1].biome = BiomeType.CHEST;
+            placeChestWithItems(
+              tiles, x + 1, y,
+              SpecialMapArchetype.MARKET_BAZAAR,
+              config.culturalZone as any,
+              config.era,
+              'public', // Market is public
+              'normal'
+            );
           }
         }
       }
@@ -778,8 +823,14 @@ function createCraftAreas(tiles: Tile[][], config: SpecialMapConfig, noise: Valu
         // Work table
         tiles[y + 1][x + 1].biome = BiomeType.TABLE;
         
-        // Storage
-        tiles[y + 2][x + 1].biome = BiomeType.BARREL;
+        // Storage barrel with food goods
+        placeBarrelWithItems(
+          tiles, x + 1, y + 2,
+          SpecialMapArchetype.MARKET_BAZAAR,
+          config.culturalZone as any,
+          config.era,
+          'food_stall'
+        );
       }
     }
   }
@@ -808,9 +859,22 @@ function createGuildHalls(tiles: Tile[][], config: SpecialMapConfig, noise: Valu
     tiles[guild.y + 4][guild.x + 2].biome = BiomeType.CHAIR;
     tiles[guild.y + 4][guild.x + guild.width - 3].biome = BiomeType.CHAIR;
     
-    // Storage
-    tiles[guild.y + guild.height - 2][guild.x + 2].biome = BiomeType.CHEST;
-    tiles[guild.y + guild.height - 2][guild.x + guild.width - 3].biome = BiomeType.BARREL;
+    // Storage with valuable guild items
+    placeChestWithItems(
+      tiles, guild.x + 2, guild.y + guild.height - 2,
+      SpecialMapArchetype.MARKET_BAZAAR,
+      config.culturalZone as any,
+      config.era,
+      'private', // Guild area is private
+      'reinforced'
+    );
+    placeBarrelWithItems(
+      tiles, guild.x + guild.width - 3, guild.y + guild.height - 2,
+      SpecialMapArchetype.MARKET_BAZAAR,
+      config.culturalZone as any,
+      config.era,
+      'guild_storage'
+    );
   });
 }
 
@@ -832,12 +896,25 @@ function createEuropeanMarketStalls(tiles: Tile[][], config: SpecialMapConfig, n
         // Stall with canopy (represented by partial walls)
         tiles[row.y][x].biome = BiomeType.TABLE;
         
-        // Add goods
+        // Add goods containers
         if (noise.random() > 0.5 && tiles[row.y - 1][x].biome.includes('FLOOR')) {
-          tiles[row.y - 1][x].biome = BiomeType.BARREL;
+          placeBarrelWithItems(
+            tiles, x, row.y - 1,
+            SpecialMapArchetype.MARKET_BAZAAR,
+            config.culturalZone as any,
+            config.era,
+            'warehouse'
+          );
         }
         if (noise.random() > 0.5 && tiles[row.y + 1][x].biome.includes('FLOOR')) {
-          tiles[row.y + 1][x].biome = BiomeType.CHEST;
+          placeChestWithItems(
+            tiles, x, row.y + 1,
+            SpecialMapArchetype.MARKET_BAZAAR,
+            config.culturalZone as any,
+            config.era,
+            'public',
+            'normal'
+          );
         }
       }
     }
@@ -1133,9 +1210,16 @@ function populateMarketZone(
       if (isValidTile(zone.y + zone.height - 3, zone.x + zone.width - 3)) {
         tiles[zone.y + zone.height - 3][zone.x + zone.width - 3].biome = BiomeType.DESK;
       }
-      // Tool storage
+      // Tool storage chest
       if (isValidTile(zone.y + 3, zone.x + 1)) {
-        tiles[zone.y + 3][zone.x + 1].biome = BiomeType.CHEST;
+        placeChestWithItems(
+          tiles, zone.x + 1, zone.y + 3,
+          SpecialMapArchetype.MARKET_BAZAAR,
+          config.culturalZone as any,
+          config.era,
+          'public',
+          'normal'
+        );
       }
       break;
       

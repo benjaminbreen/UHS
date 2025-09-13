@@ -1,0 +1,1151 @@
+/**
+ * components/EncounterModalUpdated.tsx - Updated UI design for entity encounters
+ */
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { EncounterableEntity, NpcEntity, DialogueEntry, PlayerCharacter, MapData } from '../types';
+import { generateEncounterDialogue, attemptTheft, handleTheftResponse, TheftAttempt } from '../services/encounterService';
+import { summarizeConversation, generateInternalMonologue, generateNpcQuestOffer } from '../services/llmService';
+import { TypewriterText } from '../hooks/useTypewriter';
+import NpcTradeInterface from './NpcTradeInterface';
+import { ProceduralPortrait, AnimatedPortrait } from './portraits';
+import { questService } from '../services/questService';
+import { Quest } from '../types/questTypes';
+import { questCompletionService } from '../services/questCompletionService';
+import { HistoricalEra } from '../types/ambiance';
+import { CulturalZone } from '../types/characterData';
+import { GameModeType } from '../types/eventTypes';
+import { spatialDescriptionService } from '../services/spatialDescriptionService';
+import { Sparkles, Target, MapPin, Info, AlertTriangle, Heart, Clock, Send, User, Home, ShoppingBag, ScrollText } from 'lucide-react';
+import NpcQuestPanel from './NpcQuestPanel';
+import NpcMedicalPanel from './NpcMedicalPanel';
+import NpcHouseholdPanel from './NpcHouseholdPanel';
+import DiseaseContractedModal from './DiseaseContractedModal';
+import { useUI } from '../contexts/UIContext';
+import { useMap } from '../contexts/MapContext';
+import { getAnimalTexts } from '../constants/gameData/animalTexts';
+import { useGame } from '../contexts/GameContext';
+import { npcPersistenceService } from '../services/npcPersistenceService';
+import { 
+    attemptTaming, 
+    checkAnimalOwnership, 
+    createTamedAnimal, 
+    addToParty,
+    calculateAnimalValue 
+} from '../services/animalTamingService';
+import { eventService } from '../services/eventService';
+import { getLanguageForCharacter, getLanguageComprehension, LANGUAGES } from '../constants/gameData/languages';
+import { triggerArrest, ArrestScenario } from '../services/arrestService';
+import { usePortraitExpression, mapRepDeltaToExpr, mapEventToExpr, mapPersonalityToExpr } from '../hooks/usePortraitExpression';
+import { diseaseService } from '../services/diseaseService';
+import { crisisDetectionService } from '../services/crisisDetectionService';
+import gameSounds from '../services/gameSoundsService';
+import { HighlightedText } from '../hooks/usePrimarySourceKeywords';
+import { mapLocationToCulture } from '../utils/mapUtils';
+import { parseDateString } from '../utils/dateUtils';
+
+// Styles for animations
+const styles = `
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+.dialogue-entry {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Custom scrollbar */
+.conversation-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.conversation-scrollbar::-webkit-scrollbar-track {
+  background: rgba(30, 41, 59, 0.5);
+  border-radius: 4px;
+}
+
+.conversation-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.8);
+  border-radius: 4px;
+}
+
+.conversation-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.8);
+}
+
+/* Loading dots animation */
+@keyframes bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-10px);
+  }
+}
+
+.loading-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #64748b;
+  animation: bounce 1.4s infinite ease-in-out;
+}
+
+.loading-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loading-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.loading-dot:nth-child(3) {
+  animation-delay: 0;
+}
+
+/* Micro-interactions */
+.hover-lift {
+  transition: all 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.input-glow:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+`;
+
+function isNpc(target: EncounterableEntity): target is NpcEntity {
+    return 'role' in target;
+}
+
+// Helper function to get historical language for the target
+function getHistoricalLanguage(target: EncounterableEntity, mapData: MapData | null): string {
+    if (!isNpc(target) || !mapData) return 'Historical Language';
+    
+    try {
+        const year = parseInt(mapData.timeSlice || '1500');
+        const language = getLanguageForCharacter(
+            target.culturalZone || mapData.culturalZone || 'EUROPEAN',
+            year,
+            mapData.region,
+            mapData.localArea
+        );
+        
+        return language?.name || 'Historical Language';
+    } catch (error) {
+        console.warn('Error getting historical language:', error);
+        return 'Historical Language';
+    }
+}
+
+interface EncounterModalProps {
+  target: EncounterableEntity;
+  playerCharacter: PlayerCharacter;
+  allNpcs: NpcEntity[];
+  mapData: MapData | null;
+  onClose: (history: DialogueEntry[]) => void;
+  onInitiateCombat: (target: EncounterableEntity) => void;
+  onOpenInfo: (target: EncounterableEntity) => void;
+  onUpdateNpc?: (updatedNpc: NpcEntity) => void;
+}
+
+const EncounterModalUpdated: React.FC<EncounterModalProps> = ({ 
+    target, 
+    playerCharacter, 
+    allNpcs, 
+    mapData, 
+    onClose, 
+    onInitiateCombat, 
+    onOpenInfo, 
+    onUpdateNpc 
+}) => {
+    const { showToast, setCurrentEvent, setSelectedPrimarySource } = useUI();
+    const { worldData } = useMap();
+    const { gameDate, currentZone, currentRegion } = useGame();
+    
+    // Portrait expression management
+    const { expr: portraitExpr, flash: flashPortrait, clear: clearPortrait } = usePortraitExpression();
+    
+    const [history, setHistory] = useState<DialogueEntry[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [playerInput, setPlayerInput] = useState('');
+    const [activeTab, setActiveTab] = useState<'dialogue' | 'history' | 'trade' | 'medical' | 'household' | 'quest'>('dialogue');
+    const [useRealLanguage, setUseRealLanguage] = useState(false);
+    const [reputationChange, setReputationChange] = useState<number | null>(null);
+    const [npcWantsToLeave, setNpcWantsToLeave] = useState(false);
+    
+    // Quest states
+    const [questOffer, setQuestOffer] = useState<any>(null);
+    const [hasCheckedForQuest, setHasCheckedForQuest] = useState(false);
+    const [isLoadingQuest, setIsLoadingQuest] = useState(false);
+    const [canCompleteQuest, setCanCompleteQuest] = useState<{ quest: Quest; objective: any } | null>(null);
+    
+    // Internal monologue states
+    const [showMonologue, setShowMonologue] = useState(false);
+    const [monologueText, setMonologueText] = useState('');
+    const [monologueClickCount, setMonologueClickCount] = useState(0);
+    const [isLoadingMonologue, setIsLoadingMonologue] = useState(false);
+    const monologueCache = useRef<Map<number, string>>(new Map());
+    
+    // Derive current era and cultural zone for keyword highlighting
+    const currentEra = useMemo(() => {
+        const dateInfo = parseDateString(String(gameDate.year));
+        return dateInfo.era;
+    }, [gameDate.year]);
+    
+    const culturalZone = useMemo(() => {
+        return mapLocationToCulture(currentZone || 'Europe', gameDate.year) as CulturalZone;
+    }, [currentZone, gameDate.year]);
+    
+    const hasFetchedInitialDialogue = useRef(false);
+    const targetName = isNpc(target) ? (target.name || 'Unknown NPC') : (target.speciesName || 'Unknown Creature');
+    
+    // Get active quests
+    const activeQuests = questService.getActiveQuests();
+    const relevantQuests = activeQuests.filter(quest => {
+        if (isNpc(target)) {
+            const npcName = target.name.toLowerCase();
+            return quest.objectives.some(obj => 
+                obj.description.toLowerCase().includes(npcName)
+            );
+        }
+        return false;
+    });
+    
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyPress = (e: KeyboardEvent) => {
+            // Don't trigger shortcuts if typing in input
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+                return;
+            }
+            
+            if (e.key === 'Escape') {
+                onClose(history);
+            } else if (e.key === 'p' || e.key === 'P') {
+                e.stopPropagation();
+                onOpenInfo(target);
+            } else if (e.key === 't' || e.key === 'T') {
+                setActiveTab('trade');
+            } else if (e.key === 'a' || e.key === 'A') {
+                onInitiateCombat(target);
+            }
+        };
+        
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, [history, onClose, onInitiateCombat, onOpenInfo, target]);
+    
+    // Fetch initial dialogue on mount
+    useEffect(() => {
+        if (!playerCharacter) return;
+        if (!hasFetchedInitialDialogue.current) {
+            hasFetchedInitialDialogue.current = true;
+            setIsLoading(true);
+            
+            if (isNpc(target)) {
+                // Generate appropriate greeting based on whether NPC knows the player
+                const hasMetBefore = target.memory?.conversationSummaries && target.memory.conversationSummaries.length > 0;
+                const greeting = hasMetBefore ? "I approach again." : "Hello.";
+                
+                generateEncounterDialogue(target, target.memory?.conversationSummaries || [], greeting, playerCharacter, allNpcs, mapData, useRealLanguage)
+                    .then(response => {
+                        const initialEntry: DialogueEntry = { 
+                            speaker: 'npc', 
+                            text: response.text, 
+                            timestamp: new Date() 
+                        };
+                        setHistory([initialEntry]);
+                        setIsLoading(false);
+                    })
+                    .catch(err => {
+                        console.error("Failed to get initial dialogue:", err);
+                        const fallbackText = `${targetName} watches you silently.`;
+                        setHistory([{ 
+                            speaker: 'npc', 
+                            text: fallbackText, 
+                            timestamp: new Date() 
+                        }]);
+                        setIsLoading(false);
+                    });
+            } else {
+                // Animal encounter
+                const animalTexts = getAnimalTexts(targetName || 'creature');
+                const fallbackText = animalTexts.encounterText;
+                setHistory([{ 
+                    speaker: 'npc', 
+                    text: fallbackText, 
+                    timestamp: new Date() 
+                }]);
+                setIsLoading(false);
+            }
+        }
+    }, [target, playerCharacter, allNpcs, mapData, useRealLanguage]);
+    
+    // Play animal sound when modal opens for animals
+    useEffect(() => {
+        // Check if target is an animal (has speciesName property)
+        if ((target as any).speciesName) {
+            const species = (target as any).speciesName?.toUpperCase();
+            
+            // Play appropriate animal sound based on species
+            switch(species) {
+                case 'SHEEP':
+                case 'GOAT':
+                    gameSounds.playSheepSound();
+                    break;
+                case 'COW':
+                case 'MULE':
+                case 'WATER_BUFFALO':
+                case 'YAK':
+                case 'GAUR':
+                    gameSounds.playCowSound();
+                    break;
+                case 'HORSE':
+                case 'WILD_HORSE':
+                case 'DONKEY':
+                    gameSounds.playHorseSound();
+                    break;
+                case 'DOG':
+                    gameSounds.playDogSound();
+                    break;
+                case 'CAT':
+                    gameSounds.playCatSound();
+                    break;
+                case 'PIG':
+                case 'BOAR':
+                case 'WARTHOG':
+                case 'PECCARY':
+                    gameSounds.playPigSound();
+                    break;
+                case 'CHICKEN':
+                case 'TURKEY':
+                    gameSounds.playBirdSound();
+                    break;
+                case 'DUCK':
+                    gameSounds.playDuckSound();
+                    break;
+                case 'ROOSTER':
+                    gameSounds.playRoosterSound();
+                    break;
+                case 'WOLF':
+                case 'HYENA':
+                    gameSounds.playWolfSound();
+                    break;
+                case 'BEAR':
+                case 'PANDA':
+                    gameSounds.playBearSound();
+                    break;
+                case 'TIGER':
+                case 'LION':
+                case 'LEOPARD':
+                case 'CHEETAH':
+                case 'JAGUAR':
+                case 'PUMA':
+                    gameSounds.playTigerSound();
+                    break;
+                case 'ELEPHANT':
+                case 'HIPPOPOTAMUS':
+                case 'RHINOCEROS':
+                    gameSounds.playElephantSound();
+                    break;
+                case 'MONKEY':
+                case 'GORILLA':
+                case 'BABOON':
+                case 'ORANGUTAN':
+                    gameSounds.playMonkeySound();
+                    break;
+                case 'SNAKE':
+                    gameSounds.playSnakeSound();
+                    break;
+                case 'CROCODILE':
+                    gameSounds.playCrocodileSound();
+                    break;
+                case 'EAGLE':
+                case 'PEACOCK':
+                case 'PARROT':
+                case 'FLAMINGO':
+                    gameSounds.playEagleSound();
+                    break;
+                case 'OWL':
+                    gameSounds.playOwlSound();
+                    break;
+                case 'FROG':
+                    gameSounds.playFrogSound();
+                    break;
+                case 'CRICKET':
+                    gameSounds.playCricketSound();
+                    break;
+                case 'FISH':
+                case 'WHALE':
+                case 'JELLYFISH':
+                case 'LOBSTER':
+                case 'OCTOPUS':
+                    gameSounds.playFishSound();
+                    break;
+                case 'CAMEL':
+                    gameSounds.playCamelSound();
+                    break;
+                case 'RABBIT':
+                case 'HEDGEHOG':
+                case 'SQUIRREL':
+                    gameSounds.playRabbitSound();
+                    break;
+                case 'DEER':
+                case 'MOOSE':
+                case 'ELK':
+                case 'CARIBOU':
+                case 'LLAMA':
+                case 'GIRAFFE':
+                case 'ZEBRA':
+                case 'KANGAROO':
+                case 'ANTELOPE':
+                case 'WILDEBEEST':
+                case 'IBEX':
+                    // Use dog sound as a placeholder for deer-like animals
+                    gameSounds.playDogSound();
+                    break;
+            }
+        }
+    }, []); // Only run once when modal opens
+    
+    // Check if this NPC can complete any active quests
+    useEffect(() => {
+        if (isNpc(target) && playerCharacter) {
+            const activeQuests = questService.getActiveQuests();
+            const completion = questCompletionService.checkQuestCompletion(
+                target,
+                playerCharacter,
+                activeQuests
+            );
+            
+            if (completion.canComplete && completion.quest && completion.objective) {
+                setCanCompleteQuest({ quest: completion.quest, objective: completion.objective });
+                console.log(`[Quest] This NPC can complete quest: ${completion.quest.title}`);
+            }
+        }
+    }, [target, playerCharacter]);
+    
+    // Handle portrait click for internal monologue
+    const handlePortraitClick = async () => {
+        if (monologueClickCount >= 3) return;
+        const nextCount = monologueClickCount + 1;
+        setMonologueClickCount(nextCount);
+        
+        // Check cache first
+        if (monologueCache.current.has(nextCount)) {
+            setMonologueText(monologueCache.current.get(nextCount)!);
+            setShowMonologue(true);
+            return;
+        }
+        
+        setIsLoadingMonologue(true);
+        setShowMonologue(true);
+        
+        try {
+            const monologue = await generateInternalMonologue(target, {
+                currentDialogue: history[history.length - 1]?.text,
+                playerCharacter,
+                mapData,
+                clickCount: nextCount,
+                recentHistory: history.slice(-4)
+            });
+            
+            monologueCache.current.set(nextCount, monologue);
+            setMonologueText(monologue);
+        } catch (error) {
+            console.error('Failed to generate monologue:', error);
+            setMonologueText('*Their thoughts remain a mystery...*');
+        } finally {
+            setIsLoadingMonologue(false);
+        }
+    };
+    
+    // Calculate time ago for messages
+    const getTimeAgo = (timestamp: Date) => {
+        const seconds = Math.floor((Date.now() - timestamp.getTime()) / 1000);
+        if (seconds < 60) return 'Just now';
+        if (seconds < 120) return '1 minute ago';
+        if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
+        return 'Earlier';
+    };
+    
+    // Handle sending message
+    const handleSend = async () => {
+        if (!playerInput.trim() || isLoading || !playerCharacter || npcWantsToLeave) return;
+        
+        const newPlayerEntry: DialogueEntry = { 
+            speaker: 'player', 
+            text: playerInput, 
+            timestamp: new Date() 
+        };
+        const newHistory = [...history, newPlayerEntry];
+        setHistory(newHistory);
+        const currentInput = playerInput;
+        setPlayerInput('');
+        setIsLoading(true);
+        
+        // Check for threatening language
+        const threatWords = ['kill', 'murder', 'attack', 'hurt', 'harm', 'destroy', 'beat', 'strike', 'stab', 'slash'];
+        const inputLower = currentInput.toLowerCase();
+        const isThreatening = threatWords.some(word => inputLower.includes(word));
+        
+        if (isThreatening) {
+            flashPortrait('scowl', 2200);
+            const threatPenalty = -50;
+            setReputationChange(threatPenalty);
+            if (playerCharacter.mapReputation !== undefined) {
+                const oldReputation = playerCharacter.mapReputation || 50;
+                const newReputation = Math.max(0, oldReputation + threatPenalty);
+                playerCharacter.mapReputation = newReputation;
+                console.log(`[REPUTATION] Threat detected! -50 reputation for threatening language`);
+            }
+            setTimeout(() => setReputationChange(null), 5000);
+        }
+        
+        try {
+            const response = await generateEncounterDialogue(target, newHistory, currentInput, playerCharacter, allNpcs, mapData, useRealLanguage);
+            const newNpcEntry: DialogueEntry = { 
+                speaker: 'npc', 
+                text: response.text, 
+                timestamp: new Date() 
+            };
+            setHistory(prev => [...prev, newNpcEntry]);
+            
+            // Handle reputation changes from LLM response
+            if (response.reputationChange && playerCharacter) {
+                setReputationChange(response.reputationChange);
+                const expr = mapRepDeltaToExpr(response.reputationChange);
+                if (expr) flashPortrait(expr);
+                
+                const oldReputation = playerCharacter.mapReputation || 50;
+                const newReputation = Math.max(0, Math.min(100, oldReputation + response.reputationChange));
+                
+                // Update player character reputation directly
+                playerCharacter.mapReputation = newReputation;
+                
+                // Log significant reputation changes
+                if (Math.abs(response.reputationChange) >= 50) {
+                    console.log(`[REPUTATION] Major change: ${response.reputationChange}`);
+                }
+                
+                // Show reputation change for longer if it's significant
+                const displayDuration = Math.abs(response.reputationChange) >= 50 ? 5000 : 3000;
+                setTimeout(() => setReputationChange(null), displayDuration);
+                
+                // Check if reputation has hit zero - trigger jail scenario
+                if (newReputation <= 0 && response.shouldCallAuthorities) {
+                    setTimeout(() => {
+                        onClose(history);
+                        // TODO: Trigger arrest scenario
+                    }, 2000);
+                }
+            }
+            
+            // Handle NPC wanting to attack
+            if (response.shouldAttack) {
+                flashPortrait('scowl', 2000);
+                setTimeout(() => {
+                    onInitiateCombat(target);
+                }, 1000);
+            }
+            
+            // Handle NPC wanting to leave
+            if (response.shouldLeave) {
+                setNpcWantsToLeave(true);
+                setTimeout(() => {
+                    onClose(history);
+                }, 2000);
+            }
+            
+            // Check for crisis mentions
+            if (mapData && isNpc(target)) {
+                const location = { x: target.x, y: target.y };
+                const crisis = crisisDetectionService.detectCrisis(response.text, target, location);
+                if (crisis) {
+                    console.log(`[Crisis] Detected crisis from ${target.name}: ${crisis.pattern.id}`);
+                    showToast(`⚠️ ${target.name} speaks of ${crisis.pattern.flavorText.toLowerCase()}`);
+                }
+            }
+        } catch (err) {
+            console.error("Failed to generate dialogue:", err);
+            const errorEntry: DialogueEntry = { 
+                speaker: 'npc', 
+                text: "I'm not sure how to respond to that.", 
+                timestamp: new Date() 
+            };
+            setHistory(prev => [...prev, errorEntry]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    const handleClose = useCallback(() => {
+        onClose(history);
+        
+        // Generate summary asynchronously after modal closes
+        if (isNpc(target) && history.length > 1) {
+            setTimeout(async () => {
+                try {
+                    const summary = await summarizeConversation(history);
+                    if (!target.memory) {
+                        target.memory = {
+                            conversationSummaries: [],
+                            opinionOfPlayer: 50
+                        };
+                    }
+                    if (!target.memory.conversationSummaries) {
+                        target.memory.conversationSummaries = [];
+                    }
+                    target.memory.conversationSummaries.push(summary.summary);
+                    // Keep only last 5 conversations
+                    if (target.memory.conversationSummaries.length > 5) {
+                        target.memory.conversationSummaries = target.memory.conversationSummaries.slice(-5);
+                    }
+                    
+                    // Update opinion based on sentiment
+                    if (summary.sentiment === 'positive') {
+                        target.memory.opinionOfPlayer = Math.min(100, (target.memory.opinionOfPlayer || 50) + 10);
+                    } else if (summary.sentiment === 'negative') {
+                        target.memory.opinionOfPlayer = Math.max(0, (target.memory.opinionOfPlayer || 50) - 10);
+                    }
+                    
+                    // Save NPC to session storage
+                    npcPersistenceService.saveNpcToSession(target);
+                    
+                    // Update the NPC in parent component
+                    if (onUpdateNpc) {
+                        onUpdateNpc(target);
+                    }
+                } catch (error) {
+                    console.error('Failed to save conversation summary:', error);
+                }
+            }, 0);
+        }
+    }, [target, history, onClose, onUpdateNpc]);
+    
+    // Handle opening info modal without closing encounter modal
+    const handleOpenInfo = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        onOpenInfo(target);
+    }, [target, onOpenInfo]);
+    
+    return (
+        <>
+            <style>{styles}</style>
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-2 md:p-4" onClick={handleClose}>
+                <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border-2 border-slate-700 rounded-2xl max-w-5xl w-full h-[95vh] md:h-[85vh] shadow-2xl transition-all duration-300 overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+                    
+                    {/* Header with reputation and language */}
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50 flex-shrink-0">
+                        <div className="flex items-center gap-2 text-sm">
+                            <span className="text-amber-400">⭐</span>
+                            <span className="text-slate-400">Reputation:</span>
+                            <span className={`font-semibold ${
+                                playerCharacter.mapReputation >= 50 ? 'text-green-400' : 
+                                playerCharacter.mapReputation >= 0 ? 'text-yellow-400' : 'text-red-400'
+                            }`}>
+                                {playerCharacter.mapReputation || 0} | {
+                                    playerCharacter.mapReputation >= 50 ? 'Friendly' : 
+                                    playerCharacter.mapReputation >= 0 ? 'Neutral' : 'Hostile'
+                                }
+                            </span>
+                        </div>
+                        {isNpc(target) && (
+                            <button 
+                                onClick={() => setUseRealLanguage(p => !p)} 
+                                className="px-5 py-2 bg-blue-600 text-white rounded-full font-['Press_Start_2P'] text-xs tracking-wider shadow-lg shadow-blue-600/30 hover:bg-blue-500 transition-all hover:shadow-blue-500/40 flex items-center gap-2"
+                                title={`Toggle between English and ${getHistoricalLanguage(target, mapData)}`}
+                            >
+                                {useRealLanguage ? (
+                                    <>
+                                        <span>🌐</span>
+                                        <span>{getHistoricalLanguage(target, mapData)}</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>🇬🇧</span>
+                                        <span>English</span>
+                                    </>
+                                )}
+                            </button>
+                        )}
+                    </div>
+                    
+                    {/* Main content area - two column layout */}
+                    <div className="flex gap-6 p-6 flex-1 min-h-0 overflow-hidden">
+                        
+                        {/* Left column - Portrait and NPC info */}
+                        <div className="flex flex-col gap-4" style={{ width: '220px', flexShrink: 0 }}>
+                            
+                            {/* Portrait with quest indicator and animations */}
+                            <div className="relative group">
+                                <div 
+                                    className={`w-[200px] h-[200px] rounded-xl overflow-hidden border-3 transition-all duration-300 cursor-pointer relative ${
+                                        questOffer?.hasQuest || relevantQuests.length > 0 
+                                            ? 'border-amber-500 shadow-lg shadow-amber-500/20 animate-pulse-subtle' 
+                                            : 'border-slate-600 hover:border-amber-500 hover:shadow-lg hover:shadow-amber-500/20'
+                                    }`}
+                                    onClick={handlePortraitClick}
+                                    title={`Click to see inner thoughts... (${3 - monologueClickCount} clicks remaining)`}
+                                >
+                                    {/* Inner shadow/vignette */}
+                                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/30 pointer-events-none z-10" />
+                                    
+                                    {/* Quest indicator badge */}
+                                    {(questOffer?.hasQuest || relevantQuests.length > 0) && (
+                                        <div className="absolute top-3 right-3 w-7 h-7 bg-amber-500 rounded-full flex items-center justify-center text-white font-bold text-sm z-20 animate-bounce shadow-lg">
+                                            !
+                                        </div>
+                                    )}
+                                    
+                                    {isNpc(target) ? (
+                                        <ProceduralPortrait 
+                                            character={target as any} 
+                                            size={200}
+                                            temporaryExpression={portraitExpr}
+                                            onExpressionComplete={clearPortrait}
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
+                                            <span className="text-8xl">{target.emoji || '🦌'}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                {/* Hover tooltip */}
+                                {isNpc(target) && (
+                                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-slate-800 text-xs text-slate-300 px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                                        Click for inner thoughts
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* NPC Info Panel */}
+                            {isNpc(target) && (
+                                <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+                                    <h2 className="text-2xl font-bold text-amber-400 text-center mb-3 tracking-wide" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
+                                        {targetName}
+                                    </h2>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between hover:bg-slate-700/30 px-2 py-1 rounded transition-colors">
+                                            <span className="text-slate-500">Age:</span>
+                                            <span className="text-slate-200">{target.age || 'Unknown'}</span>
+                                        </div>
+                                        <div className="flex justify-between hover:bg-slate-700/30 px-2 py-1 rounded transition-colors">
+                                            <span className="text-slate-500">Gender:</span>
+                                            <span className="text-slate-200 capitalize">{target.gender || 'Unknown'}</span>
+                                        </div>
+                                        <div className="flex justify-between hover:bg-slate-700/30 px-2 py-1 rounded transition-colors">
+                                            <span className="text-slate-500">Faith:</span>
+                                            <span className="text-slate-200">{target.religiousAffiliation || 'Local Beliefs'}</span>
+                                        </div>
+                                        <div className="flex justify-between hover:bg-slate-700/30 px-2 py-1 rounded transition-colors">
+                                            <span className="text-slate-500">Social Class:</span>
+                                            <span className="text-slate-200 capitalize">{target.socialClass || 'Commoner'}</span>
+                                        </div>
+                                        <div className="flex justify-between hover:bg-slate-700/30 px-2 py-1 rounded transition-colors">
+                                            <span className="text-slate-500">Profession:</span>
+                                            <span className="text-slate-200">{target.occupation || target.role || 'Unknown'}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Action Icons */}
+                                    <div className="flex justify-center gap-2 mt-4">
+                                        <button 
+                                            onClick={handleOpenInfo}
+                                            className="w-10 h-10 bg-slate-700/50 border border-slate-600 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-600/50 hover:text-slate-200 hover:border-slate-500 transition-all hover:-translate-y-0.5 hover:scale-105 group relative"
+                                            title="View Profile (P)"
+                                        >
+                                            <span className="text-lg">👤</span>
+                                            <span className="absolute -top-8 bg-slate-800 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                                                Profile (P)
+                                            </span>
+                                        </button>
+                                        <button 
+                                            onClick={() => setActiveTab('trade')}
+                                            className="w-10 h-10 bg-slate-700/50 border border-slate-600 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-600/50 hover:text-slate-200 hover:border-slate-500 transition-all hover:-translate-y-0.5 hover:scale-105 group relative"
+                                            title="Trade Items (T)"
+                                        >
+                                            <span className="text-lg">💰</span>
+                                            <span className="absolute -top-8 bg-slate-800 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                                                Trade (T)
+                                            </span>
+                                        </button>
+                                        <button 
+                                            onClick={() => onInitiateCombat(target)}
+                                            className="w-10 h-10 bg-slate-700/50 border border-slate-600 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-900/30 hover:text-red-300 hover:border-red-600 transition-all hover:-translate-y-0.5 hover:scale-105 group relative"
+                                            title="Attack (A)"
+                                        >
+                                            <span className="text-lg">⚔️</span>
+                                            <span className="absolute -top-8 bg-slate-800 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                                                Attack (A)
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Animal Info */}
+                            {!isNpc(target) && (
+                                <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+                                    <h2 className="text-2xl font-bold text-amber-400 text-center mb-3 tracking-wide">
+                                        {targetName}
+                                    </h2>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between hover:bg-slate-700/30 px-2 py-1 rounded transition-colors">
+                                            <span className="text-slate-500">Type:</span>
+                                            <span className="text-slate-200">Animal</span>
+                                        </div>
+                                        <div className="flex justify-between hover:bg-slate-700/30 px-2 py-1 rounded transition-colors">
+                                            <span className="text-slate-500">Species:</span>
+                                            <span className="text-slate-200">{target.speciesName || 'Unknown'}</span>
+                                        </div>
+                                        <div className="flex justify-between hover:bg-slate-700/30 px-2 py-1 rounded transition-colors">
+                                            <span className="text-slate-500">Behavior:</span>
+                                            <span className="text-slate-200 capitalize">{target.behavior || 'Unknown'}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Action Icons for Animals */}
+                                    <div className="flex justify-center gap-2 mt-4">
+                                        <button 
+                                            onClick={handleOpenInfo}
+                                            className="w-10 h-10 bg-slate-700/50 border border-slate-600 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-600/50 hover:text-slate-200 hover:border-slate-500 transition-all hover:-translate-y-0.5 hover:scale-105 group relative"
+                                            title="View Profile (P)"
+                                        >
+                                            <span className="text-lg">👤</span>
+                                            <span className="absolute -top-8 bg-slate-800 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                                                Profile (P)
+                                            </span>
+                                        </button>
+                                        <button 
+                                            onClick={() => setActiveTab('trade')}
+                                            className="w-10 h-10 bg-slate-700/50 border border-slate-600 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-600/50 hover:text-slate-200 hover:border-slate-500 transition-all hover:-translate-y-0.5 hover:scale-105 group relative"
+                                            title="Tame Animal (T)"
+                                        >
+                                            <span className="text-lg">🦴</span>
+                                            <span className="absolute -top-8 bg-slate-800 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                                                Tame (T)
+                                            </span>
+                                        </button>
+                                        <button 
+                                            onClick={() => onInitiateCombat(target)}
+                                            className="w-10 h-10 bg-slate-700/50 border border-slate-600 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-900/30 hover:text-red-300 hover:border-red-600 transition-all hover:-translate-y-0.5 hover:scale-105 group relative"
+                                            title="Hunt Animal (A)"
+                                        >
+                                            <span className="text-lg">🏹</span>
+                                            <span className="absolute -top-8 bg-slate-800 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                                                Hunt (A)
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        
+                        {/* Right column - Conversation and interactions */}
+                        <div className="flex-1 flex flex-col min-h-0 h-full">
+                            
+                            {/* Tab Navigation - Show for both NPCs and animals */}
+                                <nav className="flex gap-0 border-b border-slate-700 mb-4">
+                                    <button 
+                                        onClick={() => setActiveTab('dialogue')} 
+                                        className={`px-4 py-2.5 text-sm font-medium transition-all relative ${
+                                            activeTab === 'dialogue' 
+                                                ? 'text-blue-400 border-b-2 border-blue-400' 
+                                                : 'text-slate-500 hover:text-slate-300 border-b-2 border-transparent'
+                                        }`}
+                                    >
+                                        {isNpc(target) ? 'Dialogue' : 'Communicate'}
+                                    </button>
+                                    {isNpc(target) && (
+                                        <button 
+                                            onClick={() => setActiveTab('history')} 
+                                            className={`px-4 py-2.5 text-sm font-medium transition-all ${
+                                                activeTab === 'history' 
+                                                    ? 'text-blue-400 border-b-2 border-blue-400' 
+                                                    : 'text-slate-500 hover:text-slate-300 border-b-2 border-transparent'
+                                            }`}
+                                        >
+                                            History
+                                        </button>
+                                    )}
+                                    {isNpc(target) && (
+                                        <button 
+                                            onClick={() => setActiveTab('household')} 
+                                            className={`px-4 py-2.5 text-sm font-medium transition-all ${
+                                                activeTab === 'household' 
+                                                    ? 'text-blue-400 border-b-2 border-blue-400' 
+                                                    : 'text-slate-500 hover:text-slate-300 border-b-2 border-transparent'
+                                            }`}
+                                        >
+                                            Household
+                                        </button>
+                                    )}
+                                    <button 
+                                        onClick={() => setActiveTab('trade')} 
+                                        className={`px-4 py-2.5 text-sm font-medium transition-all ${
+                                            activeTab === 'trade' 
+                                                ? 'text-blue-400 border-b-2 border-blue-400' 
+                                                : 'text-slate-500 hover:text-slate-300 border-b-2 border-transparent'
+                                        }`}
+                                    >
+                                        {isNpc(target) ? 'Trade' : 'Taming'}
+                                    </button>
+                                    {(questOffer?.hasQuest || relevantQuests.length > 0) && (
+                                        <button 
+                                            onClick={() => setActiveTab('quest')} 
+                                            className={`px-4 py-2.5 text-sm font-medium transition-all flex items-center gap-1.5 ${
+                                                activeTab === 'quest' 
+                                                    ? 'text-amber-400 border-b-2 border-amber-400' 
+                                                    : 'text-amber-500 hover:text-amber-400 border-b-2 border-transparent'
+                                            }`}
+                                        >
+                                            <span className="text-base">⚡</span>
+                                            Quests
+                                        </button>
+                                    )}
+                                </nav>
+                            
+                            {/* Conversation Area */}
+                            <div className="flex-1 bg-slate-800/30 border border-slate-700/50 rounded-xl p-4 mb-4 overflow-y-auto conversation-scrollbar min-h-0">
+                                {activeTab === 'dialogue' && (
+                                    <div className="space-y-4">
+                                        {history.length === 0 && isLoading ? (
+                                            <div className="flex items-center justify-center py-20">
+                                                <div className="flex gap-2">
+                                                    <div className="loading-dot"></div>
+                                                    <div className="loading-dot"></div>
+                                                    <div className="loading-dot"></div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {history.map((entry, index) => (
+                                                    <div key={index} className="dialogue-entry">
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="flex-1">
+                                                                <div className="flex items-baseline gap-2 mb-1">
+                                                                    <span className="font-semibold text-amber-400">
+                                                                        {entry.speaker === 'player' ? 'You' : targetName}
+                                                                    </span>
+                                                                    <span className="text-xs text-slate-500 flex items-center gap-1">
+                                                                        <Clock className="w-3 h-3" />
+                                                                        {getTimeAgo(entry.timestamp)}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-slate-200 leading-relaxed">
+                                                                    <HighlightedText 
+                                                                        text={entry.text}
+                                                                        era={currentEra}
+                                                                        zone={culturalZone}
+                                                                        onKeywordClick={(source) => setSelectedPrimarySource(source)}
+                                                                    />
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {/* Quest hint for relevant dialogue */}
+                                                        {relevantQuests.length > 0 && entry.speaker === 'npc' && index === history.length - 1 && (
+                                                            <div className="mt-2 pl-4 border-l-2 border-amber-500/50">
+                                                                <p className="text-xs text-amber-400/80">
+                                                                    ↳ Related to active quest: {relevantQuests[0].title}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                
+                                                {/* Typing indicator */}
+                                                {isLoading && history.length > 0 && (
+                                                    <div className="flex items-center justify-start py-2">
+                                                        <div className="flex gap-2">
+                                                            <div className="loading-dot"></div>
+                                                            <div className="loading-dot"></div>
+                                                            <div className="loading-dot"></div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                                
+                                {/* Trade tab */}
+                                {activeTab === 'trade' && isNpc(target) && mapData && (
+                                    <NpcTradeInterface 
+                                        npc={target}
+                                        playerCharacter={playerCharacter}
+                                        mapData={mapData}
+                                        onClose={() => setActiveTab('dialogue')}
+                                        onTradeComplete={() => {}}
+                                    />
+                                )}
+                                
+                                {/* Household tab */}
+                                {activeTab === 'household' && isNpc(target) && (
+                                    <div className="space-y-4">
+                                        <NpcHouseholdPanel 
+                                            npc={target}
+                                            playerCharacter={playerCharacter}
+                                        />
+                                    </div>
+                                )}
+                                
+                                {/* Quest tab */}
+                                {activeTab === 'quest' && isNpc(target) && (
+                                    <NpcQuestPanel 
+                                        npc={target}
+                                        playerCharacter={playerCharacter}
+                                        mapData={mapData}
+                                        onQuestAccepted={() => {}}
+                                    />
+                                )}
+                                
+                                {/* History tab */}
+                                {activeTab === 'history' && isNpc(target) && (
+                                    <div className="text-slate-300">
+                                        {target.memory?.conversationSummaries && target.memory.conversationSummaries.length > 0 ? (
+                                            <div className="space-y-3">
+                                                <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-700">
+                                                    <ScrollText className="w-4 h-4 text-slate-400" />
+                                                    <h3 className="text-sm font-semibold text-slate-400">Previous Conversations</h3>
+                                                </div>
+                                                {target.memory.conversationSummaries.map((summary, index) => (
+                                                    <div key={index} className="bg-slate-700/30 rounded-lg p-4 text-sm hover:bg-slate-700/40 transition-colors">
+                                                        <div className="flex items-start gap-2">
+                                                            <span className="text-slate-500 mt-0.5">•</span>
+                                                            <p className="leading-relaxed">{summary}</p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                <div className="text-xs text-slate-500 text-center pt-2">
+                                                    Opinion of you: {target.memory.opinionOfPlayer || 50}/100
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center py-12 text-slate-500">
+                                                <ScrollText className="w-8 h-8 mb-3 opacity-50" />
+                                                <p>No previous conversations</p>
+                                                <p className="text-xs mt-1">Start talking to build a history</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* Input Area - Available for both NPCs and animals */}
+                            {activeTab === 'dialogue' && (
+                                <div className="flex gap-3 flex-shrink-0">
+                                    <input 
+                                        type="text" 
+                                        placeholder={isLoading ? "Waiting for response..." : isNpc(target) ? "Say something..." : "Try to communicate..."} 
+                                        value={playerInput} 
+                                        onChange={(e) => setPlayerInput(e.target.value)} 
+                                        onKeyPress={(e) => e.key === 'Enter' && handleSend()} 
+                                        disabled={isLoading}
+                                        className="flex-1 px-4 py-3 text-base text-white placeholder-slate-500 bg-slate-800/60 border border-slate-600 rounded-lg focus:outline-none focus:border-blue-400 focus:bg-slate-700/60 disabled:opacity-50 disabled:cursor-not-allowed transition-all input-glow"
+                                    />
+                                    <button 
+                                        onClick={handleSend} 
+                                        disabled={isLoading || !playerInput.trim()}
+                                        className="ff-action-button"
+                                    >
+                                        Send
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    
+                    {/* Footer bar with Leave button */}
+                    <div className="border-t border-slate-700/50 px-6 py-4 bg-slate-900/50 flex-shrink-0">
+                        <div className="flex justify-end">
+                            <button 
+                                onClick={handleClose}
+                                className="ff-action-button"
+                            >
+                                Leave Conversation
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                {/* Reputation change indicator */}
+                {reputationChange !== null && (
+                    <div className={`absolute top-20 right-8 animate-in fade-in slide-in-from-right duration-300 ${
+                        Math.abs(reputationChange) >= 50 ? 'scale-125' : ''
+                    }`}>
+                        <div className={`px-3 py-2 rounded-lg font-bold shadow-lg ${
+                            reputationChange > 0 
+                                ? 'bg-green-900/80 text-green-300 border border-green-500/50' 
+                                : Math.abs(reputationChange) >= 50
+                                    ? 'bg-red-900/90 text-red-300 border-2 border-red-500 animate-pulse'
+                                    : 'bg-red-900/80 text-red-300 border border-red-500/50'
+                        }`}>
+                            <div className="flex items-center gap-2">
+                                {Math.abs(reputationChange) >= 50 && (
+                                    <AlertTriangle className="w-4 h-4" />
+                                )}
+                                <span className="text-lg">
+                                    {reputationChange > 0 ? '+' : ''}{reputationChange}
+                                </span>
+                                <span className="text-sm opacity-90">reputation</span>
+                            </div>
+                            {Math.abs(reputationChange) >= 100 && (
+                                <div className="text-xs mt-1 opacity-80">
+                                    Authorities alerted!
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+                
+                {/* Internal Monologue Modal */}
+                {showMonologue && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowMonologue(false)}>
+                        <div className="bg-slate-900 border border-amber-500/50 rounded-xl p-6 max-w-md animate-slide-up" onClick={e => e.stopPropagation()}>
+                            <h3 className="text-amber-400 font-semibold mb-3 text-center">Inner Thoughts</h3>
+                            {isLoadingMonologue ? (
+                                <div className="text-center text-slate-400 py-4">
+                                    <div className="animate-spin w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+                                    <p>Reading their mind...</p>
+                                </div>
+                            ) : (
+                                <p className="text-slate-300 italic leading-relaxed">
+                                    "{monologueText}"
+                                </p>
+                            )}
+                            <div className="text-center mt-4">
+                                <span className="text-xs text-slate-500">
+                                    Click {3 - monologueClickCount} more time{3 - monologueClickCount !== 1 ? 's' : ''} for deeper thoughts
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </>
+    );
+};
+
+export default EncounterModalUpdated;

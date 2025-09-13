@@ -299,14 +299,19 @@ export class NpcBehaviorService {
   }
   
   private getInitialAttitude(npc: NpcEntity): number {
-    // Base attitude on personality traits
+    // Base attitude on personality traits (numeric values)
     let attitude = 0;
     
-    if (npc.personality.includes('friendly')) attitude += 20;
-    if (npc.personality.includes('hostile')) attitude -= 20;
-    if (npc.personality.includes('suspicious')) attitude -= 10;
-    if (npc.personality.includes('generous')) attitude += 15;
-    if (npc.personality.includes('greedy')) attitude -= 5;
+    // High extraversion and agreeableness = friendly
+    if (npc.personality.extraversion > 0.7 && npc.personality.agreeableness > 0.6) attitude += 20;
+    // Low agreeableness and high neuroticism = hostile
+    if (npc.personality.agreeableness < 0.3 && npc.personality.neuroticism > 0.6) attitude -= 20;
+    // Low openness = suspicious
+    if (npc.personality.openness < 0.3) attitude -= 10;
+    // High agreeableness = generous
+    if (npc.personality.agreeableness > 0.7) attitude += 15;
+    // Low agreeableness = greedy
+    if (npc.personality.agreeableness < 0.3) attitude -= 5;
     
     return attitude;
   }

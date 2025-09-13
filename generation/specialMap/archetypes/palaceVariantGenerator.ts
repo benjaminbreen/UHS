@@ -11,6 +11,7 @@ import { SpecialMapConfig, InteractionZone, ExitZone, RoomDefinition } from '../
 
 // Import furniture and lighting systems
 import { placePillar, placeTable, placeLightSource, placeFirepit } from '../multiTileSystem';
+import { applyNorthBackWall, applyRoomDivider } from '../backWallUtils';
 import { placeDeskWithChair, placeBookshelfAgainstWall, placeBenchWithOrientation, placeCulturalDecoration } from '../directionalFurniturePlacement';
 import { placeRoundTable, placeLShapedTable, placeBanquetTable, placeSmartTable } from '../advancedFurnitureSystem';
 import { lightRoom, placeChandelier, placeFireplace, getCulturalLighting } from '../advancedLightingSystem';
@@ -396,6 +397,17 @@ function generateThroneRoom(
         tiles[y][x].overlay = undefined;
       }
     }
+  }
+  
+  // Add back wall to north edge for SNES RPG dollhouse view
+  applyNorthBackWall(tiles, left, top, width, config, {
+    hasWindows: true,
+    windowSpacing: 4
+  });
+  
+  // Add pillars if culturally appropriate
+  if (shouldHavePillars(config)) {
+    addThroneRoomPillars(tiles, left, top, width, height, config);
   }
   
   // Place throne/central feature based on layout
@@ -844,6 +856,12 @@ function generateCouncilChamber(
     }
   }
   
+  // Add back wall to north edge
+  applyNorthBackWall(tiles, left, top, width, config, {
+    hasWindows: false, // Council chambers are often internal rooms
+    windowSpacing: 6
+  })
+  
   // Add council table
   const tableX = left + Math.floor(width / 2) - 2;
   const tableY = top + Math.floor(height / 2) - 1;
@@ -1069,6 +1087,85 @@ function addPalaceDecorations(
         // Maps, globes, flags
         placeCulturalDecoration(tiles, room.x + 1, room.y + 1, config.culturalZone || 'EUROPEAN', 'map');
         break;
+    }
+  }
+}
+
+/**
+ * Determine if pillars should be added based on culture and era
+ */
+function shouldHavePillars(config: SpecialMapConfig): boolean {
+  const year = config.specificYear || 1000;
+  
+  // Ancient civilizations loved pillars
+  if (config.culturalZone === 'EUROPEAN' && year < 500) return true; // Greek/Roman
+  if (config.culturalZone === 'MENA' && year < 1500) return true; // Egyptian/Persian
+  if (config.culturalZone === 'SOUTH_ASIAN') return true; // Indian temples always have pillars
+  
+  // Medieval/Renaissance palaces
+  if (config.culturalZone === 'EUROPEAN' && year >= 1200 && year < 1800) return true;
+  
+  // Chinese imperial architecture
+  if (config.culturalZone === 'EAST_ASIAN' && config.region !== 'japan' && year < 1900) return true;
+  
+  // Not common in: Japanese (uses posts not pillars), African (different architecture), 
+  // Americas (except Mayan/Aztec temples), Modern era (steel beams hidden)
+  return false;
+}
+
+/**
+ * Add culturally appropriate pillars to throne room
+ */
+function addThroneRoomPillars(
+  tiles: Tile[][],
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+  config: SpecialMapConfig
+): void {
+  const year = config.specificYear || 1000;
+  
+  // Determine pillar material based on culture/era
+  let material = 'grey_stone';
+  if (config.culturalZone === 'EUROPEAN' && year < 500) {
+    material = 'white_marble'; // Classical
+  } else if (config.culturalZone === 'MENA') {
+    material = year < 0 ? 'sandstone' : 'decorated_stone';
+  } else if (config.culturalZone === 'SOUTH_ASIAN') {
+    material = 'red_sandstone';
+  } else if (config.culturalZone === 'EAST_ASIAN') {
+    material = 'red_lacquer';
+  }
+  
+  // Determine pillar height based on era
+  const pillarHeight = year < -1000 ? 2 : year < 1500 ? 3 : 4;
+  
+  // Place pillars in appropriate pattern
+  if (width >= 10 && height >= 8) {
+    // Grand hall - double row of pillars
+    const spacing = 4;
+    const startX = left + 3;
+    const endX = left + width - 3;
+    
+    for (let x = startX; x <= endX; x += spacing) {
+      // Front row
+      if (tiles[top + 4]?.[x]) {
+        placePillar(tiles, x, top + 4, material as any, year);
+      }
+      // Back row (closer to throne)
+      if (tiles[top + height - 4]?.[x]) {
+        placePillar(tiles, x, top + height - 4, material as any, year);
+      }
+    }
+  } else if (width >= 7) {
+    // Smaller room - just flanking pillars
+    const centerX = left + Math.floor(width / 2);
+    if (tiles[top + 3]?.[centerX - 3]) {
+      placePillar(tiles, centerX - 3, top + 3, material as any, year);
+    }
+    if (tiles[top + 3]?.[centerX + 3]) {
+      placePillar(tiles, centerX + 3, top + 3, material as any, year);
     }
   }
 }

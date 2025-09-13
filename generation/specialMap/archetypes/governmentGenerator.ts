@@ -20,12 +20,18 @@ import {
   generateHexagonalFloor 
 } from '../sacredShapeUtils';
 import { applyCulturalFlooring } from '../culturalFlooringService';
-import { 
+import {
   getCulturalFurnitureSet,
   placeSeatingArrangement,
   placeCulturalLighting
 } from '../culturalFurnitureSystem';
 import { getCulturalGenerator } from '../culturalGeneratorRegistry';
+import {
+  placeContainerWithItems,
+  placeChestWithItems,
+  placeBarrelWithItems
+} from '../storageUtilitySystem';
+import { SpecialMapArchetype } from '../../../types/specialMapTypes';
 
 // Import cultural generators to ensure they register
 import '../archetypes/cultures/nativeAmericanGenerators';
@@ -366,11 +372,23 @@ function generateMedievalCouncilChamber(
     tiles[size.height - 3][x].materialSubtype = 'tapestry';
   }
   
-  // Weapon racks (ceremonial)
-  tiles[8][5].biome = BiomeType.CHEST;
-  tiles[8][5].materialSubtype = 'weapon_rack';
-  tiles[8][size.width - 6].biome = BiomeType.CHEST;
-  tiles[8][size.width - 6].materialSubtype = 'weapon_rack';
+  // Weapon racks (ceremonial) with valuable items
+  placeChestWithItems(
+    tiles, 5, 8,
+    SpecialMapArchetype.GOVERNMENT_FORUM,
+    config.culturalZone as any,
+    config.era,
+    'private', // Lord's hall is private
+    'ornate'
+  );
+  placeChestWithItems(
+    tiles, size.width - 6, 8,
+    SpecialMapArchetype.GOVERNMENT_FORUM,
+    config.culturalZone as any,
+    config.era,
+    'private',
+    'ornate'
+  );
   
   // Interaction zones
   interactionZones.push({
@@ -571,7 +589,15 @@ function generateJapaneseDaimyoHall(
   tiles[platformY + 1][centerX - 4].materialSubtype = 'scroll_alcove';
   
   // Weapon stand
-  tiles[platformY + 1][centerX + 4].biome = BiomeType.CHEST;
+  // Place ornate chest with valuable government documents
+  placeChestWithItems(
+    tiles, centerX + 4, platformY + 1,
+    SpecialMapArchetype.GOVERNMENT_FORUM,
+    config.culturalZone as any,
+    config.era,
+    'restricted', // Very restricted area
+    'ornate'
+  );
   tiles[platformY + 1][centerX + 4].materialSubtype = 'katana_stand';
   
   // Seating areas for retainers (in order of rank)
@@ -815,7 +841,15 @@ function generateAfricanCouncilGround(
   tiles[centerY - 8][centerX].isBlocking = true;
   
   // Speaking staff location
-  tiles[centerY + 2][centerX].biome = BiomeType.CHEST;
+  // Central chest with important documents
+  placeChestWithItems(
+    tiles, centerX, centerY + 2,
+    SpecialMapArchetype.GOVERNMENT_FORUM,
+    config.culturalZone as any,
+    config.era,
+    'restricted',
+    'reinforced'
+  );
   tiles[centerY + 2][centerX].materialSubtype = 'speaking_staff_holder';
   
   // Shade trees (represented as pillars with canopy note)
@@ -833,7 +867,14 @@ function generateAfricanCouncilGround(
   const drumX = size.width - 10;
   const drumY = centerY;
   for (let i = 0; i < 3; i++) {
-    tiles[drumY][drumX + i].biome = BiomeType.BARREL;
+    // Place barrel with supplies
+    placeBarrelWithItems(
+      tiles, drumX + i, drumY,
+      SpecialMapArchetype.TRIBAL_COUNCIL,
+      config.culturalZone as any,
+      config.era,
+      'council_chamber'
+    );
     tiles[drumY][drumX + i].materialSubtype = 'ceremonial_drum';
   }
   
@@ -968,11 +1009,27 @@ function generateIndianDurbar(
   };
   tiles[platformY + 1][platformX + platformWidth].isBlocking = true;
   
-  // Weapon display (ceremonial)
-  tiles[8][3].biome = BiomeType.CHEST;
-  tiles[8][3].materialSubtype = 'sword_display';
-  tiles[8][size.width - 4].biome = BiomeType.CHEST;
-  tiles[8][size.width - 4].materialSubtype = 'sword_display';
+  // Weapon display (ceremonial) with valuable items
+  placeContainerWithItems(
+    tiles, 3, 8,
+    OverlayObjectType.WEAPON_RACK,
+    SpecialMapArchetype.ADMINISTRATIVE_COMPLEX,
+    config.culturalZone as any,
+    config.era,
+    'office',
+    'private',
+    'oak'
+  );
+  placeContainerWithItems(
+    tiles, size.width - 4, 8,
+    OverlayObjectType.WEAPON_RACK,
+    SpecialMapArchetype.ADMINISTRATIVE_COMPLEX,
+    config.culturalZone as any,
+    config.era,
+    'office',
+    'private',
+    'oak'
+  );
   
   // Interaction zones
   interactionZones.push({

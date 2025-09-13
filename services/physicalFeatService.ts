@@ -184,7 +184,12 @@ Consider:
 - Historical realism (would this make sense in the time period?)
 - Risk vs reward (is this unnecessarily dangerous?)
 
-Be realistic but not overly restrictive. Allow creative solutions when they make sense.`;
+IMPORTANT: Be generous with success chances. This is a game where players should succeed more often than fail.
+- For low risk actions: 70-90% success chance
+- For medium risk: 50-70% success chance
+- For high risk: 30-50% success chance
+- For extreme risk: 10-30% success chance
+Player stats should significantly boost these base rates. Aim for fun gameplay over harsh realism.`;
 
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -404,52 +409,63 @@ function getFallbackEvaluation(
   switch (attempt.type) {
     case 'ford':
       // Allow fording of streams and rivers if not too fatigued
-      if (fatiguePercent > 0.8) {
+      if (fatiguePercent > 0.9) {
         return {
           possible: false,
           risk: 'high',
-          successChance: 0.2,
+          successChance: 0.3,
           reasoning: 'You are too exhausted to safely ford the water.',
           consequences: {
             alternativeSuggestion: 'Rest before attempting to cross.'
           }
         };
       }
-      
+
+      // Base 60% chance for fording, plus bonuses for strength
+      const baseChance = 0.6;
+      const strengthBonus = strength * 0.025;
+      const fatiguePenalty = fatiguePercent > 0.6 ? 0.1 : 0;
+
       return {
         possible: true,
-        risk: strength > 12 ? 'low' : 'medium',
-        successChance: Math.min(0.9, 0.5 + strength * 0.03),
+        risk: strength > 14 ? 'low' : (strength > 10 ? 'medium' : 'high'),
+        successChance: Math.min(0.95, baseChance + strengthBonus - fatiguePenalty),
         reasoning: 'The crossing looks manageable with care.',
         consequences: {
-          fatigueCost: 15,
-          healthRisk: 10,
-          itemLossChance: 0.1
+          fatigueCost: 10,
+          healthRisk: 8,
+          itemLossChance: 0.05
         }
       };
       
     case 'climb':
-      if (dexterity < 8) {
+      if (dexterity < 5) {
         return {
           possible: false,
           risk: 'extreme',
-          successChance: 0.1,
+          successChance: 0.2,
           reasoning: 'You lack the agility for this climb.',
           consequences: {
-            alternativeSuggestion: 'Find another way around.'
+            alternativeSuggestion: 'Find another way around or improve your dexterity.'
           }
         };
       }
-      
+
+      // Base 50% chance, plus 3% per dexterity point
+      // Dexterity 10 = 80% chance, Dexterity 15 = 95% chance
+      const climbBaseChance = 0.5;
+      const dexBonus = dexterity * 0.03;
+      const climbStrengthBonus = (strength > 12) ? 0.05 : 0; // Small bonus for strong characters
+
       return {
         possible: true,
-        risk: dexterity > 14 ? 'low' : 'medium',
-        successChance: Math.min(0.85, 0.4 + dexterity * 0.04),
-        reasoning: 'The climb is challenging but possible.',
+        risk: dexterity > 14 ? 'low' : (dexterity > 10 ? 'medium' : 'high'),
+        successChance: Math.min(0.95, climbBaseChance + dexBonus + climbStrengthBonus),
+        reasoning: 'The climb looks manageable with careful handholds.',
         consequences: {
-          fatigueCost: 20,
-          healthRisk: 25,
-          itemLossChance: 0.05
+          fatigueCost: 15,
+          healthRisk: 20,
+          itemLossChance: 0.03
         }
       };
       

@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, X, BookOpen, Clock, Globe } from 'lucide-react';
 import { primarySourceService, PrimarySourceMetadata } from '../services/primarySourceService';
-import { PrimarySourceModal } from './PrimarySourceModal';
+import { useUI } from '../contexts/UIContext';
 
 export const PrimarySourceSearch: React.FC = () => {
+  const { setSelectedPrimarySource } = useUI();
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<PrimarySourceMetadata[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedSource, setSelectedSource] = useState<PrimarySourceMetadata | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -52,7 +52,7 @@ export const PrimarySourceSearch: React.FC = () => {
   };
 
   const handleSourceClick = (source: PrimarySourceMetadata) => {
-    setSelectedSource(source);
+    setSelectedPrimarySource(source);
     setIsExpanded(false);
   };
 
@@ -163,14 +163,6 @@ export const PrimarySourceSearch: React.FC = () => {
           </div>
         )}
       </div>
-
-      {/* Primary Source Modal */}
-      {selectedSource && (
-        <PrimarySourceModal
-          source={selectedSource}
-          onClose={() => setSelectedSource(null)}
-        />
-      )}
     </>
   );
 };

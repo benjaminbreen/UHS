@@ -933,15 +933,25 @@ export function generateProceduralItem(
   const era = options.era || 'MEDIEVAL';
   const age = generateAge(era);
   const condition = generateCondition(quality, age);
-  
-  // Get era-appropriate material
-  const baseMaterial = baseItem.material || 'Wood';
-  
-  // Get era-appropriate material for all items including headgear
-  const eraAppropriateMaterial = getEraAppropriateMaterial(baseMaterial, era, baseItem.category);
-  
-  // Get cultural style
-  const culturalStyle = options.culture ? getCulturalStyle(options.culture, eraAppropriateMaterial) : undefined;
+
+  // Only apply materials to items that should have them
+  // Skip Food, consumables, and items without base materials
+  let eraAppropriateMaterial: string | undefined;
+  let culturalStyle: string | undefined;
+
+  const shouldHaveMaterial = baseItem.category !== 'Food' &&
+                            baseItem.category !== 'Consumable' &&
+                            (baseItem.material || baseItem.category === 'Weapon' ||
+                             baseItem.category === 'Apparel' || baseItem.category === 'Armor');
+
+  if (shouldHaveMaterial && baseItem.material) {
+    // Get era-appropriate material
+    const baseMaterial = baseItem.material;
+    eraAppropriateMaterial = getEraAppropriateMaterial(baseMaterial, era, baseItem.category);
+
+    // Get cultural style
+    culturalStyle = options.culture ? getCulturalStyle(options.culture, eraAppropriateMaterial) : undefined;
+  }
   
   // Create item instance with all procedural properties
   let item: Item = {
@@ -952,7 +962,7 @@ export function generateProceduralItem(
     condition,
     culturalStyle,
     age,
-    material: eraAppropriateMaterial
+    material: eraAppropriateMaterial || baseItem.material
   };
   
   // Apply colors FIRST so we can use them in the name
@@ -965,7 +975,7 @@ export function generateProceduralItem(
   // Generate procedural name with color
   item.name = generateProceduralName(baseItem, {
     quality,
-    material: eraAppropriateMaterial,
+    material: eraAppropriateMaterial, // Will be undefined for food/consumables
     color: item.color
   });
   

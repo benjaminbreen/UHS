@@ -107,3 +107,6 @@ export { IndigenousDecorativeDreamcatcher } from './IndigenousDecorativeDreamcat
 
 // Low Wall Symbol for tribal and other structures
 export { default as WallLowSymbol } from './WallLowSymbol';
+
+// Banner Symbol for throne rooms and halls
+export { default as BannerSymbol } from './BannerSymbol';

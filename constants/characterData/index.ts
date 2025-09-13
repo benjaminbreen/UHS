@@ -5,4 +5,4 @@ export * from './names';
 export * from './professions';
 export * from './startingPackages';
 export * from './religions'; // NEW
-export * from './clothing'; // NEW
+// export * from './clothing'; // Lazy loaded to improve startup performance

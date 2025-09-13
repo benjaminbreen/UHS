@@ -40,6 +40,7 @@ import {
   CarpetSymbol,
   DaisSymbol,
   FloorSymbol,
+  BannerSymbol,
   BathSymbol,
   MirrorSymbol,
   KitchenCounterSymbol,
@@ -223,7 +224,7 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
       case BiomeType.WALL:
         return <WallSymbol x={0} y={0} size={size} culturalZone={culturalZone as string} era={era as number} />;
       case BiomeType.WALL_LOW:
-        return <WallLowSymbol biome={biome} x={0} y={0} tileSize={size} materialSubtype={materialSubtype || tile?.materialSubtype} />;
+        return <WallLowSymbol biome={biome} x={0} y={0} tileSize={size} materialSubtype={materialSubtype || tile?.materialSubtype || 'stone'} zoom={1} />;
       case BiomeType.WALL_GATE:
         return <WallGateSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} seed={seed} />;
       case BiomeType.WALL_WINDOW:
@@ -325,6 +326,32 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
         else if (era < 1000) pathVariant = 'dirt';
         return <PathSymbol x={0} y={0} size={size} variant={pathVariant} isNight={nightIntensity > 0.3} />;
         
+      case BiomeType.DIRT:
+        // Render plain dirt/earth ground
+        return (
+          <g>
+            <rect x={0} y={0} width={size} height={size} fill="#8B6239" />
+            {/* Add some texture */}
+            <rect x={size * 0.1} y={size * 0.2} width={size * 0.2} height={size * 0.1} fill="#7A5230" opacity={0.5} />
+            <rect x={size * 0.6} y={size * 0.5} width={size * 0.15} height={size * 0.08} fill="#9B7653" opacity={0.4} />
+            <rect x={size * 0.3} y={size * 0.7} width={size * 0.25} height={size * 0.12} fill="#7A5230" opacity={0.3} />
+            <circle cx={size * 0.8} cy={size * 0.3} r={size * 0.05} fill="#6B4423" opacity={0.4} />
+          </g>
+        );
+        
+      case BiomeType.GRASS:
+        // Render grass ground
+        return (
+          <g>
+            <rect x={0} y={0} width={size} height={size} fill="#567d46" />
+            {/* Add grass texture */}
+            <path d={`M ${size * 0.1} ${size * 0.9} L ${size * 0.15} ${size * 0.7} L ${size * 0.2} ${size * 0.9}`} stroke="#4a6a3a" strokeWidth={1} fill="none" />
+            <path d={`M ${size * 0.3} ${size * 0.85} L ${size * 0.35} ${size * 0.65} L ${size * 0.4} ${size * 0.85}`} stroke="#4a6a3a" strokeWidth={1} fill="none" />
+            <path d={`M ${size * 0.6} ${size * 0.9} L ${size * 0.65} ${size * 0.75} L ${size * 0.7} ${size * 0.9}`} stroke="#4a6a3a" strokeWidth={1} fill="none" />
+            <path d={`M ${size * 0.8} ${size * 0.88} L ${size * 0.85} ${size * 0.68} L ${size * 0.9} ${size * 0.88}`} stroke="#4a6a3a" strokeWidth={1} fill="none" />
+          </g>
+        );
+        
       case BiomeType.DIRT_PATH:
         // Always render as dirt path regardless of culture/era
         return <PathSymbol x={0} y={0} size={size} variant="dirt" isNight={nightIntensity > 0.3} />;
@@ -365,6 +392,56 @@ export const SpecialMapSymbolRenderer: React.FC<SpecialMapSymbolRendererProps> =
         return <StairsSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} direction="up" seed={seed} />;
       case BiomeType.STAIRS_DOWN:
         return <StairsSymbol x={0} y={0} size={size} culturalZone={culturalZone} era={era} direction="down" seed={seed} />;
+      
+      case BiomeType.STAGE:
+        // Theater or performance stage
+        return (
+          <g>
+            {/* Raised platform */}
+            <rect x={0} y={size * 0.6} width={size} height={size * 0.4} fill="#8B4513" stroke="#654321" strokeWidth={1} />
+            <rect x={0} y={size * 0.55} width={size} height={size * 0.05} fill="#A0522D" />
+            {/* Stage curtain indication */}
+            <path d={`M 0 ${size * 0.55} Q ${size * 0.25} ${size * 0.45} ${size * 0.5} ${size * 0.55} T ${size} ${size * 0.55}`} 
+                  fill="none" stroke="#8B0000" strokeWidth={2} />
+            {/* Stage lights */}
+            <circle cx={size * 0.2} cy={size * 0.3} r={size * 0.05} fill="#FFD700" opacity={0.8} />
+            <circle cx={size * 0.8} cy={size * 0.3} r={size * 0.05} fill="#FFD700" opacity={0.8} />
+          </g>
+        );
+      
+      case BiomeType.PAVILION:
+        // Covered seating area or shelter
+        return (
+          <g>
+            {/* Base platform */}
+            <rect x={size * 0.1} y={size * 0.7} width={size * 0.8} height={size * 0.2} fill="#D2B48C" stroke="#8B7355" strokeWidth={1} />
+            {/* Roof support posts */}
+            <rect x={size * 0.2} y={size * 0.3} width={size * 0.05} height={size * 0.4} fill="#8B4513" />
+            <rect x={size * 0.75} y={size * 0.3} width={size * 0.05} height={size * 0.4} fill="#8B4513" />
+            {/* Roof */}
+            <path d={`M ${size * 0.05} ${size * 0.35} L ${size * 0.5} ${size * 0.2} L ${size * 0.95} ${size * 0.35} L ${size * 0.85} ${size * 0.45} L ${size * 0.15} ${size * 0.45} Z`} 
+                  fill="#8B0000" stroke="#654321" strokeWidth={1} />
+          </g>
+        );
+      
+      case BiomeType.CELL:
+        // Prison cell or holding area
+        return (
+          <g>
+            {/* Cell floor */}
+            <rect x={0} y={0} width={size} height={size} fill="#696969" />
+            {/* Iron bars pattern */}
+            <line x1={size * 0.2} y1={0} x2={size * 0.2} y2={size} stroke="#2F2F2F" strokeWidth={2} />
+            <line x1={size * 0.4} y1={0} x2={size * 0.4} y2={size} stroke="#2F2F2F" strokeWidth={2} />
+            <line x1={size * 0.6} y1={0} x2={size * 0.6} y2={size} stroke="#2F2F2F" strokeWidth={2} />
+            <line x1={size * 0.8} y1={0} x2={size * 0.8} y2={size} stroke="#2F2F2F" strokeWidth={2} />
+            {/* Horizontal bars */}
+            <line x1={0} y1={size * 0.3} x2={size} y2={size * 0.3} stroke="#2F2F2F" strokeWidth={1} />
+            <line x1={0} y1={size * 0.7} x2={size} y2={size * 0.7} stroke="#2F2F2F" strokeWidth={1} />
+            {/* Straw or simple bedding */}
+            <ellipse cx={size * 0.3} cy={size * 0.8} rx={size * 0.15} ry={size * 0.05} fill="#DAA520" opacity={0.6} />
+          </g>
+        );
       
       // Landscape biomes - return null to let canvas handle them properly
       case BiomeType.PARK:

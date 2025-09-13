@@ -1,8 +1,9 @@
 /**
  * QuestTestingPanel.tsx - Comprehensive testing panel for the quest system
+ * Enhanced to test the unified quest pipeline with historical context
  */
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, CheckCircle, Circle, MapPin, Package, User, FastForward, RefreshCw, Bug, Zap, FileText, Target } from 'lucide-react';
+import { X, Plus, Trash2, CheckCircle, Circle, MapPin, Package, User, FastForward, RefreshCw, Bug, Zap, FileText, Target, Globe, History, Database, Activity } from 'lucide-react';
 import { questService } from '../services/questService';
 import { questCompletionService } from '../services/questCompletionService';
 import { Quest, QuestObjective, QuestReward } from '../types/questTypes';
@@ -12,6 +13,9 @@ import { useGame } from '../contexts/GameContext';
 import { useEventSystem } from '../hooks/useEventSystem';
 import { HistoricalEra } from '../types/ambiance';
 import { CulturalZone } from '../types/characterData';
+import { unifiedQuestPipeline, QuestGenerationContext } from '../services/unifiedQuestPipeline';
+import { worldEntityRegistry } from '../services/worldEntityRegistry';
+import { historicalContextEngine } from '../services/historicalContextEngine';
 
 interface QuestTestingPanelProps {
   isOpen: boolean;
@@ -78,7 +82,165 @@ const QuestTestingPanel: React.FC<QuestTestingPanelProps> = ({ isOpen, onClose }
     return zoneMap[continent] || 'EUROPEAN';
   };
 
-  // Generate test quest with specific type
+  // Generate test quest using unified pipeline
+  const generateUnifiedQuest = async (triggerType?: string) => {
+    if (!mapData || !playerCharacter) {
+      addTestResult('❌ Cannot generate quest: No map or player data');
+      return;
+    }
+
+    setIsGenerating(true);
+    
+    try {
+      const era = getEraFromDate(gameDate?.year || 1500);
+      const culturalZone = getCulturalZone();
+      
+      // Build quest generation context
+      const context: QuestGenerationContext = {
+        mapData,
+        playerLocation: { x: playerCharacter.x, y: playerCharacter.y },
+        playerStats: {
+          health: playerCharacter.health || 50,
+          reputation: playerCharacter.reputation || 10,
+          wealth: 10,
+          intelligence: playerCharacter.stats?.intelligence || 10,
+          strength: playerCharacter.stats?.strength || 10
+        },
+        zone: culturalZone,
+        era: era,
+        year: gameDate?.year || 1500,
+        season: 'spring',
+        gameMode: currentMode || 'exploration',
+        triggerType: triggerType as any || 'manual',
+        nearbyStructures: mapData.terrainStructures || [],
+        nearbyNPCs: npcs || []
+      };
+
+      addTestResult(`🔄 Generating unified quest (${triggerType || 'manual'})...`);
+      
+      const quest = await unifiedQuestPipeline.generateQuest(context);
+      
+      if (quest) {
+        questService.addQuest(quest);
+        addTestResult(`✅ Generated: "${quest.title}" [${quest.category}]`);
+        addTestResult(`   📜 Historical: ${quest.historicalContext ? 'YES' : 'NO'}`);
+        addTestResult(`   🎯 Objectives: ${quest.objectives.length}`);
+        refreshQuests();
+        setSelectedQuest(quest);
+      } else {
+        addTestResult('❌ Failed to generate quest through unified pipeline');
+      }
+    } catch (error) {
+      addTestResult(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Test multiple quest generation
+  const generateMultipleQuests = async () => {
+    if (!mapData || !playerCharacter) {
+      addTestResult('❌ Cannot generate quests: No map or player data');
+      return;
+    }
+
+    setIsGenerating(true);
+    
+    try {
+      const context: QuestGenerationContext = {
+        mapData,
+        playerLocation: { x: playerCharacter.x, y: playerCharacter.y },
+        zone: getCulturalZone(),
+        era: getEraFromDate(gameDate?.year || 1500),
+        year: gameDate?.year || 1500,
+        gameMode: currentMode || 'exploration',
+        nearbyStructures: mapData.terrainStructures || [],
+        nearbyNPCs: npcs || []
+      };
+
+      addTestResult('🔄 Generating 3 diverse quests...');
+      
+      const quests = await unifiedQuestPipeline.generateMultipleQuests(context, 3);
+      
+      if (quests.length > 0) {
+        quests.forEach(q => questService.addQuest(q));
+        addTestResult(`✅ Generated ${quests.length} quests:`);
+        quests.forEach(q => {
+          addTestResult(`   • "${q.title}" [${q.category}]`);
+        });
+        refreshQuests();
+      } else {
+        addTestResult('❌ No quests generated');
+      }
+    } catch (error) {
+      addTestResult(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Test historical context
+  const testHistoricalContext = async () => {
+    const zone = getCulturalZone();
+    const era = getEraFromDate(gameDate?.year || 1500);
+    const year = gameDate?.year || 1500;
+    
+    addTestResult(`🔍 Testing historical context for ${zone} in ${era} (${year})...`);
+    
+    try {
+      const context = await historicalContextEngine.getContext(zone, era, year);
+      
+      if (context) {
+        addTestResult(`✅ Historical context loaded:`);
+        if (context.conflicts?.length > 0) {
+          addTestResult(`   ⚔️ Conflicts: ${context.conflicts.join(', ')}`);
+        }
+        if (context.tradeGoods?.length > 0) {
+          addTestResult(`   📦 Trade goods: ${context.tradeGoods.join(', ')}`);
+        }
+        if (context.commonProfessions?.length > 0) {
+          addTestResult(`   👥 Professions: ${context.commonProfessions.slice(0, 5).join(', ')}`);
+        }
+        if (context.culturalTaboos?.length > 0) {
+          addTestResult(`   ⛔ Taboos: ${context.culturalTaboos.join(', ')}`);
+        }
+      } else {
+        addTestResult('❌ No historical context available');
+      }
+    } catch (error) {
+      addTestResult(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  // Test entity registry
+  const testEntityRegistry = () => {
+    addTestResult('🔍 Testing World Entity Registry...');
+    
+    const stats = worldEntityRegistry.getStatistics();
+    addTestResult(`📊 Registry Statistics:`);
+    addTestResult(`   • NPCs: ${stats.npcs}`);
+    addTestResult(`   • Structures: ${stats.structures}`);
+    addTestResult(`   • Rulers: ${stats.rulers}`);
+    addTestResult(`   • Settlements: ${stats.settlements}`);
+    addTestResult(`   • Total: ${stats.total}`);
+    
+    if (playerCharacter) {
+      const nearbyNpcs = worldEntityRegistry.queryEntities({
+        type: 'npc',
+        maxDistance: 20,
+        active: true
+      });
+      
+      if (nearbyNpcs.length > 0) {
+        addTestResult(`📍 Nearby NPCs (20 tiles):`);
+        nearbyNpcs.slice(0, 3).forEach(npc => {
+          addTestResult(`   • ${npc.name} at (${npc.location.x}, ${npc.location.y})`);
+        });
+      }
+    }
+  };
+
+  // Generate test quest with specific type (legacy)
   const generateTestQuest = (type: 'delivery' | 'talk' | 'exploration' | 'collection' | 'historical') => {
     if (!mapData || !playerCharacter) {
       addTestResult('❌ Cannot generate quest: No map or player data');
@@ -88,34 +250,9 @@ const QuestTestingPanel: React.FC<QuestTestingPanelProps> = ({ isOpen, onClose }
     setIsGenerating(true);
     
     try {
-      // For historical type, use the new system
+      // For historical type, use the unified pipeline
       if (type === 'historical') {
-        const era = getEraFromDate(gameDate?.year || 1500);
-        const culturalZone = getCulturalZone();
-        const gameMode = currentMode || 'exploration';
-        
-        // Find a quest giver NPC
-        const questGiver = npcs && npcs.length > 0 ? npcs[Math.floor(Math.random() * npcs.length)] : undefined;
-        
-        const quest = questService.generateHistoricalQuest(
-          era,
-          culturalZone,
-          gameMode,
-          mapData,
-          npcs || [],
-          { x: playerCharacter.x, y: playerCharacter.y },
-          questGiver
-        );
-        
-        if (quest) {
-          addTestResult(`✅ Generated historical quest: ${quest.title} (${era} - ${culturalZone})`);
-          refreshQuests();
-          setSelectedQuest(quest);
-        } else {
-          addTestResult('❌ Failed to generate historical quest - no suitable templates or locations');
-        }
-        
-        setIsGenerating(false);
+        generateUnifiedQuest('manual');
         return;
       }
       
@@ -410,16 +547,46 @@ const QuestTestingPanel: React.FC<QuestTestingPanelProps> = ({ isOpen, onClose }
             <h3 className="text-sm font-semibold text-slate-300 mb-3">Generate Test Quests</h3>
             
             <div className="space-y-2 mb-4">
-              <button
-                onClick={() => generateTestQuest('historical')}
-                disabled={isGenerating}
-                className="w-full px-3 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 disabled:bg-slate-700 text-white text-sm rounded-lg transition-all flex items-center gap-2 font-semibold"
-              >
-                <ScrollText className="w-4 h-4" />
-                Historical Quest (New System)
-              </button>
+              {/* Unified Pipeline Tests */}
+              <div className="bg-purple-900/20 border border-purple-600/30 rounded-lg p-2 mb-2">
+                <div className="text-xs font-semibold text-purple-400 mb-2">🚀 Unified Pipeline Tests</div>
+                
+                <button
+                  onClick={() => generateUnifiedQuest('manual')}
+                  disabled={isGenerating}
+                  className="w-full px-3 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:bg-slate-700 text-white text-sm rounded-lg transition-all flex items-center gap-2 font-semibold mb-2"
+                >
+                  <Zap className="w-4 h-4" />
+                  Generate Unified Quest
+                </button>
+                
+                <button
+                  onClick={generateMultipleQuests}
+                  disabled={isGenerating}
+                  className="w-full px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:bg-slate-700 text-white text-sm rounded-lg transition-all flex items-center gap-2 font-semibold mb-2"
+                >
+                  <Database className="w-4 h-4" />
+                  Generate 3 Diverse Quests
+                </button>
+                
+                <button
+                  onClick={testHistoricalContext}
+                  className="w-full px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm rounded-lg transition-colors flex items-center gap-2 mb-2"
+                >
+                  <History className="w-4 h-4" />
+                  Test Historical Context
+                </button>
+                
+                <button
+                  onClick={testEntityRegistry}
+                  className="w-full px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Globe className="w-4 h-4" />
+                  Test Entity Registry
+                </button>
+              </div>
               
-              <div className="text-xs text-slate-500 text-center my-2">— or generate test quests —</div>
+              <div className="text-xs text-slate-500 text-center my-2">— Legacy test quests —</div>
               
               <button
                 onClick={() => generateTestQuest('delivery')}

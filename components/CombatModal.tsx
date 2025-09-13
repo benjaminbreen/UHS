@@ -7,6 +7,7 @@ import { CombatSprite, AnimalCombatSprite } from './symbols';
 import { ProceduralPortrait } from './portraits';
 import { loadTamedAnimals, saveTamedAnimals, TamedAnimal } from '../services/animalTamingService';
 import { getAnimalTexts } from '../constants/gameData/animalTexts';
+import gameSoundsService from '../services/gameSoundsService';
 
 interface CombatModalProps {
   combatant: EncounterableEntity;
@@ -64,7 +65,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
   const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   
-  const [playerAnimation, setPlayerAnimation] = useState<'idle' | 'attacking' | 'item' | 'damaged' | 'defending' | 'fleeing' | 'power_strike'>('idle');
+  const [playerAnimation, setPlayerAnimation] = useState<'idle' | 'attacking' | 'item' | 'damaged' | 'defending' | 'fleeing' | 'power_strike' | 'slashing' | 'chopping' | 'stabbing' | 'crushing' | 'shooting' | 'casting' | 'blocking' | 'dodging' | 'shouting'>('idle');
   const [opponentAnimation, setOpponentAnimation] = useState<'idle' | 'attacking' | 'damaged' | 'special'>('idle');
   const [screenShake, setScreenShake] = useState<{active: boolean, intensity: 'light' | 'medium' | 'heavy'}>({active: false, intensity: 'light'});
   const [specialAttackAnnouncement, setSpecialAttackAnnouncement] = useState<{text: string, visible: boolean}>({text: '', visible: false});
@@ -320,6 +321,15 @@ const CombatModal: React.FC<CombatModalProps> = ({
       setOpponentAnimation('damaged');
       addDamageSplat(result.text || result.damage.toString(), result.crit ? 'crit' : 'damage', 'opponent');
       
+      // Play impact sound when opponent takes damage
+      if (result.damage > 0) {
+        if (result.crit) {
+          gameSoundsService.playCriticalHitSound();
+        } else {
+          gameSoundsService.playImpactSound();
+        }
+      }
+      
       if (result.crit) {
         setCombatStats(prev => ({ ...prev, criticalHits: prev.criticalHits + 1 }));
       }
@@ -331,6 +341,12 @@ const CombatModal: React.FC<CombatModalProps> = ({
       onCharacterUpdate(p => ({ ...p, health: Math.max(0, p.health - result.damage) }));
       setPlayerAnimation('damaged');
       addDamageSplat(result.text || result.damage.toString(), result.crit ? 'crit' : 'damage', 'player');
+      
+      // Play hurt sound when player takes damage
+      if (result.damage > 0) {
+        gameSoundsService.playHurtSound();
+      }
+      
       triggerScreenShake(result.damage, result.crit);
     }
   };
@@ -852,6 +868,26 @@ const CombatModal: React.FC<CombatModalProps> = ({
         : null;
       
       setOpponentAnimation('attacking');
+      
+      // Play opponent attack sound based on their type
+      if (isAnimal(opponent)) {
+          // Animal attack sounds (bite, claw, etc.)
+          gameSoundsService.playBiteSound();
+      } else if (isNpc(opponent)) {
+          // NPC uses weapon sounds based on their equipment
+          const opponentWeapon = (opponent as NpcEntity).equippedItems?.main_hand?.name.toLowerCase() || '';
+          if (opponentWeapon.includes('sword')) {
+              gameSoundsService.playSlashSound();
+          } else if (opponentWeapon.includes('axe')) {
+              gameSoundsService.playChopSound();
+          } else if (opponentWeapon.includes('bow') || opponentWeapon.includes('crossbow')) {
+              gameSoundsService.playArrowSound();
+          } else {
+              // Default attack sound for NPCs
+              gameSoundsService.playSlashSound();
+          }
+      }
+      
       const flavorText = getCombatFlavorText('attack', isAnimal(opponent), isAnimal(opponent) ? opponent.baseId : undefined);
       
       if (targetAnimal) {
@@ -939,6 +975,8 @@ const CombatModal: React.FC<CombatModalProps> = ({
                   addDamageSplat('Miss!', 'miss', 'player');
                   const missText = getCombatFlavorText('miss', isAnimal(opponent), isAnimal(opponent) ? opponent.baseId : undefined);
                   addLog(missText || `${opponentName}'s attack misses!`, 'opponent');
+                  // Play dodge sound when player avoids attack
+                  gameSoundsService.playDodgeSound();
               }
           
               setTimeout(() => {
@@ -1030,6 +1068,8 @@ const CombatModal: React.FC<CombatModalProps> = ({
         setIsDefending(true);
         setPlayerAnimation('defending');
         addLog('You raise your guard defensively.', 'player');
+        // Play shield/defend sound
+        gameSoundsService.playShieldSound();
         setTimeout(() => {
           endPlayerTurn();
         }, 800);
@@ -1045,9 +1085,29 @@ const CombatModal: React.FC<CombatModalProps> = ({
             // Fire projectile for ranged weapons
             const projectileType = weaponName.includes('crossbow') ? 'bolt' : 'arrow';
             fireProjectile(projectileType, 'right');
+            // Play arrow sound for ranged weapons
+            gameSoundsService.playArrowSound();
+            setPlayerAnimation('shooting');
+        } else {
+            // Play melee weapon sound and set animation based on weapon type
+            if (weaponName.includes('sword')) {
+                gameSoundsService.playSlashSound();
+                setPlayerAnimation('slashing');
+            } else if (weaponName.includes('axe')) {
+                gameSoundsService.playChopSound();
+                setPlayerAnimation('chopping');
+            } else if (weaponName.includes('hammer') || weaponName.includes('mace') || weaponName.includes('club')) {
+                gameSoundsService.playCrushSound();
+                setPlayerAnimation('crushing');
+            } else if (weaponName.includes('spear') || weaponName.includes('pike') || weaponName.includes('dagger')) {
+                gameSoundsService.playStabSound();
+                setPlayerAnimation('stabbing');
+            } else {
+                // Default slash sound and animation for unknown weapons
+                gameSoundsService.playSlashSound();
+                setPlayerAnimation('attacking');
+            }
         }
-        
-        setPlayerAnimation('attacking');
         addLog('You attack!', 'player');
         setTimeout(() => {
             const result = calculateAttack(playerCharacter, opponent, 1.0);
@@ -1090,6 +1150,8 @@ const CombatModal: React.FC<CombatModalProps> = ({
             } else {
                 addDamageSplat('Miss!', 'miss', 'opponent');
                 addLog(`Your attack misses!`, 'player');
+                // Play miss/block sound
+                gameSoundsService.playBlockSound();
             }
 
             setTimeout(() => {
@@ -1310,7 +1372,22 @@ const CombatModal: React.FC<CombatModalProps> = ({
     }
 
     addLog(`You use ${skill.name}!`, 'player');
-    setPlayerAnimation(skillId === 'POWER_STRIKE' ? 'power_strike' : 'item');
+    
+    // Set animation based on skill type
+    if (skillId === 'POWER_STRIKE') {
+      const weaponName = playerCharacter.equippedItems.main_hand?.name.toLowerCase() || '';
+      if (weaponName.includes('axe')) {
+        setPlayerAnimation('chopping');
+      } else if (weaponName.includes('hammer') || weaponName.includes('mace')) {
+        setPlayerAnimation('crushing');
+      } else if (weaponName.includes('sword')) {
+        setPlayerAnimation('slashing');
+      } else {
+        setPlayerAnimation('power_strike');
+      }
+    } else {
+      setPlayerAnimation('item');
+    }
     
     switch (skillId) {
       case 'POWER_STRIKE':
@@ -1334,6 +1411,8 @@ const CombatModal: React.FC<CombatModalProps> = ({
           } else {
             addDamageSplat('Miss!', 'miss', 'opponent');
             addLog(`Your power strike misses!`, 'player');
+            // Play miss sound
+            gameSoundsService.playBlockSound();
           }
           
           setTimeout(() => {
@@ -1351,11 +1430,15 @@ const CombatModal: React.FC<CombatModalProps> = ({
         break;
 
       case 'CHOP':
+        setPlayerAnimation('chopping');
         setTimeout(() => {
           const hasAxe = playerCharacter.equippedItems.main_hand?.name.toLowerCase().includes('axe');
           const baseDamage = 5 + (hasAxe ? 5 : 0);
           const damage = Math.max(1, baseDamage + playerCharacter.stats.strength - opponent.stats.defense);
           const applyBleed = hasAxe && Math.random() < 0.4; // 40% chance to cause bleeding with an axe
+          
+          // Play chop sound effect
+          gameSoundsService.playChopSound();
 
           const newHealth = Math.max(0, getOpponentHealth(opponent) - damage);
           setOpponent(prev => {
@@ -1405,6 +1488,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
         break;
 
       case 'BURN':
+        setPlayerAnimation('casting');
         setTimeout(() => {
           const damage = 15 + playerCharacter.stats.intelligence;
           const applyBurn = Math.random() < 0.6; // 60% chance to apply burn status
@@ -1457,11 +1541,15 @@ const CombatModal: React.FC<CombatModalProps> = ({
         break;
 
       case 'THRUST':
+        setPlayerAnimation('stabbing');
         setTimeout(() => {
           const hasPointedWeapon = playerCharacter.equippedItems.main_hand?.name.toLowerCase().includes('sword') || 
                                   playerCharacter.equippedItems.main_hand?.name.toLowerCase().includes('spear') ||
                                   playerCharacter.equippedItems.main_hand?.name.toLowerCase().includes('dagger');
           const baseDamage = 8 + (hasPointedWeapon ? 4 : 0);
+          
+          // Play thrust/stab sound
+          gameSoundsService.playStabSound();
           const damage = Math.max(1, baseDamage + Math.floor(playerCharacter.stats.dexterity / 2) - opponent.stats.defense);
           
           setOpponent(prev => ({
@@ -1516,6 +1604,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
         break;
 
       case 'INTIMIDATING_SHOUT':
+        setPlayerAnimation('shouting');
         setTimeout(() => {
           // Reduce opponent's defense for the rest of the battle
           const defenseReduction = Math.floor(opponent.stats.defense * 0.5); // 50% defense reduction
@@ -1606,7 +1695,28 @@ const CombatModal: React.FC<CombatModalProps> = ({
   
   // Handle profession-specific skills
   const handleProfessionSkill = (skillId: SkillID) => {
-    setPlayerAnimation('attack');
+    // Set animation based on skill type
+    switch (skillId) {
+      case 'HAMMER_BLOW':
+        setPlayerAnimation('crushing');
+        break;
+      case 'SCALDING_WATER':
+      case 'BURN':
+        setPlayerAnimation('casting');
+        break;
+      case 'INTIMIDATING_SHOUT':
+        setPlayerAnimation('shouting');
+        break;
+      case 'SCYTHE_SWEEP':
+        setPlayerAnimation('slashing');
+        break;
+      case 'NET_THROW':
+        setPlayerAnimation('shooting');
+        break;
+      default:
+        setPlayerAnimation('attacking');
+        break;
+    }
     
     setTimeout(() => {
       switch (skillId) {
@@ -2220,10 +2330,10 @@ const CombatModal: React.FC<CombatModalProps> = ({
                     
                     {/* Tamed Animals with better positioning */}
                     <div className="tamed-animals-formation" style={{ 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        gap: '5px',
-                        marginLeft: '20px'
+                        position: 'absolute',
+                        left: '120px',
+                        bottom: '100px',
+                        zIndex: 5
                     }}>
                         {tamedAnimals.filter(animal => tamedAnimalHealth[animal.id] > 0).map((animal, index) => {
                             const row = Math.floor(index / 2);
@@ -2231,8 +2341,8 @@ const CombatModal: React.FC<CombatModalProps> = ({
                             return (
                                 <div key={animal.id} style={{ 
                                     position: 'absolute',
-                                    left: `${col * 100}px`,
-                                    bottom: `${row * 80}px`,
+                                    left: `${col * 80}px`,
+                                    bottom: `${row * 60}px`,
                                     zIndex: 10 - row
                                 }}>
                                     <AnimalCombatSprite
@@ -2351,14 +2461,15 @@ const CombatModal: React.FC<CombatModalProps> = ({
                 top: '20px',
                 right: '20px',
                 background: 'rgba(0, 0, 0, 0.9)',
-                border: '2px solid #ffd700',
+                border: '2px solid #60a5fa',
                 borderRadius: '8px',
                 padding: '8px 12px',
                 fontSize: '10px',
                 fontFamily: "'Press Start 2P', monospace",
-                color: '#ffd700',
+                color: '#60a5fa',
                 minWidth: '140px',
-                boxShadow: '0 4px 12px rgba(255, 215, 0, 0.3)'
+                boxShadow: '0 4px 12px rgba(96, 165, 250, 0.3)',
+                zIndex: 500
             }}>
                 <div style={{ marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>💥</span>
@@ -3111,6 +3222,15 @@ const CombatModal: React.FC<CombatModalProps> = ({
           .combatant-sprite-wrapper.player-side {
             ${playerAnimation === 'attacking' ? 'animation: attackSequence 0.8s ease-in-out;' : ''}
             ${playerAnimation === 'power_strike' ? 'animation: powerStrikeSequence 1.2s ease-in-out;' : ''}
+            ${playerAnimation === 'slashing' ? 'animation: slashSequence 0.7s ease-in-out;' : ''}
+            ${playerAnimation === 'chopping' ? 'animation: chopSequence 0.9s ease-in-out;' : ''}
+            ${playerAnimation === 'stabbing' ? 'animation: stabSequence 0.6s ease-in-out;' : ''}
+            ${playerAnimation === 'crushing' ? 'animation: crushSequence 1.0s ease-in-out;' : ''}
+            ${playerAnimation === 'shooting' ? 'animation: shootSequence 0.8s ease-in-out;' : ''}
+            ${playerAnimation === 'dodging' ? 'animation: dodgeSequence 0.5s ease-in-out;' : ''}
+            ${playerAnimation === 'blocking' ? 'animation: blockSequence 0.4s ease-in-out;' : ''}
+            ${playerAnimation === 'casting' ? 'animation: castSequence 1.0s ease-in-out;' : ''}
+            ${playerAnimation === 'shouting' ? 'animation: shoutSequence 0.7s ease-in-out;' : ''}
           }
 
           /* Opponent attack animation (reversed direction) */
@@ -3152,6 +3272,87 @@ const CombatModal: React.FC<CombatModalProps> = ({
           @keyframes defendBob {
             0%, 100% { transform: scale(1.62) translateY(0); }
             50% { transform: scale(1.62) translateY(-3px); }
+          }
+          
+          /* Slashing Animation - Wide horizontal sweep */
+          @keyframes slashSequence {
+            0% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); }
+            20% { transform: translateX(20px) translateY(-5px) scale(1.89) rotate(-15deg); }
+            40% { transform: translateX(50px) translateY(-3px) scale(1.98) rotate(25deg); }
+            60% { transform: translateX(45px) translateY(0) scale(1.89) rotate(10deg); }
+            100% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); }
+          }
+          
+          /* Chopping Animation - Overhead arc */
+          @keyframes chopSequence {
+            0% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); }
+            25% { transform: translateX(15px) translateY(-40px) scale(1.98) rotate(-30deg); }
+            50% { transform: translateX(40px) translateY(-10px) scale(2.07) rotate(35deg); }
+            75% { transform: translateX(35px) translateY(5px) scale(1.89) rotate(5deg); }
+            100% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); }
+          }
+          
+          /* Stabbing Animation - Quick thrust forward */
+          @keyframes stabSequence {
+            0% { transform: translateX(0) translateY(0) scale(1.8); }
+            30% { transform: translateX(-10px) translateY(0) scale(1.71); }
+            50% { transform: translateX(70px) translateY(0) scale(1.98); }
+            70% { transform: translateX(60px) translateY(0) scale(1.89); }
+            100% { transform: translateX(0) translateY(0) scale(1.8); }
+          }
+          
+          /* Crushing Animation - Heavy downward smash */
+          @keyframes crushSequence {
+            0% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); }
+            20% { transform: translateX(10px) translateY(-50px) scale(1.98) rotate(-20deg); }
+            40% { transform: translateX(30px) translateY(-60px) scale(2.16) rotate(-25deg); }
+            60% { transform: translateX(50px) translateY(10px) scale(2.25) rotate(40deg); filter: drop-shadow(0 0 15px #fbbf24); }
+            80% { transform: translateX(40px) translateY(5px) scale(1.98) rotate(10deg); }
+            100% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); filter: none; }
+          }
+          
+          /* Shooting Animation - Draw and release */
+          @keyframes shootSequence {
+            0% { transform: translateX(0) translateY(0) scale(1.8); }
+            30% { transform: translateX(-20px) translateY(-5px) scale(1.89) rotate(-5deg); }
+            50% { transform: translateX(-25px) translateY(-3px) scale(1.98) rotate(-8deg); }
+            70% { transform: translateX(10px) translateY(0) scale(1.89) rotate(3deg); }
+            100% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); }
+          }
+          
+          /* Dodging Animation - Quick sidestep */
+          @keyframes dodgeSequence {
+            0% { transform: translateX(0) translateY(0) scale(1.8); }
+            30% { transform: translateX(-40px) translateY(-10px) scale(1.62) rotate(-10deg); }
+            60% { transform: translateX(-35px) translateY(-5px) scale(1.71) rotate(0deg); }
+            100% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); }
+          }
+          
+          /* Blocking Animation - Defensive stance */
+          @keyframes blockSequence {
+            0% { transform: translateX(0) scale(1.8); filter: brightness(1); }
+            50% { transform: translateX(-10px) scale(1.62); filter: brightness(1.3) drop-shadow(0 0 8px rgba(59, 130, 246, 0.8)); }
+            100% { transform: translateX(-5px) scale(1.71); filter: brightness(1.2) drop-shadow(0 0 5px rgba(59, 130, 246, 0.5)); }
+          }
+          
+          /* Casting Animation - Magical spell casting */
+          @keyframes castSequence {
+            0% { transform: translateX(0) translateY(0) scale(1.8); filter: brightness(1); }
+            20% { transform: translateX(-5px) translateY(-10px) scale(1.71); filter: brightness(1.2) hue-rotate(60deg); }
+            40% { transform: translateX(-8px) translateY(-15px) scale(1.62); filter: brightness(1.5) hue-rotate(120deg) drop-shadow(0 0 10px #f59e0b); }
+            60% { transform: translateX(-5px) translateY(-12px) scale(1.71); filter: brightness(1.8) hue-rotate(180deg) drop-shadow(0 0 15px #f59e0b); }
+            80% { transform: translateX(10px) translateY(-5px) scale(1.89); filter: brightness(1.4) hue-rotate(240deg) drop-shadow(0 0 10px #f59e0b); }
+            100% { transform: translateX(0) translateY(0) scale(1.8); filter: brightness(1); }
+          }
+          
+          /* Shouting Animation - Intimidating yell */
+          @keyframes shoutSequence {
+            0% { transform: translateX(0) scale(1.8); }
+            20% { transform: translateX(-10px) scale(2.07); filter: drop-shadow(0 0 5px #dc2626); }
+            40% { transform: translateX(-5px) scale(2.16); filter: drop-shadow(0 0 10px #dc2626); }
+            60% { transform: translateX(5px) scale(2.07); filter: drop-shadow(0 0 8px #dc2626); }
+            80% { transform: translateX(0) scale(1.98); filter: drop-shadow(0 0 5px #dc2626); }
+            100% { transform: translateX(0) scale(1.8); filter: none; }
           }
           
           /* Enhanced Damage Splats with better effects */

@@ -20,6 +20,8 @@ import {
   placeCulturalWallRectangle, 
   fillCulturalFloor
 } from '../mapLayoutUtils';
+import { applyNorthBackWall } from '../backWallUtils';
+import { placePillar } from '../multiTileSystem';
 
 // Utility function to safely set tile properties with bounds checking
 function safeTileSet(tiles: Tile[][], y: number, x: number, updates: Partial<Tile>): boolean {
@@ -52,6 +54,12 @@ export function generateCourtChamber(
   // Culturally appropriate floor
   fillCulturalFloor(tiles, 1, 1, size.width - 2, size.height - 2,
     config.culturalZone, config.era);
+  
+  // Add back wall to north edge for SNES RPG dollhouse view
+  applyNorthBackWall(tiles, 0, 0, size.width, config, {
+    hasWindows: true,  // Courts often have windows for natural light
+    windowSpacing: 4
+  });
   
   // JUDGE'S BENCH - Elevated platform at north end
   const benchY = 2;
