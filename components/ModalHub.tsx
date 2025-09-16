@@ -7,6 +7,7 @@ import { useMap } from '../contexts/MapContext';
 import { usePlayer } from '../contexts/PlayerContext';
 import { useGame } from '../contexts/GameContext';
 import { weatherService } from '../services/weatherService';
+import { getDayOfYear } from '../utils/dateUtils';
 import DevTooltip from './DevTooltip';
 import SettingsPanel from './SettingsPanel';
 import WorldMapModal from './WorldMapModal';
@@ -100,7 +101,7 @@ const ModalHub: React.FC = () => {
         handleDropItem, handleConsumeItem, onUseCombatItem
     } = usePlayer();
     
-    const { gameDate, currentZone, currentRegion, gameTimeHours, gameTimeMinutes, season, currentEra, climate, timeOfDay } = useGame();
+    const { gameDate, currentZone, currentRegion, gameTimeHours, gameTimeMinutes, season, currentEra, climate, currentTimeOfDay } = useGame();
     
     // Function to update a single NPC in the npcs array
     const handleUpdateNpc = useCallback((updatedNpc: NpcEntity) => {
@@ -229,11 +230,38 @@ const ModalHub: React.FC = () => {
             <SkillsModal isOpen={isSkillsModalOpen} isLoading={isSkillLoading} result={skillResult} onClose={() => setIsSkillsModalOpen(false)} />
             {isMapDetailsModalOpen && mapData && ( <MapDetailsModal isOpen={isMapDetailsModalOpen} onClose={() => setIsMapDetailsModalOpen(false)} mapData={mapData} /> )}
             {encounterTarget && playerCharacter && mapData && (
-              <EncounterModalUpdated 
+              <EncounterModalUpdated
                 target={encounterTarget}
-                playerCharacter={playerCharacter} 
+                playerCharacter={playerCharacter}
                 allNpcs={npcs}
-                mapData={mapData}
+                mapData={(() => {
+                    // Enhance mapData with real time and weather information
+                    const enhancedMapData = { ...mapData };
+
+                    // Add time properties
+                    enhancedMapData.timeOfDay = currentTimeOfDay;
+                    enhancedMapData.dayOfYear = getDayOfYear(gameDate);
+
+                    // Calculate real weather based on current conditions
+                    const mapCenterX = Math.floor(mapData.tiles[0].length / 2);
+                    const mapCenterY = Math.floor(mapData.tiles.length / 2);
+                    const centerTile = mapData.tiles[mapCenterY]?.[mapCenterX];
+
+                    if (centerTile) {
+                        const weather = weatherService.getWeather(
+                            mapData.climate || climate,
+                            centerTile.biome,
+                            season,
+                            currentTimeOfDay,
+                            centerTile.altitude || 0.5,
+                            getDayOfYear(gameDate),
+                            { x: mapCenterX, y: mapCenterY }
+                        );
+                        enhancedMapData.currentWeather = weather;
+                    }
+
+                    return enhancedMapData;
+                })()}
                 onClose={handleCloseEncounter}
                 onInitiateCombat={handleInitiateCombat}
                 onOpenInfo={(target) => {

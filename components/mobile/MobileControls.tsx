@@ -12,6 +12,8 @@ interface MobileControlsProps {
 
 const MobileControls: React.FC<MobileControlsProps> = ({ onMove, disabled = false }) => {
   const [activeButton, setActiveButton] = useState<string | null>(null);
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+  const swipeThreshold = 50; // minimum distance for a swipe
   
   const handleTouchStart = useCallback((direction: 'north' | 'south' | 'east' | 'west') => {
     if (disabled) return;
@@ -24,15 +26,49 @@ const MobileControls: React.FC<MobileControlsProps> = ({ onMove, disabled = fals
   const handleTouchEnd = useCallback(() => {
     setActiveButton(null);
   }, []);
+
+  // Handle swipe gestures on the center dot
+  const handleSwipeStart = useCallback((e: React.TouchEvent) => {
+    if (disabled) return;
+    const touch = e.touches[0];
+    setTouchStart({ x: touch.clientX, y: touch.clientY });
+  }, [disabled]);
+
+  const handleSwipeEnd = useCallback((e: React.TouchEvent) => {
+    if (disabled || !touchStart) return;
+
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStart.x;
+    const deltaY = touch.clientY - touchStart.y;
+
+    // Determine if this was a swipe
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    if (absX > swipeThreshold || absY > swipeThreshold) {
+      triggerHaptic('light');
+
+      // Determine direction based on larger delta
+      if (absX > absY) {
+        // Horizontal swipe
+        onMove(deltaX > 0 ? 'east' : 'west');
+      } else {
+        // Vertical swipe
+        onMove(deltaY > 0 ? 'south' : 'north');
+      }
+    }
+
+    setTouchStart(null);
+  }, [disabled, touchStart, onMove, swipeThreshold]);
   
   const buttonStyle = (direction: string): React.CSSProperties => ({
     position: 'absolute',
     width: '50px',
     height: '50px',
-    backgroundColor: activeButton === direction 
-      ? 'rgba(255, 255, 255, 0.3)' 
-      : 'rgba(255, 255, 255, 0.15)',
-    border: '1px solid rgba(255, 255, 255, 0.3)',
+    backgroundColor: activeButton === direction
+      ? 'rgba(255, 255, 255, 0.2)'
+      : 'rgba(255, 255, 255, 0.08)',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
     borderRadius: '8px',
     display: 'flex',
     alignItems: 'center',
@@ -52,7 +88,7 @@ const MobileControls: React.FC<MobileControlsProps> = ({ onMove, disabled = fals
   
   const containerStyle: React.CSSProperties = {
     position: 'fixed',
-    bottom: 'calc(env(safe-area-inset-bottom) + 80px)',
+    bottom: 'calc(env(safe-area-inset-bottom) + 120px)',
     right: 'calc(env(safe-area-inset-right) + 15px)',
     width: '150px',
     height: '150px',
@@ -66,8 +102,8 @@ const MobileControls: React.FC<MobileControlsProps> = ({ onMove, disabled = fals
     left: '50px',
     width: '50px',
     height: '50px',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
     borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
@@ -154,9 +190,18 @@ const MobileControls: React.FC<MobileControlsProps> = ({ onMove, disabled = fals
         →
       </button>
       
-      {/* Center dot */}
-      <div style={centerDotStyle}>
-        •
+      {/* Center dot - now with swipe support */}
+      <div
+        style={{
+          ...centerDotStyle,
+          cursor: disabled ? 'not-allowed' : 'grab',
+          touchAction: 'none'
+        }}
+        onTouchStart={handleSwipeStart}
+        onTouchEnd={handleSwipeEnd}
+        title="Swipe to move"
+      >
+        ✦
       </div>
     </div>
   );

@@ -5,7 +5,7 @@
 
 import { PlayerCharacter, Tile, BiomeType, MapData, Item } from '../types';
 import { GoogleGenAI, Type } from '@google/genai';
-import { GameSoundsService } from './gameSoundsService';
+import gameSounds from './gameSoundsService';
 
 export type FeatType = 'ford' | 'climb' | 'jump' | 'swim' | 'squeeze' | 'break' | 'scale';
 export type FeatRisk = 'low' | 'medium' | 'high' | 'extreme';
@@ -612,7 +612,7 @@ export async function executePhysicalFeat(
   const success = roll < evaluation.successChance;
   
   const effects: any = {};
-  const soundService = GameSoundsService.getInstance();
+  const soundService = gameSounds;
 
   if (success) {
     // Play success sound based on feat type

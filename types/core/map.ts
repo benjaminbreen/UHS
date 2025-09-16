@@ -9,6 +9,8 @@ import { NpcEntity } from '../npcTypes';
 import { VegetationEntity } from '../vegetationTypes';
 import { TerrainStructure } from '../structures';
 import { Season } from '../ui';
+import { TimeOfDay } from '../ambiance';
+import { WeatherState } from '../../services/weatherService';
 
 export enum MapArchetype {
   ALL_LAND = 'ALL_LAND',
@@ -119,4 +121,9 @@ export interface MapData {
   npcs?: NpcEntity[];
   vegetation?: VegetationEntity[];
   marketplaces?: MarketplaceInfo[]; // NEW
+
+  // Time and weather properties for NPC context
+  timeOfDay?: TimeOfDay;
+  dayOfYear?: number; // 1-365
+  currentWeather?: WeatherState; // Actual weather state from weather service
 }

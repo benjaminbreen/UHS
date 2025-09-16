@@ -305,7 +305,7 @@ const HolySiteModal: React.FC<HolySiteModalProps> = ({
                         </div>
                         <div>
                           <p className="font-semibold text-purple-100 text-sm">{npc.name}</p>
-                          <p className="text-xs text-purple-300">{npc.role || 'Clergy'}</p>
+                          <p className="text-xs text-purple-300">{npc.role?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Clergy'}</p>
                         </div>
                       </div>
                     ))}

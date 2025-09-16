@@ -76,6 +76,21 @@ export const getDaysInMonth = (year: number, month: number): number => {
     return days[month - 1];
 };
 
+/**
+ * Calculate day of year (1-365/366) from GameDate
+ */
+export const getDayOfYear = (date: GameDate): number => {
+    const { year, month, day } = date;
+    let dayOfYear = day;
+
+    // Add days from previous months
+    for (let m = 1; m < month; m++) {
+        dayOfYear += getDaysInMonth(year, m);
+    }
+
+    return dayOfYear;
+};
+
 export const formatDateWithSeason = (date: GameDate, season: Season): string => {
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     if (date.month < 1 || date.month > 12) {

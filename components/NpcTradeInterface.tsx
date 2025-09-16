@@ -253,7 +253,7 @@ const NpcTradeInterface: React.FC<NpcTradeInterfaceProps> = ({
           Trading with {npc.name}
         </h3>
         <p className="text-sm text-slate-300 mt-1">
-          {npc.role} • {npc.wealthLevel} wealth level
+          {npc.role?.replace(/_/g, ' ')} • {npc.wealthLevel} wealth level
         </p>
       </div>
       

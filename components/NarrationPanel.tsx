@@ -249,10 +249,17 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
           value={playerInput}
           onChange={(e) => onPlayerInputChange(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !isLoading && onSend()}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          inputMode="text"
+          enterKeyHint="send"
           className="flex-1 px-3 py-2 text-sm text-slate-100 placeholder-slate-400
                      bg-slate-700/50 border border-slate-600/50 rounded-lg
                      focus:outline-none focus:border-blue-400/60 focus:bg-slate-700/70
-                     focus:ring-2 focus:ring-blue-400/20 transition-all"
+                     focus:ring-2 focus:ring-blue-400/20 transition-all
+                     min-h-[44px] touch-manipulation"
+          style={{ fontSize: '16px' }}
         />
         <button
           onClick={onSend}

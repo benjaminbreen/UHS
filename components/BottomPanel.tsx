@@ -47,10 +47,19 @@ const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, i
     return (
         <button
             onClick={onClick}
+            onTouchStart={(e) => {
+                e.currentTarget.style.transform = 'scale(0.95)';
+            }}
+            onTouchEnd={(e) => {
+                e.currentTarget.style.transform = '';
+            }}
             className={getOptimizedButtonClassName(getSafariOptimizedClassName(baseClass))}
-            style={{ 
-                textShadow: '1px 1px 2px rgba(0,0,0,0.5)', 
-                boxShadow: `0 8px 32px ${boxShadowColor}, inset 0 1px 1px rgba(255,255,255,0.2)`
+            style={{
+                textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
+                boxShadow: `0 8px 32px ${boxShadowColor}, inset 0 1px 1px rgba(255,255,255,0.2)`,
+                WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation',
+                minHeight: isMobile ? '60px' : 'auto'
             }}
         >
             {/* Animated background effect */}

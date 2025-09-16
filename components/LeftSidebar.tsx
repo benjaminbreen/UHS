@@ -145,9 +145,9 @@ const NpcListItem = React.memo(
 
           {/* Profession • Class */}
           <div className="text-xs text-slate-300 truncate">
-            <span className="capitalize text-green-300">{npc.role || "unknown"}</span>
+            <span className="capitalize text-green-300">{npc.role?.replace(/_/g, ' ') || "unknown"}</span>
             <span className="mx-1 text-slate-500">•</span>
-            <span className="capitalize">{(npc.class || "commoner").toString().toLowerCase()}</span>
+            <span className="capitalize">{(npc.class || "commoner").toString().toLowerCase().replace(/_/g, ' ')}</span>
           </div>
 
           {/* Badges: Age + Gender (+ optional religion trailing) */}

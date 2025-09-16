@@ -15,6 +15,15 @@ import { primarySourceService } from './primarySourceService';
 import { loadTamedAnimals, TamedAnimal } from './animalTamingService';
 import { WeatherService, WeatherState } from './weatherService';
 
+// Cache for historical events to avoid regenerating them every dialogue
+interface HistoricalEventCache {
+    key: string;
+    event: string;
+    timestamp: number;
+}
+
+const historicalEventCache: Map<string, HistoricalEventCache> = new Map();
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache
 
 const formatAppearance = (character: PlayerCharacter | NpcEntity): string => {
     if (!character.appearance) return "of average appearance.";
@@ -114,7 +123,15 @@ export async function generateEncounterDialogue(
     useRealLanguage: boolean
 ): Promise<{ text: string, reputationChange?: number, shouldLeave?: boolean, shouldAttack?: boolean }> {
     if (!playerCharacter || !mapData) return { text: "You feel a strange sense of detachment." };
-    
+
+    // Debug logging for time context
+    console.log('[NPC Dialogue] Time context:', {
+        timeOfDay: mapData.timeOfDay,
+        dayOfYear: mapData.dayOfYear,
+        hasTimeOfDay: 'timeOfDay' in mapData,
+        mapDataKeys: Object.keys(mapData).filter(k => k.includes('time') || k.includes('Time'))
+    });
+
     if (isAnimal(target)) {
         const animalReactions = [
             `The ${(target.speciesName || 'creature').toLowerCase()} watches you warily.`,
@@ -166,7 +183,14 @@ export async function generateEncounterDialogue(
             conversationHistoryText = ''; // No current conversation yet
         } else {
             // These are dialogue entries from current conversation
-            conversationHistoryText = (history as DialogueEntry[]).slice(-4).map(h => `${h.speaker}: ${h.text}`).join('\n');
+            // Make speaker attribution VERY clear to avoid LLM confusion
+            conversationHistoryText = (history as DialogueEntry[]).slice(-4).map(h => {
+                if (h.speaker === 'npc') {
+                    return `YOU (${target.name}) SAID: "${h.text}"`;
+                } else {
+                    return `PLAYER (${playerCharacter?.name || 'Stranger'}) SAID: "${h.text}"`;
+                }
+            }).join('\n');
         }
     }
     
@@ -176,27 +200,45 @@ export async function generateEncounterDialogue(
     try {
         const dateInfo = parseDateString(String(mapData.timeSlice));
         const culturalZone = mapLocationToCulture(mapData.localArea, dateInfo.year);
-        
-        // Generate specific historical events for this time/place
-        const historicalEventsPrompt = `
-            List 3 specific historical events or conditions affecting ${mapData.localArea} in ${dateInfo.year}.
-            Be extremely specific and accurate. Format as short bullet points.
-            Examples:
-            - The Black Death has killed half the population in the last 2 years
-            - Mongol raiders attacked villages along the northern border last month
-            - The harvest failed due to excessive rains this autumn
-        `;
-        
-        try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            const eventResponse = await ai.models.generateContent({ 
-                model: 'gemini-2.5-flash-lite', 
-                contents: historicalEventsPrompt 
-            });
-            const events = eventResponse.text.split('\n').filter(line => line.trim().startsWith('-'));
-            specificHistoricalEvents = events.slice(0, 3);
-        } catch (err) {
-            console.error('Failed to generate historical events:', err);
+
+        // Create cache key from location and year
+        const cacheKey = `${mapData.localArea}_${dateInfo.year}`;
+        const now = Date.now();
+
+        // Check cache first
+        const cached = historicalEventCache.get(cacheKey);
+        if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+            specificHistoricalEvents = [cached.event];
+            console.log('[Historical Cache] Using cached event for', cacheKey);
+        } else {
+            // Generate new historical event only if not in cache
+            const historicalEventsPrompt = `
+                List 1 specific historical event or condition affecting ${mapData.localArea} in ${dateInfo.year}.
+                Be specific and accurate and brief. It should be grounded in strict factual accuracy and realism.
+            `;
+
+            try {
+                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+                const eventResponse = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash-lite',
+                    contents: historicalEventsPrompt
+                });
+                const events = eventResponse.text.split('\n').filter(line => line.trim());
+                if (events.length > 0) {
+                    const event = events[0].replace(/^[-•*]\s*/, ''); // Remove bullet points
+                    specificHistoricalEvents = [event];
+
+                    // Cache the event
+                    historicalEventCache.set(cacheKey, {
+                        key: cacheKey,
+                        event: event,
+                        timestamp: now
+                    });
+                    console.log('[Historical Cache] Cached new event for', cacheKey);
+                }
+            } catch (err) {
+                console.error('Failed to generate historical events:', err);
+            }
         }
         
         // Also get primary sources for additional context
@@ -210,11 +252,11 @@ export async function generateEncounterDialogue(
         
         if (specificHistoricalEvents.length > 0) {
             historicalContext = `
-                **SPECIFIC CURRENT EVENTS YOU KNOW ABOUT:**
+                **SPECIFIC CURRENT EVENT YOU KNOW ABOUT:**
                 ${specificHistoricalEvents.join('\n                ')}
                 
-                Use these specific events in your dialogue when relevant.
-                If asked about "raids" or "problems", reference these actual events.
+                Use this event in your dialogue when relevant.
+            
             `;
         } else if (relevantSources.length > 0) {
             const themes = relevantSources.map(s => {
@@ -290,39 +332,46 @@ export async function generateEncounterDialogue(
     const previousTopics = conversationHistoryText.toLowerCase();
     const hasDiscussedTopic = (topic: string) => previousTopics.includes(topic);
 
-    // Get current weather for context
-    const weatherService = new WeatherService();
-    const currentWeather = weatherService.getWeather(
-        mapData.climate || 'temperate',
-        target.biome || 'grassland',
-        mapData.season || 'spring',
-        mapData.timeOfDay || 'Day',
-        0.5,
-        180,
-        { x: target.x, y: target.y }
-    );
-    
-    // Build condensed weather context
+    // Get current weather for context - use real values from mapData if available
     const weatherContext = (() => {
+        let currentWeather;
+
+        // Prefer pre-calculated weather from mapData
+        if (mapData.currentWeather) {
+            currentWeather = mapData.currentWeather;
+        } else {
+            // Fallback: calculate weather using real values from mapData
+            const weatherService = new WeatherService();
+            currentWeather = weatherService.getWeather(
+                mapData.climate || 'temperate',
+                target.biome || 'grassland',
+                mapData.season || 'spring',
+                mapData.timeOfDay || 'Day',  // Now should have real value
+                target.altitude || 0.5,
+                mapData.dayOfYear || 180,     // Now should have real value
+                { x: target.x, y: target.y }
+            );
+        }
+
         const temp = currentWeather.temperature;
         const conditions = [];
-        
+
         // Temperature (one word)
         if (temp < 0) conditions.push('Freezing');
         else if (temp > 30) conditions.push('Very hot');
         else if (temp > 25) conditions.push('Warm');
         else if (temp < 10) conditions.push('Cold');
-        
+
         // Precipitation (if any)
-        if (currentWeather.precipitation) {
+        if (currentWeather.precipitation && currentWeather.precipitation !== 'none') {
             conditions.push(currentWeather.precipitation);
         }
-        
+
         // Special conditions (if notable)
         if (currentWeather.special === 'fog' || currentWeather.special === 'heatwave') {
             conditions.push(currentWeather.special);
         }
-        
+
         return conditions.length > 0 ? conditions.join('. ') + '.' : 'Mild weather.';
     })();
 
@@ -370,232 +419,160 @@ export async function generateEncounterDialogue(
         `;
     };
 
+    // Analyze social dynamics based on player appearance
+    const socialDynamicsAnalysis = (() => {
+        const playerAge = playerCharacter.age || 25;
+        const playerGender = playerCharacter.gender || 'unknown';
+        const playerClass = playerCharacter.socialClass || 'commoner';
+        const playerRep = playerCharacter.mapReputation || 0;
+        const garmentName = playerCharacter.appearance?.garment?.name || 'common_clothes';
+        const isArmed = !!playerCharacter.equippedItems?.weapon;
+
+        // Determine player's apparent social status
+        const highStatusClothes = ['crown', 'noble', 'silk', 'fine', 'ornate', 'royal', 'gold', 'jewel'];
+        const hasHighStatusAppearance = highStatusClothes.some(term =>
+            garmentName.toLowerCase().includes(term) || playerClass.includes('noble') || playerClass.includes('royal'));
+
+        const lowStatusClothes = ['rags', 'torn', 'dirty', 'rough', 'simple', 'peasant', 'poor'];
+        const hasLowStatusAppearance = lowStatusClothes.some(term =>
+            garmentName.toLowerCase().includes(term) || playerClass.includes('peasant') || playerClass.includes('slave'));
+
+        // Build social reaction context
+        let reaction = [];
+
+        // Age and gender reactions
+        if (playerAge > 60 && playerGender === 'female') {
+            reaction.push('elderly woman - likely to evoke sympathy and offers of aid');
+        } else if (playerAge > 60 && playerGender === 'male') {
+            reaction.push('elderly man - treated with basic respect but some wariness');
+        } else if (playerAge < 20 && playerGender === 'male' && isArmed) {
+            reaction.push('young armed male - potential threat, likely to provoke wariness');
+        } else if (playerAge < 20 && playerGender === 'female') {
+            reaction.push('young woman - may evoke protective instincts or suspicion depending on context');
+        }
+
+        // Status reactions
+        if (hasHighStatusAppearance) {
+            reaction.push('noble/wealthy appearance - deference expected, but also opportunism');
+        } else if (hasLowStatusAppearance) {
+            reaction.push('poor appearance - likely to be dismissed, shooed away, or treated with suspicion');
+        }
+
+        // Reputation impact
+        if (playerRep < -50) {
+            reaction.push('known troublemaker - immediate hostility or fear');
+        } else if (playerRep > 50) {
+            reaction.push('good reputation - more trusting initial response');
+        }
+
+        if (isArmed && !hasHighStatusAppearance) {
+            reaction.push('visibly armed commoner - suspicious, potential bandit or mercenary');
+        }
+
+        return reaction.length > 0 ? reaction.join('; ') : 'neutral appearance - standard cautious interaction';
+    })();
+
     const prompt = `
-        **CRITICAL HISTORICAL CONTEXT - YOU MUST READ THIS:**
-        THE YEAR IS ${mapData.timeSlice}. This is ${mapData.timeSlice} CE/AD.
-        LOCATION: ${mapData.localArea}
-        
-        **FORBIDDEN ANACHRONISMS - NEVER MENTION:**
-        ${parseInt(mapData.timeSlice) < 1492 ? '- European colonization of the Americas (hasn\'t happened yet!)' : ''}
-        ${parseInt(mapData.timeSlice) < 1500 ? '- Portuguese or Spanish colonial empires (don\'t exist yet!)' : ''}
-        ${parseInt(mapData.timeSlice) < 1000 ? '- Gunpowder weapons in Europe (not invented yet!)' : ''}
-        ${parseInt(mapData.timeSlice) < 1450 ? '- The printing press (not invented yet!)' : ''}
-        ${parseInt(mapData.timeSlice) < 622 ? '- Islam or Muslims (religion doesn\'t exist yet!)' : ''}
-        ${parseInt(mapData.timeSlice) < 1 ? '- Christianity or Christians (religion doesn\'t exist yet!)' : ''}
-        ${parseInt(mapData.timeSlice) < 1776 ? '- United States or Americans (country doesn\'t exist yet!)' : ''}
-        - Any technology, nation, religion, or concept that doesn't exist in ${mapData.timeSlice}
-        
-        **WHAT EXISTS IN ${mapData.timeSlice} ${mapData.localArea}:**
-        ${parseInt(mapData.timeSlice) === 1001 && mapData.localArea.includes('South America') ? 
-            '- Complex indigenous civilizations like Tiwanaku, Wari, early Chimú\n        - NO EUROPEANS - they won\'t arrive for 500 years!\n        - Local empires and chiefdoms with their own politics\n        - Trade networks between indigenous groups only\n        - Indigenous religions and belief systems\n        - You have NEVER heard of Portugal, Spain, or any European nation' : ''}
-        ${parseInt(mapData.timeSlice) < 1492 && (mapData.localArea.includes('America') || mapData.localArea.includes('Mesoamerica')) ? 
-            '- ONLY indigenous peoples and cultures exist here\n        - NO European presence whatsoever - they haven\'t discovered this continent\n        - NO knowledge of Europe, Africa, or Asia - these continents are unknown to you\n        - You know ONLY about local indigenous groups, empires, and cultures\n        - Any "foreigners" are from neighboring indigenous groups, NOT from across the ocean' : ''}
-        
-        You are roleplaying as ${target.name}, a ${target.age}-year-old ${target.role} living in ${mapData.timeSlice} ${mapData.localArea}. ${isSpecialMapNpc ? `You work within the ${specialMapContext.displayName}.` : ''} To roleplay effectively, imagine this NPC as a real person from THIS EXACT TIME PERIOD with knowledge ONLY of things that exist in ${mapData.timeSlice}. They won't share everything (who does?) but they might drop hints. Consider whether the npc and the player might realistically already be acquainted - if so, invent a backstory for that relationship. If not, respond to them as a complete stranger.
-        
+        CONTEXT: ${mapData.localArea}, Year ${mapData.timeSlice}
+        ROLE: ${target.name}, ${target.age}yo ${target.role}
         ${getSpecialMapIntroduction()}
-        
-        **CONVERSATION INTELLIGENCE RULES:**
-        1. INFORMATION PROGRESSION - Never repeat the same information:
-           - First mention: Brief acknowledgment or hint
-           - Second question: Add ONE new specific detail
-           - Third question: Provide fuller context with 2-3 details
-           - Further questions: Share complete information or admit you've told all you know
-        
-        2. CONVERSATION AWARENESS:
-           - If player seems confused (short responses, "what?", "huh?"), CLARIFY don't repeat
-           - If player asks for more info, ADD NEW DETAILS don't restate
-           - If discussing urgent matters, VOLUNTEER critical info
-           - Recognize when player is struggling to understand and ADJUST your explanation
-        
-        3. NATURAL DIALOGUE FLOW:
-           - Start with 1-2 clear sentences that establish context (not cryptic fragments) - but they should also be authentic to how a real person would think and act in this setting
-           - Build naturally on what was just said
-           - Show emotional responses appropriate to the topic
-           - If discussing dangers, show appropriate concern/urgency
-        
-        4. PERSONALITY-DRIVEN RESPONSES:
-           ${personalityStyle}
-           - Let your personality affect HOW you share information
-           - Fearful NPCs might be afraid of the player
-           - Compassionate NPCs will ask about the player's health or travels, or simply say something friendly
-           - Greedy NPCs might hint at rewards for information
-        
-        **CURRENT SITUATION:**
+
+        **IMMEDIATE ASSESSMENT OF STRANGER:**
+        You see: ${playerCharacter.name} (${playerCharacter.age}yo ${playerCharacter.gender})
+        Clothing: ${playerCharacter.appearance?.garment?.name || 'common clothes'}
+        ${playerCharacter.equippedItems?.weapon ? `Armed with: ${playerCharacter.equippedItems.weapon.name}` : 'Unarmed'}
+        Social dynamics: ${socialDynamicsAnalysis}
+        PLAYER JUST SAID TO YOU: "${playerInput}"
+
+        **YOUR MINDSET:**
+        - Personality: ${personalityStyle}
+        - Current concern: ${target.personalGoal?.description || 'Getting through the day'}
+        - Health: ${target.health?.currentDiseases?.length > 0 ? `Sick with ${target.health.currentDiseases[0].disease.name}` : 'Healthy'}
+        - Wealth: ${target.wealthLevel || 'modest'}
+        ${previousSummaries ? `- Previous meeting: ${previousSummaries}` : '- First encounter with this person'}
+
+        **CURRENT CONDITIONS:**
+        Time: ${mapData.timeOfDay || 'Day'}
         Weather: ${weatherContext}
         ${historicalContext}
-        Player seems: ${isConfused ? 'confused and needs clarification' : askedForMoreInfo ? 'interested and wants details' : 'engaged in conversation'}
-        
-        **CRITICAL INSTRUCTION:** Think like a real person in this exact historical moment. Consider:
-        - What specific events (news, plagues, wars, love affairs, feuds, or anything that makes sense in the setting) are happening RIGHT NOW that everyone knows about?
-        - What would genuinely shock or alarm someone in my position?
-        - What are the real, immediate dangers people face daily?
-        - How would someone of my social class and profession realistically react?
-        - What would I notice first about this stranger?
-        
-        **INFORMATION SHARING PROTOCOL:**
-        When discussing current events or dangers:
-        1. First mention: Name something historically accurate to the setting - never generic, hyper specific/authentic/realistic.
-        2. Second mention: Add more detail, such as exactly when or where an event happened ("just last week", "three days ago")
-        3. Third mention: Add specific consequences, again rooted directly in the SPECIFIC historical setting
-        4. Fourth mention: Add what people are doing about it 
-        
-        NEVER use vague terms like "them", "it", "the situation" - BE SPECIFIC.
-        
-        **EXAMPLES OF REALISTIC CONTEXTUAL RESPONSES:**
-        
-        Example 1 - Occupied France 1940, telephone operator meets RAF pilot:
-        Player: "I am a British pilot, my plane was shot down"
-        NPC: "British? Here?! Mon dieu... quick, get inside before someone sees you. NOW, please. The Germans patrol this road. NOW."
-        (Notice: Immediate recognition of danger, practical urgency, no time for pleasantries)
-        
-        Example 2 - Medieval village 1348, peasant meets wealthy merchant:
-        Player: "Good day, I seek lodging"
-        NPC: "Lodging? Half the village is dead. Try the monastery... if the monks still live."
-        (Notice: Plague context dominates response, class difference secondary to crisis)
-    
-        Example 3 - Roman Britain 125 CE, local merchant meets Germanic tribesman:
-        Player: "I come from across the Rhine, seeking trade"
-        NPC: "A German? The legions just crushed a rebellion. You're very foolish to announce that here. Leave."
-        (Notice: Recent military context makes origin significant)
-        
-        **NOW YOUR SITUATION:**
-        THE YEAR IS ${mapData.timeSlice} CE/AD
-        Setting: ${mapData.localArea} in the year ${mapData.timeSlice}
-        Remember: You live in ${mapData.timeSlice} and know NOTHING about events after this year
-        You see: ${playerCharacter.name}, appearing to be a ${playerCharacter.profession}
-        They just said: "${playerInput}"
-        
-        **DIALOGUE CONTEXT ANALYSIS:**
-        - This is exchange #${conversationHistoryText ? conversationHistoryText.split('\n').length + 1 : 1} in our conversation
-        - Player's input length: ${playerInput.length} characters (${playerInput.length < 20 ? 'very short - might be confused' : 'engaged'})
-        - Player is asking: ${isAsking ? 'YES - provide helpful answer' : 'NO - respond naturally'}
-        - Player seems confused: ${isConfused ? 'YES - CLARIFY and EXPLAIN' : 'NO'}
-        - Player wants more info: ${askedForMoreInfo ? 'YES - ADD NEW DETAILS' : 'NO'}
-        
-        **YOUR RESPONSE GUIDELINES:**
-        ${conversationHistoryText ? 
-            `- You've already discussed this topic - ADD NEW INFORMATION, don't repeat
-        - If player is still asking about the same thing, they need MORE SPECIFIC DETAILS
-        - Build on what you've said before, don't restart the explanation` : 
-            `- First interaction: Give 1-2 clear, contextual sentences (not cryptic fragments)
-        - Establish who you are and what's happening
-        - If discussing dangers/urgent matters, show appropriate concern`}
-        
-        **CRITICAL: **
-        ${isConfused ? 
-            `The player seems CONFUSED. Don't just repeat yourself - EXPLAIN DIFFERENTLY:
-        - Use simpler words
-        - Give specific examples
-        - Provide concrete details (names, places, times)
-        - Show patience and understanding` : ''}
-        
-        ${askedForMoreInfo ? 
-            `The player wants MORE INFORMATION. Provide NEW DETAILS:
-        - WHO specifically is involved?
-        - WHEN did this happen?
-        - WHERE exactly?
-        - WHAT are the consequences?
-        - HOW does this affect them?` : ''}
-        
-        Respond with 1-4 lines of natural dialogue. Show your personality. Be helpful if discussing dangers.
+
+        **TIME-AWARE BEHAVIOR:**
+        ${mapData.timeOfDay === 'Night' || mapData.timeOfDay === 'Dawn' ?
+            '- It is NIGHTTIME/DAWN. People are suspicious of strangers at this hour. "What are you doing out at this hour?" is a natural response.' : ''}
+        ${mapData.timeOfDay === 'Night' ?
+            '- NEVER say "the sun is high" or reference daylight. It is DARK outside.' : ''}
+        ${mapData.timeOfDay === 'Dawn' ?
+            '- Sun is just rising. People are just waking up. "Youre up early" is appropriate.' : ''}
+        ${mapData.timeOfDay === 'Midday' ?
+            '- Sun is at its highest. Hot time of day. People seek shade.' : ''}
+        ${mapData.timeOfDay === 'Dusk' ?
+            '- Sun is setting. People are finishing work, heading home.' : ''}
+
+        **CRITICAL REALISM RULES:**
+        1. You are a REAL PERSON in ${mapData.timeSlice}, not a fantasy character
+        2. Speak plainly and directly - avoid flowery or "spiritual" language
+        3. NO GENERIC MYSTICISM: Don't say "the spirits smile" or "the gods willing" unless discussing specific religious matters
+        4. React based on PRACTICAL CONCERNS: property, safety, reputation, profit
+        5. Your first reaction should be about immediate social dynamics (stranger danger, class differences, etc.)
+        6. BE AWARE OF TIME: Don't reference the sun being high at night, don't act like it's daytime when it's not
+
+        **REALISTIC RESPONSES BY CONTEXT:**
+        - Farmer + stranger in field = What are you doing in my field? / Don't trample my crops, stranger
+        - Merchant + well-dressed customer = What can I interest you in today?
+        - Guard + armed commoner = State your business / Move along
+        - Commoner + noble = Immediate deference, fear of punishment
+        - Anyone + elderly woman = Likely offer of aid or concern
+        - Anyone + young armed male = Wariness, possible fear
+
+        **DIALOGUE PROGRESSION:**
+        Exchange #${conversationHistoryText ? conversationHistoryText.split('\n').length + 1 : 1}
+        ${isConfused ? '- Player confused: Use simpler words, be more direct' : ''}
+        ${askedForMoreInfo ? '- Player wants details: Add specific new information' : ''}
+        ${conversationHistoryText ? '- Continue conversation: Build on previous exchange, dont repeat' : '- First exchange: Establish your immediate reaction to this stranger'}
+
+        **YOUR RESPONSE:**
+        - 1-4 lines of REALISTIC dialogue for a ${target.role} in ${mapData.timeSlice}. Do not use quotation marks. 
+        - Focus on immediate, practical concerns first
+        - If youre a farmer, talk like a farmer. If nobility, show appropriate bearing
+        - Remember: Most people in history were wary of strangers, protective of property, and concerned with survival
+        - NO mystical language unless specifically discussing religious/spiritual topics, or if you think NPC would be spiritual/religious
+        - Be specific about local concerns (actual crops, actual goods, actual threats)
+        **HISTORICAL ACCURACY:**
+        Year ${mapData.timeSlice}: Only reference things that exist in this year.
+        ${parseInt(mapData.timeSlice) < 1492 && (mapData.localArea.includes('America')) ?
+            'Pre-Columbian Americas: NO knowledge of Europe/Africa/Asia' : ''}
+
+        **CONVERSATION HISTORY:**
+        ${conversationHistoryText || 'First meeting'}
+        ${conversationHistoryText ? 'IMPORTANT: "YOU SAID" = your previous dialogue. "PLAYER SAID" = what they said.' : ''}
+        ${target.memory?.knownFactsAboutPlayer?.has('ATTACKED_BY_PLAYER') ? '⚠️ This player attacked you before!' : ''}
 
         ${languageInstruction}
 
-        **YOUR CHARACTER CONTEXT:**
-        - Class: ${(target.class || 'commoner').toLowerCase()}
-        - Health: ${target.health?.currentDiseases?.length > 0 ? 
-            `SICK with ${target.health.currentDiseases[0].disease.name}` : 'Healthy'}
-        - Personality: ${target.personality ? `Greed: ${target.personality.greed}/10, Courage: ${target.personality.courage}/10, Compassion: ${target.personality.compassion}/10` : 'Average'}
-        - Special Traits: ${target.attributes?.map(a => a.name).join(', ') || 'None notable'}
-        - Current Goal: ${target.personalGoal?.description || 'Just getting by'}
-        - Family: ${target.family?.length > 0 ? target.family.map(f => `${f.relation}: ${f.name}`).join(', ') : 'Lives alone'}
-        - Wealth: ${target.wealthLevel || 'modest'} (${target.currency || 0} coins)
-        - Religion: ${target.religion || 'Local beliefs'} ${target.beliefs?.length > 0 ? `(believes in ${target.beliefs[0].beliefId})` : ''}
-        - Previous interactions: ${previousSummaries || target.memory?.conversationSummaries?.join('; ') || 'None - first meeting'}
-        - Known facts about player: ${target.memory?.knownFactsAboutPlayer ?
-            Array.from(target.memory.knownFactsAboutPlayer).map(fact => {
-                if (fact.includes('ATTACKED_BY_PLAYER')) return 'Player attacked me previously!';
-                if (fact.includes('PLAYER_FLED_COMBAT')) return 'Player fled from our fight';
-                if (fact.includes('TRESPASSED')) return 'Player trespassed in my space';
-                return fact;
-            }).join('; ') : 'None'}
-        - Player's reputation: ${playerCharacter.mapReputation}/100
-        
-        **WHAT YOU SEE ON THE PLAYER:**
-        - Appearance: ${formatAppearance(playerCharacter)}
-        - Clothing: ${playerCharacter.appearance?.garment?.name || 'common clothes'} (${playerCharacter.appearance?.garment?.material || 'simple fabric'})
-        - Equipment: ${playerCharacter.equippedItems?.weapon ? `Armed with ${playerCharacter.equippedItems.weapon.name}` : 'Unarmed'}
-        - Health: ${playerCharacter.health?.currentDiseases?.length > 0 ? `VISIBLY ILL with ${playerCharacter.health.currentDiseases[0].disease.name}` : 'Appears healthy'}
-        ${getTamedAnimalsContext()}
-        
-        **CONVERSATION HISTORY:**
-        ${conversationHistoryText || 'This is your first exchange'}
-        
-
-        
-        **CRITICAL RULES:**
-        - THE YEAR IS ${mapData.timeSlice} - NEVER reference events, peoples, or technologies from after this date!
-        - You have ZERO knowledge of anything that happens after ${mapData.timeSlice}
-        - ONLY provide dialogue, no actions or narration
-        - Stay in character for your role, age, and social class IN THE YEAR ${mapData.timeSlice}
-        - Know about major events of your time that happened BEFORE ${mapData.timeSlice} (wars, plagues, discoveries, people)
-        - NEVER repeat the same information - always add something new
-        - If discussing immediate dangers, be PROACTIVE and direct, even blunt or rude
-        - If the player is confused after multiple exchanges, CHANGE YOUR APPROACH
-        - Show appropriate emotional responses (fear about dangers, worry about disease, truculence, melancholy about sick family, etc.)
-        - Your personality (courage/compassion/greed) should color HOW you speak
-        - HISTORICAL ACCURACY IS MANDATORY - No Portuguese in pre-Columbian Americas!
-        
-        **CONVERSATION ENDINGS:**
-        - Not all conversations need to continue indefinitely
-        - If the conversation has reached a natural ending point, you may politely excuse yourself
-        - Use farewell phrases like "I must be going", "farewell", "I should get back to work" when appropriate
-        - Consider ending the conversation if: you've completed your business, you're busy, you're uncomfortable, or there's nothing more to discuss
-        - After 4-5 exchanges, consider whether it's natural to end the conversation
+        **CONVERSATION DYNAMICS:**
+        - After 4-5 exchanges, consider naturally ending the conversation
+        - If urgent danger, skip pleasantries entirely
+        - Build on previous exchanges, never repeat information
     `;
     
-    // Create a more sophisticated prompt for reputation analysis
+    // Add reputation analysis to prompt
     const reputationPrompt = `
         ${prompt}
-        
-        ADDITIONALLY, analyze the situation and determine the reputation impact:
-        - Is this NPC discovering an enemy combatant? (-100 reputation)
-        - Is the player threatening violence? (-50 reputation)  
-        - Is this a dangerous criminal being discovered? (-75 reputation)
-        - Is the NPC calling for authorities? (-100 reputation)
-        - Is this a dangerous historical situation where the player doesn't belong? (-5 to -100)
-        - Is the player being helpful/kind? (+5 to +20)
-        - Is this a normal conversation? (0 to +/-3)
-        
-        ${target.profession?.toLowerCase().includes('guard') || target.profession?.toLowerCase().includes('soldier') ? `
-        GUARD-SPECIFIC ANALYSIS (You are a ${target.profession}):
-        - If player says they'll leave/comply (e.g., "ok", "fine", "I'll go", "sorry", "my mistake"): Let them go (+0 reputation)
-        - If player gives reasonable explanation (e.g., "I have business here", "I was invited", "I'm looking for someone"): Consider it (-5 reputation, warning)
-        - If player is defiant (e.g., "no", "make me", "you can't stop me", "never", insults): Prepare to attack (-50 reputation)
-        - If player directly threatens you (e.g., "I'll kill you", "fight me", "try and stop me"): Attack immediately (-75 reputation)
-        - If this is your 3rd+ warning to the same person: Attack them for ignoring orders (-50 reputation)
-        
-        Remember: Guards give ONE warning before attacking defiant intruders. Be stern but fair.
-        ` : ''}
-        
-        FORMAT YOUR RESPONSE EXACTLY LIKE THIS (no JSON, no code blocks, just these lines):
-        DIALOGUE: [your character's response in 1-4 sentences]
+
+        **REPUTATION IMPACT:**
+        Based on this interaction, determine reputation change:
+        - Threatening/hostile = -50 to -100
+        - Suspicious/unwelcome = -5 to -25
+        - Normal conversation = 0
+        - Helpful/kind = +5 to +20
+
+        ${target.profession?.toLowerCase().includes('guard') ?
+            'GUARD: Give ONE warning before attacking defiant intruders.' : ''}
+
+        FORMAT (3 lines exactly):
+        DIALOGUE: [1-4 sentences of realistic dialogue]
         REPUTATION: [increase/decrease/none]
-        AMOUNT: [number from 0 to 100]
-        
-        Example responses:
-        DIALOGUE: Guards! There's an enemy spy here! Seize them immediately!
-        REPUTATION: decrease
-        AMOUNT: 100
-        
-        DIALOGUE: Thank you for your kindness, friend. Here, take this bread as thanks.
-        REPUTATION: increase
-        AMOUNT: 15
-        
-        DIALOGUE: The rain's getting worse. Better find shelter before the roads turn to mud.
-        REPUTATION: none
-        AMOUNT: 0
+        AMOUNT: [0-100]
     `;
     
     try {

@@ -232,7 +232,7 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
       const e = npc as NpcEntity;
       const workplace = terrainStructures?.find(s => s.id === e.workplaceId);
       if (workplace) work = `Works at ${workplace.name}`;
-      else if (e.role && e.role.toLowerCase() !== 'wanderer') work = `Works as a ${e.role} locally`;
+      else if (e.role && e.role.toLowerCase() !== 'wanderer') work = `Works as a ${pretty(e.role)} locally`;
       if (e.homeLocation) home = `Lives in a settlement ${getRelativeDirection({ x: e.x, y: e.y }, e.homeLocation as Point)}`;
     }
     return { workLocation: work, homeLocation: home };
@@ -279,11 +279,11 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
             </div>
             <div>
               <div className="text-slate-400 text-xs">Profession</div>
-              <div className="text-green-400 font-semibold capitalize">{profession}</div>
+              <div className="text-green-400 font-semibold capitalize">{pretty(profession)}</div>
             </div>
             <div>
               <div className="text-slate-400 text-xs">Class</div>
-              <div className="text-white capitalize">{(socialClass || '').toLowerCase() || '—'}</div>
+              <div className="text-white capitalize">{pretty(socialClass)}</div>
             </div>
             <div>
               <div className="text-slate-400 text-xs">Religion</div>

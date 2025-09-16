@@ -52,6 +52,7 @@ import { useDeviceDetection } from '../utils/deviceUtils';
 import { useWeatherEffects } from '../hooks/useWeatherEffects';
 import { poiDescriptionService } from '../services/poiDescriptionService';
 import { poiDialogueService } from '../services/poiDialogueService';
+import { getDayOfYear } from '../utils/dateUtils';
 
 type ActivePanel = 'farm' | null;
 
@@ -201,7 +202,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
             season,
             currentTimeOfDay,
             centerTile.altitude || 0.5,
-            gameDate?.day || 180,
+            gameDate ? getDayOfYear(gameDate) : 180,
             { x: mapCenterX, y: mapCenterY }
         );
     }, [mapData, season, sunPosition, gameDate, Math.floor(gameTimeHours)]); // Only update on hour change
@@ -1392,7 +1393,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                         toastMessage={toastMessage}
                         season={season}
                         timeOfDay={currentTimeOfDay}
-                        dayOfYear={gameDate?.day || 180}
+                        dayOfYear={gameDate ? getDayOfYear(gameDate) : 180}
                         onToggleAmbientText={() => setShowAmbientText(!showAmbientText)}
                         showAmbientText={showAmbientText}
                         inRuinRoguelike={inRuinRoguelike}
