@@ -45,6 +45,7 @@ import GuardWarningBox from './GuardWarningBox';
 import NpcAlertIndicator from './NpcAlertIndicator';
 import { eventBus } from '../services/eventBus';
 import { isGuardType } from '../services/specialMapNpcBehaviorService';
+import { guardPermissionService } from '../services/guardPermissionService';
 import { weatherService } from '../services/weatherService';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES } from '../constants';
 import { useDeviceDetection } from '../utils/deviceUtils';
@@ -71,9 +72,9 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
     
     const [isMapTransitioning, setIsMapTransitioning] = useState(false);
     
-    const { 
-        currentWorldCoords, mapData,
-        visibleAnimals, visibleNpcs, deployedVessels, mapAnalysisData, 
+    const {
+        currentWorldCoords, mapData, currentMapSeed,
+        visibleAnimals, visibleNpcs, deployedVessels, mapAnalysisData,
         enterSpecialMap, exitSpecialMap, isSpecialMap,
         addPersistedMerchant,
     } = useMap();
@@ -156,6 +157,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
     } | null>(null);
     const [guardAlerts, setGuardAlerts] = useState<Map<string, 'detecting' | 'warning' | 'pursuing'>>(new Map());
     const [guardsAlreadyWarned, setGuardsAlreadyWarned] = useState<Set<string>>(new Set());
+    const [permissionStatus, setPermissionStatus] = useState<string | null>(null);
 
     // ALL REMAINING HOOKS must be called before early return
     // Track current room in special maps (safe to call with null values)
@@ -505,6 +507,24 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                 return newSet;
             });
         };
+
+        const handlePermissionGranted = (data: any) => {
+            console.log('[MapViewport] Permission granted:', data);
+            const message = guardPermissionService.getPermissionStatusMessage(data.mapId);
+            setPermissionStatus(message);
+
+            // Clear any existing guard warnings since player now has permission
+            setGuardWarning(null);
+            setGuardAlerts(new Map());
+
+            // Show success message
+            console.log(`[Permission] Access granted by ${data.npcName}: ${data.reason}`);
+        };
+
+        const handlePermissionRevoked = (data: any) => {
+            console.log('[MapViewport] Permission revoked:', data);
+            setPermissionStatus(null);
+        };
         
         const handleGuardEncounter = (data: any) => {
             // Update to pursuing state
@@ -535,15 +555,30 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
         eventBus.on('guard:encounter', handleGuardEncounter);
         eventBus.on('guard:reset', handleGuardReset);
         eventBus.on('guard:resolved', handleGuardResolved);
-        
+        eventBus.on('permission:granted', handlePermissionGranted);
+        eventBus.on('permission:revoked', handlePermissionRevoked);
+
         return () => {
             eventBus.off('guard:detecting', handleGuardDetecting);
             eventBus.off('guard:encounter', handleGuardEncounter);
             eventBus.off('guard:reset', handleGuardReset);
             eventBus.off('guard:resolved', handleGuardResolved);
+            eventBus.off('permission:granted', handlePermissionGranted);
+            eventBus.off('permission:revoked', handlePermissionRevoked);
         };
     }, [visibleNpcs, handleEncounter, guardsAlreadyWarned]);
-    
+
+    // Check permission status when map changes
+    useEffect(() => {
+        if (isSpecialMap && mapData) {
+            const mapId = `${mapData.area || 'unknown'}_${mapData.seed || 'default'}`;
+            const message = guardPermissionService.getPermissionStatusMessage(mapId);
+            setPermissionStatus(message);
+        } else {
+            setPermissionStatus(null);
+        }
+    }, [isSpecialMap, mapData?.area, mapData?.seed]);
+
     // Handle map transitions with elegant fade effect
     useEffect(() => {
         if (isLoading && !isMapTransitioning) {
@@ -645,37 +680,63 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                     'stone' // Default material - could be enhanced later
                 );
 
-                setPoiToastData({
-                    structure: poiStructure,
-                    description,
-                    dialogue
-                });
+                // Only set POI toast if it's not already showing this structure AND it wasn't manually closed
+                // This prevents reopening when the user closes the modal while still on the tile
+                if ((window as any).poiToastManuallyClosedId !== poiStructure.id) {
+                    setPoiToastData(prev => {
+                        // Only set if not already showing this structure
+                        if (!prev || prev.structure.id !== poiStructure.id) {
+                            console.log('[MapViewport] Setting POI toast for structure:', poiStructure.id);
+                            return {
+                                structure: poiStructure,
+                                description,
+                                dialogue
+                            };
+                        }
+                        return prev;
+                    });
+                }
             } catch (error) {
                 console.error('[MapViewport] Error generating POI description/dialogue:', error);
                 console.error('[MapViewport] Error stack:', error.stack);
                 // Fallback to basic toast
                 const fallbackType = poiStructure.structureType || poiStructure.type || 'work site';
-                setPoiToastData({
-                    structure: poiStructure,
-                    description: `A ${fallbackType} where local workers process materials according to traditional methods.`,
-                    dialogue: {
-                        speaker: 'Local Worker',
-                        greeting: `Welcome to our ${fallbackType}. We can help you with various services.`,
-                        services: [
-                            {
-                                id: 'basic_service',
-                                name: 'Basic Services',
-                                description: 'Standard processing and trade',
-                                cost: '2-5 goods',
-                                available: true
-                            }
-                        ]
-                    }
-                });
+                if ((window as any).poiToastManuallyClosedId !== poiStructure.id) {
+                    setPoiToastData(prev => {
+                        // Only set if not already showing this structure
+                        if (!prev || prev.structure.id !== poiStructure.id) {
+                            console.log('[MapViewport] Setting POI toast fallback for structure:', poiStructure.id);
+                            return {
+                                structure: poiStructure,
+                                description: `A ${fallbackType} where local workers process materials according to traditional methods.`,
+                                dialogue: {
+                                    speaker: 'Local Worker',
+                                    greeting: `Welcome to our ${fallbackType}. We can help you with various services.`,
+                                    services: [
+                                        {
+                                            id: 'basic_service',
+                                            name: 'Basic Services',
+                                            description: 'Standard processing and trade',
+                                            cost: '2-5 goods',
+                                            available: true
+                                        }
+                                    ]
+                                }
+                            };
+                        }
+                        return prev;
+                    });
+                }
             }
-        } else if (!poiStructure && poiToastData) {
-            // Clear toast when moving away from POI
-            setPoiToastData(null);
+        } else if (!poiStructure) {
+            // Clear toast and reset closed flag when moving away from POI
+            if (poiToastData) {
+                setPoiToastData(null);
+            }
+            // Clear the manually closed flag when leaving POI tiles
+            if ((window as any).poiToastManuallyClosedId) {
+                delete (window as any).poiToastManuallyClosedId;
+            }
         }
     }, [controlledIconX, controlledIconY, mapData, playerCharacter, poiToastData, setPoiToastData, currentZone, currentEra]);
 
@@ -726,18 +787,19 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
 
     const renderMapContent = () => {
         if (activeMarketplaceModal && playerCharacter && mapData && mapAnalysisData) {
-            return <MarketplaceModal 
-                tile={activeMarketplaceModal.tile} 
-                onClose={() => setActiveMarketplaceModal(null)} 
-                playerCharacter={playerCharacter} 
-                onBuy={onBuyItem} 
-                onSell={onSellItem} 
-                mapData={mapData} 
-                npcs={visibleNpcs} 
-                mapAnalysisData={mapAnalysisData} 
-                gameTimeHours={gameTimeHours} 
+            return <MarketplaceModal
+                tile={activeMarketplaceModal.tile}
+                onClose={() => setActiveMarketplaceModal(null)}
+                playerCharacter={playerCharacter}
+                onBuy={onBuyItem}
+                onSell={onSellItem}
+                mapData={mapData}
+                npcs={visibleNpcs}
+                mapAnalysisData={mapAnalysisData}
+                gameTimeHours={gameTimeHours}
                 season={season}
                 onAddPersistedNpc={addPersistedMerchant}
+                currentMapSeed={currentMapSeed}
             />;
         }
         if (activeCityModal && playerCharacter && mapData) {
@@ -809,6 +871,22 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                     isFreshwater={activeFishingHutModal.tile.biome !== 'coastal' && activeFishingHutModal.tile.biome !== 'oceanic'}
                     timeOfDay={currentTimeOfDay}
                     playerCharacter={playerCharacter}
+                    onCharacterUpdate={onCharacterUpdate}
+                    onInventoryUpdate={(newItem) => {
+                        console.log('🎣 MapViewport: onInventoryUpdate called with:', newItem);
+                        // Add item to player inventory and update character
+                        if (playerCharacter && onCharacterUpdate) {
+                            const updatedInventory = [...(playerCharacter.inventory || []), newItem];
+                            console.log('🎣 Current inventory length:', playerCharacter.inventory?.length || 0);
+                            console.log('🎣 Updated inventory length:', updatedInventory.length);
+                            const updatedCharacter = {
+                                ...playerCharacter,
+                                inventory: updatedInventory
+                            };
+                            onCharacterUpdate(updatedCharacter);
+                            console.log('🎣 onCharacterUpdate called successfully');
+                        }
+                    }}
                     onBuy={onBuyItem}
                     onSell={onSellItem}
                     playerGold={playerCharacter.inventory?.find(item => item.id === 'COIN')?.quantity || 0}
@@ -952,8 +1030,8 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                 hasInteriorData: !!interiorData
             });
             
-            // Use beautiful interior system for palaces and holy places
-            if (buildingType === 'palace' || buildingType === 'holy_place' || buildingType === 'temple') {
+            // Use beautiful interior system for palaces, holy places, and fortresses
+            if (buildingType === 'palace' || buildingType === 'holy_place' || buildingType === 'temple' || buildingType === 'fortress') {
                 console.log('✨ [MapViewport] Using BEAUTIFUL interior system for:', buildingType);
                 // Find the original tile that was entered to get context
                 let contextTile = mapData?.tiles?.flat().find(tile => 
@@ -975,7 +1053,9 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                         structure: {
                             id: interiorViewState.buildingId,
                             type: buildingType as any,
-                            subtype: buildingType === 'palace' ? 'castle' : buildingType === 'holy_place' ? 'cathedral' : 'temple'
+                            subtype: buildingType === 'palace' ? 'castle' : 
+                                     buildingType === 'holy_place' ? 'cathedral' : 
+                                     buildingType === 'fortress' ? 'fortress' : 'temple'
                         }
                     } as any;
                 }
@@ -999,10 +1079,23 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                             playerReligion={playerCharacter.religion}
                             playerClass={playerCharacter.socialClass}
                             playerReputation={playerCharacter.socialContext?.reputation || 0}
+                            mapData={mapData}
                             onExit={handleExitInteriorView}
                             onNpcInteraction={(npc, dialogue) => {
-                                // For confrontation/warning dialogues, just log them
-                                console.log(`${npc.name}: ${dialogue.join(' ')}`);
+                                // For fortress commanders and other elite NPCs, trigger the encounter modal
+                                if ((buildingType === 'fortress' && npc.role?.includes('Commander')) || 
+                                    npc.id?.includes('elite')) {
+                                    console.log('🏰 [MapViewport] Triggering elite NPC encounter with dialogue');
+                                    // Add the pre-generated dialogue to the NPC
+                                    const npcWithDialogue = {
+                                        ...npc,
+                                        initialDialogue: dialogue
+                                    };
+                                    handleEncounter(npcWithDialogue);
+                                } else {
+                                    // For other confrontation/warning dialogues, just log them
+                                    console.log(`${npc.name}: ${dialogue.join(' ')}`);
+                                }
                             }}
                             onNpcClick={(npc) => {
                                 // Trigger proper encounter modal for clicked NPCs
@@ -1153,6 +1246,23 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                        severity={guardWarning.severity}
                        turnsRemaining={guardWarning.turnsRemaining}
                      />
+                   )}
+
+                   {/* Permission Status - shows when player has access */}
+                   {permissionStatus && (
+                     <div className="absolute top-28 left-1/2 transform -translate-x-1/2 z-30 animate-fadeIn">
+                       <div className="bg-green-900/95 border-4 border-green-400 border-double rounded-lg px-6 py-3 shadow-2xl min-w-[300px] max-w-[500px]">
+                         <div className="font-mono text-green-100 text-lg tracking-wide">
+                           <div className="text-green-300 text-sm mb-1 flex items-center gap-2">
+                             <span className="text-green-400">✓</span>
+                             Access Granted
+                           </div>
+                           <div className="leading-relaxed text-sm">
+                             {permissionStatus}
+                           </div>
+                         </div>
+                       </div>
+                     </div>
                    )}
                    
                    {/* Vignette effect overlay - subtle darkening at edges */}

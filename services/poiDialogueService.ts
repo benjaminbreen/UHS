@@ -51,11 +51,13 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
       'Stone Singer'
     ],
     greetings: [
-      "What do you want?",
-      "Make it quick. We're busy here.",
-      "Stone for sale. That's all.",
-      "Don't touch anything. What do you need?",
-      "Hmph. Another traveler looking for stone."
+      "Hmph. Another traveler looking for stone.",
+      "*glances up, then looks away* ...What?",
+      "You lost? This is a quarry.",
+      "*stares at you, says nothing*",
+      "Move along if you're not buying.",
+      "The hell do you want?",
+      "*spits* Yeah?"
     ],
     services: [
       {
@@ -94,11 +96,11 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
       'Metal Keeper'
     ],
     greetings: [
-      "The earth yields her treasures slowly. What do you seek?",
-      "I know where the good clay hides. Perhaps we can trade.",
-      "The copper veins run deep here. Are you a worker of metal?",
-      "Welcome to the sacred diggings. The ancestors bless this work.",
-      "These tunnels have fed our people for many seasons. What brings you?"
+      "*covered in dirt, doesn't look up* We're working here.",
+      "You're not from the company. Get out.",
+      "*coughs from dust* ...What now?",
+      "This is dangerous ground, stranger.",
+      "*wipes sweat* If you're not buying ore, move along."
     ],
     services: [
       {
@@ -194,11 +196,11 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
       'Mill Keeper'
     ],
     greetings: [
-      "Good day to you! The wheel turns well today - perfect for grinding grain.",
-      "Welcome to my mill. The stones are properly set and ready for your grain.",
-      "God's blessing on you, traveler. What grain would you have ground?",
-      "The water runs strong today - excellent milling weather. How may I serve?",
-      "Step inside, friend. The mill is yours to use, for the proper fee."
+      "*doesn't stop working the stones* Got grain or not?",
+      "Mill's busy. Wait your turn.",
+      "*covered in flour dust* ...What?",
+      "The lord takes his cut first. You understand that?",
+      "*spits* Another mouth to feed. Make it quick."
     ],
     services: [
       {
@@ -246,11 +248,11 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
       'Lodge Builder'
     ],
     greetings: [
-      "The forest spirits have guided you here. What wood do you seek?",
-      "Welcome to our grove. Each tree taken is honored with ceremony.",
-      "I know every tree in this forest by its song. How may the wood serve you?",
-      "The ancestors teach us to take only what is needed. What is your need?",
-      "Good wood for good purposes - that is our way. What will you build?"
+      "*swinging axe, doesn't look up* This is sacred ground.",
+      "You shouldn't be in these woods alone.",
+      "*stares silently* ...State your business.",
+      "The trees don't like strangers. What do you want?",
+      "*grips axe handle* Wood's not free, outsider."
     ],
     services: [
       {
@@ -295,11 +297,11 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
       'Forest Reeve'
     ],
     greetings: [
-      "God save you, traveler. The lord's forest provides well this season.",
-      "Welcome to the woodlands. Mind the forester's marks - some trees are reserved.",
-      "Good timber for building, firewood for warmth - what's your need?",
-      "The axe bites deep today. Looking for good oak or simple kindling?",
-      "By the lord's grace, we harvest these woods. How may I serve?"
+      "*looks up from chopping* These are the lord's woods. Move along.",
+      "Poachers hang. Remember that.",
+      "*wipes sweat, scowls* What now?",
+      "Wood's for the manor. Not for wanderers.",
+      "*hefts axe* State your business or leave."
     ],
     services: [
       {
@@ -344,11 +346,11 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
       'Wood Merchant'
     ],
     greetings: [
-      "The mountain provides its bounty with wisdom. What wood speaks to your purpose?",
-      "Welcome, friend. The trees grow straight and true here, perfect for building.",
-      "Each tree has its destiny - in temple, home, or hearth. What is yours?",
-      "The forest deity smiles upon our work today. How may I assist?",
-      "Good wood, fairly cut, properly dried - this is our way."
+      "*barely glances up* Mountain paths are dangerous for strangers.",
+      "This grove is spoken for. Move on.",
+      "*continues working* Temple gets first pick. You get what's left.",
+      "Hmm. Another trader. Wood costs more than you think.",
+      "*sharpening blade* ...Lost?"
     ],
     services: [
       {
@@ -393,11 +395,11 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
       'Log Driver'
     ],
     greetings: [
-      "Welcome to the mill! Steam saw's running hot - we can cut anything you need.",
-      "Lumber company's working full shift today. What timber are you after?",
-      "Fresh from the forest, straight to the saw. Best prices in the county!",
-      "Railway ties, building lumber, furniture wood - we've got it all.",
-      "The company mill never stops. How many board feet do you need?"
+      "*over machine noise* Company orders only! Get out!",
+      "Mill's dangerous. You got papers or not?",
+      "*spits tobacco* Another city fool wanting cheap lumber.",
+      "Union workers only past this point.",
+      "*doesn't stop the saw* Make it quick, we're on quota."
     ],
     services: [
       {
@@ -424,6 +426,722 @@ const DIALOGUE_TEMPLATES: DialogueTemplate[] = [
         nameTemplate: 'Sawdust & Shavings',
         descriptionTemplate: 'For livestock bedding or ice storage',
         costTemplate: 'Nearly free - just haul it'
+      }
+    ]
+  },
+  
+  // ==================== FORTRESS DIALOGUES ====================
+  // Europe - Medieval - Fortress
+  {
+    type: 'fortress',
+    culturalZone: 'Europe',
+    era: HistoricalEra.MEDIEVAL,
+    speakerTitles: [
+      'Gate Guard',
+      'Garrison Sergeant',
+      'Watch Captain',
+      'Castle Warden',
+      'Fortress Commander'
+    ],
+    greetings: [
+      "*hand on sword hilt* State your business. Now.",
+      "Gates close at dusk. No exceptions.",
+      "*looks you up and down* You're not from here. Move along.",
+      "This is a military post, not an inn.",
+      "*spits* Another beggar. The lord has no charity today."
+    ],
+    services: [
+      {
+        id: 'garrison_supplies',
+        nameTemplate: 'Military Provisions',
+        descriptionTemplate: 'Basic rations and equipment',
+        costTemplate: 'Military requisition only',
+        requirements: ['Military authorization']
+      },
+      {
+        id: 'safe_passage',
+        nameTemplate: 'Request Safe Passage',
+        descriptionTemplate: 'Written pass for travel',
+        costTemplate: 'Subject to approval',
+        requirements: ['Clean record', 'Valid reason']
+      },
+      {
+        id: 'mercenary_contract',
+        nameTemplate: 'Enlist as Mercenary',
+        descriptionTemplate: 'Short-term military service',
+        costTemplate: 'Daily wages if accepted',
+        requirements: ['Combat skills', 'Own weapons']
+      }
+    ]
+  },
+  
+  // Asia - Classical - Fortress  
+  {
+    type: 'fortress',
+    culturalZone: 'Asia',
+    era: HistoricalEra.CLASSICAL,
+    speakerTitles: [
+      'Gate Keeper',
+      'Wall Captain',
+      'Fortress Guard',
+      'Military Inspector',
+      'Defense Commander'
+    ],
+    greetings: [
+      "*stares silently from the wall* Papers.",
+      "No travelers after the drums. Leave.",
+      "*adjusts spear* The general sees no one.",
+      "Military district. Civilians prohibited.",
+      "*from behind gate* Turn back. Now."
+    ],
+    services: [
+      {
+        id: 'travel_papers',
+        nameTemplate: 'Border Crossing Papers',
+        descriptionTemplate: 'Official seal for passage',
+        costTemplate: 'Substantial bribe required',
+        requirements: ['No criminal record']
+      },
+      {
+        id: 'military_escort',
+        nameTemplate: 'Hire Military Escort',
+        descriptionTemplate: 'Protection through dangerous lands',
+        costTemplate: 'Negotiable based on distance',
+        requirements: ['Legitimate merchant']
+      }
+    ]
+  },
+  
+  // North America - Antiquity - Fortress
+  {
+    type: 'fortress',
+    culturalZone: 'North America',
+    era: HistoricalEra.ANTIQUITY,
+    speakerTitles: [
+      'War Chief',
+      'Clan Warrior',
+      'Village Guardian',
+      'Battle Leader',
+      'Shield Bearer'
+    ],
+    greetings: [
+      "*blocks path with spear* This is sacred ground, stranger.",
+      "State your clan. These lands are protected.",
+      "*stares silently* ...You do not belong here.",
+      "Turn back. The elders have spoken.",
+      "*grips war club* Speak quickly, outsider."
+    ],
+    services: [
+      {
+        id: 'safe_passage',
+        nameTemplate: 'Request Safe Passage',
+        descriptionTemplate: 'Ask permission to travel through clan territory',
+        costTemplate: 'Tribute or peaceful intent',
+        requirements: ['Respect for traditions']
+      },
+      {
+        id: 'clan_alliance',
+        nameTemplate: 'Discuss Alliance',
+        descriptionTemplate: 'Negotiate mutual protection agreements',
+        costTemplate: 'Significant gifts and promises',
+        requirements: ['High reputation', 'Clan leadership']
+      }
+    ]
+  },
+  
+  // Europe - Antiquity - Fortress
+  {
+    type: 'fortress',
+    culturalZone: 'Europe',
+    era: HistoricalEra.ANTIQUITY,
+    speakerTitles: [
+      'Centurion',
+      'Praetorian Guard',
+      'Legion Commander',
+      'Camp Prefect',
+      'Garrison Officer'
+    ],
+    greetings: [
+      "Halt! State your business with the Legion.",
+      "This is a military installation. Move along, citizen.",
+      "*adjusts armor* Papers, if you have them.",
+      "The camp is closed to civilians without authorization.",
+      "*hand on gladius* What brings you to our gates?"
+    ],
+    services: [
+      {
+        id: 'military_supplies',
+        nameTemplate: 'Purchase Military Supplies',
+        descriptionTemplate: 'Standard legion equipment and provisions',
+        costTemplate: 'Military prices in denarii',
+        requirements: ['Roman citizenship or allied status']
+      },
+      {
+        id: 'auxiliary_recruitment',
+        nameTemplate: 'Auxiliary Enlistment',
+        descriptionTemplate: 'Join the auxiliary forces',
+        costTemplate: 'Service commitment required',
+        requirements: ['Physical fitness', 'No criminal record']
+      }
+    ]
+  },
+  
+  // Europe - Industrial - Fortress  
+  {
+    type: 'fortress',
+    culturalZone: 'Europe',
+    era: HistoricalEra.INDUSTRIAL_ERA,
+    speakerTitles: [
+      'Artillery Officer',
+      'Infantry Captain',
+      'Fortress Commander',
+      'Military Engineer',
+      'Garrison Sergeant'
+    ],
+    greetings: [
+      "*in military uniform* This is a restricted military facility.",
+      "Civilians are not permitted without proper authorization.",
+      "*checking papers* State your business with the garrison.",
+      "The fortress is on heightened alert. Move along.",
+      "*formal salute* How may the army assist you, citizen?"
+    ],
+    services: [
+      {
+        id: 'military_contracts',
+        nameTemplate: 'Military Supply Contracts',
+        descriptionTemplate: 'Provisions and equipment for the army',
+        costTemplate: 'Government contract rates',
+        requirements: ['Approved vendor status']
+      },
+      {
+        id: 'army_enlistment',
+        nameTemplate: 'Army Enlistment',
+        descriptionTemplate: 'Join the regular army forces',
+        costTemplate: 'Military service and training',
+        requirements: ['Medical examination', 'Age requirements']
+      }
+    ]
+  },
+  
+  // ==================== FACTORY DIALOGUES ====================
+  // Europe - Industrial - Factory
+  {
+    type: 'factory',
+    culturalZone: 'Europe',
+    era: HistoricalEra.INDUSTRIAL,
+    speakerTitles: [
+      'Factory Foreman',
+      'Shift Manager',
+      'Works Overseer',
+      'Company Inspector',
+      'Mill Boss'
+    ],
+    greetings: [
+      "*shouting over machinery* No visitors during shift hours!",
+      "Factory's closed to outsiders. Company policy.",
+      "*covered in soot* Lost? Get out before you get hurt.",
+      "Union meeting's tomorrow. Today we work.",
+      "*checking clipboard* Not on the roster. Move along."
+    ],
+    services: [
+      {
+        id: 'bulk_textiles',
+        nameTemplate: 'Purchase Factory Goods',
+        descriptionTemplate: 'Mass-produced textiles and materials',
+        costTemplate: 'Wholesale only',
+        requirements: ['Merchant license']
+      },
+      {
+        id: 'machine_repair',
+        nameTemplate: 'Equipment Maintenance',
+        descriptionTemplate: 'Repair services for machinery',
+        costTemplate: 'Premium rates',
+        requirements: ['Technical knowledge']
+      },
+      {
+        id: 'factory_work',
+        nameTemplate: 'Apply for Factory Work',
+        descriptionTemplate: '12-hour shifts, six days a week',
+        costTemplate: 'Minimal wages',
+        requirements: ['Strong constitution', 'No union ties']
+      }
+    ]
+  },
+  
+  // Asia - Modern - Factory
+  {
+    type: 'factory',
+    culturalZone: 'Asia',
+    era: HistoricalEra.MODERN,
+    speakerTitles: [
+      'Production Manager',
+      'Floor Supervisor',
+      'Quality Inspector',
+      'Shift Leader',
+      'Assembly Chief'
+    ],
+    greetings: [
+      "*wearing safety gear* Authorized personnel only.",
+      "No tours today. Check with head office.",
+      "*busy with production line* Can't stop. Quota to meet.",
+      "Safety violation. You need proper equipment to be here.",
+      "*points to exit* Visitors out. Now."
+    ],
+    services: [
+      {
+        id: 'wholesale_electronics',
+        nameTemplate: 'Bulk Electronics Order',
+        descriptionTemplate: 'Minimum 1000 units',
+        costTemplate: 'Contact sales department',
+        requirements: ['Business registration']
+      },
+      {
+        id: 'assembly_contract',
+        nameTemplate: 'Contract Manufacturing',
+        descriptionTemplate: 'Custom assembly services',
+        costTemplate: 'Volume-based pricing',
+        requirements: ['Technical specifications', 'Large order']
+      }
+    ]
+  },
+
+  // ==================== MIDDLE EAST DIALOGUES ====================
+  // Middle East - Antiquity - Mill
+  {
+    type: 'mill',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.ANTIQUITY,
+    speakerTitles: [
+      'Mill Overseer',
+      'Grain Master',
+      'Qanat Keeper',
+      'Water Wheel Operator',
+      'Flour Merchant'
+    ],
+    greetings: [
+      "*dusting flour from robes* Peace be upon you, traveler.",
+      "The wheel turns by the grace of the waters. What brings you?",
+      "*checking grain sacks* The harvest has been good this season.",
+      "Welcome to my mill. The finest flour in the valley!",
+      "*adjusting the water channel* Careful near the wheel, friend."
+    ],
+    services: [
+      {
+        id: 'grain_grinding',
+        nameTemplate: 'Grind Grain',
+        descriptionTemplate: 'Turn your wheat or barley into flour',
+        costTemplate: 'One tenth of the grain',
+        requirements: ['Bring your own grain']
+      },
+      {
+        id: 'flour_purchase',
+        nameTemplate: 'Purchase Flour',
+        descriptionTemplate: 'Fresh ground wheat and barley flour',
+        costTemplate: '3-5 shekels per sack',
+        requirements: []
+      },
+      {
+        id: 'water_rights',
+        nameTemplate: 'Negotiate Water Access',
+        descriptionTemplate: 'Share of the qanat flow for irrigation',
+        costTemplate: 'Seasonal tribute',
+        requirements: ['Local landowner']
+      }
+    ]
+  },
+
+  // Middle East - Medieval - Mill
+  {
+    type: 'mill',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.MEDIEVAL,
+    speakerTitles: [
+      'Mill Muqaddam',
+      'Flour Master',
+      'Waterwheel Engineer',
+      'Grain Assessor',
+      'Mill Guardian'
+    ],
+    greetings: [
+      "*in the name of Allah* Welcome to the sultan's mill.",
+      "The water flows strong today. A blessing for all.",
+      "*counting sacks* Another caravan from Damascus arrives soon.",
+      "Peace, traveler. The mill serves all who bring grain.",
+      "*maintaining the gears* Ancient Persian engineering at work!"
+    ],
+    services: [
+      {
+        id: 'grain_milling',
+        nameTemplate: 'Mill Your Grain',
+        descriptionTemplate: 'Expert milling with fine stones',
+        costTemplate: 'Mill tax plus one dirham',
+        requirements: ['Grain to mill']
+      },
+      {
+        id: 'flour_varieties',
+        nameTemplate: 'Select Flour Grade',
+        descriptionTemplate: 'Coarse, standard, or fine white flour',
+        costTemplate: '5-15 dirhams per sack',
+        requirements: []
+      },
+      {
+        id: 'waqf_distribution',
+        nameTemplate: 'Charitable Flour',
+        descriptionTemplate: 'Free flour for the poor (waqf endowment)',
+        costTemplate: 'Free for the needy',
+        requirements: ['Proof of hardship']
+      }
+    ]
+  },
+
+  // Middle East - Renaissance - Mill
+  {
+    type: 'mill',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.RENAISSANCE,
+    speakerTitles: [
+      'Ottoman Mill Administrator',
+      'Master Miller',
+      'Waterworks Supervisor',
+      'Imperial Grain Inspector',
+      'Mill Ağa'
+    ],
+    greetings: [
+      "*reviewing ledgers* The Sultan's mills never rest.",
+      "Merhaba! Our stones grind the finest flour in the empire.",
+      "*checking Ottoman water clock* Right on schedule, effendi.",
+      "Welcome to the imperial mill complex. State your business.",
+      "*proud gesture* Three waterwheels, the pride of the province!"
+    ],
+    services: [
+      {
+        id: 'commercial_milling',
+        nameTemplate: 'Commercial Milling Service',
+        descriptionTemplate: 'Large scale grain processing',
+        costTemplate: 'Guild rates in akçe',
+        requirements: ['Merchant guild member']
+      },
+      {
+        id: 'specialty_flours',
+        nameTemplate: 'Specialty Flour Blends',
+        descriptionTemplate: 'Baklava flour, semolina, and more',
+        costTemplate: '10-25 akçe per okka',
+        requirements: []
+      },
+      {
+        id: 'mill_contract',
+        nameTemplate: 'Seasonal Milling Contract',
+        descriptionTemplate: 'Reserved milling times for harvest',
+        costTemplate: 'Advance payment required',
+        requirements: ['Land ownership proof']
+      }
+    ]
+  },
+
+  // Middle East - Antiquity - Quarry
+  {
+    type: 'quarry',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.ANTIQUITY,
+    speakerTitles: [
+      'Quarry Master',
+      'Stone Cutter Chief',
+      'Babylonian Overseer',
+      'Rock Face Supervisor',
+      'Temple Contractor'
+    ],
+    greetings: [
+      "*wiping limestone dust* The temple needs more blocks!",
+      "By Marduk's hammer, these stones will build eternity.",
+      "*shouting over chisel strikes* What do you want here?",
+      "Careful! We're moving a ten-ton block today.",
+      "*examining stone grain* Only the finest for the ziggurat."
+    ],
+    services: [
+      {
+        id: 'building_stone',
+        nameTemplate: 'Purchase Building Stone',
+        descriptionTemplate: 'Limestone and sandstone blocks',
+        costTemplate: '50-200 shekels per block',
+        requirements: ['Transport arrangements']
+      },
+      {
+        id: 'carved_stone',
+        nameTemplate: 'Commission Carved Stone',
+        descriptionTemplate: 'Decorative reliefs and inscriptions',
+        costTemplate: 'Price varies by complexity',
+        requirements: ['Design approval']
+      },
+      {
+        id: 'quarry_labor',
+        nameTemplate: 'Join Work Crew',
+        descriptionTemplate: 'Hard labor, regular pay',
+        costTemplate: 'Daily wages in barley',
+        requirements: ['Strong back']
+      }
+    ]
+  },
+
+  // Middle East - Medieval - Quarry
+  {
+    type: 'quarry',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.MEDIEVAL,
+    speakerTitles: [
+      'Quarry Raís',
+      'Master Stonecutter',
+      'Mamluk Overseer',
+      'Stone Guild Elder',
+      'Mosque Builder'
+    ],
+    greetings: [
+      "*pointing to marble veins* Allah has blessed us with fine stone.",
+      "The new mosque requires our finest white marble.",
+      "*supervising workers* Mind the geometric cuts - Islamic precision!",
+      "Salaam. We supply stone from here to Cairo.",
+      "*proudly* Our stone built the greatest madrasas."
+    ],
+    services: [
+      {
+        id: 'mosque_stone',
+        nameTemplate: 'Mosque Construction Stone',
+        descriptionTemplate: 'Pre-cut for arches and domes',
+        costTemplate: 'Negotiable in dinars',
+        requirements: ['Religious authority approval']
+      },
+      {
+        id: 'decorative_marble',
+        nameTemplate: 'Decorative Marble',
+        descriptionTemplate: 'For mihrab and fountain work',
+        costTemplate: '100-500 dinars per load',
+        requirements: ['Master craftsman reference']
+      },
+      {
+        id: 'apprentice_training',
+        nameTemplate: 'Stonecutting Apprenticeship',
+        descriptionTemplate: 'Learn geometric stone cutting',
+        costTemplate: 'Seven years service',
+        requirements: ['Youth and dedication']
+      }
+    ]
+  },
+
+  // Middle East - Antiquity - Mine
+  {
+    type: 'mine',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.ANTIQUITY,
+    speakerTitles: [
+      'Mine Overseer',
+      'Copper Master',
+      'Persian Mine Chief',
+      'Royal Inspector',
+      'Ore Assessor'
+    ],
+    greetings: [
+      "*covered in copper dust* The king's mines yield well.",
+      "These tunnels reach deep into the earth's treasures.",
+      "*examining ore* Malachite and azurite - the gods' own colors.",
+      "Watch your head, stranger. Low ceilings ahead.",
+      "*proudly* We've mined here since Cyrus's time."
+    ],
+    services: [
+      {
+        id: 'raw_copper',
+        nameTemplate: 'Purchase Raw Copper',
+        descriptionTemplate: 'Unrefined copper ore',
+        costTemplate: '20-40 shekels per talent',
+        requirements: ['Smelting capability']
+      },
+      {
+        id: 'precious_stones',
+        nameTemplate: 'Turquoise and Lapis',
+        descriptionTemplate: 'Semi-precious stones for jewelry',
+        costTemplate: 'Market rates in silver',
+        requirements: ['Jeweler license']
+      },
+      {
+        id: 'mining_rights',
+        nameTemplate: 'Lease Mining Claim',
+        descriptionTemplate: 'Work your own shaft',
+        costTemplate: 'Royal tax plus percentage',
+        requirements: ['Local permission', 'Equipment']
+      }
+    ]
+  },
+
+  // Middle East - Medieval - Mine
+  {
+    type: 'mine',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.MEDIEVAL,
+    speakerTitles: [
+      'Mine Emir',
+      'Chief Excavator',
+      'Silver Master',
+      'Alchemist Miner',
+      'Guild Supervisor'
+    ],
+    greetings: [
+      "*holding oil lamp* The depths hold silver and lead.",
+      "By the Caliph's decree, these mines stay productive.",
+      "*checking support beams* Persian mining techniques, Arab management.",
+      "Welcome to the mines. Don't stray from marked paths.",
+      "*weighing silver* A good vein this month, alhamdulillah."
+    ],
+    services: [
+      {
+        id: 'refined_silver',
+        nameTemplate: 'Pure Silver Ingots',
+        descriptionTemplate: 'Refined and stamped silver',
+        costTemplate: 'Current market in dinars',
+        requirements: ['Merchant credentials']
+      },
+      {
+        id: 'alchemical_minerals',
+        nameTemplate: 'Alchemical Supplies',
+        descriptionTemplate: 'Sulfur, mercury, and salts',
+        costTemplate: 'Special rates for scholars',
+        requirements: ['Alchemist reference']
+      },
+      {
+        id: 'mine_investment',
+        nameTemplate: 'Mine Partnership',
+        descriptionTemplate: 'Invest in new shaft development',
+        costTemplate: 'Minimum 1000 dinars',
+        requirements: ['Wealth verification']
+      }
+    ]
+  },
+
+  // Middle East - Antiquity - Fortress
+  {
+    type: 'fortress',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.ANTIQUITY,
+    speakerTitles: [
+      'Garrison Commander',
+      'Assyrian Captain',
+      'Fortress Keeper',
+      'Watch Chief',
+      'Persian Satrap Guard'
+    ],
+    greetings: [
+      "*hand on sword* State your purpose at this fortress.",
+      "The king's stronghold guards this passage. Move along.",
+      "*from the walls* You approach the military garrison!",
+      "Papers! No one enters without authorization.",
+      "*sternly* This is a restricted military zone."
+    ],
+    services: [
+      {
+        id: 'safe_passage',
+        nameTemplate: 'Request Safe Passage',
+        descriptionTemplate: 'Military escort through dangerous lands',
+        costTemplate: 'Tribute to the garrison',
+        requirements: ['Valid travel documents']
+      },
+      {
+        id: 'military_supplies',
+        nameTemplate: 'Sell Military Supplies',
+        descriptionTemplate: 'The garrison needs provisions',
+        costTemplate: 'Competitive prices',
+        requirements: ['Quality goods']
+      },
+      {
+        id: 'mercenary_contract',
+        nameTemplate: 'Hire Garrison Soldiers',
+        descriptionTemplate: 'Trained warriors for hire',
+        costTemplate: 'Daily rate in silver',
+        requirements: ['Legitimate purpose']
+      }
+    ]
+  },
+
+  // Middle East - Medieval - Fortress
+  {
+    type: 'fortress',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.MEDIEVAL,
+    speakerTitles: [
+      'Fortress Emir',
+      'Mamluk Commander',
+      'Citadel Captain',
+      'Military Qadi',
+      'Castle Warden'
+    ],
+    greetings: [
+      "*from battlements* Who seeks entry to the Sultan's fortress?",
+      "This citadel has never fallen. State your business.",
+      "*checking credentials* Crusaders were turned back here.",
+      "The fortress serves the Caliph. Why do you come?",
+      "*military bearing* Discipline and faith guard these walls."
+    ],
+    services: [
+      {
+        id: 'military_training',
+        nameTemplate: 'Mamluk Training',
+        descriptionTemplate: 'Elite military instruction',
+        costTemplate: 'Years of service',
+        requirements: ['Young age', 'Physical fitness']
+      },
+      {
+        id: 'fortress_smithy',
+        nameTemplate: 'Damascus Steel Weapons',
+        descriptionTemplate: 'Finest blades from the fortress forge',
+        costTemplate: 'Premium prices',
+        requirements: ['Warrior status']
+      },
+      {
+        id: 'intelligence_report',
+        nameTemplate: 'Regional Intelligence',
+        descriptionTemplate: 'Information on threats and opportunities',
+        costTemplate: 'Information trade',
+        requirements: ['Valuable intelligence to share']
+      }
+    ]
+  },
+
+  // Middle East - Renaissance - Fortress
+  {
+    type: 'fortress',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.RENAISSANCE,
+    speakerTitles: [
+      'Ottoman Fortress Ağa',
+      'Janissary Commander',
+      'Artillery Captain',
+      'Fortress Pasha',
+      'Military Engineer'
+    ],
+    greetings: [
+      "*in Ottoman uniform* The Sultan's fortress controls this region.",
+      "Our cannons command every approach. State your purpose.",
+      "*military inspection* Janissaries patrol these walls day and night.",
+      "Welcome to the Ottoman stronghold. Papers, effendi?",
+      "*proudly* Italian engineers designed these star walls."
+    ],
+    services: [
+      {
+        id: 'janissary_escort',
+        nameTemplate: 'Janissary Protection',
+        descriptionTemplate: 'Elite guard escort service',
+        costTemplate: 'Negotiated in Ottoman gold',
+        requirements: ['Official permission']
+      },
+      {
+        id: 'cannon_demonstration',
+        nameTemplate: 'Artillery Display',
+        descriptionTemplate: 'Witness Ottoman firepower',
+        costTemplate: 'Donation to garrison',
+        requirements: ['No security concerns']
+      },
+      {
+        id: 'military_commission',
+        nameTemplate: 'Officer Commission',
+        descriptionTemplate: 'Join the Ottoman military',
+        costTemplate: 'Merit and connections',
+        requirements: ['Military experience', 'Muslim faith preferred']
       }
     ]
   }
@@ -538,7 +1256,7 @@ class POIDialogueService {
       // Fallback dialogue for unsupported combinations
       return {
         speaker: 'Worker',
-        greeting: `What? This is a ${poiType}. Buy something or leave.`,
+        greeting: `What? This is a ${poiType}. Who are you again?`,
         services: [
           {
             id: 'buy',

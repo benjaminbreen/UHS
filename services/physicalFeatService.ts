@@ -5,6 +5,7 @@
 
 import { PlayerCharacter, Tile, BiomeType, MapData, Item } from '../types';
 import { GoogleGenAI, Type } from '@google/genai';
+import { GameSoundsService } from './gameSoundsService';
 
 export type FeatType = 'ford' | 'climb' | 'jump' | 'swim' | 'squeeze' | 'break' | 'scale';
 export type FeatRisk = 'low' | 'medium' | 'high' | 'extreme';
@@ -521,16 +522,27 @@ function detectTargetTile(
     const climbableTargets = adjacentTiles.filter(({tile}) => {
       // Look for higher elevation or climbable biomes
       return tile.altitude > currentTile.altitude ||
-             ['MOUNTAIN', 'HILLS', 'ROCKY_OUTCROPS'].includes(tile.biome as any);
+             ['MOUNTAIN', 'HILLS', 'ROCKY_OUTCROPS', 'CLIFF', 'WALL', 'WALL_GATE', 'WALL_WINDOW', 'WALL_LOW'].includes(tile.biome as any);
+    });
+
+    console.log('[PhysicalFeat] Climbing detection:', {
+      currentTile: { biome: currentTile.biome, altitude: currentTile.altitude },
+      adjacentTiles: adjacentTiles.map(t => ({ direction: t.direction, biome: t.tile.biome, altitude: t.tile.altitude })),
+      climbableTargets: climbableTargets.map(t => ({ direction: t.direction, biome: t.tile.biome, altitude: t.tile.altitude }))
     });
 
     if (climbableTargets.length === 1) {
       // Only one climbable target, auto-select it
       const target = climbableTargets[0];
+      console.log('[PhysicalFeat] Auto-selecting climb target:', target.direction, target.tile.biome);
       return {
         direction: target.direction,
         targetTile: target.tile
       };
+    } else if (climbableTargets.length > 1) {
+      console.log('[PhysicalFeat] Multiple climb targets available, need direction specification');
+    } else {
+      console.log('[PhysicalFeat] No climbable targets found around player');
     }
   }
 
@@ -600,8 +612,31 @@ export async function executePhysicalFeat(
   const success = roll < evaluation.successChance;
   
   const effects: any = {};
-  
+  const soundService = GameSoundsService.getInstance();
+
   if (success) {
+    // Play success sound based on feat type
+    switch (attempt.type) {
+      case 'climb':
+        if (attempt.targetDescription.toLowerCase().includes('tree')) {
+          soundService.playStairsSound(); // Climbing up sound
+        } else if (attempt.targetDescription.toLowerCase().includes('down')) {
+          soundService.playFootstepSound(); // Landing on ground
+        } else {
+          soundService.playStairsSound(); // General climbing sound
+        }
+        break;
+      case 'ford':
+      case 'swim':
+        soundService.playShipMovementSplash(); // Water sound
+        break;
+      case 'jump':
+        soundService.playFootstepSound(); // Landing sound
+        break;
+      default:
+        soundService.playDiscoverySound(); // Generic success
+    }
+
     // Apply fatigue cost
     if (evaluation.consequences?.fatigueCost) {
       effects.fatigue = evaluation.consequences.fatigueCost;
@@ -633,10 +668,14 @@ export async function executePhysicalFeat(
       // Tree climbing: stay on same tile but set elevated state
       effects.elevatedState = 'in_tree';
       effects.elevationDescription = 'up in the tree branches';
+      // Extra rustling sound for tree climbing
+      setTimeout(() => soundService.playFootstepSound(), 100);
     } else if (isClimbingDown) {
       // Climbing down: remove elevated state
       effects.elevatedState = null;
       effects.elevationDescription = null;
+      // Landing sound when coming down
+      soundService.playFootstepSound();
     } else if (targetDirection) {
       // Normal movement to adjacent tile
       const currentPos = { x: player.location.x, y: player.location.y };
@@ -662,7 +701,25 @@ export async function executePhysicalFeat(
       effects
     };
   } else {
-    // Failed attempt
+    // Failed attempt - play failure sound based on feat type
+    switch (attempt.type) {
+      case 'climb':
+        soundService.playWallBumpSound(); // Hit the wall/cliff
+        if (evaluation.consequences?.healthRisk && evaluation.consequences.healthRisk > 15) {
+          setTimeout(() => soundService.playDamageSound('medium'), 200); // Fall damage
+        }
+        break;
+      case 'ford':
+      case 'swim':
+        soundService.playEnvironmentalHazardSound('cold'); // Water hazard
+        break;
+      case 'jump':
+        soundService.playDamageSound('light'); // Stumble/trip
+        break;
+      default:
+        soundService.playWallBumpSound(); // Generic failure
+    }
+
     if (evaluation.consequences?.healthRisk) {
       effects.damage = Math.floor(evaluation.consequences.healthRisk * (0.5 + Math.random() * 0.5));
     }

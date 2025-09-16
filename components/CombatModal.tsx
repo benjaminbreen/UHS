@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { AnimalEntity, NpcEntity, PlayerCharacter, Item, CombatLogMessage, SkillID, StatusEffect, StatusEffectType, PlayerStats, EncounterableEntity, isAnimal, isNpc, MapData } from '../types';
+import { AnimalEntity, NpcEntity, PlayerCharacter, Item, CombatLogMessage, SkillID, StatusEffect, StatusEffectType, PlayerStats, EncounterableEntity, isAnimal, isNpc, MapData, CulturalZone, TimeOfDay } from '../types';
 import { SKILL_DATA, ANIMAL_DATA } from '../constants/index';
 import { createItemInstance, addItemToInventory } from '../utils/inventoryUtils';
 import { generateCombatTalkResponse, generateCombatItemResponse, generateCombatSkillResponse, generateCombatLowHealthResponse, generateCombatStartResponse } from '../services/llmService';
-import { CombatSprite, AnimalCombatSprite } from './symbols';
+import CombatSpritePixel from './symbols/CombatSpritePixel';
+import { AnimalCombatSprite } from './symbols';
 import { ProceduralPortrait } from './portraits';
 import { loadTamedAnimals, saveTamedAnimals, TamedAnimal } from '../services/animalTamingService';
 import { getAnimalTexts } from '../constants/gameData/animalTexts';
 import gameSoundsService from '../services/gameSoundsService';
+import { weatherService, WeatherState } from '../services/weatherService';
 
 interface CombatModalProps {
   combatant: EncounterableEntity;
@@ -17,7 +19,11 @@ interface CombatModalProps {
   onVictory: (opponent: EncounterableEntity) => void;
   onUseCombatItem: (item: Item) => void;
   onCharacterUpdate: (updater: (prev: PlayerCharacter) => PlayerCharacter) => void;
+  onNpcUpdate?: (npcId: string, updates: Partial<NpcEntity>) => void;
   mapData: MapData;
+  gameTime?: { hours: number; minutes: number };
+  weather?: WeatherState;
+  culturalZone?: CulturalZone;
 }
 
 interface DamageSplat {
@@ -39,8 +45,9 @@ interface CombatStats {
     turnCount: number;
 }
 
-const CombatModal: React.FC<CombatModalProps> = ({ 
-    combatant, playerCharacter, inventory, onClose, onVictory, onUseCombatItem, onCharacterUpdate, mapData 
+const CombatModal: React.FC<CombatModalProps> = ({
+    combatant, playerCharacter, inventory, onClose, onVictory, onUseCombatItem, onCharacterUpdate, onNpcUpdate, mapData,
+    gameTime, weather, culturalZone
 }) => {
   // Initialize opponent with proper health value
   const initializeOpponent = (comb: EncounterableEntity): EncounterableEntity => {
@@ -65,11 +72,14 @@ const CombatModal: React.FC<CombatModalProps> = ({
   const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   
-  const [playerAnimation, setPlayerAnimation] = useState<'idle' | 'attacking' | 'item' | 'damaged' | 'defending' | 'fleeing' | 'power_strike' | 'slashing' | 'chopping' | 'stabbing' | 'crushing' | 'shooting' | 'casting' | 'blocking' | 'dodging' | 'shouting'>('idle');
-  const [opponentAnimation, setOpponentAnimation] = useState<'idle' | 'attacking' | 'damaged' | 'special'>('idle');
+  const [playerAnimation, setPlayerAnimation] = useState<'idle' | 'attacking' | 'item' | 'damaged' | 'defending' | 'fleeing' | 'power_strike' | 'slashing' | 'chopping' | 'stabbing' | 'crushing' | 'shooting' | 'casting' | 'blocking' | 'dodging' | 'shouting' | 'observing' | 'foraging' | 'digging' | 'bandaging' | 'parrying' | 'grappling' | 'feinting' | 'singing' | 'mounted-charge' | 'sword-and-board' | 'chivalrous-challenge' | 'forge-heat' | 'metalwork-expertise' | 'timber-strike' | 'precise-cut' | 'wooden-barrier' | 'scythe-sweep' | 'pitchfork-thrust' | 'harvest-endurance' | 'net-throw' | 'gutting-knife' | 'sailors-strength' | 'desperate-swing' | 'improvised-weapon' | 'burn'>('idle');
+  const [opponentAnimation, setOpponentAnimation] = useState<'idle' | 'attacking' | 'damaged' | 'special' | 'fleeing'>('idle');
   const [screenShake, setScreenShake] = useState<{active: boolean, intensity: 'light' | 'medium' | 'heavy'}>({active: false, intensity: 'light'});
   const [specialAttackAnnouncement, setSpecialAttackAnnouncement] = useState<{text: string, visible: boolean}>({text: '', visible: false});
   const [enemyEnhancement, setEnemyEnhancement] = useState<{type: 'strong' | 'enraged' | 'elite' | null, announced: boolean}>({type: null, announced: false});
+  const [combatSpeed, setCombatSpeed] = useState<number>(1); // 0.5 = slow, 1 = normal, 2 = fast, 3 = very fast
+  const [comboCount, setComboCount] = useState<number>(0);
+  const [lastAttackTime, setLastAttackTime] = useState<number>(0);
   const [enhancedMaxHealth, setEnhancedMaxHealth] = useState<number>(combatant.maxHealth || 100);
   
   // Helper to safely get health value from opponent
@@ -524,8 +534,23 @@ const CombatModal: React.FC<CombatModalProps> = ({
     const isDefDown = defender.statusEffects.some(e => e.type === 'defense_down');
     const defenseBonus = isDefending && defender === playerCharacter ? 2 : 0;
 
+    // Check for combo attacks
+    const now = Date.now();
+    const isCombo = (now - lastAttackTime) < 2000 && attacker === playerCharacter;
+    if (isCombo) {
+      setComboCount(prev => Math.min(prev + 1, 5));
+    } else {
+      setComboCount(0);
+    }
+    setLastAttackTime(now);
+
     // Much more realistic hit chances - combat is difficult!
     let baseHitChance = isPowerAttack ? 0.45 : 0.6; // Reduced from 0.7 and 0.9
+
+    // Combo bonus to hit chance
+    if (isCombo && comboCount > 0) {
+      baseHitChance += comboCount * 0.03;
+    }
     
     // Small, fast animals are even harder to hit
     if (isAnimal(defender)) {
@@ -547,13 +572,15 @@ const CombatModal: React.FC<CombatModalProps> = ({
 
     const isCrit = Math.random() < 0.05 + (attacker.stats.luck || 5) * 0.01 + (isObserved ? 0.25 : 0);
     const critMultiplier = isCrit ? 1.5 : 1.0;
-    
+    const comboMultiplier = isCombo ? 1 + (comboCount * 0.15) : 1.0;
+
     let baseDamage = isPowerAttack ? attacker.stats.attack * 1.5 : (2 + Math.floor(Math.random() * 4) + attacker.stats.attack);
     const effectiveDefense = Math.max(0, defender.stats.defense + defenseBonus - (isDefDown ? 5 : 0));
     const damage = Math.max(1, baseDamage * (1 + (Math.random() - 0.2)) - effectiveDefense);
-    const finalDamage = Math.floor(damage * critMultiplier * damageMultiplier);
+    const finalDamage = Math.floor(damage * critMultiplier * damageMultiplier * comboMultiplier);
 
-    return { hit: true, crit: isCrit, damage: finalDamage, text: finalDamage.toString() };
+    const comboText = isCombo && comboCount > 0 ? ` x${comboCount + 1}!` : '';
+    return { hit: true, crit: isCrit, damage: finalDamage, text: finalDamage.toString() + comboText };
   };
 
   const calculateDamage = (attacker: PlayerCharacter | EncounterableEntity, defender: PlayerCharacter | EncounterableEntity, baseDamage: number, ignoreArmor: boolean = false) => {
@@ -573,6 +600,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
   const endPlayerTurn = () => {
     setIsPlayerTurn(false);
     setIsDefending(false); // Reset defense
+    setComboCount(0); // Reset combo on turn end
     setCombatStats(prev => ({ ...prev, turnCount: prev.turnCount + 1 }));
     
     // If there are alive tamed animals, they get a turn first
@@ -785,7 +813,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
           addLog(`${opponentName} looks for an escape route...`, 'system');
           setTimeout(() => {
             addLog(`${opponentName} flees the battle!`, 'system');
-            setOpponentAnimation('damaged');
+            setOpponentAnimation('fleeing');
             addDamageSplat('FLED!', 'miss', 'opponent');
             
             // Generate fleeing dialogue
@@ -857,7 +885,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
           
           const fleeText = fleeDescriptions[baseId] || `The ${opponentName.toLowerCase()} flees!`;
           addLog(fleeText, 'system');
-          setOpponentAnimation('damaged');
+          setOpponentAnimation('fleeing');
           addDamageSplat('FLED!', 'miss', 'opponent');
           
           setTimeout(() => {
@@ -1130,9 +1158,9 @@ const CombatModal: React.FC<CombatModalProps> = ({
                 gameSoundsService.playStabSound();
                 setPlayerAnimation('stabbing');
             } else {
-                // Default slash sound and animation for unknown weapons
+                // Default chop animation for unknown weapons (works better visually)
                 gameSoundsService.playSlashSound();
-                setPlayerAnimation('attacking');
+                setPlayerAnimation('chopping');
             }
         }
         addLog('You attack!', 'player');
@@ -1200,7 +1228,25 @@ const CombatModal: React.FC<CombatModalProps> = ({
             const fleeChance = Math.min(0.8, 0.4 + (playerCharacter.stats.dexterity || 5) * 0.05);
             if(Math.random() < fleeChance) {
                 addLog("Successfully fled!", 'system');
-                
+
+                // If fleeing from an NPC, record it in their memory
+                if (isNpc(opponent) && onNpcUpdate) {
+                    const updatedMemory = {
+                        ...opponent.memory,
+                        knownFactsAboutPlayer: new Set([
+                            ...Array.from(opponent.memory.knownFactsAboutPlayer),
+                            `PLAYER_FLED_COMBAT_${Date.now()}`
+                        ]),
+                        conversationSummaries: [
+                            ...opponent.memory.conversationSummaries,
+                            `Player fled from combat on ${new Date().toLocaleDateString()}.`
+                        ]
+                    };
+
+                    onNpcUpdate(opponent.id, { memory: updatedMemory });
+                    console.log(`[NPC MEMORY] Recording player fled in ${opponent.name}'s memory`);
+                }
+
                 // Check if opponent has disease and transmit it
                 const opponentDisease = opponent.diseaseHealth?.currentDiseases?.[0]?.disease || 
                                        opponent.health?.currentDiseases?.[0]?.disease;
@@ -1515,7 +1561,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
         break;
 
       case 'BURN':
-        setPlayerAnimation('casting');
+        setPlayerAnimation('burn');
         setTimeout(() => {
           const damage = 15 + playerCharacter.stats.intelligence;
           const applyBurn = Math.random() < 0.6; // 60% chance to apply burn status
@@ -1652,7 +1698,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
           if (Math.random() < fleeChance) {
             // Opponent flees!
             addLog(`Your intimidating shout terrifies ${opponentName}! They flee in terror!`, 'system');
-            setOpponentAnimation('damaged');
+            setOpponentAnimation('fleeing');
             addDamageSplat('FLED!', 'miss', 'opponent');
             
             // Generate NPC dialogue reaction when fleeing
@@ -1711,6 +1757,109 @@ const CombatModal: React.FC<CombatModalProps> = ({
         }, 600);
         break;
 
+      case 'OBSERVE':
+        setPlayerAnimation('observing');
+        setTimeout(() => {
+          addLog('You carefully observe your surroundings and opponent.', 'player');
+          // OBSERVE skill gives insight or small stat boost for next action
+          setPlayerAnimation('idle');
+          endPlayerTurn();
+        }, 1500);
+        break;
+
+      case 'FORAGE':
+        setPlayerAnimation('foraging');
+        setTimeout(() => {
+          addLog('You search the area for useful items.', 'player');
+          // FORAGE could find small healing items or throwing weapons in combat
+          setPlayerAnimation('idle');
+          endPlayerTurn();
+        }, 1200);
+        break;
+
+      case 'DIG':
+        setPlayerAnimation('digging');
+        setTimeout(() => {
+          addLog('You dig quickly, possibly finding something useful.', 'player');
+          // DIG could unearth stones to throw or create small defensive positions
+          setPlayerAnimation('idle');
+          endPlayerTurn();
+        }, 800);
+        break;
+
+      case 'BANDAGE_WOUNDS':
+        setPlayerAnimation('bandaging');
+        setTimeout(() => {
+          const healAmount = 15 + Math.floor(playerCharacter.stats.wisdom / 2);
+          onCharacterUpdate(prev => ({
+            ...prev,
+            health: Math.min(prev.maxHealth, prev.health + healAmount)
+          }));
+          addLog(`You bandage your wounds, healing for ${healAmount} HP.`, 'player');
+          setPlayerAnimation('idle');
+          endPlayerTurn();
+        }, 2000);
+        break;
+
+      case 'PARRY':
+        setPlayerAnimation('parrying');
+        setTimeout(() => {
+          setIsDefending(true);
+          addLog('You prepare to parry the next attack, reducing incoming damage.', 'player');
+          setPlayerAnimation('idle');
+          endPlayerTurn();
+        }, 600);
+        break;
+
+      case 'GRAPPLE':
+        setPlayerAnimation('grappling');
+        setTimeout(() => {
+          const successChance = Math.min(0.8, 0.4 + (playerCharacter.stats.strength / 20));
+          if (Math.random() < successChance) {
+            addLog('You successfully grapple your opponent, restricting their movement!', 'player');
+            // Apply grappled status to opponent
+            setOpponent(prev => ({
+              ...prev,
+              statusEffects: [...prev.statusEffects, { type: 'stunned', duration: 2, potency: 1 }]
+            }));
+            setOpponentAnimation('damaged');
+          } else {
+            addLog('Your grapple attempt fails!', 'player');
+          }
+          setTimeout(() => {
+            setPlayerAnimation('idle');
+            setOpponentAnimation('idle');
+            endPlayerTurn();
+          }, 500);
+        }, 1000);
+        break;
+
+      case 'FEINT':
+        setPlayerAnimation('feinting');
+        setTimeout(() => {
+          addLog('You feint, creating an opening for your next attack!', 'player');
+          // Give player a temporary accuracy bonus for next attack
+          setPlayerAnimation('idle');
+          endPlayerTurn();
+        }, 800);
+        break;
+
+      case 'SING':
+        setPlayerAnimation('singing');
+        setTimeout(() => {
+          addLog('You sing a battle song, boosting morale!', 'player');
+          // SING could provide temporary stat boosts or heal small amount
+          const healAmount = 5 + Math.floor(playerCharacter.stats.charisma / 3);
+          onCharacterUpdate(prev => ({
+            ...prev,
+            health: Math.min(prev.maxHealth, prev.health + healAmount)
+          }));
+          addLog(`Your song lifts your spirits, healing ${healAmount} HP.`, 'player');
+          setPlayerAnimation('idle');
+          endPlayerTurn();
+        }, 1500);
+        break;
+
       default:
         setTimeout(() => {
           setPlayerAnimation('idle');
@@ -1724,22 +1873,77 @@ const CombatModal: React.FC<CombatModalProps> = ({
   const handleProfessionSkill = (skillId: SkillID) => {
     // Set animation based on skill type
     switch (skillId) {
+      // Knight Skills
+      case 'MOUNTED_CHARGE':
+        setPlayerAnimation('mounted-charge');
+        break;
+      case 'SWORD_AND_BOARD':
+        setPlayerAnimation('sword-and-board');
+        break;
+      case 'CHIVALROUS_CHALLENGE':
+        setPlayerAnimation('chivalrous-challenge');
+        break;
+
+      // Blacksmith Skills
       case 'HAMMER_BLOW':
         setPlayerAnimation('crushing');
         break;
+      case 'FORGE_HEAT':
+        setPlayerAnimation('forge-heat');
+        break;
+      case 'METALWORK_EXPERTISE':
+        setPlayerAnimation('metalwork-expertise');
+        break;
+
+      // Carpenter Skills
+      case 'TIMBER_STRIKE':
+        setPlayerAnimation('timber-strike');
+        break;
+      case 'PRECISE_CUT':
+        setPlayerAnimation('precise-cut');
+        break;
+      case 'WOODEN_BARRIER':
+        setPlayerAnimation('wooden-barrier');
+        break;
+
+      // Farmer Skills
+      case 'SCYTHE_SWEEP':
+        setPlayerAnimation('scythe-sweep');
+        break;
+      case 'PITCHFORK_THRUST':
+        setPlayerAnimation('pitchfork-thrust');
+        break;
+      case 'HARVEST_ENDURANCE':
+        setPlayerAnimation('harvest-endurance');
+        break;
+
+      // Fisherman Skills
+      case 'NET_THROW':
+        setPlayerAnimation('net-throw');
+        break;
+      case 'GUTTING_KNIFE':
+        setPlayerAnimation('gutting-knife');
+        break;
+      case 'SAILORS_STRENGTH':
+        setPlayerAnimation('sailors-strength');
+        break;
+
+      // Default/Desperate Skills
+      case 'DESPERATE_SWING':
+        setPlayerAnimation('desperate-swing');
+        break;
+      case 'IMPROVISED_WEAPON':
+        setPlayerAnimation('improvised-weapon');
+        break;
+
+      // Legacy skills
       case 'SCALDING_WATER':
-      case 'BURN':
         setPlayerAnimation('casting');
         break;
       case 'INTIMIDATING_SHOUT':
         setPlayerAnimation('shouting');
         break;
-      case 'SCYTHE_SWEEP':
-        setPlayerAnimation('slashing');
-        break;
-      case 'NET_THROW':
-        setPlayerAnimation('shooting');
-        break;
+
       default:
         setPlayerAnimation('attacking');
         break;
@@ -1929,10 +2133,15 @@ const CombatModal: React.FC<CombatModalProps> = ({
       setOpponentAnimation('damaged');
       addDamageSplat(finalDamage.toString(), 'damage', 'opponent');
       addLog(`Your thrown ${item.name} hits for ${finalDamage} damage!`, 'player');
+
+      // Reset opponent animation after damage animation
+      setTimeout(() => {
+        setOpponentAnimation('idle');
+      }, 600);
     } else {
       addLog(`Your thrown ${item.name} misses!`, 'player');
     }
-    
+
     setTimeout(() => {
         setPlayerAnimation('idle');
         endPlayerTurn();
@@ -2113,13 +2322,292 @@ const CombatModal: React.FC<CombatModalProps> = ({
   const opponentHealthValue = typeof opponent.health === 'number' ? opponent.health : (opponent.health?.current || 0);
   const opponentHealthPercent = (opponentHealthValue / enhancedMaxHealth) * 100;
 
-  // Determine current biome for background with smart fallbacks
+  // Fallback mapping for biomes that don't have their own specific background
+  // This is only used AFTER checking for the specific biome file first!
+  const BIOME_FALLBACK_MAPPING: { [key: string]: string } = {
+    // Ocean variants can fall back to ocean
+    'deep_ocean': 'ocean',
+    'shallow_ocean': 'ocean',
+
+    // River variants can fall back to riverbank
+    'major_river': 'riverbank',
+
+    // Forest variants can fall back to forest
+    'dense_forest': 'forest',
+
+    // Mountain variants can fall back to mountain
+    'high_peak': 'mountain',
+
+    // Urban fallbacks - low density falls back to high density
+    'low_density_city': 'dense_city',
+    'urban': 'dense_city', // Legacy urban falls back to dense_city
+    'hamlet': 'low_density_city', // Hamlet falls back to low density, then dense
+
+    // These should try their specific names first, but have logical fallbacks
+    'cliff': 'hills',
+    'scrub': 'grassland',
+    'steppe': 'grassland',
+    'park': 'grassland',
+    'road': 'grassland',
+    'salt_flats': 'desert',
+    'oasis': 'desert',
+    'active_lava': 'desert',
+    'volcanic_rock': 'hills',
+    'volcanic_soil': 'hills',
+    'estuary': 'wetlands',
+    'mangrove': 'wetlands',
+    'reef': 'riverbank',
+    'shoals_tile': 'riverbank',
+
+    // Special/Ethereal
+    'air': 'sky',
+
+    // Urban distinctions that should use specific urban types
+    'city_center': 'dense_city',
+    'marketplace': 'low_density_city',
+    'government_district': 'dense_city',
+    'palace': 'dense_city',
+    'holy_site': 'dense_city',
+    'harbor_district': 'low_density_city',
+    'industrial_district': 'dense_city',
+    'plaza': 'low_density_city'
+  };
+
+  // Get weather suffix for background naming
+  const getWeatherSuffix = (weatherState?: WeatherState): string | null => {
+    if (!weatherState) return null;
+
+    if (weatherState.precipitation === 'rain') return 'rain';
+    if (weatherState.precipitation === 'snow') return 'snow';
+    if (weatherState.precipitation === 'drizzle') return 'rain'; // Use rain variant
+    if (weatherState.special === 'fog' || weatherState.special === 'mist') return 'fog';
+
+    return null;
+  };
+
+  // Get time suffix for background naming
+  const getTimeSuffix = (gameTime?: { hours: number; minutes: number }): string | null => {
+    if (!gameTime) return null;
+
+    const currentTime = gameTime.hours + gameTime.minutes / 60;
+
+    // Crepuscular: dawn (4-8am) & dusk (6-9pm)
+    if ((currentTime >= 4 && currentTime < 8) || (currentTime >= 18 && currentTime < 21)) {
+      return 'crepuscular';
+    }
+
+    // Night (10pm-4am) - removing night suffix check to use tinting instead
+    // if (currentTime >= 22 || currentTime < 4) {
+    //   return 'night';
+    // }
+
+    return null; // Day time uses base backgrounds
+  };
+
+  // Determine if we should apply night tinting (instead of looking for _night.png files)
+  const isNightTime = (gameTime?: { hours: number; minutes: number }): boolean => {
+    if (!gameTime) return false;
+    const currentTime = gameTime.hours + gameTime.minutes / 60;
+    // Night is 10pm-4am
+    return currentTime >= 22 || currentTime < 4;
+  };
+
+  // Get CSS filter for nighttime tinting effect
+  const getNightFilter = (): string => {
+    // Simple night effect - just darken and add blue tint without color distortion
+    // brightness(0.75) darkens to 75%
+    // saturate(0.9) slightly reduces saturation
+    // contrast(1.1) maintains detail
+    return 'brightness(0.75) saturate(0.9) contrast(1.1)';
+  };
+
+  // Get cultural zone suffix for background naming
+  const getCultureSuffix = (culture?: CulturalZone): string | null => {
+    if (!culture) return null;
+
+    const cultureMapping: { [key: string]: string } = {
+      'EUROPEAN': 'european',
+      'EAST_ASIAN': 'east_asian',
+      'MENA': 'mena',
+      'NORTH_AMERICAN_PRE_COLUMBIAN': 'precolumbian',
+      'NORTH_AMERICAN_COLONIAL': 'colonial',
+      'OCEANIA': 'oceania',
+      'SOUTH_ASIAN': 'south_asian',
+      'SOUTH_AMERICAN': 'south_american',
+      'SUB_SAHARAN_AFRICAN': 'african'
+    };
+
+    return cultureMapping[culture] || null;
+  };
+
+  // Cultural fallback chains - related cultures check each other before generic
+  const CULTURAL_FALLBACK_CHAINS: { [key: string]: string[] } = {
+    // Asian/Eastern sphere (historical trade & cultural connections)
+    'east_asian': ['south_asian', 'oceania', 'mena'],
+    'south_asian': ['east_asian', 'mena', 'oceania'],
+    'oceania': ['south_asian', 'east_asian', 'mena'],
+    'mena': ['south_asian', 'african', 'east_asian'],
+
+    // Indigenous American sphere
+    'precolumbian': ['south_american'],
+    'south_american': ['precolumbian'],
+
+    // Western/Colonial sphere
+    'european': ['colonial'],
+    'colonial': ['european'],
+
+    // African (can fall back to MENA due to North African connections)
+    'african': ['mena']
+  };
+
+  // Generate priority-ordered background paths
+  const getBackgroundPaths = (
+    biome: string,
+    weatherState?: WeatherState,
+    gameTime?: { hours: number; minutes: number },
+    culture?: CulturalZone
+  ): string[] => {
+    // First, get the exact biome name (converted to lowercase with underscores)
+    const biomeName = biome.toLowerCase().replace(/\s+/g, '_');
+    const paths: string[] = [];
+
+    const weatherSuffix = getWeatherSuffix(weatherState);
+    const timeSuffix = getTimeSuffix(gameTime);
+    const cultureSuffix = getCultureSuffix(culture);
+
+    console.log('[CombatModal] Background path generation:', {
+      biome,
+      biomeName,
+      weatherSuffix,
+      timeSuffix,
+      cultureSuffix
+    });
+
+    // Helper function to add paths for a specific culture
+    const addCulturalPaths = (cultureName: string) => {
+      if (weatherSuffix && timeSuffix) {
+        paths.push(`${biomeName}_${weatherSuffix}_${timeSuffix}_${cultureName}.png`);
+      }
+      if (weatherSuffix) {
+        paths.push(`${biomeName}_${weatherSuffix}_${cultureName}.png`);
+      }
+      if (timeSuffix) {
+        paths.push(`${biomeName}_${timeSuffix}_${cultureName}.png`);
+      }
+      paths.push(`${biomeName}_${cultureName}.png`);
+    };
+
+    // PRIORITY 1: Check for the SPECIFIC culture variants first
+    if (cultureSuffix) {
+      addCulturalPaths(cultureSuffix);
+
+      // Check related cultures in the same sphere
+      const relatedCultures = CULTURAL_FALLBACK_CHAINS[cultureSuffix];
+      if (relatedCultures) {
+        for (const relatedCulture of relatedCultures) {
+          addCulturalPaths(relatedCulture);
+        }
+      }
+    }
+
+    // PRIORITY 2: Check for non-cultural weather/time variants
+    if (weatherSuffix && timeSuffix) {
+      paths.push(`${biomeName}_${weatherSuffix}_${timeSuffix}.png`);
+    }
+    if (weatherSuffix) {
+      paths.push(`${biomeName}_${weatherSuffix}.png`);
+    }
+    if (timeSuffix) {
+      paths.push(`${biomeName}_${timeSuffix}.png`);
+    }
+
+    // PRIORITY 2: Check for the SPECIFIC biome base file (e.g., hot_springs.png)
+    paths.push(`${biomeName}.png`);
+
+    // PRIORITY 3: Check fallback mapping (supports chained fallbacks)
+    const addFallbackPaths = (fallbackBiome: string) => {
+      // First try with cultural variants (including related cultures)
+      if (cultureSuffix) {
+        // Helper to add cultural variants for this fallback biome
+        const addFallbackCulturalPaths = (cultureName: string) => {
+          if (weatherSuffix && timeSuffix) {
+            paths.push(`${fallbackBiome}_${weatherSuffix}_${timeSuffix}_${cultureName}.png`);
+          }
+          if (weatherSuffix) {
+            paths.push(`${fallbackBiome}_${weatherSuffix}_${cultureName}.png`);
+          }
+          if (timeSuffix) {
+            paths.push(`${fallbackBiome}_${timeSuffix}_${cultureName}.png`);
+          }
+          paths.push(`${fallbackBiome}_${cultureName}.png`);
+        };
+
+        // Try the specific culture
+        addFallbackCulturalPaths(cultureSuffix);
+
+        // Try related cultures
+        const relatedCultures = CULTURAL_FALLBACK_CHAINS[cultureSuffix];
+        if (relatedCultures) {
+          for (const relatedCulture of relatedCultures) {
+            addFallbackCulturalPaths(relatedCulture);
+          }
+        }
+      }
+
+      // Then try without culture
+      if (weatherSuffix && timeSuffix) {
+        paths.push(`${fallbackBiome}_${weatherSuffix}_${timeSuffix}.png`);
+      }
+      if (weatherSuffix) {
+        paths.push(`${fallbackBiome}_${weatherSuffix}.png`);
+      }
+      if (timeSuffix) {
+        paths.push(`${fallbackBiome}_${timeSuffix}.png`);
+      }
+      paths.push(`${fallbackBiome}.png`);
+    };
+
+    // Handle chained fallbacks (e.g., hamlet → low_density_city → dense_city)
+    let currentFallback = BIOME_FALLBACK_MAPPING[biomeName];
+    const processedFallbacks = new Set<string>([biomeName]); // Prevent infinite loops
+
+    while (currentFallback && !processedFallbacks.has(currentFallback)) {
+      addFallbackPaths(currentFallback);
+      processedFallbacks.add(currentFallback);
+
+      // Check if this fallback has its own fallback
+      currentFallback = BIOME_FALLBACK_MAPPING[currentFallback];
+    }
+
+    // PRIORITY 4: Universal fallbacks
+    paths.push('grassland.png', 'hills.png', 'forest.png', 'desert.png');
+
+    return paths;
+  };
+
+  // Determine current biome from tile data
   const getCurrentBiome = (): string => {
-    const playerPos = { x: playerCharacter.x || 0, y: playerCharacter.y || 0 };
-    const tile = mapData?.tiles?.[playerPos.y]?.[playerPos.x];
-    
+    // Combat happens where the combatant is standing, so check their tile first
+    // Use Math.floor to handle any floating point position issues
+    const combatantX = Math.floor(combatant.x || playerCharacter.x || 0);
+    const combatantY = Math.floor(combatant.y || playerCharacter.y || 0);
+
+    // Also check player position as fallback
+    const playerX = Math.floor(playerCharacter.x || 0);
+    const playerY = Math.floor(playerCharacter.y || 0);
+
+    // First try the combatant's tile (where combat is actually happening)
+    let tile = mapData?.tiles?.[combatantY]?.[combatantX];
+
+    // If combatant tile not found or invalid, use player's tile
+    if (!tile || !tile.biome) {
+      tile = mapData?.tiles?.[playerY]?.[playerX];
+    }
+
     console.log('[CombatModal] Debug biome detection:', {
-      playerPos,
+      combatantPos: { x: combatantX, y: combatantY },
+      playerPos: { x: playerX, y: playerY },
+      usingTile: tile ? 'found' : 'not found',
       tile: tile ? {
         x: tile.x,
         y: tile.y,
@@ -2128,58 +2616,19 @@ const CombatModal: React.FC<CombatModalProps> = ({
         altitude: tile.altitude
       } : 'no tile found',
       mapDataExists: !!mapData,
-      tilesExists: !!mapData?.tiles,
-      rowExists: !!mapData?.tiles?.[playerPos.y],
-      tileBiome: tile?.biome
+      tilesExists: !!mapData?.tiles
     });
-    
+
     if (tile?.biome) {
-      let biome = tile.biome.toLowerCase().replace(/\s+/g, '_');
-      
-      // Handle specific biome mappings that might not have exact file matches
-      const biomeMapping: { [key: string]: string } = {
-        'deep_ocean': 'riverbank',
-        'shallow_ocean': 'riverbank', 
-        'major_river': 'riverbank',
-        'river': 'riverbank',
-        'beach': 'grassland',
-        'oasis': 'desert',
-        'reef': 'riverbank',
-        'volcanic_soil': 'hills',
-        'volcanic_rock': 'hills',
-        'active_lava': 'desert',
-        'shoals_tile': 'riverbank',
-        'salt_flats': 'desert',
-        'hot_springs': 'riverbank',
-        'ruins': 'grassland',
-        'estuary': 'wetlands',
-        'freshwater_lake': 'riverbank',
-        'cliff': 'hills',
-        'palace': 'urban',
-        'holy_site': 'urban',
-        'farmland': 'grassland',
-        'marketplace': 'urban',
-        'government_district': 'urban',
-        'city_center': 'dense_city',
-        'low_density_city': 'urban',
-        'high_peak': 'mountain'
-      };
-      
-      // Use mapping if exists, otherwise use the biome directly
-      if (biomeMapping[biome]) {
-        biome = biomeMapping[biome];
-        console.log('[CombatModal] Mapped biome to:', biome);
-      }
-      
-      console.log('[CombatModal] Using biome:', biome);
-      return biome;
+      console.log('[CombatModal] Using biome:', tile.biome);
+      return tile.biome;
     }
-    console.log('[CombatModal] Using fallback: grassland');
-    return 'grassland'; // default fallback
+    console.log('[CombatModal] Using fallback: GRASSLAND');
+    return 'GRASSLAND'; // default fallback
   };
 
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
-  const currentBiome = useMemo(() => getCurrentBiome(), [mapData, playerCharacter.x, playerCharacter.y]);
+  const currentBiome = useMemo(() => getCurrentBiome(), [mapData, playerCharacter.x, playerCharacter.y, combatant.x, combatant.y]);
 
   // Generate combat start dialogue when combat begins
   useEffect(() => {
@@ -2203,57 +2652,91 @@ const CombatModal: React.FC<CombatModalProps> = ({
     generateStartDialogue();
   }, []); // Only run once when component mounts
 
-  // Check for biome background image with fallbacks
+  // Enhanced background selection with weather, time, and cultural awareness
   useEffect(() => {
     const checkBackgroundImage = async () => {
-      const primaryPath = `/combat-backgrounds/${currentBiome}.png`;
-      console.log('[CombatModal] Checking background image:', primaryPath);
-      
-      try {
-        const response = await fetch(primaryPath, { method: 'HEAD' });
-        if (response.ok) {
-          console.log('[CombatModal] Background image found:', primaryPath);
-          setBackgroundImage(primaryPath);
+      // Generate priority-ordered background paths
+      const backgroundPaths = getBackgroundPaths(currentBiome, weather, gameTime, culturalZone);
+
+      console.log('[CombatModal] Checking background paths in priority order:', backgroundPaths);
+
+      // Function to check if image actually exists by trying to load it
+      const checkImageExists = (url: string): Promise<boolean> => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            console.log('[CombatModal] Image successfully loaded:', url);
+            resolve(true);
+          };
+          img.onerror = () => {
+            console.log('[CombatModal] Image failed to load:', url);
+            resolve(false);
+          };
+          img.src = url;
+        });
+      };
+
+      // Try each path in priority order
+      for (const filename of backgroundPaths) {
+        const fullPath = `/combat-backgrounds/${filename}`;
+        const exists = await checkImageExists(fullPath);
+        if (exists) {
+          console.log('[CombatModal] Using background image:', fullPath);
+          setBackgroundImage(fullPath);
           return;
         }
-      } catch (error) {
-        console.log('[CombatModal] Error checking primary background:', primaryPath, error);
       }
-      
-      // Try fallback backgrounds if primary doesn't exist
-      const fallbacks = ['grassland', 'hills', 'forest', 'desert'];
-      console.log('[CombatModal] Primary background not found, trying fallbacks...');
-      
-      for (const fallback of fallbacks) {
-        const fallbackPath = `/combat-backgrounds/${fallback}.png`;
-        try {
-          const response = await fetch(fallbackPath, { method: 'HEAD' });
-          if (response.ok) {
-            console.log('[CombatModal] Using fallback background:', fallbackPath);
-            setBackgroundImage(fallbackPath);
-            return;
-          }
-        } catch (error) {
-          console.log('[CombatModal] Fallback failed:', fallbackPath, error);
-        }
-      }
-      
-      console.log('[CombatModal] No background image available');
+
+      console.log('[CombatModal] No background image available from any path, falling back to no background');
       setBackgroundImage(null);
     };
+
     checkBackgroundImage();
-  }, [currentBiome]);
+  }, [currentBiome, weather, gameTime, culturalZone]);
 
   return (
-    <div ref={wrapperRef} 
-         className={`combat-modal-wrapper ${screenShake.active ? `animate-screen-shake-${screenShake.intensity}` : ''} ${backgroundImage ? 'has-background' : ''}`} 
-         style={backgroundImage ? { 
-           backgroundImage: `url(${backgroundImage})`,
-           backgroundSize: 'cover',
-           backgroundPosition: 'center'
-         } : {}}
+    <div ref={wrapperRef}
+         className={`combat-modal-wrapper ${screenShake.active ? `animate-screen-shake-${screenShake.intensity}` : ''} ${backgroundImage ? 'has-background' : ''}`}
+         style={{}}
          onClick={handleDismissDialogue}>
-        <div className="combat-screen-fx-wrapper">
+        {/* Background with night overlay - separate div so effect only affects background */}
+        {backgroundImage && (
+          <>
+            <div
+              className="combat-background-layer"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundImage: `url(${backgroundImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                zIndex: 0,
+                // Apply darkening filter for night
+                ...(isNightTime(gameTime) && { filter: 'brightness(0.6)' })
+              }}
+            />
+            {/* Blue overlay for night time */}
+            {isNightTime(gameTime) && (
+              <div
+                className="night-overlay"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: 'linear-gradient(135deg, rgba(0, 50, 120, 0.3), rgba(0, 30, 80, 0.2))',
+                  zIndex: 1,
+                  pointerEvents: 'none'
+                }}
+              />
+            )}
+          </>
+        )}
+        <div className="combat-screen-fx-wrapper" style={{ position: 'relative', zIndex: 2 }}>
             {/* Combat Stage */}
             <div className="combat-stage-platform"></div>
             
@@ -2310,7 +2793,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
             
             {/* Combat Scene with elevated sprites */}
             <div className="combat-scene-elevated">
-                <div className="combatant-sprite-wrapper player-side" style={{ display: 'flex', alignItems: 'flex-end', gap: '10px' }}>
+                <div className={`combatant-sprite-wrapper player-side ${isPlayerTurn ? 'active-turn' : ''}`} style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', animationDuration: `${0.8 / combatSpeed}s` }}>
                     <div className={`sprite-with-effects ${playerCharacter.statusEffects.map(e => `has-${e.type}`).join(' ')}`} style={{ position: 'relative' }}>
                         {/* Player health bar */}
                         <div className="floating-health-bar player-health" style={{
@@ -2334,11 +2817,26 @@ const CombatModal: React.FC<CombatModalProps> = ({
                         </div>
                         {playerCharacter.health > 0 && (
                           <>
-                            <CombatSprite character={playerCharacter} animation={playerAnimation as any} facing="right" />
+                            <CombatSpritePixel character={playerCharacter} isPlayer={true} animation={
+                              // Map specific combat animations to base animations that CombatSpritePixel supports
+                              ['slashing', 'chopping', 'stabbing', 'crushing', 'shooting', 'power_strike',
+                               'mounted-charge', 'sword-and-board', 'timber-strike', 'precise-cut',
+                               'scythe-sweep', 'pitchfork-thrust', 'net-throw', 'gutting-knife',
+                               'desperate-swing', 'improvised-weapon'].includes(playerAnimation) ? 'attacking' :
+                              playerAnimation === 'burn' ? 'burn' :
+                              ['casting', 'forge-heat', 'metalwork-expertise'].includes(playerAnimation) ? 'item' :
+                              ['blocking', 'dodging', 'parrying', 'wooden-barrier', 'defending'].includes(playerAnimation) ? 'defending' :
+                              ['shouting', 'singing', 'chivalrous-challenge'].includes(playerAnimation) ? 'item' :
+                              ['observing', 'foraging', 'digging', 'bandaging', 'grappling', 'feinting',
+                               'harvest-endurance', 'sailors-strength'].includes(playerAnimation) ? 'item' :
+                              playerAnimation === 'fleeing' ? 'fleeing' :
+                              playerAnimation === 'damaged' ? 'damaged' :
+                              'idle'
+                            } facing="right" />
                             {/* Character shadow */}
                             <div style={{
                               position: 'absolute',
-                              bottom: '-8px',
+                              bottom: '0px',
                               left: '50%',
                               transform: 'translateX(-50%)',
                               width: '50px',
@@ -2349,27 +2847,36 @@ const CombatModal: React.FC<CombatModalProps> = ({
                             }} />
                           </>
                         )}
-                        {/* Status effect overlays for player */}
-                        {playerCharacter.statusEffects.map(effect => (
-                            <div key={effect.type} className={`status-overlay status-${effect.type}`} />
+                        {/* Status effect overlays for player with proper stacking */}
+                        {playerCharacter.statusEffects.map((effect, index) => (
+                            <div
+                                key={effect.type}
+                                className={`status-overlay status-${effect.type}`}
+                                style={{
+                                    transform: `translateX(${index * 15}px) translateY(${index * -10}px)`,
+                                    zIndex: 10 + index
+                                }} />
                         ))}
                     </div>
                     
-                    {/* Tamed Animals with better positioning */}
-                    <div className="tamed-animals-formation" style={{ 
-                        position: 'absolute',
-                        left: '120px',
-                        bottom: '100px',
-                        zIndex: 5
-                    }}>
+                    {/* Tamed Animals with better positioning - moved outside player animation */}
+                </div>
+
+                {/* Tamed Animals - separated from player animation */}
+                <div className="tamed-animals-formation" style={{
+                    position: 'absolute',
+                    left: '15%',
+                    bottom: '20px',
+                    zIndex: 5
+                }}>
                         {tamedAnimals.filter(animal => tamedAnimalHealth[animal.id] > 0).map((animal, index) => {
                             const row = Math.floor(index / 2);
                             const col = index % 2;
                             return (
-                                <div key={animal.id} style={{ 
+                                <div key={animal.id} style={{
                                     position: 'absolute',
-                                    left: `${col * 80}px`,
-                                    bottom: `${row * 60}px`,
+                                    left: `${col * 60}px`,
+                                    bottom: `${row * 40}px`,
                                     zIndex: 10 - row
                                 }}>
                                     <AnimalCombatSprite
@@ -2396,11 +2903,10 @@ const CombatModal: React.FC<CombatModalProps> = ({
                     </div>
                     
                     {damageSplats.filter(s => s.target === 'player').map(splat => (
-                         <div key={splat.id} className={`damage-splat ${splat.type}`}>{splat.text}</div>
+                         <div key={splat.id} className={`damage-splat ${splat.type} damage-float-up`}>{splat.text}</div>
                     ))}
-                </div>
                 
-                <div className="combatant-sprite-wrapper opponent-side">
+                <div className={`combatant-sprite-wrapper opponent-side ${!isPlayerTurn ? 'active-turn' : ''}`} style={{ animationDuration: `${0.8 / combatSpeed}s` }}>
                     <div className={`sprite-with-effects ${opponent.statusEffects.map(e => `has-${e.type}`).join(' ')} ${enemyEnhancement.type ? `enhanced-${enemyEnhancement.type}` : ''}`} style={{ position: 'relative' }}>
                         {/* Opponent health bar */}
                         <div className="floating-health-bar opponent-health" style={{
@@ -2422,6 +2928,20 @@ const CombatModal: React.FC<CombatModalProps> = ({
                                 transition: 'all 0.3s ease'
                             }} />
                         </div>
+                        {/* Combo attack visual effect */}
+                        {comboCount > 0 && (
+                            <div className="combo-attack-flash" style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                background: `radial-gradient(ellipse at center, transparent 30%, rgba(255, 215, 0, ${0.2 + comboCount * 0.1}) 100%)`,
+                                animation: 'comboFlash 0.3s ease-out',
+                                pointerEvents: 'none',
+                                zIndex: 100
+                            }} />
+                        )}
                         {getOpponentHealth(opponent) > 0 && (
                             <>
                                 {isAnimal(opponent)
@@ -2431,12 +2951,18 @@ const CombatModal: React.FC<CombatModalProps> = ({
                                         size={getAnimalSize(opponent)}
                                         facing="left"
                                       />
-                                    : <CombatSprite character={opponent} animation={opponentAnimation as any} facing="left" />
+                                    : <CombatSpritePixel character={opponent} enhancement={enemyEnhancement.type} animation={
+                                      opponentAnimation === 'special' ? 'attacking' :
+                                      opponentAnimation === 'fleeing' ? 'fleeing' :
+                                      opponentAnimation === 'damaged' ? 'damaged' :
+                                      opponentAnimation === 'attacking' ? 'attacking' :
+                                      'idle'
+                                    } facing="left" />
                                 }
                                 {/* Character shadow */}
                                 <div style={{
                                   position: 'absolute',
-                                  bottom: '-8px',
+                                  bottom: '0px',
                                   left: '50%',
                                   transform: 'translateX(-50%)',
                                   width: '50px',
@@ -2447,14 +2973,20 @@ const CombatModal: React.FC<CombatModalProps> = ({
                                 }} />
                             </>
                         )}
-                        {/* Status effect overlays for opponent */}
-                        {opponent.statusEffects.map(effect => (
-                            <div key={effect.type} className={`status-overlay status-${effect.type}`} />
+                        {/* Status effect overlays for opponent with proper stacking */}
+                        {opponent.statusEffects.map((effect, index) => (
+                            <div
+                                key={effect.type}
+                                className={`status-overlay status-${effect.type}`}
+                                style={{
+                                    transform: `translateX(${index * 15}px) translateY(${index * -10}px)`,
+                                    zIndex: 10 + index
+                                }} />
                         ))}
                     </div>
                     <div className="opponent-damage-container">
                         {damageSplats.filter(s => s.target === 'opponent').map(splat => (
-                             <div key={splat.id} className={`damage-splat ${splat.type}`}>{splat.text}</div>
+                             <div key={splat.id} className={`damage-splat ${splat.type} damage-float-up`}>{splat.text}</div>
                         ))}
                     </div>
                 </div>
@@ -2485,8 +3017,8 @@ const CombatModal: React.FC<CombatModalProps> = ({
             <div className="combat-stats-badge-wrapper">
             <div className="combat-stats-badge" style={{
                 position: 'absolute',
-                top: '20px',
-                right: '20px',
+                bottom: '120px',
+                right: '30px',
                 background: 'rgba(0, 0, 0, 0.9)',
                 border: '2px solid #60a5fa',
                 borderRadius: '8px',
@@ -2511,6 +3043,73 @@ const CombatModal: React.FC<CombatModalProps> = ({
                     <span>TURN: {combatStats.turnCount}</span>
                 </div>
             </div>
+            {/* Combat Speed Controls - COMMENTED OUT FOR NOW
+            <div className="combat-speed-controls" style={{
+                position: 'absolute',
+                top: '20px',
+                right: '180px',
+                background: 'rgba(0, 0, 0, 0.9)',
+                border: '2px solid #60a5fa',
+                borderRadius: '8px',
+                padding: '8px',
+                fontSize: '10px',
+                fontFamily: "'Press Start 2P', monospace",
+                color: '#60a5fa',
+                boxShadow: '0 4px 12px rgba(96, 165, 250, 0.3)',
+                zIndex: 500
+            }}>
+                <div style={{ marginBottom: '4px', fontSize: '8px', color: '#94a3b8' }}>SPEED</div>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                    <button
+                        onClick={() => setCombatSpeed(0.5)}
+                        style={{
+                            padding: '4px 8px',
+                            background: combatSpeed === 0.5 ? '#3b82f6' : 'rgba(59, 130, 246, 0.2)',
+                            border: '1px solid #60a5fa',
+                            borderRadius: '4px',
+                            color: '#fff',
+                            fontSize: '8px',
+                            cursor: 'pointer'
+                        }}
+                    >0.5x</button>
+                    <button
+                        onClick={() => setCombatSpeed(1)}
+                        style={{
+                            padding: '4px 8px',
+                            background: combatSpeed === 1 ? '#3b82f6' : 'rgba(59, 130, 246, 0.2)',
+                            border: '1px solid #60a5fa',
+                            borderRadius: '4px',
+                            color: '#fff',
+                            fontSize: '8px',
+                            cursor: 'pointer'
+                        }}
+                    >1x</button>
+                    <button
+                        onClick={() => setCombatSpeed(2)}
+                        style={{
+                            padding: '4px 8px',
+                            background: combatSpeed === 2 ? '#3b82f6' : 'rgba(59, 130, 246, 0.2)',
+                            border: '1px solid #60a5fa',
+                            borderRadius: '4px',
+                            color: '#fff',
+                            fontSize: '8px',
+                            cursor: 'pointer'
+                        }}
+                    >2x</button>
+                    <button
+                        onClick={() => setCombatSpeed(3)}
+                        style={{
+                            padding: '4px 8px',
+                            background: combatSpeed === 3 ? '#3b82f6' : 'rgba(59, 130, 246, 0.2)',
+                            border: '1px solid #60a5fa',
+                            borderRadius: '4px',
+                            color: '#fff',
+                            fontSize: '8px',
+                            cursor: 'pointer'
+                        }}
+                    >3x</button>
+                </div>
+            </div> */}
             </div>
             
             {/* Enhanced Player Info Panel with External Portrait */}
@@ -2723,14 +3322,14 @@ const CombatModal: React.FC<CombatModalProps> = ({
           /* Elevated Combat Scene */
           .combat-scene-elevated {
             position: absolute;
-            bottom: 28%;
-            left: 10%;
-            right: 10%;
+            bottom: 35%;
+            left: 5%;
+            right: 5%;
             height: 280px;
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            padding: 0 60px;
+            padding: 0 80px;
           }
 
           .combatant-sprite-wrapper {
@@ -2741,13 +3340,13 @@ const CombatModal: React.FC<CombatModalProps> = ({
 
           .player-side {
             margin-left: 40px;
-            transform: scale(1.8);
+            transform: scale(1.0);
             transform-origin: bottom center;
           }
 
           .opponent-side {
             margin-right: 40px;
-            transform: scale(1.8);
+            transform: scale(1.0);
             transform-origin: bottom center;
           }
 
@@ -3224,11 +3823,11 @@ const CombatModal: React.FC<CombatModalProps> = ({
           }
           
           @keyframes attackSequence {
-            0% { transform: translateX(0) translateY(0) scale(1.8); }
-            25% { transform: translateX(40px) translateY(-8px) scale(1.89); }
-            50% { transform: translateX(60px) translateY(-5px) scale(1.98) rotate(15deg); }
-            75% { transform: translateX(50px) translateY(-2px) scale(1.89) rotate(-5deg); }
-            100% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); }
+            0% { transform: translateX(0) translateY(0) scale(1.0); }
+            25% { transform: translateX(40px) translateY(-8px) scale(1.05); }
+            50% { transform: translateX(60px) translateY(-5px) scale(1.1) rotate(15deg); }
+            75% { transform: translateX(50px) translateY(-2px) scale(1.05) rotate(-5deg); }
+            100% { transform: translateX(0) translateY(0) scale(1.0) rotate(0deg); }
           }
           
           /* Power Strike Animation */
@@ -3237,12 +3836,12 @@ const CombatModal: React.FC<CombatModalProps> = ({
           }
           
           @keyframes powerStrikeSequence {
-            0% { transform: translateX(0) translateY(0) scale(1.8); }
-            15% { transform: translateX(30px) translateY(-50px) scale(1.98); }
-            30% { transform: translateX(50px) translateY(-80px) scale(2.16); }
-            50% { transform: translateX(70px) translateY(-20px) scale(2.34) rotate(25deg); filter: drop-shadow(0 0 20px #fbbf24); }
-            70% { transform: translateX(55px) translateY(5px) scale(1.98) rotate(-10deg); }
-            100% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); filter: none; }
+            0% { transform: translateX(0) translateY(0) scale(1.0); }
+            15% { transform: translateX(30px) translateY(-50px) scale(1.1); }
+            30% { transform: translateX(50px) translateY(-80px) scale(1.2); }
+            50% { transform: translateX(70px) translateY(-20px) scale(1.3) rotate(25deg); filter: brightness(1.3); }
+            70% { transform: translateX(55px) translateY(5px) scale(1.1) rotate(-10deg); }
+            100% { transform: translateX(0) translateY(0) scale(1.0) rotate(0deg); filter: none; }
           }
           
           /* Apply animations to sprite based on animation state */
@@ -3258,6 +3857,8 @@ const CombatModal: React.FC<CombatModalProps> = ({
             ${playerAnimation === 'blocking' ? 'animation: blockSequence 0.4s ease-in-out;' : ''}
             ${playerAnimation === 'casting' ? 'animation: castSequence 1.0s ease-in-out;' : ''}
             ${playerAnimation === 'shouting' ? 'animation: shoutSequence 0.7s ease-in-out;' : ''}
+            ${playerAnimation === 'burn' ? 'animation: burnAttack 0.8s ease-out;' : ''}
+            ${playerAnimation === 'desperate-swing' ? 'animation: desperateSwing 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);' : ''}
           }
 
           /* Opponent attack animation (reversed direction) */
@@ -3266,11 +3867,11 @@ const CombatModal: React.FC<CombatModalProps> = ({
           }
 
           @keyframes opponentAttackSequence {
-            0% { transform: translateX(0) translateY(0) scale(1.8); }
-            25% { transform: translateX(-40px) translateY(-8px) scale(1.89); }
-            50% { transform: translateX(-60px) translateY(-5px) scale(1.98) rotate(-15deg); }
-            75% { transform: translateX(-50px) translateY(-2px) scale(1.89) rotate(5deg); }
-            100% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); }
+            0% { transform: translateX(0) translateY(0) scale(1.0); }
+            25% { transform: translateX(-40px) translateY(-8px) scale(1.05); }
+            50% { transform: translateX(-60px) translateY(-5px) scale(1.1) rotate(-15deg); }
+            75% { transform: translateX(-50px) translateY(-2px) scale(1.05) rotate(5deg); }
+            100% { transform: translateX(0) translateY(0) scale(1.0) rotate(0deg); }
           }
           
           /* Damage Animation */
@@ -3279,11 +3880,11 @@ const CombatModal: React.FC<CombatModalProps> = ({
           }
           
           @keyframes damageRecoil {
-            0% { transform: translateX(0) scale(1.8); filter: brightness(1); }
-            25% { transform: translateX(-15px) scale(1.62); filter: brightness(1.5) hue-rotate(0deg); }
-            50% { transform: translateX(-25px) scale(1.53); filter: brightness(2) hue-rotate(45deg); }
-            75% { transform: translateX(-10px) scale(1.71); filter: brightness(1.2) hue-rotate(0deg); }
-            100% { transform: translateX(0) scale(1.8); filter: brightness(1); }
+            0% { transform: translateX(0) scale(1.0); filter: brightness(1); }
+            25% { transform: translateX(-15px) scale(0.9); filter: brightness(1.5) hue-rotate(0deg); }
+            50% { transform: translateX(-25px) scale(0.85); filter: brightness(2) hue-rotate(45deg); }
+            75% { transform: translateX(-10px) scale(0.95); filter: brightness(1.2) hue-rotate(0deg); }
+            100% { transform: translateX(0) scale(1.0); filter: brightness(1); }
           }
           
           /* Defend Animation */
@@ -3292,94 +3893,94 @@ const CombatModal: React.FC<CombatModalProps> = ({
           }
           
           @keyframes defendStance {
-            0% { transform: scale(1.8); filter: brightness(1); }
-            100% { transform: scale(1.62); filter: brightness(1.2) drop-shadow(0 0 10px rgba(59, 130, 246, 0.6)); }
+            0% { transform: scale(1.0); filter: brightness(1); }
+            100% { transform: scale(0.9); filter: brightness(1.2); }
           }
-          
+
           @keyframes defendBob {
-            0%, 100% { transform: scale(1.62) translateY(0); }
-            50% { transform: scale(1.62) translateY(-3px); }
+            0%, 100% { transform: scale(0.9) translateY(0); }
+            50% { transform: scale(0.9) translateY(-3px); }
           }
           
           /* Slashing Animation - Wide horizontal sweep */
           @keyframes slashSequence {
-            0% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); }
-            20% { transform: translateX(20px) translateY(-5px) scale(1.89) rotate(-15deg); }
-            40% { transform: translateX(50px) translateY(-3px) scale(1.98) rotate(25deg); }
-            60% { transform: translateX(45px) translateY(0) scale(1.89) rotate(10deg); }
-            100% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); }
+            0% { transform: translateX(0) translateY(0) scale(1.0) rotate(0deg); }
+            20% { transform: translateX(20px) translateY(-5px) scale(1.05) rotate(-15deg); }
+            40% { transform: translateX(50px) translateY(-3px) scale(1.1) rotate(25deg); }
+            60% { transform: translateX(45px) translateY(0) scale(1.05) rotate(10deg); }
+            100% { transform: translateX(0) translateY(0) scale(1.0) rotate(0deg); }
           }
           
           /* Chopping Animation - Overhead arc */
           @keyframes chopSequence {
-            0% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); }
-            25% { transform: translateX(15px) translateY(-40px) scale(1.98) rotate(-30deg); }
-            50% { transform: translateX(40px) translateY(-10px) scale(2.07) rotate(35deg); }
-            75% { transform: translateX(35px) translateY(5px) scale(1.89) rotate(5deg); }
-            100% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); }
+            0% { transform: translateX(0) translateY(0) scale(1.0) rotate(0deg); }
+            25% { transform: translateX(15px) translateY(-40px) scale(1.1) rotate(-30deg); }
+            50% { transform: translateX(40px) translateY(-10px) scale(1.15) rotate(35deg); }
+            75% { transform: translateX(35px) translateY(5px) scale(1.05) rotate(5deg); }
+            100% { transform: translateX(0) translateY(0) scale(1.0) rotate(0deg); }
           }
           
           /* Stabbing Animation - Quick thrust forward */
           @keyframes stabSequence {
-            0% { transform: translateX(0) translateY(0) scale(1.8); }
-            30% { transform: translateX(-10px) translateY(0) scale(1.71); }
-            50% { transform: translateX(70px) translateY(0) scale(1.98); }
-            70% { transform: translateX(60px) translateY(0) scale(1.89); }
-            100% { transform: translateX(0) translateY(0) scale(1.8); }
+            0% { transform: translateX(0) translateY(0) scale(1.0); }
+            30% { transform: translateX(-10px) translateY(0) scale(0.95); }
+            50% { transform: translateX(70px) translateY(0) scale(1.1); }
+            70% { transform: translateX(60px) translateY(0) scale(1.05); }
+            100% { transform: translateX(0) translateY(0) scale(1.0); }
           }
           
           /* Crushing Animation - Heavy downward smash */
           @keyframes crushSequence {
-            0% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); }
-            20% { transform: translateX(10px) translateY(-50px) scale(1.98) rotate(-20deg); }
-            40% { transform: translateX(30px) translateY(-60px) scale(2.16) rotate(-25deg); }
-            60% { transform: translateX(50px) translateY(10px) scale(2.25) rotate(40deg); filter: drop-shadow(0 0 15px #fbbf24); }
-            80% { transform: translateX(40px) translateY(5px) scale(1.98) rotate(10deg); }
-            100% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); filter: none; }
+            0% { transform: translateX(0) translateY(0) scale(1.0) rotate(0deg); }
+            20% { transform: translateX(10px) translateY(-50px) scale(1.1) rotate(-20deg); }
+            40% { transform: translateX(30px) translateY(-60px) scale(1.2) rotate(-25deg); }
+            60% { transform: translateX(50px) translateY(10px) scale(1.25) rotate(40deg); filter: brightness(1.2); }
+            80% { transform: translateX(40px) translateY(5px) scale(1.1) rotate(10deg); }
+            100% { transform: translateX(0) translateY(0) scale(1.0) rotate(0deg); filter: none; }
           }
           
           /* Shooting Animation - Draw and release */
           @keyframes shootSequence {
-            0% { transform: translateX(0) translateY(0) scale(1.8); }
-            30% { transform: translateX(-20px) translateY(-5px) scale(1.89) rotate(-5deg); }
-            50% { transform: translateX(-25px) translateY(-3px) scale(1.98) rotate(-8deg); }
-            70% { transform: translateX(10px) translateY(0) scale(1.89) rotate(3deg); }
-            100% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); }
+            0% { transform: translateX(0) translateY(0) scale(1.0); }
+            30% { transform: translateX(-20px) translateY(-5px) scale(1.05) rotate(-5deg); }
+            50% { transform: translateX(-25px) translateY(-3px) scale(1.1) rotate(-8deg); }
+            70% { transform: translateX(10px) translateY(0) scale(1.05) rotate(3deg); }
+            100% { transform: translateX(0) translateY(0) scale(1.0) rotate(0deg); }
           }
           
           /* Dodging Animation - Quick sidestep */
           @keyframes dodgeSequence {
-            0% { transform: translateX(0) translateY(0) scale(1.8); }
-            30% { transform: translateX(-40px) translateY(-10px) scale(1.62) rotate(-10deg); }
-            60% { transform: translateX(-35px) translateY(-5px) scale(1.71) rotate(0deg); }
-            100% { transform: translateX(0) translateY(0) scale(1.8) rotate(0deg); }
+            0% { transform: translateX(0) translateY(0) scale(1.0); }
+            30% { transform: translateX(-40px) translateY(-10px) scale(0.9) rotate(-10deg); }
+            60% { transform: translateX(-35px) translateY(-5px) scale(0.95) rotate(0deg); }
+            100% { transform: translateX(0) translateY(0) scale(1.0) rotate(0deg); }
           }
           
           /* Blocking Animation - Defensive stance */
           @keyframes blockSequence {
-            0% { transform: translateX(0) scale(1.8); filter: brightness(1); }
-            50% { transform: translateX(-10px) scale(1.62); filter: brightness(1.3) drop-shadow(0 0 8px rgba(59, 130, 246, 0.8)); }
-            100% { transform: translateX(-5px) scale(1.71); filter: brightness(1.2) drop-shadow(0 0 5px rgba(59, 130, 246, 0.5)); }
+            0% { transform: translateX(0) scale(1.0); filter: brightness(1); }
+            50% { transform: translateX(-10px) scale(0.9); filter: brightness(1.3); }
+            100% { transform: translateX(-5px) scale(0.95); filter: brightness(1.2); }
           }
           
           /* Casting Animation - Magical spell casting */
           @keyframes castSequence {
-            0% { transform: translateX(0) translateY(0) scale(1.8); filter: brightness(1); }
-            20% { transform: translateX(-5px) translateY(-10px) scale(1.71); filter: brightness(1.2) hue-rotate(60deg); }
-            40% { transform: translateX(-8px) translateY(-15px) scale(1.62); filter: brightness(1.5) hue-rotate(120deg) drop-shadow(0 0 10px #f59e0b); }
-            60% { transform: translateX(-5px) translateY(-12px) scale(1.71); filter: brightness(1.8) hue-rotate(180deg) drop-shadow(0 0 15px #f59e0b); }
-            80% { transform: translateX(10px) translateY(-5px) scale(1.89); filter: brightness(1.4) hue-rotate(240deg) drop-shadow(0 0 10px #f59e0b); }
-            100% { transform: translateX(0) translateY(0) scale(1.8); filter: brightness(1); }
+            0% { transform: translateX(0) translateY(0) scale(1.0); filter: brightness(1); }
+            20% { transform: translateX(-5px) translateY(-10px) scale(0.95); filter: brightness(1.2) hue-rotate(60deg); }
+            40% { transform: translateX(-8px) translateY(-15px) scale(0.9); filter: brightness(1.5) hue-rotate(120deg); }
+            60% { transform: translateX(-5px) translateY(-12px) scale(0.95); filter: brightness(1.8) hue-rotate(180deg); }
+            80% { transform: translateX(10px) translateY(-5px) scale(1.05); filter: brightness(1.4) hue-rotate(240deg); }
+            100% { transform: translateX(0) translateY(0) scale(1.0); filter: brightness(1); }
           }
           
           /* Shouting Animation - Intimidating yell */
           @keyframes shoutSequence {
-            0% { transform: translateX(0) scale(1.8); }
-            20% { transform: translateX(-10px) scale(2.07); filter: drop-shadow(0 0 5px #dc2626); }
-            40% { transform: translateX(-5px) scale(2.16); filter: drop-shadow(0 0 10px #dc2626); }
-            60% { transform: translateX(5px) scale(2.07); filter: drop-shadow(0 0 8px #dc2626); }
-            80% { transform: translateX(0) scale(1.98); filter: drop-shadow(0 0 5px #dc2626); }
-            100% { transform: translateX(0) scale(1.8); filter: none; }
+            0% { transform: translateX(0) scale(1.0); }
+            20% { transform: translateX(-10px) scale(1.15); }
+            40% { transform: translateX(-5px) scale(1.2); }
+            60% { transform: translateX(5px) scale(1.15); }
+            80% { transform: translateX(0) scale(1.1); }
+            100% { transform: translateX(0) scale(1.0); }
           }
           
           /* Enhanced Damage Splats with better effects */
@@ -3582,55 +4183,143 @@ const CombatModal: React.FC<CombatModalProps> = ({
             position: relative;
           }
 
-          /* Status effect borders */
-          .sprite-with-effects.has-poison {
-            filter: drop-shadow(0 0 8px #4ade80);
+          /* Status effect animations - glow handled by SVG filters in CombatSpritePixel */
+          .sprite-with-effects.has-poison > svg,
+          .sprite-with-effects.has-poison > div:has(svg) > svg {
             animation: poisonPulse 2s ease-in-out infinite;
           }
 
-          .sprite-with-effects.has-burn {
-            filter: drop-shadow(0 0 10px #f97316);
+          .sprite-with-effects.has-burn > svg,
+          .sprite-with-effects.has-burn > div:has(svg) > svg {
             animation: burnGlow 1s ease-in-out infinite;
           }
 
-          .sprite-with-effects.has-bleeding {
-            filter: drop-shadow(0 0 6px #dc2626);
+          .sprite-with-effects.has-bleeding > svg,
+          .sprite-with-effects.has-bleeding > div:has(svg) > svg {
             animation: bleedPulse 1.5s ease-in-out infinite;
           }
 
-          .sprite-with-effects.has-stunned {
-            filter: drop-shadow(0 0 8px #fbbf24);
+          .sprite-with-effects.has-stunned > svg,
+          .sprite-with-effects.has-stunned > div:has(svg) > svg {
+            /* Stun effect handled by SVG filter */
           }
 
-          /* Enhancement glow effects for powerful enemies */
-          .sprite-with-effects.enhanced-enraged {
-            filter: drop-shadow(0 0 12px #dc2626) drop-shadow(0 0 20px #dc2626);
+          /* Enhancement glow effects for powerful enemies ONLY - not player */
+          .opponent-side .sprite-with-effects.enhanced-enraged {
+            position: relative;
+            overflow: visible;
+            contain: layout;
+          }
+
+          .opponent-side .sprite-with-effects.enhanced-enraged > svg,
+          .opponent-side .sprite-with-effects.enhanced-enraged > div:has(svg) > svg {
             animation: enragedPulse 1.5s ease-in-out infinite;
           }
-          
-          .sprite-with-effects.enhanced-strong {
-            filter: drop-shadow(0 0 10px #f59e0b) drop-shadow(0 0 18px #f59e0b);
+
+          .opponent-side .sprite-with-effects.enhanced-strong {
+            position: relative;
+            overflow: visible;
+            contain: layout;
+          }
+
+          .opponent-side .sprite-with-effects.enhanced-strong > svg,
+          .opponent-side .sprite-with-effects.enhanced-strong > div:has(svg) > svg {
             animation: strongPulse 2s ease-in-out infinite;
           }
-          
-          .sprite-with-effects.enhanced-elite {
-            filter: drop-shadow(0 0 12px #a855f7) drop-shadow(0 0 20px #a855f7);
+
+          .opponent-side .sprite-with-effects.enhanced-elite {
+            position: relative;
+            overflow: visible;
+            contain: layout;
+          }
+
+          .opponent-side .sprite-with-effects.enhanced-elite > svg,
+          .opponent-side .sprite-with-effects.enhanced-elite > div:has(svg) > svg {
             animation: elitePulse 1.8s ease-in-out infinite;
           }
           
           @keyframes enragedPulse {
-            0%, 100% { filter: drop-shadow(0 0 12px #dc2626) drop-shadow(0 0 20px #dc2626); opacity: 1; }
-            50% { filter: drop-shadow(0 0 18px #dc2626) drop-shadow(0 0 30px #dc2626); opacity: 0.9; }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.02); }
           }
-          
+
           @keyframes strongPulse {
-            0%, 100% { filter: drop-shadow(0 0 10px #f59e0b) drop-shadow(0 0 18px #f59e0b); opacity: 1; }
-            50% { filter: drop-shadow(0 0 15px #f59e0b) drop-shadow(0 0 25px #f59e0b); opacity: 0.95; }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.95; transform: scale(1.01); }
           }
-          
+
           @keyframes elitePulse {
-            0%, 100% { filter: drop-shadow(0 0 12px #a855f7) drop-shadow(0 0 20px #a855f7); opacity: 1; }
-            50% { filter: drop-shadow(0 0 18px #a855f7) drop-shadow(0 0 28px #a855f7); opacity: 0.95; }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.95; transform: scale(1.015); }
+          }
+
+          /* Damage number floating animation */
+          .damage-float-up {
+            animation: floatUp 1.5s ease-out forwards;
+          }
+
+          @keyframes floatUp {
+            0% {
+              transform: translateY(0) scale(1);
+              opacity: 1;
+            }
+            50% {
+              transform: translateY(-30px) scale(1.2);
+              opacity: 0.9;
+            }
+            100% {
+              transform: translateY(-60px) scale(0.8);
+              opacity: 0;
+            }
+          }
+
+          /* Active turn indicator */
+          .combatant-sprite-wrapper.active-turn {
+            position: relative;
+          }
+
+          .combatant-sprite-wrapper.active-turn::before {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.6) 0%, transparent 70%);
+            animation: turnPulse 1.5s ease-in-out infinite;
+            pointer-events: none;
+            z-index: -1;
+          }
+
+          @keyframes turnPulse {
+            0%, 100% {
+              transform: translateX(-50%) scale(1);
+              opacity: 0.6;
+            }
+            50% {
+              transform: translateX(-50%) scale(1.3);
+              opacity: 0.3;
+            }
+          }
+
+          /* Combo attack visual */
+          .combo-attack-flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at center, transparent 30%, rgba(255, 215, 0, 0.4) 100%);
+            animation: comboFlash 0.3s ease-out;
+            pointer-events: none;
+          }
+
+          @keyframes comboFlash {
+            0% { opacity: 0; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.1); }
+            100% { opacity: 0; transform: scale(1.2); }
           }
 
           .status-overlay {

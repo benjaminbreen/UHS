@@ -39,7 +39,7 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
         "This {materialType} quarry, nestled amid {biomeDescription}, is a series of trenches dug into the {terrain}",
         "A {materialType} extraction site carved into the {terrain}, surrounded by {biomeDescription}",
         "Ancient workings where {materialType} is carefully extracted from the {terrain}",
-        "Sacred stone workings cut deep into the {terrain}, where {materialType} has been gathered for generations"
+        "Stone workings cut deep into the {terrain}, where {materialType} has been gathered for generations"
       ],
       materials: [
         "Glittering flakes of {materialType} are everywhere, and the {color} rock can be seen jutting from the ground",
@@ -76,7 +76,7 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
         "A {materialType} mine carved into the {terrain}, where tunnels disappear into the earth",
         "This ancient {materialType} working consists of several shafts descending into the {terrain}",
         "A network of {materialType} extraction sites, with fresh earth piled beside dark openings",
-        "Sacred earth-wounds where the ancestors first discovered {materialType} beneath the {terrain}"
+        "Earth-wounds where the ancestors first discovered {materialType} beneath the {terrain}"
       ],
       materials: [
         "Rich veins of {materialType} streak the exposed rock faces in bands of {color}",
@@ -142,7 +142,41 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
       ]
     }
   },
-  // Medieval Europe
+  // Europe - Antiquity Mill
+  {
+    type: 'mill',
+    culturalZone: 'Europe',
+    era: HistoricalEra.ANTIQUITY,
+    templates: {
+      setting: [
+        "This simple hand-operated quern grinds {materialType} using circular stone discs",
+        "A basic mill powered by slaves turning a heavy wooden wheel",
+        "Roman engineering has created this efficient water-powered mill using aqueduct flow"
+      ],
+      materials: [
+        "Sacks of {materialType} are ground into {color} meal for the legions",
+        "The {color} flour produced here feeds the growing Roman settlement",
+        "Premium {materialType} is reserved for bread destined for Roman tables"
+      ],
+      atmosphere: [
+        "The steady creak of wooden mechanisms fills the mill",
+        "Slaves maintain the grinding wheels under an overseer's watchful eye",
+        "The mill operates from dawn to dusk to meet the settlement's demands"
+      ],
+      workers: [
+        "The {workerType} in {clothing} measures grain portions with imperial accuracy",
+        "A Roman {workerType} wearing {clothing} ensures proper tribute is collected",
+        "The mill's {workerType} maintains strict records for the tax collectors"
+      ],
+      approach: [
+        "Stone milestones mark the road to this essential facility",
+        "Roman standards flutter above the mill entrance",
+        "Slave quarters and storage buildings surround the mill complex"
+      ]
+    }
+  },
+
+  // Europe - Medieval Mill
   {
     type: 'mill',
     culturalZone: 'Europe',
@@ -189,7 +223,7 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
       setting: [
         "This ancient {materialType} quarry follows the mountain's natural contours in the {terrain}",
         "Stone terraces carved by generations of workers extract {materialType} from the {terrain}",
-        "A harmonious quarry operation where {materialType} is carefully removed respecting the mountain spirits"
+        "A well-run quarry operation where {materialType} is carefully removed "
       ],
       materials: [
         "Veins of {color} {materialType} run through the rock like frozen rivers",
@@ -198,12 +232,12 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
       ],
       atmosphere: [
         "The rhythmic chanting of workers accompanies the steady tap of hammers",
-        "Incense burns at small shrines placed throughout the quarry",
+        "Incense burns at a small shrine placed near the entrance to the quarry",
         "The mountain echoes with the ancient songs of stone workers"
       ],
       workers: [
-        "A {workerType} in {clothing} bows respectfully before addressing you",
-        "The quarry's {workerType} sets down jade-tipped tools to greet you properly",
+        "A {workerType} in {clothing} looks you over before addressing you, as if assessing your rank",
+        "The quarry's {workerType} sets down their tools to greet you properly",
         "An experienced {workerType} wearing {clothing} offers you tea before discussing business"
       ],
       approach: [
@@ -213,6 +247,41 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
       ]
     }
   },
+  
+  // Asia - Antiquity Mill
+  {
+    type: 'mill',
+    culturalZone: 'Asia',
+    era: HistoricalEra.ANTIQUITY,
+    templates: {
+      setting: [
+        "This animal-powered mill uses oxen to turn heavy stone wheels, grinding {materialType}",
+        "A simple but effective mill where beasts of burden power the grinding stones",
+        "Water buffalo circle endlessly, providing the power to mill precious {materialType}"
+      ],
+      materials: [
+        "Sacks of {materialType} await processing, while {color} flour coats the grinding area",
+        "The sweet scent of freshly ground {materialType} creates distinctive {color} clouds",
+        "Workers carefully sift {materialType} to achieve the finest {color} consistency"
+      ],
+      atmosphere: [
+        "The steady plodding of oxen creates a hypnotic rhythm",
+        "Dust motes dance in shafts of sunlight through bamboo screens",
+        "The mill keeper chants ancient working songs to pace the animals"
+      ],
+      workers: [
+        "The {workerType} in {clothing} guides the oxen with patient expertise",
+        "A weathered {workerType} wearing {clothing} tests the grain quality",
+        "The mill's {workerType} offers you tea while discussing your milling needs"
+      ],
+      approach: [
+        "Well-worn paths show where countless animals have walked",
+        "Stone troughs and feeding areas surround the mill",
+        "Prayer flags flutter above this essential village facility"
+      ]
+    }
+  },
+  
   {
     type: 'mill',
     culturalZone: 'Asia',
@@ -273,8 +342,8 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
       ],
       approach: [
         "Carved totems protect the mine entrance from evil spirits",
-        "The path is marked by stones painted with traditional symbols",
-        "A sacred baobab tree shades the miners' rest area"
+        "The path is marked by painted stones",
+        "A baobab tree shades the miners' rest area"
       ]
     }
   },
@@ -343,6 +412,75 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
       ]
     }
   },
+  
+  // Europe - Industrial Era Mill
+  {
+    type: 'mill',
+    culturalZone: 'Europe',
+    era: HistoricalEra.INDUSTRIAL_ERA,
+    templates: {
+      setting: [
+        "This steam-powered mill operates day and night, grinding {materialType} for the growing city",
+        "A large industrial mill with multiple grinding stations processes vast quantities of {materialType}",
+        "Modern machinery powered by coal engines transforms {materialType} into fine {color} flour"
+      ],
+      materials: [
+        "Tons of {materialType} arrive by railway to be processed into {color} flour",
+        "The mill produces uniform {color} flour meeting new commercial standards",
+        "Steam-powered sifters separate the finest {materialType} from coarser grades"
+      ],
+      atmosphere: [
+        "The roar of steam engines drowns out conversation",
+        "Coal smoke mingles with {color} flour dust in the air",
+        "Workers operate in shifts to keep the mill running continuously"
+      ],
+      workers: [
+        "The {workerType} in {clothing} monitors pressure gauges and steam levels",
+        "A skilled {workerType} wearing {clothing} maintains the complex machinery",
+        "The mill's {workerType} calculates production quotas for the urban market"
+      ],
+      approach: [
+        "Railway sidings allow direct delivery of grain to the mill",
+        "Tall smokestacks mark this industrial facility from miles away",
+        "Worker housing clusters around this major employer"
+      ]
+    }
+  },
+  
+  // North America - Various Eras Mills
+  {
+    type: 'mill',
+    culturalZone: 'North America',
+    era: HistoricalEra.ANTIQUITY,
+    templates: {
+      setting: [
+        "This traditional grinding platform uses stone metates to process {materialType}",
+        "A communal mill area where families grind {materialType} using ancient techniques",
+        "Grinding stones have been used by generations to prepare {materialType}"
+      ],
+      materials: [
+        "Ears of {materialType} are carefully prepared for grinding into {color} meal",
+        "The {color} flour produced here sustains the entire settlement",
+        "Special varieties of {materialType} are ground for ceremonial purposes"
+      ],
+      atmosphere: [
+        "The rhythmic sound of stone on stone creates a meditative pace",
+        "Women sing traditional songs while grinding {materialType}",
+        "Children learn the ancient techniques by watching their elders"
+      ],
+      workers: [
+        "The {workerType} in {clothing} knows the proper rituals for grinding {materialType}",
+        "An elder {workerType} wearing {clothing} teaches the traditional methods",
+        "The mill keeper ensures equal access to the grinding stones"
+      ],
+      approach: [
+        "Well-worn paths converge on this essential community resource",
+        "Symbols mark the boundaries of this shared space",
+        "Storage baskets show the organization of community milling"
+      ]
+    }
+  },
+  
   {
     type: 'mill',
     culturalZone: 'Middle East',
@@ -382,7 +520,7 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
     era: HistoricalEra.ANTIQUITY,
     templates: {
       setting: [
-        "This sacred {materialType} quarry on the {terrain} provides stone for ceremonial structures",
+        "This {materialType} quarry on the {terrain} provides stone for ceremonial structures",
         "Island workers extract {materialType} from the {terrain} following ancestral protocols",
         "The coastal quarry yields {materialType} blessed by ocean spirits"
       ],
@@ -399,10 +537,10 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
       workers: [
         "A master {workerType} in {clothing} demonstrates the proper way to split stone",
         "The {workerType} wearing {clothing} performs rituals before each extraction",
-        "Young {workerType}s learn the sacred aspects of working with {materialType}"
+        "Young {workerType}s learn the aspects of working with {materialType}"
       ],
       approach: [
-        "Tiki torches mark the path to this sacred site",
+        "Tiki torches mark the path to this site",
         "Shell offerings lie at the quarry entrance",
         "Ancient petroglyphs tell the story of the first stone workers"
       ]
@@ -416,7 +554,7 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
     templates: {
       setting: [
         "High in the {terrain}, this {materialType} mine follows veins deep into the mountain",
-        "Sacred tunnels extract {materialType} from the living rock of the {terrain}",
+        "Tunnels extract {materialType} from the living rock of the {terrain}",
         "The mine complex includes shrines to Pachamama who provides the {materialType}"
       ],
       materials: [
@@ -484,7 +622,7 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
       setting: [
         "A clearing in the {biomeDescription} where ancient trees are carefully harvested",
         "This woodland camp sits amid towering {materialType} trees in the {terrain}",
-        "Sacred groves border this forestry site where {materialType} is gathered with reverence",
+        "Groves border this forestry site where {materialType} is gathered with reverence",
         "Smoke rises from a bark lodge at the center of this {materialType} harvesting ground"
       ],
       materials: [
@@ -605,7 +743,7 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
         "Drums coordinate the efforts of teams working on large trees",
         "Smoke from curing fires helps preserve the cut timber",
         "The forest resounds with work songs and rhythmic chopping",
-        "Sacred groves nearby remain untouched by agreement"
+        "Groves nearby remain untouched by agreement"
       ],
       workers: [
         "Skilled {workerType} in {clothing} direct the controlled fall of giants",
@@ -627,7 +765,7 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
     templates: {
       setting: [
         "This coastal forest camp harvests {materialType} for boat building",
-        "Sacred {materialType} groves are managed according to ancestral wisdom",
+        "{materialType} groves are managed according to ancestral wisdom",
         "The {terrain} provides both timber and spiritual guidance for harvesting",
         "Traditional boundaries mark where {materialType} may be taken"
       ],
@@ -782,6 +920,348 @@ const DESCRIPTION_TEMPLATES: POIDescriptionTemplate[] = [
       approach: [
         "Guards at the gate eye all visitors with suspicion",
         "The fortress entrance is heavily guarded"
+      ]
+    }
+  },
+  
+  // ========== MIDDLE EAST TEMPLATES ==========
+  
+  // Middle East - Antiquity Mill
+  {
+    type: 'mill',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.ANTIQUITY,
+    templates: {
+      setting: [
+        "This ancient {materialType} mill harnesses the desert winds that blow through the {terrain}",
+        "A timeworn grinding house sits beside an irrigation channel from the {terrain}",
+        "Stone grinding wheels powered by oxen process {materialType} as they have for generations"
+      ],
+      materials: [
+        "Sacks of {materialType} await grinding into fine powder",
+        "The {color} dust of ground {materialType} coats every surface",
+        "Fresh {materialType} arrives daily from surrounding settlements"
+      ],
+      atmosphere: [
+        "The rhythmic turning of millstones echoes ancient traditions",
+        "Dust motes dance in shafts of sunlight filtering through reed screens",
+        "The scent of ground grain mingles with desert herbs"
+      ],
+      workers: [
+        "A {workerType} in flowing {clothing} oversees the grinding process",
+        "The mill's {workerType} wears traditional {clothing} dusted with flour",
+        "An experienced {workerType} tests the fineness of the ground {materialType}"
+      ],
+      approach: [
+        "Date palms provide shade near the mill entrance",
+        "A well-worn path leads through irrigated gardens",
+        "Clay water jars stand ready for thirsty travelers"
+      ]
+    }
+  },
+  
+  // Middle East - Medieval Mill
+  {
+    type: 'mill',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.MEDIEVAL,
+    templates: {
+      setting: [
+        "This windmill's sail-wings catch the constant desert breeze across the {terrain}",
+        "An ingenious water mill uses underground qanats to power its {materialType} grinding stones",
+        "The mill complex includes storage rooms with thick walls to preserve {materialType}"
+      ],
+      materials: [
+        "Precious {materialType} from distant oases fills the storage chambers",
+        "The {color} powder of finely milled {materialType} is prized throughout the region",
+        "Aromatic spices are ground alongside {materialType} for special blends"
+      ],
+      atmosphere: [
+        "The call to prayer echoes as the millstones continue their endless work",
+        "Geometric tile patterns decorate the mill's interior walls",
+        "The mill operates day and night during harvest season"
+      ],
+      workers: [
+        "A skilled {workerType} in {clothing} adjusts the millstone spacing",
+        "The {workerType} pauses to offer you mint tea while discussing grain prices",
+        "Apprentice {workerType}s learn the ancient art of mill operation"
+      ],
+      approach: [
+        "An arched gateway marks the entrance to the mill compound",
+        "Roses and jasmine grow along the mill's water channels",
+        "Merchants haggle over prices in the mill's shaded courtyard"
+      ]
+    }
+  },
+  
+  // Middle East - Renaissance Mill
+  {
+    type: 'mill',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.RENAISSANCE_EARLY_MODERN,
+    templates: {
+      setting: [
+        "This Ottoman-era mill features advanced gear mechanisms for processing {materialType}",
+        "A restored Persian windmill stands proudly on the {terrain}",
+        "The mill combines traditional methods with Renaissance innovations"
+      ],
+      materials: [
+        "Premium {materialType} from the fertile crescent awaits processing",
+        "The mill produces the finest {color} flour in the province",
+        "Both grain and sesame are ground here for various purposes"
+      ],
+      atmosphere: [
+        "Intricate calligraphy adorns the mill's entrance arch",
+        "The millstones sing their ancient song of sustenance",
+        "Coffee brewing mingles with the scent of fresh-ground grain"
+      ],
+      workers: [
+        "The {workerType} in embroidered {clothing} manages ledgers and grinding",
+        "A learned {workerType} discusses mill engineering between tasks",
+        "The head {workerType} oversees both grinding and accounting"
+      ],
+      approach: [
+        "Cobblestone paths lead through the mill district",
+        "A fountain provides water for people and pack animals",
+        "The sultan's seal marks this as a registered mill"
+      ]
+    }
+  },
+  
+  // Middle East - Antiquity Quarry
+  {
+    type: 'quarry',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.ANTIQUITY,
+    templates: {
+      setting: [
+        "This ancient {materialType} quarry has supplied stone for temples and palaces",
+        "Massive {color} {materialType} blocks bear the marks of bronze tools",
+        "The quarry extends deep into the {terrain}, following veins of premium {materialType}"
+      ],
+      materials: [
+        "Perfectly cut {materialType} blocks await transport to construction sites",
+        "The {color} stone is prized for its durability and beauty",
+        "Hieroglyphic marks indicate the destination of each {materialType} block"
+      ],
+      atmosphere: [
+        "The ring of copper chisels on stone echoes across the quarry",
+        "Ancient tool marks tell the story of generations of stoneworkers",
+        "The desert sun bakes the exposed {materialType} faces"
+      ],
+      workers: [
+        "A master {workerType} in {clothing} directs the cutting of a massive block",
+        "Teams of {workerType}s coordinate to move {materialType} using wooden rollers",
+        "The quarry {workerType} proudly shows the quality of the local stone"
+      ],
+      approach: [
+        "Ramps carved from bedrock lead down into the quarry",
+        "Water jars and shade structures provide relief from the heat",
+        "Offerings to the gods of stone ensure safe working"
+      ]
+    }
+  },
+  
+  // Middle East - Medieval Quarry
+  {
+    type: 'quarry',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.MEDIEVAL,
+    templates: {
+      setting: [
+        "This {materialType} quarry supplies stone for mosque construction throughout the region",
+        "Geometric cutting patterns maximize the yield of {color} {materialType}",
+        "The quarry operates under the protection of the local emir"
+      ],
+      materials: [
+        "Fine-grained {materialType} perfect for intricate carving",
+        "The distinctive {color} hue of this {materialType} is highly sought after",
+        "Both building stone and decorative {materialType} are extracted here"
+      ],
+      atmosphere: [
+        "The quarry resonates with the rhythm of hammers and chisels",
+        "Dust clouds rise as another {materialType} block is freed",
+        "The midday heat makes the stone shimmer like water"
+      ],
+      workers: [
+        "A skilled {workerType} in dusty {clothing} demonstrates proper cutting technique",
+        "The quarry's {workerType} has worked this stone since childhood",
+        "Master carvers begin their work while blocks are still in the quarry"
+      ],
+      approach: [
+        "A guardhouse controls access to the valuable quarry",
+        "Carved stone markers show the quarry's boundaries",
+        "Pack animals rest in the shade, waiting to transport stone"
+      ]
+    }
+  },
+  
+  // Middle East - Antiquity Mine
+  {
+    type: 'mine',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.ANTIQUITY,
+    templates: {
+      setting: [
+        "Ancient copper mines delve deep into the {terrain} seeking {materialType}",
+        "This {materialType} mine has operated since the dawn of the Bronze Age",
+        "Torchlight reveals veins of {color} {materialType} in the tunnel walls"
+      ],
+      materials: [
+        "Raw {materialType} ore shows promising {color} deposits",
+        "Baskets of {materialType} bearing rock await smelting",
+        "The mine yields both {materialType} and precious gems"
+      ],
+      atmosphere: [
+        "Oil lamps flicker in the mine's depths",
+        "The air is thick with the scent of minerals and sweat",
+        "Echoes of pickaxes create an underground symphony"
+      ],
+      workers: [
+        "A veteran {workerType} in worn {clothing} emerges from the depths",
+        "The mine's {workerType} carries offerings for the spirits of the earth",
+        "Young {workerType}s learn to read the stone for signs of {materialType}"
+      ],
+      approach: [
+        "Stone tablets record centuries of mining activity",
+        "A shrine to the gods of the underworld guards the entrance",
+        "Smelting furnaces near the mine process the raw ore"
+      ]
+    }
+  },
+  
+  // Middle East - Medieval Mine
+  {
+    type: 'mine',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.MEDIEVAL,
+    templates: {
+      setting: [
+        "This {materialType} mine employs advanced Islamic mining techniques",
+        "Ventilation shafts keep air flowing through the {materialType} galleries",
+        "The mine follows {color} veins of {materialType} deep into the {terrain}"
+      ],
+      materials: [
+        "High-grade {materialType} ore fetches premium prices in Damascus",
+        "The {color} gleam of {materialType} rewards patient excavation",
+        "Both iron and precious metals are extracted from these tunnels"
+      ],
+      atmosphere: [
+        "Geometric patterns are carved into support beams for protection",
+        "The mine operates on a schedule that respects prayer times",
+        "Cool underground springs provide blessed water for workers"
+      ],
+      workers: [
+        "An experienced {workerType} in traditional {clothing} supervises operations",
+        "The {workerType} uses techniques passed down through generations",
+        "Mining guild members wear distinctive {clothing} marking their craft"
+      ],
+      approach: [
+        "A fortified entrance protects the valuable mine",
+        "Living quarters for miners cluster near the mine head",
+        "A mosque serves the spiritual needs of the mining community"
+      ]
+    }
+  },
+  
+  // Middle East - Antiquity Fortress
+  {
+    type: 'fortress',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.ANTIQUITY,
+    templates: {
+      setting: [
+        "This ancient fortress commands the strategic passes through the {terrain}",
+        "Massive mudbrick walls reinforced with {materialType} protect the garrison",
+        "The fortress has guarded this trade route for centuries"
+      ],
+      materials: [
+        "The walls are built from local {color} {materialType}",
+        "Bronze-reinforced gates bar entry to the unwelcome",
+        "Arrow slits and battlements crown the defensive walls"
+      ],
+      atmosphere: [
+        "Guards patrol the ramparts watching for raiders",
+        "The fortress bustles with military preparation",
+        "Standards bearing ancient symbols fly from the towers"
+      ],
+      workers: [
+        "A grizzled {workerType} in {clothing} maintains the defenses",
+        "The fortress {workerType} sharpens weapons in the armory",
+        "Sentries in {clothing} challenge all who approach"
+      ],
+      approach: [
+        "A narrow causeway leads to the heavily guarded gate",
+        "Warning inscriptions promise death to enemies",
+        "The fortress shadow falls across the approach path"
+      ]
+    }
+  },
+  
+  // Middle East - Medieval Fortress
+  {
+    type: 'fortress',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.MEDIEVAL,
+    templates: {
+      setting: [
+        "This Crusader castle stands defiant on the {terrain}",
+        "A Mamluk fortress built from {color} {materialType} guards the region",
+        "The citadel combines Arab and Byzantine defensive architecture"
+      ],
+      materials: [
+        "Dressed {materialType} blocks form impregnable walls",
+        "The {color} stone glows golden in the desert sun",
+        "Murder holes and machicolations enhance the defenses"
+      ],
+      atmosphere: [
+        "The call of the muezzin echoes from the fortress mosque",
+        "Soldiers drill in the courtyard under the blazing sun",
+        "Banners of the sultan flutter from the battlements"
+      ],
+      workers: [
+        "An armored {workerType} in {clothing} guards the gate",
+        "The fortress {workerType} oversees weapon maintenance",
+        "Military engineers in {clothing} inspect the walls"
+      ],
+      approach: [
+        "A drawbridge spans the defensive ditch",
+        "Carved lions flank the fortress entrance",
+        "The approach is designed to expose attackers to arrow fire"
+      ]
+    }
+  },
+  
+  // Middle East - Renaissance Fortress
+  {
+    type: 'fortress',
+    culturalZone: 'Middle East',
+    era: HistoricalEra.RENAISSANCE_EARLY_MODERN,
+    templates: {
+      setting: [
+        "This Ottoman fortress features cannon emplacements overlooking the {terrain}",
+        "A Safavid stronghold built with {materialType} controls the highland passes",
+        "The fort combines traditional design with gunpowder-age adaptations"
+      ],
+      materials: [
+        "Thick {color} {materialType} walls resist cannon fire",
+        "Star-shaped bastions provide interlocking fields of fire",
+        "The fortress includes powder magazines deep underground"
+      ],
+      atmosphere: [
+        "Janissary guards maintain strict discipline",
+        "The fortress serves as both military post and administrative center",
+        "Cannons thunder during training exercises"
+      ],
+      workers: [
+        "An Ottoman {workerType} in distinctive {clothing} inspects arrivals",
+        "The fortress {workerType} manages both soldiers and supplies",
+        "Artillery specialists in {clothing} maintain the cannons"
+      ],
+      approach: [
+        "A zigzag path prevents direct assault on the gates",
+        "Guard posts monitor all approaches to the fortress",
+        "The sultan's tughra marks this as an imperial fortress"
       ]
     }
   }

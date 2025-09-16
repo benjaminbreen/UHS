@@ -1072,7 +1072,7 @@ const MarketplaceBanner: React.FC<MarketplaceBannerProps> = ({
       )}
 
       {/* Animations */}
-      <style jsx>{`
+      <style>{`
         @keyframes mk-lightning-flash {
           0%, 96%, 100% { opacity: 0; }
           97% { opacity: 0.9; }

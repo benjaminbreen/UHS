@@ -48,6 +48,10 @@ export const useUIState = () => {
     // UI State
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
     const [isAboutModalOpen, setIsAboutModalOpen] = useState<boolean>(false);
+    const [containerPrompt, setContainerPrompt] = useState<{ message: string; isVisible: boolean }>({
+        message: '',
+        isVisible: false
+    });
     const [isWorldMapModalOpen, setIsWorldMapModalOpen] = useState<boolean>(false);
     const [isCharacterProfileModalOpen, setIsCharacterProfileModalOpen] = useState<boolean>(false);
     const [isMapDetailsModalOpen, setIsMapDetailsModalOpen] = useState<boolean>(false);
@@ -164,7 +168,21 @@ export const useUIState = () => {
     );
 
     // Handlers
+    const showContainerPrompt = useCallback((message: string) => {
+        setContainerPrompt({ message, isVisible: true });
+    }, []);
+
+    const hideContainerPrompt = useCallback(() => {
+        setContainerPrompt(prev => ({ ...prev, isVisible: false }));
+    }, []);
+
     const showToast = useCallback((message: string, type: 'success' | 'warning' | 'error' | 'info' = 'info') => {
+        // Check if this is a container prompt - if so, use container prompt instead
+        if (message.toLowerCase().includes('press e') && message.toLowerCase().includes('container')) {
+            showContainerPrompt(message);
+            return;
+        }
+        
         // Play appropriate sound based on toast type
         import('../services/gameSoundsService').then(({ default: gameSounds }) => {
             // Analyze message content for specific sound effects
@@ -711,8 +729,20 @@ export const useUIState = () => {
     }, [playerInput, playerCharacter, mapData, controlledIconX, controlledIconY, setControlledIconX, setControlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, gameDate, currentMapArchetype, currentMapClimate, currentTimeOfDay, currentZone, currentMapSeed, gameTimeHours, animals, npcs, terrainStructures, setNarrationHistory, setPlayerInput, setIsNarratorLoading, setPlayerCharacter]);
 
     const handleEncounter = useCallback((target: EncounterableEntity) => {
-        setEncounterTarget(target);
-    }, []);
+        // If it's an NPC, ensure we get the latest version from the npcs array
+        if (isNpc(target) && npcs) {
+            const currentNpc = npcs.find(n => n.id === target.id);
+            if (currentNpc) {
+                console.log(`[ENCOUNTER] Using updated NPC ${currentNpc.name}, opinion: ${currentNpc.memory.opinionOfPlayer}`);
+                setEncounterTarget(currentNpc);
+            } else {
+                console.log(`[ENCOUNTER] NPC ${target.name} not found in array, using original`);
+                setEncounterTarget(target);
+            }
+        } else {
+            setEncounterTarget(target);
+        }
+    }, [npcs]);
     
     const handleCloseEncounter = useCallback((history: DialogueEntry[]) => {
         if (encounterTarget && isNpc(encounterTarget) && history.length > 1) {
@@ -776,9 +806,21 @@ export const useUIState = () => {
     }, [encounterTarget, setNpcs, playerCharacter]);
 
     const handleInitiateCombat = useCallback((target: EncounterableEntity) => {
+        // If it's an NPC, ensure we have the latest version from the npcs array
+        if (isNpc(target) && npcs) {
+            const currentNpc = npcs.find(n => n.id === target.id);
+            if (currentNpc) {
+                // Use the current NPC from the array (which has updated memory)
+                setCombatant(currentNpc);
+                console.log(`[COMBAT] Starting combat with ${currentNpc.name}, opinion: ${currentNpc.memory.opinionOfPlayer}`);
+            } else {
+                setCombatant(target);
+            }
+        } else {
+            setCombatant(target);
+        }
         setEncounterTarget(null);
-        setCombatant(target);
-    }, []);
+    }, [npcs]);
 
     // Contextual narration handlers
     const handleCompanionClick = useCallback(async (animal: TamedAnimal) => {
@@ -1047,7 +1089,7 @@ export const useUIState = () => {
         isMapDetailsModalOpen, encounterTarget, combatant, victoryDetails, isCharacterProfileModalOpen,
         isAnyModalOpen, activeMarketplaceModal, activeCityModal, activeRuinModal, activeGovernmentModal, activeFishingHutModal, activeMiningModal,
         isLeftSidebarExpanded, activeMapSubTab, activeLens, toastMessage, panelNotificationItem,
-        floatingTextMessages,
+        floatingTextMessages, containerPrompt,
         lootModalData, setLootModalData,
         isLevelUpModalOpen, levelUpCharacter,
         isPortraitModalOpen, portraitModalCharacter,
@@ -1068,7 +1110,7 @@ export const useUIState = () => {
         setCombatant, handleCombatVictory, setVictoryDetails, setIsCharacterProfileModalOpen,
         closeAllModals, setActiveMarketplaceModal, setActiveCityModal, setActiveRuinModal, setActiveGovernmentModal, setActiveFishingHutModal, setActiveMiningModal, setInRuinRoguelike,
         setIsLeftSidebarExpanded, setActiveMapSubTab, setActiveLens, showToast, setPanelNotificationItem,
-        showFloatingText, removeFloatingText,
+        showFloatingText, removeFloatingText, showContainerPrompt, hideContainerPrompt,
         handleLooting, handleCloseLootModal, onTakeCoins,
         handleVictoryClose,
         handleLevelUp,

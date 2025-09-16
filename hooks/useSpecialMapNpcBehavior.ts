@@ -17,6 +17,7 @@ import {
 import { useGame } from '../contexts/GameContext';
 import { useMap } from '../contexts/MapContext';
 import { eventBus } from '../services/eventBus';
+import { guardPermissionService } from '../services/guardPermissionService';
 
 interface NpcBehaviorState {
   mood: NpcMood;
@@ -98,8 +99,15 @@ export function useSpecialMapNpcBehavior(
         
         // Special handling for guards - they can enter player tile to confront
         if (hasPlayerCollision && isGuardType(npc)) {
+          // Check if player has permission before confronting
+          const mapId = `${mapData?.area || 'unknown'}_${mapData?.seed || 'default'}`;
+          if (guardPermissionService.hasPermission(mapId)) {
+            console.log(`[Guard Encounter] ${npc.name} recognizes player has permission - no confrontation`);
+            return; // Player has permission, don't confront
+          }
+
           // Guard is confronting player - emit encounter event
-          eventBus.emit('guard:encounter', { 
+          eventBus.emit('guard:encounter', {
             npcId: npc.id,
             guardNpc: npc,
             position: { x: targetX, y: targetY },
@@ -188,6 +196,13 @@ export function useSpecialMapNpcBehavior(
       
       // Only react if player is in restricted area AND within detection range
       if (isInRestrictedArea && distanceToPlayer <= alertRadius) {
+        // Check if player has permission to be here
+        const mapId = `${mapData?.area || 'unknown'}_${mapData?.seed || 'default'}`;
+        if (guardPermissionService.hasPermission(mapId)) {
+          console.log(`[Guard Detection] ${npc.name} recognizes player has permission - no alert`);
+          return; // Player has permission, don't detect/arrest
+        }
+
         // Emit guard detection event
         console.log(`[Guard Alert] Player in restricted area! Emitting guard:detecting for ${npc.name}`);
         eventBus.emit('guard:detecting', {

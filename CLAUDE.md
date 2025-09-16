@@ -1,32 +1,249 @@
 # Universal History Simulator - Development Notes
 
-## IMPORTANT NOTE FOR FUTURE CLAUDE INSTANCES
-**Date Awareness**: Claude's system does not reliably provide the current date. Do not write dates unless explicitly provided by the user. User has confirmed today is September 12, 2025.
+## KEY CODEBASE INFORMATION (Updated September 13, 2025)
+
+### 1. Special Map Archetypes Currently in Use
+**Full list of archetype generator files in `/generation/specialMap/archetypes/`:**
+- `arenaGenerator.ts`
+- `campgroundGenerator.ts`
+- `courtChamberGenerator.ts`
+- `estatesGeneratorFixed.ts`
+- `exhibitionGenerator.ts`
+- `governmentForumFixed.ts`
+- `governmentGenerator.ts`
+- `marketGenerator.ts`
+- `openFieldGenerator.ts`
+- `palaceVariantGenerator.ts`
+- `restaurantInnGenerator.ts`
+- `sacredGenerator.ts`
+- `theaterGenerator.ts`
+- `tribalCouncilGenerator.ts`
+- `universityGenerator.ts`
+- `universityGeneratorV2.ts`
+- `vesselGenerator.ts`
+
+**Cultural variant generators in `/archetypes/cultures/`:**
+- `nativeAmericanGenerators.ts`
+- `preColumbianGenerators.ts`
+- `oceaniaGenerators.ts`
+- `southeastAsianGenerators.ts`
+- `asianGenerators.ts`
+- `europeanGenerators.ts`
+- `africanGenerators.ts`
+- `middleEasternGenerators.ts`
+- `southAsianGenerators.ts`
+
+### 2. Cultural Zones Used in Game
+**Exact CulturalZone type values:**
+- `EUROPEAN`
+- `EAST_ASIAN`
+- `MENA` (Middle East & North Africa)
+- `NORTH_AMERICAN_PRE_COLUMBIAN`
+- `NORTH_AMERICAN_COLONIAL` [for generation of north america AFTER columbian exchange up to present - variable timeline depending on location]
+- `OCEANIA`
+- `SOUTH_ASIAN`
+- `SOUTH_AMERICAN`
+- `SUB_SAHARAN_AFRICAN`
+
+### 3. Historical Eras Used
+**HistoricalEra enum values (from `types/ambiance.ts`):**
+- `PREHISTORY` (approx. -3000 to -500)
+- `ANTIQUITY` (approx. -500 to 500)
+- `MEDIEVAL` (approx. 500 to 1500)
+- `RENAISSANCE_EARLY_MODERN` (approx. 1500 to 1800)
+- `INDUSTRIAL_ERA` (approx. 1800 to 1950)
+- `MODERN_ERA` (approx. 1950 to 2000)
+- `FUTURE_ERA` (approx. 2000 to 2026) **NOTE: Despite the name, FUTURE_ERA represents 2000-2025 period, not the actual future**
+
+### 4. Standard Map Biome Types
+**BiomeType enum values used in standard maps (from `types/biomes/base.ts`):**
+
+**Natural Terrain:**
+- `DEEP_OCEAN`, `SHALLOW_OCEAN`, `BEACH`
+- `GRASSLAND`, `FOREST`, `DENSE_FOREST`, `JUNGLE`, `SCRUB`
+- `HILLS`, `MOUNTAIN`, `HIGH_PEAK`, `CLIFF`
+- `DESERT`, `OASIS`, `TUNDRA`, `STEPPE`
+- `SNOW`, `SALT_FLATS`
+
+**Water Features:**
+- `RIVER`, `MAJOR_RIVER`, `RIVERBANK`
+- `FRESHWATER_LAKE`, `WETLANDS`, `MANGROVE`
+- `ESTUARY`, `REEF`, `SHOALS_TILE`
+
+**Volcanic/Geothermal:**
+- `VOLCANIC_SOIL`, `VOLCANIC_ROCK`, `ACTIVE_LAVA`
+- `HOT_SPRINGS`
+
+**Urban/Settlement:**
+- `HAMLET`, `LOW_DENSITY_CITY`, `DENSE_CITY`, `CITY_CENTER`
+- `URBAN` (Legacy)
+- `FARMLAND`, `MARKETPLACE`, `GOVERNMENT_DISTRICT`
+- `PALACE`, `HOLY_SITE`, `RUINS`
+- `PARK`, `PLAZA`, `ROAD`
+- `HARBOR_DISTRICT`, `INDUSTRIAL_DISTRICT`
+
+**Ethereal Realm (Special zones only):**
+- `AIR` (clouds, darkness, storms based on climate)
+- `UNDERSEA` (glowing underwater realm)
+
+**Architectural (Special maps only):**
+- Various wall, floor, and furniture types for interior maps
+
+### 6. Combat Background System (September 2025)
+
+The game uses a sophisticated priority-based background selection system for combat scenarios that supports **weather**, **time of day**, and **cultural zone** customization.
+
+#### **File Naming Convention**
+All combat background files use **underscores** (not spaces) and follow this priority pattern:
+
+**Highest Priority (most specific):**
+- `biome_weather_time_culture.png` (e.g., `dense_city_rain_night_mena.png`)
+- `biome_weather_culture.png` (e.g., `dense_city_rain_mena.png`)
+- `biome_time_culture.png` (e.g., `low_density_city_crepuscular_east_asian.png`)
+- `biome_culture.png` (e.g., `dense_city_mena.png`)
+- `biome_weather_time.png` (e.g., `wetlands_rain_crepuscular.png`)
+- `biome_weather.png` (e.g., `wetlands_rain.png`)
+- `biome_time.png` (e.g., `wetlands_crepuscular.png`)
+
+**Base & Fallbacks (lowest priority):**
+- `biome.png` (e.g., `wetlands.png`, `dense_city.png`, `hot_springs.png`)
+- Fallback mappings (if specific biome file doesn't exist)
+- Universal fallbacks: `grassland.png`, `hills.png`, `forest.png`, `desert.png`
+
+#### **Biome Naming Convention**
+The system ALWAYS checks for the exact biome name first (converted to lowercase with underscores):
+- `LOW_DENSITY_CITY` → `low_density_city.png`
+- `DENSE_CITY` → `dense_city.png`
+- `HOT_SPRINGS` → `hot_springs.png`
+- `VOLCANIC_SOIL` → `volcanic_soil.png`
+- `HAMLET` → `hamlet.png`
+
+**Urban Fallback Chain:**
+- `hamlet` → `low_density_city` → `dense_city`
+- `marketplace`, `plaza`, `harbor_district` → `low_density_city` → `dense_city`
+- `government_district`, `palace`, `industrial_district` → `dense_city`
+
+Every biome can have its own specific background file before falling back to alternatives.
+
+#### **Supported Variants**
+**Weather suffixes:** `rain`, `snow`, `fog`
+**Time suffixes:** `crepuscular` (dawn 4-8am, dusk 6-9pm)
+**Culture suffixes:** `european`, `east_asian`, `mena`, `precolumbian`, `colonial`, `oceania`, `south_asian`, `south_american`, `african`
+
+**Note: Night backgrounds (10pm-4am) now use automatic CSS filter tinting instead of separate _night.png files**
+- Standard backgrounds are darkened and blue-tinted using CSS filters during nighttime
+- Filter applied: `brightness(0.5) saturate(0.7) hue-rotate(200deg) contrast(1.1)`
+- This creates a classic "film noir" blue-tinted night effect without needing separate assets
+
+**Cultural Fallback Chains** (related cultures check each other):
+- **Asian/Eastern Sphere**: `east_asian` ↔ `south_asian` ↔ `oceania` ↔ `mena`
+- **Indigenous American**: `precolumbian` ↔ `south_american`
+- **Western/Colonial**: `european` ↔ `colonial`
+- **African**: `african` → `mena`
+
+#### **Example Priority Chains**
+
+**Example 1: Dense City in African region at dawn/dusk:**
+1. `dense_city_crepuscular_african.png` ⭐ Time + Cultural variant
+2. `dense_city_african.png` ⭐ Cultural variant
+3. `dense_city_crepuscular.png` ⭐ Time variant
+4. `dense_city.png` ⭐ Base dense city
+5. `grassland.png`, `hills.png`, etc. (universal fallbacks)
+
+**Example 2: Low Density City in African region (no specific file):**
+1. `low_density_city_african.png` (doesn't exist, moves on)
+2. `low_density_city_mena.png` ⭐ Check related culture (Africa → MENA)
+3. `low_density_city.png` (doesn't exist, moves on)
+4. `dense_city_african.png` ⭐ Fallback to dense city African variant
+5. `dense_city_mena.png` ⭐ Check related culture for fallback biome
+6. `dense_city.png` ⭐ Fallback to base dense city
+7. `grassland.png`, etc. (universal fallbacks)
+
+**Example 3: Hamlet in Oceania (only South Asian variant exists):**
+1. `hamlet_oceania.png` (doesn't exist)
+2. `hamlet_south_asian.png` ⭐ Found via cultural fallback chain!
+3. `hamlet_east_asian.png` (would check if south_asian didn't exist)
+4. `hamlet_mena.png` (would check if previous didn't exist)
+5. `hamlet.png` (generic fallback)
+
+This system allows **maximum flexibility** - create detailed cultural variants where needed, simple weather variants elsewhere, or just use base backgrounds.
+
+### 5. Complete List of Modals Currently in Use
+**All Modal components (47 total):**
+- `AboutModal.tsx`
+- `ActionConfigModal.tsx`
+- `AnimalCompanionModal.tsx`
+- `AnimalInfoModal.tsx`
+- `AttributeModal.tsx`
+- `CharacterProfileModal.tsx`
+- `CityModal.tsx`
+- `CombatModal.tsx`
+- `ContainerModal.tsx`
+- `CraftingModal.tsx`
+- `DevBuildingModeModal.tsx`
+- `DiseaseContractedModal.tsx`
+- `DiseaseModal.tsx`
+- `EncounterModal.tsx`
+- `EventModal.tsx`
+- `ExplanationModal.tsx`
+- `FactionsModal.tsx`
+- `FishingHutModal.tsx`
+- `GameOverModal.tsx`
+- `GovernmentDistrictModal.tsx`
+- `HolySiteModal.tsx`
+- `InitialScenarioModal.tsx`
+- `InteractionModal.tsx` (in `/interiorMap/`)
+- `InteriorModal.tsx` (in `/interiorMap/`)
+- `LevelUpModal.tsx`
+- `LootModal.tsx`
+- `MapDetailsModal.tsx`
+- `MarketplaceModal.tsx`
+- `MineModal.tsx`
+- `MiningModal.tsx`
+- `NewItemModal.tsx`
+- `NpcConfrontationModal.tsx`
+- `NpcModal.tsx`
+- `POIInteractionModal.tsx`
+- `POIToastModal.tsx`
+- `PointOfInterestModal.tsx`
+- `PortraitModal.tsx` (in `/portraits/`)
+- `PrimarySourceModal.tsx`
+- `ReputationModal.tsx`
+- `RuinStructureModal.tsx`
+- `SavedGamesModal.tsx`
+- `SettlementInfoModal.tsx`
+- `SkillsModal.tsx`
+- `TerrainStructureModal.tsx`
+- `TileInfoModal.tsx`
+- `VictoryModal.tsx`
+- `WorldMapModal.tsx`
+- `WorldWeaverModal.tsx`
+
+##  NOTE FOR FUTURE CLAUDEs
+**Date Awareness**: Claude's system does not reliably provide the current date. Do not write dates unless explicitly provided by the user. User has confirmed today is September 13, 2025.
 
 ## Project Overview
 - **Creator**: Benjamin Breen, Historian at UCSC
-- **Purpose**: Educational history simulation game for casual players and history students
-- **Current Phase**: Core Systems Complete - Focus on Polish & Educational Features
+- **Purpose**: Educational history simulation game for both general public and history students
 
 ## Current State Summary (September 12, 2025)
 
 ### ✅ Fully Implemented Systems
-- **Event System**: 9 game modes (not 8!), procedural + LLM generation, victory tracking
-- **URL Sharing**: Complete state encoding/decoding with character preservation
-- **Special Maps**: 5+ new government archetypes with cultural variations (TRIBAL_COUNCIL, COURT_CHAMBER, etc.)
+- **Event System**: 9 game modes, procedural + LLM quest generation, quest success tracking [not fully implemented]
+- **URL Sharing**: Complete state encoding/decoding with character preservation [semi-functional]
+- **Special Maps**: Government archetypes with cultural variations (TRIBAL_COUNCIL, COURT_CHAMBER, GOVERNMENT_FORUM, etc.) used to represent interiors
 - **NPC Generation**: Culturally accurate names, professions, appearances
-- **NPC Internal Monologue**: Click NPC portraits up to 3 times for LLM-generated inner thoughts
 - **Professions System**: 4000+ lines of culturally-specific professions across all eras/zones
 - **Physical Feat System**: Narration panel detects and evaluates climbing, fording, jumping actions
 
 ### ⚠️ Systems With Issues
-- **Quest System**: SAVES to localStorage (does NOT reset on reload as claimed) - may cause persistence issues
-- **Primary Sources**: No actual shard files exist (claimed 42 shards) - data embedded in service instead
-- **Save/Load System**: Service exists but NOT integrated - SavedGamesModal not imported in ModalHub, no load handler in App.tsx
+- **Quest System**: need to finalize the saving and loading system; currently quests should reset with every reloead since reloads start player in new setting as new playable character (PC)
+- **Primary Sources**: data embedded in various public/sources/metadata files, naming convention: asia-antiquity.json, asia-medieval.json, etc.
+- **Save/Load System**: Service exists but NOT integrated except stub implementation for testing in settings menu
 
 ### ⚠️ Partially Implemented
 - **NPC Testing Panel**: Basic testing works, missing dialogue/trade testing
-- **World Weaver**: Can interpret prompts, generate quests, select game modes, but quest generation may not be fully integrated
+- **World Weaver**: Can interpret prompts, generate quests, select game modes, but quest generation not yet integrated
 
 ### ❌ Not Yet Implemented
 - **Educational Assessment**: Not started
@@ -47,7 +264,7 @@ The game uses 100% procedural Web Audio API generation - no external audio files
 **Implementation Pattern**:
 1. **State-Driven Triggers**: Use React `useEffect` hooks to monitor specific state changes (e.g., `isGameActive`, modal opens/closes)
 2. **Automatic Cleanup**: Always provide cleanup functions to stop audio when contexts change
-3. **Volume Stratification**: Different audio types use different base volumes (UI clicks: 3%, ambient music: 10%, victory fanfares: 25%)
+3. **Volume Stratification**: Different audio types use different base volumes (UI clicks: 3%, ambient music: 10%, victory fanfares: 15%)
 4. **Respectful Integration**: Audio respects existing mute/volume systems and doesn't interfere with other sounds
 
 **Example - Fishing Music Integration**:
@@ -62,40 +279,7 @@ useEffect(() => {
 }, [isGameActive]);
 ```
 
-**Benefits of This Approach**:
-- Audio feels intentional and contextual rather than intrusive
-- No audio conflicts or overlapping inappropriate sounds
-- Players experience audio as natural enhancement to gameplay
-- Easy to test and debug individual audio contexts
-
-This pattern should be applied to future audio features: libraries, temples, combat zones, weather systems, etc.
-
-## ✅ COMPLETED: Event System (December 2024)
-
-### Phase 1: Core Infrastructure - COMPLETE
-- ✅ Created comprehensive type system (`types/eventTypes.ts`)
-- ✅ Built event service with trigger evaluation (`services/eventService.ts`)
-- ✅ Implemented event modal UI with stat checks
-- ✅ Added LLM API tracker to navigation bar
-- ✅ Created event notification system (toast + badge)
-
-### Phase 2: Game Modes & Templates - COMPLETE
-- ✅ Defined all 8 historically accurate game modes
-- ✅ Created 3-4 event archetypes per mode (total 28 archetypes)
-- ✅ Built context-aware template system with era/culture variables
-- ✅ Integrated event system into main app
-- ✅ Added mode selector UI with beautiful gradient cards
-- ✅ Implemented victory progress tracking
-
-### Phase 3: LLM Enhancement - COMPLETE
-- ✅ Created LLM event service for custom event generation
-- ✅ Built context service for historically accurate events
-- ✅ Enhanced WorldWeaver to generate complete scenarios:
-  - Auto-selects appropriate game mode
-  - Generates 3 custom events per scenario
-  - Creates 2 special NPCs with historical roles
-- ✅ Integrated custom events with procedural system
-- ✅ Added caching to reduce API calls
+This pattern should be applied to future audio features.
 
 ### Event System Features Working:
 1. **8 Game Modes**: Survival, Exploration, Commerce, Scholarship, Leadership, Livelihood, Diplomacy, Legal
@@ -112,50 +296,7 @@ This pattern should be applied to future audio features: libraries, temples, com
 - Modern era: Unemployment, recession, technology challenges
 
 
-## Implementation Report - December 10, 2024
-
-### COMPLETED: Full Seed/URL Sharing System Implementation
-
-#### Problem Identified
-The seed sharing system was completely broken:
-- URLs showed `random/random/random` instead of actual game values
-- Seeds didn't encode character information
-- Sharing a URL didn't reproduce the same game setup
-- Character name, profession, date, and location weren't preserved
-
-#### Solution Implemented
-
-**1. Created Comprehensive Shareable State Service** (`services/shareableStateService.ts`)
-- Encodes complete game state including:
-  - Year, month, day
-  - Map area, zone, region
-  - Game mode
-  - Character details (name, profession, age, gender, social class)
-  - Map generation seed
-  - Scenario type (procedural/worldweaver)
-- Uses URL-safe base64 encoding with JSON
-- Supports both encoding and decoding
-- Includes localStorage backup for recovery
-
-**2. Updated URL Generation** (InitialScenarioModal.tsx)
-- Share button now generates URLs with full state: `/1473/north-china-plain/survival?state=ENCODED_DATA`
-- Character data is properly captured and encoded
-- URLs show actual values instead of "random"
-- Automatic localStorage backup when sharing
-
-**3. Fixed URL Parsing** (App.tsx)
-- Checks for `?state=` query parameter first
-- Decodes full game state from URL
-- Falls back to legacy path-based parsing
-- Stores character data for restoration during generation
-
-**4. Character Restoration** (characterGenerator.ts)
-- Checks for URL character data during generation
-- Restores exact character specifications (name, age, profession, etc.)
-- Uses existing `generateCharacterWithSpec` function
-- Clears data after use to prevent reuse
-
-#### How It Works Now
+#### How Seed/URL sharing Works 
 
 1. **Sharing a Game**:
    - Player clicks "Share" in Initial Scenario Modal
@@ -196,17 +337,9 @@ The seed sharing system was completely broken:
 ```
 
 **Benefits**:
-- Teachers can share exact historical scenarios with students
-- Players can share interesting setups with friends
-- Developers can reproduce bugs with shared URLs
-- Character customization is preserved
+- Teachers can share exact historical scenarios with students, etc 
 
-**Limitations**:
-- Very long character names/professions are truncated
-- Some procedural elements (NPC positions) may vary
-- URLs can be long with full encoding
-
-## Implementation Report - December 9, 2024
+## Implementation Report - August, 2025
 
 ### PHASE 1-5 COMPLETED: Comprehensive URL State Sharing System
 
@@ -277,157 +410,6 @@ Implemented a complete shareable game state system that encodes all game paramet
 - **`services/characterGenerator.ts`**: Added URL character restoration logic
 - **`hooks/useMapState.ts`**: Already had proper location handling
 
-#### Technical Solutions
-
-**Problem 1: Map Area Truncation**
-- **Issue**: "Ancestral Puebloan Lands" truncated to "Ancestral "
-- **Solution**: Removed substring limits, use full names when no abbreviation exists
-
-**Problem 2: Wrong Map Generation Function**
-- **Issue**: `onStartNewWorldAtZoneRegion` expects region key, not map area name
-- **Solution**: Use `onStartNewWorldAtLocation` which takes exact map area name
-
-**Problem 3: Game Mode Not Persisting**
-- **Issue**: Game mode lost after character creation
-- **Solution**: Store in localStorage, restore in event system initialization
-
-**Problem 4: Character Data Loss**
-- **Issue**: Generated character didn't match URL specification
-- **Solution**: Pass character spec through localStorage to generator
-
-#### Testing the Implementation
-
-1. **Generate a shareable URL**:
-   - Start a game with specific settings
-   - Click "Share" button in scenario modal
-   - Copy the generated URL
-
-2. **Test restoration**:
-   - Open URL in new browser/incognito
-   - Verify: Same character name, profession, age
-   - Verify: Correct map area loaded
-   - Verify: Correct game mode active
-   - Verify: Same date/year
-
-3. **Edge cases tested**:
-   - Long character names: ✅ Preserved
-   - Unusual map areas: ✅ Full names stored
-   - All game modes: ✅ Correctly restored
-   - Special characters: ✅ Base64 handles them
-
-### Update: URL Sharing System Complete - December 9, 2024
-
-#### Overview: Complete URL-Based Game State Sharing
-
-The game now supports comprehensive URL-based state sharing, allowing players to share exact game configurations including character details, map location, date, and game mode through shareable URLs.
-
-#### URL Format
-
-URLs use a dual format for maximum compatibility:
-
-**Human-readable path + encoded state query parameter:**
-```
-https://game.com/[year]/[location]/[mode]?state=[encoded-state]
-
-Example:
-https://game.com/1348/sulawesi/livelihood?state=eyJ2IjoxLCJ5IjoxMzQ4...
-```
-
-The encoded state contains:
-- Complete character data (name, profession, age, gender)
-- Exact map area name
-- Game mode
-- Map generation seed
-- Date (year, month, day)
-- Scenario type
-
-#### How the System Works
-
-**1. Creating a Shareable URL:**
-- Player clicks "Share" button in InitialScenarioModal
-- System creates ShareableGameState object with all game data
-- Data is encoded to base64 URL-safe format
-- URL is generated with both human-readable path and encoded state
-
-**2. Restoring from URL:**
-```
-URL → App.tsx → shareableStateService.decodeGameState()
-      ↓
-validateAndRepairState() [NEW - validates and fixes any issues]
-      ↓
-- Zone detection from map area if missing
-- Seed validation/generation if invalid  
-- Game mode validation with localStorage fallbacks
-- Character data completion with defaults
-      ↓
-Initialize game with validated state
-```
-
-**3. Zone Detection Service:**
-- Automatically detects geographic zone from map area names
-- Handles cases where zone is missing or invalid
-- Provides intelligent fallbacks and fuzzy matching
-- Example: "Sulawesi" → detects zone "Oceania", region "Indonesia"
-
-#### Key Components
-
-**Services:**
-- `shareableStateService.ts`: Encoding/decoding and validation
-- `zoneDetectionService.ts`: Zone detection from map areas
-- `characterGenerator.ts`: Character restoration from URL data
-
-**Validation & Repair (NEW):**
-- `validateAndRepairState()`: Ensures all fields are valid
-- Auto-detects zones from map areas
-- Generates seeds if missing
-- Validates game modes
-- Completes character data
-
-#### Testing the System
-
-**Test URLs with Full State:**
-```html
-<!-- Year 1348, Sulawesi, Fisherman character -->
-/1348/sulawesi/livelihood?state=eyJ2IjoxLCJ5IjoxMzQ4LCJtIjoxLCJkIjoxLCJtYSI6IlN1bGF3ZXNpIiwiZ20iOiJsaXZlIiwiY24iOiJLdW5jb3JvIFN1cnlhbnRvIiwiY3AiOiJmaXNoZXJtYW4iLCJjZyI6Im0iLCJjYSI6MjMsIm1zIjoiQUJDRDEyMzQiLCJzdCI6InAifQ
-
-<!-- Year 262, Thar Desert, Herder character -->
-/262/thar-desert-margin/survival?state=eyJ2IjoxLCJ5IjoyNjIsIm0iOjEsImQiOjEsIm1hIjoiVGhhciBEZXNlcnQgTWFyZ2luIiwiZ20iOiJzdXJ2IiwiY24iOiJCaWtyYW0gRGVvbCIsImNwIjoiaGVyZGVyIiwiY2ciOiJtIiwiY2EiOjI4LCJtcyI6IlhZWjk4NzY1Iiwic3QiOiJwIn0
-```
-
-**What Gets Preserved:**
-✅ Exact character name and profession
-✅ Specific map area (e.g., "Thar Desert Margin")
-✅ Map generation seed for identical terrain
-✅ Game date (year, month, day)
-✅ Selected game mode
-✅ Character age and gender
-
-#### Recent Fixes (December 9, 2024)
-
-1. **Zone Detection Issues:**
-   - Fixed empty zone fields causing restoration failures
-   - Added intelligent zone detection from map area names
-   - Implemented validation and repair layer
-
-2. **JavaScript Environment Errors:**
-   - Fixed `require is not defined` error in browser
-   - Changed to ES6 imports at module level
-   - Fixed `mode is not defined` reference error
-
-3. **Character Restoration:**
-   - Character data now properly persists through URL
-   - Generation context correctly passed to character generator
-   - URL character specs override random generation
-
-#### Success Metrics
-
-✅ **Map areas preserved exactly** (e.g., "Ancestral Puebloan Lands")
-✅ **Characters restored with correct names** and professions
-✅ **Dates maintained accurately** from URLs
-✅ **Map seeds generate identical terrain**
-✅ **Game modes properly restored** after character creation
-✅ **Zone detection working** when zone is missing
-✅ **Validation prevents crashes** from invalid data
 
 ## Physical Feat System (December 2024)
 
@@ -531,25 +513,6 @@ interface SavedGame {
   - ✅ NPC Internal Monologue WORKS
   - ✅ URL Sharing WORKS as claimed
 
-### Previous Updates
-- **COMPLETED PHASE 1**: URL-based game configuration system
-  - Integrated React Router for URL parsing
-  - Created comprehensive URL configuration service
-  - Support for date ranges, geography, game modes, and seeds
-  - Updated App.tsx and InitialScenarioModal for URL handling
-
-- **COMPLETED PHASE 2**: Game seed system
-  - Implemented deterministic SeededRandom generator
-  - Created SeedManager for global seed management
-  - Added seed display and sharing UI
-  - Integrated with map and NPC generation
-  - Shareable URLs with embedded seeds now functional
-
-- **Technical Notes**:
-  - Used Linear Congruential Generator for deterministic randomness
-  - Hash string seeds to numeric values for map compatibility
-  - Context-based random streams prevent interference
-  - All core systems now use seeded randomness
 
 **Historical Accuracy Notes**:
 - All faction data written with strict attention to historical accuracy and specificity
@@ -591,38 +554,6 @@ interface SavedGame {
 ## Quest System Implementation - Phase 1 Complete (Latest Session)
 
 ### Phase 1: Fix Critical Bugs & Expand Location Types ✅
-
-**Completed in this session:**
-
-1. **✅ Expanded Valid Quest Locations**:
-   - Modified `useCoreLoops.ts` to include ALL structure types: hamlets, bridges, mills, fortresses, wells, watchtowers
-   - Added fallback detection for structures with keywords in names (e.g., "Military Base" detected as fortress)
-   - System now continues even with zero structures (generates wilderness quests)
-
-2. **✅ Fixed Structure Detection Issues**:
-   - Updated `questService.ts` to handle inconsistent structure field names (location vs x/y coordinates)
-   - Added `getStructureLocation()` helper function to safely extract coordinates
-   - Fixed all structure filtering to check both `type` and `structureType` fields
-
-3. **✅ Added Wilderness Fallback System**:
-   - When NO structures exist, generates wilderness locations at different distances/angles
-   - Created survival and exploration quests that don't require structures
-   - Examples: "Travel 10 tiles", "Find water", "Survive 5 days"
-
-4. **✅ Fixed Disease Service Error**:
-   - Changed `diseaseService.ts` to export singleton instance
-   - Updated `EncounterModal.tsx` to use the singleton (was trying to call static method on class)
-   - Resolved "checkDirectContactTransmission is not a function" error
-
-### Files Modified:
-- **services/questService.ts**: Expanded location types, added wilderness fallback, fixed coordinate access
-- **hooks/useCoreLoops.ts**: Expanded valid structure detection, enabled wilderness quest generation
-- **services/diseaseService.ts**: Added singleton export for proper instantiation
-- **components/EncounterModal.tsx**: Updated to use diseaseService singleton
-- **services/eventService.ts**: Added mapData parameter to createQuestFromEvent call
-
-### Rationale:
-The quest system was failing on most maps because it required specific POI types (palaces, marketplaces) that rarely exist. By expanding to common structures (hamlets, mills) and adding wilderness fallbacks, quests now work on ALL maps. The coordinate access fixes handle the inconsistent data structures in the codebase.
 
 ## COMPREHENSIVE CODE REVIEW - August 15, 2025
 
@@ -703,159 +634,6 @@ The quest system was failing on most maps because it required specific POI types
 - **Assessment Engine**: Not started
 - **World Weaver Scenarios**: Basic implementation only
 
-### Recommended Development Priority
-
-#### **Week 1 - Complete NPC System**
-1. Connect trade negotiation to LLM (2 hours)
-2. Fix reputation system logic (2 hours)
-3. Implement NPC memory persistence (3 hours)
-4. Add NPC-initiated interactions (1 day)
-
-#### **Week 2 - World Weaver MVP**
-1. Scenario generation from prompts (2 days)
-2. Special NPC injection (1 day)
-3. Victory conditions system (1 day)
-4. Integration with primary sources (1 day)
-
-#### **Week 3 - Polish & Performance**
-1. Component code splitting (1 day)
-2. Global error boundaries (3 hours)
-3. Accessibility audit & fixes (2 days)
-4. Mobile UX improvements (2 days)
-
-#### **Week 4 - Educational Features**
-1. Assessment engine foundation (3 days)
-2. Learning objectives system (1 day)
-3. Progress tracking (1 day)
-
-### Technical Debt to Address
-1. **Type Safety**: Remove `any` types in map state
-2. **Dead Code**: Remove unused `MapDisplay.tsx`
-3. **File Organization**: Split mega-components
-4. **Error Handling**: Add try-catch blocks and user feedback
-5. **Testing**: No test coverage currently
-
-### Overall Health Score: 7.5/10
-
-**Strengths**:
-- Excellent primary source implementation
-- Solid service architecture
-- Rich historical content
-- Good performance optimizations
-
-**Weaknesses**:
-- Incomplete NPC features
-- Missing educational assessment
-- Mobile UX needs polish
-- No automated testing
-
-**Trajectory**: Strong foundation with clear path forward. Focus should be on completing partially-implemented features before adding new ones.
-
-## Next Steps
-
-## Future Feature Roadmap (To Be Implemented)
-
-### 1. **URL-Based Game Configuration System** 🔗
-Enable players to access specific historical scenarios via URL patterns for easy sharing and focused gameplay.
-
-#### URL Schema Design:
-```
-historysimulator.vercel.app/[date-range]/[geography]/[game-mode]/[seed]
-
-Examples:
-- /1500-1600 → Any location in 16th century
-- /1940-1954/europe/scholarship → Europe 1940-54 in scholarship mode  
-- /medieval/mena → Medieval Middle East, any mode
-- /1348/europe/survival → Black Death scenario
-- /random → Current default behavior
-```
-
-### 2. **Game Seed System** 🎲
-Implement reproducible game states via shareable seed codes.
-
-#### Seed Components:
-```typescript
-interface GameSeed {
-  mapSeed: number;        // For terrain generation
-  year: number;           // Starting year
-  location: string;       // Zone/region
-  gameMode: string;       // Selected mode
-  characterSeed: number;  // For character generation
-  version: string;        // Game version for compatibility
-}
-```
-
-#### Implementation Steps:
-1. **Seed Generation** (2 hours)
-   - Create 8-character alphanumeric seed from game state
-   - Base64 encode the GameSeed object
-   - Display prominently in Settings with copy button
-
-2. **Seed Input UI** (2 hours)
-   - Add "Enter Game Seed" input in Settings
-   - "Load from Seed" button
-   - Validation and error messages
-
-3. **Seed Application** (3 hours)
-   - Parse and validate seed structure
-   - Apply all seed parameters to game initialization
-   - Ensure deterministic random number generation
-
-4. **URL Integration** (1 hour)
-   - Support seed as URL parameter: `/1500/europe/survival/ABC123XY`
-   - Auto-copy shareable URL with seed
-
-### 3. **NPC & Animal Internal Monologue** 💭 [✅ IMPLEMENTED]
-Clickable portraits reveal inner thoughts (up to 3 clicks for deeper monologues).
-- Implemented in `EncounterModal.tsx` with `generateInternalMonologue` from LLM service
-- Caches responses to avoid repeat API calls
-- Works for both NPCs and animals with context-aware thoughts
-
-#### Implementation Steps:
-1. **UI Trigger** (2 hours)
-   - Make NPC/animal portraits clickable in modals
-   - Add subtle hover effect (slight glow)
-   - Track click count (max 3)
-
-2. **Monologue Modal** (3 hours)
-   - Create `InternalMonologueModal.tsx`
-   - Large portrait (200x200px) on left
-   - Text area on right with typewriter effect
-   - Italic serif font for thoughts
-
-3. **LLM Integration** (3 hours)
-   - Create prompt template:
-     ```
-     Character: [name, age, profession, personality]
-     Context: [current situation, health, location]
-     Task: Write 2 sentences of internal monologue.
-     Style: Stream-of-consciousness, emotional, personal
-     ```
-   - Cache responses to avoid repeat API calls
-   - Different thoughts for each of 3 clicks
-
-4. **Typewriter Animation** (2 hours)
-   - Word-by-word reveal (100ms per word)
-   - Cursor blink effect
-   - Smooth fade-in for each word
-
-### 5. **Theft Mechanic** 🗡️ [✅ FULLY IMPLEMENTED]
-NPCs can approach with theft intent based on desperation/personality.
-- Approach behavior implemented in `npcInitiatedEncounterService.ts`
-- Theft probability calculations based on dexterity vs perception
-- Complete item stealing mechanism in `encounterService.attemptTheft()`
-- Items transfer from player inventory to NPC inventory
-- Detection checks and reputation consequences implemented
-
-#### Theft Calculation:
-```typescript
-theftChance = baseChance
-  * personalityModifier (greed, desperation)
-  * professionModifier (thief: 5x, merchant: 0.5x)
-  * healthModifier (sick: 2x, starving: 3x)
-  * reputationModifier (player rep affects trust)
-```
-
 ## Inventory & Item Generation System (September 2025)
 
 ### How the Procedural Item System Works
@@ -887,85 +665,6 @@ The game uses a sophisticated procedural item generation system (`itemGeneration
 - **Solution**: Added category checking to skip material assignment for Food/Consumables
 - **Result**: Food now shows quality only ("Fine Loaf of Bread"), not materials
 
-### Improvement Suggestions for Better Gameplay
-
-#### 🎮 **Gameplay Improvements**
-
-1. **Item Durability & Maintenance**
-   - Items degrade with use (weapons lose sharpness, armor gets damaged)
-   - Add repair mechanics using appropriate materials
-   - Broken items become "scrap" that can be recycled
-   - Create maintenance mini-game for valuable equipment
-
-2. **Crafting System Expansion**
-   - Combine materials to create new items (iron + wood = axe)
-   - Recipe discovery through experimentation
-   - Cultural crafting techniques (Japanese sword folding, Damascus steel)
-   - Apprenticeship system to learn from NPC crafters
-
-3. **Dynamic Item Economy**
-   - Supply/demand affects prices based on local resources
-   - Seasonal variations (fur coats expensive in winter)
-   - Trade route disruptions create scarcity
-   - Player actions influence market (flooding market crashes prices)
-
-4. **Item Enchantments/Blessings**
-   - Religious NPCs can bless items for stat bonuses
-   - Cursed items with negative effects but high stats
-   - Legendary items with unique histories and quests
-   - Item "souls" that remember previous owners
-
-#### 🎨 **Realism Improvements**
-
-1. **Weight & Encumbrance Overhaul**
-   - Realistic weight limits based on strength
-   - Movement speed penalties when overloaded
-   - Pack animals and carts for carrying capacity
-   - Item bulk matters (can't carry 50 swords even if under weight)
-
-2. **Material Properties Matter**
-   - Iron rusts in wet climates without maintenance
-   - Leather needs oiling to stay supple
-   - Silk tears easily but is lightweight
-   - Wood items can burn, rot, or float
-
-3. **Historical Accuracy**
-   - Remove anachronistic items from eras
-   - Add more period-specific items (astrolabes, sundials)
-   - Cultural taboos (pork items unusable in Islamic regions)
-   - Technology progression (bronze → iron transition periods)
-
-4. **Item Interactions**
-   - Use any item as improvised weapon (chair, pot, book)
-   - Environmental interactions (use rope to climb, oil to start fires)
-   - Item combinations (torch + oil = fire bomb)
-   - Context actions (use knife to cut rope, pick locks, prepare food)
-
-#### 🎯 **Quality of Life Features**
-
-1. **Smart Inventory Management**
-   - Auto-sort by category, value, or weight
-   - Quick-deposit to nearby containers
-   - Item comparison tooltips
-   - Favorite items that won't be auto-sold
-
-2. **Visual Item Distinction**
-   - Unique icons for different materials (bronze vs iron sword)
-   - Condition indicators (sparkle for pristine, cracks for damaged)
-   - Rarity borders and glow effects
-   - Cultural style visual markers
-
-3. **Item History & Storytelling**
-   - Items track their journey (who owned, battles fought)
-   - Famous items from historical figures
-   - Item descriptions evolve with use
-   - "Identify" mechanic for mysterious items
-
-4. **Trading Improvements**
-   - Barter system for pre-monetary eras
-   - Trade agreements and recurring deals
-   - Merchant specializations and preferences
-   - Haggling mini-game with cultural variations
 
 ### 6. **Expanded Profession System** 👥 [✅ IMPLEMENTED]
    - Calculate theft chance during encounters
@@ -995,17 +694,16 @@ Massive profession database with 4000+ lines of culturally-specific roles.
 
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
-NEVER create files unless they're absolutely necessary for achieving your goal.
-ALWAYS prefer editing an existing file to creating a new one.
+NEVER create files unless they're necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one unless asked otherwise. 
 NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
-
 ## Special Maps System - December 2024
 
 ### Current State of Special Maps
 
 Special maps are interior/special area maps that players enter from the main world map. When a player enters certain structures (government districts, palaces, marketplaces, holy sites), they transition to a detailed interior map with NPCs, furniture, and cultural theming.
 
-### ✅ Container System (December 2024)
+### ✅ Container System (August 2025)
 
 Players can interact with containers (chests, barrels, crates, cabinets, etc.) in special maps:
 
@@ -1073,9 +771,6 @@ Players can interact with containers (chests, barrels, crates, cabinets, etc.) i
    - Places furniture/decorations
    - Defines rooms with bounds for NPC placement
    - NPC generator populates rooms with appropriate NPCs
-
-### ✅ COMPLETED: Special Map Archetype Variety (December 2024)
-
 
 ### Files with Legacy Issues
 

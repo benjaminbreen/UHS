@@ -20,6 +20,7 @@ interface PersistedNpcData {
   health: any; // CharacterHealth
   currency: number;
   inventory: any[]; // Item[]
+  equippedItems?: any; // Partial<Record<EquipmentSlot, Item>>
   attributes?: any[]; // AttributeBadge[]
 }
 
@@ -142,6 +143,32 @@ class NpcPersistenceService {
   }
 
   /**
+   * Debug function to show all NPC persistence data in localStorage
+   */
+  debugShowAllData(): void {
+    console.log('=== NPC PERSISTENCE DEBUG ===');
+    const savedMaps = this.getSavedMapsList();
+    console.log('Saved maps list:', savedMaps);
+
+    for (const mapSeed of savedMaps) {
+      const key = this.getStorageKey(mapSeed);
+      const data = localStorage.getItem(key);
+      if (data) {
+        try {
+          const parsed = JSON.parse(data);
+          console.log(`Map ${mapSeed}:`, Object.keys(parsed.npcs || {}));
+          for (const [npcId, npc] of Object.entries(parsed.npcs || {})) {
+            console.log(`  - ${(npc as any).name} (${npcId})`);
+          }
+        } catch (e) {
+          console.log(`Map ${mapSeed}: Failed to parse`, e);
+        }
+      }
+    }
+    console.log('=== END DEBUG ===');
+  }
+
+  /**
    * Get storage size info
    */
   getStorageInfo(): { usedKB: number; mapsCount: number } {
@@ -211,7 +238,7 @@ class NpcPersistenceService {
       memory: {
         opinionOfPlayer: npc.memory.opinionOfPlayer,
         knownFactsAboutPlayer: Array.from(npc.memory.knownFactsAboutPlayer || new Set()),
-        relationships: Array.from(npc.memory.relationships?.entries() || []),
+        relationships: Array.from((npc.memory.relationships instanceof Map) ? npc.memory.relationships.entries() : []),
         conversationSummaries: npc.memory.conversationSummaries || []
       },
       x: npc.x,
@@ -219,6 +246,7 @@ class NpcPersistenceService {
       health: npc.health,
       currency: npc.currency,
       inventory: npc.inventory,
+      equippedItems: npc.equippedItems,
       attributes: npc.attributes
     };
   }
@@ -247,6 +275,12 @@ class NpcPersistenceService {
     if (saved.inventory) {
       npc.inventory = saved.inventory;
     }
+    // CRITICAL FIX: Only restore equipped items if they were previously saved
+    // This preserves the sophisticated clothing system for new NPCs
+    if (saved.equippedItems) {
+      npc.equippedItems = saved.equippedItems;
+    }
+    // If no saved equipped items, keep the newly generated clothing intact
     if (saved.attributes) {
       npc.attributes = saved.attributes;
     }
@@ -350,3 +384,39 @@ class NpcPersistenceService {
 
 // Export singleton instance
 export const npcPersistenceService = new NpcPersistenceService();
+
+// Expose debug function globally for troubleshooting
+(window as any).debugNPCPersistence = () => npcPersistenceService.debugShowAllData();
+(window as any).clearAllNPCs = () => {
+  npcPersistenceService.clearAllNpcs();
+
+  // Clear sessionStorage NPCs
+  for (let i = 0; i < sessionStorage.length; i++) {
+    const key = sessionStorage.key(i);
+    if (key && key.startsWith('uhs_npc_session_')) {
+      sessionStorage.removeItem(key);
+    }
+  }
+
+  // Clear quest-related storage (where quest NPCs might be stored)
+  localStorage.removeItem('uhs_quest_data');
+  localStorage.removeItem('questTriggerState');
+  localStorage.removeItem('activeQuests');
+  localStorage.removeItem('completedQuests');
+  localStorage.removeItem('questChains');
+  localStorage.removeItem('questService_initialized');
+
+  // Clear marketplace quest merchants (the main culprit!)
+  localStorage.removeItem('uhs_persisted_merchants');
+  localStorage.removeItem('persistedMerchants'); // Old key for migration
+  localStorage.removeItem('merchantMemories');
+
+  console.log('[NPC Persistence] Cleared all NPC, quest, and marketplace merchant storage');
+};
+
+// Expose function to clear just marketplace merchants
+(window as any).clearMarketplaceMerchants = async () => {
+  const { llmQuestService } = await import('./llmQuestService');
+  llmQuestService.clearAllPersistedMerchants();
+  console.log('[Debug] Cleared all marketplace merchants');
+};

@@ -305,11 +305,11 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     const modeDescription = getModeDescription(gameMode, era, culturalZone, playerCharacter);
 
     return (
-        <div className={`fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-2 md:p-4 transition-opacity duration-500 ${
+        <div className={`fixed inset-0 bg-slate-400/60 dark:bg-black/60 flex items-center justify-center z-50 p-2 md:p-4 transition-opacity duration-500 ${
             isVisible ? 'opacity-100' : 'opacity-0'
         }`}>
-            <div className={`bg-gradient-to-br from-slate-900 via-slate-700 to-slate-900 
-                border border-slate-700/50 rounded-2xl shadow-2xl max-w-5xl w-full 
+            <div className={`bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-700 dark:to-slate-900
+                border border-slate-300/50 dark:border-slate-700/50 rounded-2xl shadow-2xl max-w-5xl w-full 
                 max-h-[95vh] md:max-h-[90vh] md:mt-[8px] overflow-y-auto
                 transition-all duration-700 transform ${
                     contentVisible 
@@ -318,16 +318,16 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                 }`}>
                 
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 md:p-5 border-b border-slate-700/50">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 md:p-5 border-b border-slate-300/50 dark:border-slate-700/50">
                     <div className="flex items-start sm:items-center gap-2 md:gap-4 w-full sm:w-auto">
                         <div className="p-2 md:p-3 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg shrink-0">
                             <Scroll className="w-5 h-5 md:w-7 md:h-7 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h2 className="text-lg sm:text-2xl md:text-3xl font-bold text-white mb-0.5 md:mb-1 break-words">
+                            <h2 className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-0.5 md:mb-1 break-words">
                                 You are {playerCharacter.name}, and the year is {gameDate.year}
                             </h2>
-                            <p className="text-xs sm:text-sm md:text-lg text-slate-300 break-words">
+                            <p className="text-xs sm:text-sm md:text-lg text-slate-600 dark:text-slate-300 break-words">
                                 <span className="block sm:inline">{formatEra(era)} • {formatCulturalZone(culturalZone)}</span>
                                 <span className="block sm:inline sm:ml-1">• {currentRegion}</span>
                                 <span className="block sm:inline sm:ml-1">• {formatDateWithSeason(gameDate, getSeasonFromDate(gameDate))}</span>
@@ -336,7 +336,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                     </div>
                     <button
                         onClick={onClose}
-                        className="absolute top-3 right-3 p-1.5 md:p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+                        className="absolute top-3 right-3 p-1.5 md:p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
                     >
                         <X className="w-5 h-5 md:w-6 md:h-6" />
                     </button>
@@ -350,7 +350,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                             <div className="bg-slate-800/50 rounded-lg p-3 md:p-4 border border-slate-700/30">
                                 <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-4">
                                     <Globe className="w-5 h-5 md:w-6 md:h-6 text-blue-400 shrink-0" />
-                                    <h3 className="text-base md:text-xl font-semibold text-blue-400 break-words">
+                                    <h3 className="text-base md:text-xl font-semibold text-blue-600 dark:text-blue-400 break-words">
                                         It is {getSeasonFromDate(gameDate)} in the {localArea}
                                     </h3>
                                 </div>
@@ -363,7 +363,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                             <div className="bg-slate-800/50 rounded-lg p-3 md:p-6 border border-slate-700/30">
                                 <div className="flex items-center gap-2 mb-2 md:mb-3">
                                     <User className="w-5 h-5 md:w-6 md:h-6 text-green-400" />
-                                    <h3 className="text-base md:text-xl font-semibold text-green-400">Your Character</h3>
+                                    <h3 className="text-base md:text-xl font-semibold text-green-600 dark:text-green-400">Your Character</h3>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-1 text-sm md:text-base">
                             <div className="col-span-1 sm:col-span-2 md:col-span-1">
@@ -418,7 +418,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                             <div className="space-y-2 md:space-y-4">
                                 <div className="flex items-center gap-2 md:gap-3">
                                     <Crown className="w-4 h-4 md:w-5 md:h-5 text-amber-400 shrink-0" />
-                                    <span className="font-semibold text-amber-400 text-sm md:text-lg">{gameMode.name}</span>
+                                    <span className="font-semibold text-amber-600 dark:text-amber-400 text-sm md:text-lg">{gameMode.name}</span>
                                 </div>
                                 <p className="text-slate-300 leading-relaxed text-xs md:text-base">
                                     {modeDescription}
@@ -445,10 +445,10 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2 md:gap-3">
                                 <Link className="w-4 h-4 md:w-5 md:h-5 text-purple-400 shrink-0" />
-                                <h3 className="text-sm md:text-base font-semibold text-purple-400">Game Seed</h3>
+                                <h3 className="text-sm md:text-base font-semibold text-purple-600 dark:text-purple-400">Game Seed</h3>
                             </div>
                             <div className="flex items-center gap-2">
-                                <code className="px-2 py-1 bg-slate-900 rounded text-xs md:text-sm font-mono text-purple-300">
+                                <code className="px-2 py-1 bg-slate-200 dark:bg-slate-900 rounded text-xs md:text-sm font-mono text-purple-700 dark:text-purple-300">
                                     {gameSeed}
                                 </code>
                                 <button
@@ -462,7 +462,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                         </div>
                         
                         {showShareLink && (
-                            <div className="mt-3 p-2 bg-slate-900 rounded">
+                            <div className="mt-3 p-2 bg-slate-100 dark:bg-slate-900 rounded">
                                 <p className="text-xs text-slate-400 mb-1">Share this link to play the same world:</p>
                                 <div className="flex items-center gap-1">
                                     <input
@@ -516,7 +516,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                 </div>
 
                 {/* Footer - Sticky on mobile */}
-                <div className="sticky bottom-0 p-3 md:p-3 border-t border-slate-700/50 bg-slate-900/95 backdrop-blur-sm">
+                <div className="sticky bottom-0 p-3 md:p-3 border-t border-slate-300/50 dark:border-slate-700/50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm">
                     <button
                         onClick={onClose}
                         className="w-full px-4 md:px-8 py-3 md:py-4 bg-gradient-to-r from-amber-600 to-amber-700 

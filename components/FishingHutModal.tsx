@@ -34,6 +34,7 @@ interface FishingHutModalProps {
   onInventoryUpdate?: (newItem: Item) => void;
   onBuy?: (itemId: string, price: number) => void;
   onSell?: (item: Item, price: number) => void;
+  onCharacterUpdate?: (updatedCharacter: PlayerCharacter) => void;
   playerGold?: number;
 }
 
@@ -61,6 +62,7 @@ const FishingHutModal: React.FC<FishingHutModalProps> = ({
   onInventoryUpdate,
   onBuy,
   onSell,
+  onCharacterUpdate,
   playerGold = 0
 }) => {
   const [isGameActive, setIsGameActive] = useState(false);
@@ -144,6 +146,9 @@ const FishingHutModal: React.FC<FishingHutModalProps> = ({
 
   // Handle successful catch
   const handleCatch = (fish: FishSpecies, weight: number, length: number) => {
+    console.log('🎣 handleCatch called with:', { fish: fish.name, weight, length });
+    console.log('🎣 onInventoryUpdate exists:', !!onInventoryUpdate);
+
     const catchRecord: CatchRecord = {
       species: fish,
       weight,
@@ -155,15 +160,25 @@ const FishingHutModal: React.FC<FishingHutModalProps> = ({
     setCatchHistory(prev => [...prev, catchRecord]);
     setUniqueSpeciesCaught(prev => new Set([...prev, fish.id]));
     setTotalWeight(prev => prev + weight);
-    
+
     if (!bestCatch || weight > bestCatch.weight) {
       setBestCatch(catchRecord);
     }
 
+    // Add 5 XP to player character
+    if (onCharacterUpdate) {
+      const updatedCharacter: PlayerCharacter = {
+        ...playerCharacter,
+        experience: Math.min(playerCharacter.experience + 5, playerCharacter.maxExperience)
+      };
+      onCharacterUpdate(updatedCharacter);
+    }
+
     // Add to inventory if callback provided
     const culturalName = fishingService.getCulturalName(fish, culturalZone);
-    
+
     if (onInventoryUpdate) {
+      console.log('🎣 Creating fish item for inventory');
       const fishItem: Item = {
         id: `FISH_${fish.id.toUpperCase()}_${Date.now()}`,
         name: culturalName,
@@ -179,8 +194,10 @@ const FishingHutModal: React.FC<FishingHutModalProps> = ({
         stackable: true,
         quantity: 1
       };
-      
+
+      console.log('🎣 Calling onInventoryUpdate with:', fishItem);
       onInventoryUpdate(fishItem);
+      console.log('🎣 onInventoryUpdate called successfully');
     }
 
     setGameMessage(`Caught a ${culturalName}! (${weight}kg)`);

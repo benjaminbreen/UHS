@@ -139,13 +139,24 @@ export const useMapState = (props: useMapStateProps) => {
         });
     }, []);
     
-    // Load persisted merchants on mount
+    const [deployedVessels, setDeployedVessels] = useState<DeployedVessel[]>([]);
+    const [mapDataCache, setMapDataCache] = useState<Map<string, CachedMapEntry>>(new Map());
+    const [currentWorldCoords, setCurrentWorldCoords] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
+
+    // Derive currentMapSeed early, before any hooks that use it
+    const currentMapSeed = useMemo(() => deriveMapSeed(initialGameSeed, currentWorldCoords.x, currentWorldCoords.y), [initialGameSeed, currentWorldCoords]);
+
+    // Load persisted merchants for current map (after NPCs are generated to preserve clothing)
     useEffect(() => {
         const loadPersistedMerchants = async () => {
+            // Only load if we have NPCs and a valid map seed
+            if (!currentMapSeed || npcs.length === 0) return;
+
             const { llmQuestService } = await import('../services/llmQuestService');
-            const persistedMerchants = llmQuestService.getPersistedMerchants();
-            
+            const persistedMerchants = llmQuestService.getPersistedMerchants(currentMapSeed);
+
             if (persistedMerchants.length > 0) {
+                console.log(`[useMapState] Loading ${persistedMerchants.length} persisted merchants for map ${currentMapSeed}`);
                 setNpcs(prevNpcs => {
                     const newNpcs = [...prevNpcs];
                     persistedMerchants.forEach(merchant => {
@@ -157,27 +168,22 @@ export const useMapState = (props: useMapStateProps) => {
                 });
             }
         };
-        
-        loadPersistedMerchants();
-    }, []);
+
+        // Load merchants after NPCs are generated (slight delay to ensure clothing is preserved)
+        const timer = setTimeout(loadPersistedMerchants, 100);
+        return () => clearTimeout(timer);
+    }, [currentMapSeed, npcs.length]); // Depend on currentMapSeed and npcs.length
     
-    const [deployedVessels, setDeployedVessels] = useState<DeployedVessel[]>([]);
-    const [mapDataCache, setMapDataCache] = useState<Map<string, CachedMapEntry>>(new Map());
-    const [currentWorldCoords, setCurrentWorldCoords] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
-    
-    // Derive currentMapSeed early, before any hooks that use it
-    const currentMapSeed = useMemo(() => deriveMapSeed(initialGameSeed, currentWorldCoords.x, currentWorldCoords.y), [initialGameSeed, currentWorldCoords]);
-    
-    // Save NPCs to localStorage when they change (throttled)
-    useEffect(() => {
-        if (npcs.length === 0) return;
-        
-        const saveTimer = setTimeout(() => {
-            npcPersistenceService.saveNpcs(npcs, currentMapSeed);
-        }, 2000); // Save after 2 seconds of no changes
-        
-        return () => clearTimeout(saveTimer);
-    }, [npcs, currentMapSeed]);
+    // DISABLED: Auto-save NPCs - only save when explicitly loading a saved game
+    // useEffect(() => {
+    //     if (npcs.length === 0) return;
+    //
+    //     const saveTimer = setTimeout(() => {
+    //         npcPersistenceService.saveNpcs(npcs, currentMapSeed);
+    //     }, 2000); // Save after 2 seconds of no changes
+    //
+    //     return () => clearTimeout(saveTimer);
+    // }, [npcs, currentMapSeed]);
     const [localArea, setLocalArea] = useState<string>('');
     const [worldItems, setWorldItems] = useState<Map<string, Item[]>>(new Map());
     const [mapAnalysisData, setMapAnalysisData] = useState<MapAnalysisData | null>(null);
@@ -473,7 +479,7 @@ export const useMapState = (props: useMapStateProps) => {
                 const south = mapDataCache.get(`${currentWorldCoords.x},${currentWorldCoords.y + 1}`);
                 if (south) neighboringEdges.south = south.mapData.edgeDataSet.north;
                 const west = mapDataCache.get(`${currentWorldCoords.x - 1},${currentWorldCoords.y}`);
-                if (west) neighboringEdges.west = west.mapData.edgeDataSet.west;
+                if (west) neighboringEdges.west = west.mapData.edgeDataSet.east;
 
                 // Check if we're in a liminal zone first
                 let mapToGenerate = null;
@@ -734,6 +740,11 @@ export const useMapState = (props: useMapStateProps) => {
         const newSeed = Math.abs(hash) % 1000000;
         setInitialGameSeed(newSeed);
         setMapDataCache(new Map());
+
+        // Clear all persisted NPCs when starting a genuinely new world
+        npcPersistenceService.clearAllNpcs();
+        console.log('[onStartNewWorldWithCurrentSettings] Cleared all persisted NPCs for new world');
+
         setCurrentWorldCoords({ x: 0, y: 0 });
         
         // Generate a random map area
@@ -1200,6 +1211,11 @@ export const useMapState = (props: useMapStateProps) => {
             const newSeed = Math.abs(hash) % 1000000;
             setInitialGameSeed(newSeed);
             setMapDataCache(new Map());
+
+            // Clear all persisted NPCs when starting a new random world
+            npcPersistenceService.clearAllNpcs();
+            console.log('[onStartNewWorldAtZoneRegion] Cleared all persisted NPCs for new random world');
+
             setCurrentWorldCoords({ x: 0, y: 0 });
             
             // Generate a random map area

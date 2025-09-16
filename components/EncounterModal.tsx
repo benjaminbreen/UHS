@@ -39,6 +39,8 @@ import { triggerArrest, ArrestScenario } from '../services/arrestService';
 import { usePortraitExpression, mapRepDeltaToExpr, mapEventToExpr, mapPersonalityToExpr } from '../hooks/usePortraitExpression';
 import { diseaseService } from '../services/diseaseService';
 import { crisisDetectionService } from '../services/crisisDetectionService';
+import { guardPermissionService } from '../services/guardPermissionService';
+import { generateSpecialMapNpcResponse } from '../services/npcDialogueService';
 
 function isNpc(target: EncounterableEntity): target is NpcEntity {
     return 'role' in target;
@@ -564,6 +566,17 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
             hasFetchedInitialDialogue.current = true;
             setIsLoading(true);
             
+            // Check if target has pre-generated initialDialogue (for fortress commanders and other elite NPCs)
+            if ((target as any).initialDialogue) {
+                console.log('🎖️ [EncounterModal] Using pre-generated dialogue for elite NPC');
+                const dialogueArray = (target as any).initialDialogue;
+                const combinedText = Array.isArray(dialogueArray) ? dialogueArray.join(' ') : dialogueArray;
+                const initialEntry: DialogueEntry = { speaker: 'npc', text: combinedText, timestamp: new Date() };
+                setHistory([initialEntry]);
+                setIsLoading(false);
+                return;
+            }
+            
             // Generate appropriate greeting based on whether NPC knows the player
             const hasMetBefore = target.memory.conversationSummaries && target.memory.conversationSummaries.length > 0;
             const greeting = hasMetBefore ? 
@@ -1072,10 +1085,63 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
         }
         
         try {
-            const response = await generateEncounterDialogue(target, newHistory, currentInput, playerCharacter, allNpcs, mapData, useRealLanguage);
+            // Check if this is a special map with potential permission granting
+            const isSpecialMap = mapData?.archetype && mapData.archetype !== 'STANDARD';
+            let response;
+
+            if (isSpecialMap && isNpc(target) && guardPermissionService.canNpcGrantAccess(target, mapData.archetype)) {
+                // Use special map dialogue that can grant permissions
+                const context = {
+                    era: mapData.era,
+                    culturalZone: mapData.culturalZone,
+                    location: mapData.area || 'special area',
+                    year: parseInt(mapData.timeSlice || '1500'),
+                    isMarketplace: mapData.archetype === 'MARKET'
+                };
+
+                const mapId = `${mapData.area || 'unknown'}_${mapData.seed || 'default'}`;
+
+                // Get authority context if it exists in special map data
+                const specialMapData = mapData as any;
+                const authorityContext = specialMapData?.specialConfig?.authorityContext;
+
+                response = await generateSpecialMapNpcResponse(
+                    target,
+                    currentInput,
+                    context,
+                    playerCharacter,
+                    mapId,
+                    mapData.archetype,
+                    authorityContext
+                );
+
+                // Handle permission granting
+                if (response.grantAccess && response.accessLevel && response.accessLevel !== 'none') {
+                    guardPermissionService.grantAccess(
+                        mapId,
+                        target.id,
+                        target.name,
+                        response.accessLevel,
+                        response.accessReason,
+                        30 * 60 * 1000 // 30 minutes
+                    );
+
+                    // Show success notification
+                    showToast(`✅ Access Granted: ${response.accessReason}`, 'success');
+
+                    // Flash portrait with approval
+                    flashPortrait('smile', 2000);
+
+                    console.log(`[Permission] ${target.name} granted ${response.accessLevel} access: ${response.accessReason}`);
+                }
+            } else {
+                // Use standard dialogue
+                response = await generateEncounterDialogue(target, newHistory, currentInput, playerCharacter, allNpcs, mapData, useRealLanguage);
+            }
+
             const newNpcEntry: DialogueEntry = { speaker: 'npc', text: response.text, timestamp: new Date() };
             setHistory(prev => [...prev, newNpcEntry]);
-            
+
             // Check for crisis mentions in NPC dialogue
             if (mapData && isNpc(target)) {
                 const location = { x: target.x, y: target.y };
@@ -1085,7 +1151,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                     showToast(`⚠️ ${target.name} speaks of ${crisis.pattern.flavorText.toLowerCase()}`);
                 }
             }
-            
+
             // Check NPC's reaction (may add additional reputation changes)
             checkNpcReaction(response);
         } catch(e) {
@@ -2234,7 +2300,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                             Tame
                         </button>
                     )}
-                    <button 
+                    <button
                         onClick={() => {
                             // Apply reputation penalty for attacking
                             if (isNpc(target) && playerCharacter) {
@@ -2245,10 +2311,40 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                                     const newReputation = Math.max(0, oldReputation + attackPenalty);
                                     playerCharacter.mapReputation = newReputation;
                                     console.log(`[REPUTATION] Attack initiated! -30 reputation for unprovoked violence`);
-                                    
+
+                                    // Update NPC memory about being attacked
+                                    const attackedNpc = target as NpcEntity;
+
+                                    // Create new memory object to ensure React detects the change
+                                    const newKnownFacts = new Set(attackedNpc.memory.knownFactsAboutPlayer);
+                                    newKnownFacts.add(`ATTACKED_BY_PLAYER_${Date.now()}`);
+
+                                    const attackSummary = `Player attacked me unprovoked on ${new Date().toLocaleDateString()}. This was a hostile action.`;
+                                    const newConversationSummaries = [...attackedNpc.memory.conversationSummaries, attackSummary];
+
+                                    const newOpinion = Math.max(-100, attackedNpc.memory.opinionOfPlayer - 50);
+
+                                    // Create updated NPC with new memory object
+                                    const updatedNpc = {
+                                        ...attackedNpc,
+                                        memory: {
+                                            ...attackedNpc.memory,
+                                            knownFactsAboutPlayer: newKnownFacts,
+                                            opinionOfPlayer: newOpinion,
+                                            conversationSummaries: newConversationSummaries
+                                        }
+                                    };
+
+                                    console.log(`[NPC MEMORY] Recording attack in ${updatedNpc.name}'s memory. Opinion: ${newOpinion}, Facts: ${newKnownFacts.size}`);
+
+                                    // Update the NPC in the main array immediately
+                                    if (onUpdateNpc) {
+                                        onUpdateNpc(updatedNpc);
+                                    }
+
                                     // Show warning
                                     setTimeout(() => setReputationChange(null), 4000);
-                                    
+
                                     // Check if this drops reputation to zero
                                     if (newReputation <= 0) {
                                         setTimeout(() => {
@@ -2260,7 +2356,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                                 }
                             }
                             onInitiateCombat(target);
-                        }} 
+                        }}
                         className="ff-action-button"
                     >
                         Attack

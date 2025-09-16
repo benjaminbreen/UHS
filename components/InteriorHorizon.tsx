@@ -37,6 +37,12 @@ const InteriorHorizon: React.FC<InteriorHorizonProps> = ({
   config,
   timeOfDay = 'Day'
 }) => {
+  // Safety check for undefined config
+  if (!config) {
+    console.warn('[InteriorHorizon] Config is undefined, using defaults');
+    return <div className="w-full h-full" />;
+  }
+  
   const { archetype, culturalZone, era } = config;
   
   // Get ceiling/upper architecture based on archetype and culture

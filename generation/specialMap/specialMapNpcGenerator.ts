@@ -162,15 +162,32 @@ function getCulturallyAppropriateProfessions(
 
   // Military buildings
   else if (archetype === SpecialMapArchetype.MILITARY_FORTRESS ||
+           archetype === SpecialMapArchetype.FORTRESS_COMMANDER_CHAMBER ||
            roomType === 'barracks' ||
-           roomType === 'armory') {
+           roomType === 'armory' ||
+           roomType === 'military_command') {
     
-    const militaryKeywords = ['warrior', 'soldier', 'guard', 'captain', 'general', 'knight',
-                             'samurai', 'archer', 'cavalry', 'infantry', 'scout', 'ranger'];
-    
-    filteredProfessions = allProfessions.filter(p => 
-      militaryKeywords.some(keyword => p.toLowerCase().includes(keyword))
-    );
+    // For commander chambers, prioritize high-ranking military officials
+    if (archetype === SpecialMapArchetype.FORTRESS_COMMANDER_CHAMBER || roomType === 'military_command') {
+      const commanderKeywords = ['general', 'commander', 'captain', 'marshal', 'warlord', 'admiral',
+                                 'colonel', 'major', 'brigadier', 'centurion', 'strategos'];
+      
+      filteredProfessions = allProfessions.filter(p => 
+        commanderKeywords.some(keyword => p.toLowerCase().includes(keyword))
+      );
+      
+      // If no commanders found, use high-ranking military titles
+      if (filteredProfessions.length === 0) {
+        filteredProfessions = ['Military Commander', 'Fortress Captain', 'War Chief'];
+      }
+    } else {
+      const militaryKeywords = ['warrior', 'soldier', 'guard', 'captain', 'general', 'knight',
+                               'samurai', 'archer', 'cavalry', 'infantry', 'scout', 'ranger'];
+      
+      filteredProfessions = allProfessions.filter(p => 
+        militaryKeywords.some(keyword => p.toLowerCase().includes(keyword))
+      );
+    }
   }
 
   // Academic buildings
@@ -529,13 +546,25 @@ export function generateSpecialMapNpcs(
 ): NpcEntity[] {
   const npcs: NpcEntity[] = [];
   let npcId = 1000; // Start with high ID to avoid conflicts
-  
+
   // Reset ruler assignment flag for each new map
   hasAssignedRuler = false;
-  
+
   // Special case: No NPCs on vessels (just the player)
   if (config.archetype === SpecialMapArchetype.VESSEL) {
     return [];
+  }
+
+  // If we have a leader from the government modal, create them first
+  if (config.authorityContext?.leader) {
+    const leaderNpc = createLeaderNpc(
+      config.authorityContext.leader,
+      findBestPositionForLeader(rooms, tiles, mapSize, noise),
+      config,
+      npcId++
+    );
+    npcs.push(leaderNpc);
+    hasAssignedRuler = true; // Mark that we've added the ruler
   }
   
   // LIMIT: Maximum 10 NPCs per special map
@@ -604,6 +633,28 @@ function generateNpcsForRoom(
   const npcs: NpcEntity[] = [];
   const { roomType } = room; // Destructure roomType for easier access
   const { archetype, culturalZone, era } = config; // Destructure config properties
+  
+  // Check for fixed NPC in customData (for commander chambers)
+  if ((room as any).customData?.fixedNpc) {
+    const fixedNpcData = (room as any).customData.fixedNpc;
+    const fixedNpc = createRoomAppropriateNpc(
+      startId,
+      fixedNpcData.profession,
+      fixedNpcData.position,
+      config,
+      null, // rules will be fetched in createRoomAppropriateNpc
+      room,
+      noise,
+      tiles
+    );
+    if (fixedNpc) {
+      // Mark as special/important NPC
+      (fixedNpc as any).isCommander = fixedNpcData.isCommander || false;
+      (fixedNpc as any).isFixedPosition = true;
+      npcs.push(fixedNpc);
+      return npcs; // For commander chamber, only return the fixed commander
+    }
+  }
   
   // Get historical rules for this room
   const rules = getApplicableRules(
@@ -1104,7 +1155,8 @@ function generateEntranceGuards(
         config.culturalZone as string,
         config.era as string,
         noise,
-        config.region
+        config.region,
+        config.specificYear
       );
       
       // Make guards face toward restricted areas
@@ -1182,7 +1234,8 @@ function generateWanderingNpcs(
         config.culturalZone,
         config.era,
         noise,
-        config.region
+        config.region,
+        config.specificYear
       );
       if (npc) {
         npcs.push(npc);
@@ -1288,7 +1341,8 @@ function generateLegacyNpcs(
           config.culturalZone,
           config.era,
           noise,
-          config.region
+          config.region,
+          config.specificYear
         );
         if (npc) {
           npcs.push(npc);
@@ -1384,10 +1438,13 @@ function getGovernmentNpcs(culturalZone: string, era: string, mapSize?: string):
  */
 function getMarketNpcs(culturalZone: string, era: string): { profession: string, count: number }[] {
   return [
-    { profession: 'MERCHANT', count: 4 },
-    { profession: 'TRADER', count: 3 },
+    { profession: 'MERCHANT', count: 3 },
+    { profession: 'TRADER', count: 2 },
     { profession: 'ARTISAN', count: 2 },
-    { profession: 'GUARD', count: 1 }
+    { profession: 'GUARD', count: 1 },
+    // Always include elite NPCs
+    { profession: 'NOBLE', count: 1 },
+    { profession: 'WEALTHY_MERCHANT', count: 1 }
   ];
 }
 
@@ -1399,28 +1456,40 @@ function getSacredNpcs(culturalZone: string, era: string): { profession: string,
   
   if (zone === 'EUROPEAN') {
     return [
-      { profession: 'PRIEST', count: 3 },
+      { profession: 'PRIEST', count: 2 },
       { profession: 'MONK', count: 2 },
-      { profession: 'PILGRIM', count: 2 }
+      { profession: 'PILGRIM', count: 1 },
+      // Elite religious figures
+      { profession: 'BISHOP', count: 1 },
+      { profession: 'NOBLE', count: 1 }
     ];
   } else if (zone === 'MENA') {
     return [
       { profession: 'IMAM', count: 2 },
       { profession: 'MUEZZIN', count: 1 },
-      { profession: 'SCHOLAR', count: 2 },
-      { profession: 'PILGRIM', count: 2 }
+      { profession: 'SCHOLAR', count: 1 },
+      { profession: 'PILGRIM', count: 1 },
+      // Elite religious figures
+      { profession: 'MUFTI', count: 1 },
+      { profession: 'NOBLE', count: 1 }
     ];
   } else if (zone === 'EAST_ASIAN') {
     return [
-      { profession: 'MONK', count: 3 },
-      { profession: 'PRIEST', count: 2 },
-      { profession: 'PILGRIM', count: 2 }
+      { profession: 'MONK', count: 2 },
+      { profession: 'PRIEST', count: 1 },
+      { profession: 'PILGRIM', count: 1 },
+      // Elite religious figures
+      { profession: 'ABBOT', count: 1 },
+      { profession: 'NOBLE', count: 1 }
     ];
   }
   
   return [
-    { profession: 'PRIEST', count: 3 },
-    { profession: 'DEVOTEE', count: 3 }
+    { profession: 'PRIEST', count: 2 },
+    { profession: 'DEVOTEE', count: 2 },
+    // Elite religious figures
+    { profession: 'HIGH_PRIEST', count: 1 },
+    { profession: 'NOBLE', count: 1 }
   ];
 }
 
@@ -1429,10 +1498,13 @@ function getSacredNpcs(culturalZone: string, era: string): { profession: string,
  */
 function getMilitaryNpcs(culturalZone: string, era: string): { profession: string, count: number }[] {
   return [
-    { profession: 'SOLDIER', count: 5 },
+    { profession: 'SOLDIER', count: 3 },
     { profession: 'OFFICER', count: 2 },
-    { profession: 'GUARD', count: 3 },
-    { profession: 'QUARTERMASTER', count: 1 }
+    { profession: 'GUARD', count: 2 },
+    { profession: 'QUARTERMASTER', count: 1 },
+    // Elite military figures
+    { profession: 'GENERAL', count: 1 },
+    { profession: 'NOBLE', count: 1 }
   ];
 }
 
@@ -1441,9 +1513,12 @@ function getMilitaryNpcs(culturalZone: string, era: string): { profession: strin
  */
 function getAcademicNpcs(culturalZone: string, era: string): { profession: string, count: number }[] {
   return [
-    { profession: 'SCHOLAR', count: 4 },
-    { profession: 'STUDENT', count: 3 },
+    { profession: 'SCHOLAR', count: 3 },
+    { profession: 'STUDENT', count: 2 },
     { profession: 'LIBRARIAN', count: 1 },
+    // Elite academic figures
+    { profession: 'PROFESSOR', count: 1 },
+    { profession: 'NOBLE', count: 1 },
     { profession: 'PHILOSOPHER', count: 1 }
   ];
 }
@@ -1453,9 +1528,12 @@ function getAcademicNpcs(culturalZone: string, era: string): { profession: strin
  */
 function getDefaultNpcs(culturalZone: string, era: string): { profession: string, count: number }[] {
   return [
-    { profession: 'CITIZEN', count: 3 },
-    { profession: 'WORKER', count: 2 },
-    { profession: 'GUARD', count: 1 }
+    { profession: 'CITIZEN', count: 2 },
+    { profession: 'WORKER', count: 1 },
+    { profession: 'GUARD', count: 1 },
+    // Elite figures for any special map
+    { profession: 'NOBLE', count: 1 },
+    { profession: 'WEALTHY_MERCHANT', count: 1 }
   ];
 }
 
@@ -1504,7 +1582,8 @@ function createSpecialMapNpc(
   culturalZone: string,
   era: string,
   noise: ValueNoise,
-  region?: string
+  region?: string,
+  year?: number
 ): NpcEntity {
   // Generate base profile with appearance first to get gender
   const baseProfile = generateBaseProfile(noise, {
@@ -1518,7 +1597,7 @@ function createSpecialMapNpc(
     baseProfile.gender as Gender,
     normalizeZone(culturalZone) as CulturalZone,
     region || culturalZone,
-    1500, // Default year if not specified
+    year || 1500, // Use provided year or default
     noise
     // Don't pass profession as professionNameKey - let it use cultural zone names
   );
@@ -1946,4 +2025,126 @@ function normalizeZone(zone: any): string {
   // Log unknown zones for debugging
   console.warn('[normalizeZone] Unknown zone:', zone, 'normalized:', normalized, 'defaulting to EUROPEAN');
   return 'EUROPEAN'; // Default
+}
+
+/**
+ * Create an NPC from the leader data passed from the government modal
+ */
+function createLeaderNpc(
+  leaderData: any,
+  position: { x: number, y: number },
+  config: SpecialMapConfig,
+  id: number
+): NpcEntity {
+  // Create NPC with the exact data from the modal
+  return {
+    id: `leader_${id}`,
+    name: leaderData.name,
+    profession: leaderData.title.toLowerCase(),
+    class: 'ruler',
+    role: leaderData.title,
+    emoji: '👑',
+    x: position.x,
+    y: position.y,
+    health: {
+      hp: 100,
+      maxHp: 100,
+      diseases: [],
+      statusEffects: [],
+      isImmune: false,
+      temperature: 'normal',
+      hydration: 'normal',
+      energy: 'normal'
+    },
+    maxHealth: 100,
+    dialogue: [`I am ${leaderData.title} ${leaderData.name}, ruler of this ${config.authorityContext?.governmentType || 'domain'}.`],
+    isAlive: true,
+    faction: config.authorityContext?.faction?.name || 'neutral',
+    personality: leaderData.personality || { traits: ['authoritative', 'wise'] },
+    attributes: [],
+    skills: {},
+    socialContext: leaderData.socialContext || { status: 'elite', relationships: {} },
+    stats: leaderData.stats,
+    appearance: leaderData.appearance,
+    gender: leaderData.gender,
+    age: leaderData.age,
+    portraitSeed: leaderData.portraitSeed,
+    wealthLevel: leaderData.wealthLevel as 'poor' | 'modest' | 'comfortable' | 'wealthy',
+    customData: {
+      isLeader: true,
+      authorityRole: leaderData.title,
+      factionName: config.authorityContext?.faction?.name,
+      factionDescription: config.authorityContext?.faction?.description,
+    }
+  };
+}
+
+/**
+ * Find the best position for the leader NPC (throne room, central hall, etc.)
+ */
+function findBestPositionForLeader(
+  rooms: RoomDefinition[],
+  tiles: any[][],
+  mapSize: { width: number, height: number },
+  noise: ValueNoise
+): { x: number, y: number } {
+  // Look for specific room types that should contain the leader
+  const preferredRooms = ['throne_room', 'council_chamber', 'great_hall', 'audience_chamber', 'main_hall'];
+
+  // Try to find a preferred room
+  for (const roomType of preferredRooms) {
+    const room = rooms.find(r => r.type === roomType);
+    if (room && room.bounds) {
+      // Place leader in center of the room
+      const centerX = Math.floor((room.bounds.minX + room.bounds.maxX) / 2);
+      const centerY = Math.floor((room.bounds.minY + room.bounds.maxY) / 2);
+
+      // Ensure the position is walkable
+      if (isWalkableTile(tiles[centerY]?.[centerX])) {
+        return { x: centerX, y: centerY };
+      }
+
+      // Try to find a walkable position near the center
+      for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          const x = centerX + dx;
+          const y = centerY + dy;
+          if (x >= room.bounds.minX && x <= room.bounds.maxX &&
+              y >= room.bounds.minY && y <= room.bounds.maxY &&
+              isWalkableTile(tiles[y]?.[x])) {
+            return { x, y };
+          }
+        }
+      }
+    }
+  }
+
+  // If no preferred room found, place in the largest room
+  const largestRoom = rooms.reduce((largest, room) => {
+    if (!room.bounds) return largest;
+    const roomSize = (room.bounds.maxX - room.bounds.minX) * (room.bounds.maxY - room.bounds.minY);
+    const largestSize = largest?.bounds ?
+      (largest.bounds.maxX - largest.bounds.minX) * (largest.bounds.maxY - largest.bounds.minY) : 0;
+    return roomSize > largestSize ? room : largest;
+  }, rooms[0]);
+
+  if (largestRoom?.bounds) {
+    const centerX = Math.floor((largestRoom.bounds.minX + largestRoom.bounds.maxX) / 2);
+    const centerY = Math.floor((largestRoom.bounds.minY + largestRoom.bounds.maxY) / 2);
+
+    // Try to find walkable position
+    for (let dy = -3; dy <= 3; dy++) {
+      for (let dx = -3; dx <= 3; dx++) {
+        const x = centerX + dx;
+        const y = centerY + dy;
+        if (x >= 0 && x < mapSize.width && y >= 0 && y < mapSize.height &&
+            isWalkableTile(tiles[y]?.[x])) {
+          return { x, y };
+        }
+      }
+    }
+  }
+
+  // Fallback to center of map
+  return findValidNpcPosition(tiles, mapSize, noise) || { x: Math.floor(mapSize.width / 2), y: Math.floor(mapSize.height / 2) };
 }

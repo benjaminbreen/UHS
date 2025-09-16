@@ -243,11 +243,11 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
     const e = npc as NpcEntity;
     const a = appearance;
     const items = [
-      { label: 'Headgear', value: formatAppearanceText(e.equippedItems?.head || a?.headgear, a?.palette?.secondary) },
-      { label: 'Garment', value: formatAppearanceText(e.equippedItems?.torso || a?.garment, a?.palette?.primary) },
-      { label: 'Accessory', value: formatAppearanceText(e.equippedItems?.accessory || e.equippedItems?.amulet || a?.accessory, a?.palette?.accent) },
-      { label: 'Belt', value: formatAppearanceText(e.equippedItems?.belt || a?.belt, a?.palette?.secondary) },
-      { label: 'Footwear', value: formatAppearanceText(e.equippedItems?.feet || a?.footwear, a?.palette?.secondary) },
+      { label: 'Headgear', value: formatAppearanceText(a?.headgear, a?.palette?.secondary) },
+      { label: 'Garment', value: formatAppearanceText(a?.garment, a?.palette?.primary) },
+      { label: 'Accessory', value: formatAppearanceText(a?.accessory, a?.palette?.accent) },
+      { label: 'Belt', value: formatAppearanceText(a?.belt, a?.palette?.secondary) },
+      { label: 'Footwear', value: formatAppearanceText(a?.footwear, a?.palette?.secondary) },
     ].filter(x => x.value && !x.value.toLowerCase().includes('nothing'));
     return items;
   }, [isPlayer, npc, appearance]);

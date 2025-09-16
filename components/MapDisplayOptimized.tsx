@@ -449,14 +449,16 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         shoreline: null,
         cactusPlacement: null,
         ambientDetail: null,
-        shoalBlend: null
+        shoalBlend: null,
+        watercolorEdge: null
       };
     }
     return {
       shoreline: new ValueNoise(mapData.seed + 300),
       cactusPlacement: new ValueNoise(mapData.seed + 200),
       ambientDetail: new ValueNoise(mapData.seed + 150),
-      shoalBlend: new ValueNoise(mapData.seed + 400)
+      shoalBlend: new ValueNoise(mapData.seed + 400),
+      watercolorEdge: new ValueNoise(mapData.seed + 999)
     };
   }, [mapData?.seed]);
 
@@ -1799,10 +1801,220 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               <circle cx={TILE_SIZE_PX * 0.7} cy={TILE_SIZE_PX * 0.6} r="1.5" fill="rgba(85,107,47,0.2)" />
               <circle cx={TILE_SIZE_PX * 0.5} cy={TILE_SIZE_PX * 0.8} r="1" fill="rgba(107,142,35,0.15)" />
             </pattern>
+
+            {/* Watercolor edge effect filters */}
+            <filter id="watercolor-edge-blend">
+              <feTurbulence
+                type="fractalNoise"
+                baseFrequency="0.02"
+                numOctaves="3"
+                seed={seed}
+                result="turbulence"
+              />
+              <feColorMatrix in="turbulence" type="saturate" values="0" result="desaturated"/>
+              <feComponentTransfer in="desaturated" result="discrete">
+                <feFuncA type="discrete" tableValues="0 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1"/>
+              </feComponentTransfer>
+              <feGaussianBlur in="discrete" stdDeviation="1.5" result="blurred"/>
+              <feBlend mode="multiply" in="blurred" in2="SourceGraphic"/>
+            </filter>
           </defs>
 
+          {/* Watercolor biome edge transitions - TOGGLEABLE */}
+          {/* Set to false to disable the watercolor effect */}
+          {false && shouldRenderDetailedSymbols && mapData && noiseGenerators.watercolorEdge && (() => {
+            const ENABLE_WATERCOLOR_EDGES = true; // Toggle this to enable/disable
+            if (!ENABLE_WATERCOLOR_EDGES) return null;
+
+            const edgeTransitions = [];
+            const processedEdges = new Set();
+
+            // Use the memoized noise generator to prevent shifting
+            const noiseGen = noiseGenerators.watercolorEdge;
+
+            // Important biome types to check for transitions (exclude urban/water/special)
+            const naturalBiomes = new Set([
+              BiomeType.GRASSLAND, BiomeType.FOREST, BiomeType.DENSE_FOREST,
+              BiomeType.DESERT, BiomeType.JUNGLE, BiomeType.TUNDRA,
+              BiomeType.HILLS, BiomeType.MOUNTAIN, BiomeType.SCRUB,
+              BiomeType.WETLANDS, BiomeType.SNOW, BiomeType.BEACH
+            ]);
+
+            // Find all biome edge tiles
+            tiles.forEach((row, y) => {
+              row.forEach((tile, x) => {
+                // Only process natural land biomes
+                if (!tile.isLand || !naturalBiomes.has(tile.biome)) return;
+
+                // Check all 4 neighbors
+                const neighbors = [];
+                if (y > 0 && tiles[y-1][x].isLand && naturalBiomes.has(tiles[y-1][x].biome)) {
+                  neighbors.push({ tile: tiles[y-1][x], dir: 'north' });
+                }
+                if (y < MAP_HEIGHT_TILES - 1 && tiles[y+1][x].isLand && naturalBiomes.has(tiles[y+1][x].biome)) {
+                  neighbors.push({ tile: tiles[y+1][x], dir: 'south' });
+                }
+                if (x > 0 && tiles[y][x-1].isLand && naturalBiomes.has(tiles[y][x-1].biome)) {
+                  neighbors.push({ tile: tiles[y][x-1], dir: 'west' });
+                }
+                if (x < MAP_WIDTH_TILES - 1 && tiles[y][x+1].isLand && naturalBiomes.has(tiles[y][x+1].biome)) {
+                  neighbors.push({ tile: tiles[y][x+1], dir: 'east' });
+                }
+
+                // Find neighbors with different biomes
+                const differentBiomes = neighbors.filter(n => n.tile.biome !== tile.biome);
+
+                // Skip if no different biomes nearby
+                if (differentBiomes.length === 0) return;
+
+                const edgeKey = `${x},${y}`;
+                if (processedEdges.has(edgeKey)) return;
+                processedEdges.add(edgeKey);
+
+                // Use consistent noise based on position - calculate once, use for multiple layers
+                const noiseValue = noiseGen.noise(x * 0.05, y * 0.05); // Large scale
+                const noiseValue2 = noiseGen.noise(x * 0.1 + 100, y * 0.1 + 100); // Medium scale
+                const noiseValue3 = noiseGen.noise(x * 0.2 + 200, y * 0.2 + 200); // Small scale
+
+                // Function to get biome-specific blend color
+                const getBiomeBlendColor = (fromBiome, toBiome) => {
+                  // Desert transitions - sandy/yellow tints
+                  if (fromBiome === BiomeType.DESERT || toBiome === BiomeType.DESERT) {
+                    return 'rgba(194, 178, 128, 0.25)'; // Sandy beige
+                  }
+                  // Forest transitions - greenish tints
+                  if (fromBiome === BiomeType.FOREST || toBiome === BiomeType.FOREST ||
+                      fromBiome === BiomeType.DENSE_FOREST || toBiome === BiomeType.DENSE_FOREST) {
+                    return 'rgba(139, 154, 120, 0.25)'; // Mossy green
+                  }
+                  // Mountain/hill transitions - grayish tints
+                  if (fromBiome === BiomeType.MOUNTAIN || toBiome === BiomeType.MOUNTAIN ||
+                      fromBiome === BiomeType.HILLS || toBiome === BiomeType.HILLS) {
+                    return 'rgba(156, 156, 168, 0.25)'; // Rocky gray
+                  }
+                  // Snow transitions - bluish white
+                  if (fromBiome === BiomeType.SNOW || toBiome === BiomeType.SNOW ||
+                      fromBiome === BiomeType.TUNDRA || toBiome === BiomeType.TUNDRA) {
+                    return 'rgba(188, 200, 212, 0.25)'; // Ice blue
+                  }
+                  // Wetland transitions - murky green
+                  if (fromBiome === BiomeType.WETLANDS || toBiome === BiomeType.WETLANDS) {
+                    return 'rgba(125, 147, 125, 0.25)'; // Swamp green
+                  }
+                  // Beach transitions - sandy
+                  if (fromBiome === BiomeType.BEACH || toBiome === BiomeType.BEACH) {
+                    return 'rgba(210, 195, 160, 0.25)'; // Beach sand
+                  }
+                  // Jungle transitions - deep green
+                  if (fromBiome === BiomeType.JUNGLE || toBiome === BiomeType.JUNGLE) {
+                    return 'rgba(100, 130, 90, 0.25)'; // Deep jungle green
+                  }
+                  // Default neutral brown
+                  return 'rgba(160, 145, 130, 0.25)';
+                };
+
+                // Create organic gradient masks for transitions with multiple layers
+                differentBiomes.forEach((neighbor, idx) => {
+                  // Calculate direction vector
+                  const dx = neighbor.dir === 'east' ? 1 : neighbor.dir === 'west' ? -1 : 0;
+                  const dy = neighbor.dir === 'south' ? 1 : neighbor.dir === 'north' ? -1 : 0;
+
+                  // Get biome-appropriate color
+                  const blendColor = getBiomeBlendColor(tile.biome, neighbor.tile.biome);
+
+                  // Create gradient IDs for each layer
+                  const gradientId1 = `edge-gradient-${x}-${y}-${idx}-1`;
+                  const gradientId2 = `edge-gradient-${x}-${y}-${idx}-2`;
+                  const gradientId3 = `edge-gradient-${x}-${y}-${idx}-3`;
+
+                  edgeTransitions.push(
+                    <g key={`edge-group-${x}-${y}-${idx}`}>
+                      <defs>
+                        {/* Layer 1 - Large scale gradient */}
+                        <linearGradient id={gradientId1} x1="0%" y1="0%"
+                          x2={`${dx * 100}%`} y2={`${dy * 100}%`}>
+                          <stop offset="0%" stopColor="white" stopOpacity="0" />
+                          <stop offset="40%" stopColor="white" stopOpacity="0.3" />
+                          <stop offset="100%" stopColor="white" stopOpacity="0.8" />
+                        </linearGradient>
+                        {/* Layer 2 - Medium scale gradient */}
+                        <linearGradient id={gradientId2} x1="0%" y1="0%"
+                          x2={`${dx * 100}%`} y2={`${dy * 100}%`}>
+                          <stop offset="0%" stopColor="white" stopOpacity="0" />
+                          <stop offset="60%" stopColor="white" stopOpacity="0.6" />
+                          <stop offset="100%" stopColor="white" stopOpacity="1" />
+                        </linearGradient>
+                        {/* Layer 3 - Small scale gradient */}
+                        <linearGradient id={gradientId3} x1="0%" y1="0%"
+                          x2={`${dx * 100}%`} y2={`${dy * 100}%`}>
+                          <stop offset="0%" stopColor="white" stopOpacity="0" />
+                          <stop offset="30%" stopColor="white" stopOpacity="0.2" />
+                          <stop offset="100%" stopColor="white" stopOpacity="0.5" />
+                        </linearGradient>
+                      </defs>
+
+                      {/* Layer 1 - Large scale (10% opacity) */}
+                      <rect
+                        x={x * TILE_SIZE_PX + noiseValue * 4 * dx}
+                        y={y * TILE_SIZE_PX + noiseValue * 4 * dy}
+                        width={TILE_SIZE_PX * (0.9 + Math.abs(noiseValue) * 0.2)}
+                        height={TILE_SIZE_PX * (0.9 + Math.abs(noiseValue) * 0.2)}
+                        fill={blendColor}
+                        opacity={0.1}
+                        mask={`url(#${gradientId1})`}
+                        style={{
+                          mixBlendMode: 'multiply',
+                          filter: 'url(#watercolor-edge-blend)',
+                          pointerEvents: 'none'
+                        }}
+                      />
+
+                      {/* Layer 2 - Medium scale (15% opacity) */}
+                      <rect
+                        x={x * TILE_SIZE_PX + noiseValue2 * 3 * dx}
+                        y={y * TILE_SIZE_PX + noiseValue2 * 3 * dy}
+                        width={TILE_SIZE_PX * (0.95 + Math.abs(noiseValue2) * 0.3)}
+                        height={TILE_SIZE_PX * (0.95 + Math.abs(noiseValue2) * 0.3)}
+                        fill={blendColor}
+                        opacity={0.15}
+                        mask={`url(#${gradientId2})`}
+                        style={{
+                          mixBlendMode: 'multiply',
+                          filter: 'url(#watercolor-edge-blend)',
+                          pointerEvents: 'none'
+                        }}
+                      />
+
+                      {/* Layer 3 - Small scale (5% opacity) */}
+                      <rect
+                        x={x * TILE_SIZE_PX + noiseValue3 * 2 * dx}
+                        y={y * TILE_SIZE_PX + noiseValue3 * 2 * dy}
+                        width={TILE_SIZE_PX}
+                        height={TILE_SIZE_PX}
+                        fill={blendColor}
+                        opacity={0.05}
+                        mask={`url(#${gradientId3})`}
+                        style={{
+                          mixBlendMode: 'multiply',
+                          filter: 'url(#watercolor-edge-blend)',
+                          pointerEvents: 'none'
+                        }}
+                      />
+                    </g>
+                  );
+                });
+              });
+            });
+
+            return (
+              <g className="watercolor-edges">
+                {edgeTransitions}
+              </g>
+            );
+          })()}
+
           {/* Coastline overlay removed - using context-aware enhancements instead */}
-          
+
           {/* Coastal enhancements removed - now handled by canvas organic edge rendering */}
           {false && (
           <g id="coastal-enhancements" opacity="0.8">
@@ -2079,7 +2291,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                                 </div>
                             ))}
                         </div>
-                        <div className="text-xs text-slate-400 mt-2">
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                             Circle size = abundance
                         </div>
                     </div>
@@ -4195,36 +4407,36 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             transform: 'translate(-50%, -100%)'
           }}
         >
-          <div className="bg-slate-900/95 backdrop-blur-sm border border-amber-500/50 rounded-lg p-3 shadow-xl min-w-[200px] max-w-[280px]">
+          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border border-amber-500/50 rounded-lg p-3 shadow-xl min-w-[200px] max-w-[280px]">
           {hoveredNPC && (
             <>
-              <div className="font-bold text-sm mb-1.5 text-amber-300">{hoveredNPC.name}</div>
-              <div className="text-xs space-y-1 text-slate-200">
+              <div className="font-bold text-sm mb-1.5 text-amber-600 dark:text-amber-300">{hoveredNPC.name}</div>
+              <div className="text-xs space-y-1 text-slate-700 dark:text-slate-200">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Age:</span>
+                  <span className="text-slate-500 dark:text-slate-400">Age:</span>
                   <span>{hoveredNPC.age} years old</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Gender:</span>
+                  <span className="text-slate-500 dark:text-slate-400">Gender:</span>
                   <span>{hoveredNPC.gender}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Profession:</span>
+                  <span className="text-slate-500 dark:text-slate-400">Profession:</span>
                   <span className="text-blue-300">{hoveredNPC.role}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Class:</span>
+                  <span className="text-slate-500 dark:text-slate-400">Class:</span>
                   <span className="text-purple-300">{hoveredNPC.class}</span>
                 </div>
                 {hoveredNPC.stats && (
                   <>
                     <div className="border-t border-slate-700 mt-1 pt-1">
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Health:</span>
+                        <span className="text-slate-500 dark:text-slate-400">Health:</span>
                         <span>{hoveredNPC.maxHealth || 'Unknown'}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-400">STR/CON:</span>
+                        <span className="text-slate-500 dark:text-slate-400">STR/CON:</span>
                         <span>{hoveredNPC.stats.strength}/{hoveredNPC.stats.constitution}</span>
                       </div>
                     </div>
@@ -4236,27 +4448,27 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           )}
           {hoveredAnimal && (
             <>
-              <div className="font-bold text-sm mb-1.5 text-amber-300">{hoveredAnimal.speciesName || hoveredAnimal.type}</div>
-              <div className="text-xs space-y-1 text-slate-200">
+              <div className="font-bold text-sm mb-1.5 text-amber-600 dark:text-amber-300">{hoveredAnimal.speciesName || hoveredAnimal.type}</div>
+              <div className="text-xs space-y-1 text-slate-700 dark:text-slate-200">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Type:</span>
+                  <span className="text-slate-500 dark:text-slate-400">Type:</span>
                   <span>{hoveredAnimal.type}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Age:</span>
+                  <span className="text-slate-500 dark:text-slate-400">Age:</span>
                   <span>{hoveredAnimal.age} years</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Temperament:</span>
+                  <span className="text-slate-500 dark:text-slate-400">Temperament:</span>
                   <span className="text-yellow-300">{hoveredAnimal.temperament || 'Unknown'}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Health:</span>
+                  <span className="text-slate-500 dark:text-slate-400">Health:</span>
                   <span>{hoveredAnimal.maxHealth || 'Unknown'}</span>
                 </div>
                 {hoveredAnimal.stats && (
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Attack/Defense:</span>
+                    <span className="text-slate-500 dark:text-slate-400">Attack/Defense:</span>
                     <span>{hoveredAnimal.stats.attack}/{hoveredAnimal.stats.defense}</span>
                   </div>
                 )}

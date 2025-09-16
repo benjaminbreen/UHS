@@ -19,18 +19,11 @@ interface QuarryBannerProps {
   isRuined?: boolean;
 }
 
-// Fixed ground level - matching TerrainStructureBanner exactly
-// --- TOP OF FILE: replace the single `const GROUND_Y = 110;` with this block ---
-const HORIZON_SHIFT = 50;         // push horizon down by ~50px (more sky)
-const SKY_BASE = 90;
-const SKY_HEIGHT = SKY_BASE + HORIZON_SHIFT;
+// Fixed ground level - matching FortressBanner for better proportions
+const GROUND_Y = 110;  // Same as fortress banner - quarry will be higher up and more visible
+const SKY_HEIGHT = 90; // Less sky, more quarry
 const HORIZON_Y = SKY_HEIGHT;
-
-const GROUND_BASE = 110;
-const GROUND_Y = GROUND_BASE + HORIZON_SHIFT;
-
-const PATH_OFFSET = 40;           // tweak 30–100 to taste
-const PATH_Y = GROUND_Y + PATH_OFFSET;
+const PATH_Y = GROUND_Y + 40; // Path below ground level
 
 
 // Seeded random

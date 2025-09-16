@@ -24,10 +24,12 @@ import { EventModal } from './components/EventModal';
 import { EventNotification, EventBadge } from './components/EventNotification';
 import { GameModeSelector } from './components/GameModeSelector';
 import { suggestGameMode, GAME_MODES, getGameModeById } from './constants/gameData/gameModes';
+import { themeService } from './services/themeService';
 import InitialScenarioModal from './components/InitialScenarioModal';
 import { eventService } from './services/eventService';
 import QuestRewardNotification from './components/QuestRewardNotification';
 import QuestNotificationToast from './components/QuestNotification';
+import ContainerPrompt from './components/ContainerPrompt';
 import { parseURLConfig, URLGameConfig } from './services/urlConfigService';
 import { SeedManager } from './services/seedService';
 import { shareableStateService } from './services/shareableStateService';
@@ -42,6 +44,11 @@ const AppContent: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
     
+    // Initialize theme on app startup
+    React.useEffect(() => {
+        themeService.initializeTheme();
+    }, []);
+
     // Parse URL config FIRST, before any hooks that use game state
     const urlConfig = React.useMemo(() => {
         // Check for pending save load FIRST
@@ -166,7 +173,7 @@ const AppContent: React.FC = () => {
     }, []); // Only parse once on mount
     
     useCoreLoops();
-    const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, debugSettings, isTestModeEnabled, floatingTextMessages, removeFloatingText } = useUI();
+    const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, debugSettings, isTestModeEnabled, floatingTextMessages, removeFloatingText, containerPrompt, hideContainerPrompt } = useUI();
     const { playerCharacter } = usePlayer();
     const { gameDate, currentZone, currentRegion, isLoading } = useGame();
     const mapContext = useMap();
@@ -552,9 +559,16 @@ const AppContent: React.FC = () => {
     }, [mobileMenuOpen]);
 
     return (
-      <div className="bg-slate-900 text-gray-100 flex flex-col h-screen overflow-hidden">
+      <div className="bg-slate-200 text-slate-800 dark:bg-slate-900 dark:text-gray-100 flex flex-col h-screen overflow-hidden transition-colors duration-300">
         {/* Quest Notifications */}
         <QuestNotificationToast />
+        
+        {/* Container Prompt */}
+        <ContainerPrompt 
+          message={containerPrompt.message}
+          isVisible={containerPrompt.isVisible}
+          onClose={hideContainerPrompt}
+        />
         
         <div className="relative z-10 flex flex-col h-full">
             {/* Desktop Navigation */}

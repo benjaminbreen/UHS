@@ -3,7 +3,7 @@
  * Handles LLM-powered exploration and decision-making for quest locations
  */
 
-import { LLMEvent, EventChoice } from '../components/POIInteractionModal';
+
 import { Quest } from '../types/questTypes';
 import { TerrainStructure } from '../types';
 

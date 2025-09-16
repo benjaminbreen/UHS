@@ -187,10 +187,17 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
     const [history, setHistory] = useState<DialogueEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [playerInput, setPlayerInput] = useState('');
-    const [activeTab, setActiveTab] = useState<'dialogue' | 'history' | 'trade' | 'medical' | 'household' | 'quest'>('dialogue');
+    const [activeTab, setActiveTab] = useState<'dialogue' | 'history' | 'trade' | 'taming' | 'medical' | 'household' | 'quest'>('dialogue');
     const [useRealLanguage, setUseRealLanguage] = useState(false);
     const [reputationChange, setReputationChange] = useState<number | null>(null);
     const [npcWantsToLeave, setNpcWantsToLeave] = useState(false);
+    
+    // Taming states
+    const [tamingApproach, setTamingApproach] = useState('');
+    const [tamingInProgress, setTamingInProgress] = useState(false);
+    const [tamingAttempts, setTamingAttempts] = useState(0);
+    const [tamingResult, setTamingResult] = useState<string | null>(null);
+    const [animalOwner, setAnimalOwner] = useState<NpcEntity | null>(null);
     
     // Quest states
     const [questOffer, setQuestOffer] = useState<any>(null);
@@ -218,6 +225,63 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
     const hasFetchedInitialDialogue = useRef(false);
     const targetName = isNpc(target) ? (target.name || 'Unknown NPC') : (target.speciesName || 'Unknown Creature');
     
+    // Taming handler
+    const handleTame = async () => {
+        if (!tamingApproach.trim() || tamingInProgress || !playerCharacter) return;
+        
+        setTamingInProgress(true);
+        
+        try {
+            const result = await attemptTaming(
+                target,
+                tamingApproach,
+                playerCharacter,
+                tamingAttempts > 0 // Is second attempt
+            );
+            
+            setTamingAttempts(prev => prev + 1);
+            
+            if (result.success === 'tamed') {
+                // Success! Add to party
+                const tamedAnimal = createTamedAnimal(target, playerCharacter);
+                addToParty(tamedAnimal);
+                
+                // Check if this was theft
+                const isTheft = animalOwner !== null;
+                if (isTheft) {
+                    // Apply reputation penalty
+                    eventService.updateReputation(-30);
+                    showToast(`You stole ${animalOwner?.name}'s ${target.speciesName}! Your reputation suffers greatly.`, 'error');
+                } else {
+                    showToast(`${targetName} has joined your party!`, 'success');
+                }
+                
+                setTamingResult(`Success! ${targetName} now trusts you and will follow you on your journey.`);
+                
+                // Close modal after short delay
+                setTimeout(() => {
+                    onClose(history);
+                }, 2000);
+            } else if (result.success === 'partial') {
+                setTamingResult(result.message || 'The animal seems interested but needs more convincing...');
+                setTamingApproach('');
+            } else {
+                setTamingResult(result.message || 'The animal fled!');
+                // Close modal if animal fled
+                if (result.message?.includes('fled')) {
+                    setTimeout(() => {
+                        onClose(history);
+                    }, 2000);
+                }
+            }
+        } catch (error) {
+            console.error('Taming error:', error);
+            setTamingResult('Something went wrong with the taming attempt.');
+        } finally {
+            setTamingInProgress(false);
+        }
+    };
+    
     // Get active quests
     const activeQuests = questService.getActiveQuests();
     const relevantQuests = activeQuests.filter(quest => {
@@ -244,7 +308,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                 e.stopPropagation();
                 onOpenInfo(target);
             } else if (e.key === 't' || e.key === 'T') {
-                setActiveTab('trade');
+                setActiveTab(isNpc(target) ? 'trade' : 'taming');
             } else if (e.key === 'a' || e.key === 'A') {
                 onInitiateCombat(target);
             }
@@ -443,6 +507,14 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
             }
         }
     }, [target, playerCharacter]);
+    
+    // Check for animal ownership
+    useEffect(() => {
+        if (!isNpc(target) && allNpcs) {
+            const owner = checkAnimalOwnership(target, allNpcs);
+            setAnimalOwner(owner);
+        }
+    }, [target, allNpcs]);
     
     // Handle portrait click for internal monologue
     const handlePortraitClick = async () => {
@@ -838,7 +910,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                             </span>
                                         </button>
                                         <button 
-                                            onClick={() => setActiveTab('trade')}
+                                            onClick={() => setActiveTab('taming')}
                                             className="w-10 h-10 bg-slate-700/50 border border-slate-600 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-600/50 hover:text-slate-200 hover:border-slate-500 transition-all hover:-translate-y-0.5 hover:scale-105 group relative"
                                             title="Tame Animal (T)"
                                         >
@@ -902,14 +974,14 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                         </button>
                                     )}
                                     <button 
-                                        onClick={() => setActiveTab('trade')} 
+                                        onClick={() => setActiveTab(isNpc(target) ? 'trade' : 'taming')} 
                                         className={`px-4 py-2.5 text-sm font-medium transition-all ${
-                                            activeTab === 'trade' 
+                                            activeTab === 'trade' || activeTab === 'taming'
                                                 ? 'text-blue-400 border-b-2 border-blue-400' 
                                                 : 'text-slate-500 hover:text-slate-300 border-b-2 border-transparent'
                                         }`}
                                     >
-                                        {isNpc(target) ? 'Trade' : 'Taming'}
+                                        {isNpc(target) ? 'Trade' : 'Tame'}
                                     </button>
                                     {(questOffer?.hasQuest || relevantQuests.length > 0) && (
                                         <button 
@@ -999,6 +1071,169 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                         onClose={() => setActiveTab('dialogue')}
                                         onTradeComplete={() => {}}
                                     />
+                                )}
+                                
+                                {/* Taming tab */}
+                                {activeTab === 'taming' && !isNpc(target) && (
+                                    <div className="flex flex-col h-full p-6 space-y-4 animate-slide-up">
+                                        {/* Header */}
+                                        <div className="flex items-center justify-between pb-4 border-b border-slate-700">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full flex items-center justify-center">
+                                                    <Heart className="w-6 h-6 text-green-400" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-semibold text-green-400">
+                                                        Taming {targetName}
+                                                    </h3>
+                                                    <p className="text-xs text-slate-400">
+                                                        Build trust through careful approach
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-xs text-slate-500">Attempts</p>
+                                                <p className="text-lg font-bold text-slate-300">{tamingAttempts}/2</p>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Ownership Warning */}
+                                        {animalOwner && (
+                                            <div className="p-4 bg-gradient-to-r from-red-900/20 to-red-800/20 border border-red-600/30 rounded-lg animate-pulse-subtle">
+                                                <div className="flex items-start gap-3">
+                                                    <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                                                    <div className="flex-1">
+                                                        <p className="text-sm font-medium text-red-300">
+                                                            Owned Animal Warning
+                                                        </p>
+                                                        <p className="text-xs text-red-200 mt-1">
+                                                            This {target.speciesName} belongs to {animalOwner.name}.
+                                                            Stealing it will severely damage your reputation (-30 points).
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Animal Info Card */}
+                                        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <p className="text-xs text-slate-500 mb-1">Species</p>
+                                                    <p className="text-sm font-medium text-slate-200">
+                                                        {target.emoji} {target.speciesName}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-slate-500 mb-1">Estimated Value</p>
+                                                    <p className="text-sm font-medium text-amber-400">
+                                                        {calculateAnimalValue(target, playerCharacter?.year || 1500)} coins
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-slate-500 mb-1">Temperament</p>
+                                                    <p className="text-sm font-medium text-slate-200">
+                                                        {target.health && target.health > 70 ? 'Healthy' : 
+                                                         target.health && target.health > 40 ? 'Cautious' : 'Nervous'}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-slate-500 mb-1">Difficulty</p>
+                                                    <div className="flex gap-1">
+                                                        {[1,2,3].map(i => (
+                                                            <div 
+                                                                key={i}
+                                                                className={`w-2 h-2 rounded-full ${
+                                                                    i <= (target.level || 1) 
+                                                                        ? 'bg-orange-400' 
+                                                                        : 'bg-slate-700'
+                                                                }`}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Taming Result */}
+                                        {tamingResult && (
+                                            <div className={`p-4 rounded-lg border animate-slide-up ${
+                                                tamingResult.includes('Success') 
+                                                    ? 'bg-green-900/20 border-green-600/30 text-green-200'
+                                                    : tamingResult.includes('interested')
+                                                        ? 'bg-yellow-900/20 border-yellow-600/30 text-yellow-200'
+                                                        : 'bg-red-900/20 border-red-600/30 text-red-200'
+                                            }`}>
+                                                <p className="text-sm leading-relaxed">{tamingResult}</p>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Approach Input */}
+                                        <div className="flex-1 flex flex-col">
+                                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                                                Describe your taming approach:
+                                            </label>
+                                            <div className="flex-1 min-h-[100px] relative">
+                                                <textarea
+                                                    value={tamingApproach}
+                                                    onChange={(e) => setTamingApproach(e.target.value)}
+                                                    className="w-full h-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500 resize-none focus:outline-none focus:border-green-500/50 focus:ring-2 focus:ring-green-500/20 transition-all"
+                                                    placeholder={
+                                                        tamingAttempts === 0 
+                                                            ? "e.g., 'I slowly approach with open palms, speaking softly and offering food...'"
+                                                            : "The animal seems interested. Try a different approach..."
+                                                    }
+                                                    disabled={tamingInProgress}
+                                                />
+                                                {tamingApproach.length > 0 && (
+                                                    <div className="absolute bottom-2 right-2 text-xs text-slate-500">
+                                                        {tamingApproach.length} characters
+                                                    </div>
+                                                )}
+                                            </div>
+                                            
+                                            {/* Tips */}
+                                            <div className="mt-3 p-3 bg-slate-900/50 rounded-lg border border-slate-700">
+                                                <p className="text-xs text-slate-400">
+                                                    💡 <span className="font-medium">Tips:</span> Mention food, gentle movements, 
+                                                    patience, and understanding of the animal's nature. Different species respond 
+                                                    to different approaches!
+                                                </p>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Action Buttons */}
+                                        <div className="flex gap-3 pt-4 border-t border-slate-700">
+                                            <button
+                                                onClick={handleTame}
+                                                disabled={!tamingApproach.trim() || tamingInProgress}
+                                                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
+                                                    !tamingApproach.trim() || tamingInProgress
+                                                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                                        : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-500 hover:to-emerald-500 hover:scale-[1.02] active:scale-[0.98]'
+                                                }`}
+                                            >
+                                                {tamingInProgress ? (
+                                                    <>
+                                                        <div className="loading-dot"></div>
+                                                        <div className="loading-dot"></div>
+                                                        <div className="loading-dot"></div>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Heart className="w-4 h-4" />
+                                                        Attempt Taming
+                                                    </>
+                                                )}
+                                            </button>
+                                            <button
+                                                onClick={() => setActiveTab('dialogue')}
+                                                className="px-6 py-3 bg-slate-700/50 text-slate-300 rounded-lg font-medium hover:bg-slate-700 transition-all"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
                                 )}
                                 
                                 {/* Household tab */}

@@ -63,18 +63,37 @@ export async function generateNpcDialogue(
   prompt: string,
   npcName: string,
   playerInput: string
-): Promise<{ text: string; disposition: 'friendly' | 'neutral' | 'hostile' | 'suspicious' }> {
+): Promise<{
+  text: string;
+  disposition: 'friendly' | 'neutral' | 'hostile' | 'suspicious';
+  grantAccess?: boolean;
+  accessLevel?: 'none' | 'partial' | 'full';
+  accessReason?: string;
+}> {
   const responseSchema = {
     type: Type.OBJECT,
     properties: {
-      text: { 
-        type: Type.STRING, 
-        description: "The NPC's response to the player, written in character" 
+      text: {
+        type: Type.STRING,
+        description: "The NPC's response to the player, written in character"
       },
-      disposition: { 
-        type: Type.STRING, 
-        enum: ['friendly', 'neutral', 'hostile', 'suspicious'], 
-        description: "The NPC's current disposition toward the player" 
+      disposition: {
+        type: Type.STRING,
+        enum: ['friendly', 'neutral', 'hostile', 'suspicious'],
+        description: "The NPC's current disposition toward the player"
+      },
+      grantAccess: {
+        type: Type.BOOLEAN,
+        description: "Whether this NPC is granting the player access to restricted areas based on the conversation"
+      },
+      accessLevel: {
+        type: Type.STRING,
+        enum: ['none', 'partial', 'full'],
+        description: "Level of access being granted: none (no access), partial (some areas), full (all areas)"
+      },
+      accessReason: {
+        type: Type.STRING,
+        description: "Brief explanation of why access is being granted or denied"
       }
     },
     required: ["text", "disposition"]

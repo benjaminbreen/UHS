@@ -506,10 +506,10 @@ DO NOT create generic fetch quests. Create quests with moral complexity and hist
   }
 
   /**
-   * Persist merchant to appear on main map
+   * Persist merchant to appear on specific map
    * Should be called when quest is ACCEPTED, not when generated
    */
-  persistMerchant(npc: NpcEntity, marketLocation: { x: number; y: number }): void {
+  persistMerchant(npc: NpcEntity, marketLocation: { x: number; y: number }, mapSeed: number): void {
     // Set merchant to wander near the marketplace
     const persistedNpc: NpcEntity = {
       ...npc,
@@ -519,16 +519,19 @@ DO NOT create generic fetch quests. Create quests with moral complexity and hist
       isPersistent: true,
       homeLocation: marketLocation,
       behaviorMode: 'merchant_wandering',
-      dialogueMemory: []
+      dialogueMemory: [],
+      mapSeed // Track which map this merchant belongs to
     };
-    
-    this.persistedMerchants.set(npc.id, persistedNpc);
+
+    // Store using map-specific key
+    const mapKey = `${npc.id}_${mapSeed}`;
+    this.persistedMerchants.set(mapKey, persistedNpc);
     this.savePersistedMerchants();
-    
+
     // Dispatch event to add NPC to map
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('merchantPersisted', {
-        detail: { npc: persistedNpc }
+        detail: { npc: persistedNpc, mapSeed }
       }));
     }
   }
@@ -582,10 +585,52 @@ DO NOT create generic fetch quests. Create quests with moral complexity and hist
   }
 
   /**
-   * Get all persisted merchants for the map
+   * Get persisted merchants for specific map
    */
-  getPersistedMerchants(): NpcEntity[] {
-    return Array.from(this.persistedMerchants.values());
+  getPersistedMerchants(mapSeed?: number): NpcEntity[] {
+    if (!mapSeed) {
+      // Return all merchants if no map seed specified (for backwards compatibility)
+      return Array.from(this.persistedMerchants.values());
+    }
+
+    // Return only merchants for the specified map
+    const merchantsForMap: NpcEntity[] = [];
+    for (const [key, merchant] of this.persistedMerchants.entries()) {
+      if (merchant.mapSeed === mapSeed) {
+        merchantsForMap.push(merchant);
+      }
+    }
+    return merchantsForMap;
+  }
+
+  /**
+   * Clear persisted merchants for a specific map
+   */
+  clearPersistedMerchantsForMap(mapSeed: number): void {
+    const keysToRemove: string[] = [];
+    for (const [key, merchant] of this.persistedMerchants.entries()) {
+      if (merchant.mapSeed === mapSeed) {
+        keysToRemove.push(key);
+      }
+    }
+
+    for (const key of keysToRemove) {
+      this.persistedMerchants.delete(key);
+    }
+
+    if (keysToRemove.length > 0) {
+      this.savePersistedMerchants();
+      console.log(`[LLMQuestService] Cleared ${keysToRemove.length} merchants for map ${mapSeed}`);
+    }
+  }
+
+  /**
+   * Clear all persisted merchants
+   */
+  clearAllPersistedMerchants(): void {
+    this.persistedMerchants.clear();
+    this.savePersistedMerchants();
+    console.log('[LLMQuestService] Cleared all persisted merchants');
   }
 
   /**
@@ -706,15 +751,31 @@ DO NOT create generic fetch quests. Create quests with moral complexity and hist
    */
   private savePersistedMerchants(): void {
     const data = Array.from(this.persistedMerchants.entries());
-    localStorage.setItem('persistedMerchants', JSON.stringify(data));
+    localStorage.setItem('uhs_persisted_merchants', JSON.stringify(data));
   }
 
   private loadPersistedMerchants(): void {
-    const saved = localStorage.getItem('persistedMerchants');
+    // Try new key first
+    let saved = localStorage.getItem('uhs_persisted_merchants');
+
+    // Migration: check old key and migrate data
+    if (!saved) {
+      const oldSaved = localStorage.getItem('persistedMerchants');
+      if (oldSaved) {
+        console.log('[LLMQuestService] Migrating persisted merchants from old storage format');
+        // Clear old data - it was global and causing the bug
+        localStorage.removeItem('persistedMerchants');
+        console.log('[LLMQuestService] Cleared old global merchant data');
+        // Don't migrate - let fresh location-specific data be generated
+        return;
+      }
+    }
+
     if (saved) {
       try {
         const data = JSON.parse(saved);
         this.persistedMerchants = new Map(data);
+        console.log(`[LLMQuestService] Loaded ${this.persistedMerchants.size} persisted merchants`);
       } catch (e) {
         console.error('Failed to load persisted merchants:', e);
       }

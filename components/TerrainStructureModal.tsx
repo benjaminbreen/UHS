@@ -76,19 +76,21 @@ interface TerrainStructureModalProps {
   currentLocation?: string;
   formattedDate?: string;
   onEnterSpecialMap?: (config: any) => void;
+  onCharacterUpdate?: (character: any) => void;
 }
 
-const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({ 
-    structure, 
-    mapData, 
-    npcs, 
-    onClose, 
-    gameTimeHours, 
-    season, 
-    playerCharacter, 
-    currentLocation, 
+const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
+    structure,
+    mapData,
+    npcs,
+    onClose,
+    gameTimeHours,
+    season,
+    playerCharacter,
+    currentLocation,
     formattedDate,
-    onEnterSpecialMap 
+    onEnterSpecialMap,
+    onCharacterUpdate 
 }) => {
     // State for factions modal
     const [showFactionsModal, setShowFactionsModal] = useState(false);
@@ -624,36 +626,51 @@ const TerrainStructureModal: React.FC<TerrainStructureModalProps> = ({
             )}
             
             {/* Fishing Hut Modal */}
-            {showFishingModal && (
-                <FishingHutModal
-                    isOpen={showFishingModal}
-                    onClose={() => setShowFishingModal(false)}
-                    structure={structure}
-                    culturalZone={mapData?.localArea as CulturalZone || 'EUROPEAN'}
-                    historicalEra={
-                        year < 500 ? HistoricalEra.ANTIQUITY :
-                        year < 1500 ? HistoricalEra.MEDIEVAL :
-                        year < 1800 ? HistoricalEra.RENAISSANCE_EARLY_MODERN :
-                        year < 1900 ? HistoricalEra.INDUSTRIAL_ERA :
-                        HistoricalEra.MODERN_ERA
+            {showFishingModal && (() => {
+                const inventoryUpdateCallback = (newItem: any) => {
+                    console.log('🎣 TerrainStructureModal: onInventoryUpdate called with:', newItem);
+                    console.log('🎣 playerCharacter exists:', !!playerCharacter);
+                    console.log('🎣 onCharacterUpdate exists:', !!onCharacterUpdate);
+                    // Add item to player inventory and update character
+                    if (playerCharacter && onCharacterUpdate) {
+                        const updatedInventory = [...(playerCharacter.inventory || []), newItem];
+                        console.log('🎣 Current inventory length:', playerCharacter.inventory?.length || 0);
+                        console.log('🎣 Updated inventory length:', updatedInventory.length);
+                        const updatedCharacter = {
+                            ...playerCharacter,
+                            inventory: updatedInventory
+                        };
+                        onCharacterUpdate(updatedCharacter);
+                        console.log('🎣 onCharacterUpdate called successfully');
                     }
-                    climate={mapData?.climate || ClimateType.TEMPERATE}
-                    biome={stats.biome || BiomeType.PLAINS}
-                    season={season}
-                    year={year}
-                    isCoastal={stats.biome === BiomeType.BEACH || stats.biome === BiomeType.SHALLOW_WATER}
-                    isFreshwater={stats.biome === BiomeType.WETLANDS || stats.biome === BiomeType.RAINFOREST}
-                    timeOfDay={timeOfDay}
-                    playerCharacter={playerCharacter}
-                    onInventoryUpdate={(newItem) => {
-                        // Add item to player inventory
-                        if (playerCharacter) {
-                            if (!playerCharacter.inventory) playerCharacter.inventory = [];
-                            playerCharacter.inventory.push(newItem);
+                };
+                console.log('🎣 TerrainStructureModal: Creating FishingHutModal with onInventoryUpdate:', !!inventoryUpdateCallback);
+                return (
+                    <FishingHutModal
+                        isOpen={showFishingModal}
+                        onClose={() => setShowFishingModal(false)}
+                        structure={structure}
+                        culturalZone={mapData?.localArea as CulturalZone || 'EUROPEAN'}
+                        historicalEra={
+                            year < 500 ? HistoricalEra.ANTIQUITY :
+                            year < 1500 ? HistoricalEra.MEDIEVAL :
+                            year < 1800 ? HistoricalEra.RENAISSANCE_EARLY_MODERN :
+                            year < 1900 ? HistoricalEra.INDUSTRIAL_ERA :
+                            HistoricalEra.MODERN_ERA
                         }
-                    }}
-                />
-            )}
+                        climate={mapData?.climate || ClimateType.TEMPERATE}
+                        biome={stats.biome || BiomeType.PLAINS}
+                        season={season}
+                        year={year}
+                        isCoastal={stats.biome === BiomeType.BEACH || stats.biome === BiomeType.SHALLOW_WATER}
+                        isFreshwater={stats.biome === BiomeType.WETLANDS || stats.biome === BiomeType.RAINFOREST}
+                        timeOfDay={timeOfDay}
+                        playerCharacter={playerCharacter}
+                        onCharacterUpdate={onCharacterUpdate}
+                        onInventoryUpdate={inventoryUpdateCallback}
+                    />
+                );
+            })()}
         </div>
     );
 };

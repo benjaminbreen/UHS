@@ -48,6 +48,7 @@ import { generateOpenField } from './archetypes/openFieldGenerator';
 import { generateVessel } from './archetypes/vesselGenerator';
 import { generateCampground } from './archetypes/campgroundGenerator';
 import { generateRestaurantInn } from './archetypes/restaurantInnGenerator';
+import { generateCommanderChamber } from './archetypes/commanderChamberGenerator';
 import { generateSpecialMapNpcs } from './specialMapNpcGenerator';
 import { getEraAppropriateName } from '../../utils/governmentDistrictFallback';
 // Map size type for special maps
@@ -324,6 +325,16 @@ export function generateSpecialMap(
       
     case SpecialMapArchetype.SACRED_COMPLEX:
       generatedData = generateSacredComplex(tiles, config, noise, size);
+      tiles = generatedData.tiles;
+      interactionZones = generatedData.interactionZones;
+      exitZones = generatedData.exitZones;
+      rooms = generatedData.rooms || [];
+      break;
+      
+    case SpecialMapArchetype.FORTRESS_COMMANDER_CHAMBER:
+      // Generate intimate commander's chamber for fortress interior
+      console.log(`[SpecialMapGen] FORTRESS_COMMANDER_CHAMBER archetype - using commander chamber generator`);
+      generatedData = generateCommanderChamber(tiles, config, noise, size);
       tiles = generatedData.tiles;
       interactionZones = generatedData.interactionZones;
       exitZones = generatedData.exitZones;

@@ -11,6 +11,8 @@ import { mapLocationToCulture } from '../utils/mapUtils';
 import { ruinProgressService } from '../services/ruinProgressService';
 import gameSoundsService from '../services/gameSoundsService';
 import { generateRoguelikeDialogue, generateRoguelikeNpcs, generateNegotiationDialogue } from '../services/roguelikeService';
+import { getASCIIPortrait, framePortrait, getHealthBar, applyCulturalStyle } from '../services/asciiPortraitService';
+import { ruinsEnemyService, RuinsEnemy } from '../services/ruinsEnemyService';
 
 interface RoguelikeDisplayEnhancedProps {
     ruinType: {
@@ -32,7 +34,8 @@ interface RoguelikeDisplayEnhancedProps {
 type TileType = 'wall' | 'floor' | 'door' | 'treasure' | 'trap' | 'stairs_down' | 'stairs_up' | 
                 'entrance' | 'altar' | 'statue' | 'rubble' | 'water' | 'chasm' | 'pillar' | 'manuscript' |
                 'inscription' | 'mural' | 'brazier' | 'crystal' | 'pressure_plate' | 'puzzle_door' | 
-                'lever' | 'mirror';
+                'lever' | 'mirror' | 'boulder' | 'weak_wall' | 'fire_trap' | 'ice_wall' | 'vine_wall' |
+                'water_flow' | 'ancient_mechanism' | 'counterweight' | 'rope' | 'chain';
 
 // Entity types - historically accurate
 interface Entity {
@@ -49,6 +52,7 @@ interface Entity {
     loot?: any[];
     description: string;
     symbol: string;
+    emoji?: string; // New: Emoji sprite for visual representation
     color: string;
     attack?: number;
     defense?: number;
@@ -56,6 +60,20 @@ interface Entity {
     evasion?: number;
     level?: number;
     canNegotiate?: boolean; // Can player attempt to talk down this hostile NPC?
+    // Real-time movement properties
+    moveCooldown?: number;
+    moveSpeed?: number; // ms between moves (lower = faster)
+    aiState?: 'idle' | 'pursuing' | 'attacking' | 'fleeing' | 'stunned';
+    lastMove?: number; // timestamp of last move
+    lastAttack?: number; // timestamp of last attack
+    // For ruins enemies
+    behavior?: 'aggressive' | 'defensive' | 'erratic' | 'ambush' | 'ranged';
+    rangedAttack?: {
+        range: number;
+        projectileType: 'web' | 'poison' | 'rock' | 'spine';
+        projectileSymbol: string;
+        projectileColor: string;
+    };
 }
 
 interface DungeonTile {
@@ -72,6 +90,7 @@ interface DungeonTile {
     muralDescription?: string;
     lightSource?: boolean;
     lightRadius?: number;
+    lightLevel?: number; // New: track light intensity for gradients
     hasFood?: string;
     hasTorch?: boolean;
     // Puzzle mechanics
@@ -80,6 +99,18 @@ interface DungeonTile {
     linkedTiles?: { x: number; y: number }[];
     requiredPlates?: number;
     activatedPlates?: number;
+    // Environmental interaction properties
+    pushable?: boolean;
+    breakable?: boolean;
+    durability?: number; // How many hits to break
+    pushDirection?: 'north' | 'south' | 'east' | 'west' | null;
+    flammable?: boolean;
+    freezable?: boolean;
+    weight?: number; // For physics interactions
+    chainLength?: number; // For rope/chain mechanics
+    waterFlow?: { direction: 'north' | 'south' | 'east' | 'west'; strength: number };
+    mechanismType?: 'counterweight' | 'pulley' | 'gear' | 'pendulum';
+    connectedTo?: { x: number; y: number }[]; // Connected mechanisms
 }
 
 interface DungeonPlayer {
@@ -104,6 +135,57 @@ interface DungeonPlayer {
     weapon?: any;
     armor?: any;
     defending?: boolean;
+}
+
+// Sound effect that appears and fades
+interface SoundEffect {
+    id: string;
+    text: string;
+    x: number;
+    y: number;
+    color: string;
+    opacity: number;
+    duration: number;
+    style?: 'normal' | 'shake' | 'float';
+}
+
+// Ambient text that appears at bottom of screen
+interface AmbianceText {
+    id: string;
+    text: string;
+    color: string;
+    opacity: number;
+    duration: number;
+}
+
+// Attack animation for real-time combat
+interface AttackAnimation {
+    id: string;
+    type: 'slash' | 'thrust' | 'arc' | 'projectile';
+    x: number;
+    y: number;
+    direction: 'north' | 'south' | 'east' | 'west';
+    frame: number;
+    maxFrames: number;
+    damage: number;
+    color: string;
+    pattern: { x: number; y: number }[]; // Tiles affected by attack
+}
+
+// Projectile for ranged combat
+interface Projectile {
+    id: string;
+    x: number;
+    y: number;
+    targetX: number;
+    targetY: number;
+    speed: number; // tiles per second
+    damage: number;
+    type: 'arrow' | 'stone' | 'knife' | 'dart';
+    symbol: string;
+    color: string;
+    piercing: boolean; // Goes through enemies?
+    owner: 'player' | 'enemy'; // Who shot it
 }
 
 interface Room {
@@ -131,6 +213,37 @@ const getHistoricalFood = (culturalZone: CulturalZone, era: HistoricalEra): stri
     };
     
     return foodByCulture[culturalZone] || foodByCulture['EUROPEAN'];
+};
+
+// Emoji mapping for human NPCs
+const getHumanEmoji = (type: string, subtype: string): string => {
+    const emojiMap: Record<string, string> = {
+        'hermit': '🧙‍♂️',
+        'brigand': '🗡️',
+        'vagabond': '🚶‍♂️',
+        'tomb_robber': '💀',
+        'sadhu': '🕉️',
+        'dacoit': '⚔️',
+        'vagrant': '👤',
+        'ascetic': '🙏',
+        'bedouin': '🐪',
+        'bandit': '🏹',
+        'monk': '👨‍🦲',
+        'outcast': '😔',
+        'looter': '💰',
+        'refugee': '🏃‍♂️',
+        'raider': '⚡',
+        'hunter': '🏹',
+        'outlaw': '🤠',
+        'trapper': '🪤',
+        'grave_robber': '⚱️',
+        'huaquero': '⚱️',
+        'shepherd': '🐑',
+        'pirate': '🏴‍☠️',
+        'castaway': '🏝️'
+    };
+    
+    return emojiMap[type] || emojiMap[subtype] || '👤';
 };
 
 // Get historically accurate entities based on culture and era
@@ -317,22 +430,46 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
     const [currentDialogue, setCurrentDialogue] = useState<{ entity: Entity; message: string } | null>(null);
     const [zoomLevel, setZoomLevel] = useState(20); // Font size for the map
     const [showHelp, setShowHelp] = useState(false); // Help overlay visibility
+    const [gameLogExpanded, setGameLogExpanded] = useState(false); // Game log expansion state
     const [dungeonDimensions, setDungeonDimensions] = useState({ width: 60, height: 30 });
     const containerRef = useRef<HTMLDivElement>(null);
     
-    // Combat state for multi-turn battles
-    const [combatState, setCombatState] = useState<{
-        active: boolean;
-        enemy: Entity | null;
-        playerTurn: boolean;
-    }>({ active: false, enemy: null, playerTurn: true });
+    // Visual effects state
+    const [particles, setParticles] = useState<Array<{x: number, y: number, char: string, color: string, lifetime: number, vx: number, vy: number}>>([]);
+    const [lightSources, setLightSources] = useState<Array<{x: number, y: number, radius: number, color: string, flicker: boolean}>>([]);
+    const animationFrameRef = useRef<number>();
+    
     const [combatTarget, setCombatTarget] = useState<Entity | null>(null);
     const [discoveredSources, setDiscoveredSources] = useState<PrimarySourceMetadata[]>([]);
     
     // Chamber tracking
     const [currentChamber, setCurrentChamber] = useState<string>('Entrance');
     const [currentDepth, setCurrentDepth] = useState<number>(1);
-    const structureId = structureLocation ? `${structureLocation[0]}-${structureLocation[1]}` : 'default-ruin';
+    const structureId = structureLocation && structureLocation.length >= 2 ? `${structureLocation[0]}-${structureLocation[1]}` : 'default-ruin';
+    
+    // Sound effects and ambiance
+    const [soundEffects, setSoundEffects] = useState<SoundEffect[]>([]);
+    const [ambianceTexts, setAmbianceTexts] = useState<AmbianceText[]>([]);
+    const soundEffectIdRef = useRef(0);
+    const ambianceIdRef = useRef(0);
+    
+    // Real-time combat state
+    const [attackCooldown, setAttackCooldown] = useState(0);
+    const [activeAttacks, setActiveAttacks] = useState<AttackAnimation[]>([]);
+    const [weaponSwinging, setWeaponSwinging] = useState(false);
+    const attackIdRef = useRef(0);
+    const attackCooldownRef = useRef(0);
+    const weaponSwingingRef = useRef(false);
+    
+    // Projectile system
+    const [projectiles, setProjectiles] = useState<Projectile[]>([]);
+    const projectileIdRef = useRef(0);
+    
+    // Charge attack system
+    const [chargingAttack, setChargingAttack] = useState(false);
+    const [chargeLevel, setChargeLevel] = useState(0);
+    const [chargeDirection, setChargeDirection] = useState<string | null>(null);
+    const [chargeStartTime, setChargeStartTime] = useState<number | null>(null);
 
     // Add message to game log
     const addMessage = useCallback((message: string) => {
@@ -343,15 +480,665 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
     const [discoveredRooms, setDiscoveredRooms] = useState<Set<string>>(new Set());
     const [currentRooms, setCurrentRooms] = useState<Room[]>([]);
     
+    // Viewport state for scrolling map
+    const [viewportOffset, setViewportOffset] = useState({ x: 0, y: 0 });
+    const VIEWPORT_WIDTH = 25;
+    const VIEWPORT_HEIGHT = 15;
+    
+    // Update viewport to keep player visible within 2 squares of edge
+    const updateViewport = useCallback((playerX: number, playerY: number) => {
+        setViewportOffset(prevOffset => {
+            // Use dungeon dimensions from state to avoid dependency on dungeon array
+            const dungeonWidth = dungeonDimensions.width;
+            const dungeonHeight = dungeonDimensions.height;
+            
+            const buffer = 2; // Keep player 2 squares from edge
+            let newX = prevOffset.x;
+            let newY = prevOffset.y;
+            
+            // Check if player is too close to left edge
+            if (playerX - prevOffset.x < buffer) {
+                newX = Math.max(0, playerX - buffer);
+            }
+            // Check if player is too close to right edge
+            else if (playerX - prevOffset.x >= VIEWPORT_WIDTH - buffer) {
+                newX = Math.min(dungeonWidth - VIEWPORT_WIDTH, playerX - VIEWPORT_WIDTH + buffer + 1);
+            }
+            
+            // Check if player is too close to top edge
+            if (playerY - prevOffset.y < buffer) {
+                newY = Math.max(0, playerY - buffer);
+            }
+            // Check if player is too close to bottom edge
+            else if (playerY - prevOffset.y >= VIEWPORT_HEIGHT - buffer) {
+                newY = Math.min(dungeonHeight - VIEWPORT_HEIGHT, playerY - VIEWPORT_HEIGHT + buffer + 1);
+            }
+            
+            // Only update if offset actually changed
+            if (newX !== prevOffset.x || newY !== prevOffset.y) {
+                return { x: newX, y: newY };
+            }
+            return prevOffset;
+        });
+    }, [dungeonDimensions.width, dungeonDimensions.height, VIEWPORT_WIDTH, VIEWPORT_HEIGHT]);
+    
     // Puzzle state tracking
     const [puzzleStates, setPuzzleStates] = useState<Record<string, {
         sequence: number[];
         correctSequence: number[];
         completed: boolean;
     }>>({});
+    
+    // Create sound effect at position
+    const createSoundEffect = useCallback((text: string, x: number, y: number, color: string = '#ff9500', style: 'normal' | 'shake' | 'float' = 'normal') => {
+        const id = `sound_${soundEffectIdRef.current++}`;
+        const duration = style === 'shake' ? 1500 : style === 'float' ? 2000 : 2500;
+        
+        setSoundEffects(prev => [...prev, {
+            id,
+            text,
+            x,
+            y,
+            color,
+            opacity: 1,
+            duration,
+            style
+        }]);
+        
+        // Gradually fade out (CSS handles the animation, this just cleans up)
+        setTimeout(() => {
+            setSoundEffects(prev => prev.filter(s => s.id !== id));
+        }, duration);
+    }, []);
+    
+    // Environmental interaction system
+    const handleEnvironmentalInteraction = useCallback((x: number, y: number, action: 'push' | 'break' | 'activate' | 'douse' | 'ignite') => {
+        const tile = dungeon[y]?.[x];
+        if (!tile) return false;
+        
+        let success = false;
+        let message = '';
+        let soundEffect = null;
+        
+        switch (action) {
+            case 'push':
+                if (tile.pushable && tile.type === 'boulder') {
+                    // Determine push direction based on player position
+                    const playerX = player.x;
+                    const playerY = player.y;
+                    let pushDir: 'north' | 'south' | 'east' | 'west' | null = null;
+                    let newX = x, newY = y;
+                    
+                    if (playerX < x) { pushDir = 'east'; newX = x + 1; }
+                    else if (playerX > x) { pushDir = 'west'; newX = x - 1; }
+                    else if (playerY < y) { pushDir = 'south'; newY = y + 1; }
+                    else if (playerY > y) { pushDir = 'north'; newY = y - 1; }
+                    
+                    // Check if destination is valid
+                    const destTile = dungeon[newY]?.[newX];
+                    if (destTile && (destTile.type === 'floor' || destTile.type === 'water' || destTile.type === 'pressure_plate')) {
+                        setDungeon(prev => {
+                            const newDungeon = [...prev];
+                            // Move boulder
+                            newDungeon[y][x] = { type: 'floor', visible: true, explored: true };
+                            newDungeon[newY][newX] = { 
+                                ...destTile, 
+                                type: 'boulder', 
+                                pushable: true, 
+                                weight: tile.weight || 5,
+                                description: 'A heavy stone boulder'
+                            };
+                            
+                            // Special interactions
+                            if (destTile.type === 'pressure_plate') {
+                                newDungeon[newY][newX].isActivated = true;
+                                message = 'The boulder activates the pressure plate with a loud *CLUNK*!';
+                                soundEffect = { text: 'ACTIVATE!', color: '#00ff00', style: 'shake' as const };
+                            } else if (destTile.type === 'water') {
+                                message = 'The boulder splashes into the water, creating ripples.';
+                                soundEffect = { text: '*SPLASH*', color: '#4488ff', style: 'normal' as const };
+                            } else {
+                                message = `You push the boulder ${pushDir}ward. *RUMBLE*`;
+                                soundEffect = { text: '*rumble*', color: '#8B4513', style: 'shake' as const };
+                            }
+                            
+                            return newDungeon;
+                        });
+                        success = true;
+                    } else {
+                        message = "The boulder won't budge - something is blocking its path.";
+                    }
+                }
+                break;
+                
+            case 'break':
+                if (tile.breakable) {
+                    const durability = tile.durability || 1;
+                    if (durability <= 1) {
+                        setDungeon(prev => {
+                            const newDungeon = [...prev];
+                            
+                            if (tile.type === 'weak_wall') {
+                                newDungeon[y][x] = { type: 'floor', visible: true, explored: true };
+                                message = 'The weak wall crumbles, revealing a passage!';
+                                soundEffect = { text: 'CRASH!', color: '#ff6600', style: 'shake' as const };
+                                
+                                // Sometimes reveal treasure behind walls
+                                if (Math.random() < 0.3) {
+                                    newDungeon[y][x].hasGold = 50 + Math.floor(Math.random() * 100);
+                                    message += ' Something glints in the rubble...';
+                                }
+                            } else if (tile.type === 'ice_wall') {
+                                newDungeon[y][x] = { type: 'water', visible: true, explored: true };
+                                message = 'The ice wall melts into flowing water!';
+                                soundEffect = { text: '*melt*', color: '#88ccff', style: 'float' as const };
+                            } else if (tile.type === 'vine_wall') {
+                                newDungeon[y][x] = { type: 'floor', visible: true, explored: true };
+                                message = 'You hack through the thick vines!';
+                                soundEffect = { text: '*slash*', color: '#228B22', style: 'shake' as const };
+                            }
+                            
+                            return newDungeon;
+                        });
+                        success = true;
+                    } else {
+                        setDungeon(prev => {
+                            const newDungeon = [...prev];
+                            newDungeon[y][x] = { ...tile, durability: durability - 1 };
+                            return newDungeon;
+                        });
+                        message = `You chip away at the ${tile.type.replace('_', ' ')}. ${durability - 1} hits remaining.`;
+                        soundEffect = { text: '*chip*', color: '#cccccc', style: 'normal' as const };
+                        success = true;
+                    }
+                }
+                break;
+                
+            case 'douse':
+                if (tile.type === 'fire_trap' || tile.type === 'brazier') {
+                    // Check if player has water nearby or water item
+                    const hasWater = player.inventory.some(item => item.name.toLowerCase().includes('water')) ||
+                                    dungeon.some(row => row.some(t => t.type === 'water' && 
+                                        Math.abs(t.x - player.x) <= 1 && Math.abs(t.y - player.y) <= 1));
+                    
+                    if (hasWater) {
+                        setDungeon(prev => {
+                            const newDungeon = [...prev];
+                            newDungeon[y][x] = { 
+                                type: tile.type === 'fire_trap' ? 'floor' : 'pillar',
+                                visible: true, 
+                                explored: true,
+                                description: tile.type === 'fire_trap' ? 'Extinguished fire trap' : 'Cold brazier'
+                            };
+                            return newDungeon;
+                        });
+                        message = `You extinguish the ${tile.type === 'fire_trap' ? 'fire trap' : 'brazier'} with water.`;
+                        soundEffect = { text: '*hiss*', color: '#666666', style: 'float' as const };
+                        success = true;
+                    } else {
+                        message = "You need water to extinguish this fire.";
+                    }
+                }
+                break;
+                
+            case 'activate':
+                if (tile.type === 'ancient_mechanism') {
+                    if (!tile.isActivated) {
+                        setDungeon(prev => {
+                            const newDungeon = [...prev];
+                            newDungeon[y][x] = { ...tile, isActivated: true };
+                            
+                            // Activate connected mechanisms
+                            if (tile.connectedTo) {
+                                tile.connectedTo.forEach(pos => {
+                                    const connectedTile = newDungeon[pos.y]?.[pos.x];
+                                    if (connectedTile) {
+                                        if (connectedTile.type === 'puzzle_door') {
+                                            newDungeon[pos.y][pos.x] = { ...connectedTile, type: 'floor' };
+                                        } else if (connectedTile.type === 'counterweight') {
+                                            newDungeon[pos.y][pos.x] = { ...connectedTile, isActivated: true };
+                                        }
+                                    }
+                                });
+                            }
+                            
+                            return newDungeon;
+                        });
+                        message = 'Ancient gears grind to life! Mechanisms activate throughout the chamber.';
+                        soundEffect = { text: 'WHIRR!', color: '#ffa500', style: 'shake' as const };
+                        success = true;
+                    } else {
+                        message = 'This mechanism has already been activated.';
+                    }
+                }
+                break;
+        }
+        
+        if (message) {
+            addMessage(message);
+        }
+        if (soundEffect) {
+            createSoundEffect(soundEffect.text, x, y, soundEffect.color, soundEffect.style);
+        }
+        
+        return success;
+    }, [dungeon, player, addMessage, createSoundEffect]);
+    
+    // Get attack pattern based on weapon type and direction
+    const getAttackPattern = useCallback((x: number, y: number, direction: 'north' | 'south' | 'east' | 'west', weaponType: string = 'fist') => {
+        const patterns: Record<string, Record<string, { x: number; y: number }[]>> = {
+            // Sword: Arc attack (3 tiles in front)
+            sword: {
+                north: [{x, y: y-1}, {x: x-1, y: y-1}, {x: x+1, y: y-1}],
+                south: [{x, y: y+1}, {x: x-1, y: y+1}, {x: x+1, y: y+1}],
+                east: [{x: x+1, y}, {x: x+1, y: y-1}, {x: x+1, y: y+1}],
+                west: [{x: x-1, y}, {x: x-1, y: y-1}, {x: x-1, y: y+1}]
+            },
+            // Spear: Line attack (2 tiles)
+            spear: {
+                north: [{x, y: y-1}, {x, y: y-2}],
+                south: [{x, y: y+1}, {x, y: y+2}],
+                east: [{x: x+1, y}, {x: x+2, y}],
+                west: [{x: x-1, y}, {x: x-2, y}]
+            },
+            // Axe: Wide arc (5 tiles)
+            axe: {
+                north: [{x, y: y-1}, {x: x-1, y: y-1}, {x: x+1, y: y-1}, {x: x-2, y: y-1}, {x: x+2, y: y-1}],
+                south: [{x, y: y+1}, {x: x-1, y: y+1}, {x: x+1, y: y+1}, {x: x-2, y: y+1}, {x: x+2, y: y+1}],
+                east: [{x: x+1, y}, {x: x+1, y: y-1}, {x: x+1, y: y+1}, {x: x+1, y: y-2}, {x: x+1, y: y+2}],
+                west: [{x: x-1, y}, {x: x-1, y: y-1}, {x: x-1, y: y+1}, {x: x-1, y: y-2}, {x: x-1, y: y+2}]
+            },
+            // Hammer: Single tile but with knockback potential
+            hammer: {
+                north: [{x, y: y-1}],
+                south: [{x, y: y+1}],
+                east: [{x: x+1, y}],
+                west: [{x: x-1, y}]
+            },
+            // Fist/default: Single adjacent tile
+            fist: {
+                north: [{x, y: y-1}],
+                south: [{x, y: y+1}],
+                east: [{x: x+1, y}],
+                west: [{x: x-1, y}]
+            }
+        };
+        
+        const weaponPattern = patterns[weaponType] || patterns.fist;
+        return weaponPattern[direction] || [];
+    }, []);
+    
+    // Perform ranged attack
+    const performRangedAttack = useCallback((dx: number, dy: number, direction: 'north' | 'south' | 'east' | 'west') => {
+        // Check if player has ranged weapon or ammo
+        const rangedWeapon = player.weapon?.type === 'bow' || player.weapon?.type === 'crossbow' ? player.weapon : null;
+        const hasAmmo = player.inventory?.some(item => item.type === 'arrow' || item.type === 'bolt');
+        
+        if (!rangedWeapon && !hasAmmo) {
+            // Use thrown rock as default
+            const projectile: Projectile = {
+                id: `proj_${projectileIdRef.current++}`,
+                x: player.x,
+                y: player.y,
+                targetX: player.x + (dx * 8),
+                targetY: player.y + (dy * 8),
+                speed: 10,
+                damage: 2,
+                type: 'stone',
+                symbol: direction === 'north' || direction === 'south' ? '|' : '-',
+                color: '#888888',
+                piercing: false,
+                owner: 'player'
+            };
+            
+            setProjectiles(prev => [...prev, projectile]);
+            createSoundEffect('*throw*', player.x, player.y, '#888888', 'normal');
+            addMessage("You throw a stone!");
+        } else {
+            // Use actual ranged weapon
+            const projectile: Projectile = {
+                id: `proj_${projectileIdRef.current++}`,
+                x: player.x,
+                y: player.y,
+                targetX: player.x + (dx * 12),
+                targetY: player.y + (dy * 12),
+                speed: 15,
+                damage: rangedWeapon?.damage || 5,
+                type: 'arrow',
+                symbol: getProjectileSymbol(direction),
+                color: '#8B4513',
+                piercing: rangedWeapon?.type === 'crossbow',
+                owner: 'player'
+            };
+            
+            setProjectiles(prev => [...prev, projectile]);
+            createSoundEffect('*twang*', player.x, player.y, '#8B4513', 'normal');
+            addMessage(`You shoot an arrow ${direction}!`);
+            
+            // Consume ammo
+            setPlayer(prev => ({
+                ...prev,
+                inventory: prev.inventory.filter((item, index) => 
+                    !(index === prev.inventory.findIndex(i => i.type === 'arrow' || i.type === 'bolt'))
+                )
+            }));
+        }
+    }, [player, createSoundEffect, addMessage]);
+    
+    // Get projectile symbol based on direction
+    const getProjectileSymbol = (direction: string): string => {
+        switch(direction) {
+            case 'north': return '↑';
+            case 'south': return '↓';
+            case 'east': return '→';
+            case 'west': return '←';
+            default: return '•';
+        }
+    };
+    
+    // Perform melee attack (moved before performChargedSpecial to fix initialization error)
+    const performMeleeAttack = useCallback((dx: number, dy: number, direction: 'north' | 'south' | 'east' | 'west', powerMultiplier: number = 1) => {
+        // Check cooldown using refs for current values
+        if (attackCooldownRef.current > 0 || weaponSwingingRef.current) {
+            return;
+        }
+        
+        // Get weapon info
+        const weapon = player.weapon || { name: 'fist', damage: 2, type: 'fist' };
+        const weaponType = weapon.name?.toLowerCase().includes('sword') ? 'sword' :
+                          weapon.name?.toLowerCase().includes('spear') ? 'spear' :
+                          weapon.name?.toLowerCase().includes('axe') ? 'axe' :
+                          weapon.name?.toLowerCase().includes('hammer') ? 'hammer' : 'fist';
+        
+        // Calculate attack tiles
+        const attackTiles = getAttackPattern(player.x, player.y, direction, weaponType);
+        
+        // Create attack animation with power multiplier
+        const baseDamage = (weapon.damage || 2) + (player.attack || 0);
+        const attackAnim: AttackAnimation = {
+            id: `attack_${attackIdRef.current++}`,
+            type: weaponType === 'spear' ? 'thrust' : weaponType === 'axe' ? 'arc' : 'slash',
+            x: player.x + dx,
+            y: player.y + dy,
+            direction,
+            frame: 0,
+            maxFrames: 4,
+            damage: Math.floor(baseDamage * powerMultiplier),
+            color: powerMultiplier > 2 ? '#ff0000' : powerMultiplier > 1.5 ? '#ff9900' : '#ff6600',
+            pattern: attackTiles
+        };
+        
+        setActiveAttacks(prev => [...prev, attackAnim]);
+        setWeaponSwinging(true);
+        weaponSwingingRef.current = true;
+        setAttackCooldown(300); // 300ms cooldown
+        attackCooldownRef.current = 300;
+        
+        // Check for hit entities
+        attackTiles.forEach(tile => {
+            const hitEntity = entities.find(e => e.x === tile.x && e.y === tile.y && e.hp > 0);
+            if (hitEntity) {
+                // Calculate damage
+                const damage = Math.max(1, attackAnim.damage - (hitEntity.defense || 0));
+                
+                // Apply damage
+                setEntities(prev => prev.map(e => 
+                    e.id === hitEntity.id 
+                        ? { ...e, hp: Math.max(0, e.hp - damage) }
+                        : e
+                ));
+                
+                // Visual feedback
+                createSoundEffect('SLASH!', tile.x, tile.y, '#ff0000', 'shake');
+                addMessage(`You hit ${hitEntity.name} for ${damage} damage!`);
+                
+                // Knockback for hammer
+                if (weaponType === 'hammer') {
+                    const knockX = tile.x + dx;
+                    const knockY = tile.y + dy;
+                    if (dungeon[knockY]?.[knockX]?.type === 'floor') {
+                        setEntities(prev => prev.map(e => 
+                            e.id === hitEntity.id 
+                                ? { ...e, x: knockX, y: knockY }
+                                : e
+                        ));
+                        createSoundEffect('KNOCK!', knockX, knockY, '#ffaa00', 'shake');
+                    }
+                }
+                
+                // Remove dead entities
+                if (hitEntity.hp - damage <= 0) {
+                    addMessage(`${hitEntity.name} is defeated!`);
+                    setTimeout(() => {
+                        setEntities(prev => prev.filter(e => e.id !== hitEntity.id));
+                    }, 500);
+                }
+            }
+            
+            // Environmental interactions
+            const dungeonTile = dungeon[tile.y]?.[tile.x];
+            if (dungeonTile?.breakable) {
+                handleEnvironmentalInteraction(tile.x, tile.y, 'break');
+            }
+        });
+        
+        // Play attack sound
+        gameSoundsService.playRoguelikeAttackSound(true);
+        
+        // Clear animation after completion
+        setTimeout(() => {
+            setActiveAttacks(prev => prev.filter(a => a.id !== attackAnim.id));
+            setWeaponSwinging(false);
+            weaponSwingingRef.current = false;
+        }, 200);
+    }, [player, entities, dungeon, getAttackPattern, createSoundEffect, addMessage, handleEnvironmentalInteraction]);
+    
+    // Perform special charged attack
+    const performChargedSpecial = useCallback((direction: string, powerLevel: number) => {
+        const weapon = player.weapon || { name: 'fist', damage: 2, type: 'fist' };
+        const weaponType = weapon.name?.toLowerCase().includes('sword') ? 'sword' :
+                          weapon.name?.toLowerCase().includes('spear') ? 'spear' :
+                          weapon.name?.toLowerCase().includes('axe') ? 'axe' :
+                          weapon.name?.toLowerCase().includes('hammer') ? 'hammer' : 'fist';
+        
+        switch (weaponType) {
+            case 'sword':
+                // Spin attack - hits all 8 adjacent tiles
+                const spinTiles = [
+                    {x: player.x-1, y: player.y-1}, {x: player.x, y: player.y-1}, {x: player.x+1, y: player.y-1},
+                    {x: player.x-1, y: player.y},                                   {x: player.x+1, y: player.y},
+                    {x: player.x-1, y: player.y+1}, {x: player.x, y: player.y+1}, {x: player.x+1, y: player.y+1}
+                ];
+                
+                spinTiles.forEach(tile => {
+                    createSoundEffect('SPIN!', tile.x, tile.y, '#ff6600', 'float');
+                    
+                    // Damage all entities in spin radius
+                    const hitEntity = entities.find(e => e.x === tile.x && e.y === tile.y && e.hp > 0);
+                    if (hitEntity) {
+                        const damage = Math.floor(((weapon.damage || 2) + (player.attack || 0)) * (powerLevel * 0.5));
+                        setEntities(prev => prev.map(e => 
+                            e.id === hitEntity.id 
+                                ? { ...e, hp: Math.max(0, e.hp - damage) }
+                                : e
+                        ));
+                        createSoundEffect(`-${damage}`, tile.x, tile.y, '#ff0000', 'float');
+                    }
+                });
+                addMessage("Sword spin attack!");
+                break;
+                
+            case 'spear':
+                // Long thrust - extended reach
+                const thrustDistance = 2 + Math.floor(powerLevel);
+                const dx = direction === 'd' ? 1 : direction === 'a' ? -1 : 0;
+                const dy = direction === 's' ? 1 : direction === 'w' ? -1 : 0;
+                
+                for (let i = 1; i <= thrustDistance; i++) {
+                    const tile = { x: player.x + (dx * i), y: player.y + (dy * i) };
+                    createSoundEffect('THRUST!', tile.x, tile.y, '#ffaa00', 'normal');
+                    
+                    const hitEntity = entities.find(e => e.x === tile.x && e.y === tile.y && e.hp > 0);
+                    if (hitEntity) {
+                        const damage = Math.floor(((weapon.damage || 2) + (player.attack || 0)) * (powerLevel * 0.7));
+                        setEntities(prev => prev.map(e => 
+                            e.id === hitEntity.id 
+                                ? { ...e, hp: Math.max(0, e.hp - damage) }
+                                : e
+                        ));
+                        createSoundEffect(`-${damage}`, tile.x, tile.y, '#ff0000', 'float');
+                    }
+                }
+                addMessage("Spear charge thrust!");
+                break;
+                
+            case 'hammer':
+                // Ground slam - AoE with knockback
+                createSoundEffect('SLAM!', player.x, player.y, '#8B4513', 'shake');
+                
+                // Damage and knockback all nearby entities
+                const slamRadius = 2;
+                for (let dy = -slamRadius; dy <= slamRadius; dy++) {
+                    for (let dx = -slamRadius; dx <= slamRadius; dx++) {
+                        if (dx === 0 && dy === 0) continue;
+                        
+                        const tile = { x: player.x + dx, y: player.y + dy };
+                        const distance = Math.abs(dx) + Math.abs(dy);
+                        
+                        const hitEntity = entities.find(e => e.x === tile.x && e.y === tile.y && e.hp > 0);
+                        if (hitEntity) {
+                            const damage = Math.floor(((weapon.damage || 2) + (player.attack || 0)) * (powerLevel * 0.6) / distance);
+                            
+                            // Apply knockback
+                            const knockX = hitEntity.x + Math.sign(dx);
+                            const knockY = hitEntity.y + Math.sign(dy);
+                            
+                            setEntities(prev => prev.map(e => {
+                                if (e.id === hitEntity.id) {
+                                    // Check if knockback position is valid
+                                    if (dungeon[knockY]?.[knockX]?.type === 'floor') {
+                                        return { ...e, x: knockX, y: knockY, hp: Math.max(0, e.hp - damage), aiState: 'stunned' };
+                                    } else {
+                                        return { ...e, hp: Math.max(0, e.hp - damage), aiState: 'stunned' };
+                                    }
+                                }
+                                return e;
+                            }));
+                            createSoundEffect(`-${damage}`, tile.x, tile.y, '#ff0000', 'shake');
+                        }
+                    }
+                }
+                addMessage("Hammer ground slam!");
+                break;
+                
+            default:
+                // Fist: Powerful single strike
+                const dir = direction === 'w' ? 'north' : direction === 's' ? 'south' : 
+                           direction === 'a' ? 'west' : 'east';
+                performMeleeAttack(
+                    direction === 'd' ? 1 : direction === 'a' ? -1 : 0,
+                    direction === 's' ? 1 : direction === 'w' ? -1 : 0,
+                    dir as 'north' | 'south' | 'east' | 'west',
+                    powerLevel
+                );
+                break;
+        }
+    }, [player, entities, dungeon, createSoundEffect, addMessage, performMeleeAttack]);
+    
+    // Create ambiance text  
+    const createAmbianceText = useCallback((text: string, color: string = '#666666') => {
+        const id = `ambiance_${ambianceIdRef.current++}`;
+        setAmbianceTexts(prev => [...prev, {
+            id,
+            text,
+            color,
+            opacity: 0,
+            duration: 4000
+        }]);
+        
+        // Fade in
+        setTimeout(() => {
+            setAmbianceTexts(prev => prev.map(a => 
+                a.id === id ? { ...a, opacity: 1 } : a
+            ));
+        }, 100);
+        
+        // Fade out
+        setTimeout(() => {
+            setAmbianceTexts(prev => prev.map(a => 
+                a.id === id ? { ...a, opacity: 0 } : a
+            ));
+        }, 3000);
+        
+        // Remove
+        setTimeout(() => {
+            setAmbianceTexts(prev => prev.filter(a => a.id !== id));
+        }, 4000);
+    }, []);
+
+    // Create unique cache key for this ruin level
+    const getCacheKey = useCallback(() => {
+        const location = structureLocation ? `${structureLocation[0]},${structureLocation[1]}` : 'unknown';
+        return `ruin_${ruinType.name}_${location}_depth_${currentDepth}`;
+    }, [structureLocation, ruinType.name, currentDepth]);
+
+    // Save dungeon state to localStorage
+    const saveDungeonState = useCallback((dungeonData: DungeonTile[][], entitiesData: Entity[]) => {
+        try {
+            const cacheKey = getCacheKey();
+            const stateData = {
+                dungeon: dungeonData,
+                entities: entitiesData,
+                timestamp: Date.now(),
+                version: '1.0' // For future compatibility
+            };
+            localStorage.setItem(cacheKey, JSON.stringify(stateData));
+        } catch (error) {
+            console.warn('Failed to cache dungeon state:', error);
+        }
+    }, [getCacheKey]);
+
+    // Load dungeon state from localStorage
+    const loadDungeonState = useCallback(() => {
+        try {
+            const cacheKey = getCacheKey();
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) {
+                const stateData = JSON.parse(cached);
+                // Check if cache is not too old (optional: expire after 24 hours)
+                const isRecentEnough = Date.now() - stateData.timestamp < 24 * 60 * 60 * 1000;
+                if (isRecentEnough && stateData.version === '1.0') {
+                    return {
+                        dungeon: stateData.dungeon,
+                        entities: stateData.entities
+                    };
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to load cached dungeon state:', error);
+        }
+        return null;
+    }, [getCacheKey]);
 
     // Generate a proper dungeon with guaranteed walkable entrance
     const generateDungeon = useCallback(async () => {
+        // Try to load from cache first
+        const cachedState = loadDungeonState();
+        if (cachedState) {
+            setDungeon(cachedState.dungeon);
+            setEntities(cachedState.entities);
+            
+            // Set player position to entrance
+            const entrance = cachedState.dungeon.flatMap((row, y) =>
+                row.map((tile, x) => ({ tile, x, y }))
+            ).find(({ tile }) => tile.type === 'entrance');
+            
+            if (entrance) {
+                setPlayer(prev => ({ ...prev, x: entrance.x, y: entrance.y }));
+            }
+            return;
+        }
+
         const { width: DUNGEON_WIDTH, height: DUNGEON_HEIGHT } = dungeonDimensions;
         const newDungeon: DungeonTile[][] = Array(DUNGEON_HEIGHT).fill(null).map(() =>
             Array(DUNGEON_WIDTH).fill(null).map(() => ({
@@ -949,8 +1736,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         // Add primary source manuscripts in library rooms
         try {
             // Load sources for this cultural zone
-            await primarySourceService.loadSourcesForContext(culturalContext.era, culturalContext.culturalZone);
-            const sources = await primarySourceService.searchSources('', culturalContext.era, culturalContext.culturalZone);
+            const sources = await primarySourceService.getSourcesForContext(culturalContext.era, culturalContext.culturalZone);
             
             if (sources.length > 0) {
                 // Place 2-3 manuscripts
@@ -1242,19 +2028,144 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             generateCulturalPuzzle(puzzleRoom);
         }
         
-        // Add traps
-        for (let i = 0; i < Math.min(8, floorTiles.length / 15); i++) {
+        // Add traps and pressure plates - enhanced system
+        const trapCount = Math.min(12, Math.floor(floorTiles.length / 12)); // More traps
+        for (let i = 0; i < trapCount; i++) {
+            if (floorTiles.length === 0) break;
+            const idx = Math.floor(Math.random() * floorTiles.length);
+            const tile = floorTiles[idx];
+            floorTiles.splice(idx, 1);
+            
+            // Mix of regular traps and pressure plates
+            const trapType = Math.random() < 0.4 ? 'pressure_plate' : 'trap';
+            
+            if (trapType === 'pressure_plate') {
+                newDungeon[tile.y][tile.x] = {
+                    ...newDungeon[tile.y][tile.x],
+                    type: 'pressure_plate',
+                    isActivated: false,
+                    puzzleId: `puzzle_${Math.floor(Math.random() * 3)}`, // Group some plates
+                    description: 'A subtle pressure plate. Look for the comma on the ground.'
+                };
+            } else {
+                newDungeon[tile.y][tile.x] = {
+                    ...newDungeon[tile.y][tile.x],
+                    type: 'trap',
+                    hasTrap: true,
+                    trapTriggered: false,
+                    trapType: Math.random() < 0.3 ? 'spike' : Math.random() < 0.5 ? 'pit' : 'dart',
+                    description: 'A subtle trap. Look for the comma on the ground.'
+                };
+            }
+        }
+
+        // Add environmental interaction elements
+        // Boulders - pushable objects for puzzle solving
+        for (let i = 0; i < Math.min(3, floorTiles.length / 25); i++) {
             if (floorTiles.length === 0) break;
             const idx = Math.floor(Math.random() * floorTiles.length);
             const tile = floorTiles[idx];
             floorTiles.splice(idx, 1);
             newDungeon[tile.y][tile.x] = {
                 ...newDungeon[tile.y][tile.x],
-                type: 'trap',
-                hasTrap: true,
-                trapTriggered: false
+                type: 'boulder',
+                pushable: true,
+                weight: 5,
+                description: 'A heavy stone boulder that can be pushed'
             };
         }
+
+        // Weak walls - breakable for secret passages
+        const walls: { x: number, y: number }[] = [];
+        for (let y = 1; y < DUNGEON_HEIGHT - 1; y++) {
+            for (let x = 1; x < DUNGEON_WIDTH - 1; x++) {
+                if (newDungeon[y][x].type === 'wall') {
+                    // Check if wall has floor on both sides (potential secret passage)
+                    const hasFloorAdjacent = [
+                        newDungeon[y-1]?.[x]?.type === 'floor',
+                        newDungeon[y+1]?.[x]?.type === 'floor',
+                        newDungeon[y]?.[x-1]?.type === 'floor',
+                        newDungeon[y]?.[x+1]?.type === 'floor'
+                    ].filter(Boolean).length >= 2;
+                    
+                    if (hasFloorAdjacent) {
+                        walls.push({ x, y });
+                    }
+                }
+            }
+        }
+        
+        for (let i = 0; i < Math.min(2, walls.length / 5); i++) {
+            const wall = walls[Math.floor(Math.random() * walls.length)];
+            newDungeon[wall.y][wall.x] = {
+                type: 'weak_wall',
+                visible: false,
+                explored: false,
+                breakable: true,
+                durability: Math.random() < 0.5 ? 1 : 2,
+                description: 'A cracked wall that looks like it might break with enough force'
+            };
+        }
+
+        // Fire traps - can be extinguished with water
+        for (let i = 0; i < Math.min(2, floorTiles.length / 30); i++) {
+            if (floorTiles.length === 0) break;
+            const idx = Math.floor(Math.random() * floorTiles.length);
+            const tile = floorTiles[idx];
+            floorTiles.splice(idx, 1);
+            newDungeon[tile.y][tile.x] = {
+                ...newDungeon[tile.y][tile.x],
+                type: 'fire_trap',
+                lightSource: true,
+                lightRadius: 3,
+                flammable: false, // Already on fire
+                description: 'A gout of flame springs from the ground'
+            };
+        }
+
+        // Ancient mechanisms - complex puzzle elements
+        const treasureRooms = rooms.filter(r => r.type === 'treasure' || r.type === 'altar');
+        treasureRooms.forEach(room => {
+            if (Math.random() < 0.6) { // 60% chance for treasure rooms to have mechanisms
+                const mechX = room.x + Math.floor(room.width / 2);
+                const mechY = room.y + Math.floor(room.height / 2);
+                
+                if (newDungeon[mechY]?.[mechX]?.type === 'floor') {
+                    newDungeon[mechY][mechX] = {
+                        type: 'ancient_mechanism',
+                        visible: false,
+                        explored: false,
+                        mechanismType: ['counterweight', 'pulley', 'gear'][Math.floor(Math.random() * 3)] as any,
+                        isActivated: false,
+                        connectedTo: [], // Will be populated below
+                        description: 'An ancient mechanism of unknown purpose'
+                    };
+                    
+                    // Connect to puzzle doors or other mechanisms
+                    const nearbyRooms = rooms.filter(r => r !== room && 
+                        Math.abs(r.x - room.x) + Math.abs(r.y - room.y) < 20);
+                    
+                    nearbyRooms.forEach(targetRoom => {
+                        if (Math.random() < 0.3) { // 30% chance to connect
+                            const doorX = targetRoom.x + Math.floor(targetRoom.width / 2);
+                            const doorY = targetRoom.y;
+                            
+                            if (newDungeon[doorY]?.[doorX]) {
+                                newDungeon[doorY][doorX] = {
+                                    type: 'puzzle_door',
+                                    visible: false,
+                                    explored: false,
+                                    description: 'A sealed door with ancient mechanisms'
+                                };
+                                
+                                // Add connection
+                                newDungeon[mechY][mechX].connectedTo!.push({ x: doorX, y: doorY });
+                            }
+                        }
+                    });
+                }
+            }
+        });
 
         // Add stairs down in a far room
         const lastRoom = rooms[rooms.length - 1];
@@ -1267,13 +2178,33 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             description: 'Stairs leading deeper into the earth'
         };
 
-        // Generate entities
+        // Add random ambiance based on depth and layout type
+        setTimeout(() => {
+            const ambiances = [
+                { text: 'The air grows colder as you venture deeper...', condition: () => currentDepth > 2 },
+                { text: 'You hear faint whispers echoing through the halls...', condition: () => Math.random() < 0.3 },
+                { text: 'Dust motes dance in the dim light...', condition: () => Math.random() < 0.4 },
+                { text: 'The ancient stones groan under their own weight...', condition: () => currentDepth > 3 },
+                { text: 'A musty smell fills your nostrils...', condition: () => Math.random() < 0.5 },
+                { text: 'Your footsteps echo endlessly through the vast space...', condition: () => layoutType === 'large_chamber' },
+                { text: 'Something scurries in the darkness beyond your vision...', condition: () => Math.random() < 0.2 && currentDepth > 1 },
+                { text: 'Water drips steadily somewhere in the distance...', condition: () => layoutType === 'organic_cave' },
+                { text: 'The rigid corridors suggest careful planning by ancient builders...', condition: () => layoutType === 'grid_office' }
+            ];
+            
+            const validAmbiances = ambiances.filter(a => a.condition());
+            if (validAmbiances.length > 0) {
+                const ambiance = validAmbiances[Math.floor(Math.random() * validAmbiances.length)];
+                createAmbianceText(ambiance.text, '#888888');
+            }
+        }, 3000);
+        
+        // Generate entities using the new ruins enemy service
         const entityData = getHistoricalEntities(culturalContext.culturalZone, culturalContext.era);
         const newEntities: Entity[] = [];
         let entityId = 0;
 
-        // Place entities in rooms - MUCH RARER but more dangerous
-        // Deeper floors have higher chance of encounters
+        // Place entities in rooms - scaled by depth
         const baseEncounterChance = 0.15 + (currentDepth * 0.05); // 15% base, +5% per floor
         
         for (let i = 1; i < rooms.length; i++) {
@@ -1291,35 +2222,40 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 const ey = room.y + 1 + Math.floor(Math.random() * (room.height - 2));
                 
                 if (newDungeon[ey][ex].type === 'floor') {
-                    // 80% chance of human, 20% chance of animal
-                    const isAnimal = Math.random() < 0.2;
+                    // 70% chance of creature enemy, 30% chance of human NPC
+                    const useRuinsEnemy = Math.random() < 0.7 || !entityData.humans?.length;
                     
-                    if (isAnimal && entityData.animals && entityData.animals.length > 0) {
-                        // Animals are mostly harmless except rare dangerous ones
-                        const entityTemplate = entityData.animals[Math.floor(Math.random() * entityData.animals.length)];
+                    if (useRuinsEnemy) {
+                        // Use the new ruins enemy system with emoji sprites
+                        const ruinsEnemy = ruinsEnemyService.generateEnemy(currentDepth, ex, ey);
                         newEntities.push({
                             id: `entity_${entityId++}`,
                             x: ex,
                             y: ey,
-                            type: 'animal',
-                            subtype: entityTemplate.subtype,
-                            name: entityTemplate.description,
-                            hp: entityTemplate.hp,
-                            maxHp: entityTemplate.hp,
-                            attack: entityTemplate.attack || 1,
-                            defense: entityTemplate.defense || 0,
-                            accuracy: entityTemplate.accuracy || 50,
-                            evasion: entityTemplate.evasion || 30,
-                            level: entityTemplate.level || 1,
-                            hostile: entityTemplate.hostile,
-                            description: entityTemplate.description,
-                            symbol: entityTemplate.symbol,
-                            color: entityTemplate.color,
+                            type: 'creature',
+                            subtype: ruinsEnemy.id,
+                            name: ruinsEnemy.name,
+                            hp: ruinsEnemy.hp,
+                            maxHp: ruinsEnemy.maxHp,
+                            attack: ruinsEnemy.damage.max,
+                            defense: ruinsEnemy.defense,
+                            accuracy: 70,
+                            evasion: Math.floor(ruinsEnemy.speed * 15),
+                            level: ruinsEnemy.level,
+                            hostile: true,
+                            description: ruinsEnemy.description,
+                            symbol: ruinsEnemy.asciiBackup,
+                            emoji: ruinsEnemy.emoji, // Use emoji sprite!
+                            color: ruinsEnemyService.getColor(ruinsEnemy),
                             dialogue: undefined,
-                            loot: undefined
+                            loot: ruinsEnemy.lootTable.filter(l => Math.random() < l.chance).map(l => l.item),
+                            behavior: ruinsEnemy.behavior,
+                            rangedAttack: ruinsEnemy.rangedAttack,
+                            moveSpeed: 1000 / ruinsEnemy.speed, // Convert speed to ms delay
+                            aiState: 'idle'
                         });
                     } else if (entityData.humans && entityData.humans.length > 0) {
-                        // Humans are the main threat - use LLM for realistic NPCs
+                        // Still support human NPCs for variety
                         const entityTemplate = entityData.humans[Math.floor(Math.random() * entityData.humans.length)];
                         const npcName = `${entityTemplate.type.charAt(0).toUpperCase() + entityTemplate.type.slice(1)}`;
                         
@@ -1330,7 +2266,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                             type: entityTemplate.type,
                             subtype: entityTemplate.type,
                             name: npcName,
-                            hp: entityTemplate.hp + (currentDepth * 2), // Scale with depth
+                            hp: entityTemplate.hp + (currentDepth * 2),
                             maxHp: entityTemplate.hp + (currentDepth * 2),
                             attack: entityTemplate.attack + Math.floor(currentDepth / 2),
                             defense: entityTemplate.defense + Math.floor(currentDepth / 3),
@@ -1340,10 +2276,12 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                             hostile: entityTemplate.hostile,
                             description: entityTemplate.description,
                             symbol: entityTemplate.symbol,
+                            emoji: getHumanEmoji(entityTemplate.type, entityTemplate.subtype), // Add emoji support!
                             color: entityTemplate.color,
-                            dialogue: [], // Will be generated via LLM when encountered
+                            dialogue: [],
                             loot: Math.random() > 0.5 ? [availableItems[Math.floor(Math.random() * availableItems.length)]] : undefined,
-                            canNegotiate: !entityTemplate.hostile || Math.random() > 0.7 // Some hostile NPCs can be talked down
+                            canNegotiate: !entityTemplate.hostile || Math.random() > 0.7,
+                            aiState: 'idle'
                         });
                     }
                 }
@@ -1352,6 +2290,9 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
 
         setDungeon(newDungeon);
         setEntities(newEntities);
+        
+        // Save the generated dungeon to cache for persistence
+        saveDungeonState(newDungeon, newEntities);
         setPlayer(prev => ({ ...prev, x: startX, y: startY }));
         
         // Store room information for chamber discovery
@@ -1359,7 +2300,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         setDiscoveredRooms(new Set());
         
         return { startX, startY };
-    }, [culturalContext, dungeonDimensions]);
+    }, [culturalContext, dungeonDimensions, loadDungeonState, saveDungeonState, currentDepth, ruinType]);
 
     // Start dungeon music with random timing
     useEffect(() => {
@@ -1368,6 +2309,277 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             gameSoundsService.stopDungeonMusicWithRandomTiming();
         };
     }, []);
+    
+    // Game loop for animations, enemy AI, projectiles, and cooldowns
+    useEffect(() => {
+        const gameLoop = setInterval(() => {
+            const now = Date.now();
+            
+            // Update attack animations
+            setActiveAttacks(prev => prev.map(attack => ({
+                ...attack,
+                frame: attack.frame + 0.5 // Advance animation
+            })).filter(a => a.frame < a.maxFrames));
+            
+            // Update cooldowns
+            setAttackCooldown(prev => {
+                const newCooldown = Math.max(0, prev - 16); // 60fps = 16ms per frame
+                attackCooldownRef.current = newCooldown;
+                return newCooldown;
+            });
+            
+            // Update charge level if charging
+            if (chargingAttack && chargeStartTime) {
+                const chargeTime = now - chargeStartTime;
+                setChargeLevel(Math.min(100, (chargeTime / 1000) * 40)); // Full charge in 2.5 seconds
+            }
+            
+            // Update projectiles
+            setProjectiles(prev => {
+                return prev.map(proj => {
+                    // Move projectile toward target
+                    const dx = Math.sign(proj.targetX - proj.x);
+                    const dy = Math.sign(proj.targetY - proj.y);
+                    const speed = 0.2; // Movement per frame
+                    
+                    const newX = proj.x + dx * speed;
+                    const newY = proj.y + dy * speed;
+                    
+                    // Check if reached target
+                    if (Math.abs(newX - proj.targetX) < 0.5 && Math.abs(newY - proj.targetY) < 0.5) {
+                        return null; // Remove projectile
+                    }
+                    
+                    // Check collision with walls
+                    const tileX = Math.floor(newX);
+                    const tileY = Math.floor(newY);
+                    if (dungeon[tileY]?.[tileX]?.type === 'wall') {
+                        createSoundEffect('*tink*', tileX, tileY, '#666666', 'normal');
+                        return null; // Remove projectile
+                    }
+                    
+                    // Check collision with traps - ranged attacks can disable them!
+                    const targetTile = dungeon[tileY]?.[tileX];
+                    if (targetTile && (targetTile.type === 'trap' || targetTile.type === 'pressure_plate') && !targetTile.trapTriggered && !targetTile.isActivated) {
+                        // Disable the trap/pressure plate
+                        setDungeon(prevDungeon => {
+                            const newDungeon = [...prevDungeon];
+                            if (targetTile.type === 'trap') {
+                                newDungeon[tileY][tileX] = { ...targetTile, type: 'floor', hasTrap: false };
+                                addMessage('*CRACK* Your projectile disabled the trap!');
+                                createSoundEffect('*disabled*', tileX, tileY, '#00ff00', 'float');
+                            } else if (targetTile.type === 'pressure_plate') {
+                                newDungeon[tileY][tileX] = { ...targetTile, isActivated: true };
+                                addMessage('*CLICK* Your projectile triggered the pressure plate!');
+                                createSoundEffect('*click*', tileX, tileY, '#ffff00', 'normal');
+                            }
+                            return newDungeon;
+                        });
+                        return null; // Remove projectile
+                    }
+                    
+                    // Check collision with entities
+                    const hitEntity = entities.find(e => 
+                        Math.abs(e.x - newX) < 0.5 && 
+                        Math.abs(e.y - newY) < 0.5 &&
+                        e.hp > 0
+                    );
+                    
+                    if (hitEntity && proj.owner === 'player') {
+                        // Deal damage to entity
+                        setEntities(prevEntities => prevEntities.map(e => {
+                            if (e.id === hitEntity.id) {
+                                const damage = proj.damage;
+                                const newHp = Math.max(0, e.hp - damage);
+                                createSoundEffect(`-${damage}`, e.x, e.y, '#ff0000', 'float');
+                                if (newHp <= 0) {
+                                    addMessage(`${e.name} was defeated!`);
+                                }
+                                return { ...e, hp: newHp };
+                            }
+                            return e;
+                        }));
+                        
+                        if (!proj.piercing) {
+                            return null; // Remove projectile
+                        }
+                    }
+                    
+                    // Check collision with player
+                    if (proj.owner === 'enemy' && Math.abs(player.x - newX) < 0.5 && Math.abs(player.y - newY) < 0.5) {
+                        const damage = Math.max(1, proj.damage - (player.defense || 0));
+                        setPlayer(prev => ({
+                            ...prev,
+                            hp: Math.max(0, prev.hp - damage)
+                        }));
+                        createSoundEffect(`-${damage}`, player.x, player.y, '#ff0000', 'shake');
+                        addMessage(`You take ${damage} damage from projectile!`);
+                        
+                        if (!proj.piercing) {
+                            return null; // Remove projectile
+                        }
+                    }
+                    
+                    return { ...proj, x: newX, y: newY };
+                }).filter(Boolean);
+            });
+            
+            // Update enemy AI (every 50ms instead of every frame for performance)
+            if (now % 3 === 0) { // Roughly every 3rd frame
+                setEntities(prev => prev.map(entity => {
+                    if (!entity.hostile || entity.hp <= 0) return entity;
+                    
+                    // Initialize AI properties if not set
+                    if (!entity.moveSpeed) {
+                        entity = {
+                            ...entity,
+                            moveSpeed: 500 + Math.random() * 500, // 500-1000ms between moves
+                            lastMove: now,
+                            lastAttack: now,
+                            aiState: 'idle'
+                        };
+                    }
+                    
+                    // Check if can move
+                    if (now - (entity.lastMove || 0) < (entity.moveSpeed || 500)) return entity;
+                    
+                    const distance = Math.abs(entity.x - player.x) + Math.abs(entity.y - player.y);
+                    
+                    // AI decision making based on behavior type
+                    const behavior = entity.behavior || 'aggressive';
+                    
+                    // Check for ranged attack opportunity
+                    if (entity.rangedAttack && distance <= entity.rangedAttack.range && distance > 1) {
+                        if (now - (entity.lastAttack || 0) > 1500) { // Ranged attacks have longer cooldown
+                            // Fire projectile
+                            const projectileId = `proj_${projectileIdRef.current++}`;
+                            setProjectiles(prev => [...prev, {
+                                id: projectileId,
+                                x: entity.x,
+                                y: entity.y,
+                                targetX: player.x,
+                                targetY: player.y,
+                                speed: 0.3,
+                                damage: entity.attack || 2,
+                                type: entity.rangedAttack.projectileType as any,
+                                symbol: entity.rangedAttack.projectileSymbol,
+                                color: entity.rangedAttack.projectileColor,
+                                piercing: false,
+                                owner: 'enemy'
+                            }]);
+                            createSoundEffect(entity.rangedAttack.projectileSymbol, entity.x, entity.y, entity.rangedAttack.projectileColor, 'normal');
+                            addMessage(`${entity.name} fires a projectile!`);
+                            return { ...entity, lastAttack: now, aiState: 'attacking' };
+                        }
+                    }
+                    
+                    if (distance <= 1) {
+                        // Melee attack if adjacent
+                        if (now - (entity.lastAttack || 0) > 1000) { // 1 second attack cooldown
+                            const damage = Math.max(1, (entity.attack || 2) - (player.defense || 0));
+                            setPlayer(prev => ({
+                                ...prev,
+                                hp: Math.max(0, prev.hp - damage)
+                            }));
+                            createSoundEffect(`-${damage}`, player.x, player.y, '#ff0000', 'shake');
+                            addMessage(`${entity.name} attacks for ${damage} damage!`);
+                            return { ...entity, lastAttack: now, aiState: 'attacking' };
+                        }
+                    } else if (entity.aiState !== 'fleeing') {
+                        // Movement based on behavior type
+                        let shouldMove = false;
+                        let moveTowardPlayer = true;
+                        
+                        switch (behavior) {
+                            case 'aggressive':
+                                shouldMove = distance <= 6;
+                                moveTowardPlayer = true;
+                                break;
+                            case 'defensive':
+                                shouldMove = distance <= 3 || entity.hp < entity.maxHp * 0.5;
+                                moveTowardPlayer = entity.hp >= entity.maxHp * 0.5;
+                                break;
+                            case 'erratic':
+                                shouldMove = Math.random() < 0.7 && distance <= 5;
+                                moveTowardPlayer = Math.random() < 0.6;
+                                break;
+                            case 'ambush':
+                                shouldMove = distance <= 2 || (entity.aiState === 'pursuing' && distance <= 4);
+                                moveTowardPlayer = true;
+                                break;
+                            case 'ranged':
+                                shouldMove = distance < 3 || distance > 5; // Keep optimal range
+                                moveTowardPlayer = distance > 4; // Stay at range
+                                break;
+                        }
+                        
+                        if (shouldMove) {
+                            const dx = moveTowardPlayer ? Math.sign(player.x - entity.x) : Math.sign(entity.x - player.x);
+                            const dy = moveTowardPlayer ? Math.sign(player.y - entity.y) : Math.sign(entity.y - player.y);
+                            
+                            // For erratic behavior, sometimes move randomly
+                            const randomMove = behavior === 'erratic' && Math.random() < 0.3;
+                            const actualDx = randomMove ? (Math.random() < 0.5 ? -1 : 1) : dx;
+                            const actualDy = randomMove ? (Math.random() < 0.5 ? -1 : 1) : dy;
+                            
+                            // Simple pathfinding - try to move
+                            let newX = entity.x;
+                            let newY = entity.y;
+                            
+                            // Try horizontal movement first
+                            if (actualDx !== 0) {
+                                const testX = entity.x + actualDx;
+                                if (dungeon[entity.y]?.[testX]?.type === 'floor' &&
+                                    !entities.some(e => e.id !== entity.id && e.x === testX && e.y === entity.y)) {
+                                    newX = testX;
+                                }
+                            }
+                            
+                            // If couldn't move horizontally, try vertical
+                            if (newX === entity.x && actualDy !== 0) {
+                                const testY = entity.y + actualDy;
+                                if (dungeon[testY]?.[entity.x]?.type === 'floor' &&
+                                    !entities.some(e => e.id !== entity.id && e.x === entity.x && e.y === testY)) {
+                                    newY = testY;
+                                }
+                            }
+                            
+                            if (newX !== entity.x || newY !== entity.y) {
+                                return {
+                                    ...entity,
+                                    x: newX,
+                                    y: newY,
+                                    lastMove: now,
+                                    aiState: moveTowardPlayer ? 'pursuing' : 'fleeing'
+                                };
+                            }
+                        }
+                    } else if (entity.hp < entity.maxHp / 3) {
+                        // Flee if critically low health
+                        const dx = Math.sign(entity.x - player.x);
+                        const dy = Math.sign(entity.y - player.y);
+                        
+                        const testX = entity.x + dx;
+                        const testY = entity.y + dy;
+                        
+                        if (dungeon[testY]?.[testX]?.type === 'floor') {
+                            return {
+                                ...entity,
+                                x: testX,
+                                y: testY,
+                                lastMove: now,
+                                aiState: 'fleeing'
+                            };
+                        }
+                    }
+                    
+                    return entity;
+                }));
+            }
+        }, 16); // 60fps
+        
+        return () => clearInterval(gameLoop);
+    }, [chargingAttack, chargeStartTime, dungeon, entities, player, createSoundEffect, addMessage]);
 
     // Calculate dynamic dungeon dimensions based on viewport
     useEffect(() => {
@@ -1406,12 +2618,11 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         return () => window.removeEventListener('resize', calculateDimensions);
     }, [zoomLevel]);
     
-    // Initialize dungeon when dimensions are ready
+    // Initialize dungeon once on mount
     useEffect(() => {
-        if (dungeonDimensions.width > 0 && dungeonDimensions.height > 0) {
-            generateDungeon();
-        }
-    }, [dungeonDimensions, generateDungeon]);
+        generateDungeon();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Empty deps - only run once on mount
 
     // Initialize first chamber after dungeon is ready
     useEffect(() => {
@@ -1420,17 +2631,19 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         }
     }, [dungeon.length]); // Don't include discoverNewChamber in deps to avoid circular dependency
 
-    // Update fog of war with dynamic lighting
+    // Simple static lighting - just pools of light
     const updateVisibility = useCallback((playerX: number, playerY: number) => {
         setDungeon(prev => {
+            // Guard against empty dungeon
+            if (!prev || prev.length === 0 || !prev[0] || prev[0].length === 0) {
+                return prev;
+            }
+            
             const newDungeon = prev.map(row => row.map(tile => ({ ...tile, visible: false })));
             
-            // Base vision radius, enhanced by torch
-            const baseRadius = 3;
-            const torchBonus = player.hasTorch ? 3 : 0;
-            const visionRadius = baseRadius + torchBonus;
+            // Player vision (simple radius)
+            const visionRadius = player.hasTorch ? 7 : 4;
             
-            // First pass: player vision
             for (let dy = -visionRadius; dy <= visionRadius; dy++) {
                 for (let dx = -visionRadius; dx <= visionRadius; dx++) {
                     const x = playerX + dx;
@@ -1438,7 +2651,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     
                     if (x >= 0 && x < dungeonDimensions.width && y >= 0 && y < dungeonDimensions.height && distance <= visionRadius) {
-                        // Line of sight check
+                        // Simple line of sight check
                         let hasLineOfSight = true;
                         const steps = Math.ceil(distance);
                         for (let step = 1; step < steps; step++) {
@@ -1450,7 +2663,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                             }
                         }
                         
-                        if (hasLineOfSight) {
+                        if (hasLineOfSight && newDungeon[y] && newDungeon[y][x]) {
                             newDungeon[y][x].visible = true;
                             newDungeon[y][x].explored = true;
                         }
@@ -1458,30 +2671,33 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 }
             }
             
-            // Second pass: environmental light sources
-            for (let y = 0; y < dungeonDimensions.height; y++) {
-                for (let x = 0; x < dungeonDimensions.width; x++) {
-                    const tile = newDungeon[y][x];
-                    if (tile.lightSource && tile.explored) {
-                        const lightRadius = tile.lightRadius || 2;
-                        
-                        // Illuminate area around light sources
+            // Add static light pools for environmental sources
+            prev.forEach((row, ly) => {
+                row.forEach((tile, lx) => {
+                    let lightRadius = 0;
+                    
+                    if (tile.type === 'brazier') lightRadius = 5;
+                    else if (tile.type === 'crystal') lightRadius = 4;
+                    else if (tile.type === 'campfire') lightRadius = 4;
+                    
+                    if (lightRadius > 0 && tile.explored) {
+                        // Create static pool of light
                         for (let dy = -lightRadius; dy <= lightRadius; dy++) {
                             for (let dx = -lightRadius; dx <= lightRadius; dx++) {
-                                const lx = x + dx;
-                                const ly = y + dy;
+                                const x = lx + dx;
+                                const y = ly + dy;
                                 const distance = Math.sqrt(dx * dx + dy * dy);
                                 
-                                if (lx >= 0 && lx < dungeonDimensions.width && 
-                                    ly >= 0 && ly < dungeonDimensions.height && 
+                                if (x >= 0 && x < dungeonDimensions.width && 
+                                    y >= 0 && y < dungeonDimensions.height && 
                                     distance <= lightRadius) {
                                     
-                                    // Simple line of sight for light sources
+                                    // Simple line of sight from light source
                                     let hasLineOfSight = true;
                                     const steps = Math.ceil(distance);
                                     for (let step = 1; step < steps; step++) {
-                                        const checkX = Math.round(x + (dx * step / steps));
-                                        const checkY = Math.round(y + (dy * step / steps));
+                                        const checkX = Math.round(lx + (dx * step / steps));
+                                        const checkY = Math.round(ly + (dy * step / steps));
                                         if (newDungeon[checkY] && newDungeon[checkY][checkX] && 
                                             newDungeon[checkY][checkX].type === 'wall') {
                                             hasLineOfSight = false;
@@ -1490,15 +2706,15 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                                     }
                                     
                                     if (hasLineOfSight) {
-                                        newDungeon[ly][lx].visible = true;
-                                        newDungeon[ly][lx].explored = true;
+                                        newDungeon[y][x].visible = true;
+                                        newDungeon[y][x].explored = true;
                                     }
                                 }
                             }
                         }
                     }
-                }
-            }
+                });
+            });
             
             return newDungeon;
         });
@@ -1526,112 +2742,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         return { hit: true, damage, critical };
     }, []);
 
-    // Handle combat turn with tactical mechanics
-    const handleCombatTurn = useCallback((entity: Entity, isPlayerAttacking: boolean) => {
-        if (isPlayerAttacking) {
-            // Player attacks entity
-            const result = calculateDamage(
-                { attack: player.attack + (player.weapon?.damage || 0), accuracy: player.accuracy },
-                { defense: entity.defense, evasion: entity.evasion }
-            );
-            
-            if (!result.hit) {
-                addMessage(`Your attack misses the ${entity.name}!`);
-                gameSoundsService.playRoguelikeAttackSound(false); // Miss sound
-            } else {
-                const critText = result.critical ? ' CRITICAL HIT!' : '';
-                addMessage(`You strike the ${entity.name} for ${result.damage} damage!${critText}`);
-                gameSoundsService.playRoguelikeAttackSound(true); // Hit sound
-                
-                setEntities(prev => prev.map(e => {
-                    if (e.id === entity.id) {
-                        const newHp = Math.max(0, e.hp - result.damage);
-                        if (newHp === 0) {
-                            addMessage(`✦ You defeated the ${e.name}!`);
-                            gameSoundsService.playEnemyDefeatSound();
-                            
-                            // Handle loot
-                            if (e.loot && Array.isArray(e.loot) && e.loot.length > 0) {
-                                const item = e.loot[0];
-                                if (item) {
-                                    setPlayer(p => ({ ...p, inventory: [...p.inventory, item] }));
-                                    onInventoryAdd?.(item);
-                                    addMessage(`  Found ${item.name || 'an item'}!`);
-                                }
-                            }
-                            
-                            // Add gold
-                            const goldReward = 5 + Math.floor(Math.random() * 20);
-                            
-                            // Add experience
-                            const expReward = e.level * 20;
-                            
-                            setPlayer(p => {
-                                const newExp = (p.experience || 0) + expReward;
-                                const nextLevel = (p.nextLevelExp || 100);
-                                let newP = { ...p, gold: p.gold + goldReward, experience: newExp };
-                                
-                                // Level up check
-                                if (newExp >= nextLevel) {
-                                    newP.level += 1;
-                                    newP.maxHp += 10;
-                                    newP.hp = newP.maxHp;
-                                    newP.attack += 2;
-                                    newP.defense += 1;
-                                    newP.nextLevelExp = nextLevel * 1.5;
-                                    addMessage(`☆ LEVEL UP! You are now level ${newP.level}! ☆`);
-                                    gameSoundsService.playLevelUpSound();
-                                }
-                                
-                                return newP;
-                            });
-                            
-                            onGoldChange?.(goldReward);
-                            addMessage(`  Found ${goldReward} gold!`);
-                            addMessage(`  Gained ${expReward} experience!`);
-                            
-                            // End combat
-                            setCombatState({ active: false, enemy: null, playerTurn: true });
-                        }
-                        return { ...e, hp: newHp };
-                    }
-                    return e;
-                }));
-            }
-        } else {
-            // Entity attacks player
-            const result = calculateDamage(
-                { attack: entity.attack, accuracy: entity.accuracy },
-                { defense: player.defense + (player.armor?.defense || 0), evasion: player.evasion }
-            );
-            
-            if (!result.hit) {
-                addMessage(`The ${entity.name}'s attack misses!`);
-                gameSoundsService.playRoguelikeAttackSound(false); // Enemy miss
-            } else {
-                const critText = result.critical ? ' CRITICAL HIT!' : '';
-                addMessage(`The ${entity.name} attacks you for ${result.damage} damage!${critText}`);
-                gameSoundsService.playDamageSound(result.critical ? 'heavy' : result.damage > 10 ? 'medium' : 'light');
-                
-                setPlayer(prev => {
-                    const newHp = Math.max(0, prev.hp - result.damage);
-                    onHealthChange?.(newHp);
-                    return { ...prev, hp: newHp };
-                });
-            }
-        }
-        
-        // Toggle turn
-        setCombatState(prev => ({ ...prev, playerTurn: !prev.playerTurn }));
-    }, [player, calculateDamage, addMessage, onHealthChange, onGoldChange, onInventoryAdd]);
 
-    // Start combat encounter
-    const startCombat = useCallback((entity: Entity) => {
-        setCombatState({ active: true, enemy: entity, playerTurn: true });
-        addMessage(`⚔ Combat with ${entity.name} begins!`);
-        addMessage(`  ${entity.name}: HP ${entity.hp}/${entity.maxHp}, Level ${entity.level}`);
-        gameSoundsService.playRoguelikeCombatSound();
-    }, [addMessage]);
 
     // Move entities
     const moveEntities = useCallback(() => {
@@ -1718,13 +2829,13 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                         if (entityAtPosition.hostile && entityAtPosition.canNegotiate) {
                             addMessage(`The ${entityAtPosition.name} seems aggressive but might listen to reason... [Press T to try talking]`);
                         } else if (entityAtPosition.hostile) {
-                            // Immediate combat for non-negotiable hostiles
-                            setTimeout(() => startCombat(entityAtPosition), 1500);
+                            // Real-time combat - no turn-based modal needed
+                            addMessage(`The ${entityAtPosition.name} is hostile!`);
                         }
                     });
                 } else if (entityAtPosition.hostile) {
-                    // Animals attack immediately
-                    startCombat(entityAtPosition);
+                    // Real-time combat - hostile animals are dangerous
+                    addMessage(`The ${entityAtPosition.name} is hostile and ready to attack!`);
                 } else {
                     // Non-hostile animals just block movement
                     addMessage(`The ${entityAtPosition.name} blocks your path.`);
@@ -1740,6 +2851,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     if (tile.hasGold) {
                         newPlayer.gold += tile.hasGold;
                         addMessage(`You found ${tile.hasGold} gold!`);
+                        createSoundEffect('*clink*', newX, newY, '#ffdd00', 'float');
                         onGoldChange?.(newPlayer.gold);
                         gameSoundsService.playGoldPickupSound();
                         setDungeon(prevDungeon => {
@@ -1778,9 +2890,35 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     
                 case 'trap':
                     if (tile.hasTrap && !tile.trapTriggered) {
-                        const damage = 10 + Math.floor(Math.random() * 15);
+                        // Different trap types cause different damage and effects
+                        let damage = 10;
+                        let message = 'You triggered a trap!';
+                        let sound = 'SNAP!';
+                        
+                        switch (tile.trapType) {
+                            case 'spike':
+                                damage = 8 + Math.floor(Math.random() * 12);
+                                message = `Spikes shoot up from the floor! Lost ${damage} HP.`;
+                                sound = '*SHING*';
+                                break;
+                            case 'pit':
+                                damage = 12 + Math.floor(Math.random() * 8);
+                                message = `You fall into a hidden pit! Lost ${damage} HP.`;
+                                sound = '*THUD*';
+                                break;
+                            case 'dart':
+                                damage = 6 + Math.floor(Math.random() * 8);
+                                message = `A poisoned dart strikes you! Lost ${damage} HP.`;
+                                sound = '*FWIP*';
+                                break;
+                            default:
+                                damage = 10 + Math.floor(Math.random() * 10);
+                                message = `You triggered a trap! Lost ${damage} HP.`;
+                        }
+                        
                         newPlayer.hp = Math.max(0, newPlayer.hp - damage);
-                        addMessage(`You triggered a trap! Lost ${damage} HP.`);
+                        addMessage(message);
+                        createSoundEffect(sound, newX, newY, '#ff0000', 'shake');
                         gameSoundsService.playTrapSound();
                         onHealthChange?.(newPlayer.hp);
                         setDungeon(prevDungeon => {
@@ -1815,6 +2953,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     
                 case 'brazier':
                     addMessage('A burning brazier illuminates the area with flickering flames.');
+                    createSoundEffect('*crackle*', newX, newY, '#ff6600', 'float');
                     break;
                     
                 case 'crystal':
@@ -1863,6 +3002,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 case 'lever':
                     tile.isActivated = !tile.isActivated;
                     addMessage(`You ${tile.isActivated ? 'pull' : 'push'} the lever. *CLUNK*`);
+                    createSoundEffect('CLUNK!', newX, newY, '#9966ff', 'shake');
                     gameSoundsService.playAltarSound();
                     
                     // Handle lever sequence puzzles
@@ -1965,40 +3105,75 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             
             return newPlayer;
         });
-    }, [dungeon, entities, addMessage, startCombat, moveEntities, onHealthChange, onGoldChange, onInventoryAdd, dungeonDimensions]);
+    }, [dungeon, entities, addMessage, moveEntities, onHealthChange, onGoldChange, onInventoryAdd, dungeonDimensions]);
 
-    // Update visibility when player moves
+    // Update visibility and viewport when player moves
     useEffect(() => {
         updateVisibility(player.x, player.y);
-    }, [player.x, player.y, updateVisibility]);
+        updateViewport(player.x, player.y);
+    }, [player.x, player.y, updateVisibility, updateViewport]);
 
     // Handle keyboard input
     useEffect(() => {
         const handleKeyPress = (event: KeyboardEvent) => {
             const keyLower = event.key.toLowerCase();
             
-            // Movement and actions
-            if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'escape', 'm', '>', 'h', 't'].includes(keyLower)) {
+            // MOVEMENT - Arrow keys only
+            if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(keyLower)) {
                 event.preventDefault();
                 event.stopPropagation();
                 
                 switch (keyLower) {
-                    case 'w':
                     case 'arrowup':
                         movePlayer(0, -1);
                         break;
-                    case 's':
                     case 'arrowdown':
                         movePlayer(0, 1);
                         break;
-                    case 'a':
                     case 'arrowleft':
                         movePlayer(-1, 0);
                         break;
-                    case 'd':
                     case 'arrowright':
                         movePlayer(1, 0);
                         break;
+                }
+                return;
+            }
+            
+            // COMBAT - WASD for attacks (handle keydown for charging)
+            if (['w', 'a', 's', 'd'].includes(keyLower) && !event.repeat) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                const attackMap: Record<string, { dx: number; dy: number; dir: 'north' | 'south' | 'east' | 'west' }> = {
+                    'w': { dx: 0, dy: -1, dir: 'north' },
+                    's': { dx: 0, dy: 1, dir: 'south' },
+                    'a': { dx: -1, dy: 0, dir: 'west' },
+                    'd': { dx: 1, dy: 0, dir: 'east' }
+                };
+                
+                const attack = attackMap[keyLower];
+                if (attack) {
+                    if (event.shiftKey) {
+                        // Ranged attack
+                        performRangedAttack(attack.dx, attack.dy, attack.dir);
+                    } else {
+                        // Start charging attack
+                        setChargingAttack(true);
+                        setChargeDirection(keyLower);
+                        setChargeStartTime(Date.now());
+                        setChargeLevel(0);
+                    }
+                }
+                return;
+            }
+            
+            // OTHER ACTIONS
+            if (['escape', 'm', '>', 'h', 't', 'p', 'b', 'e', 'q'].includes(keyLower)) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                switch (keyLower) {
                     case 'escape':
                         onExit();
                         break;
@@ -2057,55 +3232,207 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                                     ));
                                     addMessage(`The ${nearbyHostile.name} seems less hostile now.`);
                                 } else {
-                                    addMessage(`Negotiation failed! The ${nearbyHostile.name} attacks!`);
-                                    startCombat(nearbyHostile);
+                                    addMessage(`Negotiation failed! The ${nearbyHostile.name} becomes more aggressive!`);
                                 }
                             });
                         } else {
                             addMessage("There's no one nearby to talk to.");
                         }
                         break;
+                    case 'p':
+                        // Push objects (boulders, etc.)
+                        const adjacentTiles = [
+                            { x: player.x, y: player.y - 1 }, // North
+                            { x: player.x, y: player.y + 1 }, // South
+                            { x: player.x - 1, y: player.y }, // West
+                            { x: player.x + 1, y: player.y }  // East
+                        ];
+                        
+                        const pushableTile = adjacentTiles.find(pos => {
+                            const tile = dungeon[pos.y]?.[pos.x];
+                            return tile?.pushable && tile.type === 'boulder';
+                        });
+                        
+                        if (pushableTile) {
+                            handleEnvironmentalInteraction(pushableTile.x, pushableTile.y, 'push');
+                        } else {
+                            addMessage("There's nothing nearby to push.");
+                        }
+                        break;
+                    case 'b':
+                        // Break weak walls/objects
+                        const breakableTile = adjacentTiles.find(pos => {
+                            const tile = dungeon[pos.y]?.[pos.x];
+                            return tile?.breakable && ['weak_wall', 'ice_wall', 'vine_wall'].includes(tile.type);
+                        });
+                        
+                        if (breakableTile) {
+                            handleEnvironmentalInteraction(breakableTile.x, breakableTile.y, 'break');
+                        } else {
+                            addMessage("There's nothing nearby to break.");
+                        }
+                        break;
+                    case 'e':
+                        // Extinguish fires
+                        const fireTile = adjacentTiles.find(pos => {
+                            const tile = dungeon[pos.y]?.[pos.x];
+                            return tile?.type === 'fire_trap' || tile?.type === 'brazier';
+                        });
+                        
+                        if (fireTile) {
+                            handleEnvironmentalInteraction(fireTile.x, fireTile.y, 'douse');
+                        } else {
+                            addMessage("There's no fire nearby to extinguish.");
+                        }
+                        break;
+                    case 'q':
+                        // Activate mechanisms
+                        const mechanismTile = adjacentTiles.find(pos => {
+                            const tile = dungeon[pos.y]?.[pos.x];
+                            return tile?.type === 'ancient_mechanism' && !tile.isActivated;
+                        });
+                        
+                        if (mechanismTile) {
+                            handleEnvironmentalInteraction(mechanismTile.x, mechanismTile.y, 'activate');
+                        } else {
+                            addMessage("There's no mechanism nearby to activate.");
+                        }
+                        break;
                 }
+            }
+        };
+        
+        // Handle key release for charge attacks
+        const handleKeyUp = (event: KeyboardEvent) => {
+            const keyLower = event.key.toLowerCase();
+            
+            if (keyLower === chargeDirection && chargingAttack) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // Execute charged attack based on charge level
+                const powerLevel = Math.floor(chargeLevel / 25); // 0-4 power levels
+                
+                const attackMap: Record<string, { dx: number; dy: number; dir: 'north' | 'south' | 'east' | 'west' }> = {
+                    'w': { dx: 0, dy: -1, dir: 'north' },
+                    's': { dx: 0, dy: 1, dir: 'south' },
+                    'a': { dx: -1, dy: 0, dir: 'west' },
+                    'd': { dx: 1, dy: 0, dir: 'east' }
+                };
+                
+                const attack = attackMap[keyLower];
+                if (attack) {
+                    if (powerLevel === 0) {
+                        // Quick tap = normal attack
+                        performMeleeAttack(attack.dx, attack.dy, attack.dir);
+                    } else if (powerLevel >= 3) {
+                        // Full charge = special attack
+                        performChargedSpecial(chargeDirection, powerLevel);
+                    } else {
+                        // Partial charge = stronger normal attack
+                        performMeleeAttack(attack.dx, attack.dy, attack.dir, 1 + powerLevel * 0.5);
+                    }
+                }
+                
+                // Reset charge state
+                setChargingAttack(false);
+                setChargeLevel(0);
+                setChargeDirection(null);
+                setChargeStartTime(null);
             }
         };
 
         window.addEventListener('keydown', handleKeyPress);
-        return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [movePlayer, onExit, player, dungeon, generateDungeon, addMessage, combatState, handleCombatTurn, currentDepth, discoverNewChamber, entities, startCombat, culturalContext, ruinType, playerCharacter]);
+        window.addEventListener('keyup', handleKeyUp);
+        return () => {
+            window.removeEventListener('keydown', handleKeyPress);
+            window.removeEventListener('keyup', handleKeyUp);
+        };
+    }, [movePlayer, onExit, player, dungeon, generateDungeon, addMessage, currentDepth, discoverNewChamber, entities, culturalContext, ruinType, playerCharacter, performMeleeAttack, performRangedAttack, performChargedSpecial, chargingAttack, chargeDirection, chargeLevel]);
 
-    // Handle enemy turns in combat
+    
+    // Simple static particles for atmosphere (no animation)
     useEffect(() => {
-        if (combatState.active && !combatState.playerTurn && combatState.enemy) {
-            const timer = setTimeout(() => {
-                const enemy = entities.find(e => e.id === combatState.enemy?.id);
-                if (enemy && enemy.hp > 0) {
-                    handleCombatTurn(enemy, false);
-                } else {
-                    // Enemy was defeated or disappeared
-                    setCombatState({ active: false, enemy: null, playerTurn: true });
-                }
-            }, 1000); // 1 second delay for enemy turn
-            return () => clearTimeout(timer);
+        // Add a few static dust motes when entering new areas
+        if (currentChamber) {
+            const staticParticles = [];
+            for (let i = 0; i < 10; i++) {
+                staticParticles.push({
+                    x: Math.floor(Math.random() * dungeonDimensions.width),
+                    y: Math.floor(Math.random() * dungeonDimensions.height),
+                    char: '·',
+                    color: 'text-gray-600',
+                    lifetime: 1000,
+                    vx: 0,
+                    vy: 0
+                });
+            }
+            setParticles(staticParticles);
         }
-    }, [combatState, entities, handleCombatTurn]);
+    }, [currentChamber, dungeonDimensions]);
 
-    // Get tile display with enhanced ASCII art
+    // Get tile display with simple visibility
+    // Get attack animation display
+    const getAttackAnimationDisplay = (attack: AttackAnimation) => {
+        const animationFrames: Record<string, Record<string, string[]>> = {
+            slash: {
+                north: ['|', '/', '─', '\\'],
+                south: ['|', '\\', '─', '/'],
+                east: ['─', '\\', '|', '/'],
+                west: ['─', '/', '|', '\\']
+            },
+            thrust: {
+                north: ['·', ':', '|', '!'],
+                south: ['·', ':', '|', '!'],
+                east: ['·', ':', '═', '─'],
+                west: ['·', ':', '═', '─']
+            },
+            arc: {
+                north: ['/', '─', '\\', '─'],
+                south: ['\\', '─', '/', '─'],
+                east: ['|', '/', '|', '\\'],
+                west: ['|', '\\', '|', '/']
+            }
+        };
+        
+        const frames = animationFrames[attack.type]?.[attack.direction] || ['*'];
+        const frameIndex = Math.min(Math.floor(attack.frame), frames.length - 1);
+        const currentFrame = frames[frameIndex];
+        
+        return {
+            char: currentFrame,
+            color: attack.color,
+            opacity: 1 - (attack.frame / attack.maxFrames) * 0.3,
+            scale: 1 + (attack.frame / attack.maxFrames) * 0.2
+        };
+    };
+    
     const getTileDisplay = (tile: DungeonTile, x: number, y: number) => {
-        // Check for player - classic @ symbol with glow
+        // Check for player - classic @ symbol
         if (x === player.x && y === player.y) {
-            return { char: '@', color: 'text-amber-400', glow: true, strongGlow: true }; // Classic @ with strong glow
+            return { char: '@', color: 'text-amber-400', glow: false };
+        }
+        
+        // Check for static particles at this position
+        const particle = particles.find(p => Math.floor(p.x) === x && Math.floor(p.y) === y);
+        if (particle && tile.visible && tile.type === 'floor') {
+            return { char: particle.char, color: particle.color, glow: false };
         }
         
         // Check for entities
         const entity = entities.find(e => e.x === x && e.y === y && e.hp > 0);
         if (entity && tile.visible) {
-            return { char: entity.symbol, color: entity.color, glow: entity.hostile };
+            // Use emoji sprite if available, otherwise fall back to ASCII symbol
+            const displayChar = entity.emoji || entity.symbol;
+            return { char: displayChar, color: entity.color, glow: false };
         }
         
+        // Not visible and not explored = darkness
         if (!tile.visible && !tile.explored) {
             return { char: ' ', color: 'text-black', glow: false };
         }
         
+        // Explored but not currently visible = dimmed
         const dimmed = !tile.visible && tile.explored;
         
         switch (tile.type) {
@@ -2128,7 +3455,8 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             case 'manuscript': 
                 return { char: '§', color: dimmed ? 'text-amber-700' : 'text-amber-300', glow: !dimmed }; // Section sign for scrolls
             case 'trap': 
-                return { char: tile.trapTriggered ? '♦' : '·', color: tile.trapTriggered ? (dimmed ? 'text-red-800' : 'text-red-500') : (dimmed ? 'text-gray-700' : 'text-gray-600'), glow: false };
+                // Subtle indication - comma instead of period for armed traps
+                return { char: tile.trapTriggered ? '♦' : ',', color: tile.trapTriggered ? (dimmed ? 'text-red-800' : 'text-red-500') : (dimmed ? 'text-gray-700' : 'text-gray-600'), glow: false };
             case 'stairs_down': 
                 return { char: '↓', color: dimmed ? 'text-cyan-800' : 'text-cyan-400', glow: !dimmed }; // Down arrow
             case 'stairs_up': 
@@ -2142,7 +3470,10 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             case 'rubble':
                 return { char: '•', color: dimmed ? 'text-gray-700' : 'text-gray-500', glow: false };
             case 'water':
-                return { char: '≈', color: dimmed ? 'text-blue-800' : 'text-blue-500', glow: false }; // Almost equal for water
+                // Animated water effect
+                const waterChars = ['≈', '~', '∼'];
+                const waterChar = waterChars[Math.floor(Date.now() / 800) % waterChars.length];
+                return { char: waterChar, color: dimmed ? 'text-blue-800' : 'text-blue-500', glow: false };
             case 'chasm':
                 return { char: '░', color: dimmed ? 'text-gray-900' : 'text-gray-800', glow: false };
             case 'pillar':
@@ -2158,17 +3489,46 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             case 'mural':
                 return { char: '▣', color: dimmed ? 'text-indigo-700' : 'text-indigo-400', glow: false }; // Filled square for art
             case 'brazier':
-                return { char: '◈', color: dimmed ? 'text-orange-700' : 'text-orange-500', glow: !dimmed, strongGlow: !dimmed }; // Diamond with dot for fire
+                // Animated fire effect
+                const fireChars = ['◈', '◉', '◎'];
+                const fireChar = fireChars[Math.floor(Date.now() / 400) % fireChars.length];
+                return { char: fireChar, color: dimmed ? 'text-orange-700' : 'text-orange-500', glow: !dimmed, strongGlow: !dimmed };
             case 'crystal':
                 return { char: '◊', color: dimmed ? 'text-cyan-700' : 'text-cyan-400', glow: !dimmed, strongGlow: !dimmed }; // Diamond for crystal
             case 'pressure_plate':
-                return { char: tile.isActivated ? '▪' : '□', color: tile.isActivated ? 'text-green-400' : 'text-yellow-600', glow: false };
+                // Subtle indication - comma instead of period for unactivated plates
+                return { char: tile.isActivated ? '.' : ',', color: tile.isActivated ? 'text-green-400' : 'text-gray-500', glow: false };
             case 'lever':
                 return { char: tile.isActivated ? '╨' : '╥', color: 'text-purple-400', glow: false };
             case 'puzzle_door':
                 return { char: '▩', color: 'text-red-600', glow: true };
             case 'mirror':
                 return { char: '◯', color: 'text-blue-300', glow: true };
+            case 'boulder':
+                return { char: '●', color: dimmed ? 'text-gray-600' : 'text-gray-300', glow: false };
+            case 'weak_wall':
+                return { char: '▒', color: dimmed ? 'text-gray-700' : 'text-gray-500', glow: false };
+            case 'fire_trap':
+                const fireColors = ['text-red-500', 'text-orange-500', 'text-yellow-500'];
+                const fireColor = fireColors[Math.floor(Date.now() / 300) % fireColors.length];
+                return { char: '♨', color: dimmed ? 'text-red-800' : fireColor, glow: !dimmed, strongGlow: !dimmed };
+            case 'ice_wall':
+                return { char: '▓', color: dimmed ? 'text-blue-800' : 'text-blue-400', glow: false };
+            case 'vine_wall':
+                return { char: '▒', color: dimmed ? 'text-green-800' : 'text-green-600', glow: false };
+            case 'ancient_mechanism':
+                const mechChar = tile.isActivated ? '⚙' : '⚡';
+                return { char: mechChar, color: tile.isActivated ? 'text-green-400' : 'text-yellow-600', glow: tile.isActivated };
+            case 'counterweight':
+                return { char: '⚖', color: tile.isActivated ? 'text-green-400' : 'text-gray-600', glow: false };
+            case 'water_flow':
+                const flowChars = ['≈', '∼', '≋'];
+                const flowChar = flowChars[Math.floor(Date.now() / 600) % flowChars.length];
+                return { char: flowChar, color: dimmed ? 'text-blue-800' : 'text-blue-400', glow: false };
+            case 'rope':
+                return { char: '∿', color: dimmed ? 'text-yellow-800' : 'text-yellow-600', glow: false };
+            case 'chain':
+                return { char: '⛓', color: dimmed ? 'text-gray-700' : 'text-gray-400', glow: false };
             default: 
                 return { char: '?', color: 'text-white', glow: false };
         }
@@ -2267,210 +3627,346 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             <div className="flex-1 flex flex-col" style={{ backgroundColor: '#0a0a0a' }}>
                 {/* Dungeon map - fills available space */}
                 <div className="flex-1 overflow-auto flex justify-center items-center">
-                    <pre style={{ fontSize: `${zoomLevel}px`, lineHeight: `${zoomLevel}px`, fontFamily: 'Courier New, Courier, monospace', margin: 0, letterSpacing: '0px' }}>
-                            {dungeon.map((row, y) => (
-                                <div key={y} style={{ height: `${zoomLevel}px`, display: 'flex' }}>
-                                    {row.map((tile, x) => {
-                                        const display = getTileDisplay(tile, x, y);
-                                        return (
-                                            <span
-                                                key={x}
-                                                className={display.color}
-                                                style={{
-                                                    width: `${zoomLevel}px`,
-                                                    display: 'inline-block',
-                                                    textAlign: 'center',
-                                                    fontWeight: 'bold',
-                                                    ...(display.strongGlow ? { 
-                                                        textShadow: `0 0 12px currentColor, 0 0 20px currentColor, 0 0 8px #ffff00` 
-                                                    } : display.glow ? { 
-                                                        textShadow: `0 0 8px currentColor` 
-                                                    } : {})
-                                                }}
-                                            >
-                                                {display.char}
-                                            </span>
-                                        );
-                                    })}
-                                </div>
-                            ))}
+                    <div className="relative">
+                        <pre style={{ fontSize: `${zoomLevel}px`, lineHeight: `${zoomLevel}px`, fontFamily: 'Courier New, Courier, monospace', margin: 0, letterSpacing: '0px' }}>
+                            {dungeon.slice(viewportOffset.y, viewportOffset.y + VIEWPORT_HEIGHT).map((row, relativeY) => {
+                                const absoluteY = viewportOffset.y + relativeY;
+                                return (
+                                    <div key={absoluteY} style={{ height: `${zoomLevel}px`, display: 'flex' }}>
+                                        {row.slice(viewportOffset.x, viewportOffset.x + VIEWPORT_WIDTH).map((tile, relativeX) => {
+                                            const absoluteX = viewportOffset.x + relativeX;
+                                            const display = getTileDisplay(tile, absoluteX, absoluteY);
+                                            return (
+                                                <span
+                                                    key={absoluteX}
+                                                    className={display.color}
+                                                    style={{
+                                                        width: `${zoomLevel}px`,
+                                                        display: 'inline-block',
+                                                        textAlign: 'center',
+                                                        fontWeight: 'bold',
+                                                        ...(display.strongGlow ? { 
+                                                            textShadow: `0 0 12px currentColor, 0 0 20px currentColor, 0 0 8px #ffff00` 
+                                                        } : display.glow ? { 
+                                                            textShadow: `0 0 8px currentColor` 
+                                                        } : {})
+                                                    }}
+                                                >
+                                                    {display.char}
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })}
                         </pre>
+                        
+                        {/* Render attack animations */}
+                        {activeAttacks.map(attack => {
+                            const anim = getAttackAnimationDisplay(attack);
+                            // Render for each tile in the pattern
+                            return attack.pattern.map((tile, index) => {
+                                // Only render if within viewport (with buffer for edge cases)
+                                const buffer = 1;
+                                if (tile.x < viewportOffset.x - buffer || tile.x >= viewportOffset.x + VIEWPORT_WIDTH + buffer ||
+                                    tile.y < viewportOffset.y - buffer || tile.y >= viewportOffset.y + VIEWPORT_HEIGHT + buffer) {
+                                    return null;
+                                }
+                                const relativeX = tile.x - viewportOffset.x;
+                                const relativeY = tile.y - viewportOffset.y;
+                                return (
+                                    <div
+                                        key={`${attack.id}_${index}`}
+                                        className="absolute pointer-events-none"
+                                        style={{
+                                            left: `${relativeX * zoomLevel}px`,
+                                            top: `${relativeY * zoomLevel}px`,
+                                            width: `${zoomLevel}px`,
+                                            height: `${zoomLevel}px`,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: anim.color,
+                                            opacity: anim.opacity,
+                                            transform: `scale(${anim.scale})`,
+                                            fontSize: `${zoomLevel * 1.2}px`,
+                                            fontWeight: 'bold',
+                                            textShadow: `0 0 10px ${anim.color}`,
+                                            zIndex: 1000
+                                        }}
+                                    >
+                                        {anim.char}
+                                    </div>
+                                );
+                            });
+                        })}
+                        
+                        {/* Render projectiles */}
+                        {projectiles.filter(proj => {
+                            // Give projectiles some buffer for fractional coordinates
+                            const buffer = 1;
+                            return proj.x >= viewportOffset.x - buffer && proj.x < viewportOffset.x + VIEWPORT_WIDTH + buffer &&
+                                   proj.y >= viewportOffset.y - buffer && proj.y < viewportOffset.y + VIEWPORT_HEIGHT + buffer;
+                        }).map(proj => (
+                            <div
+                                key={proj.id}
+                                className="absolute pointer-events-none"
+                                style={{
+                                    left: `${(proj.x - viewportOffset.x) * zoomLevel}px`,
+                                    top: `${(proj.y - viewportOffset.y) * zoomLevel}px`,
+                                    width: `${zoomLevel}px`,
+                                    height: `${zoomLevel}px`,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: proj.color,
+                                    fontSize: `${zoomLevel * 0.8}px`,
+                                    fontWeight: 'bold',
+                                    textShadow: `0 0 8px ${proj.color}`,
+                                    zIndex: 900,
+                                    transition: 'all 0.05s linear'
+                                }}
+                            >
+                                {proj.symbol}
+                            </div>
+                        ))}
+                        
+                        {/* Render charge bar if charging */}
+                        {chargingAttack && (
+                            <div
+                                className="absolute pointer-events-none"
+                                style={{
+                                    left: `${player.x * zoomLevel}px`,
+                                    top: `${(player.y - 1) * zoomLevel}px`,
+                                    width: `${zoomLevel}px`,
+                                    height: '4px',
+                                    backgroundColor: '#333',
+                                    border: '1px solid #666',
+                                    zIndex: 1100
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        width: `${chargeLevel}%`,
+                                        height: '100%',
+                                        backgroundColor: chargeLevel > 75 ? '#ff0000' :
+                                                       chargeLevel > 50 ? '#ffaa00' :
+                                                       chargeLevel > 25 ? '#ffff00' : '#00ff00',
+                                        transition: 'width 0.1s, background-color 0.2s',
+                                        boxShadow: chargeLevel > 75 ? '0 0 4px #ff0000' : 'none'
+                                    }}
+                                />
+                            </div>
+                        )}
                     </div>
+                </div>
 
-                {/* Message log - compact */}
-                <div className="h-20 border-t overflow-y-auto px-2" style={{ borderColor: '#ff6b00', backgroundColor: '#0a0a0a' }}>
-                    {gameMessages.map((msg, i) => (
-                        <div key={i} style={{ color: '#ff9500', opacity: 1 - (gameMessages.length - i - 1) * 0.2 }}>
-                            {'>'} {msg}
-                        </div>
-                    ))}
+                {/* Message log - enhanced with expand functionality */}
+                <div 
+                    className={`border-t transition-all duration-300 ${gameLogExpanded ? 'fixed inset-0 z-50' : 'h-32'}`}
+                    style={{ 
+                        borderColor: '#ff6b00', 
+                        backgroundColor: '#0a0a0a',
+                        ...(gameLogExpanded && { 
+                            borderColor: '#ff6b00',
+                            boxShadow: '0 0 30px rgba(255, 107, 0, 0.5)'
+                        })
+                    }}
+                >
+                    {/* Header with expand/collapse button */}
+                    <div className="flex justify-between items-center px-3 py-1 border-b" style={{ borderColor: '#ff6b00' }}>
+                        <span style={{ color: '#ff9500', fontSize: '14px', fontWeight: 'bold' }}>
+                            Game Log {gameLogExpanded ? '(Full Screen)' : ''}
+                        </span>
+                        <button
+                            onClick={() => setGameLogExpanded(!gameLogExpanded)}
+                            className="px-2 py-1 text-xs rounded border transition-colors"
+                            style={{
+                                backgroundColor: gameLogExpanded ? '#ff6b00' : 'transparent',
+                                borderColor: '#ff6b00',
+                                color: gameLogExpanded ? '#000' : '#ff9500'
+                            }}
+                        >
+                            {gameLogExpanded ? '↓ Collapse' : '↑ Expand'}
+                        </button>
+                    </div>
+                    
+                    {/* Messages area */}
+                    <div className={`overflow-y-auto px-3 py-2 ${gameLogExpanded ? 'h-full' : 'h-24'}`}>
+                        {gameMessages.map((msg, i) => (
+                            <div 
+                                key={i} 
+                                className="mb-1"
+                                style={{ 
+                                    color: '#ff9500', 
+                                    opacity: gameLogExpanded ? 1 : (1 - (gameMessages.length - i - 1) * 0.15),
+                                    fontSize: gameLogExpanded ? '16px' : '14px',
+                                    lineHeight: gameLogExpanded ? '1.4' : '1.2'
+                                }}
+                            >
+                                <span style={{ color: '#666', marginRight: '6px' }}>{'>'}</span>
+                                {msg}
+                            </div>
+                        ))}
+                        {gameLogExpanded && gameMessages.length === 0 && (
+                            <div style={{ color: '#666', fontStyle: 'italic' }}>No messages yet...</div>
+                        )}
+                    </div>
                 </div>
                 
-                {/* Combat overlay */}
-                {combatState.active && combatState.enemy && (
-                        <div className="absolute inset-x-4 bottom-40 max-w-3xl mx-auto p-6 border-2 rounded"
+
+                    {/* Enhanced Dialogue overlay with ASCII portrait */}
+                    {currentDialogue && (
+                        <div className="absolute inset-x-4 top-1/4 max-w-3xl mx-auto p-6 border-2 rounded-lg"
                              style={{ 
-                                 backgroundColor: '#1a0a0a', 
-                                 borderColor: '#ff3333',
-                                 boxShadow: '0 0 40px #ff3333'
+                                 backgroundColor: '#0a0a0a', 
+                                 borderColor: '#ff6b00',
+                                 boxShadow: '0 0 40px #ff6b00, inset 0 0 20px rgba(255, 107, 0, 0.1)'
                              }}>
-                            <div className="flex justify-between items-start mb-4">
-                                <div>
-                                    <h3 className="text-2xl font-bold mb-2" style={{ color: '#ff6666' }}>⚔ COMBAT ⚔</h3>
-                                    <div style={{ color: '#ffaa00' }}>
-                                        Fighting: {combatState.enemy.name} (Level {combatState.enemy.level})
-                                    </div>
-                                </div>
-                                <div className="text-right" style={{ color: '#ff9900' }}>
-                                    <div>{combatState.playerTurn ? '» YOUR TURN «' : '» ENEMY TURN «'}</div>
-                                </div>
-                            </div>
-                            
-                            {/* Health bars */}
-                            <div className="grid grid-cols-2 gap-6 mb-6">
-                                <div>
-                                    <div className="flex justify-between mb-1" style={{ color: '#ff9900' }}>
-                                        <span>You</span>
-                                        <span>{player.hp}/{player.maxHp} HP</span>
-                                    </div>
-                                    <div className="w-full h-4 bg-gray-800 rounded overflow-hidden">
-                                        <div 
-                                            className="h-full transition-all duration-300"
-                                            style={{ 
-                                                width: `${(player.hp / player.maxHp) * 100}%`,
-                                                backgroundColor: player.hp > player.maxHp * 0.5 ? '#00ff00' : 
-                                                               player.hp > player.maxHp * 0.25 ? '#ffaa00' : '#ff3333'
-                                            }}
-                                        />
-                                    </div>
-                                    <div className="mt-1 text-sm" style={{ color: '#ff7700' }}>
-                                        ATK: {player.attack} | DEF: {player.defense} | ACC: {player.accuracy}% | EVA: {player.evasion}%
+                            <div className="flex gap-6">
+                                {/* ASCII Portrait */}
+                                <div className="flex-shrink-0">
+                                    <pre style={{ 
+                                        fontFamily: 'monospace', 
+                                        fontSize: '12px',
+                                        lineHeight: '1',
+                                        color: currentDialogue.entity.hostile ? '#ff4444' : '#ffaa00',
+                                        textShadow: currentDialogue.entity.hostile ? '0 0 5px #ff0000' : '0 0 5px #ff6b00'
+                                    }}>
+                                        {(() => {
+                                            const portrait = applyCulturalStyle(
+                                                getASCIIPortrait(
+                                                    currentDialogue.entity.type, 
+                                                    currentDialogue.entity.subtype,
+                                                    currentDialogue.entity.hostile
+                                                ),
+                                                culturalContext.culturalZone
+                                            );
+                                            const framedPortrait = framePortrait(portrait, currentDialogue.entity.name);
+                                            return framedPortrait.join('\n');
+                                        })()}
+                                    </pre>
+                                    {/* Health bar */}
+                                    <div className="text-center mt-2" style={{ fontFamily: 'monospace', fontSize: '14px' }}>
+                                        <span style={{ color: '#ff6b00' }}>
+                                            {getHealthBar(currentDialogue.entity.hp, currentDialogue.entity.maxHp, 15)}
+                                        </span>
                                     </div>
                                 </div>
                                 
-                                <div>
-                                    <div className="flex justify-between mb-1" style={{ color: '#ff9900' }}>
-                                        <span>{combatState.enemy.name}</span>
-                                        <span>{combatState.enemy.hp}/{combatState.enemy.maxHp} HP</span>
-                                    </div>
-                                    <div className="w-full h-4 bg-gray-800 rounded overflow-hidden">
-                                        <div 
-                                            className="h-full transition-all duration-300"
+                                {/* Dialogue text */}
+                                <div className="flex-1">
+                                    <h3 className="text-xl font-bold mb-3" style={{ 
+                                        color: '#ffaa00',
+                                        textShadow: '0 0 10px #ff6b00'
+                                    }}>
+                                        {currentDialogue.entity.name}
+                                        {currentDialogue.entity.hostile && 
+                                            <span className="ml-2 text-sm" style={{ color: '#ff4444' }}>[HOSTILE]</span>
+                                        }
+                                    </h3>
+                                    <p style={{ 
+                                        color: '#ff9500',
+                                        fontFamily: 'serif',
+                                        fontSize: '16px',
+                                        fontStyle: 'italic',
+                                        lineHeight: '1.5'
+                                    }} className="mb-4">
+                                        "{currentDialogue.message}"
+                                    </p>
+                                    
+                                    {/* Action buttons */}
+                                    <div className="flex gap-3">
+                                        <button 
+                                            onClick={() => setCurrentDialogue(null)}
+                                            className="px-6 py-2 rounded font-bold transition-all"
                                             style={{ 
-                                                width: `${(combatState.enemy.hp / combatState.enemy.maxHp) * 100}%`,
-                                                backgroundColor: combatState.enemy.hp > combatState.enemy.maxHp * 0.5 ? '#00ff00' : 
-                                                               combatState.enemy.hp > combatState.enemy.maxHp * 0.25 ? '#ffaa00' : '#ff3333'
+                                                backgroundColor: '#ff6b00', 
+                                                color: 'black',
+                                                boxShadow: '0 0 10px #ff6b00'
                                             }}
-                                        />
-                                    </div>
-                                    <div className="mt-1 text-sm" style={{ color: '#ff7700' }}>
-                                        ATK: {combatState.enemy.attack} | DEF: {combatState.enemy.defense} | ACC: {combatState.enemy.accuracy}% | EVA: {combatState.enemy.evasion}%
+                                        >
+                                            [Continue]
+                                        </button>
+                                        {currentDialogue.entity.hostile && currentDialogue.entity.canNegotiate && (
+                                            <button 
+                                                onClick={() => {
+                                                    // Trigger negotiation
+                                                    const event = new KeyboardEvent('keydown', { key: 't' });
+                                                    window.dispatchEvent(event);
+                                                    setCurrentDialogue(null);
+                                                }}
+                                                className="px-6 py-2 rounded font-bold transition-all"
+                                                style={{ 
+                                                    backgroundColor: '#4a4a4a', 
+                                                    color: '#ff9500',
+                                                    border: '1px solid #ff6b00'
+                                                }}
+                                            >
+                                                [Try to Talk - T]
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
-                            
-                            {/* Combat actions */}
-                            {combatState.playerTurn && (
-                                <div className="grid grid-cols-3 gap-3">
-                                    <button 
-                                        onClick={() => handleCombatTurn(combatState.enemy!, true)}
-                                        className="px-4 py-2 rounded font-bold transition-all hover:scale-105"
-                                        style={{ 
-                                            backgroundColor: '#ff6600', 
-                                            color: 'black',
-                                            boxShadow: '0 0 10px #ff6600',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        [1] Attack
-                                    </button>
-                                    <button 
-                                        onClick={() => {
-                                            setPlayer(prev => ({ ...prev, defending: true }));
-                                            handleCombatTurn(combatState.enemy!, true);
-                                        }}
-                                        className="px-4 py-2 rounded font-bold transition-all hover:scale-105"
-                                        style={{ 
-                                            backgroundColor: '#0066ff', 
-                                            color: 'white',
-                                            boxShadow: '0 0 10px #0066ff',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        [2] Defend
-                                    </button>
-                                    <button 
-                                        onClick={() => {
-                                            if (Math.random() > 0.5) {
-                                                addMessage('You fled from combat!');
-                                                setCombatState({ active: false, enemy: null, playerTurn: true });
-                                            } else {
-                                                addMessage('Failed to flee!');
-                                                handleCombatTurn(combatState.enemy!, false);
-                                            }
-                                        }}
-                                        className="px-4 py-2 rounded font-bold transition-all hover:scale-105"
-                                        style={{ 
-                                            backgroundColor: '#666666', 
-                                            color: 'white',
-                                            boxShadow: '0 0 10px #666666',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        [3] Flee (50%)
-                                    </button>
-                                </div>
-                            )}
-                            
-                            {!combatState.playerTurn && (
-                                <div className="text-center py-3" style={{ color: '#ff9900' }}>
-                                    <div className="animate-pulse">Enemy is attacking...</div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Dialogue overlay */}
-                    {currentDialogue && !combatState.active && (
-                        <div className="absolute inset-x-4 top-1/3 max-w-2xl mx-auto p-4 border rounded"
-                             style={{ 
-                                 backgroundColor: '#1a1a1a', 
-                                 borderColor: '#ff6b00',
-                                 boxShadow: '0 0 30px #ff6b00'
-                             }}>
-                            <h3 style={{ color: '#ffaa00' }}>{currentDialogue.entity.name}:</h3>
-                            <p style={{ color: '#ff9500' }} className="mt-2">{currentDialogue.message}</p>
-                            <button 
-                                onClick={() => setCurrentDialogue(null)}
-                                className="mt-4 px-4 py-1 rounded"
-                                style={{ backgroundColor: '#ff6b00', color: 'black' }}
-                            >
-                                [Continue]
-                            </button>
                         </div>
                     )}
                     
-                    {/* Help button (shows legend/controls) */}
-                    <div className="absolute top-20 right-4">
+                    {/* Help button (shows legend/controls) - positioned above game log */}
+                    <div className="absolute bottom-40 right-8">
                         <button
                             onClick={() => setShowHelp(!showHelp)}
-                            className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded"
-                            style={{ fontSize: '14px' }}
+                            className="px-3 py-1 rounded transition-all"
+                            style={{ 
+                                fontSize: '14px',
+                                backgroundColor: 'rgba(75, 85, 99, 0.8)',
+                                color: 'white',
+                                backdropFilter: 'blur(4px)',
+                                border: '1px solid rgba(255, 107, 0, 0.3)'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = 'rgba(107, 114, 128, 0.9)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'rgba(75, 85, 99, 0.8)';
+                            }}
                         >
                             {showHelp ? 'Hide' : 'Help'} (H)
                         </button>
                     </div>
                     
-                    {/* Help overlay */}
+                    {/* Help overlay - positioned above game log */}
                     {showHelp && (
-                        <div className="absolute top-32 right-4 w-64 p-4 rounded" 
-                             style={{ backgroundColor: '#1a1a1a', border: '2px solid #ff6b00' }}>
+                        <div className="absolute bottom-44 right-8 w-64 p-4 rounded max-h-96 overflow-y-auto" 
+                             style={{ 
+                                 backgroundColor: 'rgba(26, 26, 26, 0.85)', 
+                                 border: '2px solid rgba(255, 107, 0, 0.8)',
+                                 backdropFilter: 'blur(4px)',
+                                 boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)'
+                             }}>
                             <h3 className="text-base font-bold mb-2" style={{ color: '#ff9500' }}>
                                 ═══ CONTROLS ═══
                             </h3>
                             <div className="space-y-1 text-xs mb-4" style={{ color: '#ff8800' }}>
-                                <div>WASD/Arrows - Move</div>
-                                <div>M - Read Manuscripts</div>
+                                <div><b>Arrows</b> - Move</div>
+                                <div><b>WASD (tap)</b> - Quick attack</div>
+                                <div><b>WASD (hold)</b> - Charge attack</div>
+                                <div><b>Shift+WASD</b> - Ranged attack</div>
+                                <div className="mt-2 pt-2 border-t border-gray-700">
+                                    <div className="font-bold mb-1">Charge Levels:</div>
+                                    <div>🟢 Quick tap - Normal damage</div>
+                                    <div>🟡 1s hold - 1.5x damage</div>
+                                    <div>🟠 2s hold - 2x damage</div>
+                                    <div>🔴 Full charge - Special attack!</div>
+                                </div>
+                                <div className="mt-2 pt-2 border-t border-gray-700">
+                                    <div>M - Read Manuscripts</div>
+                                    <div>T - Talk/Negotiate</div>
+                                    <div>P - Push Boulder</div>
+                                    <div>B - Break Wall</div>
+                                    <div>E - Extinguish Fire</div>
+                                    <div>Q - Activate Mechanism</div>
+                                </div>
                                 <div>{'>'} - Descend stairs</div>
                                 <div>H - Toggle this help</div>
                                 <div>ESC - Exit dungeon</div>
@@ -2594,11 +4090,136 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     </div>
                 </div>
                 <div className="mt-2 pt-2 border-t border-gray-700" style={{ fontSize: '10px', color: '#ff8800' }}>
-                    <div>WASD/Arrows: Move</div>
-                    <div>ESC: Exit</div>
-                    <div>H: Help</div>
+                    <div>Arrows: Move | WASD: Attack (hold to charge)</div>
+                    <div>Shift+WASD: Ranged | ESC: Exit | H: Help</div>
                 </div>
             </div>
+            
+            {/* Render sound effects positioned relative to map */}
+            <div className="absolute inset-0 pointer-events-none" style={{ overflow: 'hidden' }}>
+                {soundEffects.map(effect => {
+                    // Calculate position relative to the map container
+                    const mapContainer = containerRef.current?.querySelector('pre');
+                    if (!mapContainer) return null;
+                    
+                    const mapRect = mapContainer.getBoundingClientRect();
+                    const containerRect = containerRef.current?.getBoundingClientRect();
+                    
+                    if (!containerRect) return null;
+                    
+                    // Calculate screen position of the effect
+                    const screenX = (mapRect.left - containerRect.left) + (effect.x * zoomLevel) + (zoomLevel / 2);
+                    const screenY = (mapRect.top - containerRect.top) + (effect.y * zoomLevel) + (zoomLevel / 2);
+                    
+                    // Only show if within container bounds
+                    if (screenX < 0 || screenX > containerRect.width || 
+                        screenY < 0 || screenY > containerRect.height) {
+                        return null;
+                    }
+                    
+                    return (
+                        <div
+                            key={effect.id}
+                            className="absolute"
+                            style={{
+                                left: `${screenX}px`,
+                                top: `${screenY}px`,
+                                transform: 'translate(-50%, -50%)',
+                                color: effect.color,
+                                fontSize: '14px',
+                                fontWeight: 'bold',
+                                fontFamily: 'monospace',
+                                textShadow: `0 0 8px ${effect.color}`,
+                                animation: effect.style === 'shake' ? 'soundShake 0.5s ease-out' : 
+                                          effect.style === 'float' ? 'soundFloat 2s ease-out' : 'soundFadeOut 2s ease-in-out',
+                                zIndex: 1000,
+                                userSelect: 'none'
+                            }}
+                        >
+                            {effect.text}
+                        </div>
+                    );
+                })}
+            </div>
+            
+            {/* Ambiance text */}
+            {ambianceTexts.map(ambiance => (
+                <div
+                    key={ambiance.id}
+                    className="absolute bottom-32 left-1/2 transform -translate-x-1/2 pointer-events-none"
+                    style={{
+                        color: ambiance.color,
+                        opacity: ambiance.opacity,
+                        fontSize: '14px',
+                        fontStyle: 'italic',
+                        fontFamily: 'Georgia, serif',
+                        textAlign: 'center',
+                        transition: 'opacity 1s ease-in-out',
+                        textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
+                        maxWidth: '600px'
+                    }}
+                >
+                    {ambiance.text}
+                </div>
+            ))}
+            
+            {/* Add CSS animations */}
+            <style>{`
+                @keyframes soundShake {
+                    0%, 100% { 
+                        transform: translate(-50%, -50%) scale(1);
+                        opacity: 1;
+                    }
+                    10% { transform: translate(-50%, -50%) translateX(-1px) scale(1.1); }
+                    20% { transform: translate(-50%, -50%) translateX(1px) scale(1.1); }
+                    30% { transform: translate(-50%, -50%) translateX(-1px) scale(1.05); }
+                    40% { transform: translate(-50%, -50%) translateX(1px) scale(1.05); }
+                    50% { transform: translate(-50%, -50%) scale(1); }
+                    60% { opacity: 1; }
+                    100% { 
+                        transform: translate(-50%, -50%) scale(0.8);
+                        opacity: 0;
+                    }
+                }
+                
+                @keyframes soundFloat {
+                    0% { 
+                        transform: translate(-50%, -50%) translateY(0) scale(1);
+                        opacity: 1;
+                    }
+                    20% {
+                        transform: translate(-50%, -50%) translateY(-8px) scale(1.1);
+                        opacity: 1;
+                    }
+                    100% { 
+                        transform: translate(-50%, -50%) translateY(-35px) scale(0.7);
+                        opacity: 0;
+                    }
+                }
+                
+                @keyframes soundFadeOut {
+                    0% { 
+                        opacity: 1; 
+                        transform: translate(-50%, -50%) scale(1);
+                    }
+                    30% { 
+                        opacity: 1; 
+                        transform: translate(-50%, -50%) scale(1.05);
+                    }
+                    70% { 
+                        opacity: 1; 
+                        transform: translate(-50%, -50%) scale(1);
+                    }
+                    85% {
+                        opacity: 0.7;
+                        transform: translate(-50%, -50%) scale(0.95);
+                    }
+                    100% { 
+                        opacity: 0;
+                        transform: translate(-50%, -50%) scale(0.8);
+                    }
+                }
+            `}</style>
         </div>
     );
 };

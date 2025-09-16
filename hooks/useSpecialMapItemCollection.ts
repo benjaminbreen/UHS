@@ -70,10 +70,12 @@ export function useSpecialMapItemCollection({
         } else {
           console.log('[ItemCollection] onShowToast not available');
         }
+        // Return early - don't process floor items when on container
+        return;
       }
     }
 
-    // Process collection of floor items
+    // Process collection of floor items (only if not on container)
     const result = processSpecialMapCollection(
       tiles,
       playerX,

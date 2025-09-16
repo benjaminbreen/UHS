@@ -49,7 +49,7 @@ const MAJOR_TAB_KEY = 'uhs.majorTab';
 const AnalysisListItem: React.FC<{ icon: string, name: string, subtext: string, onClick: () => void }> = ({ icon, name, subtext, onClick }) => (
   <li
     onClick={onClick}
-    className="flex items-center p-2 rounded-md cursor-pointer transition-colors duration-150 hover:bg-slate-700/50"
+    className="flex items-center p-2 rounded-md cursor-pointer transition-colors duration-150 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
   >
     <span className="text-xl mr-3">{icon}</span>
     <div className="min-w-0">
@@ -67,7 +67,7 @@ const CollapsibleSection: React.FC<{ title: string, count?: number, children: Re
     <div>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex justify-between items-center text-left font-semibold text-blue-300 mb-2 p-2 rounded-md hover:bg-slate-800/40"
+        className="w-full flex justify-between items-center text-left font-semibold text-blue-400 dark:text-blue-300 mb-2 p-2 rounded-md hover:bg-slate-200/40 dark:hover:bg-slate-800/40"
       >
         <span className="flex items-center gap-2">
           {title}
@@ -646,7 +646,7 @@ const LeftSidebar: React.FC<{
 
   return (
     <div
-      className={getSafariOptimizedClassName(`relative flex-shrink-0 bg-sidebar-gradient shadow-sidebar-left backdrop-blur-xl border-r border-slate-700/80 flex flex-col text-slate-200 transition-all duration-300 h-full`)}
+      className={getSafariOptimizedClassName(`relative flex-shrink-0 bg-sidebar-gradient-light dark:bg-sidebar-gradient shadow-sidebar-left-light dark:shadow-sidebar-left backdrop-blur-xl border-r border-slate-300/80 dark:border-slate-700/80 flex flex-col text-slate-700 dark:text-slate-200 transition-all duration-300 h-full`)}
       style={{ width: isLeftSidebarExpanded ? `${sidebarWidth}px` : '0px' }}
     >
       {/* Resize handle */}

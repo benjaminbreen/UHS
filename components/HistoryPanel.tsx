@@ -26,7 +26,8 @@ type HistorySubTab = 'primary_sources' | 'wikipedia';
 const PrimarySourceDisplay: React.FC<{ 
     sources: PrimarySourceMetadata[];
     onSourceClick: (source: PrimarySourceMetadata) => void;
-}> = ({ sources, onSourceClick }) => {
+    currentYear?: number;
+}> = ({ sources, onSourceClick, currentYear }) => {
     if (sources.length === 0) {
         return (
             <div className="p-4 text-slate-400 italic text-sm text-center">
@@ -37,14 +38,35 @@ const PrimarySourceDisplay: React.FC<{
         );
     }
 
+    // Calculate year difference for display
+    const getYearDifference = (sourceYear: number) => {
+        if (!currentYear) return '';
+        const diff = Math.abs(sourceYear - currentYear);
+        if (diff === 0) return 'Contemporary';
+        if (diff === 1) return '1 year away';
+        if (diff < 10) return `${diff} years away`;
+        if (diff < 100) return `~${Math.round(diff/10)*10} years away`;
+        return `~${Math.round(diff/100)} centuries away`;
+    };
+
     return (
         <div className="p-3 space-y-3">
-            {sources.map((source) => (
+            <div className="text-xs text-slate-500 text-center mb-2">
+                Showing 5 closest sources to year {currentYear}
+            </div>
+            {sources.map((source, index) => (
                 <div 
                     key={source.id} 
-                    className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50 hover:border-amber-500/50 transition-all cursor-pointer group"
+                    className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50 hover:border-amber-500/50 transition-all cursor-pointer group relative"
                     onClick={() => onSourceClick(source)}
                 >
+                    {/* Proximity badge */}
+                    {index === 0 && (
+                        <div className="absolute -top-2 -right-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">
+                            Closest
+                        </div>
+                    )}
+                    
                     <div className="flex justify-between items-start mb-2">
                         <h4 className="font-semibold text-amber-400 group-hover:text-amber-300 transition-colors">
                             {source.title}
@@ -59,6 +81,11 @@ const PrimarySourceDisplay: React.FC<{
                         <span className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" /> {source.year < 0 ? `${Math.abs(source.year)} BCE` : `${source.year} CE`}
                         </span>
+                        {currentYear && (
+                            <span className="text-amber-600 font-medium">
+                                {getYearDifference(source.year)}
+                            </span>
+                        )}
                     </div>
                     
                     <p className="text-sm text-slate-300 leading-relaxed line-clamp-2">
@@ -100,17 +127,52 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
         return HISTORY_GUIDE_DATA[culturalZone]?.[era] || "No specific historical context is available for this time and place. The world is yours to discover.";
     }, [culturalZone, era]);
 
-    // Load primary sources when era/zone changes
+    // Load primary sources when era/zone changes - filtered by temporal proximity
     useEffect(() => {
         const loadSources = async () => {
             setLoading(true);
             try {
-                // Preload the context
-                await primarySourceService.preloadContext(era, culturalZone);
+                // We need to load sources from multiple eras to find the closest ones
+                // Load sources from current era and adjacent eras
+                const allEras: HistoricalEra[] = ['PREHISTORY', 'ANTIQUITY', 'MEDIEVAL', 'RENAISSANCE_EARLY_MODERN', 'INDUSTRIAL_ERA', 'MODERN', 'FUTURE'];
+                const currentEraIndex = allEras.indexOf(era);
                 
-                // Get sources for current context
-                const contextSources = await primarySourceService.getSourcesForContext(era, culturalZone);
-                setPrimarySources(contextSources);
+                // Load current era plus adjacent eras for better coverage
+                const erasToLoad: HistoricalEra[] = [];
+                if (currentEraIndex > 0) erasToLoad.push(allEras[currentEraIndex - 1]);
+                erasToLoad.push(era);
+                if (currentEraIndex < allEras.length - 1) erasToLoad.push(allEras[currentEraIndex + 1]);
+                
+                // Collect all sources from relevant eras
+                let allSources: PrimarySourceMetadata[] = [];
+                for (const loadEra of erasToLoad) {
+                    await primarySourceService.preloadContext(loadEra, culturalZone);
+                    const eraSources = await primarySourceService.getSourcesForContext(loadEra, culturalZone);
+                    allSources = allSources.concat(eraSources);
+                }
+                
+                // Filter to only sources matching the cultural zone
+                const zoneFilteredSources = allSources.filter(source => 
+                    source.culturalZones.includes(culturalZone)
+                );
+                
+                // Remove duplicates (in case same source appears in multiple eras)
+                const uniqueSources = Array.from(new Map(
+                    zoneFilteredSources.map(source => [source.id, source])
+                ).values());
+                
+                // Sort by temporal proximity to current game year
+                const currentYear = gameDate.year;
+                const sortedByProximity = uniqueSources.sort((a, b) => {
+                    const distanceA = Math.abs(a.year - currentYear);
+                    const distanceB = Math.abs(b.year - currentYear);
+                    return distanceA - distanceB;
+                });
+                
+                // Take only the top 5 closest sources
+                const top5Sources = sortedByProximity.slice(0, 5);
+                
+                setPrimarySources(top5Sources);
             } catch (error) {
                 console.error('Error loading primary sources:', error);
                 setPrimarySources([]);
@@ -120,7 +182,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
         };
 
         loadSources();
-    }, [era, culturalZone]);
+    }, [era, culturalZone, gameDate.year]);
 
     return (
         <>
@@ -165,6 +227,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                             <PrimarySourceDisplay 
                                 sources={primarySources} 
                                 onSourceClick={setSelectedPrimarySource}
+                                currentYear={gameDate.year}
                             />
                         )
                     )}

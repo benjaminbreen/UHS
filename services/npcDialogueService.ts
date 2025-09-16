@@ -7,6 +7,7 @@ import { generateNpcDialogue } from './llmClientService';
 import { NpcEntity, PlayerCharacter, MapData, HistoricalEra, CulturalZone } from '../types';
 import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
+import { guardPermissionService } from './guardPermissionService';
 
 export interface DialogueContext {
   era: HistoricalEra;
@@ -21,6 +22,9 @@ export interface DialogueContext {
 export interface DialogueResponse {
   text: string;
   disposition: 'friendly' | 'neutral' | 'hostile' | 'suspicious';
+  grantAccess?: boolean;
+  accessLevel?: 'none' | 'partial' | 'full';
+  accessReason?: string;
 }
 
 /**
@@ -244,6 +248,142 @@ function getDefaultMonologue(npc: NpcEntity, context: DialogueContext, clickCoun
     "There's always more work to be done around here.",
     "Perhaps things will improve with the changing seasons."
   ];
-  
+
   return monologues[(clickCount - 1) % monologues.length];
+}
+
+/**
+ * Generate NPC response in special maps with permission granting capability
+ */
+export async function generateSpecialMapNpcResponse(
+  npc: NpcEntity,
+  playerInput: string,
+  context: DialogueContext,
+  playerCharacter: PlayerCharacter,
+  mapId: string,
+  mapArchetype?: string,
+  authorityContext?: any
+): Promise<DialogueResponse> {
+  const canGrant = guardPermissionService.canNpcGrantAccess(npc, mapArchetype);
+  const currentPermission = guardPermissionService.getPermissionDetails(mapId);
+
+  // Check if this NPC is the leader
+  const isLeader = npc.customData?.isLeader === true;
+
+  // Build authority awareness prompt
+  let authorityAwareness = '';
+  if (authorityContext) {
+    authorityAwareness = `
+AUTHORITY CONTEXT:
+- Current Leader: ${authorityContext.leader.title} ${authorityContext.leader.name}
+- Ruling Faction: ${authorityContext.faction.name}
+- Faction Description: ${authorityContext.faction.description}
+${authorityContext.faction.contextSentence ? `- Historical Context: ${authorityContext.faction.contextSentence}` : ''}
+- Government Type: ${authorityContext.governmentType}
+
+${isLeader ?
+  `YOU ARE THE LEADER: You are ${authorityContext.leader.title} ${authorityContext.leader.name}, the highest authority in this ${authorityContext.governmentType}.` :
+  `You are aware that ${authorityContext.leader.title} ${authorityContext.leader.name} leads this ${authorityContext.governmentType} under the ${authorityContext.faction.name}.`
+}`;
+  }
+
+  const prompt = `
+You are ${npc.name}, a ${npc.age}-year-old ${npc.role} in ${context.location} during ${context.year}.
+
+CHARACTER DETAILS:
+- Personality: ${npc.personality || 'practical, hardworking'}
+- Social Class: ${npc.class || npc.socialClass || 'common folk'}
+- Religion: ${npc.religion}
+- Wealth Level: ${npc.wealthLevel || 'modest'}
+- Profession: ${npc.profession}
+- Background: ${npc.descriptions?.long || 'A local resident going about their daily business.'}
+
+PLAYER DETAILS:
+- Name: ${playerCharacter.name}
+- Profession: ${playerCharacter.profession}
+- Social Class: ${playerCharacter.socialClass}
+- Reputation: ${playerCharacter.mapReputation || 50}/100
+- Clothing Quality: ${getClothingQuality(playerCharacter)}
+
+LOCATION CONTEXT:
+- Era: ${context.era}
+- Cultural Zone: ${context.culturalZone}
+- Building Type: ${mapArchetype || 'special building'}
+- Year: ${context.year}
+
+${authorityAwareness}
+
+CONVERSATION:
+${playerCharacter.name} says to you: "${playerInput}"
+
+AUTHORITY TO GRANT ACCESS:
+${canGrant ?
+  `You HAVE the authority to grant access to restricted areas in this ${mapArchetype || 'building'}. You can grant "partial" access (some areas) or "full" access (all areas) based on your judgment.` :
+  `You do NOT have the authority to grant access to restricted areas. Only higher-ranking individuals can make such decisions.`}
+
+CURRENT ACCESS STATUS:
+${currentPermission ?
+  `${playerCharacter.name} already has ${currentPermission.accessLevel} access granted by ${currentPermission.grantedByName}.` :
+  `${playerCharacter.name} currently has no special access permissions.`}
+
+DECISION FACTORS:
+Consider these when deciding whether to grant access:
+- Player's reputation (${playerCharacter.mapReputation || 50}/100)
+- Player's social class and profession
+- Quality of their clothing/appearance
+- Convincingness of their stated reason
+- Historical appropriateness for your era/culture
+- Your character's personality and disposition
+
+INSTRUCTIONS:
+1. Respond naturally as your character would
+2. If you have authority AND decide to grant access, set grantAccess to true and specify the level
+3. Always provide an accessReason explaining your decision
+4. Keep response under 50 words and authentic to the time period
+5. Be generous but not unrealistic - consider the player's standing and request
+
+Examples of good reasons to grant access:
+- High reputation (80+) + official business + appropriate attire
+- Matching social class + convincing explanation
+- Small bribe offered (if culturally appropriate) + reasonable request
+
+Examples to deny:
+- Very poor reputation (<30) + suspicious behavior
+- Inappropriate attire for the setting
+- No valid reason given + low social standing
+`;
+
+  try {
+    return await generateNpcDialogue(prompt, npc.name, playerInput);
+  } catch (error) {
+    console.error('Failed to generate special map NPC response:', error);
+    return {
+      text: getDefaultResponse(npc, playerInput, context),
+      disposition: 'neutral'
+    };
+  }
+}
+
+/**
+ * Determine clothing quality from player appearance
+ */
+function getClothingQuality(player: PlayerCharacter): string {
+  if (!player.appearance?.clothing?.length) return 'basic';
+
+  const clothing = player.appearance.clothing;
+  const hasExpensive = clothing.some(item =>
+    item.material?.includes('silk') ||
+    item.material?.includes('gold') ||
+    item.material?.includes('silver') ||
+    item.quality === 'excellent'
+  );
+
+  if (hasExpensive) return 'expensive/formal';
+
+  const hasDecent = clothing.some(item =>
+    item.quality === 'good' ||
+    item.material?.includes('wool')
+  );
+
+  return hasDecent ? 'decent' : 'poor';
 }

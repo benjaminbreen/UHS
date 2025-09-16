@@ -4,19 +4,8 @@
 import { NpcEntity, NpcStats, NpcPersonality, NpcSocialContext, HistoricalEra, CharacterStats, CharacterPersonality, CharacterSocialContext, WealthLevel, Gender, TerrainStructure, PlayerCharacter, Ideology, Appearance, ClothingPiece, ClothingPalette, MapAreaDefinition, FactionData, TerrainStructureType, PersonalGoal } from '../../types';
 import { PROFESSIONS, CulturalZone, SocialClassMap, ProfessionDefinition, CHARACTER_NAMES, REGION_NAME_MAPPING, RELIGION_DATA, GEOGRAPHICAL_DATA, IDEOLOGIES, PERSONAL_BELIEFS, ADJACENCIES, FACTION_DATA } from '../../constants/index';
 
-// Lazy load clothing data - only loaded when first NPC is generated
-let clothingModule: any = null;
-let clothingModulePromise: Promise<any> | null = null;
-
-// Start loading the module asynchronously when first accessed
-const ensureClothingModule = () => {
-    if (!clothingModulePromise && !clothingModule) {
-        clothingModulePromise = import('../../constants/characterData/clothing').then(module => {
-            clothingModule = module;
-            return module;
-        });
-    }
-};
+// Import clothing data synchronously
+import * as clothingModule from '../../constants/characterData/clothing';
 import { ValueNoise } from '../../utils/noise';
 import { generatePersonalGoal } from '../../services/goalService';
 import { getProfessionContext, getFallbackContext, ProfessionContext } from '../../services/professionContextService';
@@ -326,8 +315,7 @@ export function generateClothingPalette(wealthLevel: WealthLevel, era: Historica
         effectiveCulturalZone = 'EUROPEAN' as CulturalZone;
     }
     
-    ensureClothingModule(); // Start loading if not already loaded
-    const eraData = (clothingModule?.CLOTHING_DATA || {})[effectiveCulturalZone]?.[era];
+    const eraData = (clothingModule.CLOTHING_DATA || {})[effectiveCulturalZone]?.[era];
     const specificClothingSet = eraData?.[clothingTier]?.[gender];
     const palette = specificClothingSet?.palette;
     
@@ -441,10 +429,7 @@ export function generateCompleteOutfit(
     belt: ClothingPiece;
     accessory: ClothingPiece;
 } {
-    ensureClothingModule(); // Start loading if not already loaded
-    const clothingSet = clothingModule?.getClothingData ? 
-        clothingModule.getClothingData(culturalZone, era, wealthLevel, gender) :
-        { garments: [], headgear: [], footwear: [], belts: [], accessories: [], palette: { primary: [], secondary: [], accent: [] } };
+    const clothingSet = clothingModule.getClothingData(culturalZone, era, wealthLevel, gender);
     
     // Filter out inappropriate items based on occupation
     const filterByOccupation = (items: ClothingPiece[], category: string): ClothingPiece[] => {
@@ -486,13 +471,10 @@ export function generateCompleteOutfit(
     // Ensure we have at least one item in each category
     const safeGetRandom = (filtered: ClothingPiece[], original: ClothingPiece[]) => {
         if (filtered.length > 0) {
-            ensureClothingModule(); // Start loading if not already loaded
-            return clothingModule?.getRandomClothingPiece ? 
-                clothingModule.getRandomClothingPiece(filtered) : 
-                filtered[0] || null;
+            return clothingModule.getRandomClothingPiece(filtered);
         }
         // Fallback to basic item if all filtered out
-        return { name: 'Simple Cloth', material: 'Cotton' };
+        return { name: 'Simple Robe', material: 'Linen' };
     };
     
     return {

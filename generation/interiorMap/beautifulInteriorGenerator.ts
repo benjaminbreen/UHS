@@ -33,8 +33,10 @@ function generateSupportNpcs(
         space.accessibility === 'restricted' || space.accessibility === 'sacred'
     );
     
-    // Generate 1-2 guard NPCs
-    const guardCount = Math.min(2, Math.max(1, restrictedSpaces.length));
+    // Generate 1-2 guard NPCs (more for fortress)
+    const guardCount = buildingType === 'fortress' ? 
+        Math.min(3, Math.max(2, restrictedSpaces.length)) : 
+        Math.min(2, Math.max(1, restrictedSpaces.length));
     
     for (let i = 0; i < guardCount; i++) {
         const guardSpace = restrictedSpaces[i] || layout.spaces[0];
@@ -78,7 +80,8 @@ function generateSupportNpcs(
                 achievements: []
             },
             class: 'warrior',
-            role: buildingType === 'palace' ? 'Palace Guard' : 'Temple Guard',
+            role: buildingType === 'palace' ? 'Palace Guard' : 
+                  buildingType === 'fortress' ? 'Fortress Guard' : 'Temple Guard',
             emoji: '⚔️',
             age: 25 + Math.floor(Math.random() * 20),
             gender: Math.random() > 0.3 ? 'male' : 'female',
@@ -100,7 +103,7 @@ function generateSupportNpcs(
                 }
             },
             descriptions: {
-                short: `A stern ${buildingType === 'palace' ? 'palace' : 'temple'} guard`,
+                short: `A stern ${buildingType === 'palace' ? 'palace' : buildingType === 'fortress' ? 'fortress' : 'temple'} guard`,
                 long: `A disciplined guard who takes their duty very seriously`
             },
             backstory: `Trained to protect this sacred space and maintain order`,
@@ -119,7 +122,8 @@ function generateSupportNpcs(
             inventory: [],
             currency: 20 + Math.floor(Math.random() * 30),
             birthplace: 'Local',
-            occupation: buildingType === 'palace' ? 'Palace Guard' : 'Temple Guard',
+            occupation: buildingType === 'palace' ? 'Palace Guard' : 
+                        buildingType === 'fortress' ? 'Fortress Guard' : 'Temple Guard',
             socialClass: 'warrior',
             family: [],
             lifeEvents: [],
@@ -377,6 +381,8 @@ export function generateBeautifulInterior(config: InteriorGenerationConfig): Bea
     // Generate or retrieve building elite - prioritize existing NPCs from standard map
     let namedElite: NpcEntity | undefined;
     
+    console.log('🏰 [BeautifulInteriorGenerator] Generating elite for:', config.buildingType, config.buildingId);
+    
     // First check if there are existing NPCs from the standard map with this workplaceId
     const mapNpcs = config.standardMapContext.npcs || [];
     const existingWorkplaceNpc = mapNpcs.find(npc => npc.workplaceId === config.buildingId);
@@ -415,7 +421,7 @@ export function generateBeautifulInterior(config: InteriorGenerationConfig): Bea
             
             existingElite = createEliteForBuilding(
                 config.buildingId,
-                config.buildingType as 'palace' | 'holy_place',
+                config.buildingType as 'palace' | 'holy_place' | 'fortress',
                 elitePosition,
                 religion,
                 culturalZone,
@@ -424,13 +430,32 @@ export function generateBeautifulInterior(config: InteriorGenerationConfig): Bea
             );
         }
         
+        // Position the elite NPC based on building type
+        let eliteX, eliteY;
+        if (existingElite.id.includes('fortress') || config.buildingType === 'fortress') {
+            // Fortress commander goes in the command chamber (restricted space)
+            const commandSpace = layout.spaces.find(s => s.accessibility === 'restricted') || layout.spaces[0];
+            eliteX = commandSpace.bounds.x + Math.floor(commandSpace.bounds.width / 2);
+            eliteY = commandSpace.bounds.y + Math.floor(commandSpace.bounds.height / 2) - 2; // Positioned near throne
+        } else if (existingElite.id.includes('palace')) {
+            const restrictedSpace = layout.spaces.find(s => s.accessibility === 'restricted');
+            eliteX = restrictedSpace?.bounds.x || 10;
+            eliteY = restrictedSpace?.bounds.y || 10;
+        } else {
+            const altarSpace = layout.spaces.find(s => s.type === 'altar');
+            eliteX = altarSpace?.bounds.x || 10;
+            eliteY = altarSpace?.bounds.y || 10;
+        }
+        
         namedElite = convertEliteToNpc(existingElite, {
-            x: existingElite.id.includes('palace') ? 
-                layout.spaces.find(s => s.accessibility === 'restricted')?.bounds.x || 10 : 
-                layout.spaces.find(s => s.type === 'altar')?.bounds.x || 10,
-            y: existingElite.id.includes('palace') ? 
-                layout.spaces.find(s => s.accessibility === 'restricted')?.bounds.y || 10 : 
-                layout.spaces.find(s => s.type === 'altar')?.bounds.y || 10
+            x: eliteX,
+            y: eliteY
+        });
+        
+        console.log('🎖️ [BeautifulInteriorGenerator] Created fortress/building elite:', {
+            name: namedElite.name,
+            position: { x: eliteX, y: eliteY },
+            buildingType: config.buildingType
         });
     }
     

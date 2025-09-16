@@ -67,7 +67,7 @@ const VictoryModal: React.FC<VictoryModalProps> = ({
           // Celebratory header for animal defeats
           <>
             <h3 className="text-center text-4xl font-press-start mb-4 text-yellow-400">
-              🎉 VICTORY! 🎉
+               VICTORY! 
             </h3>
             
             <div className="text-6xl text-center my-8">{opponentEmoji}</div>

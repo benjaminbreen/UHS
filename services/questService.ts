@@ -10,6 +10,7 @@ import { lootService } from './lootService';
 import { questChainService } from './questChainService';
 import { ProceduralQuestGenerator, QuestTemplate } from '../constants/questTemplates/historicalQuestTemplates';
 import { spatialDescriptionService } from './spatialDescriptionService';
+import { historicalContextEngine } from './historicalContextEngine';
 import { HistoricalEra } from '../types/ambiance';
 import { CulturalZone } from '../types/characterData';
 import { GameModeType } from '../types/eventTypes';

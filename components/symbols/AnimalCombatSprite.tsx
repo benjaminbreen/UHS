@@ -8,7 +8,7 @@ import { AnimalEntity } from '../../types';
 
 interface AnimalCombatSpriteProps {
   animal: AnimalEntity;
-  animation: 'idle' | 'attacking' | 'damaged' | 'attack' | 'special';
+  animation: 'idle' | 'attacking' | 'damaged' | 'attack' | 'special' | 'fleeing';
   size?: number;
   facing: 'left' | 'right';
 }
@@ -2329,7 +2329,15 @@ const AnimalCombatSprite: React.FC<AnimalCombatSpriteProps> = ({
         if (animation === 'damaged') {
             return 'animate-earthquake';
         }
-        
+
+        // Fleeing animation
+        if (animation === 'fleeing') {
+            if (animalType === 'bird' || ['EAGLE', 'HAWK', 'OWL'].includes(baseId)) return 'animate-fly-away';
+            if (['DEER', 'RABBIT', 'HARE', 'ANTELOPE'].includes(baseId)) return 'animate-bound-away';
+            if (['FISH', 'SHARK', 'DOLPHIN'].includes(baseId)) return 'animate-swim-away';
+            return 'animate-run-away';
+        }
+
         return '';
     };
     const renderSprite = () => {

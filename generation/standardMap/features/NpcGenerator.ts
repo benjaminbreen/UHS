@@ -10,6 +10,7 @@ import { generateNpcDescriptions } from '../../../services/npcDescriptionService
 import { mapLocationToCulture } from '../../../utils/mapUtils';
 import { generateNpcFamilyAndLifeEvents, findNpcFriends } from '../../../services/socialService';
 import { createItemInstance } from '../../../utils/inventoryUtils';
+import { generateProceduralItem } from '../../../services/itemGenerationService';
 import { detectCitiesForArea } from '../../../utils/cityDetectionUtils';
 import { generateCulturalAccessory } from '../../../services/culturalAccessoryService';
 import { worldEntityRegistry } from '../../../services/worldEntityRegistry';
@@ -417,216 +418,8 @@ function createNpc(
 
         const { appearance } = baseProfile;
         
-        // --- "LOOT WHAT YOU SEE" LOGIC ---
-        // Create actual Item instances from the procedurally generated appearance data.
-        const newEquippedItems: NpcEntity['equippedItems'] = {};
+        // Use appearance data directly like special maps do - no item conversion needed
         const newInventory: Item[] = [];
-
-        // Helper function to apply color to items
-        const applyColorToItem = (item: Item, colorHex: string | undefined): Item => {
-            if (!colorHex) return item;
-            
-            const hexToColor: Record<string, string> = {
-                '#000080': 'Navy', '#001f3f': 'Navy', '#0000ff': 'Blue', '#4169e1': 'Royal Blue',
-                '#ff0000': 'Red', '#dc143c': 'Crimson', '#00ff00': 'Green', '#228b22': 'Forest Green',
-                '#ffff00': 'Yellow', '#ffd700': 'Gold', '#800080': 'Purple', '#4b0082': 'Indigo',
-                '#ffa500': 'Orange', '#ff8c00': 'Dark Orange', '#964b00': 'Brown', '#8b4513': 'Saddle Brown',
-                '#000000': 'Black', '#ffffff': 'White', '#c0c0c0': 'Silver', '#808080': 'Gray',
-                '#008080': 'Teal', '#40e0d0': 'Turquoise', '#ff7f50': 'Coral', '#deb887': 'Burlywood',
-                '#d2b48c': 'Tan', '#f5deb3': 'Wheat', '#faebd7': 'Antique White', '#8b7355': 'Burlywood',
-                // Add fallback brown colors
-                '#654321': 'Dark Brown', '#d2691e': 'Chocolate', '#a52a2a': 'Brown',
-                '#704214': 'Dark Brown'
-            };
-            
-            let colorName = '';
-            const colorHexLower = colorHex.toLowerCase();
-            
-            if (hexToColor[colorHexLower]) {
-                colorName = hexToColor[colorHexLower];
-            } else {
-                // Find closest color by RGB distance
-                const hexToRgb = (hex: string) => {
-                    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-                    return result ? {
-                        r: parseInt(result[1], 16),
-                        g: parseInt(result[2], 16),
-                        b: parseInt(result[3], 16)
-                    } : null;
-                };
-                
-                const targetRgb = hexToRgb(colorHex);
-                if (targetRgb) {
-                    let minDistance = Infinity;
-                    let closestColor = 'Gray';
-                    
-                    for (const [hex, name] of Object.entries(hexToColor)) {
-                        const rgb = hexToRgb(hex);
-                        if (rgb) {
-                            const distance = Math.sqrt(
-                                Math.pow(targetRgb.r - rgb.r, 2) +
-                                Math.pow(targetRgb.g - rgb.g, 2) +
-                                Math.pow(targetRgb.b - rgb.b, 2)
-                            );
-                            if (distance < minDistance) {
-                                minDistance = distance;
-                                closestColor = name;
-                            }
-                        }
-                    }
-                    colorName = closestColor;
-                }
-            }
-            
-            // Check if color is already in the name
-            const colorWords = ['navy', 'red', 'blue', 'green', 'yellow', 'purple', 'black', 'white', 'gold', 'silver', 
-                               'crimson', 'emerald', 'amber', 'bronze', 'copper', 'ivory', 'ebony', 'maroon', 
-                               'olive', 'teal', 'turquoise', 'coral', 'brown', 'gray', 'grey'];
-            
-            for (const color of colorWords) {
-                if (item.name.toLowerCase().includes(color)) {
-                    return item; // Color already in name
-                }
-            }
-            
-            // Add color to item name if we found one
-            if (colorName) {
-                return {
-                    ...item,
-                    name: `${colorName} ${item.name}`,
-                    originalName: item.name
-                };
-            }
-            
-            return item;
-        };
-
-        const createAndEquip = (slot: EquipmentSlot, piece: ClothingPiece | undefined, colorHex?: string) => {
-            if (piece && piece.name && piece.name.toLowerCase() !== 'none' && piece.name.toLowerCase() !== 'barefoot') {
-                let baseId = piece.name.toUpperCase().replace(/ /g, '_');
-                
-                // Add color prefix if we have one and material isn't its own color
-                if (colorHex) {
-                    const materialColors = ['leather', 'hide', 'fur', 'straw', 'iron', 'steel', 'bronze', 
-                                           'copper', 'brass', 'gold', 'silver', 'wood', 'oak', 'pine', 'bamboo'];
-                    const material = (piece.material || '').toLowerCase();
-                    const hasMaterialColor = materialColors.some(mat => material.includes(mat));
-                    
-                    if (!hasMaterialColor) {
-                        const hexToColor: Record<string, string> = {
-                            '#000080': 'Navy', '#001f3f': 'Navy', '#0000ff': 'Blue', '#4169e1': 'Royal',
-                            '#ff0000': 'Red', '#dc143c': 'Crimson', '#00ff00': 'Green', '#228b22': 'Forest',
-                            '#ffff00': 'Yellow', '#ffd700': 'Gold', '#800080': 'Purple', '#4b0082': 'Indigo',
-                            '#ffa500': 'Orange', '#ff8c00': 'Orange', '#964b00': 'Brown', '#8b4513': 'Brown',
-                            '#000000': 'Black', '#ffffff': 'White', '#c0c0c0': 'Silver', '#808080': 'Gray',
-                            '#008080': 'Teal', '#40e0d0': 'Turquoise', '#ff7f50': 'Coral', '#deb887': 'Tan',
-                            // Add fallback brown colors
-                            '#654321': 'Dark_Brown', '#d2691e': 'Chocolate', '#a52a2a': 'Brown',
-                            '#704214': 'Dark_Brown'
-                        };
-                        
-                        const colorHexLower = colorHex.toLowerCase();
-                        const colorName = hexToColor[colorHexLower];
-                        if (colorName) {
-                            baseId = `${colorName.toUpperCase().replace(/ /g, '_')}_${baseId}`;
-                        }
-                    }
-                }
-                
-                const item = createItemInstance(baseId);
-                if (item) {
-                    newEquippedItems[slot] = item;
-                }
-            }
-        };
-
-        // Apply colors from palette to equipped items
-        createAndEquip('head', appearance.headgear, appearance.palette?.secondary);
-        createAndEquip('torso', appearance.garment, appearance.palette?.primary);
-        createAndEquip('feet', appearance.footwear, appearance.palette?.secondary);
-        createAndEquip('belt', appearance.belt, appearance.palette?.accent);
-        createAndEquip('amulet', appearance.accessory, appearance.palette?.accent);
-        
-        // Determine if NPC is wealthy based on wealth level
-        const isWealthy = baseProfile.wealthLevel === 'wealthy' || baseProfile.wealthLevel === 'comfortable';
-        
-        // Generate historically appropriate legs/trousers
-        generateLegsEquipment(context.era, context.culturalZone, role, isWealthy, newEquippedItems, appearance.palette?.primary);
-        
-        // Generate profession-appropriate cloaks
-        generateCloakEquipment(context.era, context.culturalZone, role, isWealthy, newEquippedItems, appearance.palette?.secondary);
-        
-        // Generate profession-appropriate offhand items
-        generateOffhandEquipment(context.era, context.culturalZone, role, isWealthy, newEquippedItems);
-        
-        // Cultural accessory generation - tattoos, face paint, jewelry
-        const accessoryChance = calculateAccessoryChance(context.culturalZone, context.era, role);
-        if (Math.random() < accessoryChance) {
-            const wealthLevel = isWealthy ? 'wealthy' : 'modest';
-            const culturalAccessory = generateCulturalAccessory({
-                culture: context.culturalZone,
-                era: context.era,
-                wealth: wealthLevel,
-                gender: baseProfile.gender.toLowerCase() as 'male' | 'female',
-                profession: role
-            });
-            
-            if (culturalAccessory) {
-                newEquippedItems.accessory = culturalAccessory;
-            }
-        }
-        
-        // Enhanced amulet assignment for NPCs - ensure higher distribution
-        if (!newEquippedItems.amulet) {
-            // Calculate chance based on era, culture, and role
-            let amuletChance = 0.35; // Base 35% chance
-            
-            // Era modifiers
-            if (era === 'MEDIEVAL') amuletChance += 0.20;
-            if (era === 'ANTIQUITY') amuletChance += 0.15;
-            if (era === 'RENAISSANCE_EARLY_MODERN') amuletChance += 0.10;
-            
-            // Role modifiers
-            const roleLower = role.toLowerCase();
-            if (roleLower.includes('priest') || roleLower.includes('monk') || roleLower.includes('nun')) amuletChance = 0.90;
-            if (roleLower.includes('merchant') || roleLower.includes('noble')) amuletChance += 0.15;
-            if (roleLower.includes('child')) amuletChance += 0.20;
-            
-            // Culture modifiers
-            if (culturalZone === 'EUROPEAN' || culturalZone === 'MENA') amuletChance += 0.10;
-            if (culturalZone === 'SOUTH_ASIAN' || culturalZone === 'EAST_ASIAN') amuletChance += 0.10;
-            
-            // Apply chance
-            if (Math.random() < Math.min(amuletChance, 0.95)) {
-                // Select appropriate amulet based on wealth and culture
-                let amuletId = 'ROPE_NECKLACE'; // Default
-                
-                if (isWealthy) {
-                    const wealthyAmulets = ['SILVER_CHAIN', 'GOLD_CHAIN', 'PEARL_NECKLACE', 'CORAL_BEADS', 'AMBER_PENDANT'];
-                    amuletId = wealthyAmulets[Math.floor(Math.random() * wealthyAmulets.length)];
-                } else if (era === 'MEDIEVAL' && culturalZone === 'EUROPEAN') {
-                    const medievalAmulets = ['WOODEN_CROSS', 'PRAYER_BEADS', 'SAINTS_MEDAL', 'PILGRIM_BADGE'];
-                    amuletId = medievalAmulets[Math.floor(Math.random() * medievalAmulets.length)];
-                } else if (culturalZone === 'MENA') {
-                    const menaAmulets = ['HAMSA_PENDANT', 'EVIL_EYE_AMULET', 'PRAYER_BEADS'];
-                    amuletId = menaAmulets[Math.floor(Math.random() * menaAmulets.length)];
-                } else if (culturalZone === 'EAST_ASIAN') {
-                    const asianAmulets = ['JADE_PENDANT', 'PRAYER_BEADS', 'BONE_NECKLACE'];
-                    amuletId = asianAmulets[Math.floor(Math.random() * asianAmulets.length)];
-                } else {
-                    const commonAmulets = ['SHELL_NECKLACE', 'BONE_NECKLACE', 'ROPE_NECKLACE', 'PRAYER_BEADS'];
-                    amuletId = commonAmulets[Math.floor(Math.random() * commonAmulets.length)];
-                }
-                
-                const amuletItem = createItemInstance(amuletId);
-                if (amuletItem) {
-                    // Add quality adjective based on wealth instead of color
-                    const privilege = isWealthy ? 0.8 : 0.3;
-                    amuletItem.name = addQualityAdjective(amuletItem.name, privilege);
-                    newEquippedItems.amulet = amuletItem;
-                }
-            }
-        }
 
         // Add some generic items to inventory from a starting package for flavor
         const startingPackage = STARTING_PACKAGES[role] || STARTING_PACKAGES['Wanderer'];
@@ -700,7 +493,6 @@ function createNpc(
             workplaceId: structure?.id,
             workplaceName: structure?.name,
             inventory: newInventory,
-            equippedItems: newEquippedItems,
             health, // Add disease health with potential disease
             attributes, // Add generated attribute badges
         };
@@ -805,9 +597,9 @@ export function generateNpcsForStandardMap(
     const startTime = performance.now();
     let npcs: NpcEntity[] = [];
     
-    // Skip NPC generation for SHOALS archetype (no people on shoals)
-    if (mapData.archetype === 'SHOALS') {
-        console.log(`[NPC] Skipping NPC generation for SHOALS archetype`);
+    // Skip NPC generation for ocean archetypes (no people floating in open ocean)
+    if (mapData.archetype === 'SHOALS' || mapData.archetype === 'OPEN_OCEAN') {
+        console.log(`[NPC] Skipping NPC generation for ${mapData.archetype} archetype`);
         return [];
     }
     

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import './TopNavBarPolished.css'; // For custom animations
-import { 
-  Globe, Info, Settings, Shuffle, ChevronDown, Menu, X, Sparkles, 
+import {
+  Globe, Info, Settings, Shuffle, ChevronDown, Menu, X, Sparkles,
   Cpu, ScrollText, MapPin, Compass, Activity,
   Zap, Download, History, AlertCircle, Sliders, Trophy, Target, Clock,
-  Shield, Compass as CompassIcon, Coins, BookOpen, Crown, Home, Users, Scale
+  Shield, Compass as CompassIcon, Coins, BookOpen, Crown, Home, Users, Scale,
+  Sun, Moon
 } from 'lucide-react';
 import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
@@ -22,6 +23,7 @@ import { eventService } from '../services/eventService';
 import { useEventSystem } from '../hooks/useEventSystem';
 import { usePlayer } from '../contexts/PlayerContext';
 import { questService } from '../services/questService';
+import { themeService } from '../services/themeService';
 
 // Button group configurations for better organization
 const NAV_BUTTON_GROUPS = {
@@ -134,6 +136,7 @@ const TopNavBarPolished: React.FC = () => {
   const [llmHistory, setLLMHistory] = useState(eventService.getLLMHistory());
   const [showQuestsPanel, setShowQuestsPanel] = useState(false);
   const [showGameModeTooltip, setShowGameModeTooltip] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(themeService.isDarkMode());
   
   const [showGameModePanel, setShowGameModePanel] = useState(false);
   const [worldWeaverModalData, setWorldWeaverModalData] = useState<{
@@ -162,6 +165,14 @@ const TopNavBarPolished: React.FC = () => {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Subscribe to theme changes
+  useEffect(() => {
+    const unsubscribe = themeService.subscribe((theme) => {
+      setIsDarkMode(theme === 'dark');
+    });
+    return unsubscribe;
   }, []);
   
   // Show modal when map finishes loading with pending scenario data
@@ -276,25 +287,40 @@ const TopNavBarPolished: React.FC = () => {
         setShowAPITracker(!showAPITracker);
         setApiStats(eventService.getAPIUsageStats());
         break;
+      case 'theme':
+        themeService.toggleTheme();
+        break;
     }
     if (isMobile) setIsMobileMenuOpen(false);
   };
 
   const getButtonColorClasses = (color: string, isActive = false) => {
     const colors: Record<string, string> = {
-      slate: isActive ? 'bg-slate-600 hover:bg-slate-700 border border-slate-500' : 'bg-slate-700/90 hover:bg-slate-600 border border-slate-600/50',
-      blue: isActive ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-600/90 hover:bg-blue-700',
-      green: isActive ? 'bg-green-600 hover:bg-green-700' : 'bg-green-600/90 hover:bg-green-700',
-      purple: isActive ? 'bg-purple-600 hover:bg-purple-700' : 'bg-purple-600/90 hover:bg-purple-700',
-      gray: isActive ? 'bg-gray-600 hover:bg-gray-700' : 'bg-gray-700/90 hover:bg-gray-600',
-      indigo: isActive ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-indigo-600/90 hover:bg-indigo-700',
+      slate: isActive
+        ? 'bg-slate-300 dark:bg-slate-600 hover:bg-slate-400 dark:hover:bg-slate-700 border border-slate-400 dark:border-slate-500'
+        : 'bg-slate-200/90 dark:bg-slate-700/90 hover:bg-slate-300 dark:hover:bg-slate-600 border border-slate-300/50 dark:border-slate-600/50',
+      blue: isActive
+        ? 'bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700'
+        : 'bg-blue-500/90 dark:bg-blue-600/90 hover:bg-blue-600 dark:hover:bg-blue-700',
+      green: isActive
+        ? 'bg-green-500 dark:bg-green-600 hover:bg-green-600 dark:hover:bg-green-700'
+        : 'bg-green-500/90 dark:bg-green-600/90 hover:bg-green-600 dark:hover:bg-green-700',
+      purple: isActive
+        ? 'bg-purple-500 dark:bg-purple-600 hover:bg-purple-600 dark:hover:bg-purple-700'
+        : 'bg-purple-500/90 dark:bg-purple-600/90 hover:bg-purple-600 dark:hover:bg-purple-700',
+      gray: isActive
+        ? 'bg-gray-400 dark:bg-gray-600 hover:bg-gray-500 dark:hover:bg-gray-700'
+        : 'bg-gray-300/90 dark:bg-gray-700/90 hover:bg-gray-400 dark:hover:bg-gray-600',
+      indigo: isActive
+        ? 'bg-indigo-500 dark:bg-indigo-600 hover:bg-indigo-600 dark:hover:bg-indigo-700'
+        : 'bg-indigo-500/90 dark:bg-indigo-600/90 hover:bg-indigo-600 dark:hover:bg-indigo-700',
     };
     return colors[color] || colors.slate;
   };
 
   return (
     <>
-      <nav className={getSafariOptimizedClassName("relative w-full shadow-xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700/50 z-40")}>
+      <nav className={getSafariOptimizedClassName("relative w-full shadow-xl bg-gradient-to-r from-slate-100 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-b border-slate-300/50 dark:border-slate-700/50 z-40")}>
         <div className="px-2 sm:px-4 py-2">
           {/* Main Navigation Row */}
           <div className="flex items-center justify-between gap-2">
@@ -321,17 +347,17 @@ const TopNavBarPolished: React.FC = () => {
               {/* Game Mode Display */}
               <div className="relative">
                 <button
-                  className={`px-3 ml-4 py-1.5 text-xs font-medium 
-                    ${currentMode && GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG] ? 
+                  className={`px-3 ml-4 py-1.5 text-xs font-medium
+                    ${currentMode && GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG] ?
                       `${GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG].bgColor} ${GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG].borderColor} border` :
-                      'bg-gradient-to-r from-slate-700/60 to-slate-600/60 border border-slate-500/40'
+                      'bg-gradient-to-r from-slate-200/80 to-slate-100/80 dark:from-slate-700/60 dark:to-slate-600/60 border border-slate-400/50 dark:border-slate-500/40'
                     }
-                    hover:from-slate-600/70 hover:to-slate-500/70 
+                    hover:from-slate-300/80 hover:to-slate-200/80 dark:hover:from-slate-600/70 dark:hover:to-slate-500/70
                     rounded-lg transition-all duration-200
-                    ${currentMode && GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG] ? 
-                      GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG].color : 
-                      'text-slate-200'
-                    } hover:text-white flex items-center gap-1.5`}
+                    ${currentMode && GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG] ?
+                      GAME_MODE_CONFIG[currentMode.id as keyof typeof GAME_MODE_CONFIG].color :
+                      'text-slate-700 dark:text-slate-200'
+                    } hover:text-slate-800 dark:hover:text-white flex items-center gap-1.5`}
                   onMouseEnter={() => setShowGameModeTooltip(true)}
                   onMouseLeave={() => setShowGameModeTooltip(false)}
                   onClick={() => setShowGameModePanel(!showGameModePanel)}
@@ -410,11 +436,11 @@ const TopNavBarPolished: React.FC = () => {
                 <button
                   onClick={() => setShowQuestsPanel(prev => !prev)}
                   className={getOptimizedButtonClassName(`
-                    px-3 py-1.5 text-xs font-medium text-white rounded-md
+                    px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-white rounded-md
                     transition-all duration-200 flex items-center gap-1.5
-                    bg-slate-700/60 hover:bg-slate-600/60
+                    bg-slate-200/60 dark:bg-slate-700/60 hover:bg-slate-300/60 dark:hover:bg-slate-600/60
                     shadow-sm hover:shadow-md hover:scale-105
-                    ${showQuestsPanel ? 'ring-2 ring-purple-500/50 bg-purple-900/30' : ''}
+                    ${showQuestsPanel ? 'ring-2 ring-purple-500/50 bg-purple-200/40 dark:bg-purple-900/30' : ''}
                   `)}
                   title="Quests & Objectives"
                 >
@@ -453,7 +479,7 @@ const TopNavBarPolished: React.FC = () => {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Sparkles className={`w-4 h-4 transition-colors ${
                       isProcessingWorldWeaver ? 'text-green-300 animate-pulse' :
-                      worldWeaverFocused ? 'text-green-400' : 'text-gray-500'
+                      worldWeaverFocused ? 'text-green-400' : 'text-slate-500 dark:text-gray-500'
                     }`} />
                   </div>
                   <input
@@ -467,15 +493,15 @@ const TopNavBarPolished: React.FC = () => {
                     disabled={isProcessingWorldWeaver}
                     className={`
                       w-full pl-10 pr-4 py-2 text-sm
-                      bg-slate-800/50 backdrop-blur-sm
+                      bg-white/70 dark:bg-slate-800/50 backdrop-blur-sm
                       border rounded-lg
-                      text-gray-200 placeholder-gray-500
+                      text-slate-700 dark:text-gray-200 placeholder-slate-500 dark:placeholder-gray-500
                       transition-colors duration-150
-                      ${isProcessingWorldWeaver 
-                        ? 'border-green-400/50 shadow-lg shadow-green-400/20 animate-pulse' 
-                        : worldWeaverFocused 
-                        ? 'border-green-500/50 shadow-lg shadow-green-500/10 ring-1 ring-green-500/20' 
-                        : 'border-slate-600/50 hover:border-slate-500/50'
+                      ${isProcessingWorldWeaver
+                        ? 'border-green-400/50 shadow-lg shadow-green-400/20 animate-pulse'
+                        : worldWeaverFocused
+                        ? 'border-green-500/50 shadow-lg shadow-green-500/10 ring-1 ring-green-500/20'
+                        : 'border-slate-400/50 dark:border-slate-600/50 hover:border-slate-500/50 dark:hover:border-slate-500/50'
                       }
                       focus:outline-none
                     `}
@@ -510,7 +536,7 @@ const TopNavBarPolished: React.FC = () => {
                       key={button.id}
                       onClick={() => handleNavAction(button.id)}
                       className={getOptimizedButtonClassName(`
-                        px-3 py-1.5 text-xs font-medium text-white rounded-md
+                        px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-white rounded-md
                         transition-all duration-200 flex items-center gap-1.5
                         ${getButtonColorClasses(button.color)}
                         shadow-sm hover:shadow-md hover:scale-105
@@ -534,7 +560,7 @@ const TopNavBarPolished: React.FC = () => {
                       key={button.id}
                       onClick={() => handleNavAction(button.id)}
                       className={getOptimizedButtonClassName(`
-                        relative px-3 py-1.5 text-xs font-medium text-white rounded-md
+                        relative px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-white rounded-md
                         transition-all duration-200 flex items-center gap-1.5
                         ${getButtonColorClasses(button.color, isActive)}
                         shadow-sm hover:shadow-md hover:scale-105
@@ -550,13 +576,28 @@ const TopNavBarPolished: React.FC = () => {
                     </button>
                   );
                 })}
+
+                {/* Theme Toggle Button */}
+                <button
+                  onClick={() => handleNavAction('theme')}
+                  className={getOptimizedButtonClassName(`
+                    px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-white rounded-md
+                    transition-all duration-200 flex items-center gap-1.5
+                    ${getButtonColorClasses('slate')}
+                    shadow-sm hover:shadow-md hover:scale-105
+                  `)}
+                  title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                >
+                  {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  <span className="hidden xl:inline">{isDarkMode ? 'Light' : 'Dark'}</span>
+                </button>
               </div>
             </div>
 
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 bg-slate-800/50 hover:bg-slate-700/50 text-gray-300 rounded-lg transition-all duration-200 border border-slate-600/50"
+              className="md:hidden p-2 bg-slate-300/50 dark:bg-slate-800/50 hover:bg-slate-400/50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-gray-300 rounded-lg transition-all duration-200 border border-slate-400/50 dark:border-slate-600/50"
               aria-label="Toggle Menu"
             >
               {isMobileMenuOpen ? (
@@ -588,7 +629,7 @@ const TopNavBarPolished: React.FC = () => {
                 
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Sparkles className={`w-4 h-4 transition-colors ${
-                    isProcessingWorldWeaver ? 'text-green-300 animate-pulse' : 'text-gray-500'
+                    isProcessingWorldWeaver ? 'text-green-300 animate-pulse' : 'text-slate-500 dark:text-gray-500'
                   }`} />
                 </div>
                 <input
@@ -598,10 +639,10 @@ const TopNavBarPolished: React.FC = () => {
                   onKeyPress={(e) => e.key === 'Enter' && handleWorldWeaverSubmit()}
                   placeholder={isProcessingWorldWeaver ? "Creating your world..." : "Create world..."}
                   disabled={isProcessingWorldWeaver}
-                  className={`w-full pl-10 pr-4 py-2 text-sm bg-slate-800/50 border rounded-lg text-gray-200 placeholder-gray-500 focus:outline-none transition-all duration-300 ${
-                    isProcessingWorldWeaver 
-                      ? 'border-green-400/50 shadow-lg shadow-green-400/20' 
-                      : 'border-slate-600/50 focus:border-green-500/50'
+                  className={`w-full pl-10 pr-4 py-2 text-sm bg-white/70 dark:bg-slate-800/50 border rounded-lg text-slate-700 dark:text-gray-200 placeholder-slate-500 dark:placeholder-gray-500 focus:outline-none transition-all duration-300 ${
+                    isProcessingWorldWeaver
+                      ? 'border-green-400/50 shadow-lg shadow-green-400/20'
+                      : 'border-slate-400/50 dark:border-slate-600/50 focus:border-green-500/50'
                   }`}
                 />
               </div>
@@ -613,18 +654,18 @@ const TopNavBarPolished: React.FC = () => {
         {isMobile && (
           <div className={`
             absolute top-full left-0 right-0 mt-1 mx-2
-            bg-slate-800/95 backdrop-blur-md
-            border border-slate-600/50 rounded-lg shadow-xl
+            bg-white/95 dark:bg-slate-800/95 backdrop-blur-md
+            border border-slate-300/50 dark:border-slate-600/50 rounded-lg shadow-xl
             transition-all duration-300 origin-top
-            ${isMobileMenuOpen 
-              ? 'opacity-100 scale-y-100 pointer-events-auto' 
+            ${isMobileMenuOpen
+              ? 'opacity-100 scale-y-100 pointer-events-auto'
               : 'opacity-0 scale-y-0 pointer-events-none'
             }
           `}>
             <div className="p-3 space-y-2">
               {/* Game Actions */}
               <div className="space-y-1">
-                <div className="text-xs text-gray-400 font-medium px-2 pb-1">Game</div>
+                <div className="text-xs text-slate-500 dark:text-gray-400 font-medium px-2 pb-1">Game</div>
                 {NAV_BUTTON_GROUPS.game.map(button => {
                   const Icon = button.icon;
                   return (
@@ -632,7 +673,7 @@ const TopNavBarPolished: React.FC = () => {
                       key={button.id}
                       onClick={() => handleNavAction(button.id)}
                       className={`
-                        w-full px-3 py-2.5 text-sm font-medium text-white rounded-lg
+                        w-full px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-white rounded-lg
                         transition-all duration-200 flex items-center gap-2
                         ${getButtonColorClasses(button.color)}
                       `}
@@ -650,10 +691,10 @@ const TopNavBarPolished: React.FC = () => {
                     setIsMobileMenuOpen(false);
                   }}
                   className={`
-                    w-full px-3 py-2.5 text-sm font-medium text-white rounded-lg
+                    w-full px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-white rounded-lg
                     transition-all duration-200 flex items-center gap-2
-                    bg-slate-700/30 hover:bg-slate-600/40
-                    ${showQuestsPanel ? 'ring-2 ring-purple-500/50 bg-purple-900/30' : ''}
+                    bg-slate-200/30 dark:bg-slate-700/30 hover:bg-slate-300/40 dark:hover:bg-slate-600/40
+                    ${showQuestsPanel ? 'ring-2 ring-purple-500/50 bg-purple-200/40 dark:bg-purple-900/30' : ''}
                   `}
                 >
                   <ScrollText className="w-4 h-4" />
@@ -665,8 +706,8 @@ const TopNavBarPolished: React.FC = () => {
               </div>
 
               {/* Info Actions */}
-              <div className="space-y-1 pt-2 border-t border-slate-700/50">
-                <div className="text-xs text-gray-400 font-medium px-2 pb-1">Info</div>
+              <div className="space-y-1 pt-2 border-t border-slate-300/50 dark:border-slate-700/50">
+                <div className="text-xs text-slate-500 dark:text-gray-400 font-medium px-2 pb-1">Info</div>
                 {NAV_BUTTON_GROUPS.info.map(button => {
                   const Icon = button.icon;
                   return (
@@ -674,7 +715,7 @@ const TopNavBarPolished: React.FC = () => {
                       key={button.id}
                       onClick={() => handleNavAction(button.id)}
                       className={`
-                        w-full px-3 py-2.5 text-sm font-medium text-white rounded-lg
+                        w-full px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-white rounded-lg
                         transition-all duration-200 flex items-center gap-2
                         ${getButtonColorClasses(button.color)}
                       `}
@@ -689,6 +730,19 @@ const TopNavBarPolished: React.FC = () => {
                     </button>
                   );
                 })}
+
+                {/* Mobile Theme Toggle */}
+                <button
+                  onClick={() => handleNavAction('theme')}
+                  className={`
+                    w-full px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-white rounded-lg
+                    transition-all duration-200 flex items-center gap-2
+                    ${getButtonColorClasses('slate')}
+                  `}
+                >
+                  {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  {isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                </button>
               </div>
             </div>
           </div>
@@ -697,15 +751,15 @@ const TopNavBarPolished: React.FC = () => {
         {/* Generator Panel (Configure) */}
         <div className={`
           absolute top-full left-0 right-0 z-30
-          bg-gradient-to-b from-slate-800/95 to-slate-900/95 backdrop-blur-md
-          shadow-2xl border-t border-slate-700/50
+          bg-gradient-to-b from-white/95 to-slate-50/95 dark:from-slate-800/95 dark:to-slate-900/95 backdrop-blur-md
+          shadow-2xl border-t border-slate-300/50 dark:border-slate-700/50
           transition-all duration-500 ease-in-out overflow-hidden
           ${isGeneratorPanelOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}
         `}>
           <div className="max-w-6xl mx-auto p-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Contextual Settings */}
-              <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700/50 p-4">
+              <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-300/50 dark:border-slate-700/50 p-4">
                 <h3 className="text-sm font-semibold text-blue-400 mb-3 flex items-center gap-2">
                   <Clock className="w-4 h-4" />
                   Context & Time
@@ -781,7 +835,7 @@ const TopNavBarPolished: React.FC = () => {
               </div>
 
               {/* Generation Parameters */}
-              <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700/50 p-4">
+              <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-300/50 dark:border-slate-700/50 p-4">
                 <h3 className="text-sm font-semibold text-green-400 mb-3 flex items-center gap-2">
                   <Sliders className="w-4 h-4" />
                   Map Generation

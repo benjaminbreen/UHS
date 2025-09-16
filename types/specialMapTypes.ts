@@ -20,6 +20,7 @@ export enum SpecialMapArchetype {
   RESTAURANT_INN = 'RESTAURANT_INN',
   VESSEL = 'VESSEL',
   PLAYER_HOME = 'PLAYER_HOME',
+  FORTRESS_COMMANDER_CHAMBER = 'FORTRESS_COMMANDER_CHAMBER',
   
   // NEW: Historically accurate government archetypes
   TRIBAL_COUNCIL = 'TRIBAL_COUNCIL',
@@ -155,6 +156,31 @@ export interface SpecialMapConfig {
   structureId?: string; // ID of the structure on the main map
   structureName?: string; // Name of the structure (e.g., "Babylonian Royal Palace")
   
+  // Authority context from government modal
+  authorityContext?: {
+    leader: {
+      name: string;
+      title: string;
+      age: number;
+      gender: 'Male' | 'Female';
+      stats: any;
+      appearance: any;
+      portraitSeed: number;
+      wealthLevel: string;
+      culturalZone: string;
+      personality?: any;
+      socialContext?: any;
+    };
+    faction: {
+      name: string;
+      description: string;
+      contextSentence?: string;
+      color: string;
+    };
+    governmentType: string;
+    districtType: string;
+  };
+
   // New simplified system parameters
   isCircular?: boolean;        // Round structures (huts, amphitheaters)
   isRectangular?: boolean;     // Constrained rectangular (vessels)
@@ -167,7 +193,7 @@ export interface SpecialMapConfig {
   innerMapName?: string;       // Custom name for interior
   isPrivate?: boolean;         // Requires elite access
   density?: 'sparse' | 'normal' | 'dense';
-  
+
   // Government type specification (from governmentDistricts.ts)
   districtType?: string;       // 'sacred_council', 'parliament', 'military_council', 'forum', 'palace', etc.
   

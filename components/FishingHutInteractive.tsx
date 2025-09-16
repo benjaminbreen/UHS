@@ -392,42 +392,111 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
     };
   }, [minigame.active]);
 
-  // Simplified spacebar-based reeling system
+  // Enhanced reeling system with fish resistance and escape mechanics
   useEffect(() => {
     if (!minigame.active) return;
 
     const interval = setInterval(() => {
       setMinigame(prev => {
         const newMinigame = { ...prev };
-        
-        // Simple progress system: hold spacebar to fill progress bar
+        const fish = prev.hookedFish;
+
+        if (!fish) return prev;
+
+        // Calculate fish resistance based on species rarity and stamina
+        const rarityMultiplier = fish.species.rarity === 'legendary' ? 2.5 :
+                                 fish.species.rarity === 'rare' ? 1.8 :
+                                 fish.species.rarity === 'uncommon' ? 1.3 : 1.0;
+
+        // Fish stamina decreases over time (fish gets tired)
+        fish.stamina = Math.max(0, fish.stamina - 0.3);
+
+        // Fish resistance is stronger when stamina is high
+        const staminaFactor = (fish.stamina / 100);
+        const baseResistance = 0.008 * rarityMultiplier * staminaFactor;
+
+        // Fish occasionally fights back with bursts of resistance
+        const fightingBack = Math.random() < (0.02 * rarityMultiplier);
+        const burstResistance = fightingBack ? 0.03 : 0;
+
+        // Calculate reel effectiveness based on timing
+        let reelPower = 0;
         if (reelState.isReeling) {
-          // Spacebar is held - increase progress
-          newMinigame.progress += 0.02; // Nice steady progress
+          // Base reel power
+          reelPower = 0.015;
+
+          // Bonus for good timing (when fish isn't fighting)
+          if (!fightingBack) {
+            reelPower *= 1.3;
+          } else {
+            // Reduced effectiveness when fish is fighting
+            reelPower *= 0.5;
+          }
+
+          // Smooth acceleration - reeling gets more effective the longer you hold
+          const reelDuration = (prev.reelStartTime || Date.now());
+          const timeHeld = Math.min((Date.now() - reelDuration) / 1000, 3); // Cap at 3 seconds
+          reelPower *= (1 + timeHeld * 0.2); // Up to 60% bonus for sustained reeling
         } else {
-          // Spacebar not held - progress slowly decreases
-          newMinigame.progress -= 0.005; // Slow decline so it's forgiving
+          // Record when reeling stopped for acceleration calculation
+          if (prev.reelStartTime) {
+            newMinigame.reelStartTime = null;
+          }
         }
-        
+
+        // Record when reeling started
+        if (reelState.isReeling && !prev.reelStartTime) {
+          newMinigame.reelStartTime = Date.now();
+        }
+
+        // Calculate net progress change
+        const progressChange = reelPower - baseResistance - burstResistance;
+
+        // Apply smooth progress with momentum
+        const momentum = prev.progressMomentum || 0;
+        const newMomentum = momentum * 0.9 + progressChange * 0.1; // Smooth momentum
+        newMinigame.progressMomentum = newMomentum;
+        newMinigame.progress += newMomentum;
+
+        // Store if fish is fighting for visual feedback
+        newMinigame.fishFighting = fightingBack;
+
         // Clamp progress between 0 and 1
         newMinigame.progress = Math.max(0, Math.min(1, newMinigame.progress));
-        
+
+        // Fish can escape if progress gets too low
+        if (newMinigame.progress <= 0 && Math.random() < 0.1) {
+          console.log('🐟 Fish escaped!');
+          // Reset minigame
+          fishingGameState.unhookFish();
+          return {
+            active: false,
+            progress: 0,
+            hookedFish: null,
+            complete: false,
+            processing: false,
+            fishFighting: false,
+            progressMomentum: 0,
+            reelStartTime: null
+          };
+        }
+
         // Check win condition
         if (newMinigame.progress >= 1.0) {
-          // Mark as complete but don't do side effects here
           console.log('🎣 Minigame complete! Progress: 100%');
-          
+
           return {
             ...newMinigame,
             progress: 1.0,
-            complete: true  // Add a complete flag
+            complete: true,
+            fishFighting: false
           };
         }
-        
+
         return newMinigame;
       });
     }, 30);
-    
+
     return () => clearInterval(interval);
   }, [minigame.active, reelState.isReeling]);
 
@@ -845,14 +914,19 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
   // Power bar casting mechanic
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     // console.log('🎣 Click event triggered');
-    
+
+    // Don't handle clicks when the victory modal is open
+    if (fishVictory?.show) {
+      return;
+    }
+
     // Handle touch/click for mobile spacebar alternative
     if (minigame.active) {
       // Touch/click acts like spacebar press for mobile
       setReelState(prev => ({ ...prev, isReeling: true }));
       return;
     }
-    
+
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) {
       console.log('❌ No container ref');
@@ -883,7 +957,7 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
     } else {
       console.log('❌ Click outside cast area:', { clickY: y, minY: GROUND_Y, maxY: GAME_HEIGHT });
     }
-  }, [lineState.cast, WATER_Y, GROUND_Y, GAME_HEIGHT]);
+  }, [lineState.cast, WATER_Y, GROUND_Y, GAME_HEIGHT, minigame.active, fishVictory]);
   
   const handleMouseUp = useCallback(() => {
     // Stop mobile reeling if minigame is active
@@ -2682,19 +2756,7 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
               className="absolute left-1/2 bottom-32 transform -translate-x-1/2"
               style={{ zIndex: 100 }}
             >
-              <button
-                onClick={() => {
-                  // console.log('🎣 Hook button clicked!');
-                  fishingGameState.hookFish(catchableFish);
-                  addSplashParticles(hookX, hookY, 2);
-                  // Play hook and splash sounds
-                  gameSounds.playFishingBiteSound();
-                  setTimeout(() => gameSounds.playFishingBiteSound(), 150);
-                }}
-                className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-bold px-8 py-4 rounded-full shadow-xl hover:scale-110 transition-all duration-200 animate-pulse border-2 border-white/50"
-              >
-                <span className="text-2xl"></span>
-              </button>
+             
             </div>
           );
         }
@@ -2738,13 +2800,14 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
           return distance < 80;
         });
         
-        if (catchableFish) {
+        // Only show fish nearby notification when NOT reeling
+        if (catchableFish && !minigame.active) {
           return (
-            <div className="absolute bottom-22 left-1/2 transform -translate-x-1/2" style={{ zIndex: 25 }}>
+            <div className="absolute bottom-22 left-4" style={{ zIndex: 25 }}>
               <div className="bg-green-600/60 backdrop-blur-sm rounded-lg px-4 py-2 border border-green-400/40">
                 <div className="flex items-center gap-3">
                   <span className="text-white font-medium text-sm">
-                    🎣 Fish nearby!
+                    🎣 {catchableFish.species.name} nearby!
                   </span>
                   <div className="text-green-200 text-xs">
                     Press SPACE
@@ -2768,59 +2831,96 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
           );
         }
         
-        return (
-          <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 pointer-events-none" style={{ zIndex: 25 }}>
-            <div className="bg-black/30 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/10">
-              <div className="text-white/60 text-sm text-center">
-                🌊 Waiting for fish...
-              </div>
-            </div>
-          </div>
-        );
+        return null; // Removed old "waiting for fish" message
       })()}
       
-      {/* Simplified fishing minigame UI */}
+      {/* Vertical Progress Display - Left Side */}
       {minigame.active && (
-        <div className="absolute bottom-6 left-6 right-6 pointer-events-none" style={{ zIndex: 30 }}>
-          {/* Horizontal progress bar */}
-          <div className="bg-black/40 backdrop-blur-sm rounded-xl p-4 border border-cyan-400/30">
-            <div className="flex items-center gap-4">
-              {/* Fish info */}
-              <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
-                <span className="text-yellow-400 text-lg">🎣</span>
-                <div className="text-white text-sm font-medium truncate">
-                  {reelState.fishName || 'Fish'} hooked!
-                </div>
-              </div>
+        <div className="absolute left-6 top-24 flex flex-col items-start gap-2" style={{ zIndex: 25 }}>
+          {/* Fish Status & Instructions */}
+          <div className={`bg-black/40 backdrop-blur-sm rounded-lg px-3 py-2 border transition-all duration-200 ${
+            minigame.fishFighting ? 'border-red-500/60' : 'border-white/20'
+          }`}>
+            <div className="text-white text-sm">
+              {minigame.fishFighting ? (
+                <span className="text-red-400 animate-pulse">⚠️ Fish fighting!</span>
+              ) : reelState.isReeling ? (
+                <span className="text-cyan-400">Reeling...</span>
+              ) : (
+                <span className="text-gray-300">Hold SPACE to reel</span>
+              )}
+            </div>
+          </div>
 
-              {/* Horizontal progress bar */}
-              <div className="flex-1 min-w-0">
-                <div className="bg-slate-800/80 rounded-full h-3 relative border border-slate-600/50">
+          {/* Vertical Progress Bars */}
+          <div className="bg-black/40 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+            <div className="flex items-end gap-3 h-32">
+              {/* Main Progress Bar */}
+              <div className="flex flex-col items-center gap-1">
+                <div className="text-xs text-gray-400 mb-1">Progress</div>
+                <div className="w-3 h-24 bg-gray-700/60 rounded-full overflow-hidden relative">
                   <div
-                    className={`rounded-full h-3 absolute left-0 transition-all duration-150 ${
-                      minigame.progress > 0.8 ? 'bg-gradient-to-r from-yellow-400 to-yellow-300' :
-                      minigame.progress > 0.5 ? 'bg-gradient-to-r from-green-500 to-green-400' :
-                      'bg-gradient-to-r from-cyan-500 to-cyan-400'
+                    className={`absolute bottom-0 w-full transition-all duration-200 rounded-full ${
+                      minigame.fishFighting
+                        ? 'bg-gradient-to-t from-red-500 to-orange-400'
+                        : minigame.progress > 0.7
+                          ? 'bg-gradient-to-t from-green-400 to-emerald-400'
+                          : 'bg-gradient-to-t from-blue-500 to-cyan-400'
                     }`}
-                    style={{ width: `${minigame.progress * 100}%` }}
+                    style={{
+                      height: `${minigame.progress * 100}%`,
+                      transition: 'height 0.1s ease-out'
+                    }}
                   />
-                  {/* Progress sparkle effect */}
-                  {minigame.progress > 0.7 && (
-                    <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse" />
+                  {/* Subtle glow at progress edge */}
+                  {minigame.progress > 0 && (
+                    <div
+                      className="absolute w-full h-1 bg-white/30 rounded-full"
+                      style={{
+                        bottom: `${Math.max(0, minigame.progress * 96 - 2)}%`,
+                        filter: 'blur(1px)'
+                      }}
+                    />
                   )}
                 </div>
               </div>
 
-              {/* Progress percentage */}
-              <div className="text-slate-300 text-sm font-medium min-w-0 flex-shrink-0">
-                {Math.round(minigame.progress * 100)}%
-              </div>
-
-              {/* Instructions */}
-              <div className="text-slate-300 text-sm min-w-0 flex-shrink-0">
-                {reelState.isReeling ? '🎯 Reeling!' : 'Hold SPACE'}
-              </div>
+              {/* Fish Stamina Bar */}
+              {minigame.hookedFish && (
+                <div className="flex flex-col items-center gap-1">
+                  <div className="text-xs text-gray-400 mb-1">Stamina</div>
+                  <div className="w-2 h-24 bg-gray-700/60 rounded-full overflow-hidden relative">
+                    <div
+                      className="absolute bottom-0 w-full bg-gradient-to-t from-yellow-600 to-yellow-400 transition-all duration-300 rounded-full"
+                      style={{ height: `${minigame.hookedFish.stamina}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* Mobile Reel Button */}
+            <button
+              className={`sm:hidden mt-2 w-full px-3 py-2 rounded-lg font-bold active:scale-95 transition-all text-xs ${
+                minigame.fishFighting
+                  ? 'bg-red-600/80 hover:bg-red-500/90 text-white'
+                  : reelState.isReeling
+                    ? 'bg-cyan-600/80 hover:bg-cyan-500/90 text-white'
+                    : 'bg-blue-600/80 hover:bg-blue-500/90 text-white'
+              }`}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleKeyDown({ key: ' ' } as KeyboardEvent);
+              }}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleKeyUp({ key: ' ' } as KeyboardEvent);
+              }}
+            >
+              {minigame.fishFighting ? '⚠️ WAIT' : 'REEL'}
+            </button>
           </div>
         </div>
       )}
@@ -2882,10 +2982,13 @@ const FishingHutInteractive: React.FC<FishingHutInteractiveProps> = ({
       )}
       
       {/* Simple Exit Button */}
-      <div className="absolute top-4 right-16 md:right-20" style={{ zIndex: 20 }}>
+      <div className="absolute top-4 right-4" style={{ zIndex: 30 }}>
         <button
-          onClick={onExit}
-          className="p-2 rounded-lg bg-black/30 hover:bg-black/50 text-white/80 hover:text-white border border-white/20 hover:border-white/40 transition-all"
+          onClick={(e) => {
+            e.stopPropagation();
+            onExit();
+          }}
+          className="p-2 rounded-lg bg-black/50 hover:bg-black/70 text-white/90 hover:text-white border border-white/30 hover:border-white/50 transition-all"
           style={{ pointerEvents: 'auto' }}
           title="Exit fishing"
         >

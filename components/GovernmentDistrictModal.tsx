@@ -687,11 +687,36 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
         structureName: governmentType?.name || building.name,
         climate: mapData.climate,  // Pass climate to avoid undefined
         districtType: (structure as any).districtType || governmentType?.districtType,  // Use structure's districtType first!
+        specificYear: year,
+        // Add authority context if we have a leader and faction
+        authorityContext: governmentLeader && dominantFaction ? {
+          leader: {
+            name: governmentLeader.name,
+            title: governmentLeader.title,
+            age: governmentLeader.age,
+            gender: governmentLeader.gender,
+            stats: governmentLeader.stats,
+            appearance: governmentLeader.appearance,
+            portraitSeed: governmentLeader.portraitSeed,
+            wealthLevel: governmentLeader.wealthLevel,
+            culturalZone: governmentLeader.culturalZone,
+            personality: governmentLeader.personality,
+            socialContext: governmentLeader.socialContext,
+          },
+          faction: {
+            name: dominantFaction.name,
+            description: dominantFaction.description,
+            contextSentence: dominantFaction.context,
+            color: getFactionData(dominantFaction.name).color,
+          },
+          governmentType: governmentType?.name || 'Government Building',
+          districtType: governmentType?.districtType || 'government',
+        } : undefined,
       };
       onEnterSpecialMap(config);
       onClose();
     },
-    [availableSpecialMaps, culturalZone, era, governmentType, mapData.region, onClose, onEnterSpecialMap, structure.id]
+    [availableSpecialMaps, culturalZone, era, governmentType, mapData.region, onClose, onEnterSpecialMap, structure.id, year, governmentLeader, dominantFaction]
   );
 
   /* ============================================================================================
@@ -700,15 +725,28 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[5000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-3 md:p-4"
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)', // Safari support
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 5000
+      }}
       role="dialog"
       aria-modal="true"
       aria-label="Government District"
     >
-      {/* Shift whole panel up ~10px to let the map’s bottom inset show */}
+      {/* Full width panel without extra padding */}
       <div
         ref={panelRef}
-        className="relative w-full h-[min(78vh,980px)] max-w-[min(100vw,1300px)] md:max-w-6xl translate-y-[-10px] ff-panel animate-popIn rounded-xl overflow-hidden flex flex-col"
+        className="relative w-full h-full max-h-[90vh] ff-panel animate-popIn rounded-xl overflow-hidden flex flex-col"
       >
         {/* Close Button (accessible, always top-right) */}
         <button
@@ -721,7 +759,7 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
         </button>
 
         {/* Header with TimeAwareBackground + Transparent Banner */}
-        <header className="relative h-[280px] xs:h-[300px] sm:h-[360px] md:h-[390px] flex-shrink-0">
+        <header className="relative h-[200px] sm:h-[240px] md:h-[280px] flex-shrink-0">
           {/* Background: sky/time/weather (sits underneath, fills to top) */}
           <div className="absolute inset-0">
             <TimeAwareBackground timeOfDay={timeOfDay} weather={weather} season={season} />
@@ -860,177 +898,176 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
         >
           {/* OVERVIEW TAB */}
           {activeTab === 'overview' && (
-            <div className="grid gap-6 p-4 sm:p-6 lg:grid-cols-3">
-              {/* Left Column — Leader & Info */}
-              <div className="space-y-6">
-                {/* Leader Card */}
-                {governmentLeader && (
-                  <section className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 rounded-xl p-4 sm:p-5 border border-amber-700/20 backdrop-blur-sm">
-                    <h3 className="text-lg font-bold bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent mb-4 flex items-center gap-2">
-                      <GiThroneKing className="text-amber-400" /> Current Leader
-                    </h3>
-                    <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0">
+            <div className="p-4 sm:p-6">
+              {/* Simplified 2-column layout for cleaner presentation */}
+              <div className="grid gap-4 md:grid-cols-2 max-w-5xl mx-auto">
+                {/* Left Side - Leader and Authority */}
+                <div className="space-y-4">
+                  {/* Leader Card - More compact */}
+                  {governmentLeader && (
+                    <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg p-4 border border-amber-700/20">
+                      <h3 className="text-base font-bold text-amber-300 mb-3 flex items-center gap-2">
+                        <GiThroneKing size={18} /> Current Leader
+                      </h3>
+                      <div className="flex items-start gap-3">
                         <ProceduralPortrait
                           character={governmentLeader}
-                          size={86}
-                          className="rounded-lg border-2 border-amber-500/30"
+                          size={72}
+                          className="rounded-lg border border-amber-500/30"
                         />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="text-xl font-bold text-amber-200 mb-1">{governmentLeader.name}</h4>
-                        <p className="text-sm text-amber-400/90 font-semibold mb-1">
-                          {governmentLeader.title}
-                        </p>
-                        <p className="text-sm text-amber-400/80 mb-2">
-                          {governmentLeader.age} years old • {governmentLeader.gender}
-                        </p>
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div className="flex justify-between">
-                            <span className="text-slate-400">Charisma:</span>
-                            <span className="text-amber-200">{governmentLeader.stats.charisma}/10</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-400">Intelligence:</span>
-                            <span className="text-amber-200">{governmentLeader.stats.intelligence}/10</span>
+                        <div className="flex-1">
+                          <h4 className="text-lg font-bold text-amber-200">{governmentLeader.name}</h4>
+                          <p className="text-sm text-amber-400 font-medium">{governmentLeader.title}</p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            {governmentLeader.age} years old • {governmentLeader.gender}
+                          </p>
+                          <div className="text-xs text-amber-300/80 mt-2">
+                            {(() => {
+                              // Charisma descriptions (0-10)
+                              const charismaDesc = [
+                                "Utterly charmless",       // 0
+                                "Deeply unpopular",         // 1
+                                "Rather off-putting",       // 2
+                                "Socially awkward",         // 3
+                                "Unremarkable presence",    // 4
+                                "Moderately personable",    // 5
+                                "Quite likeable",          // 6
+                                "Natural charm",           // 7
+                                "Magnetic personality",    // 8
+                                "Extraordinarily charismatic", // 9
+                                "Legendary magnetism"      // 10
+                              ];
+
+                              // Intelligence descriptions (0-10)
+                              const intelligenceDesc = [
+                                "dimwitted",               // 0
+                                "quite slow",              // 1
+                                "dull-minded",             // 2
+                                "simple",                  // 3
+                                "unremarkable wit",        // 4
+                                "reasonably clever",       // 5
+                                "notably sharp",           // 6
+                                "highly intelligent",      // 7
+                                "brilliant mind",          // 8
+                                "genius intellect",        // 9
+                                "unparalleled brilliance"  // 10
+                              ];
+
+                              const cha = governmentLeader.stats.charisma;
+                              const int = governmentLeader.stats.intelligence;
+                              const connector = (cha <= 3 && int >= 7) ? " but " :
+                                              (cha >= 7 && int <= 3) ? " but " :
+                                              (cha >= 6 && int >= 6) ? " and " :
+                                              ", ";
+
+                              return `${charismaDesc[cha]}${connector}${intelligenceDesc[int]}`;
+                            })()}
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </section>
-                )}
+                    </section>
+                  )}
 
-                {/* District Information */}
-                <section className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 rounded-xl p-4 sm:p-5 border border-amber-700/20 backdrop-blur-sm">
-                  <h3 className="text-lg font-bold bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent mb-4 flex items-center gap-2">
-                    <FaBuilding className="text-amber-400" /> District Information
-                  </h3>
-                  <p className="text-sm text-slate-300 leading-relaxed mb-4">{governmentInfo.description}</p>
-                  <dl className="space-y-2 text-sm">
-                    {districtDetails.map((d, i) => (
-                      <div key={i} className="flex justify-between py-2 border-b border-slate-700/50">
-                        <dt className="text-amber-400/80">{d.label}</dt>
-                        <dd className="text-amber-100">{d.value}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </section>
-              </div>
+                  {/* Ruling Authority - Compact */}
+                  {dominantFaction && (
+                    <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg p-4 border border-amber-700/20">
+                      <h3 className="text-base font-bold text-amber-300 mb-3 flex items-center gap-2">
+                        <FaCrown size={18} /> Ruling Authority
+                      </h3>
+                      {(() => {
+                        const fd = getFactionData(dominantFaction.name);
+                        const Icon = fd.icon;
+                        return (
+                          <div className="flex items-center gap-3 bg-black/40 rounded-lg px-3 py-2 border"
+                               style={{ borderColor: fd.color + '60' }}>
+                            <Icon size={24} style={{ color: fd.color }} />
+                            <div>
+                              <div className="font-medium text-amber-200 text-sm">{dominantFaction.name}</div>
+                              <p className="text-xs text-slate-400 mt-0.5">{dominantFaction.description}</p>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </section>
+                  )}
+                </div>
 
-              {/* Middle Column — Faction & Functions */}
-              <div className="space-y-6">
-                {/* Faction Summary (kept in body too for parity with your prior layout) */}
-                {dominantFaction && (
-                  <section className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 rounded-xl p-4 sm:p-5 border border-amber-700/20 backdrop-blur-sm">
-                    <h3 className="text-lg font-bold bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent mb-4 flex items-center gap-2">
-                      <FaCrown className="text-amber-400" /> Ruling Authority
+                {/* Right Side - Primary Actions */}
+                <div className="space-y-4">
+                  {/* Enter Building - Main CTA */}
+                  <section className="bg-gradient-to-br from-amber-700/20 to-amber-800/20 rounded-lg p-6 border border-amber-600/30">
+                    <h3 className="text-base font-bold text-amber-300 mb-4 flex items-center gap-2">
+                      <FaDoorOpen size={18} /> Enter Building
                     </h3>
-                    {(() => {
-                      const fd = getFactionData(dominantFaction.name);
-                      const Icon = fd.icon;
-                      return (
-                        <div className="flex items-center gap-3 bg-black/60 backdrop-blur-sm rounded-lg px-4 py-3 border-2 transition-all mb-3"
-                             style={{ borderColor: fd.color }}>
-                          <Icon size={28} style={{ color: fd.color }} />
-                          <div>
-                            <div className="font-bold text-amber-200">{dominantFaction.name}</div>
-                            <p className="text-xs text-slate-300">{dominantFaction.description}</p>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                    {dominantFaction.context && (
-                      <p className="text-sm text-slate-400 italic border-l-2 border-amber-700/30 pl-3">
-                        “{dominantFaction.context}”
-                      </p>
-                    )}
+                    <button
+                      className="w-full px-4 py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-lg transition-all shadow-lg hover:shadow-amber-500/25 font-bold text-base flex items-center justify-center gap-2"
+                      onClick={() => {
+                        if (!onEnterSpecialMap || !governmentType) return;
+                        const config: SpecialMapConfig = {
+                          archetype: governmentType.archetype,
+                          culturalZone: normalizeCulturalZone(culturalZone),
+                          era,
+                          region: mapData.region,
+                          structureId: structure.id,
+                          structureName: governmentType.name,
+                          climate: mapData.climate,
+                          districtType: (structure as any).districtType || governmentType.districtType,
+                          specificYear: year,
+                          // Add authority context if we have a leader and faction
+                          authorityContext: governmentLeader && dominantFaction ? {
+                            leader: {
+                              name: governmentLeader.name,
+                              title: governmentLeader.title,
+                              age: governmentLeader.age,
+                              gender: governmentLeader.gender,
+                              stats: governmentLeader.stats,
+                              appearance: governmentLeader.appearance,
+                              portraitSeed: governmentLeader.portraitSeed,
+                              wealthLevel: governmentLeader.wealthLevel,
+                              culturalZone: governmentLeader.culturalZone,
+                              personality: governmentLeader.personality,
+                              socialContext: governmentLeader.socialContext,
+                            },
+                            faction: {
+                              name: dominantFaction.name,
+                              description: dominantFaction.description,
+                              contextSentence: dominantFaction.context,
+                              color: getFactionData(dominantFaction.name).color,
+                            },
+                            governmentType: governmentType.name,
+                            districtType: governmentType.districtType,
+                          } : undefined,
+                        };
+                        onEnterSpecialMap(config);
+                        onClose();
+                      }}
+                    >
+                      <FaDoorOpen size={20} />
+                      Enter the {governmentType?.name || 'Government Building'}
+                    </button>
+                    <p className="text-xs text-slate-400 text-center italic mt-3">
+                      Explore the interior of this {governmentType?.districtType || 'administrative center'}
+                    </p>
                   </section>
-                )}
 
-                {/* Government Functions */}
-                <section className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 rounded-xl p-4 sm:p-5 border border-amber-700/20 backdrop-blur-sm">
-                  <h3 className="text-lg font-bold bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent mb-4 flex items-center gap-2">
-                    <FaGavel className="text-amber-400" /> Government Functions
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 p-3 bg-slate-900/50 rounded-lg border border-slate-700/50">
-                      <GiScales className="text-amber-400" size={20} />
-                      <div>
-                        <p className="text-sm font-medium text-amber-200">Courts of Justice</p>
-                        <p className="text-xs text-slate-400">Civil and criminal proceedings</p>
-                      </div>
+                  {/* Quick Actions */}
+                  <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg p-4 border border-amber-700/20">
+                    <div className="space-y-2">
+                      <button
+                        className="w-full px-3 py-2 bg-slate-700/50 hover:bg-slate-600/60 text-slate-200 rounded-lg transition-all text-sm font-medium flex items-center justify-center gap-2"
+                        onClick={() => console.log('Request audience')}
+                      >
+                        <GiThroneKing size={16} /> Request Audience
+                      </button>
+                      <button
+                        className="w-full px-3 py-2 bg-slate-700/50 hover:bg-slate-600/60 text-slate-200 rounded-lg transition-all text-sm font-medium flex items-center justify-center gap-2"
+                        onClick={() => setActiveTab('archives')}
+                      >
+                        <FaScroll size={14} /> View Records
+                      </button>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-slate-900/50 rounded-lg border border-slate-700/50">
-                      <FaScroll className="text-amber-400" size={20} />
-                      <div>
-                        <p className="text-sm font-medium text-amber-200">Administrative Offices</p>
-                        <p className="text-xs text-slate-400">Tax collection and permits</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-slate-900/50 rounded-lg border border-slate-700/50">
-                      <GiLaurelCrown className="text-amber-400" size={20} />
-                      <div>
-                        <p className="text-sm font-medium text-amber-200">Council Chambers</p>
-                        <p className="text-xs text-slate-400">Legislative assembly</p>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              </div>
-
-              {/* Right Column — Enter Building & Actions */}
-              <div className="space-y-6">
-                <section className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 rounded-xl p-4 sm:p-5 border border-amber-700/20 backdrop-blur-sm">
-                  <h3 className="text-lg font-bold text-amber-300 mb-4 flex items-center gap-2">
-                    <FaDoorOpen className="text-amber-400" /> Enter Building
-                  </h3>
-                  <button
-                    className="w-full px-6 py-4 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-lg transition-all shadow-lg hover:shadow-amber-500/25 font-bold text-lg flex items-center justify-center gap-3"
-                    onClick={() => {
-                      if (!onEnterSpecialMap || !governmentType) return;
-                      const config: SpecialMapConfig = {
-                        archetype: governmentType.archetype,
-                        culturalZone: normalizeCulturalZone(culturalZone),
-                        era,
-                        region: mapData.region,
-                        // Let the special map generator determine size based on era and archetype
-                        structureId: structure.id,
-                        structureName: governmentType.name,
-                        climate: mapData.climate,  // Pass climate to avoid undefined
-                        districtType: (structure as any).districtType || governmentType.districtType,  // Use structure's districtType first!
-                      };
-                      onEnterSpecialMap(config);
-                      onClose();
-                    }}
-                  >
-                    <FaDoorOpen size={22} />
-                    Enter the {governmentType?.name || 'Government Building'}
-                  </button>
-                  <p className="text-xs text-slate-400 text-center italic mt-2">
-                    Explore the interior of this {governmentType?.districtType || 'administrative center'}.
-                  </p>
-                </section>
-
-                <section className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 rounded-xl p-4 sm:p-5 border border-amber-700/20 backdrop-blur-sm">
-                  <h3 className="text-lg font-bold text-amber-300 mb-4 flex items-center gap-2">
-                    <FaCompass className="text-amber-400" /> Other Actions
-                  </h3>
-                  <div className="space-y-3">
-                    <button
-                      className="w-full px-4 py-2.5 bg-slate-700/70 hover:bg-slate-600/70 text-slate-200 rounded-lg transition-all font-semibold flex items-center justify-center gap-2"
-                      onClick={() => console.log('Request audience with', governmentInfo.leader)}
-                    >
-                      <GiThroneKing /> Request Audience
-                    </button>
-                    <button
-                      className="w-full px-4 py-2.5 bg-slate-700/70 hover:bg-slate-600/70 text-slate-200 rounded-lg transition-all font-semibold flex items-center justify-center gap-2"
-                      onClick={() => setActiveTab('archives')}
-                      ref={lastFocusRef}
-                    >
-                      <FaScroll /> View Records
-                    </button>
-                  </div>
-                </section>
+                  </section>
+                </div>
               </div>
             </div>
           )}
@@ -1219,8 +1256,15 @@ const GovernmentDistrictModal: React.FC<GovernmentDistrictModalProps> = ({
 
         {/* Footer — slimmer on small screens, consistent border */}
         <footer className="mt-auto p-3 sm:p-4 border-t border-slate-700 bg-slate-900/50 flex items-center justify-between">
-          <div className="text-[11px] sm:text-xs text-slate-400">
-            {displayDate} • {mapData?.mapAreaName || currentLocation}
+          <div className="flex items-center gap-4">
+            <div className="text-[11px] sm:text-xs text-slate-400">
+              {displayDate} • {mapData?.mapAreaName || currentLocation}
+            </div>
+            {dominantFaction?.context && (
+              <div className="text-[11px] sm:text-xs text-slate-400 italic border-l border-slate-600 pl-4">
+                "{dominantFaction.context}"
+              </div>
+            )}
           </div>
           <button
             onClick={onClose}

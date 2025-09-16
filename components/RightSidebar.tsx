@@ -149,7 +149,7 @@ const RightSidebar: React.FC = () => {
   return (
     <div
       className={getSafariOptimizedClassName(
-        'relative h-full flex flex-col flex-shrink-0 bg-sidebar-gradient shadow-sidebar-right backdrop-blur-xl border-l border-slate-700/80 text-slate-200'
+        'relative h-full flex flex-col flex-shrink-0 bg-sidebar-gradient-light dark:bg-sidebar-gradient shadow-sidebar-right-light dark:shadow-sidebar-right backdrop-blur-xl border-l border-slate-300/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-200'
       )}
       style={{ width: `${sidebarWidth}px` }}
     >
@@ -174,7 +174,7 @@ const RightSidebar: React.FC = () => {
               <div className="flex items-start gap-4 mb-3">
                 <div className="flex flex-col items-center">
                   <div className="relative">
-                    <div className="relative flex-shrink-0 w-24 h-24 overflow-hidden bg-gray-900 rounded-full border-2 border-slate-500/70 shadow-xl shadow-black/50">
+                    <div className="relative flex-shrink-0 w-24 h-24 overflow-hidden bg-gray-100 dark:bg-gray-900 rounded-full border-2 border-slate-400/70 dark:border-slate-500/70 shadow-xl shadow-slate-400/50 dark:shadow-black/50">
                       <div className="absolute inset-0 z-10 pointer-events-none rounded-full bg-gradient-to-br from-transparent via-transparent to-black/50"></div>
                       <div className="absolute inset-0 z-10 pointer-events-none rounded-full bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
                       <div className="flex items-center justify-center w-full h-full">
@@ -204,20 +204,20 @@ const RightSidebar: React.FC = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h4 className="text-xl font-bold leading-tight text-white">{playerCharacter.name}</h4>
-                      <p className="text-sm font-semibold text-amber-300 capitalize">{playerCharacter.profession}</p>
-                      <p className="mt-1 text-xs text-gray-400">
+                      <h4 className="text-xl font-bold leading-tight text-slate-900 dark:text-white">{playerCharacter.name}</h4>
+                      <p className="text-sm font-semibold text-amber-600 dark:text-amber-300 capitalize">{playerCharacter.profession}</p>
+                      <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
                         Age {playerCharacter.age} • {playerCharacter.gender || 'Unknown'}
                       </p>
                     </div>
                     <div className="flex-shrink-0 text-right">
-                      <p className="text-xl font-bold text-blue-300">Level {playerCharacter.level}</p>
+                      <p className="text-xl font-bold text-blue-600 dark:text-blue-300">Level {playerCharacter.level}</p>
                       <div className="flex items-center justify-end gap-4 mt-1">
-                        <p className="text-sm font-semibold text-yellow-400 flex items-center gap-1" title="Currency">
+                        <p className="text-sm font-semibold text-yellow-600 dark:text-yellow-400 flex items-center gap-1" title="Currency">
                           <span>💰</span>
                           <span>{playerCharacter.currency}</span>
                         </p>
-                        <p className="text-sm font-semibold text-green-400 flex items-center gap-1" title={`Map Reputation: ${repPercent}/100`}>
+                        <p className="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center gap-1" title={`Map Reputation: ${repPercent}/100`}>
                           <span>🤝</span>
                           <span>{repPercent}</span>
                         </p>
@@ -264,13 +264,13 @@ const RightSidebar: React.FC = () => {
               {/* Bars */}
               <div className="space-y-2 mt-2">
                 <div>
-                  <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-gray-400">
+                  <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-gray-600 dark:text-gray-400">
                     <span>HEALTH</span>
                     <span>
                       {Math.ceil(playerCharacter.health)} / {Math.ceil(playerCharacter.maxHealth)}
                     </span>
                   </div>
-                  <div className="w-full h-1.5 overflow-hidden bg-gray-700 rounded-full shadow-inner">
+                  <div className="w-full h-1.5 overflow-hidden bg-gray-300 dark:bg-gray-700 rounded-full shadow-inner">
                     <div
                       className="h-full transition-all duration-500 rounded-full bg-gradient-to-r from-red-500 via-orange-400 to-yellow-400 shadow-sm"
                       style={{ width: `${healthPercent}%` }}
@@ -278,13 +278,13 @@ const RightSidebar: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-gray-400">
+                  <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-gray-600 dark:text-gray-400">
                     <span>FATIGUE</span>
                     <span>
                       {Math.ceil(playerCharacter.fatigue)} / {Math.ceil(playerCharacter.maxFatigue)}
                     </span>
                   </div>
-                  <div className="w-full h-1.5 overflow-hidden bg-gray-700 rounded-full shadow-inner">
+                  <div className="w-full h-1.5 overflow-hidden bg-gray-300 dark:bg-gray-700 rounded-full shadow-inner">
                     <div
                       className="h-full transition-all duration-500 rounded-full bg-gradient-to-r from-amber-400 via-amber-600 to-orange-600 shadow-sm"
                       style={{ width: `${fatiguePercent}%` }}
@@ -292,13 +292,13 @@ const RightSidebar: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-gray-400">
+                  <div className="flex items-center justify-between mb-1 text-[0.625rem] font-semibold tracking-widest text-gray-600 dark:text-gray-400">
                     <span>EXPERIENCE</span>
                     <span>
                       {Math.ceil(playerCharacter.experience)} / {Math.ceil(playerCharacter.maxExperience)}
                     </span>
                   </div>
-                  <div className="w-full h-1.5 overflow-hidden bg-gray-700 rounded-full shadow-inner">
+                  <div className="w-full h-1.5 overflow-hidden bg-gray-300 dark:bg-gray-700 rounded-full shadow-inner">
                     <div
                       className="h-full transition-all duration-500 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full shadow-sm"
                       style={{ width: `${xpPercent}%` }}

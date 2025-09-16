@@ -513,6 +513,13 @@ export async function generateEncounterDialogue(
         - Wealth: ${target.wealthLevel || 'modest'} (${target.currency || 0} coins)
         - Religion: ${target.religion || 'Local beliefs'} ${target.beliefs?.length > 0 ? `(believes in ${target.beliefs[0].beliefId})` : ''}
         - Previous interactions: ${previousSummaries || target.memory?.conversationSummaries?.join('; ') || 'None - first meeting'}
+        - Known facts about player: ${target.memory?.knownFactsAboutPlayer ?
+            Array.from(target.memory.knownFactsAboutPlayer).map(fact => {
+                if (fact.includes('ATTACKED_BY_PLAYER')) return 'Player attacked me previously!';
+                if (fact.includes('PLAYER_FLED_COMBAT')) return 'Player fled from our fight';
+                if (fact.includes('TRESPASSED')) return 'Player trespassed in my space';
+                return fact;
+            }).join('; ') : 'None'}
         - Player's reputation: ${playerCharacter.mapReputation}/100
         
         **WHAT YOU SEE ON THE PLAYER:**
@@ -1626,9 +1633,16 @@ export async function generateInternalMonologue(
             Personality: ${npc.personalityTraits?.join(', ') || 'unknown'}
             Health: ${npc.health}
             Opinion of player: ${npc.memory?.opinionOfPlayer || 50}/100
-            ${npc.memory?.conversationSummaries?.length ? 
-                `Past interactions: ${npc.memory.conversationSummaries.join('; ')}` : 
+            ${npc.memory?.conversationSummaries?.length ?
+                `Past interactions: ${npc.memory.conversationSummaries.join('; ')}` :
                 'First meeting with player'}
+            ${npc.memory?.knownFactsAboutPlayer && npc.memory.knownFactsAboutPlayer.size > 0 ?
+                `Known facts: ${Array.from(npc.memory.knownFactsAboutPlayer).map(fact => {
+                    if (fact.includes('ATTACKED_BY_PLAYER')) return 'This person attacked me!';
+                    if (fact.includes('PLAYER_FLED_COMBAT')) return 'They fled from our fight';
+                    if (fact.includes('TRESPASSED')) return 'They trespassed here';
+                    return fact;
+                }).join('; ')}` : ''}
         `;
     } else {
         characterDetails = `
@@ -2036,6 +2050,146 @@ export async function generateNPCApproachNarration(
             theft: 'casually wanders near'
         };
         return `${npc.name} ${approachVerbs[approachType]} you.`;
+    }
+}
+
+/**
+ * Generate fortress commander dialogue based on game context
+ */
+export async function generateFortressCommanderDialogue(
+    playerCharacter: PlayerCharacter,
+    mapData: MapData,
+    commanderNpc: NpcEntity,
+    playerInput?: string
+): Promise<{ greeting: string; dialogue: string }> {
+    console.log('[LLM] Generating fortress commander dialogue');
+    
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        
+        // Parse date and location context
+        const dateInfo = parseDateString(String(mapData.timeSlice));
+        const culturalZone = mapLocationToCulture(mapData.localArea, dateInfo.year);
+        
+        // Get faction/allegiance data
+        const controllingPower = mapData.majorCity?.allegiance || 'an independent authority';
+        console.log(`🏰 [LLM] Fortress controlled by: ${controllingPower}`);
+        
+        // Create historical context
+        const prompt = `
+            You are ${commanderNpc.name}, a fortress commander in ${mapData.localArea} during ${mapData.timeSlice}.
+            
+            **YOUR CHARACTER:**
+            - Profession: ${commanderNpc.occupation || 'Fortress Commander'}
+            - Age: ${commanderNpc.age}
+            - Cultural Background: ${culturalZone}
+            - Era: ${dateInfo.era}
+            - Personality: Professional, authoritative, experienced military leader
+            - Social Class: ${commanderNpc.socialClass || 'military officer'}
+            - Loyalty: You serve ${controllingPower}
+            
+            **CURRENT SITUATION:**
+            - Location: Fortress commander's chamber
+            - Time Period: ${mapData.timeSlice}
+            - Region: ${mapData.localArea}
+            - Controlling Power: ${controllingPower}
+            - Weather: ${mapData.weather || 'Fair'}
+            - Season: ${mapData.season || 'Spring'}
+            
+            **VISITING PLAYER:**
+            - Name: ${playerCharacter.name}
+            - Age: ${playerCharacter.age}
+            - Profession: ${playerCharacter.profession}
+            - Social Class: ${playerCharacter.socialClass}
+            - Gender: ${playerCharacter.gender}
+            - Equipped Items: ${playerCharacter.equipment ? Object.values(playerCharacter.equipment).filter(Boolean).map((item: any) => item.name).join(', ') : 'simple clothing'}
+            - Health Status: ${playerCharacter.health > 75 ? 'Healthy' : playerCharacter.health > 50 ? 'Tired' : playerCharacter.health > 25 ? 'Worn' : 'Exhausted'}
+            
+            **HISTORICAL CONTEXT:**
+            You are responsible for the defense and administration of this fortress on behalf of ${controllingPower}. You deal with:
+            - Military operations and troop management for ${controllingPower}
+            - Regional security threats and protecting ${controllingPower}'s interests
+            - Administrative duties and reports to your superiors in ${controllingPower}
+            - Relations with local authorities and civilians under ${controllingPower}'s rule
+            - Supply management and logistics for the garrison
+            
+            **DIALOGUE INSTRUCTIONS:**
+            1. Be dismissive and cold - you are a military commander, not a servant
+            2. Show suspicion of unknown visitors - what are they doing here?
+            3. Only show respect if player is nobility, officer, or wearing fine clothing
+            4. Reference military concerns and security of the fortress
+            5. Use period-appropriate language with military bearing
+            6. Be brief and to the point - you have important duties
+            7. Consider the player's social class: commoners get harsh treatment, nobles get respect
+            
+            ${playerInput ? `
+            **PLAYER SAID:** "${playerInput}"
+            Respond appropriately to their statement/question.
+            ` : `
+            **INITIAL MEETING:** This is the first time meeting this player.
+            Provide a professional greeting and brief introduction.
+            `}
+            
+            Respond with a JSON object containing:
+            - "greeting": A 1-2 sentence initial acknowledgment
+            - "dialogue": Your main response (2-4 sentences)
+            
+            Keep responses authentic to the historical period and your military role.
+        `;
+        
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-lite',
+            contents: prompt
+        });
+        
+        const responseText = response.text.trim();
+        
+        try {
+            const parsed = JSON.parse(responseText);
+            if (parsed.greeting && parsed.dialogue) {
+                return {
+                    greeting: parsed.greeting,
+                    dialogue: parsed.dialogue
+                };
+            }
+        } catch (parseError) {
+            console.log('[LLM] Failed to parse JSON, using fallback extraction');
+        }
+        
+        // Fallback parsing
+        const greetingMatch = responseText.match(/"greeting":\s*"([^"]+)"/);
+        const dialogueMatch = responseText.match(/"dialogue":\s*"([^"]+)"/);
+        
+        return {
+            greeting: greetingMatch?.[1] || `Welcome to my fortress, ${playerCharacter.name}.`,
+            dialogue: dialogueMatch?.[1] || responseText || "What brings you to seek an audience with me?"
+        };
+        
+    } catch (error) {
+        console.error("Error generating fortress commander dialogue:", error);
+        
+        // Provide historically appropriate fallback
+        const era = parseDateString(String(mapData.timeSlice)).era;
+        const fallbackGreetings = {
+            'ANTIQUITY': `Hail, ${playerCharacter.name}. I am ${commanderNpc.name}, commander of this garrison.`,
+            'MEDIEVAL': `Good day, ${playerCharacter.name}. I am ${commanderNpc.name}, keeper of this fortress.`,
+            'RENAISSANCE_EARLY_MODERN': `Welcome, ${playerCharacter.name}. I am ${commanderNpc.name}, captain of this stronghold.`,
+            'INDUSTRIAL_ERA': `Good day, ${playerCharacter.name}. Colonel ${commanderNpc.name} at your service.`,
+            'MODERN_ERA': `Welcome, ${playerCharacter.name}. I'm Commander ${commanderNpc.name}.`
+        };
+        
+        const fallbackDialogues = {
+            'ANTIQUITY': "State your business. Time is precious and duty calls.",
+            'MEDIEVAL': "What brings you before me? I trust it is a matter of some importance.",
+            'RENAISSANCE_EARLY_MODERN': "I have but a moment to spare. What urgent matter requires my attention?",
+            'INDUSTRIAL_ERA': "Please, be brief with your request. Military affairs await my attention.",
+            'MODERN_ERA': "What can I do for you? I have a tight schedule today."
+        };
+        
+        return {
+            greeting: fallbackGreetings[era] || fallbackGreetings['MEDIEVAL'],
+            dialogue: fallbackDialogues[era] || fallbackDialogues['MEDIEVAL']
+        };
     }
 }
 

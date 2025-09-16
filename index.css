@@ -1,3 +1,62 @@
+/* SELECTIVE Light mode fixes - only for main UI panels, not overlays */
+
+/* Keep these dark backgrounds in light mode for better contrast */
+:root:not(.dark) .bg-slate-800\/60 {
+  /* Keep dark for overlay panels */
+}
+
+:root:not(.dark) .bg-slate-700\/50 {
+  /* Keep dark for buttons in modal overlays */
+}
+
+/* Only lighten actual panel backgrounds, not overlay content */
+:root:not(.dark) .sidebar-panel {
+  background-color: rgba(248, 250, 252, 0.95) !important;
+}
+
+:root:not(.dark) .main-panel {
+  background-color: rgba(255, 255, 255, 0.98) !important;
+}
+
+/* Keep text readable - don't change white text in dark overlays */
+:root:not(.dark) .modal-overlay .text-white {
+  color: white !important;
+}
+
+:root:not(.dark) .modal-overlay .text-gray-300 {
+  color: rgb(209 213 219) !important;
+}
+
+:root:not(.dark) .modal-overlay .text-gray-400 {
+  color: rgb(156 163 175) !important;
+}
+
+/* Minimal light mode - ONLY change main UI backgrounds */
+/* Do NOT change colors in modals, overlays, or the map */
+
+/* REMOVED - These were causing the problems */
+
+/* Keep map dark in both modes - NO changes */
+
+/* Keep all combat, toasts, and overlays DARK in light mode */
+/* These elements should look the same in both themes */
+
+/* SIMPLE LIGHT MODE - Only change the main app background and text */
+:root:not(.dark) body {
+  background-color: rgb(248 250 252);
+  color: rgb(15 23 42);
+}
+
+/* Light mode for ONLY the main panels that need it */
+:root:not(.dark) .light-panel {
+  background-color: rgba(255, 255, 255, 0.95);
+  color: rgb(15 23 42);
+}
+
+:root:not(.dark) .light-text {
+  color: rgb(15 23 42);
+}
+
 @keyframes fireFlicker {
   0% { transform: scale(1) translateY(0); }
   50% { transform: scale(1.1) translateY(-2px); }
@@ -174,4 +233,416 @@
 
 .animate-eagle-swoop {
   animation: eagleSwoop 0.8s ease-in-out;
+}
+
+/* Fleeing animations for animals */
+@keyframes flyAway {
+  0% { transform: scale(1) translateY(0) translateX(0) rotate(0deg); opacity: 1; }
+  20% { transform: scale(1.1) translateY(-8px) translateX(20px) rotate(-5deg); opacity: 1; }
+  40% { transform: scale(1.05) translateY(-16px) translateX(60px) rotate(-3deg); opacity: 0.8; }
+  60% { transform: scale(0.9) translateY(-20px) translateX(100px) rotate(2deg); opacity: 0.6; }
+  80% { transform: scale(0.8) translateY(-18px) translateX(140px) rotate(5deg); opacity: 0.3; }
+  100% { transform: scale(0.6) translateY(-15px) translateX(200px) rotate(8deg); opacity: 0; }
+}
+
+.animate-fly-away {
+  animation: flyAway 1.5s ease-out forwards;
+}
+
+@keyframes boundAway {
+  0% { transform: scale(1) translateY(0) translateX(0) rotate(0deg); opacity: 1; }
+  10% { transform: scale(1.1) translateY(-4px) translateX(8px) rotate(-2deg); opacity: 1; }
+  25% { transform: scale(1.05) translateY(2px) translateX(20px) rotate(1deg); opacity: 1; }
+  35% { transform: scale(1.1) translateY(-6px) translateX(35px) rotate(-3deg); opacity: 0.9; }
+  50% { transform: scale(1.05) translateY(1px) translateX(55px) rotate(2deg); opacity: 0.8; }
+  65% { transform: scale(1.0) translateY(-4px) translateX(80px) rotate(-1deg); opacity: 0.6; }
+  80% { transform: scale(0.9) translateY(0px) translateX(120px) rotate(1deg); opacity: 0.3; }
+  100% { transform: scale(0.7) translateY(-2px) translateX(180px) rotate(0deg); opacity: 0; }
+}
+
+.animate-bound-away {
+  animation: boundAway 1.2s ease-out forwards;
+}
+
+@keyframes swimAway {
+  0% { transform: scale(1) translateY(0) translateX(0) rotate(0deg); opacity: 1; }
+  20% { transform: scale(1.05) translateY(-2px) translateX(15px) rotate(-8deg); opacity: 1; }
+  40% { transform: scale(1.0) translateY(1px) translateX(40px) rotate(-12deg); opacity: 0.9; }
+  60% { transform: scale(0.95) translateY(-1px) translateX(75px) rotate(-15deg); opacity: 0.7; }
+  80% { transform: scale(0.85) translateY(2px) translateX(120px) rotate(-18deg); opacity: 0.4; }
+  100% { transform: scale(0.7) translateY(0px) translateX(180px) rotate(-20deg); opacity: 0; }
+}
+
+.animate-swim-away {
+  animation: swimAway 1.8s ease-out forwards;
+}
+
+@keyframes runAway {
+  0% { transform: scale(1) translateY(0) translateX(0) rotate(0deg); opacity: 1; }
+  15% { transform: scale(1.05) translateY(-1px) translateX(12px) rotate(-1deg); opacity: 1; }
+  30% { transform: scale(1.02) translateY(1px) translateX(30px) rotate(1deg); opacity: 1; }
+  45% { transform: scale(1.0) translateY(-1px) translateX(55px) rotate(0deg); opacity: 0.9; }
+  60% { transform: scale(0.95) translateY(0px) translateX(85px) rotate(-1deg); opacity: 0.7; }
+  75% { transform: scale(0.9) translateY(1px) translateX(120px) rotate(1deg); opacity: 0.5; }
+  90% { transform: scale(0.8) translateY(0px) translateX(160px) rotate(0deg); opacity: 0.2; }
+  100% { transform: scale(0.7) translateY(-1px) translateX(200px) rotate(0deg); opacity: 0; }
+}
+
+.animate-run-away {
+  animation: runAway 1.4s ease-out forwards;
+}
+
+/* Combat Skill Animations */
+
+/* Observing - focused attention */
+@keyframes observing {
+  0% { transform: scale(1) translateY(0); }
+  25% { transform: scale(1.02) translateY(-1px); }
+  50% { transform: scale(1.05) translateY(-2px); }
+  75% { transform: scale(1.03) translateY(-1px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+.animate-observing {
+  animation: observing 1.5s ease-in-out;
+}
+
+/* Foraging - searching motion */
+@keyframes foraging {
+  0% { transform: translateX(0) rotate(0deg); }
+  20% { transform: translateX(-3px) rotate(-5deg); }
+  40% { transform: translateX(3px) rotate(5deg); }
+  60% { transform: translateX(-2px) rotate(-3deg); }
+  80% { transform: translateX(2px) rotate(3deg); }
+  100% { transform: translateX(0) rotate(0deg); }
+}
+
+.animate-foraging {
+  animation: foraging 1.2s ease-in-out;
+}
+
+/* Digging - up and down motion */
+@keyframes digging {
+  0% { transform: translateY(0) scale(1); }
+  25% { transform: translateY(-4px) scale(1.05); }
+  50% { transform: translateY(2px) scale(0.98); }
+  75% { transform: translateY(-2px) scale(1.02); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+.animate-digging {
+  animation: digging 0.8s ease-in-out;
+}
+
+/* Bandaging - gentle healing motion */
+@keyframes bandaging {
+  0% { transform: scale(1) translateX(0); }
+  33% { transform: scale(1.02) translateX(-2px); }
+  66% { transform: scale(1.02) translateX(2px); }
+  100% { transform: scale(1) translateX(0); }
+}
+
+.animate-bandaging {
+  animation: bandaging 2.0s ease-in-out;
+}
+
+/* Parrying - defensive stance */
+@keyframes parrying {
+  0% { transform: translateX(0) rotate(0deg) scale(1); }
+  30% { transform: translateX(-4px) rotate(-8deg) scale(1.05); }
+  60% { transform: translateX(2px) rotate(3deg) scale(1.02); }
+  100% { transform: translateX(0) rotate(0deg) scale(1); }
+}
+
+.animate-parrying {
+  animation: parrying 0.6s ease-out;
+}
+
+/* Grappling - wrestling motion */
+@keyframes grappling {
+  0% { transform: scale(1) translateX(0) rotate(0deg); }
+  20% { transform: scale(1.1) translateX(-5px) rotate(-10deg); }
+  40% { transform: scale(1.15) translateX(3px) rotate(8deg); }
+  60% { transform: scale(1.08) translateX(-2px) rotate(-5deg); }
+  80% { transform: scale(1.12) translateX(4px) rotate(6deg); }
+  100% { transform: scale(1) translateX(0) rotate(0deg); }
+}
+
+.animate-grappling {
+  animation: grappling 1.0s ease-in-out;
+}
+
+/* Feinting - deceptive movement */
+@keyframes feinting {
+  0% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(6px) rotate(5deg); }
+  50% { transform: translateX(-8px) rotate(-8deg); }
+  75% { transform: translateX(4px) rotate(3deg); }
+  100% { transform: translateX(0) rotate(0deg); }
+}
+
+.animate-feinting {
+  animation: feinting 0.8s ease-in-out;
+}
+
+/* Singing - rhythmic motion */
+@keyframes singing {
+  0% { transform: scale(1) translateY(0); }
+  25% { transform: scale(1.02) translateY(-1px); }
+  50% { transform: scale(1.04) translateY(-2px); }
+  75% { transform: scale(1.02) translateY(-1px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+.animate-singing {
+  animation: singing 1.5s ease-in-out infinite;
+}
+
+/* Profession-Specific Skill Animations */
+
+/* Knight Skills */
+@keyframes mountedCharge {
+  0% { transform: scale(1) translateX(0) translateY(0) rotate(0deg); }
+  30% { transform: scale(1.15) translateX(-8px) translateY(-3px) rotate(-5deg); }
+  60% { transform: scale(1.2) translateX(12px) translateY(-1px) rotate(8deg); }
+  100% { transform: scale(1) translateX(0) translateY(0) rotate(0deg); }
+}
+
+.animate-mounted-charge {
+  animation: mountedCharge 1.0s ease-out;
+}
+
+@keyframes swordAndBoard {
+  0% { transform: scale(1) translateX(0) rotate(0deg); }
+  25% { transform: scale(1.05) translateX(-3px) rotate(-5deg); }
+  50% { transform: scale(1.1) translateX(6px) rotate(8deg); }
+  75% { transform: scale(1.05) translateX(-2px) rotate(-3deg); }
+  100% { transform: scale(1) translateX(0) rotate(0deg); }
+}
+
+.animate-sword-and-board {
+  animation: swordAndBoard 0.8s ease-in-out;
+}
+
+@keyframes chivalrousChallenge {
+  0% { transform: scale(1) translateY(0); }
+  30% { transform: scale(1.08) translateY(-4px); }
+  60% { transform: scale(1.05) translateY(-2px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+.animate-chivalrous-challenge {
+  animation: chivalrousChallenge 1.2s ease-out;
+}
+
+/* Blacksmith Skills */
+@keyframes forgeHeat {
+  0% { transform: scale(1) translateY(0); }
+  20% { transform: scale(1.05) translateY(-2px); }
+  40% { transform: scale(1.1) translateY(-4px); }
+  60% { transform: scale(1.08) translateY(-2px); }
+  80% { transform: scale(1.03) translateY(-1px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+.animate-forge-heat {
+  animation: forgeHeat 1.0s ease-out;
+}
+
+@keyframes metalworkExpertise {
+  0% { transform: scale(1) translateX(0) rotate(0deg); }
+  25% { transform: scale(1.03) translateX(-2px) rotate(-3deg); }
+  50% { transform: scale(1.06) translateX(2px) rotate(3deg); }
+  75% { transform: scale(1.03) translateX(-1px) rotate(-1deg); }
+  100% { transform: scale(1) translateX(0) rotate(0deg); }
+}
+
+.animate-metalwork-expertise {
+  animation: metalworkExpertise 0.9s ease-in-out;
+}
+
+/* Carpenter Skills */
+@keyframes timberStrike {
+  0% { transform: scale(1) translateY(0) rotate(0deg); }
+  30% { transform: scale(1.1) translateY(-6px) rotate(-8deg); }
+  60% { transform: scale(1.15) translateY(2px) rotate(5deg); }
+  100% { transform: scale(1) translateY(0) rotate(0deg); }
+}
+
+.animate-timber-strike {
+  animation: timberStrike 0.7s ease-out;
+}
+
+@keyframes preciseCut {
+  0% { transform: scale(1) translateX(0); }
+  40% { transform: scale(1.05) translateX(-4px); }
+  80% { transform: scale(1.02) translateX(2px); }
+  100% { transform: scale(1) translateX(0); }
+}
+
+.animate-precise-cut {
+  animation: preciseCut 0.6s ease-in-out;
+}
+
+@keyframes woodenBarrier {
+  0% { transform: scale(1) translateY(0); }
+  50% { transform: scale(1.1) translateY(-3px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+.animate-wooden-barrier {
+  animation: woodenBarrier 0.8s ease-out;
+}
+
+/* Farmer Skills */
+@keyframes scytheSweep {
+  0% { transform: scale(1) translateX(0) rotate(0deg); }
+  30% { transform: scale(1.05) translateX(-8px) rotate(-15deg); }
+  70% { transform: scale(1.08) translateX(8px) rotate(15deg); }
+  100% { transform: scale(1) translateX(0) rotate(0deg); }
+}
+
+.animate-scythe-sweep {
+  animation: scytheSweep 0.9s ease-in-out;
+}
+
+@keyframes pitchforkThrust {
+  0% { transform: scale(1) translateY(0) translateX(0); }
+  40% { transform: scale(1.08) translateY(-4px) translateX(-2px); }
+  80% { transform: scale(1.12) translateY(2px) translateX(6px); }
+  100% { transform: scale(1) translateY(0) translateX(0); }
+}
+
+.animate-pitchfork-thrust {
+  animation: pitchforkThrust 0.7s ease-out;
+}
+
+@keyframes harvestEndurance {
+  0% { transform: scale(1) translateY(0); }
+  50% { transform: scale(1.03) translateY(-1px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+.animate-harvest-endurance {
+  animation: harvestEndurance 1.5s ease-in-out;
+}
+
+/* Fisherman Skills */
+@keyframes netThrow {
+  0% { transform: scale(1) translateX(0) translateY(0) rotate(0deg); }
+  30% { transform: scale(1.1) translateX(-4px) translateY(-8px) rotate(-20deg); }
+  70% { transform: scale(1.05) translateX(12px) translateY(-4px) rotate(25deg); }
+  100% { transform: scale(1) translateX(0) translateY(0) rotate(0deg); }
+}
+
+.animate-net-throw {
+  animation: netThrow 1.0s ease-out;
+}
+
+@keyframes guttingKnife {
+  0% { transform: scale(1) translateX(0) rotate(0deg); }
+  25% { transform: scale(1.05) translateX(-3px) rotate(-8deg); }
+  50% { transform: scale(1.08) translateX(3px) rotate(8deg); }
+  75% { transform: scale(1.03) translateX(-1px) rotate(-3deg); }
+  100% { transform: scale(1) translateX(0) rotate(0deg); }
+}
+
+.animate-gutting-knife {
+  animation: guttingKnife 0.6s ease-in-out;
+}
+
+@keyframes sailorsStrength {
+  0% { transform: scale(1) translateY(0); }
+  25% { transform: scale(1.05) translateY(-2px); }
+  50% { transform: scale(1.08) translateY(-4px); }
+  75% { transform: scale(1.03) translateY(-1px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+.animate-sailors-strength {
+  animation: sailorsStrength 1.0s ease-out;
+}
+
+/* Default/Desperate Skills */
+@keyframes desperateSwing {
+  0% {
+    transform: scale(1) translateX(0) rotate(0deg);
+    filter: brightness(1);
+  }
+  10% {
+    transform: scale(1.2) translateX(-15px) rotate(-35deg);
+    filter: brightness(1.3) contrast(1.2);
+  }
+  25% {
+    transform: scale(1.25) translateX(20px) rotate(45deg);
+    filter: brightness(1.5) contrast(1.3) saturate(1.5);
+  }
+  40% {
+    transform: scale(1.3) translateX(-25px) rotate(-60deg);
+    filter: brightness(1.4) contrast(1.2);
+  }
+  55% {
+    transform: scale(1.2) translateX(30px) rotate(50deg);
+    filter: brightness(1.6) contrast(1.4) hue-rotate(10deg);
+  }
+  70% {
+    transform: scale(1.15) translateX(-18px) rotate(-40deg);
+    filter: brightness(1.3);
+  }
+  85% {
+    transform: scale(1.1) translateX(10px) rotate(20deg);
+    filter: brightness(1.2);
+  }
+  100% {
+    transform: scale(1) translateX(0) rotate(0deg);
+    filter: brightness(1);
+  }
+}
+
+.animate-desperate-swing {
+  animation: desperateSwing 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  transform-origin: center;
+}
+
+/* Burn Skill Animation - Initial fiery attack */
+@keyframes burnAttack {
+  0% {
+    transform: scale(1) translateX(0);
+    filter: brightness(1);
+  }
+  20% {
+    transform: scale(1.1) translateX(-5px);
+    filter: brightness(1.5) saturate(2) hue-rotate(-20deg);
+  }
+  40% {
+    transform: scale(1.2) translateX(10px);
+    filter: brightness(2) saturate(3) hue-rotate(-30deg) contrast(1.3);
+  }
+  60% {
+    transform: scale(1.15) translateX(-2px);
+    filter: brightness(1.8) saturate(2.5) hue-rotate(-25deg);
+  }
+  80% {
+    transform: scale(1.05) translateX(3px);
+    filter: brightness(1.3) saturate(1.5) hue-rotate(-10deg);
+  }
+  100% {
+    transform: scale(1) translateX(0);
+    filter: brightness(1);
+  }
+}
+
+.animate-burn {
+  animation: burnAttack 0.8s ease-out;
+}
+
+@keyframes improvisedWeapon {
+  0% { transform: scale(1) translateY(0) rotate(0deg); }
+  30% { transform: scale(1.12) translateY(-5px) rotate(-10deg); }
+  60% { transform: scale(1.08) translateY(2px) rotate(8deg); }
+  100% { transform: scale(1) translateY(0) rotate(0deg); }
+}
+
+.animate-improvised-weapon {
+  animation: improvisedWeapon 0.9s ease-out;
 }

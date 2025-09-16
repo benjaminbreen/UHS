@@ -6,6 +6,7 @@ import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
 import { usePlayer } from '../contexts/PlayerContext';
 import { useGame } from '../contexts/GameContext';
+import { weatherService } from '../services/weatherService';
 import DevTooltip from './DevTooltip';
 import SettingsPanel from './SettingsPanel';
 import WorldMapModal from './WorldMapModal';
@@ -99,7 +100,7 @@ const ModalHub: React.FC = () => {
         handleDropItem, handleConsumeItem, onUseCombatItem
     } = usePlayer();
     
-    const { gameDate, currentZone, currentRegion, gameTimeHours, season, currentEra } = useGame();
+    const { gameDate, currentZone, currentRegion, gameTimeHours, gameTimeMinutes, season, currentEra, climate, timeOfDay } = useGame();
     
     // Function to update a single NPC in the npcs array
     const handleUpdateNpc = useCallback((updatedNpc: NpcEntity) => {
@@ -243,20 +244,38 @@ const ModalHub: React.FC = () => {
               />
             )}
             {combatant && playerCharacter && mapData && (
-                <CombatModal 
-                    combatant={combatant} 
-                    playerCharacter={playerCharacter} 
-                    onClose={() => setCombatant(null)} 
-                    onVictory={handleCombatVictory} 
+                <CombatModal
+                    combatant={combatant}
+                    playerCharacter={playerCharacter}
+                    onClose={() => setCombatant(null)}
+                    onVictory={handleCombatVictory}
                     onUseCombatItem={onUseCombatItem}
                     inventory={playerCharacter.inventory}
                     onCharacterUpdate={onCharacterUpdate}
+                    onNpcUpdate={(npcId, updates) => {
+                        // Update the NPC in the main array
+                        setNpcs(prev => prev.map(npc =>
+                            npc.id === npcId
+                                ? { ...npc, ...updates }
+                                : npc
+                        ));
+                    }}
                     mapData={mapData}
+                    gameTime={gameTimeHours !== undefined && gameTimeMinutes !== undefined ?
+                        { hours: gameTimeHours, minutes: gameTimeMinutes } : undefined}
+                    weather={mapData && climate && season && timeOfDay ?
+                        weatherService.getWeather(
+                            climate,
+                            mapData.tiles?.[playerCharacter.y]?.[playerCharacter.x]?.biome || 'GRASSLAND',
+                            season,
+                            timeOfDay
+                        ) : undefined}
+                    culturalZone={mapData.culturalZone}
                 />
             )}
             {victoryDetails && <VictoryModal {...victoryDetails} onClose={handleVictoryClose} />}
             {lootModalData && <LootModal opponent={lootModalData.opponent} onTakeItem={handleLooting} onClose={handleCloseLootModal} onTakeCoins={onTakeCoins} />}
-             {structureModalTarget && mapData && <TerrainStructureModal structure={structureModalTarget} mapData={mapData} npcs={npcs} onClose={() => setStructureModalTarget(null)} gameTimeHours={gameTimeHours} season={season} playerCharacter={playerCharacter} currentLocation={currentRegion} formattedDate={gameDate} onEnterSpecialMap={enterSpecialMap} />}
+             {structureModalTarget && mapData && <TerrainStructureModal structure={structureModalTarget} mapData={mapData} npcs={npcs} onClose={() => setStructureModalTarget(null)} gameTimeHours={gameTimeHours} season={season} playerCharacter={playerCharacter} currentLocation={currentRegion} formattedDate={gameDate} onEnterSpecialMap={enterSpecialMap} onCharacterUpdate={onCharacterUpdate as any} />}
             {activeSettlementInfo && mapData && <SettlementInfoModal tile={activeSettlementInfo.tile} mapData={mapData} npcs={npcs} onClose={() => setActiveSettlementInfo(null)} gameTimeHours={gameTimeHours} season={season} playerCharacter={playerCharacter} />}
             {activeMiningModal && playerCharacter && <MiningModal structure={activeMiningModal} playerCharacter={playerCharacter} onClose={() => setActiveMiningModal(null)} onMine={() => {}} isMining={false} mineResult={null} />}
             {activePoi && mapData && <PointOfInterestModal structure={activePoi} mapData={mapData} onClose={() => setActivePoi(null)} onEnterSpecialMap={enterSpecialMap} />}
@@ -495,7 +514,12 @@ const ModalHub: React.FC = () => {
                 />
             )}
             {/* POI Toast Modal - Uses UI State */}
-            <POIToastModal />
+            <POIToastModal 
+                onEnterSpecialMap={enterSpecialMap}
+                mapData={mapData}
+                currentEra={currentEra}
+                currentCulturalZone={mapData?.culturalZone}
+            />
             {selectedPrimarySource && (
                 <PrimarySourceModal
                     source={selectedPrimarySource}

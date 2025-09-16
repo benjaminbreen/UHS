@@ -24,6 +24,20 @@ export interface FishingLineState {
   rodType: RodType;
 }
 
+export interface BezierPath {
+  startX: number;
+  startY: number;
+  controlX1: number;
+  controlY1: number;
+  controlX2: number;
+  controlY2: number;
+  endX: number;
+  endY: number;
+  startTime: number;
+  duration: number;
+  t: number;
+}
+
 export interface GameFish {
   id: string;
   species: FishSpecies;
@@ -39,6 +53,8 @@ export interface GameFish {
   escaping: boolean;
   stamina: number;
   distanceToHook: number;
+  bezierPath?: BezierPath;
+  lastX?: number;
 }
 
 export interface PowerBarState {
@@ -378,24 +394,40 @@ class FishingGameStateService {
 
   hookFish(fish: GameFish) {
     if (this.lineState.hookedFish) return; // Already have a fish
-    
+
     fish.hooked = true;
     fish.stamina = 100;
     this.lineState.hookedFish = fish;
     this.lineState.hasBait = false;
-    
+
     // Add big ripple
     this.addRipple(fish.x, fish.y, 40);
-    
+
     // Score based on rarity
     const baseScore = fish.species.rarity === 'legendary' ? 1000 :
                      fish.species.rarity === 'rare' ? 500 :
                      fish.species.rarity === 'uncommon' ? 200 : 100;
-    
+
     this.stats.combo++;
     this.stats.score += baseScore * this.stats.combo;
-    
+
     this.notifyListeners();
+  }
+
+  unhookFish() {
+    // Release the hooked fish back into the water
+    if (this.lineState.hookedFish) {
+      const fish = this.lineState.hookedFish;
+      fish.hooked = false;
+      fish.escaping = false;
+      fish.interested = false;
+      this.lineState.hookedFish = null;
+
+      // Reset combo on escape
+      this.stats.combo = 0;
+
+      this.notifyListeners();
+    }
   }
 
   reelIn(speed: number) {

@@ -25,7 +25,7 @@ import { llmQuestService } from '../services/llmQuestService';
 import { Quest } from '../types/questTypes';
 import { unifiedQuestPipeline, QuestGenerationContext } from '../services/unifiedQuestPipeline';
 import { worldEntityRegistry } from '../services/worldEntityRegistry';
-import { Sparkles, ScrollText, Package, TrendingUp, AlertTriangle, Calendar, Award } from 'lucide-react';
+import { Sparkles, ScrollText, Package, TrendingUp, AlertTriangle, Calendar, Award, Search, X } from 'lucide-react';
 import { marketEventSystem } from '../services/marketEventSystem';
 import { npcMarketParticipationService } from '../services/npcMarketParticipationService';
 import { marketVolatilityService } from '../services/marketVolatilityService';
@@ -49,6 +49,7 @@ interface MarketplaceModalProps {
   onSell: (item: Item, price: number) => void;
   weather?: WeatherState | null;
   onAddPersistedNpc?: (npc: NpcEntity) => void;
+  currentMapSeed: number;
 }
 
 type TabType = 'buy' | 'sell' | 'trade' | 'people' | 'info' | 'analysis';
@@ -56,12 +57,13 @@ type CategoryFilter = 'all' | 'food' | 'tool' | 'weapon' | 'luxury' | 'raw_mater
 
 const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   tile, playerCharacter, mapData, npcs, mapAnalysisData, gameTimeHours, season,
-  onClose, onBuy, onSell, weather, onAddPersistedNpc
+  onClose, onBuy, onSell, weather, onAddPersistedNpc, currentMapSeed
 }) => {
   const { showToast } = useUI();
   const [activeTab, setActiveTab] = useState<TabType>('buy');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchExpanded, setSearchExpanded] = useState(false);
   const [selectedItem, setSelectedItem] = useState<TradeGood | null>(null);
   const [marketConditions, setMarketConditions] = useState<MarketConditions | null>(null);
   const [merchantNpcs, setMerchantNpcs] = useState<NpcEntity[]>([]);
@@ -542,9 +544,20 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
   useEffect(() => {
     const marketLocation = { x: tile.x, y: tile.y };
     const marketId = `market-${tile.x}-${tile.y}`;
+
+    // For current session only - don't use persistent crises from localStorage
+    // Get only crises that are currently active and relevant to this specific map location
     const crises = crisisDetectionService.getActiveCrisesForMarket(marketLocation);
-    setActiveCrises(crises);
-    console.log(`[Marketplace] Active crises:`, crises);
+
+    // Filter out old crises - only show those created recently (within last hour)
+    const recentCrises = crises.filter(crisis => {
+      const now = Date.now();
+      const oneHourAgo = now - (60 * 60 * 1000); // 1 hour in milliseconds
+      return crisis.detectedAt > oneHourAgo;
+    });
+
+    setActiveCrises(recentCrises);
+    console.log(`[Marketplace] Recent crises for current map:`, recentCrises);
     
     // Mark market visit for price comparison
     priceHistoryService.markMarketVisit(marketId);
@@ -840,30 +853,11 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
     console.log(`[PriceHistory] Recorded snapshot, ${comparisons.length} comparisons available`);
   }, [marketInventory, tile, mapData.timeSlice, gameTimeHours, activeCrises, volatilityEvents, marketCycle]);
   
-  // Track economic victory progress
+  // Skip economic victory tracking - feature not implemented
   useEffect(() => {
-    // Update wealth
-    economicVictoryService.updateWealth(playerCharacter.currency);
-    
-    // Get current progress
-    const progress = economicVictoryService.getVictoryProgress();
-    setVictoryProgress(progress);
-    
-    // Listen for achievements
-    const handleAchievement = (e: CustomEvent) => {
-      setLatestAchievement(e.detail);
-      setTimeout(() => setLatestAchievement(null), 5000);
-    };
-    
-    const handleMilestone = (e: CustomEvent) => {
-      setLatestMilestone(e.detail);
-      setTimeout(() => setLatestMilestone(null), 5000);
-    };
-    
-    const handleVictory = (e: CustomEvent) => {
-      setShowVictoryModal(true);
-      showToast(`🏆 Economic Victory! You have achieved economic domination through ${e.detail}!`);
-    };
+    // Economic victory system is not implemented yet
+    // const progress = economicVictoryService.getVictoryProgress();
+    // setVictoryProgress(progress);
     
     // Listen for quest completions to show rewards
     const handleQuestCompleted = (e: CustomEvent) => {
@@ -889,15 +883,10 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       }
     };
     
-    window.addEventListener('economicAchievement', handleAchievement as any);
-    window.addEventListener('economicMilestone', handleMilestone as any);
-    window.addEventListener('economicVictory', handleVictory as any);
+    // Only listen for quest completions (economic victory events removed)
     window.addEventListener('questCompleted', handleQuestCompleted as any);
-    
+
     return () => {
-      window.removeEventListener('economicAchievement', handleAchievement as any);
-      window.removeEventListener('economicMilestone', handleMilestone as any);
-      window.removeEventListener('economicVictory', handleVictory as any);
       window.removeEventListener('questCompleted', handleQuestCompleted as any);
     };
   }, [playerCharacter.currency, tile, showToast]);
@@ -1151,18 +1140,18 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       acceptedTime: Date.now()
     });
     
-    // If this is from a merchant, persist them to the map
+    // If this is from a merchant, persist them to the current map
     if (showQuestOffer?.npc && onAddPersistedNpc) {
-      // Persist the merchant now that quest is accepted
-      llmQuestService.persistMerchant(showQuestOffer.npc, { x: tile.x, y: tile.y });
-      
-      // Get the persisted version
-      const persistedMerchants = llmQuestService.getPersistedMerchants();
+      // Persist the merchant now that quest is accepted - using current map seed
+      llmQuestService.persistMerchant(showQuestOffer.npc, { x: tile.x, y: tile.y }, currentMapSeed);
+
+      // Get the persisted version for this map
+      const persistedMerchants = llmQuestService.getPersistedMerchants(currentMapSeed);
       const persistedNpc = persistedMerchants.find(m => m.id === showQuestOffer.npc.id);
-      
+
       if (persistedNpc) {
         onAddPersistedNpc(persistedNpc);
-        console.log(`[MarketplaceModal] Merchant ${persistedNpc.name} will now appear on the map`);
+        console.log(`[MarketplaceModal] Merchant ${persistedNpc.name} will now appear on map ${currentMapSeed}`);
       }
     }
     
@@ -1217,43 +1206,65 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       case 'buy':
         return (
           <div className="flex flex-col h-full">
-            {/* Search and filters with historical styling */}
-            <div className="p-4 bg-gradient-to-b from-slate-800/90 to-slate-900/50 border-b border-amber-900/30 space-y-3">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search wares and goods..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-900/60 border border-amber-900/30 rounded-md text-amber-50 placeholder-amber-200/40 focus:border-amber-600/50 focus:outline-none focus:ring-1 focus:ring-amber-600/30 transition-all"
-                />
-                <span className="absolute right-3 top-3 text-amber-600/50">🔍</span>
-              </div>
-              <div className="flex gap-1.5 sm:gap-2 flex-wrap">
-                {[
-                  { id: 'all', label: 'All Goods', icon: '📦' },
-                  { id: 'food', label: 'Provisions', icon: '🍞' },
-                  { id: 'tool', label: 'Tools', icon: '🔨' },
-                  { id: 'weapon', label: 'Arms', icon: '⚔️' },
-                  { id: 'luxury', label: 'Luxuries', icon: '💎' },
-                  { id: 'raw_material', label: 'Raw Goods', icon: '🪵' },
-         
-                  { id: 'religious', label: 'Sacred', icon: '⛪' },
-                  { id: 'medicine', label: 'Remedies', icon: '🧪' }
-                ].map(cat => (
+            {/* Compact category filters with search icon */}
+            <div className="px-4 py-2 bg-gradient-to-b from-slate-800/90 to-slate-900/50 border-b border-amber-900/30">
+              <div className="flex gap-1.5 items-center">
+                {/* Category buttons */}
+                <div className="flex gap-1.5 flex-wrap flex-1">
+                  {[
+                    { id: 'all', label: 'All Goods', icon: '📦' },
+                    { id: 'food', label: 'Provisions', icon: '🍞' },
+                    { id: 'tool', label: 'Tools', icon: '🔨' },
+                    { id: 'weapon', label: 'Arms', icon: '⚔️' },
+                    { id: 'luxury', label: 'Luxuries', icon: '💎' },
+                    { id: 'raw_material', label: 'Raw Goods', icon: '🪵' },
+                    { id: 'medicine', label: 'Remedies', icon: '🧪' }
+                  ].map(cat => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setCategoryFilter(cat.id as CategoryFilter)}
+                      className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs font-medium transition-all transform hover:scale-105 ${
+                        categoryFilter === cat.id
+                          ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg shadow-amber-900/40'
+                          : 'bg-slate-800/70 text-amber-200/70 hover:bg-slate-700/70 hover:text-amber-200 border border-slate-700/50'
+                      }`}
+                    >
+                      <span className="mr-1">{cat.icon}</span>
+                      <span className="hidden sm:inline">{cat.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Search section - expandable */}
+                {searchExpanded ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-32 sm:w-48 px-3 py-1.5 bg-slate-900/60 border border-amber-900/30 rounded-md text-sm text-amber-50 placeholder-amber-200/40 focus:border-amber-600/50 focus:outline-none focus:ring-1 focus:ring-amber-600/30"
+                      autoFocus
+                    />
+                    <button
+                      onClick={() => {
+                        setSearchExpanded(false);
+                        setSearchQuery('');
+                      }}
+                      className="p-1.5 text-amber-400 hover:text-amber-300 transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
                   <button
-                    key={cat.id}
-                    onClick={() => setCategoryFilter(cat.id as CategoryFilter)}
-                    className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs font-medium transition-all transform hover:scale-105 ${
-                      categoryFilter === cat.id 
-                        ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg shadow-amber-900/40' 
-                        : 'bg-slate-800/70 text-amber-200/70 hover:bg-slate-700/70 hover:text-amber-200 border border-slate-700/50'
-                    }`}
+                    onClick={() => setSearchExpanded(true)}
+                    className="p-1.5 text-amber-400 hover:text-amber-300 hover:bg-slate-800/50 rounded-md transition-all"
+                    title="Search items"
                   >
-                    <span className="mr-1">{cat.icon}</span>
-                    {cat.label}
+                    <Search size={18} />
                   </button>
-                ))}
+                )}
               </div>
             </div>
             
@@ -2096,117 +2107,42 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
                 </div>
               )}
               
-              {/* Victory Progress Card */}
-              {victoryProgress && (
-                <div className="bg-gradient-to-br from-yellow-900/30 to-amber-950/20 border border-yellow-700/40 rounded-lg p-4 backdrop-blur-sm">
-                  <h4 className="text-sm font-semibold text-yellow-400 mb-3 uppercase tracking-wide flex items-center gap-2">
-                    🏆 Economic Victory Progress
+              {/* Market Summary Card - Replacing fake victory progress */}
+              {marketConditions && (
+                <div className="bg-gradient-to-br from-blue-900/30 to-cyan-950/20 border border-blue-700/40 rounded-lg p-4 backdrop-blur-sm">
+                  <h4 className="text-sm font-semibold text-cyan-400 mb-3 uppercase tracking-wide flex items-center gap-2">
+                    📊 Market Summary
                   </h4>
-                  
-                  {/* Overall Progress Bar */}
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs text-amber-200">Overall Progress</span>
-                      <span className="text-xs text-yellow-400 font-bold">
-                        {victoryProgress.overallProgress.toFixed(0)}%
-                      </span>
-                    </div>
-                    <div className="h-2 bg-slate-900/60 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-yellow-500 to-amber-500 transition-all duration-500"
-                        style={{ width: `${victoryProgress.overallProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* Victory Mode */}
-                  <div className="bg-slate-900/40 rounded-md p-2 mb-3">
-                    <p className="text-xs text-yellow-300 mb-1">Victory Mode</p>
-                    <p className="text-sm font-bold text-amber-100 capitalize">
-                      {victoryProgress.mode.replace(/_/g, ' ')}
-                    </p>
-                  </div>
-                  
-                  {/* Key Metrics */}
+
+                  {/* Current Market Stats */}
                   <div className="grid grid-cols-2 gap-2 mb-3">
                     <div className="bg-slate-900/30 rounded px-2 py-1">
-                      <p className="text-xs text-yellow-300">Wealth</p>
+                      <p className="text-xs text-cyan-300">Total Goods</p>
                       <p className="text-sm text-amber-100 font-medium">
-                        {victoryProgress.conditions.currentWealth} / {victoryProgress.conditions.wealthGoal}
+                        {marketInventory.length} types
                       </p>
                     </div>
                     <div className="bg-slate-900/30 rounded px-2 py-1">
-                      <p className="text-xs text-yellow-300">Total Traded</p>
+                      <p className="text-xs text-cyan-300">Active Merchants</p>
                       <p className="text-sm text-amber-100 font-medium">
-                        {victoryProgress.conditions.totalTraded}
+                        {merchantNpcs.length}
                       </p>
                     </div>
                     <div className="bg-slate-900/30 rounded px-2 py-1">
-                      <p className="text-xs text-yellow-300">VIP Status</p>
+                      <p className="text-xs text-cyan-300">Your Coins</p>
                       <p className="text-sm text-amber-100 font-medium">
-                        {victoryProgress.conditions.vipStatuses.length} / {victoryProgress.conditions.vipStatusGoal}
+                        {playerCharacter.currency}
                       </p>
                     </div>
                     <div className="bg-slate-900/30 rounded px-2 py-1">
-                      <p className="text-xs text-yellow-300">Crisis Profits</p>
+                      <p className="text-xs text-cyan-300">Market Condition</p>
                       <p className="text-sm text-amber-100 font-medium">
-                        {victoryProgress.conditions.crisisProfits}
+                        {marketConditionDesc.includes('Thriving') ? '📈 Good' :
+                         marketConditionDesc.includes('Struggling') ? '📉 Poor' : '➡️ Stable'}
                       </p>
                     </div>
                   </div>
                   
-                  {/* Nearest Milestone */}
-                  {victoryProgress.nearestMilestone && (
-                    <div className="border-t border-yellow-700/30 pt-3">
-                      <p className="text-xs text-yellow-300 mb-2">Next Milestone</p>
-                      <div className="bg-slate-900/40 rounded-md p-2">
-                        <div className="flex justify-between items-start mb-1">
-                          <p className="text-sm font-medium text-amber-100">
-                            {victoryProgress.nearestMilestone.name}
-                          </p>
-                          <span className="text-xs text-yellow-400">
-                            {victoryProgress.nearestMilestone.progress.toFixed(0)}%
-                          </span>
-                        </div>
-                        <p className="text-xs text-amber-200/70 mb-2">
-                          {victoryProgress.nearestMilestone.description}
-                        </p>
-                        <div className="h-1 bg-slate-900/60 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-yellow-600 to-amber-600"
-                            style={{ width: `${victoryProgress.nearestMilestone.progress}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Recent Achievements */}
-                  {victoryProgress.achievements.filter(a => a.unlockedAt).length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-yellow-700/30">
-                      <p className="text-xs text-yellow-300 mb-2">Achievements Unlocked</p>
-                      <div className="flex flex-wrap gap-2">
-                        {victoryProgress.achievements
-                          .filter(a => a.unlockedAt)
-                          .slice(-3)
-                          .map(achievement => (
-                            <div 
-                              key={achievement.id}
-                              className={`px-2 py-1 rounded text-xs flex items-center gap-1 ${
-                                achievement.rarity === 'legendary' ? 'bg-purple-900/40 text-purple-300' :
-                                achievement.rarity === 'epic' ? 'bg-blue-900/40 text-blue-300' :
-                                achievement.rarity === 'rare' ? 'bg-green-900/40 text-green-300' :
-                                'bg-slate-900/40 text-slate-300'
-                              }`}
-                              title={achievement.description}
-                            >
-                              <span>{achievement.icon}</span>
-                              <span>{achievement.name}</span>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
               
@@ -2242,27 +2178,37 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               {/* Market Trends Card */}
               <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/60 border border-green-700/30 rounded-lg p-4 backdrop-blur-sm">
                 <h4 className="text-sm font-semibold text-green-400 mb-3 uppercase tracking-wide">📈 Market Trends</h4>
-                {marketTrends.length === 0 ? (
+                {!marketTrends || marketTrends.mostVolatile.length === 0 ? (
                   <p className="text-amber-200/50 italic text-sm">No significant trends detected.</p>
                 ) : (
                   <div className="space-y-3">
-                    {marketTrends.slice(0, 5).map(trend => (
-                      <div key={trend.goodId} className="bg-slate-900/40 rounded-md p-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm text-amber-50 font-medium">{trend.goodId}</span>
-                          <div className="flex items-center gap-2">
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              trend.direction === 'bullish' ? 'bg-green-900/40 text-green-300' : 'bg-red-900/40 text-red-300'
-                            }`}>
-                              {trend.direction === 'bullish' ? '↗️' : '↘️'} {trend.direction}
-                            </span>
-                            <span className="text-xs text-amber-200/60">{Math.round(trend.strength * 100)}% strength</span>
+                    {marketTrends.mostVolatile.slice(0, 5).map(itemId => {
+                      const comparison = priceComparisons.find(c => c.itemId === itemId);
+                      if (!comparison) return null;
+                      return (
+                        <div key={itemId} className="bg-slate-900/40 rounded-md p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm text-amber-50 font-medium">{itemId}</span>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                comparison.priceChange > 0 ? 'bg-green-900/40 text-green-300' : 'bg-red-900/40 text-red-300'
+                              }`}>
+                                {comparison.priceChange > 0 ? '↗️' : '↘️'} {comparison.priceChange > 0 ? '+' : ''}{comparison.priceChange.toFixed(1)}%
+                              </span>
+                              <span className="text-xs text-amber-200/60">
+                                Volatility: {comparison.volatility.toFixed(1)}%
+                              </span>
+                            </div>
                           </div>
+                          <p className="text-xs text-amber-200/70">
+                            Current: {comparison.currentPrice} coins
+                          </p>
+                          <p className="text-xs text-amber-200/50 mt-1">
+                            Avg: {comparison.averagePrice.toFixed(1)} coins
+                          </p>
                         </div>
-                        <p className="text-xs text-amber-200/70">{trend.catalyst}</p>
-                        <p className="text-xs text-amber-200/50 mt-1">{trend.duration} days remaining</p>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -2366,9 +2312,25 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       </div>
     )}
     
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className={`bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 border-2 border-amber-900/40 rounded-md shadow-2xl flex flex-col overflow-hidden relative ${
-        isMobile ? 'w-full h-full rounded-none' : 'w-[97%] max-w-8xl h-[72vh]'
+    {/* Using absolute positioning like FishingHutModal for consistent cross-browser rendering */}
+    <div
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)', // Safari support
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 50
+      }}
+    >
+      <div className={`bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 border-2 border-amber-900/40 rounded-lg shadow-2xl flex flex-col overflow-hidden relative ${
+        isMobile ? 'w-full h-full rounded-none' : 'w-full h-full max-w-full max-h-full rounded-lg'
       }`}>
         {/* Mobile close button */}
         {isMobile && (
@@ -2382,7 +2344,7 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         )}
         {/* Enhanced header with animated banner */}
         <div className="relative h-36 overflow-hidden shrink-0">
-     
+
             <MarketplaceBanner
               era={era}
               culturalZone={culturalZone}
@@ -2397,10 +2359,19 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
               height={144}
               weather={computedWeather}
             />
-    
 
-          {/* Optional, super-subtle vignette that WON’T darken the banner */}
+
+          {/* Optional, super-subtle vignette that WON'T darken the banner */}
           <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-transparent via-transparent to-black/0" />
+
+          {/* Merchant count overlay on banner */}
+          <div className="absolute bottom-2 right-3 z-20">
+            <div className="bg-slate-900/70 backdrop-blur-sm px-3 py-1 rounded-md border border-amber-700/30">
+              <p className="text-sm text-amber-400 font-semibold">
+                {merchantNpcs.length} Merchant{merchantNpcs.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+          </div>
 
         </div>
 
@@ -2442,47 +2413,43 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
           </div>
         )}
         
-        {/* Enhanced marketplace header with better typography */}
-        <div className="p-4 bg-gradient-to-r from-slate-800/90 via-slate-800/70 to-slate-800/90 border-b border-amber-900/30 backdrop-blur-sm">
+        {/* Compact marketplace header */}
+        <div className="px-4 py-2 bg-gradient-to-r from-slate-800/90 via-slate-800/70 to-slate-800/90 border-b border-amber-900/30 backdrop-blur-sm">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-amber-300 to-yellow-300 bg-clip-text text-transparent flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-bold bg-gradient-to-r from-amber-300 to-yellow-300 bg-clip-text text-transparent">
                 {marketplaceDataLoading ? (
                   <>
                     <span className="animate-pulse">⌛</span>
-                    <span>Loading Marketplace...</span>
+                    <span>Loading...</span>
                   </>
                 ) : (
                   marketplaceName
                 )}
               </h2>
-              <p className="text-sm text-amber-200/70 mt-1">
-                {mapData.localArea || mapData.continent || 'Unknown Lands'} • {marketConditionDesc}
-              </p>
-              <div className="flex items-center gap-3 mt-2">
-                <span className="text-xs px-2 py-1 bg-slate-900/50 text-amber-200/60 rounded-md border border-slate-700/50">
-                  🏛️ {era} Era
+              {/* Badges moved next to title */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs px-2 py-0.5 bg-slate-900/50 text-amber-200/60 rounded border border-slate-700/50">
+                  {era} Era
                 </span>
                 {marketAllegiance && (
-                  <span className="text-xs px-2 py-1 bg-amber-900/30 text-amber-300 rounded-md border border-amber-700/50">
-                    🏰 {marketAllegiance.name}
+                  <span className="text-xs px-2 py-0.5 bg-amber-900/30 text-amber-300 rounded border border-amber-700/50">
+                    {marketAllegiance.name}
                   </span>
                 )}
-                <span className="text-xs px-2 py-1 bg-cyan-900/30 text-cyan-300 rounded-md border border-cyan-700/50">
-                  🌍 {culturalZone.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                <span className="text-xs px-2 py-0.5 bg-cyan-900/30 text-cyan-300 rounded border border-cyan-700/50">
+                  {culturalZone.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                 </span>
               </div>
             </div>
-            <div className="text-right space-y-2">
-              <div className="bg-slate-900/50 rounded-md px-3 py-2 border border-amber-700/30">
-                <p className="text-xs text-amber-200/60 uppercase tracking-wide">Your Purse</p>
+            <div className="flex items-center gap-3">
+              <p className="text-xs text-amber-200/70">
+                {mapData.localArea || mapData.continent || 'Unknown Lands'}
+              </p>
+              <div className="bg-slate-900/50 rounded-md px-3 py-1 border border-amber-700/30">
                 <p className="text-sm font-bold bg-gradient-to-r from-yellow-400 to-amber-400 bg-clip-text text-transparent">
                   💰 {playerCharacter.currency} coins
                 </p>
-              </div>
-              <div className="text-xs text-amber-200/50 text-right">
-                <p>Season: {season} • Time: {Math.floor(gameTimeHours)}:00</p>
-                <p className="text-amber-400 font-semibold">{merchantNpcs.length} Merchant{merchantNpcs.length !== 1 ? 's' : ''}</p>
               </div>
             </div>
           </div>

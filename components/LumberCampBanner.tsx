@@ -120,7 +120,7 @@ const LumberCampBanner: React.FC<LumberCampBannerProps> = ({
 
   // world positions
   const HORIZON_Y = 80; // sky/land cutoff
-  const GROUND_Y = 126; // ground line for camp
+  const GROUND_Y = 110; // ground line for camp - matching other POI banners for consistency
 
   // anim clock
   const [tick, setTick] = useState(0);

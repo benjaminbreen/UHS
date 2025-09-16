@@ -11,9 +11,9 @@ export interface BuildingElite {
     name: string;
     title: string;
     buildingId: string;
-    buildingType: 'palace' | 'holy_place';
+    buildingType: 'palace' | 'holy_place' | 'fortress';
     religion?: string;
-    socialClass: 'nobility' | 'clergy' | 'royalty';
+    socialClass: 'nobility' | 'clergy' | 'royalty' | 'military_officer';
     personality: 'arrogant' | 'stern' | 'pious' | 'regal' | 'intimidating';
     culturalZone: CulturalZone;
     era: HistoricalEra;
@@ -25,7 +25,7 @@ export interface BuildingElite {
  * Generate culturally appropriate titles for building elites using faction data court roles
  */
 function generateTitle(
-    buildingType: 'palace' | 'holy_place',
+    buildingType: 'palace' | 'holy_place' | 'fortress',
     religion: string | undefined,
     culturalZone: CulturalZone,
     era: HistoricalEra,
@@ -34,7 +34,8 @@ function generateTitle(
 ): string {
     // First try to use court roles from faction data if available
     if (factionData?.courtRoles) {
-        const structureType = buildingType === 'palace' ? 'palace' : 'holy_site';
+        const structureType = buildingType === 'palace' ? 'palace' : 
+                            buildingType === 'fortress' ? 'military' : 'holy_site';
         const courtRoles = factionData.courtRoles[structureType];
         if (courtRoles && courtRoles.length > 0) {
             // Use the highest rank court role (first in list)
@@ -72,6 +73,56 @@ function generateTitle(
                 return Math.random() > 0.5 ? 'Cacique' : 'Chief';
             default:
                 return 'Lord';
+        }
+    } else if (buildingType === 'fortress') {
+        // Military titles
+        switch (culturalZone) {
+            case 'EUROPE':
+                if (era === 'MEDIEVAL' || era === 'RENAISSANCE_EARLY_MODERN') {
+                    return Math.random() > 0.5 ? 'Knight Commander' : Math.random() > 0.5 ? 'Captain' : 'Fortress Captain';
+                } else if (era === 'ANTIQUITY') {
+                    return Math.random() > 0.5 ? 'Centurion' : 'Tribune';
+                } else if (era === 'INDUSTRIAL_ERA') {
+                    return Math.random() > 0.5 ? 'Colonel' : 'Major';
+                } else {
+                    return Math.random() > 0.5 ? 'Commander' : 'Base Commander';
+                }
+            case 'MENA':
+                if (era === 'MEDIEVAL' || era === 'RENAISSANCE_EARLY_MODERN') {
+                    return Math.random() > 0.5 ? 'Qaid' : Math.random() > 0.5 ? 'Janissary Commander' : 'Garrison Chief';
+                } else if (era === 'ANTIQUITY') {
+                    return Math.random() > 0.5 ? 'Garrison Chief' : 'Satrap Guard';
+                } else {
+                    return Math.random() > 0.5 ? 'Military Commander' : 'Colonel';
+                }
+            case 'EAST_ASIA':
+                if (era === 'MEDIEVAL' || era === 'RENAISSANCE_EARLY_MODERN') {
+                    return Math.random() > 0.5 ? 'Samurai Commander' : Math.random() > 0.5 ? 'Fortress Magistrate' : 'Garrison General';
+                } else if (era === 'ANTIQUITY') {
+                    return Math.random() > 0.5 ? 'Garrison General' : 'Military Governor';
+                } else {
+                    return Math.random() > 0.5 ? 'Colonel' : 'Base Commander';
+                }
+            case 'SOUTH_ASIA':
+                if (era === 'MEDIEVAL' || era === 'RENAISSANCE_EARLY_MODERN') {
+                    return Math.random() > 0.5 ? 'Rajput Captain' : Math.random() > 0.5 ? 'Mughal Commander' : 'Fort Commander';
+                } else if (era === 'ANTIQUITY') {
+                    return Math.random() > 0.5 ? 'Fort Commander' : 'Garrison Chief';
+                } else {
+                    return Math.random() > 0.5 ? 'Military Commander' : 'Colonel';
+                }
+            case 'AFRICA':
+                return Math.random() > 0.5 ? 'War Chief' : Math.random() > 0.5 ? 'Military Chief' : 'Fort Captain';
+            case 'AMERICAS':
+                if (era === 'ANTIQUITY' || era === 'MEDIEVAL') {
+                    return Math.random() > 0.5 ? 'War Chief' : 'War Captain';
+                } else {
+                    return Math.random() > 0.5 ? 'Fort Commander' : 'Military Chief';
+                }
+            case 'OCEANIA':
+                return Math.random() > 0.5 ? 'War Chief' : Math.random() > 0.5 ? 'Warrior Leader' : 'Fort Captain';
+            default:
+                return 'Fortress Commander';
         }
     } else {
         // Religious titles
@@ -126,7 +177,7 @@ function generateEliteName(
  */
 export function createBuildingElite(
     buildingId: string,
-    buildingType: 'palace' | 'holy_place',
+    buildingType: 'palace' | 'holy_place' | 'fortress',
     position: Point,
     religion: string | undefined,
     culturalZone: CulturalZone,
@@ -149,6 +200,11 @@ export function createBuildingElite(
         dialogueStyle = Math.random() > 0.5 ? 'condescending' : 'imperious';
         respectThreshold = 70; // High threshold for nobility
         socialClass = title.includes('King') || title.includes('Sultan') || title.includes('Emperor') ? 'royalty' : 'nobility';
+    } else if (buildingType === 'fortress') {
+        personality = Math.random() > 0.5 ? 'stern' : Math.random() > 0.5 ? 'intimidating' : 'arrogant';
+        dialogueStyle = Math.random() > 0.5 ? 'aggressive' : 'condescending';
+        respectThreshold = 65; // Military respect threshold
+        socialClass = 'military_officer';
     } else {
         personality = Math.random() > 0.5 ? 'pious' : Math.random() > 0.5 ? 'stern' : 'intimidating';
         dialogueStyle = Math.random() > 0.5 ? 'aggressive' : 'condescending';
@@ -212,7 +268,8 @@ export function convertEliteToNpc(elite: BuildingElite, position: Point): NpcEnt
         },
         class: elite.socialClass,
         role: elite.title,
-        emoji: elite.buildingType === 'palace' ? '👑' : '⛪',
+        emoji: elite.buildingType === 'palace' ? '👑' : 
+               elite.buildingType === 'fortress' ? '⚔️' : '⛪',
         age: 35 + Math.floor(Math.random() * 25),
         gender: Math.random() > 0.5 ? 'male' : 'female',
         wealthLevel: elite.socialClass === 'royalty' ? 'noble' : 'wealthy',
@@ -233,7 +290,10 @@ export function convertEliteToNpc(elite: BuildingElite, position: Point): NpcEnt
             }
         },
         descriptions: {
-            short: `The ${elite.title.toLowerCase()} of this ${elite.buildingType === 'palace' ? 'palace' : 'holy site'}`,
+            short: `The ${elite.title.toLowerCase()} of this ${
+                elite.buildingType === 'palace' ? 'palace' : 
+                elite.buildingType === 'fortress' ? 'fortress' : 'holy site'
+            }`,
             long: `A ${elite.personality} ${elite.title.toLowerCase()} who commands absolute respect and deference`
         },
         backstory: `${elite.title} ${elite.name} rules over this domain with an iron fist, expecting immediate respect from all who enter.`,
@@ -402,7 +462,7 @@ export function getBuildingElite(buildingId: string): BuildingElite | undefined 
 
 export function createEliteForBuilding(
     buildingId: string,
-    buildingType: 'palace' | 'holy_place',
+    buildingType: 'palace' | 'holy_place' | 'fortress',
     position: Point,
     religion?: string,
     culturalZone: CulturalZone = 'EUROPE',

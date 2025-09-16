@@ -2718,53 +2718,97 @@ class GameSoundsService {
 
     try {
       const now = ctx.currentTime;
-      
-      // Gentle water displacement sound
+
+      // Main splash - create a rich water sound with white noise
       const splash = this.createWhiteNoise(ctx);
       const splashGain = ctx.createGain();
       const splashFilter = ctx.createBiquadFilter();
       const splashFilter2 = ctx.createBiquadFilter();
-      
+      const splashFilter3 = ctx.createBiquadFilter();
+
       splash.connect(splashFilter);
       splashFilter.connect(splashFilter2);
-      splashFilter2.connect(splashGain);
+      splashFilter2.connect(splashFilter3);
+      splashFilter3.connect(splashGain);
       splashGain.connect(ctx.destination);
-      
-      // Shape the noise to sound like gentle water
+
+      // Multiple filters for more liquid, water-like quality
       splashFilter.type = 'bandpass';
-      splashFilter.frequency.value = 200;
-      splashFilter.Q.value = 2;
-      
+      splashFilter.frequency.value = 450;  // Lower frequency for deeper water
+      splashFilter.Q.value = 0.5;
+      splashFilter.frequency.linearRampToValueAtTime(250, now + 0.2);  // Longer descent for water flow
+
       splashFilter2.type = 'lowpass';
-      splashFilter2.frequency.value = 500;
-      splashFilter2.Q.value = 1;
-      
-      // Very quiet and brief
+      splashFilter2.frequency.value = 900;  // More muffled for underwater quality
+      splashFilter2.Q.value = 0.3;
+
+      // Add resonance for "wet" quality
+      splashFilter3.type = 'peaking';
+      splashFilter3.frequency.value = 350;
+      splashFilter3.Q.value = 2;
+      splashFilter3.gain.value = 3;
+
+      // Longer, more complex envelope for realistic water splash
       splashGain.gain.setValueAtTime(0, now);
-      splashGain.gain.linearRampToValueAtTime(0.03 * this.masterVolume, now + 0.02);
-      splashGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-      
+      splashGain.gain.linearRampToValueAtTime(0.06 * this.masterVolume, now + 0.015);  // Quick attack
+      splashGain.gain.setValueAtTime(0.05 * this.masterVolume, now + 0.08);
+      splashGain.gain.linearRampToValueAtTime(0.03 * this.masterVolume, now + 0.15);
+      splashGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);  // Longer tail
+
       splash.start(now);
-      splash.stop(now + 0.1);
-      
-      // Add subtle water droplet sounds
-      const droplet = ctx.createOscillator();
-      const dropletGain = ctx.createGain();
-      
-      droplet.connect(dropletGain);
-      dropletGain.connect(ctx.destination);
-      
-      droplet.type = 'sine';
-      droplet.frequency.setValueAtTime(800, now + 0.05);
-      droplet.frequency.exponentialRampToValueAtTime(400, now + 0.12);
-      
-      dropletGain.gain.setValueAtTime(0, now);
-      dropletGain.gain.setValueAtTime(0.02 * this.masterVolume, now + 0.05);
-      dropletGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-      
-      droplet.start(now + 0.05);
-      droplet.stop(now + 0.15);
-      
+      splash.stop(now + 0.25);
+
+      // Secondary water movement (ripples and drips)
+      const ripple = this.createWhiteNoise(ctx);
+      const rippleGain = ctx.createGain();
+      const rippleFilter = ctx.createBiquadFilter();
+      const rippleFilter2 = ctx.createBiquadFilter();
+
+      ripple.connect(rippleFilter);
+      rippleFilter.connect(rippleFilter2);
+      rippleFilter2.connect(rippleGain);
+      rippleGain.connect(ctx.destination);
+
+      // Higher frequency for surface ripples
+      rippleFilter.type = 'bandpass';
+      rippleFilter.frequency.value = 800;
+      rippleFilter.Q.value = 0.7;
+      rippleFilter.frequency.exponentialRampToValueAtTime(200, now + 0.2);
+
+      rippleFilter2.type = 'highpass';
+      rippleFilter2.frequency.value = 150;
+      rippleFilter2.Q.value = 0.5;
+
+      rippleGain.gain.setValueAtTime(0, now + 0.02);
+      rippleGain.gain.linearRampToValueAtTime(0.025 * this.masterVolume, now + 0.04);
+      rippleGain.gain.setValueAtTime(0.02 * this.masterVolume, now + 0.1);
+      rippleGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+      ripple.start(now + 0.02);
+      ripple.stop(now + 0.18);
+
+      // Third layer - water droplets falling back
+      const droplets = this.createWhiteNoise(ctx);
+      const dropletsGain = ctx.createGain();
+      const dropletsFilter = ctx.createBiquadFilter();
+
+      droplets.connect(dropletsFilter);
+      dropletsFilter.connect(dropletsGain);
+      dropletsGain.connect(ctx.destination);
+
+      dropletsFilter.type = 'bandpass';
+      dropletsFilter.frequency.value = 1200;
+      dropletsFilter.Q.value = 3;
+
+      // Delayed droplets for trailing water effect
+      dropletsGain.gain.setValueAtTime(0, now + 0.08);
+      dropletsGain.gain.setValueAtTime(0.015 * this.masterVolume, now + 0.12);
+      dropletsGain.gain.setValueAtTime(0.01 * this.masterVolume, now + 0.16);
+      dropletsGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+      droplets.start(now + 0.08);
+      droplets.stop(now + 0.22);
+
     } catch (error) {
       console.error('Error playing ship movement splash:', error);
     }

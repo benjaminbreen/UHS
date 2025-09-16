@@ -365,6 +365,14 @@ const getArmorOverlay = (armorItem: any) => {
     }
 };
 
+// Color ramp generator for pixel art shading
+const createColorRamp = (baseColor: string) => ({
+    light: shadeColor(baseColor, 20),
+    mid: baseColor,
+    dark: shadeColor(baseColor, -20),
+    outline: shadeColor(baseColor, -40)
+});
+
 const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facing }) => {
     const { gender, age, appearance, equippedItems } = character;
     const {
@@ -417,6 +425,16 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
         item: 'animate-item-use-hop',
         defending: 'animate-defend-stance',
         fleeing: 'animate-flee-anim',
+        power_strike: 'animate-sprite-power-strike',
+        slashing: 'animate-sprite-slash',
+        chopping: 'animate-sprite-chop',
+        stabbing: 'animate-sprite-stab',
+        crushing: 'animate-sprite-crush',
+        shooting: 'animate-sprite-shoot',
+        casting: 'animate-sprite-cast',
+        blocking: 'animate-sprite-block',
+        dodging: 'animate-sprite-dodge',
+        shouting: 'animate-sprite-shout'
     };
     const animationClass = animationClasses[animation] || 'animate-sprite-idle-bob';
 
@@ -424,49 +442,246 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
     const isOld = age && age > 55;
     const finalHairColor = isOld ? '#a0a0a0' : hairColor;
 
-    // --- Proportions based on Build and Gender ---
-    const { bodyWidth, shoulderWidth, torsoHeight, legHeight, headSize, bodyYOffset } = useMemo(() => {
-        let baseBodyWidth = isFemale ? 5.5 : 6.5;
-        let baseShoulderWidth = isFemale ? 6.5 : 8;
-        let baseTorsoHeight = 8;
-        let baseLegHeight = 9;
-        let headSize = { w: 6, h: 6 };
+    // Determine facing direction
+    const facingRight = facing === 'right';
 
-        switch (build) {
-            case 'slight': baseBodyWidth *= 0.9; baseShoulderWidth *= 0.9; break;
-            case 'stocky': case 'imposing': baseBodyWidth *= 1.1; baseShoulderWidth *= 1.1; break;
-            case 'tall': baseTorsoHeight *= 1.1; baseLegHeight *= 1.1; break;
-            case 'short': baseTorsoHeight *= 0.9; baseLegHeight *= 0.9; break;
-        }
+    // Create color ramps for pixel art shading
+    const skinRamp = createColorRamp(skinColor);
+    const hairRamp = createColorRamp(isOld ? '#808080' : hairColor);
+    const clothingRamp = createColorRamp(clothingColor);
+    const pantsRamp = createColorRamp(secondaryColor || clothingColor);
 
-        return { bodyWidth: baseBodyWidth, shoulderWidth: baseShoulderWidth, torsoHeight: baseTorsoHeight, legHeight: baseLegHeight, headSize, bodyYOffset: 24 - baseLegHeight - baseTorsoHeight };
-    }, [build, isFemale, character.appearance.height]);
+    // Pixel-perfect sprite dimensions (integers only)
+    const spriteHeight = 24; // Total sprite height in pixels
+    const headSize = 5;       // 5x5 pixel head
+    const torsoWidth = isFemale ? 5 : 6;
+    const torsoHeight = 7;
+    const armWidth = 2;
+    const legWidth = 2;
+    const legHeight = 8;
 
-    const skinShadow = shadeColor(skinColor, -15);
-    const skinHighlight = shadeColor(skinColor, 10);
-    const clothingShadow = shadeColor(clothingColor, -20);
-    const clothingHighlight = shadeColor(clothingColor, 15);
-    const hairShadow = shadeColor(finalHairColor, -20);
+    // Calculate sprite center position
+    const centerX = 20; // Center of 40px viewBox
+    const baseY = 32;   // Ground level
+
+    // Render pixel art head
+    const renderPixelHead = () => {
+        const headX = centerX - 2;
+        const headY = baseY - spriteHeight + 2;
+
+        return (
+            <>
+                {/* Head outline */}
+                <Pixel x={headX - 1} y={headY - 1} w={headSize + 2} h={headSize + 2} color={skinRamp.outline} />
+
+                {/* Head base */}
+                <Pixel x={headX} y={headY} w={headSize} h={headSize} color={skinRamp.dark} />
+                <Pixel x={headX} y={headY} w={headSize - 1} h={headSize - 1} color={skinRamp.mid} />
+                <Pixel x={headX + 1} y={headY + 1} w={headSize - 2} h={headSize - 3} color={skinRamp.light} />
+
+                {/* Face features - minimal but effective */}
+                {/* Eyes */}
+                <Pixel x={headX + 1} y={headY + 2} w={1} h={1} color="#ffffff" />
+                <Pixel x={headX + 3} y={headY + 2} w={1} h={1} color="#ffffff" />
+                <Pixel x={headX + 1.3} y={headY + 2.2} w={0.4} h={0.4} color={eyeColor} />
+                <Pixel x={headX + 3.3} y={headY + 2.2} w={0.4} h={0.4} color={eyeColor} />
+
+                {/* Mouth */}
+                <Pixel x={headX + 2} y={headY + 3.5} w={1} h={0.5} color={shadeColor(skinRamp.mid, -10)} />
+            </>
+        );
+    };
+
+    // Render pixel art hair
+    const renderPixelHair = () => {
+        const headX = centerX - 2;
+        const headY = baseY - spriteHeight + 2;
+
+        return (
+            <>
+                {/* Hair base layer */}
+                <Pixel x={headX - 1} y={headY - 2} w={headSize + 2} h={3} color={hairRamp.dark} />
+                <Pixel x={headX} y={headY - 1} w={headSize} h={2} color={hairRamp.mid} />
+                <Pixel x={headX + 1} y={headY - 1} w={3} h={1} color={hairRamp.light} />
+
+                {/* Side hair for longer styles */}
+                {isFemale && (hairLength === 'long' || hairLength === 'very_long') && (
+                    <>
+                        <Pixel x={headX - 1} y={headY + 2} w={1} h={4} color={hairRamp.dark} />
+                        <Pixel x={headX + headSize} y={headY + 2} w={1} h={4} color={hairRamp.dark} />
+                    </>
+                )}
+            </>
+        );
+    };
+
+    // Render pixel art body
+    const renderPixelBody = () => {
+        const bodyX = centerX - Math.floor(torsoWidth / 2);
+        const bodyY = baseY - spriteHeight + headSize + 3;
+
+        return (
+            <>
+                {/* Torso outline */}
+                <Pixel x={bodyX - 1} y={bodyY - 1} w={torsoWidth + 2} h={torsoHeight + 2} color={clothingRamp.outline} />
+
+                {/* Torso base */}
+                <Pixel x={bodyX} y={bodyY} w={torsoWidth} h={torsoHeight} color={clothingRamp.dark} />
+                <Pixel x={bodyX} y={bodyY} w={torsoWidth - 1} h={torsoHeight} color={clothingRamp.mid} />
+                <Pixel x={bodyX + 1} y={bodyY + 1} w={torsoWidth - 2} h={torsoHeight - 2} color={clothingRamp.light} />
+
+                {/* Gender-specific chest shading */}
+                {isFemale && (
+                    <>
+                        <Pixel x={bodyX + 1} y={bodyY + 2} w={1} h={1} color={clothingRamp.dark} opacity={0.3} />
+                        <Pixel x={bodyX + torsoWidth - 2} y={bodyY + 2} w={1} h={1} color={clothingRamp.dark} opacity={0.3} />
+                    </>
+                )}
+            </>
+        );
+    };
+
+    // Render pixel art legs
+    const renderPixelLegs = () => {
+        const leftLegX = centerX - 2;
+        const rightLegX = centerX + 1;
+        const legY = baseY - legHeight;
+
+        return (
+            <>
+                {/* Left leg */}
+                <Pixel x={leftLegX} y={legY} w={legWidth} h={legHeight} color={pantsRamp.dark} />
+                <Pixel x={leftLegX} y={legY} w={legWidth - 1} h={legHeight} color={pantsRamp.mid} />
+
+                {/* Right leg */}
+                <Pixel x={rightLegX} y={legY} w={legWidth} h={legHeight} color={pantsRamp.dark} />
+                <Pixel x={rightLegX + 1} y={legY} w={legWidth - 1} h={legHeight} color={pantsRamp.light} />
+
+                {/* Feet */}
+                <Pixel x={leftLegX - 1} y={baseY - 1} w={legWidth + 1} h={1} color="#3d2314" />
+                <Pixel x={rightLegX} y={baseY - 1} w={legWidth + 1} h={1} color="#3d2314" />
+            </>
+        );
+    };
+
+    // Render pixel art arms
+    const renderPixelArms = () => {
+        const leftArmX = centerX - Math.floor(torsoWidth / 2) - armWidth;
+        const rightArmX = centerX + Math.floor(torsoWidth / 2);
+        const armY = baseY - spriteHeight + headSize + 4;
+        const armHeight = 6;
+
+        return (
+            <>
+                {/* Left arm */}
+                <Pixel x={leftArmX} y={armY} w={armWidth} h={armHeight} color={clothingRamp.dark} />
+                <Pixel x={leftArmX} y={armY} w={armWidth - 1} h={armHeight} color={clothingRamp.mid} />
+
+                {/* Right arm (weapon arm) */}
+                <Pixel x={rightArmX} y={armY} w={armWidth} h={armHeight} color={clothingRamp.dark} />
+                <Pixel x={rightArmX + 1} y={armY} w={armWidth - 1} h={armHeight} color={clothingRamp.light} />
+
+                {/* Hands */}
+                <Pixel x={leftArmX} y={armY + armHeight} w={armWidth} h={1} color={skinRamp.mid} />
+                <Pixel x={rightArmX} y={armY + armHeight} w={armWidth} h={1} color={skinRamp.mid} />
+            </>
+        );
+    };
     
-    // Enhanced body part rendering for more detail
+    // Ultra-detailed arm rendering with anatomy and physics
+    const renderArmJointed = (x: number, y: number, width: number, height: number, color: string, isWeaponArm: boolean = false) => {
+        const shoulderWidth = width * 1.3;
+        const upperArmLength = height * 0.45;
+        const forearmLength = height * 0.4;
+        const handLength = height * 0.15;
+        const elbowY = y + upperArmLength;
+        const wristY = elbowY + forearmLength;
+        const bicepWidth = width * 1.1;
+        const forearmWidth = width * 0.9;
+
+        return (
+            <g className="arm-assembly">
+                {/* Dynamic shadow that follows arm movement */}
+                <g className="arm-shadow" opacity="0.2">
+                    <ellipse cx={x + width/2} cy={y + height/2} rx={width * 1.5} ry={height/2}
+                             fill="#000000" filter="blur(2px)" />
+                </g>
+
+                {/* Upper arm segment with muscle definition */}
+                <g className="upper-arm-segment" style={{ transformOrigin: `${x + shoulderWidth/2}px ${y}px` }}>
+                    {/* Shoulder muscle */}
+                    <ellipse cx={x + shoulderWidth/2} cy={y + 1} rx={shoulderWidth/2} ry={2}
+                             fill={shadeColor(color, 20)} opacity="0.6" />
+
+                    {/* Upper arm base */}
+                    <Pixel x={x} y={y} w={shoulderWidth} h={upperArmLength} color={color} enhanced />
+
+                    {/* Bicep definition */}
+                    <ellipse cx={x + shoulderWidth/2} cy={y + upperArmLength * 0.3}
+                             rx={bicepWidth/2} ry={upperArmLength * 0.15}
+                             fill={shadeColor(color, 15)} opacity="0.4" />
+
+                    {/* Deltoid highlight */}
+                    <Pixel x={x + shoulderWidth * 0.3} y={y + 1} w={shoulderWidth * 0.4} h={1}
+                           color={shadeColor(color, 25)} />
+
+                    {/* Forearm segment with anatomical detail */}
+                    <g className="forearm-segment" style={{ transformOrigin: `${x + width/2}px ${elbowY}px` }}>
+                        {/* Elbow joint with realistic bend */}
+                        <ellipse cx={x + width/2} cy={elbowY} rx={width * 0.5} ry={1.5}
+                                 fill={shadeColor(color, -15)} />
+                        <Pixel x={x + width * 0.2} y={elbowY - 1} w={width * 0.6} h={2}
+                               color={shadeColor(skinColor, -10)} />
+
+                        {/* Forearm with taper */}
+                        <polygon points={`${x + width * 0.15},${elbowY} ${x + forearmWidth},${elbowY} ${x + forearmWidth * 0.9},${wristY} ${x + width * 0.25},${wristY}`}
+                                 fill={color} />
+
+                        {/* Forearm muscle definition */}
+                        <ellipse cx={x + width/2} cy={elbowY + forearmLength * 0.3}
+                                 rx={forearmWidth * 0.4} ry={forearmLength * 0.12}
+                                 fill={shadeColor(color, 10)} opacity="0.3" />
+
+                        {/* Hand with finger detail */}
+                        <g className="hand-segment" style={{ transformOrigin: `${x + width/2}px ${wristY}px` }}>
+                            {/* Wrist */}
+                            <Pixel x={x + width * 0.25} y={wristY - 1} w={width * 0.5} h={1}
+                                   color={shadeColor(skinColor, -5)} />
+
+                            {/* Palm */}
+                            <Pixel x={x + width * 0.2} y={wristY} w={width * 0.6} h={handLength * 0.6}
+                                   color={skinColor} />
+
+                            {/* Fingers (simplified but visible) */}
+                            <Pixel x={x + width * 0.15} y={wristY + handLength * 0.5} w={width * 0.15} h={handLength * 0.5}
+                                   color={skinColor} />
+                            <Pixel x={x + width * 0.35} y={wristY + handLength * 0.5} w={width * 0.15} h={handLength * 0.5}
+                                   color={skinColor} />
+                            <Pixel x={x + width * 0.55} y={wristY + handLength * 0.5} w={width * 0.15} h={handLength * 0.5}
+                                   color={skinColor} />
+
+                            {/* Knuckles */}
+                            <Pixel x={x + width * 0.2} y={wristY + handLength * 0.4} w={width * 0.6} h={0.5}
+                                   color={shadeColor(skinColor, -8)} />
+                        </g>
+                    </g>
+                </g>
+            </g>
+        );
+    };
+
+    // Keep old renderArm for back arm which doesn't need complex animation
     const renderArm = (x: number, y: number, width: number, height: number, color: string, isWeaponArm: boolean = false) => {
         const shoulderWidth = width * 1.2;
         const elbowY = y + height * 0.5;
         const wristY = y + height * 0.85;
-        
+
         return (
             <g>
-                {/* Upper arm with shoulder */}
                 <Pixel x={x} y={y} w={shoulderWidth} h={height * 0.5} color={color} enhanced />
                 <Pixel x={x + shoulderWidth * 0.2} y={y} w={shoulderWidth * 0.6} h={2} color={shadeColor(color, 15)} />
-                
-                {/* Elbow joint */}
                 <Pixel x={x + width * 0.1} y={elbowY} w={width * 0.8} h={2} color={shadeColor(color, -10)} />
-                
-                {/* Forearm */}
                 <Pixel x={x + width * 0.1} y={elbowY} w={width * 0.8} h={height * 0.35} color={color} enhanced />
-                
-                {/* Hand */}
                 <Pixel x={x + width * 0.2} y={wristY} w={width * 0.6} h={height * 0.15} color={skinColor} />
             </g>
         );
@@ -496,6 +711,9 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
     };
 
     const renderWeapon = (item: Item) => {
+        // Add weapon motion trail for attacks
+        const showTrail = animation === 'attacking' || animation === 'slashing' || animation === 'chopping';
+
         const name = item.name.toLowerCase();
         const archetype = getItemArchetypeMax(item.baseId || name);
         const category = getWeaponCategory(item.baseId || name);
@@ -976,9 +1194,27 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
         );
     };
 
+    // Render simple pixel weapon
+    const renderPixelWeapon = () => {
+        if (!mainHandItem) return null;
+
+        const weaponX = facingRight ? centerX + 4 : centerX - 6;
+        const weaponY = baseY - 18;
+
+        return (
+            <>
+                {/* Simple sword shape */}
+                <Pixel x={weaponX} y={weaponY} w={1} h={8} color="#c0c0c0" /> {/* Blade */}
+                <Pixel x={weaponX} y={weaponY + 8} w={1} h={2} color="#8B4513" /> {/* Hilt */}
+                <Pixel x={weaponX - 1} y={weaponY + 8} w={3} h={1} color="#FFD700" /> {/* Guard */}
+            </>
+        );
+    };
+
     return (
-        <svg viewBox="0 0 40 40" width="100%" height="100%" style={{ imageRendering: 'pixelated', overflow: 'visible' }}>
-            {/* SVG filters for better rendering */}
+        <svg viewBox="0 0 40 40" width="100%" height="100%"
+             style={{ imageRendering: 'pixelated', shapeRendering: 'crispEdges' }}>
+            {/* No filters needed for pixel art */}
             <defs>
                 <filter id="trail-glow">
                     <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
@@ -997,21 +1233,75 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
                     </feMerge>
                 </filter>
             </defs>
-            <g className={animationClass} style={{ transformOrigin: 'center bottom', '--direction': facing === 'left' ? -1 : 1 } as React.CSSProperties}>
-                <g style={{ transform: `scaleX(${facing === 'left' ? -1 : 1})`, transformOrigin: 'center' }} filter="url(#sprite-outline)">
+            {/* Main sprite container */}
+            <g className={animationClass} style={{ transformOrigin: `${centerX}px ${baseY}px` }}>
+                <g style={{ transform: `scaleX(${facingRight ? 1 : -1})`, transformOrigin: `${centerX}px ${baseY}px` }}>
                     
-                    {/* Shadow */}
-                    <ellipse cx="20" cy="35" rx="7" ry="2" fill="rgba(0,0,0,0.3)" />
+                    {/* Pixel shadow */}
+                    <Pixel x={centerX - 3} y={baseY} w={6} h={1} color="#000000" opacity={0.3} />
+                    <Pixel x={centerX - 2} y={baseY + 1} w={4} h={1} color="#000000" opacity={0.2} />
 
-                    {/* Back Arm with better detail */}
-                    <g transform="translate(14, 15)">
-                        {offHandItem && (offHandItem.name.toLowerCase().includes('shield') || getItemArchetypeMax(offHandItem.name)?.includes('SHIELD')) && renderShield()}
+                    {/* Render sprite layers in proper order */}
+                    {renderPixelLegs()}
+                    {renderPixelArms()}
+                    {renderPixelBody()}
+                    {renderPixelHead()}
+                    {renderPixelHair()}
+                    {renderPixelWeapon()}
+
+                    {/* Old complex rendering to be removed */}
+                    {/* Left Arm (back/non-weapon arm) positioned for combat stance */}
+                    <g className={`left-arm-assembly ${animation}`}>
+                        <g transform="translate(-2, 0)">
+                            {/* Shield held forward in defensive position */}
+                            {offHandItem && (offHandItem.name.toLowerCase().includes('shield') || getItemArchetypeMax(offHandItem.name)?.includes('SHIELD')) && (
+                                <g transform="translate(12, 17) rotate(-15)">
+                                    {renderShield()}
+                                </g>
+                            )}
+
+                            {/* Left arm with gender-appropriate positioning */}
+                            <g className="jointed-left-arm">
+                                {renderArmJointed(isFemale ? 15 : 14, 15, isFemale ? 2 : 2.5, torsoHeight, clothingShadow, false)}
+                            </g>
+                        </g>
                     </g>
-                    {renderArm(16, 15, 2.5, 8, clothingShadow, false)}
                     
-                    {/* Enhanced Legs with knee and boot detail */}
-                    {renderLeg(17.5, 24, 2.5, legHeight + 2, shadeColor(secondaryColor, -10), "#4a2c17")}
-                    {renderLeg(20.5, 24, 2.5, legHeight + 2, secondaryColor, "#38220f")}
+                    {/* Natural leg positioning with slight bend */}
+                    {(() => {
+                        // More natural stance - closer together, slight knee bend
+                        const leftLegX = isFemale ? 18.5 : 18;
+                        const rightLegX = isFemale ? 21.5 : 22;
+                        const legY = 15 + torsoHeight;
+
+                        return (
+                            <>
+                                {/* Left leg with slight bend */}
+                                <g>
+                                    {/* Thigh */}
+                                    <rect x={leftLegX} y={legY} width={isFemale ? 1.8 : 2.2} height={legHeight * 0.55} fill={shadeColor(secondaryColor, -10)} />
+                                    {/* Knee bend */}
+                                    <rect x={leftLegX - 0.2} y={legY + legHeight * 0.55} width={isFemale ? 2 : 2.4} height={0.5} fill={shadeColor(secondaryColor, -15)} rx={0.2} />
+                                    {/* Shin */}
+                                    <rect x={leftLegX} y={legY + legHeight * 0.55} width={isFemale ? 1.8 : 2.2} height={legHeight * 0.45} fill={shadeColor(secondaryColor, -10)} />
+                                    {/* Foot */}
+                                    <rect x={leftLegX - 0.3} y={24 - 0.5} width={isFemale ? 2.4 : 2.8} height={0.5} fill="#4a2c17" />
+                                </g>
+
+                                {/* Right leg slightly forward */}
+                                <g>
+                                    {/* Thigh */}
+                                    <rect x={rightLegX} y={legY} width={isFemale ? 1.8 : 2.2} height={legHeight * 0.55} fill={secondaryColor} />
+                                    {/* Knee */}
+                                    <rect x={rightLegX - 0.2} y={legY + legHeight * 0.55} width={isFemale ? 2 : 2.4} height={0.5} fill={shadeColor(secondaryColor, -5)} rx={0.2} />
+                                    {/* Shin */}
+                                    <rect x={rightLegX} y={legY + legHeight * 0.55} width={isFemale ? 1.8 : 2.2} height={legHeight * 0.45} fill={secondaryColor} />
+                                    {/* Foot */}
+                                    <rect x={rightLegX - 0.3} y={24 - 0.5} width={isFemale ? 2.4 : 2.8} height={0.5} fill="#38220f" />
+                                </g>
+                            </>
+                        );
+                    })()}
 
                     {/* Torso & Clothing with Category System */}
                     {(() => {
@@ -1029,14 +1319,108 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
                         
                         return (
                             <>
-                                {/* Base torso */}
-                                <rect x={20 - bodyWidth/2} y={15} width={bodyWidth} height={torsoHeight} fill={shadeColor(baseColor, -20)} />
-                                <rect x={20 - bodyWidth/2} y={15} width={bodyWidth} height={torsoHeight - 1} fill={baseColor} />
-                                
-                                {/* Robe/dress extension for flowing garments */}
-                                {(armorCategory === 'robes' || armorCategory === 'cultural' || armorCategory === 'formal') && 
+                                {/* Enhanced torso with breathing and physics */}
+                                <g className="torso-breathing">
+                                    {/* Enhanced torso with gender-specific shaping */}
+                                    {isFemale ? (
+                                        <>
+                                            {/* Female torso with waist and hip definition */}
+                                            <rect x={20 - shoulderWidth/2} y={15} width={shoulderWidth} height={1} fill={shadeColor(baseColor, -20)} />
+                                            {/* Upper torso */}
+                                            <rect x={20 - bodyWidth/2} y={16} width={bodyWidth} height={torsoHeight * 0.4} fill={shadeColor(baseColor, -20)} />
+                                            {/* Waist (narrower) */}
+                                            <rect x={20 - bodyWidth * 0.4} y={16 + torsoHeight * 0.4} width={bodyWidth * 0.8} height={torsoHeight * 0.2} fill={shadeColor(baseColor, -20)} />
+                                            {/* Hips (wider) */}
+                                            <rect x={20 - hipWidth/2} y={16 + torsoHeight * 0.6} width={hipWidth} height={torsoHeight * 0.4 - 2} fill={shadeColor(baseColor, -20)} />
+
+                                            {/* Light layer */}
+                                            <rect x={20 - shoulderWidth/2 + 0.5} y={15} width={shoulderWidth - 1} height={0.8} fill={baseColor} />
+                                            <rect x={20 - bodyWidth/2} y={15.8} width={bodyWidth} height={torsoHeight * 0.4} fill={baseColor} />
+                                            <rect x={20 - bodyWidth * 0.4} y={15.8 + torsoHeight * 0.4} width={bodyWidth * 0.8} height={torsoHeight * 0.2} fill={baseColor} />
+                                            <rect x={20 - hipWidth/2} y={15.8 + torsoHeight * 0.6} width={hipWidth} height={torsoHeight * 0.4 - 1.5} fill={baseColor} />
+                                        </>
+                                    ) : (
+                                        <>
+                                            {/* Male torso - straighter lines */}
+                                            <rect x={20 - shoulderWidth/2} y={15} width={shoulderWidth} height={1.5} fill={shadeColor(baseColor, -20)} />
+                                            <rect x={20 - bodyWidth/2} y={16} width={bodyWidth} height={torsoHeight - 2} fill={shadeColor(baseColor, -20)} />
+                                            <rect x={20 - shoulderWidth/2} y={15} width={shoulderWidth} height={1.2} fill={baseColor} />
+                                            <rect x={20 - bodyWidth/2} y={16} width={bodyWidth} height={torsoHeight - 2.5} fill={baseColor} />
+                                        </>
+                                    )}
+
+                                    {/* Chest definition with gender differences */}
+                                    {!isFemale ? (
+                                        <>
+                                            {/* Male pectoral definition */}
+                                            <ellipse cx={20 - bodyWidth * 0.2} cy={15 + torsoHeight * 0.25} rx={bodyWidth * 0.2} ry={torsoHeight * 0.1}
+                                                     fill={shadeColor(baseColor, 10)} opacity="0.2" />
+                                            <ellipse cx={20 + bodyWidth * 0.2} cy={15 + torsoHeight * 0.25} rx={bodyWidth * 0.2} ry={torsoHeight * 0.1}
+                                                     fill={shadeColor(baseColor, 10)} opacity="0.2" />
+                                        </>
+                                    ) : (
+                                        <>
+                                            {/* Female bust definition - subtle */}
+                                            <ellipse cx={20 - bodyWidth * 0.2} cy={15 + torsoHeight * 0.35} rx={bodyWidth * 0.25} ry={torsoHeight * 0.15}
+                                                     fill={shadeColor(baseColor, 8)} opacity="0.25" />
+                                            <ellipse cx={20 + bodyWidth * 0.2} cy={15 + torsoHeight * 0.35} rx={bodyWidth * 0.25} ry={torsoHeight * 0.15}
+                                                     fill={shadeColor(baseColor, 8)} opacity="0.25" />
+                                        </>
+                                    )}
+
+                                    {/* Cultural clothing patterns */}
+                                    {torsoItem && (() => {
+                                        const itemName = torsoItem.name.toLowerCase();
+                                        const culturalZone = character.culturalZone;
+
+                                        // Add cultural patterns based on item and zone
+                                        if (culturalZone === 'EAST_ASIAN' && (itemName.includes('kimono') || itemName.includes('hanfu'))) {
+                                            return (
+                                                <g opacity="0.4">
+                                                    {/* Floral pattern */}
+                                                    <circle cx={20 - bodyWidth/3} cy={15 + torsoHeight/2} r="0.8" fill={shadeColor(baseColor, 20)} />
+                                                    <circle cx={20 + bodyWidth/3} cy={15 + torsoHeight/3} r="0.8" fill={shadeColor(baseColor, 20)} />
+                                                </g>
+                                            );
+                                        } else if (culturalZone === 'SOUTH_ASIAN' && itemName.includes('sari')) {
+                                            return (
+                                                <g opacity="0.3">
+                                                    {/* Border pattern */}
+                                                    <rect x={20 - bodyWidth/2} y={15 + torsoHeight - 2} width={bodyWidth} height="0.5" fill={shadeColor(baseColor, 30)} />
+                                                    <rect x={20 - bodyWidth/2} y={15 + torsoHeight - 1} width={bodyWidth} height="0.3" fill="#fbbf24" />
+                                                </g>
+                                            );
+                                        } else if ((culturalZone === 'SUB_SAHARAN_AFRICAN' || culturalZone === 'MENA') && itemName.includes('robe')) {
+                                            return (
+                                                <g opacity="0.3">
+                                                    {/* Geometric pattern */}
+                                                    <rect x={20 - bodyWidth/3} y={15 + torsoHeight/2} width={bodyWidth/3} height="0.5" fill={shadeColor(baseColor, 25)} />
+                                                    <rect x={20} y={15 + torsoHeight/2 + 1} width={bodyWidth/3} height="0.5" fill={shadeColor(baseColor, 25)} />
+                                                </g>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
+                                </g>
+
+                                {/* Flowing garments with physics */}
+                                {(armorCategory === 'robes' || armorCategory === 'cultural' || armorCategory === 'formal') &&
                                  (torsoItem?.name.toLowerCase().includes('robe') || torsoItem?.name.toLowerCase().includes('dress') || torsoItem?.name.toLowerCase().includes('gown')) && (
-                                    <rect x={20 - bodyWidth/2} y={15 + torsoHeight} width={bodyWidth} height={legHeight - 2} fill={baseColor} opacity="0.8" />
+                                    <g className="flowing-garment">
+                                        {/* Main flowing section */}
+                                        <path d={`M${20 - bodyWidth/2} ${15 + torsoHeight} Q${20} ${15 + torsoHeight + legHeight/2} ${20 + bodyWidth/2} ${15 + torsoHeight + legHeight - 2}`}
+                                              fill={baseColor} opacity="0.8" />
+
+                                        {/* Cape/cloak physics */}
+                                        {torsoItem?.name.toLowerCase().includes('cape') || torsoItem?.name.toLowerCase().includes('cloak') && (
+                                            <g className="cape-flutter">
+                                                <path d={`M${20 - bodyWidth/2 - 2} ${15} Q${20 - bodyWidth} ${15 + torsoHeight/2} ${20 - bodyWidth/2 - 1} ${15 + torsoHeight + legHeight}`}
+                                                      fill={shadeColor(baseColor, -10)} opacity="0.7" />
+                                                <path d={`M${20 + bodyWidth/2 + 2} ${15} Q${20 + bodyWidth} ${15 + torsoHeight/2} ${20 + bodyWidth/2 + 1} ${15 + torsoHeight + legHeight}`}
+                                                      fill={shadeColor(baseColor, -10)} opacity="0.7" />
+                                            </g>
+                                        )}
+                                    </g>
                                 )}
                                 
                                 {/* Cultural garment patterns */}
@@ -1239,17 +1623,98 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
                         return null;
                     })()}
 
-                    {/* Head */}
+                    {/* Profile Head - viewed from the side */}
                     <g transform="translate(0, 0)">
-                        <rect x={20 - headSize.w/2} y={15 - headSize.h} width={headSize.w} height={headSize.h} fill={skinShadow} />
-                        <rect x={20 - headSize.w/2} y={15 - headSize.h} width={headSize.w - 1} height={headSize.h - 1} fill={skinColor} />
+                        {/* Back of hair (behind head) */}
+                        {(() => {
+                            const hairTexture = character.appearance.hairTexture || 'straight';
+                            const headCenterY = 14 - headSize.h/2;
+
+                            if (hairTexture === 'curly' || hairTexture === 'coily' || hairTexture === 'kinky') {
+                                return (
+                                    <ellipse cx={19} cy={headCenterY - 1} rx={headSize.w/1.5} ry={headSize.h/1.8}
+                                            fill={hairShadow} />
+                                );
+                            } else {
+                                return (
+                                    <rect x={18 - headSize.w/2} y={14 - headSize.h - 1} width={headSize.w + 1} height={headSize.h + 2}
+                                          fill={hairShadow} />
+                                );
+                            }
+                        })()}
+
+                        {/* Profile head shape */}
+                        <ellipse cx={20} cy={14 - headSize.h/2} rx={headSize.w/2} ry={headSize.h/2}
+                                fill={skinShadow} />
+                        <ellipse cx={20} cy={14 - headSize.h/2} rx={headSize.w/2 - 0.3} ry={headSize.h/2 - 0.3}
+                                fill={skinColor} />
+
+                        {/* Profile nose */}
+                        <path d={`M${22},${14 - headSize.h/2} L${23},${14 - headSize.h/2 + 1} L${22},${14 - headSize.h/2 + 2}`}
+                              fill={shadeColor(skinColor, -10)} />
                         
-                        {/* Hair */}
-                        <rect x={20 - headSize.w/2 - 1} y={15 - headSize.h - 1} width={headSize.w + 1} height={3} fill={hairShadow} />
-                        <rect x={20 - headSize.w/2 - 1} y={15 - headSize.h - 1} width={headSize.w + 1} height={2} fill={finalHairColor} />
-                        {isFemale && (hairLength === 'long' || hairLength === 'very_long') &&
-                            <rect x={20 - headSize.w/2 - 2} y={15 - headSize.h + 2} width={2} height={torsoHeight} fill={finalHairColor} />
-                        }
+                        {/* Hair with texture variations */}
+                        {(() => {
+                            const hairTexture = character.appearance.hairTexture || 'straight';
+                            const headCenterY = 16 - headSize.h/2;
+
+                            switch(hairTexture) {
+                                case 'curly':
+                                case 'coily':
+                                case 'kinky':
+                                    // Afro-textured hair
+                                    return (
+                                        <>
+                                            <ellipse cx={20} cy={headCenterY - headSize.h/2.2} rx={headSize.w/1.6 + 1} ry={headSize.h/2.2 + 1} fill={hairShadow} />
+                                            <ellipse cx={20} cy={headCenterY - headSize.h/2.2} rx={headSize.w/1.6} ry={headSize.h/2.2} fill={finalHairColor} />
+                                            {/* Texture detail */}
+                                            {[...Array(5)].map((_, i) => (
+                                                <circle key={i} cx={20 + (i - 2) * 1.2} cy={headCenterY - headSize.h/2.2 + (i % 2) * 0.5}
+                                                        r="0.3" fill={hairShadow} opacity="0.3" />
+                                            ))}
+                                        </>
+                                    );
+
+                                case 'wavy':
+                                    // Wavy hair with curves
+                                    return (
+                                        <>
+                                            <path d={`M${20 - headSize.w/2 - 1},${16 - headSize.h} Q${20 - headSize.w/4},${16 - headSize.h - 1.5} ${20},${16 - headSize.h} Q${20 + headSize.w/4},${16 - headSize.h - 1.5} ${20 + headSize.w/2 + 1},${16 - headSize.h}`}
+                                                  fill={hairShadow} />
+                                            <path d={`M${20 - headSize.w/2 - 1},${16 - headSize.h} Q${20 - headSize.w/4},${16 - headSize.h - 1.2} ${20},${16 - headSize.h} Q${20 + headSize.w/4},${16 - headSize.h - 1.2} ${20 + headSize.w/2 + 1},${16 - headSize.h}`}
+                                                  fill={finalHairColor} />
+                                            {isFemale && (hairLength === 'long' || hairLength === 'very_long') && (
+                                                <>
+                                                    <path d={`M${20 - headSize.w/2 - 1},${16 - headSize.h + 2} Q${20 - headSize.w/2 - 2},${16} ${20 - headSize.w/2 - 1.5},${16 + torsoHeight/2}`}
+                                                          stroke={finalHairColor} strokeWidth="2" fill="none" />
+                                                    <path d={`M${20 + headSize.w/2 + 1},${16 - headSize.h + 2} Q${20 + headSize.w/2 + 2},${16} ${20 + headSize.w/2 + 1.5},${16 + torsoHeight/2}`}
+                                                          stroke={finalHairColor} strokeWidth="2" fill="none" />
+                                                </>
+                                            )}
+                                        </>
+                                    );
+
+                                case 'straight':
+                                default:
+                                    // Straight hair (default)
+                                    return (
+                                        <>
+                                            <rect x={20 - headSize.w/2 - 1} y={16 - headSize.h - 1} width={headSize.w + 2} height={3} fill={hairShadow} />
+                                            <rect x={20 - headSize.w/2 - 1} y={16 - headSize.h - 1} width={headSize.w + 2} height={2.5} fill={finalHairColor} />
+                                            {/* Shine effect for straight hair */}
+                                            <rect x={20 - headSize.w/4} y={16 - headSize.h - 0.5} width={headSize.w/2} height={0.3} fill={shadeColor(finalHairColor, 20)} opacity="0.3" />
+                                            {isFemale && (hairLength === 'long' || hairLength === 'very_long') && (
+                                                <>
+                                                    <rect x={20 - headSize.w/2 - 2} y={16 - headSize.h + 2} width={2} height={torsoHeight} fill={finalHairColor} />
+                                                    <rect x={20 + headSize.w/2} y={16 - headSize.h + 2} width={2} height={torsoHeight} fill={finalHairColor} />
+                                                    {/* Hair shine */}
+                                                    <rect x={20 - headSize.w/2 - 1.5} y={16 - headSize.h + 4} width={0.5} height={torsoHeight - 2} fill={shadeColor(finalHairColor, 20)} opacity="0.3" />
+                                                </>
+                                            )}
+                                        </>
+                                    );
+                            }
+                        })()}
                         
                         {/* Headgear */}
                         {headgear && headgear.name && headgear.name.toLowerCase() !== 'none' && (
@@ -1257,9 +1722,9 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
                                 {/* Rare headgear glow effect */}
                                 {(headgear.rarity === 'Rare' || headgear.rarity === 'Epic' || headgear.rarity === 'Legendary') && (
                                     <g>
-                                        <ellipse cx="20" cy={15 - headSize.h/2} rx={headSize.w/2 + 2} ry={headSize.h/2 + 2} fill="#ffd700" opacity="0.15" />
-                                        <ellipse cx="20" cy={15 - headSize.h/2} rx={headSize.w/2 + 1} ry={headSize.h/2 + 1} fill="#fff" opacity="0.05" />
-                                        <animateTransform attributeName="transform" type="rotate" values={`0 20 ${15 - headSize.h/2};360 20 ${15 - headSize.h/2}`} dur="8s" repeatCount="indefinite" />
+                                        <ellipse cx="20" cy={16 - headSize.h/2} rx={headSize.w/2 + 2} ry={headSize.h/2 + 2} fill="#ffd700" opacity="0.15" />
+                                        <ellipse cx="20" cy={16 - headSize.h/2} rx={headSize.w/2 + 1} ry={headSize.h/2 + 1} fill="#fff" opacity="0.05" />
+                                        <animateTransform attributeName="transform" type="rotate" values={`0 20 ${16 - headSize.h/2};360 20 ${16 - headSize.h/2}`} dur="8s" repeatCount="indefinite" />
                                     </g>
                                 )}
                                 {(() => {
@@ -1270,13 +1735,13 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
                                     if (headName.includes('great helm') || headName.includes('crusader')) {
                                         return (
                                             <g>
-                                                <rect x={20 - headSize.w/2 - 1} y={15 - headSize.h - 2} width={headSize.w + 2} height={headSize.h + 2} fill="#71717a" />
-                                                <rect x={20 - headSize.w/2} y={15 - headSize.h - 1} width={headSize.w} height={headSize.h} fill="#a1a1aa" />
+                                                <rect x={20 - headSize.w/2 - 1} y={16 - headSize.h - 2} width={headSize.w + 2} height={headSize.h + 2} fill="#71717a" />
+                                                <rect x={20 - headSize.w/2} y={16 - headSize.h - 1} width={headSize.w} height={headSize.h} fill="#a1a1aa" />
                                                 {/* Eye slits */}
-                                                <Pixel x={20 + headSize.w/2 - 2} y={15 - headSize.h + 2} w={1} h={0.5} color="#000000" />
+                                                <Pixel x={20 + headSize.w/2 - 2} y={16 - headSize.h + 2} w={1} h={0.5} color="#000000" />
                                                 {/* Cross pattern */}
-                                                <Pixel x={20} y={15 - headSize.h + 2} w={0.5} h={3} color="#71717a" />
-                                                <Pixel x={19} y={15 - headSize.h + 3} w={2.5} h={0.5} color="#71717a" />
+                                                <Pixel x={20} y={16 - headSize.h + 2} w={0.5} h={3} color="#71717a" />
+                                                <Pixel x={19} y={16 - headSize.h + 3} w={2.5} h={0.5} color="#71717a" />
                                             </g>
                                         );
                                     }
@@ -1287,7 +1752,7 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
                                             <g>
                                                 <path d={`M ${20 - headSize.w/2} ${15 - headSize.h + 1} L ${20} ${15 - headSize.h - 3} L ${20 + headSize.w/2} ${15 - headSize.h + 1} Z`} fill="#a1a1aa" />
                                                 {/* Nasal guard */}
-                                                <Pixel x={20 + headSize.w/2 - 2} y={15 - headSize.h + 1} w={0.5} h={3} color="#71717a" />
+                                                <Pixel x={20 + headSize.w/2 - 2} y={16 - headSize.h + 1} w={0.5} h={3} color="#71717a" />
                                             </g>
                                         );
                                     }
@@ -1296,12 +1761,12 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
                                     if (headName.includes('viking') || headName.includes('spangenhelm')) {
                                         return (
                                             <g>
-                                                <ellipse cx="20" cy={15 - headSize.h/2} rx={headSize.w/2 + 1} ry={headSize.h/2} fill="#71717a" />
-                                                <ellipse cx="20" cy={15 - headSize.h/2} rx={headSize.w/2} ry={headSize.h/2 - 0.5} fill="#a1a1aa" />
+                                                <ellipse cx="20" cy={16 - headSize.h/2} rx={headSize.w/2 + 1} ry={headSize.h/2} fill="#71717a" />
+                                                <ellipse cx="20" cy={16 - headSize.h/2} rx={headSize.w/2} ry={headSize.h/2 - 0.5} fill="#a1a1aa" />
                                                 {/* Nose guard */}
-                                                <Pixel x={20 + headSize.w/2 - 2} y={15 - headSize.h + 2} w={0.5} h={2} color="#71717a" />
+                                                <Pixel x={20 + headSize.w/2 - 2} y={16 - headSize.h + 2} w={0.5} h={2} color="#71717a" />
                                                 {/* Eye guards */}
-                                                <Pixel x={20 + headSize.w/2 - 3} y={15 - headSize.h + 2} w={2} h={0.5} color="#71717a" />
+                                                <Pixel x={20 + headSize.w/2 - 3} y={16 - headSize.h + 2} w={2} h={0.5} color="#71717a" />
                                             </g>
                                         );
                                     }
@@ -1310,51 +1775,51 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
                                     if (headName.includes('kabuto') || headName.includes('samurai')) {
                                         return (
                                             <g>
-                                                <ellipse cx="20" cy={15 - headSize.h/2} rx={headSize.w/2 + 1} ry={headSize.h/2} fill="#8b0000" />
+                                                <ellipse cx="20" cy={16 - headSize.h/2} rx={headSize.w/2 + 1} ry={headSize.h/2} fill="#8b0000" />
                                                 {/* Neck guard */}
                                                 <rect x={20 - headSize.w/2 - 2} y={15 - 2} width={headSize.w + 4} height={2} fill="#8b0000" opacity="0.7" />
                                                 {/* Horn decoration */}
-                                                <Pixel x={20 - headSize.w/2} y={15 - headSize.h - 2} w={0.5} h={2} color="#ffd700" />
-                                                <Pixel x={20 + headSize.w/2} y={15 - headSize.h - 2} w={0.5} h={2} color="#ffd700" />
+                                                <Pixel x={20 - headSize.w/2} y={16 - headSize.h - 2} w={0.5} h={2} color="#ffd700" />
+                                                <Pixel x={20 + headSize.w/2} y={16 - headSize.h - 2} w={0.5} h={2} color="#ffd700" />
                                             </g>
                                         );
                                     }
                                     
                                     // Basic helmet
                                     if (headName.includes('helmet')) {
-                                        return <rect x={20 - headSize.w/2 - 1} y={15 - headSize.h - 2} width={headSize.w + 2} height={3} fill={'#a1a1aa'} />;
+                                        return <rect x={20 - headSize.w/2 - 1} y={16 - headSize.h - 2} width={headSize.w + 2} height={3} fill={'#a1a1aa'} />;
                                     }
                                     
                                     // Cap
                                     if (headName.includes('cap')) {
-                                        return <rect x={20 - headSize.w/2 - 1} y={15 - headSize.h - 2} width={headSize.w + 2} height={2} fill={secondaryColor} />;
+                                        return <rect x={20 - headSize.w/2 - 1} y={16 - headSize.h - 2} width={headSize.w + 2} height={2} fill={secondaryColor} />;
                                     }
                                     
                                     // Crown
                                     if (headName.includes('crown')) {
                                         return (
                                             <g>
-                                                <rect x={20 - headSize.w/2} y={15 - headSize.h - 2} width={headSize.w} height={2} fill={'#ffd700'} />
+                                                <rect x={20 - headSize.w/2} y={16 - headSize.h - 2} width={headSize.w} height={2} fill={'#ffd700'} />
                                                 {/* Crown points */}
-                                                <Pixel x={20 - headSize.w/2 + 1} y={15 - headSize.h - 3} w={0.5} h={1} color="#ffd700" />
-                                                <Pixel x={20} y={15 - headSize.h - 3} w={0.5} h={1} color="#ffd700" />
-                                                <Pixel x={20 + headSize.w/2 - 1} y={15 - headSize.h - 3} w={0.5} h={1} color="#ffd700" />
+                                                <Pixel x={20 - headSize.w/2 + 1} y={16 - headSize.h - 3} w={0.5} h={1} color="#ffd700" />
+                                                <Pixel x={20} y={16 - headSize.h - 3} w={0.5} h={1} color="#ffd700" />
+                                                <Pixel x={20 + headSize.w/2 - 1} y={16 - headSize.h - 3} w={0.5} h={1} color="#ffd700" />
                                             </g>
                                         );
                                     }
                                     
                                     // Turban
                                     if (headName.includes('turban') || headArchetype?.includes('TURBAN')) {
-                                        return <ellipse cx="20" cy={15 - headSize.h} rx={headSize.w/2 + 1} ry={3} fill={secondaryColor || '#4B0082'} />;
+                                        return <ellipse cx="20" cy={16 - headSize.h} rx={headSize.w/2 + 1} ry={3} fill={secondaryColor || '#4B0082'} />;
                                     }
                                     
                                     // Hood
                                     if (headName.includes('hood') || headArchetype?.includes('HOOD')) {
                                         return (
                                             <g>
-                                                <rect x={20 - headSize.w/2 - 2} y={15 - headSize.h - 1} width={headSize.w + 4} height={headSize.h} 
+                                                <rect x={20 - headSize.w/2 - 2} y={16 - headSize.h - 1} width={headSize.w + 4} height={headSize.h} 
                                                       fill={secondaryColor || '#2F2F2F'} opacity="0.8" />
-                                                <rect x={20 - headSize.w/2} y={15 - headSize.h + 1} width={headSize.w} height={headSize.h - 2} 
+                                                <rect x={20 - headSize.w/2} y={16 - headSize.h + 1} width={headSize.w} height={headSize.h - 2} 
                                                       fill={skinColor} />
                                             </g>
                                         );
@@ -1365,40 +1830,394 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
                             </g>
                         )}
 
-                        {/* Enhanced Eye & Face */}
-                        <Pixel x={20 + headSize.w/2 - 2} y={15 - headSize.h + 2} color="#ffffff" w={1.5} h={1} />
-                        <Pixel x={20 + headSize.w/2 - 1.7} y={15 - headSize.h + 2.1} color={eyeColor} w={1} h={0.8} />
-                        <Pixel x={20 + headSize.w/2 - 1.5} y={15 - headSize.h + 2.2} color="#000000" w={0.6} h={0.6} />
-                        {isFemale && <Pixel x={20 + headSize.w/2 - 2} y={15 - headSize.h + 1.5} w={1.5} h={0.5} color="#27272a" />}
+                        {/* Profile Facial Features - only one eye visible */}
+                        {(() => {
+                            const headCenterY = 14 - headSize.h/2;
+                            const eyeY = headCenterY - 1;
+                            const mouthY = headCenterY + headSize.h/3;
+
+                            return (
+                                <>
+                                    {/* Single visible eye in profile */}
+                                    <g>
+                                        {/* Eye white */}
+                                        <ellipse cx={21} cy={eyeY} rx={0.8} ry={0.7} fill="#ffffff" />
+                                        {/* Iris with actual eye color */}
+                                        <ellipse cx={21.2} cy={eyeY} rx={0.5} ry={0.6} fill={eyeColor} />
+                                        {/* Pupil */}
+                                        <ellipse cx={21.3} cy={eyeY} rx={0.25} ry={0.3} fill="#000000" />
+                                    </g>
+
+                                    {/* Single eyebrow in profile */}
+                                    <rect x={20} y={eyeY - 1} width={1.5} height={0.3} fill={hairColor} />
+
+                                    {/* Profile mouth */}
+                                    <line x1={21} y1={mouthY} x2={22.5} y2={mouthY}
+                                          stroke={shadeColor(skinColor, 10)} strokeWidth="0.3" />
+                                </>
+                            );
+                        })()}
+
+                        {/* Cultural Markings System */}
+                        {character.appearance.markings && character.appearance.markings.map((marking, idx) => {
+                            if (!marking.location.includes('face') && !marking.location.includes('forehead') && !marking.location.includes('cheek')) {
+                                return null;
+                            }
+
+                            const headCenterY = 16 - headSize.h/2;
+                            const markingColor = marking.color || '#000000';
+
+                            switch(marking.type) {
+                                case 'tattoo':
+                                    // Cultural tattoo patterns
+                                    if (marking.pattern === 'tribal_lines') {
+                                        return (
+                                            <g key={idx}>
+                                                <line x1={20 - headSize.w/3} y1={headCenterY - headSize.h/3}
+                                                      x2={20 - headSize.w/3} y2={headCenterY}
+                                                      stroke={markingColor} strokeWidth="0.4" opacity="0.7" />
+                                                <line x1={20 + headSize.w/3} y1={headCenterY - headSize.h/3}
+                                                      x2={20 + headSize.w/3} y2={headCenterY}
+                                                      stroke={markingColor} strokeWidth="0.4" opacity="0.7" />
+                                            </g>
+                                        );
+                                    } else if (marking.pattern === 'dots') {
+                                        return (
+                                            <g key={idx}>
+                                                <circle cx={20} cy={headCenterY - headSize.h/3} r="0.3" fill={markingColor} opacity="0.7" />
+                                                <circle cx={20 - 1} cy={headCenterY - headSize.h/3} r="0.3" fill={markingColor} opacity="0.7" />
+                                                <circle cx={20 + 1} cy={headCenterY - headSize.h/3} r="0.3" fill={markingColor} opacity="0.7" />
+                                            </g>
+                                        );
+                                    }
+                                    break;
+
+                                case 'scar':
+                                    // Battle scars
+                                    const scarY = marking.location.includes('forehead') ? headCenterY - headSize.h/3 :
+                                                 marking.location.includes('cheek') ? headCenterY : headCenterY - headSize.h/6;
+                                    return (
+                                        <line key={idx}
+                                              x1={20 - (marking.size === 'large' ? 2 : 1)} y1={scarY - 0.5}
+                                              x2={20 + (marking.size === 'large' ? 2 : 1)} y2={scarY + 0.5}
+                                              stroke={shadeColor(skinColor, -30)} strokeWidth="0.3" opacity="0.6" />
+                                    );
+
+                                case 'paint':
+                                    // War paint or ceremonial paint
+                                    if (marking.pattern === 'stripes') {
+                                        return (
+                                            <g key={idx}>
+                                                <rect x={20 - headSize.w/2.5} y={headCenterY - headSize.h/4}
+                                                      width={headSize.w/5} height={headSize.h/2}
+                                                      fill={markingColor} opacity="0.5" />
+                                                <rect x={20 + headSize.w/2.5 - headSize.w/5} y={headCenterY - headSize.h/4}
+                                                      width={headSize.w/5} height={headSize.h/2}
+                                                      fill={markingColor} opacity="0.5" />
+                                            </g>
+                                        );
+                                    } else if (marking.pattern === 'mask') {
+                                        return (
+                                            <ellipse key={idx}
+                                                    cx={20} cy={headCenterY - headSize.h/6}
+                                                    rx={headSize.w/2} ry={headSize.h/4}
+                                                    fill={markingColor} opacity="0.4" />
+                                        );
+                                    }
+                                    break;
+
+                                case 'freckles':
+                                    // Natural freckles
+                                    return (
+                                        <g key={idx}>
+                                            {[...Array(5)].map((_, i) => (
+                                                <circle key={i}
+                                                        cx={20 + (i - 2) * 0.8}
+                                                        cy={headCenterY - headSize.h/6 + (i % 2) * 0.5}
+                                                        r="0.15" fill={shadeColor(skinColor, 20)} opacity="0.3" />
+                                            ))}
+                                        </g>
+                                    );
+
+                                case 'beauty_mark':
+                                    return (
+                                        <circle key={idx}
+                                                cx={20 + (marking.location.includes('left') ? -headSize.w/4 : headSize.w/4)}
+                                                cy={headCenterY + headSize.h/6}
+                                                r="0.2" fill="#3d2314" />
+                                    );
+                            }
+                            return null;
+                        })}
+
+                        {/* Expression/Affect System */}
+                        {(() => {
+                            const affect = character.appearance.affect || 'neutral';
+                            const headCenterY = 16 - headSize.h/2;
+                            const mouthY = headCenterY + headSize.h/4;
+
+                            // Modify mouth based on affect
+                            if (affect === 'friendly') {
+                                // Slight smile
+                                return (
+                                    <path d={`M${20 - 1.5},${mouthY} Q${20},${mouthY + 0.5} ${20 + 1.5},${mouthY}`}
+                                          stroke={shadeColor(skinColor, 10)} strokeWidth="0.2" fill="none" opacity="0.5" />
+                                );
+                            } else if (affect === 'guarded' || affect === 'anxious') {
+                                // Tense/straight mouth
+                                return (
+                                    <line x1={20 - 1} y1={mouthY + 0.2} x2={20 + 1} y2={mouthY + 0.2}
+                                          stroke={shadeColor(skinColor, 10)} strokeWidth="0.2" opacity="0.5" />
+                                );
+                            } else if (affect === 'intimidating') {
+                                // Slight frown
+                                return (
+                                    <path d={`M${20 - 1.5},${mouthY + 0.2} Q${20},${mouthY - 0.2} ${20 + 1.5},${mouthY + 0.2}`}
+                                          stroke={shadeColor(skinColor, 10)} strokeWidth="0.2" fill="none" opacity="0.5" />
+                                );
+                            }
+                            return null;
+                        })()}
+
+                        {/* Age-Based Effects */}
+                        {age && age > 40 && (
+                            <g opacity="0.3">
+                                {/* Wrinkles around eyes */}
+                                {age > 50 && (
+                                    <>
+                                        <line x1={20 - headSize.w/4 - 1} y1={16 - headSize.h/2 - headSize.h/6 - 0.5}
+                                              x2={20 - headSize.w/4 - 1.5} y2={16 - headSize.h/2 - headSize.h/6}
+                                              stroke={shadeColor(skinColor, -10)} strokeWidth="0.15" />
+                                        <line x1={20 + headSize.w/4 + 1} y1={16 - headSize.h/2 - headSize.h/6 - 0.5}
+                                              x2={20 + headSize.w/4 + 1.5} y2={16 - headSize.h/2 - headSize.h/6}
+                                              stroke={shadeColor(skinColor, -10)} strokeWidth="0.15" />
+                                    </>
+                                )}
+                                {/* Forehead lines */}
+                                {age > 60 && (
+                                    <>
+                                        <line x1={20 - headSize.w/3} y1={16 - headSize.h + 1}
+                                              x2={20 + headSize.w/3} y2={16 - headSize.h + 1}
+                                              stroke={shadeColor(skinColor, -10)} strokeWidth="0.15" />
+                                        <line x1={20 - headSize.w/3} y1={16 - headSize.h + 1.5}
+                                              x2={20 + headSize.w/3} y2={16 - headSize.h + 1.5}
+                                              stroke={shadeColor(skinColor, -10)} strokeWidth="0.15" />
+                                    </>
+                                )}
+                            </g>
+                        )}
+
+                        {/* Skin Texture/Weathering Effects */}
+                        {character.appearance.skinTexture && (
+                            <g opacity="0.2">
+                                {character.appearance.skinTexture === 'weathered' && (
+                                    <>
+                                        {/* Sun damage/weathering */}
+                                        <ellipse cx={20 - headSize.w/4} cy={16 - headSize.h/2}
+                                                rx={0.5} ry={0.3} fill={shadeColor(skinColor, 15)} />
+                                        <ellipse cx={20 + headSize.w/4} cy={16 - headSize.h/2}
+                                                rx={0.5} ry={0.3} fill={shadeColor(skinColor, 15)} />
+                                    </>
+                                )}
+                                {character.appearance.skinTexture === 'rough' && (
+                                    <>
+                                        {/* Rough texture dots */}
+                                        {[...Array(3)].map((_, i) => (
+                                            <circle key={i} cx={20 + (i - 1)} cy={16 - headSize.h/2 + (i % 2) * 0.3}
+                                                    r="0.1" fill={shadeColor(skinColor, -5)} />
+                                        ))}
+                                    </>
+                                )}
+                            </g>
+                        )}
                         
-                        {/* Facial Hair */}
+                        {/* Facial Hair aligned with new face position */}
                         {facialHair && !isFemale && (
                             <>
-                                {(facialHairStyle === 'mustache' || facialHairStyle === 'full_beard') && <rect x={20 + headSize.w/2 - 3.5} y={15 - headSize.h + 4} width={3} height={1} fill={finalHairColor} />}
-                                {(facialHairStyle === 'goatee' || facialHairStyle === 'full_beard') && <rect x={20 + headSize.w/2 - 2.5} y={15 - headSize.h + 5} width={1.5} height={2} fill={finalHairColor} />}
+                                {(facialHairStyle === 'mustache' || facialHairStyle === 'full_beard') && <rect x={20 - 1.5} y={16 - headSize.h/4} width={3} height={0.8} fill={finalHairColor} />}
+                                {(facialHairStyle === 'goatee' || facialHairStyle === 'full_beard') && <rect x={20 - 0.75} y={16 - headSize.h/4 + 1} width={1.5} height={1.5} fill={finalHairColor} />}
                             </>
                         )}
 
-                        {jewelry?.find(j => j.type === 'earrings') && (
+                        {/* Enhanced Jewelry System */}
+                        {jewelry && jewelry.map((item, idx) => {
+                            const material = item.material || 'silver';
+                            const materialColor = material === 'gold' ? '#fbbf24' :
+                                                 material === 'silver' ? '#e5e7eb' :
+                                                 material === 'copper' ? '#ea580c' :
+                                                 material === 'jade' ? '#16a34a' :
+                                                 material === 'pearl' ? '#fef3c7' : '#e5e7eb';
+                            const headCenterY = 16 - headSize.h/2;
+
+                            switch(item.type) {
+                                case 'earrings':
+                                    return (
+                                        <g key={idx}>
+                                            {/* Left ear */}
+                                            <circle cx={20 - headSize.w/2 - 0.5} cy={headCenterY} r="0.6"
+                                                    fill={shadeColor(materialColor, -20)} />
+                                            <circle cx={20 - headSize.w/2 - 0.5} cy={headCenterY} r="0.4"
+                                                    fill={materialColor} />
+                                            {item.style === 'hoop' && (
+                                                <circle cx={20 - headSize.w/2 - 0.5} cy={headCenterY} r="0.3"
+                                                        fill="none" stroke={materialColor} strokeWidth="0.1" />
+                                            )}
+                                            {/* Right ear */}
+                                            <circle cx={20 + headSize.w/2 + 0.5} cy={headCenterY} r="0.6"
+                                                    fill={shadeColor(materialColor, -20)} />
+                                            <circle cx={20 + headSize.w/2 + 0.5} cy={headCenterY} r="0.4"
+                                                    fill={materialColor} />
+                                        </g>
+                                    );
+
+                                case 'necklace':
+                                    return (
+                                        <g key={idx}>
+                                            <path d={`M${20 - headSize.w/2},${16 - 1} Q${20},${16} ${20 + headSize.w/2},${16 - 1}`}
+                                                  stroke={materialColor} strokeWidth="0.3" fill="none" />
+                                            {item.style === 'pendant' && (
+                                                <circle cx={20} cy={16 + 0.5} r="0.4" fill={materialColor} />
+                                            )}
+                                            {item.style === 'beaded' && (
+                                                [...Array(5)].map((_, i) => (
+                                                    <circle key={i} cx={20 + (i - 2) * 1.5} cy={16 - 0.5 + Math.abs(i - 2) * 0.2}
+                                                            r="0.2" fill={materialColor} />
+                                                ))
+                                            )}
+                                        </g>
+                                    );
+
+                                case 'nose_ring':
+                                    return (
+                                        <circle key={idx} cx={20 - 0.3} cy={16 - headSize.h/2 + headSize.h/3}
+                                                r="0.3" fill="none" stroke={materialColor} strokeWidth="0.1" />
+                                    );
+
+                                case 'face_piercings':
+                                    if (item.location === 'eyebrow') {
+                                        return (
+                                            <circle key={idx} cx={20 - headSize.w/4} cy={16 - headSize.h/2 - headSize.h/6 - 1}
+                                                    r="0.15" fill={materialColor} />
+                                        );
+                                    } else if (item.location === 'lip') {
+                                        return (
+                                            <circle key={idx} cx={20 - 0.8} cy={16 - headSize.h/2 + headSize.h/4}
+                                                    r="0.15" fill={materialColor} />
+                                        );
+                                    }
+                                    break;
+                            }
+                            return null;
+                        })}
+
+                        {/* Glasses/Spectacles if present */}
+                        {character.appearance.hasGlasses && (
                             <g>
-                                <circle cx={20 - headSize.w/2 - 0.5} cy={15 - headSize.h + 4} r="0.8" 
-                                        fill={jewelry.find(j=>j.type==='earrings')?.material === 'gold' ? '#fcd34d' : '#e5e7eb'} />
-                                <circle cx={20 - headSize.w/2 - 0.5} cy={15 - headSize.h + 4} r="0.4" 
-                                        fill={jewelry.find(j=>j.type==='earrings')?.material === 'gold' ? '#fbbf24' : '#f3f4f6'} />
+                                {(() => {
+                                    const glassesStyle = character.appearance.glassesStyle || 'round';
+                                    const headCenterY = 16 - headSize.h/2;
+                                    const eyeY = headCenterY - headSize.h/6;
+
+                                    if (glassesStyle === 'round') {
+                                        return (
+                                            <>
+                                                <circle cx={20 - headSize.w/4} cy={eyeY} r="1.5"
+                                                        fill="none" stroke="#525252" strokeWidth="0.1" />
+                                                <circle cx={20 + headSize.w/4} cy={eyeY} r="1.5"
+                                                        fill="none" stroke="#525252" strokeWidth="0.1" />
+                                                <line x1={20 - headSize.w/4 + 1.5} y1={eyeY}
+                                                      x2={20 + headSize.w/4 - 1.5} y2={eyeY}
+                                                      stroke="#525252" strokeWidth="0.1" />
+                                            </>
+                                        );
+                                    } else if (glassesStyle === 'square') {
+                                        return (
+                                            <>
+                                                <rect x={20 - headSize.w/4 - 1.5} y={eyeY - 1} width="3" height="2"
+                                                      fill="none" stroke="#525252" strokeWidth="0.1" />
+                                                <rect x={20 + headSize.w/4 - 1.5} y={eyeY - 1} width="3" height="2"
+                                                      fill="none" stroke="#525252" strokeWidth="0.1" />
+                                                <line x1={20 - headSize.w/4 + 1.5} y1={eyeY}
+                                                      x2={20 + headSize.w/4 - 1.5} y2={eyeY}
+                                                      stroke="#525252" strokeWidth="0.1" />
+                                            </>
+                                        );
+                                    }
+                                    return null;
+                                })()}
                             </g>
                         )}
                     </g>
                     
-                    {/* Enhanced Front Arm with weapon */}
-                    <g style={{ transformOrigin: `${20}px 17px` }}>
+                    {/* Ultra-enhanced weapon arm with physics and effects */}
+                    <g className={`weapon-arm-assembly ${animation}`}>
+                       {/* Anticipation ghost for power attacks */}
+                       {animation === 'power_strike' && (
+                           <g className="anticipation-ghost" opacity="0.3">
+                               {/* Right arm with slight bend */}
+                           <g transform={`rotate(${animation === 'idle' ? -3 : 0} ${22} ${15})`}>
+                               {renderArmJointed(isFemale ? 22.5 : 23, 15, isFemale ? 1.8 : 2.2, torsoHeight, clothingColor, true)}
+                           </g>
+                           </g>
+                       )}
+
                        <g transform={`translate(${animation === 'defending' || animation === 'blocking' && offHandItem ? -4 : 0}, 0)`}>
                           {animation === 'defending' && offHandItem?.name.toLowerCase().includes('shield') && renderShield()}
-                          {renderArm(22, 15, 2.5, torsoHeight, clothingColor, true)}
-                          {mainHandItem && animation !== 'defending' && (
-                            <g transform={`translate(23, ${15 + torsoHeight})`}>
-                                {renderWeapon(mainHandItem)}
-                            </g>
-                          )}
+
+                          {/* Main weapon arm positioned forward for combat */}
+                          <g className="jointed-weapon-arm">
+                              {renderArmJointed(24, 15, 2.5, torsoHeight, clothingColor, true)}
+
+                              {/* Weapon with motion effects */}
+                              {mainHandItem && animation !== 'defending' && (
+                                <g className="weapon-system">
+                                    {/* Motion blur for fast attacks */}
+                                    {(animation === 'slashing' || animation === 'chopping') && (
+                                        <g className="motion-blur" opacity="0.4">
+                                            <g transform={`translate(20, ${15 + torsoHeight * 0.85}) rotate(-30)`}>
+                                                {renderWeapon(mainHandItem)}
+                                            </g>
+                                            <g transform={`translate(24, ${15 + torsoHeight * 0.85}) rotate(30)`} opacity="0.2">
+                                                {renderWeapon(mainHandItem)}
+                                            </g>
+                                        </g>
+                                    )}
+
+                                    {/* Main weapon properly gripped in hand at combat position */}
+                                    <g
+                                        className="weapon-in-hand"
+                                        transform={`translate(25, ${15 + torsoHeight * 0.7})`}
+                                        style={{
+                                            transformOrigin: 'center center',
+                                            filter: animation === 'power_strike' ? 'drop-shadow(0 0 4px #fbbf24)' : 'none'
+                                        }}
+                                    >
+                                        {/* Weapon held at combat angle pointing toward opponent */}
+                                        <g transform="translate(2, -3) rotate(-45)">
+                                            {renderWeapon(mainHandItem)}
+                                        </g>
+
+                                        {/* Hand gripping effect - fingers wrapping around weapon */}
+                                        <g className="grip-effect">
+                                            <rect x="-0.5" y="-2" width="0.8" height="2.5" fill={shadeColor(skinColor, -20)} opacity="0.6" rx="0.2" />
+                                            <rect x="0.5" y="-1.5" width="0.6" height="2" fill={shadeColor(skinColor, -15)} opacity="0.5" rx="0.2" />
+                                            <rect x="-1" y="-1" width="0.4" height="1.5" fill={shadeColor(skinColor, -25)} opacity="0.4" rx="0.1" />
+                                        </g>
+
+                                        {/* Weapon gleam effect during attacks */}
+                                        {(animation === 'attacking' || animation === 'slashing') && (
+                                            <g className="weapon-gleam">
+                                                <line x1="0" y1="-8" x2="0" y2="-2"
+                                                      stroke="#ffffff" strokeWidth="0.5" opacity="0.8"
+                                                      style={{
+                                                          animation: 'gleamFlash 0.3s ease-out'
+                                                      }} />
+                                            </g>
+                                        )}
+                                    </g>
+                                </g>
+                              )}
+                          </g>
                        </g>
                     </g>
 
@@ -1415,6 +2234,341 @@ const CombatSprite: React.FC<CombatSpriteProps> = ({ character, animation, facin
                     )}
                 </g>
             </g>
+            <style>
+                {`
+                    /* Realistic Combat Stance Animations */
+                    @keyframes combat-stance-sway {
+                        0%, 100% {
+                            transform: translateX(0) translateY(0) rotate(0deg);
+                        }
+                        25% {
+                            transform: translateX(-0.3px) translateY(-0.2px) rotate(-0.3deg);
+                        }
+                        50% {
+                            transform: translateX(0) translateY(-0.3px) rotate(0deg);
+                        }
+                        75% {
+                            transform: translateX(0.3px) translateY(-0.2px) rotate(0.3deg);
+                        }
+                    }
+
+                    .animate-sprite-idle-bob {
+                        animation: combat-stance-sway 5s ease-in-out infinite;
+                        transform-origin: 20px 35px;
+                    }
+
+                    @keyframes weight-shift {
+                        0%, 100% { transform: translateY(0); }
+                        50% { transform: translateY(0.2px); }
+                    }
+
+                    .legs {
+                        animation: weight-shift 5s ease-in-out infinite;
+                    }
+
+                    /* Advanced physics-based animations with anticipation */
+                    .attacking .upper-arm-segment {
+                        animation: attackUpperArmAdvanced 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                    }
+                    .attacking .forearm-segment {
+                        animation: attackForearmAdvanced 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                    }
+                    .attacking .weapon-in-hand {
+                        animation: attackWeaponAdvanced 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                    }
+                    .attacking .arm-shadow {
+                        animation: shadowFollowAttack 0.8s ease-out;
+                    }
+
+                    @keyframes attackUpperArmAdvanced {
+                        0% { transform: rotate(0deg) scale(1); }
+                        15% { transform: rotate(8deg) scale(1.02); } /* anticipation */
+                        30% { transform: rotate(-35deg) scale(0.98); } /* wind-up */
+                        45% { transform: rotate(-40deg) scale(0.97); } /* pause */
+                        65% { transform: rotate(50deg) scale(1.05); } /* strike */
+                        80% { transform: rotate(45deg) scale(1.03); } /* follow-through */
+                        100% { transform: rotate(0deg) scale(1); } /* settle */
+                    }
+
+                    @keyframes attackForearmAdvanced {
+                        0% { transform: rotate(0deg); }
+                        15% { transform: rotate(-5deg); } /* anticipation */
+                        30% { transform: rotate(-65deg); } /* wind-up */
+                        45% { transform: rotate(-70deg); } /* pause */
+                        65% { transform: rotate(95deg); } /* strike */
+                        80% { transform: rotate(85deg); } /* follow-through */
+                        100% { transform: rotate(0deg); } /* settle */
+                    }
+
+                    @keyframes attackWeaponAdvanced {
+                        0% { transform: rotate(0deg); }
+                        15% { transform: rotate(3deg); } /* anticipation */
+                        30% { transform: rotate(-18deg); } /* wind-up */
+                        45% { transform: rotate(-20deg); } /* pause */
+                        65% { transform: rotate(35deg); } /* strike */
+                        80% { transform: rotate(30deg); } /* follow-through */
+                        100% { transform: rotate(0deg); } /* settle */
+                    }
+
+                    @keyframes shadowFollowAttack {
+                        0% { transform: translateX(0) translateY(0) scale(1); opacity: 0.2; }
+                        30% { transform: translateX(-2px) translateY(-1px) scale(0.9); opacity: 0.3; }
+                        65% { transform: translateX(3px) translateY(1px) scale(1.1); opacity: 0.1; }
+                        100% { transform: translateX(0) translateY(0) scale(1); opacity: 0.2; }
+                    }
+
+                    /* Weapon effects */
+                    @keyframes gleamFlash {
+                        0% { opacity: 0; transform: translateY(5px); }
+                        50% { opacity: 1; transform: translateY(-2px); }
+                        100% { opacity: 0; transform: translateY(-8px); }
+                    }
+
+                    .motion-blur {
+                        animation: blurTrail 0.4s ease-out;
+                    }
+
+                    @keyframes blurTrail {
+                        0% { opacity: 0; }
+                        30% { opacity: 0.6; }
+                        100% { opacity: 0; }
+                    }
+
+                    .anticipation-ghost {
+                        animation: ghostAnticipation 1.2s ease-in-out;
+                    }
+
+                    @keyframes ghostAnticipation {
+                        0% { opacity: 0; transform: scale(1); }
+                        25% { opacity: 0.4; transform: scale(1.05) rotate(-5deg); }
+                        50% { opacity: 0.2; transform: scale(0.95) rotate(10deg); }
+                        100% { opacity: 0; transform: scale(1); }
+                    }
+
+                    /* Slashing with smooth arc */
+                    .slashing .upper-arm-segment {
+                        animation: slashUpperArm 0.7s ease-in-out;
+                    }
+                    .slashing .forearm-segment {
+                        animation: slashForearm 0.7s ease-in-out;
+                    }
+
+                    @keyframes slashUpperArm {
+                        0% { transform: rotate(0deg); }
+                        25% { transform: rotate(-45deg); }
+                        50% { transform: rotate(60deg); }
+                        75% { transform: rotate(30deg); }
+                        100% { transform: rotate(0deg); }
+                    }
+
+                    @keyframes slashForearm {
+                        0% { transform: rotate(0deg); }
+                        25% { transform: rotate(-30deg); }
+                        50% { transform: rotate(120deg); }
+                        75% { transform: rotate(45deg); }
+                        100% { transform: rotate(0deg); }
+                    }
+
+                    /* Chopping with overhead arc */
+                    .chopping .upper-arm-segment {
+                        animation: chopUpperArm 0.9s ease-in-out;
+                    }
+                    .chopping .forearm-segment {
+                        animation: chopForearm 0.9s ease-in-out;
+                    }
+
+                    @keyframes chopUpperArm {
+                        0% { transform: rotate(0deg); }
+                        30% { transform: rotate(-90deg); }
+                        60% { transform: rotate(80deg); }
+                        100% { transform: rotate(0deg); }
+                    }
+
+                    @keyframes chopForearm {
+                        0% { transform: rotate(0deg); }
+                        30% { transform: rotate(-45deg); }
+                        60% { transform: rotate(110deg); }
+                        100% { transform: rotate(0deg); }
+                    }
+
+                    /* Stabbing with thrust motion */
+                    .stabbing .upper-arm-segment {
+                        animation: stabUpperArm 0.6s ease-in-out;
+                    }
+                    .stabbing .forearm-segment {
+                        animation: stabForearm 0.6s ease-in-out;
+                    }
+
+                    @keyframes stabUpperArm {
+                        0% { transform: rotate(0deg); }
+                        30% { transform: rotate(-20deg); }
+                        60% { transform: rotate(15deg) translateX(10px); }
+                        100% { transform: rotate(0deg); }
+                    }
+
+                    @keyframes stabForearm {
+                        0% { transform: rotate(0deg); }
+                        30% { transform: rotate(20deg); }
+                        60% { transform: rotate(-10deg) translateX(15px); }
+                        100% { transform: rotate(0deg); }
+                    }
+
+                    /* Power strike with wind-up */
+                    .power_strike .upper-arm-segment {
+                        animation: powerUpperArm 1.2s ease-in-out;
+                    }
+                    .power_strike .forearm-segment {
+                        animation: powerForearm 1.2s ease-in-out;
+                    }
+
+                    @keyframes powerUpperArm {
+                        0% { transform: rotate(0deg); }
+                        30% { transform: rotate(-100deg) scale(1.05); }
+                        60% { transform: rotate(90deg) scale(1.1); }
+                        100% { transform: rotate(0deg) scale(1); }
+                    }
+
+                    @keyframes powerForearm {
+                        0% { transform: rotate(0deg); }
+                        30% { transform: rotate(-80deg); }
+                        60% { transform: rotate(130deg); }
+                        100% { transform: rotate(0deg); }
+                    }
+
+                    /* Shooting bow animation */
+                    .shooting .upper-arm-segment {
+                        animation: shootUpperArm 0.8s ease-in-out;
+                    }
+                    .shooting .forearm-segment {
+                        animation: shootForearm 0.8s ease-in-out;
+                    }
+
+                    @keyframes shootUpperArm {
+                        0% { transform: rotate(0deg); }
+                        40% { transform: rotate(-25deg) translateX(-5px); }
+                        60% { transform: rotate(-30deg) translateX(-7px); }
+                        100% { transform: rotate(0deg); }
+                    }
+
+                    @keyframes shootForearm {
+                        0% { transform: rotate(0deg); }
+                        40% { transform: rotate(-40deg); }
+                        60% { transform: rotate(-45deg); }
+                        80% { transform: rotate(10deg); }
+                        100% { transform: rotate(0deg); }
+                    }
+
+                    /* Idle animation - subtle breathing */
+                    .idle .upper-arm-segment {
+                        animation: idleUpperArm 3s ease-in-out infinite;
+                    }
+
+                    @keyframes idleUpperArm {
+                        0%, 100% { transform: rotate(0deg); }
+                        50% { transform: rotate(2deg); }
+                    }
+
+                    /* Damaged recoil */
+                    .damaged .upper-arm-segment {
+                        animation: damagedUpperArm 0.6s ease-out;
+                    }
+                    .damaged .forearm-segment {
+                        animation: damagedForearm 0.6s ease-out;
+                    }
+
+                    @keyframes damagedUpperArm {
+                        0% { transform: rotate(0deg); }
+                        30% { transform: rotate(-20deg) translateX(-5px); }
+                        100% { transform: rotate(0deg); }
+                    }
+
+                    @keyframes damagedForearm {
+                        0% { transform: rotate(0deg); }
+                        30% { transform: rotate(-30deg); }
+                        100% { transform: rotate(0deg); }
+                    }
+
+                    /* Enhanced idle animations with micro-movements */
+                    .idle .upper-arm-segment {
+                        animation: idleUpperArm 4s ease-in-out infinite;
+                    }
+                    .idle .torso-breathing {
+                        animation: chestBreathing 3s ease-in-out infinite;
+                    }
+                    .idle .flowing-garment {
+                        animation: gentleClothPhysics 5s ease-in-out infinite;
+                    }
+                    .idle .cape-flutter {
+                        animation: capeIdle 4s ease-in-out infinite;
+                    }
+
+                    @keyframes chestBreathing {
+                        0%, 100% { transform: scale(1) translateY(0); }
+                        50% { transform: scale(1.02) translateY(-0.5px); }
+                    }
+
+                    @keyframes gentleClothPhysics {
+                        0%, 100% { transform: translateX(0) skewX(0deg); }
+                        33% { transform: translateX(0.5px) skewX(0.5deg); }
+                        66% { transform: translateX(-0.5px) skewX(-0.5deg); }
+                    }
+
+                    @keyframes capeIdle {
+                        0%, 100% { transform: translateX(0) rotate(0deg); }
+                        25% { transform: translateX(1px) rotate(1deg); }
+                        50% { transform: translateX(0) rotate(0deg); }
+                        75% { transform: translateX(-1px) rotate(-1deg); }
+                    }
+
+                    /* Enhanced damage reactions */
+                    .damaged .torso-breathing {
+                        animation: damagedTorso 0.8s ease-out;
+                    }
+                    .damaged .flowing-garment {
+                        animation: clothDamagePhysics 0.8s ease-out;
+                    }
+
+                    @keyframes damagedTorso {
+                        0% { transform: scale(1) translateX(0); }
+                        20% { transform: scale(0.95) translateX(-3px) skewX(-2deg); }
+                        40% { transform: scale(0.9) translateX(-5px) skewX(-3deg); }
+                        70% { transform: scale(1.02) translateX(1px) skewX(1deg); }
+                        100% { transform: scale(1) translateX(0) skewX(0deg); }
+                    }
+
+                    @keyframes clothDamagePhysics {
+                        0% { transform: translateX(0) skewX(0deg); }
+                        30% { transform: translateX(-4px) skewX(-5deg); }
+                        60% { transform: translateX(2px) skewX(3deg); }
+                        100% { transform: translateX(0) skewX(0deg); }
+                    }
+
+                    /* Combat breathing */
+                    .attacking .torso-breathing,
+                    .slashing .torso-breathing,
+                    .chopping .torso-breathing {
+                        animation: combatBreathing 0.8s ease-in-out;
+                    }
+
+                    @keyframes combatBreathing {
+                        0% { transform: scale(1) translateY(0); }
+                        20% { transform: scale(1.05) translateY(-1px); }
+                        50% { transform: scale(1.08) translateY(-2px); }
+                        100% { transform: scale(1) translateY(0); }
+                    }
+
+                    /* Cape physics during combat */
+                    .slashing .cape-flutter,
+                    .chopping .cape-flutter {
+                        animation: combatCapePhysics 0.7s ease-out;
+                    }
+
+                    @keyframes combatCapePhysics {
+                        0% { transform: translateX(0) rotate(0deg); }
+                        30% { transform: translateX(-5px) rotate(-8deg); }
+                        60% { transform: translateX(8px) rotate(12deg); }
+                        100% { transform: translateX(0) rotate(0deg); }
+                    }\n\n                    /* Left arm (non-weapon) animations for balance */\n                    .attacking .left-arm-assembly .upper-arm-segment {\n                        animation: leftArmAttack 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);\n                    }\n                    .attacking .left-arm-assembly .forearm-segment {\n                        animation: leftForearmAttack 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);\n                    }\n\n                    @keyframes leftArmAttack {\n                        0% { transform: rotate(0deg); }\n                        15% { transform: rotate(-5deg); }\n                        30% { transform: rotate(15deg); }\n                        45% { transform: rotate(18deg); }\n                        65% { transform: rotate(-20deg); }\n                        80% { transform: rotate(-15deg); }\n                        100% { transform: rotate(0deg); }\n                    }\n\n                    @keyframes leftForearmAttack {\n                        0% { transform: rotate(0deg); }\n                        15% { transform: rotate(10deg); }\n                        30% { transform: rotate(-25deg); }\n                        45% { transform: rotate(-30deg); }\n                        65% { transform: rotate(35deg); }\n                        80% { transform: rotate(25deg); }\n                        100% { transform: rotate(0deg); }\n                    }\n\n                    /* Left arm idle breathing */\n                    .idle .left-arm-assembly .upper-arm-segment {\n                        animation: leftIdleArm 4s ease-in-out infinite;\n                    }\n\n                    @keyframes leftIdleArm {\n                        0%, 100% { transform: rotate(0deg); }\n                        25% { transform: rotate(-1deg); }\n                        50% { transform: rotate(-2deg); }\n                        75% { transform: rotate(-1deg); }\n                    }\n\n                    /* Left arm damage reaction */\n                    .damaged .left-arm-assembly .upper-arm-segment {\n                        animation: leftArmDamaged 0.8s ease-out;\n                    }\n                    .damaged .left-arm-assembly .forearm-segment {\n                        animation: leftForearmDamaged 0.8s ease-out;\n                    }\n\n                    @keyframes leftArmDamaged {\n                        0% { transform: rotate(0deg); }\n                        15% { transform: rotate(25deg) translateX(5px); }\n                        30% { transform: rotate(30deg) translateX(6px); }\n                        60% { transform: rotate(-10deg) translateX(-1px); }\n                        100% { transform: rotate(0deg); }\n                    }\n\n                    @keyframes leftForearmDamaged {\n                        0% { transform: rotate(0deg); }\n                        15% { transform: rotate(-25deg); }\n                        30% { transform: rotate(-30deg); }\n                        60% { transform: rotate(10deg); }\n                        100% { transform: rotate(0deg); }\n                    }\n                `}\n            </style>
         </svg>
     );
 };

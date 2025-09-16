@@ -18,7 +18,7 @@ export interface ArchitecturalSpace {
         color: string;
     }>;
     furniture: Array<{
-        type: 'altar' | 'pew' | 'throne' | 'pillar' | 'rug' | 'chest' | 'tapestry' | 'statue';
+        type: 'altar' | 'pew' | 'throne' | 'pillar' | 'rug' | 'chest' | 'tapestry' | 'statue' | 'table' | 'weapon_rack';
         position: Point;
         rotation?: number;
         scale?: number;
@@ -147,6 +147,43 @@ export const GOVERNMENT_FORUM_LAYOUT: BuildingLayout = {
                 { type: 'statue', position: { x: 23, y: 43 } }
             ],
             accessibility: 'public'
+        }
+    ]
+};
+
+// FORTRESS COMMANDER CHAMBER - Military command post
+export const FORTRESS_LAYOUT: BuildingLayout = {
+    name: 'Fortress Commander Chamber',
+    totalBounds: { width: 24, height: 16 },
+    entrance: { x: 12, y: 14 },
+    backgroundPattern: 'stone_fortress',
+    ambientLighting: { color: '#D2B48C', intensity: 0.5 },
+    spaces: [
+        // Main command chamber
+        {
+            id: 'command_chamber',
+            name: 'Command Chamber',
+            type: 'room',
+            bounds: { x: 2, y: 2, width: 20, height: 12 },
+            floorType: 'stone',
+            wallHeight: 4,
+            lightingSources: [
+                { type: 'torch', position: { x: 4, y: 4 }, intensity: 0.6, color: '#FF8C00' },
+                { type: 'torch', position: { x: 20, y: 4 }, intensity: 0.6, color: '#FF8C00' },
+                { type: 'brazier', position: { x: 12, y: 8 }, intensity: 0.8, color: '#FFD700' }
+            ],
+            furniture: [
+                { type: 'throne', position: { x: 12, y: 4 }, rotation: 180, scale: 1.2 }, // Commander's seat facing entrance
+                { type: 'table', position: { x: 12, y: 8 }, scale: 1.5 }, // War table
+                { type: 'weapon_rack', position: { x: 4, y: 6 }, rotation: 90 },
+                { type: 'weapon_rack', position: { x: 20, y: 6 }, rotation: 270 },
+                { type: 'chest', position: { x: 6, y: 12 } },
+                { type: 'chest', position: { x: 18, y: 12 } },
+                { type: 'tapestry', position: { x: 2, y: 6 } },
+                { type: 'tapestry', position: { x: 22, y: 6 } }
+            ],
+            accessibility: 'restricted',
+            requiredClass: ['military_officer', 'nobility', 'messenger']
         }
     ]
 };
@@ -664,7 +701,8 @@ export const BUILDING_LAYOUTS: Record<string, BuildingLayout> = {
     'asian_palace': ASIAN_PALACE_LAYOUT,
     'african_palace': AFRICAN_PALACE_LAYOUT,
     'government_forum': GOVERNMENT_FORUM_LAYOUT,
-    'government_district': GOVERNMENT_FORUM_LAYOUT
+    'government_district': GOVERNMENT_FORUM_LAYOUT,
+    'fortress': FORTRESS_LAYOUT
 };
 
 /**
@@ -689,6 +727,12 @@ export function selectBuildingLayout(
     if (buildingType === 'government' || buildingType === 'government_district' || buildingType === 'government_forum') {
         console.log('🏛️ Selected: GOVERNMENT_FORUM_LAYOUT');
         return GOVERNMENT_FORUM_LAYOUT;
+    }
+    
+    // Handle fortress buildings
+    if (buildingType === 'fortress') {
+        console.log('🏰 Selected: FORTRESS_LAYOUT');
+        return FORTRESS_LAYOUT;
     }
     
     if (buildingType === 'palace') {

@@ -2,7 +2,7 @@
  * hooks/useGameState.ts - Manages the game's clock, logs, and overall state.
  */
 import { useState, useCallback, useMemo, useRef } from 'react';
-import { GameDate, Season, TimeOfDay, SunPosition, GameLogEntry, PlayerJournalEntry, NarrationMessage, Tile, AdjacencyDirection, MapArchetype, ActionableTile } from '../types';
+import { GameDate, Season, TimeOfDay, SunPosition, GameLogEntry, PlayerJournalEntry, NarrationMessage, Tile, AdjacencyDirection, MapArchetype, ActionableTile, HistoricalEra } from '../types';
 import { getDaysInMonth, formatDateWithSeason } from '../utils/dateUtils';
 import { LogService } from '../services/logService';
 import { CULTURE_ZONES } from '../constants/index';
@@ -145,6 +145,21 @@ export const useGameState = () => {
 
     const formattedTime = useMemo(() => `${String(gameTimeHours).padStart(2, '0')}:${String(gameTimeMinutes).padStart(2, '0')}`, [gameTimeHours, gameTimeMinutes]);
     const formattedDate = useMemo(() => formatDateWithSeason(gameDate, season), [gameDate, season]);
+    
+    // Calculate current era from formatted date
+    const currentEra = useMemo(() => {
+        // Parse year from formatted date like "June 3, 238 BC" or "June 3, 1500 CE"
+        const yearMatch = formattedDate.match(/(\d+)\s*(BC|BCE|AD|CE)?/);
+        let year = yearMatch ? parseInt(yearMatch[1]) : 0;
+        if (yearMatch && (yearMatch[2] === 'BC' || yearMatch[2] === 'BCE')) {
+            year = -year;
+        }
+        if (year < 500) return HistoricalEra.ANTIQUITY;
+        if (year < 1450) return HistoricalEra.MEDIEVAL; 
+        if (year < 1800) return HistoricalEra.RENAISSANCE_EARLY_MODERN;
+        if (year < 1900) return HistoricalEra.INDUSTRIAL_ERA;
+        return HistoricalEra.MODERN_ERA;
+    }, [formattedDate]);
 
     // Log Handlers
     const addGameLogEntry = useCallback((entry: GameLogEntry) => {
@@ -192,6 +207,7 @@ export const useGameState = () => {
         currentTimeOfDay,
         formattedTime,
         formattedDate,
+        currentEra,
         currentZone,
         currentRegion,
         

@@ -205,42 +205,42 @@ const MATERIAL_COLOR_RANGES: Record<string, MaterialColorRange> = {
 
 const CLOTHING_COLOR_PALETTES: Record<CulturalZone, Record<string, string[]>> = {
   'EUROPEAN': {
-    common: ['Brown', 'Gray', 'Beige', 'Tan', 'Black'],
+    common: ['Brown', 'Gray', 'Beige', 'Tan', 'Black', 'Blue', 'Green', 'Red', 'White', 'Russet', 'Mustard', 'Dun'],
     noble: ['Navy', 'Crimson', 'Purple', 'Forest Green', 'Gold'],
     religious: ['Black', 'White', 'Brown', 'Gray']
   },
   'EAST_ASIAN': {
-    common: ['Black', 'Gray', 'Brown', 'Indigo', 'Hemp'],
+    common: ['Black', 'Gray', 'Brown', 'Indigo', 'Hemp', 'Blue', 'White', 'Red', 'Yellow', 'Green'],
     noble: ['Jade', 'Crimson', 'Gold', 'Purple', 'Silk White'],
     religious: ['Saffron', 'Orange', 'Brown', 'Gray']
   },
   'SOUTH_ASIAN': {
-    common: ['White', 'Brown', 'Indigo', 'Ochre', 'Hemp'],
+    common: ['White', 'Brown', 'Indigo', 'Ochre', 'Hemp', 'Red', 'Yellow', 'Blue', 'Green', 'Orange'],
     noble: ['Saffron', 'Crimson', 'Gold', 'Purple', 'Emerald'],
     religious: ['Saffron', 'White', 'Orange', 'Red']
   },
   'MENA': {
-    common: ['White', 'Brown', 'Black', 'Tan', 'Gray'],
+    common: ['White', 'Brown', 'Black', 'Tan', 'Gray', 'Blue', 'Red', 'Green', 'Yellow', 'Indigo'],
     noble: ['Purple', 'Gold', 'Crimson', 'Emerald', 'Azure'],
     religious: ['White', 'Green', 'Black']
   },
   'SUB_SAHARAN_AFRICAN': {
-    common: ['Brown', 'Red Earth', 'Ochre', 'Black', 'White'],
+    common: ['Brown', 'Red Earth', 'Ochre', 'Black', 'White', 'Blue', 'Yellow', 'Green', 'Orange', 'Red'],
     noble: ['Gold', 'Crimson', 'Purple', 'Leopard Print', 'Ivory'],
     religious: ['White', 'Red', 'Black', 'Yellow']
   },
   'LATIN_AMERICAN': {
-    common: ['Brown', 'White', 'Red', 'Blue', 'Yellow'],
+    common: ['Brown', 'White', 'Red', 'Blue', 'Yellow', 'Green', 'Orange', 'Black', 'Tan', 'Purple'],
     noble: ['Gold', 'Jade', 'Turquoise', 'Crimson', 'Purple'],
     religious: ['White', 'Gold', 'Red', 'Black']
   },
   'OCEANIAN': {
-    common: ['Brown', 'Tan', 'Black', 'White', 'Red'],
+    common: ['Brown', 'Tan', 'Black', 'White', 'Red', 'Blue', 'Yellow', 'Green', 'Orange'],
     noble: ['Red', 'Yellow', 'Black', 'White', 'Blue'],
     religious: ['Red', 'White', 'Black']
   },
   'NORTH_AMERICAN': {
-    common: ['Brown', 'Tan', 'Black', 'Gray', 'White'],
+    common: ['Brown', 'Tan', 'Black', 'Gray', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Orange'],
     noble: ['Turquoise', 'Red', 'Black', 'White', 'Yellow'],
     religious: ['White', 'Red', 'Black', 'Yellow']
   }
