@@ -37,6 +37,7 @@ import { findZoneForMapArea, findSimilarMapArea } from './services/zoneDetection
 import { useURLGameConfig } from './hooks/useURLGameConfig';
 import FactionsModal from './components/FactionsModal';
 import FactionTooltip from './components/FactionTooltip';
+import GameOverModal from './components/GameOverModal';
 import { SavedGame } from './services/saveGameService';
 import FloatingText from './components/ui/FloatingText';
 
@@ -172,7 +173,17 @@ const AppContent: React.FC = () => {
         return config;
     }, []); // Only parse once on mount
     
-    useCoreLoops();
+    // Death modal state
+    const [showDeathModal, setShowDeathModal] = React.useState(false);
+    const [deathCause, setDeathCause] = React.useState<any>(null);
+
+    // Handle death callback
+    const handleDeath = React.useCallback((deathInfo: any) => {
+        setDeathCause(deathInfo);
+        setShowDeathModal(true);
+    }, []);
+
+    useCoreLoops(handleDeath);
     const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, debugSettings, isTestModeEnabled, floatingTextMessages, removeFloatingText, containerPrompt, hideContainerPrompt } = useUI();
     const { playerCharacter } = usePlayer();
     const { gameDate, currentZone, currentRegion, isLoading } = useGame();
@@ -654,7 +665,7 @@ const AppContent: React.FC = () => {
                     </div>
                 </div>
                 
-                <MapViewport mapVisible={mapVisible} />
+                <MapViewport mapVisible={mapVisible} onPlayerDeath={handleDeath} />
                 
                 {/* Right Sidebar with mobile overlay and slide animation */}
                 <div className={`${mobileMenuOpen === 'right' ? 'fixed inset-0 z-30 sm:relative sm:inset-auto sm:flex' : 'hidden sm:flex'} sm:h-full`}>
@@ -775,10 +786,40 @@ const AppContent: React.FC = () => {
         )}
 
         {/* Floating Text System */}
-        <FloatingText 
-          messages={floatingTextMessages} 
-          onMessageComplete={removeFloatingText} 
+        <FloatingText
+          messages={floatingTextMessages}
+          onMessageComplete={removeFloatingText}
         />
+
+        {/* Death Modal */}
+        {playerCharacter && (
+          <GameOverModal
+            isOpen={showDeathModal}
+            causeOfDeath={deathCause || { type: 'accident' }}
+            playerStats={{
+              name: playerCharacter.name,
+              age: playerCharacter.age,
+              daysAlive: gameDate ? (gameDate.year * 365 + gameDate.month * 30 + gameDate.day) : 0,
+              location: localArea || currentZone || 'Unknown',
+              year: gameDate?.year,
+              profession: playerCharacter.profession,
+              culturalZone: currentZone,
+              distanceTraveled: playerCharacter.distanceTraveled || 0,
+              itemsCollected: playerCharacter.inventory?.length || 0,
+              questsCompleted: playerCharacter.questsCompleted || 0,
+              npcsMetTotal: playerCharacter.npcsMetTotal || 0
+            }}
+            achievements={playerCharacter.achievements || []}
+            onRestart={() => {
+              setShowDeathModal(false);
+              window.location.reload(); // Simple restart for now
+            }}
+            onMainMenu={() => {
+              setShowDeathModal(false);
+              navigate('/'); // Navigate to main menu
+            }}
+          />
+        )}
       </div>
     );
 };

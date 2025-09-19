@@ -1,6 +1,15 @@
 # Universal History Simulator - Development Notes
 
-## KEY CODEBASE INFORMATION (Updated September 13, 2025)
+## KEY CODEBASE INFORMATION (Updated September 18, 2025)
+
+### DEPRECATED SYSTEMS (September 18, 2025)
+
+#### **Ambiance Text System** - ❌ DEPRECATED
+- **Files**: `services/ambianceGenerator.ts`, `components/AmbianceDisplay.tsx`
+- **Function**: `generateAmbianceText()`
+- **Reason**: Generated repetitive text that didn't align with other game systems' reality depiction
+- **Status**: Disabled in UI, LLM calls replaced with placeholder text
+- **Alternative**: LLM services now use raw tile/climate data directly for more accurate context
 
 ### 1. Special Map Archetypes Currently in Use
 **Full list of archetype generator files in `/generation/specialMap/archetypes/`:**
@@ -665,6 +674,57 @@ The game uses a sophisticated procedural item generation system (`itemGeneration
 - **Solution**: Added category checking to skip material assignment for Food/Consumables
 - **Result**: Food now shows quality only ("Fine Loaf of Bread"), not materials
 
+## Mining Roguelike System (September 2025)
+
+### Overview
+The mining system is a tile-based roguelike minigame where players explore mine shafts, dig through walls, expose ore deposits, and collect minerals. It features procedural generation, cultural theming, and immersive audio-visual effects.
+
+### Core Components
+
+#### Main Files:
+- **`MiningRoguelikeDisplay.tsx`** - Main component with game loop, rendering, player movement, and ore collection
+- **`services/gameSoundsService.ts`** - Audio system with crystal music, ore exposure sounds, and magical pickup effects
+
+#### Key Features:
+
+**1. Procedural Mine Generation**
+- Dynamic cave systems with walls, floors, and pre-placed ore deposits
+- Cultural zone theming (materials, visual styles)
+- Configurable mine depth and ore types based on historical era
+
+**2. Player Movement & Interaction**
+- Arrow key navigation through mine tiles
+- Digging mechanics to expose hidden ore deposits
+- Space bar collection of exposed minerals
+
+**3. Ore System**
+- Hidden ore deposits become visible when adjacent walls are dug
+- Glowing sparkle effects when ore is exposed (`playOreExposedSound`, `playGemExposedSound`)
+- Beautiful floating notifications show collected items with quantities
+- Proper inventory integration via `onInventoryAdd` callback
+
+**4. Audio Design**
+- **Crystal Music**: Catchy, rhythmic background music that fades in after 8 seconds, loops for 25 seconds, then fades out after 1-2 minutes
+- **Sound Effects**: Ore exposure sounds, magical pickup sounds, ambient cave atmosphere
+- **Procedural Generation**: 100% Web Audio API with no external files
+
+**5. Visual Effects**
+- Intense glowing animations on exposed ore deposits
+- Floating pickup notifications with smooth CSS transitions
+- Cultural theming for mine materials and colors
+
+### Integration Points
+- **Settings Panel**: Test mode accessible via dev panel with visual inventory display
+- **Game State**: Integrates with player character stats (health, fatigue changes)
+- **Cultural System**: Mine appearance adapts to cultural zone and historical era
+- **Inventory System**: Items flow into main game inventory via callback system
+
+### Technical Architecture
+- React hooks (`useState`, `useEffect`, `useCallback`) for state management
+- Tile-based coordinate system for movement and interaction
+- Dynamic ore deposit creation with proper pickup item structure
+- Cleanup systems for audio and visual effects on component unmount
+
 
 ### 6. **Expanded Profession System** 👥 [✅ IMPLEMENTED]
    - Calculate theft chance during encounters
@@ -697,6 +757,15 @@ Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one unless asked otherwise. 
 NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+## Maps System Clarification - IMPORTANT
+
+### Interior Maps vs Special Maps
+**Interior Maps**: Small maps (often 8x8) accessed via POI modals (POIToastModal, POIInteractionModal). Used for fortress commander chambers, small buildings, etc. Generated and handled separately from special maps.
+
+**Special Maps**: Larger interior areas accessed via tile interactions (government districts, palaces, marketplaces, holy sites). Use the specialMapGenerator system and have their own archetype generators.
+
+These are DIFFERENT SYSTEMS - don't confuse them when making fixes!
+
 ## Special Maps System - December 2024
 
 ### Current State of Special Maps

@@ -15,4 +15,8 @@ export const AMBIANCE_NEIGHBORING_BIOME_FRAGMENTS: Partial<Record<BiomeType, str
   [BiomeType.ACTIVE_LAVA]: ["A faint smell of sulfur and the oppressive heat of lava can be sensed.", "A dull red glow might be visible over the horizon."],
   [BiomeType.ESTUARY]: ["The mixed scent of fresh and saltwater indicates an estuary is close."],
   [BiomeType.FRESHWATER_LAKE]: ["The calm presence of a large freshwater lake is felt nearby."],
+  [BiomeType.RIVERBANK]: ["Lush vegetation and the sound of water mark a riverbank nearby.", "The fertile soil of a riverbank can be sensed."],
+  [BiomeType.MANGROVE]: ["The brackish smell and twisted roots of mangroves are close by.", "The unique ecosystem of a mangrove swamp is near."],
+  [BiomeType.REEF]: ["The vibrant life of a coral reef system is visible through the clear water.", "Schools of colorful fish hint at a reef below."],
+  [BiomeType.SHOALS_TILE]: ["Dangerous shallow waters lurk nearby.", "The water becomes treacherously shallow in that direction."],
 };

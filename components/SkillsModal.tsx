@@ -1,8 +1,21 @@
 /**
  * components/SkillsModal.tsx - A modal to display the results of a player skill.
  */
-import React, { useState } from 'react';
-import { SkillResult, ObserveSkillResult, ForageSkillResult, DigSkillResult, ChopSkillResult } from '../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { SkillResult, ObserveSkillResult, ForageSkillResult, DigSkillResult, ChopSkillResult, CulturalZone, ClimateType, Season, WeatherState } from '../types';
+import { usePlayer } from '../contexts/PlayerContext';
+import { useMap } from '../contexts/MapContext';
+import { useGame } from '../contexts/GameContext';
+import { gameSounds } from '../services/gameSoundsService';
+import {
+  getBackgroundPaths,
+  loadBackgroundImage,
+  isNightTime,
+  getNightFilter,
+  getNightOverlayGradient,
+  getNightOverlayIntensity
+} from '../services/backgroundSelectionService';
+import WeatherEffects from './WeatherEffects';
 
 interface SkillsModalProps {
     isOpen: boolean;
@@ -14,10 +27,10 @@ interface SkillsModalProps {
 // Helper function to generate contextual advice
 const getContextualAdvice = (result: SkillResult): { calculation: string; advice: string } => {
     if (!result) return { calculation: '', advice: '' };
-    
+
     const type = result.type;
     const success = (result as any).success;
-    
+
     // Success calculations and advice
     if (success) {
         switch(type) {
@@ -48,10 +61,10 @@ const getContextualAdvice = (result: SkillResult): { calculation: string; advice
                 };
         }
     }
-    
+
     // Failure calculations and advice
     const message = (result as any).message || '';
-    
+
     // Analyze failure reason from message
     if (message.toLowerCase().includes('tool')) {
         return {
@@ -84,7 +97,7 @@ const getContextualAdvice = (result: SkillResult): { calculation: string; advice
 const MoreInfoSection: React.FC<{ result: SkillResult }> = ({ result }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const { calculation, advice } = getContextualAdvice(result);
-    
+
     return (
         <div className="mt-4 border-t border-slate-600/50 pt-3">
             <button
@@ -98,7 +111,7 @@ const MoreInfoSection: React.FC<{ result: SkillResult }> = ({ result }) => {
                     </svg>
                 </div>
             </button>
-            
+
             <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
                 <div className="mt-3 p-4 bg-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700/30 space-y-3">
                     {/* Calculation Section */}
@@ -110,7 +123,7 @@ const MoreInfoSection: React.FC<{ result: SkillResult }> = ({ result }) => {
                             {calculation}
                         </div>
                     </div>
-                    
+
                     {/* Advice Section */}
                     <div>
                         <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
@@ -120,7 +133,7 @@ const MoreInfoSection: React.FC<{ result: SkillResult }> = ({ result }) => {
                             {advice}
                         </p>
                     </div>
-                    
+
                     {/* Additional Stats if available */}
                     {(result as any).xpGained && (
                         <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-700/30">
@@ -128,7 +141,7 @@ const MoreInfoSection: React.FC<{ result: SkillResult }> = ({ result }) => {
                             <span className="text-yellow-400 font-semibold">+{(result as any).xpGained} XP</span>
                         </div>
                     )}
-                    
+
                     {(result as any).reputationChange && (
                         <div className="flex items-center justify-between text-xs text-slate-400">
                             <span>Reputation Change</span>
@@ -143,12 +156,432 @@ const MoreInfoSection: React.FC<{ result: SkillResult }> = ({ result }) => {
     );
 };
 
-const renderObserveResult = (result: ObserveSkillResult) => (
-    <>
+// Helper function to get weather suffix for background naming
+const getWeatherSuffix = (weatherState?: WeatherState): string | null => {
+  if (!weatherState) return null;
+  if (weatherState.precipitation === 'rain') return 'rain';
+  if (weatherState.precipitation === 'snow') return 'snow';
+  if (weatherState.precipitation === 'drizzle') return 'rain'; // Use rain variant for drizzle
+  if (weatherState.special === 'fog' || weatherState.special === 'mist') return 'fog';
+  return null;
+};
+
+// Helper function to get time suffix for background naming
+const getTimeSuffix = (gameTime?: { hours: number; minutes: number }): string | null => {
+  if (!gameTime) return null;
+  const currentTime = gameTime.hours + gameTime.minutes / 60;
+  // Night: 10pm-4am
+  if (currentTime >= 22 || currentTime < 4) {
+    return 'night';
+  }
+  // Crepuscular: dawn (4-8am) & dusk (6-9pm)
+  if ((currentTime >= 4 && currentTime < 8) || (currentTime >= 18 && currentTime < 21)) {
+    return 'crepuscular';
+  }
+  return null; // Day time uses base backgrounds
+};
+
+// Helper function to get culture suffix for background naming
+const getCultureSuffix = (culture?: CulturalZone): string | null => {
+  if (!culture) return null;
+  const cultureMapping: { [key: string]: string } = {
+    'EUROPEAN': 'european',
+    'EAST_ASIAN': 'east_asian',
+    'MENA': 'mena',
+    'NORTH_AMERICAN_PRE_COLUMBIAN': 'precolumbian',
+    'NORTH_AMERICAN_COLONIAL': 'colonial',
+    'OCEANIA': 'oceania',
+    'SOUTH_ASIAN': 'south_asian',
+    'SOUTH_AMERICAN': 'south_american',
+    'SUB_SAHARAN_AFRICAN': 'african'
+  };
+  return cultureMapping[culture] || null;
+};
+
+// Get climate-specific suffix for background naming
+const getClimateSuffix = (
+  climate?: ClimateType,
+  season?: Season
+): string | null => {
+  if (!climate) return null;
+
+  switch(climate) {
+    case ClimateType.COLD:
+      return 'snow'; // Always snowy appearance in cold climates
+
+    case ClimateType.ARID:
+      return 'arid'; // Dry, dusty appearance
+
+    case ClimateType.TROPICAL:
+      return 'tropical'; // Lush, humid appearance
+
+    case ClimateType.MEDITERRANEAN:
+      // Only arid-looking in summer/fall (dry season)
+      if (season === 'SUMMER' || season === 'FALL') {
+        return 'arid';
+      }
+      return null; // Spring/winter use standard backgrounds
+
+    case ClimateType.TEMPERATE:
+      // Snowy appearance in winter for temperate climates
+      if (season === 'WINTER') {
+        return 'snow';
+      }
+      return null; // Spring/summer/fall use standard backgrounds
+
+    default:
+      return null; // Semitropical uses standard (could be made tropical too if desired)
+  }
+};
+
+// Generate priority-ordered background paths
+const getBackgroundPaths = (
+  biome: string,
+  weatherState?: WeatherState,
+  gameTime?: { hours: number; minutes: number },
+  culture?: CulturalZone,
+  climate?: ClimateType,
+  season?: Season
+): string[] => {
+  // Convert biome enum to lowercase with underscores
+  // RIVERBANK -> riverbank, DENSE_FOREST -> dense_forest
+  let biomeName = biome.toLowerCase();
+
+  // Map common biome names to their file equivalents
+  // Only map biomes that genuinely don't have their own backgrounds
+  const biomeMapping: { [key: string]: string } = {
+    'scrub': 'grassland',
+    'steppe': 'grassland',
+    'tundra': 'grassland_snow',
+    'high_peak': 'mountain',
+    'cliff': 'hills',
+    'salt_flats': 'desert',
+    'government_district': 'dense_city',
+    'palace': 'dense_city',
+    'holy_site': 'dense_city',
+    'road': 'grassland',
+    'industrial_district': 'dense_city'
+  };
+
+  // Apply mapping if exists
+  if (biomeMapping[biomeName]) {
+    biomeName = biomeMapping[biomeName];
+  }
+
+  const paths: string[] = [];
+  const weatherSuffix = getWeatherSuffix(weatherState);
+  const timeSuffix = getTimeSuffix(gameTime);
+  const cultureSuffix = getCultureSuffix(culture);
+  const climateSuffix = getClimateSuffix(climate, season);
+
+  // Helper function to add paths for a specific culture
+  const addCulturalPaths = (cultureName: string) => {
+    // Climate variants with culture (HIGHEST PRIORITY)
+    if (climateSuffix) {
+      if (weatherSuffix && timeSuffix) {
+        paths.push(`${biomeName}_${climateSuffix}_${weatherSuffix}_${timeSuffix}_${cultureName}.png`);
+      }
+      if (weatherSuffix) {
+        paths.push(`${biomeName}_${climateSuffix}_${weatherSuffix}_${cultureName}.png`);
+      }
+      if (timeSuffix) {
+        paths.push(`${biomeName}_${climateSuffix}_${timeSuffix}_${cultureName}.png`);
+      }
+      paths.push(`${biomeName}_${climateSuffix}_${cultureName}.png`);
+    }
+
+    // Standard variants without climate
+    if (weatherSuffix && timeSuffix) {
+      paths.push(`${biomeName}_${weatherSuffix}_${timeSuffix}_${cultureName}.png`);
+    }
+    if (weatherSuffix) {
+      paths.push(`${biomeName}_${weatherSuffix}_${cultureName}.png`);
+    }
+    if (timeSuffix) {
+      paths.push(`${biomeName}_${timeSuffix}_${cultureName}.png`);
+    }
+    paths.push(`${biomeName}_${cultureName}.png`);
+  };
+
+  // PRIORITY 1: Check for the SPECIFIC culture variants first
+  if (cultureSuffix) {
+    addCulturalPaths(cultureSuffix);
+  }
+
+  // PRIORITY 2: Check for non-cultural climate variants
+  if (climateSuffix) {
+    if (weatherSuffix && timeSuffix) {
+      paths.push(`${biomeName}_${climateSuffix}_${weatherSuffix}_${timeSuffix}.png`);
+    }
+    if (weatherSuffix) {
+      paths.push(`${biomeName}_${climateSuffix}_${weatherSuffix}.png`);
+    }
+    if (timeSuffix) {
+      paths.push(`${biomeName}_${climateSuffix}_${timeSuffix}.png`);
+    }
+    paths.push(`${biomeName}_${climateSuffix}.png`);
+  }
+
+  // PRIORITY 3: Check for non-cultural weather/time variants (no climate)
+  if (weatherSuffix && timeSuffix) {
+    paths.push(`${biomeName}_${weatherSuffix}_${timeSuffix}.png`);
+  }
+  if (weatherSuffix) {
+    paths.push(`${biomeName}_${weatherSuffix}.png`);
+  }
+  if (timeSuffix) {
+    paths.push(`${biomeName}_${timeSuffix}.png`);
+  }
+
+  // PRIORITY 4: Check for the SPECIFIC biome base file
+  paths.push(`${biomeName}.png`);
+
+  // Add biome-specific direct fallbacks (without checking includes)
+  // This ensures we always try the exact biome file first
+  const directFallbacks: { [key: string]: string[] } = {
+    'deep_ocean': ['deep_ocean.png', 'shallow_ocean.png', 'beach.png'],
+    'shallow_ocean': ['shallow_ocean.png', 'deep_ocean.png', 'beach.png'],
+    'river': ['river.png', 'riverbank.png', 'wetlands.png'],
+    'major_river': ['major_river.png', 'river.png', 'riverbank.png'],
+    'riverbank': ['riverbank.png', 'river.png', 'wetlands.png'],
+    'estuary': ['estuary.png', 'riverbank.png', 'wetlands.png', 'beach.png'],
+    'freshwater_lake': ['freshwater_lake.png', 'riverbank.png', 'wetlands.png'],
+    'reef': ['reef.png', 'shallow_ocean.png', 'beach.png'],
+    'shoals_tile': ['shoals_tile.png', 'shallow_ocean.png', 'beach.png'],
+    'beach': ['beach.png', 'riverbank.png'],
+    'city_center': ['city_center.png', 'dense_city.png', 'low_density_city.png'],
+    'dense_city': ['dense_city.png', 'city_center.png', 'low_density_city.png'],
+    'low_density_city': ['low_density_city.png', 'dense_city.png'],
+    'hamlet': ['hamlet.png', 'low_density_city.png'],
+    'marketplace': ['marketplace.png', 'plaza.png', 'low_density_city.png'],
+    'plaza': ['plaza.png', 'marketplace.png'],
+    'dense_forest': ['dense_forest.png', 'forest.png', 'jungle.png'],
+    'forest': ['forest.png', 'dense_forest.png'],
+    'jungle': ['jungle.png', 'dense_forest.png', 'forest.png'],
+    'mountain': ['mountain.png', 'hills.png'],
+    'hills': ['hills.png', 'mountain.png'],
+    'farmland': ['farmland.png', 'grassland.png'],
+    'wetlands': ['wetlands.png', 'riverbank.png', 'mangrove.png'],
+    'mangrove': ['mangrove.png', 'wetlands.png'],
+    'hot_springs': ['hot_springs.png', 'wetlands.png'],
+    'volcanic_soil': ['volcanic_soil.png', 'mountain.png'],
+    'park': ['park.png', 'grassland.png'],
+    'oasis': ['oasis.png', 'desert.png'],
+    'desert': ['desert.png', 'hills_arid.png'],
+    'harbor_district': ['harbor_district.png', 'riverbank.png', 'beach.png'],
+    'ruins': ['ruins.png', 'hills.png', 'grassland.png']
+  };
+
+  // Add direct fallbacks for this specific biome
+  if (directFallbacks[biomeName]) {
+    paths.push(...directFallbacks[biomeName]);
+  }
+
+  // Universal fallbacks - most common backgrounds
+  paths.push('grassland.png', 'hills.png', 'forest.png', 'desert.png', 'dense_city.png', 'beach.png');
+
+  return paths;
+};
+
+const ObserveResultWithBackground: React.FC<{ result: ObserveSkillResult; onClose: () => void }> = ({ result, onClose }) => {
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [isUsingNightImage, setIsUsingNightImage] = useState(false);
+
+  // Access context data for climate and season
+  const { mapData } = useMap();
+  const { season } = useGame();
+
+  // Use context from the result which has the CORRECT position and biome
+  const observeContext = result.context || {};
+
+  // Use game time from context or calculate from time of day as fallback
+  const gameTime = useMemo(() => {
+    // Prefer the exact gameTime if available
+    if (observeContext.gameTime) {
+      return observeContext.gameTime;
+    }
+
+    // Fallback to timeOfDay conversion
+    const timeOfDay = observeContext.timeOfDay;
+    const hour = timeOfDay === 'DAWN' ? 6 :
+                 timeOfDay === 'MORNING' ? 9 :
+                 timeOfDay === 'NOON' ? 12 :
+                 timeOfDay === 'AFTERNOON' ? 15 :
+                 timeOfDay === 'EVENING' ? 18 :
+                 timeOfDay === 'DUSK' ? 20 :
+                 timeOfDay === 'NIGHT' ? 22 : 12;
+    return { hours: hour, minutes: 0 };
+  }, [observeContext.timeOfDay, observeContext.gameTime]);
+
+  // Calculate night overlay intensity
+  const nightIntensity = useMemo(() => {
+    return getNightOverlayIntensity(gameTime);
+  }, [gameTime]);
+
+  // Only apply tinting if we're not using a custom night image
+  const shouldApplyNightTint = useMemo(() => {
+    return nightIntensity > 0 && !isUsingNightImage;
+  }, [nightIntensity, isUsingNightImage]);
+
+  // Use biome from context (this is the ACTUAL biome where the skill was executed)
+  const currentBiome = observeContext.biome || 'GRASSLAND';
+  const culturalZone = observeContext.culturalZone;
+  const weather = observeContext.weather;
+
+  console.log('[ObserveModal] Using context from result:', {
+    biome: currentBiome,
+    position: { x: observeContext.playerX, y: observeContext.playerY },
+    culture: culturalZone,
+    weather: weather,
+    timeOfDay: observeContext.timeOfDay
+  });
+
+  // Load appropriate background
+  useEffect(() => {
+    const loadBackground = async () => {
+      // Wait a tick to ensure weather is fully populated
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      console.log('[ObserveModal] loadBackground called with weather:', {
+        weather,
+        precipitation: weather?.precipitation,
+        special: weather?.special,
+        hasWeather: !!weather,
+        weatherStringified: JSON.stringify(weather)
+      });
+
+      const paths = getBackgroundPaths(
+        currentBiome,
+        weather,
+        gameTime,
+        culturalZone,
+        mapData?.climate,
+        season
+      );
+
+      console.log('[ObserveModal] Climate-aware background selection:', {
+        biome: currentBiome,
+        culture: culturalZone,
+        weather: weather,
+        weatherPrecipitation: weather?.precipitation,
+        weatherSpecial: weather?.special,
+        weatherIntensity: weather?.intensity,
+        weatherFullObject: JSON.stringify(weather),
+        time: gameTime,
+        climate: mapData?.climate,
+        season: season,
+        climateSuffix: getClimateSuffix(mapData?.climate, season),
+        pathsToCheck: paths.slice(0, 10) // Show first 10 paths for debugging
+      });
+
+      // Use the same loadBackgroundImage function as POV viewport
+      const backgroundUrl = await loadBackgroundImage(paths);
+
+      // Check if we loaded a night-specific image
+      const usingNightImage = backgroundUrl ? backgroundUrl.includes('_night') : false;
+      setIsUsingNightImage(usingNightImage);
+
+      console.log('[ObserveModal] Found background:', backgroundUrl);
+      setBackgroundImage(backgroundUrl);
+    };
+
+    loadBackground();
+  }, [currentBiome, culturalZone, weather, gameTime, mapData?.climate, season]);
+
+  // Start environmental soundscape when modal opens
+  useEffect(() => {
+    console.log('[ObserveModal] Starting environmental soundscape for biome:', currentBiome);
+    gameSounds.playEnvironmentalSoundscape(currentBiome, weather);
+
+    // Cleanup: stop soundscape when modal closes
+    return () => {
+      console.log('[ObserveModal] Stopping environmental soundscape');
+      gameSounds.stopEnvironmentalSoundscape();
+    };
+  }, [currentBiome, weather]);
+
+  // If no background available, render standard modal
+  if (!backgroundImage) {
+    return (
+      <>
         <h3 id="skill-modal-title" className="text-xl font-semibold text-blue-300 mb-4 capitalize">Observation</h3>
         <p className="text-gray-300 whitespace-pre-wrap">{result.description}</p>
         {result.xpGained && <p className="text-sm text-yellow-400 mt-4 font-semibold">+{result.xpGained} XP</p>}
-    </>
+      </>
+    );
+  }
+
+  // Render full-screen observation with background
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose} style={{ margin: 0, padding: 0 }}>
+      {/* Background layer */}
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage: `url(${backgroundImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          filter: shouldApplyNightTint ? getNightFilter(nightIntensity) : 'none'
+        }}
+      />
+
+      {/* Night overlay with blend mode - only if not using custom night image */}
+      {shouldApplyNightTint && (
+        <div
+          className="absolute inset-0"
+          style={{
+            background: getNightOverlayGradient(nightIntensity),
+            mixBlendMode: 'multiply' as any,
+            transition: 'opacity 2s ease-in-out'
+          }}
+        />
+      )}
+
+      {/* Weather effects overlay */}
+      {observeContext.weather && (
+        <WeatherEffects
+          weather={observeContext.weather}
+        />
+      )}
+
+      {/* Gradient overlay for text visibility */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.8) 30%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.1) 70%, transparent 100%)'
+        }}
+      />
+
+      {/* Content */}
+      <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12 lg:p-16 max-w-5xl mx-auto" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-3xl md:text-4xl font-bold text-white mb-6 drop-shadow-2xl">
+          Environmental Observation
+        </h2>
+        <div className="prose prose-lg prose-invert max-w-none">
+          <p className="text-gray-100 text-lg md:text-xl leading-relaxed whitespace-pre-wrap drop-shadow-lg">
+            {result.description}
+          </p>
+        </div>
+        {result.xpGained && (
+          <p className="text-yellow-400 text-lg font-semibold mt-6 drop-shadow-lg">
+            +{result.xpGained} Experience Gained
+          </p>
+        )}
+
+        {/* Close button */}
+        <button
+          className="mt-8 px-8 py-3 bg-slate-800/80 hover:bg-slate-700/80 text-white font-semibold rounded-lg transition-all duration-200 backdrop-blur-sm border border-slate-600/50 shadow-xl"
+          onClick={onClose}
+        >
+          Continue Exploring
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const renderObserveResult = (result: ObserveSkillResult, onClose: () => void) => (
+  <ObserveResultWithBackground result={result} onClose={onClose} />
 );
 
 const renderForageResult = (result: ForageSkillResult) => {
@@ -239,16 +672,21 @@ const renderChopResult = (result: ChopSkillResult) => {
 const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, isLoading, result, onClose }) => {
   if (!isOpen) return null;
 
+  // Special full-screen rendering for observe skill
+  if (result?.type === 'observe' && !isLoading) {
+    return renderObserveResult(result as ObserveSkillResult, onClose);
+  }
+
   return (
-    <div 
-        className="modal-overlay"
+    <div
+        className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
         onClick={onClose}
         role="dialog"
         aria-modal="true"
         aria-labelledby="skill-modal-title"
     >
-      <div 
-        className="bg-modal-bg-gradient border border-slate-600 rounded-2xl shadow-glow-blue text-slate-200 w-full max-w-lg p-6 flex flex-col animate-popIn"
+      <div
+        className="bg-modal-bg-gradient border border-slate-600 rounded-2xl shadow-glow-blue text-slate-200 w-full max-w-lg p-6 flex flex-col animate-popIn pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
         style={{ minHeight: '250px' }}
       >
@@ -260,7 +698,6 @@ const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, isLoading, result, on
                 </div>
             ) : result ? (
                 <>
-                    {result.type === 'observe' && renderObserveResult(result as ObserveSkillResult)}
                     {result.type === 'forage' && renderForageResult(result as ForageSkillResult)}
                     {result.type === 'dig' && renderDigResult(result as DigSkillResult)}
                     {result.type === 'chop' && renderChopResult(result as ChopSkillResult)}
@@ -272,7 +709,7 @@ const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, isLoading, result, on
                          {(result as any).xpGained && <p className="text-sm text-yellow-400 mt-4 font-semibold">+{(result as any).xpGained} XP</p>}
                         </>
                     )}
-                    
+
                     {/* Add the expandable More Information section */}
                     <MoreInfoSection result={result} />
                 </>
@@ -283,7 +720,7 @@ const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, isLoading, result, on
             )}
         </div>
         <div className="mt-6 flex justify-end">
-             <button 
+             <button
                 className="px-6 py-2 bg-slate-600 hover:bg-slate-500 text-white text-sm font-semibold rounded-md transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={onClose}
                 disabled={isLoading}

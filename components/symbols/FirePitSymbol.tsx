@@ -10,10 +10,10 @@ interface FirePitSymbolProps {
   lit?: boolean;
 }
 
-const FirePitSymbol: React.FC<FirePitSymbolProps> = ({ 
-  x, 
-  y, 
-  size, 
+const FirePitSymbol: React.FC<FirePitSymbolProps> = React.memo(({
+  x,
+  y,
+  size,
   type = 'pit',
   culturalZone = 'EUROPEAN',
   era = 1000,
@@ -386,6 +386,6 @@ const FirePitSymbol: React.FC<FirePitSymbolProps> = ({
       {type === 'pit' && renderFirePit()}
     </g>
   );
-};
+});
 
 export default FirePitSymbol;

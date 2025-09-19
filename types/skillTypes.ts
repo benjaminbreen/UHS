@@ -29,6 +29,8 @@ export interface PlayerContext {
     mapData?: MapData | null;
     npcs?: NpcEntity[];
     gameDate?: GameDate;
+    gameTime?: { hours: number; minutes: number };
+    season?: string;
     // Interior context information
     interiorContext?: {
         buildingType: string;
@@ -44,6 +46,15 @@ export interface ObserveSkillResult {
     type: 'observe';
     description: string;
     xpGained?: number;
+    context?: {
+        biome?: string;
+        culturalZone?: string;
+        weather?: any;
+        timeOfDay?: string;
+        gameTime?: { hours: number; minutes: number };
+        playerX?: number;
+        playerY?: number;
+    };
 }
 
 export interface ForageSkillResult {

@@ -28,6 +28,7 @@ import { mapLocationToCulture } from '../utils/mapUtils';
 import { selectBuilding } from '../utils/buildingSelectionSystem';
 import { getLocationCulturalStyle } from '../utils/culturalMappingUtils';
 import { CliffSymbol, PineTreeSymbol, PalmTreeSymbol, DeciduousTreeSymbol, CactusSymbol, BushSymbol, PlayerIcon, ShipIcon, FarmSymbol, NpcIcon, EstuarySymbol, HillSymbol, MarketplaceSymbol, MangroveSymbol, SaltFlatsSymbol, CoralReefSymbol, FishingHutSymbol, SteamSymbol, GovernmentDistrictSymbol, FireflySymbol, MineralGlintSymbol, OasisSymbol, PlazaSymbol, ParkSymbol, HarborDistrictSymbol, IndustrialDistrictSymbol, PaddockSymbol, LavaSymbol, LavaSymbolCSS, MountainSymbol, SnowSymbol, BridgeSymbol } from './symbols';
+import DugEarthSymbol from './symbols/DugEarthSymbol';
 import RuinsSymbolNew from './symbols/ruins/RuinsSymbolNew';
 import VesselSymbol from './symbols/VesselSymbol';
 import ShipTooltip from './ShipTooltip';
@@ -377,6 +378,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   const [mobileControlMode, setMobileControlMode] = useState<'camera' | 'player'>('player');
   const [tamedAnimals, setTamedAnimals] = useState<TamedAnimal[]>([]);
   const [lastMoveDirection, setLastMoveDirection] = useState<{x: number, y: number}>({ x: 0, y: -1 });
+
   const [fireUpdateTrigger, setFireUpdateTrigger] = useState(0); // Force re-render when fires change
   
   // Load tamed animals on mount and when player position changes
@@ -466,6 +468,52 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   const flatTiles = useMemo(() => {
     return mapData?.tiles?.flat() || [];
   }, [mapData?.tiles]);
+
+  // Memoized filter operations - PERFORMANCE: Avoid filtering 10k elements every render
+  const desertParticleTiles = useMemo(() => {
+    if (!mapData?.seed) return [];
+    return flatTiles
+      .filter(tile => tile.biome === BiomeType.DESERT && tile.isLand)
+      .filter(tile => (tile.x + tile.y * 7 + mapData.seed) % 5 === 0);
+  }, [flatTiles, mapData?.seed]);
+
+  const snowEffectTiles = useMemo(() => {
+    if (!mapData?.seed) return [];
+    return flatTiles.filter(tile =>
+      (tile.biome === BiomeType.SNOW || tile.biome === BiomeType.TUNDRA) &&
+      tile.isLand &&
+      (tile.x + tile.y * 11 + mapData.seed) % 3 === 0
+    );
+  }, [flatTiles, mapData?.seed]);
+
+  const mountainTiles = useMemo(() => {
+    return flatTiles.filter(tile =>
+      tile.biome === BiomeType.MOUNTAIN ||
+      tile.biome === BiomeType.HIGH_PEAK
+    );
+  }, [flatTiles]);
+
+  const waterTiles = useMemo(() => {
+    return flatTiles.filter(tile => !tile.isLand);
+  }, [flatTiles]);
+
+  const overlayTiles = useMemo(() => {
+    return flatTiles.filter(tile => tile.overlayObject);
+  }, [flatTiles]);
+
+  const lightSourceTiles = useMemo(() => {
+    return flatTiles.filter(tile =>
+      tile.biome === BiomeType.TORCH ||
+      tile.biome === BiomeType.BRAZIER ||
+      tile.biome === BiomeType.FIRE_PIT ||
+      tile.biome === BiomeType.HEARTH ||
+      tile.biome === BiomeType.CHANDELIER ||
+      tile.biome === BiomeType.LANTERN ||
+      (tile.overlayObject?.type && ['CANDELABRA', 'TORCH', 'BRAZIER'].includes(tile.overlayObject.type.toString()))
+    );
+  }, [flatTiles]);
+
+
 
   // Sync state with refs for panning
   useEffect(() => {
@@ -809,7 +857,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     }, 100); // 100ms delay to ensure container is sized
     
     return () => clearTimeout(timeoutId);
-  }, [mapData, logicalControlledIconX, logicalControlledIconY]);
+  }, [logicalControlledIconX, logicalControlledIconY]); // Removed mapData dependency to prevent recentering on terrain modifications
 
   // Listen for center map events from quest panel
   useEffect(() => {
@@ -917,6 +965,19 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     }
     return null;
   }, [zoomLevel, panX, panY, mapData]);
+
+  // Helper to calculate correct screen position for tooltips accounting for zoom/pan
+  const getTooltipPosition = useCallback((tileX: number, tileY: number) => {
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (!containerRect) return { x: 0, y: 0 };
+
+    const tileScreenX = tileX * TILE_SIZE_PX * zoomLevel + panX + containerRect.left;
+    const tileScreenY = tileY * TILE_SIZE_PX * zoomLevel + panY + containerRect.top;
+    return {
+      x: tileScreenX + (TILE_SIZE_PX * zoomLevel) / 2,
+      y: tileScreenY
+    };
+  }, [zoomLevel, panX, panY]);
 
   // Helper function to get component info for a tile
   const getComponentInfoForTile = (tile: Tile, structure?: TerrainStructure | null, npc?: NpcEntity | null, animal?: AnimalEntity | null) => {
@@ -1147,9 +1208,16 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   // Debounced hover handlers for SVG elements
   const handleSvgElementMouseEnter = useCallback((element: any, type: 'tile' | 'poi', e: React.MouseEvent) => {
     if (isDragging) return;
-    
-    const rect = e.currentTarget.getBoundingClientRect();
-    const coords = { x: rect.left + rect.width / 2, y: rect.top };
+
+    // FIX: Calculate coordinates relative to the container, not the transformed SVG element
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (!containerRect) return;
+
+    // Get mouse position relative to container (accounts for pan/zoom transforms)
+    const coords = {
+      x: e.clientX - containerRect.left,
+      y: e.clientY - containerRect.top
+    };
     
     if (type === 'tile') {
       // Only set tile for city centers, government districts, and farmland
@@ -1714,46 +1782,80 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
           height={svgHeight} 
           viewBox={`0 0 ${svgWidth} ${svgHeight}`} 
           className="pointer-events-none absolute top-0 left-0 select-none" 
-          style={{ 
+          style={{
             width: svgWidth,
             height: svgHeight,
-            transform: `translate(${panX}px, ${panY}px) scale(${zoomLevel})`, 
-            transformOrigin: '0 0',
-            willChange: 'transform'
+            transform: `translate(${panX}px, ${panY}px) scale(${zoomLevel})`,
+            transformOrigin: '0 0'
+            // willChange: 'transform' // Disabled - causes Safari to render at lower resolution
           }}
         >
           <defs>
-            {/* Enhanced filters and gradients */}
-            <filter id="fireGlow">
-              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-              <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-            <filter id="symbolShadow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
-              <feOffset dx="2" dy="2" result="offsetblur"/>
-              <feFlood floodColor="#000000" floodOpacity="0.3"/>
-              <feComposite in2="offsetblur" operator="in"/>
-              <feMerge>
-                <feMergeNode/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-            
-            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-              <feMerge> 
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-            
-            {/* Stream rendering filter for better water appearance */}
-            <filter id="streamFilter">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="0.5" result="blur" />
-              <feOffset in="blur" dx="1" dy="1" result="offsetBlur" />
+            {/* Enhanced filters and gradients - optimized for Safari */}
+            {!isSafari ? (
+              <>
+                <filter id="fireGlow">
+                  <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+                <filter id="symbolShadow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+                  <feOffset dx="2" dy="2" result="offsetblur"/>
+                  <feFlood floodColor="#000000" floodOpacity="0.3"/>
+                  <feComposite in2="offsetblur" operator="in"/>
+                  <feMerge>
+                    <feMergeNode/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+                <filter id="streamFilter">
+                  <feGaussianBlur in="SourceGraphic" stdDeviation="0.5" result="blur" />
+                  <feOffset in="blur" dx="1" dy="1" result="offsetBlur" />
+                </filter>
+              </>
+            ) : (
+              <>
+                {/* Safari-optimized filters without blur */}
+                <filter id="fireGlow">
+                  {/* Simple opacity effect for Safari */}
+                  <feComponentTransfer>
+                    <feFuncA type="discrete" tableValues="1 0.9"/>
+                  </feComponentTransfer>
+                </filter>
+                <filter id="symbolShadow" x="-50%" y="-50%" width="200%" height="200%">
+                  {/* Simple offset shadow without blur for Safari */}
+                  <feOffset in="SourceAlpha" dx="2" dy="2" result="offsetblur"/>
+                  <feFlood floodColor="#000000" floodOpacity="0.2"/>
+                  <feComposite in2="offsetblur" operator="in"/>
+                  <feMerge>
+                    <feMergeNode/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                  {/* Simple brightness effect for Safari */}
+                  <feComponentTransfer>
+                    <feFuncA type="discrete" tableValues="1 0.95"/>
+                  </feComponentTransfer>
+                </filter>
+                <filter id="streamFilter">
+                  {/* Simple offset for Safari */}
+                  <feOffset in="SourceGraphic" dx="1" dy="1" result="offsetBlur" />
+                </filter>
+              </>
+            )}
+            {/* Continue with rest of the original filter definition that's common to both */}
+            <filter id="streamFilter2">
               <feFlood floodColor="#000000" floodOpacity="0.2" />
               <feComposite in2="offsetBlur" operator="in" result="shadow" />
               <feMerge>
@@ -1764,7 +1866,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             
             {/* Water mask for paths */}
             <mask id="waterMask">
-              {tiles.flat().map((tile) => (
+              {flatTiles.map((tile) => (
                 <rect
                   key={`mask-${tile.x}-${tile.y}`}
                   x={tile.x * TILE_SIZE_PX}
@@ -1802,386 +1904,35 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               <circle cx={TILE_SIZE_PX * 0.5} cy={TILE_SIZE_PX * 0.8} r="1" fill="rgba(107,142,35,0.15)" />
             </pattern>
 
-            {/* Watercolor edge effect filters */}
+            {/* Watercolor edge effect filters - optimized for Safari */}
             <filter id="watercolor-edge-blend">
-              <feTurbulence
-                type="fractalNoise"
-                baseFrequency="0.02"
-                numOctaves="3"
-                seed={seed}
-                result="turbulence"
-              />
-              <feColorMatrix in="turbulence" type="saturate" values="0" result="desaturated"/>
-              <feComponentTransfer in="desaturated" result="discrete">
-                <feFuncA type="discrete" tableValues="0 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1"/>
-              </feComponentTransfer>
-              <feGaussianBlur in="discrete" stdDeviation="1.5" result="blurred"/>
-              <feBlend mode="multiply" in="blurred" in2="SourceGraphic"/>
+              {!isSafari ? (
+                <>
+                  <feTurbulence
+                    type="fractalNoise"
+                    baseFrequency="0.02"
+                    numOctaves="3"
+                    seed={seed}
+                    result="turbulence"
+                  />
+                  <feColorMatrix in="turbulence" type="saturate" values="0" result="desaturated"/>
+                  <feComponentTransfer in="desaturated" result="discrete">
+                    <feFuncA type="discrete" tableValues="0 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1"/>
+                  </feComponentTransfer>
+                  <feGaussianBlur in="discrete" stdDeviation="1.5" result="blurred"/>
+                  <feBlend mode="multiply" in="blurred" in2="SourceGraphic"/>
+                </>
+              ) : (
+                // Simplified effect for Safari without blur
+                <>
+                  <feComponentTransfer>
+                    <feFuncA type="discrete" tableValues="1 0.95 0.9"/>
+                  </feComponentTransfer>
+                </>
+              )}
             </filter>
           </defs>
 
-          {/* Watercolor biome edge transitions - TOGGLEABLE */}
-          {/* Set to false to disable the watercolor effect */}
-          {false && shouldRenderDetailedSymbols && mapData && noiseGenerators.watercolorEdge && (() => {
-            const ENABLE_WATERCOLOR_EDGES = true; // Toggle this to enable/disable
-            if (!ENABLE_WATERCOLOR_EDGES) return null;
-
-            const edgeTransitions = [];
-            const processedEdges = new Set();
-
-            // Use the memoized noise generator to prevent shifting
-            const noiseGen = noiseGenerators.watercolorEdge;
-
-            // Important biome types to check for transitions (exclude urban/water/special)
-            const naturalBiomes = new Set([
-              BiomeType.GRASSLAND, BiomeType.FOREST, BiomeType.DENSE_FOREST,
-              BiomeType.DESERT, BiomeType.JUNGLE, BiomeType.TUNDRA,
-              BiomeType.HILLS, BiomeType.MOUNTAIN, BiomeType.SCRUB,
-              BiomeType.WETLANDS, BiomeType.SNOW, BiomeType.BEACH
-            ]);
-
-            // Find all biome edge tiles
-            tiles.forEach((row, y) => {
-              row.forEach((tile, x) => {
-                // Only process natural land biomes
-                if (!tile.isLand || !naturalBiomes.has(tile.biome)) return;
-
-                // Check all 4 neighbors
-                const neighbors = [];
-                if (y > 0 && tiles[y-1][x].isLand && naturalBiomes.has(tiles[y-1][x].biome)) {
-                  neighbors.push({ tile: tiles[y-1][x], dir: 'north' });
-                }
-                if (y < MAP_HEIGHT_TILES - 1 && tiles[y+1][x].isLand && naturalBiomes.has(tiles[y+1][x].biome)) {
-                  neighbors.push({ tile: tiles[y+1][x], dir: 'south' });
-                }
-                if (x > 0 && tiles[y][x-1].isLand && naturalBiomes.has(tiles[y][x-1].biome)) {
-                  neighbors.push({ tile: tiles[y][x-1], dir: 'west' });
-                }
-                if (x < MAP_WIDTH_TILES - 1 && tiles[y][x+1].isLand && naturalBiomes.has(tiles[y][x+1].biome)) {
-                  neighbors.push({ tile: tiles[y][x+1], dir: 'east' });
-                }
-
-                // Find neighbors with different biomes
-                const differentBiomes = neighbors.filter(n => n.tile.biome !== tile.biome);
-
-                // Skip if no different biomes nearby
-                if (differentBiomes.length === 0) return;
-
-                const edgeKey = `${x},${y}`;
-                if (processedEdges.has(edgeKey)) return;
-                processedEdges.add(edgeKey);
-
-                // Use consistent noise based on position - calculate once, use for multiple layers
-                const noiseValue = noiseGen.noise(x * 0.05, y * 0.05); // Large scale
-                const noiseValue2 = noiseGen.noise(x * 0.1 + 100, y * 0.1 + 100); // Medium scale
-                const noiseValue3 = noiseGen.noise(x * 0.2 + 200, y * 0.2 + 200); // Small scale
-
-                // Function to get biome-specific blend color
-                const getBiomeBlendColor = (fromBiome, toBiome) => {
-                  // Desert transitions - sandy/yellow tints
-                  if (fromBiome === BiomeType.DESERT || toBiome === BiomeType.DESERT) {
-                    return 'rgba(194, 178, 128, 0.25)'; // Sandy beige
-                  }
-                  // Forest transitions - greenish tints
-                  if (fromBiome === BiomeType.FOREST || toBiome === BiomeType.FOREST ||
-                      fromBiome === BiomeType.DENSE_FOREST || toBiome === BiomeType.DENSE_FOREST) {
-                    return 'rgba(139, 154, 120, 0.25)'; // Mossy green
-                  }
-                  // Mountain/hill transitions - grayish tints
-                  if (fromBiome === BiomeType.MOUNTAIN || toBiome === BiomeType.MOUNTAIN ||
-                      fromBiome === BiomeType.HILLS || toBiome === BiomeType.HILLS) {
-                    return 'rgba(156, 156, 168, 0.25)'; // Rocky gray
-                  }
-                  // Snow transitions - bluish white
-                  if (fromBiome === BiomeType.SNOW || toBiome === BiomeType.SNOW ||
-                      fromBiome === BiomeType.TUNDRA || toBiome === BiomeType.TUNDRA) {
-                    return 'rgba(188, 200, 212, 0.25)'; // Ice blue
-                  }
-                  // Wetland transitions - murky green
-                  if (fromBiome === BiomeType.WETLANDS || toBiome === BiomeType.WETLANDS) {
-                    return 'rgba(125, 147, 125, 0.25)'; // Swamp green
-                  }
-                  // Beach transitions - sandy
-                  if (fromBiome === BiomeType.BEACH || toBiome === BiomeType.BEACH) {
-                    return 'rgba(210, 195, 160, 0.25)'; // Beach sand
-                  }
-                  // Jungle transitions - deep green
-                  if (fromBiome === BiomeType.JUNGLE || toBiome === BiomeType.JUNGLE) {
-                    return 'rgba(100, 130, 90, 0.25)'; // Deep jungle green
-                  }
-                  // Default neutral brown
-                  return 'rgba(160, 145, 130, 0.25)';
-                };
-
-                // Create organic gradient masks for transitions with multiple layers
-                differentBiomes.forEach((neighbor, idx) => {
-                  // Calculate direction vector
-                  const dx = neighbor.dir === 'east' ? 1 : neighbor.dir === 'west' ? -1 : 0;
-                  const dy = neighbor.dir === 'south' ? 1 : neighbor.dir === 'north' ? -1 : 0;
-
-                  // Get biome-appropriate color
-                  const blendColor = getBiomeBlendColor(tile.biome, neighbor.tile.biome);
-
-                  // Create gradient IDs for each layer
-                  const gradientId1 = `edge-gradient-${x}-${y}-${idx}-1`;
-                  const gradientId2 = `edge-gradient-${x}-${y}-${idx}-2`;
-                  const gradientId3 = `edge-gradient-${x}-${y}-${idx}-3`;
-
-                  edgeTransitions.push(
-                    <g key={`edge-group-${x}-${y}-${idx}`}>
-                      <defs>
-                        {/* Layer 1 - Large scale gradient */}
-                        <linearGradient id={gradientId1} x1="0%" y1="0%"
-                          x2={`${dx * 100}%`} y2={`${dy * 100}%`}>
-                          <stop offset="0%" stopColor="white" stopOpacity="0" />
-                          <stop offset="40%" stopColor="white" stopOpacity="0.3" />
-                          <stop offset="100%" stopColor="white" stopOpacity="0.8" />
-                        </linearGradient>
-                        {/* Layer 2 - Medium scale gradient */}
-                        <linearGradient id={gradientId2} x1="0%" y1="0%"
-                          x2={`${dx * 100}%`} y2={`${dy * 100}%`}>
-                          <stop offset="0%" stopColor="white" stopOpacity="0" />
-                          <stop offset="60%" stopColor="white" stopOpacity="0.6" />
-                          <stop offset="100%" stopColor="white" stopOpacity="1" />
-                        </linearGradient>
-                        {/* Layer 3 - Small scale gradient */}
-                        <linearGradient id={gradientId3} x1="0%" y1="0%"
-                          x2={`${dx * 100}%`} y2={`${dy * 100}%`}>
-                          <stop offset="0%" stopColor="white" stopOpacity="0" />
-                          <stop offset="30%" stopColor="white" stopOpacity="0.2" />
-                          <stop offset="100%" stopColor="white" stopOpacity="0.5" />
-                        </linearGradient>
-                      </defs>
-
-                      {/* Layer 1 - Large scale (10% opacity) */}
-                      <rect
-                        x={x * TILE_SIZE_PX + noiseValue * 4 * dx}
-                        y={y * TILE_SIZE_PX + noiseValue * 4 * dy}
-                        width={TILE_SIZE_PX * (0.9 + Math.abs(noiseValue) * 0.2)}
-                        height={TILE_SIZE_PX * (0.9 + Math.abs(noiseValue) * 0.2)}
-                        fill={blendColor}
-                        opacity={0.1}
-                        mask={`url(#${gradientId1})`}
-                        style={{
-                          mixBlendMode: 'multiply',
-                          filter: 'url(#watercolor-edge-blend)',
-                          pointerEvents: 'none'
-                        }}
-                      />
-
-                      {/* Layer 2 - Medium scale (15% opacity) */}
-                      <rect
-                        x={x * TILE_SIZE_PX + noiseValue2 * 3 * dx}
-                        y={y * TILE_SIZE_PX + noiseValue2 * 3 * dy}
-                        width={TILE_SIZE_PX * (0.95 + Math.abs(noiseValue2) * 0.3)}
-                        height={TILE_SIZE_PX * (0.95 + Math.abs(noiseValue2) * 0.3)}
-                        fill={blendColor}
-                        opacity={0.15}
-                        mask={`url(#${gradientId2})`}
-                        style={{
-                          mixBlendMode: 'multiply',
-                          filter: 'url(#watercolor-edge-blend)',
-                          pointerEvents: 'none'
-                        }}
-                      />
-
-                      {/* Layer 3 - Small scale (5% opacity) */}
-                      <rect
-                        x={x * TILE_SIZE_PX + noiseValue3 * 2 * dx}
-                        y={y * TILE_SIZE_PX + noiseValue3 * 2 * dy}
-                        width={TILE_SIZE_PX}
-                        height={TILE_SIZE_PX}
-                        fill={blendColor}
-                        opacity={0.05}
-                        mask={`url(#${gradientId3})`}
-                        style={{
-                          mixBlendMode: 'multiply',
-                          filter: 'url(#watercolor-edge-blend)',
-                          pointerEvents: 'none'
-                        }}
-                      />
-                    </g>
-                  );
-                });
-              });
-            });
-
-            return (
-              <g className="watercolor-edges">
-                {edgeTransitions}
-              </g>
-            );
-          })()}
-
-          {/* Coastline overlay removed - using context-aware enhancements instead */}
-
-          {/* Coastal enhancements removed - now handled by canvas organic edge rendering */}
-          {false && (
-          <g id="coastal-enhancements" opacity="0.8">
-            {shouldRenderDetailedSymbols && (() => {
-              // Generate organic coastline paths for smoother, more natural edges
-              const coastalPaths = [];
-              const processedTiles = new Set();
-              
-              // Find all coastal tiles and group them into continuous coastlines
-              tiles.forEach((row, y) => {
-                row.forEach((tile, x) => {
-                  const tileKey = `${x},${y}`;
-                  if (processedTiles.has(tileKey) || !tile.isLand) return;
-                  
-                  // Check if this is a coastal tile
-                  let isCoastal = false;
-                  let hasNorthWater = false;
-                  let hasSouthWater = false;
-                  let hasEastWater = false;
-                  let hasWestWater = false;
-                  
-                  if (y > 0 && !tiles[y - 1][x].isLand) { hasNorthWater = true; isCoastal = true; }
-                  if (y < MAP_HEIGHT_TILES - 1 && !tiles[y + 1][x].isLand) { hasSouthWater = true; isCoastal = true; }
-                  if (x > 0 && !tiles[y][x - 1].isLand) { hasWestWater = true; isCoastal = true; }
-                  if (x < MAP_WIDTH_TILES - 1 && !tiles[y][x + 1].isLand) { hasEastWater = true; isCoastal = true; }
-                  
-                  if (!isCoastal) return;
-                  
-                  processedTiles.add(tileKey);
-                  const tileX = x * TILE_SIZE_PX;
-                  const tileY = y * TILE_SIZE_PX;
-                  
-                  // Generate organic edge paths for this coastal tile
-                  const createOrganicEdge = (startX, startY, endX, endY, curveDirection) => {
-                    // Create a bezier curve with natural scalloping
-                    const midX = (startX + endX) / 2;
-                    const midY = (startY + endY) / 2;
-                    
-                    // Add organic variation using sine waves
-                    const variation = Math.sin(x * 0.7 + y * 0.5) * TILE_SIZE_PX * 0.15;
-                    const scallop = Math.cos(x * 1.2 - y * 0.8) * TILE_SIZE_PX * 0.1;
-                    
-                    let controlX = midX;
-                    let controlY = midY;
-                    
-                    if (curveDirection === 'north' || curveDirection === 'south') {
-                      controlX += variation + scallop;
-                      controlY += curveDirection === 'north' ? -TILE_SIZE_PX * 0.2 : TILE_SIZE_PX * 0.2;
-                    } else {
-                      controlY += variation + scallop;
-                      controlX += curveDirection === 'west' ? -TILE_SIZE_PX * 0.2 : TILE_SIZE_PX * 0.2;
-                    }
-                    
-                    return `M ${startX} ${startY} Q ${controlX} ${controlY} ${endX} ${endY}`;
-                  };
-                  
-                  // Apply different effects based on biome type
-                  if (tile.biome === BiomeType.BEACH || tile.biome === BiomeType.RIVERBANK || tile.biome === BiomeType.WETLANDS) {
-                    // Create organic, scalloped edges for soft coastlines
-                    const edges = [];
-                    
-                    if (hasNorthWater) {
-                      const path = createOrganicEdge(tileX, tileY + 4, tileX + TILE_SIZE_PX, tileY + 4, 'north');
-                      edges.push(
-                        <path key="n" d={path} stroke="rgba(255,248,220,0.15)" strokeWidth="2" fill="none" />
-                      );
-                    }
-                    if (hasSouthWater) {
-                      const path = createOrganicEdge(tileX, tileY + TILE_SIZE_PX - 4, tileX + TILE_SIZE_PX, tileY + TILE_SIZE_PX - 4, 'south');
-                      edges.push(
-                        <path key="s" d={path} stroke="rgba(255,248,220,0.15)" strokeWidth="2" fill="none" />
-                      );
-                    }
-                    if (hasWestWater) {
-                      const path = createOrganicEdge(tileX + 4, tileY, tileX + 4, tileY + TILE_SIZE_PX, 'west');
-                      edges.push(
-                        <path key="w" d={path} stroke="rgba(255,248,220,0.12)" strokeWidth="2" fill="none" />
-                      );
-                    }
-                    if (hasEastWater) {
-                      const path = createOrganicEdge(tileX + TILE_SIZE_PX - 4, tileY, tileX + TILE_SIZE_PX - 4, tileY + TILE_SIZE_PX, 'east');
-                      edges.push(
-                        <path key="e" d={path} stroke="rgba(255,248,220,0.12)" strokeWidth="2" fill="none" />
-                      );
-                    }
-                    
-                    if (edges.length > 0) {
-                      coastalPaths.push(
-                        <g key={`coast-${x}-${y}`}>{edges}</g>
-                      );
-                    }
-                  } else if (tile.biome === BiomeType.CLIFF) {
-                    // Straight, sharp edges for cliffs with dark shadows
-                    const cliffEdges = [];
-                    
-                    if (hasNorthWater) {
-                      cliffEdges.push(
-                        <line key="n" x1={tileX} y1={tileY + 2} x2={tileX + TILE_SIZE_PX} y2={tileY + 2} 
-                              stroke="rgba(0,0,0,0.3)" strokeWidth="3" />
-                      );
-                    }
-                    if (hasSouthWater) {
-                      cliffEdges.push(
-                        <line key="s" x1={tileX} y1={tileY + TILE_SIZE_PX - 2} x2={tileX + TILE_SIZE_PX} y2={tileY + TILE_SIZE_PX - 2} 
-                              stroke="rgba(0,0,0,0.3)" strokeWidth="3" />
-                      );
-                    }
-                    if (hasWestWater) {
-                      cliffEdges.push(
-                        <line key="w" x1={tileX + 2} y1={tileY} x2={tileX + 2} y2={tileY + TILE_SIZE_PX} 
-                              stroke="rgba(0,0,0,0.3)" strokeWidth="3" />
-                      );
-                    }
-                    if (hasEastWater) {
-                      cliffEdges.push(
-                        <line key="e" x1={tileX + TILE_SIZE_PX - 2} y1={tileY} x2={tileX + TILE_SIZE_PX - 2} y2={tileY + TILE_SIZE_PX} 
-                              stroke="rgba(0,0,0,0.3)" strokeWidth="3" />
-                      );
-                    }
-                    
-                    if (cliffEdges.length > 0) {
-                      coastalPaths.push(
-                        <g key={`cliff-${x}-${y}`}>{cliffEdges}</g>
-                      );
-                    }
-                  } else if (tile.biome === BiomeType.GRASSLAND || tile.biome === BiomeType.FOREST) {
-                    // Very subtle organic edges for regular coastlines
-                    const edges = [];
-                    
-                    if (hasNorthWater) {
-                      const path = createOrganicEdge(tileX, tileY + 2, tileX + TILE_SIZE_PX, tileY + 2, 'north');
-                      edges.push(
-                        <path key="n" d={path} stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" fill="none" />
-                      );
-                    }
-                    if (hasSouthWater) {
-                      const path = createOrganicEdge(tileX, tileY + TILE_SIZE_PX - 2, tileX + TILE_SIZE_PX, tileY + TILE_SIZE_PX - 2, 'south');
-                      edges.push(
-                        <path key="s" d={path} stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" fill="none" />
-                      );
-                    }
-                    if (hasWestWater) {
-                      const path = createOrganicEdge(tileX + 2, tileY, tileX + 2, tileY + TILE_SIZE_PX, 'west');
-                      edges.push(
-                        <path key="w" d={path} stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" fill="none" />
-                      );
-                    }
-                    if (hasEastWater) {
-                      const path = createOrganicEdge(tileX + TILE_SIZE_PX - 2, tileY, tileX + TILE_SIZE_PX - 2, tileY + TILE_SIZE_PX, 'east');
-                      edges.push(
-                        <path key="e" d={path} stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" fill="none" />
-                      );
-                    }
-                    
-                    if (edges.length > 0) {
-                      coastalPaths.push(
-                        <g key={`coast-${x}-${y}`}>{edges}</g>
-                      );
-                    }
-                  }
-                });
-              });
-              
-              return coastalPaths;
-            })()}
-          </g>
-          )}
 
           {/* Rendering layers */}
           <g>
@@ -2189,7 +1940,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {activeLens !== 'none' && (
                 <g key="strategic-lens">
                     {/* Lens visualization layer */}
-                    {tiles.flat().map(tile => {
+                    {flatTiles.map(tile => {
                         if (!tile.isLand && activeLens !== 'minerals') return null;
                         
                         let value = 0;
@@ -2336,7 +2087,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {/* Terrain features layer (farms, cliffs, etc - rendered BELOW roads, but EXCLUDING hills which render above) */}
             {shouldRenderDetailedSymbols && (
               <g filter="url(#symbolShadow)">
-                {tiles.flat().map((tile) => {
+                {flatTiles.map((tile) => {
                   const symbolX = tile.x * TILE_SIZE_PX;
                   const symbolY = tile.y * TILE_SIZE_PX;
                   const tileSeed = seed + tile.x * 31 + tile.y * 37;
@@ -2392,8 +2143,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredTile(tile);
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setHoveredTileCoords({ x: rect.left + rect.width / 2, y: rect.top });
+                            setHoveredTileCoords(getTooltipPosition(tile.x, tile.y));
                           }
                         }}
                         onMouseLeave={() => {
@@ -2614,7 +2364,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {/* Hills */}
             {shouldRenderDetailedSymbols && (
               <g filter="url(#symbolShadow)">
-                {tiles.flat().map((tile) => {
+                {flatTiles.map((tile) => {
                   if (tile.biome !== BiomeType.HILLS) return null;
                   const symbolX = tile.x * TILE_SIZE_PX;
                   const symbolY = tile.y * TILE_SIZE_PX;
@@ -2627,7 +2377,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {/* Mountains */}
             {shouldRenderDetailedSymbols && (
               <g filter="url(#symbolShadow)">
-                {tiles.flat().map((tile) => {
+                {flatTiles.map((tile) => {
                   if (tile.biome !== BiomeType.MOUNTAIN) return null;
                   const symbolX = tile.x * TILE_SIZE_PX;
                   const symbolY = tile.y * TILE_SIZE_PX;
@@ -2641,7 +2391,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {/* Snow and seasonal riverbank snow */}
             {shouldRenderDetailedSymbols && (
               <g>
-                {tiles.flat().map((tile) => {
+                {flatTiles.map((tile) => {
                   // Regular snow tiles
                   if (tile.biome === BiomeType.SNOW) {
                     const symbolX = tile.x * TILE_SIZE_PX;
@@ -2697,7 +2447,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {/* Lava tiles - dramatic animated effect */}
             {shouldRenderDetailedSymbols && (
               <g>
-                {tiles.flat().map((tile) => {
+                {flatTiles.map((tile) => {
                   if (tile.biome !== BiomeType.ACTIVE_LAVA) return null;
                   const lavaX = tile.x * TILE_SIZE_PX;
                   const lavaY = tile.y * TILE_SIZE_PX;
@@ -2718,7 +2468,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {/* Animal Paddocks (fences) */}
             {shouldRenderDetailedSymbols && (
               <g>
-                {tiles.flat().map((tile) => {
+                {flatTiles.map((tile) => {
                   if (tile.paddockType !== 'Livestock') return null;
                   const symbolX = tile.x * TILE_SIZE_PX;
                   const symbolY = tile.y * TILE_SIZE_PX;
@@ -2789,7 +2539,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {/* Urban and structure symbols layer (rendered ABOVE terrain features) */}
             {shouldRenderDetailedSymbols && (
               <g filter="url(#symbolShadow)">
-                {tiles.flat().map((tile) => {
+                {flatTiles.map((tile) => {
                   const symbolX = tile.x * TILE_SIZE_PX;
                   const symbolY = tile.y * TILE_SIZE_PX;
                   const tileSeed = seed + tile.x * 31 + tile.y * 37;
@@ -2803,8 +2553,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredTile(tile);
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setHoveredTileCoords({ x: rect.left + rect.width / 2, y: rect.top });
+                            setHoveredTileCoords(getTooltipPosition(tile.x, tile.y));
                           }
                         }}
                         onMouseLeave={() => {
@@ -2823,8 +2572,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredTile(tile);
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setHoveredTileCoords({ x: rect.left + rect.width / 2, y: rect.top });
+                            setHoveredTileCoords(getTooltipPosition(tile.x, tile.y));
                           }
                         }}
                         onMouseLeave={() => {
@@ -2864,8 +2612,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(marketplaceStructure);
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
+                            setHoveredPOICoords(getTooltipPosition(tile.x, tile.y));
                           }
                         }}
                         onMouseLeave={() => {
@@ -2928,8 +2675,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(palaceStructure);
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
+                            setHoveredPOICoords(getTooltipPosition(tile.x, tile.y));
                           }
                         }}
                         onMouseLeave={() => {
@@ -2979,8 +2725,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(ruinStructure);
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
+                            setHoveredPOICoords(getTooltipPosition(tile.x, tile.y));
                           }
                         }}
                         onMouseLeave={() => {
@@ -3062,8 +2807,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(holySiteStructure);
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
+                            setHoveredPOICoords(getTooltipPosition(tile.x, tile.y));
                           }
                         }}
                         onMouseLeave={() => {
@@ -3137,7 +2881,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     }
                     
                     return (
-                      <g key={structure.id} className="transition-transform duration-200">
+                      <g key={structure.id} className={!isSafari ? "transition-transform duration-200" : ""}>
                         <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
                           <title>{`${structure.name} (${structure.structureType})`}</title>
                           <GovernmentComponent
@@ -3184,7 +2928,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     }
                     
                     return (
-                      <g key={structure.id} className="transition-transform duration-200">
+                      <g key={structure.id} className={!isSafari ? "transition-transform duration-200" : ""}>
                         <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
                           <title>{`${structure.name} (${structure.structureType})`}</title>
                           <FactoryComponent
@@ -3214,7 +2958,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     const tileSeed = seed + structure.location[0] * 31 + structure.location[1] * 37;
                     
                     return (
-                      <g key={structure.id} className="transition-transform duration-200">
+                      <g key={structure.id} className={!isSafari ? "transition-transform duration-200" : ""}>
                         <g style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
                           <title>{`${structure.name} (${structure.structureType})`}</title>
                           <FishingHutSymbol 
@@ -3257,12 +3001,11 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     const MillComponent = getMillSymbol(structure.name || 'Water Mill', era);
                     
                     return (
-                      <g key={structure.id} className="transition-transform duration-200"
+                      <g key={structure.id} className={!isSafari ? "transition-transform duration-200" : ""}
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(structure);
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
+                            setHoveredPOICoords(getTooltipPosition(tile.x, tile.y));
                           }
                         }}
                         onMouseLeave={() => {
@@ -3304,12 +3047,11 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     const MineComponent = getMineSymbol(era);
                     
                     return (
-                      <g key={structure.id} className="transition-transform duration-200"
+                      <g key={structure.id} className={!isSafari ? "transition-transform duration-200" : ""}
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(structure);
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
+                            setHoveredPOICoords(getTooltipPosition(tile.x, tile.y));
                           }
                         }}
                         onMouseLeave={() => {
@@ -3350,12 +3092,11 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     const QuarryComponent = getQuarrySymbol(era);
                     
                     return (
-                      <g key={structure.id} className="transition-transform duration-200"
+                      <g key={structure.id} className={!isSafari ? "transition-transform duration-200" : ""}
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(structure);
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
+                            setHoveredPOICoords(getTooltipPosition(tile.x, tile.y));
                           }
                         }}
                         onMouseLeave={() => {
@@ -3418,12 +3159,11 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     return (
                       <g 
                         key={structure.id} 
-                        className="transition-transform duration-200"
+                        className={!isSafari ? "transition-transform duration-200" : ""}
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(structure);
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
+                            setHoveredPOICoords(getTooltipPosition(tile.x, tile.y));
                           }
                         }}
                         onMouseLeave={() => {
@@ -3464,12 +3204,11 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     return (
                       <g 
                         key={structure.id} 
-                        className="transition-transform duration-200"
+                        className={!isSafari ? "transition-transform duration-200" : ""}
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(structure);
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setHoveredPOICoords({ x: rect.left + rect.width / 2, y: rect.top });
+                            setHoveredPOICoords(getTooltipPosition(tile.x, tile.y));
                           }
                         }}
                         onMouseLeave={() => {
@@ -3507,7 +3246,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                   const centerX = structX + TILE_SIZE_PX / 2;
                   const centerY = structY + TILE_SIZE_PX / 2;
                   return (
-                    <g key={structure.id} className="transition-transform duration-200">
+                    <g key={structure.id} className={!isSafari ? "transition-transform duration-200" : ""}>
                       <text
                         x={centerX}
                         y={centerY}
@@ -3594,7 +3333,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
 
             {/* Overlay objects layer - furniture and objects on top of floor tiles */}
             {isSpecialMap && mapData && (() => {
-              const overlayTiles = flatTiles.filter(tile => tile.overlayObject);
+              // Using memoized overlayTiles instead of filtering every render
               // Overlay tiles found: ${overlayTiles.length} (debug log removed to reduce console spam)
               if (overlayTiles.length > 0) {
                 // Container types that can be clicked to open
@@ -3684,6 +3423,20 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
               return null;
             })()}
 
+            {/* Dug tiles - show earth piles where player has dug */}
+            {mapData?.terrainModifications?.dugTiles?.map(dugTile => {
+              const x = dugTile.x * TILE_SIZE_PX;
+              const y = dugTile.y * TILE_SIZE_PX;
+              return (
+                <DugEarthSymbol
+                  key={`dug-${dugTile.x}-${dugTile.y}`}
+                  x={x}
+                  y={y}
+                  cellSize={TILE_SIZE_PX}
+                />
+              );
+            })}
+
             {/* Multi-tile pillars layer - rendered above base tiles */}
             {isSpecialMap && (mapData as any)?.multiTileObjects && (
               <g className="multi-tile-pillars-layer">
@@ -3766,8 +3519,18 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 return distance <= 10;
               }).map(animal => (
-                <g key={animal.id} 
-                   onClick={(e) => { e.stopPropagation(); onAnimalClick(animal); }} 
+                <g key={animal.id}
+                   onClick={(e) => { e.stopPropagation(); onAnimalClick(animal); }}
+                   onMouseEnter={(e) => {
+                     if (!isDragging) {
+                       setHoveredAnimal(animal);
+                       setHoveredEntityCoords(getTooltipPosition(animal.x, animal.y));
+                     }
+                   }}
+                   onMouseLeave={() => {
+                     setHoveredAnimal(null);
+                     setHoveredEntityCoords(null);
+                   }}
                    style={{cursor: 'pointer', pointerEvents: 'auto'}}
                    className="smooth-movement"
                    transform={`translate(${animal.x * TILE_SIZE_PX}, ${animal.y * TILE_SIZE_PX})`}>
@@ -4168,10 +3931,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
             {/* Disable on Safari for performance */}
             {shouldRenderDetailedSymbols && !isSafari && (
               <g>
-                {shouldRenderParticles && tiles.flat()
-                  .filter(tile => tile.biome === BiomeType.DESERT && tile.isLand)
-                  .filter(tile => (tile.x + tile.y * 7 + mapData.seed) % 5 === 0) // Only 1 in 5 desert tiles get particles
-                  .map(tile => (
+                {shouldRenderParticles && desertParticleTiles.map(tile => (
                     <MemoizedDustEffect
                       key={`dust-${tile.x}-${tile.y}`}
                       x={tile.x * TILE_SIZE_PX}
@@ -4185,15 +3945,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
 
             {/* Special Map Lighting Effects - Glow around light sources */}
             {isSpecialMap && mapData && (() => {
-              const lightSources = flatTiles.filter(tile => 
-                tile.biome === BiomeType.TORCH || 
-                tile.biome === BiomeType.BRAZIER || 
-                tile.biome === BiomeType.FIRE_PIT || 
-                tile.biome === BiomeType.HEARTH ||
-                tile.biome === BiomeType.CHANDELIER ||
-                tile.biome === BiomeType.LANTERN ||
-                (tile.overlayObject?.type && ['CANDELABRA', 'TORCH', 'BRAZIER'].includes(tile.overlayObject.type.toString()))
-              );
+              // Using memoized lightSourceTiles instead of filtering every render
               
               // Light sources found for glow effects
               
@@ -4216,11 +3968,18 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                     </radialGradient>
                     
                     <filter id="light-blur" x="-100%" y="-100%" width="300%" height="300%">
-                      <feGaussianBlur in="SourceGraphic" stdDeviation="8"/>
+                      {!isSafari ? (
+                        <feGaussianBlur in="SourceGraphic" stdDeviation="8"/>
+                      ) : (
+                        // Simple opacity effect for Safari
+                        <feComponentTransfer>
+                          <feFuncA type="discrete" tableValues="0.8 0.6 0.4 0.2"/>
+                        </feComponentTransfer>
+                      )}
                     </filter>
                   </defs>
                   
-                  {lightSources.map(tile => {
+                  {lightSourceTiles.map(tile => {
                     const lightType = tile.biome === BiomeType.LANTERN || 
                                     (tile.overlayObject?.type === 'LANTERN') ? 'cool' : 'warm';
                     const radius = tile.biome === BiomeType.CHANDELIER ? TILE_SIZE_PX * 2.5 :

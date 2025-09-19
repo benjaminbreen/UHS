@@ -23,7 +23,7 @@ const ACTION_BUTTONS_KEY = 'rhs.actionButtons';
 type RightSidebarTab = 'narrator' | 'inventory' | 'beliefs';
 
 const RightSidebar: React.FC = () => {
-  const { setIsCharacterProfileModalOpen, onUseSkill, onSend, onCraft, combatant } = useUI();
+  const { setIsCharacterProfileModalOpen, onUseSkill, onSend, onCraft, combatant, inMiningRoguelike } = useUI();
   const { narrationHistory, playerInput, onPlayerInputChange, isNarratorLoading, gameTimeHours, contextualMessage } = useGame();
   const { playerCharacter, controlledIconX, controlledIconY, setShipDockX, setShipDockY, setCurrentVessel } = usePlayer();
   const { deployVesselToMap, mapData } = useMap();
@@ -57,6 +57,13 @@ const RightSidebar: React.FC = () => {
   }, []);
 
   useEffect(() => { try { localStorage.setItem(RHS_TAB_KEY, activeTab); } catch {} }, [activeTab]);
+
+  // Auto-switch to inventory tab when mining is active
+  useEffect(() => {
+    if (inMiningRoguelike) {
+      setActiveTab('inventory');
+    }
+  }, [inMiningRoguelike]);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();

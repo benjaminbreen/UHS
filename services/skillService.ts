@@ -9,15 +9,74 @@ import { executeTerrainDig, executeTerrainForage, executeTerrainChop } from './t
 import { performSong, formatSongDisplay } from './singingService';
 import { handleIntimidatingShout } from './npcInitiatedEncounterService';
 import { fireService } from './fireService';
+import { weatherService } from './weatherService';
+import { getDayOfYear } from '../utils/dateUtils';
 
 
 async function executeObserve(context: PlayerContext): Promise<ObserveSkillResult> {
     try {
         const description = await generateObservationText(context);
-        return { type: 'observe', description };
+
+        // Get the actual tile biome from the current position
+        const currentTile = context.mapData?.tiles?.[context.playerY]?.[context.playerX];
+        console.log('[executeObserve] Current tile biome:', currentTile?.biome, 'at position', context.playerX, context.playerY);
+
+        // Calculate weather dynamically like MapViewport does
+        let currentWeather = null;
+        if (context.mapData && context.gameTime && context.gameDate && context.season) {
+            const mapCenterX = Math.floor(context.mapData.tiles[0].length / 2);
+            const mapCenterY = Math.floor(context.mapData.tiles.length / 2);
+            const centerTile = context.mapData.tiles[mapCenterY][mapCenterX];
+
+            currentWeather = weatherService.getWeather(
+                context.mapData.climate,
+                centerTile.biome,
+                context.season,
+                context.ambianceContext?.timeOfDay,
+                centerTile.altitude || 0.5,
+                getDayOfYear(context.gameDate),
+                { x: mapCenterX, y: mapCenterY }
+            );
+
+            console.log('[executeObserve] Calculated weather:', {
+                precipitation: currentWeather?.precipitation,
+                special: currentWeather?.special,
+                intensity: currentWeather?.intensity,
+                climate: context.mapData.climate,
+                biome: centerTile.biome,
+                season: context.season,
+                timeOfDay: context.ambianceContext?.timeOfDay
+            });
+        }
+
+        return {
+            type: 'observe',
+            description,
+            context: {
+                biome: currentTile?.biome || 'GRASSLAND',
+                culturalZone: context.mapData?.culturalZone,
+                weather: currentWeather,
+                timeOfDay: context.ambianceContext?.timeOfDay,
+                gameTime: context.gameTime,
+                playerX: context.playerX,
+                playerY: context.playerY
+            }
+        };
     } catch (error) {
         console.error("Error executing Observe skill:", error);
-        return { type: 'observe', description: "You try to focus, but your mind wanders. The details of the area remain indistinct." };
+        return {
+            type: 'observe',
+            description: "You try to focus, but your mind wanders. The details of the area remain indistinct.",
+            context: {
+                biome: 'GRASSLAND',
+                culturalZone: context.mapData?.culturalZone,
+                weather: null, // No weather calculation in error case
+                timeOfDay: context.ambianceContext?.timeOfDay,
+                gameTime: context.gameTime,
+                playerX: context.playerX,
+                playerY: context.playerY
+            }
+        };
     }
 }
 

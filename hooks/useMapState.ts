@@ -16,6 +16,7 @@ import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { SeedManager } from '../services/seedService';
 import { npcPersistenceService } from '../services/npcPersistenceService';
+import { crossMapNpcService } from '../services/crossMapNpcService';
 import gameSoundsService from '../services/gameSoundsService';
 
 /**
@@ -322,6 +323,54 @@ export const useMapState = (props: useMapStateProps) => {
         });
     }, [currentWorldCoords.x, currentWorldCoords.y, mapDataCache, isSpecialMap]);
 
+    const addDugTile = useCallback((x: number, y: number) => {
+        // Don't modify special maps
+        if (isSpecialMap) {
+            console.log('[addDugTile] Blocked - special map active');
+            return;
+        }
+
+        setMapData(prevMapData => {
+            if (!prevMapData) return null;
+
+            // Initialize terrainModifications if it doesn't exist
+            const terrainModifications = prevMapData.terrainModifications || {};
+            const dugTiles = terrainModifications.dugTiles || [];
+
+            // Check if this tile is already dug
+            const alreadyDug = dugTiles.some(tile => tile.x === x && tile.y === y);
+            if (alreadyDug) {
+                console.log('[addDugTile] Tile already dug at', x, y);
+                return prevMapData;
+            }
+
+            // Add the new dug tile
+            const newDugTiles = [...dugTiles, { x, y, timestamp: Date.now() }];
+
+            // Also update the cache for this map
+            const cacheKey = `${currentWorldCoords.x},${currentWorldCoords.y}`;
+            const cachedEntry = mapDataCache.get(cacheKey);
+            if (cachedEntry) {
+                const newCachedMapData = {
+                    ...cachedEntry.mapData,
+                    terrainModifications: {
+                        ...cachedEntry.mapData.terrainModifications,
+                        dugTiles: newDugTiles
+                    }
+                };
+                setMapDataCache(prevCache => new Map(prevCache).set(cacheKey, { ...cachedEntry, mapData: newCachedMapData }));
+            }
+
+            return {
+                ...prevMapData,
+                terrainModifications: {
+                    ...terrainModifications,
+                    dugTiles: newDugTiles
+                }
+            };
+        });
+    }, [currentWorldCoords.x, currentWorldCoords.y, mapDataCache, isSpecialMap]);
+
 
     const _selectRandomMapArea = useCallback(() => {
         // Filter out "Special" zone - it's only for WorldWeaver easter eggs
@@ -348,7 +397,17 @@ export const useMapState = (props: useMapStateProps) => {
         
         // Load and merge persisted NPC data
         newNpcs = npcPersistenceService.loadAndMergeNpcs(newNpcs, seedToUse);
-        
+
+        // Add NPCs that walked in from adjacent maps
+        const incomingNpcs = crossMapNpcService.getAllIncomingNpcs();
+        if (incomingNpcs.length > 0) {
+            console.log(`[Map Generation] Adding ${incomingNpcs.length} NPCs from adjacent maps`);
+            newNpcs = [...newNpcs, ...incomingNpcs];
+        }
+
+        // Clean up expired transfers
+        crossMapNpcService.cleanupExpiredTransfers();
+
         const newCacheEntry = { mapData: newMap, animals: newAnimals, npcs: newNpcs, deployedVessels: [], seed: seedToUse, archetype: archetypeToUse, climate: climateToUse, worldX, worldY, region: regionToUse, localArea: localAreaToUse };
         setMapDataCache(prevCache => new Map(prevCache).set(`${worldX},${worldY}`, newCacheEntry)); 
         return newCacheEntry;
@@ -473,13 +532,19 @@ export const useMapState = (props: useMapStateProps) => {
                 // Generate new map
                 const neighboringEdges: any = {};
                 const north = mapDataCache.get(`${currentWorldCoords.x},${currentWorldCoords.y - 1}`);
-                if (north) neighboringEdges.north = north.mapData.edgeDataSet.south;
+                if (north && north.mapData.edgeDataSet) neighboringEdges.north = north.mapData.edgeDataSet.south;
                 const east = mapDataCache.get(`${currentWorldCoords.x + 1},${currentWorldCoords.y}`);
-                if (east) neighboringEdges.east = east.mapData.edgeDataSet.west;
+                if (east && east.mapData.edgeDataSet) neighboringEdges.east = east.mapData.edgeDataSet.west;
                 const south = mapDataCache.get(`${currentWorldCoords.x},${currentWorldCoords.y + 1}`);
-                if (south) neighboringEdges.south = south.mapData.edgeDataSet.north;
+                if (south && south.mapData.edgeDataSet) neighboringEdges.south = south.mapData.edgeDataSet.north;
                 const west = mapDataCache.get(`${currentWorldCoords.x - 1},${currentWorldCoords.y}`);
-                if (west) neighboringEdges.west = west.mapData.edgeDataSet.east;
+                if (west && west.mapData.edgeDataSet) neighboringEdges.west = west.mapData.edgeDataSet.east;
+
+                // Debug logging for edge stitching
+                const edgeCount = Object.keys(neighboringEdges).length;
+                if (edgeCount > 0) {
+                    console.log(`[Map Stitching] Found ${edgeCount} neighboring edges for map at (${currentWorldCoords.x}, ${currentWorldCoords.y})`);
+                }
 
                 // Check if we're in a liminal zone first
                 let mapToGenerate = null;
@@ -945,8 +1010,14 @@ export const useMapState = (props: useMapStateProps) => {
         setDeployedVessels([]);
         
         // Place player at entrance with bounds checking
-        const entranceX = Math.min(Math.floor(specialMapData.width / 2), specialMapData.tiles[0]?.length - 1 || 0);
-        const entranceY = Math.min(specialMapData.height - 2, specialMapData.tiles.length - 1);
+        // For fortress chambers, spawn just south of center (avoiding the table)
+        const isFortressChamber = config?.archetype === 'FORTRESS_COMMANDER_CHAMBER';
+        const entranceX = isFortressChamber
+            ? Math.floor(specialMapData.width / 2) // Center X (column 4 in 8x8)
+            : Math.min(Math.floor(specialMapData.width / 2), specialMapData.tiles[0]?.length - 1 || 0);
+        const entranceY = isFortressChamber
+            ? Math.floor(specialMapData.height / 2) + 1 // Just below center (row 5 in 8x8, avoiding table at row 4)
+            : Math.min(specialMapData.height - 2, specialMapData.tiles.length - 1);
         
         // Ensure position is valid
         if (entranceY >= 0 && entranceY < specialMapData.tiles.length && 
@@ -1501,6 +1572,7 @@ export const useMapState = (props: useMapStateProps) => {
         onStartNewWorldAtZoneRegion,
         removeVegetation,
         updateMineralDeposit,
+        addDugTile,
         updateStructureData,
         deployVesselToMap,
         pendingScenarioData,

@@ -16,7 +16,7 @@ interface MountainSymbolProps {
   season?: Season;
 }
 
-const MountainSymbol: React.FC<MountainSymbolProps> = ({ x, y, size, seed = 0, altitude = 0.7, climate, season }) => {
+const MountainSymbol: React.FC<MountainSymbolProps> = React.memo(({ x, y, size, seed = 0, altitude = 0.7, climate, season }) => {
   // Generate procedural mountain peaks based on seed and altitude
   const mountains = useMemo(() => {
     const rng = (s: number) => {
@@ -176,6 +176,6 @@ const MountainSymbol: React.FC<MountainSymbolProps> = ({ x, y, size, seed = 0, a
       })}
     </g>
   );
-};
+});
 
-export default React.memo(MountainSymbol);
+export default MountainSymbol;

@@ -43,6 +43,7 @@ import { ProceduralPortrait } from './portraits';
 import LeftSidebar from './LeftSidebar';
 import PlayerProfileCard from './PlayerProfileCard';
 import NPCToast from './NPCToast';
+import { gameSounds } from '../services/gameSoundsService';
 
 // lucide icons
 import {
@@ -187,6 +188,21 @@ const FarmPanelImproved: React.FC<FarmPanelImprovedProps> = ({
     if (gameTimeHours >= 17 && gameTimeHours < 20) return 'Dusk';
     return 'Night';
   }, [gameTimeHours]);
+
+  // Music and soundscape on mount
+  useEffect(() => {
+    // Play mining music V1 once when opening
+    gameSounds.playMiningMusic();
+
+    // Start rural farm soundscape
+    gameSounds.playEnvironmentalSoundscape('FARMLAND');
+
+    // Cleanup on unmount
+    return () => {
+      gameSounds.stopMiningMusic();
+      gameSounds.stopEnvironmentalSoundscape();
+    };
+  }, []); // Only on mount/unmount
 
   // Load farm state
   useEffect(() => {

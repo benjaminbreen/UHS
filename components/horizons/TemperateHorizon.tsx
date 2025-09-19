@@ -73,7 +73,7 @@ const TemperateHorizon: React.FC<TemperateHorizonProps> = ({
       .padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
   };
 
-  // Get the actual sky color from props or CSS variables
+  // Get the actual sky color from props or CSS variables set by TimeAwareBackground
   const getSkyColors = () => {
     if (sky) {
       return { skyTop: sky.top, skyMid: sky.mid, skyBottom: sky.bottom };
@@ -81,8 +81,7 @@ const TemperateHorizon: React.FC<TemperateHorizonProps> = ({
     const rootStyles = getComputedStyle(document.documentElement);
     const skyTop = rootStyles.getPropertyValue('--sky-top').trim() || '#87CEEB';
     const skyMid = rootStyles.getPropertyValue('--sky-mid').trim() || '#E6F3FF';
-    const skyBottom =
-      rootStyles.getPropertyValue('--sky-bottom').trim() || '#FFF4E6';
+    const skyBottom = rootStyles.getPropertyValue('--sky-bottom').trim() || '#FFF4E6';
     return { skyTop, skyMid, skyBottom };
   };
 
@@ -135,9 +134,9 @@ const TemperateHorizon: React.FC<TemperateHorizonProps> = ({
     const tintHaze = (baseColor: string) => blendHex(baseColor, skyMid, hazeInfluence);
 
     return {
-      sky1: 'rgba(0, 0, 0, 0.0)',
-      sky2: `${skyMid}33`,
-      sky3: `${skyBottom}99`,
+      sky1: skyTop,
+      sky2: skyMid,
+      sky3: skyBottom,
       farHill: tintHill(temperateBase.farHill, 'far'),
       midHill: tintHill(temperateBase.midHill, 'mid'),
       nearHill: tintHill(temperateBase.nearHill, 'near'),
@@ -251,8 +250,8 @@ const TemperateHorizon: React.FC<TemperateHorizonProps> = ({
         <linearGradient id="temperateSky" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor={colors.sky1} stopOpacity={0} />
           <stop offset="35%" stopColor={colors.sky2} stopOpacity={0.35} />
-          <stop offset="68%" stopColor={colors.sky3} stopOpacity={0.85} />
-          <stop offset="100%" stopColor={colors.nearHill} stopOpacity={1} />
+          <stop offset="68%" stopColor={colors.sky3} stopOpacity={0.75} />
+          <stop offset="100%" stopColor={colors.sky3} stopOpacity={0} />
         </linearGradient>
 
         {/* Haze bands */}

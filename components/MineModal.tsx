@@ -5,6 +5,7 @@ import React, { useState, useMemo } from 'react';
 import { Tile, PlayerCharacter, MapData, TerrainStructure, HistoricalEra } from '../types';
 import { parseDateString } from '../utils/dateUtils';
 import { getMaterialsForEra } from '../constants/gameData/mineQuarryMaterials';
+import MiningRoguelikeDisplay from './MiningRoguelikeDisplay';
 
 interface MineModalProps {
     structure: TerrainStructure;
@@ -14,6 +15,9 @@ interface MineModalProps {
     currentLocation: string;
     onClose: () => void;
     onWork?: () => void;
+    onInventoryAdd?: (item: any) => void;
+    onHealthChange?: (newHealth: number) => void;
+    onFatigueChange?: (newFatigue: number) => void;
 }
 
 const MineModal: React.FC<MineModalProps> = ({
@@ -23,9 +27,13 @@ const MineModal: React.FC<MineModalProps> = ({
     mapData,
     currentLocation,
     onClose,
-    onWork
+    onWork,
+    onInventoryAdd,
+    onHealthChange,
+    onFatigueChange
 }) => {
     const [isWorking, setIsWorking] = useState(false);
+    const [showMiningRoguelike, setShowMiningRoguelike] = useState(false);
     
     const { era, year } = useMemo(() => {
         return parseDateString(mapData.timeSlice || '1650');
@@ -79,7 +87,30 @@ const MineModal: React.FC<MineModalProps> = ({
     const conditions = getWorkingConditions();
     const deposits = structure.mineralDeposits || {};
     const depositList = Object.entries(deposits);
-    
+
+    // Show mining roguelike if user selected mining
+    if (showMiningRoguelike) {
+        return (
+            <div className="fixed inset-0 z-[60] bg-black">
+                <MiningRoguelikeDisplay
+                    mineData={{
+                        name: structure.name || "Mine",
+                        description: getMineDescription(),
+                        oreType: depositList.length > 0 ? depositList[0][0] : "Iron Ore",
+                        depth: 30,
+                        culturalZone: mapData.culturalZone || "EUROPEAN",
+                        historicalEra: era || "MEDIEVAL"
+                    }}
+                    playerCharacter={playerCharacter}
+                    onExit={() => setShowMiningRoguelike(false)}
+                    onHealthChange={onHealthChange}
+                    onInventoryAdd={onInventoryAdd}
+                    onFatigueChange={onFatigueChange}
+                />
+            </div>
+        );
+    }
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
             <div className="bg-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-slate-600">
@@ -166,18 +197,11 @@ const MineModal: React.FC<MineModalProps> = ({
                         <h3 className="text-lg font-bold text-slate-200 mb-3">🎯 Available Actions</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <button
-                                onClick={() => {
-                                    setIsWorking(true);
-                                    setTimeout(() => {
-                                        setIsWorking(false);
-                                        alert("You spend the day working in the mine. It's exhausting but you earn some wages.");
-                                        if (onWork) onWork();
-                                    }, 2000);
-                                }}
+                                onClick={() => setShowMiningRoguelike(true)}
                                 disabled={isWorking}
                                 className="px-4 py-3 bg-gradient-to-r from-amber-600 to-brown-600 hover:from-amber-700 hover:to-brown-700 disabled:from-gray-600 disabled:to-gray-700 text-white rounded-lg font-medium transition-all duration-200"
                             >
-                                {isWorking ? '⛏️ Working...' : '⛏️ Work in the Mine'}
+                                ⛏️ Enter Mine (Dig for Ore)
                             </button>
                             
                             <button

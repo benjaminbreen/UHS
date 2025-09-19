@@ -183,12 +183,20 @@ export function useSpecialMapNpcBehavior(
           const altarAreaY = mapHeight * 0.2; // Top 20% of map
           const altarAreaX1 = mapWidth * 0.3;
           const altarAreaX2 = mapWidth * 0.7;
-          
+
           return (player.y <= altarAreaY && player.x >= altarAreaX1 && player.x <= altarAreaX2) ||
                  (Math.abs(player.x - centerX) <= 5 && Math.abs(player.y - centerY) <= 5);
+        } else if (mapArchetype === 'FORTRESS_COMMANDER_CHAMBER') {
+          // For fortress chambers, commander is at top center (y=1), not map center
+          // Only restrict area immediately around the commander's throne
+          const commanderX = centerX; // Still centered horizontally
+          const commanderY = 1; // Commander sits at top of chamber
+          return Math.abs(player.x - commanderX) <= 2 && Math.abs(player.y - commanderY) <= 2;
         } else {
-          // For other maps, just check if very close to center
-          return Math.abs(player.x - centerX) <= 8 && Math.abs(player.y - centerY) <= 8;
+          // For other maps, check if close to center
+          // Use a reasonable radius that doesn't cover entire small maps
+          const restrictedRadius = Math.min(8, Math.floor(Math.min(mapWidth, mapHeight) * 0.3));
+          return Math.abs(player.x - centerX) <= restrictedRadius && Math.abs(player.y - centerY) <= restrictedRadius;
         }
       })();
       

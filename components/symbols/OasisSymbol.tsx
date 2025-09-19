@@ -18,7 +18,7 @@ interface OasisSymbolProps {
 const OasisSymbol: React.FC<OasisSymbolProps> = React.memo(({ 
   x, y, size, seed, tile, tileX, tileY 
 }) => {
-  const localRand = new ValueNoise(seed + (x || 0) * 45 + (y || 0) * 67).random;
+  const localRand = new ValueNoise(seed + (tileX || tile?.x || 0) * 45 + (tileY || tile?.y || 0) * 67).random;
   const elements = [];
   
   // Create gradient definition for desert to green to water

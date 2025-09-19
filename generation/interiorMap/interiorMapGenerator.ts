@@ -93,12 +93,18 @@ function generateInteriorLayout(
 
     root.createHallways(tiles);
 
-    // Create a dedicated entrance at the bottom center
+    // Create entrance position based on building type
     const entranceX = Math.floor(width / 2);
-    const entranceY = height - 1;
+    // For fortress chambers, spawn player just below center to avoid the table
+    // For other buildings, spawn near the bottom
+    const entranceY = (config.buildingType === 'fortress' && width === 8 && height === 8)
+        ? Math.floor(height / 2) + 1  // Row 5 for 8x8 fortress (below center table)
+        : height - 1; // Normal entrance for other buildings
+
     if(tiles[entranceY]?.[entranceX]) {
-        tiles[entranceY][entranceX] = { 
-            x: entranceX, y: entranceY, type: 'door', 
+        tiles[entranceY][entranceX] = {
+            x: entranceX, y: entranceY,
+            type: (config.buildingType === 'fortress' && width === 8 && height === 8) ? 'floor' : 'door',
             texture: 'wood_plank_light', isWalkable: true, color: '#fcd34d',
             material: 'wood',
             qualities: { flammability: 0.6, cleanliness: 0.8, value: 0.3 }

@@ -87,8 +87,9 @@ const CLIMATE_TEMPS: Record<ClimateType, { summer: [number, number], winter: [nu
 /** Time of day temperature modifiers (Celsius) */
 const TIME_TEMP_MODIFIERS: Record<TimeOfDay, number> = {
   Dawn: -3,
-  Day: 2,
+  Morning: 1,
   Midday: 4,
+  Afternoon: 3,
   Dusk: -1,
   Night: -5
 };

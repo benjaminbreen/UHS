@@ -4,6 +4,8 @@ import { getSafariOptimizedClassName, getOptimizedButtonClassName } from '../uti
 import { weatherService } from '../services/weatherService';
 import { METALS } from '../constants/gameData/metals';
 import { gameSounds } from '../services/gameSoundsService';
+import { getBackgroundPaths, loadBackgroundImage } from '../services/backgroundSelectionService';
+import { getBiomeIcon } from '../utils/biomeUtils';
 
 interface BottomPanelProps {
     actionableTile: ActionableTile | null;
@@ -28,10 +30,17 @@ interface BottomPanelProps {
     inRuinRoguelike?: boolean;
     isRuinModalOpen?: boolean;
     onExitRuin?: () => void;
+    inMiningRoguelike?: boolean;
+    onExitMine?: () => void;
     isMarketplaceModalOpen?: boolean;
     onExitMarketplace?: () => void;
     isSpecialMap?: boolean;
     onExitSpecialMap?: () => void;
+    currentBiome?: string;
+    climate?: any;
+    culturalZone?: string;
+    weather?: any;
+    gameTime?: { hours: number; minutes: number };
 }
 
 const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode, icon: string, variant?: 'blue' | 'red' }> = ({ onClick, children, icon, variant = 'blue' }) => {
@@ -89,6 +98,71 @@ const LocationDisplay: React.FC<{ title: string; subtitle: string; icon?: string
     );
 };
 
+// Enhanced LocationDisplay with POV preview - can be reverted by swapping back to LocationDisplay
+const LocationDisplayWithPreview: React.FC<{
+    title: string;
+    subtitle: string;
+    icon?: string;
+    backgroundUrl?: string;
+    showPreview?: boolean;
+}> = ({ title, subtitle, icon, backgroundUrl, showPreview = false }) => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+
+    // If preview is active (POV is shown), use normal display
+    if (!showPreview) {
+        return <LocationDisplay title={title} subtitle={subtitle} icon={icon} />;
+    }
+
+    return (
+        <div className={getSafariOptimizedClassName(`relative group bg-slate-800/30 rounded-lg ${isMobile ? 'px-2 py-1.5' : 'px-3 py-2'} border border-slate-700/50 overflow-hidden backdrop-blur-sm transition-all duration-300 hover:bg-slate-800/20`)}>
+            {/* Background preview layer - more visible, especially on hover */}
+            {backgroundUrl && (
+                <div
+                    className="absolute inset-0 bg-cover bg-center transition-opacity duration-300 group-hover:opacity-60"
+                    style={{
+                        backgroundImage: `url(${backgroundUrl})`,
+                        opacity: 0.45,
+                        filter: 'brightness(1.3) saturate(1.4)'
+                    }}
+                />
+            )}
+
+            {/* Gradient overlay with transparency in top-middle */}
+            <div
+                className="absolute inset-0 transition-opacity duration-300 group-hover:opacity-80"
+                style={{
+                    background: `linear-gradient(to right,
+                        rgba(15, 23, 42, 0.85) 0%,
+                        rgba(15, 23, 42, 0.70) 25%,
+                        rgba(15, 23, 42, 0.35) 50%,
+                        rgba(15, 23, 42, 0.70) 75%,
+                        rgba(15, 23, 42, 0.85) 100%)`
+                }}
+            />
+
+            {/* Content layer with proper z-index */}
+            <div className="relative z-10 flex items-center">
+                {icon && (
+                    <div className={`${isMobile ? 'text-xl' : 'text-2xl'} drop-shadow-xl mr-3`}>{icon}</div>
+                )}
+                <div>
+                    <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-slate-300 font-medium uppercase tracking-wide`}>
+                        {title}
+                    </p>
+                    <p
+                        className={`${isMobile ? 'text-sm' : 'text-base'} text-slate-100 font-semibold capitalize`}
+                        style={{
+                            textShadow: '0 0 10px rgba(147, 197, 253, 0.5), 0 0 20px rgba(147, 197, 253, 0.3)'
+                        }}
+                    >
+                        {subtitle}
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const ContextualAlert: React.FC<{ message: string }> = ({ message }) => (
     <div className={getSafariOptimizedClassName("flex items-center justify-center space-x-3 bg-gradient-to-r from-amber-900/40 to-orange-900/40 rounded-lg px-4 py-3 border border-amber-600/30 backdrop-blur-sm animate-pulse")}>
         <div className="text-2xl text-amber-400 animate-bounce">⚠️</div>
@@ -119,15 +193,54 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
     inRuinRoguelike = false,
     isRuinModalOpen = false,
     onExitRuin,
+    inMiningRoguelike = false,
+    onExitMine,
     isMarketplaceModalOpen = false,
     onExitMarketplace,
     isSpecialMap = false,
     onExitSpecialMap,
+    currentBiome,
+    climate,
+    culturalZone,
+    weather,
+    gameTime,
 }) => {
     const [weatherDisplay, setWeatherDisplay] = useState<string>('');
     const [weatherState, setWeatherState] = useState<{ state: string, emoji: string }>({ state: '', emoji: '' });
     const [useFahrenheit, setUseFahrenheit] = useState<boolean>(false);
-    
+    const [previewBackgroundUrl, setPreviewBackgroundUrl] = useState<string | null>(null);
+    const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+
+    // Create stable keys for dependencies
+    const weatherKey = weather ? `${weather.precipitation}-${weather.special}` : 'none';
+    const timeKey = gameTime ? `${gameTime.hours}-${Math.floor(gameTime.minutes / 15)}` : 'unknown';
+
+    // Load background for preview when POV is NOT active
+    useEffect(() => {
+        // Only load preview when POV is NOT active (showAmbientText is false)
+        if (showAmbientText || !currentBiome) {
+            setPreviewBackgroundUrl(null);
+            return;
+        }
+
+        const loadPreview = async () => {
+            setIsLoadingPreview(true);
+            const paths = getBackgroundPaths(
+                currentBiome,
+                weather,
+                gameTime,
+                culturalZone,
+                climate,
+                season
+            );
+            const url = await loadBackgroundImage(paths);
+            setPreviewBackgroundUrl(url);
+            setIsLoadingPreview(false);
+        };
+
+        loadPreview();
+    }, [showAmbientText, currentBiome, climate, season, culturalZone, weatherKey, timeKey]);
+
     // Get weather state with emoji
     const getWeatherStateAndEmoji = (weather: any): { state: string, emoji: string } => {
         if (weather.special === 'rainbow') return { state: 'Rainbow', emoji: '🌈' };
@@ -193,6 +306,31 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
     
     const renderActionableContent = () => {
         // Special map exit takes priority over everything else
+        // Check for mining roguelike first
+        if (inMiningRoguelike) {
+            return (
+                <div className="w-full h-full flex items-center justify-between px-8 bg-gradient-to-r from-amber-800/90 via-amber-900/90 to-amber-800/90">
+                    <LocationDisplay
+                        title="Deep Mine Shaft"
+                        subtitle="Mining for ore"
+                        icon="⛏️"
+                    />
+
+                    <div className="flex items-center gap-6">
+                        <ActionButton onClick={onExitMine || (() => {})} icon="🚪" variant="red">
+                            Exit Mine
+                        </ActionButton>
+                    </div>
+
+                    <div className="hidden sm:flex justify-end">
+                        <div className="text-right text-slate-400 italic text-xs sm:text-sm max-w-xs bg-slate-800/20 rounded-lg px-3 py-2 sm:px-4 sm:py-3 border border-slate-700/30">
+                            Return to the surface with your collected ore.
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         if (isSpecialMap) {
             return (
                 <div className="w-full h-full flex items-center justify-between px-8 bg-gradient-to-r from-slate-800/90 via-slate-900/90 to-slate-800/90">
@@ -201,13 +339,13 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                         subtitle="Interior Space"
                         icon="🏛️"
                     />
-                    
+
                     <div className="flex items-center gap-6">
                         <ActionButton onClick={onExitSpecialMap || (() => {})} icon="🚪" variant="red">
                             Exit to Map
                         </ActionButton>
                     </div>
-                    
+
                     <div className="hidden sm:flex justify-end">
                         <div className="text-right text-slate-400 italic text-xs sm:text-sm max-w-xs bg-slate-800/20 rounded-lg px-3 py-2 sm:px-4 sm:py-3 border border-slate-700/30">
                             Return to the main map outside this building.
@@ -341,20 +479,21 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                     />
                 );
                 break;
-            case 'mine':
-                buttonText = 'Enter Mine';
-                buttonIcon = '⛏️';
-                locationIcon = '⛏️';
-                onClickAction = () => structure && onEnterMine(structure);
-                helperText = "Interact with the mining colony, trade ores, and gather information.";
-                contextualInfo = (
-                    <LocationDisplay
-                        title="Mining Colony"
-                        subtitle={structure?.name || "Resource extraction site"}
-                        icon={locationIcon}
-                    />
-                );
-                break;
+            // Mine functionality moved to POIToastModal - commented out to prevent duplicate UI
+            // case 'mine':
+            //     buttonText = 'Enter Mine';
+            //     buttonIcon = '⛏️';
+            //     locationIcon = '⛏️';
+            //     onClickAction = () => structure && onEnterMine(structure);
+            //     helperText = "Interact with the mining colony, trade ores, and gather information.";
+            //     contextualInfo = (
+            //         <LocationDisplay
+            //             title="Mining Colony"
+            //             subtitle={structure?.name || "Resource extraction site"}
+            //             icon={locationIcon}
+            //         />
+            //     );
+            //     break;
         }
 
         const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
@@ -433,12 +572,14 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
                      <button
                          onClick={onToggleAmbientText}
                          className="transition-transform hover:scale-105"
-                         title="Click to toggle ambient text"
+                         title={showAmbientText ? "Click to close POV view" : "Click to see first-person POV view"}
                      >
-                         <LocationDisplay
+                         <LocationDisplayWithPreview
                              title="Current Location"
                              subtitle={locationPhrase}
                              icon={getBiomeIcon(locationPhrase)}
+                             backgroundUrl={previewBackgroundUrl || undefined}
+                             showPreview={!showAmbientText && !!previewBackgroundUrl}
                          />
                      </button>
                  </div>

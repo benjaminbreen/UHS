@@ -17,6 +17,9 @@ const IconTestPanel: React.FC<IconTestPanelProps> = ({ isOpen, onClose }) => {
     // Weapons
     'sword', 'dagger', 'axe', 'shield', 'bow', 'staff', 'flail', 'whip', 'pickaxe', 'hammer', 'mace', 'sickle',
 
+    // New Ranged Weapons
+    'sling', 'bolas', 'blowgun', 'chakram', 'shuriken', 'throwing_axe', 'dart',
+
     // Apparel
     'hat', 'helmet', 'crown', 'tunic', 'shirt', 'robe', 'boots', 'ring', 'necklace', 'trousers', 'sandals',
     'cloak', 'turban', 'headwrap', 'bracelet',
@@ -122,7 +125,21 @@ const IconTestPanel: React.FC<IconTestPanelProps> = ({ isOpen, onClose }) => {
         case 'slacks': itemName = 'Dress Slacks'; break;
         case 'sneakers': itemName = 'Running Sneakers'; break;
         case 'dress_shoes': itemName = 'Leather Dress Shoes'; break;
+        // New Ranged Weapons
+        case 'sling': itemName = 'Leather Sling'; break;
+        case 'bolas': itemName = 'Hunting Bolas'; break;
+        case 'blowgun': itemName = 'Bamboo Blowgun'; break;
+        case 'chakram': itemName = 'Steel Chakram'; break;
+        case 'shuriken': itemName = 'Iron Shuriken'; break;
+        case 'throwing_axe': itemName = 'Throwing Axe'; break;
+        case 'dart': itemName = 'Poisoned Dart'; break;
       }
+
+      // Determine if this is a weapon that should be wieldable
+      const weaponCases = ['sword', 'dagger', 'axe', 'bow', 'staff', 'flail', 'whip', 'pickaxe',
+                          'hammer', 'mace', 'sickle', 'sling', 'bolas', 'blowgun', 'chakram',
+                          'shuriken', 'throwing_axe', 'dart'];
+      const isWeapon = weaponCases.includes(iconCase);
 
       const baseItem: Item = {
         id: `test_${iconCase}`,
@@ -135,12 +152,12 @@ const IconTestPanel: React.FC<IconTestPanelProps> = ({ isOpen, onClose }) => {
         weight: 1,
         wearable: false,
         stackable: false,
-        attack: 0,
+        attack: isWeapon ? 5 : 0,
         sustenance: 0,
-        wieldable: false,
+        wieldable: isWeapon,
         throwable: false,
         craftingValue: 1,
-        category: 'Special' as any,
+        category: isWeapon ? 'Weapon' : 'Special' as any,
         material: selectedMaterial || undefined,
         quality: selectedQuality as any
       };

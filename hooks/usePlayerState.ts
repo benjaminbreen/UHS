@@ -286,17 +286,17 @@ export const usePlayerState = (props: usePlayerStateProps) => {
     const findInitialIconPosition = useCallback((tiles: any[][], mode: 'ship' | 'onFoot'): { x: number; y: number; mode: 'ship' | 'onFoot' } | null => {
         // Add null/undefined checks for tiles
         if (!tiles || tiles.length === 0 || !tiles[0]) {
-            const fallbackX = Math.floor(MAP_WIDTH_TILES / 2);
-            const fallbackY = Math.floor(MAP_HEIGHT_TILES / 2);
+            const fallbackX = Math.max(5, Math.min(MAP_WIDTH_TILES - 6, Math.floor(MAP_WIDTH_TILES / 2)));
+            const fallbackY = Math.max(5, Math.min(MAP_HEIGHT_TILES - 6, Math.floor(MAP_HEIGHT_TILES / 2)));
             return { x: fallbackX, y: fallbackY, mode };
         }
         
         const priorityOrderWater: BiomeType[] = [BiomeType.SHALLOW_OCEAN, BiomeType.MAJOR_RIVER, BiomeType.DEEP_OCEAN, BiomeType.RIVER, BiomeType.REEF, BiomeType.OASIS, BiomeType.SHOALS_TILE, BiomeType.FRESHWATER_LAKE, BiomeType.ESTUARY]; 
         const priorityOrderLand: BiomeType[] = [BiomeType.BEACH, BiomeType.GRASSLAND, BiomeType.RIVERBANK, BiomeType.FOREST, BiomeType.HILLS]; 
         const targetOrder = mode === 'ship' ? priorityOrderWater : priorityOrderLand; 
-        for (const biome of targetOrder) { 
-            for (let y = 0; y < MAP_HEIGHT_TILES; y++) { 
-                for (let x = 0; x < MAP_WIDTH_TILES; x++) { 
+        for (const biome of targetOrder) {
+            for (let y = 5; y < MAP_HEIGHT_TILES - 5; y++) {
+                for (let x = 5; x < MAP_WIDTH_TILES - 5; x++) { 
                     if (tiles[y] && tiles[y][x] && tiles[y][x].biome === biome) { 
                         if (mode === 'ship') { 
                             if ([BiomeType.SHALLOW_OCEAN, BiomeType.DEEP_OCEAN, BiomeType.REEF, BiomeType.SHOALS_TILE, BiomeType.FRESHWATER_LAKE, BiomeType.ESTUARY].includes(biome)) { 

@@ -1,9 +1,10 @@
 /**
  * components/LevelUpModal.tsx - A modal for character level-up progression.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { PlayerCharacter, HistoricalEra, CulturalZone } from '../types';
 import { PROFESSIONS } from '../constants/index';
+import { gameSounds } from '../services/gameSoundsService';
 
 interface LevelUpModalProps {
     character: PlayerCharacter;
@@ -13,6 +14,17 @@ interface LevelUpModalProps {
 const LevelUpModal: React.FC<LevelUpModalProps> = ({ character, onLevelUp }) => {
     const [selectedStat, setSelectedStat] = useState<keyof PlayerCharacter['stats'] | null>(null);
     const [selectedProfession, setSelectedProfession] = useState<string>(character.profession);
+
+    // Play Generic Music (FF6 style) when modal opens
+    useEffect(() => {
+        gameSounds.playGenericMusic();
+        gameSounds.playVictoryFanfare(); // Play victory sound when level up opens
+
+        // Cleanup on unmount
+        return () => {
+            gameSounds.stopGenericMusic();
+        };
+    }, []);
 
     const availableProfessions = useMemo(() => {
         const eraProfessions = PROFESSIONS[character.culturalZone]?.[character.era];
@@ -30,6 +42,7 @@ const LevelUpModal: React.FC<LevelUpModalProps> = ({ character, onLevelUp }) => 
     const statChoices: (keyof PlayerCharacter['stats'])[] = ['strength', 'dexterity', 'constitution', 'intelligence', 'persuasion', 'perception'];
 
     const handleConfirm = () => {
+        gameSounds.playLevelUpSound(); // Play level up confirmation sound
         onLevelUp(selectedStat || undefined, selectedProfession);
     };
 
@@ -56,7 +69,10 @@ const LevelUpModal: React.FC<LevelUpModalProps> = ({ character, onLevelUp }) => 
                             {statChoices.map(stat => (
                                 <button
                                     key={stat}
-                                    onClick={() => setSelectedStat(stat)}
+                                    onClick={() => {
+                                        setSelectedStat(stat);
+                                        gameSounds.playUIClickSound(); // Click sound for stat selection
+                                    }}
                                     className={`w-full p-3 text-left rounded-md border-2 transition-all duration-200 ${
                                         selectedStat === stat 
                                         ? 'bg-green-800/50 border-green-400' 
@@ -76,7 +92,10 @@ const LevelUpModal: React.FC<LevelUpModalProps> = ({ character, onLevelUp }) => 
                         <p className="text-xs text-slate-400 mb-3">You can choose to change your profession to reflect your new experiences.</p>
                         <select
                             value={selectedProfession}
-                            onChange={(e) => setSelectedProfession(e.target.value)}
+                            onChange={(e) => {
+                                setSelectedProfession(e.target.value);
+                                gameSounds.playButtonClickSound(); // Click sound for profession change
+                            }}
                             className="w-full p-3 bg-slate-700 border border-slate-600 rounded-md text-white"
                         >
                             {availableProfessions.map(prof => (

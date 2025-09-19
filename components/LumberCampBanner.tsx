@@ -40,8 +40,8 @@ class RNG {
 
 // ------------------------- Pixel grid & helpers ---------------------------
 // Logical pixel grid — draw using integer rects; scale up to device pixels.
-const LOGICAL_W = 800; // extended width to fully fill modal width
-const LOGICAL_H = 200; // taller for richer sky/land ratio
+const LOGICAL_W = 500; // Match other banner widths for consistent sizing
+const LOGICAL_H = 130; // Match other banner heights for consistent appearance
 
 const usePixelGrid = (targetW: number, targetH: number) => {
   const px = Math.max(1, Math.floor(Math.min(targetW / LOGICAL_W, targetH / LOGICAL_H)));
@@ -107,8 +107,8 @@ const LumberCampBanner: React.FC<LumberCampBannerProps> = ({
   climate = ClimateType.TEMPERATE,
   season,
   timeOfDay,
-  width = 1280,
-  height = 240,
+  width = 1000,
+  height = 130,
   seed = 1337,
   adjacentBiomes = [],
 }) => {
@@ -119,8 +119,8 @@ const LumberCampBanner: React.FC<LumberCampBannerProps> = ({
   const rng = useMemo(() => new RNG(seed), [seed]);
 
   // world positions
-  const HORIZON_Y = 80; // sky/land cutoff
-  const GROUND_Y = 110; // ground line for camp - matching other POI banners for consistency
+  const HORIZON_Y = 50; // sky/land cutoff - adjusted for smaller height
+  const GROUND_Y = 70; // ground line for camp - adjusted proportionally
 
   // anim clock
   const [tick, setTick] = useState(0);

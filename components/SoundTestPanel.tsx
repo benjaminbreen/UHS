@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import gameSoundsService from '../services/gameSoundsService';
-import { Volume2, Music, Bell, Sword, Coins, Package, Anchor, Sparkles, Footprints, Bug } from 'lucide-react';
+import { Volume2, Music, Bell, Sword, Coins, Package, Anchor, Sparkles, Footprints, Bug, TreePine } from 'lucide-react';
 
 interface SoundTestPanelProps {
   isOpen: boolean;
@@ -113,7 +113,13 @@ const SoundTestPanel: React.FC<SoundTestPanelProps> = ({ isOpen, onClose }) => {
         { name: 'Danger Music', method: () => gameSoundsService.playDangerMusic(), description: 'Dark, atmospheric FF6-style music for arrests and confrontations' },
         { name: 'Modern City Music', method: () => gameSoundsService.playModernCityMusic(), description: 'Upbeat urban theme for modern city settings' },
         { name: 'FF6 Combat Music', method: () => gameSoundsService.playFF6CombatMusic(), description: 'Intense FF6-style combat with looping Bach-fugue melodic fragments' },
-        { name: 'Stop All Music', method: () => gameSoundsService.stopAllMusic(), description: 'Stops all background music' },
+        { name: 'Mining Music V1 (Stardew Style)', method: () => gameSoundsService.playMiningMusicV1(), description: 'Bouncy mystical tune with catchy melody, pan pipes, piano - D major pentatonic' },
+        { name: 'Roguelike Music (Beat-Heavy)', method: () => gameSoundsService.playRoguelikeMusic(), description: 'Heavy beat-focused track in G minor with ambient synth washes - 65 BPM' },
+        { name: 'Stop All Music', method: () => {
+          gameSoundsService.stopAllMusic();
+          gameSoundsService.stopMiningMusicV1();
+          gameSoundsService.stopRoguelikeMusic();
+        }, description: 'Stops all background music' },
       ]
     },
     {
@@ -128,6 +134,8 @@ const SoundTestPanel: React.FC<SoundTestPanelProps> = ({ isOpen, onClose }) => {
         { name: 'Tatami Mat', method: () => gameSoundsService.playFootstepSound('tatami'), description: 'Soft mat sound' },
         { name: 'Metal Floor', method: () => gameSoundsService.playFootstepSound('metal'), description: 'Metallic clang' },
         { name: 'Sand', method: () => gameSoundsService.playFootstepSound('sand'), description: 'Sand shuffling' },
+        { name: 'Forest Rustle', method: () => gameSoundsService.playFootstepSound('rustle'), description: 'Rustling through leaves/branches' },
+        { name: 'Marketplace Bell', method: () => gameSoundsService.playFootstepSound('bell'), description: 'Subtle merchant bell' },
       ]
     },
     {
@@ -178,11 +186,32 @@ const SoundTestPanel: React.FC<SoundTestPanelProps> = ({ isOpen, onClose }) => {
       name: 'Gameplay Effects (Proposed)',
       icon: <Bell className="w-4 h-4" />,
       sounds: [
-        { name: 'NPC Talking', method: () => gameSoundsService.playNpcTalkSound(), description: 'SNES-style speech beeps' },
+        { name: 'NPC Talking (Original)', method: () => gameSoundsService.playNpcTalkSound(), description: 'SNES-style speech beeps (current)' },
+        { name: 'NPC Talk V2 (Vowel-Consonant)', method: () => gameSoundsService.playNpcTalkV2(), description: 'Natural vowel-consonant speech pattern' },
+        { name: 'NPC Talk V3 (Pitter-Patter)', method: () => gameSoundsService.playNpcTalkV3(), description: 'Gentle pitter-patter with formant filtering' },
+        { name: 'NPC Talk V4 (Whispered)', method: () => gameSoundsService.playNpcTalkV4(), description: 'Breath-like whispered conversation' },
+        { name: 'NPC Talk V5 (Mouth Sounds)', method: () => gameSoundsService.playNpcTalkV5(), description: 'Subtle mouth sounds with natural rhythm' },
         { name: 'Level Up', method: () => gameSoundsService.playLevelUpFanfareSound(), description: 'Character progression fanfare' },
         { name: 'Spell Cast', method: () => gameSoundsService.playSpellCastSound(), description: 'Magic casting effect' },
         { name: 'Merchant Bell', method: () => gameSoundsService.playMerchantBellSound(), description: 'Shop entrance bell' },
         { name: 'Puzzle Solved', method: () => gameSoundsService.playPuzzleSolvedSound(), description: 'Quest completion chord' },
+      ]
+    },
+    {
+      name: 'Environmental Soundscapes',
+      icon: <TreePine className="w-4 h-4" />,
+      sounds: [
+        { name: 'River', method: () => gameSoundsService.playEnvironmentalSoundscape('RIVER'), description: 'Gentle water flow and bubbling' },
+        { name: 'Ocean', method: () => gameSoundsService.playEnvironmentalSoundscape('DEEP_OCEAN'), description: 'Rhythmic ocean waves' },
+        { name: 'Urban City', method: () => gameSoundsService.playEnvironmentalSoundscape('DENSE_CITY'), description: 'Distant crowd murmur and urban ambience' },
+        { name: 'Rural Farm', method: () => gameSoundsService.playEnvironmentalSoundscape('HAMLET'), description: 'Wind through grass with bird calls' },
+        { name: 'Forest', method: () => gameSoundsService.playEnvironmentalSoundscape('DENSE_FOREST'), description: 'Wind through leaves with birdsong' },
+        { name: 'Mountain', method: () => gameSoundsService.playEnvironmentalSoundscape('MOUNTAIN'), description: 'High altitude wind' },
+        { name: 'Desert', method: () => gameSoundsService.playEnvironmentalSoundscape('DESERT'), description: 'Subtle wind with sand' },
+        { name: 'Grassland', method: () => gameSoundsService.playEnvironmentalSoundscape('GRASSLAND'), description: 'Wind through grass with cricket chirps' },
+        { name: 'Wetlands', method: () => gameSoundsService.playEnvironmentalSoundscape('WETLANDS'), description: 'Water sounds with frog croaks' },
+        { name: 'Cave/Ruins', method: () => gameSoundsService.playEnvironmentalSoundscape('RUINS'), description: 'Echo and dripping sounds' },
+        { name: 'Stop Soundscape', method: () => gameSoundsService.stopEnvironmentalSoundscape(), description: 'Stops environmental soundscape' },
       ]
     },
     {

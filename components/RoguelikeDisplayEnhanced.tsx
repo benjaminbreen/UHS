@@ -5,14 +5,26 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { PlayerCharacter, MapData, HistoricalEra, CulturalZone } from '../types';
 import { ITEM_DEFINITIONS } from '../constants/index';
 import { primarySourceService, PrimarySourceMetadata } from '../services/primarySourceService';
-import { generateNPCDialogue } from '../services/llmService';
+import { generateEncounterDialogue } from '../services/llmService';
 import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { ruinProgressService } from '../services/ruinProgressService';
 import gameSoundsService from '../services/gameSoundsService';
-import { generateRoguelikeDialogue, generateRoguelikeNpcs, generateNegotiationDialogue } from '../services/roguelikeService';
+import { generateRoguelikeDialogue, generateRoguelikeNpcs, generateNegotiationDialogue, getMaterialColors, getMaterialWallPattern } from '../services/roguelikeService';
 import { getASCIIPortrait, framePortrait, getHealthBar, applyCulturalStyle } from '../services/asciiPortraitService';
 import { ruinsEnemyService, RuinsEnemy } from '../services/ruinsEnemyService';
+import { historicalEncounterService, HistoricalEncounter, EncounterChoice } from '../services/historicalEncounterService';
+import { contextualManuscriptService, ContextualManuscript, TranslationPuzzle } from '../services/contextualManuscriptService';
+import {
+    generateRuinNPCs,
+    getRuinAnimals,
+    getNpcMotivation,
+    storeBefriendedNpc,
+    getBefriendedNpcsForLocation,
+    isNpcBefriended,
+    getRuinLocationId,
+    PersistentNpc
+} from '../services/ruinNpcService';
 
 interface RoguelikeDisplayEnhancedProps {
     ruinType: {
@@ -20,6 +32,8 @@ interface RoguelikeDisplayEnhancedProps {
         description: string;
         age: string;
         dangers: string[];
+        material?: string;
+        originalType?: string;
     };
     playerCharacter: PlayerCharacter;
     mapData?: MapData;
@@ -28,6 +42,7 @@ interface RoguelikeDisplayEnhancedProps {
     onInventoryAdd?: (item: any) => void;
     onGoldChange?: (newGold: number) => void;
     structureLocation?: [number, number]; // For tracking progress
+    onPlayerDeath?: (deathInfo: any) => void; // Added for game over integration
 }
 
 // Tile types
@@ -246,7 +261,45 @@ const getHumanEmoji = (type: string, subtype: string): string => {
     return emojiMap[type] || emojiMap[subtype] || '👤';
 };
 
-// Get historically accurate entities based on culture and era
+// Helper function to get animal emoji
+const getAnimalEmoji = (type: string): string => {
+    const emojiMap: Record<string, string> = {
+        'rat': '🐀',
+        'bat': '🦇',
+        'spider': '🕷️',
+        'snake': '🐍',
+        'scorpion': '🦂',
+        'centipede': '🐛',
+        'monkey': '🐵',
+        'lizard': '🦎',
+        'vulture': '🦅',
+        'wolf': '🐺',
+        'bear': '🐻',
+        'owl': '🦉'
+    };
+    return emojiMap[type] || '🐾';
+};
+
+// Helper function to get animal color
+const getAnimalColor = (type: string): string => {
+    const colorMap: Record<string, string> = {
+        'rat': 'text-gray-400',
+        'bat': 'text-purple-400',
+        'spider': 'text-gray-500',
+        'snake': 'text-green-500',
+        'scorpion': 'text-yellow-500',
+        'centipede': 'text-orange-400',
+        'monkey': 'text-amber-500',
+        'lizard': 'text-green-600',
+        'vulture': 'text-gray-600',
+        'wolf': 'text-gray-300',
+        'bear': 'text-amber-700',
+        'owl': 'text-gray-200'
+    };
+    return colorMap[type] || 'text-gray-400';
+};
+
+// DEPRECATED - Kept for backwards compatibility
 const getHistoricalEntities = (culturalZone: CulturalZone, era: HistoricalEra): any => {
     // Common animals that might inhabit ruins
     const commonAnimals = [
@@ -371,15 +424,18 @@ const getHistoricalEntities = (culturalZone: CulturalZone, era: HistoricalEra): 
         'OCEANIAN': {
             animals: [
                 ...commonAnimals,
-                { subtype: 'crocodile', symbol: 'C', color: 'text-green-600', hostile: true, hp: 35, attack: 9, defense: 6, accuracy: 60, evasion: 5, level: 6, description: 'A saltwater crocodile' },
-                { subtype: 'cassowary', symbol: 'c', color: 'text-blue-500', hostile: true, hp: 20, attack: 6, defense: 3, accuracy: 70, evasion: 15, level: 4, description: 'A dangerous cassowary' },
-                { subtype: 'parrot', symbol: 'p', color: 'text-green-400', hostile: false, hp: 4, attack: 1, defense: 1, accuracy: 60, evasion: 50, level: 1, description: 'A colorful parrot' },
-                { subtype: 'monitor', symbol: 'M', color: 'text-gray-500', hostile: true, hp: 15, attack: 5, defense: 3, accuracy: 65, evasion: 20, level: 3, description: 'A monitor lizard' }
+                { subtype: 'komodo', symbol: 'K', color: 'text-green-700', hostile: true, hp: 40, attack: 10, defense: 6, accuracy: 65, evasion: 10, level: 7, description: 'A massive Komodo dragon - sacred to locals' },
+                { subtype: 'python', symbol: 'S', color: 'text-yellow-600', hostile: true, hp: 25, attack: 7, defense: 4, accuracy: 70, evasion: 15, level: 5, description: 'A reticulated python coiled in shadows' },
+                { subtype: 'hornbill', symbol: 'h', color: 'text-orange-400', hostile: false, hp: 6, attack: 1, defense: 1, accuracy: 60, evasion: 45, level: 1, description: 'A rhinoceros hornbill - symbol of vision' },
+                { subtype: 'macaque', symbol: 'm', color: 'text-brown-400', hostile: Math.random() > 0.6, hp: 12, attack: 4, defense: 2, accuracy: 70, evasion: 35, level: 3, description: 'A long-tailed macaque, clever and quick' }
             ],
             humans: [
-                { type: 'hermit', subtype: 'hermit', symbol: 'H', color: 'text-green-300', hostile: false, hp: 20, attack: 3, defense: 3, accuracy: 50, evasion: 20, level: 2, description: 'An island hermit' },
-                { type: 'pirate', subtype: 'pirate', symbol: 'P', color: 'text-red-400', hostile: true, hp: 26, attack: 7, defense: 3, accuracy: 65, evasion: 20, level: 4, description: 'A stranded pirate' },
-                { type: 'castaway', subtype: 'castaway', symbol: 'c', color: 'text-gray-400', hostile: Math.random() > 0.7, hp: 12, attack: 3, defense: 1, accuracy: 50, evasion: 25, level: 1, description: 'A desperate castaway' }
+                { type: 'temple_guardian', subtype: 'guardian', symbol: 'G', color: 'text-amber-400', hostile: true, hp: 35, attack: 8, defense: 5, accuracy: 70, evasion: 15, level: 5, description: 'Temple guardian wielding a keris dagger' },
+                { type: 'dutch_explorer', subtype: 'colonial', symbol: 'D', color: 'text-blue-400', hostile: Math.random() > 0.5, hp: 28, attack: 7, defense: 4, accuracy: 75, evasion: 20, level: 4, description: 'VOC explorer seeking spices and gold' },
+                { type: 'dukun', subtype: 'shaman', symbol: 'd', color: 'text-purple-400', hostile: false, hp: 22, attack: 4, defense: 3, accuracy: 60, evasion: 25, level: 3, description: 'Local dukun (shaman) practicing mysticism' },
+                { type: 'bugis_pirate', subtype: 'pirate', symbol: 'B', color: 'text-red-500', hostile: true, hp: 30, attack: 9, defense: 3, accuracy: 70, evasion: 25, level: 5, description: 'Feared Bugis sea raider with curved blade' },
+                { type: 'javanese_scholar', subtype: 'scholar', symbol: 's', color: 'text-cyan-400', hostile: false, hp: 18, attack: 2, defense: 2, accuracy: 50, evasion: 20, level: 2, description: 'Scholar studying ancient palm manuscripts' },
+                { type: 'chinese_trader', subtype: 'trader', symbol: 'T', color: 'text-yellow-500', hostile: false, hp: 20, attack: 3, defense: 3, accuracy: 60, evasion: 30, level: 3, description: 'Ming dynasty trader with porcelain wares' }
             ]
         }
     };
@@ -397,7 +453,8 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
     onHealthChange,
     onInventoryAdd,
     onGoldChange,
-    structureLocation
+    structureLocation,
+    onPlayerDeath
 }) => {
     // Parse cultural context from map data
     const culturalContext = useMemo(() => {
@@ -405,6 +462,13 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         const dateInfo = parseDateString(mapData.timeSlice || '1500');
         const culture = mapLocationToCulture(mapData.continent || 'Europe', dateInfo.year);
         return { era: dateInfo.era as HistoricalEra, culturalZone: culture as CulturalZone };
+    }, [mapData]);
+
+    // Extract year for historical context
+    const year = useMemo(() => {
+        if (!mapData) return 1500;
+        const dateInfo = parseDateString(mapData.timeSlice || '1500');
+        return dateInfo.year;
     }, [mapData]);
 
     const [dungeon, setDungeon] = useState<DungeonTile[][]>([]);
@@ -430,9 +494,27 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
     const [currentDialogue, setCurrentDialogue] = useState<{ entity: Entity; message: string } | null>(null);
     const [zoomLevel, setZoomLevel] = useState(20); // Font size for the map
     const [showHelp, setShowHelp] = useState(false); // Help overlay visibility
+    const [showSourceReader, setShowSourceReader] = useState(false); // Primary source reader
+    const [selectedSource, setSelectedSource] = useState<PrimarySourceMetadata | null>(null);
+    const [sourceSearchQuery, setSourceSearchQuery] = useState('');
     const [gameLogExpanded, setGameLogExpanded] = useState(false); // Game log expansion state
+
+    // Historical encounter state
+    const [currentEncounter, setCurrentEncounter] = useState<HistoricalEncounter | null>(null);
+    const [showEncounterModal, setShowEncounterModal] = useState(false);
+    const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
+    const [encounterOutcome, setEncounterOutcome] = useState<string | null>(null);
+
+    // Translation minigame state
+    const [currentTranslationPuzzle, setCurrentTranslationPuzzle] = useState<TranslationPuzzle | null>(null);
+    const [currentContextualManuscript, setCurrentContextualManuscript] = useState<ContextualManuscript | null>(null);
+    const [showTranslationModal, setShowTranslationModal] = useState(false);
+    const [playerTranslationGuesses, setPlayerTranslationGuesses] = useState<string[]>([]);
+    const [translationResult, setTranslationResult] = useState<{ success: boolean; accuracy: number; feedback: string } | null>(null);
     const [dungeonDimensions, setDungeonDimensions] = useState({ width: 60, height: 30 });
     const containerRef = useRef<HTMLDivElement>(null);
+    const [playerInput, setPlayerInput] = useState(''); // For NPC dialogue input
+    const [isWaitingForResponse, setIsWaitingForResponse] = useState(false); // Waiting for LLM response
     
     // Visual effects state
     const [particles, setParticles] = useState<Array<{x: number, y: number, char: string, color: string, lifetime: number, vx: number, vy: number}>>([]);
@@ -475,6 +557,118 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
     const addMessage = useCallback((message: string) => {
         setGameMessages(prev => [...prev.slice(-4), message]);
     }, []);
+
+    // Handle player dialogue response to NPC
+    const handlePlayerDialogueResponse = useCallback(async () => {
+        if (!currentDialogue || !playerInput.trim() || isWaitingForResponse) return;
+
+        setIsWaitingForResponse(true);
+
+        try {
+            // Get location ID for persistence
+            const locationId = getRuinLocationId(
+                structureLocation?.[0] || 0,
+                structureLocation?.[1] || 0,
+                currentDepth
+            );
+
+            // Create NPC entity structure for the dialogue function
+            const npcEntity = {
+                name: currentDialogue.entity.name,
+                profession: currentDialogue.entity.subtype || currentDialogue.entity.type,
+                isHostile: currentDialogue.entity.hostile,
+                speciesName: currentDialogue.entity.type === 'animal' ? currentDialogue.entity.subtype : undefined
+            };
+
+            // Generate NPC response using LLM
+            const dialogueResult = await generateEncounterDialogue(
+                npcEntity as any,
+                [
+                    { speaker: 'npc', text: currentDialogue.message },
+                    { speaker: 'player', text: playerInput }
+                ],
+                playerInput,
+                playerCharacter,
+                [], // No other NPCs in ruins context
+                mapData || {
+                    era: culturalContext.era,
+                    culturalZone: culturalContext.culturalZone,
+                    continent: 'Unknown',
+                    mapAreaName: ruinType.name,
+                    timeSlice: `${1500}` // Default historical time
+                } as any,
+                false // Use normal language, not real historical languages
+            );
+
+            const response = dialogueResult.text;
+
+            // Update the dialogue with the NPC's response
+            setCurrentDialogue(prev => prev ? {
+                ...prev,
+                message: response
+            } : null);
+
+            // Clear player input
+            setPlayerInput('');
+
+            // Add to game log
+            addMessage(`You: "${playerInput}"`);
+            addMessage(`${currentDialogue.entity.name}: "${response}"`);
+
+            // Handle dialogue results
+            if (dialogueResult.shouldLeave) {
+                // NPC wants to leave
+                setEntities(prev => prev.filter(e => e.id !== currentDialogue.entity.id));
+                addMessage(`${currentDialogue.entity.name} walks away.`);
+                setCurrentDialogue(null);
+                setPlayerInput('');
+                setIsWaitingForResponse(false);
+                return;
+            }
+
+            if (dialogueResult.shouldAttack) {
+                // NPC becomes hostile
+                setEntities(prev => prev.map(e =>
+                    e.id === currentDialogue.entity.id
+                        ? { ...e, hostile: true }
+                        : e
+                ));
+                addMessage(`${currentDialogue.entity.name} becomes hostile!`);
+                setCurrentDialogue(null);
+                setPlayerInput('');
+                setIsWaitingForResponse(false);
+                return;
+            }
+
+            // If NPC becomes friendly through dialogue, update their state
+            if (currentDialogue.entity.hostile && (
+                response.toLowerCase().includes('friend') ||
+                response.toLowerCase().includes('peace') ||
+                response.toLowerCase().includes('forgive') ||
+                dialogueResult.reputationChange && dialogueResult.reputationChange > 0
+            )) {
+                setEntities(prev => prev.map(e =>
+                    e.id === currentDialogue.entity.id
+                        ? { ...e, hostile: false }
+                        : e
+                ));
+
+                // Store as befriended NPC
+                storeBefriendedNpc(
+                    currentDialogue.entity as any,
+                    locationId,
+                    culturalContext.culturalZone,
+                    culturalContext.era
+                );
+            }
+        } catch (error) {
+            console.error('Error generating NPC response:', error);
+            addMessage('The NPC seems confused by your words...');
+        } finally {
+            setIsWaitingForResponse(false);
+        }
+    }, [currentDialogue, playerInput, isWaitingForResponse, structureLocation, currentDepth,
+        culturalContext, ruinType, playerCharacter, addMessage]);
 
     // Track which rooms have been entered for chamber discovery
     const [discoveredRooms, setDiscoveredRooms] = useState<Set<string>>(new Set());
@@ -1735,27 +1929,56 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         
         // Add primary source manuscripts in library rooms
         try {
-            // Load sources for this cultural zone
-            const sources = await primarySourceService.getSourcesForContext(culturalContext.era, culturalContext.culturalZone);
-            
-            if (sources.length > 0) {
-                // Place 2-3 manuscripts
-                const manuscriptCount = Math.min(3, sources.length, floorTiles.length / 30);
-                for (let i = 0; i < manuscriptCount; i++) {
-                    if (floorTiles.length === 0) break;
+            // Get contextually appropriate manuscripts instead of random ones
+            const manuscriptCount = Math.min(3, floorTiles.length / 30);
+
+            for (let i = 0; i < manuscriptCount; i++) {
+                if (floorTiles.length === 0) break;
+
+                // Get contextual manuscript based on era, culture, ruin type, and year
+                const contextualManuscript = contextualManuscriptService.getContextualManuscript(
+                    culturalContext.era,
+                    culturalContext.culturalZone,
+                    ruinType.name,
+                    year
+                );
+
+                if (contextualManuscript) {
+                    // Add some procedural variation
+                    const variations = ['damaged', 'partial', 'annotated'] as const;
+                    const variation = Math.random() < 0.3 ? variations[Math.floor(Math.random() * variations.length)] : undefined;
+
+                    const finalManuscript = variation
+                        ? contextualManuscriptService.generateProceduralManuscript(contextualManuscript, variation)
+                        : contextualManuscript;
+
                     const idx = Math.floor(Math.random() * floorTiles.length);
                     const tile = floorTiles[idx];
                     floorTiles.splice(idx, 1);
-                    const source = sources[Math.floor(Math.random() * sources.length)];
+
                     newDungeon[tile.y][tile.x] = {
                         ...newDungeon[tile.y][tile.x],
                         type: 'manuscript',
-                        hasManuscript: source
+                        hasManuscript: finalManuscript as PrimarySourceMetadata
                     };
+                } else {
+                    // Fallback to original system if no contextual manuscript available
+                    const sources = await primarySourceService.getSourcesForContext(culturalContext.era, culturalContext.culturalZone);
+                    if (sources.length > 0) {
+                        const idx = Math.floor(Math.random() * floorTiles.length);
+                        const tile = floorTiles[idx];
+                        floorTiles.splice(idx, 1);
+                        const source = sources[Math.floor(Math.random() * sources.length)];
+                        newDungeon[tile.y][tile.x] = {
+                            ...newDungeon[tile.y][tile.x],
+                            type: 'manuscript',
+                            hasManuscript: source
+                        };
+                    }
                 }
             }
         } catch (error) {
-            console.error('Failed to load primary sources:', error);
+            console.error('Failed to load contextual manuscripts:', error);
         }
 
         // Culturally-specific puzzle generation
@@ -2199,8 +2422,32 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             }
         }, 3000);
         
-        // Generate entities using the new ruins enemy service
-        const entityData = getHistoricalEntities(culturalContext.culturalZone, culturalContext.era);
+        // Get location ID for checking befriended NPCs
+        const locationId = getRuinLocationId(
+            structureLocation?.[0] || 0,
+            structureLocation?.[1] || 0,
+            currentDepth
+        );
+
+        // Check for befriended NPCs at this location
+        const befriendedNpcs = getBefriendedNpcsForLocation(locationId);
+
+        // Generate entities using the dynamic ruin NPC service
+        const dynamicNPCs = generateRuinNPCs(
+            culturalContext.culturalZone,
+            culturalContext.era,
+            ruinType.originalType || ruinType.name,
+            currentDepth,
+            3 + currentDepth // More NPCs on deeper levels
+        );
+
+        // Get appropriate animals for the biome
+        const ruinAnimals = getRuinAnimals(
+            mapData?.climate || 'TEMPERATE',
+            mapData?.climate || 'TEMPERATE',
+            2 + currentDepth
+        );
+
         const newEntities: Entity[] = [];
         let entityId = 0;
 
@@ -2222,10 +2469,37 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 const ey = room.y + 1 + Math.floor(Math.random() * (room.height - 2));
                 
                 if (newDungeon[ey][ex].type === 'floor') {
-                    // 70% chance of creature enemy, 30% chance of human NPC
-                    const useRuinsEnemy = Math.random() < 0.7 || !entityData.humans?.length;
-                    
-                    if (useRuinsEnemy) {
+                    // Mix of dynamic NPCs and ruin animals
+                    const useAnimal = Math.random() < 0.5 && ruinAnimals.length > 0;
+                    const useRuinsEnemy = Math.random() < 0.3; // 30% chance for special ruin enemy
+
+                    if (useAnimal && ruinAnimals.length > 0) {
+                        // Use ruin animal
+                        const animal = ruinAnimals[Math.floor(Math.random() * ruinAnimals.length)];
+                        newEntities.push({
+                            id: `entity_${entityId++}`,
+                            x: ex,
+                            y: ey,
+                            type: 'creature',
+                            subtype: animal.type,
+                            name: animal.type.charAt(0).toUpperCase() + animal.type.slice(1),
+                            hp: animal.hp + (currentDepth * 2),
+                            maxHp: animal.hp + (currentDepth * 2),
+                            attack: animal.attack + Math.floor(currentDepth / 2),
+                            defense: 2 + Math.floor(currentDepth / 3),
+                            accuracy: 60,
+                            evasion: 20,
+                            level: currentDepth,
+                            hostile: animal.hostile,
+                            description: animal.description,
+                            symbol: animal.type[0],
+                            emoji: getAnimalEmoji(animal.type),
+                            color: getAnimalColor(animal.type),
+                            dialogue: undefined,
+                            loot: undefined,
+                            aiState: 'idle'
+                        });
+                    } else if (useRuinsEnemy) {
                         // Use the new ruins enemy system with emoji sprites
                         const ruinsEnemy = ruinsEnemyService.generateEnemy(currentDepth, ex, ey);
                         newEntities.push({
@@ -2254,38 +2528,84 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                             moveSpeed: 1000 / ruinsEnemy.speed, // Convert speed to ms delay
                             aiState: 'idle'
                         });
-                    } else if (entityData.humans && entityData.humans.length > 0) {
-                        // Still support human NPCs for variety
-                        const entityTemplate = entityData.humans[Math.floor(Math.random() * entityData.humans.length)];
-                        const npcName = `${entityTemplate.type.charAt(0).toUpperCase() + entityTemplate.type.slice(1)}`;
-                        
+                    } else if (dynamicNPCs.length > 0) {
+                        // Use dynamically generated NPCs
+                        const npc = dynamicNPCs[Math.floor(Math.random() * dynamicNPCs.length)];
+                        const motivation = getNpcMotivation(npc.profession, ruinType.name);
+
                         newEntities.push({
                             id: `entity_${entityId++}`,
                             x: ex,
                             y: ey,
-                            type: entityTemplate.type,
-                            subtype: entityTemplate.type,
-                            name: npcName,
-                            hp: entityTemplate.hp + (currentDepth * 2),
-                            maxHp: entityTemplate.hp + (currentDepth * 2),
-                            attack: entityTemplate.attack + Math.floor(currentDepth / 2),
-                            defense: entityTemplate.defense + Math.floor(currentDepth / 3),
-                            accuracy: entityTemplate.accuracy || 70,
-                            evasion: entityTemplate.evasion || 20,
-                            level: entityTemplate.level || currentDepth,
-                            hostile: entityTemplate.hostile,
-                            description: entityTemplate.description,
-                            symbol: entityTemplate.symbol,
-                            emoji: getHumanEmoji(entityTemplate.type, entityTemplate.subtype), // Add emoji support!
-                            color: entityTemplate.color,
-                            dialogue: [],
-                            loot: Math.random() > 0.5 ? [availableItems[Math.floor(Math.random() * availableItems.length)]] : undefined,
-                            canNegotiate: !entityTemplate.hostile || Math.random() > 0.7,
+                            type: npc.profession,
+                            subtype: npc.profession,
+                            name: npc.name,
+                            hp: npc.combat?.health || 30,
+                            maxHp: npc.combat?.maxHealth || 30,
+                            attack: npc.combat?.attack || 5,
+                            defense: npc.combat?.defense || 3,
+                            accuracy: npc.combat?.accuracy || 70,
+                            evasion: npc.combat?.evasion || 20,
+                            level: npc.combat?.level || currentDepth,
+                            hostile: npc.isHostile,
+                            description: `${npc.profession} - ${motivation}`,
+                            symbol: npc.emoji || '👤',
+                            emoji: npc.emoji || '👤',
+                            color: npc.isHostile ? 'text-red-400' : 'text-blue-400',
+                            dialogue: npc.dialogue,
+                            loot: npc.inventory,
+                            canNegotiate: !npc.isHostile || Math.random() > 0.5,
                             aiState: 'idle'
                         });
                     }
                 }
             }
+        }
+
+        // Add befriended NPCs to the entity list
+        if (befriendedNpcs.length > 0) {
+            befriendedNpcs.forEach((befriendedNpc, index) => {
+                // Find a random empty floor tile for the befriended NPC
+                const emptyTiles: {x: number, y: number}[] = [];
+                for (let y = 0; y < newDungeon.length; y++) {
+                    for (let x = 0; x < newDungeon[y].length; x++) {
+                        if (newDungeon[y][x].type === 'floor' &&
+                            !newEntities.some(e => e.x === x && e.y === y)) {
+                            emptyTiles.push({x, y});
+                        }
+                    }
+                }
+
+                if (emptyTiles.length > 0) {
+                    const position = emptyTiles[Math.floor(Math.random() * emptyTiles.length)];
+                    newEntities.push({
+                        id: befriendedNpc.id,
+                        x: position.x,
+                        y: position.y,
+                        type: befriendedNpc.profession,
+                        subtype: befriendedNpc.profession,
+                        name: befriendedNpc.fullName || befriendedNpc.name,
+                        hp: befriendedNpc.health || 30,
+                        maxHp: befriendedNpc.maxHealth || 30,
+                        attack: befriendedNpc.combat?.attack || 5,
+                        defense: befriendedNpc.combat?.defense || 3,
+                        accuracy: befriendedNpc.combat?.accuracy || 70,
+                        evasion: befriendedNpc.combat?.evasion || 15,
+                        level: befriendedNpc.combat?.level || currentDepth,
+                        hostile: false, // Befriended NPCs are never hostile
+                        description: befriendedNpc.backstory || `A ${befriendedNpc.profession.toLowerCase()}`,
+                        symbol: befriendedNpc.profession[0],
+                        emoji: befriendedNpc.emoji || '👤',
+                        color: 'text-green-400', // Friendly color
+                        dialogue: [`${befriendedNpc.backstory}`, 'Good to see you again!'],
+                        loot: befriendedNpc.inventory,
+                        canNegotiate: false, // Already befriended
+                        aiState: 'idle'
+                    });
+
+                    addMessage(`${befriendedNpc.fullName} is here, your old acquaintance.`);
+                }
+            });
         }
 
         setDungeon(newDungeon);
@@ -2302,11 +2622,18 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         return { startX, startY };
     }, [culturalContext, dungeonDimensions, loadDungeonState, saveDungeonState, currentDepth, ruinType]);
 
-    // Start dungeon music with random timing
+    // Start ruins audio orchestrator with cycling pattern
     useEffect(() => {
-        gameSoundsService.playDungeonMusicWithRandomTiming();
+        // Start the ruins orchestrator which cycles between:
+        // 1. Cave/ruins soundscape (1-2 min)
+        // 2. Short silence (10-20s)
+        // 3. Dungeon music (2-4 loops)
+        // 4. Long silence (1-2 min)
+        // 5. Repeat
+        gameSoundsService.startRuinsOrchestrator();
+
         return () => {
-            gameSoundsService.stopDungeonMusicWithRandomTiming();
+            gameSoundsService.stopRuinsOrchestrator();
         };
     }, []);
     
@@ -2427,7 +2754,15 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             // Update enemy AI (every 50ms instead of every frame for performance)
             if (now % 3 === 0) { // Roughly every 3rd frame
                 setEntities(prev => prev.map(entity => {
-                    if (!entity.hostile || entity.hp <= 0) return entity;
+                    // Check if this NPC is befriended (extra safety check)
+                    const locationId = getRuinLocationId(
+                        structureLocation?.[0] || 0,
+                        structureLocation?.[1] || 0,
+                        currentDepth
+                    );
+                    const isBefriended = isNpcBefriended(entity.id, locationId);
+
+                    if (!entity.hostile || entity.hp <= 0 || isBefriended) return entity;
                     
                     // Initialize AI properties if not set
                     if (!entity.moveSpeed) {
@@ -2806,33 +3141,77 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             if (entityAtPosition) {
                 // Generate dialogue for NPCs using LLM
                 if (entityAtPosition.type !== 'animal') {
-                    generateRoguelikeDialogue({
-                        npcType: entityAtPosition.type,
-                        npcName: entityAtPosition.name,
-                        era: culturalContext.era,
-                        culturalZone: culturalContext.culturalZone,
-                        ruinType: ruinType.name,
-                        currentDepth: currentDepth,
-                        playerName: playerCharacter.name,
-                        playerProfession: playerCharacter.profession,
-                        isHostile: entityAtPosition.hostile,
-                        hasWeapon: player.weapon !== undefined,
-                        playerHealth: player.hp,
-                        playerMaxHealth: player.maxHp
-                    }).then(dialogue => {
-                        setCurrentDialogue({ 
-                            entity: entityAtPosition, 
-                            message: dialogue
+                    // Get location ID for persistence
+                    const locationId = getRuinLocationId(
+                        structureLocation?.[0] || 0,
+                        structureLocation?.[1] || 0,
+                        currentDepth
+                    );
+
+                    // Check if this NPC has been befriended
+                    const isBefriended = isNpcBefriended(entityAtPosition.id, locationId);
+                    const befriendedNpcs = getBefriendedNpcsForLocation(locationId);
+                    const persistentNpc = befriendedNpcs.find(n => n.id === entityAtPosition.id);
+
+                    if (isBefriended && persistentNpc) {
+                        // Show backstory for befriended NPC
+                        setCurrentDialogue({
+                            entity: {
+                                ...entityAtPosition,
+                                name: persistentNpc.fullName || entityAtPosition.name,
+                                hostile: false // Befriended NPCs are never hostile
+                            },
+                            message: `*You recognize ${persistentNpc.fullName}*\n\n"${persistentNpc.backstory}"\n\n"It's good to see you again, friend."`
                         });
-                        
+                    } else {
+                        // Generate new dialogue for unknown NPC
+                        generateRoguelikeDialogue({
+                            npcType: entityAtPosition.type,
+                            npcName: entityAtPosition.name,
+                            era: culturalContext.era,
+                            culturalZone: culturalContext.culturalZone,
+                            ruinType: ruinType.name,
+                            currentDepth: currentDepth,
+                            playerName: playerCharacter.name,
+                            playerProfession: playerCharacter.profession,
+                            isHostile: entityAtPosition.hostile,
+                            hasWeapon: player.weapon !== undefined,
+                            playerHealth: player.hp,
+                            playerMaxHealth: player.maxHp
+                        }).then(dialogue => {
+                            setCurrentDialogue({
+                                entity: entityAtPosition,
+                                message: dialogue
+                            });
+
+                            // Store NPC as befriended after dialogue (non-hostile interaction)
+                            if (!entityAtPosition.hostile || entityAtPosition.canNegotiate) {
+                                const persistedNpc = storeBefriendedNpc(
+                                    entityAtPosition as any, // Cast to NpcEntity type
+                                    locationId,
+                                    culturalContext.culturalZone,
+                                    culturalContext.era
+                                );
+
+                                // Update the entity with full name
+                                setEntities(prev => prev.map(e =>
+                                    e.id === entityAtPosition.id
+                                        ? { ...e, name: persistedNpc.fullName || e.name, hostile: false }
+                                        : e
+                                ));
+
+                                addMessage(`You've befriended ${persistedNpc.fullName}!`);
+                            }
+                        });
+
                         // If hostile but can negotiate, give player a chance to talk
                         if (entityAtPosition.hostile && entityAtPosition.canNegotiate) {
                             addMessage(`The ${entityAtPosition.name} seems aggressive but might listen to reason... [Press T to try talking]`);
-                        } else if (entityAtPosition.hostile) {
-                            // Real-time combat - no turn-based modal needed
+                        } else if (entityAtPosition.hostile && !isBefriended) {
+                            // Real-time combat - no turn-based modal needed (unless befriended)
                             addMessage(`The ${entityAtPosition.name} is hostile!`);
                         }
-                    });
+                    }
                 } else if (entityAtPosition.hostile) {
                     // Real-time combat - hostile animals are dangerous
                     addMessage(`The ${entityAtPosition.name} is hostile and ready to attack!`);
@@ -2875,16 +3254,60 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     
                 case 'manuscript':
                     if (tile.hasManuscript) {
-                        newPlayer.manuscripts.push(tile.hasManuscript);
-                        addMessage(`You discovered: "${tile.hasManuscript.title}"!`);
-                        addMessage('Press M to read the manuscript.');
-                        gameSoundsService.playManuscriptSound();
-                        setDiscoveredSources(prev => [...prev, tile.hasManuscript]);
+                        const manuscript = tile.hasManuscript as ContextualManuscript;
+
+                        // Check if this is a contextual manuscript with translation puzzle
+                        if (manuscript.scriptType && manuscript.translationDifficulty) {
+                            // This is a contextual manuscript requiring translation
+                            setCurrentContextualManuscript(manuscript);
+                            const puzzle = contextualManuscriptService.generateTranslationPuzzle(manuscript);
+                            setCurrentTranslationPuzzle(puzzle);
+                            setShowTranslationModal(true);
+                            setPlayerTranslationGuesses([]);
+                            setTranslationResult(null);
+                            addMessage(`You found an ancient ${manuscript.materialType}: "${manuscript.title}"`);
+                            addMessage(`Script type: ${manuscript.scriptType.toUpperCase()}. Press T to translate.`);
+                            gameSoundsService.playManuscriptSound();
+                        } else {
+                            // Standard manuscript handling
+                            newPlayer.manuscripts.push(tile.hasManuscript);
+                            addMessage(`You discovered: "${tile.hasManuscript.title}"!`);
+                            addMessage('Press M to read the manuscript.');
+                            gameSoundsService.playManuscriptSound();
+                            setDiscoveredSources(prev => [...prev, tile.hasManuscript]);
+                        }
+
+                        // Remove manuscript from map after discovery
                         setDungeon(prevDungeon => {
                             const newDungeon = [...prevDungeon];
                             newDungeon[newY][newX] = { ...tile, type: 'floor', hasManuscript: undefined };
                             return newDungeon;
                         });
+
+                        // Lower chance of historical encounter when finding contextual manuscripts (they have their own minigame)
+                        const encounterChance = manuscript.scriptType ? 0.2 : 0.5;
+                        if (Math.random() < encounterChance) {
+                            const encounter = historicalEncounterService.getHistoricalEncounter(
+                                culturalContext.culturalZone,
+                                culturalContext.era,
+                                year
+                            );
+                            if (encounter) {
+                                const proceduralEncounter = historicalEncounterService.generateProceduralEncounter(
+                                    encounter,
+                                    {
+                                        intelligence: playerCharacter.intelligence || 10,
+                                        wisdom: playerCharacter.wisdom || 10,
+                                        charisma: playerCharacter.charisma || 10
+                                    }
+                                );
+                                setCurrentEncounter(proceduralEncounter);
+                                setShowEncounterModal(true);
+                                setSelectedChoiceId(null);
+                                setEncounterOutcome(null);
+                                addMessage('✦ The manuscript triggers a vision of the past...');
+                            }
+                        }
                     }
                     break;
                     
@@ -2937,6 +3360,31 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 case 'altar':
                     addMessage('You examine the ancient altar. Mysterious energies emanate from it.');
                     gameSoundsService.playAltarSound();
+
+                    // Chance to trigger historical encounter at altars
+                    if (Math.random() < 0.3) { // 30% chance
+                        const encounter = historicalEncounterService.getHistoricalEncounter(
+                            culturalContext.culturalZone,
+                            culturalContext.era,
+                            year
+                        );
+                        if (encounter) {
+                            const proceduralEncounter = historicalEncounterService.generateProceduralEncounter(
+                                encounter,
+                                {
+                                    intelligence: playerCharacter.intelligence || 10,
+                                    wisdom: playerCharacter.wisdom || 10,
+                                    charisma: playerCharacter.charisma || 10
+                                }
+                            );
+                            setCurrentEncounter(proceduralEncounter);
+                            setShowEncounterModal(true);
+                            setSelectedChoiceId(null);
+                            setEncounterOutcome(null);
+                            addMessage('✦ You sense echoes of the past... A vision forms before you.');
+                            gameSoundsService.playAltarSound();
+                        }
+                    }
                     break;
                     
                 case 'inscription':
@@ -3116,6 +3564,12 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
     // Handle keyboard input
     useEffect(() => {
         const handleKeyPress = (event: KeyboardEvent) => {
+            // Don't handle keys if user is typing in an input field
+            const target = event.target as HTMLElement;
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true') {
+                return;
+            }
+
             const keyLower = event.key.toLowerCase();
             
             // MOVEMENT - Arrow keys only
@@ -3175,13 +3629,39 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 
                 switch (keyLower) {
                     case 'escape':
-                        onExit();
+                        // Close translation modal first, then encounter modal, then exit
+                        if (showTranslationModal) {
+                            setShowTranslationModal(false);
+                            setCurrentTranslationPuzzle(null);
+                            setCurrentContextualManuscript(null);
+                            setPlayerTranslationGuesses([]);
+                            setTranslationResult(null);
+                        } else if (showEncounterModal) {
+                            setShowEncounterModal(false);
+                            setCurrentEncounter(null);
+                            setSelectedChoiceId(null);
+                            setEncounterOutcome(null);
+                        } else {
+                            onExit();
+                        }
                         break;
                     case 'm':
-                        // Show manuscripts modal
-                        if (player.manuscripts.length > 0) {
-                            // This would open a modal showing discovered manuscripts
-                            addMessage('Manuscript reading not yet implemented.');
+                        // Toggle manuscript reader
+                        if (discoveredSources.length > 0) {
+                            setShowSourceReader(prev => !prev);
+                            if (!showSourceReader && discoveredSources.length > 0) {
+                                setSelectedSource(discoveredSources[0]);
+                            }
+                        } else {
+                            addMessage('No manuscripts discovered yet. Look for § symbols.');
+                        }
+                        break;
+                    case 't':
+                        // Toggle translation modal if we have a contextual manuscript discovered
+                        if (currentContextualManuscript && currentTranslationPuzzle) {
+                            setShowTranslationModal(prev => !prev);
+                        } else {
+                            addMessage('No ancient texts requiring translation found yet.');
                         }
                         break;
                     case '>':
@@ -3195,6 +3675,86 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     case 'h':
                         // Toggle help
                         setShowHelp(prev => !prev);
+                        setShowSourceReader(false); // Close source reader when opening help
+                        break;
+                    case '1':
+                    case '2':
+                    case '3':
+                        // Select choice in encounter modal
+                        if (showEncounterModal && currentEncounter && !encounterOutcome) {
+                            const choiceIndex = parseInt(keyLower) - 1;
+                            if (choiceIndex < currentEncounter.choices.length) {
+                                const choice = currentEncounter.choices[choiceIndex];
+                                const canSelect = historicalEncounterService.canSelectChoice(
+                                    choice,
+                                    {
+                                        intelligence: playerCharacter.intelligence || 10,
+                                        wisdom: playerCharacter.wisdom || 10,
+                                        charisma: playerCharacter.charisma || 10
+                                    },
+                                    player.inventory.map(i => i.name)
+                                );
+                                if (canSelect) {
+                                    setSelectedChoiceId(choice.id);
+                                }
+                            }
+                        }
+                        break;
+                    case 'enter':
+                        // Confirm choice in encounter modal
+                        if (showEncounterModal && selectedChoiceId && !encounterOutcome) {
+                            const choice = currentEncounter?.choices.find(c => c.id === selectedChoiceId);
+                            if (choice) {
+                                // Apply choice effects
+                                setEncounterOutcome(choice.outcome.description);
+
+                                // Apply effects to player
+                                if (choice.outcome.effects.health) {
+                                    const newHealth = Math.max(0, player.hp + choice.outcome.effects.health);
+                                    setPlayer(prev => ({ ...prev, hp: newHealth }));
+                                    onHealthChange?.(newHealth);
+                                }
+
+                                if (choice.outcome.effects.reputation) {
+                                    addMessage(`Your reputation ${choice.outcome.effects.reputation > 0 ? 'increased' : 'decreased'}!`);
+                                }
+
+                                if (choice.outcome.effects.items && choice.outcome.effects.items.length > 0) {
+                                    choice.outcome.effects.items.forEach(itemName => {
+                                        addMessage(`You gained: ${itemName}`);
+                                    });
+                                }
+
+                                if (choice.outcome.effects.knowledge) {
+                                    setTimeout(() => {
+                                        addMessage(`Knowledge gained: ${choice.outcome.effects.knowledge}`);
+                                    }, 100);
+                                }
+                            }
+                        }
+                        break;
+                    case 'r':
+                        // Research mode - search for sources
+                        if (showSourceReader) {
+                            addMessage('Press a key to search: [1-9] to select source, [Q] to query');
+                        }
+                        break;
+                    case '1':
+                    case '2':
+                    case '3':
+                    case '4':
+                    case '5':
+                    case '6':
+                    case '7':
+                    case '8':
+                    case '9':
+                        // Select document by number in source reader
+                        if (showSourceReader && discoveredSources.length > 0) {
+                            const idx = parseInt(keyLower) - 1;
+                            if (idx < discoveredSources.length) {
+                                setSelectedSource(discoveredSources[idx]);
+                            }
+                        }
                         break;
                     case 't':
                         // Try to talk/negotiate with nearby hostile NPC
@@ -3224,13 +3784,27 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                             }).then(result => {
                                 addMessage(`${nearbyHostile.name}: "${result.response}"`);
                                 if (result.success) {
-                                    // Make NPC non-hostile
-                                    setEntities(prev => prev.map(e => 
-                                        e.id === nearbyHostile.id 
-                                            ? { ...e, hostile: false }
+                                    // Store as befriended NPC
+                                    const locationId = getRuinLocationId(
+                                        structureLocation?.[0] || 0,
+                                        structureLocation?.[1] || 0,
+                                        currentDepth
+                                    );
+
+                                    const persistedNpc = storeBefriendedNpc(
+                                        nearbyHostile as any,
+                                        locationId,
+                                        culturalContext.culturalZone,
+                                        culturalContext.era
+                                    );
+
+                                    // Make NPC non-hostile and update name
+                                    setEntities(prev => prev.map(e =>
+                                        e.id === nearbyHostile.id
+                                            ? { ...e, hostile: false, name: persistedNpc.fullName || e.name }
                                             : e
                                     ));
-                                    addMessage(`The ${nearbyHostile.name} seems less hostile now.`);
+                                    addMessage(`You've befriended ${persistedNpc.fullName}! They will remember you.`);
                                 } else {
                                     addMessage(`Negotiation failed! The ${nearbyHostile.name} becomes more aggressive!`);
                                 }
@@ -3348,7 +3922,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             window.removeEventListener('keydown', handleKeyPress);
             window.removeEventListener('keyup', handleKeyUp);
         };
-    }, [movePlayer, onExit, player, dungeon, generateDungeon, addMessage, currentDepth, discoverNewChamber, entities, culturalContext, ruinType, playerCharacter, performMeleeAttack, performRangedAttack, performChargedSpecial, chargingAttack, chargeDirection, chargeLevel]);
+    }, [movePlayer, onExit, player, dungeon, generateDungeon, addMessage, currentDepth, discoverNewChamber, entities, culturalContext, ruinType, playerCharacter, performMeleeAttack, performRangedAttack, performChargedSpecial, chargingAttack, chargeDirection, chargeLevel, showEncounterModal, currentEncounter, selectedChoiceId, encounterOutcome, setShowEncounterModal, setCurrentEncounter, setSelectedChoiceId, setEncounterOutcome, onHealthChange, showTranslationModal, currentTranslationPuzzle, currentContextualManuscript]);
 
     
     // Simple static particles for atmosphere (no animation)
@@ -3407,6 +3981,17 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         };
     };
     
+    // Get material colors and patterns
+    const materialColors = useMemo(() => {
+        const material = ruinType.material || 'stone';
+        return getMaterialColors(material);
+    }, [ruinType.material]);
+
+    const wallPattern = useMemo(() => {
+        const material = ruinType.material || 'stone';
+        return getMaterialWallPattern(material);
+    }, [ruinType.material]);
+
     const getTileDisplay = (tile: DungeonTile, x: number, y: number) => {
         // Check for player - classic @ symbol
         if (x === player.x && y === player.y) {
@@ -3436,16 +4021,27 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         const dimmed = !tile.visible && tile.explored;
         
         switch (tile.type) {
-            case 'wall': 
-                // Use different wall characters for variety
-                const wallChars = ['█', '▓', '▒'];
-                const wallChar = wallChars[Math.floor((x + y) % 3)];
-                return { char: wallChar, color: dimmed ? 'text-gray-700' : 'text-gray-400', glow: false };
-            case 'floor': 
+            case 'wall':
+                // Use material-specific wall pattern
+                const wallChar = wallPattern;
+                // Apply material color as inline style
+                return {
+                    char: wallChar,
+                    color: 'material-wall', // Custom class we'll handle with inline style
+                    customColor: dimmed ? materialColors.wall + '66' : materialColors.wall,
+                    glow: false
+                };
+            case 'floor':
                 // Use different floor patterns
                 const floorChars = ['·', '.', '˙'];
                 const floorChar = floorChars[Math.floor((x * 7 + y * 3) % 3)];
-                return { char: floorChar, color: dimmed ? 'text-gray-700' : 'text-gray-600', glow: false };
+                // Apply material floor color
+                return {
+                    char: floorChar,
+                    color: 'material-floor',
+                    customColor: dimmed ? materialColors.floor + '44' : materialColors.floor + '99',
+                    glow: false
+                };
             case 'door': 
                 return { char: '╬', color: dimmed ? 'text-amber-800' : 'text-amber-600', glow: false }; // Better door
             case 'treasure': 
@@ -3549,15 +4145,30 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     <p className="text-lg mb-2" style={{ color: '#ffa500' }}>Items found: {player.inventory.length}</p>
                     <p className="text-lg mb-6" style={{ color: '#ffa500' }}>Manuscripts discovered: {player.manuscripts.length}</p>
                     <button
-                        onClick={onExit}
+                        onClick={() => {
+                            // Trigger the main game over modal if handler is provided
+                            if (onPlayerDeath) {
+                                onPlayerDeath({
+                                    type: 'combat',
+                                    description: `Perished in the depths of ${ruinType.name}`,
+                                    opponent: 'ancient ruins',
+                                    location: ruinType.name,
+                                    depth: currentDepth,
+                                    goldCollected: player.gold,
+                                    itemsFound: player.inventory.length,
+                                    manuscriptsFound: player.manuscripts.length
+                                });
+                            }
+                            onExit();
+                        }}
                         className="px-8 py-3 font-bold rounded"
-                        style={{ 
-                            backgroundColor: '#ff6b00', 
+                        style={{
+                            backgroundColor: '#ff6b00',
                             color: 'black',
                             boxShadow: '0 0 20px #ff6b00'
                         }}
                     >
-                        Return to Surface
+                        Your life flashes before your eyes
                     </button>
                 </div>
             </div>
@@ -3586,6 +4197,18 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                         </span>
                         {player.hasTorch && <span style={{ color: '#ffcc00' }}>🕯️ {player.torchTurns}</span>}
                         <span style={{ color: '#ff7700' }}>Turn: {turnCount}</span>
+                        {/* Help button moved to top bar */}
+                        <button
+                            onClick={() => setShowHelp(!showHelp)}
+                            className="px-2 py-1 rounded transition-all text-xs"
+                            style={{
+                                backgroundColor: showHelp ? '#ff6b00' : 'rgba(75, 85, 99, 0.8)',
+                                color: showHelp ? 'black' : 'white',
+                                border: '1px solid #ff6b00'
+                            }}
+                        >
+                            {showHelp ? 'Hide' : 'Help'} (H)
+                        </button>
                     </div>
                     {/* Zoom controls */}
                     <div className="flex gap-2">
@@ -3602,7 +4225,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                             className="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded"
                             style={{ fontSize: '14px' }}
                         >
-                            Zoom +
+                            +
                         </button>
                     </div>
                 </div>
@@ -3639,16 +4262,17 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                                             return (
                                                 <span
                                                     key={absoluteX}
-                                                    className={display.color}
+                                                    className={display.customColor ? '' : display.color}
                                                     style={{
                                                         width: `${zoomLevel}px`,
                                                         display: 'inline-block',
                                                         textAlign: 'center',
                                                         fontWeight: 'bold',
-                                                        ...(display.strongGlow ? { 
-                                                            textShadow: `0 0 12px currentColor, 0 0 20px currentColor, 0 0 8px #ffff00` 
-                                                        } : display.glow ? { 
-                                                            textShadow: `0 0 8px currentColor` 
+                                                        color: display.customColor || undefined,
+                                                        ...(display.strongGlow ? {
+                                                            textShadow: `0 0 12px currentColor, 0 0 20px currentColor, 0 0 8px #ffff00`
+                                                        } : display.glow ? {
+                                                            textShadow: `0 0 8px currentColor`
                                                         } : {})
                                                     }}
                                                 >
@@ -3774,8 +4398,8 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     }}
                 >
                     {/* Header with expand/collapse button */}
-                    <div className="flex justify-between items-center px-3 py-1 border-b" style={{ borderColor: '#ff6b00' }}>
-                        <span style={{ color: '#ff9500', fontSize: '14px', fontWeight: 'bold' }}>
+                    <div className="flex items-center px-3 py-1 border-b" style={{ borderColor: '#ff6b00' }}>
+                        <span style={{ color: '#ff9500', fontSize: '14px', fontWeight: 'bold', marginRight: '8px' }}>
                             Game Log {gameLogExpanded ? '(Full Screen)' : ''}
                         </span>
                         <button
@@ -3912,28 +4536,6 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                         </div>
                     )}
                     
-                    {/* Help button (shows legend/controls) - positioned above game log */}
-                    <div className="absolute bottom-40 right-8">
-                        <button
-                            onClick={() => setShowHelp(!showHelp)}
-                            className="px-3 py-1 rounded transition-all"
-                            style={{ 
-                                fontSize: '14px',
-                                backgroundColor: 'rgba(75, 85, 99, 0.8)',
-                                color: 'white',
-                                backdropFilter: 'blur(4px)',
-                                border: '1px solid rgba(255, 107, 0, 0.3)'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = 'rgba(107, 114, 128, 0.9)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = 'rgba(75, 85, 99, 0.8)';
-                            }}
-                        >
-                            {showHelp ? 'Hide' : 'Help'} (H)
-                        </button>
-                    </div>
                     
                     {/* Help overlay - positioned above game log */}
                     {showHelp && (
@@ -4220,6 +4822,612 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     }
                 }
             `}</style>
+
+            {/* Primary Source Reader Terminal - Full Screen Overlay */}
+            {showSourceReader && (
+                <div className="absolute inset-0 flex items-center justify-center z-50"
+                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.95)' }}>
+                    <div className="w-full max-w-4xl h-5/6 flex flex-col p-6"
+                         style={{
+                             backgroundColor: '#0a0a0a',
+                             border: '2px solid #00ff00',
+                             boxShadow: '0 0 20px #00ff00',
+                             fontFamily: 'Courier New, monospace'
+                         }}>
+                        {/* Terminal Header */}
+                        <div className="mb-4" style={{ borderBottom: '2px solid #00ff00', paddingBottom: '10px' }}>
+                            <div className="flex justify-between items-center mb-2">
+                                <h2 className="text-2xl font-bold" style={{ color: '#00ff00', textShadow: '0 0 10px #00ff00' }}>
+                                    ╔════════════════ HISTORICAL ARCHIVES ════════════════╗
+                                </h2>
+                            </div>
+                            <div className="text-sm" style={{ color: '#00ff00' }}>
+                                &gt; LOCATION: {ruinType.name} | ERA: {culturalContext.era} | ZONE: {culturalContext.culturalZone}
+                            </div>
+                            <div className="text-sm mt-1" style={{ color: '#00ff00' }}>
+                                &gt; DOCUMENTS RECOVERED: {discoveredSources.length} | STATUS: AUTHENTICATED
+                            </div>
+                        </div>
+
+                        {/* Document List */}
+                        <div className="flex-1 overflow-y-auto mb-4">
+                            {selectedSource ? (
+                                <div className="space-y-4">
+                                    <div style={{ color: '#00ff00' }}>
+                                        <div className="text-lg font-bold mb-2">
+                                            &gt; DOCUMENT: {selectedSource.title}
+                                        </div>
+                                        <div className="text-sm mb-2" style={{ color: '#00cc00' }}>
+                                            &gt; DATE: {selectedSource.date || 'Unknown'}
+                                            {selectedSource.author && ` | AUTHOR: ${selectedSource.author}`}
+                                            {selectedSource.language && ` | LANGUAGE: ${selectedSource.language}`}
+                                        </div>
+                                        <div className="border-l-2 pl-4 mt-4" style={{ borderColor: '#00ff00', color: '#00ff00' }}>
+                                            <pre className="whitespace-pre-wrap text-sm leading-relaxed">
+{selectedSource.content?.substring(0, 1000) || selectedSource.excerpt || 'Content unavailable...'}
+{selectedSource.content?.length > 1000 && '\n\n[DOCUMENT CONTINUES - PRESS SPACE FOR MORE]'}
+                                            </pre>
+                                        </div>
+                                        {selectedSource.keywords && (
+                                            <div className="mt-4 text-sm" style={{ color: '#00cc00' }}>
+                                                &gt; KEYWORDS: {selectedSource.keywords.join(', ')}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-center mt-10" style={{ color: '#00ff00' }}>
+                                    &gt; NO DOCUMENT SELECTED
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Document Selector */}
+                        <div className="border-t-2 pt-4" style={{ borderColor: '#00ff00' }}>
+                            <div className="text-sm mb-2" style={{ color: '#00ff00' }}>
+                                &gt; AVAILABLE DOCUMENTS:
+                            </div>
+                            <div className="grid grid-cols-1 gap-1 mb-4">
+                                {discoveredSources.map((source, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => setSelectedSource(source)}
+                                        className="text-left p-2 hover:bg-green-900 hover:bg-opacity-20 transition-colors"
+                                        style={{
+                                            color: selectedSource === source ? '#00ff00' : '#008800',
+                                            borderLeft: selectedSource === source ? '3px solid #00ff00' : '3px solid transparent',
+                                            paddingLeft: '10px'
+                                        }}>
+                                        [{idx + 1}] {source.title.substring(0, 60)}{source.title.length > 60 ? '...' : ''}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Terminal Commands */}
+                        <div className="text-sm" style={{ color: '#00ff00', borderTop: '1px solid #00ff00', paddingTop: '10px' }}>
+                            [1-9] Select Document | [Q] Search Archive | [M/ESC] Close Terminal | [SPACE] Read More
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Historical Encounter Terminal - Full Screen Overlay */}
+            {showEncounterModal && currentEncounter && (
+                <div className="absolute inset-0 flex items-center justify-center z-50"
+                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.95)' }}>
+                    <div className="w-full max-w-5xl h-5/6 flex flex-col p-6"
+                         style={{
+                             backgroundColor: '#0a0a0a',
+                             border: '2px solid #ff8800',
+                             boxShadow: '0 0 20px #ff6600',
+                             fontFamily: 'Courier New, monospace'
+                         }}>
+                        {/* Terminal Header */}
+                        <div className="mb-4" style={{ borderBottom: '2px solid #ff8800', paddingBottom: '10px' }}>
+                            <div className="text-center mb-2">
+                                <div className="text-3xl font-bold" style={{ color: '#ff9500', textShadow: '0 0 15px #ff6600' }}>
+                                    ╔══════════════════════════════════════════════════════╗
+                                </div>
+                                <div className="text-2xl font-bold my-2" style={{ color: '#ff9500', textShadow: '0 0 10px #ff6600' }}>
+                                    TEMPORAL ECHO DETECTED
+                                </div>
+                                <div className="text-3xl font-bold" style={{ color: '#ff9500', textShadow: '0 0 15px #ff6600' }}>
+                                    ╚══════════════════════════════════════════════════════╝
+                                </div>
+                            </div>
+                            <div className="text-sm mt-3" style={{ color: '#ff8800' }}>
+                                &gt; LOCATION: {currentEncounter.location || ruinType.name}
+                                {currentEncounter.year && ` | YEAR: ${currentEncounter.year > 0 ? currentEncounter.year : Math.abs(currentEncounter.year) + ' BCE'}`}
+                                {` | ERA: ${currentEncounter.era}`}
+                            </div>
+                            <div className="text-sm mt-1" style={{ color: '#ff8800' }}>
+                                &gt; ENCOUNTER: {currentEncounter.title}
+                            </div>
+                        </div>
+
+                        {/* Encounter Content */}
+                        <div className="flex-1 overflow-y-auto mb-4">
+                            {!encounterOutcome ? (
+                                <div className="space-y-6">
+                                    {/* Historical Context */}
+                                    <div style={{ color: '#ff9500' }}>
+                                        <div className="text-lg font-bold mb-3" style={{ color: '#ff9500' }}>
+                                            ═══ HISTORICAL CONTEXT ═══
+                                        </div>
+                                        <div className="border-l-2 pl-4" style={{ borderColor: '#ff6600', color: '#ffa500' }}>
+                                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                                                {currentEncounter.contextText}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* The Encounter */}
+                                    <div style={{ color: '#ff9500' }}>
+                                        <div className="text-lg font-bold mb-3" style={{ color: '#ff9500' }}>
+                                            ═══ THE MOMENT ═══
+                                        </div>
+                                        <div className="border-l-2 pl-4" style={{ borderColor: '#ff6600', color: '#ffb500' }}>
+                                            <p className="text-base leading-relaxed whitespace-pre-wrap font-medium">
+                                                {currentEncounter.encounterText}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Artifacts Found */}
+                                    {currentEncounter.artifacts && currentEncounter.artifacts.length > 0 && (
+                                        <div style={{ color: '#ff9500' }}>
+                                            <div className="text-lg font-bold mb-2" style={{ color: '#ff9500' }}>
+                                                ═══ ARTIFACTS PRESENT ═══
+                                            </div>
+                                            <div className="pl-4">
+                                                {currentEncounter.artifacts.map((artifact, idx) => (
+                                                    <div key={idx} className="text-sm" style={{ color: '#ffa500' }}>
+                                                        ◊ {artifact}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Player Choices */}
+                                    <div style={{ color: '#ff9500' }}>
+                                        <div className="text-lg font-bold mb-3" style={{ color: '#ff9500' }}>
+                                            ═══ YOUR CHOICE ═══
+                                        </div>
+                                        <div className="space-y-3">
+                                            {currentEncounter.choices.map((choice, idx) => {
+                                                const canSelect = historicalEncounterService.canSelectChoice(
+                                                    choice,
+                                                    {
+                                                        intelligence: playerCharacter.intelligence || 10,
+                                                        wisdom: playerCharacter.wisdom || 10,
+                                                        charisma: playerCharacter.charisma || 10
+                                                    },
+                                                    player.inventory.map(i => i.name)
+                                                );
+
+                                                return (
+                                                    <button
+                                                        key={choice.id}
+                                                        onClick={() => canSelect && setSelectedChoiceId(choice.id)}
+                                                        disabled={!canSelect}
+                                                        className={`w-full text-left p-4 rounded transition-all ${
+                                                            selectedChoiceId === choice.id
+                                                                ? 'bg-orange-900 bg-opacity-30'
+                                                                : 'hover:bg-orange-900 hover:bg-opacity-20'
+                                                        } ${!canSelect ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                                        style={{
+                                                            border: selectedChoiceId === choice.id
+                                                                ? '2px solid #ff8800'
+                                                                : '2px solid transparent',
+                                                            color: canSelect ? '#ffb500' : '#aa6600'
+                                                        }}>
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="text-xl font-bold" style={{ color: '#ff9500' }}>
+                                                                [{idx + 1}]
+                                                            </div>
+                                                            <div className="flex-1">
+                                                                <div className="text-base mb-1">
+                                                                    {choice.text}
+                                                                </div>
+                                                                {choice.requirements && (
+                                                                    <div className="text-xs mt-1" style={{ color: '#ff6600' }}>
+                                                                        {!canSelect && '✗ Requirements not met'}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Historical Note */}
+                                    {currentEncounter.historicalNote && (
+                                        <div className="mt-6 p-4 rounded" style={{
+                                            backgroundColor: 'rgba(255, 136, 0, 0.1)',
+                                            border: '1px solid #ff6600'
+                                        }}>
+                                            <div className="text-sm font-bold mb-2" style={{ color: '#ff9500' }}>
+                                                📚 HISTORICAL NOTE
+                                            </div>
+                                            <div className="text-xs" style={{ color: '#ffa500' }}>
+                                                {currentEncounter.historicalNote}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                /* Outcome Display */
+                                <div className="space-y-6">
+                                    <div style={{ color: '#ff9500' }}>
+                                        <div className="text-lg font-bold mb-3" style={{ color: '#ff9500' }}>
+                                            ═══ OUTCOME ═══
+                                        </div>
+                                        <div className="border-l-2 pl-4" style={{ borderColor: '#ff6600', color: '#ffb500' }}>
+                                            <p className="text-base leading-relaxed whitespace-pre-wrap">
+                                                {encounterOutcome}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="text-center mt-8">
+                                        <button
+                                            onClick={() => {
+                                                setShowEncounterModal(false);
+                                                setCurrentEncounter(null);
+                                                setSelectedChoiceId(null);
+                                                setEncounterOutcome(null);
+                                            }}
+                                            className="px-6 py-3 rounded"
+                                            style={{
+                                                backgroundColor: '#ff6600',
+                                                color: '#000',
+                                                fontWeight: 'bold',
+                                                fontSize: '16px'
+                                            }}>
+                                            RETURN TO RUINS
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Terminal Commands */}
+                        {!encounterOutcome && (
+                            <div className="text-sm border-t-2 pt-3" style={{ color: '#ff8800', borderColor: '#ff8800' }}>
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        [1-3] Select Choice | [ENTER] Confirm Selection | [ESC] Defer Decision
+                                    </div>
+                                    {selectedChoiceId && (
+                                        <button
+                                            onClick={() => {
+                                                const choice = currentEncounter.choices.find(c => c.id === selectedChoiceId);
+                                                if (choice) {
+                                                    // Apply choice effects
+                                                    setEncounterOutcome(choice.outcome.description);
+
+                                                    // Apply effects to player
+                                                    if (choice.outcome.effects.health) {
+                                                        const newHealth = Math.max(0, player.hp + choice.outcome.effects.health);
+                                                        setPlayer(prev => ({ ...prev, hp: newHealth }));
+                                                        onHealthChange?.(newHealth);
+                                                    }
+
+                                                    if (choice.outcome.effects.reputation) {
+                                                        // Could integrate with reputation system here
+                                                        addMessage(`Your reputation ${choice.outcome.effects.reputation > 0 ? 'increased' : 'decreased'}!`);
+                                                    }
+
+                                                    if (choice.outcome.effects.items && choice.outcome.effects.items.length > 0) {
+                                                        // Add items to inventory
+                                                        choice.outcome.effects.items.forEach(itemName => {
+                                                            addMessage(`You gained: ${itemName}`);
+                                                        });
+                                                    }
+
+                                                    if (choice.outcome.effects.primarySources && choice.outcome.effects.primarySources.length > 0) {
+                                                        // Add to discovered sources
+                                                        choice.outcome.effects.primarySources.forEach(source => {
+                                                            addMessage(`Historical source discovered: ${source}`);
+                                                        });
+                                                    }
+
+                                                    if (choice.outcome.effects.knowledge) {
+                                                        // Display knowledge gained
+                                                        setTimeout(() => {
+                                                            addMessage(`Knowledge gained: ${choice.outcome.effects.knowledge}`);
+                                                        }, 100);
+                                                    }
+                                                }
+                                            }}
+                                            className="px-4 py-2 rounded font-bold"
+                                            style={{
+                                                backgroundColor: '#ff8800',
+                                                color: '#000'
+                                            }}>
+                                            MAKE YOUR CHOICE
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Translation Minigame Modal - Full Screen Overlay */}
+            {showTranslationModal && currentTranslationPuzzle && currentContextualManuscript && (
+                <div className="absolute inset-0 flex items-center justify-center z-50"
+                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.95)' }}>
+                    <div className="w-full max-w-6xl h-5/6 flex flex-col p-6"
+                         style={{
+                             backgroundColor: '#0a0a0a',
+                             border: '2px solid #00ccff',
+                             boxShadow: '0 0 20px #0099cc',
+                             fontFamily: 'Courier New, monospace'
+                         }}>
+                        {/* Translation Header */}
+                        <div className="mb-4" style={{ borderBottom: '2px solid #00ccff', paddingBottom: '10px' }}>
+                            <div className="text-center mb-2">
+                                <div className="text-3xl font-bold" style={{ color: '#00ffff', textShadow: '0 0 15px #00ccff' }}>
+                                    ╔══════════════════════════════════════════════════════╗
+                                </div>
+                                <div className="text-2xl font-bold my-2" style={{ color: '#00ffff', textShadow: '0 0 10px #00ccff' }}>
+                                    ANCIENT SCRIPT DECODER
+                                </div>
+                                <div className="text-3xl font-bold" style={{ color: '#00ffff', textShadow: '0 0 15px #00ccff' }}>
+                                    ╚══════════════════════════════════════════════════════╝
+                                </div>
+                            </div>
+                            <div className="text-sm mt-3" style={{ color: '#00ccff' }}>
+                                &gt; MANUSCRIPT: {currentContextualManuscript.title}
+                                {currentContextualManuscript.date && ` | DATE: ${currentContextualManuscript.date}`}
+                                {` | SCRIPT: ${currentContextualManuscript.scriptType.toUpperCase()}`}
+                            </div>
+                            <div className="text-sm mt-1" style={{ color: '#00ccff' }}>
+                                &gt; MATERIAL: {currentContextualManuscript.materialType || 'unknown'} |
+                                CONDITION: {currentContextualManuscript.preservationState || 'unknown'} |
+                                DIFFICULTY: {currentContextualManuscript.translationDifficulty?.toUpperCase()}
+                            </div>
+                        </div>
+
+                        {/* Translation Content */}
+                        <div className="flex-1 overflow-y-auto mb-4">
+                            {!translationResult ? (
+                                <div className="space-y-6">
+                                    {/* Script Visual */}
+                                    {currentTranslationPuzzle.scriptVisual && (
+                                        <div style={{ color: '#00ffff' }}>
+                                            <div className="text-lg font-bold mb-3" style={{ color: '#00ffff' }}>
+                                                ═══ ORIGINAL SCRIPT ═══
+                                            </div>
+                                            <div className="border-2 p-4 bg-gray-900 bg-opacity-50" style={{ borderColor: '#00ccff' }}>
+                                                {currentTranslationPuzzle.scriptVisual.map((line, idx) => (
+                                                    <div key={idx} className="text-center font-mono text-sm" style={{ color: '#00ddff' }}>
+                                                        {line}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Original Script Text */}
+                                    <div style={{ color: '#00ffff' }}>
+                                        <div className="text-lg font-bold mb-3" style={{ color: '#00ffff' }}>
+                                            ═══ SCRIPT CHARACTERS ═══
+                                        </div>
+                                        <div className="border-l-2 pl-4 py-2" style={{ borderColor: '#00ccff', backgroundColor: 'rgba(0, 204, 255, 0.1)' }}>
+                                            <div className="text-2xl font-bold text-center" style={{ color: '#00eeff', letterSpacing: '8px' }}>
+                                                {currentTranslationPuzzle.originalScript.join('  ')}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Partial Translation */}
+                                    <div style={{ color: '#00ffff' }}>
+                                        <div className="text-lg font-bold mb-3" style={{ color: '#00ffff' }}>
+                                            ═══ PARTIAL TRANSLATION ═══
+                                        </div>
+                                        <div className="border-l-2 pl-4" style={{ borderColor: '#00ccff', color: '#00ddff' }}>
+                                            <p className="text-base leading-relaxed">
+                                                {currentTranslationPuzzle.partialTranslation.join(' ')}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Word Bank */}
+                                    <div style={{ color: '#00ffff' }}>
+                                        <div className="text-lg font-bold mb-3" style={{ color: '#00ffff' }}>
+                                            ═══ WORD BANK ═══
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-3">
+                                            {currentTranslationPuzzle.wordBank.map((word, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => {
+                                                        const newGuesses = [...playerTranslationGuesses];
+                                                        const gapIndex = newGuesses.length;
+                                                        if (gapIndex < currentTranslationPuzzle.correctSolution.length) {
+                                                            newGuesses[gapIndex] = word;
+                                                            setPlayerTranslationGuesses(newGuesses);
+                                                        }
+                                                    }}
+                                                    className="p-3 rounded transition-all text-center font-semibold"
+                                                    style={{
+                                                        border: '2px solid #00ccff',
+                                                        backgroundColor: playerTranslationGuesses.includes(word)
+                                                            ? 'rgba(0, 204, 255, 0.3)'
+                                                            : 'rgba(0, 204, 255, 0.1)',
+                                                        color: '#00eeff'
+                                                    }}>
+                                                    {word}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Current Translation Attempt */}
+                                    {playerTranslationGuesses.length > 0 && (
+                                        <div style={{ color: '#00ffff' }}>
+                                            <div className="text-lg font-bold mb-3" style={{ color: '#00ffff' }}>
+                                                ═══ YOUR TRANSLATION ═══
+                                            </div>
+                                            <div className="border-l-2 pl-4 py-2" style={{ borderColor: '#00ccff', backgroundColor: 'rgba(0, 255, 0, 0.1)' }}>
+                                                <p className="text-base leading-relaxed" style={{ color: '#00ff88' }}>
+                                                    {playerTranslationGuesses.join(' ')}
+                                                </p>
+                                            </div>
+                                            <div className="mt-3 flex gap-3">
+                                                <button
+                                                    onClick={() => setPlayerTranslationGuesses([])}
+                                                    className="px-4 py-2 rounded"
+                                                    style={{
+                                                        backgroundColor: '#cc6600',
+                                                        color: '#000',
+                                                        fontWeight: 'bold'
+                                                    }}>
+                                                    CLEAR
+                                                </button>
+                                                {playerTranslationGuesses.length === currentTranslationPuzzle.correctSolution.length && (
+                                                    <button
+                                                        onClick={() => {
+                                                            const result = contextualManuscriptService.checkTranslation(
+                                                                currentTranslationPuzzle,
+                                                                playerTranslationGuesses
+                                                            );
+                                                            setTranslationResult(result);
+
+                                                            // Add to inventory and sources if successful
+                                                            if (result.success && currentContextualManuscript) {
+                                                                setDiscoveredSources(prev => [...prev, currentContextualManuscript as PrimarySourceMetadata]);
+                                                                addMessage(`Successfully translated: "${currentContextualManuscript.title}"`);
+                                                                if (currentContextualManuscript.historicalContext) {
+                                                                    setTimeout(() => {
+                                                                        addMessage(`Historical significance: ${currentContextualManuscript.historicalContext}`);
+                                                                    }, 100);
+                                                                }
+                                                            }
+                                                        }}
+                                                        className="px-6 py-2 rounded"
+                                                        style={{
+                                                            backgroundColor: '#00ccff',
+                                                            color: '#000',
+                                                            fontWeight: 'bold'
+                                                        }}>
+                                                        SUBMIT TRANSLATION
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Decoding Hints */}
+                                    {currentContextualManuscript.decodingHints && currentContextualManuscript.decodingHints.length > 0 && (
+                                        <div className="mt-6 p-4 rounded" style={{
+                                            backgroundColor: 'rgba(0, 204, 255, 0.1)',
+                                            border: '1px solid #00ccff'
+                                        }}>
+                                            <div className="text-sm font-bold mb-2" style={{ color: '#00ffff' }}>
+                                                📖 DECODING HINTS
+                                            </div>
+                                            {currentContextualManuscript.decodingHints.map((hint, idx) => (
+                                                <div key={idx} className="text-xs mt-1" style={{ color: '#00ddff' }}>
+                                                    • {hint}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                /* Translation Result */
+                                <div className="space-y-6">
+                                    <div style={{ color: '#00ffff' }}>
+                                        <div className="text-lg font-bold mb-3" style={{ color: '#00ffff' }}>
+                                            ═══ TRANSLATION RESULT ═══
+                                        </div>
+                                        <div className="border-l-2 pl-4 py-4" style={{
+                                            borderColor: translationResult.success ? '#00ff00' : '#ff6600',
+                                            backgroundColor: translationResult.success ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 102, 0, 0.1)'
+                                        }}>
+                                            <div className="text-xl font-bold mb-2" style={{
+                                                color: translationResult.success ? '#00ff88' : '#ffaa44'
+                                            }}>
+                                                {translationResult.success ? '✓ SUCCESS' : '✗ PARTIAL/FAILED'}
+                                            </div>
+                                            <div className="text-base mb-3" style={{ color: '#00ddff' }}>
+                                                Accuracy: {translationResult.accuracy.toFixed(1)}%
+                                            </div>
+                                            <p className="text-base leading-relaxed" style={{ color: '#00eeff' }}>
+                                                {translationResult.feedback}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {translationResult.success && currentContextualManuscript && (
+                                        <div style={{ color: '#00ffff' }}>
+                                            <div className="text-lg font-bold mb-3" style={{ color: '#00ffff' }}>
+                                                ═══ DECODED TEXT ═══
+                                            </div>
+                                            <div className="border-l-2 pl-4 py-3" style={{ borderColor: '#00ff00', backgroundColor: 'rgba(0, 255, 0, 0.1)' }}>
+                                                <p className="text-base leading-relaxed" style={{ color: '#00ff88' }}>
+                                                    {currentContextualManuscript.content}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {translationResult.success && currentContextualManuscript?.historicalContext && (
+                                        <div className="mt-6 p-4 rounded" style={{
+                                            backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                                            border: '1px solid #00ff00'
+                                        }}>
+                                            <div className="text-sm font-bold mb-2" style={{ color: '#00ff88' }}>
+                                                🏛️ HISTORICAL SIGNIFICANCE
+                                            </div>
+                                            <div className="text-xs" style={{ color: '#00ffaa' }}>
+                                                {currentContextualManuscript.historicalContext}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="text-center mt-8">
+                                        <button
+                                            onClick={() => {
+                                                setShowTranslationModal(false);
+                                                setCurrentTranslationPuzzle(null);
+                                                setCurrentContextualManuscript(null);
+                                                setPlayerTranslationGuesses([]);
+                                                setTranslationResult(null);
+                                            }}
+                                            className="px-6 py-3 rounded"
+                                            style={{
+                                                backgroundColor: '#00ccff',
+                                                color: '#000',
+                                                fontWeight: 'bold',
+                                                fontSize: '16px'
+                                            }}>
+                                            RETURN TO EXPLORATION
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Translation Commands */}
+                        {!translationResult && (
+                            <div className="text-sm border-t-2 pt-3" style={{ color: '#00ccff', borderColor: '#00ccff' }}>
+                                <div className="text-center">
+                                    [CLICK WORDS] Add to translation | [CLEAR] Reset | [SUBMIT] Check translation | [T/ESC] Close decoder
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

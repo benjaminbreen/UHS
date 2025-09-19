@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { 
+import {
   bayer4, seededRng, mix, plotPixel,
   skinRamp, hairRamp, outlineColor,
   renderFaceMicroShades, renderStubble,
@@ -202,12 +202,12 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
   // Utility function to get item color from equipped items
   const getItemColor = (item: any): string => {
     if (!item?.color) return appearanceWithDefaults.palette.primary;
-    
+
     // Handle both hex colors and color names
     if (item.color.startsWith('#')) {
       return item.color;
     }
-    
+
     // Convert color names to hex
     const colorMap: Record<string, string> = {
       'Navy': '#001f3f',
@@ -237,7 +237,7 @@ const ProceduralPortrait: React.FC<ProceduralPortraitProps> = ({
       'Wheat': '#f5deb3',
       'Beige': '#f5f5dc'
     };
-    
+
     return colorMap[item.color] || appearanceWithDefaults.palette.primary;
   };
 

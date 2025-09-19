@@ -225,7 +225,7 @@ const CityBanner: React.FC<CityBannerProps> = ({
   harbor,
   elevationLevel = 'normal',
   size = 'smaller_city',
-  timeOfDay = 'Day' as TimeOfDay,
+  timeOfDay = 'Midday' as TimeOfDay,
   seed,
   width = 900,
   height = 220,
@@ -261,11 +261,11 @@ const CityBanner: React.FC<CityBannerProps> = ({
   const ground = useMemo(() => {
     const base = CLIMATE_PALETTE[climate] || CLIMATE_PALETTE[ClimateType.TEMPERATE];
     let g = base.ground, v = base.veg;
-    if (season === 'Autumn') {
+    if (season === 'fall') {
       v = blend(v, '#b45309', 0.35);
       g = blend(g, '#d6b37e', 0.15);
     }
-    if (season === 'Winter') {
+    if (season === 'winter') {
       g = blend(g, '#dfe7ef', 0.5);
       v = blend(v, '#9fb4be', 0.4);
     }
@@ -330,19 +330,102 @@ const CityBanner: React.FC<CityBannerProps> = ({
     const bucket = eraBucket(era);
     const allowed = (RULES[bucket][culturalZone] ?? ['tile_rowhouse']) as readonly Archetype[];
 
+    // Historically accurate building dimensions
+    const getHistoricalDimensions = (type: Archetype, isBackground: boolean) => {
+      const scale = isBackground ? 0.8 : 1;
+
+      // Most traditional buildings were single-story or low
+      switch (type) {
+        case 'mud_hut':
+          return {
+            w: (20 + rng.range(0, 10)) * scale,
+            h: (18 + rng.range(0, 8)) * scale
+          };
+        case 'adobe_compound':
+          return {
+            w: (24 + rng.range(0, 12)) * scale,
+            h: (16 + rng.range(0, 6)) * scale
+          };
+        case 'thatch_longhouse':
+          return {
+            w: (32 + rng.range(0, 16)) * scale,
+            h: (20 + rng.range(0, 8)) * scale
+          };
+        case 'pueblo_terrace':
+          return {
+            w: (28 + rng.range(0, 14)) * scale,
+            h: (22 + rng.range(0, 10)) * scale
+          };
+        case 'stilt_house':
+          return {
+            w: (22 + rng.range(0, 8)) * scale,
+            h: (24 + rng.range(0, 8)) * scale
+          };
+        case 'dome_sanctum':
+          return {
+            w: (26 + rng.range(0, 10)) * scale,
+            h: (20 + rng.range(0, 8)) * scale
+          };
+        case 'pagoda_roof':
+          return {
+            w: (24 + rng.range(0, 12)) * scale,
+            h: (26 + rng.range(0, 12)) * scale
+          };
+        case 'timber_house':
+        case 'stone_gable':
+          return {
+            w: (26 + rng.range(0, 14)) * scale,
+            h: (28 + rng.range(0, 12)) * scale
+          };
+        case 'tile_rowhouse':
+          return {
+            w: (24 + rng.range(0, 12)) * scale,
+            h: (32 + rng.range(0, 16)) * scale
+          };
+        case 'warehouse':
+          return {
+            w: (36 + rng.range(0, 18)) * scale,
+            h: (28 + rng.range(0, 12)) * scale
+          };
+        case 'factory_stack':
+          return {
+            w: (32 + rng.range(0, 16)) * scale,
+            h: (38 + rng.range(0, 20)) * scale
+          };
+        case 'row_tenement':
+          return {
+            w: (28 + rng.range(0, 14)) * scale,
+            h: (42 + rng.range(0, 18)) * scale
+          };
+        case 'apartment_block':
+          return {
+            w: (32 + rng.range(0, 16)) * scale,
+            h: (48 + rng.range(0, 24)) * scale
+          };
+        case 'office_tower':
+          return {
+            w: (28 + rng.range(0, 12)) * scale,
+            h: (60 + rng.range(0, 30)) * scale
+          };
+        default:
+          return {
+            w: (26 + rng.range(0, 18)) * scale,
+            h: (30 + rng.range(0, 26)) * scale
+          };
+      }
+    };
+
     const bg = Array.from({ length: total }, (_, i) => {
       const x = (width / (total + 1)) * (i + 1) + rng.range(-15, 15);
-      const bw = 26 + rng.range(0, 18);
-      const bh = 30 + rng.range(0, 26);
       const type = rng.pick(allowed);
+      const { w: bw, h: bh } = getHistoricalDimensions(type, true);
       return { x, bw, bh, y: baseY, type };
     });
 
     const fg = Array.from({ length: foreground }, (_, i) => {
       const x = (width / (foreground + 1)) * (i + 1);
-      const bw = 34 + rng.range(0, 22);
-      const bh = 42 + rng.range(0, 30);
       const type = rng.pick(allowed);
+      const { w: bw, h: bh } = getHistoricalDimensions(type, false);
       const hasChimney = (bucket === 'industrial' || bucket === 'modern') && ['row_tenement', 'apartment_block', 'tile_rowhouse', 'warehouse'].includes(type) && rng.next() > 0.5;
       return { x, bw, bh, y: baseY, type, hasChimney };
     });
@@ -426,7 +509,7 @@ const CityBanner: React.FC<CityBannerProps> = ({
       })}
 
       {/* horizon glow */}
-      <rect x="0" y="0" width={width} height={height * 0.65} fill={`url(#${makeId('horizon')})`} opacity={timeOfDay === 'Day' ? 0.15 : 0.55} />
+      <rect x="0" y="0" width={width} height={height * 0.65} fill={`url(#${makeId('horizon')})`} opacity={timeOfDay === 'Midday' || timeOfDay === 'Morning' || timeOfDay === 'Afternoon' ? 0.15 : 0.55} />
     </g>
   );
 
@@ -467,7 +550,7 @@ const CityBanner: React.FC<CityBannerProps> = ({
   );
 
   const warmRim = blend(sky.bottom, '#ffd9a8', 0.45);
-  const roofSnow = season === 'Winter' ? clamp(0.6 - (weather?.precipitation === 'rain' ? 0.3 : 0), 0, 0.6) : 0;
+  const roofSnow = season === 'winter' ? clamp(0.6 - (weather?.precipitation === 'rain' ? 0.3 : 0), 0, 0.6) : 0;
 
   const draw = (type: Archetype, x: number, y: number, w: number, h: number, isBG = false) => {
     const wallBase = isBG ? blend(culture.trim, '#2e2a24', 0.06) : blend(culture.trim, '#2e2a24', 0.02);
@@ -482,28 +565,42 @@ const CityBanner: React.FC<CityBannerProps> = ({
       case 'mud_hut':
         return (
           <g>
-            {base}
-            <ellipse cx={x} cy={y - h} rx={w / 2 + 2} ry={h / 3} fill={blend('#8b5a2b', culture.roof, 0.4)} />
-            {roofSnow > 0 && <ellipse cx={x} cy={y - h - 1} rx={w / 2 + 2} ry={h / 3.2} fill="#fff" opacity={roofSnow} />}
-            <rect x={x - 3} y={y - 12} width="6" height="12" fill="#3b2a1a" />
+            {/* More authentic circular mud hut */}
+            <ellipse cx={x} cy={y - h / 2} rx={w / 2} ry={h / 2} fill={blend('#b8860b', '#8b4513', 0.3)} />
+            <ellipse cx={x} cy={y - h} rx={w / 2 + 2} ry={h / 4} fill={blend('#8b5a2b', culture.roof, 0.4)} />
+            {roofSnow > 0 && <ellipse cx={x} cy={y - h - 1} rx={w / 2 + 2} ry={h / 4.2} fill="#fff" opacity={roofSnow} />}
+            {/* Small entrance opening instead of door */}
+            <ellipse cx={x} cy={y - 8} rx={2} ry={4} fill="#2c1810" />
           </g>
         );
       case 'adobe_compound':
         return (
           <g>
+            {/* Flat-roofed compound buildings */}
             {base}
-            <rect x={x - w / 2} y={y - h - 2} width={w} height="2" fill={culture.roof} />
+            <rect x={x - w / 2} y={y - h - 2} width={w} height="2" fill={blend('#d2b48c', culture.roof, 0.6)} />
             {roofSnow > 0 && <rect x={x - w / 2} y={y - h - 3} width={w} height="2" fill="#fff" opacity={roofSnow} />}
-            <rect x={x - 4} y={y - 12} width="8" height="12" fill="#4a3725" />
+            {/* Multiple smaller entrances */}
+            <rect x={x - 6} y={y - 10} width="4" height="10" fill="#3b2a1a" />
+            <rect x={x + 2} y={y - 8} width="4" height="8" fill="#3b2a1a" />
+            {/* Courtyard walls */}
+            <rect x={x - w / 2 - 3} y={y - 6} width="2" height="6" fill={wallBase} />
+            <rect x={x + w / 2 + 1} y={y - 6} width="2" height="6" fill={wallBase} />
           </g>
         );
       case 'thatch_longhouse':
         return (
           <g>
+            {/* Extended longhouse with better proportions */}
             {base}
-            <polygon points={`${x - w / 2},${y - h} ${x},${y - h - 10} ${x + w / 2},${y - h}`} fill={blend('#8b5a2b', culture.roof, 0.2)} />
-            {roofSnow > 0 && <polygon points={`${x - w / 2},${y - h} ${x},${y - h - 10} ${x + w / 2},${y - h}`} fill="#fff" opacity={roofSnow} />}
-            <rect x={x - 4} y={y - 12} width="8" height="12" fill="#3b2a1a" />
+            <polygon points={`${x - w / 2 - 4},${y - h} ${x},${y - h - 8} ${x + w / 2 + 4},${y - h}`} fill={blend('#8b5a2b', culture.roof, 0.2)} />
+            {roofSnow > 0 && <polygon points={`${x - w / 2 - 4},${y - h} ${x},${y - h - 8} ${x + w / 2 + 4},${y - h}`} fill="#fff" opacity={roofSnow} />}
+            {/* Multiple entrances for longhouse */}
+            <rect x={x - 8} y={y - 10} width="4" height="10" fill="#3b2a1a" />
+            <rect x={x + 4} y={y - 10} width="4" height="10" fill="#3b2a1a" />
+            {/* Smoke holes */}
+            <rect x={x - 4} y={y - h - 4} width="2" height="2" fill="#2c1810" />
+            <rect x={x + 4} y={y - h - 4} width="2" height="2" fill="#2c1810" />
           </g>
         );
       case 'pueblo_terrace':
@@ -607,29 +704,120 @@ const CityBanner: React.FC<CityBannerProps> = ({
     }
   };
 
-  const windows = (x: number, y: number, w: number, h: number, rows = 2) => {
+  // Historically accurate window rendering
+  const windows = (x: number, y: number, w: number, h: number, rows = 2, buildingType?: Archetype, variant?: number) => {
     if (lightIntensity <= 0.05) return null;
+
+    // Many traditional buildings shouldn't have glass windows at all
+    const shouldHaveWindows = (() => {
+      // No windows for these traditional types
+      if (['mud_hut', 'adobe_compound', 'thatch_longhouse', 'pueblo_terrace', 'stilt_house'].includes(buildingType || '')) {
+        return false;
+      }
+      // Limited windows for early eras
+      if (era === HistoricalEra.PREHISTORY || era === HistoricalEra.ANTIQUITY) {
+        return ['dome_sanctum', 'stone_gable'].includes(buildingType || '');
+      }
+      // More windows from medieval onward
+      return era >= HistoricalEra.MEDIEVAL;
+    })();
+
+    if (!shouldHaveWindows) return null;
+
     const warm = '#ffd27a';
-    const perRow = 2;
+    const cool = '#a8d5ff';
+
+    // Window variety based on era and building type
+    const windowStyle = (() => {
+      if (era === HistoricalEra.MODERN_ERA) return 'grid';
+      if (era === HistoricalEra.INDUSTRIAL_ERA) return 'tall';
+      if (buildingType === 'pagoda_roof') return 'lattice';
+      if (buildingType === 'dome_sanctum') return 'arched';
+      if (era === HistoricalEra.MEDIEVAL) return 'narrow';
+      return 'regular';
+    })();
+
+    // Fewer windows for earlier eras
+    const maxRows = era <= HistoricalEra.MEDIEVAL ? 1 : rows;
+    const perRow = (() => {
+      if (windowStyle === 'grid') return 3;
+      if (era <= HistoricalEra.MEDIEVAL) return 1; // Single window for medieval
+      return 2;
+    })();
+
     const cells: JSX.Element[] = [];
-    for (let r = 0; r < rows; r++) {
+
+    for (let r = 0; r < maxRows; r++) {
       for (let c = 0; c < perRow; c++) {
-        const wx = x - w / 2 + 6 + c * (w - 12 - 6) / (perRow - 1);
+        const wx = x - w / 2 + 6 + c * (w - 12 - 6) / Math.max(1, perRow - 1);
         const wy = y - h + 9 + r * 10;
-        const lit = (r + c) % 2 === 0; // deterministic
-        const fill = lit ? warm : '#1c1c1c';
-        cells.push(
-          <g key={`${r}-${c}`}>
-            <rect x={wx} y={wy} width="6" height="8" fill={fill} />
-            {lit && (
-              <rect
-                x={wx - 1} y={wy - 1} width="8" height="10"
-                fill={warm} opacity={0.45 * lightIntensity}
-                style={{ mixBlendMode: 'screen' as any }}
-              />
-            )}
-          </g>
-        );
+
+        // Vary lighting pattern based on time and building
+        const isNight = timeOfDay === 'Night' || timeOfDay === 'Dusk';
+        // Much less lighting in premodern eras
+        const litChance = era <= HistoricalEra.MEDIEVAL ?
+          (isNight ? 0.3 : 0.1) :  // Candles/oil lamps were expensive
+          (isNight ? 0.7 : 0.3);
+        const lit = ((r + c + (variant || 0)) * 7) % 10 < litChance * 10;
+        const windowColor = era === HistoricalEra.MODERN_ERA && c % 2 === 0 ? cool : warm;
+        const fill = lit ? windowColor : '#1c1c1c';
+
+        // Different window shapes based on style
+        if (windowStyle === 'arched') {
+          cells.push(
+            <g key={`${r}-${c}`}>
+              <ellipse cx={wx + 3} cy={wy + 4} rx={3} ry={5} fill={fill} />
+              {lit && (
+                <ellipse
+                  cx={wx + 3} cy={wy + 4} rx={4} ry={6}
+                  fill={windowColor} opacity={0.45 * lightIntensity}
+                  style={{ mixBlendMode: 'screen' as any }}
+                />
+              )}
+            </g>
+          );
+        } else if (windowStyle === 'narrow') {
+          cells.push(
+            <g key={`${r}-${c}`}>
+              <rect x={wx} y={wy} width="4" height="10" fill={fill} />
+              {lit && (
+                <rect
+                  x={wx - 1} y={wy - 1} width="6" height="12"
+                  fill={windowColor} opacity={0.45 * lightIntensity}
+                  style={{ mixBlendMode: 'screen' as any }}
+                />
+              )}
+            </g>
+          );
+        } else if (windowStyle === 'lattice') {
+          cells.push(
+            <g key={`${r}-${c}`}>
+              <rect x={wx} y={wy} width="6" height="8" fill={fill} />
+              <rect x={wx + 2} y={wy} width="2" height="8" fill="#2c1810" opacity={0.5} />
+              <rect x={wx} y={wy + 3} width="6" height="2" fill="#2c1810" opacity={0.5} />
+              {lit && (
+                <rect
+                  x={wx - 1} y={wy - 1} width="8" height="10"
+                  fill={windowColor} opacity={0.35 * lightIntensity}
+                  style={{ mixBlendMode: 'screen' as any }}
+                />
+              )}
+            </g>
+          );
+        } else {
+          cells.push(
+            <g key={`${r}-${c}`}>
+              <rect x={wx} y={wy} width="6" height="8" fill={fill} />
+              {lit && (
+                <rect
+                  x={wx - 1} y={wy - 1} width="8" height="10"
+                  fill={windowColor} opacity={0.45 * lightIntensity}
+                  style={{ mixBlendMode: 'screen' as any }}
+                />
+              )}
+            </g>
+          );
+        }
       }
     }
     return <>{cells}</>;
@@ -637,33 +825,51 @@ const CityBanner: React.FC<CityBannerProps> = ({
 
   const renderDistricts = () => (
     <g>
+      {/* Far background buildings - smaller, faded */}
       {layout.bg.map((b, i) => (
-        <g key={`bg-${i}`} opacity={0.68}>
-          {draw(b.type, b.x, b.y, b.bw, b.bh, true)}
+        <g key={`bg-${i}`} opacity={0.55}>
+          {draw(b.type, b.x, b.y, b.bw * 0.8, b.bh * 0.8, true)}
+          {windows(b.x, b.y, b.bw * 0.8, b.bh * 0.8, 1, b.type, i)}
         </g>
       ))}
+
+      {/* Midground buildings - normal opacity */}
       {layout.fg.map((b, i) => (
         <g key={`fg-${i}`}>
           {draw(b.type, b.x, b.y, b.bw, b.bh, false)}
-          {windows(b.x, b.y, b.bw, b.bh, 2)}
+          {windows(b.x, b.y, b.bw, b.bh, 2, b.type, i)}
           {/* door */}
           <rect x={b.x - 4} y={b.y - 12} width="8" height="12" fill="#2c1810" />
-          {/* chimney smoke */}
+          {/* Enhanced animated chimney smoke */}
           {b.hasChimney && (
-            <g opacity={timeOfDay === 'Day' ? 0.4 : 0.55}>
-              {Array.from({ length: 4 }, (_, k) => {
-                const t = (frame + k * 15) * 0.02;
+            <g opacity={timeOfDay === 'Night' || timeOfDay === 'Dawn' ? 0.65 : 0.45}>
+              {Array.from({ length: 8 }, (_, k) => {
+                // More complex smoke animation
+                const age = ((frame * 0.5 + k * 8) % 40) / 40; // age of smoke puff (0-1)
+                const windStrength = (weather?.windSpeed ?? 10) / 20;
                 const dir = ((weather?.windDirection ?? 270) - 90) * (Math.PI / 180);
-                const dx = Math.cos(dir) * t * 6;
-                const dy = Math.sin(dir) * t * 3 - 6;
+
+                // Smoke rises and drifts with wind
+                const baseX = b.x + b.bw / 3 + 2;
+                const baseY = b.y - b.bh - 10;
+                const dx = Math.cos(dir) * age * 25 * windStrength + Math.sin(age * Math.PI * 2) * 3;
+                const dy = -age * 20 + Math.sin(age * Math.PI * 3 + k) * 2;
+
+                // Smoke expands and fades as it rises
+                const radius = 2 + age * 4;
+                const opacity = Math.max(0, (1 - age) * 0.4);
+
+                // Color shifts from darker to lighter as smoke rises
+                const smokeColor = blend('#6b7280', '#e5e7eb', age * 0.6);
+
                 return (
                   <circle
                     key={k}
-                    cx={b.x + b.bw / 3 + 2 + dx}
-                    cy={b.y - b.bh - 10 + dy}
-                    r={2 + (k % 2)}
-                    fill="#cbd5e1"
-                    opacity={0.35}
+                    cx={baseX + dx}
+                    cy={baseY + dy}
+                    r={radius}
+                    fill={smokeColor}
+                    opacity={opacity}
                   />
                 );
               })}
@@ -716,39 +922,199 @@ const CityBanner: React.FC<CityBannerProps> = ({
   const renderLamps = () => {
     if (lightIntensity <= 0.1) return null;
     const lampGlow = '#ffcc66';
+    const torchGlow = '#ff8844';
+
+    // Determine lighting type based on era
+    const lightingType = (() => {
+      if (era === HistoricalEra.PREHISTORY) return 'bonfire';
+      if (era === HistoricalEra.ANTIQUITY || era === HistoricalEra.MEDIEVAL) return 'torch';
+      if (era === HistoricalEra.RENAISSANCE_EARLY_MODERN) return 'lantern';
+      if (era === HistoricalEra.INDUSTRIAL_ERA) return 'gaslamp';
+      return 'electric'; // Modern era
+    })();
+
     return (
       <g>
-        {layout.lamps.map((L, i) => (
-          <g key={i}>
-            <rect x={L.x - 1} y={L.y - 18} width="2" height="18" fill="#374151" />
-            <circle cx={L.x} cy={L.y - 18} r="3" fill={lampGlow} />
-            <circle cx={L.x} cy={L.y - 18} r={10} fill={lampGlow} opacity={0.65 * lightIntensity} style={{ mixBlendMode: 'screen' as any }} />
-            <rect x={L.x - 12} y={L.y - 6} width={24} height="3" fill={lampGlow} opacity={0.25 * lightIntensity} style={{ mixBlendMode: 'screen' as any }} />
-          </g>
-        ))}
+        {layout.lamps.map((L, i) => {
+          if (lightingType === 'bonfire') {
+            // Bonfires for prehistoric
+            return (
+              <g key={i}>
+                {/* Stone ring */}
+                <ellipse cx={L.x} cy={L.y} rx={8} ry={3} fill="#5a5a5a" />
+                {/* Fire */}
+                {Array.from({ length: 3 }, (_, k) => {
+                  const flicker = Math.sin(frame * 0.2 + k) * 2;
+                  return (
+                    <g key={k}>
+                      <ellipse
+                        cx={L.x + flicker}
+                        cy={L.y - 4 - k * 3}
+                        rx={4 - k}
+                        ry={6 - k * 2}
+                        fill={k === 0 ? '#ff6b2b' : torchGlow}
+                        opacity={0.8 - k * 0.2}
+                      />
+                    </g>
+                  );
+                })}
+                <circle cx={L.x} cy={L.y - 4} r={15} fill={torchGlow} opacity={0.4 * lightIntensity} style={{ mixBlendMode: 'screen' as any }} />
+              </g>
+            );
+          } else if (lightingType === 'torch') {
+            // Torches for antiquity/medieval
+            return (
+              <g key={i}>
+                {/* Torch pole */}
+                <rect x={L.x - 1} y={L.y - 16} width="2" height="16" fill="#6b4423" />
+                {/* Torch bracket */}
+                <rect x={L.x - 2} y={L.y - 18} width="4" height="2" fill="#4a3725" />
+                {/* Flame with animation */}
+                {Array.from({ length: 3 }, (_, k) => {
+                  const flicker = Math.sin(frame * 0.15 + i + k) * 1.5;
+                  return (
+                    <ellipse
+                      key={k}
+                      cx={L.x + flicker}
+                      cy={L.y - 20 - k * 2}
+                      rx={2 - k * 0.5}
+                      ry={3 - k}
+                      fill={k === 0 ? '#ff6b2b' : torchGlow}
+                      opacity={0.9 - k * 0.2}
+                    />
+                  );
+                })}
+                <circle cx={L.x} cy={L.y - 20} r={12} fill={torchGlow} opacity={0.5 * lightIntensity} style={{ mixBlendMode: 'screen' as any }} />
+              </g>
+            );
+          } else if (lightingType === 'lantern') {
+            // Oil lanterns for renaissance/early modern
+            return (
+              <g key={i}>
+                {/* Lantern pole */}
+                <rect x={L.x - 1} y={L.y - 14} width="2" height="14" fill="#4a4a4a" />
+                {/* Lantern box */}
+                <rect x={L.x - 3} y={L.y - 20} width="6" height="8" fill="#2c1810" strokeWidth="0.5" stroke="#1a1a1a" />
+                {/* Glass panes */}
+                <rect x={L.x - 2} y={L.y - 19} width="4" height="6" fill={lampGlow} opacity={0.7} />
+                {/* Flame inside */}
+                <ellipse cx={L.x} cy={L.y - 16} rx="1" ry="2" fill="#ff6b2b" />
+                <circle cx={L.x} cy={L.y - 16} r={10} fill={lampGlow} opacity={0.45 * lightIntensity} style={{ mixBlendMode: 'screen' as any }} />
+              </g>
+            );
+          } else if (lightingType === 'gaslamp') {
+            // Gas lamps for industrial era
+            return (
+              <g key={i}>
+                {/* Ornate pole */}
+                <rect x={L.x - 1} y={L.y - 16} width="2" height="16" fill="#2c3e50" />
+                {/* Decorative base */}
+                <rect x={L.x - 2} y={L.y - 2} width="4" height="2" fill="#1a2332" />
+                {/* Glass globe */}
+                <circle cx={L.x} cy={L.y - 18} r="4" fill="#1a1a1a" opacity={0.3} />
+                <circle cx={L.x} cy={L.y - 18} r="3" fill={lampGlow} opacity={0.8} />
+                {/* Gas flame */}
+                <ellipse cx={L.x} cy={L.y - 18} rx="1" ry="2" fill="#4a9fff" />
+                <circle cx={L.x} cy={L.y - 18} r={10} fill={lampGlow} opacity={0.55 * lightIntensity} style={{ mixBlendMode: 'screen' as any }} />
+              </g>
+            );
+          } else {
+            // Modern electric street lamps
+            return (
+              <g key={i}>
+                <rect x={L.x - 1} y={L.y - 18} width="2" height="18" fill="#374151" />
+                <circle cx={L.x} cy={L.y - 18} r="3" fill={lampGlow} />
+                <circle cx={L.x} cy={L.y - 18} r={10} fill={lampGlow} opacity={0.65 * lightIntensity} style={{ mixBlendMode: 'screen' as any }} />
+                <rect x={L.x - 12} y={L.y - 6} width={24} height="3" fill={lampGlow} opacity={0.25 * lightIntensity} style={{ mixBlendMode: 'screen' as any }} />
+              </g>
+            );
+          }
+        })}
       </g>
     );
   };
 
   const renderPeople = () => {
     const rowY = height * 0.70;
-    const speed = 0.4;
+
+    // Time-based activity patterns
+    const activityLevel = (() => {
+      if (timeOfDay === 'Night') return 0.1;  // Very few people at night
+      if (timeOfDay === 'Dawn') return 0.3;   // Some early risers
+      if (timeOfDay === 'Dusk') return 0.7;   // Evening activity
+      return 1.0; // Full daytime activity
+    })();
+
+    // Cultural clothing colors
+    const clothingPalette = (() => {
+      switch(culturalZone) {
+        case 'EAST_ASIAN': return ['#1e293b', '#dc2626', '#0891b2', '#7c3aed'];
+        case 'SOUTH_ASIAN': return ['#ea580c', '#eab308', '#a21caf', '#0d9488'];
+        case 'MENA': return ['#0c4a6e', '#f5f5f4', '#737373', '#1e293b'];
+        case 'SUB_SAHARAN_AFRICAN': return ['#dc2626', '#f59e0b', '#16a34a', '#9333ea'];
+        case 'EUROPEAN': return ['#1e293b', '#525252', '#991b1b', '#1e3a8a'];
+        case 'SOUTH_AMERICAN': return ['#dc2626', '#059669', '#fbbf24', '#7c3aed'];
+        case 'OCEANIA': return ['#06b6d4', '#10b981', '#f59e0b', '#8b5cf6'];
+        default: return [culture.trim, blend(culture.trim, '#000', 0.2)];
+      }
+    })();
+
+    const speed = timeOfDay === 'Night' ? 0.2 : (timeOfDay === 'Dawn' || timeOfDay === 'Dusk' ? 0.3 : 0.4);
+    const peopleCount = Math.floor(layout.people.length * activityLevel);
+
     return (
       <g>
-        {layout.people.map((p, i) => {
+        {layout.people.slice(0, peopleCount).map((p, i) => {
           const x = (p.baseX + (frame + p.phase) * speed * p.dir + width * 2) % width;
           const walk = Math.floor((frame + i) / 8) % 2;
-          const coat = p.tint > 0.5 ? culture.trim : blend(culture.trim, '#000', 0.2);
+
+          // Pick culturally appropriate clothing color
+          const clothingColor = clothingPalette[i % clothingPalette.length];
+
+          // Vary skin tones slightly
+          const skinTone = blend('#ffdbac', '#d4a574', (i * 17) % 100 / 200);
+
           return (
             <g key={i} transform={`translate(${x}, ${rowY})`}>
-              <rect x="-2" y="-8" width="4" height="6" fill={coat} />
-              <rect x="-1.5" y="-10" width="3" height="2" fill="#ffdbac" />
+              {/* Body with cultural clothing */}
+              <rect x="-2" y="-8" width="4" height="6" fill={clothingColor} />
+
+              {/* Add cultural details for some people */}
+              {culturalZone === 'MENA' && i % 3 === 0 && (
+                // Headscarf/turban
+                <rect x="-2" y="-11" width="4" height="2" fill={clothingColor} />
+              )}
+              {culturalZone === 'EAST_ASIAN' && i % 4 === 0 && era < HistoricalEra.MODERN_ERA && (
+                // Conical hat
+                <polygon points="-3,-11 0,-13 3,-11" fill="#8b7355" />
+              )}
+
+              {/* Head */}
+              <rect x="-1.5" y="-10" width="3" height="2" fill={skinTone} />
+
+              {/* Animated walking legs */}
               <rect x={-1.5 + walk * p.dir} y="-2" width="1" height="4" fill="#4b3b2a" />
               <rect x={0.5 - walk * p.dir} y="-2" width="1" height="4" fill="#4b3b2a" />
+
+              {/* Era-appropriate personal lighting at night */}
               {lightIntensity > 0.5 && i % 4 === 0 && (
                 <g>
-                  <circle cx="4" cy="-4" r="2" fill="#ffcc66" />
-                  <circle cx="4" cy="-4" r="6" fill="#ffcc66" opacity={0.5 * lightIntensity} style={{ mixBlendMode: 'screen' as any }} />
+                  {(era === HistoricalEra.PREHISTORY || era === HistoricalEra.ANTIQUITY || era === HistoricalEra.MEDIEVAL) ? (
+                    // Torch for early eras
+                    <>
+                      <rect x="3" y="-6" width="1" height="4" fill="#6b4423" />
+                      <ellipse cx="4" cy="-7" rx="1" ry="2" fill="#ff6b2b" />
+                      <circle cx="4" cy="-7" r="5" fill="#ff8844" opacity={0.4 * lightIntensity} style={{ mixBlendMode: 'screen' as any }} />
+                    </>
+                  ) : (
+                    // Lantern for later eras
+                    <>
+                      <rect x="3" y="-6" width="1" height="4" fill="#2c1810" />
+                      <rect x="3.5" y="-8" width="1" height="2" fill="#2c1810" />
+                      <circle cx="4" cy="-7" r="1.5" fill="#ffcc66" />
+                      <circle cx="4" cy="-7" r="4" fill="#ffcc66" opacity={0.4 * lightIntensity} style={{ mixBlendMode: 'screen' as any }} />
+                    </>
+                  )}
                 </g>
               )}
             </g>
@@ -833,6 +1199,93 @@ const CityBanner: React.FC<CityBannerProps> = ({
     return null;
   };
 
+  /* --------------------------- Foreground Layer ---------------------------- */
+
+  const renderForeground = () => {
+    // Market stalls during day, especially morning
+    const showMarket = (timeOfDay === 'Morning' || timeOfDay === 'Midday') &&
+                      (era >= HistoricalEra.MEDIEVAL || culturalZone === 'MENA' || culturalZone === 'SOUTH_ASIAN');
+
+    // Street vendors and carts based on era
+    const hasVendors = era >= HistoricalEra.ANTIQUITY && era <= HistoricalEra.RENAISSANCE_EARLY_MODERN;
+
+    return (
+      <g opacity={0.95}>
+        {/* Market stalls with awnings */}
+        {showMarket && layout.lamps.slice(0, 3).map((pos, i) => {
+          // Cultural awning colors
+          const awningColor = (() => {
+            switch(culturalZone) {
+              case 'EAST_ASIAN': return ['#dc2626', '#eab308', '#0891b2'][i % 3];
+              case 'SOUTH_ASIAN': return ['#ea580c', '#a21caf', '#059669'][i % 3];
+              case 'MENA': return ['#0891b2', '#f5f5f4', '#dc2626'][i % 3];
+              case 'SUB_SAHARAN_AFRICAN': return ['#f59e0b', '#dc2626', '#16a34a'][i % 3];
+              default: return culture.banner;
+            }
+          })();
+
+          return (
+            <g key={`stall-${i}`} transform={`translate(${pos.x + i * 80}, ${height * 0.75})`}>
+              {/* Stall frame */}
+              <rect x="-15" y="-20" width="30" height="20" fill="#8b7355" />
+              <rect x="-15" y="-22" width="30" height="2" fill="#6b5a4a" />
+
+              {/* Striped awning */}
+              <polygon points="-18,-22 0,-30 18,-22" fill={awningColor} />
+              <polygon points="-18,-22 0,-28 18,-22" fill={awningColor} opacity={0.7} />
+
+              {/* Goods on display */}
+              <rect x="-12" y="-18" width="5" height="4" fill="#d4a574" />
+              <rect x="-5" y="-18" width="5" height="4" fill="#dc2626" />
+              <rect x="2" y="-18" width="5" height="4" fill="#059669" />
+              <rect x="8" y="-18" width="5" height="4" fill="#eab308" />
+            </g>
+          );
+        })}
+
+        {/* Street vendor carts for medieval/renaissance */}
+        {hasVendors && timeOfDay !== 'Night' && (
+          <g transform={`translate(${100 + Math.sin(frame * 0.01) * 10}, ${height * 0.72})`}>
+            <rect x="-8" y="-6" width="16" height="6" fill="#8b7355" />
+            <circle cx="-6" cy="0" r="2" fill="#4b3b2a" />
+            <circle cx="6" cy="0" r="2" fill="#4b3b2a" />
+            <rect x="-6" y="-8" width="12" height="2" fill="#d4a574" />
+          </g>
+        )}
+
+        {/* Trees for prosperous cities */}
+        {condition === 'prosperous' && layout.lamps.map((pos, i) => {
+          if (i % 3 !== 0) return null;
+          return (
+            <g key={`tree-${i}`} transform={`translate(${pos.x - 30}, ${height * 0.68})`}>
+              <rect x="-2" y="-8" width="4" height="8" fill="#6b4423" />
+              <circle cx="0" cy="-12" r="6" fill="#059669" opacity={0.9} />
+              <circle cx="-3" cy="-10" r="4" fill="#16a34a" opacity={0.8} />
+              <circle cx="3" cy="-10" r="4" fill="#16a34a" opacity={0.8} />
+            </g>
+          );
+        })}
+
+        {/* Birds for dawn/dusk */}
+        {(timeOfDay === 'Dawn' || timeOfDay === 'Dusk') && (
+          <g>
+            {Array.from({ length: 5 }, (_, i) => {
+              const birdX = (i * 100 + frame * 0.8) % (width + 100) - 50;
+              const birdY = 20 + Math.sin(frame * 0.05 + i) * 10;
+              const wingFlap = Math.sin(frame * 0.3 + i) * 2;
+              return (
+                <g key={`bird-${i}`} transform={`translate(${birdX}, ${birdY})`}>
+                  <ellipse cx="0" cy="0" rx="2" ry="1" fill="#1e293b" />
+                  <path d={`M -3,${wingFlap} Q -2,0 0,0 Q 2,0 3,${wingFlap}`} fill="#1e293b" />
+                </g>
+              );
+            })}
+          </g>
+        )}
+      </g>
+    );
+  };
+
   /* --------------------------------- SVG ---------------------------------- */
 
   return (
@@ -850,6 +1303,7 @@ const CityBanner: React.FC<CityBannerProps> = ({
       {renderGround()}
       {renderLamps()}
       {renderPeople()}
+      {renderForeground()}
       {renderWeatherFX()}
       {renderHistoricalFeatures()}
       {/* gentle vignette at night (subtle, non-bleaching) */}

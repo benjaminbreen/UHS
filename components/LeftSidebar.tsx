@@ -182,7 +182,8 @@ const LeftSidebar: React.FC<{
     isLeftSidebarExpanded, setIsLeftSidebarExpanded,
     activeLens, setActiveLens,
     setInfoModalTarget, infoModalTarget, useLlmForDescriptions,
-    setIsMapDetailsModalOpen, setStructureModalTarget, setActivePoi
+    setIsMapDetailsModalOpen, setStructureModalTarget, setActivePoi,
+    inMiningRoguelike
   } = useUI();
 
   const { mapData, currentMapArchetype, currentMapClimate, animals, npcs, mapAnalysisData, localArea, terrainStructures, societalProfile } = useMap();
@@ -294,6 +295,25 @@ const LeftSidebar: React.FC<{
 
   useEffect(() => { try { localStorage.setItem(MAP_TAB_KEY, activeMapSubTab); } catch {} }, [activeMapSubTab]);
   useEffect(() => { try { localStorage.setItem(MAJOR_TAB_KEY, activeMajorTab); } catch {} }, [activeMajorTab]);
+
+  // Auto-collapse when mining is active
+  const [previousExpandState, setPreviousExpandState] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (inMiningRoguelike) {
+      // Store current state and collapse
+      if (previousExpandState === null) {
+        setPreviousExpandState(isLeftSidebarExpanded);
+      }
+      if (isLeftSidebarExpanded) {
+        setIsLeftSidebarExpanded(false);
+      }
+    } else if (!inMiningRoguelike && previousExpandState !== null) {
+      // Restore previous state when mining ends
+      setIsLeftSidebarExpanded(previousExpandState);
+      setPreviousExpandState(null);
+    }
+  }, [inMiningRoguelike, isLeftSidebarExpanded, previousExpandState, setIsLeftSidebarExpanded]);
 
   /* ----- computed lists ----- */
   const mineralDeposits = useMemo(() => {

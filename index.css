@@ -646,3 +646,185 @@
 .animate-improvised-weapon {
   animation: improvisedWeapon 0.9s ease-out;
 }
+
+/* Projectile animations for combat */
+@keyframes projectileFly {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(40vw); }
+}
+
+@keyframes projectileFlyReverse {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-40vw); }
+}
+
+/* Thrown item arc animations */
+@keyframes throwArc {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(10vw, -10vh) rotate(90deg);
+  }
+  50% {
+    transform: translate(20vw, -15vh) rotate(180deg);
+  }
+  75% {
+    transform: translate(30vw, -8vh) rotate(270deg);
+  }
+  100% {
+    transform: translate(40vw, 0) rotate(360deg);
+  }
+}
+
+@keyframes throwArcReverse {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(-10vw, -10vh) rotate(-90deg);
+  }
+  50% {
+    transform: translate(-20vw, -15vh) rotate(-180deg);
+  }
+  75% {
+    transform: translate(-30vw, -8vh) rotate(-270deg);
+  }
+  100% {
+    transform: translate(-40vw, 0) rotate(-360deg);
+  }
+}
+
+/* Enhanced projectile trajectory animations */
+@keyframes throwStraight {
+  0% {
+    transform: translate(0, 0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(40vw, 0);
+    opacity: 0.8;
+  }
+}
+
+@keyframes throwStraightReverse {
+  0% {
+    transform: translate(0, 0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-40vw, 0);
+    opacity: 0.8;
+  }
+}
+
+@keyframes throwSpinning {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  25% {
+    transform: translate(10vw, -5vh) rotate(180deg);
+    opacity: 0.95;
+  }
+  50% {
+    transform: translate(20vw, -8vh) rotate(360deg);
+    opacity: 0.9;
+  }
+  75% {
+    transform: translate(30vw, -4vh) rotate(540deg);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(40vw, 0) rotate(720deg);
+    opacity: 0.8;
+  }
+}
+
+@keyframes throwSpinningReverse {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  25% {
+    transform: translate(-10vw, -5vh) rotate(-180deg);
+    opacity: 0.95;
+  }
+  50% {
+    transform: translate(-20vw, -8vh) rotate(-360deg);
+    opacity: 0.9;
+  }
+  75% {
+    transform: translate(-30vw, -4vh) rotate(-540deg);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(-40vw, 0) rotate(-720deg);
+    opacity: 0.8;
+  }
+}
+
+/* Death Modal Animations */
+@keyframes deathFadeIn {
+  0% {
+    opacity: 0;
+    background-color: transparent;
+  }
+  50% {
+    opacity: 0.5;
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+  100% {
+    opacity: 1;
+    background-color: rgba(0, 0, 0, 0.8);
+  }
+}
+
+@keyframes deathModalAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.95) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes etherealFloat {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.01);
+  }
+}
+
+.death-modal-container {
+  animation: deathFadeIn 2s ease-out forwards;
+}
+
+.death-modal-content {
+  animation: deathModalAppear 1.5s ease-out 0.5s both,
+             etherealFloat 4s ease-in-out infinite 2s;
+}
+
+/* Ethereal particle effect overlay */
+.death-modal-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle at 20% 50%, rgba(147, 51, 234, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 50% 20%, rgba(236, 72, 153, 0.1) 0%, transparent 50%);
+  animation: etherealFloat 8s ease-in-out infinite reverse;
+  pointer-events: none;
+}

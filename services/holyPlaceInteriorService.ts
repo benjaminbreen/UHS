@@ -150,7 +150,7 @@ export function getHolyPlaceRoomNPCs(
         case 'worshipper':
         case 'devotee':
           dialogue = [
-            'I've traveled far to reach this holy place.',
+            'I\'ve traveled far to reach this holy place.',
             'The journey here has strengthened my faith.',
             'Have you also come seeking blessings?',
             'This sacred ground brings peace to my soul.'
@@ -176,8 +176,8 @@ export function getHolyPlaceRoomNPCs(
           dialogue = [
             'The ancient texts hold many secrets.',
             'Knowledge is the path to enlightenment.',
-            'I've spent years studying these manuscripts.',
-            'Perhaps you'd be interested in learning?'
+            'I\'ve spent years studying these manuscripts.',
+            'Perhaps you\'d be interested in learning?'
           ];
           personality = 'scholarly';
           break;

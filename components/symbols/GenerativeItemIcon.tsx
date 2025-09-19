@@ -69,7 +69,7 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
       'golden': '#ffd700',
       'amber': '#ffbf00',
       'honey': '#ffb300',
-      'mustard': '#ffdb58',
+      'reddish': '#ffdb58',
       'saffron': '#f4c430',
       
       // Purples
@@ -233,7 +233,14 @@ const GenerativeItemIcon: React.FC<GenerativeItemIconProps> = ({ item, size = 48
       if (name.includes('hammer') || name.includes('mace') || name.includes('club') || name.includes('mallet')) return 'hammer';
       if (name.includes('spear') || name.includes('lance') || name.includes('pike') || name.includes('javelin') || name.includes('trident')) return 'spear';
       if (name.includes('bow') || name.includes('crossbow')) return 'bow';
+      if (name.includes('sling')) return 'sling';
+      if (name.includes('bolas')) return 'bolas';
+      if (name.includes('blowgun')) return 'blowgun';
+      if (name.includes('chakram')) return 'chakram';
+      if (name.includes('shuriken')) return 'shuriken';
+      if (name.includes('throwing axe') || name.includes('francisca')) return 'throwing_axe';
       if (name.includes('arrow') || name.includes('bolt') || name.includes('quiver')) return 'arrow';
+      if (name.includes('dart')) return 'dart';
       if (name.includes('staff') || name.includes('wand') || name.includes('rod') || name.includes('scepter')) return 'staff';
       if (name.includes('flail')) return 'flail';
       if (name.includes('whip') || name.includes('lash')) return 'whip';
@@ -754,7 +761,231 @@ if (name.includes('cheese')) return 'cheese';
           [7,7],[8,7],[9,7],
         ], colors.secondary);
         break;
-        
+
+      case 'sling':
+        // Y-shaped sling with leather pouch
+        svgContent = pixels([
+          // Left fork
+          [6,3],[5,4],[4,5],
+          // Right fork
+          [10,3],[11,4],[12,5],
+          // Handle junction
+          [7,4],[8,4],[9,4],
+          // Handle
+          [8,5],[8,6],[8,7],[8,8],[8,9],[8,10],[8,11],[8,12],
+        ], '#8B6F47') + // Wood brown
+        pixels([
+          // Leather cords
+          [3,6],[3,7],[3,8],[4,9],
+          [13,6],[13,7],[13,8],[12,9],
+        ], '#5C4033', 0.8) + // Darker leather
+        pixels([
+          // Pouch
+          [7,10],[8,10],[9,10],
+          [7,11],[8,11],[9,11],
+        ], '#8B7355') + // Leather pouch
+        pixels([
+          // Grip wrap
+          [7,8],[9,8],
+          [7,9],[9,9],
+        ], '#4A4A4A', 0.5); // Grip binding
+        break;
+
+      case 'bolas':
+        // Three weighted balls on interconnected cords
+        svgContent = pixels([
+          // Central cord junction
+          [8,8],
+        ], '#5C4033') +
+        pixels([
+          // Cords radiating out
+          [7,7],[6,6],[5,5],[4,4], // Upper left
+          [9,7],[10,6],[11,5],[12,4], // Upper right
+          [8,9],[8,10],[8,11],[8,12], // Bottom
+        ], '#8B7355', 0.9) + // Leather cord
+        pixels([
+          // Upper left weight (stone)
+          [3,3],[4,3],
+          [3,4],[4,4],
+        ], '#696969') +
+        pixels([
+          // Upper right weight
+          [12,3],[13,3],
+          [12,4],[13,4],
+        ], '#696969') +
+        pixels([
+          // Bottom weight
+          [7,13],[8,13],[9,13],
+          [7,14],[8,14],[9,14],
+        ], '#696969') +
+        pixels([
+          // Weight highlights
+          [3,3],[12,3],[8,13],
+        ], '#A9A9A9', 0.6);
+        break;
+
+      case 'blowgun':
+        // Long hollow tube with mouthpiece
+        svgContent = pixels([
+          // Main tube (bamboo)
+          [8,2],[8,3],[8,4],[8,5],[8,6],[8,7],[8,8],[8,9],[8,10],[8,11],[8,12],[8,13],[8,14],[8,15],[8,16],[8,17],
+          [7,3],[7,4],[7,5],[7,6],[7,7],[7,8],[7,9],[7,10],[7,11],[7,12],[7,13],[7,14],[7,15],[7,16],
+        ], '#C4B5A0') + // Bamboo color
+        pixels([
+          // Bamboo nodes/rings
+          [6,6],[7,6],[8,6],[9,6],[10,6],
+          [6,11],[7,11],[8,11],[9,11],[10,11],
+          [6,15],[7,15],[8,15],[9,15],[10,15],
+        ], '#8B7D6B', 0.7) + // Darker rings
+        pixels([
+          // Mouthpiece
+          [7,17],[8,17],[9,17],
+          [7,18],[8,18],[9,18],
+        ], '#5C4033') + // Carved wood mouthpiece
+        pixels([
+          // Decorative feather
+          [10,3],[11,3],
+          [10,4],[11,4],[12,4],
+          [11,5],[12,5],
+        ], '#DC143C', 0.8); // Red feather accent
+        break;
+
+      case 'chakram':
+        // Circular throwing disc with sharp edge
+        svgContent = pixels([
+          // Outer ring top
+          [6,5],[7,4],[8,4],[9,4],[10,5],
+          // Outer ring sides
+          [5,6],[5,7],[5,8],[5,9],
+          [11,6],[11,7],[11,8],[11,9],
+          // Outer ring bottom
+          [6,10],[7,11],[8,11],[9,11],[10,10],
+        ], '#C0C0C0') + // Steel outer edge
+        pixels([
+          // Inner ring (darker for depth)
+          [6,6],[7,5],[8,5],[9,5],[10,6],
+          [6,7],[10,7],
+          [6,8],[10,8],
+          [6,9],[7,10],[8,10],[9,10],[10,9],
+        ], '#808080') + // Darker inner steel
+        pixels([
+          // Center hole
+          [7,7],[8,7],[9,7],
+          [7,8],[9,8],
+          [7,9],[8,9],[9,9],
+        ], colors.primary, 0) + // Transparent center
+        pixels([
+          // Sharp edge highlights
+          [7,4],[5,7],[11,7],[8,11],
+        ], '#FFFFFF', 0.7) + // Blade shine
+        pixels([
+          // Decorative etchings
+          [7,6],[9,6],
+          [7,9],[9,9],
+        ], '#FFD700', 0.4); // Gold inlay
+        break;
+
+      case 'shuriken':
+        // Four-pointed ninja star
+        svgContent = pixels([
+          // Center
+          [7,7],[8,7],[9,7],
+          [7,8],[8,8],[9,8],
+          [7,9],[8,9],[9,9],
+        ], '#2F4F4F') + // Dark steel center
+        pixels([
+          // Top point
+          [8,3],
+          [7,4],[8,4],[9,4],
+          [7,5],[8,5],[9,5],
+          [8,6],
+          // Bottom point
+          [8,10],
+          [7,11],[8,11],[9,11],
+          [7,12],[8,12],[9,12],
+          [8,13],
+          // Left point
+          [3,8],
+          [4,7],[4,8],[4,9],
+          [5,7],[5,8],[5,9],
+          [6,8],
+          // Right point
+          [10,8],
+          [11,7],[11,8],[11,9],
+          [12,7],[12,8],[12,9],
+          [13,8],
+        ], '#708090') + // Steel gray
+        pixels([
+          // Sharp edges (lighter)
+          [8,3],[3,8],[13,8],[8,13],
+        ], '#A9A9A9') +
+        pixels([
+          // Center hole
+          [8,8],
+        ], colors.primary, 0) + // Transparent hole
+        pixels([
+          // Edge highlights for sharpness
+          [7,4],[4,7],[12,7],[7,12],
+        ], '#DCDCDC', 0.5);
+        break;
+
+      case 'throwing_axe':
+        // Francisca-style throwing axe
+        svgContent = pixels([
+          // Handle
+          [8,8],[8,9],[8,10],[8,11],[8,12],[8,13],[8,14],[8,15],
+          [7,9],[7,10],[7,11],[7,12],[7,13],[7,14],
+        ], '#8B4513') + // Dark wood
+        pixels([
+          // Handle wrap/grip
+          [7,12],[8,12],[9,12],
+          [7,13],[8,13],[9,13],
+        ], '#4A4A4A', 0.6) + // Leather wrap
+        pixels([
+          // Axe head - main body
+          [5,5],[6,5],[7,5],[8,5],[9,5],[10,5],
+          [5,6],[6,6],[7,6],[8,6],[9,6],[10,6],[11,6],
+          [5,7],[6,7],[7,7],[8,7],[9,7],[10,7],[11,7],[12,7],
+          [6,8],[7,8],[8,8],[9,8],[10,8],[11,8],
+        ], '#696969') + // Iron
+        pixels([
+          // Cutting edge (brighter)
+          [12,6],[13,6],
+          [13,7],[14,7],
+          [12,8],[13,8],
+        ], '#C0C0C0') + // Sharp edge
+        pixels([
+          // Edge highlights
+          [14,7],
+        ], '#FFFFFF', 0.6) + // Blade shine
+        pixels([
+          // Axe head decoration/binding
+          [7,6],[8,6],
+        ], '#B8860B', 0.5); // Bronze accent
+        break;
+
+      case 'dart':
+        // Small throwing dart
+        svgContent = pixels([
+          // Shaft
+          [8,5],[8,6],[8,7],[8,8],[8,9],[8,10],[8,11],
+        ], '#C4B5A0') + // Light bamboo
+        pixels([
+          // Point
+          [8,3],
+          [7,4],[8,4],[9,4],
+        ], '#A9A9A9') + // Metal tip
+        pixels([
+          // Fletching
+          [6,10],[7,10],[9,10],[10,10],
+          [6,11],[7,11],[9,11],[10,11],
+        ], '#DC143C', 0.7) + // Red feathers
+        pixels([
+          // Poison coating (optional visual effect)
+          [8,3],[7,4],[9,4],
+        ], '#32CD32', 0.3); // Green tint for poison
+        break;
+
       case 'staff':
         svgContent = pixels([
           // Staff body

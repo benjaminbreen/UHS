@@ -72,9 +72,18 @@ function getDistantLandPhrase(visibleLand: VisibleLandInfo | null, seededRandom:
       case BiomeType.JUNGLE: phrase += "impenetrable jungle meets the water's edge."; break;
       case BiomeType.HILLS: phrase += "rolling hills can be seen."; break;
       case BiomeType.BEACH: phrase += "a sandy beach lines the coast."; break;
+      case BiomeType.RIVER: phrase += "a river flows through the landscape."; break;
+      case BiomeType.MAJOR_RIVER: phrase += "a wide river dominates the view."; break;
+      case BiomeType.RIVERBANK: phrase += "lush riverbank vegetation is visible."; break;
+      case BiomeType.ESTUARY: phrase += "the river meets the sea in a broad estuary."; break;
+      case BiomeType.WETLANDS: phrase += "marshy wetlands stretch out."; break;
+      case BiomeType.MANGROVE: phrase += "twisted mangrove roots rise from brackish water."; break;
+      case BiomeType.FRESHWATER_LAKE: phrase += "a calm lake reflects the sky."; break;
+      case BiomeType.REEF: phrase += "coral reefs are visible through clear water."; break;
+      case BiomeType.SHOALS_TILE: phrase += "dangerous shallows are visible."; break;
       case BiomeType.DESERT: phrase += "arid desert sands stretch out."; break;
       case BiomeType.GRASSLAND: phrase += "open grasslands meet the horizon."; break;
-      case BiomeType.DENSE_CITY: 
+      case BiomeType.DENSE_CITY:
         phrase += "the distinct silhouette of a large city is visible.";
         if ((historicalEra === HistoricalEra.INDUSTRIAL_ERA || historicalEra === HistoricalEra.MODERN_ERA) && seededRandom() < 0.4) {
             phrase += " Wisps of smoke rise from its chimneys.";
@@ -91,7 +100,16 @@ function getDistantLandPhrase(visibleLand: VisibleLandInfo | null, seededRandom:
       case BiomeType.FOREST: phrase += "the edge of a forest begins."; break;
       case BiomeType.DENSE_FOREST: phrase += "an imposing dense forest starts here."; break;
       case BiomeType.BEACH: phrase += "a sandy beach is directly ahead."; break;
-      case BiomeType.CLIFF: phrase += "sheer cliffs drop into the water."; break; 
+      case BiomeType.RIVER: phrase += "a river flows past."; break;
+      case BiomeType.MAJOR_RIVER: phrase += "a major river blocks the way."; break;
+      case BiomeType.RIVERBANK: phrase += "the riverbank begins."; break;
+      case BiomeType.ESTUARY: phrase += "brackish estuary waters spread out."; break;
+      case BiomeType.WETLANDS: phrase += "soggy wetlands begin."; break;
+      case BiomeType.MANGROVE: phrase += "mangrove swamp starts here."; break;
+      case BiomeType.FRESHWATER_LAKE: phrase += "the lake shore is right there."; break;
+      case BiomeType.REEF: phrase += "coral reef waters begin."; break;
+      case BiomeType.SHOALS_TILE: phrase += "treacherous shallows are immediately ahead."; break;
+      case BiomeType.CLIFF: phrase += "sheer cliffs drop into the water."; break;
       case BiomeType.MOUNTAIN: phrase += "the foothills of a mountain range begin."; break;
       default: phrase += `the terrain changes to ${biome.toLowerCase().replace(/_/g, ' ')}.`; break;
     }

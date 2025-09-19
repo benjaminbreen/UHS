@@ -285,6 +285,57 @@ const SHARED_MODERN_PROFESSIONS = {
             keywords: 'fishing sea food',
             emoji: '🎣'
         }
+    },
+    OUTLAWS_AND_REVOLUTIONARIES: {
+        'Mobster': {
+            statRequirements: { minStrength: 3, minCraftiness: 3 },
+            socialRequirements: { maxPrivilege: 0.4 },
+            genderBias: 'Male',
+            keywords: 'organized crime mafia',
+            emoji: '🚬'
+        },
+        'Drug Dealer': {
+            statRequirements: { minCraftiness: 3, minPersuasion: 3 },
+            socialRequirements: { maxPrivilege: 0.3 },
+            keywords: 'narcotics illegal trade',
+            emoji: '💊'
+        },
+        'Pickpocket': {
+            statRequirements: { minDexterity: 4, minPerception: 3 },
+            socialRequirements: { maxPrivilege: 0.2 },
+            keywords: 'street crime theft',
+            emoji: '👤'
+        },
+        'Black Panther': {
+            statRequirements: { minStrength: 3, minPersuasion: 4 },
+            socialRequirements: { maxPrivilege: 0.3, minAmbition: 0.6 },
+            keywords: 'revolutionary militant',
+            emoji: '✊'
+        },
+        'IRA Member': {
+            statRequirements: { minCraftiness: 3, minConstitution: 3 },
+            socialRequirements: { maxPrivilege: 0.4, minAmbition: 0.6 },
+            keywords: 'irish republican army',
+            emoji: '☘️'
+        },
+        'Red Brigade': {
+            statRequirements: { minIntelligence: 3, minCraftiness: 3 },
+            socialRequirements: { maxPrivilege: 0.3, minAmbition: 0.6 },
+            keywords: 'communist militant',
+            emoji: '⭐'
+        },
+        'Guerrilla Fighter': {
+            statRequirements: { minStamina: 3, minCraftiness: 3 },
+            socialRequirements: { maxPrivilege: 0.3, minWanderlust: 0.5 },
+            keywords: 'insurgent rebel',
+            emoji: '🔫'
+        },
+        'Smuggler': {
+            statRequirements: { minCraftiness: 4, minPersuasion: 2 },
+            socialRequirements: { maxPrivilege: 0.4, minWanderlust: 0.5 },
+            keywords: 'contraband illegal trade',
+            emoji: '📦'
+        }
     }
 };
 
@@ -402,6 +453,77 @@ const SHARED_FUTURE_PROFESSIONS = {
             keywords: 'social media influencer',
             emoji: '📱'
         }
+    },
+    OUTLAWS_AND_ACTIVISTS: {
+        'Cybercriminal': {
+            statRequirements: { minIntelligence: 4, minCraftiness: 4 },
+            socialRequirements: { maxPrivilege: 0.5 },
+            keywords: 'hacker dark web',
+            emoji: '💻'
+        },
+        'Crypto Scammer': {
+            statRequirements: { minCraftiness: 3, minPersuasion: 3 },
+            socialRequirements: { maxPrivilege: 0.4 },
+            keywords: 'cryptocurrency fraud',
+            emoji: '₿'
+        },
+        'Cartel Member': {
+            statRequirements: { minStrength: 3, minCraftiness: 3 },
+            socialRequirements: { maxPrivilege: 0.3 },
+            genderBias: 'Male',
+            keywords: 'drug trafficking',
+            emoji: '💀'
+        },
+        'Human Trafficker': {
+            statRequirements: { minCraftiness: 4, minPersuasion: 2 },
+            socialRequirements: { maxPrivilege: 0.3 },
+            keywords: 'smuggling criminal',
+            emoji: '⛓️'
+        },
+        'Antifa Member': {
+            statRequirements: { minStamina: 3, minPersuasion: 3 },
+            socialRequirements: { maxPrivilege: 0.4, minAmbition: 0.5 },
+            keywords: 'anti-fascist activist',
+            emoji: '🏴'
+        },
+        'ISIS Fighter': {
+            statRequirements: { minConstitution: 3, minCraftiness: 2 },
+            socialRequirements: { maxPrivilege: 0.3, minReligiosity: 0.7 },
+            genderBias: 'Male',
+            keywords: 'extremist militant',
+            emoji: '⚔️'
+        },
+        'Climate Activist': {
+            statRequirements: { minPersuasion: 3, minStamina: 2 },
+            socialRequirements: { maxPrivilege: 0.5, minAmbition: 0.5 },
+            keywords: 'environmental protest',
+            emoji: '🌍'
+        },
+        'BLM Activist': {
+            statRequirements: { minPersuasion: 3, minStamina: 3 },
+            socialRequirements: { maxPrivilege: 0.4, minAmbition: 0.5 },
+            keywords: 'racial justice',
+            emoji: '✊'
+        },
+        'Proud Boy': {
+            statRequirements: { minStrength: 3, minCraftiness: 2 },
+            socialRequirements: { maxPrivilege: 0.5 },
+            genderBias: 'Male',
+            keywords: 'far-right militant',
+            emoji: '🚩'
+        },
+        'Anonymous Hacker': {
+            statRequirements: { minIntelligence: 5, minCraftiness: 4 },
+            socialRequirements: { maxPrivilege: 0.5, minWanderlust: 0.5 },
+            keywords: 'hacktivist collective',
+            emoji: '🎭'
+        },
+        'Fentanyl Dealer': {
+            statRequirements: { minCraftiness: 3, minPersuasion: 2 },
+            socialRequirements: { maxPrivilege: 0.2 },
+            keywords: 'opioid crisis',
+            emoji: '💉'
+        }
     }
 };
 
@@ -434,6 +556,12 @@ export const PROFESSIONS: ProfessionData = {
                     statRequirements: { minDexterity: 7, minCraftiness: 6 },
                     keywords: 'flintknapping',
                     emoji: '🪨'
+                },
+                'Funditor': {
+                    statRequirements: { minDexterity: 3, minPerception: 4 },
+                    genderBias: 'Male',
+                    keywords: 'stone throwing',
+                    emoji: '🪃'
                 },
                 'Healer': {
                     statRequirements: { minIntelligence: 6, minPerception: 5 },
@@ -468,6 +596,26 @@ export const PROFESSIONS: ProfessionData = {
                     statRequirements: { minDexterity: 6, minCraftiness: 5 },
                     keywords: 'carving',
                     emoji: '🦴'
+                }
+            },
+            MARGINAL_SOCIETY: {
+                'Outcast': {
+                    statRequirements: { minConstitution: 4 },
+                    socialRequirements: { maxPrivilege: 0.2 },
+                    keywords: 'exile taboo',
+                    emoji: '🏴'
+                },
+                'Cave Hermit': {
+                    statRequirements: { minConstitution: 5, minPerception: 4 },
+                    socialRequirements: { minWanderlust: 0.6 },
+                    keywords: 'solitude spirits',
+                    emoji: '🧙'
+                },
+                'Raider': {
+                    statRequirements: { minStrength: 6, minStamina: 5 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    keywords: 'pillage combat',
+                    emoji: '⚔️'
                 }
             }
         },
@@ -648,6 +796,13 @@ export const PROFESSIONS: ProfessionData = {
                     genderBias: 'Male',
                     keywords: 'grain',
                     emoji: '⚙️'
+                },
+                'Highwayman': {
+                    statRequirements: { minDexterity: 4, minStrength: 3 },
+                    socialRequirements: { maxPrivilege: 0.2, minWanderlust: 0.6 },
+                    genderBias: 'Male',
+                    keywords: 'highway robbery',
+                    emoji: '🗡️'
                 },
                 'Tavern Keeper': {
                     statRequirements: { minPersuasion: 5, minStamina: 4 },
@@ -944,11 +1099,18 @@ export const PROFESSIONS: ProfessionData = {
                     keywords: 'watchful',
                     emoji: '🛡️'
                 },
-                'Thief': {
-                    statRequirements: { minDexterity: 7, minPerception: 6, minCraftiness: 6 },
+                'Cutpurse': {
+                    statRequirements: { minDexterity: 4, minPerception: 3 },
                     socialRequirements: { maxPrivilege: 0.3 },
-                    keywords: 'stealth',
+                    keywords: 'pickpocket',
                     emoji: '👤'
+                },
+                'Brigand': {
+                    statRequirements: { minStrength: 4, minDexterity: 3 },
+                    socialRequirements: { maxPrivilege: 0.2, minWanderlust: 0.5 },
+                    genderBias: 'Male',
+                    keywords: 'highway robbery',
+                    emoji: '🏹'
                 },
                 'Beggar': {
                     statRequirements: {},
@@ -1400,6 +1562,52 @@ export const PROFESSIONS: ProfessionData = {
                     genderBias: 'Female',
                     keywords: 'children',
                     emoji: '👩‍🏫'
+                },
+                'Footpad': {
+                    statRequirements: { minDexterity: 3, minCraftiness: 2 },
+                    socialRequirements: { maxPrivilege: 0.2 },
+                    genderBias: 'Male',
+                    keywords: 'street thief',
+                    emoji: '🦹'
+                },
+                'Peaky Blinder': {
+                    statRequirements: { minStrength: 3, minCraftiness: 3 },
+                    socialRequirements: { maxPrivilege: 0.3, minWanderlust: 0.4 },
+                    genderBias: 'Male',
+                    keywords: 'gang member',
+                    emoji: '🧢'
+                },
+                'Resurrectionist': {
+                    statRequirements: { minStrength: 4, minConstitution: 4 },
+                    socialRequirements: { maxPrivilege: 0.1 },
+                    genderBias: 'Male',
+                    keywords: 'body snatcher',
+                    emoji: '⚰️'
+                },
+                'Chartist': {
+                    statRequirements: { minIntelligence: 4, minPersuasion: 4 },
+                    socialRequirements: { maxPrivilege: 0.4, minAmbition: 0.5 },
+                    keywords: 'political reformer',
+                    emoji: '📜'
+                },
+                'Luddite': {
+                    statRequirements: { minStrength: 3, minCraftiness: 2 },
+                    socialRequirements: { maxPrivilege: 0.3, minWanderlust: 0.4 },
+                    genderBias: 'Male',
+                    keywords: 'machine breaker',
+                    emoji: '🔨'
+                },
+                'Fenian': {
+                    statRequirements: { minPersuasion: 3, minCraftiness: 3 },
+                    socialRequirements: { maxPrivilege: 0.3, minAmbition: 0.5 },
+                    keywords: 'irish nationalist',
+                    emoji: '☘️'
+                },
+                'Anarchist': {
+                    statRequirements: { minIntelligence: 4, minCraftiness: 3 },
+                    socialRequirements: { maxPrivilege: 0.3, minWanderlust: 0.6 },
+                    keywords: 'revolutionary',
+                    emoji: '🏴'
                 }
             }
         },
@@ -1975,6 +2183,52 @@ export const PROFESSIONS: ProfessionData = {
                     genderBias: 'Male',
                     keywords: 'machinery',
                     emoji: '⚙️'
+                },
+                'Ronin': {
+                    statRequirements: { minStrength: 3, minDexterity: 3 },
+                    socialRequirements: { maxPrivilege: 0.3, minWanderlust: 0.6 },
+                    genderBias: 'Male',
+                    keywords: 'masterless samurai',
+                    emoji: '⚔️'
+                },
+                'Yakuza': {
+                    statRequirements: { minStrength: 3, minCraftiness: 3 },
+                    socialRequirements: { maxPrivilege: 0.3, minAmbition: 0.4 },
+                    genderBias: 'Male',
+                    keywords: 'organized crime',
+                    emoji: '🐉'
+                },
+                'Opium Smuggler': {
+                    statRequirements: { minCraftiness: 4, minPersuasion: 3 },
+                    socialRequirements: { maxPrivilege: 0.3, minWanderlust: 0.5 },
+                    keywords: 'illegal trade',
+                    emoji: '🚬'
+                },
+                'Triad Member': {
+                    statRequirements: { minStrength: 2, minCraftiness: 3 },
+                    socialRequirements: { maxPrivilege: 0.3 },
+                    genderBias: 'Male',
+                    keywords: 'secret society',
+                    emoji: '🔺'
+                },
+                'Boxer Rebel': {
+                    statRequirements: { minStrength: 3, minStamina: 3 },
+                    socialRequirements: { maxPrivilege: 0.3, minAmbition: 0.5 },
+                    genderBias: 'Male',
+                    keywords: 'anti-foreign',
+                    emoji: '👊'
+                },
+                'Taiping Soldier': {
+                    statRequirements: { minConstitution: 3, minPersuasion: 2 },
+                    socialRequirements: { maxPrivilege: 0.3, minReligiosity: 0.5 },
+                    keywords: 'heavenly kingdom',
+                    emoji: '✝️'
+                },
+                'Black Flag Fighter': {
+                    statRequirements: { minStrength: 3, minCraftiness: 2 },
+                    socialRequirements: { maxPrivilege: 0.2, minAmbition: 0.5 },
+                    keywords: 'anti-colonial',
+                    emoji: '🏴'
                 }
             }
         },
@@ -2377,6 +2631,12 @@ export const PROFESSIONS: ProfessionData = {
                     statRequirements: { minDexterity: 6, minCraftiness: 5 },
                     keywords: 'ceramics',
                     emoji: '🏺'
+                },
+                'Maqla': {
+                    statRequirements: { minDexterity: 3, minPerception: 3 },
+                    genderBias: 'Male',
+                    keywords: 'sling warrior',
+                    emoji: '🪃'
                 },
                 'Builder': {
                     statRequirements: { minStrength: 6, minCraftiness: 5 },
@@ -3046,6 +3306,13 @@ export const PROFESSIONS: ProfessionData = {
                     genderBias: 'Male',
                     keywords: 'landowner',
                     emoji: '🏇'
+                },
+                'Desperado': {
+                    statRequirements: { minDexterity: 4, minStrength: 3 },
+                    socialRequirements: { maxPrivilege: 0.2, minWanderlust: 0.7 },
+                    genderBias: 'Male',
+                    keywords: 'outlaw gunslinger',
+                    emoji: '🔫'
                 }
             },
             ENGLISH_COLONIAL: {
@@ -3555,6 +3822,12 @@ export const PROFESSIONS: ProfessionData = {
                     statRequirements: { minDexterity: 6, minStamina: 5 },
                     keywords: 'climbing',
                     emoji: '🍯'
+                },
+                'Ishihori': {
+                    statRequirements: { minDexterity: 4, minPerception: 3 },
+                    genderBias: 'Male',
+                    keywords: 'stone thrower',
+                    emoji: '🪃'
                 },
                 'Fire Keeper': {
                     statRequirements: { minConstitution: 5, minPerception: 6 },

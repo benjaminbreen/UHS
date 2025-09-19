@@ -110,6 +110,13 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
     const [history, setHistory] = useState<DialogueEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [playerInput, setPlayerInput] = useState('');
+
+    // Function to play V3 sound when NPC speaks
+    const playNpcDialogueSound = useCallback(() => {
+        if ((target as any).role) {
+            gameSounds.playNpcTalkV3();
+        }
+    }, [target]);
     
     // Check if this NPC recently approached with a quest by looking for specific occupations or low health
     const isLikelyQuestNpc = isNpc(target) && (
@@ -573,6 +580,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                 const combinedText = Array.isArray(dialogueArray) ? dialogueArray.join(' ') : dialogueArray;
                 const initialEntry: DialogueEntry = { speaker: 'npc', text: combinedText, timestamp: new Date() };
                 setHistory([initialEntry]);
+                playNpcDialogueSound();
                 setIsLoading(false);
                 return;
             }
@@ -586,6 +594,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
             generateEncounterDialogue(target, target.memory.conversationSummaries || [], greeting, playerCharacter, allNpcs, mapData, useRealLanguage).then(response => {
                 const initialEntry: DialogueEntry = { speaker: 'npc', text: response.text, timestamp: new Date() };
                 setHistory([initialEntry]);
+                playNpcDialogueSound();
                 
                 // Check for crisis mentions in NPC dialogue
                 if (mapData) {
@@ -604,6 +613,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                 console.error("Failed to get initial dialogue:", err);
                 const fallbackText = isNpc(target) ? `${targetName} watches you silently.` : `The ${targetName.toLowerCase()} lets out a low growl.`;
                 setHistory([{ speaker: 'npc', text: fallbackText, timestamp: new Date() }]);
+                if (isNpc(target)) playNpcDialogueSound();
                 setIsLoading(false);
             });
         } else if (!isNpc(target)) {
@@ -620,10 +630,22 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
         }
     }, [history, isLoading]);
 
-    // Play animal sound when modal opens for animals
+    // Play animal sound when modal opens for animals, or NPC sound for NPCs
     useEffect(() => {
+        // Check if target is an NPC (has role property)
+        if ((target as any).role) {
+            console.log('🔊 NPC detected in shared useEffect, playing opening sound');
+
+            // Randomly choose between V2 and V5 for modal opening
+            const randomChoice = Math.random() < 0.5;
+            if (randomChoice) {
+                gameSounds.playNpcTalkV2();
+            } else {
+                gameSounds.playNpcTalkV5();
+            }
+        }
         // Check if target is an animal (has speciesName property)
-        if ((target as any).speciesName) {
+        else if ((target as any).speciesName) {
             const species = (target as any).speciesName?.toUpperCase();
             
             // Play appropriate animal sound based on species
@@ -1141,6 +1163,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
 
             const newNpcEntry: DialogueEntry = { speaker: 'npc', text: response.text, timestamp: new Date() };
             setHistory(prev => [...prev, newNpcEntry]);
+            playNpcDialogueSound();
 
             // Check for crisis mentions in NPC dialogue
             if (mapData && isNpc(target)) {
@@ -1158,6 +1181,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
             console.error("Error generating dialogue:", e);
             const fallbackEntry: DialogueEntry = { speaker: 'npc', text: "...", timestamp: new Date() };
             setHistory(prev => [...prev, fallbackEntry]);
+            playNpcDialogueSound();
         } finally {
             setIsLoading(false);
         }
@@ -1405,6 +1429,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                                                                 text: "Thank you! This is exactly what I needed. Here's your reward as promised.",
                                                                 timestamp: new Date()
                                                             }]);
+                                                            playNpcDialogueSound();
                                                             
                                                             // Clear quest completion if quest is done
                                                             if (result.questComplete) {
@@ -1444,6 +1469,7 @@ const EncounterModal: React.FC<EncounterModalProps> = ({ target, playerCharacter
                                                                 text: "Good, you made it here. Let me tell you what I need...",
                                                                 timestamp: new Date()
                                                             }]);
+                                                            playNpcDialogueSound();
                                                             
                                                             // Clear or update quest completion
                                                             if (result.questComplete) {

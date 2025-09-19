@@ -69,8 +69,8 @@ function createRealisticWaterPattern(climate: ClimateType, seed: number): Canvas
 }
 
 // Enhanced terrain patterns with realistic textures
-function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): CanvasPattern | null {
-    const cacheKey = `realistic-terrain-${biomeType}-${seed}`;
+function createRealisticTerrainPattern(biomeType: BiomeType, seed: number, climate?: ClimateType, season?: string): CanvasPattern | null {
+    const cacheKey = `realistic-terrain-${biomeType}-${seed}-${climate}-${season}`;
     if (patternCache.has(cacheKey)) {
         return patternCache.get(cacheKey)!;
     }
@@ -424,69 +424,174 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
 
         case BiomeType.MOUNTAIN:
         case BiomeType.HIGH_PEAK:
-            // Rocky mountain texture with mineral veins
-            // Rock layers
-            for (let i = 0; i < 15; i++) {
+            // Bigger, more visible rocky mountain texture
+            // Large rock formations
+            for (let i = 0; i < 12; i++) {
                 const x = noise.random() * PATTERN_SIZE;
                 const y = noise.random() * PATTERN_SIZE;
-                const width = 20 + noise.random() * 50;
-                const height = 6 + noise.random() * 12;
-                const angle = noise.random() * Math.PI / 4;
-                
+                const width = 30 + noise.random() * 60;
+                const height = 10 + noise.random() * 20;
+                const angle = noise.random() * Math.PI / 6;
+
                 ctx.save();
                 ctx.translate(x, y);
                 ctx.rotate(angle);
-                ctx.fillStyle = `rgba(105, 105, 105, ${0.15 + noise.random() * 0.2})`;
+                ctx.fillStyle = `rgba(105, 105, 105, ${0.4 + noise.random() * 0.3})`;
                 ctx.fillRect(-width/2, -height/2, width, height);
                 ctx.restore();
             }
-            
-            // Mineral veins
-            for (let i = 0; i < 12; i++) {
+
+            // Prominent rock veins
+            for (let i = 0; i < 8; i++) {
                 const x1 = noise.random() * PATTERN_SIZE;
                 const y1 = noise.random() * PATTERN_SIZE;
-                const x2 = x1 + (noise.random() - 0.5) * 40;
-                const y2 = y1 + (noise.random() - 0.5) * 40;
-                
-                ctx.strokeStyle = `rgba(169, 169, 169, ${0.2 + noise.random() * 0.15})`;
-                ctx.lineWidth = 1 + noise.random() * 2;
+                const x2 = x1 + (noise.random() - 0.5) * 60;
+                const y2 = y1 + (noise.random() - 0.5) * 60;
+
+                ctx.strokeStyle = `rgba(169, 169, 169, ${0.5 + noise.random() * 0.2})`;
+                ctx.lineWidth = 2 + noise.random() * 3;
                 ctx.beginPath();
                 ctx.moveTo(x1, y1);
                 ctx.lineTo(x2, y2);
                 ctx.stroke();
             }
+
+            // Add snow caps in cold climates during winter (like HillSymbol)
+            if (season === 'winter' && (climate === ClimateType.COLD || climate === ClimateType.TEMPERATE)) {
+                // Snow patches on mountain peaks
+                for (let i = 0; i < 15; i++) {
+                    const x = noise.random() * PATTERN_SIZE;
+                    const y = noise.random() * PATTERN_SIZE;
+                    const snowWidth = 15 + noise.random() * 30;
+                    const snowHeight = 8 + noise.random() * 15;
+
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.rotate(noise.random() * Math.PI / 8);
+
+                    // White snow patches
+                    ctx.fillStyle = `rgba(255, 255, 255, ${0.7 + noise.random() * 0.2})`;
+                    ctx.fillRect(-snowWidth/2, -snowHeight/2, snowWidth, snowHeight);
+
+                    // Snow highlights
+                    ctx.fillStyle = `rgba(245, 245, 250, ${0.5 + noise.random() * 0.2})`;
+                    ctx.fillRect(-snowWidth/2 + 2, -snowHeight/2 + 2, snowWidth * 0.6, snowHeight * 0.4);
+
+                    ctx.restore();
+                }
+            }
             break;
 
         case BiomeType.DESERT:
-        case BiomeType.BEACH:
-            // Realistic sand with dune patterns
-            // Sand ripples
-            for (let i = 0; i < 12; i++) {
-                const y = (i / 12) * PATTERN_SIZE + (noise.random() - 0.5) * 15;
-                const amplitude = 2 + noise.random() * 4;
-                
-                ctx.strokeStyle = `rgba(238, 203, 173, ${0.2 + noise.random() * 0.15})`;
-                ctx.lineWidth = 1;
+            // Nicer desert texture with visible sand dunes
+            // Base sandy texture layer
+            for (let i = 0; i < 40; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const size = 4 + noise.random() * 10;
+
+                // Varied sand colors
+                const sandVariant = noise.random();
+                const r = 210 + Math.floor(sandVariant * 30);
+                const g = 180 - Math.floor(sandVariant * 20);
+                const b = 140 - Math.floor(sandVariant * 20);
+
+                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${0.35 + noise.random() * 0.25})`;
+                ctx.fillRect(x - size/2, y - size/2, size, size);
+            }
+
+            // Sand dune ridges - more prominent
+            for (let i = 0; i < 5; i++) {
+                const startY = (i / 5) * PATTERN_SIZE + (noise.random() - 0.5) * 15;
+
+                // Dune highlight (lighter sand on top)
+                ctx.strokeStyle = `rgba(235, 210, 170, ${0.5 + noise.random() * 0.2})`;
+                ctx.lineWidth = 3 + noise.random() * 2;
                 ctx.beginPath();
-                ctx.moveTo(0, y);
-                
-                for (let x = 0; x <= PATTERN_SIZE; x += 4) {
-                    const rippleY = y + Math.sin((x + i * 20) * 0.1) * amplitude;
-                    ctx.lineTo(x, rippleY);
+                ctx.moveTo(0, startY);
+
+                for (let x = 0; x <= PATTERN_SIZE; x += 6) {
+                    const duneY = startY + Math.sin(x * 0.04 + i) * 8;
+                    ctx.lineTo(x, duneY);
+                }
+                ctx.stroke();
+
+                // Dune shadow (darker sand in valleys)
+                ctx.strokeStyle = `rgba(180, 140, 100, ${0.4 + noise.random() * 0.15})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, startY + 3);
+
+                for (let x = 0; x <= PATTERN_SIZE; x += 6) {
+                    const shadowY = startY + 3 + Math.sin(x * 0.04 + i) * 8;
+                    ctx.lineTo(x, shadowY);
                 }
                 ctx.stroke();
             }
-            
-            // Sand granules
-            for (let i = 0; i < 80; i++) {
+
+            // Small sand grains for texture
+            for (let i = 0; i < 30; i++) {
                 const x = noise.random() * PATTERN_SIZE;
                 const y = noise.random() * PATTERN_SIZE;
-                const size = 0.5 + noise.random() * 1.5;
-                
-                ctx.fillStyle = `rgba(244, 164, 96, ${0.15 + noise.random() * 0.25})`;
+
+                ctx.fillStyle = `rgba(225, 195, 155, ${0.6 + noise.random() * 0.2})`;
+                ctx.fillRect(x, y, 2, 2);
+            }
+            break;
+
+        case BiomeType.BEACH:
+            // Nicer beach sand texture with tidal patterns
+            // Fine sand base
+            for (let i = 0; i < 35; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const size = 3 + noise.random() * 7;
+
+                // Beach sand colors - lighter than desert
+                const sandTone = noise.random();
+                const r = 238 + Math.floor(sandTone * 10);
+                const g = 210 + Math.floor(sandTone * 15);
+                const b = 173 + Math.floor(sandTone * 20);
+
+                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${0.4 + noise.random() * 0.2})`;
+                ctx.fillRect(x - size/2, y - size/2, size, size);
+            }
+
+            // Tidal wash lines - where waves reach
+            for (let i = 0; i < 4; i++) {
+                const y = (i / 4) * PATTERN_SIZE;
+
+                // Wet sand line (darker)
+                ctx.strokeStyle = `rgba(210, 180, 150, ${0.5 + noise.random() * 0.15})`;
+                ctx.lineWidth = 3;
                 ctx.beginPath();
-                ctx.arc(x, y, size, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.moveTo(0, y);
+
+                for (let x = 0; x <= PATTERN_SIZE; x += 6) {
+                    ctx.lineTo(x, y + Math.sin(x * 0.07 + i * 2) * 5);
+                }
+                ctx.stroke();
+
+                // Foam line (lighter)
+                ctx.strokeStyle = `rgba(255, 250, 245, ${0.6 + noise.random() * 0.2})`;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(0, y - 2);
+
+                for (let x = 0; x <= PATTERN_SIZE; x += 6) {
+                    ctx.lineTo(x, y - 2 + Math.sin(x * 0.07 + i * 2) * 5);
+                }
+                ctx.stroke();
+            }
+
+            // Shell and pebble hints
+            for (let i = 0; i < 8; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+
+                // Small shells/pebbles
+                ctx.fillStyle = `rgba(255, 245, 230, ${0.7 + noise.random() * 0.2})`;
+                ctx.fillRect(x - 1, y - 1, 3, 2);
             }
             break;
 
@@ -643,6 +748,136 @@ function createRealisticTerrainPattern(biomeType: BiomeType, seed: number): Canv
             }
             break;
 
+        case BiomeType.RIVER:
+        case BiomeType.MAJOR_RIVER:
+            // Simple river flow pattern
+            // Flow lines
+            for (let i = 0; i < 8; i++) {
+                const y = (i / 8) * PATTERN_SIZE;
+
+                ctx.strokeStyle = `rgba(135, 206, 250, 0.4)`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+
+                for (let x = 0; x <= PATTERN_SIZE; x += 6) {
+                    ctx.lineTo(x, y + Math.sin(x * 0.06) * 6);
+                }
+                ctx.stroke();
+            }
+
+            // Simple ripples
+            for (let i = 0; i < 12; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+
+                ctx.strokeStyle = `rgba(173, 216, 230, 0.5)`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(x, y, 5 + noise.random() * 5, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            break;
+
+        case BiomeType.RIVERBANK:
+            // Nicer riverbank texture with mud, reeds, and pebbles
+            // Muddy base layer
+            for (let i = 0; i < 15; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const width = 8 + noise.random() * 12;
+                const height = width * (0.5 + noise.random() * 0.3);
+
+                // Varied mud colors
+                const mudTone = noise.random();
+                const r = 101 + Math.floor(mudTone * 20);
+                const g = 67 + Math.floor(mudTone * 18);
+                const b = 33 + Math.floor(mudTone * 15);
+
+                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${0.35 + noise.random() * 0.2})`;
+                ctx.fillRect(x - width/2, y - height/2, width, height);
+            }
+
+            // River stones/pebbles
+            for (let i = 0; i < 18; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const size = 2 + noise.random() * 5;
+
+                // Stone colors
+                ctx.fillStyle = `rgba(128, 128, 128, ${0.4 + noise.random() * 0.2})`;
+                ctx.fillRect(x - size/2, y - size/2, size, size * 0.7);
+
+                // Stone highlight
+                ctx.fillStyle = `rgba(160, 160, 160, ${0.3 + noise.random() * 0.15})`;
+                ctx.fillRect(x - size/2 + 1, y - size/2, size * 0.4, size * 0.3);
+            }
+
+            // Reeds and riverside plants
+            for (let i = 0; i < 20; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const height = 6 + noise.random() * 10;
+
+                // Reed stalks
+                ctx.strokeStyle = `rgba(85, 107, 47, ${0.5 + noise.random() * 0.25})`;
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + (noise.random() - 0.5) * 2, y - height);
+                ctx.stroke();
+
+                // Occasional reed plumes (30% chance)
+                if (noise.random() > 0.7) {
+                    ctx.fillStyle = `rgba(140, 120, 100, ${0.5 + noise.random() * 0.2})`;
+                    ctx.fillRect(x - 1, y - height - 3, 3, 4);
+                }
+            }
+
+            // Water edge marks
+            for (let i = 0; i < 3; i++) {
+                const y = (i / 3) * PATTERN_SIZE + (noise.random() - 0.5) * 10;
+
+                ctx.strokeStyle = `rgba(100, 149, 237, ${0.3 + noise.random() * 0.15})`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+
+                for (let x = 0; x <= PATTERN_SIZE; x += 10) {
+                    ctx.lineTo(x, y + Math.sin(x * 0.1) * 3);
+                }
+                ctx.stroke();
+            }
+            break;
+
+        case BiomeType.SHOALS_TILE:
+            // Simple shallow water pattern
+            // Sandy patches visible through water
+            for (let i = 0; i < 30; i++) {
+                const x = noise.random() * PATTERN_SIZE;
+                const y = noise.random() * PATTERN_SIZE;
+                const size = 8 + noise.random() * 12;
+
+                ctx.fillStyle = `rgba(238, 203, 173, 0.35)`;
+                ctx.fillRect(x - size/2, y - size/2, size, size);
+            }
+
+            // Wave ripples
+            for (let i = 0; i < 10; i++) {
+                const y = (i / 10) * PATTERN_SIZE;
+
+                ctx.strokeStyle = `rgba(135, 206, 250, 0.5)`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+
+                for (let x = 0; x <= PATTERN_SIZE; x += 8) {
+                    ctx.lineTo(x, y + Math.sin(x * 0.08) * 5);
+                }
+                ctx.stroke();
+            }
+            break;
+
         case BiomeType.SALT_FLATS:
             // Salt crystal formation patterns with mineral deposits
             // Crystalline polygon patterns (like real salt flats)
@@ -765,12 +1000,13 @@ function createShorelineShadowPattern(seed: number): CanvasPattern | null {
 
 interface UseTilePatternsProps {
     mapData: { climate: ClimateType, seed: number, tiles?: Tile[][] } | null;
+    season?: string;
 }
 
-export const useTilePatterns = ({ mapData }: UseTilePatternsProps) => {
+export const useTilePatterns = ({ mapData, season }: UseTilePatternsProps) => {
     const patterns = useMemo(() => {
         if (!mapData) {
-            return { 
+            return {
                 water: null,
                 terrain: new Map<BiomeType, CanvasPattern | null>(),
                 shorelineShadow: null
@@ -779,7 +1015,7 @@ export const useTilePatterns = ({ mapData }: UseTilePatternsProps) => {
 
         const water = createRealisticWaterPattern(mapData.climate, mapData.seed);
         const shorelineShadow = createShorelineShadowPattern(mapData.seed);
-        
+
         // Generate all terrain patterns
         const terrain = new Map<BiomeType, CanvasPattern | null>();
         const allBiomes = [
@@ -799,15 +1035,19 @@ export const useTilePatterns = ({ mapData }: UseTilePatternsProps) => {
             BiomeType.TUNDRA,
             BiomeType.CLIFF,
             BiomeType.VOLCANIC_ROCK,
-            BiomeType.SALT_FLATS
+            BiomeType.SALT_FLATS,
+            BiomeType.RIVER,
+            BiomeType.MAJOR_RIVER,
+            BiomeType.RIVERBANK,
+            BiomeType.SHOALS_TILE
         ];
 
         for (const biome of allBiomes) {
-            terrain.set(biome, createRealisticTerrainPattern(biome, mapData.seed));
+            terrain.set(biome, createRealisticTerrainPattern(biome, mapData.seed, mapData.climate, season));
         }
 
         return { water, terrain, shorelineShadow };
-    }, [mapData]);
+    }, [mapData, season]);
 
     return patterns;
 };

@@ -39,6 +39,8 @@ export const STARTING_PACKAGES: Record<string, {
     'Palm Wine Tapper': { equipment: { torso: 'SIMPLE_TUNIC', main_hand: '*CONTEXTUAL*' }, inventory: ['GOURD_FLASK', 'ROPE', 'KNIFE'], companions: [] },
     'Dhow Captain': { equipment: { torso: 'SIMPLE_TUNIC', head: 'TURBAN' }, inventory: ['ROPE', 'COMPASS', 'DATES'], companions: [] },
     'Ivory Trader': { equipment: { torso: 'FINE_CLOTHES', belt: 'PURSE' }, inventory: ['IVORY', 'SCALE', 'COIN'], companions: [] },
+    'Tribal Hunter': { equipment: { torso: 'SIMPLE_TUNIC', feet: 'LEATHER_BOOTS', main_hand: 'SIMPLE_BOW', off_hand: 'ARROW' }, inventory: ['ARROW', 'ARROW', 'BOLAS', 'MEAT', 'ROPE'], companions: ['DOG'] }, // 95% male
+    'Slinger': { equipment: { torso: 'SIMPLE_TUNIC', feet: 'SANDALS', main_hand: 'SLING', off_hand: 'SLING_STONE' }, inventory: ['SLING_STONE', 'SLING_STONE', 'SLING_STONE', 'LEATHER_POUCH'], companions: [] }, // 90% male
     
     // =======================================================================
     // == EAST ASIAN PROFESSIONS - JAPAN
@@ -98,9 +100,9 @@ export const STARTING_PACKAGES: Record<string, {
     // =======================================================================
     // == HERDERS & ANIMAL-RELATED (Using procedural weapon selection)
     // =======================================================================
-    'Shepherd': { equipment: { main_hand: '*CONTEXTUAL*', torso: 'WOOL_TUNIC', necklace: 'IRON_TORC' }, inventory: ['BREAD', 'FLUTE'], companions: ['SHEEP', 'DOG'] },
+    'Shepherd': { equipment: { main_hand: 'SLING', off_hand: 'SLING_STONE', torso: 'WOOL_TUNIC', necklace: 'IRON_TORC' }, inventory: ['SLING_STONE', 'SLING_STONE', 'BREAD', 'FLUTE'], companions: ['SHEEP', 'DOG'] },
     'Farmer': { equipment: { head: 'STRAW_HAT', main_hand: '*CONTEXTUAL*', torso: 'LEATHER_APRON' }, inventory: ['BARLEY', 'WHEAT', 'GRAIN_FLAIL'], companions: ['COW'] },
-    'Goat Herder': { equipment: { main_hand: '*CONTEXTUAL*', torso: 'WOOL_TUNIC' }, inventory: ['CHEESE'], companions: ['GOAT', 'GOAT', 'GOAT'] },
+    'Goat Herder': { equipment: { main_hand: 'SLING', off_hand: 'SLING_STONE', torso: 'WOOL_TUNIC' }, inventory: ['SLING_STONE', 'SLING_STONE', 'CHEESE'], companions: ['GOAT', 'GOAT', 'GOAT'] },
     'Cattle Herder': { equipment: { main_hand: '*CONTEXTUAL*', torso: 'WOOL_TUNIC' }, inventory: ['ROPE', 'BREAD'], companions: ['COW', 'COW'] },
     'Camel Herder': { equipment: { main_hand: '*CONTEXTUAL*', torso: 'DESERT_CLOAK', head: 'KEFFIYEH' }, inventory: ['DATES', 'GOURD_FLASK'], companions: ['CAMEL', 'CAMEL'] },
     'Duck Herder': { equipment: { main_hand: '*CONTEXTUAL*', torso: 'WOOL_TUNIC' }, inventory: ['BREAD'], companions: ['DUCK', 'DUCK', 'DUCK'] },
@@ -113,7 +115,7 @@ export const STARTING_PACKAGES: Record<string, {
     // =======================================================================
 
     // --- PREHISTORY (Using procedural weapon selection) ---
-    'Hunter': { equipment: { torso: 'DEER_HIDE', feet: 'HIDE_BOOTS', main_hand: '*CONTEXTUAL*', necklace: 'BRONZE_TORC' }, inventory: ['FLINT_STONE', 'MEAT', 'VINE'], companions: ['DOG'] },
+    'Hunter': { equipment: { torso: 'DEER_HIDE', feet: 'HIDE_BOOTS', main_hand: 'HUNTING_BOW', off_hand: 'ARROW', necklace: 'BRONZE_TORC' }, inventory: ['ARROW', 'ARROW', 'ARROW', 'FLINT_STONE', 'MEAT', 'VINE'], companions: ['DOG'] },
     'Gatherer': { equipment: { torso: 'DEER_HIDE', main_hand: '*CONTEXTUAL*' }, inventory: ['WILD_BERRIES', 'MUSHROOM', 'ROOT', 'LEATHER_BAG'] },
     'Shaman': { equipment: { head: 'WOLF_PELT', torso: 'FUR_CLOAK', main_hand: '*CONTEXTUAL*' }, inventory: ['HERB_BUNDLE', 'SMOOTH_STONE', 'BONES', 'OWL_FEATHER'] },
     'Toolmaker': { equipment: { torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*' }, inventory: ['FLINT_STONE', 'STICK', 'VINE', 'HAMMER'] },
@@ -484,7 +486,7 @@ export const STARTING_PACKAGES: Record<string, {
     'Flintknapper': { equipment: { main_hand: 'HAMMERSTONE' }, inventory: ['FLINT_STONE', 'OBSIDIAN', 'STONE_KNIFE'] }, // 90% male
     'Basket Maker': { equipment: { }, inventory: ['REED_BUNDLE', 'VINE'] }, // 15% male
     'Pottery Maker': { equipment: { }, inventory: ['CLAY_LUMP', 'WOODEN_BOWL'] }, // 25% male
-    'Buffalo Hunter': { equipment: { main_hand: 'COMPOSITE_BOW', off_hand: 'ARROW' }, inventory: ['SINEW', 'STONE_KNIFE', 'PEMMICAN'] }, // 95% male
+    'Buffalo Hunter': { equipment: { main_hand: 'COMPOSITE_BOW', off_hand: 'ARROW' }, inventory: ['SLING', 'SLING_STONE', 'SINEW', 'STONE_KNIFE', 'PEMMICAN'] }, // 95% male
     'Deer Hunter': { equipment: { main_hand: 'BOW', off_hand: 'ARROW' }, inventory: ['DEER_HIDE', 'VENISON', 'ANTLER'] }, // 90% male
     'Fish Smoker': { equipment: { }, inventory: ['SMOKED_FISH', 'SALT', 'STICK'] }, // 30% male
     'Berry Gatherer': { equipment: { }, inventory: ['WILD_BERRIES', 'PINE_NUTS', 'BIRCH_BARK_BASKET'] }, // 10% male
@@ -580,4 +582,90 @@ export const STARTING_PACKAGES: Record<string, {
     'Grocery Clerk': { equipment: { torso: 'LEATHER_APRON' }, inventory: ['FRUIT', 'BREAD'] },
     'Call Center Worker': { equipment: { torso: 'T_SHIRT' }, inventory: ['HEADSET', 'PAPER'] },
     'Content Creator': { equipment: { torso: 'T_SHIRT', head: 'SNAPBACK' }, inventory: ['SMARTPHONE','SYRINGE', 'COFFEE_BEANS'] },
+
+    // =======================================================================
+    // == MEDIEVAL EUROPEAN RANGED SPECIALISTS
+    // =======================================================================
+    'Crossbow Mercenary': { equipment: { torso: 'LEATHER_APRON', feet: 'LEATHER_BOOTS', main_hand: 'CROSSBOW', off_hand: 'CROSSBOW_BOLT' }, inventory: ['CROSSBOW_BOLT', 'CROSSBOW_BOLT', 'CROSSBOW_BOLT', 'COIN'], companions: [] }, // 100% male
+    'English Longbowman': { equipment: { torso: 'WOOL_TUNIC', feet: 'LEATHER_BOOTS', main_hand: 'COMPOSITE_BOW', off_hand: 'ARROW' }, inventory: ['ARROW', 'ARROW', 'ARROW', 'ARROW', 'BREAD'], companions: [] }, // 100% male
+    'Castle Archer': { equipment: { torso: 'LEATHER_APRON', feet: 'LEATHER_BOOTS', main_hand: 'SIMPLE_BOW', off_hand: 'ARROW' }, inventory: ['ARROW', 'ARROW', 'ARROW', 'BREAD'], companions: [] }, // 95% male
+
+    // =======================================================================
+    // == OUTLAW & BANDIT PROFESSIONS - MEDIEVAL/RENAISSANCE
+    // =======================================================================
+    'Bandit': { equipment: { torso: 'LEATHER_JERKIN', feet: 'LEATHER_BOOTS', main_hand: 'SWORD', off_hand: 'THROWING_KNIFE' }, inventory: ['THROWING_KNIFE', 'BREAD', 'COIN', 'ROPE'], companions: [] }, // 95% male
+    'Brigand': { equipment: { torso: 'LEATHER_JERKIN', feet: 'LEATHER_BOOTS', main_hand: 'CLUB', off_hand: 'KNIFE' }, inventory: ['ROPE', 'BREAD', 'COIN'], companions: [] }, // 95% male
+    'Cutpurse': { equipment: { torso: 'SIMPLE_TUNIC', feet: 'LEATHER_BOOTS', main_hand: 'KNIFE' }, inventory: ['COIN', 'COIN', 'ROPE'], companions: [] },
+    'Desperado': { equipment: { head: 'COWBOY_HAT', torso: 'LEATHER_VEST', feet: 'COWBOY_BOOTS', main_hand: 'PISTOL', belt: 'GUNBELT' }, inventory: ['BULLETS', 'BULLETS', 'COIN', 'WHISKEY'], companions: ['HORSE'] }, // 100% male
+    'Highwayman': { equipment: { head: 'TRICORN_HAT', torso: 'COAT', feet: 'RIDING_BOOTS', main_hand: 'FLINTLOCK', off_hand: 'SWORD' }, inventory: ['GUNPOWDER', 'COIN', 'ROPE', 'MASK'], companions: ['HORSE'] }, // 100% male
+
+    // =======================================================================
+    // == INDUSTRIAL ERA OUTLAWS & REVOLUTIONARIES
+    // =======================================================================
+    'Footpad': { equipment: { torso: 'COAT', feet: 'WORN_BOOTS', main_hand: 'KNIFE' }, inventory: ['COIN', 'ROPE'], companions: [] },
+    'Peaky Blinder': { equipment: { head: 'FLAT_CAP', torso: 'VEST', feet: 'LEATHER_BOOTS', main_hand: 'RAZOR' }, inventory: ['COIN', 'WHISKEY', 'CIGARETTES'], companions: [] },
+    'Resurrectionist': { equipment: { torso: 'COAT', feet: 'WORK_BOOTS', main_hand: 'SHOVEL' }, inventory: ['ROPE', 'SACK', 'LANTERN'], companions: [] },
+    'Chartist': { equipment: { torso: 'WORKER_SHIRT', feet: 'WORK_BOOTS' }, inventory: ['PAMPHLET', 'QUILL', 'INK_POT'], companions: [] },
+    'Luddite': { equipment: { torso: 'WORKER_SHIRT', feet: 'WORK_BOOTS', main_hand: 'HAMMER' }, inventory: ['CLOTH_MASK', 'ROPE'], companions: [] },
+    'Fenian': { equipment: { torso: 'COAT', feet: 'LEATHER_BOOTS', main_hand: 'PISTOL' }, inventory: ['BULLETS', 'PAMPHLET', 'COIN'], companions: [] },
+    'Anarchist': { equipment: { torso: 'COAT', feet: 'LEATHER_BOOTS' }, inventory: ['BOMB', 'PAMPHLET', 'MASK'], companions: [] },
+
+    // East Asian Industrial Era
+    'Ronin': { equipment: { torso: 'KIMONO', feet: 'SANDALS', main_hand: 'KATANA' }, inventory: ['RICE_BALL', 'SAKE', 'COIN'], companions: [] },
+    'Yakuza': { equipment: { torso: 'KIMONO', feet: 'SANDALS', main_hand: 'TANTO' }, inventory: ['SHURIKEN', 'SHURIKEN', 'SAKE', 'COIN', 'DICE'], companions: [] },
+    'Opium Smuggler': { equipment: { torso: 'SIMPLE_TUNIC', feet: 'SANDALS' }, inventory: ['OPIUM', 'COIN', 'PIPE'], companions: ['DONKEY'] },
+    'Triad Member': { equipment: { torso: 'SIMPLE_TUNIC', feet: 'SANDALS', main_hand: 'KNIFE' }, inventory: ['COIN', 'INCENSE', 'DICE'], companions: [] },
+    'Boxer Rebel': { equipment: { torso: 'SIMPLE_TUNIC', feet: 'CLOTH_SHOES', main_hand: 'STICK' }, inventory: ['TALISMAN', 'RICE', 'BANDANA'], companions: [] },
+    'Taiping Soldier': { equipment: { torso: 'UNIFORM', feet: 'CLOTH_SHOES', main_hand: 'SWORD' }, inventory: ['BIBLE', 'RICE', 'BANDAGE'], companions: [] },
+    'Black Flag Fighter': { equipment: { torso: 'BLACK_TUNIC', feet: 'SANDALS', main_hand: 'SPEAR' }, inventory: ['FLAG', 'RICE', 'COIN'], companions: [] },
+
+    // =======================================================================
+    // == MODERN ERA (1950-2000) CRIMINALS & REVOLUTIONARIES
+    // =======================================================================
+    'Mobster': { equipment: { torso: 'SUIT', feet: 'DRESS_SHOES', main_hand: 'TOMMY_GUN' }, inventory: ['BULLETS', 'CIGARETTES', 'COIN', 'BRASS_KNUCKLES'], companions: ['CAR'] },
+    'Drug Dealer': { equipment: { torso: 'TRACK_SUIT', feet: 'SNEAKERS' }, inventory: ['DRUGS', 'BURNER_PHONE', 'CASH', 'KNIFE'], companions: [] },
+    'Pickpocket': { equipment: { torso: 'JACKET', feet: 'SNEAKERS' }, inventory: ['WALLET', 'WATCH', 'KNIFE'], companions: [] },
+    'Black Panther': { equipment: { torso: 'LEATHER_JACKET', feet: 'BOOTS', main_hand: 'SHOTGUN' }, inventory: ['SHELLS', 'PAMPHLET', 'AFRO_PICK'], companions: [] },
+    'IRA Member': { equipment: { torso: 'JACKET', feet: 'BOOTS', main_hand: 'ARMALITE' }, inventory: ['BULLETS', 'BALACLAVA', 'COIN'], companions: [] },
+    'Red Brigade': { equipment: { torso: 'JACKET', feet: 'BOOTS', main_hand: 'PISTOL' }, inventory: ['BULLETS', 'MANIFESTO', 'MASK'], companions: [] },
+    'Guerrilla Fighter': { equipment: { torso: 'CAMO_JACKET', feet: 'COMBAT_BOOTS', main_hand: 'AK47' }, inventory: ['BULLETS', 'RATIONS', 'COMPASS'], companions: [] },
+    'Smuggler': { equipment: { torso: 'JACKET', feet: 'BOOTS' }, inventory: ['CONTRABAND', 'FAKE_ID', 'CASH', 'MAP'], companions: ['TRUCK'] },
+
+    // =======================================================================
+    // == FUTURE ERA (2000-2025) CRIMINALS & ACTIVISTS
+    // =======================================================================
+    'Cybercriminal': { equipment: { torso: 'HOODIE', feet: 'SNEAKERS' }, inventory: ['LAPTOP', 'USB_DRIVE', 'BITCOIN_WALLET', 'ENERGY_DRINK'], companions: [] },
+    'Crypto Scammer': { equipment: { torso: 'DESIGNER_SHIRT', feet: 'DESIGNER_SHOES' }, inventory: ['SMARTPHONE', 'FAKE_CRYPTO', 'CASH'], companions: [] },
+    'Cartel Member': { equipment: { torso: 'DESIGNER_SHIRT', feet: 'BOOTS', main_hand: 'GOLD_PLATED_GUN' }, inventory: ['BULLETS', 'BURNER_PHONE', 'CASH', 'COCAINE'], companions: ['SUV'] },
+    'Human Trafficker': { equipment: { torso: 'SUIT', feet: 'DRESS_SHOES' }, inventory: ['FAKE_PASSPORTS', 'BURNER_PHONE', 'CASH', 'ZIP_TIES'], companions: ['VAN'] },
+    'Antifa Member': { equipment: { torso: 'BLACK_HOODIE', feet: 'BOOTS' }, inventory: ['MASK', 'SPRAY_PAINT', 'BIKE_LOCK', 'FIRST_AID_KIT'], companions: [] },
+    'ISIS Fighter': { equipment: { torso: 'CAMO_VEST', feet: 'COMBAT_BOOTS', main_hand: 'AK47' }, inventory: ['BULLETS', 'QURAN', 'BLACK_FLAG'], companions: [] },
+    'Climate Activist': { equipment: { torso: 'T_SHIRT', feet: 'SNEAKERS' }, inventory: ['SIGN', 'SUPERGLUE', 'SMARTPHONE', 'WATER_BOTTLE'], companions: [] },
+    'BLM Activist': { equipment: { torso: 'BLM_SHIRT', feet: 'SNEAKERS' }, inventory: ['SIGN', 'SMARTPHONE', 'FIRST_AID_KIT', 'WATER_BOTTLE'], companions: [] },
+    'Proud Boy': { equipment: { torso: 'POLO_SHIRT', feet: 'BOOTS', main_hand: 'BATON' }, inventory: ['SHIELD', 'FLAG', 'ZIP_TIES'], companions: [] },
+    'Anonymous Hacker': { equipment: { torso: 'HOODIE', feet: 'SNEAKERS' }, inventory: ['LAPTOP', 'GUY_FAWKES_MASK', 'USB_DRIVES', 'ENCRYPTED_PHONE'], companions: [] },
+    'Fentanyl Dealer': { equipment: { torso: 'HOODIE', feet: 'SNEAKERS' }, inventory: ['FENTANYL', 'BURNER_PHONE', 'CASH', 'NARCAN'], companions: [] },
+
+    // =======================================================================
+    // == CULTURAL ZONE SPECIFIC SLINGERS
+    // =======================================================================
+    'Funditor': { equipment: { torso: 'TUNIC', feet: 'SANDALS', main_hand: 'SLING', off_hand: 'SLING_STONE' }, inventory: ['SLING_STONE', 'SLING_STONE', 'SLING_STONE', 'BREAD'], companions: [] }, // Roman slinger
+    'Maqla': { equipment: { torso: 'DESERT_ROBE', feet: 'SANDALS', main_hand: 'SLING', off_hand: 'SLING_STONE' }, inventory: ['SLING_STONE', 'SLING_STONE', 'DATES', 'GOURD_FLASK'], companions: [] }, // Middle Eastern slinger
+    'Ishihori': { equipment: { torso: 'HIDE_TUNIC', feet: 'HIDE_BOOTS', main_hand: 'SLING', off_hand: 'SMOOTH_STONE' }, inventory: ['SMOOTH_STONE', 'SMOOTH_STONE', 'MEAT', 'ROPE'], companions: [] }, // African stone thrower
+
+    // =======================================================================
+    // == SPECIALIZED RANGED WEAPON PROFESSIONS
+    // =======================================================================
+    'Amazon Warrior': { equipment: { torso: 'LEATHER_JERKIN', feet: 'LEATHER_BOOTS', main_hand: 'BLOWGUN', off_hand: 'BLOWGUN_DART' }, inventory: ['BLOWGUN_DART', 'BLOWGUN_DART', 'BLOWGUN_DART', 'POISON', 'KNIFE'], companions: [] },
+    'Sikh Warrior': { equipment: { head: 'TURBAN', torso: 'CHAINMAIL', feet: 'LEATHER_BOOTS', main_hand: 'SWORD' }, inventory: ['CHAKRAM', 'CHAKRAM', 'CHAKRAM', 'DAGGER'], companions: [] },
+    'Ninja': { equipment: { torso: 'BLACK_TUNIC', feet: 'TABI_SOCKS', main_hand: 'NINJATO' }, inventory: ['SHURIKEN', 'SHURIKEN', 'SHURIKEN', 'SMOKE_BOMB', 'ROPE'], companions: [] },
+    'Gaucho': { equipment: { head: 'WIDE_BRIMMED_HAT', torso: 'PONCHO', feet: 'LEATHER_BOOTS', main_hand: 'KNIFE' }, inventory: ['BOLAS', 'BOLAS', 'ROPE', 'MEAT'], companions: ['HORSE'] },
+    'Viking Raider': { equipment: { head: 'HORNED_HELMET', torso: 'CHAINMAIL', feet: 'LEATHER_BOOTS', main_hand: 'BATTLEAXE', off_hand: 'SHIELD' }, inventory: ['THROWING_AXE', 'THROWING_AXE', 'MEAD', 'ROPE'], companions: [] },
+    'Apache Scout': { equipment: { torso: 'BUCKSKIN_SHIRT', feet: 'MOCCASINS', main_hand: 'SHORTBOW', off_hand: 'ARROW' }, inventory: ['ARROW', 'ARROW', 'TOMAHAWK', 'PEMMICAN'], companions: ['HORSE'] },
+    'Mongol Archer': { equipment: { head: 'FUR_HAT', torso: 'LEATHER_ARMOR', feet: 'LEATHER_BOOTS', main_hand: 'COMPOSITE_BOW', off_hand: 'ARROW' }, inventory: ['ARROW', 'ARROW', 'ARROW', 'KUMISS', 'DRIED_MEAT'], companions: ['HORSE'] },
+    'Maori Warrior': { equipment: { torso: 'FLAX_CLOAK', feet: 'BAREFOOT', main_hand: 'MERE' }, inventory: ['THROWING_STICK', 'JADE_PENDANT', 'SWEET_POTATO'], companions: [] },
+    'Byzantine Archer': { equipment: { head: 'HELMET', torso: 'SCALE_ARMOR', feet: 'LEATHER_BOOTS', main_hand: 'CROSSBOW', off_hand: 'CROSSBOW_BOLT' }, inventory: ['CROSSBOW_BOLT', 'CROSSBOW_BOLT', 'GREEK_FIRE', 'BREAD'], companions: [] },
+    'Zulu Warrior': { equipment: { head: 'LEOPARD_HEADBAND', torso: 'HIDE_TUNIC', feet: 'BAREFOOT', main_hand: 'IKLWA', off_hand: 'COW_HIDE_SHIELD' }, inventory: ['ASSEGAI', 'ASSEGAI', 'BILTONG', 'GOURD_FLASK'], companions: [] },
+    'Persian Archer': { equipment: { head: 'CONICAL_HELMET', torso: 'LAMELLAR_ARMOR', feet: 'LEATHER_BOOTS', main_hand: 'COMPOSITE_BOW', off_hand: 'ARROW' }, inventory: ['ARROW', 'ARROW', 'SCIMITAR', 'DATES'], companions: [] },
+    'Inca Slinger': { equipment: { head: 'WOOL_CAP', torso: 'LLAMA_WOOL_TUNIC', feet: 'SANDALS', main_hand: 'SLING', off_hand: 'LEAD_BULLET' }, inventory: ['LEAD_BULLET', 'LEAD_BULLET', 'LEAD_BULLET', 'COCA_LEAVES', 'POTATO'], companions: ['LLAMA'] }
 };

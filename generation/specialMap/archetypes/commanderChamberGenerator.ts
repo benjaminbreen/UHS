@@ -23,7 +23,8 @@ export function generateCommanderChamber(
   
   console.log(`[CommanderChamberGenerator] Generating fortress commander chamber for culture: ${config.culturalZone}, era: ${config.era}`);
   
-  // Set all tiles to floor initially
+  // Set all tiles to floor initially with cultural-specific flooring
+  const floorType = getCulturalFloorType(config.culturalZone, config.era);
   for (let y = 0; y < size.height; y++) {
     for (let x = 0; x < size.width; x++) {
       tiles[y][x] = {
@@ -31,7 +32,7 @@ export function generateCommanderChamber(
         y,
         type: BiomeType.PLAINS,
         variant: 'floor',
-        subtype: ArchitecturalBiome.FLOOR_STONE,
+        subtype: floorType,
         elevation: 0,
         moisture: 0,
         temperature: 0.5,
@@ -42,13 +43,14 @@ export function generateCommanderChamber(
     }
   }
   
-  // Create walls around perimeter
+  // Create walls around perimeter with cultural-specific materials
+  const wallType = getCulturalWallType(config.culturalZone, config.era);
   for (let y = 0; y < size.height; y++) {
     for (let x = 0; x < size.width; x++) {
       if (x === 0 || x === size.width - 1 || y === 0 || y === size.height - 1) {
         tiles[y][x].type = BiomeType.MOUNTAINS;
         tiles[y][x].variant = 'wall';
-        tiles[y][x].subtype = ArchitecturalBiome.WALL;
+        tiles[y][x].subtype = wallType;
         tiles[y][x].isWalkable = false;
       }
     }
@@ -75,30 +77,58 @@ export function generateCommanderChamber(
     rotation: 180 // Facing south towards entrance
   }];
   
-  // Add war table in center
+  // Add war table in center with cultural styling
   const centerX = Math.floor(size.width / 2);
   const centerY = Math.floor(size.height / 2);
-  
+
   tiles[centerY][centerX].overlayObjects = [{
     type: OverlayObjectType.TABLE,
-    variant: 'war_table',
+    variant: getCulturalTableVariant(config.culturalZone),
     scale: 1.5
   }];
   tiles[centerY][centerX].isWalkable = false;
+
+  // Add rugs/carpets for better aesthetics
+  if (config.culturalZone === 'MENA' || config.culturalZone === 'SOUTH_ASIAN') {
+    tiles[centerY - 1][centerX].overlayObjects = [{
+      type: OverlayObjectType.RUG,
+      variant: 'ornate_carpet',
+      culturalStyle: config.culturalZone.toLowerCase()
+    }];
+    tiles[centerY + 1][centerX].overlayObjects = [{
+      type: OverlayObjectType.RUG,
+      variant: 'ornate_carpet',
+      culturalStyle: config.culturalZone.toLowerCase()
+    }];
+  }
   
-  // Add weapon racks on sides
+  // Add weapon racks and chests on sides for better aesthetics
   if (size.width > 6) {
+    // Weapon racks
     tiles[2][1].overlayObjects = [{
       type: OverlayObjectType.WEAPON_RACK,
-      variant: 'wall_mounted',
+      variant: getCulturalWeaponRackVariant(config.culturalZone),
       rotation: 90
     }];
-    
+
     tiles[2][size.width - 2].overlayObjects = [{
       type: OverlayObjectType.WEAPON_RACK,
-      variant: 'wall_mounted',
+      variant: getCulturalWeaponRackVariant(config.culturalZone),
       rotation: 270
     }];
+
+    // Add storage chests in corners for visual interest
+    tiles[size.height - 3][1].overlayObjects = [{
+      type: OverlayObjectType.CHEST,
+      variant: 'military_chest'
+    }];
+    tiles[size.height - 3][1].isWalkable = false;
+
+    tiles[size.height - 3][size.width - 2].overlayObjects = [{
+      type: OverlayObjectType.CHEST,
+      variant: 'military_chest'
+    }];
+    tiles[size.height - 3][size.width - 2].isWalkable = false;
   }
   
   // Add torches for lighting
@@ -143,12 +173,13 @@ export function generateCommanderChamber(
     requiredStatus: ['officer', 'noble']
   });
   
-  // Main exit
+  // Main exit - Move player spawn point up to avoid being stuck
   exitZones.push({
     id: 'main_exit',
     location: [entranceX, size.height - 1],
     label: 'Exit to Fortress',
-    destination: 'parent_map'
+    destination: 'parent_map',
+    playerSpawnOffset: { x: 0, y: -2 } // Spawn player 2 tiles up from the exit
   });
   
   // Define the room for NPC spawning
@@ -382,4 +413,82 @@ function getCulturalThroneVariant(zone: CulturalZone, era: HistoricalEra): strin
   const eraKey = era.toLowerCase().replace(/\s+/g, '');
   const zoneVariants = variants[zone] || variants.EUROPEAN;
   return zoneVariants[eraKey] || 'simple_chair';
+}
+
+/**
+ * Get culturally appropriate floor type
+ */
+function getCulturalFloorType(zone: CulturalZone, era: HistoricalEra): ArchitecturalBiome {
+  const floorTypes: Record<string, ArchitecturalBiome> = {
+    EUROPEAN: ArchitecturalBiome.FLOOR_STONE,
+    MENA: ArchitecturalBiome.FLOOR_TILE,
+    EAST_ASIAN: ArchitecturalBiome.FLOOR_WOOD,
+    SOUTH_ASIAN: ArchitecturalBiome.FLOOR_MARBLE,
+    SUB_SAHARAN_AFRICAN: ArchitecturalBiome.FLOOR_DIRT,
+    INDIGENOUS_AMERICAN: ArchitecturalBiome.FLOOR_DIRT,
+    OCEANIC: ArchitecturalBiome.FLOOR_WOOD
+  };
+
+  // Modern era gets concrete/modern flooring
+  if (era === HistoricalEra.MODERN || era === HistoricalEra.FUTURE) {
+    return ArchitecturalBiome.FLOOR_STONE;
+  }
+
+  return floorTypes[zone] || ArchitecturalBiome.FLOOR_STONE;
+}
+
+/**
+ * Get culturally appropriate wall type
+ */
+function getCulturalWallType(zone: CulturalZone, era: HistoricalEra): ArchitecturalBiome {
+  const wallTypes: Record<string, ArchitecturalBiome> = {
+    EUROPEAN: ArchitecturalBiome.WALL_STONE,
+    MENA: ArchitecturalBiome.WALL_SANDSTONE,
+    EAST_ASIAN: ArchitecturalBiome.WALL_WOOD,
+    SOUTH_ASIAN: ArchitecturalBiome.WALL_STONE,
+    SUB_SAHARAN_AFRICAN: ArchitecturalBiome.WALL_MUD,
+    INDIGENOUS_AMERICAN: ArchitecturalBiome.WALL_ADOBE,
+    OCEANIC: ArchitecturalBiome.WALL_BAMBOO
+  };
+
+  // Modern era gets concrete walls
+  if (era === HistoricalEra.MODERN || era === HistoricalEra.FUTURE) {
+    return ArchitecturalBiome.WALL_CONCRETE;
+  }
+
+  return wallTypes[zone] || ArchitecturalBiome.WALL_STONE;
+}
+
+/**
+ * Get culturally appropriate table variant
+ */
+function getCulturalTableVariant(zone: CulturalZone): string {
+  const variants: Record<string, string> = {
+    EUROPEAN: 'war_table',
+    MENA: 'low_table',
+    EAST_ASIAN: 'lacquered_table',
+    SOUTH_ASIAN: 'carved_table',
+    SUB_SAHARAN_AFRICAN: 'simple_table',
+    INDIGENOUS_AMERICAN: 'stone_slab',
+    OCEANIC: 'woven_mat'
+  };
+
+  return variants[zone] || 'war_table';
+}
+
+/**
+ * Get culturally appropriate weapon rack variant
+ */
+function getCulturalWeaponRackVariant(zone: CulturalZone): string {
+  const variants: Record<string, string> = {
+    EUROPEAN: 'sword_rack',
+    MENA: 'scimitar_rack',
+    EAST_ASIAN: 'katana_stand',
+    SOUTH_ASIAN: 'khanda_rack',
+    SUB_SAHARAN_AFRICAN: 'spear_rack',
+    INDIGENOUS_AMERICAN: 'bow_rack',
+    OCEANIC: 'club_rack'
+  };
+
+  return variants[zone] || 'weapon_rack';
 }

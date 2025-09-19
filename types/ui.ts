@@ -22,7 +22,7 @@ export interface LootModalData {
     items: Item[];
 }
 
-export type ActionableTileType = 'farm' | 'city' | 'marketplace' | 'building' | 'explore' | 'mine' | 'fishing_hut';
+export type ActionableTileType = 'farm' | 'city' | 'marketplace' | 'building' | 'explore' | 'mine' | 'fishing_hut' | 'ruin';
 
 export interface ActionableTile {
     type: ActionableTileType;

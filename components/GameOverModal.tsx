@@ -1,13 +1,16 @@
-import React from 'react';
-import { Skull, Heart, Calendar, MapPin, RotateCcw, Home } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Skull, Heart, Calendar, MapPin, RotateCcw, Home, Star, Compass, Swords, Mountain } from 'lucide-react';
 import { Disease } from '../types/diseaseTypes';
+import gameSoundsService from '../services/gameSoundsService';
 
 interface GameOverModalProps {
   isOpen: boolean;
   causeOfDeath: {
-    type: 'disease' | 'starvation' | 'violence' | 'accident' | 'old_age';
+    type: 'disease' | 'starvation' | 'violence' | 'accident' | 'old_age' | 'combat' | 'terrain' | 'drowning' | 'exhaustion' | 'poison';
     disease?: Disease;
     description?: string;
+    opponent?: string;
+    terrain?: string;
   };
   playerStats: {
     name?: string;
@@ -15,10 +18,17 @@ interface GameOverModalProps {
     daysAlive: number;
     location?: string;
     year?: number;
+    profession?: string;
+    culturalZone?: string;
+    distanceTraveled?: number;
+    itemsCollected?: number;
+    questsCompleted?: number;
+    npcsMetTotal?: number;
   };
   achievements?: string[];
   onRestart: () => void;
   onMainMenu: () => void;
+  onRespawn?: (mode: 'descendant' | 'same-location' | 'random') => void;
 }
 
 const GameOverModal: React.FC<GameOverModalProps> = ({
@@ -27,20 +37,45 @@ const GameOverModal: React.FC<GameOverModalProps> = ({
   playerStats,
   achievements = [],
   onRestart,
-  onMainMenu
+  onMainMenu,
+  onRespawn
 }) => {
+  // Play peaceful music when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      gameSoundsService.playFishingMusic();
+    }
+    return () => {
+      gameSoundsService.stopFishingMusic();
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const getCauseOfDeathText = () => {
     switch (causeOfDeath.type) {
       case 'disease':
-        return causeOfDeath.disease 
+        return causeOfDeath.disease
           ? `Succumbed to ${causeOfDeath.disease.name}`
           : 'Died from illness';
       case 'starvation':
         return 'Died from starvation';
       case 'violence':
         return causeOfDeath.description || 'Killed in combat';
+      case 'combat':
+        return causeOfDeath.opponent
+          ? `Fell in battle against ${causeOfDeath.opponent}`
+          : 'Died in combat';
+      case 'terrain':
+        return causeOfDeath.terrain
+          ? `Perished in the harsh ${causeOfDeath.terrain}`
+          : 'Succumbed to harsh terrain';
+      case 'drowning':
+        return 'Lost to the depths';
+      case 'exhaustion':
+        return 'Collapsed from exhaustion';
+      case 'poison':
+        return 'Succumbed to toxic substances';
       case 'accident':
         return causeOfDeath.description || 'Died in an accident';
       case 'old_age':
@@ -67,6 +102,16 @@ const GameOverModal: React.FC<GameOverModalProps> = ({
         return 'In those harsh times, even the strongest could fall to hunger.';
       case 'violence':
         return 'They lived by the sword and died by it, as was common in those turbulent days.';
+      case 'combat':
+        return 'They fought bravely to the end, their courage never wavering even as darkness closed in.';
+      case 'terrain':
+        return 'The unforgiving landscape claimed another soul, as it had countless others before.';
+      case 'drowning':
+        return 'The waters that give life also take it away, pulling them into eternal depths.';
+      case 'exhaustion':
+        return 'They pushed beyond mortal limits, their spirit willing but flesh unable to continue.';
+      case 'poison':
+        return 'Hidden dangers lurk everywhere; what seemed harmless proved fatal.';
       case 'old_age':
         return 'A rare blessing to die peacefully in bed, having seen many seasons pass.';
       default:
@@ -95,9 +140,17 @@ const GameOverModal: React.FC<GameOverModalProps> = ({
     return null;
   };
 
+  // Check if death.png exists, otherwise use a fallback gradient
+  const deathBackgroundStyle = {
+    backgroundImage: 'url(/combat-backgrounds/death.png), linear-gradient(to bottom, #1a0f1f, #2d1b3d, #1a0f1f)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundBlendMode: 'overlay' as const
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-lg shadow-2xl max-w-2xl w-full border border-gray-700">
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 death-modal-container" style={deathBackgroundStyle}>
+      <div className="bg-gray-900/90 backdrop-blur-sm rounded-lg shadow-2xl max-w-2xl w-full border border-gray-700 death-modal-content">
         {/* Header with skull icon */}
         <div className="bg-gradient-to-r from-red-900/50 to-gray-900 p-6 rounded-t-lg border-b border-gray-700">
           <div className="flex items-center justify-center gap-4">
@@ -207,6 +260,46 @@ const GameOverModal: React.FC<GameOverModalProps> = ({
                   </p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Legacy Section */}
+          {(playerStats.distanceTraveled || playerStats.itemsCollected || playerStats.questsCompleted || playerStats.npcsMetTotal) && (
+            <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+              <h3 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+                <Star className="w-4 h-4 text-yellow-400" />
+                Legacy
+              </h3>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                {playerStats.distanceTraveled && (
+                  <div className="flex items-center gap-2">
+                    <Compass className="w-3 h-3 text-blue-400" />
+                    <span className="text-gray-400">Distance Traveled:</span>
+                    <span className="text-gray-200">{playerStats.distanceTraveled} km</span>
+                  </div>
+                )}
+                {playerStats.itemsCollected && (
+                  <div className="flex items-center gap-2">
+                    <Star className="w-3 h-3 text-yellow-400" />
+                    <span className="text-gray-400">Items Collected:</span>
+                    <span className="text-gray-200">{playerStats.itemsCollected}</span>
+                  </div>
+                )}
+                {playerStats.questsCompleted !== undefined && (
+                  <div className="flex items-center gap-2">
+                    <Swords className="w-3 h-3 text-red-400" />
+                    <span className="text-gray-400">Quests Completed:</span>
+                    <span className="text-gray-200">{playerStats.questsCompleted}</span>
+                  </div>
+                )}
+                {playerStats.npcsMetTotal && (
+                  <div className="flex items-center gap-2">
+                    <Heart className="w-3 h-3 text-pink-400" />
+                    <span className="text-gray-400">People Met:</span>
+                    <span className="text-gray-200">{playerStats.npcsMetTotal}</span>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

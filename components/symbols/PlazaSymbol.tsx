@@ -1,7 +1,7 @@
 /**
  * components/symbols/PlazaSymbol.tsx - Renders plazas with climate-specific patterns and optional statues
  */
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Tile, ClimateType } from '../../types';
 import { ValueNoise } from '../../utils/noise';
 
@@ -15,15 +15,14 @@ interface PlazaSymbolProps {
 }
 
 const PlazaSymbol: React.FC<PlazaSymbolProps> = React.memo(({ x, y, size, seed, tile, climate }) => {
-  const staticValues = useMemo(() => {
-    const localRand = (offset = 0) => new ValueNoise(seed + tile.x * 17 + tile.y * 19 + offset).random();
-    return {
-      hasStatue: localRand(0) < 0.3, // 30% chance of statue
-      statueType: Math.floor(localRand(1) * 3), // 0: column, 1: monument, 2: fountain
-      patternOffset: localRand(2) * 10,
-      tileRotation: localRand(3) * 90,
-    };
-  }, [seed, tile.x, tile.y]);
+  // Use pure calculation without useMemo to ensure stability across mounts
+  const localRand = (offset = 0) => new ValueNoise(seed + tile.x * 17 + tile.y * 19 + offset).random();
+  const staticValues = {
+    hasStatue: localRand(0) < 0.3, // 30% chance of statue
+    statueType: Math.floor(localRand(1) * 3), // 0: column, 1: monument, 2: fountain
+    patternOffset: localRand(2) * 10,
+    tileRotation: localRand(3) * 90,
+  };
 
   const elements: JSX.Element[] = [];
 

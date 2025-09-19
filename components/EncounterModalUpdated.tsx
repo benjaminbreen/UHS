@@ -167,20 +167,25 @@ interface EncounterModalProps {
   onUpdateNpc?: (updatedNpc: NpcEntity) => void;
 }
 
-const EncounterModalUpdated: React.FC<EncounterModalProps> = ({ 
-    target, 
-    playerCharacter, 
-    allNpcs, 
-    mapData, 
-    onClose, 
-    onInitiateCombat, 
-    onOpenInfo, 
-    onUpdateNpc 
+const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
+    target,
+    playerCharacter,
+    allNpcs,
+    mapData,
+    onClose,
+    onInitiateCombat,
+    onOpenInfo,
+    onUpdateNpc
 }) => {
     const { showToast, setCurrentEvent, setSelectedPrimarySource } = useUI();
     const { worldData } = useMap();
     const { gameDate, currentZone, currentRegion } = useGame();
-    
+
+    // Get the most up-to-date NPC from allNpcs (in case memory was updated)
+    const currentTarget = isNpc(target)
+        ? allNpcs.find(npc => npc.id === target.id) || target
+        : target;
+
     // Portrait expression management
     const { expr: portraitExpr, flash: flashPortrait, clear: clearPortrait } = usePortraitExpression();
     
@@ -327,10 +332,10 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
             
             if (isNpc(target)) {
                 // Generate appropriate greeting based on whether NPC knows the player
-                const hasMetBefore = target.memory?.conversationSummaries && target.memory.conversationSummaries.length > 0;
+                const hasMetBefore = currentTarget.memory?.conversationSummaries && currentTarget.memory.conversationSummaries.length > 0;
                 const greeting = hasMetBefore ? "I approach again." : "Hello.";
                 
-                generateEncounterDialogue(target, target.memory?.conversationSummaries || [], greeting, playerCharacter, allNpcs, mapData, useRealLanguage)
+                generateEncounterDialogue(currentTarget, currentTarget.memory?.conversationSummaries || [], greeting, playerCharacter, allNpcs, mapData, useRealLanguage)
                     .then(response => {
                         const initialEntry: DialogueEntry = { 
                             speaker: 'npc', 
@@ -594,7 +599,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
         }
         
         try {
-            const response = await generateEncounterDialogue(target, newHistory, currentInput, playerCharacter, allNpcs, mapData, useRealLanguage);
+            const response = await generateEncounterDialogue(currentTarget, newHistory, currentInput, playerCharacter, allNpcs, mapData, useRealLanguage);
             const newNpcEntry: DialogueEntry = { 
                 speaker: 'npc', 
                 text: response.text, 
@@ -678,34 +683,34 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
             setTimeout(async () => {
                 try {
                     const summary = await summarizeConversation(history);
-                    if (!target.memory) {
-                        target.memory = {
+                    if (!currentTarget.memory) {
+                        currentTarget.memory = {
                             conversationSummaries: [],
                             opinionOfPlayer: 50
                         };
                     }
-                    if (!target.memory.conversationSummaries) {
-                        target.memory.conversationSummaries = [];
+                    if (!currentTarget.memory.conversationSummaries) {
+                        currentTarget.memory.conversationSummaries = [];
                     }
-                    target.memory.conversationSummaries.push(summary.summary);
+                    currentTarget.memory.conversationSummaries.push(summary.summary);
                     // Keep only last 5 conversations
-                    if (target.memory.conversationSummaries.length > 5) {
-                        target.memory.conversationSummaries = target.memory.conversationSummaries.slice(-5);
+                    if (currentTarget.memory.conversationSummaries.length > 5) {
+                        currentTarget.memory.conversationSummaries = currentTarget.memory.conversationSummaries.slice(-5);
                     }
-                    
+
                     // Update opinion based on sentiment
                     if (summary.sentiment === 'positive') {
-                        target.memory.opinionOfPlayer = Math.min(100, (target.memory.opinionOfPlayer || 50) + 10);
+                        currentTarget.memory.opinionOfPlayer = Math.min(100, (currentTarget.memory.opinionOfPlayer || 50) + 10);
                     } else if (summary.sentiment === 'negative') {
-                        target.memory.opinionOfPlayer = Math.max(0, (target.memory.opinionOfPlayer || 50) - 10);
+                        currentTarget.memory.opinionOfPlayer = Math.max(0, (currentTarget.memory.opinionOfPlayer || 50) - 10);
                     }
                     
                     // Save NPC to session storage
-                    npcPersistenceService.saveNpcToSession(target);
+                    npcPersistenceService.saveNpcToSession(currentTarget);
                     
                     // Update the NPC in parent component
                     if (onUpdateNpc) {
-                        onUpdateNpc(target);
+                        onUpdateNpc(currentTarget);
                     }
                 } catch (error) {
                     console.error('Failed to save conversation summary:', error);
@@ -1259,13 +1264,13 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                 {/* History tab */}
                                 {activeTab === 'history' && isNpc(target) && (
                                     <div className="text-slate-300">
-                                        {target.memory?.conversationSummaries && target.memory.conversationSummaries.length > 0 ? (
+                                        {currentTarget.memory?.conversationSummaries && currentTarget.memory.conversationSummaries.length > 0 ? (
                                             <div className="space-y-3">
                                                 <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-700">
                                                     <ScrollText className="w-4 h-4 text-slate-400" />
                                                     <h3 className="text-sm font-semibold text-slate-400">Previous Conversations</h3>
                                                 </div>
-                                                {target.memory.conversationSummaries.map((summary, index) => (
+                                                {currentTarget.memory.conversationSummaries.map((summary, index) => (
                                                     <div key={index} className="bg-slate-700/30 rounded-lg p-4 text-sm hover:bg-slate-700/40 transition-colors">
                                                         <div className="flex items-start gap-2">
                                                             <span className="text-slate-500 mt-0.5">•</span>
@@ -1274,7 +1279,7 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                                     </div>
                                                 ))}
                                                 <div className="text-xs text-slate-500 text-center pt-2">
-                                                    Opinion of you: {target.memory.opinionOfPlayer || 50}/100
+                                                    Opinion of you: {currentTarget.memory.opinionOfPlayer || 50}/100
                                                 </div>
                                             </div>
                                         ) : (

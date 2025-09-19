@@ -1,7 +1,7 @@
 /**
  * components/symbols/ParkSymbol.tsx - Renders parks with climate-specific gardens and features
  */
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Tile, ClimateType } from '../../types';
 import { ValueNoise } from '../../utils/noise';
 
@@ -15,21 +15,20 @@ interface ParkSymbolProps {
 }
 
 const ParkSymbol: React.FC<ParkSymbolProps> = React.memo(({ x, y, size, seed, tile, climate }) => {
-  const staticValues = useMemo(() => {
-    const localRand = (offset = 0) => new ValueNoise(seed + tile.x * 23 + tile.y * 29 + offset).random();
-    return {
-      hasGeometricGarden: localRand(0) < 0.6, // 60% chance of formal garden
-      gardenPattern: Math.floor(localRand(1) * 3), // 0: parterre, 1: radial, 2: grid
-      hasFountain: localRand(2) < 0.3, // 30% chance of fountain
-      hasBenches: localRand(3) < 0.5, // 50% chance of benches
-      treeCount: Math.floor(localRand(4) * 3) + 2, // 2-4 trees
-      flowerColors: [
-        `hsl(${localRand(5) * 60}, 70%, 60%)`, // Primary flower color
-        `hsl(${localRand(6) * 60 + 180}, 70%, 60%)`, // Complementary color
-      ],
-      pathRotation: localRand(7) * 45, // 0, 45, 90, 135, etc.
-    };
-  }, [seed, tile.x, tile.y]);
+  // Use pure calculation without useMemo to ensure stability across mounts
+  const localRand = (offset = 0) => new ValueNoise(seed + tile.x * 23 + tile.y * 29 + offset).random();
+  const staticValues = {
+    hasGeometricGarden: localRand(0) < 0.6, // 60% chance of formal garden
+    gardenPattern: Math.floor(localRand(1) * 3), // 0: parterre, 1: radial, 2: grid
+    hasFountain: localRand(2) < 0.3, // 30% chance of fountain
+    hasBenches: localRand(3) < 0.5, // 50% chance of benches
+    treeCount: Math.floor(localRand(4) * 3) + 2, // 2-4 trees
+    flowerColors: [
+      `hsl(${localRand(5) * 60}, 70%, 60%)`, // Primary flower color
+      `hsl(${localRand(6) * 60 + 180}, 70%, 60%)`, // Complementary color
+    ],
+    pathRotation: localRand(7) * 45, // 0, 45, 90, 135, etc.
+  };
 
   const elements: JSX.Element[] = [];
 

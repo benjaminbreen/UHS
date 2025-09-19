@@ -132,6 +132,7 @@ export interface CharacterHealth {
   exposureHistory: ExposureEvent[];
   overallHealthStatus: OverallHealthStatus;
   lastHealthUpdate: GameDate;
+  pastDiseases?: ActiveDisease[]; // History of past diseases
 }
 
 export interface DiseaseTransmissionContext {

@@ -1,7 +1,7 @@
 /**
  * components/symbols/PlayerIcon.tsx - Data-driven pixel art character sprite
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import { PlayerCharacter, OverallHealthStatus } from '../../types';
 
 interface PlayerIconProps {
@@ -11,9 +11,14 @@ interface PlayerIconProps {
 }
 
 const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) => {
+  // Detect Safari for performance optimizations
+  const isSafari = useMemo(() => {
+    return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  }, []);
+
   if (!character.appearance) {
     // Render a fallback or loading state if appearance data is not ready
-    return null; 
+    return null;
   }
   
   const { gender, equippedItems } = character;
@@ -123,51 +128,69 @@ const PlayerIcon: React.FC<PlayerIconProps> = React.memo(({ x, y, character }) =
     <g transform={`translate(${x}, ${y})`}>
       <defs>
         <filter id={`playerGlow-${character.id}`} x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur in="SourceAlpha" stdDeviation="2.5"/>
-          <feOffset dx="0" dy="0" result="offsetblur"/>
-          <feFlood floodColor={glowColor} floodOpacity={glowOpacity}/>
-          <feComposite in2="offsetblur" operator="in"/>
-          <feMerge>
-            <feMergeNode/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
+          {!isSafari ? (
+            <>
+              <feGaussianBlur in="SourceAlpha" stdDeviation="2.5"/>
+              <feOffset dx="0" dy="0" result="offsetblur"/>
+              <feFlood floodColor={glowColor} floodOpacity={glowOpacity}/>
+              <feComposite in2="offsetblur" operator="in"/>
+              <feMerge>
+                <feMergeNode/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </>
+          ) : (
+            // Simple glow effect for Safari without blur
+            <>
+              <feFlood floodColor={glowColor} floodOpacity={glowOpacity * 0.3}/>
+              <feComposite in2="SourceAlpha" operator="in"/>
+              <feMerge>
+                <feMergeNode/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </>
+          )}
         </filter>
-        
+
         {/* Enhanced visibility filter with outline and shadow */}
         <filter id={`playerOutline-${character.id}`} x="-50%" y="-50%" width="200%" height="200%">
-          {/* Create thick black outline */}
-          <feMorphology operator="dilate" radius="0.5" in="SourceAlpha" result="expanded"/>
-          <feFlood floodColor="#000000" floodOpacity="0.7"/>
-          <feComposite in2="expanded" operator="in" result="outline"/>
-          
-          {/* Add drop shadow */}
-          <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="shadowBlur"/>
-          <feOffset in="shadowBlur" dx="1" dy="2" result="shadow"/>
-          <feFlood floodColor="#000000" floodOpacity="0.8"/>
-          <feComposite in2="shadow" operator="in" result="shadowColored"/>
-          
-          {/* Combine everything */}
-          <feMerge>
-            <feMergeNode in="shadowColored"/>
-            <feMergeNode in="outline"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
+          {!isSafari ? (
+            <>
+              {/* Create thick black outline */}
+              <feMorphology operator="dilate" radius="0.5" in="SourceAlpha" result="expanded"/>
+              <feFlood floodColor="#000000" floodOpacity="0.7"/>
+              <feComposite in2="expanded" operator="in" result="outline"/>
+
+              {/* Add drop shadow */}
+              <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="shadowBlur"/>
+              <feOffset in="shadowBlur" dx="1" dy="2" result="shadow"/>
+              <feFlood floodColor="#000000" floodOpacity="0.8"/>
+              <feComposite in2="shadow" operator="in" result="shadowColored"/>
+
+              {/* Combine everything */}
+              <feMerge>
+                <feMergeNode in="shadowColored"/>
+                <feMergeNode in="outline"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </>
+          ) : (
+            // Simple outline for Safari without blur
+            <>
+              <feMorphology operator="dilate" radius="0.5" in="SourceAlpha" result="expanded"/>
+              <feFlood floodColor="#000000" floodOpacity="0.5"/>
+              <feComposite in2="expanded" operator="in" result="outline"/>
+              <feOffset in="outline" dx="1" dy="1" result="offsetOutline"/>
+              <feMerge>
+                <feMergeNode in="offsetOutline"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </>
+          )}
         </filter>
-        <style>
-          {`
-            @keyframes pixelBob-${character.id} {
-              0%, 100% { transform: translateY(0); }
-              50% { transform: translateY(-1px); }
-            }
-            .pixelBob-${character.id} {
-              animation: pixelBob-${character.id} 2.5s ease-in-out infinite;
-              transform-origin: center;
-            }
-          `}
-        </style>
       </defs>
       
-      <g className={`pixelBob-${character.id}`}>
+      <g>
         {/* Temporarily removed filter for performance: filter={`url(#playerOutline-${character.id})`} */}
         {/* Pixel shadow */}
         <rect x="-4" y="8" width="8" height="2" fill="rgba(0,0,0,0.4)" rx="1" />

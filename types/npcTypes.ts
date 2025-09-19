@@ -122,6 +122,7 @@ export interface NpcEntity {
     ideology: string; // ID of the character's primary Ideology
     beliefs: { beliefId: string; conviction: number }[]; // NEW: Beliefs system
     homeLocation?: Point;
+    workplaceLocation?: Point; // Location of workplace in urban tiles (not TerrainStructure)
     attributes?: AttributeBadge[]; // Character's special attributes/badges
 
     // Memory & Reputation
@@ -153,6 +154,7 @@ export interface NpcEntity {
     travelDestination?: Point; // Where they're traveling to
     isLeavingMap?: boolean; // About to exit map edge
     mapEntryDirection?: 'north' | 'south' | 'east' | 'west'; // Where they entered from
+    mapExitDirection?: 'north' | 'south' | 'east' | 'west'; // Which edge they're exiting from
     shipId?: string; // ID of ship if on water
     
     // Animals and companions

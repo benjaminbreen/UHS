@@ -21,6 +21,7 @@ import CityModal from './CityModal';
 import RuinStructureModal from './RuinStructureModal';
 import GovernmentDistrictModal from './GovernmentDistrictModal';
 import FishingHutModal from './FishingHutModal';
+import MiningRoguelikeDisplay from './MiningRoguelikeDisplay';
 import { DevTooltipDisplayData, Tile, PlayerCharacter, BiomeType, DeployedVessel, TimeOfDay, HistoricalEra } from '../types';
 import { getHistoricalPeriod } from '../constants/characterData/names';
 import TimeAwareBackground from './TimeAwareBackground';
@@ -33,6 +34,7 @@ import InteriorHorizon from './InteriorHorizon';
 import SpecialMapLocationDisplay from './SpecialMapLocationDisplay';
 import { useSpecialMapLocation } from '../hooks/useSpecialMapLocation';
 import { useSpecialMapNpcBehavior } from '../hooks/useSpecialMapNpcBehavior';
+import POVViewport from './POVViewport';
 import { useSpecialMapItemCollection } from '../hooks/useSpecialMapItemCollection';
 import { useInventoryToast } from '../hooks/useInventoryToast';
 import InventoryToast from './ui/InventoryToast';
@@ -58,17 +60,19 @@ type ActivePanel = 'farm' | null;
 
 interface MapViewportProps {
   mapVisible?: boolean;
+  onPlayerDeath?: (deathInfo: any) => void;
 }
 
-const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
+const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDeath }) => {
     const {
         handleDevHover, setTileInfoModalProps, setStructureModalTarget, setActiveSettlementInfo,
         activeLens, infoModalTarget, panelNotificationItem, setPanelNotificationItem, toastMessage,
         activeMarketplaceModal, setActiveMarketplaceModal, activeCityModal, setActiveCityModal,
-        activeRuinModal, setActiveRuinModal, activeGovernmentModal, setActiveGovernmentModal, activeFishingHutModal, setActiveFishingHutModal, inRuinRoguelike, setInRuinRoguelike, useLlmForDescriptions, handleEncounter, setInfoModalTarget,
+        activeRuinModal, setActiveRuinModal, activeGovernmentModal, setActiveGovernmentModal, activeFishingHutModal, setActiveFishingHutModal, inRuinRoguelike, setInRuinRoguelike, inMiningRoguelike, setInMiningRoguelike, miningRoguelikeData, setMiningRoguelikeData, useLlmForDescriptions, handleEncounter, setInfoModalTarget, showToast,
         setActiveMiningModal, setActivePoi, debugSettings,
         poiToastData, setPoiToastData,
-        handleCompanionClick, handlePlayerClick, handleNewAreaEntry, setContainerModalData
+        handleCompanionClick, handlePlayerClick, handleNewAreaEntry, setContainerModalData,
+        onUseSkill
     } = useUI();
     
     const [isMapTransitioning, setIsMapTransitioning] = useState(false);
@@ -147,6 +151,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
     const [activePanel, setActivePanel] = useState<ActivePanel>(null);
     const [showBottomPanel, setShowBottomPanel] = useState(true); // Show by default
     const [showAmbientText, setShowAmbientText] = useState(false); // Hidden by default
+    const [showPOVViewport, setShowPOVViewport] = useState(false); // POV viewport toggle state
     const { isMobile } = useDeviceDetection();
     
     // Guard warning state - ALL hooks must come before early return
@@ -580,6 +585,22 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
         }
     }, [isSpecialMap, mapData?.area, mapData?.seed]);
 
+    // Add ambient text to narration panel every 4 hours of game time (4 minutes real time)
+    useEffect(() => {
+        if (!showPOVViewport && ambianceText) {
+            // Show ambient text immediately when POV is hidden
+            eventBus.emit('narration:ambient', { text: ambianceText });
+
+            // Then add ambient text to narration panel every 4 minutes (4 game hours)
+            const interval = setInterval(() => {
+                console.log('[MapViewport] Adding periodic ambient text to narration:', ambianceText);
+                eventBus.emit('narration:ambient', { text: ambianceText });
+            }, 240000); // 240 seconds = 4 minutes real time = 4 hours game time
+
+            return () => clearInterval(interval);
+        }
+    }, [showPOVViewport, ambianceText]);
+
     // Handle map transitions with elegant fade effect
     useEffect(() => {
         if (isLoading && !isMapTransitioning) {
@@ -616,7 +637,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
         if (currentTile.structure) {
             const structureType = currentTile.structure.structureType || currentTile.structure.type;
             console.log('[POI Detection] Found structure on tile:', structureType, currentTile.structure);
-            if (['mine', 'quarry', 'mill', 'factory', 'fortress', 'woodcutter'].includes(structureType || '')) {
+            if (['mine', 'quarry', 'mill', 'factory', 'fortress', 'woodcutter', 'lumber_camp'].includes(structureType || '')) {
                 poiStructure = currentTile.structure;
                 console.log('[POI Detection] Matched POI type:', structureType);
             }
@@ -644,7 +665,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                     console.log('[POI Detection] Structure at player position:', structureType, s);
                 }
                 
-                return isAtLocation && ['mine', 'quarry', 'mill', 'factory', 'fortress', 'woodcutter'].includes(structureType || '');
+                return isAtLocation && ['mine', 'mining_colony', 'quarry', 'mill', 'factory', 'fortress', 'woodcutter', 'lumber_camp'].includes(structureType || '');
             });
             
             if (poiStructure) {
@@ -806,6 +827,9 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
         if (activeCityModal && playerCharacter && mapData) {
             return <CityModal tile={activeCityModal.tile} onClose={() => setActiveCityModal(null)} playerCharacter={playerCharacter} mapData={mapData} gameTimeHours={gameTimeHours} season={season} />;
         }
+        // Show mining roguelike display if active - moved after other modals
+        // so it doesn't early return and can stay in main viewport
+
         if (activeRuinModal && playerCharacter && mapData) {
             // Find the ruin structure at this location
             const ruinStructure = mapData.terrainStructures?.find(
@@ -816,7 +840,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
             
             if (ruinStructure) {
                 return (
-                    <RuinStructureModal 
+                    <RuinStructureModal
                         structure={ruinStructure}
                         mapData={mapData}
                         npcs={visibleNpcs}
@@ -827,11 +851,50 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                         currentLocation={mapData.mapAreaName || mapData.continent}
                         formattedDate={`Year ${gameDate?.year || 1650}, Day ${gameDate?.day || 1}`}
                         onRoguelikeModeChange={setInRuinRoguelike}
+                        onPlayerDeath={onPlayerDeath}
                     />
                 );
             }
             // Fallback if no structure found (shouldn't happen)
             return null;
+        }
+
+        // Show mining roguelike display if active
+        if (inMiningRoguelike && miningRoguelikeData && playerCharacter && mapData) {
+            return (
+                <div className="w-full h-full flex flex-col bg-gradient-to-b from-gray-900 via-stone-900 to-black">
+                    <MiningRoguelikeDisplay
+                        mineData={{
+                            name: miningRoguelikeData.structure.name || 'Deep Mine Shaft',
+                            description: miningRoguelikeData.structure.description || 'A deep mine rich with ore deposits',
+                            oreType: miningRoguelikeData.structure.mineralDeposits ?
+                                Object.keys(miningRoguelikeData.structure.mineralDeposits)[0] : 'Iron Ore',
+                            depth: 30,
+                            culturalZone: mapData.culturalZone || "EUROPEAN",
+                            historicalEra: getHistoricalPeriod(mapData.timeSlice || '1650')
+                        }}
+                        playerCharacter={playerCharacter}
+                        onExit={() => {
+                            setInMiningRoguelike(false);
+                            setMiningRoguelikeData(null);
+                            showToast?.('You emerge from the mine shaft...');
+                        }}
+                        onHealthChange={(newHealth) => {
+                            // Update player health
+                            setPlayerCharacter(prev => prev ? { ...prev, health: newHealth } : prev);
+                        }}
+                        onInventoryAdd={(item) => {
+                            // Add item to player inventory
+                            addItemsToInventory([item]);
+                            showToast?.(`Found ${item.name}!`);
+                        }}
+                        onFatigueChange={(newFatigue) => {
+                            // Update player fatigue
+                            setPlayerCharacter(prev => prev ? { ...prev, fatigue: newFatigue } : prev);
+                        }}
+                    />
+                </div>
+            );
         }
         if (activeGovernmentModal && playerCharacter && mapData) {
             // GovernmentDistrictModal replaces the map display, similar to RuinStructureModal
@@ -872,11 +935,11 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                     isFreshwater={activeFishingHutModal.tile.biome !== 'coastal' && activeFishingHutModal.tile.biome !== 'oceanic'}
                     timeOfDay={currentTimeOfDay}
                     playerCharacter={playerCharacter}
-                    onCharacterUpdate={onCharacterUpdate}
+                    onCharacterUpdate={setPlayerCharacter}
                     onInventoryUpdate={(newItem) => {
                         console.log('🎣 MapViewport: onInventoryUpdate called with:', newItem);
                         // Add item to player inventory and update character
-                        if (playerCharacter && onCharacterUpdate) {
+                        if (playerCharacter && setPlayerCharacter) {
                             const updatedInventory = [...(playerCharacter.inventory || []), newItem];
                             console.log('🎣 Current inventory length:', playerCharacter.inventory?.length || 0);
                             console.log('🎣 Updated inventory length:', updatedInventory.length);
@@ -884,7 +947,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                                 ...playerCharacter,
                                 inventory: updatedInventory
                             };
-                            onCharacterUpdate(updatedCharacter);
+                            setPlayerCharacter(updatedCharacter);
                             console.log('🎣 onCharacterUpdate called successfully');
                         }
                     }}
@@ -1121,6 +1184,13 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
         return null;
     };
 
+    // Get current tile's biome for POV viewport
+    const currentTileBiome = useMemo(() => {
+        if (!mapData || controlledIconX === null || controlledIconY === null) return 'GRASSLAND';
+        const tile = mapData.tiles[controlledIconY]?.[controlledIconX];
+        return tile?.biome || 'GRASSLAND';
+    }, [mapData, controlledIconX, controlledIconY]);
+
     return (
         <main className="flex-1 flex flex-col bg-transparent relative overflow-hidden">
           {/* Background layer with all atmospheric effects - behind everything */}
@@ -1185,9 +1255,9 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
               </div>
             </div>
           ) : mapData && (
-             <div 
-               className={`w-full h-full flex flex-col relative transition-all`} 
-               style={{ 
+             <div
+               className={`w-full h-full flex flex-col relative transition-all`}
+               style={{
                  zIndex: 10,
                  opacity: (mapVisible && !isMapTransitioning) ? 1 : 0,
                  transform: (mapVisible && !isMapTransitioning) ? 'scale(1)' : 'scale(0.95)',
@@ -1196,8 +1266,25 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                  pointerEvents: (mapVisible && !isMapTransitioning) ? 'auto' : 'none'
                }}
              >
-              {/* Map container */}
-              <div className="flex-1 flex flex-col">
+              {/* POV Viewport - shows above map when toggled (only for standard map, not interior/special maps) */}
+              {showPOVViewport && !interiorViewState?.buildingId && !isSpecialMap && (
+                <POVViewport
+                  visible={showPOVViewport}
+                  biome={currentTileBiome}
+                  climate={mapData?.climate}
+                  season={season}
+                  culturalZone={currentCulturalZone}
+                  weather={currentWeather || undefined}
+                  gameTime={{ hours: gameTimeHours, minutes: gameTimeMinutes }}
+                  onClose={() => setShowPOVViewport(false)}
+                  onObserve={() => {
+                    onUseSkill('OBSERVE');
+                    setShowPOVViewport(false);
+                  }}
+                />
+              )}
+              {/* Map container - flex-1 adjusts size when POV is visible */}
+              <div className={`flex-1 flex flex-col transition-all duration-500 ${showPOVViewport ? 'mt-2' : ''}`}>
                 {/* Map with border */}
                 <div className={`flex-1 ${isMobile ? 'p-2' : 'p-6'} min-h-0`}>
                  {/* Outer border with frosted glass effect */}
@@ -1341,8 +1428,8 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                 </div>
               </div>
               
-              {/* Only show ambient text when toggled on */}
-              {showAmbientText && <AmbianceDisplay ambianceText={ambianceText} />}
+              {/* DEPRECATED: Ambiance text feature removed - was generating repetitive text that didn't match other game systems */}
+              {/* {showAmbientText && <AmbianceDisplay ambianceText={ambianceText} />} */}
               {/* Toggle button for mobile - bigger and better positioned */}
               {isMobile && actionableTile && (
                 <button
@@ -1394,15 +1481,29 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true }) => {
                         season={season}
                         timeOfDay={currentTimeOfDay}
                         dayOfYear={gameDate ? getDayOfYear(gameDate) : 180}
-                        onToggleAmbientText={() => setShowAmbientText(!showAmbientText)}
-                        showAmbientText={showAmbientText}
+                        onToggleAmbientText={() => {
+                            // Toggle POV viewport instead of ambient text
+                            setShowPOVViewport(!showPOVViewport);
+                        }}
+                        showAmbientText={showPOVViewport}
                         inRuinRoguelike={inRuinRoguelike}
                         isRuinModalOpen={!!activeRuinModal}
                         isSpecialMap={isSpecialMap}
                         onExitSpecialMap={exitSpecialMap}
+                        currentBiome={currentTileBiome}
+                        climate={mapData?.climate}
+                        culturalZone={currentCulturalZone}
+                        weather={currentWeather}
+                        gameTime={{ hours: gameTimeHours, minutes: gameTimeMinutes }}
                         onExitRuin={() => {
                             setActiveRuinModal(null);
                             setInRuinRoguelike(false);
+                        }}
+                        inMiningRoguelike={inMiningRoguelike}
+                        onExitMine={() => {
+                            setInMiningRoguelike(false);
+                            setMiningRoguelikeData(null);
+                            showToast?.('You emerge from the mine shaft...');
                         }}
                         isMarketplaceModalOpen={!!activeMarketplaceModal}
                         onExitMarketplace={() => setActiveMarketplaceModal(null)}

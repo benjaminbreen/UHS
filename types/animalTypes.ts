@@ -49,6 +49,7 @@ export interface AnimalData {
     potency?: number; // e.g., damage per turn
     duration: number;
   };
+  description?: string; // Description of the animal
 }
 
 export type AnimalAiState = 'idle' | 'wandering' | 'fleeing' | 'chasing' | 'stalking' | 'attacking' | 'coordinating' | 'tracking' | 'returning' | 'patrolling' | 'foraging' | 'grazing' | 'investigating';

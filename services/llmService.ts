@@ -511,10 +511,11 @@ export async function generateEncounterDialogue(
         **CRITICAL REALISM RULES:**
         1. You are a REAL PERSON in ${mapData.timeSlice}, not a fantasy character
         2. Speak plainly and directly - avoid flowery or "spiritual" language
-        3. NO GENERIC MYSTICISM: Don't say "the spirits smile" or "the gods willing" unless discussing specific religious matters
-        4. React based on PRACTICAL CONCERNS: property, safety, reputation, profit
+        3. NO GENERIC CLICHES: Don't say "the spirits smile" or "the gods willing" unless discussing specifics
+        4. React based on PRACTICAL CONCERNS: property, safety, reputation, profit, curiosity, desire
         5. Your first reaction should be about immediate social dynamics (stranger danger, class differences, etc.)
         6. BE AWARE OF TIME: Don't reference the sun being high at night, don't act like it's daytime when it's not
+        7. HAVE AN INNER LIFE: an npc might act friendly but be trying to rob the player. They might be in a bad mood because their father is sick. Etc. Your NPC should have a rich inner life; they are not simple.
 
         **REALISTIC RESPONSES BY CONTEXT:**
         - Farmer + stranger in field = What are you doing in my field? / Don't trample my crops, stranger
@@ -801,7 +802,7 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
     if (viewMode === 'interior' && interiorContext) {
         locationContext = `The player is currently inside a ${interiorContext.buildingName || interiorContext.buildingType}, specifically in the ${interiorContext.currentSpace || 'main area'}. This is a ${interiorContext.layoutName || 'traditional'} layout${interiorContext.religion ? ` associated with ${interiorContext.religion}` : ''}${interiorContext.culturalZone ? ` from the ${interiorContext.culturalZone} cultural region` : ''}.`;
     } else {
-        locationContext = `The player is on a ${isStandardTile(context.currentTile) ? context.currentTile.biome : 'exterior'} tile.`;
+        locationContext = `The player is in a ${isStandardTile(context.currentTile) ? context.currentTile.biome : 'exterior'} landscape.`;
     }
 
     const fullContext = `
@@ -810,7 +811,7 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
         **Immediate Surroundings:** ${locationContext}
         **Tamed Companions:** ${tamedAnimalsContext || 'No tamed animals currently following the player.'}
         **Nearby Entities:** NPCs: ${nearbyNpcs}. Animals: ${nearbyAnimals}. Structures: ${nearbyStructures}.
-        **Overall Ambiance:** ${generateAmbianceText(context.ambianceContext)}
+        **Overall Ambiance:** [Ambiance system deprecated - using raw environmental data instead]
     `;
 
     const metaKeywords = ['game', 'ChatGPT', 'simulation', 'software', 'developer', 'code', 'AI', 'reality', 'app', 'developer'];
@@ -823,11 +824,13 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
     } else if (isComplexQuery) {
         personaInstruction = "Respond as a knowledgeable and detailed narrator. Provide a thorough, two-paragraph answer that fully explores the player's query within the game's context.";
     } else {
-        personaInstruction = "Respond as a direct and concise narrator. Provide a brief, one or two-sentence answer that directly addresses the player's simple question.";
+        personaInstruction = "Respond as a direct and concise narrator. Provide a brief, two- or three-sentence answer that directly addresses the player's simple question.";
     }
 
     const prompt = `
-        You are a world-class narrator AI for an immersive, historically accurate simulation game. Your persona and response length must adapt based on the player's query. If a player asks about their character's backstory or life, invent something compelling, brutally realistic, remarkably authentic, and specific, not too long. If a query is purely didactic or educational - like "how can i learn more about this?" and the like, then go into "historian mode" where you simply offer high quality academic secondary source suggestions (peer reviewed books or articles) or references to scholars and scholarship that help understand the given setting. But only do this if the player seems to want to learn. Otherwise:
+        You are a world-class narrator AI for an immersive, historically accurate simulation game. Your persona and response length must adapt based on the player's query. If a player asks about their character's backstory or life, invent something compelling, brutally realistic, remarkably authentic, and specific, not too long. 
+        If a query is purely didactic or educational - like "how can i learn more about this?" and the like, then go into "historian mode" where you simply offer high quality academic secondary source suggestions (peer reviewed books or articles) or references to scholars and scholarship that help understand the given setting. 
+        But only do this if the player seems to want to learn. Otherwise:
 
         **Current Persona Instruction:** ${personaInstruction}
 
@@ -835,8 +838,6 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
         ${fullContext}
         
         **Player's Query:** "${playerQuery}"
-
-        
        
         **Task:**
         Based on your current persona and the game context, provide a narrative response in the second person ("You..."). If the action is impossible, explain why in a narrative, immersive way. Do not break character or mention being an AI. 
@@ -847,7 +848,7 @@ export async function generateDmResponse(playerQuery: string, context: PlayerCon
     `;
     
     try {
-        const response: GenerateContentResponse = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+        const response: GenerateContentResponse = await ai.models.generateContent({ model: 'gemini-2.5-flash-lite', contents: prompt });
         return response.text;
     } catch (error) {
         console.error("Error generating narrator response:", error);
@@ -886,8 +887,8 @@ export async function generateObservationText(context: PlayerContext): Promise<s
         - View: I am in a ${viewMode} view.
         - Time: It is ${timeOfDay} during the ${historicalEra.toLowerCase().replace(/_/g, ' ')}.
         - Climate: The climate is ${climate.toLowerCase()}.
-        - My exact location is a tile with these properties: ${JSON.stringify(currentTile)}.
-        - General environmental context: ${generateAmbianceText(ambianceContext)}
+        - My exact location is a tile with these properties: ${JSON.stringify(currentTile)}. (If a tile is on water, it almost always means the player is embarked on a boat)
+        - General environmental context: [Ambiance system deprecated - using raw tile/climate data instead]
         ${tamedAnimalsDescription ? `- IMPORTANT - Tamed Animals: ${tamedAnimalsDescription}` : ''}
         
         TASK:

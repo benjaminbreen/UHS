@@ -16,6 +16,13 @@ import MarketplaceBanner, { Condition } from './MarketplaceBanner';
 import { Season, ClimateType } from '../types';
 import { generateNpcGreeting, createDialogueContext } from '../services/npcDialogueService';
 import { usePortraitExpression, mapRepDeltaToExpr } from '../hooks/usePortraitExpression';
+import { urbanTileRegistry } from '../services/urbanTileRegistryService';
+import {
+    Store, Users, Home, Building2, Tent, Castle,
+    Wheat, Package, Hammer, ShoppingBag, ArrowRight,
+    Moon, Briefcase, MapPin, HomeIcon, Clock, User,
+    CircleDot, Activity
+} from 'lucide-react';
 
 interface SettlementInfoModalProps {
   tile: Tile;
@@ -40,12 +47,142 @@ const DetailRow: React.FC<{ label: string; value: string | number | React.ReactN
 const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData, onClose, gameTimeHours, season, npcs = [], playerCharacter }) => {
     // Portrait expression management
     const { expr: portraitExpr, flash: flashPortrait, clear: clearPortrait } = usePortraitExpression();
-    
+
     // Dialogue state
     const [selectedNpcId, setSelectedNpcId] = useState<string | null>(null);
     const [dialogueText, setDialogueText] = useState<string>('');
     const [dialogueVisible, setDialogueVisible] = useState(false);
     const [dialogueLoading, setDialogueLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState<'overview' | 'residents' | 'businesses'>('overview');
+    const [tileData, setTileData] = useState<any>(null);
+
+    // Load urban tile data on mount
+    useEffect(() => {
+        const data = urbanTileRegistry.getTileData(tile.x, tile.y);
+        setTileData(data);
+    }, [tile.x, tile.y]);
+
+    // Get residents of this tile from urban tile registry
+    const residents = useMemo(() => {
+        if (!tileData?.residences) return [];
+        const residentIds = tileData.residences.flatMap((r: any) => r.occupants);
+        return npcs.filter(npc => residentIds.includes(npc.id));
+    }, [tileData, npcs]);
+
+    // Get businesses in this tile
+    const businesses = useMemo(() => {
+        return tileData?.businesses || [];
+    }, [tileData]);
+
+    // Get activity status for an NPC (same logic as CityModal)
+    const getActivityStatus = (npc: NpcEntity): string => {
+        const isNight = gameTimeHours < 6 || gameTimeHours >= 22;
+
+        if (isNight) {
+            if (npc.homeLocation &&
+                Math.abs(npc.x - npc.homeLocation.x) <= 1 &&
+                Math.abs(npc.y - npc.homeLocation.y) <= 1) {
+                return 'Sleeping';
+            }
+            return 'Out Late';
+        }
+
+        if (npc.activity === 'working') {
+            return 'Working';
+        } else if (npc.activity === 'commuting_to_work') {
+            return 'Commuting';
+        } else if (npc.activity === 'commuting_home') {
+            return 'Heading Home';
+        } else if (npc.activity === 'idle' && npc.homeLocation &&
+            Math.abs(npc.x - npc.homeLocation.x) <= 1 &&
+            Math.abs(npc.y - npc.homeLocation.y) <= 1) {
+            return 'At Home';
+        }
+
+        return 'About Town';
+    };
+
+    // Check if a business is open
+    const isBusinessOpen = (business: any): boolean => {
+        if (!business.openHours) return false;
+        return gameTimeHours >= business.openHours[0] &&
+               gameTimeHours <= business.openHours[1];
+    };
+
+    // Get supply chain for business types
+    const getSupplyChain = (businessType: string): { steps: string[], icons: React.ReactNode[] } => {
+        const chains: Record<string, { steps: string[], icons: React.ReactNode[] }> = {
+            'bakery': {
+                steps: ['Farm', 'Mill', 'Bakery'],
+                icons: [<Wheat className="w-4 h-4" />, <Package className="w-4 h-4" />, <Store className="w-4 h-4" />]
+            },
+            'smithy': {
+                steps: ['Mine', 'Forge', 'Smithy'],
+                icons: [<Hammer className="w-4 h-4" />, <Activity className="w-4 h-4" />, <Hammer className="w-4 h-4" />]
+            },
+            'tailor_shop': {
+                steps: ['Farm', 'Weaver', 'Tailor'],
+                icons: [<Wheat className="w-4 h-4" />, <Package className="w-4 h-4" />, <ShoppingBag className="w-4 h-4" />]
+            }
+        };
+        return chains[businessType] || { steps: [], icons: [] };
+    };
+
+    // Get work progress for an NPC
+    const getWorkProgress = (npc: NpcEntity): number => {
+        const workplace = businesses.find((b: any) =>
+            b.ownerId === npc.id || b.employees?.includes(npc.id)
+        );
+        if (!workplace || !workplace.openHours) return 0;
+
+        const [start, end] = workplace.openHours;
+        if (gameTimeHours < start || gameTimeHours > end) return 0;
+
+        return Math.min(100, ((gameTimeHours - start) / (end - start)) * 100);
+    };
+
+    // Get housing icon based on wealth
+    const getHousingIcon = (wealthLevel: string): React.ReactNode => {
+        switch(wealthLevel) {
+            case 'poor': return <Tent className="w-4 h-4 text-gray-500" />;
+            case 'modest': return <Home className="w-4 h-4 text-blue-400" />;
+            case 'comfortable': return <Building2 className="w-4 h-4 text-green-400" />;
+            case 'wealthy': return <Castle className="w-4 h-4 text-yellow-400" />;
+            default: return <Home className="w-4 h-4 text-gray-400" />;
+        }
+    };
+
+    // Get business capacity
+    const getBusinessCapacity = (business: any): [number, number] => {
+        const maxCapacities: Record<string, number> = {
+            'smithy': 3,
+            'bakery': 2,
+            'mill': 2,
+            'tavern': 4,
+            'shop': 2,
+            'workshop': 3
+        };
+        const currentWorkers = (business.employees?.length || 0) + (business.ownerId ? 1 : 0);
+        const maxCapacity = maxCapacities[business.type] || 1;
+        return [currentWorkers, maxCapacity];
+    };
+
+    // Get activity status dot
+    const getActivityDot = (activity: string): React.ReactNode => {
+        const configs: Record<string, { color: string, pulse?: boolean }> = {
+            'working': { color: 'bg-green-500', pulse: true },
+            'commuting_to_work': { color: 'bg-yellow-500' },
+            'commuting_home': { color: 'bg-orange-500' },
+            'idle': { color: 'bg-gray-500' },
+            'sleeping': { color: 'bg-purple-500' },
+            'wandering': { color: 'bg-blue-500' },
+            'traveling': { color: 'bg-cyan-500' }
+        };
+        const config = configs[activity] || { color: 'bg-gray-400' };
+        return (
+            <span className={`inline-block w-2 h-2 rounded-full ${config.color} ${config.pulse ? 'animate-pulse' : ''}`} />
+        );
+    };
     const { era, culturalZone, year, timeOfDay } = useMemo(() => {
         const parsed = parseDateString(mapData.timeSlice || '1650');
         
@@ -492,112 +629,492 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
             <div className="bg-modal-bg-gradient border border-slate-600 rounded-2xl shadow-glow-primary-lg w-full max-w-4xl flex flex-col animate-popIn" style={{maxHeight: '90vh'}} onClick={e => e.stopPropagation()}>
                  <header className="relative w-full h-[260px] rounded-t-xl overflow-hidden shrink-0">
                     {renderBanner()}
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/50 to-transparent"></div>
-                    <div className="absolute bottom-0 left-0 p-4 text-white">
-                         <h2 className="text-2xl font-bold capitalize" style={{ textShadow: '2px 2px 4px #000' }}>{name}</h2>
-                         <p className="text-sm italic text-slate-300" style={{ textShadow: '1px 1px 2px #000' }}>{description}</p>
-                    </div>
-                     <span className="absolute top-3 right-12 text-xs text-gray-500 italic font-mono">{getBuildingTypeForLogging()}</span>
-                     <button onClick={onClose} className="absolute top-3 right-3 text-slate-300 hover:text-white transition-colors">&times;</button>
-                </header>
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/60 to-transparent"></div>
 
-                <div className="p-5 flex-grow overflow-y-auto scrollbar-thin text-sm space-y-4">
-                   <div className="grid md:grid-cols-2 gap-6">
-                        {/* Left Column */}
-                        <div className="space-y-4">
-                             <div className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
-                                <h4 className="font-semibold text-lg text-amber-300 mb-2 flex items-center gap-2"><span className="text-xl">👥</span> Demographics</h4>
-                                <div className="text-sm space-y-2">
-                                    <DetailRow label="Est. Population" value={population} />
-                                    <div className="pt-2">
-                                        <p className="text-gray-400 mb-1">Dominant Religions:</p>
-                                        {tile.dominantReligions && tile.dominantReligions.length > 0 ? (
-                                             tile.dominantReligions.map(r => <DetailRow key={r.name} label={r.name} value={`${Math.round(r.percentage * 100)}%`}/>)
-                                        ) : <p className="text-white text-xs italic">No dominant religion.</p>}
+                    {/* Overlaid information on banner - styled like MarketplaceModal */}
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                        <div className="flex items-end justify-between">
+                            <div className="flex-1">
+                                <h2 className="text-3xl font-bold text-white mb-1" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
+                                    {name}
+                                </h2>
+                                <p className="text-sm text-gray-200 italic mb-2" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.8)' }}>
+                                    {description}
+                                </p>
+                                {/* Key stats in banner */}
+                                <div className="flex flex-wrap gap-4 text-sm">
+                                    <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-sm px-2 py-1 rounded">
+                                        <Users className="w-4 h-4 text-amber-400" />
+                                        <span className="text-white font-medium">{population} residents</span>
                                     </div>
-                                    {families.length > 0 && (
-                                        <div className="pt-2">
-                                            <p className="text-gray-400 mb-1">Prominent Families:</p>
-                                            <p className="text-white font-semibold text-sm leading-relaxed">{families.join(', ')}</p>
+                                    {businesses.length > 0 && (
+                                        <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-sm px-2 py-1 rounded">
+                                            <Store className="w-4 h-4 text-green-400" />
+                                            <span className="text-white font-medium">
+                                                {businesses.filter(b => isBusinessOpen(b)).length}/{businesses.length} shops open
+                                            </span>
+                                        </div>
+                                    )}
+                                    {allegianceString !== 'Unaligned' && (
+                                        <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-sm px-2 py-1 rounded">
+                                            <Building2 className="w-4 h-4 text-purple-400" />
+                                            <span className="text-white font-medium">{allegianceString}</span>
                                         </div>
                                     )}
                                 </div>
                             </div>
-                            <div className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
-                                <h4 className="font-semibold text-lg text-green-400 mb-2 flex items-center gap-2"><span className="text-xl">💰</span> Economy & Allegiance</h4>
-                                 <div className="text-sm space-y-2">
-                                    <div className="space-y-1">
-                                      <p className="text-gray-400">Economic Profile:</p>
-                                      {economicProfile.map((line, i) => <p key={i} className="text-white">• {line}</p>)}
-                                    </div>
-                                    <DetailRow label="Allegiance" value={allegianceString} />
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={onClose}
+                        className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-black/50 text-white rounded-full hover:bg-red-600/80 transition-colors backdrop-blur-sm"
+                    >
+                        ×
+                    </button>
+                </header>
+
+                {/* Tabs */}
+                <div className="flex border-b border-slate-700 bg-slate-800/50">
+                    <button
+                        className={`px-4 py-2 font-semibold transition-colors ${
+                            activeTab === 'overview'
+                                ? 'text-amber-300 border-b-2 border-amber-300'
+                                : 'text-gray-400 hover:text-white'
+                        }`}
+                        onClick={() => setActiveTab('overview')}
+                    >
+                        Overview
+                    </button>
+                    <button
+                        className={`px-4 py-2 font-semibold transition-colors ${
+                            activeTab === 'residents'
+                                ? 'text-amber-300 border-b-2 border-amber-300'
+                                : 'text-gray-400 hover:text-white'
+                        }`}
+                        onClick={() => setActiveTab('residents')}
+                    >
+                        Residents ({residents.length || representativeInhabitants.length})
+                    </button>
+                    <button
+                        className={`px-4 py-2 font-semibold transition-colors ${
+                            activeTab === 'businesses'
+                                ? 'text-amber-300 border-b-2 border-amber-300'
+                                : 'text-gray-400 hover:text-white'
+                        }`}
+                        onClick={() => setActiveTab('businesses')}
+                    >
+                        Businesses ({businesses.length})
+                    </button>
+                </div>
+
+                {/* Tab Content */}
+                <div className="p-5 flex-grow overflow-y-auto scrollbar-thin text-sm">
+                    {activeTab === 'overview' && (
+                        <div className="space-y-4">
+                            {/* Responsive two-column layout for businesses and residents */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                {/* Active Businesses */}
+                                <div className="p-4 bg-gradient-to-br from-green-900/30 to-emerald-900/20 border border-green-700/50 rounded-lg">
+                                    <h4 className="font-semibold text-base text-green-400 mb-3 flex items-center gap-2">
+                                        <Store className="w-4 h-4" />
+                                        Local Businesses
+                                        {businesses.filter(b => isBusinessOpen(b)).length > 0 && (
+                                            <span className="ml-auto text-xs font-normal text-green-300 bg-green-900/50 px-2 py-0.5 rounded-full">
+                                                {businesses.filter(b => isBusinessOpen(b)).length} open
+                                            </span>
+                                        )}
+                                    </h4>
+                                    {businesses.length === 0 ? (
+                                        <div className="text-center py-4 text-gray-400">
+                                            <Building2 className="w-8 h-8 mx-auto opacity-30 mb-2" />
+                                            <p className="text-xs">No businesses in this area</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid gap-2">
+                                            {businesses.slice(0, 3).map((business: any, idx: number) => {
+                                                const isOpen = isBusinessOpen(business);
+                                                const [current, max] = getBusinessCapacity(business);
+                                                const supplyChain = getSupplyChain(business.type);
+                                                return (
+                                                    <div key={idx}>
+                                                        <div
+                                                            className={`group cursor-pointer transition-all hover:scale-[1.02] flex items-center justify-between p-2 rounded ${
+                                                                isOpen
+                                                                    ? 'bg-green-900/30 border border-green-700/30 hover:bg-green-900/40'
+                                                                    : 'bg-slate-900/30 border border-slate-700/30 hover:bg-slate-900/40'
+                                                            }`}
+                                                            onClick={() => setActiveTab('businesses')}
+                                                        >
+                                                            <div className="flex items-center gap-2 min-w-0">
+                                                                <CircleDot className={`w-3 h-3 shrink-0 ${
+                                                                    isOpen ? 'text-green-400 animate-pulse' : 'text-gray-500'
+                                                                }`} />
+                                                                <div className="min-w-0">
+                                                                    <p className="font-medium text-white text-sm truncate">{business.name}</p>
+                                                                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                                                                        <span className="truncate">
+                                                                            {business.type.replace(/_/g, ' ').toLowerCase()}
+                                                                        </span>
+                                                                        <span className="text-gray-600">•</span>
+                                                                        <span className="text-gray-500">
+                                                                            {current}/{max} workers
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-xs text-gray-400 shrink-0 ml-2">
+                                                                {business.openHours ? `${business.openHours[0]}-${business.openHours[1]}h` : '—'}
+                                                            </div>
+                                                        </div>
+                                                        {/* Supply Chain Visualization */}
+                                                        {supplyChain.steps.length > 0 && (
+                                                            <div className="ml-4 mt-1 flex items-center gap-1 text-xs text-gray-500">
+                                                                {supplyChain.steps.map((step, i) => (
+                                                                    <React.Fragment key={i}>
+                                                                        <div className="flex items-center gap-1">
+                                                                            <span className="text-gray-400">{supplyChain.icons[i]}</span>
+                                                                            <span className="text-[10px]">{step}</span>
+                                                                        </div>
+                                                                        {i < supplyChain.steps.length - 1 && (
+                                                                            <ArrowRight className="w-3 h-3 text-gray-600" />
+                                                                        )}
+                                                                    </React.Fragment>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                            {businesses.length > 3 && (
+                                                <button
+                                                    onClick={() => setActiveTab('businesses')}
+                                                    className="text-xs text-green-400 hover:text-green-300 italic text-center py-1 transition-colors"
+                                                >
+                                                    +{businesses.length - 3} more →
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Current Residents Summary */}
+                                <div className="p-4 bg-gradient-to-br from-blue-900/30 to-indigo-900/20 border border-blue-700/50 rounded-lg">
+                                    <h4 className="font-semibold text-base text-blue-400 mb-3 flex items-center gap-2">
+                                        <Users className="w-4 h-4" />
+                                        Current Residents
+                                        <span className="ml-auto text-xs font-normal text-blue-300 bg-blue-900/50 px-2 py-0.5 rounded-full">
+                                            {residents.length || representativeInhabitants.length} here
+                                        </span>
+                                    </h4>
+                                    {residents.length === 0 && representativeInhabitants.length === 0 ? (
+                                        <div className="text-center py-4 text-gray-400">
+                                            <User className="w-8 h-8 mx-auto opacity-30 mb-2" />
+                                            <p className="text-xs">No residents visible</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid gap-2">
+                                            {(residents.length > 0 ? residents : representativeInhabitants).slice(0, 3).map((person: any, idx: number) => {
+                                                const npc = person as NpcEntity;
+                                                const workProgress = npc.activity ? getWorkProgress(npc) : 0;
+                                                const hasWork = workProgress > 0;
+                                                const status = npc.activity ? getActivityStatus(npc) : 'Active';
+                                                const statusText = status.replace(/[^\w\s]/g, '').trim();
+                                                return (
+                                                    <div key={idx}>
+                                                        <div
+                                                            className="group cursor-pointer transition-all hover:scale-[1.02] flex items-center justify-between p-2 bg-slate-900/30 rounded border border-slate-700/30 hover:bg-slate-900/40"
+                                                            onClick={() => setActiveTab('residents')}
+                                                        >
+                                                            <div className="flex items-center gap-2 min-w-0">
+                                                                {/* Activity status dot */}
+                                                                {npc.activity && getActivityDot(npc.activity)}
+                                                                <User className="w-4 h-4 text-gray-400 shrink-0" />
+                                                                <div className="min-w-0 flex-1">
+                                                                    <p className="font-medium text-white text-sm truncate">{person.name}</p>
+                                                                    <p className="text-xs text-gray-400 truncate">
+                                                                        {person.profession || person.role}
+                                                                    </p>
+                                                                    {/* Work progress bar */}
+                                                                    {hasWork && (
+                                                                        <div className="mt-1 h-1 bg-gray-700/50 rounded-full overflow-hidden">
+                                                                            <div
+                                                                                className="h-full bg-green-500/70 transition-all duration-300"
+                                                                                style={{ width: `${workProgress}%` }}
+                                                                            />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-xs text-gray-400 shrink-0 ml-2">
+                                                                {statusText}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                            {(residents.length > 3 || representativeInhabitants.length > 3) && (
+                                                <button
+                                                    onClick={() => setActiveTab('residents')}
+                                                    className="text-xs text-blue-400 hover:text-blue-300 italic text-center py-1 transition-colors"
+                                                >
+                                                    View all →
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Right Column */}
-                         {representativeInhabitants.length > 0 && (
-                            <div className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
-                                <h4 className="font-semibold text-lg text-cyan-400 mb-3 flex items-center gap-2"><span className="text-xl">👤</span> Representative Inhabitants</h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Compact info blocks in a grid */}
+                            <div className="grid grid-cols-2 gap-3">
+                                {/* Religious makeup */}
+                                {tile.dominantReligions && tile.dominantReligions.length > 0 && (
+                                    <div className="p-3 bg-slate-800/50 border border-slate-700/50 rounded-lg">
+                                        <h5 className="text-sm font-semibold text-amber-300 mb-2">Faith</h5>
+                                        <div className="space-y-1">
+                                            {tile.dominantReligions.slice(0, 2).map((r: any) => (
+                                                <div key={r.name} className="text-xs">
+                                                    <span className="text-gray-400">{r.name}:</span>
+                                                    <span className="text-white ml-1">{Math.round(r.percentage * 100)}%</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Prominent families */}
+                                {families.length > 0 && (
+                                    <div className="p-3 bg-slate-800/50 border border-slate-700/50 rounded-lg">
+                                        <h5 className="text-sm font-semibold text-purple-300 mb-2">Families</h5>
+                                        <p className="text-xs text-white">{families.slice(0, 3).join(', ')}</p>
+                                    </div>
+                                )}
+
+                                {/* Economic focus */}
+                                <div className="p-3 bg-slate-800/50 border border-slate-700/50 rounded-lg">
+                                    <h5 className="text-sm font-semibold text-green-300 mb-2">Economy</h5>
+                                    <p className="text-xs text-white">
+                                        {settlementProfessions.slice(0, 2).join(', ') || 'Subsistence'}
+                                    </p>
+                                </div>
+
+                                {/* Housing summary */}
+                                {tileData?.residences && tileData.residences.length > 0 && (
+                                    <div className="p-3 bg-slate-800/50 border border-slate-700/50 rounded-lg">
+                                        <h5 className="text-sm font-semibold text-cyan-300 mb-2 flex items-center gap-2">
+                                            <HomeIcon className="w-4 h-4" />
+                                            Housing
+                                        </h5>
+                                        <div className="space-y-1">
+                                            {Object.entries(
+                                                tileData.residences.reduce((acc: any, r: any) => {
+                                                    acc[r.wealthLevel] = (acc[r.wealthLevel] || 0) + 1;
+                                                    return acc;
+                                                }, {})
+                                            ).map(([wealth, count]: [string, any]) => (
+                                                <div key={wealth} className="flex items-center gap-2 text-xs">
+                                                    {getHousingIcon(wealth)}
+                                                    <span className="text-gray-400 capitalize">{wealth}:</span>
+                                                    <span className="text-white">{count}</span>
+                                                </div>
+                                            ))}
+                                            <div className="text-xs text-gray-400 mt-1">
+                                                {tileData.residences.reduce((sum: number, r: any) => sum + r.occupants.length, 0)} total residents
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'residents' && (
+                        <div className="space-y-3">
+                            {residents.length > 0 ? (
+                                // Show actual NPCs with activity status
+                                residents.map(npc => (
+                                    <div key={npc.id} className="bg-slate-800/50 p-3 rounded-lg">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-2xl">{npc.emoji}</span>
+                                                <span className="font-semibold text-white">{npc.name}</span>
+                                            </div>
+                                            <span className="text-sm text-gray-400">{getActivityStatus(npc)}</span>
+                                        </div>
+                                        <div className="text-sm text-gray-300">
+                                            {npc.profession || npc.role}
+                                        </div>
+                                        {npc.workplaceName && (
+                                            <div className="text-xs text-gray-500 mt-1">
+                                                Works at: {npc.workplaceName}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            ) : representativeInhabitants.length > 0 ? (
+                                // Fallback to representative inhabitants if no actual NPCs
+                                <div className="space-y-3">
+                                    <p className="text-gray-400 italic text-sm">Showing representative inhabitants (NPCs not currently loaded)</p>
                                     {representativeInhabitants.map((p, i) => {
                                         const isSelected = selectedNpcId === p.name;
                                         return (
-                                            <div 
-                                                key={i} 
-                                                className={`bg-slate-900/50 p-3 rounded-md text-center flex items-center gap-4 border transition-all cursor-pointer hover:bg-slate-800/70 hover:border-cyan-400/50 ${
-                                                    isSelected 
-                                                        ? 'border-cyan-400 bg-slate-800/70 shadow-cyan-400/25 shadow-md' 
+                                            <div
+                                                key={i}
+                                                className={`bg-slate-900/50 p-3 rounded-md flex items-center gap-4 border transition-all cursor-pointer hover:bg-slate-800/70 hover:border-cyan-400/50 ${
+                                                    isSelected
+                                                        ? 'border-cyan-400 bg-slate-800/70 shadow-cyan-400/25 shadow-md'
                                                         : 'border-slate-700/50'
                                                 }`}
                                                 onClick={() => handleNpcClick(p)}
                                                 title="Click to speak with this person"
                                             >
-                                                 <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-slate-600 shrink-0 bg-slate-700">
+                                                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-slate-600 shrink-0 bg-slate-700">
                                                     <ProceduralPortrait
                                                         character={p as any}
                                                         size={64}
                                                         temporaryExpression={isSelected ? portraitExpr : null}
                                                         onExpressionComplete={clearPortrait}
                                                     />
-                                                 </div>
-                                                 <div className="text-left">
-                                                     <p className="font-bold text-sm text-white">{p.name}</p>
-                                                     <p className="text-xs text-slate-400">{p.age}, {p.profession}</p>
-                                                     {p.diseaseStatus && (
-                                                         <p className="text-xs text-orange-500 font-medium">
-                                                             {typeof p.diseaseStatus === 'string' 
-                                                                 ? p.diseaseStatus 
-                                                                 : p.diseaseStatus.currentDiseases?.length > 0 
-                                                                     ? p.diseaseStatus.currentDiseases.join(', ')
-                                                                     : null}
-                                                         </p>
-                                                     )}
-                                                     {dialogueLoading && isSelected && (
-                                                         <p className="text-xs text-cyan-400 animate-pulse">Speaking...</p>
-                                                     )}
-                                                 </div>
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="font-bold text-sm text-white">{p.name}</p>
+                                                    <p className="text-xs text-slate-400">{p.age}, {p.profession}</p>
+                                                    {p.diseaseStatus && (
+                                                        <p className="text-xs text-orange-500 font-medium">
+                                                            {typeof p.diseaseStatus === 'string'
+                                                                ? p.diseaseStatus
+                                                                : p.diseaseStatus.currentDiseases?.length > 0
+                                                                    ? p.diseaseStatus.currentDiseases.join(', ')
+                                                                    : null}
+                                                        </p>
+                                                    )}
+                                                    {dialogueLoading && isSelected && (
+                                                        <p className="text-xs text-cyan-400 animate-pulse">Speaking...</p>
+                                                    )}
+                                                </div>
                                             </div>
                                         );
                                     })}
-                                </div>
-                                
-                                {/* Dialogue Display Area */}
-                                {dialogueVisible && dialogueText && (
-                                    <div className={`mt-4 p-4 bg-gradient-to-r from-amber-900/30 to-orange-900/30 border border-amber-700/50 rounded-lg transition-all duration-500 ${
-                                        dialogueVisible ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-2'
-                                    }`}>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 bg-amber-400 rounded-full mt-2 animate-pulse"></div>
-                                            <div className="text-amber-100 text-sm leading-relaxed italic">
-                                                "{dialogueText}"
+                                    {/* Dialogue Display Area */}
+                                    {dialogueVisible && dialogueText && (
+                                        <div className={`mt-4 p-4 bg-gradient-to-r from-amber-900/30 to-orange-900/30 border border-amber-700/50 rounded-lg transition-all duration-500 ${
+                                            dialogueVisible ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-2'
+                                        }`}>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 bg-amber-400 rounded-full mt-2 animate-pulse"></div>
+                                                <div className="text-amber-100 text-sm leading-relaxed italic">
+                                                    "{dialogueText}"
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
+                            ) : (
+                                <p className="text-gray-400 italic">No known residents in this area</p>
+                            )}
+                        </div>
+                    )}
+
+                    {activeTab === 'businesses' && (
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between mb-3">
+                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                    <Store className="w-5 h-5 text-amber-400" />
+                                    Local Businesses
+                                </h3>
+                                <span className="text-sm text-gray-400 bg-black/40 px-2 py-1 rounded">
+                                    {businesses.filter(b => isBusinessOpen(b)).length}/{businesses.length} open
+                                </span>
                             </div>
-                         )}
-                   </div>
+                            {businesses.length === 0 ? (
+                                <div className="text-center py-8 text-gray-400">
+                                    <Store className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                                    <p className="italic">No businesses in this area</p>
+                                </div>
+                            ) : (
+                                businesses.map((business: any, idx: number) => {
+                                    const isOpen = isBusinessOpen(business);
+                                    const [current, max] = getBusinessCapacity(business);
+                                    const supplyChain = getSupplyChain(business.type);
+
+                                    return (
+                                        <div key={idx} className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/30">
+                                            {/* Business Header */}
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <Store className="w-5 h-5 text-amber-400" />
+                                                    <span className="font-semibold text-white text-lg">{business.name}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <CircleDot className={`w-4 h-4 ${
+                                                        isOpen ? 'text-green-400 animate-pulse' : 'text-red-400'
+                                                    }`} />
+                                                    <span className={`text-sm font-medium ${
+                                                        isOpen ? 'text-green-400' : 'text-red-400'
+                                                    }`}>
+                                                        {isOpen ? 'Open' : 'Closed'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Business Details */}
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-4 text-sm">
+                                                    <div className="flex items-center gap-1.5 text-gray-300">
+                                                        <Building2 className="w-3 h-3 text-gray-500" />
+                                                        <span>Type:</span>
+                                                        <span className="text-white">{business.type.replace(/_/g, ' ').toLowerCase()}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 text-gray-300">
+                                                        <Users className="w-3 h-3 text-gray-500" />
+                                                        <span>Workers:</span>
+                                                        <span className={`text-white ${
+                                                            current >= max ? 'text-amber-400' : ''
+                                                        }`}>{current}/{max}</span>
+                                                    </div>
+                                                </div>
+
+                                                {business.owner && (
+                                                    <div className="flex items-center gap-1.5 text-sm text-gray-400">
+                                                        <User className="w-3 h-3" />
+                                                        <span>Owner: {business.owner}</span>
+                                                    </div>
+                                                )}
+
+                                                {business.openHours && (
+                                                    <div className="flex items-center gap-1.5 text-sm text-gray-400">
+                                                        <Clock className="w-3 h-3" />
+                                                        <span>Hours: {business.openHours[0]}:00 - {business.openHours[1]}:00</span>
+                                                    </div>
+                                                )}
+
+                                                {/* Supply Chain Visualization */}
+                                                {supplyChain.steps.length > 0 && (
+                                                    <div className="mt-3 p-2 bg-slate-900/50 rounded">
+                                                        <p className="text-xs text-gray-500 mb-1.5">Supply Chain:</p>
+                                                        <div className="flex items-center gap-2">
+                                                            {supplyChain.steps.map((step, i) => (
+                                                                <React.Fragment key={i}>
+                                                                    <div className="flex items-center gap-1">
+                                                                        <span className="text-gray-400">{supplyChain.icons[i]}</span>
+                                                                        <span className="text-sm text-white">{step}</span>
+                                                                    </div>
+                                                                    {i < supplyChain.steps.length - 1 && (
+                                                                        <ArrowRight className="w-4 h-4 text-gray-600" />
+                                                                    )}
+                                                                </React.Fragment>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    )}
                 </div>
                 
                 <footer className="mt-auto pt-4 border-t border-blue-500/30 flex justify-end p-4 bg-slate-800/80 rounded-b-xl">

@@ -25,6 +25,7 @@ import { eventBus } from '../services/eventBus';
 import { questService } from '../services/questService';
 import { questTriggerService } from '../services/questTriggerService';
 import { FloatingTextMessage } from '../components/ui/FloatingText';
+import gameSoundsService from '../services/gameSoundsService';
 
 export interface VictoryDetails {
     xpGained: number;
@@ -37,12 +38,12 @@ export interface VictoryDetails {
 export const useUIState = () => {
     // Consume contexts for state and setters
     const { playerCharacter, setPlayerCharacter, controlledIconX, controlledIconY, setControlledIconX, setControlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, onBuyItem, onSellItem, addItemsToInventory, onCharacterUpdate, removeItemsFromInventory } = usePlayer();
-    const { localArea, mapData, currentMapArchetype, currentMapClimate, currentMapSeed, animals, npcs, terrainStructures, setNpcs, setAnimals, removeVegetation, updateMineralDeposit } = useMap();
-    const { 
-        gameDate, formattedTime, addGameLogEntry, gameTimeHours,
+    const { localArea, mapData, currentMapArchetype, currentMapClimate, currentMapSeed, animals, npcs, terrainStructures, setNpcs, setAnimals, removeVegetation, updateMineralDeposit, addDugTile } = useMap();
+    const {
+        gameDate, formattedTime, addGameLogEntry, gameTimeHours, gameTimeMinutes,
         narrationHistory, setNarrationHistory, playerInput, onPlayerInputChange: setPlayerInput,
         isNarratorLoading, setIsNarratorLoading, currentTimeOfDay,
-        currentZone
+        currentZone, season
     } = useGame();
 
     // UI State
@@ -104,6 +105,8 @@ export const useUIState = () => {
     const [activeCityModal, _setActiveCityModal] = useState<{ tile: Tile } | null>(null);
     const [activeRuinModal, setActiveRuinModal] = useState<{ tile: Tile } | null>(null);
     const [inRuinRoguelike, setInRuinRoguelike] = useState(false);
+    const [inMiningRoguelike, setInMiningRoguelike] = useState(false);
+    const [miningRoguelikeData, setMiningRoguelikeData] = useState<{ structure: TerrainStructure } | null>(null);
     const [activeGovernmentModal, setActiveGovernmentModal] = useState<{ structure: TerrainStructure; tile: Tile } | null>(null);
     const [activeFishingHutModal, setActiveFishingHutModal] = useState<{ structure: TerrainStructure; tile: Tile } | null>(null);
     const [activeMiningModal, setActiveMiningModal] = useState<TerrainStructure | null>(null);
@@ -156,6 +159,24 @@ export const useUIState = () => {
             console.log('[Performance] Safari detected - automatically disabling blur effects and animations for better performance');
         }
     }, []);
+
+    // Listen for ambient text events from MapViewport
+    useEffect(() => {
+        const handleAmbientText = (data: { text: string }) => {
+            if (data.text) {
+                // Add ambient text to narration history with special styling
+                setNarrationHistory(prev => [...prev, {
+                    sender: 'narrator-ambient',
+                    text: `*${data.text}*` // Italicize ambient text
+                }]);
+            }
+        };
+
+        eventBus.on('narration:ambient', handleAmbientText);
+        return () => {
+            eventBus.off('narration:ambient', handleAmbientText);
+        };
+    }, [setNarrationHistory]);
 
     // Memoize if any modal is open
     const isAnyModalOpen = useMemo(() =>
@@ -421,7 +442,7 @@ export const useUIState = () => {
         
         addGameLogEntry(LogService.createItemAcquiredLog(item.name, item.quantity, `from a ${interactionModalData.title}`, gameDate, formattedTime));
         setPanelNotificationItem(item);
-        setTimeout(() => setPanelNotificationItem(null), 2500);
+        setTimeout(() => setPanelNotificationItem(null), 5000);
 
     }, [playerCharacter, setPlayerCharacter, addGameLogEntry, gameDate, formattedTime, interactionModalData]);
 
@@ -469,15 +490,36 @@ export const useUIState = () => {
             playerY: controlledIconY,
             mapData,
             gameDate,
+            gameTime: { hours: gameTimeHours || 12, minutes: gameTimeMinutes || 0 },
+            season
         };
 
         const result = await executeSkill(skillId, playerContext);
-        
+
+        // Play skill sound effects immediately, regardless of success
+        if (result?.type === 'forage') {
+            gameSoundsService.playForageSound();
+        } else if (result?.type === 'chop') {
+            gameSoundsService.playChopSound();
+        } else if (result?.type === 'dig') {
+            gameSoundsService.playDigSound();
+        } else if (skillId === 'BURN' && result?.type === 'combat') {
+            gameSoundsService.playBurnSound();
+        }
+
         if (result?.type === 'forage' && result.success && result.item) {
+
+            // Play item pickup sound after a short delay
+            setTimeout(() => {
+                const isRare = result.item.rarity === 'Rare' || result.item.rarity === 'Ultra-rare' ||
+                               result.item.rarity === 'Unique' || result.item.quality === 'excellent';
+                gameSoundsService.playItemPickupSound(isRare ? 'gold' : 'generic');
+            }, 300);
+
             // Use the item directly from the result (it's already created with custom names)
             addItemsToInventory([result.item]);
             setPanelNotificationItem(result.item);
-            setTimeout(() => setPanelNotificationItem(null), 2500);
+            setTimeout(() => setPanelNotificationItem(null), 5000);
             
             // Show floating text for item found
             const screenX = window.innerWidth / 2 + (Math.random() - 0.5) * 200; // Add some randomness
@@ -491,20 +533,40 @@ export const useUIState = () => {
         }
         
         if (result?.type === 'chop' && result.success && result.item) {
+            // Play item pickup sound after a short delay
+            setTimeout(() => {
+                const isRare = result.item.rarity === 'Rare' || result.item.rarity === 'Ultra-rare' ||
+                               result.item.rarity === 'Unique' || result.item.quality === 'excellent';
+                gameSoundsService.playItemPickupSound(isRare ? 'gold' : 'generic');
+            }, 300);
+
             addItemsToInventory([result.item]);
             setPanelNotificationItem(result.item);
-            setTimeout(() => setPanelNotificationItem(null), 2500);
+            setTimeout(() => setPanelNotificationItem(null), 5000);
             if (result.entityToRemoveId) {
                 removeVegetation(result.entityToRemoveId);
             }
         }
 
         if (result?.type === 'dig' && result.success) {
+            // Mark the tile as dug for visual feedback
+            if (controlledIconX !== null && controlledIconY !== null) {
+                addDugTile(controlledIconX, controlledIconY);
+            }
+
             if (result.item) {
                 console.log("Dig result item:", result.item);
+
+                // Play item pickup sound after a short delay
+                setTimeout(() => {
+                    const isRare = result.item.rarity === 'Rare' || result.item.rarity === 'Ultra-rare' ||
+                                   result.item.rarity === 'Unique' || result.item.quality === 'excellent';
+                    gameSoundsService.playItemPickupSound(isRare ? 'gold' : 'generic');
+                }, 300);
+
                 addItemsToInventory([result.item]);
                 setPanelNotificationItem(result.item);
-                setTimeout(() => setPanelNotificationItem(null), 2500);
+                setTimeout(() => setPanelNotificationItem(null), 5000);
             } else {
                 console.log("Dig succeeded but no item found:", result);
             }
@@ -557,7 +619,7 @@ export const useUIState = () => {
 
         setSkillResult(result);
         setIsSkillLoading(false);
-    }, [playerCharacter, mapData, controlledIconX, controlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, gameDate, currentMapArchetype, currentMapClimate, currentTimeOfDay, currentZone, currentMapSeed, gameTimeHours, animals, npcs, terrainStructures, setPlayerCharacter, addItemsToInventory, removeVegetation, updateMineralDeposit, showFloatingText]);
+    }, [playerCharacter, mapData, controlledIconX, controlledIconY, viewMode, interiorViewState, interiorMapPlayerPos, gameDate, currentMapArchetype, currentMapClimate, currentTimeOfDay, currentZone, currentMapSeed, gameTimeHours, animals, npcs, terrainStructures, setPlayerCharacter, addItemsToInventory, removeVegetation, updateMineralDeposit, addDugTile, showFloatingText]);
 
     const onSend = useCallback(async () => {
         if (!playerInput.trim() || !playerCharacter || !mapData || controlledIconX === null || controlledIconY === null) return;
@@ -997,7 +1059,7 @@ export const useUIState = () => {
                 addItemsToInventory(itemsGained);
                 showToast(`Acquired ${itemsGained.length} item(s)`);
                 setPanelNotificationItem(itemsGained[0]);
-                setTimeout(() => setPanelNotificationItem(null), 2500);
+                setTimeout(() => setPanelNotificationItem(null), 5000);
             }
             // FIX: Remove animal from map
             setAnimals(prev => prev.filter(a => a.id !== opponent.id));
@@ -1067,7 +1129,7 @@ export const useUIState = () => {
                 addItemsToInventory(newItems);
                 if (newItems.length > 0) {
                     setPanelNotificationItem(newItems[0]);
-                    setTimeout(() => setPanelNotificationItem(null), 2500);
+                    setTimeout(() => setPanelNotificationItem(null), 5000);
                 }
             }
             showToast(result.outcome.message);
@@ -1097,6 +1159,8 @@ export const useUIState = () => {
         activePoi,
         poiToastData,
         inRuinRoguelike,
+        inMiningRoguelike,
+        miningRoguelikeData,
         containerModalData,
         
         // Handlers
@@ -1108,7 +1172,7 @@ export const useUIState = () => {
         setIsSkillsModalOpen, setIsMapDetailsModalOpen,
         handleEncounter, handleCloseEncounter, handleInitiateCombat,
         setCombatant, handleCombatVictory, setVictoryDetails, setIsCharacterProfileModalOpen,
-        closeAllModals, setActiveMarketplaceModal, setActiveCityModal, setActiveRuinModal, setActiveGovernmentModal, setActiveFishingHutModal, setActiveMiningModal, setInRuinRoguelike,
+        closeAllModals, setActiveMarketplaceModal, setActiveCityModal, setActiveRuinModal, setActiveGovernmentModal, setActiveFishingHutModal, setActiveMiningModal, setInRuinRoguelike, setInMiningRoguelike, setMiningRoguelikeData,
         setIsLeftSidebarExpanded, setActiveMapSubTab, setActiveLens, showToast, setPanelNotificationItem,
         showFloatingText, removeFloatingText, showContainerPrompt, hideContainerPrompt,
         handleLooting, handleCloseLootModal, onTakeCoins,

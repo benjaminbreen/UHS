@@ -2,12 +2,13 @@
  * components/RuinStructureModal.tsx - Beautiful ruins exploration modal
  */
 import React, { useMemo, useState, useEffect } from 'react';
-import { TerrainStructure, MapData, Tile, BiomeType, Season, TimeOfDay, NpcEntity, ClimateType, PlayerCharacter } from '../types';
+import { TerrainStructure, MapData, Tile, BiomeType, Season, TimeOfDay, NpcEntity, ClimateType, PlayerCharacter, HistoricalEra } from '../types';
 import RuinBanner from './RuinBanner';
 import RoguelikeDisplayEnhanced from './RoguelikeDisplayEnhanced';
 import { ruinSourcesService, PrimarySource } from '../services/ruinSourcesService';
 import { ruinProgressService } from '../services/ruinProgressService';
 import { questService } from '../services/questService';
+import { generateCulturalRuinName } from '../services/roguelikeService';
 import { generateRuinQuest } from '../constants/questTemplates/ruinQuestTemplates';
 import { parseDateString } from '../utils/dateUtils';
 import { 
@@ -93,19 +94,21 @@ interface RuinStructureModalProps {
     currentLocation?: string;
     formattedDate?: string;
     onRoguelikeModeChange?: (inRoguelike: boolean) => void;
+    onPlayerDeath?: (deathInfo: any) => void;
 }
 
-const RuinStructureModal: React.FC<RuinStructureModalProps> = ({ 
-    structure, 
-    mapData, 
-    npcs, 
-    onClose, 
-    gameTimeHours, 
+const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
+    structure,
+    mapData,
+    npcs,
+    onClose,
+    gameTimeHours,
     season,
     playerCharacter,
-    currentLocation, 
+    currentLocation,
     formattedDate,
-    onRoguelikeModeChange
+    onRoguelikeModeChange,
+    onPlayerDeath
 }) => {
     const { name, location, state, customData } = structure;
     const [activeTab, setActiveTab] = useState<'overview' | 'exploration' | 'artifacts'>('overview');
@@ -339,12 +342,21 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
         return finds;
     };
 
-    // Create ruin type for roguelike
+    // Generate culturally-specific ruin name
+    const culturalRuinName = useMemo(() => {
+        const zone = mapData?.culturalZone || 'EUROPEAN';
+        const era = mapData?.era || HistoricalEra.MEDIEVAL;
+        return generateCulturalRuinName(ruinType, zone, era, ruinMaterial);
+    }, [ruinType, mapData?.culturalZone, mapData?.era, ruinMaterial]);
+
+    // Create ruin type for roguelike with cultural name
     const ruinTypeForRoguelike = {
-        name: ruinType,
+        name: culturalRuinName,
         description: `The remains of what was once a ${ruinType.toLowerCase()}. Built from ${ruinMaterial}, its ${ruinStyle} architecture speaks of a lost civilization.`,
         age: state === 'ancient' ? 'Over 1000 years old' : 'Centuries old',
-        dangers: hazards
+        dangers: hazards,
+        material: ruinMaterial,
+        originalType: ruinType
     };
 
     // Handle roguelike mode
@@ -373,6 +385,7 @@ const RuinStructureModal: React.FC<RuinStructureModalProps> = ({
                         playerCharacter.currency = (playerCharacter.currency || 0) + newGold;
                     }
                 }}
+                onPlayerDeath={onPlayerDeath}
             />
         );
     }

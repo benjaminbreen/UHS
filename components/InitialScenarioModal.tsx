@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { X, User, Calendar, Globe, Trophy, MapPin, Crown, Scroll, Link } from 'lucide-react';
 import { GameDate, HistoricalEra, CulturalZone } from '../types';
 import { PlayerCharacter } from '../types/playerCharacter';
@@ -13,6 +13,7 @@ import { shareableStateService } from '../services/shareableStateService';
 import { findZoneForMapArea } from '../services/zoneDetectionService';
 import PopulationChart from './charts/PopulationChart';
 import MiniLocationMap from './charts/MiniLocationMap';
+import { getSafariOptimizedClassName } from '../utils/safariUtils';
 
 interface InitialScenarioModalProps {
     isOpen: boolean;
@@ -219,7 +220,12 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
     // Animation states for stylish fade-in
     const [isVisible, setIsVisible] = useState(false);
     const [contentVisible, setContentVisible] = useState(false);
-    
+
+    // Detect Safari for performance optimizations
+    const isSafari = useMemo(() => {
+        return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    }, []);
+
     useEffect(() => {
         if (isOpen) {
             // Start the fade-in animation sequence
@@ -309,12 +315,12 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
             isVisible ? 'opacity-100' : 'opacity-0'
         }`}>
             <div className={`bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-700 dark:to-slate-900
-                border border-slate-300/50 dark:border-slate-700/50 rounded-2xl shadow-2xl max-w-5xl w-full 
+                border border-slate-300/50 dark:border-slate-700/50 rounded-2xl shadow-2xl max-w-5xl w-full
                 max-h-[95vh] md:max-h-[90vh] md:mt-[8px] overflow-y-auto
-                transition-all duration-700 transform ${
-                    contentVisible 
-                        ? 'opacity-100 scale-100 translate-y-0' 
-                        : 'opacity-0 scale-95 translate-y-4'
+                ${isSafari ? 'transition-opacity duration-700' : 'transition-all duration-700 transform'} ${
+                    contentVisible
+                        ? `opacity-100 ${!isSafari ? 'scale-100 translate-y-0' : ''}`
+                        : `opacity-0 ${!isSafari ? 'scale-95 translate-y-4' : ''}`
                 }`}>
                 
                 {/* Header */}
@@ -336,7 +342,7 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                     </div>
                     <button
                         onClick={onClose}
-                        className="absolute top-3 right-3 p-1.5 md:p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                        className={getSafariOptimizedClassName("absolute top-3 right-3 p-1.5 md:p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors")}
                     >
                         <X className="w-5 h-5 md:w-6 md:h-6" />
                     </button>
@@ -516,13 +522,13 @@ const InitialScenarioModal: React.FC<InitialScenarioModalProps> = ({
                 </div>
 
                 {/* Footer - Sticky on mobile */}
-                <div className="sticky bottom-0 p-3 md:p-3 border-t border-slate-300/50 dark:border-slate-700/50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm">
+                <div className={getSafariOptimizedClassName("sticky bottom-0 p-3 md:p-3 border-t border-slate-300/50 dark:border-slate-700/50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm")}>
                     <button
                         onClick={onClose}
-                        className="w-full px-4 md:px-8 py-3 md:py-4 bg-gradient-to-r from-amber-600 to-amber-700 
-                            hover:from-amber-700 hover:to-amber-800 text-white font-semibold rounded-lg 
-                            transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] 
-                            text-sm md:text-lg"
+                        className={`w-full px-4 md:px-8 py-3 md:py-4 bg-gradient-to-r from-amber-600 to-amber-700
+                            hover:from-amber-700 hover:to-amber-800 text-white font-semibold rounded-lg
+                            ${isSafari ? 'transition-colors duration-200' : 'transition-all duration-200'} shadow-lg hover:shadow-xl ${!isSafari ? 'hover:scale-[1.02]' : ''}
+                            text-sm md:text-lg`}
                     >
                         Begin the Simulation
                     </button>

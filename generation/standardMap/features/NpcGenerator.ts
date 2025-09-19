@@ -14,6 +14,8 @@ import { generateProceduralItem } from '../../../services/itemGenerationService'
 import { detectCitiesForArea } from '../../../utils/cityDetectionUtils';
 import { generateCulturalAccessory } from '../../../services/culturalAccessoryService';
 import { worldEntityRegistry } from '../../../services/worldEntityRegistry';
+import { urbanTileRegistry } from '../../../services/urbanTileRegistryService';
+import { generateWorkplaceName, shouldHaveIndividualWorkplace, getBusinessType, generateWorkingHours, detectProfessionCategory } from '../../../services/workplaceGenerationService';
 
 /**
  * Generate historically appropriate legs/trousers equipment
@@ -491,7 +493,9 @@ function createNpc(
             portraitSeed: Math.floor(noise.random() * 1000000),
             allegianceGroup: structure?.allegianceGroup ?? 'NEUTRAL',
             workplaceId: structure?.id,
-            workplaceName: structure?.name,
+            workplaceName: shouldHaveIndividualWorkplace(role, context.era, context.culturalZone)
+                ? generateWorkplaceName({ name, profession: role, role } as NpcEntity, context.culturalZone, context.era)
+                : structure?.name,
             inventory: newInventory,
             health, // Add disease health with potential disease
             attributes, // Add generated attribute badges
@@ -916,25 +920,111 @@ export function generateNpcsForStandardMap(
         }
         
         // 3. Post-Generation Social & Home Simulation
-        const settlementTiles = tiles.flat().filter(t => [BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY].includes(t.biome));
-        
+        const settlementTiles = tiles.flat().filter(t => [BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.CITY_CENTER].includes(t.biome));
+
+        // ENHANCED: Register NPCs with urban tile registry for culturally appropriate businesses
+        const urbanNpcs = npcs.filter(npc => {
+            const tile = tiles.flat().find(t => t.x === Math.floor(npc.x) && t.y === Math.floor(npc.y));
+            return tile && [BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.CITY_CENTER].includes(tile.biome);
+        });
+
+        urbanNpcs.forEach(npc => {
+            const tile = tiles.flat().find(t => t.x === Math.floor(npc.x) && t.y === Math.floor(npc.y));
+            if (tile && shouldHaveIndividualWorkplace(npc.role || npc.profession || '', context.era, context.culturalZone)) {
+                // Generate culturally appropriate business for this NPC
+                const business = urbanTileRegistry.generateAndRegisterBusiness(npc, tile, context.culturalZone, context.era, tile.biome);
+                if (business) {
+                    // Update NPC with the generated business info
+                    npc.workplaceName = business.name;
+                    npc.workplaceLocation = { x: tile.x, y: tile.y };
+                    console.log(`[NPC] Generated ${context.culturalZone} ${context.era} business for ${npc.name}: "${business.name}"`);
+                }
+            }
+        });
+
         try {
             for (const npc of npcs) {
-                 // Assign Home Location
+                // Enhanced Home Assignment
                 if (settlementTiles.length > 0) {
+                    // Find appropriate settlement based on wealth
+                    let targetTiles = settlementTiles;
+
+                    if (npc.wealthLevel === 'wealthy') {
+                        // Wealthy NPCs prefer city centers and dense cities
+                        const wealthyTiles = settlementTiles.filter(t =>
+                            t.biome === BiomeType.CITY_CENTER || t.biome === BiomeType.DENSE_CITY
+                        );
+                        if (wealthyTiles.length > 0) targetTiles = wealthyTiles;
+                    } else if (npc.wealthLevel === 'poor') {
+                        // Poor NPCs in hamlets or city edges
+                        const poorTiles = settlementTiles.filter(t =>
+                            t.biome === BiomeType.HAMLET || t.biome === BiomeType.LOW_DENSITY_CITY
+                        );
+                        if (poorTiles.length > 0) targetTiles = poorTiles;
+                    }
+
+                    // Find closest appropriate tile
                     let closestSettlementTile: Tile | null = null;
                     let minDistance = Infinity;
-                    settlementTiles.forEach(tile => {
+                    targetTiles.forEach(tile => {
                         const distance = Math.hypot(npc.x - tile.x, npc.y - tile.y);
                         if (distance < minDistance) {
                             minDistance = distance;
                             closestSettlementTile = tile;
                         }
                     });
+
                     if (closestSettlementTile) {
                         npc.homeLocation = { x: closestSettlementTile.x, y: closestSettlementTile.y };
+
+                        // Register with urban tile registry
+                        const residenceType = getResidenceType(
+                            context.era,
+                            context.culturalZone,
+                            npc.wealthLevel
+                        );
+                        urbanTileRegistry.addResident(
+                            closestSettlementTile,
+                            npc.id,
+                            undefined,
+                            residenceType as any,
+                            npc.wealthLevel
+                        );
                     }
                 }
+
+                // Workplace Generation
+                const profession = npc.profession || npc.role || '';
+
+                // Check if NPC should have individual workplace (not palace/temple worker)
+                if (shouldHaveIndividualWorkplace(profession, context.era, context.culturalZone)) {
+                    // Find appropriate urban tile for workplace
+                    const workplaceTile = findWorkplaceTile(npc, settlementTiles, noise);
+
+                    if (workplaceTile) {
+                        const workplaceId = `wp_${npc.id}`;
+                        const workplaceName = generateWorkplaceName(npc, context.culturalZone, context.era);
+
+                        // Create business entry
+                        const business = {
+                            id: workplaceId,
+                            name: workplaceName,
+                            type: getBusinessType(profession),
+                            ownerId: npc.id,
+                            employees: [],
+                            location: { x: workplaceTile.x, y: workplaceTile.y },
+                            openHours: getBusinessHours(context.era, profession)
+                        };
+
+                        urbanTileRegistry.addBusiness(workplaceTile, business);
+
+                        // Assign to NPC
+                        npc.workplaceId = workplaceId;
+                        npc.workplaceName = workplaceName;
+                        npc.workplaceLocation = { x: workplaceTile.x, y: workplaceTile.y };
+                    }
+                }
+                // ELSE: Keep existing TerrainStructure workplace assignment
 
                 // Generate family and life events
                 const { family, lifeEvents } = generateNpcFamilyAndLifeEvents(npc, npcs, mapData, noise);
@@ -1105,4 +1195,58 @@ function enhanceNpcDescriptions(npcs: NpcEntity[]): void {
 function logGenerationStats(stats: NpcGenerationStats, startTime: number): void {
     const duration = Math.round(performance.now() - startTime);
     console.log(`[NPC Gen] Completed in ${duration}ms. Attempted: ${stats.attempted}, Successful: ${stats.successful}, Failed: ${stats.failed}`);
+}
+
+/**
+ * Find an appropriate tile for an NPC's workplace based on their profession
+ */
+function findWorkplaceTile(npc: NpcEntity, tiles: Tile[], noise: ValueNoise): Tile | null {
+    if (tiles.length === 0) return null;
+
+    const profession = (npc.profession || npc.role || '').toLowerCase();
+
+    // Merchants prefer marketplaces and city centers
+    if (profession.includes('merchant') || profession.includes('trader') || profession.includes('vendor')) {
+        const marketTiles = tiles.filter(t =>
+            t.biome === BiomeType.MARKETPLACE || t.biome === BiomeType.CITY_CENTER
+        );
+        if (marketTiles.length > 0) {
+            return marketTiles[Math.floor(noise.random() * marketTiles.length)];
+        }
+    }
+
+    // Craftsmen prefer lower density areas
+    if (profession.includes('smith') || profession.includes('carpenter') || profession.includes('potter') ||
+        profession.includes('weaver') || profession.includes('tanner')) {
+        const craftTiles = tiles.filter(t =>
+            t.biome === BiomeType.LOW_DENSITY_CITY || t.biome === BiomeType.HAMLET
+        );
+        if (craftTiles.length > 0) {
+            return craftTiles[Math.floor(noise.random() * craftTiles.length)];
+        }
+    }
+
+    // Professionals prefer city centers
+    if (profession.includes('physician') || profession.includes('lawyer') || profession.includes('scribe')) {
+        const cityTiles = tiles.filter(t =>
+            t.biome === BiomeType.CITY_CENTER || t.biome === BiomeType.DENSE_CITY
+        );
+        if (cityTiles.length > 0) {
+            return cityTiles[Math.floor(noise.random() * cityTiles.length)];
+        }
+    }
+
+    // Check that tiles don't have too many businesses already (prevent overcrowding)
+    const availableTiles = tiles.filter(tile => {
+        const data = urbanTileRegistry.getTileData(tile.x, tile.y);
+        const businessCount = data?.businesses.length || 0;
+        return businessCount < 5; // Max 5 businesses per tile
+    });
+
+    if (availableTiles.length > 0) {
+        return availableTiles[Math.floor(noise.random() * availableTiles.length)];
+    }
+
+    // Default: any urban tile
+    return tiles[Math.floor(noise.random() * tiles.length)];
 }

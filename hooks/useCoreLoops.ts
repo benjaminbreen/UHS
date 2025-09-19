@@ -7,8 +7,8 @@ import { usePlayer } from '../contexts/PlayerContext';
 import { useMap } from '../contexts/MapContext';
 import { useUI } from '../contexts/UIContext';
 import { getDaysInMonth, parseDateString } from '../utils/dateUtils';
-import { calculateAnimalUpdate } from '../services/animalAIService';
-import { calculateNpcUpdate } from '../services/npcAIService';
+import { calculateAnimalUpdate, calculateNpcUpdate } from '../services/npcAIService';
+import { crossMapNpcService } from '../services/crossMapNpcService';
 import { spawnSingleAnimal } from '../generation/standardMap/features/animalGenerator';
 import { 
   checkReputationBasedApproach, 
@@ -32,8 +32,16 @@ import { questService } from '../services/questService';
 import { questTriggerService } from '../services/questTriggerService';
 import { isTerrainPassable, getTerrainBlockMessage, getTerrainDamage } from '../constants/terrainPassability';
 import gameSounds from '../services/gameSoundsService';
+import { getFootstepMaterial } from '../services/biomeFootstepService';
 
-const useCoreLoops = () => {
+interface DeathInfo {
+  type: 'disease' | 'starvation' | 'violence' | 'accident' | 'old_age' | 'combat' | 'terrain' | 'drowning' | 'exhaustion' | 'poison';
+  disease?: any;
+  description?: string;
+  terrain?: string;
+}
+
+const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
   const {
     setGameTimeMinutes,
     gameTimeMinutes,
@@ -115,6 +123,8 @@ const useCoreLoops = () => {
     setActiveMiningModal,
     setStructureModalTarget,
     setActiveGovernmentModal,
+    inRuinRoguelike,
+    inMiningRoguelike,
   } = useUI();
 
   const moveLoopId = useRef<number | null>(null);
@@ -310,8 +320,16 @@ const useCoreLoops = () => {
 
                     if (Math.random() < deathChance) {
                       // console.log(`[DISEASE DEATH] Player has died from ${mostSevere.disease.name}!`);
-                      // Use immediate alert without setTimeout to avoid memory leak
-                      alert(`Death feature to be implemented.\n\nYour character has succumbed to ${mostSevere.disease.name}.`);
+                      if (onDeath) {
+                        onDeath({
+                          type: 'disease',
+                          disease: mostSevere.disease,
+                          description: `Succumbed to ${mostSevere.disease.name}`
+                        });
+                      } else {
+                        // Fallback to alert if no handler provided
+                        alert(`Death feature to be implemented.\n\nYour character has succumbed to ${mostSevere.disease.name}.`);
+                      }
                     }
                   }
 
@@ -377,21 +395,48 @@ const useCoreLoops = () => {
     return () => clearInterval(tickInterval);
   }, [mapData, playerCharacter, controlledIconX, controlledIconY, viewMode, animalSpawnNoise, isAnyModalOpen, currentZone]); // Remove setAnimals to prevent recreation
 
-  // NPC AI Tick
+  // NPC AI Tick - Staggered updates for better performance and organic movement
   useEffect(() => {
     const AI_UPDATE_RADIUS = 30;
+    const UPDATE_BUCKETS = 4; // Spread NPCs across 4 update buckets
+    const TICK_INTERVAL = 250; // Check every 250ms (4x per second)
 
     const tickInterval = setInterval(() => {
       if (isAnyModalOpen || !playerCharacter) return;
 
       if (viewMode === 'standard' && mapData && controlledIconX !== null && controlledIconY !== null) {
+        // Calculate which bucket to update this tick
+        const currentBucket = Math.floor(Date.now() / TICK_INTERVAL) % UPDATE_BUCKETS;
+
         setNpcs((prevNpcs) => {
+          // Count NPCs being updated this tick for debugging
+          let updateCount = 0;
+
           let updatedNpcs = prevNpcs.map((npc) => {
+            // Hash NPC ID to a bucket (0-3) for consistent assignment
+            const npcBucket = npc.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % UPDATE_BUCKETS;
+
+            // Only update NPCs in the current bucket
+            if (npcBucket !== currentBucket) return npc;
+
+            updateCount++;
+
+            // Only update NPCs within range
             if (Math.hypot(npc.x - controlledIconX, npc.y - controlledIconY) <= AI_UPDATE_RADIUS) {
-              return { ...npc, ...calculateNpcUpdate(npc, { x: controlledIconX, y: controlledIconY }, mapData, gameTimeHours) };
+              const updates = calculateNpcUpdate(npc, { x: controlledIconX, y: controlledIconY }, mapData, gameTimeHours, prevNpcs);
+
+              // Check if NPC is leaving the map - BUT ONLY ON STANDARD MAPS, NOT SPECIAL MAPS
+              if (updates.isLeavingMap && updates.mapExitDirection && mapData.mapType !== 'special') {
+                // Queue NPC for transfer to adjacent map
+                crossMapNpcService.queueNpcForTransfer(npc, updates.mapExitDirection);
+                // Remove NPC from current map by returning null (will be filtered out)
+                return null;
+              }
+
+              return { ...npc, ...updates };
             }
             return npc;
-          });
+          }).filter(npc => npc !== null); // Filter out NPCs that left the map
           
           // Check for reputation-based NPC approaches (only if reputation < 20)
           if (playerCharacter.mapReputation < 20) {
@@ -541,11 +586,16 @@ const useCoreLoops = () => {
             npcNarrationHistory.current.clear();
             console.log('[NPCNarration] Cleared narration history to prevent memory leaks');
           }
-          
+
+          // Debug logging for staggered updates (only log occasionally to avoid spam)
+          if (Math.random() < 0.05 && updateCount > 0) { // 5% chance to log
+            console.log(`[NPC AI] Bucket ${currentBucket}: Updated ${updateCount}/${prevNpcs.length} NPCs`);
+          }
+
           return updatedNpcs;
         });
       }
-    }, 3000);
+    }, TICK_INTERVAL); // Update every 250ms, but each NPC only updates every 1 second (in their bucket)
 
     return () => clearInterval(tickInterval);
   }, [mapData, playerCharacter, controlledIconX, controlledIconY, viewMode, isAnyModalOpen, gameTimeHours]); // Remove setNpcs to prevent recreation
@@ -817,10 +867,11 @@ const useCoreLoops = () => {
 
   // Ambiance Refresh
   useEffect(() => {
-    const hasHourChanged = gameTimeHours !== lastAmbianceUpdateHour;
-    const shouldUpdateOnMove = moveCount > 0 && moveCount % 200 === 0; // Only update every 200 moves to prevent any stutter
+    // Update every 6 hours (4 times per day: 0, 6, 12, 18)
+    const shouldUpdateByTime = gameTimeHours % 6 === 0 && gameTimeHours !== lastAmbianceUpdateHour;
+    const shouldUpdateOnMove = moveCount > 0 && moveCount % 500 === 0; // Only update every 500 moves to prevent any stutter
 
-    if (!shouldUpdateOnMove && !hasHourChanged) return;
+    if (!shouldUpdateOnMove && !shouldUpdateByTime) return;
 
     let contextTile: AmbianceContext['currentTile'] | null = null;
     let interiorDataForAmbiance: AmbianceContext['interiorMapData'] | undefined = undefined;
@@ -852,10 +903,10 @@ const useCoreLoops = () => {
         interiorMapData: interiorDataForAmbiance,
         interiorPlayerPos: interiorPosForAmbiance,
       };
-      setAmbianceText(generateAmbianceText(ambianceContext));
-      if (hasHourChanged) setLastAmbianceUpdateHour(gameTimeHours);
-    } else if (viewMode !== 'interior' && hasHourChanged) {
-      setAmbianceText('Exploring the unknown...');
+      setAmbianceText(''); // Ambiance system deprecated - no longer generating text
+      if (shouldUpdateByTime) setLastAmbianceUpdateHour(gameTimeHours);
+    } else if (viewMode !== 'interior' && shouldUpdateByTime) {
+      setAmbianceText('');
     }
   }, [
     viewMode,
@@ -1029,6 +1080,12 @@ const useCoreLoops = () => {
         }
       }
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        // Don't handle arrow keys if in roguelike modes
+        if (inRuinRoguelike || inMiningRoguelike) {
+          // Clear any active keys when entering roguelike modes
+          activeKeys.current.clear();
+          return;
+        }
         if (isAnyModalOpen && !combatant) return;
         if (document.activeElement && ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
 
@@ -1112,6 +1169,8 @@ useEffect(() => {
     if (
       viewMode !== 'standard' ||
       activeKeys.current.size === 0 ||
+      inRuinRoguelike ||
+      inMiningRoguelike ||
       !mapData ||
       controlledIconX == null ||
       controlledIconY == null ||
@@ -1263,8 +1322,17 @@ useEffect(() => {
         
         // Check for death
         if (newHealth <= 0) {
-          // Use immediate alert without setTimeout to avoid memory leak
-          alert(`Death feature to be implemented.\n\nYour character has perished from the harsh terrain.`);
+          if (onDeath) {
+            const terrainName = mapData?.tiles[controlledIconY]?.[controlledIconX]?.biome || 'harsh terrain';
+            onDeath({
+              type: 'terrain',
+              terrain: terrainName,
+              description: `Perished from the harsh ${terrainName}`
+            });
+          } else {
+            // Fallback to alert if no handler provided
+            alert(`Death feature to be implemented.\n\nYour character has perished from the harsh terrain.`);
+          }
         }
       }
       
@@ -1369,8 +1437,11 @@ useEffect(() => {
               gameSounds.playStepSound();
               break;
           }
+        } else {
+          // Standard map footstep sounds based on biome
+          const footstepMaterial = getFootstepMaterial(targetTile.biome);
+          gameSounds.playFootstepSound(footstepMaterial);
         }
-        // Note: No footstep sound for standard maps as requested
         
         // Check if player stepped on stairs - exit special map
         if (isSpecialMap && targetTile.biome === BiomeType.STAIRS_UP) {

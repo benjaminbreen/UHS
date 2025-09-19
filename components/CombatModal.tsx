@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { AnimalEntity, NpcEntity, PlayerCharacter, Item, CombatLogMessage, SkillID, StatusEffect, StatusEffectType, PlayerStats, EncounterableEntity, isAnimal, isNpc, MapData, CulturalZone, TimeOfDay } from '../types';
+import { AnimalEntity, NpcEntity, PlayerCharacter, Item, CombatLogMessage, SkillID, StatusEffect, StatusEffectType, PlayerStats, EncounterableEntity, isAnimal, isNpc, MapData, CulturalZone, TimeOfDay, Season } from '../types';
+import { ClimateType } from '../types/biomes/climate';
 import { SKILL_DATA, ANIMAL_DATA } from '../constants/index';
 import { createItemInstance, addItemToInventory } from '../utils/inventoryUtils';
 import { generateCombatTalkResponse, generateCombatItemResponse, generateCombatSkillResponse, generateCombatLowHealthResponse, generateCombatStartResponse } from '../services/llmService';
@@ -10,6 +11,18 @@ import { loadTamedAnimals, saveTamedAnimals, TamedAnimal } from '../services/ani
 import { getAnimalTexts } from '../constants/gameData/animalTexts';
 import gameSoundsService from '../services/gameSoundsService';
 import { weatherService, WeatherState } from '../services/weatherService';
+import GenerativeItemIcon from './symbols/GenerativeItemIcon';
+import { calculateThrowResult, getEquippedThrowableWeapons, canThrowEffectively, isRangedWeapon, getThrowableWeaponType } from '../services/throwableWeaponService';
+import {
+  getBackgroundPaths,
+  loadBackgroundImage,
+  isNightTime,
+  getNightFilter,
+  getNightOverlayGradient,
+  getNightOverlayIntensity
+} from '../services/backgroundSelectionService';
+import WeatherEffects from './WeatherEffects';
+import { entityHealthService } from '../services/entityHealthService';
 
 interface CombatModalProps {
   combatant: EncounterableEntity;
@@ -49,11 +62,23 @@ const CombatModal: React.FC<CombatModalProps> = ({
     combatant, playerCharacter, inventory, onClose, onVictory, onUseCombatItem, onCharacterUpdate, onNpcUpdate, mapData,
     gameTime, weather, culturalZone
 }) => {
-  // Initialize opponent with proper health value
+  // Initialize opponent with proper health value, checking for previous damage
   const initializeOpponent = (comb: EncounterableEntity): EncounterableEntity => {
-    const health = typeof comb.health === 'number' ? comb.health : 
-                   (comb.health && typeof comb.health === 'object' && 'current' in comb.health) ? comb.health.current :
-                   comb.maxHealth || 100;
+    // First check if we have stored health data for this entity
+    const storedHealth = entityHealthService.getEntityHealth(comb.id);
+
+    let health: number;
+    if (storedHealth) {
+      // Use stored damaged health
+      health = storedHealth.current;
+      console.log(`[Combat] Restored ${comb.id} health: ${health}/${storedHealth.max}`);
+    } else {
+      // Use original health calculation
+      health = typeof comb.health === 'number' ? comb.health :
+               (comb.health && typeof comb.health === 'object' && 'current' in comb.health) ? comb.health.current :
+               comb.maxHealth || 100;
+    }
+
     return { ...comb, health };
   };
   
@@ -62,13 +87,93 @@ const CombatModal: React.FC<CombatModalProps> = ({
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
   const [isResolving, setIsResolving] = useState(false);
   const [round, setRound] = useState(1);
-  
+
+  // Wrapper function to record health and combat memory before closing combat
+  const handleCombatEnd = () => {
+    const currentHealth = getOpponentHealth(opponent);
+    const maxHealth = opponent.maxHealth || 100;
+
+    // Record health persistence for NPCs/animals
+    if (currentHealth > 0 && currentHealth < maxHealth) {
+      entityHealthService.recordDamage(opponent.id, currentHealth, maxHealth);
+      console.log(`[Combat] Recorded damage for ${opponent.id}: ${currentHealth}/${maxHealth} HP`);
+    } else if (currentHealth <= 0) {
+      // Remove dead entities from tracking
+      entityHealthService.removeEntity(opponent.id);
+      console.log(`[Combat] Removed dead entity ${opponent.id} from tracking`);
+    }
+
+    // Record combat memory for NPCs
+    if (isNpc(opponent) && onNpcUpdate) {
+      const wasPlayerVictorious = currentHealth <= 0;
+      const wasOpponentVictorious = playerCharacter.health <= 0;
+      const playerFled = !wasPlayerVictorious && !wasOpponentVictorious; // Assume fled if neither died
+
+      // Create memory updates
+      const combatMemoryUpdates: Partial<NpcEntity> = {
+        memory: {
+          ...opponent.memory,
+          opinionOfPlayer: opponent.memory.opinionOfPlayer + (wasPlayerVictorious ? -30 : playerFled ? -10 : +5),
+          knownFactsAboutPlayer: new Set([
+            ...(opponent.memory.knownFactsAboutPlayer || []),
+            wasPlayerVictorious ? `Defeated me in combat` :
+            playerFled ? `Attacked me but fled` :
+            `Fought against me`
+          ]),
+          conversationSummaries: [
+            ...(opponent.memory.conversationSummaries || []),
+            wasPlayerVictorious ? `${playerCharacter.name} defeated me in battle and I fell unconscious.` :
+            playerFled ? `${playerCharacter.name} attacked me but then fled from the fight.` :
+            `${playerCharacter.name} and I engaged in combat.`
+          ]
+        }
+      };
+
+      // Clamp opinion between 0 and 100
+      combatMemoryUpdates.memory!.opinionOfPlayer = Math.max(0, Math.min(100, combatMemoryUpdates.memory!.opinionOfPlayer));
+
+      onNpcUpdate(opponent.id, combatMemoryUpdates);
+      console.log(`[Combat] Updated NPC ${opponent.id} memory: opinion=${combatMemoryUpdates.memory!.opinionOfPlayer}, new facts added`);
+    }
+
+    onClose();
+  };
+
+  // Wrapper function to record combat victory memory
+  const handleCombatVictory = (defeatedOpponent: EncounterableEntity) => {
+    // Record NPC memory for victory
+    if (isNpc(defeatedOpponent) && onNpcUpdate) {
+      const combatMemoryUpdates: Partial<NpcEntity> = {
+        memory: {
+          ...defeatedOpponent.memory,
+          opinionOfPlayer: Math.max(0, defeatedOpponent.memory.opinionOfPlayer - 30), // Big opinion drop for being defeated
+          knownFactsAboutPlayer: new Set([
+            ...(defeatedOpponent.memory.knownFactsAboutPlayer || []),
+            `Defeated me in combat and I was killed/knocked unconscious`
+          ]),
+          conversationSummaries: [
+            ...(defeatedOpponent.memory.conversationSummaries || []),
+            `${playerCharacter.name} defeated me in battle. I was completely overpowered.`
+          ]
+        }
+      };
+
+      onNpcUpdate(defeatedOpponent.id, combatMemoryUpdates);
+      console.log(`[Combat Victory] Updated defeated NPC ${defeatedOpponent.id} memory: opinion=${combatMemoryUpdates.memory!.opinionOfPlayer}`);
+    }
+
+    // Remove dead entities from health tracking
+    entityHealthService.removeEntity(defeatedOpponent.id);
+
+    onVictory(defeatedOpponent);
+  };
+
   // Tamed animals state
   const [tamedAnimals, setTamedAnimals] = useState<TamedAnimal[]>([]);
   const [tamedAnimalHealth, setTamedAnimalHealth] = useState<Record<string, number>>({});
   const [tamedAnimalAnimation, setTamedAnimalAnimation] = useState<Record<string, string>>({});
   
-  const [activeMenu, setActiveMenu] = useState<'main' | 'skills' | 'items' | 'talk' | 'itemAction'>('main');
+  const [activeMenu, setActiveMenu] = useState<'main' | 'skills' | 'items' | 'rangedAttack' | 'talk' | 'itemAction'>('main');
   const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   
@@ -96,7 +201,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
     }
   };
   const [damageSplats, setDamageSplats] = useState<DamageSplat[]>([]);
-  const [activeProjectiles, setActiveProjectiles] = useState<Array<{id: number, type: string, direction: 'left' | 'right'}>>([]);
+  const [activeProjectiles, setActiveProjectiles] = useState<Array<{id: number, type: string, direction: 'left' | 'right', item?: Item}>>([]);
 
   const [talkInput, setTalkInput] = useState('');
   const [isSubmittingTalk, setIsSubmittingTalk] = useState(false);
@@ -373,11 +478,38 @@ const CombatModal: React.FC<CombatModalProps> = ({
   };
 
   // Enhanced menu commands with better organization
-  const menuCommands = useMemo(() => ({
-      main: ['Attack', 'Skills', 'Items', 'Defend', 'Talk', 'Flee'],
+  const menuCommands = useMemo(() => {
+    // Helper function to check if item is an actual ranged weapon (not improvised)
+    const isActualRangedWeapon = (item: Item): boolean => {
+      const weaponType = getThrowableWeaponType(item);
+      return weaponType === 'throwing_weapon' || weaponType === 'ranged_weapon' || weaponType === 'projectile';
+    };
+
+    const equippedThrowables = getEquippedThrowableWeapons(playerCharacter);
+    const actualRangedWeapons = inventory.filter(item =>
+      item.throwable && canThrowEffectively(item) && isActualRangedWeapon(item)
+    );
+    const consumableItems = inventory.filter(item => item.category === 'Consumable' || item.sustenance);
+    // Items menu now includes all throwable items (for improvised throwing)
+    const allThrowableItems = inventory.filter(item => item.throwable && canThrowEffectively(item));
+
+    // Check if player has any actual ranged weapons
+    const hasActualRangedWeapons = equippedThrowables.some(isActualRangedWeapon) || actualRangedWeapons.length > 0;
+
+    // Conditionally include "Ranged Attack" in main menu
+    const mainMenuCommands = ['Attack', 'Skills', 'Items'];
+    if (hasActualRangedWeapons) {
+      mainMenuCommands.push('Ranged Attack');
+    }
+    mainMenuCommands.push('Defend', 'Talk', 'Flee');
+
+    return {
+      main: mainMenuCommands,
       skills: [...allPlayerSkills.map(id => getAttackDisplayName(id)), 'Back'],
-      items: [...inventory.filter(item => item.category === 'Consumable' || item.sustenance).map(item => item.name), 'Back']
-  }), [inventory, allPlayerSkills]);
+      items: [...consumableItems.map(item => item.name), ...allThrowableItems.map(item => item.name), 'Back'],
+      rangedAttack: [...equippedThrowables.filter(isActualRangedWeapon).map(item => item.name), ...actualRangedWeapons.map(item => item.name), 'Back']
+    };
+  }, [inventory, allPlayerSkills, playerCharacter]);
 
   // Combat flavor text based on opponent type
   const getCombatFlavorText = (action: string, isAnimal: boolean, animalType?: string): string => {
@@ -486,7 +618,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
           return;
         case 'Escape':
            if (activeMenu !== 'main') setActiveMenu('main');
-           else onClose(); // Allow escape to close combat
+           else handleCombatEnd(); // Allow escape to close combat
            break;
         case '1': case '2': case '3': case '4': case '5': case '6':
           if (activeMenu === 'main') {
@@ -521,12 +653,38 @@ const CombatModal: React.FC<CombatModalProps> = ({
       setTimeout(() => setDamageSplats(prev => prev.filter(s => s.id !== newSplat.id)), 1600);
   };
   
-  const fireProjectile = (type: 'arrow' | 'bolt' | 'magic' | 'thrown', direction: 'left' | 'right') => {
-      const projectile = { id: Date.now() + Math.random(), type, direction };
+  const fireProjectile = (type: 'arrow' | 'bolt' | 'magic' | 'thrown', direction: 'left' | 'right', item?: Item, customDuration?: number) => {
+      // Enhanced projectile with trajectory info
+      let trajectory: 'arc' | 'straight' | 'spinning' = 'straight';
+      let duration = 400;
+
+      if (type === 'thrown' && item) {
+        // Use throwable weapon service for enhanced physics
+        const throwResult = calculateThrowResult(item, playerCharacter, opponent);
+        trajectory = throwResult.trajectoryStyle;
+        duration = customDuration || throwResult.animationDuration;
+      } else if (type === 'thrown') {
+        // Default thrown item behavior
+        duration = 2000;
+        trajectory = 'arc';
+      } else if (type === 'arrow' || type === 'bolt') {
+        trajectory = 'straight';
+        duration = 800;
+      }
+
+      const projectile = {
+        id: Date.now() + Math.random(),
+        type,
+        direction,
+        item,
+        trajectory,
+        duration
+      };
+
       setActiveProjectiles(prev => [...prev, projectile]);
       setTimeout(() => {
           setActiveProjectiles(prev => prev.filter(p => p.id !== projectile.id));
-      }, 400);
+      }, duration);
   };
   
   const calculateAttack = (attacker: PlayerCharacter | EncounterableEntity, defender: PlayerCharacter | EncounterableEntity, damageMultiplier: number = 1.0, isPowerAttack: boolean = false) => {
@@ -616,6 +774,87 @@ const CombatModal: React.FC<CombatModalProps> = ({
     }
   };
   
+  // Helper function to get animal characteristic based on stats
+  const getAnimalCharacteristic = (animal: TamedAnimal): string => {
+    const stats = animal.stats;
+    if (!stats) return 'ordinary';
+
+    // Check for extreme stats with more variety
+    const characteristics: { stat: string; value: number; deviation: number; label: string }[] = [];
+
+    // Physical characteristics - more variety of descriptors
+    if (stats.strength >= 18) characteristics.push({ stat: 'strength', value: stats.strength, deviation: stats.strength - 10, label: 'mighty' });
+    else if (stats.strength >= 15) characteristics.push({ stat: 'strength', value: stats.strength, deviation: stats.strength - 10, label: 'strong' });
+    else if (stats.strength >= 13) characteristics.push({ stat: 'strength', value: stats.strength, deviation: stats.strength - 10, label: 'robust' });
+    else if (stats.strength <= 2) characteristics.push({ stat: 'strength', value: stats.strength, deviation: 10 - stats.strength, label: 'frail' });
+    else if (stats.strength <= 4) characteristics.push({ stat: 'strength', value: stats.strength, deviation: 10 - stats.strength, label: 'weak' });
+    else if (stats.strength <= 6) characteristics.push({ stat: 'strength', value: stats.strength, deviation: 10 - stats.strength, label: 'delicate' });
+
+    if (stats.agility >= 18) characteristics.push({ stat: 'agility', value: stats.agility, deviation: stats.agility - 10, label: 'nimble' });
+    else if (stats.agility >= 15) characteristics.push({ stat: 'agility', value: stats.agility, deviation: stats.agility - 10, label: 'agile' });
+    else if (stats.agility >= 13) characteristics.push({ stat: 'agility', value: stats.agility, deviation: stats.agility - 10, label: 'spry' });
+    else if (stats.agility <= 2) characteristics.push({ stat: 'agility', value: stats.agility, deviation: 10 - stats.agility, label: 'clumsy' });
+    else if (stats.agility <= 4) characteristics.push({ stat: 'agility', value: stats.agility, deviation: 10 - stats.agility, label: 'awkward' });
+    else if (stats.agility <= 6) characteristics.push({ stat: 'agility', value: stats.agility, deviation: 10 - stats.agility, label: 'sluggish' });
+
+    if (stats.speed >= 18) characteristics.push({ stat: 'speed', value: stats.speed, deviation: stats.speed - 10, label: 'swift' });
+    else if (stats.speed >= 15) characteristics.push({ stat: 'speed', value: stats.speed, deviation: stats.speed - 10, label: 'quick' });
+    else if (stats.speed >= 13) characteristics.push({ stat: 'speed', value: stats.speed, deviation: stats.speed - 10, label: 'fast' });
+    else if (stats.speed <= 2) characteristics.push({ stat: 'speed', value: stats.speed, deviation: 10 - stats.speed, label: 'slow' });
+    else if (stats.speed <= 4) characteristics.push({ stat: 'speed', value: stats.speed, deviation: 10 - stats.speed, label: 'plodding' });
+    else if (stats.speed <= 6) characteristics.push({ stat: 'speed', value: stats.speed, deviation: 10 - stats.speed, label: 'leisurely' });
+
+    // Age-based characteristics
+    if (animal.age && animal.age >= 15) characteristics.push({ stat: 'age', value: animal.age, deviation: animal.age - 8, label: 'ancient' });
+    else if (animal.age && animal.age >= 12) characteristics.push({ stat: 'age', value: animal.age, deviation: animal.age - 8, label: 'elderly' });
+    else if (animal.age && animal.age >= 10) characteristics.push({ stat: 'age', value: animal.age, deviation: animal.age - 8, label: 'old' });
+    else if (animal.age && animal.age <= 1) characteristics.push({ stat: 'age', value: animal.age, deviation: 8 - animal.age, label: 'baby' });
+    else if (animal.age && animal.age <= 2) characteristics.push({ stat: 'age', value: animal.age, deviation: 8 - animal.age, label: 'young' });
+    else if (animal.age && animal.age <= 3) characteristics.push({ stat: 'age', value: animal.age, deviation: 8 - animal.age, label: 'juvenile' });
+
+    // Health-based
+    const healthPercent = (animal.health / (animal.maxHealth || 10)) * 100;
+    if (healthPercent <= 20) characteristics.push({ stat: 'health', value: healthPercent, deviation: 100 - healthPercent, label: 'dying' });
+    else if (healthPercent <= 40) characteristics.push({ stat: 'health', value: healthPercent, deviation: 100 - healthPercent, label: 'ailing' });
+    else if (healthPercent <= 60) characteristics.push({ stat: 'health', value: healthPercent, deviation: 100 - healthPercent, label: 'injured' });
+    else if (healthPercent >= 100 && animal.maxHealth >= 15) characteristics.push({ stat: 'health', value: animal.maxHealth, deviation: animal.maxHealth - 10, label: 'hearty' });
+
+    // Combat stats
+    if (stats.attack >= 15) characteristics.push({ stat: 'attack', value: stats.attack, deviation: stats.attack - 10, label: 'vicious' });
+    else if (stats.attack >= 12) characteristics.push({ stat: 'attack', value: stats.attack, deviation: stats.attack - 10, label: 'fierce' });
+    else if (stats.attack >= 10) characteristics.push({ stat: 'attack', value: stats.attack, deviation: stats.attack - 10, label: 'aggressive' });
+    else if (stats.attack <= 2) characteristics.push({ stat: 'attack', value: stats.attack, deviation: 10 - stats.attack, label: 'gentle' });
+
+    if (stats.defense >= 15) characteristics.push({ stat: 'defense', value: stats.defense, deviation: stats.defense - 10, label: 'sturdy' });
+    else if (stats.defense >= 12) characteristics.push({ stat: 'defense', value: stats.defense, deviation: stats.defense - 10, label: 'tough' });
+    else if (stats.defense <= 2) characteristics.push({ stat: 'defense', value: stats.defense, deviation: 10 - stats.defense, label: 'fragile' });
+
+    // Perception and luck
+    if (stats.perception >= 15) characteristics.push({ stat: 'perception', value: stats.perception, deviation: stats.perception - 10, label: 'alert' });
+    else if (stats.perception <= 3) characteristics.push({ stat: 'perception', value: stats.perception, deviation: 10 - stats.perception, label: 'oblivious' });
+
+    if (stats.luck >= 15) characteristics.push({ stat: 'luck', value: stats.luck, deviation: stats.luck - 10, label: 'lucky' });
+    else if (stats.luck <= 2) characteristics.push({ stat: 'luck', value: stats.luck, deviation: 10 - stats.luck, label: 'unlucky' });
+
+    // Pick the most extreme characteristic
+    if (characteristics.length > 0) {
+      characteristics.sort((a, b) => {
+        // Prioritize age and health if they're extreme
+        if (a.stat === 'age' && (a.label === 'ancient' || a.label === 'baby')) return -1;
+        if (b.stat === 'age' && (b.label === 'ancient' || b.label === 'baby')) return 1;
+        if (a.stat === 'health' && (a.label === 'dying' || a.label === 'ailing')) return -1;
+        if (b.stat === 'health' && (b.label === 'dying' || b.label === 'ailing')) return 1;
+        // Otherwise sort by deviation from normal (10)
+        return b.deviation - a.deviation;
+      });
+      return characteristics[0].label;
+    }
+
+    // If no extreme stats, return a neutral descriptor
+    const neutralDescriptors = ['ordinary', 'typical', 'common', 'average', 'unremarkable'];
+    return neutralDescriptors[Math.floor(Math.random() * neutralDescriptors.length)];
+  };
+
   const startTamedAnimalTurns = (aliveTamedAnimals: TamedAnimal[], index: number) => {
     if (index >= aliveTamedAnimals.length) {
       // All tamed animals have had their turn, now opponent goes
@@ -624,7 +863,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
       }, 600);
       return;
     }
-    
+
     const currentAnimal = aliveTamedAnimals[index];
     const animalData = ANIMAL_DATA[currentAnimal.baseId];
     if (!animalData) {
@@ -648,34 +887,139 @@ const CombatModal: React.FC<CombatModalProps> = ({
       'kangaroo': {name: 'Devastating Kick', multiplier: 2.8, effect: 'knockdown'}
     };
     
-    const speciesName = currentAnimal.name?.toLowerCase() || currentAnimal.speciesName?.toLowerCase() || '';
+    const speciesName = currentAnimal.speciesName?.toLowerCase() || animalData.name?.toLowerCase() || '';
     const specialAttack = useSpecialAttack ? (specialAttacks[speciesName] || specialAttacks[animalType]) : null;
-    
-    if (specialAttack) {
-      // Special attack
+
+    // Get characteristic and proper name for the animal
+    const characteristic = getAnimalCharacteristic(currentAnimal);
+    const animalDisplayName = currentAnimal.name || currentAnimal.speciesName || animalData.name || 'companion';
+    const characteristicPrefix = characteristic ? `${characteristic} ` : '';
+
+    // Check if this is a prey/livestock animal
+    const preyAnimals = ['SHEEP', 'GOAT', 'RABBIT', 'DEER', 'COW', 'PIG', 'CHICKEN', 'DUCK'];
+    const isPreyAnimal = preyAnimals.includes(currentAnimal.baseId);
+
+    if (specialAttack && !isPreyAnimal) {
+      // Special attack (only for non-prey animals)
       showSpecialAttackAnnouncement(specialAttack.name);
-      addLog(`${currentAnimal.name} uses ${specialAttack.name}!`, 'player');
+      addLog(`Your ${characteristicPrefix}${animalDisplayName} uses ${specialAttack.name}!`, 'player');
       setTamedAnimalAnimation(prev => ({ ...prev, [currentAnimal.id]: 'special' }));
-    } else {
-      // Regular attack
-      addLog(`${currentAnimal.name} attacks!`, 'player');
+    } else if (isPreyAnimal) {
+      // Defensive action for prey/livestock
+      addLog(`Your ${characteristicPrefix}${animalDisplayName} defends itself!`, 'player');
       setTamedAnimalAnimation(prev => ({ ...prev, [currentAnimal.id]: 'attacking' }));
+    } else {
+      // Regular attack for predators/combat animals
+      addLog(`Your ${characteristicPrefix}${animalDisplayName} attacks!`, 'player');
+      setTamedAnimalAnimation(prev => ({ ...prev, [currentAnimal.id]: 'attacking' }));
+    }
+
+    // Play species-appropriate animal sound
+    const baseId = currentAnimal.baseId || animalData.name?.toUpperCase();
+    if (baseId) {
+      switch (baseId) {
+        case 'DOG':
+          gameSoundsService.playBarkSound();
+          break;
+        case 'CAT':
+          gameSoundsService.playMeowSound();
+          break;
+        case 'COW':
+          gameSoundsService.playCowSound();
+          break;
+        case 'SHEEP':
+          gameSoundsService.playSheepSound();
+          break;
+        case 'GOAT':
+          gameSoundsService.playGoatSound();
+          break;
+        case 'CHICKEN':
+          gameSoundsService.playChickenSound();
+          break;
+        case 'PIG':
+          gameSoundsService.playPigSound();
+          break;
+        case 'HORSE':
+        case 'WILD_HORSE':
+          gameSoundsService.playHorseSound();
+          break;
+        case 'WOLF':
+          gameSoundsService.playWolfSound();
+          break;
+        case 'BEAR':
+          gameSoundsService.playBearSound();
+          break;
+        case 'LION':
+          gameSoundsService.playLionSound();
+          break;
+        case 'TIGER':
+          gameSoundsService.playTigerSound();
+          break;
+        case 'ELEPHANT':
+          gameSoundsService.playElephantSound();
+          break;
+        case 'GORILLA':
+          gameSoundsService.playGorillaSound();
+          break;
+        case 'MONKEY':
+          gameSoundsService.playMonkeySound();
+          break;
+        case 'EAGLE':
+          gameSoundsService.playEagleSound();
+          break;
+        case 'DUCK':
+          gameSoundsService.playDuckSound();
+          break;
+        case 'RABBIT':
+          gameSoundsService.playRabbitSound();
+          break;
+        case 'CROCODILE':
+          gameSoundsService.playCrocodileSound();
+          break;
+        case 'SNAKE':
+          gameSoundsService.playSnakeSound();
+          break;
+        case 'WHALE':
+          gameSoundsService.playWhaleSound();
+          break;
+        case 'BISON':
+          gameSoundsService.playBisonSound();
+          break;
+        default:
+          // Play a generic attack sound for unknown animals
+          gameSoundsService.playCombatAttackSound();
+          break;
+      }
     }
     
     setTimeout(() => {
-      // Calculate animal's attack
+      // Prey animals only defend - no damage!
+      if (isPreyAnimal) {
+        // Pure defense - no attacking, no damage
+        addLog(`Your ${characteristicPrefix}${animalDisplayName} cowers defensively.`, 'player');
+
+        // Just continue to next animal after a short delay
+        setTimeout(() => {
+          setTamedAnimalAnimation(prev => ({ ...prev, [currentAnimal.id]: 'idle' }));
+          // Continue to next tamed animal
+          startTamedAnimalTurns(aliveTamedAnimals, index + 1);
+        }, 400);
+        return; // Exit early - prey animals don't deal damage
+      }
+
+      // Only calculate attack for non-prey animals
       const animalAttackPower = animalData.attack || 1;
       const baseMultiplier = specialAttack ? specialAttack.multiplier : 1.0;
       const baseDamage = Math.max(1, Math.floor((animalAttackPower + Math.floor(Math.random() * 3)) * baseMultiplier));
       const damage = Math.max(1, baseDamage - opponent.stats.defense);
-      
+
       setOpponent(prev => {
         const currentHealth = typeof prev.health === 'number' ? prev.health : (prev.health?.current || 0);
         return { ...prev, health: Math.max(0, currentHealth - damage) };
       });
       setOpponentAnimation('damaged');
       addDamageSplat(damage.toString(), 'damage', 'opponent');
-      
+
       // Apply special effects
       if (specialAttack?.effect) {
         switch (specialAttack.effect) {
@@ -698,7 +1042,8 @@ const CombatModal: React.FC<CombatModalProps> = ({
             break;
         }
       } else {
-        addLog(`${currentAnimal.name} deals ${damage} damage!`, 'player');
+        // Non-prey animals deal damage normally
+        addLog(`Your ${characteristicPrefix}${animalDisplayName} deals ${damage} damage!`, 'player');
       }
       
       setTimeout(() => {
@@ -708,7 +1053,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
         if (getOpponentHealth(opponent) - damage <= 0) {
           const victoryText = getCombatFlavorText('victory', isAnimal(opponent), isAnimal(opponent) ? opponent.baseId : undefined);
           addLog(victoryText || `${opponentName} is defeated!`, 'system');
-          setTimeout(() => onVictory(opponent), 1000);
+          setTimeout(() => handleCombatVictory(opponent), 1000);
         } else {
           // Continue to next tamed animal
           startTamedAnimalTurns(aliveTamedAnimals, index + 1);
@@ -834,7 +1179,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
               setVictoryState('fled');
               addLog(`You are victorious as ${opponentName} escapes.`, 'system');
               setTimeout(() => {
-                onClose();
+                handleCombatEnd();
               }, 1500);
             }, 1000);
           }, 800);
@@ -893,7 +1238,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
             setVictoryState('fled');
             addLog(`The ${opponentName.toLowerCase()} has escaped.`, 'system');
             setTimeout(() => {
-              onClose();
+              handleCombatEnd();
             }, 1500);
           }, 1000);
           return;
@@ -946,27 +1291,33 @@ const CombatModal: React.FC<CombatModalProps> = ({
       const flavorText = getCombatFlavorText('attack', isAnimal(opponent), isAnimal(opponent) ? opponent.baseId : undefined);
       
       if (targetAnimal) {
-          addLog(`${opponentName} attacks ${targetAnimal.name}!`, 'opponent');
-          
+          // Get animal display name with characteristic
+          const targetAnimalData = ANIMAL_DATA[targetAnimal.baseId];
+          const targetCharacteristic = getAnimalCharacteristic(targetAnimal);
+          const targetDisplayName = targetAnimal.name || targetAnimal.speciesName || targetAnimalData?.name || 'companion';
+          const targetFullName = targetCharacteristic ? `your ${targetCharacteristic} ${targetDisplayName}` : `your ${targetDisplayName}`;
+
+          addLog(`${opponentName} attacks ${targetFullName}!`, 'opponent');
+
           setTimeout(() => {
               // Calculate attack against animal
               const animalData = ANIMAL_DATA[targetAnimal.baseId];
               const animalDefense = animalData?.defense || 0;
               const baseDamage = 2 + Math.floor(Math.random() * 4) + opponent.stats.attack;
               const damage = Math.max(1, baseDamage - animalDefense);
-              
+
               // Apply damage to tamed animal
               setTamedAnimalHealth(prev => ({
                   ...prev,
                   [targetAnimal.id]: Math.max(0, prev[targetAnimal.id] - damage)
               }));
-              
+
               setTamedAnimalAnimation(prev => ({ ...prev, [targetAnimal.id]: 'damaged' }));
-              addLog(`${opponentName} hits ${targetAnimal.name} for ${damage} damage!`, 'opponent');
-              
+              addLog(`${opponentName} hits ${targetFullName} for ${damage} damage!`, 'opponent');
+
               // Check if animal died
               if (tamedAnimalHealth[targetAnimal.id] - damage <= 0) {
-                  addLog(`${targetAnimal.name} has been defeated!`, 'system');
+                  addLog(`${targetFullName.charAt(0).toUpperCase() + targetFullName.slice(1)} has been defeated!`, 'system');
                   // Update saved animals to reflect death
                   const updatedAnimals = tamedAnimals.map(a => 
                       a.id === targetAnimal.id ? { ...a, health: 0 } : a
@@ -1039,6 +1390,8 @@ const CombatModal: React.FC<CombatModalProps> = ({
                    setPlayerAnimation('idle');
                    if (playerCharacter.health - result.damage <= 0) {
                    addLog("You have been defeated!", 'system');
+                   // Play defeat sound
+                   gameSoundsService.playCombatDefeatSound();
                    
                    // Check if opponent has disease and transmit it upon defeat
                    const opponentDisease = opponent.diseaseHealth?.currentDiseases?.[0]?.disease || 
@@ -1089,7 +1442,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
                        }
                    }
                    
-                   setTimeout(onClose, 1500);
+                   setTimeout(handleCombatEnd, 1500);
                    } else {
                        startPlayerTurn();
                    }
@@ -1123,8 +1476,8 @@ const CombatModal: React.FC<CombatModalProps> = ({
         setIsDefending(true);
         setPlayerAnimation('defending');
         addLog('You raise your guard defensively.', 'player');
-        // Play shield/defend sound
-        gameSoundsService.playShieldSound();
+        // Play defend sound
+        gameSoundsService.playCombatBlockSound();
         setTimeout(() => {
           endPlayerTurn();
         }, 800);
@@ -1164,9 +1517,17 @@ const CombatModal: React.FC<CombatModalProps> = ({
             }
         }
         addLog('You attack!', 'player');
+        // Play attack swoosh sound
+        gameSoundsService.playCombatAttackSound();
         setTimeout(() => {
             const result = calculateAttack(playerCharacter, opponent, 1.0);
             if (result.hit) {
+                // Play hit sound
+                if (result.crit) {
+                    gameSoundsService.playCombatCriticalHitSound();
+                } else {
+                    gameSoundsService.playCombatHitSound();
+                }
                 const newHealth = Math.max(0, getOpponentHealth(opponent) - result.damage);
                 setOpponent(prev => ({...prev, health: newHealth}));
                 setOpponentAnimation('damaged');
@@ -1203,10 +1564,10 @@ const CombatModal: React.FC<CombatModalProps> = ({
                 // Check for low health dialogue trigger
                 checkAndTriggerLowHealthDialogue(newHealth);
             } else {
+                // Play miss sound
+                gameSoundsService.playCombatMissSound();
                 addDamageSplat('Miss!', 'miss', 'opponent');
                 addLog(`Your attack misses!`, 'player');
-                // Play miss/block sound
-                gameSoundsService.playBlockSound();
             }
 
             setTimeout(() => {
@@ -1215,7 +1576,9 @@ const CombatModal: React.FC<CombatModalProps> = ({
                 if (getOpponentHealth(opponent) - result.damage <= 0) {
                      const victoryText = getCombatFlavorText('victory', isAnimal(opponent), isAnimal(opponent) ? opponent.baseId : undefined);
                      addLog(victoryText || `${opponentName} is defeated!`, 'system');
-                     setTimeout(() => onVictory(opponent), 1000);
+                     // Play victory sound
+                     gameSoundsService.playCombatVictorySound();
+                     setTimeout(() => handleCombatVictory(opponent), 1000);
                 } else {
                     endPlayerTurn();
                 }
@@ -1224,6 +1587,8 @@ const CombatModal: React.FC<CombatModalProps> = ({
       } else if (type === 'flee') {
           addLog("You attempt to flee!", 'player');
           setPlayerAnimation('fleeing');
+          // Play flee sound
+          gameSoundsService.playCombatFleeSound();
           setTimeout(() => {
             const fleeChance = Math.min(0.8, 0.4 + (playerCharacter.stats.dexterity || 5) * 0.05);
             if(Math.random() < fleeChance) {
@@ -1296,7 +1661,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
                     }
                 }
                 
-                setTimeout(onClose, 800);
+                setTimeout(handleCombatEnd, 800);
             } else {
                 addLog("Your escape was blocked!", 'system');
                 setPlayerAnimation('idle');
@@ -1464,6 +1829,8 @@ const CombatModal: React.FC<CombatModalProps> = ({
     
     switch (skillId) {
       case 'POWER_STRIKE':
+        // Play power attack sound
+        gameSoundsService.playCombatPowerAttackSound();
         setTimeout(() => {
           const result = calculateAttack(playerCharacter, opponent, 1.0, true);
           if (result.hit) {
@@ -1494,7 +1861,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
             if ((opponent.health || 0) - result.damage <= 0) {
               const victoryText = getCombatFlavorText('victory', isAnimal(opponent), isAnimal(opponent) ? opponent.baseId : undefined);
               addLog(victoryText || `${opponentName} is defeated!`, 'system');
-              setTimeout(() => onVictory(opponent), 1000);
+              setTimeout(() => handleCombatVictory(opponent), 1000);
             } else {
               endPlayerTurn();
             }
@@ -1510,8 +1877,8 @@ const CombatModal: React.FC<CombatModalProps> = ({
           const damage = Math.max(1, baseDamage + playerCharacter.stats.strength - opponent.stats.defense);
           const applyBleed = hasAxe && Math.random() < 0.4; // 40% chance to cause bleeding with an axe
           
-          // Play chop sound effect
-          gameSoundsService.playChopSound();
+          // Play big chop sound effect
+          gameSoundsService.playCombatChopSound();
 
           const newHealth = Math.max(0, getOpponentHealth(opponent) - damage);
           setOpponent(prev => {
@@ -1552,7 +1919,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
             if (getOpponentHealth(opponent) - damage <= 0) {
               const victoryText = getCombatFlavorText('victory', isAnimal(opponent), isAnimal(opponent) ? opponent.baseId : undefined);
               addLog(victoryText || `${opponentName} is defeated!`, 'system');
-              setTimeout(() => onVictory(opponent), 1000);
+              setTimeout(() => handleCombatVictory(opponent), 1000);
             } else {
               endPlayerTurn();
             }
@@ -1562,6 +1929,8 @@ const CombatModal: React.FC<CombatModalProps> = ({
 
       case 'BURN':
         setPlayerAnimation('burn');
+        // Play fire crackling sound
+        gameSoundsService.playCombatBurnSound();
         setTimeout(() => {
           const damage = 15 + playerCharacter.stats.intelligence;
           const applyBurn = Math.random() < 0.6; // 60% chance to apply burn status
@@ -1605,7 +1974,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
             if (getOpponentHealth(opponent) - damage <= 0) {
               const victoryText = getCombatFlavorText('victory', isAnimal(opponent), isAnimal(opponent) ? opponent.baseId : undefined);
               addLog(victoryText || `${opponentName} is defeated!`, 'system');
-              setTimeout(() => onVictory(opponent), 1000);
+              setTimeout(() => handleCombatVictory(opponent), 1000);
             } else {
               endPlayerTurn();
             }
@@ -1615,6 +1984,8 @@ const CombatModal: React.FC<CombatModalProps> = ({
 
       case 'THRUST':
         setPlayerAnimation('stabbing');
+        // Play sharp piercing sound
+        gameSoundsService.playCombatThrustSound();
         setTimeout(() => {
           const hasPointedWeapon = playerCharacter.equippedItems.main_hand?.name.toLowerCase().includes('sword') || 
                                   playerCharacter.equippedItems.main_hand?.name.toLowerCase().includes('spear') ||
@@ -1657,7 +2028,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
             if (getOpponentHealth(opponent) - damage <= 0) {
               const victoryText = getCombatFlavorText('victory', isAnimal(opponent), isAnimal(opponent) ? opponent.baseId : undefined);
               addLog(victoryText || `${opponentName} is defeated!`, 'system');
-              setTimeout(() => onVictory(opponent), 1000);
+              setTimeout(() => handleCombatVictory(opponent), 1000);
             } else {
               endPlayerTurn();
             }
@@ -1678,6 +2049,8 @@ const CombatModal: React.FC<CombatModalProps> = ({
 
       case 'INTIMIDATING_SHOUT':
         setPlayerAnimation('shouting');
+        // Play powerful battle cry
+        gameSoundsService.playCombatIntimidatingShoutSound();
         setTimeout(() => {
           // Reduce opponent's defense for the rest of the battle
           const defenseReduction = Math.floor(opponent.stats.defense * 0.5); // 50% defense reduction
@@ -1723,7 +2096,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
               setVictoryState('fled');
               addLog(`The battle ends as ${opponentName} escapes.`, 'system');
               setTimeout(() => {
-                onClose(); // End combat without victory
+                handleCombatEnd(); // End combat without victory
               }, 1500);
             }, 1000);
           } else {
@@ -2111,41 +2484,100 @@ const CombatModal: React.FC<CombatModalProps> = ({
 
   const handleItemThrow = async (item: Item) => {
     if (!isPlayerTurn || isResolving) return;
-    setIsResolving(true);
-    addLog(`You throw ${item.name} at ${opponent.name}.`, 'player');
-    onUseCombatItem(item);
-    
-    setPlayerAnimation('attack');
-    
-    // Calculate throw damage based on item weight and player stats
-    const throwDamage = Math.max(1, Math.floor((item.weight || 1) + playerCharacter.attack / 3));
-    const finalDamage = Math.max(1, throwDamage - opponent.stats.defense);
-    
-    // Throwing has lower accuracy than melee attacks
-    const hitChance = 0.65;
-    const hits = Math.random() < hitChance;
-    
-    if (hits) {
-      setOpponent(prev => {
-        const currentHealth = typeof prev.health === 'number' ? prev.health : (prev.health?.current || 0);
-        return { ...prev, health: Math.max(0, currentHealth - finalDamage) };
-      });
-      setOpponentAnimation('damaged');
-      addDamageSplat(finalDamage.toString(), 'damage', 'opponent');
-      addLog(`Your thrown ${item.name} hits for ${finalDamage} damage!`, 'player');
 
-      // Reset opponent animation after damage animation
-      setTimeout(() => {
-        setOpponentAnimation('idle');
-      }, 600);
-    } else {
-      addLog(`Your thrown ${item.name} misses!`, 'player');
+    // Check if item can be thrown effectively
+    if (!canThrowEffectively(item)) {
+      addLog(`The ${item.name} is too unwieldy to throw effectively.`, 'player');
+      return;
     }
 
+    setIsResolving(true);
+
+    // Calculate throw result using the enhanced system
+    const throwResult = calculateThrowResult(item, playerCharacter, opponent);
+
+    addLog(`You throw ${item.name} at ${opponent.name}.`, 'player');
+    onUseCombatItem(item);
+
+    setPlayerAnimation('attack');
+    // Play throw sound
+    gameSoundsService.playCombatThrowSound();
+
+    // Fire the projectile with item data
+    fireProjectile('thrown', 'right', item);
+
+    // Delay damage calculation to match projectile arrival (90% of animation time)
+    const impactDelay = Math.floor(throwResult.animationDuration * 0.9);
+
+    setTimeout(() => {
+      if (throwResult.damage > 0) {
+        // Hit - use the flavor text from the calculation
+        addLog(throwResult.flavorText, 'player');
+
+        // Use the same health update logic as regular attacks
+        const currentHealth = getOpponentHealth(opponent);
+        const newHealth = Math.max(0, currentHealth - throwResult.damage);
+
+        setOpponent(prev => {
+          if (isAnimal(prev)) {
+            return { ...prev, health: newHealth };
+          } else {
+            return { ...prev, health: { current: newHealth, max: prev.health.max } };
+          }
+        });
+
+        setOpponentAnimation('damaged');
+        const isCrit = Math.random() < throwResult.criticalChance;
+        addDamageSplat(throwResult.damage.toString(), isCrit ? 'crit' : 'damage', 'opponent');
+
+        // Enhanced sound effects based on weapon type
+        if (throwResult.weaponType === 'explosive') {
+          gameSoundsService.playExplosionSound?.() || gameSoundsService.playImpactSound();
+        } else if (isCrit) {
+          gameSoundsService.playCriticalHitSound();
+        } else {
+          gameSoundsService.playImpactSound();
+        }
+
+        triggerScreenShake(throwResult.damage, isCrit);
+        checkAndTriggerLowHealthDialogue(newHealth);
+
+        // Track combat stats
+        setCombatStats(prev => ({
+          ...prev,
+          playerDamageDealt: prev.playerDamageDealt + throwResult.damage,
+          criticalHits: isCrit ? prev.criticalHits + 1 : prev.criticalHits,
+          itemsThrown: prev.itemsThrown ? prev.itemsThrown + 1 : 1
+        }));
+
+        // Check for victory
+        if (newHealth <= 0) {
+          const victoryText = getCombatFlavorText('victory', isAnimal(opponent), isAnimal(opponent) ? opponent.baseId : undefined);
+          addLog(victoryText || `${opponentName} is defeated!`, 'system');
+          setTimeout(() => handleCombatVictory(opponent), 1000);
+        }
+
+        // Reset opponent animation after damage animation
+        setTimeout(() => {
+          setOpponentAnimation('idle');
+        }, 600);
+      } else {
+        // Miss - use flavor text from calculation
+        addLog(throwResult.flavorText, 'player');
+      }
+    }, impactDelay);
+
+    // End turn after full animation completes
     setTimeout(() => {
         setPlayerAnimation('idle');
-        endPlayerTurn();
-    }, 800);
+        setIsResolving(false); // Always reset resolving state
+        if (throwResult.damage > 0 && getOpponentHealth(opponent) - throwResult.damage > 0) {
+          endPlayerTurn();
+        } else {
+          // For misses or when opponent dies, still need to end the turn
+          endPlayerTurn();
+        }
+    }, throwResult.animationDuration + 400); // After projectile animation completes
   };
 
   const handleItemUse = async (item: Item) => {
@@ -2192,7 +2624,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
       
       if (result.endsCombat) {
           addLog("The tense situation diffuses.", 'system');
-          setTimeout(onClose, 1500);
+          setTimeout(handleCombatEnd, 1500);
       } else {
           setIsResolving(true);
           setTimeout(endPlayerTurn, 800);
@@ -2236,11 +2668,48 @@ const CombatModal: React.FC<CombatModalProps> = ({
 
     if (activeMenu === 'main') {
         commands = menuCommands.main;
-        commandHandlers = [
-            () => handleAction('attack'), () => setActiveMenu('skills'), () => setActiveMenu('items'),
-            () => handleAction('defend'), () => handleAction('talk'), () => handleAction('flee')
-        ];
-        commandAvailability = [true, true, inventory.some(i => i.category === 'Consumable' || i.sustenance), true, true, true];
+
+        // Build command handlers dynamically based on what's in the menu
+        const handlers = [];
+        const availability = [];
+
+        for (const command of commands) {
+            switch (command) {
+                case 'Attack':
+                    handlers.push(() => handleAction('attack'));
+                    availability.push(true);
+                    break;
+                case 'Skills':
+                    handlers.push(() => setActiveMenu('skills'));
+                    availability.push(true);
+                    break;
+                case 'Items':
+                    handlers.push(() => setActiveMenu('items'));
+                    const hasUsableItems = inventory.some(i => i.category === 'Consumable' || i.sustenance) ||
+                                          inventory.some(item => item.throwable && canThrowEffectively(item));
+                    availability.push(hasUsableItems);
+                    break;
+                case 'Ranged Attack':
+                    handlers.push(() => setActiveMenu('rangedAttack'));
+                    availability.push(true); // If it's in the menu, it's available
+                    break;
+                case 'Defend':
+                    handlers.push(() => handleAction('defend'));
+                    availability.push(true);
+                    break;
+                case 'Talk':
+                    handlers.push(() => handleAction('talk'));
+                    availability.push(true);
+                    break;
+                case 'Flee':
+                    handlers.push(() => handleAction('flee'));
+                    availability.push(true);
+                    break;
+            }
+        }
+
+        commandHandlers = handlers;
+        commandAvailability = availability;
     } else if (activeMenu === 'skills') {
         commands = menuCommands.skills;
         commandHandlers = [...allPlayerSkills.map(id => () => handleSkillUse(id)), () => setActiveMenu('main')];
@@ -2255,9 +2724,35 @@ const CombatModal: React.FC<CombatModalProps> = ({
         commandAvailability.push(true); // Back button always available
     } else if (activeMenu === 'items') {
         commands = menuCommands.items;
-        const usableItems = inventory.filter(item => item.category === 'Consumable' || item.sustenance);
-        commandHandlers = [...usableItems.map(item => () => handleItemSelection(item)), () => setActiveMenu('main')];
-        commandAvailability = [...usableItems.map(() => true), true];
+        const consumableItems = inventory.filter(item => item.category === 'Consumable' || item.sustenance);
+        const allThrowableItems = inventory.filter(item => item.throwable && canThrowEffectively(item));
+        const allUsableItems = [...consumableItems, ...allThrowableItems];
+        commandHandlers = [
+          ...consumableItems.map(item => () => handleItemSelection(item)),
+          ...allThrowableItems.map(item => () => {
+            handleItemThrow(item);
+            setActiveMenu('main');
+          }),
+          () => setActiveMenu('main')
+        ];
+        commandAvailability = [...allUsableItems.map(() => true), true];
+    } else if (activeMenu === 'rangedAttack') {
+        commands = menuCommands.rangedAttack;
+        // Helper function for ranged weapons (same as above)
+        const isActualRangedWeapon = (item: Item): boolean => {
+          const weaponType = getThrowableWeaponType(item);
+          return weaponType === 'throwing_weapon' || weaponType === 'ranged_weapon' || weaponType === 'projectile';
+        };
+        const equippedRangedWeapons = getEquippedThrowableWeapons(playerCharacter).filter(isActualRangedWeapon);
+        const inventoryRangedWeapons = inventory.filter(item =>
+          item.throwable && canThrowEffectively(item) && isActualRangedWeapon(item)
+        );
+        const allRangedWeapons = [...equippedRangedWeapons, ...inventoryRangedWeapons];
+        commandHandlers = [...allRangedWeapons.map(item => () => {
+          handleItemThrow(item);
+          setActiveMenu('main');
+        }), () => setActiveMenu('main')];
+        commandAvailability = [...allRangedWeapons.map(() => true), true];
     } else if (activeMenu === 'itemAction' && selectedItem) {
         commands = ['Use', 'Throw', 'Back'];
         commandHandlers = [
@@ -2293,16 +2788,40 @@ const CombatModal: React.FC<CombatModalProps> = ({
           <div className="ff-pointer" style={{ top: pointerTop, left: pointerLeft }} />
           {commands.length > 0 ? commands.map((cmd, index) => {
              const isAvailable = commandAvailability[index] !== false;
+             // Get the actual item if we're in items menu
+             const usableItems = inventory.filter(item => item.category === 'Consumable' || item.sustenance);
+             const isItemCommand = activeMenu === 'items' && index < usableItems.length;
+             const itemForCommand = isItemCommand ? usableItems[index] : null;
+
              return (
-                <button 
-                  key={`${activeMenu}-${cmd}-${index}`} 
-                  onClick={isAvailable ? commandHandlers[index] : undefined} 
+                <button
+                  key={`${activeMenu}-${cmd}-${index}`}
+                  onClick={isAvailable ? commandHandlers[index] : undefined}
                   className={`combat-command-button ${!isAvailable ? 'unavailable' : ''} ${index === selectedCommandIndex && isAvailable ? 'ready-flash' : ''} ${activeMenu === 'skills' && index < allPlayerSkills.length && isProfessionSkill(allPlayerSkills[index]) ? 'profession-skill' : ''}`}
                   onMouseEnter={() => setSelectedCommandIndex(index)}
                   title={activeMenu === 'main' ? `Press ${index + 1} or use arrow keys` : 'Use arrow keys to navigate'}
                   disabled={!isAvailable}
+                  style={itemForCommand ? {
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '4px 8px',
+                    justifyContent: 'flex-start'
+                  } : {}}
                 >
-                    {cmd}
+                    {itemForCommand && (
+                      <div style={{ flexShrink: 0 }}>
+                        <GenerativeItemIcon item={itemForCommand} size={32} />
+                      </div>
+                    )}
+                    <span style={itemForCommand ? {
+                      fontSize: '0.75rem',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    } : {}}>
+                      {cmd}
+                    </span>
                     {activeMenu === 'skills' && !isAvailable && <span className="skill-locked">🔒</span>}
                     {activeMenu === 'skills' && isAvailable && index < combatSkills.length && round > 3 && index === 0 && (
                         <span className="skill-ready">✨</span>
@@ -2373,217 +2892,7 @@ const CombatModal: React.FC<CombatModalProps> = ({
     'plaza': 'low_density_city'
   };
 
-  // Get weather suffix for background naming
-  const getWeatherSuffix = (weatherState?: WeatherState): string | null => {
-    if (!weatherState) return null;
-
-    if (weatherState.precipitation === 'rain') return 'rain';
-    if (weatherState.precipitation === 'snow') return 'snow';
-    if (weatherState.precipitation === 'drizzle') return 'rain'; // Use rain variant
-    if (weatherState.special === 'fog' || weatherState.special === 'mist') return 'fog';
-
-    return null;
-  };
-
-  // Get time suffix for background naming
-  const getTimeSuffix = (gameTime?: { hours: number; minutes: number }): string | null => {
-    if (!gameTime) return null;
-
-    const currentTime = gameTime.hours + gameTime.minutes / 60;
-
-    // Crepuscular: dawn (4-8am) & dusk (6-9pm)
-    if ((currentTime >= 4 && currentTime < 8) || (currentTime >= 18 && currentTime < 21)) {
-      return 'crepuscular';
-    }
-
-    // Night (10pm-4am) - removing night suffix check to use tinting instead
-    // if (currentTime >= 22 || currentTime < 4) {
-    //   return 'night';
-    // }
-
-    return null; // Day time uses base backgrounds
-  };
-
-  // Determine if we should apply night tinting (instead of looking for _night.png files)
-  const isNightTime = (gameTime?: { hours: number; minutes: number }): boolean => {
-    if (!gameTime) return false;
-    const currentTime = gameTime.hours + gameTime.minutes / 60;
-    // Night is 10pm-4am
-    return currentTime >= 22 || currentTime < 4;
-  };
-
-  // Get CSS filter for nighttime tinting effect
-  const getNightFilter = (): string => {
-    // Simple night effect - just darken and add blue tint without color distortion
-    // brightness(0.75) darkens to 75%
-    // saturate(0.9) slightly reduces saturation
-    // contrast(1.1) maintains detail
-    return 'brightness(0.75) saturate(0.9) contrast(1.1)';
-  };
-
-  // Get cultural zone suffix for background naming
-  const getCultureSuffix = (culture?: CulturalZone): string | null => {
-    if (!culture) return null;
-
-    const cultureMapping: { [key: string]: string } = {
-      'EUROPEAN': 'european',
-      'EAST_ASIAN': 'east_asian',
-      'MENA': 'mena',
-      'NORTH_AMERICAN_PRE_COLUMBIAN': 'precolumbian',
-      'NORTH_AMERICAN_COLONIAL': 'colonial',
-      'OCEANIA': 'oceania',
-      'SOUTH_ASIAN': 'south_asian',
-      'SOUTH_AMERICAN': 'south_american',
-      'SUB_SAHARAN_AFRICAN': 'african'
-    };
-
-    return cultureMapping[culture] || null;
-  };
-
-  // Cultural fallback chains - related cultures check each other before generic
-  const CULTURAL_FALLBACK_CHAINS: { [key: string]: string[] } = {
-    // Asian/Eastern sphere (historical trade & cultural connections)
-    'east_asian': ['south_asian', 'oceania', 'mena'],
-    'south_asian': ['east_asian', 'mena', 'oceania'],
-    'oceania': ['south_asian', 'east_asian', 'mena'],
-    'mena': ['south_asian', 'african', 'east_asian'],
-
-    // Indigenous American sphere
-    'precolumbian': ['south_american'],
-    'south_american': ['precolumbian'],
-
-    // Western/Colonial sphere
-    'european': ['colonial'],
-    'colonial': ['european'],
-
-    // African (can fall back to MENA due to North African connections)
-    'african': ['mena']
-  };
-
-  // Generate priority-ordered background paths
-  const getBackgroundPaths = (
-    biome: string,
-    weatherState?: WeatherState,
-    gameTime?: { hours: number; minutes: number },
-    culture?: CulturalZone
-  ): string[] => {
-    // First, get the exact biome name (converted to lowercase with underscores)
-    const biomeName = biome.toLowerCase().replace(/\s+/g, '_');
-    const paths: string[] = [];
-
-    const weatherSuffix = getWeatherSuffix(weatherState);
-    const timeSuffix = getTimeSuffix(gameTime);
-    const cultureSuffix = getCultureSuffix(culture);
-
-    console.log('[CombatModal] Background path generation:', {
-      biome,
-      biomeName,
-      weatherSuffix,
-      timeSuffix,
-      cultureSuffix
-    });
-
-    // Helper function to add paths for a specific culture
-    const addCulturalPaths = (cultureName: string) => {
-      if (weatherSuffix && timeSuffix) {
-        paths.push(`${biomeName}_${weatherSuffix}_${timeSuffix}_${cultureName}.png`);
-      }
-      if (weatherSuffix) {
-        paths.push(`${biomeName}_${weatherSuffix}_${cultureName}.png`);
-      }
-      if (timeSuffix) {
-        paths.push(`${biomeName}_${timeSuffix}_${cultureName}.png`);
-      }
-      paths.push(`${biomeName}_${cultureName}.png`);
-    };
-
-    // PRIORITY 1: Check for the SPECIFIC culture variants first
-    if (cultureSuffix) {
-      addCulturalPaths(cultureSuffix);
-
-      // Check related cultures in the same sphere
-      const relatedCultures = CULTURAL_FALLBACK_CHAINS[cultureSuffix];
-      if (relatedCultures) {
-        for (const relatedCulture of relatedCultures) {
-          addCulturalPaths(relatedCulture);
-        }
-      }
-    }
-
-    // PRIORITY 2: Check for non-cultural weather/time variants
-    if (weatherSuffix && timeSuffix) {
-      paths.push(`${biomeName}_${weatherSuffix}_${timeSuffix}.png`);
-    }
-    if (weatherSuffix) {
-      paths.push(`${biomeName}_${weatherSuffix}.png`);
-    }
-    if (timeSuffix) {
-      paths.push(`${biomeName}_${timeSuffix}.png`);
-    }
-
-    // PRIORITY 2: Check for the SPECIFIC biome base file (e.g., hot_springs.png)
-    paths.push(`${biomeName}.png`);
-
-    // PRIORITY 3: Check fallback mapping (supports chained fallbacks)
-    const addFallbackPaths = (fallbackBiome: string) => {
-      // First try with cultural variants (including related cultures)
-      if (cultureSuffix) {
-        // Helper to add cultural variants for this fallback biome
-        const addFallbackCulturalPaths = (cultureName: string) => {
-          if (weatherSuffix && timeSuffix) {
-            paths.push(`${fallbackBiome}_${weatherSuffix}_${timeSuffix}_${cultureName}.png`);
-          }
-          if (weatherSuffix) {
-            paths.push(`${fallbackBiome}_${weatherSuffix}_${cultureName}.png`);
-          }
-          if (timeSuffix) {
-            paths.push(`${fallbackBiome}_${timeSuffix}_${cultureName}.png`);
-          }
-          paths.push(`${fallbackBiome}_${cultureName}.png`);
-        };
-
-        // Try the specific culture
-        addFallbackCulturalPaths(cultureSuffix);
-
-        // Try related cultures
-        const relatedCultures = CULTURAL_FALLBACK_CHAINS[cultureSuffix];
-        if (relatedCultures) {
-          for (const relatedCulture of relatedCultures) {
-            addFallbackCulturalPaths(relatedCulture);
-          }
-        }
-      }
-
-      // Then try without culture
-      if (weatherSuffix && timeSuffix) {
-        paths.push(`${fallbackBiome}_${weatherSuffix}_${timeSuffix}.png`);
-      }
-      if (weatherSuffix) {
-        paths.push(`${fallbackBiome}_${weatherSuffix}.png`);
-      }
-      if (timeSuffix) {
-        paths.push(`${fallbackBiome}_${timeSuffix}.png`);
-      }
-      paths.push(`${fallbackBiome}.png`);
-    };
-
-    // Handle chained fallbacks (e.g., hamlet → low_density_city → dense_city)
-    let currentFallback = BIOME_FALLBACK_MAPPING[biomeName];
-    const processedFallbacks = new Set<string>([biomeName]); // Prevent infinite loops
-
-    while (currentFallback && !processedFallbacks.has(currentFallback)) {
-      addFallbackPaths(currentFallback);
-      processedFallbacks.add(currentFallback);
-
-      // Check if this fallback has its own fallback
-      currentFallback = BIOME_FALLBACK_MAPPING[currentFallback];
-    }
-
-    // PRIORITY 4: Universal fallbacks
-    paths.push('grassland.png', 'hills.png', 'forest.png', 'desert.png');
-
-    return paths;
-  };
+  // Background selection functions now imported from backgroundSelectionService
 
   // Determine current biome from tile data
   const getCurrentBiome = (): string => {
@@ -2628,7 +2937,18 @@ const CombatModal: React.FC<CombatModalProps> = ({
   };
 
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [isUsingNightImage, setIsUsingNightImage] = useState(false);
   const currentBiome = useMemo(() => getCurrentBiome(), [mapData, playerCharacter.x, playerCharacter.y, combatant.x, combatant.y]);
+
+  // Calculate night overlay intensity
+  const nightIntensity = useMemo(() => {
+    return getNightOverlayIntensity(gameTime);
+  }, [gameTime]);
+
+  // Only apply tinting if we're not using a custom night image
+  const shouldApplyNightTint = useMemo(() => {
+    return nightIntensity > 0 && !isUsingNightImage;
+  }, [nightIntensity, isUsingNightImage]);
 
   // Generate combat start dialogue when combat begins
   useEffect(() => {
@@ -2655,44 +2975,23 @@ const CombatModal: React.FC<CombatModalProps> = ({
   // Enhanced background selection with weather, time, and cultural awareness
   useEffect(() => {
     const checkBackgroundImage = async () => {
-      // Generate priority-ordered background paths
-      const backgroundPaths = getBackgroundPaths(currentBiome, weather, gameTime, culturalZone);
+      // Generate priority-ordered background paths using shared service
+      const backgroundPaths = getBackgroundPaths(currentBiome, weather, gameTime, culturalZone, mapData?.climate, mapData?.season);
 
-      console.log('[CombatModal] Checking background paths in priority order:', backgroundPaths);
+      console.log('[CombatModal] Climate-aware background selection using shared service');
 
-      // Function to check if image actually exists by trying to load it
-      const checkImageExists = (url: string): Promise<boolean> => {
-        return new Promise((resolve) => {
-          const img = new Image();
-          img.onload = () => {
-            console.log('[CombatModal] Image successfully loaded:', url);
-            resolve(true);
-          };
-          img.onerror = () => {
-            console.log('[CombatModal] Image failed to load:', url);
-            resolve(false);
-          };
-          img.src = url;
-        });
-      };
+      // Use shared background loading service
+      const backgroundUrl = await loadBackgroundImage(backgroundPaths);
 
-      // Try each path in priority order
-      for (const filename of backgroundPaths) {
-        const fullPath = `/combat-backgrounds/${filename}`;
-        const exists = await checkImageExists(fullPath);
-        if (exists) {
-          console.log('[CombatModal] Using background image:', fullPath);
-          setBackgroundImage(fullPath);
-          return;
-        }
-      }
+      // Check if we loaded a night-specific image
+      const usingNightImage = backgroundUrl ? backgroundUrl.includes('_night') : false;
+      setIsUsingNightImage(usingNightImage);
 
-      console.log('[CombatModal] No background image available from any path, falling back to no background');
-      setBackgroundImage(null);
+      setBackgroundImage(backgroundUrl);
     };
 
     checkBackgroundImage();
-  }, [currentBiome, weather, gameTime, culturalZone]);
+  }, [currentBiome, weather, gameTime, culturalZone, mapData?.climate, mapData?.season]);
 
   return (
     <div ref={wrapperRef}
@@ -2714,12 +3013,12 @@ const CombatModal: React.FC<CombatModalProps> = ({
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 zIndex: 0,
-                // Apply darkening filter for night
-                ...(isNightTime(gameTime) && { filter: 'brightness(0.6)' })
+                // Apply darkening filter only if not using custom night image
+                ...(shouldApplyNightTint && { filter: getNightFilter(nightIntensity) })
               }}
             />
-            {/* Blue overlay for night time */}
-            {isNightTime(gameTime) && (
+            {/* Blue overlay for night time - only if not using custom night image */}
+            {shouldApplyNightTint && (
               <div
                 className="night-overlay"
                 style={{
@@ -2728,10 +3027,18 @@ const CombatModal: React.FC<CombatModalProps> = ({
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  background: 'linear-gradient(135deg, rgba(0, 50, 120, 0.3), rgba(0, 30, 80, 0.2))',
+                  background: getNightOverlayGradient(nightIntensity),
+                  mixBlendMode: 'multiply' as any,
                   zIndex: 1,
-                  pointerEvents: 'none'
+                  pointerEvents: 'none',
+                  transition: 'opacity 2s ease-in-out'
                 }}
+              />
+            )}
+            {/* Weather effects overlay */}
+            {weather && (
+              <WeatherEffects
+                weather={weather}
               />
             )}
           </>
@@ -2773,22 +3080,63 @@ const CombatModal: React.FC<CombatModalProps> = ({
             
             {/* Projectile Container */}
             <div className="projectile-container">
-                {activeProjectiles.map(projectile => (
-                    <div
-                        key={projectile.id}
-                        className={`projectile projectile-${projectile.type} enhanced-projectile`}
-                        style={{
-                            left: projectile.direction === 'right' ? '30%' : '70%',
-                            top: '50%',
-                            animation: projectile.direction === 'right' 
-                                ? 'projectileFly 0.4s linear' 
-                                : 'projectileFlyReverse 0.4s linear',
-                            width: '16px',
-                            height: '16px',
-                            boxShadow: '0 0 8px rgba(255, 215, 0, 0.6), 0 0 4px rgba(255, 255, 255, 0.3)'
-                        }}
-                    />
-                ))}
+                {activeProjectiles.map(projectile => {
+                    // Enhanced animation selection based on trajectory
+                    const getAnimationName = (proj: any) => {
+                      const direction = proj.direction === 'right' ? '' : 'Reverse';
+                      const trajectory = proj.trajectory || 'arc';
+
+                      switch (trajectory) {
+                        case 'straight':
+                          return `throwStraight${direction}`;
+                        case 'spinning':
+                          return `throwSpinning${direction}`;
+                        case 'arc':
+                        default:
+                          return `throwArc${direction}`;
+                      }
+                    };
+
+                    const animationDuration = projectile.duration || 2000;
+                    const animationName = getAnimationName(projectile);
+
+                    return projectile.type === 'thrown' && projectile.item ? (
+                        // Thrown item with icon
+                        <div
+                            key={projectile.id}
+                            className="thrown-item-projectile"
+                            style={{
+                                position: 'absolute',
+                                left: projectile.direction === 'right' ? '30%' : '70%',
+                                top: '50%',
+                                animation: `${animationName} ${animationDuration}ms ease-out`,
+                                width: '64px',
+                                height: '64px',
+                                zIndex: 1000,
+                                pointerEvents: 'none',
+                                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+                            }}
+                        >
+                            <GenerativeItemIcon item={projectile.item} size={64} />
+                        </div>
+                    ) : (
+                        // Regular projectile (arrow, bolt, magic)
+                        <div
+                            key={projectile.id}
+                            className={`projectile projectile-${projectile.type} enhanced-projectile`}
+                            style={{
+                                left: projectile.direction === 'right' ? '30%' : '70%',
+                                top: '50%',
+                                animation: projectile.direction === 'right'
+                                    ? `throwStraight ${animationDuration}ms linear`
+                                    : `throwStraightReverse ${animationDuration}ms linear`,
+                                width: '16px',
+                                height: '16px',
+                                boxShadow: '0 0 8px rgba(255, 215, 0, 0.6), 0 0 4px rgba(255, 255, 255, 0.3)'
+                            }}
+                        />
+                    );
+                })}
             </div>
             
             {/* Combat Scene with elevated sprites */}
@@ -3169,7 +3517,12 @@ const CombatModal: React.FC<CombatModalProps> = ({
                         {!isPlayerTurn && tamedAnimals.some(a => tamedAnimalHealth[a.id] > 0) && (
                             <div style={{ fontSize: '8px', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 <span>⭐</span>
-                                <span>Next: {tamedAnimals.find(a => tamedAnimalHealth[a.id] > 0)?.name || 'Unknown'}</span>
+                                <span>Next: {(() => {
+                                    const nextAnimal = tamedAnimals.find(a => tamedAnimalHealth[a.id] > 0);
+                                    if (!nextAnimal) return 'Unknown';
+                                    const animalData = ANIMAL_DATA[nextAnimal.baseId];
+                                    return nextAnimal.name || nextAnimal.speciesName || animalData?.name || 'Unknown';
+                                })()}</span>
                             </div>
                         )}
                     </div>
@@ -3178,11 +3531,14 @@ const CombatModal: React.FC<CombatModalProps> = ({
                         const currentHealth = tamedAnimalHealth[animal.id] || 0;
                         const maxHealth = animalData?.maxHealth || 10;
                         const healthPercent = (currentHealth / maxHealth) * 100;
-                        
+                        const characteristic = getAnimalCharacteristic(animal);
+                        const displayName = animal.name || animal.speciesName || animalData?.name || 'companion';
+                        const fullDisplayName = characteristic ? `${characteristic} ${displayName}` : displayName;
+
                         return (
                             <div key={animal.id} style={{ marginBottom: '6px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                                    <span>{animal.name}</span>
+                                    <span style={{ fontSize: '9px' }}>{fullDisplayName}</span>
                                     <span style={{ color: currentHealth > 0 ? '#10b981' : '#ef4444' }}>
                                         {currentHealth > 0 ? `${currentHealth}/${maxHealth}` : 'KO'}
                                     </span>

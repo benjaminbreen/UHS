@@ -21,6 +21,7 @@ import { SavedGame } from '../services/saveGameService';
 import SoundTestPanel from './SoundTestPanel';
 import IconTestPanel from './IconTestPanel';
 import { PrimarySourcesDevPanel } from './PrimarySourcesDevPanel';
+import MiningRoguelikeDisplay from './MiningRoguelikeDisplay';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -108,6 +109,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [showSoundTestPanel, setShowSoundTestPanel] = useState(false);
   const [showIconTestPanel, setShowIconTestPanel] = useState(false);
   const [showPrimarySourcesDevPanel, setShowPrimarySourcesDevPanel] = useState(false);
+  const [showMiningTestPanel, setShowMiningTestPanel] = useState(false);
+  const [testInventory, setTestInventory] = useState<any[]>([]);
   const [apiStats, setApiStats] = useState(eventService.getAPIUsageStats());
   const [llmHistory, setLLMHistory] = useState(eventService.getLLMHistory());
   
@@ -619,8 +622,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 <Palette className="w-4 h-4" />
                 <span>Open Icon Test Panel</span>
               </button>
+              <button
+                onClick={() => setShowMiningTestPanel(true)}
+                className="w-full px-4 py-3 mt-2 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-amber-600 to-orange-600 rounded-md hover:from-amber-700 hover:to-orange-700 flex items-center justify-center gap-2"
+              >
+                ⛏️
+                <span>Open Mining Roguelike Test</span>
+              </button>
               <p className="mt-2 text-xs text-gray-400">
-                Test special map archetypes, interior building layouts, all game sounds, and generative icons
+                Test special map archetypes, interior building layouts, sounds, icons, and mining roguelike
               </p>
             </div>
           </section>
@@ -905,6 +915,71 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           onLoadGame={onLoadGame}
           currentGameState={currentGameState}
         />
+      )}
+
+      {/* Mining Roguelike Test Panel */}
+      {showMiningTestPanel && (
+        <div className="fixed inset-0 z-[60] bg-black">
+          {/* Test Inventory Display */}
+          <div className="absolute top-4 right-4 z-70 bg-slate-800/90 border border-slate-600 rounded-lg p-3 max-w-xs">
+            <h3 className="text-sm font-bold text-white mb-2">Test Inventory ({testInventory.length})</h3>
+            <div className="space-y-1 max-h-40 overflow-y-auto">
+              {testInventory.length === 0 ? (
+                <p className="text-xs text-gray-400">No items collected yet</p>
+              ) : (
+                testInventory.map((item, index) => (
+                  <div key={index} className="text-xs text-green-300 flex items-center gap-2">
+                    <span className="text-yellow-400">⚡</span>
+                    <span>{item.name} ({item.quantity || 1})</span>
+                  </div>
+                ))
+              )}
+            </div>
+            {testInventory.length > 0 && (
+              <button
+                onClick={() => setTestInventory([])}
+                className="mt-2 text-xs px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-white"
+              >
+                Clear Inventory
+              </button>
+            )}
+          </div>
+          <MiningRoguelikeDisplay
+            mineData={{
+              name: "Test Mine",
+              description: "A deep test mine for development",
+              oreType: "Iron Ore",
+              depth: 30,
+              culturalZone: currentZone || "EUROPEAN",
+              historicalEra: currentYear ? (
+                currentYear < 500 ? "ANTIQUITY" :
+                currentYear < 1500 ? "MEDIEVAL" :
+                currentYear < 1800 ? "RENAISSANCE_EARLY_MODERN" :
+                currentYear < 1950 ? "INDUSTRIAL_ERA" :
+                currentYear < 2000 ? "MODERN_ERA" : "FUTURE_ERA"
+              ) : "MEDIEVAL"
+            }}
+            playerCharacter={playerCharacter || {
+              id: "test-player",
+              name: "Test Miner",
+              health: 100,
+              maxHealth: 100,
+              fatigue: 100,
+              maxFatigue: 100,
+              inventory: [],
+              position: { x: 40, y: 0 },
+              dexterity: 10,
+              strength: 10
+            }}
+            onExit={() => setShowMiningTestPanel(false)}
+            onHealthChange={(health) => console.log("Health changed to:", health)}
+            onInventoryAdd={(item) => {
+              console.log("Item added to inventory:", item);
+              setTestInventory(prev => [...prev, item]);
+            }}
+            onFatigueChange={(fatigue) => console.log("Fatigue changed to:", fatigue)}
+          />
+        </div>
       )}
     </>
   );

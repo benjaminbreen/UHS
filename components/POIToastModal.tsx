@@ -9,6 +9,7 @@ import { SpecialMapArchetype, SpecialMapConfig } from '../types/specialMapTypes'
 import { useUI } from '../contexts/UIContext';
 import { usePlayer } from '../contexts/PlayerContext';
 import { useMap } from '../contexts/MapContext';
+import { useGame } from '../contexts/GameContext';
 import { ITEM_DEFINITIONS } from '../constants';
 import QuarryBanner from './QuarryBanner';
 import MineColonyBanner from './MineColonyBanner';
@@ -85,23 +86,24 @@ interface POIToastModalProps {
 }
 
 export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentCulturalZone, onDismiss }: POIToastModalProps = {}) {
-  const { poiToastData, setPoiToastData, showToast } = useUI();
-  const { playerCharacter, onBuyItem, onSellItem, onEnterBuilding } = usePlayer();
+  const { poiToastData, setPoiToastData, showToast, onUseSkill, setInMiningRoguelike, setMiningRoguelikeData } = useUI();
+  const { playerCharacter, onBuyItem, onSellItem, onEnterBuilding, handleInventoryUpdate } = usePlayer();
+  const { terrainStructures, setTerrainStructures } = useMap();
   const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [isMining, setIsMining] = useState(false);
+  const [mineResult, setMineResult] = useState<{success: boolean; message: string; item?: any} | null>(null);
 
-  // Track current view: main, buy, sell, or processing
-  const [currentView, setCurrentView] = useState<'main' | 'buy' | 'sell' | 'processing'>('main');
-  const [processingType, setProcessingType] = useState<'mill' | 'sawmill' | 'quarry' | 'mine' | 'factory' | null>(null);
+  // Track current view: main, buy, sell, processing, or mining
+  const [currentView, setCurrentView] = useState<'main' | 'buy' | 'sell' | 'processing' | 'mining'>('main');
+  const [processingType, setProcessingType] = useState<'mill' | 'sawmill' | 'quarry' | 'mine' | 'mining_colony' | 'factory' | null>(null);
 
-  // Debug logging
+  // Debug logging - only log significant changes
   useEffect(() => {
-    console.log('POIToastModal: Component mounted/updated with props:', {
-      onEnterSpecialMap: !!onEnterSpecialMap,
-      mapData: !!mapData,
-      currentEra,
-      currentCulturalZone
-    });
-  }, [onEnterSpecialMap, mapData, currentEra, currentCulturalZone]);
+    // Only log when we have actual POI data, not on every re-render
+    if (poiToastData) {
+      console.log('POIToastModal: Displaying POI:', poiToastData.structure?.type);
+    }
+  }, [poiToastData]);
   const [isAnimating, setIsAnimating] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
@@ -487,7 +489,7 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
       case 'material':
         // Only return material for quarries and mines
         const structType = getStructureType(structure);
-        if (structType !== 'quarry' && structType !== 'mine') {
+        if (structType !== 'quarry' && structType !== 'mine' && structType !== 'mining_colony') {
           return ''; // Don't show material for non-extraction POIs
         }
         
@@ -641,20 +643,9 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
     return `bottom-6 left-1/2 -translate-x-1/2 ${baseTransform}`;
   };
 
-  console.log('POIToastModal render - poiToastData:', poiToastData);
-  
   if (!poiToastData) {
-    console.log('POIToastModal: No poiToastData, returning null');
     return null;
   }
-  
-  console.log('POIToastModal: Rendering modal with data:', {
-    type: poiToastData.structure?.type,
-    name: poiToastData.structure?.name,
-    hasDescription: !!poiToastData.description,
-    hasDialogue: !!poiToastData.dialogue,
-    isMobile
-  });
 
   const structure = poiToastData?.structure;
   const description = poiToastData?.description;
@@ -1032,12 +1023,120 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                 {/* Mine-specific Actions */}
                 {(getStructureType(structure) === 'mine' || getStructureType(structure) === 'mining_colony') && (
                   <div>
-                    <h3 className="text-white font-medium text-sm mb-3">Mining Services</h3>
+                    <h3 className="text-white font-medium text-sm mb-3">⛏️ Mining Operations</h3>
+
+                    {/* Deposit Status */}
+                    {(() => {
+                      const oreType = structure.mineralDeposits ? Object.keys(structure.mineralDeposits)[0] : null;
+                      const remaining = oreType && structure.mineralDeposits ? structure.mineralDeposits[oreType] : 0;
+                      const getDepositRichness = (amount: number) => {
+                        if (amount > 15000) return { text: 'Extremely Rich', color: 'text-green-400' };
+                        if (amount > 8000) return { text: 'Rich', color: 'text-green-500' };
+                        if (amount > 3000) return { text: 'Moderate', color: 'text-yellow-400' };
+                        if (amount > 500) return { text: 'Sparse', color: 'text-orange-400' };
+                        if (amount > 0) return { text: 'Nearly Depleted', color: 'text-red-500' };
+                        return { text: 'Depleted', color: 'text-gray-500' };
+                      };
+                      const richness = getDepositRichness(remaining);
+
+                      return (
+                        <div className="mb-3 p-3 bg-slate-800/60 rounded-lg border border-slate-700/50">
+                          <p className="text-gray-400 text-xs mb-1">Currently extracting:</p>
+                          <p className="text-white font-medium mb-2">
+                            {oreType ? oreType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Unknown Ore'}
+                          </p>
+                          <p className="text-gray-400 text-xs mb-2">
+                            Deposit Status: <span className={richness.color + ' font-bold'}>{richness.text}</span>
+                            <span className="text-gray-500"> ({remaining.toLocaleString()} units)</span>
+                          </p>
+                          <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden border border-gray-600">
+                            <div className="h-full bg-gradient-to-r from-yellow-500 to-amber-400 transition-all duration-300"
+                                 style={{ width: `${Math.min(100, (remaining / 20000) * 100)}%` }}></div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Mining Result Message */}
+                    {mineResult && (
+                      <div className={`mb-3 p-3 rounded-md text-center text-sm border transition-opacity duration-300 ${
+                        mineResult.success
+                          ? 'bg-green-900/50 border-green-700 text-green-300'
+                          : 'bg-red-900/50 border-red-700 text-red-300'
+                      }`}>
+                        <p>{mineResult.message}</p>
+                        {mineResult.item && <p className="font-bold mt-1">You obtained: {mineResult.item.name}!</p>}
+                      </div>
+                    )}
+
                     <div className="space-y-2">
+                      {/* Enter Mine Button - Primary Action */}
+                      <button
+                        onClick={() => {
+                          // Set mining roguelike data and activate it
+                          if (structure) {
+                            setMiningRoguelikeData({ structure });
+                            setInMiningRoguelike(true);
+                            setPoiToastData(null); // Close the toast modal
+                            showToast?.('Entering the mine shaft...');
+                          }
+                        }}
+                        className="w-full p-3 rounded-lg transition-all text-left bg-amber-700/50 hover:bg-amber-600/60 border border-amber-600"
+                      >
+                        <div className="text-white font-medium text-sm mb-1">
+                          ⛏️ Enter the Mine
+                        </div>
+                        <div className="text-gray-400 text-xs leading-tight">
+                          Descend into the mine shaft to extract ore directly
+                        </div>
+                      </button>
+
+                      {/* Quick Mine Button - Alternative for quick resource gathering */}
+                      <button
+                        onClick={() => {
+                          // Simple mining action without entering the full roguelike
+                          if (!onUseSkill) {
+                            showToast?.('Mining system not available');
+                            return;
+                          }
+
+                          // Simulate paying a small bribe/fee
+                          showToast?.('You pay the foreman 5 gold to mine for a bit...');
+
+                          setIsMining(true);
+                          // Simulate mining without pickaxe requirement
+                          setTimeout(() => {
+                            setIsMining(false);
+                            const oreType = structure.mineralDeposits ? Object.keys(structure.mineralDeposits)[0] : 'iron ore';
+                            setMineResult({
+                              success: true,
+                              message: `The miners help you extract some ${oreType}`,
+                              item: { name: oreType, quantity: Math.floor(Math.random() * 3) + 1 }
+                            });
+                            setTimeout(() => setMineResult(null), 3000);
+                          }, 1500);
+                        }}
+                        disabled={isMining}
+                        className="w-full p-3 rounded-lg transition-all text-left bg-slate-700/50 hover:bg-slate-600/60 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <div className="text-white font-medium text-sm mb-1">
+                          {isMining ? (
+                            <span className="flex items-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              Mining...
+                            </span>
+                          ) : (
+                            '💰 Pay for Quick Mining'
+                          )}
+                        </div>
+                        <div className="text-gray-400 text-xs leading-tight">
+                          Pay 5 gold to have the miners extract some ore for you
+                        </div>
+                      </button>
                       <button
                         onClick={() => {
                           setCurrentView('processing');
-                          setProcessingType('mine');
+                          setProcessingType(getStructureType(structure) as any);
                         }}
                         disabled={!hasInventoryItem('ore')}
                         className={`w-full p-3 rounded-lg transition-all text-left border ${
@@ -1293,6 +1392,7 @@ export function POIToastModal({ onEnterSpecialMap, mapData, currentEra, currentC
                     era={currentEra}
                   />
                 )}
+
 
                 {/* Footer */}
                 <div className="flex justify-end items-center pt-3 border-t border-slate-300/50 dark:border-slate-700/50">

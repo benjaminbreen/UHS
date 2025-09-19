@@ -126,4 +126,9 @@ export interface MapData {
   timeOfDay?: TimeOfDay;
   dayOfYear?: number; // 1-365
   currentWeather?: WeatherState; // Actual weather state from weather service
+
+  // Terrain modifications made by player actions
+  terrainModifications?: {
+    dugTiles?: Array<{x: number; y: number; timestamp: number}>;
+  };
 }

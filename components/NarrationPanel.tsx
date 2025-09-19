@@ -207,15 +207,22 @@ const NarrationPanel: React.FC<NarrationPanelProps> = ({
                   ? 'text-emerald-300 italic pl-4 border-l-2 border-emerald-500/30 bg-emerald-900/15 rounded-r-lg'
                   : msg.sender === 'narrator-special'
                   ? 'text-blue-300 bg-blue-900/15 border-blue-500/20'
+                  : msg.sender === 'narrator-ambient'
+                  ? 'text-purple-300 bg-purple-900/10 border-purple-500/00 italic'
                   : 'text-slate-100 bg-slate-700/35 border-slate-500/30';
 
               return (
                 <div key={index} className={`${base} ${kind}`}>
-                
+
 
                   {msg.sender === 'narrator' && (
                     <p className="text-xs text-amber-300 font-semibold mb-1 flex items-center gap-1">
                       <span>📜</span> Narrator
+                    </p>
+                  )}
+                  {msg.sender === 'narrator-ambient' && (
+                    <p className="text-xs text-purple-300 font-semibold mb-1 flex items-center gap-1">
+                      <span></span> Ambiance
                     </p>
                   )}
                   <p className={`leading-relaxed ${textSizeClass}`}>{msg.text}</p>

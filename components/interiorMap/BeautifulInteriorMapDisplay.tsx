@@ -480,20 +480,19 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
             
             {/* FF6-Style Dialogue Box with Portrait */}
             {currentDialogue?.visible && (
-                <div 
-                    className="ff6-dialogue-box" 
+                <div
+                    className="ff6-dialogue-box"
                     style={{
                         position: 'absolute',
-                        top: '15%',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
+                        top: '20px',
+                        right: '20px',
                         zIndex: 1000,
                         background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
                         border: '3px solid #4a90e2',
                         borderRadius: '12px',
                         padding: '20px',
-                        maxWidth: '80%',
-                        minWidth: '500px',
+                        maxWidth: 'min(400px, calc(100vw - 40px))',
+                        minWidth: 'min(300px, calc(100vw - 40px))',
                         boxShadow: '0 8px 32px rgba(74, 144, 226, 0.3), inset 0 2px 4px rgba(74, 144, 226, 0.2)',
                         animation: 'dialogueFadeIn 0.3s ease-out',
                         display: 'flex',
@@ -537,15 +536,14 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
                 </div>
             )}
             
-            {/* Player Input Box (FF6-style, positioned at bottom) */}
+            {/* Player Input Box (FF6-style, positioned at bottom right) */}
             {currentDialogue?.visible && (
                 <div
                     style={{
                         position: 'absolute',
-                        bottom: '40px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        width: '500px',
+                        bottom: '20px',
+                        right: '20px',
+                        width: 'min(400px, calc(100vw - 40px))',
                         zIndex: 1000
                     }}
                 >
@@ -634,7 +632,7 @@ const BeautifulInteriorMapDisplay: React.FC<BeautifulInteriorMapDisplayProps> = 
             {/* Exit button */}
             <button
                 onClick={onExit}
-                className="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg border border-red-400 transition-colors"
+                className="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg border border-red-400 transition-colors text-sm font-semibold"
             >
                 Exit
             </button>

@@ -148,9 +148,11 @@ class MapCanvasRenderer {
         })
       : null;
 
-    if (this.canvas && /^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
-      this.canvas.style.backfaceVisibility = 'hidden';
-    }
+    // TESTING: Disabled backfaceVisibility to fix Safari blur issue
+    // This was causing Safari to render the canvas with lower quality
+    // if (this.canvas && /^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
+    //   this.canvas.style.backfaceVisibility = 'hidden';
+    // }
   }
 
   shouldRender(mapData: MapData, canvasSize: { width: number; height: number }) {
@@ -229,7 +231,7 @@ class MapCanvasRenderer {
     if (!this.ctx) return;
     const p = getOceanPalette(mapData.climate);
 
-    // Fill deep ocean
+    // Keep beautiful blue ocean background everywhere
     this.ctx.fillStyle = p.deep;
     this.ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
 
@@ -436,10 +438,46 @@ class MapCanvasRenderer {
           return;
         }
 
-        // Base fill + subtle shadow
+        // LAND BACKGROUND: Fill grid square with neutral color to prevent blue bleed-through
+        // This only affects land tiles - water areas keep their beautiful blue
+        this.ctx!.fillStyle = '#7A6B47'; // Neutral brown-tan
+        this.ctx!.fillRect(tileX, tileY, TILE_SIZE_PX, TILE_SIZE_PX);
+
+        // FEATURE TOGGLE: Edge feathering to fix blue background bleed-through
+        const ENABLE_EDGE_FEATHERING = true;
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+        // Edge feathering (glow effect to fill gaps between organic edges)
+        if (ENABLE_EDGE_FEATHERING) {
+          this.ctx!.save();
+
+          if (isSafari) {
+            // Safari fallback: Multiple thin strokes to simulate glow
+            this.ctx!.strokeStyle = color;
+            this.ctx!.lineWidth = 2;
+            this.ctx!.globalAlpha = 0.6;
+            this.ctx!.stroke(organicPath);
+            this.ctx!.lineWidth = 1;
+            this.ctx!.globalAlpha = 0.8;
+            this.ctx!.stroke(organicPath);
+            this.ctx!.globalAlpha = 1;
+          } else {
+            // Chrome/Firefox: Use shadow blur
+            this.ctx!.shadowColor = color;
+            this.ctx!.shadowBlur = 3;
+            this.ctx!.shadowOffsetX = 0;
+            this.ctx!.shadowOffsetY = 0;
+            
+          }
+
+          this.ctx!.fillStyle = color;
+          this.ctx!.fill(organicPath);
+          this.ctx!.restore();
+        }
+
+        // Base fill + subtle drop shadow
         this.ctx!.save();
         this.ctx!.shadowColor = 'rgba(0,0,0,0.15)';
-        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
         this.ctx!.shadowBlur = isSafari ? 1.5 : 2.5;
         this.ctx!.shadowOffsetX = isSafari ? 0.8 : 1.2;
         this.ctx!.shadowOffsetY = isSafari ? 0.8 : 1.2;
@@ -495,6 +533,16 @@ class MapCanvasRenderer {
     const tileX = x * TILE_SIZE_PX;
     const tileY = y * TILE_SIZE_PX;
 
+    // FEATURE TOGGLE: Enable/disable organic biome boundaries
+    // Set to false to restore original hard rectangular boundaries between biomes
+    const ENABLE_ORGANIC_BIOME_BOUNDARIES = true;
+
+    // EXPANSION: Slightly expand organic shapes to better cover brown background
+    const expansion = TILE_SIZE_PX * 0.05; // 8% expansion for better coverage
+    const expandedTileX = tileX - expansion / 2;
+    const expandedTileY = tileY - expansion / 2;
+    const expandedSize = TILE_SIZE_PX + expansion;
+
     // Handle urban biomes (roads, plazas, parks) as hard rectangles
     if ([BiomeType.ROAD, BiomeType.PLAZA, BiomeType.PARK].includes(tile.biome)) {
       path.rect(tileX, tileY, TILE_SIZE_PX, TILE_SIZE_PX);
@@ -504,13 +552,13 @@ class MapCanvasRenderer {
     const getNeighbor = (nx: number, ny: number): Tile | null =>
       nx >= 0 && nx < mapData.width && ny >= 0 && ny < mapData.height ? mapData.tiles[ny][nx] : null;
 
-    path.moveTo(tileX, tileY); // start at top-left
+    path.moveTo(expandedTileX, expandedTileY); // start at expanded top-left
 
     const edges = [
-      { x1: tileX, y1: tileY, x2: tileX + TILE_SIZE_PX, y2: tileY, nx: 0, ny: -1, edgeName: 'top' as const },
-      { x1: tileX + TILE_SIZE_PX, y1: tileY, x2: tileX + TILE_SIZE_PX, y2: tileY + TILE_SIZE_PX, nx: 1, ny: 0, edgeName: 'right' as const },
-      { x1: tileX + TILE_SIZE_PX, y1: tileY + TILE_SIZE_PX, x2: tileX, y2: tileY + TILE_SIZE_PX, nx: 0, ny: 1, edgeName: 'bottom' as const },
-      { x1: tileX, y1: tileY + TILE_SIZE_PX, x2: tileX, y2: tileY, nx: -1, ny: 0, edgeName: 'left' as const },
+      { x1: expandedTileX, y1: expandedTileY, x2: expandedTileX + expandedSize, y2: expandedTileY, nx: 0, ny: -1, edgeName: 'top' as const },
+      { x1: expandedTileX + expandedSize, y1: expandedTileY, x2: expandedTileX + expandedSize, y2: expandedTileY + expandedSize, nx: 1, ny: 0, edgeName: 'right' as const },
+      { x1: expandedTileX + expandedSize, y1: expandedTileY + expandedSize, x2: expandedTileX, y2: expandedTileY + expandedSize, nx: 0, ny: 1, edgeName: 'bottom' as const },
+      { x1: expandedTileX, y1: expandedTileY + expandedSize, x2: expandedTileX, y2: expandedTileY, nx: -1, ny: 0, edgeName: 'left' as const },
     ];
 
     edges.forEach((edge) => {
@@ -518,7 +566,14 @@ class MapCanvasRenderer {
       // OOB is NOT water (edge fix)
       const neighborIsWater = neighbor ? !neighbor.isLand : false;
 
-      if (!neighborIsWater) {
+      // NEW: Check for different biome neighbors (organic biome boundaries)
+      const neighborIsDifferentBiome = ENABLE_ORGANIC_BIOME_BOUNDARIES &&
+        neighbor && neighbor.isLand && neighbor.biome !== tile.biome;
+
+      // Use organic edge for water boundaries OR different biome boundaries
+      const shouldUseOrganicEdge = neighborIsWater || neighborIsDifferentBiome;
+
+      if (!shouldUseOrganicEdge) {
         path.lineTo(edge.x2, edge.y2);
       } else {
         const segments = 4;
@@ -559,10 +614,13 @@ class MapCanvasRenderer {
           // Taper to zero at endpoints so corners are anchored
           const endT = this.endTaper(tCanon, 1.2);
 
-          let perturb = f * COASTLINE_PERTURB_AMOUNT * endT;
+          // Reduce perturbation for biome boundaries (subtler than coastlines)
+          const perturbationScale = neighborIsWater ? 1.0 : 0.4; // 60% intensity for biome boundaries
 
-          // Per-edge phase/freq jitter (breaks “same NW nub”)
-          perturb += Math.sin(tCanon * Math.PI * SCALLOP_FREQ * freq + phase) * SCALLOP_AMPL * endT;
+          let perturb = f * COASTLINE_PERTURB_AMOUNT * endT * perturbationScale;
+
+          // Per-edge phase/freq jitter (breaks "same NW nub")
+          perturb += Math.sin(tCanon * Math.PI * SCALLOP_FREQ * freq + phase) * SCALLOP_AMPL * endT * perturbationScale;
 
           const px = isH ? baseX : baseX + perturb;
           const py = isH ? baseY + perturb : baseY;
@@ -633,9 +691,9 @@ export const MapCanvasPerformance = React.forwardRef<HTMLCanvasElement, MapCanva
     const canvasRef = (ref as React.MutableRefObject<HTMLCanvasElement | null>) || internalCanvasRef;
     const rendererRef = useRef<MapCanvasRenderer>(new MapCanvasRenderer());
 
-    const patterns = useTilePatterns({ mapData });
-    // Recompute patterns when seed changes (stable otherwise)
-    const memoizedPatterns = useMemo(() => patterns, [mapData.seed]);
+    const patterns = useTilePatterns({ mapData, season });
+    // Recompute patterns when seed or season changes (stable otherwise)
+    const memoizedPatterns = useMemo(() => patterns, [mapData.seed, season]);
 
     useEffect(() => {
       const renderer = rendererRef.current;
@@ -668,7 +726,10 @@ export const MapCanvasPerformance = React.forwardRef<HTMLCanvasElement, MapCanva
           left: 0,
           transform: `translate(${panX}px, ${panY}px) scale(${zoomLevel})`,
           transformOrigin: '0 0',
-          imageRendering: zoomLevel >= 3 ? 'pixelated' : 'auto',
+          imageRendering: /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+            ? '-webkit-optimize-contrast'
+            : (zoomLevel >= 3 ? 'pixelated' : 'auto'),
+          WebkitImageRendering: '-webkit-optimize-contrast', // Safari-specific property
           filter:
             mapData.climate === ClimateType.TROPICAL ||
             mapData.climate === ClimateType.SEMITROPICAL ||
@@ -677,9 +738,9 @@ export const MapCanvasPerformance = React.forwardRef<HTMLCanvasElement, MapCanva
               : mapData.climate === ClimateType.COLD
               ? 'contrast(1) saturate(1) brightness(1.05) hue-rotate(0deg)'
               : 'contrast(1.0) saturate(1.0) brightness(1.0)',
-          transition: 'filter 0.1s ease-out',
-          willChange: 'transform',
-          contain: 'strict', // reduce layout/paint spill
+          transition: 'filter 0.1s ease-out'
+          // contain: 'strict' // Disabled - may cause Safari blur issues
+          // willChange: 'transform', // Disabled - causes Safari to render at lower resolution
         }}
       />
     );

@@ -47,6 +47,7 @@ import NpcConfrontationModal from './NpcConfrontationModal';
 import { processNpcReactions, ItemCollectionEvent } from '../services/npcAwarenessService';
 import { updateCachedContents } from '../services/containerCacheService';
 import { useState } from 'react';
+import { entityHealthService } from '../services/entityHealthService';
 
 
 const ModalHub: React.FC = () => {
@@ -102,7 +103,26 @@ const ModalHub: React.FC = () => {
     } = usePlayer();
     
     const { gameDate, currentZone, currentRegion, gameTimeHours, gameTimeMinutes, season, currentEra, climate, currentTimeOfDay } = useGame();
-    
+
+    // Initialize entity health service when map changes
+    useEffect(() => {
+        if (initialGameSeed) {
+            entityHealthService.setCurrentMap(initialGameSeed.toString());
+            console.log(`[EntityHealth] Set current map: ${initialGameSeed}`);
+        }
+    }, [initialGameSeed]);
+
+    // Clear health data when leaving special maps
+    useEffect(() => {
+        return () => {
+            if (isSpecialMap) {
+                // Don't clear when in special maps as they're temporary
+                return;
+            }
+            // Will clear when component unmounts (changing maps)
+        };
+    }, [isSpecialMap]);
+
     // Function to update a single NPC in the npcs array
     const handleUpdateNpc = useCallback((updatedNpc: NpcEntity) => {
         setNpcs(prevNpcs => prevNpcs.map(npc => 

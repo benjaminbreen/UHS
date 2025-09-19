@@ -121,10 +121,17 @@ export interface PlayerCharacter {
     era: HistoricalEra;
     culturalZone: CulturalZone;
     portraitSeed?: number;
-    
+
     appearance: Appearance;
     birthplace: string;
     birthYear?: string; // Year the character was born
+
+    // Additional properties for compatibility
+    occupation?: string; // Alternative name for profession
+    historicalEra?: HistoricalEra; // Alias for era
+    year?: number; // Current game year
+    hometown?: string; // Alternative name for birthplace
+    reputation?: number; // Alternative name for mapReputation
 
     ideology: string; // ID of the character's primary Ideology
     beliefs: { beliefId: string; conviction: number }[]; // NEW: Beliefs system

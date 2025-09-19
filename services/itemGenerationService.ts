@@ -205,7 +205,7 @@ const MATERIAL_COLOR_RANGES: Record<string, MaterialColorRange> = {
 
 const CLOTHING_COLOR_PALETTES: Record<CulturalZone, Record<string, string[]>> = {
   'EUROPEAN': {
-    common: ['Brown', 'Gray', 'Beige', 'Tan', 'Black', 'Blue', 'Green', 'Red', 'White', 'Russet', 'Mustard', 'Dun'],
+    common: ['Brown', 'Gray', 'Beige', 'Tan', 'Black', 'Blue', 'Green', 'Red', 'White', 'Russet', 'Reddish', 'Dun'],
     noble: ['Navy', 'Crimson', 'Purple', 'Forest Green', 'Gold'],
     religious: ['Black', 'White', 'Brown', 'Gray']
   },
@@ -703,7 +703,7 @@ export function assignProceduralColors(item: Item, culture: CulturalZone, social
       color // Just store the color, don't modify the name
     };
   }
-  
+
   // For items with materials, assign material-based colors
   if (item.material) {
     const materialLower = item.material.toLowerCase();
@@ -717,7 +717,7 @@ export function assignProceduralColors(item: Item, culture: CulturalZone, social
       };
     }
   }
-  
+
   return item;
 }
 
@@ -767,12 +767,26 @@ function getMaterialCategory(material: string): string {
   const metalMaterials = ['iron', 'steel', 'bronze', 'copper', 'brass', 'gold', 'silver'];
   const clothMaterials = ['cotton', 'wool', 'silk', 'linen', 'hemp', 'cloth'];
   const leatherMaterials = ['leather', 'hide', 'fur', 'pelt'];
-  
+
   const materialLower = material.toLowerCase();
   if (metalMaterials.includes(materialLower)) return 'metal';
   if (clothMaterials.includes(materialLower)) return 'cloth';
   if (leatherMaterials.includes(materialLower)) return 'leather';
   return 'metal'; // Default
+}
+
+function isValidMaterialForItem(material: string, itemName: string, equipmentSlot?: string): boolean {
+  const materialLower = material.toLowerCase();
+  const itemLower = itemName.toLowerCase();
+
+  // Jewelry/metal items should not have textile materials
+  if ((itemLower.includes('torc') || itemLower.includes('ring') ||
+       equipmentSlot === 'necklace') &&
+      ['wool', 'cotton', 'linen', 'silk', 'hemp'].includes(materialLower)) {
+    return false;
+  }
+
+  return true;
 }
 
 export function getEraAppropriateMaterial(baseMaterial: string, era: HistoricalEra, itemCategory?: ItemCategory): string {
@@ -833,13 +847,13 @@ export function generateProceduralName(
 ): string {
   // Simple, clean naming: [Quality] [Color] [Material] [Item Name]
   const parts: string[] = [];
-  
+
   // Only add ONE quality descriptor (not condition, age, etc.)
   if (options.quality && options.quality !== 'standard') {
     const qualityWord = randomChoice(QUALITY_ADJECTIVES[options.quality]);
     parts.push(qualityWord);
   }
-  
+
   // Add color if provided
   if (options.color && options.color !== '#8b7355') { // Skip default color
     // Convert hex to name if needed
@@ -848,7 +862,7 @@ export function generateProceduralName(
       parts.push(colorName);
     }
   }
-  
+
   // Add material (just the clean material name, not variations)
   if (options.material && options.material !== baseItem.material) {
     parts.push(options.material);
@@ -948,6 +962,11 @@ export function generateProceduralItem(
     // Get era-appropriate material
     const baseMaterial = baseItem.material;
     eraAppropriateMaterial = getEraAppropriateMaterial(baseMaterial, era, baseItem.category);
+
+    // Validate the substituted material makes sense for this item
+    if (!isValidMaterialForItem(eraAppropriateMaterial, baseItem.name, baseItem.equipmentSlot)) {
+      eraAppropriateMaterial = baseMaterial; // Keep original material if substitution is invalid
+    }
 
     // Get cultural style
     culturalStyle = options.culture ? getCulturalStyle(options.culture, eraAppropriateMaterial) : undefined;
