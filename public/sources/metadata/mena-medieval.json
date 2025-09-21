@@ -187,26 +187,59 @@
       "longExcerpt": "Justice is the foundation of sovereignty. This historical source from 1540 provides valuable insight into the mena region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
     },
     {
-      "id": "mena-medieval-chronicle",
-      "title": "Middle Eastern Medieval Chronicle",
-      "author": "Various Authors",
-      "year": 1000,
+      "id": "ibn-battuta-travels",
+      "title": "The Travels of Ibn Battuta",
+      "author": "Ibn Battuta",
+      "year": 1355,
       "era": "MEDIEVAL",
       "culturalZones": [
         "MENA"
       ],
-      "excerpt": "A collection of medieval texts from the Middle Eastern region.",
-      "longExcerpt": "This represents a compilation of historical documents from the Medieval period in the Middle Eastern region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "excerpt": "Damascus is the Paradise of the Orient. Every description falls short of its merits. It is adorned with the flowers of sweet-scented herbs and encircled by gardens.",
+      "longExcerpt": "Damascus is the Paradise of the Orient. Every description falls short of its merits. It is adorned with the flowers of sweet-scented herbs and encircled by gardens. This account from history's greatest medieval traveler, who journeyed over 75,000 miles from Morocco to China between 1325-1354, provides unparalleled descriptions of the Islamic world.",
       "keywords": [
-        "mena",
-        "medieval",
-        "history",
-        "chronicle",
-        "primary source"
+        "travel",
+        "Damascus",
+        "Islam",
+        "pilgrimage",
+        "trade",
+        "cities",
+        "culture"
       ],
-      "wikisourceTitle": "Middle Eastern_Medieval_Texts",
+      "wikisourceTitle": "The_Travels_of_Ibn_Battuta",
+      "internetArchiveId": "travelsofibBatt00batt",
       "citation": {
-        "originalPublication": "Middle Eastern Medieval Period"
+        "translator": "H.A.R. Gibb",
+        "originalPublication": "Morocco, 1355",
+        "modernSource": "Cambridge University Press, 1958"
+      }
+    },
+    {
+      "id": "ibn-khaldun-muqaddimah",
+      "title": "The Muqaddimah",
+      "author": "Ibn Khaldun",
+      "year": 1377,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "MENA"
+      ],
+      "excerpt": "Geography is a science that deals with the description of the earth's surface. It tells us about the cultivated and uncultivated regions, and explains the differences in the conditions of the inhabitants.",
+      "longExcerpt": "Geography is a science that deals with the description of the earth's surface. It tells us about the cultivated and uncultivated regions, and explains the differences in the conditions of the inhabitants. This pioneering work of historiography and sociology from 1377 introduced concepts of social science that wouldn't appear in Europe for centuries.",
+      "keywords": [
+        "history",
+        "sociology",
+        "civilization",
+        "nomads",
+        "cities",
+        "philosophy",
+        "science"
+      ],
+      "wikisourceTitle": "Muqaddimah",
+      "internetArchiveId": "muqaddimah00ibnu",
+      "citation": {
+        "translator": "Franz Rosenthal",
+        "originalPublication": "Tunis, 1377",
+        "modernSource": "Princeton University Press, 1958"
       }
     },
     {

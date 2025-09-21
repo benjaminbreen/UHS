@@ -11,6 +11,7 @@ import { handleIntimidatingShout } from './npcInitiatedEncounterService';
 import { fireService } from './fireService';
 import { weatherService } from './weatherService';
 import { getDayOfYear } from '../utils/dateUtils';
+import { handleSkillFailureInjury } from './injuryService';
 
 
 async function executeObserve(context: PlayerContext): Promise<ObserveSkillResult> {
@@ -386,6 +387,25 @@ async function executeChop(context: PlayerContext): Promise<ChopSkillResult> {
             entityToRemoveId: vegetationEntity.id,
         };
     } else {
+        // Check for injury on critical chopping failures
+        const currentDate = context.gameDate || { year: 1000, month: 1, day: 1 };
+        const injuryContext = {
+            type: 'skill_failure' as const,
+            skillType: 'CHOP',
+            severity: Math.random() * 0.4 + 0.1 // 10-50% severity for chopping failures
+        };
+
+        const injuryResult = handleSkillFailureInjury(playerCharacter, injuryContext, currentDate);
+
+        if (injuryResult.injured) {
+            return {
+                type: 'chop',
+                success: false,
+                message: `You swing at the ${vegetationEntity.speciesName.toLowerCase()} but fail to make a dent.\n\n${injuryResult.message}`,
+                injury: injuryResult.injury
+            };
+        }
+
         return { type: 'chop', success: false, message: `You swing at the ${vegetationEntity.speciesName.toLowerCase()} but fail to make a dent.` };
     }
 }
@@ -564,10 +584,29 @@ async function executeDig(context: PlayerContext): Promise<DigSkillResult> {
             }
         }
         
-        // Failure message varies by tool
-        const failureMessage = equippedTool?.baseId.includes('PICKAXE') 
+        // Check for injury on critical digging failures
+        const currentDate = context.gameDate || { year: 1000, month: 1, day: 1 };
+        const injuryContext = {
+            type: 'skill_failure' as const,
+            skillType: 'DIG',
+            severity: Math.random() * 0.3 + 0.1 // 10-40% severity for digging failures
+        };
+
+        const injuryResult = handleSkillFailureInjury(playerCharacter, injuryContext, currentDate);
+
+        const failureMessage = equippedTool?.baseId.includes('PICKAXE')
             ? "You swing your pickaxe but fail to break off any ore."
             : `You try to dig with ${toolName} but can't extract any ore this time.`;
+
+        if (injuryResult.injured) {
+            return {
+                type: 'dig',
+                success: false,
+                message: `${failureMessage}\n\n${injuryResult.message}`,
+                injury: injuryResult.injury
+            };
+        }
+
         return { type: 'dig', success: false, message: failureMessage };
     }
 

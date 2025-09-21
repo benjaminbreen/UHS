@@ -68,26 +68,59 @@
       "longExcerpt": "The Chiefs of the Confederation and all the Chiefs will sell land to the Queen at a price agreed by the person owning it. This historical source from 1840 provides valuable insight into the oceania region during the industrial period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
     },
     {
-      "id": "oceania-industrial-chronicle",
-      "title": "Oceanic Industrial Chronicle",
-      "author": "Various Authors",
-      "year": 1850,
+      "id": "melville-typee",
+      "title": "Typee",
+      "author": "Herman Melville",
+      "year": 1846,
       "era": "INDUSTRIAL",
       "culturalZones": [
         "OCEANIA"
       ],
-      "excerpt": "A collection of industrial texts from the Oceanic region.",
-      "longExcerpt": "This represents a compilation of historical documents from the Industrial period in the Oceanic region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "excerpt": "The Marquesas! What strange visions of outlandish things does the very name spirit up! Naked houris, cannibal banquets, groves of cocoa-nut, coral reefs, tattooed chiefs, and bamboo temples.",
+      "longExcerpt": "The Marquesas! What strange visions of outlandish things does the very name spirit up! Naked houris, cannibal banquets, groves of cocoa-nut, coral reefs, tattooed chiefs, and bamboo temples. This semi-autobiographical novel from 1846 by the future author of Moby-Dick shaped American perceptions of Polynesian culture, mixing genuine observation with romantic exoticism.",
       "keywords": [
-        "oceania",
-        "industrial",
-        "history",
-        "chronicle",
-        "primary source"
+        "Marquesas",
+        "Polynesia",
+        "adventure",
+        "cannibalism",
+        "tattoo",
+        "paradise",
+        "culture"
       ],
-      "wikisourceTitle": "Oceanic_Industrial_Texts",
+      "wikisourceTitle": "Typee",
+      "internetArchiveId": "typee00melv",
       "citation": {
-        "originalPublication": "Oceanic Industrial Period"
+        "translator": null,
+        "originalPublication": "New York, 1846",
+        "modernSource": "Wiley and Putnam, 1846"
+      }
+    },
+    {
+      "id": "stevenson-south-seas",
+      "title": "In the South Seas",
+      "author": "Robert Louis Stevenson",
+      "year": 1896,
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "The first experience can never be repeated. The first love, the first sunrise, the first South Sea island, are memories apart and touched a virginity of sense.",
+      "longExcerpt": "The first experience can never be repeated. The first love, the first sunrise, the first South Sea island, are memories apart and touched a virginity of sense. This travel narrative from 1896 by the author of Treasure Island provides detailed observations of Pacific island cultures during a period of rapid colonial change.",
+      "keywords": [
+        "Pacific",
+        "islands",
+        "travel",
+        "Samoa",
+        "culture",
+        "colonialism",
+        "observation"
+      ],
+      "wikisourceTitle": "In_the_South_Seas",
+      "internetArchiveId": "inthesouthseas00stev",
+      "citation": {
+        "translator": null,
+        "originalPublication": "New York, 1896",
+        "modernSource": "Charles Scribner's Sons, 1896"
       }
     }
   ]

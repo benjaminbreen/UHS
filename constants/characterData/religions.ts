@@ -86,6 +86,20 @@ export const RELIGION_DATA: Partial<Record<CulturalZone, Partial<Record<string, 
             [HistoricalEra.INDUSTRIAL_ERA]: [ { religion: 'Eastern Orthodoxy', weight: 88 }, { religion: 'Sunni Islam', weight: 10 }, { religion: 'Judaism', weight: 2 } ],
             [HistoricalEra.MODERN_ERA]: [ { religion: 'Eastern Orthodoxy', weight: 85 }, { religion: 'Atheism', weight: 10 }, { religion: 'Sunni Islam', weight: 3 }, { religion: 'Judaism', weight: 2 } ]
         },
+        "Atlantic Islands": {
+            [HistoricalEra.ANTIQUITY]: [ { religion: 'Celtic Druidism', weight: 70 }, { religion: 'Roman Polytheism', weight: 25 }, { religion: 'Early Christianity', weight: 5 } ],
+            [HistoricalEra.MEDIEVAL]: [ { religion: 'Roman Catholicism', weight: 80 }, { religion: 'Celtic Christianity', weight: 15 }, { religion: 'Norse Paganism', weight: 5 } ],
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [ { religion: 'Roman Catholicism', weight: 85 }, { religion: 'Protestantism', weight: 12 }, { religion: 'Judaism', weight: 3 } ],
+            [HistoricalEra.INDUSTRIAL_ERA]: [ { religion: 'Roman Catholicism', weight: 70 }, { religion: 'Protestantism', weight: 20 }, { religion: 'Atheism', weight: 8 }, { religion: 'Judaism', weight: 2 } ],
+            [HistoricalEra.MODERN_ERA]: [ { religion: 'Roman Catholicism', weight: 50 }, { religion: 'Atheism', weight: 30 }, { religion: 'Protestantism', weight: 15 }, { religion: 'Islam', weight: 3 }, { religion: 'Judaism', weight: 2 } ]
+        },
+        "Ural and Arctic Europe": {
+            [HistoricalEra.ANTIQUITY]: [ { religion: 'Shamanism', weight: 70 }, { religion: 'Slavic Paganism', weight: 20 }, { religion: 'Finno-Ugric Paganism', weight: 10 } ],
+            [HistoricalEra.MEDIEVAL]: [ { religion: 'Eastern Orthodoxy', weight: 60 }, { religion: 'Shamanism', weight: 30 }, { religion: 'Slavic Paganism', weight: 10 } ],
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [ { religion: 'Eastern Orthodoxy', weight: 80 }, { religion: 'Shamanism', weight: 15 }, { religion: 'Protestantism', weight: 5 } ],
+            [HistoricalEra.INDUSTRIAL_ERA]: [ { religion: 'Eastern Orthodoxy', weight: 75 }, { religion: 'Shamanism', weight: 15 }, { religion: 'Atheism', weight: 10 } ],
+            [HistoricalEra.MODERN_ERA]: [ { religion: 'Atheism', weight: 50 }, { religion: 'Eastern Orthodoxy', weight: 35 }, { religion: 'Shamanism', weight: 10 }, { religion: 'Islam', weight: 5 } ]
+        },
     },
     'NORTH_AMERICAN_PRE_COLUMBIAN': {
         "Pacific Coast": {
@@ -562,6 +576,73 @@ export const RELIGION_DATA: Partial<Record<CulturalZone, Partial<Record<string, 
             [HistoricalEra.INDUSTRIAL_ERA]: [ { religion: 'Christianity', weight: 70 }, { religion: 'Hawaiian Traditional Religion', weight: 20 }, { religion: 'Buddhism', weight: 10 } ],
             [HistoricalEra.MODERN_ERA]: [ { religion: 'Christianity', weight: 60 }, { religion: 'Atheism', weight: 20 }, { religion: 'Buddhism', weight: 15 }, { religion: 'Hawaiian Traditional Religion', weight: 3 }, { religion: 'Hinduism', weight: 2 } ]
         },
+    },
+    'NORTH_AMERICAN_COLONIAL': {
+        "Northeastern Seaboard": {
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [ { religion: 'Protestantism', weight: 45 }, { religion: 'Roman Catholicism', weight: 30 }, { religion: 'Puritanism', weight: 15 }, { religion: 'Quakerism', weight: 8 }, { religion: 'Judaism', weight: 2 } ],
+            [HistoricalEra.INDUSTRIAL_ERA]: [ { religion: 'Protestantism', weight: 55 }, { religion: 'Roman Catholicism', weight: 25 }, { religion: 'Judaism', weight: 8 }, { religion: 'Atheism', weight: 7 }, { religion: 'Methodist', weight: 5 } ],
+            [HistoricalEra.MODERN_ERA]: [ { religion: 'Protestantism', weight: 35 }, { religion: 'Roman Catholicism', weight: 30 }, { religion: 'Atheism', weight: 20 }, { religion: 'Judaism', weight: 8 }, { religion: 'Islam', weight: 4 }, { religion: 'Hinduism', weight: 3 } ]
+        },
+        "Southeast": {
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [ { religion: 'Protestantism', weight: 70 }, { religion: 'Roman Catholicism', weight: 15 }, { religion: 'African Traditional Religion', weight: 10 }, { religion: 'Native American Spirituality', weight: 5 } ],
+            [HistoricalEra.INDUSTRIAL_ERA]: [ { religion: 'Protestantism', weight: 75 }, { religion: 'Roman Catholicism', weight: 15 }, { religion: 'African Traditional Religion', weight: 8 }, { religion: 'Judaism', weight: 2 } ],
+            [HistoricalEra.MODERN_ERA]: [ { religion: 'Protestantism', weight: 65 }, { religion: 'Roman Catholicism', weight: 20 }, { religion: 'Atheism', weight: 8 }, { religion: 'Islam', weight: 4 }, { religion: 'Judaism', weight: 3 } ]
+        },
+        "Great Plains": {
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [ { religion: 'Native American Spirituality', weight: 80 }, { religion: 'Roman Catholicism', weight: 15 }, { religion: 'Protestantism', weight: 5 } ],
+            [HistoricalEra.INDUSTRIAL_ERA]: [ { religion: 'Protestantism', weight: 50 }, { religion: 'Roman Catholicism', weight: 30 }, { religion: 'Native American Spirituality', weight: 20 } ],
+            [HistoricalEra.MODERN_ERA]: [ { religion: 'Protestantism', weight: 60 }, { religion: 'Roman Catholicism', weight: 25 }, { religion: 'Atheism', weight: 10 }, { religion: 'Native American Spirituality', weight: 5 } ]
+        },
+        "Mississippi Valley": {
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [ { religion: 'Roman Catholicism', weight: 60 }, { religion: 'Native American Spirituality', weight: 25 }, { religion: 'Protestantism', weight: 15 } ],
+            [HistoricalEra.INDUSTRIAL_ERA]: [ { religion: 'Protestantism', weight: 55 }, { religion: 'Roman Catholicism', weight: 35 }, { religion: 'Native American Spirituality', weight: 10 } ],
+            [HistoricalEra.MODERN_ERA]: [ { religion: 'Protestantism', weight: 50 }, { religion: 'Roman Catholicism', weight: 30 }, { religion: 'Atheism', weight: 15 }, { religion: 'Judaism', weight: 3 }, { religion: 'Islam', weight: 2 } ]
+        },
+        "Pacific Coast": {
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [ { religion: 'Roman Catholicism', weight: 70 }, { religion: 'Native American Spirituality', weight: 25 }, { religion: 'Protestantism', weight: 5 } ],
+            [HistoricalEra.INDUSTRIAL_ERA]: [ { religion: 'Protestantism', weight: 45 }, { religion: 'Roman Catholicism', weight: 40 }, { religion: 'Atheism', weight: 10 }, { religion: 'Buddhism', weight: 3 }, { religion: 'Native American Spirituality', weight: 2 } ],
+            [HistoricalEra.MODERN_ERA]: [ { religion: 'Atheism', weight: 35 }, { religion: 'Protestantism', weight: 30 }, { religion: 'Roman Catholicism', weight: 20 }, { religion: 'Buddhism', weight: 8 }, { religion: 'Hinduism', weight: 4 }, { religion: 'Islam', weight: 3 } ]
+        },
+        "Southwest": {
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [ { religion: 'Roman Catholicism', weight: 65 }, { religion: 'Native American Spirituality', weight: 30 }, { religion: 'Protestantism', weight: 5 } ],
+            [HistoricalEra.INDUSTRIAL_ERA]: [ { religion: 'Roman Catholicism', weight: 55 }, { religion: 'Protestantism', weight: 35 }, { religion: 'Native American Spirituality', weight: 10 } ],
+            [HistoricalEra.MODERN_ERA]: [ { religion: 'Roman Catholicism', weight: 50 }, { religion: 'Protestantism', weight: 30 }, { religion: 'Atheism', weight: 12 }, { religion: 'Native American Spirituality', weight: 5 }, { religion: 'Islam', weight: 3 } ]
+        },
+        "Canada": {
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [ { religion: 'Roman Catholicism', weight: 60 }, { religion: 'Protestantism', weight: 35 }, { religion: 'Native American Spirituality', weight: 5 } ],
+            [HistoricalEra.INDUSTRIAL_ERA]: [ { religion: 'Roman Catholicism', weight: 45 }, { religion: 'Protestantism', weight: 50 }, { religion: 'Judaism', weight: 3 }, { religion: 'Native American Spirituality', weight: 2 } ],
+            [HistoricalEra.MODERN_ERA]: [ { religion: 'Roman Catholicism', weight: 40 }, { religion: 'Protestantism', weight: 35 }, { religion: 'Atheism', weight: 20 }, { religion: 'Islam', weight: 3 }, { religion: 'Judaism', weight: 2 } ]
+        },
+        "Mexico and Central Highlands": {
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [ { religion: 'Roman Catholicism', weight: 85 }, { religion: 'Mesoamerican Traditional Religion', weight: 12 }, { religion: 'Syncretic Christianity', weight: 3 } ],
+            [HistoricalEra.INDUSTRIAL_ERA]: [ { religion: 'Roman Catholicism', weight: 90 }, { religion: 'Protestantism', weight: 8 }, { religion: 'Mesoamerican Traditional Religion', weight: 2 } ],
+            [HistoricalEra.MODERN_ERA]: [ { religion: 'Roman Catholicism', weight: 75 }, { religion: 'Protestantism', weight: 15 }, { religion: 'Atheism', weight: 7 }, { religion: 'Pentecostalism', weight: 3 } ]
+        },
+        "The Caribbean": {
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [ { religion: 'Roman Catholicism', weight: 60 }, { religion: 'Protestantism', weight: 25 }, { religion: 'African Traditional Religion', weight: 12 }, { religion: 'Judaism', weight: 3 } ],
+            [HistoricalEra.INDUSTRIAL_ERA]: [ { religion: 'Roman Catholicism', weight: 50 }, { religion: 'Protestantism', weight: 35 }, { religion: 'African Traditional Religion', weight: 10 }, { religion: 'Judaism', weight: 3 }, { religion: 'Hinduism', weight: 2 } ],
+            [HistoricalEra.MODERN_ERA]: [ { religion: 'Roman Catholicism', weight: 45 }, { religion: 'Protestantism', weight: 30 }, { religion: 'Atheism', weight: 15 }, { religion: 'Islam', weight: 5 }, { religion: 'Hinduism', weight: 3 }, { religion: 'Judaism', weight: 2 } ]
+        },
+        "Central America": {
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [ { religion: 'Roman Catholicism', weight: 90 }, { religion: 'Mayan Traditional Religion', weight: 8 }, { religion: 'Syncretic Christianity', weight: 2 } ],
+            [HistoricalEra.INDUSTRIAL_ERA]: [ { religion: 'Roman Catholicism', weight: 85 }, { religion: 'Protestantism', weight: 12 }, { religion: 'Mayan Traditional Religion', weight: 3 } ],
+            [HistoricalEra.MODERN_ERA]: [ { religion: 'Roman Catholicism', weight: 70 }, { religion: 'Protestantism', weight: 20 }, { religion: 'Pentecostalism', weight: 7 }, { religion: 'Atheism', weight: 3 } ]
+        },
+        "Arctic and Subarctic": {
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [ { religion: 'Inuit Shamanism', weight: 85 }, { religion: 'Christianity', weight: 15 } ],
+            [HistoricalEra.INDUSTRIAL_ERA]: [ { religion: 'Christianity', weight: 60 }, { religion: 'Inuit Shamanism', weight: 40 } ],
+            [HistoricalEra.MODERN_ERA]: [ { religion: 'Christianity', weight: 70 }, { religion: 'Atheism', weight: 20 }, { religion: 'Inuit Shamanism', weight: 10 } ]
+        },
+        "Northern Rockies": {
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [ { religion: 'Native American Spirituality', weight: 70 }, { religion: 'Roman Catholicism', weight: 20 }, { religion: 'Protestantism', weight: 10 } ],
+            [HistoricalEra.INDUSTRIAL_ERA]: [ { religion: 'Protestantism', weight: 50 }, { religion: 'Roman Catholicism', weight: 30 }, { religion: 'Native American Spirituality', weight: 20 } ],
+            [HistoricalEra.MODERN_ERA]: [ { religion: 'Protestantism', weight: 55 }, { religion: 'Roman Catholicism', weight: 25 }, { religion: 'Atheism', weight: 15 }, { religion: 'Native American Spirituality', weight: 5 } ]
+        },
+        "Atlantic Coast": {
+            [HistoricalEra.RENAISSANCE_EARLY_MODERN]: [ { religion: 'Protestantism', weight: 50 }, { religion: 'Roman Catholicism', weight: 25 }, { religion: 'Puritanism', weight: 15 }, { religion: 'Quakerism', weight: 8 }, { religion: 'Judaism', weight: 2 } ],
+            [HistoricalEra.INDUSTRIAL_ERA]: [ { religion: 'Protestantism', weight: 55 }, { religion: 'Roman Catholicism', weight: 30 }, { religion: 'Judaism', weight: 10 }, { religion: 'Atheism', weight: 5 } ],
+            [HistoricalEra.MODERN_ERA]: [ { religion: 'Protestantism', weight: 40 }, { religion: 'Roman Catholicism', weight: 30 }, { religion: 'Atheism', weight: 15 }, { religion: 'Judaism', weight: 10 }, { religion: 'Islam', weight: 3 }, { religion: 'Hinduism', weight: 2 } ]
+        }
     }
 };
 

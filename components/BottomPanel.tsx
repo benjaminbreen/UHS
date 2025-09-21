@@ -21,6 +21,9 @@ interface BottomPanelProps {
     onEnterFarm: (tile: Tile) => void;
     onEnterFishingHut: (tile: Tile) => void;
     onEnterMine: (structure: TerrainStructure) => void;
+    onEnterGovernmentDistrict?: (tile: Tile) => void;
+    onEnterHolySite?: (tile: Tile) => void;
+    onEnterPalace?: (tile: Tile) => void;
     toastMessage: string | null;
     season?: Season;
     timeOfDay?: TimeOfDay;
@@ -184,6 +187,9 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
     onEnterFarm,
     onEnterFishingHut,
     onEnterMine,
+    onEnterGovernmentDistrict,
+    onEnterHolySite,
+    onEnterPalace,
     toastMessage,
     season = 'summer',
     timeOfDay = 'Day',
@@ -526,11 +532,20 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
     };
 
     const renderDefaultContent = () => {
-        const currentTile = playerCharacter && mapData && playerX !== null && playerY !== null 
+        const currentTile = playerCharacter && mapData && playerX !== null && playerY !== null
             && playerY >= 0 && playerY < mapData.tiles.length
             && playerX >= 0 && playerX < (mapData.tiles[playerY]?.length || 0)
-            ? mapData.tiles[playerY][playerX] 
+            ? mapData.tiles[playerY][playerX]
             : null;
+
+        // Mobile-specific: Check for special tiles that need entry buttons
+        const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+        const needsMobileEntryButton = isMobile && currentTile && [
+            BiomeType.GOVERNMENT_DISTRICT,
+            BiomeType.HOLY_SITE,
+            BiomeType.PALACE,
+            BiomeType.RUINS
+        ].includes(currentTile.biome as BiomeType);
             
         const locationPhrase = currentTile && currentTile.biome ? currentTile.biome.replace(/_/g, ' ').toLowerCase() : 'Unknown';
         
@@ -566,8 +581,87 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
             return '📍';
         };
 
+        // Mobile special tile handling - show entry button
+        if (needsMobileEntryButton) {
+            let entryButtonText = 'Enter';
+            let entryButtonIcon = '🏛️';
+            let locationTitle = 'Special Location';
+
+            switch (currentTile.biome) {
+                case BiomeType.GOVERNMENT_DISTRICT:
+                    entryButtonText = 'Enter Government District';
+                    entryButtonIcon = '🏛️';
+                    locationTitle = 'Government District';
+                    break;
+                case BiomeType.HOLY_SITE:
+                    entryButtonText = 'Enter Holy Site';
+                    entryButtonIcon = '⛪';
+                    locationTitle = 'Holy Site';
+                    break;
+                case BiomeType.PALACE:
+                    entryButtonText = 'Enter Palace';
+                    entryButtonIcon = '🏰';
+                    locationTitle = 'Palace';
+                    break;
+                case BiomeType.RUINS:
+                    entryButtonText = 'Enter Ruins';
+                    entryButtonIcon = '🏚️';
+                    locationTitle = 'Ancient Ruins';
+                    break;
+            }
+
+            return (
+                <div className="w-full flex flex-col gap-3 p-3 animate-in slide-in-from-bottom duration-500">
+                    <div className="flex justify-center">
+                        <LocationDisplay
+                            title={locationTitle}
+                            subtitle="Tap to enter"
+                            icon={entryButtonIcon}
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                        <ActionButton
+                            onClick={() => {
+                                // Trigger the appropriate modal/action based on biome type
+                                // This will need to be connected to the proper modal triggers
+                                gameSounds.playButtonClickSound();
+                                if (currentTile.biome === BiomeType.RUINS) {
+                                    onEnterRuin(currentTile);
+                                } else if (currentTile.biome === BiomeType.GOVERNMENT_DISTRICT) {
+                                    if (onEnterGovernmentDistrict) {
+                                        onEnterGovernmentDistrict(currentTile);
+                                    } else {
+                                        console.log('Government District entry handler not provided');
+                                    }
+                                } else if (currentTile.biome === BiomeType.HOLY_SITE) {
+                                    if (onEnterHolySite) {
+                                        onEnterHolySite(currentTile);
+                                    } else {
+                                        console.log('Holy Site entry handler not provided');
+                                    }
+                                } else if (currentTile.biome === BiomeType.PALACE) {
+                                    if (onEnterPalace) {
+                                        onEnterPalace(currentTile);
+                                    } else {
+                                        console.log('Palace entry handler not provided');
+                                    }
+                                }
+                            }}
+                            icon={entryButtonIcon}
+                            variant="blue"
+                        >
+                            {entryButtonText}
+                        </ActionButton>
+                    </div>
+                </div>
+            );
+        }
+
+        const isMobileView = typeof window !== 'undefined' && window.innerWidth <= 768;
+
         return (
-             <div className="w-full grid grid-cols-[300px_1fr_300px] items-center gap-4 p-3 mb-1">
+             <div className={isMobileView ? "w-full flex flex-col gap-3 p-3 mb-1" : "w-full grid grid-cols-[300px_1fr_300px] items-center gap-4 p-3 mb-1"}>
                  <div className="flex justify-start">
                      <button
                          onClick={onToggleAmbientText}

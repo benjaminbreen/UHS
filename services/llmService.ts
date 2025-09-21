@@ -3,6 +3,7 @@
  */
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { InteriorEntity, InteriorMapData, PlayerContext, Item, AmbianceContext, PlayerCharacter, Tile, FarmDetails, HistoricalEra, EncounterableEntity, DialogueEntry, Gender, NpcEntity, MapData, GameDate, Appearance, TerrainStructure, isAnimal, isNpc, isStandardTile } from '../types';
+import { StudyContext, StudyAction } from '../types/studyTypes';
 import type { Season } from '../types';
 import { CulturalZone, FACTION_DATA, GEOGRAPHICAL_DATA, ANIMAL_DATA } from '../constants/index';
 import { generateAmbianceText } from "./ambianceGenerator";
@@ -282,8 +283,10 @@ export async function generateEncounterDialogue(
         const historicalLanguage = getLanguageForCharacter(
             target.culturalZone,
             dateInfo.year,
+            mapData.region,
             mapData.localArea,
-            mapData.continent
+            target.name,
+            target.profession
         );
         
         languageInstruction = historicalLanguage 
@@ -554,8 +557,10 @@ export async function generateEncounterDialogue(
         - After 4-5 exchanges, consider naturally ending the conversation
         - If urgent danger, skip pleasantries entirely
         - Build on previous exchanges, never repeat information
+
+        ${target.diseaseModifier ? `**DISEASE AWARENESS:**\n        ${target.diseaseModifier}` : ''}
     `;
-    
+
     // Add reputation analysis to prompt
     const reputationPrompt = `
         ${prompt}
@@ -900,6 +905,99 @@ export async function generateObservationText(context: PlayerContext): Promise<s
     
     const response = await ai.models.generateContent({ model: 'gemini-2.5-flash-lite', contents: prompt });
     return response.text;
+}
+
+/**
+ * Generates educational analysis text for study actions on items/specimens.
+ */
+export async function generateStudyAnalysis(context: StudyContext): Promise<string> {
+    const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+
+    // Build system prompt based on action category
+    const isAnalytical = context.action.category === 'analytical';
+    const systemPrompt = isAnalytical
+        ? `You are a historical scholar and educator helping a student analyze an artifact, specimen, or cultural item.
+           Respond to their observation/question with educational depth and historical accuracy.
+           Use period-appropriate scholarly language when discussing historical context.
+           Focus on what the student can learn about the time period, culture, and people.
+           Keep your response to 3-4 sentences maximum.`
+        : `You are a creative writing assistant helping a student reimagine historical artifacts and specimens.
+           Build on their creative input with rich, evocative language while maintaining historical authenticity.
+           Encourage artistic interpretation while respecting the historical setting.
+           Keep your response to 3-4 sentences maximum.`;
+
+    // Determine item type for contextual analysis
+    const itemType = context.item.baseId ? 'item' :
+                     context.item.speciesName ? 'animal specimen' :
+                     context.item.type || 'cultural artifact';
+
+    const itemDescription = context.item.description ||
+                          context.item.name ||
+                          'Unknown specimen';
+
+    // Build contextual prompt
+    const prompt = `
+        ${systemPrompt}
+
+        HISTORICAL CONTEXT:
+        - Period: ${context.historicalContext.year} CE (${getEraName(context.historicalContext.year)})
+        - Location: ${context.historicalContext.location}
+        - Cultural Zone: ${context.historicalContext.culturalZone}
+        - Season: ${context.historicalContext.season}
+
+        ITEM BEING STUDIED:
+        - Type: ${itemType}
+        - Name: ${context.item.name || 'Unknown'}
+        - Description: ${itemDescription}
+        ${context.item.material ? `- Material: ${context.item.material}` : ''}
+        ${context.item.rarity ? `- Rarity: ${context.item.rarity}` : ''}
+
+        STUDENT'S ${context.action.name.toUpperCase()}: "${context.studentInput}"
+
+        Provide an insightful educational response that ${
+            isAnalytical
+                ? 'teaches about the historical context, craftsmanship, cultural significance, or daily life relevance'
+                : 'builds on their creative interpretation while maintaining historical authenticity'
+        }. Write in second person ("You notice...", "This suggests...", "The craftsmanship reveals...").
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-lite',
+            contents: prompt
+        });
+        return response.text || getFallbackStudyResponse(context);
+    } catch (error) {
+        console.error('LLM study analysis failed:', error);
+        return getFallbackStudyResponse(context);
+    }
+}
+
+// Helper function to determine historical era name
+function getEraName(year: number): string {
+    if (year < -500) return 'Prehistory';
+    if (year < 500) return 'Antiquity';
+    if (year < 1500) return 'Medieval Period';
+    if (year < 1800) return 'Early Modern Period';
+    if (year < 1950) return 'Industrial Era';
+    if (year < 2000) return 'Modern Era';
+    return 'Contemporary Period';
+}
+
+// Fallback responses when LLM fails
+function getFallbackStudyResponse(context: StudyContext): string {
+    const action = context.action.name.toLowerCase();
+    const itemName = context.item.name || 'this specimen';
+
+    const fallbacks = {
+        examine: `Your careful examination of ${itemName} reveals details about ${context.historicalContext.culturalZone.toLowerCase()} craftsmanship from the ${getEraName(context.historicalContext.year).toLowerCase()}. The construction methods and materials used tell a story of the daily life and available resources of this period.`,
+        question: `Your question about ${itemName} touches on important aspects of historical understanding. Consider how this item would have fit into the social, economic, and cultural patterns of ${context.historicalContext.location} during the ${getEraName(context.historicalContext.year).toLowerCase()}.`,
+        compare: `The comparison you've drawn highlights interesting connections across time and culture. ${itemName} shares characteristics with similar artifacts from this period, showing common human needs and creative solutions across different societies.`,
+        theorize: `Your theory about ${itemName} demonstrates historical thinking skills. The evidence you've noticed suggests important patterns about how people in ${context.historicalContext.culturalZone.toLowerCase()} society lived, worked, and expressed their cultural values.`,
+        contextualize: `Placing ${itemName} in its historical context reveals how it would have functioned within the daily rhythms of ${context.historicalContext.location}. This helps us understand the practical realities of life during the ${getEraName(context.historicalContext.year).toLowerCase()}.`
+    };
+
+    return fallbacks[context.action.id] || fallbacks.examine;
 }
 
 /**
@@ -2168,6 +2266,124 @@ export async function generateFortressCommanderDialogue(
             greeting: fallbackGreetings[era] || fallbackGreetings['MEDIEVAL'],
             dialogue: fallbackDialogues[era] || fallbackDialogues['MEDIEVAL']
         };
+    }
+}
+
+/**
+ * Generate historically accurate discovery text for ruins exploration
+ */
+export async function generateHistoricalDiscovery(
+    context: {
+        year: number;
+        culturalZone: CulturalZone;
+        era: HistoricalEra;
+        biomeType: string;
+        ruinType: string;
+        specificRuinName?: string;
+        ruinAge: string;
+        ruinMaterial: string;
+        depth: number;
+        previousDiscoveries?: string[];
+        currentRoomType?: string;
+        ruinDescription?: string;
+        mapLocation?: string;
+        climate?: string;
+    }
+): Promise<string> {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+    // Determine room-specific discovery types
+    const roomDiscoveryFocus: Record<string, string> = {
+        'treasury': 'financial records, coins, seals, valuable artifacts, trade goods',
+        'altar': 'religious artifacts, ritual objects, offerings, sacred texts, ceremonial items',
+        'library': 'manuscripts, scrolls, writing implements, scholarly texts, maps',
+        'storage': 'everyday items, food remains, tools, pottery, clothing',
+        'guard': 'weapons, armor, military records, defensive structures',
+        'entrance': 'inscriptions, welcome texts, defensive warnings, architectural features',
+        'treasure': 'valuable objects, precious metals, gemstones, artwork',
+        'corridor': 'wall paintings, directional markers, graffiti, structural features'
+    };
+
+    const roomFocus = roomDiscoveryFocus[context.currentRoomType || 'corridor'];
+
+    // Build a focused prompt for educational content
+    const prompt = `You are creating an educational discovery for a history simulation game.
+
+SPECIFIC CONTEXT:
+- You are in: ${context.specificRuinName || context.ruinType}
+- Geographic Location: ${context.mapLocation || context.culturalZone} in ${context.climate || context.biomeType} climate
+- Year: ${context.year} (${context.era} period)
+- Current Room: ${context.currentRoomType || 'main chamber'} (expect to find: ${roomFocus})
+- Structure Details: ${context.ruinAge} ${context.ruinType} built from ${context.ruinMaterial}
+${context.ruinDescription ? `- Description: ${context.ruinDescription}` : ''}
+- Depth: ${context.depth > 1 ? `Floor ${context.depth} underground` : 'Ground level'}
+${context.previousDiscoveries && context.previousDiscoveries.length > 0 ?
+    `- Previous discoveries in this ruin: ${context.previousDiscoveries.slice(-2).join('; ')}` : ''}
+
+Generate a brief (2-3 paragraph) discovery appropriate for the ${context.currentRoomType || 'room'} of ${context.specificRuinName || 'this ruin'}.
+
+The discovery should:
+1. Be something logically found in a ${context.currentRoomType || 'room'} (${roomFocus})
+2. Reference the specific ruin by name when appropriate
+3. Include real historical details specific to ${context.year} in ${context.mapLocation || context.culturalZone}
+4. Mention specific historical figures, events, or practices from that exact time and place
+5. End with a thought-provoking question about the discovery
+
+Requirements:
+- Use the actual ruin name (${context.specificRuinName}) not generic terms
+- Be historically accurate for ${context.year} in this specific location
+- Maximum 150 words
+- Educational but engaging
+- Plain text only
+
+This is an educational tool - focus on teaching real history specific to this exact place and time.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-lite',
+            contents: prompt,
+            config: {
+                temperature: 0.8,
+                topP: 0.9
+            }
+        });
+
+        const text = response.text.trim();
+
+        // Ensure the response isn't too long
+        const words = text.split(' ');
+        if (words.length > 200) {
+            // Truncate to roughly 150 words at sentence boundary
+            const sentences = text.split(/[.!?]+/);
+            let result = '';
+            let wordCount = 0;
+
+            for (const sentence of sentences) {
+                const sentWords = sentence.trim().split(' ').length;
+                if (wordCount + sentWords > 150) break;
+                result += sentence.trim() + '. ';
+                wordCount += sentWords;
+            }
+
+            return result.trim();
+        }
+
+        return text;
+
+    } catch (error) {
+        console.error("Error generating historical discovery:", error);
+
+        // Provide era-appropriate fallback
+        const fallbacks: Record<string, string> = {
+            'PREHISTORY': "You discover primitive cave paintings depicting hunting scenes. The ochre pigments have survived millennia, showing early humans pursuing mammoths. What drove our ancestors to create art in these dangerous times?",
+            'ANTIQUITY': "A broken clay tablet bears cuneiform script, partially readable. It appears to be a merchant's inventory: '20 amphora of wine, 15 talents of copper...' The rest is lost to time. What stories did these everyday records once tell?",
+            'MEDIEVAL': "A carved stone bears a Latin inscription: 'Anno Domini MCCXLVIII - Plague took my family. I alone remain.' Tool marks suggest it was carved hastily. How many such personal tragedies are hidden in these walls?",
+            'RENAISSANCE_EARLY_MODERN': "You find a hidden cache of printed pamphlets, their ink faded but legible. They debate religious reforms in vernacular language, not Latin. Such materials were often banned. What risks did people take to spread new ideas?",
+            'INDUSTRIAL_ERA': "Factory equipment lies rusted but recognizable - gears, pistons, and what appears to be an early steam valve. Workers' initials are scratched into the metal. How did industrialization change the lives of those who worked here?",
+            'MODERN_ERA': "Graffiti from decades past covers one wall. Tags, political slogans, and personal messages create a palimpsest of urban history. What does this informal archive tell us about the community that once thrived here?"
+        };
+
+        return fallbacks[context.era] || fallbacks['MEDIEVAL'];
     }
 }
 

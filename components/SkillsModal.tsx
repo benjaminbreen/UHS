@@ -2,11 +2,12 @@
  * components/SkillsModal.tsx - A modal to display the results of a player skill.
  */
 import React, { useState, useEffect, useMemo } from 'react';
-import { SkillResult, ObserveSkillResult, ForageSkillResult, DigSkillResult, ChopSkillResult, CulturalZone, ClimateType, Season, WeatherState } from '../types';
+import { SkillResult, ObserveSkillResult, ForageSkillResult, DigSkillResult, ChopSkillResult, StudySkillResult, CulturalZone, ClimateType, Season, WeatherState } from '../types';
 import { usePlayer } from '../contexts/PlayerContext';
 import { useMap } from '../contexts/MapContext';
 import { useGame } from '../contexts/GameContext';
 import { gameSounds } from '../services/gameSoundsService';
+import { imageGenerationService } from '../services/imageGenerationService';
 import {
   getBackgroundPaths,
   loadBackgroundImage,
@@ -53,6 +54,12 @@ const getContextualAdvice = (result: SkillResult): { calculation: string; advice
                 return {
                     calculation: 'Wisdom Check: 15 • Your Wisdom: 18 • Success!',
                     advice: 'Your keen observation reveals hidden details! The Observe action becomes more detailed with higher Wisdom. Use it to learn about your surroundings and discover hidden opportunities.'
+                };
+            case 'study':
+                const studyResult = result as any;
+                return {
+                    calculation: `${studyResult.actionEmoji} ${studyResult.action} • Intelligence Check: Success!`,
+                    advice: 'Your scholarly analysis reveals new insights! Study actions help you understand items and phenomena in historical context. Try different study approaches for unique perspectives.'
                 };
             default:
                 return {
@@ -669,6 +676,156 @@ const renderChopResult = (result: ChopSkillResult) => {
     );
 };
 
+const renderStudyResult = (result: StudySkillResult) => {
+    const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+    const [imageError, setImageError] = useState<string | null>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [timeUntilNext, setTimeUntilNext] = useState(0);
+    const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
+    const [showPrompt, setShowPrompt] = useState(false);
+    const { playerCharacter } = usePlayer();
+    const { gameDate } = useGame();
+    const { culturalZone } = useMap();
+
+    // Update countdown timer
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const seconds = imageGenerationService.getTimeUntilNextGeneration();
+            setTimeUntilNext(seconds);
+        }, 1000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const handleGenerateImage = async () => {
+        if (!result.items || result.items.length === 0) return;
+
+        setIsGenerating(true);
+        setImageError(null);
+
+        try {
+            // Create a simplified item object from the study result
+            const item = {
+                id: `study-${Date.now()}`,
+                baseId: result.items[0].name.toUpperCase().replace(/ /g, '_'),
+                name: result.items[0].name,
+                type: 'StudyItem' as any,
+                value: 0,
+                weight: 0
+            };
+
+            const imageResult = await imageGenerationService.generateItemImage({
+                item,
+                culturalZone: culturalZone as CulturalZone || undefined,
+                year: gameDate?.year,
+                playerProfession: playerCharacter?.profession
+            });
+
+            if (imageResult.imageUrl) {
+                setGeneratedImageUrl(imageResult.imageUrl);
+                setGeneratedPrompt(imageResult.prompt || null);
+            } else {
+                setImageError('Failed to generate image');
+            }
+        } catch (error: any) {
+            setImageError(error.message || 'Failed to generate image');
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    const isObserveAction = result.action?.toLowerCase() === 'observe';
+    const canGenerateImage = imageGenerationService.isAvailable() && isObserveAction && result.items.length > 0;
+
+    return (
+        <>
+            <h3 id="skill-modal-title" className="text-xl font-semibold text-purple-300 mb-4 flex items-center gap-2">
+                <span>{result.actionEmoji}</span>
+                <span className="capitalize">{result.action}</span>
+            </h3>
+            <div className="mb-4">
+                <p className="text-gray-300 mb-3">{result.description}</p>
+
+                {/* Items Studied */}
+                <div className="bg-purple-900/20 p-3 rounded-md border border-purple-600/30">
+                    <p className="font-semibold text-purple-200 mb-2">Items Studied:</p>
+                    <div className="flex flex-wrap gap-2">
+                        {result.items.map((item, index) => (
+                            <span key={index} className="bg-purple-800/30 px-2 py-1 rounded text-sm text-purple-100 flex items-center gap-1">
+                                {item.emoji && <span>{item.emoji}</span>}
+                                <span>{item.name}</span>
+                            </span>
+                        ))}
+                    </div>
+                </div>
+
+                {/* AI Image Generation for Observe actions */}
+                {canGenerateImage && (
+                    <div className="mt-4 bg-indigo-900/20 p-3 rounded-md border border-indigo-600/30">
+                        <p className="font-semibold text-indigo-200 mb-2">Visual Reference:</p>
+
+                        {generatedImageUrl ? (
+                            <div className="flex flex-col items-center gap-2">
+                                <img
+                                    src={generatedImageUrl}
+                                    alt={result.items[0].name}
+                                    className="max-w-full h-auto rounded-md border border-indigo-500/30"
+                                    style={{ maxHeight: '256px' }}
+                                />
+                                <div className="flex items-center gap-2">
+                                    <p className="text-xs text-gray-400">AI-generated historical representation</p>
+                                    {generatedPrompt && (
+                                        <button
+                                            onClick={() => setShowPrompt(!showPrompt)}
+                                            className="text-xs text-indigo-400 hover:text-indigo-300 underline"
+                                            title="Show/hide the prompt used for generation"
+                                        >
+                                            {showPrompt ? 'Hide' : 'Show'} Prompt
+                                        </button>
+                                    )}
+                                </div>
+                                {showPrompt && generatedPrompt && (
+                                    <div className="w-full mt-2 p-2 bg-gray-800/50 rounded text-xs text-gray-300 max-h-32 overflow-y-auto">
+                                        <p className="font-semibold text-indigo-300 mb-1">Prompt sent to Runware:</p>
+                                        <p className="break-words">{generatedPrompt}</p>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center gap-2">
+                                {!isGenerating && !imageError && (
+                                    <>
+                                        <button
+                                            onClick={handleGenerateImage}
+                                            disabled={timeUntilNext > 0}
+                                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-md transition duration-150"
+                                        >
+                                            {timeUntilNext > 0 ? `Wait ${timeUntilNext}s` : 'Generate Visual Reference'}
+                                        </button>
+                                        <p className="text-xs text-gray-400">Create an AI image of this item (costs $0.0006)</p>
+                                    </>
+                                )}
+
+                                {isGenerating && (
+                                    <div className="flex items-center gap-2">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-400"></div>
+                                        <p className="text-sm text-indigo-300">Generating image...</p>
+                                    </div>
+                                )}
+
+                                {imageError && (
+                                    <p className="text-sm text-red-400">{imageError}</p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {result.xpGained && <p className="text-sm text-yellow-400 mt-4 font-semibold">+{result.xpGained} XP</p>}
+        </>
+    );
+};
+
 const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, isLoading, result, onClose }) => {
   if (!isOpen) return null;
 
@@ -701,8 +858,9 @@ const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, isLoading, result, on
                     {result.type === 'forage' && renderForageResult(result as ForageSkillResult)}
                     {result.type === 'dig' && renderDigResult(result as DigSkillResult)}
                     {result.type === 'chop' && renderChopResult(result as ChopSkillResult)}
+                    {result.type === 'study' && renderStudyResult(result as StudySkillResult)}
                     {/* Add other result types here */}
-                    {result.type !== 'observe' && result.type !== 'forage' && result.type !== 'dig' && result.type !== 'chop' && (
+                    {result.type !== 'observe' && result.type !== 'forage' && result.type !== 'dig' && result.type !== 'chop' && result.type !== 'study' && (
                         <>
                          <h3 id="skill-modal-title" className="text-xl font-semibold text-blue-300 mb-4 capitalize">{result.type}</h3>
                          <p className="text-gray-300">{(result as any).message}</p>

@@ -414,26 +414,59 @@
       "longExcerpt": "When April with his showers sweet has pierced the drought of March to the root, and bathed every vein in such liquor from which virtue the flower is engendered. This historical source from 1400 provides valuable insight into the europe region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
     },
     {
-      "id": "europe-medieval-chronicle",
-      "title": "European Medieval Chronicle",
-      "author": "Various Authors",
-      "year": 1000,
+      "id": "einhard-charlemagne",
+      "title": "Life of Charlemagne",
+      "author": "Einhard",
+      "year": 830,
       "era": "MEDIEVAL",
       "culturalZones": [
         "EUROPEAN"
       ],
-      "excerpt": "A collection of medieval texts from the European region.",
-      "longExcerpt": "This represents a compilation of historical documents from the Medieval period in the European region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "excerpt": "Charles was large and strong, and of lofty stature, though not disproportionately tall; the upper part of his head was round, his eyes very large and animated, nose a little long. His hair was fair, and his face laughing and merry.",
+      "longExcerpt": "Charles was large and strong, and of lofty stature, though not disproportionately tall; the upper part of his head was round, his eyes very large and animated, nose a little long. His hair was fair, and his face laughing and merry. This biography from 830 CE by Charlemagne's courtier provides an intimate portrait of the emperor who united much of Western Europe and sparked the Carolingian Renaissance.",
       "keywords": [
-        "europe",
-        "medieval",
-        "history",
-        "chronicle",
-        "primary source"
+        "Charlemagne",
+        "Franks",
+        "emperor",
+        "biography",
+        "Carolingian",
+        "court",
+        "Christianity"
       ],
-      "wikisourceTitle": "European_Medieval_Texts",
+      "wikisourceTitle": "Life_of_Charlemagne",
+      "internetArchiveId": "lifeofcharlemagn00einh",
       "citation": {
-        "originalPublication": "European Medieval Period"
+        "translator": "Samuel Epes Turner",
+        "originalPublication": "Aachen, c. 830",
+        "modernSource": "Harper & Brothers, 1880"
+      }
+    },
+    {
+      "id": "alexiad",
+      "title": "The Alexiad",
+      "author": "Anna Komnenos",
+      "year": 1148,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "The Frankish counts are naturally shameless and violent, naturally greedy of money too, and immoderate in everything they wish, and possess a flow of language greater than any other human race. They did not make their visits to the emperor in any order.",
+      "longExcerpt": "The Frankish counts are naturally shameless and violent, naturally greedy of money too, and immoderate in everything they wish, and possess a flow of language greater than any other human race. They did not make their visits to the emperor in any order. This Byzantine princess's account from 1148 provides a unique Eastern perspective on the First Crusade and the clash between Byzantine and Western European cultures.",
+      "keywords": [
+        "Byzantium",
+        "Crusades",
+        "Franks",
+        "Constantinople",
+        "emperor",
+        "war",
+        "diplomacy"
+      ],
+      "wikisourceTitle": "The_Alexiad",
+      "internetArchiveId": "alexiadofannaco00anna",
+      "citation": {
+        "translator": "Elizabeth A.S. Dawes",
+        "originalPublication": "Constantinople, 1148",
+        "modernSource": "Routledge & Kegan Paul, 1928"
       }
     }
   ]

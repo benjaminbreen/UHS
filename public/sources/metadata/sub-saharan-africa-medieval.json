@@ -72,26 +72,68 @@
       "longExcerpt": "The Queen of Sheba traveled to Jerusalem with a very great train, with camels bearing spices and gold in abundance. This historical source from 1320 provides valuable insight into the sub-saharan-africa region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
     },
     {
-      "id": "sub-saharan-africa-medieval-chronicle",
-      "title": "African Medieval Chronicle",
-      "author": "Various Authors",
-      "year": 1000,
+      "id": "al-bakri-ghana",
+      "title": "Book of Routes and Realms",
+      "author": "Al-Bakri",
+      "year": 1068,
       "era": "MEDIEVAL",
       "culturalZones": [
         "SUB_SAHARAN_AFRICAN"
       ],
-      "excerpt": "A collection of medieval texts from the African region.",
-      "longExcerpt": "This represents a compilation of historical documents from the Medieval period in the African region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "excerpt": "The king of Ghana can put two hundred thousand warriors in the field, more than forty thousand of them being armed with bow and arrow. When he gives audience to his people, to listen to their complaints and set them to rights, he sits in a pavilion around which stand ten pages holding shields and gold-mounted swords.",
+      "longExcerpt": "The king of Ghana can put two hundred thousand warriors in the field, more than forty thousand of them being armed with bow and arrow. When he gives audience to his people, to listen to their complaints and set them to rights, he sits in a pavilion around which stand ten pages holding shields and gold-mounted swords. On his right hand are the sons of the princes of his empire, splendidly clad and with gold plaited in their hair. This detailed account from 1068 provides one of our earliest comprehensive descriptions of the Ghana Empire at its height, detailing its military power, royal ceremonies, and vast wealth from gold trade.",
       "keywords": [
-        "sub-saharan-africa",
-        "medieval",
-        "history",
-        "chronicle",
-        "primary source"
+        "Ghana Empire",
+        "gold",
+        "warriors",
+        "kingship",
+        "West Africa",
+        "trade",
+        "court"
       ],
-      "wikisourceTitle": "African_Medieval_Texts",
+      "contextualKeywords": [
+        {
+          "keyword": "Kumbi Saleh",
+          "conditions": {
+            "culturalZone": "SUB_SAHARAN_AFRICAN",
+            "era": "MEDIEVAL"
+          }
+        }
+      ],
+      "wikisourceTitle": "Al-Bakri:_The_Book_of_Routes_and_Realms",
+      "internetArchiveId": "corpusearlysourc00leve",
       "citation": {
-        "originalPublication": "African Medieval Period"
+        "translator": "N. Levtzion and J.F.P. Hopkins",
+        "originalPublication": "Cordoba, 1068",
+        "modernSource": "Cambridge University Press, 1981"
+      }
+    },
+    {
+      "id": "al-masudi-zanj",
+      "title": "The Meadows of Gold",
+      "author": "Al-Mas'udi",
+      "year": 947,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "The Zanj have an elegant language and men who preach in it. One of their holy men will often gather a crowd and exhort his hearers to please God in their lives and to be obedient to him.",
+      "longExcerpt": "The Zanj have an elegant language and men who preach in it. One of their holy men will often gather a crowd and exhort his hearers to please God in their lives and to be obedient to him. He explains the punishments that follow upon disobedience, and reminds them of their ancestors and kings of old. These people have no religious law; their kings rule by custom and by political expediency. This 10th century account provides rare insight into East African Swahili coast societies, their religious practices, languages, and political systems before the major expansion of Islam in the region.",
+      "keywords": [
+        "Zanj",
+        "East Africa",
+        "Swahili",
+        "religion",
+        "language",
+        "preaching",
+        "customs"
+      ],
+      "wikisourceTitle": "The_Meadows_of_Gold",
+      "internetArchiveId": "meadowsofgold00masuuoft",
+      "citation": {
+        "translator": "Paul Lunde and Caroline Stone",
+        "originalPublication": "Baghdad, 947 CE",
+        "modernSource": "Penguin Classics, 2007"
       }
     },
     {

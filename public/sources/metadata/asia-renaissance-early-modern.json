@@ -119,26 +119,61 @@
       "longExcerpt": "The way of the Samurai is found in death. When it comes to either/or, there is only the quick choice of death. This historical source from 1716 provides valuable insight into the asia region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
     },
     {
-      "id": "asia-renaissance-early-modern-chronicle",
-      "title": "Asian Early Modern Chronicle",
-      "author": "Various Authors",
-      "year": 1600,
+      "id": "baburnama",
+      "title": "The Baburnama",
+      "author": "Babur",
+      "year": 1526,
       "era": "RENAISSANCE_EARLY-MODERN",
       "culturalZones": [
-        "EAST_ASIAN"
+        "EAST_ASIAN",
+        "SOUTH_ASIAN"
       ],
-      "excerpt": "A collection of early modern texts from the Asian region.",
-      "longExcerpt": "This represents a compilation of historical documents from the Early Modern period in the Asian region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "excerpt": "In the month of Ramadan of the year 899 (1494) and in the twelfth year of my age, I became ruler in the country of Fergana. The province of Fergana is situated in the fifth climate and at the limit of settled habitation.",
+      "longExcerpt": "In the month of Ramadan of the year 899 (1494) and in the twelfth year of my age, I became ruler in the country of Fergana. The province of Fergana is situated in the fifth climate and at the limit of settled habitation. This remarkable autobiography from 1526 by the founder of the Mughal Empire combines military history with detailed observations of nature, poetry, and the customs of India.",
       "keywords": [
-        "asia",
-        "renaissance-early-modern",
-        "history",
-        "chronicle",
-        "primary source"
+        "Mughal",
+        "India",
+        "conquest",
+        "autobiography",
+        "Central Asia",
+        "garden",
+        "warfare"
       ],
-      "wikisourceTitle": "Asian_Early Modern_Texts",
+      "wikisourceTitle": "Baburnama",
+      "internetArchiveId": "baburnama00babu",
       "citation": {
-        "originalPublication": "Asian Early Modern Period"
+        "translator": "Annette Beveridge",
+        "originalPublication": "Central Asia/India, 1526",
+        "modernSource": "Luzac & Co., 1922"
+      }
+    },
+    {
+      "id": "ain-i-akbari",
+      "title": "The Ain-i-Akbari",
+      "author": "Abu'l-Fazl ibn Mubarak",
+      "year": 1590,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EAST_ASIAN",
+        "SOUTH_ASIAN"
+      ],
+      "excerpt": "His Majesty maintains that it is a religious act to worship fire and light; surly, ignorant men consider it forgetfulness of God. But the deep-sighted know better.",
+      "longExcerpt": "His Majesty maintains that it is a religious act to worship fire and light; surly, ignorant men consider it forgetfulness of God. But the deep-sighted know better. This comprehensive administrative document from 1590 details every aspect of Akbar's empire, from revenue systems to court ceremonies, providing an unparalleled view of Mughal governance.",
+      "keywords": [
+        "Akbar",
+        "Mughal",
+        "administration",
+        "India",
+        "religion",
+        "tolerance",
+        "revenue"
+      ],
+      "wikisourceTitle": "Ain-i-Akbari",
+      "internetArchiveId": "ainiakbari01abul",
+      "citation": {
+        "translator": "H. Blochmann",
+        "originalPublication": "India, 1590",
+        "modernSource": "Asiatic Society of Bengal, 1873"
       }
     }
   ]

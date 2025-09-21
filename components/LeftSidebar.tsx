@@ -19,7 +19,7 @@ import {
 import { generateAnimalDescriptions } from '../services/animalDescriptionGenerator';
 import { parseDateString } from '../utils/dateUtils';
 import HistoryPanel from './HistoryPanel';
-import JournalPanel from './JournalPanel';
+import GamelogPanel from './GamelogPanel';
 import { MAP_ARCHETYPE_DESCRIPTIONS, FACTION_DATA, STRUCTURE_BLUEPRINTS, METALS } from '../constants/index';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { getSafariOptimizedClassName } from '../utils/safariUtils';
@@ -32,7 +32,7 @@ import { ProceduralPortrait } from './portraits';
 /* -------------------------------------------------------------------------- */
 
 export type LeftSidebarTab = 'analysis' | 'overview' | 'npcs' | 'animals';
-type MajorTab = 'map' | 'history' | 'journal';
+type MajorTab = 'map' | 'history' | 'gamelog';
 
 const MIN_SIDEBAR_WIDTH = 280;
 const MAX_SIDEBAR_WIDTH = 500;
@@ -187,7 +187,7 @@ const LeftSidebar: React.FC<{
   } = useUI();
 
   const { mapData, currentMapArchetype, currentMapClimate, animals, npcs, mapAnalysisData, localArea, terrainStructures, societalProfile } = useMap();
-  const { gameDate, season, gameTimeHours, gameTimeMinutes, currentTimeOfDay, gameLog, playerJournal, onAddPlayerJournalEntry, currentZone, currentRegion } = useGame();
+  const { gameDate, season, gameTimeHours, gameTimeMinutes, currentTimeOfDay, gameLog, currentZone, currentRegion } = useGame();
 
   const [activeMajorTab, setActiveMajorTab] = useState<MajorTab>('map');
   const [sourceCount, setSourceCount] = useState<number>(0);
@@ -661,7 +661,7 @@ const LeftSidebar: React.FC<{
   const majorTabs: { id: MajorTab, label: string, color: string, glow: string }[] = [
     { id: 'history', label: 'History', color: 'bg-amber-600', glow: 'shadow-glow-amber' },
     { id: 'map', label: 'Map', color: 'bg-blue-600', glow: 'shadow-glow-blue' },
-    { id: 'journal', label: 'Journal', color: 'bg-purple-600', glow: 'shadow-glow-purple' },
+    { id: 'gamelog', label: 'Gamelog', color: 'bg-purple-600', glow: 'shadow-glow-purple' },
   ];
 
   return (
@@ -750,9 +750,9 @@ const LeftSidebar: React.FC<{
               />
             </div>
           )}
-          {activeMajorTab === 'journal' && (
+          {activeMajorTab === 'gamelog' && (
             <div className="flex-1 overflow-hidden bg-slate-900/40 rounded-lg border border-slate-700/50 shadow-inner">
-              <JournalPanel gameLog={gameLog} playerJournal={playerJournal} onAddPlayerEntry={onAddPlayerJournalEntry} />
+              <GamelogPanel entries={gameLog} />
             </div>
           )}
         </div>

@@ -776,26 +776,59 @@
       "longExcerpt": "Thoughts without content are empty, intuitions without concepts are blind. This historical source from 1781 provides valuable insight into the europe region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
     },
     {
-      "id": "europe-renaissance-early-modern-chronicle",
-      "title": "European Early Modern Chronicle",
-      "author": "Various Authors",
-      "year": 1600,
+      "id": "machiavelli-prince",
+      "title": "The Prince",
+      "author": "Niccolò Machiavelli",
+      "year": 1513,
       "era": "RENAISSANCE_EARLY-MODERN",
       "culturalZones": [
         "EUROPEAN"
       ],
-      "excerpt": "A collection of early modern texts from the European region.",
-      "longExcerpt": "This represents a compilation of historical documents from the Early Modern period in the European region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "excerpt": "Everyone admits how praiseworthy it is in a prince to keep faith, and to live with integrity and not with craft. Nevertheless our experience has been that those princes who have done great things have held good faith of little account.",
+      "longExcerpt": "Everyone admits how praiseworthy it is in a prince to keep faith, and to live with integrity and not with craft. Nevertheless our experience has been that those princes who have done great things have held good faith of little account. This revolutionary political treatise from 1513 shocked Europe with its frank discussion of power, arguing that effective rule sometimes requires immoral actions.",
       "keywords": [
-        "europe",
-        "renaissance-early-modern",
-        "history",
-        "chronicle",
-        "primary source"
+        "politics",
+        "power",
+        "Italy",
+        "prince",
+        "statecraft",
+        "Florence",
+        "virtue"
       ],
-      "wikisourceTitle": "European_Early Modern_Texts",
+      "wikisourceTitle": "The_Prince",
+      "internetArchiveId": "princemachiavell00mach",
       "citation": {
-        "originalPublication": "European Early Modern Period"
+        "translator": "W.K. Marriott",
+        "originalPublication": "Florence, 1532 (written 1513)",
+        "modernSource": "J.M. Dent & Sons, 1908"
+      }
+    },
+    {
+      "id": "castiglione-courtier",
+      "title": "The Book of the Courtier",
+      "author": "Baldassare Castiglione",
+      "year": 1528,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "EUROPEAN"
+      ],
+      "excerpt": "I wish our courtier to be well born and of gentle race. For it is less unseemly for one of ignoble birth to fail in worthy deeds, than for one of noble birth, who, if he strays from the path of his predecessors, stains his family name.",
+      "longExcerpt": "I wish our courtier to be well born and of gentle race. For it is less unseemly for one of ignoble birth to fail in worthy deeds, than for one of noble birth, who, if he strays from the path of his predecessors, stains his family name. This influential manual from 1528 defined Renaissance ideals of behavior, education, and social grace that shaped European court culture for centuries.",
+      "keywords": [
+        "court",
+        "manners",
+        "Renaissance",
+        "Italy",
+        "nobility",
+        "education",
+        "culture"
+      ],
+      "wikisourceTitle": "The_Book_of_the_Courtier",
+      "internetArchiveId": "bookofcourtier00cast",
+      "citation": {
+        "translator": "Leonard Eckstein Opdycke",
+        "originalPublication": "Venice, 1528",
+        "modernSource": "Charles Scribner's Sons, 1903"
       }
     }
   ]

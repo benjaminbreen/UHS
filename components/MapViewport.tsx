@@ -154,6 +154,18 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
     const [showPOVViewport, setShowPOVViewport] = useState(false); // POV viewport toggle state
     const { isMobile } = useDeviceDetection();
     
+    // Listen for POV viewport toggle requests from narration
+    useEffect(() => {
+        const handleShowPOV = () => {
+            setShowPOVViewport(true);
+        };
+
+        eventBus.on('pov:show', handleShowPOV);
+        return () => {
+            eventBus.off('pov:show', handleShowPOV);
+        };
+    }, []);
+
     // Guard warning state - ALL hooks must come before early return
     const [guardWarning, setGuardWarning] = useState<{
         message: string;
@@ -586,20 +598,21 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
     }, [isSpecialMap, mapData?.area, mapData?.seed]);
 
     // Add ambient text to narration panel every 4 hours of game time (4 minutes real time)
-    useEffect(() => {
-        if (!showPOVViewport && ambianceText) {
-            // Show ambient text immediately when POV is hidden
-            eventBus.emit('narration:ambient', { text: ambianceText });
+    // Ambiance system deprecated - no longer emit ambient text to narration
+    // useEffect(() => {
+    //     if (!showPOVViewport && ambianceText) {
+    //         // Show ambient text immediately when POV is hidden
+    //         eventBus.emit('narration:ambient', { text: ambianceText });
 
-            // Then add ambient text to narration panel every 4 minutes (4 game hours)
-            const interval = setInterval(() => {
-                console.log('[MapViewport] Adding periodic ambient text to narration:', ambianceText);
-                eventBus.emit('narration:ambient', { text: ambianceText });
-            }, 240000); // 240 seconds = 4 minutes real time = 4 hours game time
+    //         // Then add ambient text to narration panel every 4 minutes (4 game hours)
+    //         const interval = setInterval(() => {
+    //             console.log('[MapViewport] Adding periodic ambient text to narration:', ambianceText);
+    //             eventBus.emit('narration:ambient', { text: ambianceText });
+    //         }, 240000); // 240 seconds = 4 minutes real time = 4 hours game time
 
-            return () => clearInterval(interval);
-        }
-    }, [showPOVViewport, ambianceText]);
+    //         return () => clearInterval(interval);
+    //     }
+    // }, [showPOVViewport, ambianceText]);
 
     // Handle map transitions with elegant fade effect
     useEffect(() => {
@@ -645,14 +658,7 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
         
         // Also check terrainStructures array if it exists
         if (!poiStructure && mapData.terrainStructures) {
-            console.log('[POI Detection] Checking terrainStructures, player at:', controlledIconX, controlledIconY);
-            
-            // Log all structures for debugging
-            mapData.terrainStructures.forEach(s => {
-                if (s.structureType === 'quarry' || s.type === 'quarry') {
-                    console.log('[POI Detection] Found quarry at:', s.location);
-                }
-            });
+            // Check all structures silently
             
             // Find structures at current position
             poiStructure = mapData.terrainStructures.find(s => {
@@ -661,9 +667,6 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
                     s.location[0] === controlledIconX && 
                     s.location[1] === controlledIconY;
                 
-                if (isAtLocation) {
-                    console.log('[POI Detection] Structure at player position:', structureType, s);
-                }
                 
                 return isAtLocation && ['mine', 'mining_colony', 'quarry', 'mill', 'factory', 'fortress', 'woodcutter', 'lumber_camp'].includes(structureType || '');
             });
@@ -825,7 +828,19 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
             />;
         }
         if (activeCityModal && playerCharacter && mapData) {
-            return <CityModal tile={activeCityModal.tile} onClose={() => setActiveCityModal(null)} playerCharacter={playerCharacter} mapData={mapData} gameTimeHours={gameTimeHours} season={season} />;
+            return <CityModal
+                tile={activeCityModal.tile}
+                onClose={() => setActiveCityModal(null)}
+                playerCharacter={playerCharacter}
+                mapData={mapData}
+                gameTimeHours={gameTimeHours}
+                season={season}
+                onEnterSpecialMap={(config) => {
+                    console.log('[CityModal] Entering special map with config:', config);
+                    enterSpecialMap(config);
+                    setActiveCityModal(null);
+                }}
+            />;
         }
         // Show mining roguelike display if active - moved after other modals
         // so it doesn't early return and can stay in main viewport
@@ -1477,6 +1492,26 @@ const MapViewport: React.FC<MapViewportProps> = ({ mapVisible = true, onPlayerDe
                             }
                         }}
                         onEnterMine={(structure) => setActiveMiningModal(structure)}
+                        onEnterGovernmentDistrict={(tile) => {
+                            const pseudoStructure = {
+                                id: `gov_district_${tile.x}_${tile.y}`,
+                                structureType: 'government_district',
+                                location: [tile.x, tile.y] as [number, number],
+                                materialType: 'stone',
+                                isRuined: false,
+                                biome: BiomeType.GOVERNMENT_DISTRICT,
+                                name: 'Government District'
+                            } as any;
+                            setActiveGovernmentModal({ structure: pseudoStructure, tile });
+                        }}
+                        onEnterHolySite={(tile) => {
+                            // For now, trigger building entry - holy site modal needs implementation
+                            onEnterBuilding(tile, mapData);
+                        }}
+                        onEnterPalace={(tile) => {
+                            // For now, trigger building entry - palace modal needs implementation
+                            onEnterBuilding(tile, mapData);
+                        }}
                         toastMessage={toastMessage}
                         season={season}
                         timeOfDay={currentTimeOfDay}

@@ -5,12 +5,20 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { PlayerCharacter, MapData, HistoricalEra, CulturalZone } from '../types';
 import { ITEM_DEFINITIONS } from '../constants/index';
 import { primarySourceService, PrimarySourceMetadata } from '../services/primarySourceService';
-import { generateEncounterDialogue } from '../services/llmService';
+import { generateEncounterDialogue, generateHistoricalDiscovery } from '../services/llmService';
+import { gatherRuinContext } from '../services/ruinContextService';
+import { ruinSourcesService } from '../services/ruinSourcesService';
+// primarySourceService already imported above
 import { parseDateString } from '../utils/dateUtils';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { ruinProgressService } from '../services/ruinProgressService';
 import gameSoundsService from '../services/gameSoundsService';
 import { generateRoguelikeDialogue, generateRoguelikeNpcs, generateNegotiationDialogue, getMaterialColors, getMaterialWallPattern } from '../services/roguelikeService';
+import { generateSpecialMapContainerContents, ContainerContents } from '../services/specialMapContainerService';
+import { OverlayObjectType } from '../types/core/tile';
+import { SpecialMapArchetype } from '../types/specialMapTypes';
+import { createItemInstance } from '../utils/inventoryUtils';
+import ContainerModal from './ContainerModal';
 import { getASCIIPortrait, framePortrait, getHealthBar, applyCulturalStyle } from '../services/asciiPortraitService';
 import { ruinsEnemyService, RuinsEnemy } from '../services/ruinsEnemyService';
 import { historicalEncounterService, HistoricalEncounter, EncounterChoice } from '../services/historicalEncounterService';
@@ -25,6 +33,7 @@ import {
     getRuinLocationId,
     PersistentNpc
 } from '../services/ruinNpcService';
+import { generateLLMRuinNPC } from '../services/llmRuinNpcService';
 
 interface RoguelikeDisplayEnhancedProps {
     ruinType: {
@@ -46,11 +55,10 @@ interface RoguelikeDisplayEnhancedProps {
 }
 
 // Tile types
-type TileType = 'wall' | 'floor' | 'door' | 'treasure' | 'trap' | 'stairs_down' | 'stairs_up' | 
+type TileType = 'wall' | 'floor' | 'door' | 'treasure' | 'trap' | 'stairs_down' | 'stairs_up' |
                 'entrance' | 'altar' | 'statue' | 'rubble' | 'water' | 'chasm' | 'pillar' | 'manuscript' |
-                'inscription' | 'mural' | 'brazier' | 'crystal' | 'pressure_plate' | 'puzzle_door' | 
-                'lever' | 'mirror' | 'boulder' | 'weak_wall' | 'fire_trap' | 'ice_wall' | 'vine_wall' |
-                'water_flow' | 'ancient_mechanism' | 'counterweight' | 'rope' | 'chain';
+                'inscription' | 'mural' | 'torch' | 'boulder' | 'weak_wall' | 'locked_door' |
+                'debris' | 'discovery' | 'chest';
 
 // Entity types - historically accurate
 interface Entity {
@@ -108,24 +116,22 @@ interface DungeonTile {
     lightLevel?: number; // New: track light intensity for gradients
     hasFood?: string;
     hasTorch?: boolean;
-    // Puzzle mechanics
-    puzzleId?: string;
-    isActivated?: boolean;
-    linkedTiles?: { x: number; y: number }[];
-    requiredPlates?: number;
-    activatedPlates?: number;
+    // Discovery mechanics
+    discoveryId?: string;
+    hasBeenDiscovered?: boolean;
+    discoveryText?: string;
+    // Container mechanics
+    containerContents?: ContainerContents;
+    containerType?: OverlayObjectType;
+    chestOpened?: boolean;
     // Environmental interaction properties
     pushable?: boolean;
     breakable?: boolean;
     durability?: number; // How many hits to break
     pushDirection?: 'north' | 'south' | 'east' | 'west' | null;
-    flammable?: boolean;
-    freezable?: boolean;
-    weight?: number; // For physics interactions
-    chainLength?: number; // For rope/chain mechanics
-    waterFlow?: { direction: 'north' | 'south' | 'east' | 'west'; strength: number };
-    mechanismType?: 'counterweight' | 'pulley' | 'gear' | 'pendulum';
-    connectedTo?: { x: number; y: number }[]; // Connected mechanisms
+    isUnstable?: boolean; // For collapsing floors/ceilings
+    excavatable?: boolean; // Can be dug/cleared
+    hasKey?: boolean; // For locked doors
 }
 
 interface DungeonPlayer {
@@ -297,6 +303,141 @@ const getAnimalColor = (type: string): string => {
         'owl': 'text-gray-200'
     };
     return colorMap[type] || 'text-gray-400';
+};
+
+// Historical language mappings for accurate ruin discoveries
+const ERA_LANGUAGES: Record<string, Record<HistoricalEra, string[]>> = {
+    'EUROPEAN': {
+        [HistoricalEra.PREHISTORY]: ['Proto-Indo-European symbols', 'Cave paintings', 'Pictographs'],
+        [HistoricalEra.ANTIQUITY]: ['Latin', 'Ancient Greek', 'Etruscan', 'Celtic runes', 'Germanic runes'],
+        [HistoricalEra.MEDIEVAL]: ['Latin', 'Old French', 'Middle English', 'Old German', 'Old Norse'],
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: ['Latin', 'Italian', 'French', 'Spanish', 'German', 'English'],
+        [HistoricalEra.INDUSTRIAL_ERA]: ['English', 'French', 'German', 'Italian', 'Spanish'],
+        [HistoricalEra.MODERN_ERA]: ['English', 'French', 'German', 'Italian', 'Spanish'],
+        [HistoricalEra.FUTURE_ERA]: ['English', 'Digital records', 'Multi-lingual texts']
+    },
+    'MENA': {
+        [HistoricalEra.PREHISTORY]: ['Proto-Semitic symbols', 'Petroglyphs', 'Cave art'],
+        [HistoricalEra.ANTIQUITY]: ['Ancient Egyptian hieroglyphs', 'Akkadian cuneiform', 'Aramaic', 'Ancient Greek', 'Latin'],
+        [HistoricalEra.MEDIEVAL]: ['Arabic', 'Persian', 'Turkish', 'Coptic', 'Hebrew'],
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: ['Arabic', 'Ottoman Turkish', 'Persian', 'Hebrew'],
+        [HistoricalEra.INDUSTRIAL_ERA]: ['Arabic', 'Turkish', 'French', 'English'],
+        [HistoricalEra.MODERN_ERA]: ['Arabic', 'Hebrew', 'Turkish', 'English', 'French'],
+        [HistoricalEra.FUTURE_ERA]: ['Arabic', 'Hebrew', 'English', 'Digital archives']
+    },
+    'SOUTH_ASIAN': {
+        [HistoricalEra.PREHISTORY]: ['Indus Valley symbols', 'Proto-Dravidian marks', 'Cave paintings'],
+        [HistoricalEra.ANTIQUITY]: ['Sanskrit', 'Prakrit', 'Pali', 'Tamil Brahmi', 'Kharosthi'],
+        [HistoricalEra.MEDIEVAL]: ['Sanskrit', 'Tamil', 'Telugu', 'Kannada', 'Persian'],
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: ['Sanskrit', 'Persian', 'Urdu', 'Tamil', 'Bengali'],
+        [HistoricalEra.INDUSTRIAL_ERA]: ['English', 'Hindi', 'Urdu', 'Bengali', 'Tamil'],
+        [HistoricalEra.MODERN_ERA]: ['Hindi', 'English', 'Urdu', 'Bengali', 'Tamil'],
+        [HistoricalEra.FUTURE_ERA]: ['Hindi', 'English', 'Digital records']
+    },
+    'EAST_ASIAN': {
+        [HistoricalEra.PREHISTORY]: ['Oracle bone script', 'Proto-writing', 'Pictographs'],
+        [HistoricalEra.ANTIQUITY]: ['Classical Chinese', 'Oracle bone script', 'Bronze inscriptions'],
+        [HistoricalEra.MEDIEVAL]: ['Classical Chinese', 'Japanese Kana', 'Korean Hanja'],
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: ['Classical Chinese', 'Japanese', 'Korean', 'Manchu'],
+        [HistoricalEra.INDUSTRIAL_ERA]: ['Chinese', 'Japanese', 'Korean', 'English'],
+        [HistoricalEra.MODERN_ERA]: ['Simplified Chinese', 'Japanese', 'Korean', 'English'],
+        [HistoricalEra.FUTURE_ERA]: ['Chinese', 'Japanese', 'Korean', 'English', 'Digital archives']
+    },
+    'SUB_SAHARAN_AFRICAN': {
+        [HistoricalEra.PREHISTORY]: ['Rock art', 'Symbolic marks', 'Petroglyphs'],
+        [HistoricalEra.ANTIQUITY]: ['Meroitic', 'Ge\'ez', 'Ancient Berber', 'Greek'],
+        [HistoricalEra.MEDIEVAL]: ['Arabic', 'Ge\'ez', 'Old Swahili', 'Ajami scripts'],
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: ['Arabic', 'Swahili', 'Amharic', 'Portuguese'],
+        [HistoricalEra.INDUSTRIAL_ERA]: ['English', 'French', 'Arabic', 'Swahili', 'Amharic'],
+        [HistoricalEra.MODERN_ERA]: ['English', 'French', 'Swahili', 'Arabic', 'Local languages'],
+        [HistoricalEra.FUTURE_ERA]: ['English', 'Swahili', 'French', 'Digital records']
+    },
+    'NORTH_AMERICAN_PRE_COLUMBIAN': {
+        [HistoricalEra.PREHISTORY]: ['Petroglyphs', 'Pictographs', 'Rock art'],
+        [HistoricalEra.ANTIQUITY]: ['Petroglyphs', 'Pottery symbols', 'Wampum patterns'],
+        [HistoricalEra.MEDIEVAL]: ['Pictographs', 'Pottery marks', 'Wampum', 'Birchbark scrolls'],
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: ['Native pictographs', 'Spanish', 'French', 'English'],
+        [HistoricalEra.INDUSTRIAL_ERA]: ['English', 'Spanish', 'French', 'Native languages in Latin script'],
+        [HistoricalEra.MODERN_ERA]: ['English', 'Spanish', 'French', 'Native language revival texts'],
+        [HistoricalEra.FUTURE_ERA]: ['English', 'Spanish', 'Digital archives', 'Native language databases']
+    },
+    'NORTH_AMERICAN_COLONIAL': {
+        [HistoricalEra.PREHISTORY]: ['N/A - Colonial period only'],
+        [HistoricalEra.ANTIQUITY]: ['N/A - Colonial period only'],
+        [HistoricalEra.MEDIEVAL]: ['N/A - Colonial period only'],
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: ['English', 'Spanish', 'French', 'Dutch', 'Native languages'],
+        [HistoricalEra.INDUSTRIAL_ERA]: ['English', 'Spanish', 'French'],
+        [HistoricalEra.MODERN_ERA]: ['English', 'Spanish', 'French'],
+        [HistoricalEra.FUTURE_ERA]: ['English', 'Spanish', 'Digital records']
+    },
+    'SOUTH_AMERICAN': {
+        [HistoricalEra.PREHISTORY]: ['Petroglyphs', 'Cave paintings', 'Symbolic marks'],
+        [HistoricalEra.ANTIQUITY]: ['Quipu', 'Pottery symbols', 'Textile patterns'],
+        [HistoricalEra.MEDIEVAL]: ['Quipu', 'Quechua glyphs', 'Aymara symbols'],
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: ['Spanish', 'Portuguese', 'Quechua', 'Quipu'],
+        [HistoricalEra.INDUSTRIAL_ERA]: ['Spanish', 'Portuguese', 'English'],
+        [HistoricalEra.MODERN_ERA]: ['Spanish', 'Portuguese', 'English', 'Indigenous languages'],
+        [HistoricalEra.FUTURE_ERA]: ['Spanish', 'Portuguese', 'English', 'Digital archives']
+    },
+    'OCEANIA': {
+        [HistoricalEra.PREHISTORY]: ['Rock art', 'Petroglyphs', 'Cave paintings'],
+        [HistoricalEra.ANTIQUITY]: ['Proto-Polynesian symbols', 'Lapita pottery marks'],
+        [HistoricalEra.MEDIEVAL]: ['Rongorongo', 'Tattoo patterns', 'Oral traditions transcribed'],
+        [HistoricalEra.RENAISSANCE_EARLY_MODERN]: ['Native oral traditions', 'Dutch', 'Spanish', 'English'],
+        [HistoricalEra.INDUSTRIAL_ERA]: ['English', 'French', 'German', 'Native languages in Latin script'],
+        [HistoricalEra.MODERN_ERA]: ['English', 'French', 'Native languages', 'Pidgin'],
+        [HistoricalEra.FUTURE_ERA]: ['English', 'Native language revival', 'Digital archives']
+    }
+};
+
+// Helper function to calculate ruin construction date
+const calculateRuinConstructionPeriod = (
+    ruinAge: string,
+    currentYear: number
+): { year: number; era: HistoricalEra } => {
+    // Parse age from string like "500 year old" or just "500"
+    const ageMatch = ruinAge.match(/\d+/);
+    const ageYears = ageMatch ? parseInt(ageMatch[0]) : 500;
+
+    const constructionYear = currentYear - ageYears;
+
+    // Determine construction era based on year
+    let constructionEra: HistoricalEra;
+    if (constructionYear < -1000) {
+        constructionEra = HistoricalEra.PREHISTORY;
+    } else if (constructionYear < 500) {
+        constructionEra = HistoricalEra.ANTIQUITY;
+    } else if (constructionYear < 1450) {
+        constructionEra = HistoricalEra.MEDIEVAL;
+    } else if (constructionYear < 1800) {
+        constructionEra = HistoricalEra.RENAISSANCE_EARLY_MODERN;
+    } else if (constructionYear < 1920) {
+        constructionEra = HistoricalEra.INDUSTRIAL_ERA;
+    } else if (constructionYear < 2000) {
+        constructionEra = HistoricalEra.MODERN_ERA;
+    } else {
+        constructionEra = HistoricalEra.FUTURE_ERA;
+    }
+
+    return { year: constructionYear, era: constructionEra };
+};
+
+// Helper function to get appropriate languages for ruins
+const getLanguagesForRuin = (
+    culturalZone: CulturalZone,
+    constructionEra: HistoricalEra
+): string[] => {
+    const zoneLanguages = ERA_LANGUAGES[culturalZone];
+    if (!zoneLanguages) {
+        return ['Unknown script'];
+    }
+
+    const languages = zoneLanguages[constructionEra];
+    if (!languages || languages.length === 0) {
+        return ['Unknown script'];
+    }
+
+    return languages;
 };
 
 // DEPRECATED - Kept for backwards compatibility
@@ -489,7 +630,10 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         weapon: undefined,
         armor: undefined
     });
-    const [gameMessages, setGameMessages] = useState<string[]>(['You descend into the ancient ruins...']);
+    const [gameMessages, setGameMessages] = useState<string[]>(['You enter the ancient ruins...']);
+    const [discoveries, setDiscoveries] = useState<string[]>([]);
+    const [showingDiscovery, setShowingDiscovery] = useState(false);
+    const [currentDiscoveryText, setCurrentDiscoveryText] = useState<string>('');
     const [turnCount, setTurnCount] = useState(0);
     const [currentDialogue, setCurrentDialogue] = useState<{ entity: Entity; message: string } | null>(null);
     const [zoomLevel, setZoomLevel] = useState(20); // Font size for the map
@@ -673,6 +817,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
     // Track which rooms have been entered for chamber discovery
     const [discoveredRooms, setDiscoveredRooms] = useState<Set<string>>(new Set());
     const [currentRooms, setCurrentRooms] = useState<Room[]>([]);
+    const [playerCurrentRoom, setPlayerCurrentRoom] = useState<string>('entrance');
     
     // Viewport state for scrolling map
     const [viewportOffset, setViewportOffset] = useState({ x: 0, y: 0 });
@@ -716,12 +861,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         });
     }, [dungeonDimensions.width, dungeonDimensions.height, VIEWPORT_WIDTH, VIEWPORT_HEIGHT]);
     
-    // Puzzle state tracking
-    const [puzzleStates, setPuzzleStates] = useState<Record<string, {
-        sequence: number[];
-        correctSequence: number[];
-        completed: boolean;
-    }>>({});
+    // Removed puzzle state tracking - no longer needed
     
     // Create sound effect at position
     const createSoundEffect = useCallback((text: string, x: number, y: number, color: string = '#ff9500', style: 'normal' | 'shake' | 'float' = 'normal') => {
@@ -770,25 +910,20 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     
                     // Check if destination is valid
                     const destTile = dungeon[newY]?.[newX];
-                    if (destTile && (destTile.type === 'floor' || destTile.type === 'water' || destTile.type === 'pressure_plate')) {
+                    if (destTile && (destTile.type === 'floor' || destTile.type === 'water')) {
                         setDungeon(prev => {
                             const newDungeon = [...prev];
                             // Move boulder
                             newDungeon[y][x] = { type: 'floor', visible: true, explored: true };
-                            newDungeon[newY][newX] = { 
-                                ...destTile, 
-                                type: 'boulder', 
-                                pushable: true, 
-                                weight: tile.weight || 5,
+                            newDungeon[newY][newX] = {
+                                ...destTile,
+                                type: 'boulder',
+                                pushable: true,
                                 description: 'A heavy stone boulder'
                             };
                             
                             // Special interactions
-                            if (destTile.type === 'pressure_plate') {
-                                newDungeon[newY][newX].isActivated = true;
-                                message = 'The boulder activates the pressure plate with a loud *CLUNK*!';
-                                soundEffect = { text: 'ACTIVATE!', color: '#00ff00', style: 'shake' as const };
-                            } else if (destTile.type === 'water') {
+                            if (destTile.type === 'water') {
                                 message = 'The boulder splashes into the water, creating ripples.';
                                 soundEffect = { text: '*SPLASH*', color: '#4488ff', style: 'normal' as const };
                             } else {
@@ -822,15 +957,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                                     newDungeon[y][x].hasGold = 50 + Math.floor(Math.random() * 100);
                                     message += ' Something glints in the rubble...';
                                 }
-                            } else if (tile.type === 'ice_wall') {
-                                newDungeon[y][x] = { type: 'water', visible: true, explored: true };
-                                message = 'The ice wall melts into flowing water!';
-                                soundEffect = { text: '*melt*', color: '#88ccff', style: 'float' as const };
-                            } else if (tile.type === 'vine_wall') {
-                                newDungeon[y][x] = { type: 'floor', visible: true, explored: true };
-                                message = 'You hack through the thick vines!';
-                                soundEffect = { text: '*slash*', color: '#228B22', style: 'shake' as const };
-                            }
+                            } // Removed ice_wall and vine_wall mechanics
                             
                             return newDungeon;
                         });
@@ -849,24 +976,25 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 break;
                 
             case 'douse':
-                if (tile.type === 'fire_trap' || tile.type === 'brazier') {
+                // Removed fire trap and brazier mechanics
+                if (false) {
                     // Check if player has water nearby or water item
                     const hasWater = player.inventory.some(item => item.name.toLowerCase().includes('water')) ||
-                                    dungeon.some(row => row.some(t => t.type === 'water' && 
-                                        Math.abs(t.x - player.x) <= 1 && Math.abs(t.y - player.y) <= 1));
+                                    dungeon.some((row, y) => row.some((t, x) => t.type === 'water' &&
+                                        Math.abs(x - player.x) <= 1 && Math.abs(y - player.y) <= 1));
                     
                     if (hasWater) {
                         setDungeon(prev => {
                             const newDungeon = [...prev];
-                            newDungeon[y][x] = { 
-                                type: tile.type === 'fire_trap' ? 'floor' : 'pillar',
-                                visible: true, 
+                            newDungeon[y][x] = {
+                                type: 'floor',
+                                visible: true,
                                 explored: true,
-                                description: tile.type === 'fire_trap' ? 'Extinguished fire trap' : 'Cold brazier'
+                                description: 'Extinguished torch'
                             };
                             return newDungeon;
                         });
-                        message = `You extinguish the ${tile.type === 'fire_trap' ? 'fire trap' : 'brazier'} with water.`;
+                        message = `You extinguish the torch with water.`;
                         soundEffect = { text: '*hiss*', color: '#666666', style: 'float' as const };
                         success = true;
                     } else {
@@ -876,25 +1004,14 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 break;
                 
             case 'activate':
-                if (tile.type === 'ancient_mechanism') {
+                // Removed ancient mechanism mechanics
+                if (false) {
                     if (!tile.isActivated) {
                         setDungeon(prev => {
                             const newDungeon = [...prev];
-                            newDungeon[y][x] = { ...tile, isActivated: true };
+                            newDungeon[y][x] = { ...tile };
                             
-                            // Activate connected mechanisms
-                            if (tile.connectedTo) {
-                                tile.connectedTo.forEach(pos => {
-                                    const connectedTile = newDungeon[pos.y]?.[pos.x];
-                                    if (connectedTile) {
-                                        if (connectedTile.type === 'puzzle_door') {
-                                            newDungeon[pos.y][pos.x] = { ...connectedTile, type: 'floor' };
-                                        } else if (connectedTile.type === 'counterweight') {
-                                            newDungeon[pos.y][pos.x] = { ...connectedTile, isActivated: true };
-                                        }
-                                    }
-                                });
-                            }
+                            // Removed mechanism activation logic - no longer needed
                             
                             return newDungeon;
                         });
@@ -1313,6 +1430,20 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
         }
         return null;
     }, [getCacheKey]);
+
+    // Helper function to get container type based on room type
+    const getContainerTypeForRoom = (roomType: string): OverlayObjectType => {
+        const roomContainers: Record<string, OverlayObjectType> = {
+            'treasure': OverlayObjectType.CHEST,
+            'altar': OverlayObjectType.CABINET,
+            'library': OverlayObjectType.BOOKSHELF,
+            'storage': OverlayObjectType.CRATE,
+            'guard': OverlayObjectType.BARREL,
+            'entrance': OverlayObjectType.BASKET,
+            'corridor': OverlayObjectType.CRATE
+        };
+        return roomContainers[roomType] || OverlayObjectType.CHEST;
+    };
 
     // Generate a proper dungeon with guaranteed walkable entrance
     const generateDungeon = useCallback(async () => {
@@ -1823,17 +1954,58 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             return !item.name.toLowerCase().includes('modern') && !item.name.toLowerCase().includes('gun');
         });
 
-        // Add gold piles
-        for (let i = 0; i < Math.min(10, floorTiles.length / 10); i++) {
+        // Add chests and occasional gold piles
+        const numTreasures = Math.min(10, floorTiles.length / 10);
+        for (let i = 0; i < numTreasures; i++) {
             if (floorTiles.length === 0) break;
             const idx = Math.floor(Math.random() * floorTiles.length);
             const tile = floorTiles[idx];
             floorTiles.splice(idx, 1);
-            newDungeon[tile.y][tile.x] = {
-                ...newDungeon[tile.y][tile.x],
-                type: 'treasure',
-                hasGold: 20 + Math.floor(Math.random() * 80)
-            };
+
+            // 80% chance for chest, 20% for gold pile
+            if (Math.random() < 0.8) {
+                // Determine which room this chest is in
+                const room = rooms.find(r =>
+                    tile.x >= r.x && tile.x < r.x + r.width &&
+                    tile.y >= r.y && tile.y < r.y + r.height
+                );
+                const roomType = room?.type || 'corridor';
+
+                // Select appropriate container type based on room
+                const containerType = getContainerTypeForRoom(roomType);
+
+                // Generate culturally appropriate contents
+                // Use different archetypes based on room type for variety
+                const archetype = roomType === 'treasure' ? SpecialMapArchetype.PALACE_COMPLEX :
+                    roomType === 'library' ? SpecialMapArchetype.UNIVERSITY :
+                    roomType === 'altar' ? SpecialMapArchetype.SACRED_COMPLEX :
+                    roomType === 'guard' ? SpecialMapArchetype.MILITARY_FORTRESS :
+                    SpecialMapArchetype.ESTATES;
+
+                const contents = generateSpecialMapContainerContents(
+                    containerType,
+                    archetype,
+                    culturalContext.culturalZone,
+                    culturalContext.era,
+                    roomType,
+                    'private' // Most ruin rooms are private/abandoned
+                );
+
+                newDungeon[tile.y][tile.x] = {
+                    ...newDungeon[tile.y][tile.x],
+                    type: 'chest',
+                    containerContents: contents,
+                    containerType: containerType,
+                    chestOpened: false
+                };
+            } else {
+                // Traditional gold pile (rare)
+                newDungeon[tile.y][tile.x] = {
+                    ...newDungeon[tile.y][tile.x],
+                    type: 'treasure',
+                    hasGold: 50 + Math.floor(Math.random() * 150) // Make gold piles more valuable since they're rarer
+                };
+            }
         }
 
         // Add items
@@ -1981,7 +2153,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             console.error('Failed to load contextual manuscripts:', error);
         }
 
-        // Culturally-specific puzzle generation
+        // Discovery tile placement (replacing puzzle generation)
         const generateCulturalPuzzle = (room: Room) => {
             const puzzleId = `puzzle_${Math.random().toString(36).substr(2, 9)}`;
             
@@ -2346,8 +2518,8 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             };
         }
 
-        // Ancient mechanisms - complex puzzle elements
-        const treasureRooms = rooms.filter(r => r.type === 'treasure' || r.type === 'altar');
+        // Removed ancient mechanisms - replaced with discovery tiles
+        /* const treasureRooms = rooms.filter(r => r.type === 'treasure' || r.type === 'altar');
         treasureRooms.forEach(room => {
             if (Math.random() < 0.6) { // 60% chance for treasure rooms to have mechanisms
                 const mechX = room.x + Math.floor(room.width / 2);
@@ -2388,7 +2560,40 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     });
                 }
             }
-        });
+        }); */
+
+        // Add discovery tiles (? tiles) throughout the dungeon
+        const availableFloorTiles: { x: number; y: number }[] = [];
+        for (let y = 0; y < DUNGEON_HEIGHT; y++) {
+            for (let x = 0; x < DUNGEON_WIDTH; x++) {
+                if (newDungeon[y][x].type === 'floor' &&
+                    !newDungeon[y][x].hasGold &&
+                    !newDungeon[y][x].hasItem &&
+                    !newDungeon[y][x].hasManuscript) {
+                    // Check if not too close to entrance
+                    const distFromEntrance = Math.abs(x - startX) + Math.abs(y - startY);
+                    if (distFromEntrance > 3) {
+                        availableFloorTiles.push({ x, y });
+                    }
+                }
+            }
+        }
+
+        // Place 3-5 discovery tiles randomly
+        const numDiscoveries = 3 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < numDiscoveries && availableFloorTiles.length > 0; i++) {
+            const idx = Math.floor(Math.random() * availableFloorTiles.length);
+            const tile = availableFloorTiles[idx];
+            availableFloorTiles.splice(idx, 1);
+
+            newDungeon[tile.y][tile.x] = {
+                ...newDungeon[tile.y][tile.x],
+                type: 'discovery',
+                hasBeenDiscovered: false,
+                discoveryId: `discovery_${currentDepth}_${i}`,
+                description: 'Something of historical interest catches your eye...'
+            };
+        }
 
         // Add stairs down in a far room
         const lastRoom = rooms[rooms.length - 1];
@@ -2409,10 +2614,10 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 { text: 'Dust motes dance in the dim light...', condition: () => Math.random() < 0.4 },
                 { text: 'The ancient stones groan under their own weight...', condition: () => currentDepth > 3 },
                 { text: 'A musty smell fills your nostrils...', condition: () => Math.random() < 0.5 },
-                { text: 'Your footsteps echo endlessly through the vast space...', condition: () => layoutType === 'large_chamber' },
+                { text: 'Your footsteps echo endlessly through the vast space...', condition: () => layoutType === 'chamber' },
                 { text: 'Something scurries in the darkness beyond your vision...', condition: () => Math.random() < 0.2 && currentDepth > 1 },
-                { text: 'Water drips steadily somewhere in the distance...', condition: () => layoutType === 'organic_cave' },
-                { text: 'The rigid corridors suggest careful planning by ancient builders...', condition: () => layoutType === 'grid_office' }
+                { text: 'Water drips steadily somewhere in the distance...', condition: () => layoutType === 'organic' },
+                { text: 'The rigid corridors suggest careful planning by ancient builders...', condition: () => layoutType === 'grid' }
             ];
             
             const validAmbiances = ambiances.filter(a => a.condition());
@@ -2440,6 +2645,10 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             currentDepth,
             3 + currentDepth // More NPCs on deeper levels
         );
+
+        // Generate one special LLM-powered NPC for richer interaction
+        // (Disabled for now to avoid async in effect - would need useEffect)
+        // TODO: Add async LLM NPC generation in separate effect
 
         // Get appropriate animals for the biome
         const ruinAnimals = getRuinAnimals(
@@ -2552,7 +2761,7 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                             symbol: npc.emoji || '👤',
                             emoji: npc.emoji || '👤',
                             color: npc.isHostile ? 'text-red-400' : 'text-blue-400',
-                            dialogue: npc.dialogue,
+                            dialogue: npc.dialogue || ['Hello', 'Goodbye'],
                             loot: npc.inventory,
                             canNegotiate: !npc.isHostile || Math.random() > 0.5,
                             aiState: 'idle'
@@ -3226,6 +3435,12 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
             
             // Handle tile interactions
             switch (tile.type) {
+                case 'chest':
+                    if (!tile.chestOpened) {
+                        addMessage('Press SPACE to open the chest');
+                    }
+                    break;
+
                 case 'treasure':
                     if (tile.hasGold) {
                         newPlayer.gold += tile.hasGold;
@@ -3399,120 +3614,157 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                     }
                     break;
                     
-                case 'brazier':
-                    addMessage('A burning brazier illuminates the area with flickering flames.');
+                case 'torch':
+                    addMessage('A torch on the wall provides warm, flickering light.');
                     createSoundEffect('*crackle*', newX, newY, '#ff6600', 'float');
                     break;
                     
-                case 'crystal':
-                    addMessage('A glowing crystal emanates a soft, ethereal light.');
+                case 'debris':
+                    addMessage('Rubble and debris block the path here.');
                     break;
-                    
-                case 'pressure_plate':
-                    if (!tile.isActivated) {
-                        tile.isActivated = true;
-                        addMessage('*CLICK* The pressure plate sinks under your weight.');
-                        gameSoundsService.playTrapSound();
-                        
-                        // Check if all plates for this puzzle are activated
-                        if (tile.puzzleId && tile.linkedTiles) {
-                            let activatedCount = 1; // Current plate
-                            let totalPlates = 1;
-                            
-                            for (let y = 0; y < dungeon.length; y++) {
-                                for (let x = 0; x < dungeon[0].length; x++) {
-                                    if (dungeon[y][x].type === 'pressure_plate' && 
-                                        dungeon[y][x].puzzleId === tile.puzzleId &&
-                                        !(x === newPlayer.x && y === newPlayer.y)) {
-                                        totalPlates++;
-                                        if (dungeon[y][x].isActivated) activatedCount++;
+
+                case 'discovery':
+                    if (!tile.hasBeenDiscovered) {
+                        // Mark as discovered
+                        setDungeon(prevDungeon => {
+                            const newDungeon = [...prevDungeon];
+                            newDungeon[newY][newX] = {
+                                ...tile,
+                                hasBeenDiscovered: true,
+                                type: 'floor' // Convert to floor after discovery
+                            };
+                            return newDungeon;
+                        });
+
+                        // Determine which room we're in
+                        const currentRoom = currentRooms.find(room =>
+                            newX >= room.x && newX < room.x + room.width &&
+                            newY >= room.y && newY < room.y + room.height
+                        );
+                        const roomType = currentRoom?.type || 'corridor';
+
+                        // Calculate when these ruins were built based on their age
+                        const currentYear = mapData?.year || parseInt(mapData?.timeSlice || '1500');
+                        const constructionPeriod = calculateRuinConstructionPeriod(ruinType.age, currentYear);
+                        const appropriateLanguages = getLanguagesForRuin(culturalContext.culturalZone, constructionPeriod.era);
+
+                        // Generate historical discovery with room context
+                        const context = gatherRuinContext(mapData, ruinType, currentDepth, discoveries, roomType);
+
+                        addMessage('You make an interesting discovery...');
+                        gameSoundsService.playManuscriptSound();
+
+                        // Helper function for generated discoveries with period-appropriate language
+                        const generateHistoricalDiscoveryFallback = () => {
+                            // Add construction period and languages to context
+                            const enhancedContext = {
+                                ...context,
+                                constructionYear: constructionPeriod.year,
+                                constructionEra: constructionPeriod.era,
+                                originalLanguages: appropriateLanguages
+                            };
+
+                            generateHistoricalDiscovery(enhancedContext).then(discoveryText => {
+                                // Prepend language information to discovery
+                                const languageNote = `[Written in ${appropriateLanguages[0]}${appropriateLanguages.length > 1 ? ' with annotations in ' + appropriateLanguages[1] : ''}]\n\n`;
+                                const fullDiscoveryText = languageNote + discoveryText;
+
+                                setCurrentDiscoveryText(fullDiscoveryText);
+                                setDiscoveries(prev => [...prev, fullDiscoveryText]);
+
+                                // Display using the existing source reader overlay
+                                const discoverySource = {
+                                    id: `discovery_${Date.now()}`,
+                                    title: 'Historical Discovery',
+                                    content: fullDiscoveryText,
+                                    description: fullDiscoveryText,
+                                    period: `${constructionPeriod.year} CE - ${constructionPeriod.era}`,
+                                    keywords: [],
+                                    themes: [],
+                                    contentType: 'discovery',
+                                    sourceUrl: '',
+                                    metadata: {
+                                        originalLanguages: appropriateLanguages,
+                                        constructionYear: constructionPeriod.year
                                     }
+                                } as any;
+                                setSelectedSource(discoverySource);
+                                setShowSourceReader(true);
+                                console.log('Discovery generated for construction period:', constructionPeriod.year, appropriateLanguages);
+                            }).catch(err => {
+                                console.error('Failed to generate discovery:', err);
+                                const languageNote = `[Written in ${appropriateLanguages[0]}]\n\n`;
+                                const fallbackText = languageNote + `You discover ${['pottery shards', 'ancient inscriptions', 'tool fragments', 'bone remains'][Math.floor(Math.random() * 4)]} that tell a story of this place's past.`;
+                                setCurrentDiscoveryText(fallbackText);
+                                setDiscoveries(prev => [...prev, fallbackText]);
+                                addMessage(fallbackText);
+                            });
+                        };
+
+                        // Higher chance (50%) to find actual primary sources in library/altar rooms
+                        const shouldFindPrimarySource = (roomType === 'library' || roomType === 'altar') && Math.random() < 0.5;
+
+                        if (shouldFindPrimarySource && mapData) {
+                            // Try to find period-appropriate primary sources
+                            primarySourceService.getSourcesForRuin(
+                                constructionPeriod.year,
+                                culturalContext.culturalZone as CulturalZone,
+                                mapData.localArea
+                            ).then(sources => {
+                                if (sources && sources.length > 0) {
+                                    const source = sources[Math.floor(Math.random() * Math.min(3, sources.length))];
+
+                                    // Create discovery text with language context
+                                    const languageNote = `[Written in ${appropriateLanguages[0]}]\n\n`;
+                                    const ageDescription = constructionPeriod.year < 0
+                                        ? `from ${Math.abs(constructionPeriod.year)} BCE`
+                                        : `from ${constructionPeriod.year} CE`;
+
+                                    const discoveryText = languageNote +
+                                        `You discover an authentic text ${ageDescription}: "${source.title}" by ${source.author || 'Unknown'}.\n\n` +
+                                        `${source.excerpt || source.content?.substring(0, 200) || 'The text is partially legible...'}`;
+
+                                    setCurrentDiscoveryText(discoveryText);
+                                    setDiscoveries(prev => [...prev, discoveryText]);
+
+                                    // Display the actual primary source with enhanced metadata
+                                    const enhancedSource = {
+                                        ...source,
+                                        content: discoveryText,
+                                        metadata: {
+                                            ...source.metadata,
+                                            originalLanguages: appropriateLanguages,
+                                            discoveredInRuins: true,
+                                            ruinConstructionYear: constructionPeriod.year
+                                        }
+                                    };
+                                    setSelectedSource(enhancedSource);
+                                    setShowSourceReader(true);
+                                    console.log('Found period-appropriate primary source:', source.title, 'from', source.year);
+                                } else {
+                                    // No sources from that period, generate contextual discovery
+                                    generateHistoricalDiscoveryFallback();
                                 }
-                            }
-                            
-                            if (activatedCount === totalPlates) {
-                                addMessage('✦ All pressure plates activated! The sealed door opens!');
-                                // Open the linked door
-                                tile.linkedTiles.forEach(linked => {
-                                    if (dungeon[linked.y] && dungeon[linked.y][linked.x]) {
-                                        dungeon[linked.y][linked.x].type = 'floor';
-                                    }
-                                });
-                            } else {
-                                addMessage(`Pressure plates activated: ${activatedCount}/${totalPlates}`);
-                            }
+                            }).catch((err) => {
+                                console.error('Failed to get sources for ruin:', err);
+                                generateHistoricalDiscoveryFallback();
+                            });
+                        } else {
+                            generateHistoricalDiscoveryFallback();
                         }
                     } else {
-                        addMessage('This pressure plate is already activated.');
+                        addMessage('You have already examined this area.');
                     }
                     break;
                     
-                case 'lever':
-                    tile.isActivated = !tile.isActivated;
-                    addMessage(`You ${tile.isActivated ? 'pull' : 'push'} the lever. *CLUNK*`);
-                    createSoundEffect('CLUNK!', newX, newY, '#9966ff', 'shake');
-                    gameSoundsService.playAltarSound();
+                // Removed lever mechanics - no longer needed
                     
-                    // Handle lever sequence puzzles
-                    if (tile.puzzleId && tile.sequenceIndex !== undefined) {
-                        setPuzzleStates(prev => {
-                            const puzzleState = prev[tile.puzzleId!] || {
-                                sequence: [],
-                                correctSequence: tile.correctSequence || [1,2,3],
-                                completed: false
-                            };
-                            
-                            if (tile.isActivated) {
-                                // Add to sequence
-                                puzzleState.sequence.push(tile.sequenceIndex);
-                                
-                                // Check if sequence is complete and correct
-                                if (puzzleState.sequence.length === puzzleState.correctSequence.length) {
-                                    const isCorrect = puzzleState.sequence.every((val, idx) => 
-                                        val === puzzleState.correctSequence[idx]
-                                    );
-                                    
-                                    if (isCorrect) {
-                                        addMessage('✦ The ancient mechanism activates! A hidden door opens!');
-                                        puzzleState.completed = true;
-                                        // Open related doors or reveal treasure
-                                        for (let y = 0; y < dungeon.length; y++) {
-                                            for (let x = 0; x < dungeon[0].length; x++) {
-                                                if (dungeon[y][x].puzzleId === tile.puzzleId && 
-                                                    dungeon[y][x].type === 'puzzle_door') {
-                                                    dungeon[y][x].type = 'floor';
-                                                }
-                                            }
-                                        }
-                                    } else {
-                                        addMessage('The sequence was incorrect. The levers reset with a grinding sound.');
-                                        // Reset all levers for this puzzle
-                                        for (let y = 0; y < dungeon.length; y++) {
-                                            for (let x = 0; x < dungeon[0].length; x++) {
-                                                if (dungeon[y][x].puzzleId === tile.puzzleId && 
-                                                    dungeon[y][x].type === 'lever') {
-                                                    dungeon[y][x].isActivated = false;
-                                                }
-                                            }
-                                        }
-                                        puzzleState.sequence = [];
-                                    }
-                                }
-                            } else {
-                                // Remove from sequence if deactivated
-                                const index = puzzleState.sequence.indexOf(tile.sequenceIndex);
-                                if (index > -1) {
-                                    puzzleState.sequence.splice(index, 1);
-                                }
-                            }
-                            
-                            return { ...prev, [tile.puzzleId!]: puzzleState };
-                        });
+                case 'locked_door':
+                    if (tile.hasKey) {
+                        addMessage('This door is locked. You need a key to open it.');
+                    } else {
+                        addMessage('The door is barred from the other side.');
                     }
-                    break;
-                    
-                case 'puzzle_door':
-                    addMessage('This door is sealed by an ancient mechanism. Perhaps there\'s a way to open it...');
                     break;
                     
                 case 'food':
@@ -3622,11 +3874,86 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 return;
             }
             
+            // SPACE BAR - Interact with current tile
+            if (event.key === ' ') {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const currentTile = dungeon[player.y]?.[player.x];
+                if (currentTile?.type === 'chest' && !currentTile.chestOpened) {
+                    // Open the chest
+                    const contents = currentTile.containerContents;
+                    if (contents && contents.items.length > 0) {
+                        // Play chest opening sound
+                        gameSoundsService.playTreasureOpeningSound();
+
+                        // Add all items to player inventory
+                        let totalGold = 0;
+                        const itemNames: string[] = [];
+
+                        contents.items.forEach(item => {
+                            if (item.baseId === 'COIN') {
+                                totalGold += item.value * (item.quantity || 1);
+                            } else {
+                                // Add to player's inventory
+                                setPlayer(prev => ({
+                                    ...prev,
+                                    inventory: [...prev.inventory, item]
+                                }));
+                                itemNames.push(item.name);
+                                onInventoryAdd?.(item);
+                            }
+                        });
+
+                        // Update gold if coins were found
+                        if (totalGold > 0) {
+                            setPlayer(prev => ({ ...prev, gold: prev.gold + totalGold }));
+                            onGoldChange?.(player.gold + totalGold);
+                            addMessage(`You found ${totalGold} gold!`);
+                        }
+
+                        // Report items found
+                        if (itemNames.length > 0) {
+                            const itemsMessage = itemNames.length <= 3
+                                ? itemNames.join(', ')
+                                : `${itemNames.slice(0, 2).join(', ')} and ${itemNames.length - 2} more items`;
+                            addMessage(`You found: ${itemsMessage}`);
+                        }
+
+                        // Mark chest as opened
+                        setDungeon(prevDungeon => {
+                            const newDungeon = [...prevDungeon];
+                            newDungeon[player.y][player.x] = {
+                                ...currentTile,
+                                chestOpened: true,
+                                containerContents: undefined
+                            };
+                            return newDungeon;
+                        });
+
+                        // Visual effect
+                        createSoundEffect('*sparkle*', player.x, player.y, '#ffdd00', 'float');
+                    } else {
+                        addMessage('The chest is empty.');
+                        // Still mark as opened
+                        setDungeon(prevDungeon => {
+                            const newDungeon = [...prevDungeon];
+                            newDungeon[player.y][player.x] = {
+                                ...currentTile,
+                                chestOpened: true
+                            };
+                            return newDungeon;
+                        });
+                    }
+                }
+                return;
+            }
+
             // OTHER ACTIONS
             if (['escape', 'm', '>', 'h', 't', 'p', 'b', 'e', 'q'].includes(keyLower)) {
                 event.preventDefault();
                 event.stopPropagation();
-                
+
                 switch (keyLower) {
                     case 'escape':
                         // Close translation modal first, then encounter modal, then exit
@@ -3925,6 +4252,67 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
     }, [movePlayer, onExit, player, dungeon, generateDungeon, addMessage, currentDepth, discoverNewChamber, entities, culturalContext, ruinType, playerCharacter, performMeleeAttack, performRangedAttack, performChargedSpecial, chargingAttack, chargeDirection, chargeLevel, showEncounterModal, currentEncounter, selectedChoiceId, encounterOutcome, setShowEncounterModal, setCurrentEncounter, setSelectedChoiceId, setEncounterOutcome, onHealthChange, showTranslationModal, currentTranslationPuzzle, currentContextualManuscript]);
 
     
+    // Generate a special LLM-powered NPC when entering ruins
+    useEffect(() => {
+        if (currentDepth === 1 && entities.length > 0 && mapData && ruinType) {
+            // Generate one special NPC with rich historical context
+            const generateSpecialNPC = async () => {
+                try {
+                    const llmNPC = await generateLLMRuinNPC(
+                        culturalContext.year,
+                        culturalContext.culturalZone,
+                        culturalContext.era,
+                        ruinType.originalType || ruinType.name,
+                        currentDepth,
+                        mapData.biome || 'temperate'
+                    );
+
+                    // Convert LLM NPC to entity format
+                    const specialEntity: Entity = {
+                        id: `llm_npc_${Date.now()}`,
+                        x: Math.floor(dungeonDimensions.width / 2),
+                        y: Math.floor(dungeonDimensions.height / 2),
+                        type: 'npc',
+                        subtype: llmNPC.type.toLowerCase(),
+                        name: llmNPC.name,
+                        hp: 30,
+                        maxHp: 30,
+                        hostile: llmNPC.hostile,
+                        dialogue: [
+                            llmNPC.dialogue.greeting,
+                            llmNPC.dialogue.backstory,
+                            llmNPC.dialogue.information,
+                            llmNPC.dialogue.farewell
+                        ],
+                        loot: llmNPC.items?.map(item => ({ name: item, quantity: 1 })),
+                        description: `${llmNPC.backstory} ${llmNPC.motivation}`,
+                        symbol: llmNPC.hostile ? 'H' : 'M',
+                        emoji: llmNPC.hostile ? '⚔️' : '🧙',
+                        color: llmNPC.hostile ? 'text-red-500' : 'text-blue-400',
+                        canNegotiate: !llmNPC.hostile
+                    };
+
+                    // Add to entities if not already at max
+                    setEntities(prev => {
+                        if (prev.length < 10) {
+                            console.log('Added LLM-generated NPC:', llmNPC.name, llmNPC.type);
+                            return [...prev, specialEntity];
+                        }
+                        return prev;
+                    });
+                } catch (error) {
+                    console.log('Could not generate LLM NPC:', error);
+                }
+            };
+
+            // Only generate once per ruin
+            const hasLLMNPC = entities.some(e => e.id.startsWith('llm_npc_'));
+            if (!hasLLMNPC) {
+                generateSpecialNPC();
+            }
+        }
+    }, [currentDepth]);
+
     // Simple static particles for atmosphere (no animation)
     useEffect(() => {
         // Add a few static dust motes when entering new areas
@@ -4044,7 +4432,13 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 };
             case 'door': 
                 return { char: '╬', color: dimmed ? 'text-amber-800' : 'text-amber-600', glow: false }; // Better door
-            case 'treasure': 
+            case 'chest':
+                if (!tile.chestOpened) {
+                    return { char: '☒', color: dimmed ? 'text-amber-700' : 'text-amber-400', glow: !dimmed }; // Closed chest
+                } else {
+                    return { char: '☐', color: dimmed ? 'text-gray-600' : 'text-gray-400', glow: false }; // Opened chest
+                }
+            case 'treasure':
                 if (tile.hasGold) return { char: '¤', color: dimmed ? 'text-yellow-700' : 'text-yellow-400', glow: !dimmed }; // Currency symbol
                 if (tile.hasItem) return { char: '†', color: dimmed ? 'text-blue-700' : 'text-blue-400', glow: !dimmed }; // Dagger symbol
                 return { char: '·', color: dimmed ? 'text-gray-700' : 'text-gray-600', glow: false };
@@ -4084,47 +4478,32 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                 return { char: '≡', color: dimmed ? 'text-amber-700' : 'text-amber-500', glow: false }; // Triple bar for text
             case 'mural':
                 return { char: '▣', color: dimmed ? 'text-indigo-700' : 'text-indigo-400', glow: false }; // Filled square for art
-            case 'brazier':
-                // Animated fire effect
-                const fireChars = ['◈', '◉', '◎'];
-                const fireChar = fireChars[Math.floor(Date.now() / 400) % fireChars.length];
-                return { char: fireChar, color: dimmed ? 'text-orange-700' : 'text-orange-500', glow: !dimmed, strongGlow: !dimmed };
-            case 'crystal':
-                return { char: '◊', color: dimmed ? 'text-cyan-700' : 'text-cyan-400', glow: !dimmed, strongGlow: !dimmed }; // Diamond for crystal
-            case 'pressure_plate':
-                // Subtle indication - comma instead of period for unactivated plates
-                return { char: tile.isActivated ? '.' : ',', color: tile.isActivated ? 'text-green-400' : 'text-gray-500', glow: false };
-            case 'lever':
-                return { char: tile.isActivated ? '╨' : '╥', color: 'text-purple-400', glow: false };
-            case 'puzzle_door':
-                return { char: '▩', color: 'text-red-600', glow: true };
-            case 'mirror':
-                return { char: '◯', color: 'text-blue-300', glow: true };
+            case 'torch':
+                // Already handled above but add animated effect here
+                const torchChars = ['◈', '◉', '◎'];
+                const torchChar = torchChars[Math.floor(Date.now() / 400) % torchChars.length];
+                return { char: torchChar, color: dimmed ? 'text-orange-700' : 'text-orange-500', glow: !dimmed };
+            case 'debris':
+                return { char: '∙', color: dimmed ? 'text-gray-700' : 'text-gray-500', glow: false };
+            case 'locked_door':
+                return { char: '▩', color: dimmed ? 'text-red-800' : 'text-red-600', glow: false };
+            case 'discovery':
+                if (!tile.hasBeenDiscovered) {
+                    return {
+                        char: '?',
+                        color: 'text-amber-400',
+                        glow: true,
+                        strongGlow: true,
+                        gradient: 'from-amber-300 to-yellow-500',
+                        fontWeight: 'font-bold'
+                    };
+                }
+                return { char: '.', color: dimmed ? 'text-gray-700' : 'text-gray-600', glow: false };
             case 'boulder':
                 return { char: '●', color: dimmed ? 'text-gray-600' : 'text-gray-300', glow: false };
             case 'weak_wall':
                 return { char: '▒', color: dimmed ? 'text-gray-700' : 'text-gray-500', glow: false };
-            case 'fire_trap':
-                const fireColors = ['text-red-500', 'text-orange-500', 'text-yellow-500'];
-                const fireColor = fireColors[Math.floor(Date.now() / 300) % fireColors.length];
-                return { char: '♨', color: dimmed ? 'text-red-800' : fireColor, glow: !dimmed, strongGlow: !dimmed };
-            case 'ice_wall':
-                return { char: '▓', color: dimmed ? 'text-blue-800' : 'text-blue-400', glow: false };
-            case 'vine_wall':
-                return { char: '▒', color: dimmed ? 'text-green-800' : 'text-green-600', glow: false };
-            case 'ancient_mechanism':
-                const mechChar = tile.isActivated ? '⚙' : '⚡';
-                return { char: mechChar, color: tile.isActivated ? 'text-green-400' : 'text-yellow-600', glow: tile.isActivated };
-            case 'counterweight':
-                return { char: '⚖', color: tile.isActivated ? 'text-green-400' : 'text-gray-600', glow: false };
-            case 'water_flow':
-                const flowChars = ['≈', '∼', '≋'];
-                const flowChar = flowChars[Math.floor(Date.now() / 600) % flowChars.length];
-                return { char: flowChar, color: dimmed ? 'text-blue-800' : 'text-blue-400', glow: false };
-            case 'rope':
-                return { char: '∿', color: dimmed ? 'text-yellow-800' : 'text-yellow-600', glow: false };
-            case 'chain':
-                return { char: '⛓', color: dimmed ? 'text-gray-700' : 'text-gray-400', glow: false };
+            // Removed fantasy trap types - keeping only realistic traps
             default: 
                 return { char: '?', color: 'text-white', glow: false };
         }
@@ -4262,12 +4641,12 @@ const RoguelikeDisplayEnhanced: React.FC<RoguelikeDisplayEnhancedProps> = ({
                                             return (
                                                 <span
                                                     key={absoluteX}
-                                                    className={display.customColor ? '' : display.color}
+                                                    className={`${display.customColor ? '' : display.color} ${display.gradient ? `bg-gradient-to-br ${display.gradient} bg-clip-text text-transparent` : ''}`}
                                                     style={{
                                                         width: `${zoomLevel}px`,
                                                         display: 'inline-block',
                                                         textAlign: 'center',
-                                                        fontWeight: 'bold',
+                                                        fontWeight: display.fontWeight || 'bold',
                                                         color: display.customColor || undefined,
                                                         ...(display.strongGlow ? {
                                                             textShadow: `0 0 12px currentColor, 0 0 20px currentColor, 0 0 8px #ffff00`

@@ -85,7 +85,7 @@ export function proceduralGenerateMap(
   deltaOutlet?: 'north' | 'south' | 'east' | 'west'
 ): MapData {
   const startTime = performance.now(); // Track generation time
-  console.log(`[Gen] Starting map generation - Seed: ${seed}, Archetype: ${archetype}, Climate: ${climate}`);
+  // console.log(`[Gen] Starting map generation - Seed: ${seed}, Archetype: ${archetype}, Climate: ${climate}`);
   
   const landNoise = new ValueNoise(seed);
   const altitudeNoiseGen = new ValueNoise(seed + 1); 
@@ -110,7 +110,7 @@ export function proceduralGenerateMap(
   const vegetationNoise = new ValueNoise(seed + 20); // For vegetation spawning
 
   const dateInfo = parseDateString(timeSlice || '1650');
-  console.log(`[Gen] Date info: year=${dateInfo.year}, era=${dateInfo.era}, timeSlice="${timeSlice}"`);
+  // console.log(`[Gen] Date info: year=${dateInfo.year}, era=${dateInfo.era}, timeSlice="${timeSlice}"`);
   const culturalZone = mapLocationToCulture(continent || 'Europe', dateInfo.year);
   const regionName = region || Object.keys(GEOGRAPHICAL_DATA[culturalZone as CulturalZone] || {})[0] || 'DefaultRegion';
   const factionData = FACTION_DATA[culturalZone as CulturalZone]?.[regionName]?.[dateInfo.era as HistoricalEra];
@@ -499,19 +499,32 @@ export function proceduralGenerateMap(
       let modifiedLandThreshold = landThreshold;
       let directlySetByNeighbor = false;
 
+      // Collect all available neighboring edge data for this position
+      const edgeDataSources = [];
       if (x === 0 && neighboringEdges?.west && neighboringEdges.west[y]) {
-          isLand = neighboringEdges.west[y].isLand;
-          directlySetByNeighbor = true;
-      } else if (x === MAP_WIDTH_TILES - 1 && neighboringEdges?.east && neighboringEdges.east[y]) {
-          isLand = neighboringEdges.east[y].isLand;
-          directlySetByNeighbor = true;
+          edgeDataSources.push(neighboringEdges.west[y]);
       }
-      
+      if (x === MAP_WIDTH_TILES - 1 && neighboringEdges?.east && neighboringEdges.east[y]) {
+          edgeDataSources.push(neighboringEdges.east[y]);
+      }
       if (y === 0 && neighboringEdges?.north && neighboringEdges.north[x]) {
-          isLand = neighboringEdges.north[x].isLand;
-          directlySetByNeighbor = true;
-      } else if (y === MAP_HEIGHT_TILES - 1 && neighboringEdges?.south && neighboringEdges.south[x]) {
-          isLand = neighboringEdges.south[x].isLand;
+          edgeDataSources.push(neighboringEdges.north[x]);
+      }
+      if (y === MAP_HEIGHT_TILES - 1 && neighboringEdges?.south && neighboringEdges.south[x]) {
+          edgeDataSources.push(neighboringEdges.south[x]);
+      }
+
+      if (edgeDataSources.length > 0) {
+          if (edgeDataSources.length === 1) {
+              // Single neighbor - use its value directly
+              isLand = edgeDataSources[0].isLand;
+          } else {
+              // Multiple neighbors (corner tile) - use majority rule with water bias for continuity
+              const landVotes = edgeDataSources.filter(source => source.isLand).length;
+              const waterVotes = edgeDataSources.length - landVotes;
+              // Bias toward water to maintain river/coastline continuity
+              isLand = landVotes > waterVotes;
+          }
           directlySetByNeighbor = true;
       }
 
@@ -1012,7 +1025,7 @@ export function proceduralGenerateMap(
 
   // Add river continuation points from neighboring edges
   const riverContinuationPoints = findRiverContinuationPoints(neighboringEdges);
-  console.log(`[Gen] Found ${riverContinuationPoints.length} river continuation points from neighboring edges`);
+  // console.log(`[Gen] Found ${riverContinuationPoints.length} river continuation points from neighboring edges`);
 
   let allRiverSources = [...highAltitudeRiverSources, ...riverContinuationPoints];
   let riversToLakeCount = 0;

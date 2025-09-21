@@ -19,6 +19,146 @@
       "citation": {
         "originalPublication": "Bartolomé Arzáns de Orsúa y Vela, 1705"
       }
+    },
+    {
+      "id": "pero-vaz-caminha-letter",
+      "title": "Letter to King Manuel I",
+      "author": "Pero Vaz de Caminha",
+      "year": 1500,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "Esta terra, Senhor, me parece que da ponta que mais contra o sul vimos até à outra ponta que contra o norte vem, será tamanha que haverá nela vinte ou vinte e cinco léguas por costa. Os homens são pardos, maneira de avermelhados, de bons rostos e bons narizes.",
+      "longExcerpt": "Esta terra, Senhor, me parece que da ponta que mais contra o sul vimos até à outra ponta que contra o norte vem, será tamanha que haverá nela vinte ou vinte e cinco léguas por costa. Os homens são pardos, maneira de avermelhados, de bons rostos e bons narizes. This letter from 1500 represents the first written description of Brazil by the Portuguese, documenting the discovery of the land and first encounters with indigenous peoples.",
+      "keywords": [
+        "Brazil",
+        "discovery",
+        "Portuguese",
+        "indigenous",
+        "coast",
+        "first contact",
+        "colonial"
+      ],
+      "wikisourceTitle": "Letter_of_Pero_Vaz_de_Caminha",
+      "internetArchiveId": "cartaperovaz00cami",
+      "citation": {
+        "translator": null,
+        "originalPublication": "Porto Seguro, Brazil, 1500",
+        "modernSource": "Academia Brasileira de Letras, 1900"
+      }
+    },
+    {
+      "id": "inca-garcilaso-comentarios",
+      "title": "Royal Commentaries of the Incas",
+      "author": "Inca Garcilaso de la Vega",
+      "year": 1609,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "I was born in the great city of Cuzco, head and court of the kingdom and empire of Peru. My father was Spanish, and my mother was an Inca princess, daughter of Tupac Inca Yupanqui.",
+      "longExcerpt": "I was born in the great city of Cuzco, head and court of the kingdom and empire of Peru. My father was Spanish, and my mother was an Inca princess, daughter of Tupac Inca Yupanqui. This mestizo chronicler's work from 1609 provides a unique perspective on Inca history and culture, combining indigenous oral traditions with Spanish colonial documentation.",
+      "keywords": [
+        "Inca",
+        "Peru",
+        "mestizo",
+        "Cuzco",
+        "empire",
+        "oral tradition",
+        "colonial"
+      ],
+      "wikisourceTitle": "Royal_Commentaries_of_the_Incas",
+      "internetArchiveId": "royalcommentarie00garc",
+      "citation": {
+        "translator": "Harold V. Livermore",
+        "originalPublication": "Lisbon, 1609",
+        "modernSource": "University of Texas Press, 1966"
+      }
+    },
+    {
+      "id": "padre-anchieta-letters",
+      "title": "Letters from Brazil",
+      "author": "José de Anchieta",
+      "year": 1560,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "Os gentios desta terra são muito numerosos e de várias nações e línguas. Vivem em aldeias com suas mulheres e filhos, sem rei nem lei, apenas seguindo seus costumes antigos.",
+      "longExcerpt": "Os gentios desta terra são muito numerosos e de várias nações e línguas. Vivem em aldeias com suas mulheres e filhos, sem rei nem lei, apenas seguindo seus costumes antigos. These letters from Jesuit missionary José de Anchieta provide detailed observations of indigenous Brazilian cultures in the 16th century, documenting languages, customs, and early missionary activities.",
+      "keywords": [
+        "Brazil",
+        "Jesuits",
+        "indigenous",
+        "missions",
+        "languages",
+        "customs",
+        "colonial"
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "ancbietacartas00anch",
+      "citation": {
+        "translator": null,
+        "originalPublication": "São Paulo, Brazil, 1560",
+        "modernSource": "Academia Brasileira de Letras, 1933"
+      }
+    },
+    {
+      "id": "ercilla-araucana",
+      "title": "La Araucana",
+      "author": "Alonso de Ercilla",
+      "year": 1569,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "No las damas, amor, no gentilezas de caballeros canto enamorados, ni las muestras, regalos y ternezas de amorosos afectos y cuidados, mas el valor, los hechos, las proezas de aquellos españoles esforzados.",
+      "longExcerpt": "No las damas, amor, no gentilezas de caballeros canto enamorados, ni las muestras, regalos y ternezas de amorosos afectos y cuidados, mas el valor, los hechos, las proezas de aquellos españoles esforzados. This epic poem from 1569 chronicles the Spanish conquest of Chile and the fierce resistance of the Mapuche people, written by a Spanish soldier who participated in the campaigns.",
+      "keywords": [
+        "Chile",
+        "Mapuche",
+        "conquest",
+        "epic",
+        "resistance",
+        "Spanish",
+        "war"
+      ],
+      "wikisourceTitle": "La_Araucana",
+      "internetArchiveId": "araucana00erci",
+      "citation": {
+        "translator": null,
+        "originalPublication": "Madrid, 1569",
+        "modernSource": "Real Academia Española, 1776"
+      }
+    },
+    {
+      "id": "potosi-chronicles",
+      "title": "History of the Imperial Villa of Potosí",
+      "author": "Bartolomé Arzáns de Orsúa",
+      "year": 1705,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "This mountain of silver has enriched the world and cost the lives of countless Indians who died extracting its treasures. The wealth flows to Spain while the workers perish in the depths.",
+      "longExcerpt": "This mountain of silver has enriched the world and cost the lives of countless Indians who died extracting its treasures. The wealth flows to Spain while the workers perish in the depths. This chronicle from 1705 documents the brutal reality of colonial silver mining in Potosí, Bolivia, one of the richest and deadliest mining operations in history.",
+      "keywords": [
+        "Potosí",
+        "Bolivia",
+        "silver",
+        "mining",
+        "colonial",
+        "exploitation",
+        "indigenous"
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "potosichronicle00arza",
+      "citation": {
+        "translator": "Frances M. López-Morillas",
+        "originalPublication": "Potosí, Bolivia, 1705",
+        "modernSource": "Brown University Press, 1975"
+      }
     }
   ]
 }

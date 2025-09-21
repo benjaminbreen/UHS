@@ -73,9 +73,9 @@ export const useGameState = () => {
     const [playerJournal, setPlayerJournal] = useState<PlayerJournalEntry[]>([]);
     const journalEntryIdCounter = useRef(0);
     const [isNarratorLoading, setIsNarratorLoading] = useState<boolean>(false);
-    const [narrationHistory, setNarrationHistory] = useState<NarrationMessage[]>([ { sender: 'narrator-special', text: 'You can ask "What do I see?" or describe an action like "I check the desk for hidden drawers."' } ]);
+    const [narrationHistory, setNarrationHistory] = useState<NarrationMessage[]>([ { sender: 'narrator-special', text: 'Ask the Narrator anything about this setting. For instance, try asking "What do I see?"' } ]);
     const [playerInput, setPlayerInput] = useState<string>('');
-    const [ambianceText, setAmbianceText] = useState<string>("Loading ambiance...");
+    const [ambianceText, setAmbianceText] = useState<string>("");  // Ambiance system deprecated
     const [lastAmbianceUpdateHour, setLastAmbianceUpdateHour] = useState<number>(-1);
     
     // UI Context State

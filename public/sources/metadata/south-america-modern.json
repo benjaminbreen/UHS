@@ -20,6 +20,174 @@
       "citation": {
         "originalPublication": "Pablo Neruda, 1950"
       }
+    },
+    {
+      "id": "vargas-revolution",
+      "title": "Manifesto of the 1930 Revolution",
+      "author": "Getúlio Vargas",
+      "year": 1930,
+      "era": "MODERN",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "O Brasil precisa de um governo que compreenda os problemas nacionais e que tenha energia para resolvê-los. A Revolução de 1930 representa a vontade do povo brasileiro por mudança.",
+      "longExcerpt": "O Brasil precisa de um governo que compreenda os problemas nacionais e que tenha energia para resolvê-los. A Revolução de 1930 representa a vontade do povo brasileiro por mudança. This manifesto launched the revolution that brought Getúlio Vargas to power in Brazil, ending the Old Republic and beginning a new era of centralized government and social reform.",
+      "keywords": [
+        "Brazil",
+        "revolution",
+        "Vargas",
+        "government",
+        "change",
+        "politics",
+        "1930"
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "vargasmanifesto1930",
+      "citation": {
+        "translator": null,
+        "originalPublication": "Rio de Janeiro, 1930",
+        "modernSource": "Arquivo Nacional do Brasil, 1980"
+      }
+    },
+    {
+      "id": "evita-speeches",
+      "title": "Speeches to the Descamisados",
+      "author": "Eva Perón",
+      "year": 1950,
+      "era": "MODERN",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "I want to be remembered as the woman who opened doors so that millions of other women could walk through them. The vote for women was the first step toward true equality.",
+      "longExcerpt": "I want to be remembered as the woman who opened doors so that millions of other women could walk through them. The vote for women was the first step toward true equality. These speeches by Eva Perón from 1950 championed women's rights and workers' causes in Argentina, making her an icon of social justice in Latin America.",
+      "keywords": [
+        "Argentina",
+        "Eva Perón",
+        "women's rights",
+        "workers",
+        "Peronism",
+        "equality",
+        "speeches"
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "evitaspeeches1950",
+      "citation": {
+        "translator": "Nicholas Fraser",
+        "originalPublication": "Buenos Aires, 1950",
+        "modernSource": "Norton & Company, 1996"
+      }
+    },
+    {
+      "id": "allende-last-speech",
+      "title": "Last Radio Address",
+      "author": "Salvador Allende",
+      "year": 1973,
+      "era": "MODERN",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "Workers of my country! I have faith in Chile and its destiny. Other men will overcome this dark and bitter moment when treason seeks to prevail. Keep in mind that, much sooner than later, the great avenues will open again where free men will walk to build a better society.",
+      "longExcerpt": "Workers of my country! I have faith in Chile and its destiny. Other men will overcome this dark and bitter moment when treason seeks to prevail. Keep in mind that, much sooner than later, the great avenues will open again where free men will walk to build a better society. This final speech from September 11, 1973, was broadcast as military forces surrounded La Moneda palace during the coup that ended Allende's presidency.",
+      "keywords": [
+        "Chile",
+        "Allende",
+        "coup",
+        "democracy",
+        "socialism",
+        "speech",
+        "1973"
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "allendelastspeech",
+      "citation": {
+        "translator": null,
+        "originalPublication": "Santiago, Chile, 1973",
+        "modernSource": "Archivo Nacional de Chile, 1998"
+      }
+    },
+    {
+      "id": "garcia-marquez-solitude",
+      "title": "One Hundred Years of Solitude",
+      "author": "Gabriel García Márquez",
+      "year": 1967,
+      "era": "MODERN",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "Many years later, as he faced the firing squad, Colonel Aureliano Buendía was to remember that distant afternoon when his father took him to discover ice.",
+      "longExcerpt": "Many years later, as he faced the firing squad, Colonel Aureliano Buendía was to remember that distant afternoon when his father took him to discover ice. This opening line from García Márquez's masterpiece introduced magical realism to world literature, chronicling the rise and fall of the fictional town of Macondo as an allegory for Colombian and Latin American history.",
+      "keywords": [
+        "Colombia",
+        "magical realism",
+        "Macondo",
+        "Buendía",
+        "literature",
+        "Latin America",
+        "history"
+      ],
+      "wikisourceTitle": "One_Hundred_Years_of_Solitude",
+      "internetArchiveId": "onehundredyears00garc",
+      "citation": {
+        "translator": "Gregory Rabassa",
+        "originalPublication": "Buenos Aires, 1967",
+        "modernSource": "Harper & Row, 1970"
+      }
+    },
+    {
+      "id": "cardenas-oil-nationalization",
+      "title": "Oil Nationalization Decree",
+      "author": "Lázaro Cárdenas",
+      "year": 1938,
+      "era": "MODERN",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "It is evident that the oil companies have consistently refused to obey Mexican law. Therefore, I decree the expropriation of all foreign oil companies operating in Mexican territory.",
+      "longExcerpt": "It is evident that the oil companies have consistently refused to obey Mexican law. Therefore, I decree the expropriation of all foreign oil companies operating in Mexican territory. This historic decree from March 18, 1938, nationalized Mexico's oil industry, asserting national sovereignty over natural resources and inspiring similar actions across Latin America.",
+      "keywords": [
+        "Mexico",
+        "oil",
+        "nationalization",
+        "expropriation",
+        "sovereignty",
+        "Cárdenas",
+        "resources"
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "cardenasoll1938",
+      "citation": {
+        "translator": null,
+        "originalPublication": "Mexico City, 1938",
+        "modernSource": "Archivo General de la Nación, 1988"
+      }
+    },
+    {
+      "id": "neruda-residence-earth",
+      "title": "Residence on Earth",
+      "author": "Pablo Neruda",
+      "year": 1935,
+      "era": "MODERN",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "It so happens I am sick of being a man. And it happens that I walk into tailorshops and movie houses dried up, waterproof, like a swan made of felt steering my way in a water of wombs and ashes.",
+      "longExcerpt": "It so happens I am sick of being a man. And it happens that I walk into tailorshops and movie houses dried up, waterproof, like a swan made of felt steering my way in a water of wombs and ashes. This surrealist poetry collection from 1935 by Chile's Nobel Prize winner captures the existential angst and political awakening of 1930s Latin America.",
+      "keywords": [
+        "Chile",
+        "poetry",
+        "surrealism",
+        "Neruda",
+        "existential",
+        "politics",
+        "Nobel Prize"
+      ],
+      "wikisourceTitle": "Residence_on_Earth",
+      "internetArchiveId": "residenceoneart00neru",
+      "citation": {
+        "translator": "Donald D. Walsh",
+        "originalPublication": "Santiago, Chile, 1935",
+        "modernSource": "New Directions Publishing, 1973"
+      }
     }
   ]
 }

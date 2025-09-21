@@ -17,6 +17,7 @@ import { getRelativeDirection } from '../utils/geographyUtils';
 import DiseaseModal from './DiseaseModal';
 import { ActiveDisease } from '../types/diseaseTypes';
 import { mapLocationToCulture } from '../utils/mapUtils';
+import { calculateNpcLocationInfo } from '../utils/npcLocationUtils';
 import { useGame } from '../contexts/GameContext';
 import AccessoryMaintenanceService from '../services/accessoryMaintenanceService';
 import { AttributeBadgeList } from './AttributeBadge';
@@ -226,16 +227,21 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
   };
 
   const { workLocation, homeLocation } = useMemo(() => {
-    let work = 'Unemployed';
-    let home = 'No permanent residence';
-    if (!isPlayer) {
-      const e = npc as NpcEntity;
-      const workplace = terrainStructures?.find(s => s.id === e.workplaceId);
-      if (workplace) work = `Works at ${workplace.name}`;
-      else if (e.role && e.role.toLowerCase() !== 'wanderer') work = `Works as a ${pretty(e.role)} locally`;
-      if (e.homeLocation) home = `Lives in a settlement ${getRelativeDirection({ x: e.x, y: e.y }, e.homeLocation as Point)}`;
+    if (isPlayer) {
+      return { workLocation: 'Unemployed', homeLocation: 'No permanent residence' };
     }
-    return { workLocation: work, homeLocation: home };
+
+    const locationInfo = calculateNpcLocationInfo(npc as NpcEntity, terrainStructures || [], isPlayer);
+
+    // Add "Works at" prefix for work location if it's not "Unemployed"
+    let work = locationInfo.workLocation;
+    if (work !== 'Unemployed' && !work.startsWith('Works at') && !work.startsWith('Works as')) {
+      work = `Works at ${work}`;
+    } else if ((npc as NpcEntity).role && (npc as NpcEntity).role.toLowerCase() !== 'wanderer' && work === 'Unemployed') {
+      work = `Works as a ${pretty((npc as NpcEntity).role)} locally`;
+    }
+
+    return { workLocation: work, homeLocation: locationInfo.homeLocation };
   }, [isPlayer, npc, terrainStructures]);
 
   const equipmentItems = useMemo(() => {
@@ -615,7 +621,12 @@ const NpcModal: React.FC<NpcModalProps> = ({ npc, onClose, isPlayer: isExplicitl
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
-        className="ff-panel w-full max-w-[92rem] h-[90vh] flex flex-col overflow-hidden"
+        className="ff-panel w-full max-w-[92rem] h-full sm:h-[95vh] sm:h-[95dvh] md:h-[90vh] flex flex-col overflow-hidden"
+        style={{
+          maxHeight: 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
+          marginTop: 'env(safe-area-inset-top)',
+          marginBottom: 'env(safe-area-inset-bottom)'
+        }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}

@@ -1113,7 +1113,9 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
       const context = createDialogueContext(mapData, {
         isMarketplace: true,
         timeOfDay: timeOfDay.toLowerCase(),
-        season: season.toLowerCase()
+        season: season.toLowerCase(),
+        npc: npc,
+        terrainStructures: terrainStructures || []
       });
       
       const response = await generateNpcGreeting(npc, context, playerCharacter);
@@ -1172,7 +1174,9 @@ const MarketplaceModal: React.FC<MarketplaceModalProps> = ({
         const context = createDialogueContext(mapData, {
           isMarketplace: true,
           timeOfDay: timeOfDay.toLowerCase(),
-          season: season.toLowerCase()
+          season: season.toLowerCase(),
+          npc: npc,
+          terrainStructures: terrainStructures || []
         });
         
         const monologue = await generateNpcMonologue(npc, context, currentCount);

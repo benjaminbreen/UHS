@@ -782,6 +782,43 @@ ${source.excerpt}
   }
 
   /**
+   * Get sources appropriate for ruins from a specific construction period
+   * @param constructionYear The year the ruins were built
+   * @param culturalZone The cultural zone where the ruins are located
+   * @param region The specific region
+   * @returns Sources from the construction period
+   */
+  async getSourcesForRuin(
+    constructionYear: number,
+    culturalZone: CulturalZone,
+    region?: string
+  ): Promise<PrimarySourceMetadata[]> {
+    // Load all sources for the cultural zone
+    const allSources = await this.getSourcesForContext(undefined as any, culturalZone);
+
+    // Filter for sources from the construction period
+    // Sources should be from BEFORE or DURING construction
+    // We want texts that would have existed when the building was in use
+    const relevantSources = allSources.filter(source => {
+      // Source must be from before or shortly after construction
+      // Allow up to 100 years after construction (building's active period)
+      // And up to 500 years before (cultural continuity)
+      return source.year <= constructionYear + 100 &&
+             source.year >= constructionYear - 500;
+    });
+
+    // Sort by closeness to construction date
+    relevantSources.sort((a, b) => {
+      const aDist = Math.abs(a.year - constructionYear);
+      const bDist = Math.abs(b.year - constructionYear);
+      return aDist - bDist;
+    });
+
+    // Return top 10 most relevant sources
+    return relevantSources.slice(0, 10);
+  }
+
+  /**
    * Preload sources for a given context
    */
   async preloadContext(era: HistoricalEra, zone: CulturalZone): Promise<void> {
@@ -793,7 +830,7 @@ ${source.excerpt}
    */
   clearCache(): void {
     this.fullTextCache.clear();
-    
+
     if (this.db) {
       const transaction = this.db.transaction(['fullTexts'], 'readwrite');
       const store = transaction.objectStore('fullTexts');

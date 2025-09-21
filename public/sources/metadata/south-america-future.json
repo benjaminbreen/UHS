@@ -20,6 +20,62 @@
       "citation": {
         "originalPublication": "Pan-Amazonian Council, 2052"
       }
+    },
+    {
+      "id": "amazon-preservation-charter",
+      "title": "Amazon Preservation Charter of 2055",
+      "author": "South American Federation",
+      "year": 2055,
+      "era": "FUTURE",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "The Amazon rainforest, restored through decades of reforestation and indigenous leadership, shall remain inviolate as the lung of the earth. No nation may exploit its resources without the consent of all indigenous peoples.",
+      "longExcerpt": "The Amazon rainforest, restored through decades of reforestation and indigenous leadership, shall remain inviolate as the lung of the earth. No nation may exploit its resources without the consent of all indigenous peoples. This speculative charter envisions a future where South American nations unite to protect the Amazon, guided by indigenous wisdom and sustainable technology.",
+      "keywords": [
+        "Amazon",
+        "environment",
+        "indigenous",
+        "sustainability",
+        "protection",
+        "future",
+        "federation"
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "amazoncharter2055",
+      "citation": {
+        "translator": null,
+        "originalPublication": "Speculative future document, 2055",
+        "modernSource": "Environmental Futures Archive, 2025"
+      }
+    },
+    {
+      "id": "guarani-space-program",
+      "title": "Guaraní Space Mission Logs",
+      "author": "Commander Ana Tupã",
+      "year": 2068,
+      "era": "FUTURE",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "From orbit, the earth appears as our ancestors described it in their songs - a blue-green island floating in the cosmic ocean. We carry their wisdom to the stars.",
+      "longExcerpt": "From orbit, the earth appears as our ancestors described it in their songs - a blue-green island floating in the cosmic ocean. We carry their wisdom to the stars. This speculative mission log imagines a future where indigenous South Americans lead space exploration, combining traditional knowledge with advanced technology.",
+      "keywords": [
+        "space",
+        "Guaraní",
+        "indigenous",
+        "technology",
+        "exploration",
+        "wisdom",
+        "future"
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "guaranispace2068",
+      "citation": {
+        "translator": null,
+        "originalPublication": "Speculative future document, 2068",
+        "modernSource": "Indigenous Futures Archive, 2025"
+      }
     }
   ]
 }

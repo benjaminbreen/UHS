@@ -1,60 +1,621 @@
-/* SELECTIVE Light mode fixes - only for main UI panels, not overlays */
+/* Import mobile-specific styles */
+@import './styles/mobile.css';
 
-/* Keep these dark backgrounds in light mode for better contrast */
-:root:not(.dark) .bg-slate-800\/60 {
-  /* Keep dark for overlay panels */
-}
+/* ==========================================
+   HYBRID LIGHT MODE (Option 3) - FIXED
+   Light UI panels, Dark atmospheric elements
+   ========================================== */
 
-:root:not(.dark) .bg-slate-700\/50 {
-  /* Keep dark for buttons in modal overlays */
-}
-
-/* Only lighten actual panel backgrounds, not overlay content */
-:root:not(.dark) .sidebar-panel {
-  background-color: rgba(248, 250, 252, 0.95) !important;
-}
-
-:root:not(.dark) .main-panel {
-  background-color: rgba(255, 255, 255, 0.98) !important;
-}
-
-/* Keep text readable - don't change white text in dark overlays */
-:root:not(.dark) .modal-overlay .text-white {
-  color: white !important;
-}
-
-:root:not(.dark) .modal-overlay .text-gray-300 {
-  color: rgb(209 213 219) !important;
-}
-
-:root:not(.dark) .modal-overlay .text-gray-400 {
-  color: rgb(156 163 175) !important;
-}
-
-/* Minimal light mode - ONLY change main UI backgrounds */
-/* Do NOT change colors in modals, overlays, or the map */
-
-/* REMOVED - These were causing the problems */
-
-/* Keep map dark in both modes - NO changes */
-
-/* Keep all combat, toasts, and overlays DARK in light mode */
-/* These elements should look the same in both themes */
-
-/* SIMPLE LIGHT MODE - Only change the main app background and text */
+/* Main App Background */
 :root:not(.dark) body {
   background-color: rgb(248 250 252);
   color: rgb(15 23 42);
 }
 
-/* Light mode for ONLY the main panels that need it */
-:root:not(.dark) .light-panel {
-  background-color: rgba(255, 255, 255, 0.95);
-  color: rgb(15 23 42);
+/* ==========================================
+   LOGO & TYPOGRAPHY - LIGHT MODE
+   ========================================== */
+
+/* History Simulator Logo - Make Dark in Light Mode */
+:root:not(.dark) .text-cyan-300,
+:root:not(.dark) h1,
+:root:not(.dark) .logo-text {
+  color: rgb(15, 23, 42) !important;
+  font-weight: 700 !important;
 }
 
-:root:not(.dark) .light-text {
-  color: rgb(15 23 42);
+/* Make all headers darker and more readable */
+:root:not(.dark) h1, :root:not(.dark) h2, :root:not(.dark) h3, :root:not(.dark) h4 {
+  color: rgb(15, 23, 42) !important;
+  font-weight: 600 !important;
+}
+
+/* ==========================================
+   UI PANELS - LIGHT MODE
+   ========================================== */
+
+/* Main Panel Backgrounds */
+:root:not(.dark) .bg-slate-900:not(.keep-dark):not(.modal-overlay *):not(.map-container *):not(.game-overlay *) {
+  background-color: rgba(255, 255, 255, 0.98) !important;
+}
+
+:root:not(.dark) .bg-slate-800:not(.keep-dark):not(.modal-overlay *):not(.map-container *):not(.game-overlay *) {
+  background-color: rgba(248, 250, 252, 0.95) !important;
+}
+
+:root:not(.dark) .bg-slate-700:not(.keep-dark):not(.modal-overlay *):not(.map-container *):not(.game-overlay *) {
+  background-color: rgba(241, 245, 249, 0.9) !important;
+}
+
+/* Secondary Backgrounds */
+:root:not(.dark) .bg-slate-600:not(.keep-dark):not(.modal-overlay *):not(.map-container *):not(.game-overlay *) {
+  background-color: rgba(226, 232, 240, 0.85) !important;
+}
+
+/* Gradient Backgrounds for UI */
+:root:not(.dark) .bg-sidebar-gradient {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%) !important;
+}
+
+/* ==========================================
+   TEXT COLORS - LIGHT MODE
+   ========================================== */
+
+/* Main Text Colors - MUCH DARKER FOR READABILITY */
+:root:not(.dark) .text-white:not(.keep-dark):not(.modal-overlay *):not(.map-container *):not(.game-overlay *) {
+  color: rgb(15, 23, 42) !important;
+  font-weight: 500 !important;
+}
+
+:root:not(.dark) .text-slate-200:not(.keep-dark):not(.modal-overlay *):not(.map-container *):not(.game-overlay *) {
+  color: rgb(30, 41, 59) !important;
+  font-weight: 500 !important;
+}
+
+:root:not(.dark) .text-slate-300:not(.keep-dark):not(.modal-overlay *):not(.map-container *):not(.game-overlay *) {
+  color: rgb(51, 65, 85) !important;
+  font-weight: 500 !important;
+}
+
+:root:not(.dark) .text-slate-400:not(.keep-dark):not(.modal-overlay *):not(.map-container *):not(.game-overlay *) {
+  color: rgb(71, 85, 105) !important;
+  font-weight: 450 !important;
+}
+
+:root:not(.dark) .text-slate-500:not(.keep-dark):not(.modal-overlay *):not(.map-container *):not(.game-overlay *) {
+  color: rgb(100, 116, 139) !important;
+  font-weight: 450 !important;
+}
+
+:root:not(.dark) .text-gray-200:not(.keep-dark):not(.modal-overlay *):not(.map-container *):not(.game-overlay *) {
+  color: rgb(31, 41, 55) !important;
+  font-weight: 500 !important;
+}
+
+:root:not(.dark) .text-gray-300:not(.keep-dark):not(.modal-overlay *):not(.map-container *):not(.game-overlay *) {
+  color: rgb(55, 65, 81) !important;
+  font-weight: 500 !important;
+}
+
+:root:not(.dark) .text-gray-400:not(.keep-dark):not(.modal-overlay *):not(.map-container *):not(.game-overlay *) {
+  color: rgb(75, 85, 99) !important;
+  font-weight: 450 !important;
+}
+
+:root:not(.dark) .text-gray-500:not(.keep-dark):not(.modal-overlay *):not(.map-container *):not(.game-overlay *) {
+  color: rgb(107, 114, 128) !important;
+  font-weight: 450 !important;
+}
+
+:root:not(.dark) .text-gray-600:not(.keep-dark):not(.modal-overlay *):not(.map-container *):not(.game-overlay *) {
+  color: rgb(55, 65, 81) !important;
+  font-weight: 450 !important;
+}
+
+/* ==========================================
+   BORDERS - LIGHT MODE
+   ========================================== */
+
+:root:not(.dark) .border-slate-700:not(.keep-dark):not(.modal-overlay *):not(.map-container *):not(.game-overlay *) {
+  border-color: rgb(203, 213, 225) !important;
+}
+
+:root:not(.dark) .border-slate-600:not(.keep-dark):not(.modal-overlay *):not(.map-container *):not(.game-overlay *) {
+  border-color: rgb(226, 232, 240) !important;
+}
+
+:root:not(.dark) .border-slate-500:not(.keep-dark):not(.modal-overlay *):not(.map-container *):not(.game-overlay *) {
+  border-color: rgb(241, 245, 249) !important;
+}
+
+:root:not(.dark) .border-gray-600:not(.keep-dark):not(.modal-overlay *):not(.map-container *):not(.game-overlay *) {
+  border-color: rgb(209, 213, 219) !important;
+}
+
+/* ==========================================
+   NAVIGATION & TOP BAR - LIGHT MODE
+   ========================================== */
+
+/* Top Navigation Background */
+:root:not(.dark) nav:not(.keep-dark) {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%) !important;
+  border-color: rgba(203, 213, 225, 0.5) !important;
+}
+
+/* ==========================================
+   KEEP DARK ELEMENTS (Atmospheric)
+   ========================================== */
+
+/* Force these to stay dark regardless of theme */
+:root:not(.dark) .modal-overlay,
+:root:not(.dark) .modal-overlay *,
+:root:not(.dark) .map-container,
+:root:not(.dark) .map-container *,
+:root:not(.dark) .game-overlay,
+:root:not(.dark) .game-overlay *,
+:root:not(.dark) .toast-notification,
+:root:not(.dark) .combat-overlay,
+:root:not(.dark) .encounter-modal,
+:root:not(.dark) .poi-tooltip,
+:root:not(.dark) .atmospheric-element,
+:root:not(.dark) .keep-dark,
+:root:not(.dark) .keep-dark * {
+  /* These elements maintain their original dark styling */
+  filter: none !important;
+}
+
+/* Specific Modal Exclusions */
+:root:not(.dark) [role="dialog"]:not(.settings-panel):not(.primary-sources-modal),
+:root:not(.dark) [role="dialog"]:not(.settings-panel):not(.primary-sources-modal) * {
+  /* Keep modals dark except settings and educational modals */
+}
+
+/* Map and Game Elements */
+:root:not(.dark) .map-viewport,
+:root:not(.dark) .map-display,
+:root:not(.dark) .roguelike-display,
+:root:not(.dark) .combat-background,
+:root:not(.dark) .npc-portrait,
+:root:not(.dark) .tile-hover-tooltip {
+  /* Keep all game elements with their original dark atmosphere */
+}
+
+/* ==========================================
+   EDUCATIONAL MODALS - LIGHT MODE
+   ========================================== */
+
+/* Settings Panel and Educational Resources get light treatment */
+:root:not(.dark) .settings-panel .bg-slate-900,
+:root:not(.dark) .settings-panel .bg-slate-800,
+:root:not(.dark) .settings-panel .bg-slate-700,
+:root:not(.dark) .primary-sources-modal .bg-slate-900,
+:root:not(.dark) .primary-sources-modal .bg-slate-800,
+:root:not(.dark) .primary-sources-modal .bg-slate-700 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+}
+
+:root:not(.dark) .settings-panel .text-white,
+:root:not(.dark) .primary-sources-modal .text-white {
+  color: rgb(15, 23, 42) !important;
+}
+
+/* ==========================================
+   ACCENT COLORS - BOTH MODES
+   ========================================== */
+
+/* Blue accents work well in both modes */
+:root:not(.dark) .text-blue-300 { color: rgb(59, 130, 246) !important; }
+:root:not(.dark) .text-blue-400 { color: rgb(37, 99, 235) !important; }
+:root:not(.dark) .bg-blue-600 { background-color: rgb(37, 99, 235) !important; }
+
+/* Green accents */
+:root:not(.dark) .text-green-300 { color: rgb(34, 197, 94) !important; }
+:root:not(.dark) .text-green-400 { color: rgb(22, 163, 74) !important; }
+
+/* Purple accents */
+:root:not(.dark) .text-purple-300 { color: rgb(147, 51, 234) !important; }
+:root:not(.dark) .text-purple-400 { color: rgb(126, 34, 206) !important; }
+
+/* ==========================================
+   COMPREHENSIVE PANEL TARGETING - ALL PANELS LIGHT
+   ========================================== */
+
+/* ALL SIDEBARS - Force Light */
+:root:not(.dark) [class*="sidebar"]:not(.keep-dark),
+:root:not(.dark) .left-sidebar,
+:root:not(.dark) .right-sidebar,
+:root:not(.dark) .sidebar-left,
+:root:not(.dark) .sidebar-right {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%) !important;
+  border-color: rgba(203, 213, 225, 0.6) !important;
+}
+
+/* CHARACTER & PLAYER PANELS - Force Light */
+:root:not(.dark) [class*="character"]:not(.keep-dark),
+:root:not(.dark) [class*="player"]:not(.keep-dark),
+:root:not(.dark) .character-panel,
+:root:not(.dark) .player-panel,
+:root:not(.dark) .character-info,
+:root:not(.dark) .player-info {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(203, 213, 225, 0.6) !important;
+}
+
+/* BOTTOM PANEL - Force Light */
+:root:not(.dark) [class*="bottom"]:not(.keep-dark):not(.modal-overlay *):not(.map-container *),
+:root:not(.dark) .bottom-panel,
+:root:not(.dark) .bottom-bar,
+:root:not(.dark) .bottom-container,
+:root:not(.dark) .status-bar,
+:root:not(.dark) .weather-panel {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%) !important;
+  border-color: rgba(203, 213, 225, 0.6) !important;
+}
+
+/* INVENTORY & ACTIONS - Force Light */
+:root:not(.dark) [class*="inventory"]:not(.keep-dark),
+:root:not(.dark) [class*="action"]:not(.keep-dark),
+:root:not(.dark) .inventory-panel,
+:root:not(.dark) .inventory-container,
+:root:not(.dark) .actions-panel,
+:root:not(.dark) .action-buttons {
+  background: rgba(248, 250, 252, 0.95) !important;
+  border-color: rgba(203, 213, 225, 0.6) !important;
+}
+
+/* GAME LOG & JOURNAL - Force Light */
+:root:not(.dark) [class*="gamelog"]:not(.keep-dark),
+:root:not(.dark) [class*="journal"]:not(.keep-dark),
+:root:not(.dark) .gamelog-panel,
+:root:not(.dark) .journal-panel,
+:root:not(.dark) .log-panel {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-color: rgba(203, 213, 225, 0.6) !important;
+}
+
+/* TOP NAVIGATION & HEADER - Force Light */
+:root:not(.dark) [class*="nav"]:not(.keep-dark):not(.modal-overlay *):not(.map-container *),
+:root:not(.dark) [class*="header"]:not(.keep-dark):not(.modal-overlay *):not(.map-container *),
+:root:not(.dark) nav:not(.keep-dark),
+:root:not(.dark) header:not(.keep-dark) {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%) !important;
+  border-color: rgba(203, 213, 225, 0.5) !important;
+}
+
+/* STATS & METERS - Force Light */
+:root:not(.dark) [class*="stat"]:not(.keep-dark),
+:root:not(.dark) [class*="meter"]:not(.keep-dark),
+:root:not(.dark) [class*="progress"]:not(.keep-dark),
+:root:not(.dark) .stats-panel,
+:root:not(.dark) .health-bar,
+:root:not(.dark) .fatigue-bar {
+  background: rgba(241, 245, 249, 0.9) !important;
+}
+
+/* Button Overrides for Light UI */
+:root:not(.dark) .sidebar-left .bg-slate-600,
+:root:not(.dark) .sidebar-right .bg-slate-600,
+:root:not(.dark) .character-panel .bg-slate-600,
+:root:not(.dark) .inventory-panel .bg-slate-600 {
+  background-color: rgba(226, 232, 240, 0.8) !important;
+}
+
+:root:not(.dark) .sidebar-left .bg-slate-700,
+:root:not(.dark) .sidebar-right .bg-slate-700,
+:root:not(.dark) .character-panel .bg-slate-700,
+:root:not(.dark) .inventory-panel .bg-slate-700 {
+  background-color: rgba(241, 245, 249, 0.85) !important;
+}
+
+/* Hover States for Light Mode */
+:root:not(.dark) .sidebar-left .hover\\:bg-slate-600:hover,
+:root:not(.dark) .sidebar-right .hover\\:bg-slate-600:hover,
+:root:not(.dark) .character-panel .hover\\:bg-slate-600:hover {
+  background-color: rgba(203, 213, 225, 0.9) !important;
+}
+
+/* ==========================================
+   ENHANCED READABILITY
+   ========================================== */
+
+/* Ensure text contrast in light mode */
+:root:not(.dark) .sidebar-left .text-slate-500,
+:root:not(.dark) .sidebar-right .text-slate-500,
+:root:not(.dark) .character-panel .text-slate-500 {
+  color: rgb(71, 85, 105) !important;
+}
+
+/* Placeholder text in light mode */
+:root:not(.dark) .placeholder-slate-400::placeholder,
+:root:not(.dark) .placeholder-slate-500::placeholder {
+  color: rgb(148, 163, 184) !important;
+}
+
+/* Icon colors in light mode */
+:root:not(.dark) .sidebar-left .lucide,
+:root:not(.dark) .sidebar-right .lucide,
+:root:not(.dark) .character-panel .lucide {
+  color: rgb(71, 85, 105) !important;
+}
+
+/* ==========================================
+   BUTTON COLORS - REDESIGNED FOR LIGHT MODE
+   ========================================== */
+
+/* Softer, More Professional Button Colors */
+
+/* Green buttons - Darker, less saturated */
+:root:not(.dark) .bg-green-600:not(.keep-dark) {
+  background-color: rgb(22, 101, 52) !important;
+}
+:root:not(.dark) .hover\\:bg-green-700:hover:not(.keep-dark) {
+  background-color: rgb(20, 83, 45) !important;
+}
+:root:not(.dark) .bg-gradient-to-r.from-green-600:not(.keep-dark) {
+  background: linear-gradient(to right, rgb(22, 101, 52), rgb(21, 128, 61)) !important;
+}
+
+/* Blue buttons - Professional navy */
+:root:not(.dark) .bg-blue-600:not(.keep-dark) {
+  background-color: rgb(30, 64, 175) !important;
+}
+:root:not(.dark) .hover\\:bg-blue-700:hover:not(.keep-dark) {
+  background-color: rgb(29, 78, 216) !important;
+}
+:root:not(.dark) .bg-gradient-to-r.from-blue-600:not(.keep-dark) {
+  background: linear-gradient(to right, rgb(30, 64, 175), rgb(37, 99, 235)) !important;
+}
+
+/* Purple buttons - Elegant deep purple */
+:root:not(.dark) .bg-purple-600:not(.keep-dark) {
+  background-color: rgb(109, 40, 217) !important;
+}
+:root:not(.dark) .hover\\:bg-purple-700:hover:not(.keep-dark) {
+  background-color: rgb(88, 28, 135) !important;
+}
+:root:not(.dark) .bg-gradient-to-r.from-purple-600:not(.keep-dark) {
+  background: linear-gradient(to right, rgb(109, 40, 217), rgb(126, 34, 206)) !important;
+}
+
+/* Indigo buttons - Professional indigo */
+:root:not(.dark) .bg-indigo-600:not(.keep-dark) {
+  background-color: rgb(67, 56, 202) !important;
+}
+:root:not(.dark) .hover\\:bg-indigo-700:hover:not(.keep-dark) {
+  background-color: rgb(55, 48, 163) !important;
+}
+:root:not(.dark) .bg-gradient-to-r.from-indigo-600:not(.keep-dark) {
+  background: linear-gradient(to right, rgb(67, 56, 202), rgb(79, 70, 229)) !important;
+}
+
+/* Red/Pink buttons - Professional red */
+:root:not(.dark) .bg-red-600:not(.keep-dark) {
+  background-color: rgb(185, 28, 28) !important;
+}
+:root:not(.dark) .hover\\:bg-red-700:hover:not(.keep-dark) {
+  background-color: rgb(153, 27, 27) !important;
+}
+:root:not(.dark) .bg-gradient-to-r.from-red-600:not(.keep-dark) {
+  background: linear-gradient(to right, rgb(185, 28, 28), rgb(220, 38, 38)) !important;
+}
+
+/* Amber/Orange buttons - Warmer, professional */
+:root:not(.dark) .bg-amber-600:not(.keep-dark) {
+  background-color: rgb(180, 83, 9) !important;
+}
+:root:not(.dark) .hover\\:bg-amber-700:hover:not(.keep-dark) {
+  background-color: rgb(146, 64, 14) !important;
+}
+:root:not(.dark) .bg-gradient-to-r.from-amber-600:not(.keep-dark) {
+  background: linear-gradient(to right, rgb(180, 83, 9), rgb(217, 119, 6)) !important;
+}
+
+/* Cyan buttons - Professional teal */
+:root:not(.dark) .bg-cyan-600:not(.keep-dark) {
+  background-color: rgb(8, 145, 178) !important;
+}
+:root:not(.dark) .hover\\:bg-cyan-700:hover:not(.keep-dark) {
+  background-color: rgb(14, 116, 144) !important;
+}
+
+/* ==========================================
+   COMPREHENSIVE COVERAGE - AGGRESSIVE LIGHT MODE
+   ========================================== */
+
+/* ALL BACKGROUND CLASSES - Force Light (except specifically excluded) */
+:root:not(.dark) [class*="bg-slate-900"]:not(.keep-dark):not(.modal-overlay):not(.modal-overlay *):not(.map-container):not(.map-container *):not(.game-overlay):not(.game-overlay *) {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+}
+
+:root:not(.dark) [class*="bg-slate-800"]:not(.keep-dark):not(.modal-overlay):not(.modal-overlay *):not(.map-container):not(.map-container *):not(.game-overlay):not(.game-overlay *) {
+  background-color: rgba(248, 250, 252, 0.9) !important;
+}
+
+:root:not(.dark) [class*="bg-slate-700"]:not(.keep-dark):not(.modal-overlay):not(.modal-overlay *):not(.map-container):not(.map-container *):not(.game-overlay):not(.game-overlay *) {
+  background-color: rgba(241, 245, 249, 0.85) !important;
+}
+
+:root:not(.dark) [class*="bg-slate-600"]:not(.keep-dark):not(.modal-overlay):not(.modal-overlay *):not(.map-container):not(.map-container *):not(.game-overlay):not(.game-overlay *) {
+  background-color: rgba(226, 232, 240, 0.8) !important;
+}
+
+/* Transparency variants */
+:root:not(.dark) .bg-slate-800\/50:not(.keep-dark):not(.modal-overlay):not(.map-container):not(.game-overlay) {
+  background-color: rgba(248, 250, 252, 0.7) !important;
+}
+
+:root:not(.dark) .bg-slate-700\/50:not(.keep-dark):not(.modal-overlay):not(.map-container):not(.game-overlay) {
+  background-color: rgba(241, 245, 249, 0.7) !important;
+}
+
+:root:not(.dark) .bg-slate-900\/50:not(.keep-dark):not(.modal-overlay):not(.map-container):not(.game-overlay) {
+  background-color: rgba(255, 255, 255, 0.7) !important;
+}
+
+:root:not(.dark) .bg-slate-600\/50:not(.keep-dark):not(.modal-overlay):not(.map-container):not(.game-overlay) {
+  background-color: rgba(226, 232, 240, 0.6) !important;
+}
+
+/* Gray backgrounds */
+:root:not(.dark) [class*="bg-gray-"]:not(.keep-dark):not(.modal-overlay):not(.modal-overlay *):not(.map-container):not(.map-container *):not(.game-overlay):not(.game-overlay *) {
+  background-color: rgba(248, 250, 252, 0.9) !important;
+}
+
+/* Input fields in light mode */
+:root:not(.dark) input:not(.keep-dark):not(.modal-overlay input):not(.map-container input) {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(203, 213, 225, 0.8) !important;
+  color: rgb(15, 23, 42) !important;
+}
+
+:root:not(.dark) input:focus:not(.keep-dark):not(.modal-overlay input):not(.map-container input) {
+  border-color: rgb(59, 130, 246) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Select dropdowns in light mode */
+:root:not(.dark) select:not(.keep-dark):not(.modal-overlay select):not(.map-container select) {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(203, 213, 225, 0.8) !important;
+  color: rgb(15, 23, 42) !important;
+}
+
+/* Textarea in light mode */
+:root:not(.dark) textarea:not(.keep-dark):not(.modal-overlay textarea):not(.map-container textarea) {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(203, 213, 225, 0.8) !important;
+  color: rgb(15, 23, 42) !important;
+}
+
+/* ==========================================
+   UTILITIES & HELPERS
+   ========================================== */
+
+/* Force dark utility class */
+.force-dark,
+.force-dark * {
+  /* Elements with this class stay dark in light mode */
+}
+
+/* Force light utility class */
+:root:not(.dark) .force-light {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  color: rgb(15, 23, 42) !important;
+}
+
+/* Semi-transparent overlay for light mode */
+:root:not(.dark) .bg-black\/60:not(.keep-dark):not(.modal-overlay):not(.map-container) {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+}
+
+:root:not(.dark) .bg-black\/80:not(.keep-dark):not(.modal-overlay):not(.map-container) {
+  background-color: rgba(15, 23, 42, 0.8) !important;
+}
+
+/* ==========================================
+   FINAL POLISH & EDGE CASES
+   ========================================== */
+
+/* Ensure shadows work in light mode */
+:root:not(.dark) .shadow-xl:not(.keep-dark) {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+}
+
+:root:not(.dark) .shadow-2xl:not(.keep-dark) {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Ring colors for focus states */
+:root:not(.dark) .focus\\:ring-blue-500:focus:not(.keep-dark) {
+  --tw-ring-color: rgb(59 130 246) !important;
+}
+
+/* Make sure tooltips stay readable */
+:root:not(.dark) .tooltip:not(.keep-dark) {
+  background-color: rgba(15, 23, 42, 0.9) !important;
+  color: rgb(248, 250, 252) !important;
+}
+
+/* ==========================================
+   FINAL CLEANUP & EDGE CASES
+   ========================================== */
+
+/* Progress bars and meters in light mode */
+:root:not(.dark) .progress-bar:not(.keep-dark),
+:root:not(.dark) [class*="progress"]:not(.keep-dark) {
+  background-color: rgba(226, 232, 240, 0.8) !important;
+  border-color: rgba(203, 213, 225, 0.6) !important;
+}
+
+/* Tab navigation in light mode */
+:root:not(.dark) .tab-active:not(.keep-dark),
+:root:not(.dark) [class*="tab"][class*="active"]:not(.keep-dark) {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+  color: rgb(15, 23, 42) !important;
+}
+
+/* Dropdown menus in light mode */
+:root:not(.dark) .dropdown:not(.keep-dark),
+:root:not(.dark) [class*="dropdown"]:not(.keep-dark) {
+  background-color: rgba(255, 255, 255, 0.98) !important;
+  border-color: rgba(203, 213, 225, 0.8) !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Card components in light mode */
+:root:not(.dark) .card:not(.keep-dark),
+:root:not(.dark) [class*="card"]:not(.keep-dark) {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(203, 213, 225, 0.6) !important;
+}
+
+/* Badges and pills in light mode */
+:root:not(.dark) .badge:not(.keep-dark),
+:root:not(.dark) [class*="badge"]:not(.keep-dark),
+:root:not(.dark) .pill:not(.keep-dark) {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  color: rgb(30, 64, 175) !important;
+  border-color: rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Status indicators */
+:root:not(.dark) .status-healthy:not(.keep-dark) {
+  background-color: rgba(34, 197, 94, 0.1) !important;
+  color: rgb(22, 101, 52) !important;
+}
+
+:root:not(.dark) .status-warning:not(.keep-dark) {
+  background-color: rgba(245, 158, 11, 0.1) !important;
+  color: rgb(180, 83, 9) !important;
+}
+
+:root:not(.dark) .status-danger:not(.keep-dark) {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  color: rgb(185, 28, 28) !important;
+}
+
+/* Scrollbars in light mode */
+:root:not(.dark) .scrollbar-thin:not(.keep-dark)::-webkit-scrollbar {
+  width: 6px;
+}
+
+:root:not(.dark) .scrollbar-thin:not(.keep-dark)::-webkit-scrollbar-track {
+  background: rgba(226, 232, 240, 0.5);
+}
+
+:root:not(.dark) .scrollbar-thin:not(.keep-dark)::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.5);
+  border-radius: 3px;
+}
+
+:root:not(.dark) .scrollbar-thin:not(.keep-dark)::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.7);
+}
+
+/* Ensure text contrast is sufficient across all elements */
+:root:not(.dark) *:not(.keep-dark):not(.modal-overlay *):not(.map-container *):not(.game-overlay *) {
+  --tw-text-opacity: 1;
 }
 
 @keyframes fireFlicker {
@@ -827,4 +1388,23 @@
     radial-gradient(circle at 50% 20%, rgba(236, 72, 153, 0.1) 0%, transparent 50%);
   animation: etherealFloat 8s ease-in-out infinite reverse;
   pointer-events: none;
+}
+
+/* Custom scrollbar for modals */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(30, 41, 59, 0.5);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.6);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.8);
 }

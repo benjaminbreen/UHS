@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import PerformanceDiagnostics from './PerformanceDiagnostics';
 import { eventService } from '../services/eventService';
-import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save, Palette, Database } from 'lucide-react';
+import { themeService } from '../services/themeService';
+import { Cpu, Download, Activity, X, FlaskConical, Heart, AlertTriangle, MapIcon, ScrollText, Users, Save, Palette, Database, Sun, Moon, ChevronDown, ChevronUp, Info, Settings as SettingsIcon, BookOpen, Gamepad2 } from 'lucide-react';
 import DiseaseService from '../services/diseaseService';
 import { DISEASE_DATABASE, DISEASE_PREVALENCE } from '../constants/gameData/diseases';
 import { HistoricalEra } from '../types/ambiance';
@@ -21,6 +22,7 @@ import { SavedGame } from '../services/saveGameService';
 import SoundTestPanel from './SoundTestPanel';
 import IconTestPanel from './IconTestPanel';
 import { PrimarySourcesDevPanel } from './PrimarySourcesDevPanel';
+import PrimarySourcesModal from './PrimarySourcesModal';
 import MiningRoguelikeDisplay from './MiningRoguelikeDisplay';
 
 interface SettingsPanelProps {
@@ -94,6 +96,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onLoadGame,
   currentGameState,
 }) => {
+  // Theme state
+  const [isDarkMode, setIsDarkMode] = useState(themeService.isDarkMode());
+
+  // Developer mode state
+  const [showDeveloperMode, setShowDeveloperMode] = useState(false);
+
+  // User-facing modals
+  const [showSavedGamesModal, setShowSavedGamesModal] = useState(false);
+  const [showPrimarySourcesModal, setShowPrimarySourcesModal] = useState(false);
+
+  // Developer testing panels
   const [showPerformanceDiagnostics, setShowPerformanceDiagnostics] = useState(false);
   const [showLLMTracker, setShowLLMTracker] = useState(false);
   const [showDiseaseTestPanel, setShowDiseaseTestPanel] = useState(false);
@@ -105,7 +118,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [showAlternativeFishing, setShowAlternativeFishing] = useState(false);
   const [showFishingSystemTest, setShowFishingSystemTest] = useState(false);
   const [showSimpleFishing, setShowSimpleFishing] = useState(false);
-  const [showSavedGamesModal, setShowSavedGamesModal] = useState(false);
   const [showSoundTestPanel, setShowSoundTestPanel] = useState(false);
   const [showIconTestPanel, setShowIconTestPanel] = useState(false);
   const [showPrimarySourcesDevPanel, setShowPrimarySourcesDevPanel] = useState(false);
@@ -115,6 +127,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [llmHistory, setLLMHistory] = useState(eventService.getLLMHistory());
   
   const diseaseService = DiseaseService.getInstance();
+
+  // Subscribe to theme changes
+  useEffect(() => {
+    const unsubscribe = themeService.subscribe((theme) => {
+      setIsDarkMode(theme === 'dark');
+    });
+    return unsubscribe;
+  }, []);
 
   // Update API stats when panel is opened
   useEffect(() => {
@@ -317,31 +337,51 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         </div>
 
         <div className="h-full p-4 overflow-y-auto pb-20 scrollbar-thin">
+          {/* Game Description */}
+          <section className="mb-6 p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-lg border border-blue-700/50">
+            <div className="flex items-center gap-3 mb-2">
+              <Info className="w-5 h-5 text-blue-400" />
+              <h3 className="text-lg font-semibold text-white">Universal History Simulator</h3>
+            </div>
+            <p className="text-sm text-blue-100 leading-relaxed">
+              An educational history simulation game developed at UC Santa Cruz in 2025.
+              Explore different historical periods and cultures through immersive gameplay.
+            </p>
+          </section>
+
+          {/* Theme Toggle */}
           <section className="mb-6">
-            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">World Seed</h3>
+            <h3 className="mb-3 text-sm font-semibold tracking-wider text-blue-300 uppercase flex items-center gap-2">
+              <Palette className="w-4 h-4" />
+              Appearance
+            </h3>
             <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
               <div className="flex items-center justify-between">
-                <label htmlFor="seedInputPanelAdvanced" className="text-sm font-medium text-gray-200">Game Seed:</label>
-                <input
-                  type="number"
-                  id="seedInputPanelAdvanced"
-                  value={currentSeed}
-                  onChange={handleSeedInputChange}
-                  className="w-36 px-3 py-1.5 bg-slate-800 border border-slate-500 rounded-md text-white text-center text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                />
+                <div className="flex items-center gap-2">
+                  {isDarkMode ? <Moon className="w-4 h-4 text-blue-400" /> : <Sun className="w-4 h-4 text-yellow-400" />}
+                  <label className="text-sm font-medium text-gray-200">
+                    {isDarkMode ? 'Dark Mode' : 'Light Mode'}
+                  </label>
+                </div>
+                <button
+                  onClick={() => themeService.toggleTheme()}
+                  className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-slate-800 ${isDarkMode ? 'bg-blue-600' : 'bg-slate-600'}`}
+                  role="switch"
+                  aria-checked={isDarkMode}
+                >
+                  <span className={`${isDarkMode ? 'translate-x-6' : 'translate-x-1'} inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out`} />
+                </button>
               </div>
-              <button
-                onClick={handleNewRandomInitialSeed}
-                className="w-full px-4 py-2 mt-3 text-xs font-semibold text-white transition-colors duration-150 bg-blue-600 rounded-md hover:bg-blue-700"
-              >
-                Set New Random Game Seed
-              </button>
-              <p className="mt-1.5 text-xs text-slate-500">Changing this will start a new world from (0,0).</p>
+              <p className="mt-1.5 text-xs text-slate-400">Toggle between light and dark theme</p>
             </div>
           </section>
 
+          {/* Save/Load Game */}
           <section className="mb-6">
-            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Save/Load Game</h3>
+            <h3 className="mb-3 text-sm font-semibold tracking-wider text-blue-300 uppercase flex items-center gap-2">
+              <Save className="w-4 h-4" />
+              Game Progress
+            </h3>
             <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
               <button
                 onClick={() => setShowSavedGamesModal(true)}
@@ -355,460 +395,392 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               </p>
             </div>
           </section>
-          
+
+          {/* Primary Sources Library */}
           <section className="mb-6">
-            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">AI Features</h3>
+            <h3 className="mb-3 text-sm font-semibold tracking-wider text-blue-300 uppercase flex items-center gap-2">
+              <BookOpen className="w-4 h-4" />
+              Educational Resources
+            </h3>
+            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+              <button
+                onClick={() => setShowPrimarySourcesModal(true)}
+                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-md hover:from-purple-700 hover:to-indigo-700 flex items-center justify-center gap-2"
+              >
+                <ScrollText className="w-4 h-4" />
+                <span>Primary Sources Library</span>
+              </button>
+              <p className="mt-2 text-xs text-slate-400">
+                Browse 167 authentic historical documents across all regions and time periods.
+              </p>
+            </div>
+          </section>
+
+          {/* AI Features */}
+          <section className="mb-6">
+            <h3 className="mb-3 text-sm font-semibold tracking-wider text-blue-300 uppercase flex items-center gap-2">
+              <SettingsIcon className="w-4 h-4" />
+              AI Features
+            </h3>
             <div className="space-y-3">
-              <SettingsToggle 
+              <SettingsToggle
                 id="llmDescToggle"
-                label="LLM Location Descriptions"
-                description="Uses Gemini for richer, poetic descriptions of locations and items."
+                label="Enhanced Descriptions"
+                description="Uses AI for richer, more immersive location descriptions and item details."
                 isChecked={useLlmForDescriptions}
                 onToggle={onToggleLlmForDescriptions}
               />
-              <SettingsToggle 
+              <SettingsToggle
                 id="llmCharToggle"
-                label="LLM Character Generation"
-                description="Uses Gemini to generate more unique names, professions, and backstories."
+                label="Dynamic Characters"
+                description="Uses AI to generate unique names, professions, and backstories for NPCs."
                 isChecked={useLlmForCharacter}
                 onToggle={onToggleLlmForCharacter}
               />
             </div>
           </section>
 
-          <section>
-            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Display Options</h3>
-            <div className="space-y-3">
-              <SettingsToggle 
-                id="devTooltipToggle"
-                label="Dev Tooltip on Hover"
-                description="Show a small tooltip with tile information in the corner of the map."
-                isChecked={showDevTooltip}
-                onToggle={onToggleDevTooltip}
-              />
-              <SettingsToggle 
-                id="testModeToggle"
-                label="Test Mode (Performance Debug)"
-                description="Enable performance monitoring overlay with feature toggles for debugging Safari rendering issues."
-                isChecked={isTestModeEnabled}
-                onToggle={onToggleTestMode}
-              />
-              <SettingsToggle 
-                id="devBuildingModeToggle"
-                label="Dev Building Mode"
-                description="Display a comprehensive grid of all map symbols, biomes, and structures with their code names for reference."
-                isChecked={isDevBuildingModeOpen}
-                onToggle={onToggleDevBuildingMode}
-              />
+          {/* World Settings */}
+          <section className="mb-6">
+            <h3 className="mb-3 text-sm font-semibold tracking-wider text-blue-300 uppercase flex items-center gap-2">
+              <Gamepad2 className="w-4 h-4" />
+              World Settings
+            </h3>
+            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
+              <div className="flex items-center justify-between mb-3">
+                <label htmlFor="seedInputPanelAdvanced" className="text-sm font-medium text-gray-200">World Seed:</label>
+                <input
+                  type="number"
+                  id="seedInputPanelAdvanced"
+                  value={currentSeed}
+                  onChange={handleSeedInputChange}
+                  className="w-36 px-3 py-1.5 bg-slate-800 border border-slate-500 rounded-md text-white text-center text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <button
+                onClick={handleNewRandomInitialSeed}
+                className="w-full px-4 py-2 text-xs font-semibold text-white transition-colors duration-150 bg-blue-600 rounded-md hover:bg-blue-700"
+              >
+                Generate New World
+              </button>
+              <p className="mt-2 text-xs text-slate-400">Creates a new world with different geography and cultures.</p>
             </div>
           </section>
 
-          <section className="mt-6">
-            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">LLM API Tracker</h3>
-            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
-              <button
-                onClick={() => {
-                  setShowLLMTracker(!showLLMTracker);
-                  setApiStats(eventService.getAPIUsageStats());
-                  setLLMHistory(eventService.getLLMHistory());
-                }}
-                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-md hover:from-indigo-700 hover:to-purple-700 flex items-center justify-center gap-2"
-              >
-                <Cpu className="w-4 h-4" />
-                <span>LLM API Usage ({apiStats.sessionCalls} calls)</span>
-              </button>
-              
-              {showLLMTracker && (
-                <div className="mt-3 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-slate-800/50 rounded-lg p-2">
-                      <div className="text-xs text-gray-400 mb-1">Session</div>
-                      <div className="text-lg font-semibold text-white">{apiStats.sessionCalls}</div>
-                    </div>
-                    <div className="bg-slate-800/50 rounded-lg p-2">
-                      <div className="text-xs text-gray-400 mb-1">Total</div>
-                      <div className="text-lg font-semibold text-white">{apiStats.totalCalls}</div>
-                    </div>
+          {/* Developer Mode */}
+          <section className="mt-8">
+            <button
+              onClick={() => setShowDeveloperMode(!showDeveloperMode)}
+              className="w-full p-3 bg-gradient-to-r from-red-900/20 to-orange-900/20 rounded-lg border border-red-700/30 hover:border-red-600/50 transition-all duration-200 flex items-center justify-between text-red-300 hover:text-red-200"
+            >
+              <div className="flex items-center gap-2">
+                <FlaskConical className="w-4 h-4" />
+                <span className="text-sm font-semibold">Developer Mode</span>
+              </div>
+              {showDeveloperMode ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+
+            {showDeveloperMode && (
+              <div className="mt-4 space-y-4 p-4 bg-red-900/10 rounded-lg border border-red-800/30">
+                {/* Display Options */}
+                <div>
+                  <h4 className="mb-3 text-xs font-semibold tracking-wider text-red-300 uppercase">Display & Debug</h4>
+                  <div className="space-y-3">
+                    <SettingsToggle
+                      id="devTooltipToggle"
+                      label="Dev Tooltip on Hover"
+                      description="Show a small tooltip with tile information in the corner of the map."
+                      isChecked={showDevTooltip}
+                      onToggle={onToggleDevTooltip}
+                    />
+                    <SettingsToggle
+                      id="testModeToggle"
+                      label="Test Mode (Performance Debug)"
+                      description="Enable performance monitoring overlay with feature toggles for debugging Safari rendering issues."
+                      isChecked={isTestModeEnabled}
+                      onToggle={onToggleTestMode}
+                    />
+                    <SettingsToggle
+                      id="devBuildingModeToggle"
+                      label="Dev Building Mode"
+                      description="Display a comprehensive grid of all map symbols, biomes, and structures with their code names for reference."
+                      isChecked={isDevBuildingModeOpen}
+                      onToggle={onToggleDevBuildingMode}
+                    />
                   </div>
-                  
-                  {apiStats.costEstimate !== undefined && (
-                    <div className="bg-green-900/20 border border-green-600/30 rounded-lg p-2">
-                      <div className="text-xs text-green-400 mb-1">Estimated Cost</div>
-                      <div className="text-lg font-semibold text-green-300">
-                        ${(apiStats.costEstimate / 100).toFixed(2)}
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        const text = eventService.exportLLMHistoryAsText();
-                        const blob = new Blob([text], { type: 'text/plain' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `llm-history-${Date.now()}.txt`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                      }}
-                      className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
-                    >
-                      <Download className="w-3 h-3" />
-                      Download
-                    </button>
-                    <button
-                      onClick={() => {
-                        eventService.resetSessionCalls();
-                        setApiStats(eventService.getAPIUsageStats());
-                      }}
-                      className="flex-1 px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white text-xs font-medium rounded-lg transition-colors"
-                    >
-                      Reset Session
-                    </button>
-                  </div>
-                  
-                  {llmHistory.length > 0 && (
-                    <div className="max-h-40 overflow-y-auto bg-slate-800/30 rounded p-2">
-                      <div className="text-xs text-gray-400 mb-2 flex items-center gap-1">
-                        <Activity className="w-3 h-3" />
-                        Last {Math.min(llmHistory.length, 10)} API calls:
-                      </div>
-                      <div className="space-y-2">
-                        {llmHistory.slice(-10).reverse().map((entry, index) => (
-                          <div key={index} className="bg-slate-900/50 rounded p-2">
-                            <div className="text-xs text-gray-500 mb-1">
-                              {new Date(entry.timestamp).toLocaleString()}
-                            </div>
-                            <div className="text-xs text-gray-300 truncate">
-                              Input: {entry.input.substring(0, 50)}...
-                            </div>
-                            <div className="text-xs text-gray-300 truncate">
-                              Output: {entry.output.substring(0, 50)}...
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
-              )}
-              
-              <p className="mt-2 text-xs text-slate-400">
-                Track LLM API usage, view call history, and download transcripts for analysis.
-              </p>
-            </div>
-          </section>
 
-          <section className="mt-6">
-            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Character Testing</h3>
-            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70 space-y-3">
-              <button
-                onClick={() => setShowNpcTestPanel(true)}
-                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-purple-600 to-pink-600 rounded-md hover:from-purple-700 hover:to-pink-700 flex items-center justify-center gap-2"
-              >
-                <Users className="w-4 h-4" />
-                <span>NPC Testing Panel</span>
-              </button>
-              <p className="mt-2 text-xs text-slate-400">
-                Test NPC generation with specific cultural zones, body modifications, and clothing. Preview portraits and modal UI.
-              </p>
-            </div>
-          </section>
+                {/* API Tracking */}
+                <div>
+                  <h4 className="mb-3 text-xs font-semibold tracking-wider text-red-300 uppercase">API Monitoring</h4>
+                  <button
+                    onClick={() => {
+                      setShowLLMTracker(!showLLMTracker);
+                      setApiStats(eventService.getAPIUsageStats());
+                      setLLMHistory(eventService.getLLMHistory());
+                    }}
+                    className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-md hover:from-indigo-700 hover:to-purple-700 flex items-center justify-center gap-2"
+                  >
+                    <Cpu className="w-4 h-4" />
+                    <span>LLM API Usage ({apiStats.sessionCalls} calls)</span>
+                  </button>
 
-          <section className="mt-6">
-            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Primary Sources Development</h3>
-            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70 space-y-3">
-              <button
-                onClick={() => setShowPrimarySourcesDevPanel(true)}
-                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-amber-600 to-orange-600 rounded-md hover:from-amber-700 hover:to-orange-700 flex items-center justify-center gap-2"
-              >
-                <Database className="w-4 h-4" />
-                <span>Primary Sources Dev Panel</span>
-              </button>
-              <p className="mt-2 text-xs text-slate-400">
-                Inspect all primary source shards, view metadata analysis, search sources by keywords and filters. Shows automatic detection of new sources for bug checking.
-              </p>
-            </div>
-          </section>
-
-          <section className="mt-6">
-            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Quest Testing</h3>
-            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
-              <button
-                onClick={() => setShowQuestTestPanel(true)}
-                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-amber-600 to-orange-600 rounded-md hover:from-amber-700 hover:to-orange-700 flex items-center justify-center gap-2"
-              >
-                <ScrollText className="w-4 h-4" />
-                <span>Open Quest Testing Panel</span>
-              </button>
-              <p className="mt-2 text-xs text-slate-400">
-                Test quest generation, manipulate quest states, teleport to objectives, and debug quest issues.
-              </p>
-            </div>
-          </section>
-
-          <section className="mt-6">
-            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Fishing System Testing</h3>
-            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
-              <button
-                onClick={() => setShowFishingTestPanel(true)}
-                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-md hover:from-blue-700 hover:to-cyan-700 flex items-center justify-center gap-2"
-              >
-                <span className="text-lg">🎣</span>
-                <span>Open Fishing Test Panel</span>
-              </button>
-              
-              <button
-                onClick={() => setShowAlternativeFishing(true)}
-                className="w-full px-4 py-3 mt-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-purple-600 to-pink-600 rounded-md hover:from-purple-700 hover:to-pink-700 flex items-center justify-center gap-2"
-              >
-                <span className="text-lg">🐟</span>
-                <span>Alternative Fishing Game</span>
-              </button>
-              
-              <button
-                onClick={() => setShowFishingSystemTest(true)}
-                className="w-full px-4 py-3 mt-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-green-600 to-emerald-600 rounded-md hover:from-green-700 hover:to-emerald-700 flex items-center justify-center gap-2"
-              >
-                <span className="text-lg">🧪</span>
-                <span>Automated System Tests</span>
-              </button>
-              
-              <button
-                onClick={() => setShowSimpleFishing(true)}
-                className="w-full px-4 py-3 mt-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-orange-600 to-red-600 rounded-md hover:from-orange-700 hover:to-red-700 flex items-center justify-center gap-2"
-              >
-                <span className="text-lg">🎯</span>
-                <span>Simple Fishing (NEW)</span>
-              </button>
-              
-              <p className="mt-2 text-xs text-slate-400">
-                Test fishing minigame in different eras, cultures, climates, and water types. Debug fish spawning and mechanics. Run automated tests to verify system integrity.
-              </p>
-            </div>
-          </section>
-
-          <section className="mt-6">
-            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Map Testing</h3>
-            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70 space-y-3">
-              <button
-                onClick={() => setShowSpecialMapTest(true)}
-                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-md hover:from-purple-700 hover:to-indigo-700 flex items-center justify-center gap-2"
-              >
-                <MapIcon className="w-4 h-4" />
-                <span>Open Special Map Test Suite</span>
-              </button>
-              <button
-                onClick={() => setShowInteriorMapTest(true)}
-                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-md hover:from-cyan-700 hover:to-blue-700 flex items-center justify-center gap-2"
-              >
-                <MapIcon className="w-4 h-4" />
-                <span>Open Interior Map Test Suite</span>
-              </button>
-              <button
-                onClick={() => setShowSoundTestPanel(true)}
-                className="w-full px-4 py-3 mt-2 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-green-600 to-teal-600 rounded-md hover:from-green-700 hover:to-teal-700 flex items-center justify-center gap-2"
-              >
-                <FlaskConical className="w-4 h-4" />
-                <span>Open Sound Test Panel</span>
-              </button>
-              <button
-                onClick={() => setShowIconTestPanel(true)}
-                className="w-full px-4 py-3 mt-2 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-md hover:from-purple-700 hover:to-indigo-700 flex items-center justify-center gap-2"
-              >
-                <Palette className="w-4 h-4" />
-                <span>Open Icon Test Panel</span>
-              </button>
-              <button
-                onClick={() => setShowMiningTestPanel(true)}
-                className="w-full px-4 py-3 mt-2 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-amber-600 to-orange-600 rounded-md hover:from-amber-700 hover:to-orange-700 flex items-center justify-center gap-2"
-              >
-                ⛏️
-                <span>Open Mining Roguelike Test</span>
-              </button>
-              <p className="mt-2 text-xs text-gray-400">
-                Test special map archetypes, interior building layouts, sounds, icons, and mining roguelike
-              </p>
-            </div>
-          </section>
-
-          <section className="mt-6">
-            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Disease Testing</h3>
-            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
-              <button
-                onClick={() => setShowDiseaseTestPanel(!showDiseaseTestPanel)}
-                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-red-600 to-pink-600 rounded-md hover:from-red-700 hover:to-pink-700 flex items-center justify-center gap-2"
-              >
-                <FlaskConical className="w-4 h-4" />
-                <span>Disease Test Panel</span>
-              </button>
-              
-              {showDiseaseTestPanel && (
-                <div className="mt-3 space-y-3">
-                  {/* Current Disease Status */}
-                  <div className="bg-slate-800/50 rounded-lg p-3">
-                    <div className="text-xs text-gray-400 mb-2 flex items-center gap-1">
-                      <Heart className="w-3 h-3" />
-                      Current Health Status:
-                    </div>
-                    <div className="text-sm text-white">
-                      {playerCharacter?.health?.overallHealthStatus || 'healthy'}
-                    </div>
-                    {playerCharacter?.health?.currentDiseases && playerCharacter.health.currentDiseases.length > 0 && (
-                      <div className="mt-2 space-y-1">
-                        {playerCharacter.health.currentDiseases.map((activeDisease, index) => (
-                          <div key={index} className="text-xs text-red-300 flex items-center gap-1">
-                            {activeDisease.disease.badgeIcon} 
-                            {activeDisease.disease.name} ({activeDisease.stage})
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {playerCharacter?.health?.immunities && playerCharacter.health.immunities.length > 0 && (
-                      <div className="mt-2">
-                        <div className="text-xs text-gray-400 mb-1">Immunities:</div>
-                        <div className="space-y-1">
-                          {playerCharacter.health.immunities.map((immunity, index) => (
-                            <div key={index} className="text-xs text-green-300">
-                              🛡️ {DISEASE_DATABASE.diseases.find(d => d.id === immunity.diseaseId)?.name || immunity.diseaseId}
-                            </div>
-                          ))}
+                  {showLLMTracker && (
+                    <div className="mt-3 space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-slate-800/50 rounded-lg p-2">
+                          <div className="text-xs text-gray-400 mb-1">Session</div>
+                          <div className="text-lg font-semibold text-white">{apiStats.sessionCalls}</div>
+                        </div>
+                        <div className="bg-slate-800/50 rounded-lg p-2">
+                          <div className="text-xs text-gray-400 mb-1">Total</div>
+                          <div className="text-lg font-semibold text-white">{apiStats.totalCalls}</div>
                         </div>
                       </div>
-                    )}
-                  </div>
 
-                  {/* Available Diseases */}
-                  <div className="bg-slate-800/50 rounded-lg p-3">
-                    <div className="text-xs text-gray-400 mb-2 flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" />
-                      Available Diseases for Current Era/Region:
-                    </div>
-                    <div className="max-h-40 overflow-y-auto space-y-2">
-                      {getAvailableDiseases().map((disease) => {
-                        const year = currentYear || parseInt(mapData.timeSlice || '1500');
-                        const era = year < -3000 ? 'PREHISTORIC' :
-                                    year < 500 ? 'ANCIENT' :
-                                    year < 1400 ? 'MEDIEVAL' :
-                                    year < 1800 ? 'EARLY_MODERN' :
-                                    year < 1900 ? 'INDUSTRIAL' : 'MODERN' as any;
-                        
-                        const mapZoneToCulture = (zone: string): CulturalZone => {
-                          const zoneMapping: Record<string, CulturalZone> = {
-                            'Europe': 'EUROPEAN',
-                            'North America': 'NORTH_AMERICAN_COLONIAL',
-                            'East Asia': 'EAST_ASIAN',
-                            'South Asia': 'SOUTH_ASIAN',
-                            'MENA': 'MENA',
-                            'Sub Saharan Africa': 'SUB_SAHARAN_AFRICAN',
-                            'South America': 'SOUTH_AMERICAN',
-                            'Oceania': 'OCEANIC'
-                          };
-                          if (zone === 'North America' && year < 1492) {
-                            return 'NORTH_AMERICAN_PRE_COLUMBIAN';
-                          }
-                          return zoneMapping[zone] || 'EUROPEAN';
-                        };
-                        
-                        const region = currentZone ? mapZoneToCulture(currentZone) : 'EUROPEAN' as CulturalZone;
-                        
-                        const isEpidemic = DISEASE_PREVALENCE.some(p => 
-                          p.diseaseId === disease.id && 
-                          p.era === era && 
-                          p.region === region && 
-                          p.epidemicYears?.includes(year)
-                        );
-                        
-                        return (
-                          <div key={disease.id} className={`flex items-center justify-between rounded p-2 ${
-                            isEpidemic ? 'bg-red-900/50 border border-red-600/50' : 'bg-slate-900/50'
-                          }`}>
-                            <div className="flex-1">
-                              <div className="text-xs text-white flex items-center gap-1">
-                                {disease.badgeIcon} {disease.name}
-                                {isEpidemic && <span className="text-red-400 font-bold">[EPIDEMIC]</span>}
-                              </div>
-                              <div className="text-xs text-gray-400">
-                                {disease.severity} • {disease.type}
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => contractDisease(disease.id)}
-                              className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
-                              disabled={playerCharacter?.diseaseHealth?.currentDiseases?.some(d => d.disease.id === disease.id)}
-                            >
-                              {playerCharacter?.diseaseHealth?.currentDiseases?.some(d => d.disease.id === disease.id) ? 'Active' : 'Contract'}
-                            </button>
+                      {apiStats.costEstimate !== undefined && (
+                        <div className="bg-green-900/20 border border-green-600/30 rounded-lg p-2">
+                          <div className="text-xs text-green-400 mb-1">Estimated Cost</div>
+                          <div className="text-lg font-semibold text-green-300">
+                            ${(apiStats.costEstimate / 100).toFixed(2)}
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                        </div>
+                      )}
 
-                  {/* Control Buttons */}
-                  <div className="flex gap-2">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            const text = eventService.exportLLMHistoryAsText();
+                            const blob = new Blob([text], { type: 'text/plain' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `llm-history-${Date.now()}.txt`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                          }}
+                          className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
+                        >
+                          <Download className="w-3 h-3" />
+                          Download
+                        </button>
+                        <button
+                          onClick={() => {
+                            eventService.resetSessionCalls();
+                            setApiStats(eventService.getAPIUsageStats());
+                          }}
+                          className="flex-1 px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white text-xs font-medium rounded-lg transition-colors"
+                        >
+                          Reset Session
+                        </button>
+                      </div>
+
+                      {llmHistory.length > 0 && (
+                        <div className="max-h-40 overflow-y-auto bg-slate-800/30 rounded p-2">
+                          <div className="text-xs text-gray-400 mb-2 flex items-center gap-1">
+                            <Activity className="w-3 h-3" />
+                            Last {Math.min(llmHistory.length, 10)} API calls:
+                          </div>
+                          <div className="space-y-2">
+                            {llmHistory.slice(-10).reverse().map((entry, index) => (
+                              <div key={index} className="bg-slate-900/50 rounded p-2">
+                                <div className="text-xs text-gray-500 mb-1">
+                                  {new Date(entry.timestamp).toLocaleString()}
+                                </div>
+                                <div className="text-xs text-gray-300 truncate">
+                                  Input: {entry.input.substring(0, 50)}...
+                                </div>
+                                <div className="text-xs text-gray-300 truncate">
+                                  Output: {entry.output.substring(0, 50)}...
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Testing Panels */}
+                <div>
+                  <h4 className="mb-3 text-xs font-semibold tracking-wider text-red-300 uppercase">Testing Panels</h4>
+                  <div className="grid grid-cols-2 gap-2">
                     <button
-                      onClick={cureAllDiseases}
-                      className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors"
+                      onClick={() => setShowNpcTestPanel(true)}
+                      className="px-3 py-2 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors flex items-center justify-center gap-1"
                     >
-                      Cure All Diseases
+                      <Users className="w-3 h-3" />
+                      NPCs
                     </button>
                     <button
-                      onClick={clearAllImmunities}
-                      className="flex-1 px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-medium rounded-lg transition-colors"
+                      onClick={() => setShowQuestTestPanel(true)}
+                      className="px-3 py-2 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-md transition-colors flex items-center justify-center gap-1"
                     >
-                      Clear Immunities
+                      <ScrollText className="w-3 h-3" />
+                      Quests
+                    </button>
+                    <button
+                      onClick={() => setShowSpecialMapTest(true)}
+                      className="px-3 py-2 text-xs font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-md transition-colors flex items-center justify-center gap-1"
+                    >
+                      <MapIcon className="w-3 h-3" />
+                      Maps
+                    </button>
+                    <button
+                      onClick={() => setShowFishingTestPanel(true)}
+                      className="px-3 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+                    >
+                      🎣 Fishing
+                    </button>
+                    <button
+                      onClick={() => setShowSoundTestPanel(true)}
+                      className="px-3 py-2 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-md transition-colors flex items-center justify-center gap-1"
+                    >
+                      <FlaskConical className="w-3 h-3" />
+                      Sound
+                    </button>
+                    <button
+                      onClick={() => setShowPrimarySourcesDevPanel(true)}
+                      className="px-3 py-2 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-md transition-colors flex items-center justify-center gap-1"
+                    >
+                      <Database className="w-3 h-3" />
+                      Sources
                     </button>
                   </div>
                 </div>
-              )}
-              
-              <p className="mt-2 text-xs text-slate-400">
-                Test disease mechanics with historically accurate diseases for your current era and region.
-              </p>
-            </div>
-          </section>
 
-          <section className="mt-6">
-            <h3 className="mb-2 text-sm font-semibold tracking-wider text-blue-300 uppercase">Performance Testing</h3>
-            <div className="p-3 bg-slate-700/50 rounded-md border border-slate-600/70">
-              <button
-                onClick={() => setShowPerformanceDiagnostics(true)}
-                className="w-full px-4 py-3 text-sm font-semibold text-white transition-all duration-150 bg-gradient-to-r from-purple-600 to-blue-600 rounded-md hover:from-purple-700 hover:to-blue-700 flex items-center justify-center gap-2"
-              >
-                <span>🔬</span>
-                <span>Open Performance Diagnostics</span>
-              </button>
-              <p className="mt-2 text-xs text-slate-400">
-                Analyze FPS, memory usage, DOM complexity, and identify performance bottlenecks. 
-                Includes Safari-specific performance tests.
-              </p>
-            </div>
+                {/* Performance Testing */}
+                <div>
+                  <h4 className="mb-3 text-xs font-semibold tracking-wider text-red-300 uppercase">Performance & Disease Testing</h4>
+                  <div className="grid grid-cols-1 gap-2">
+                    <button
+                      onClick={() => setShowPerformanceDiagnostics(true)}
+                      className="px-3 py-2 text-xs font-semibold text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-md transition-colors"
+                    >
+                      🔬 Performance Diagnostics
+                    </button>
+                    <button
+                      onClick={() => setShowDiseaseTestPanel(!showDiseaseTestPanel)}
+                      className="px-3 py-2 text-xs font-semibold text-white bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 rounded-md transition-colors flex items-center justify-center gap-1"
+                    >
+                      <FlaskConical className="w-3 h-3" />
+                      Disease Testing
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
         </div>
+
+        {/* Disease Test Panel (only show if developer mode is open and disease panel is toggled) */}
+        {showDeveloperMode && showDiseaseTestPanel && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-60 flex items-center justify-center p-4">
+            <div className="bg-slate-900 rounded-lg border border-slate-700 w-full max-w-md max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-4 border-b border-slate-700">
+                <h3 className="text-lg font-semibold text-white">Disease Testing</h3>
+                <button
+                  onClick={() => setShowDiseaseTestPanel(false)}
+                  className="text-slate-400 hover:text-white transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-4">
+                {/* Current Disease Status */}
+                <div className="bg-slate-800/50 rounded-lg p-3">
+                  <div className="text-xs text-gray-400 mb-2 flex items-center gap-1">
+                    <Heart className="w-3 h-3" />
+                    Current Health Status:
+                  </div>
+                  <div className="text-sm text-white">
+                    {playerCharacter?.health?.overallHealthStatus || 'healthy'}
+                  </div>
+                  {playerCharacter?.health?.currentDiseases && playerCharacter.health.currentDiseases.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      {playerCharacter.health.currentDiseases.map((activeDisease, index) => (
+                        <div key={index} className="text-xs text-red-300 flex items-center gap-1">
+                          {activeDisease.disease.badgeIcon}
+                          {activeDisease.disease.name} ({activeDisease.stage})
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Available Diseases */}
+                <div className="bg-slate-800/50 rounded-lg p-3">
+                  <div className="text-xs text-gray-400 mb-2 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" />
+                    Available Diseases:
+                  </div>
+                  <div className="max-h-40 overflow-y-auto space-y-2">
+                    {getAvailableDiseases().slice(0, 5).map((disease) => (
+                      <div key={disease.id} className="flex items-center justify-between rounded p-2 bg-slate-900/50">
+                        <div className="flex-1">
+                          <div className="text-xs text-white flex items-center gap-1">
+                            {disease.badgeIcon} {disease.name}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {disease.severity} • {disease.type}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => contractDisease(disease.id)}
+                          className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+                          disabled={playerCharacter?.diseaseHealth?.currentDiseases?.some(d => d.disease.id === disease.id)}
+                        >
+                          {playerCharacter?.diseaseHealth?.currentDiseases?.some(d => d.disease.id === disease.id) ? 'Active' : 'Contract'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Control Buttons */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={cureAllDiseases}
+                    className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors"
+                  >
+                    Cure All
+                  </button>
+                  <button
+                    onClick={clearAllImmunities}
+                    className="flex-1 px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-medium rounded-lg transition-colors"
+                  >
+                    Clear Immunities
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
+      {/* Modals */}
       {/* Performance Diagnostics Modal */}
-      <PerformanceDiagnostics 
+      <PerformanceDiagnostics
         isOpen={showPerformanceDiagnostics}
         onClose={() => setShowPerformanceDiagnostics(false)}
       />
-      
+
       {/* Special Map Test Menu */}
-      <SpecialMapTestMenu 
+      <SpecialMapTestMenu
         isOpen={showSpecialMapTest}
         onClose={() => setShowSpecialMapTest(false)}
       />
-      
+
       {/* Interior Map Test Menu */}
-      <InteriorMapTestMenu 
+      <InteriorMapTestMenu
         isOpen={showInteriorMapTest}
         onClose={() => setShowInteriorMapTest(false)}
       />
-      
+
       {/* NPC Testing Panel */}
       <NpcTestingPanel
         isOpen={showNpcTestPanel}
@@ -826,18 +798,24 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         isOpen={showPrimarySourcesDevPanel}
         onClose={() => setShowPrimarySourcesDevPanel(false)}
       />
-      
+
+      {/* Primary Sources Modal */}
+      <PrimarySourcesModal
+        isOpen={showPrimarySourcesModal}
+        onClose={() => setShowPrimarySourcesModal(false)}
+      />
+
       {/* Fishing Test Panel */}
       <FishingTestPanel
         isOpen={showFishingTestPanel}
         onClose={() => setShowFishingTestPanel(false)}
       />
-      
+
       {/* Fishing System Test Modal */}
       {showFishingSystemTest && (
         <FishingSystemTest onClose={() => setShowFishingSystemTest(false)} />
       )}
-      
+
       {/* Simple Fishing Modal */}
       {showSimpleFishing && (
         <div className="fixed inset-0 z-50 bg-black">
@@ -857,7 +835,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           />
         </div>
       )}
-      
+
       {/* Sound Test Panel */}
       <SoundTestPanel
         isOpen={showSoundTestPanel}
@@ -869,7 +847,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         isOpen={showIconTestPanel}
         onClose={() => setShowIconTestPanel(false)}
       />
-      
+
       {/* Alternative Fishing Modal */}
       {showAlternativeFishing && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -906,7 +884,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </div>
         </div>
       )}
-      
+
       {/* Saved Games Modal */}
       {showSavedGamesModal && onLoadGame && (
         <SavedGamesModal

@@ -18,7 +18,8 @@ const LevelUpModal: React.FC<LevelUpModalProps> = ({ character, onLevelUp }) => 
     // Play Generic Music (FF6 style) when modal opens
     useEffect(() => {
         gameSounds.playGenericMusic();
-        gameSounds.playVictoryFanfare(); // Play victory sound when level up opens
+        // Also play the level up fanfare sound
+        gameSounds.playLevelUpFanfareSound();
 
         // Cleanup on unmount
         return () => {

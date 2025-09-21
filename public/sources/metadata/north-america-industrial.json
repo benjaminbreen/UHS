@@ -74,26 +74,59 @@
       "isStandard": true
     },
     {
-      "id": "north-america-industrial-chronicle",
-      "title": "North American Industrial Chronicle",
-      "author": "Various Authors",
-      "year": 1850,
+      "id": "lewis-clark-journals",
+      "title": "The Journals of Lewis and Clark",
+      "author": "Meriwether Lewis and William Clark",
+      "year": 1806,
       "era": "INDUSTRIAL",
       "culturalZones": [
         "NORTH_AMERICAN_COLONIAL"
       ],
-      "excerpt": "A collection of industrial texts from the North American region.",
-      "longExcerpt": "This represents a compilation of historical documents from the Industrial period in the North American region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "excerpt": "Ocean in view! O! the joy! This great Pacific Ocean which we have been so anxious to see, and the roaring noise made by the waves breaking on the rocky shores may be heard distinctly.",
+      "longExcerpt": "Ocean in view! O! the joy! This great Pacific Ocean which we have been so anxious to see, and the roaring noise made by the waves breaking on the rocky shores may be heard distinctly. This exclamation from Clark's journal in November 1805 captures the expedition's achievement in reaching the Pacific, opening the American West to expansion.",
       "keywords": [
-        "north-america",
-        "industrial",
-        "history",
-        "chronicle",
-        "primary source"
+        "exploration",
+        "Pacific",
+        "Native Americans",
+        "Missouri",
+        "discovery",
+        "west",
+        "expedition"
       ],
-      "wikisourceTitle": "North American_Industrial_Texts",
+      "wikisourceTitle": "History_of_the_Expedition_under_the_Command_of_Captains_Lewis_and_Clark",
+      "internetArchiveId": "journalsoflewisc00lewi",
       "citation": {
-        "originalPublication": "North American Industrial Period"
+        "translator": null,
+        "originalPublication": "Philadelphia, 1814",
+        "modernSource": "Bradford and Inskeep, 1814"
+      }
+    },
+    {
+      "id": "tocqueville-democracy",
+      "title": "Democracy in America",
+      "author": "Alexis de Tocqueville",
+      "year": 1835,
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "NORTH_AMERICAN_COLONIAL"
+      ],
+      "excerpt": "The American Republic will endure until the day Congress discovers that it can bribe the public with the public's money. Nothing is more wonderful than the art of being free, but nothing is harder to learn how to use than freedom.",
+      "longExcerpt": "The American Republic will endure until the day Congress discovers that it can bribe the public with the public's money. Nothing is more wonderful than the art of being free, but nothing is harder to learn how to use than freedom. This penetrating analysis of American society from 1835 by a French aristocrat remains one of the most insightful examinations of democracy ever written.",
+      "keywords": [
+        "democracy",
+        "America",
+        "politics",
+        "society",
+        "equality",
+        "freedom",
+        "government"
+      ],
+      "wikisourceTitle": "Democracy_in_America",
+      "internetArchiveId": "democracyinameri01tocq",
+      "citation": {
+        "translator": "Henry Reeve",
+        "originalPublication": "Paris, 1835",
+        "modernSource": "Saunders and Otley, 1835"
       }
     }
   ]

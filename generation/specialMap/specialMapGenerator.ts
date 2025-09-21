@@ -49,6 +49,7 @@ import { generateVessel } from './archetypes/vesselGenerator';
 import { generateCampground } from './archetypes/campgroundGenerator';
 import { generateRestaurantInn } from './archetypes/restaurantInnGenerator';
 import { generateCommanderChamber } from './archetypes/commanderChamberGenerator';
+import { generateWorkshop } from './archetypes/workshopGenerator';
 import { generateSpecialMapNpcs } from './specialMapNpcGenerator';
 import { getEraAppropriateName } from '../../utils/governmentDistrictFallback';
 // Map size type for special maps
@@ -120,6 +121,8 @@ function determineMapSize(archetype: SpecialMapArchetype, era: HistoricalEra, sp
     [SpecialMapArchetype.CAMPGROUND]: { min: 'xs', max: 'medium' },
     // Restaurants/inns are modest
     [SpecialMapArchetype.RESTAURANT_INN]: { min: 'small', max: 'medium' },
+    // Workshops are typically small to medium
+    [SpecialMapArchetype.WORKSHOP]: { min: 'xs', max: 'medium' },
     // Open fields can be any size
     [SpecialMapArchetype.OPEN_FIELD]: { min: 'xs', max: 'xl' },
     // Markets scale with city size
@@ -413,6 +416,15 @@ export function generateSpecialMap(
       
     case SpecialMapArchetype.RESTAURANT_INN:
       generatedData = generateRestaurantInn(tiles, config, noise, size);
+      tiles = generatedData.tiles;
+      interactionZones = generatedData.interactionZones;
+      exitZones = generatedData.exitZones;
+      rooms = generatedData.rooms || [];
+      break;
+
+    case SpecialMapArchetype.WORKSHOP:
+      console.log(`[SpecialMapGen] WORKSHOP archetype - using workshop generator`);
+      generatedData = generateWorkshop(tiles, config, noise, size);
       tiles = generatedData.tiles;
       interactionZones = generatedData.interactionZones;
       exitZones = generatedData.exitZones;

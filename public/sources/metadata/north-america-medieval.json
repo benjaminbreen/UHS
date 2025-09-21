@@ -36,26 +36,31 @@
       "isStandard": true
     },
     {
-      "id": "north-america-medieval-chronicle",
-      "title": "North American Medieval Chronicle",
-      "author": "Various Authors",
+      "id": "vinland-sagas",
+      "title": "The Saga of Erik the Red",
+      "author": "Icelandic scribes",
       "year": 1000,
       "era": "MEDIEVAL",
       "culturalZones": [
-        "NORTH_AMERICAN_PRE_COLUMBIAN"
+        "NORTH_AMERICAN_COLONIAL"
       ],
-      "excerpt": "A collection of medieval texts from the North American region.",
-      "longExcerpt": "This represents a compilation of historical documents from the Medieval period in the North American region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "excerpt": "Leif found men upon a wreck, and took them home with him, and procured quarters for them all during the winter. There was no lack of salmon there either in the river or in the lake, and larger salmon than they had ever seen before.",
+      "longExcerpt": "Leif found men upon a wreck, and took them home with him, and procured quarters for them all during the winter. There was no lack of salmon there either in the river or in the lake, and larger salmon than they had ever seen before. This saga from around 1000 CE recounts the Norse discovery and attempted colonization of North America, centuries before Columbus.",
       "keywords": [
-        "north-america",
-        "medieval",
-        "history",
-        "chronicle",
-        "primary source"
+        "Vikings",
+        "Vinland",
+        "exploration",
+        "Greenland",
+        "Leif Eriksson",
+        "colonization",
+        "saga"
       ],
-      "wikisourceTitle": "North American_Medieval_Texts",
+      "wikisourceTitle": "The_Saga_of_Erik_the_Red",
+      "internetArchiveId": "sagaofericred00seph",
       "citation": {
-        "originalPublication": "North American Medieval Period"
+        "translator": "Arthur Middleton Reeves",
+        "originalPublication": "Iceland, c. 1000-1200",
+        "modernSource": "Oxford University Press, 1890"
       }
     }
   ],

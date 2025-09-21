@@ -29,72 +29,272 @@ function cmToFeetAndInches(cm: number): string {
     return `${feet}' ${inches}"`;
 }
 
+// Religion descriptions for procedural backstory generation
+const RELIGION_DESCRIPTIONS: Record<string, string> = {
+    // Traditional European
+    'Roman Catholicism': 'finding solace in ancient rituals and the guidance of Church tradition',
+    'Protestantism': 'emphasizing personal faith and the authority of scripture',
+    'Eastern Orthodoxy': 'honoring mystical traditions and the veneration of holy icons',
+    'Celtic Christianity': 'blending ancient Celtic wisdom with Christian teachings',
+    'Celtic Druidism': 'following the old ways of sacred groves and seasonal cycles',
+    'Norse Paganism': 'honoring the gods of Asgard and the warrior\'s path to Valhalla',
+    'Greek Polytheism': 'making offerings to the Olympian gods for their favor',
+    'Roman Polytheism': 'observing the rites that maintain the pax deorum',
+    'Germanic Paganism': 'venerating the forest gods and ancestral spirits',
+    'Slavic Paganism': 'honoring the spirits of household, field, and forest',
+
+    // Abrahamic
+    'Judaism': 'maintaining the ancient covenant through study and observance',
+    'Islam': 'submitting to divine will through daily prayer and devotion',
+    'Sunni Islam': 'following the example of the Prophet and his companions',
+    'Shia Islam': 'revering the family of the Prophet as rightful guides',
+    'Sufi Islam': 'seeking divine union through mystical practice and dhikr',
+    'Early Christianity': 'following the new covenant in small, devoted communities',
+
+    // Asian Traditions
+    'Buddhism': 'seeking liberation from suffering through the Noble Eightfold Path',
+    'Hinduism': 'honoring the eternal dharma and countless manifestations of the divine',
+    'Confucianism': 'cultivating virtue through ritual propriety and filial devotion',
+    'Taoism': 'following the natural way and seeking harmony with the Dao',
+    'Shinto': 'maintaining purity and honoring the kami of land and ancestors',
+    'Zen Buddhism': 'pursuing enlightenment through meditation and direct insight',
+
+    // Indigenous & Shamanic
+    'Shamanism': 'walking between worlds to commune with spirits and ancestors',
+    'Animism': 'recognizing the living spirit within all things',
+    'Totemism': 'drawing strength from your clan\'s sacred animal guardian',
+    'Ancestor Worship': 'maintaining the vital connection with those who came before',
+
+    // Regional/Cultural Specific
+    'Vodou': 'serving the lwa and honoring both African and Catholic traditions',
+    'Santería': 'working with the orishas through ritual and sacrifice',
+    'Tengrism': 'revering the Eternal Blue Sky and the spirits of the steppe',
+    'Zoroastrianism': 'supporting the cosmic battle of light against darkness',
+
+    // Modern/Secular
+    'Atheism': 'trusting in reason and human capability rather than divine intervention',
+    'Agnosticism': 'acknowledging the limits of knowledge about divine matters',
+    'Deism': 'believing in a creator who set the universe in motion',
+    'Secularism': 'focusing on worldly concerns rather than spiritual matters',
+
+    // Native American (respectful generalizations)
+    'Great Spirit Worship': 'honoring the Great Spirit that flows through all creation',
+    'Sun Dance Religion': 'participating in sacred ceremonies of renewal and sacrifice',
+    'Pueblo Religion': 'maintaining the sacred balance through kiva ceremonies',
+    'Iroquois Longhouse Religion': 'following the ways taught by the Peacemaker',
+
+    // Default fallback
+    'Unknown': 'following your own spiritual path'
+};
+
+// Map of attribute IDs to short descriptive phrases
+const ATTRIBUTE_DESCRIPTIONS: Record<string, string> = {
+    // Physical
+    'strong': 'exceptionally strong',
+    'frail': 'physically frail',
+    'blind': 'completely blind',
+    'deaf': 'deaf',
+    'nearsighted': 'nearsighted',
+    'athletic': 'naturally athletic',
+    'limping': 'walk with a limp',
+    'scarred': 'covered in scars',
+    'giant': 'unusually tall',
+    'tiny': 'remarkably small',
+
+    // Mental
+    'genius': 'brilliant',
+    'simple': 'simple-minded',
+    'scholar': 'well-educated',
+    'illiterate': 'unable to read',
+    'polyglot': 'speak many languages',
+    'forgetful': 'terribly forgetful',
+    'sharp_eyed': 'have keen eyesight',
+    'dreamer': 'prone to daydreaming',
+
+    // Personality
+    'charming': 'naturally charming',
+    'shy': 'painfully shy',
+    'lucky': 'remarkably lucky',
+    'unlucky': 'plagued by bad luck',
+    'honest': 'compulsively honest',
+    'liar': 'a habitual liar',
+    'generous': 'exceptionally generous',
+    'greedy': 'consumed by greed',
+    'brave': 'fearless',
+    'coward': 'cowardly',
+
+    // Spiritual
+    'spiritual': 'deeply spiritual',
+    'prophet': 'claim divine visions',
+    'blessed': 'blessed by fortune',
+    'cursed': 'cursed',
+    'mystic': 'have mystical insights',
+    'skeptic': 'doubt all religions',
+
+    // Skills/Background
+    'survivor': 'a hardened survivor',
+    'hunter': 'an experienced hunter',
+    'healer': 'know healing arts',
+    'merchant': 'have merchant experience',
+    'sailor': 'experienced at sea',
+    'farmer': 'know farming',
+    'knight_errant': 'a former knight',
+
+    // Conditions
+    'alcoholic': 'dependent on drink',
+    'hard_of_hearing': 'hard of hearing',
+    'quarrelsome': 'quick to anger',
+    'paranoid': 'deeply paranoid',
+    'devout': 'devoutly religious',
+    'gambler': 'addicted to gambling',
+    'melancholic': 'chronically sad',
+    'glutton': 'constantly eating',
+    'ascetic': 'reject worldly pleasures',
+    'curious': 'insatiably curious',
+    'cautious': 'extremely cautious',
+    'reckless': 'dangerously reckless',
+    'patient': 'endlessly patient',
+    'impatient': 'terribly impatient',
+    'stubborn': 'incredibly stubborn',
+    'adaptable': 'highly adaptable',
+
+    // Social
+    'animal_lover': 'love animals',
+    'loner': 'prefer solitude',
+    'leader': 'a natural leader',
+    'follower': 'prefer to follow',
+    'romantic': 'hopelessly romantic',
+    'orphan': 'an orphan',
+    'twin': 'have a twin',
+    'noble_blood': 'of noble blood',
+    'nightowl': 'most active at night',
+    'weather_sense': 'can predict weather',
+
+    // New universal ones
+    'veteran': 'a grizzled veteran',
+    'street_smart': 'street smart',
+    'pessimist': 'deeply pessimistic',
+    'optimist': 'eternally optimistic',
+    'insomniac': 'an insomniac',
+    'foreigner': 'a foreigner here',
+    'local': 'a local',
+    'wanderer': 'a wanderer'
+};
+
 // Enhanced backstory that incorporates personality and removes clothing descriptions
 function _generateProceduralBackstory(character: Omit<PlayerCharacter, 'backstory' | 'id' | 'inventory' | 'party' | 'eventLog' | 'profileImage' | 'isLlmEnhanced'>): string {
     const sentences = [];
     const heightStr = cmToFeetAndInches(character.appearance.height);
 
-    // Sentence 1: Origin and Profession
-    sentences.push(`Hailing from ${character.birthplace}, you are ${character.name}, a ${character.age}-year-old ${character.gender.toLowerCase()} who has made a name for themselves as a ${character.profession}.`);
+    // Sentence 1: Origin and basic identity (fixed grammar)
+    sentences.push(`Hailing from ${character.birthplace}, you are ${character.name}, a ${character.age}-year-old ${character.gender.toLowerCase()}.`);
 
-    // Sentence 2: Physical Description
+    // Sentence 2: Profession with calculated years
+    const professionYears = Math.max(1, Math.min(
+        character.age - 14, // Can't work before age 14
+        Math.floor((character.age - 14) * 0.7) // Not their entire adult life
+    ));
+    sentences.push(`You have been a ${character.profession.toLowerCase()} for ${professionYears} year${professionYears === 1 ? '' : 's'}.`);
+
+    // Sentence 3: Physical Description
     const eyeColorName = hexToColorName(character.appearance.eyeColor);
     const hairColorName = hexToColorName(character.appearance.hairColor);
-    let physicalDesc = `You have a ${character.appearance.build} build, standing at ${heightStr}. Your eyes are a shade of ${eyeColorName} and your hair is a ${hairColorName} color, styled in a ${character.appearance.hairstyle.replace(/_/g, ' ')} fashion.`;
+    let physicalDesc = `You have a ${character.appearance.build} build, standing at ${heightStr}. Your eyes are a shade of ${eyeColorName} and your hair is ${hairColorName}, styled in a ${character.appearance.hairstyle.replace(/_/g, ' ')} fashion.`;
     if (character.appearance.facialHair && character.appearance.facialHairStyle) {
         physicalDesc += ` You wear a ${character.appearance.facialHairStyle.replace(/_/g, ' ')}.`;
     }
     sentences.push(physicalDesc);
 
-    // Sentence 3: Personality/Demeanor
+    // Sentence 4: Attributes (if any)
+    if (character.attributes && character.attributes.length > 0) {
+        const attributePhrases = character.attributes
+            .slice(0, 3) // Limit to 3 attributes max
+            .map(attr => ATTRIBUTE_DESCRIPTIONS[attr.id] || attr.name.toLowerCase())
+            .filter(phrase => phrase); // Remove any undefined
+
+        if (attributePhrases.length > 0) {
+            if (attributePhrases.length === 1) {
+                sentences.push(`You are ${attributePhrases[0]}.`);
+            } else if (attributePhrases.length === 2) {
+                sentences.push(`You are ${attributePhrases[0]} and ${attributePhrases[1]}.`);
+            } else {
+                const lastPhrase = attributePhrases.pop();
+                sentences.push(`You are ${attributePhrases.join(', ')}, and ${lastPhrase}.`);
+            }
+        }
+    }
+
+    // Sentence 5: Religion description
+    if (character.religion) {
+        const religionDesc = RELIGION_DESCRIPTIONS[character.religion] || RELIGION_DESCRIPTIONS['Unknown'];
+        sentences.push(`You follow ${character.religion}, ${religionDesc}.`);
+    }
+
+    // Sentence 5: Personality/Demeanor
     let demeanorSentence = `You carry yourself with a ${character.appearance.affect} demeanor.`;
     if (character.personality.agreeableness < 0.3) {
-        demeanorSentence += " Few would call you approachable, but many respect your directness.";
+        demeanorSentence = `You carry yourself with a ${character.appearance.affect} demeanor. Few would call you approachable, but many respect your directness.`;
     } else if (character.personality.openness > 0.8) {
-        demeanorSentence += " Your curiosity about the world and its mysteries is palpable.";
+        demeanorSentence = `You carry yourself with a ${character.appearance.affect} demeanor. Your curiosity about the world and its mysteries is palpable.`;
     } else if (character.personality.conscientiousness > 0.8) {
-        demeanorSentence += " You are known for your meticulous and reliable nature.";
-    } else {
-        demeanorSentence += `carrying themselves with a quiet, unassuming presence.`;
+        demeanorSentence = `You are known for your meticulous and reliable nature. You carry yourself with a ${character.appearance.affect} demeanor.`;
     }
     sentences.push(demeanorSentence);
 
-    // Sentence 4: Guiding Principle/Belief
+    // Sentence 7: Guiding Principle/Belief (simplified without filler)
     if (character.beliefs && character.beliefs.length > 0) {
         const coreBeliefEntry = [...character.beliefs].sort((a,b) => b.conviction - a.conviction)[0];
         const coreBelief = PERSONAL_BELIEFS.find(b => b.id === coreBeliefEntry.beliefId);
         if (coreBelief) {
-             let beliefText = coreBelief.text.toLowerCase().replace('believes that', '').replace('believes in', '').trim();
+             let beliefText = coreBelief.text.toLowerCase().replace('believes that', '').replace('believes in', '').replace('believes', '').trim();
              let consequence = '';
              switch(coreBelief.id) {
                 case 'DIVINE_RIGHT_OF_KINGS':
-                    consequence = "a conviction that has earned you both powerful friends and determined enemies.";
+                    consequence = "a conviction that has earned you both powerful friends and determined enemies";
                     break;
-                case 'MIGHT_IS_RIGHT': 
-                    consequence = "a worldview that has served you well in averting conflict, though some find it callous."; 
+                case 'MIGHT_IS_RIGHT':
+                    consequence = "a worldview that has served you well in avoiding conflict, though some find it callous";
                     break;
-                case 'INDIVIDUAL_LIBERTY': 
-                    consequence = "a philosophy that often puts you at odds with figures of authority."; 
+                case 'INDIVIDUAL_LIBERTY':
+                case 'INDIVIDUAL_FREEDOM':
+                    consequence = "a philosophy that often puts you at odds with figures of authority";
                     break;
-                case 'HONOR_IS_ALL': 
-                    consequence = "a principle that has both opened and closed many doors for you."; 
+                case 'HONOR_IS_ALL':
+                case 'HONOR_CULTURE':
+                    consequence = "a principle that has both opened and closed many doors for you";
                     break;
-                case 'FATE_IS_INEXORABLE': 
-                    consequence = "a belief that brings you peace in trying times, even if others call it passivity."; 
+                case 'FATE_IS_INEXORABLE':
+                    consequence = "a belief that brings you peace in trying times, even if others call it passivity";
+                    break;
+                case 'EMPIRICAL_KNOWLEDGE':
+                    consequence = "an approach that has made you skeptical of untested claims";
+                    break;
+                case 'REVEALED_TRUTH':
+                    consequence = "a faith that provides certainty in an uncertain world";
+                    break;
+                case 'ANCESTOR_WORSHIP':
+                    consequence = "a practice that keeps you connected to your lineage";
+                    break;
+                case 'COMMERCIAL_ACUMEN':
+                    consequence = "a mindset that helps you see opportunity where others see only difficulty";
+                    break;
+                case 'TRIBAL_LOYALTY':
+                    consequence = "bonds that define both your greatest strengths and your limits";
                     break;
                 default:
-                     consequence = "a guiding principle that shapes your interactions with the world.";
+                     consequence = "a guiding principle that shapes your interactions with the world";
                      break;
              }
-             sentences.push(`You are guided by the simple principle that ${beliefText}; ${consequence}`);
+             // Remove the verbose consequence part - just state the belief simply
+             sentences.push(`You believe that ${beliefText}.`);
         }
     } else {
-        if (character.socialContext.wanderlust > 0.8) {
+        if (character.socialContext && character.socialContext.wanderlust > 0.8) {
             sentences.push(`A deep-seated wanderlust has always pulled you toward the horizon, making it difficult to ever truly settle down.`);
-        } else if (character.socialContext.ambition > 0.8) {
+        } else if (character.socialContext && character.socialContext.ambition > 0.8) {
             sentences.push(`A fierce ambition drives you to seek wealth and power, leaving little room for sentiment.`);
         } else {
-             sentences.push(`You are guided by the simple principle that the old ways are the best ways.; a guiding principle that shapes your interactions with the world.`);
+            sentences.push(`You are guided by the simple principle that the old ways are the best ways, a philosophy that shapes your interactions with the world.`);
         }
     }
 
@@ -617,9 +817,19 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
         equippedItems,
     };
     
-    // Use custom backstory if provided, otherwise generate procedural one
-    const backstory = spec.customBackstory || _generateProceduralBackstory(partialCharacter as PlayerCharacter);
-    
+    // Generate attribute badges for custom character BEFORE backstory
+    const attributes = AttributeBadgeService.generateAttributes(
+        partialCharacter as PlayerCharacter,
+        dateInfo.year,
+        context.location
+    );
+
+    // Add attributes to character before generating backstory
+    const characterWithAttributes = { ...partialCharacter, attributes };
+
+    // Use custom backstory if provided, otherwise generate procedural one with attributes
+    const backstory = spec.customBackstory || _generateProceduralBackstory(characterWithAttributes as PlayerCharacter);
+
     // Add custom items to inventory if provided
     if (spec.customItems && spec.customItems.length > 0) {
         console.log(`[Character Generator] Adding ${spec.customItems.length} custom items from WorldWeaver`);
@@ -753,12 +963,7 @@ export function generateCharacterWithSpec(context: GenerationContext, spec?: Cha
         }
     }
     
-    // Generate attribute badges for custom character
-    const attributes = AttributeBadgeService.generateAttributes(
-        partialCharacter as PlayerCharacter,
-        dateInfo.year,
-        context.location
-    );
+    // Attributes already generated above before backstory
     
     if (attributes.length > 0) {
         console.log(`[Character Generator] Generated ${attributes.length} attribute badge(s) for custom character:`, 
@@ -1045,9 +1250,18 @@ export function generateCharacter(context: GenerationContext): PlayerCharacter {
         equippedItems,
     };
     
-    // The backstory is generated from the final, consistent character data
-    // Beliefs are already part of baseProfile, so this will work correctly.
-    const backstory = _generateProceduralBackstory(partialCharacter as PlayerCharacter);
+    // Generate attribute badges BEFORE backstory so they can be included in the text
+    const attributes = AttributeBadgeService.generateAttributes(
+        partialCharacter as PlayerCharacter,
+        dateInfo.year,
+        context.location
+    );
+
+    // Add attributes to character before generating backstory
+    const characterWithAttributes = { ...partialCharacter, attributes };
+
+    // The backstory is generated from the final, consistent character data including attributes
+    const backstory = _generateProceduralBackstory(characterWithAttributes as PlayerCharacter);
     
     const currentYear = dateInfo.year;
     const birthYear = currentYear - partialCharacter.age;
@@ -1122,12 +1336,7 @@ export function generateCharacter(context: GenerationContext): PlayerCharacter {
         // console.log(`[Character Generator] Character spawned healthy (disease chance was ${(diseaseChance * 100).toFixed(1)}%`);
     }
 
-    // Generate attribute badges based on stats, culture, and era
-    const attributes = AttributeBadgeService.generateAttributes(
-        partialCharacter as PlayerCharacter,
-        dateInfo.year,
-        context.location
-    );
+    // Attributes already generated above before backstory
     
     if (attributes.length > 0) {
         console.log(`[Character Generator] Generated ${attributes.length} attribute badge(s):`, 

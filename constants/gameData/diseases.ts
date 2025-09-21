@@ -1540,6 +1540,319 @@ export const DISEASES: Disease[] = [
     },
     badgeIcon: '🩸',
     outlineColor: '#8B0000'
+  },
+
+  // TRAUMATIC INJURIES (Physical skill failures)
+  {
+    id: 'SPRAINED_ANKLE',
+    name: 'Sprained Ankle',
+    type: 'traumatic',
+    severity: 'mild',
+    availableEras: ['PREHISTORIC', 'ANCIENT', 'MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL', 'MODERN'],
+    availableRegions: ['EUROPEAN', 'EAST_ASIAN', 'MENA', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'NORTH_AMERICAN_COLONIAL', 'OCEANIA', 'SOUTH_ASIAN', 'SOUTH_AMERICAN', 'SUB_SAHARAN_AFRICAN'],
+    transmissionVector: 'traumatic',
+    baseTransmissionRate: 0.0, // Not contagious
+    proximityMultiplier: 1.0,
+    directContactMultiplier: 1.0,
+    symptoms: [
+      { id: 'ANKLE_PAIN', name: 'Ankle Pain', description: 'Sharp pain in ankle when walking', severity: 0.4 },
+      { id: 'SWELLING', name: 'Swelling', description: 'Visible swelling around ankle', severity: 0.3 },
+      { id: 'LIMPING', name: 'Limping', description: 'Difficulty walking normally', severity: 0.5 }
+    ],
+    incubationDays: 0, // Immediate
+    durationDays: 14,
+    mortalityRate: 0.0,
+    statEffects: {
+      health: -5,
+      fatigue: 5,
+      strength: -2,
+      intelligence: 0,
+      charisma: -1,
+      speed: -8
+    },
+    recoveryChance: 0.9,
+    grantsImmunity: false,
+    immunityDuration: 0,
+    narrativeHints: {
+      npcSymptoms: ['limps noticeably', 'favors one foot', 'winces when walking'],
+      animalSymptoms: ['limps on one leg', 'moves carefully', 'avoids putting weight on one paw'],
+      playerSymptoms: ['Your ankle throbs with pain', 'You cannot walk normally', 'Each step sends a sharp pain up your leg']
+    },
+    badgeIcon: '🦶',
+    outlineColor: '#FFB6C1'
+  },
+
+  {
+    id: 'CUT_HAND',
+    name: 'Cut Hand',
+    type: 'traumatic',
+    severity: 'mild',
+    availableEras: ['PREHISTORIC', 'ANCIENT', 'MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL', 'MODERN'],
+    availableRegions: ['EUROPEAN', 'EAST_ASIAN', 'MENA', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'NORTH_AMERICAN_COLONIAL', 'OCEANIA', 'SOUTH_ASIAN', 'SOUTH_AMERICAN', 'SUB_SAHARAN_AFRICAN'],
+    transmissionVector: 'traumatic',
+    baseTransmissionRate: 0.0,
+    proximityMultiplier: 1.0,
+    directContactMultiplier: 1.0,
+    symptoms: [
+      { id: 'BLEEDING', name: 'Bleeding', description: 'Active bleeding from wound', severity: 0.3 },
+      { id: 'PAIN', name: 'Sharp Pain', description: 'Stinging pain in hand', severity: 0.4 },
+      { id: 'REDUCED_GRIP', name: 'Reduced Grip', description: 'Difficulty gripping objects', severity: 0.5 }
+    ],
+    incubationDays: 0,
+    durationDays: 7,
+    mortalityRate: 0.0,
+    statEffects: {
+      health: -3,
+      fatigue: 2,
+      strength: -3,
+      intelligence: 0,
+      charisma: -1,
+      speed: 0
+    },
+    recoveryChance: 0.95,
+    grantsImmunity: false,
+    immunityDuration: 0,
+    narrativeHints: {
+      npcSymptoms: ['has a bandaged hand', 'favors one hand', 'has visible cuts on palm'],
+      animalSymptoms: ['licks paw frequently', 'avoids using one paw', 'has visible injury'],
+      playerSymptoms: ['Your hand stings sharply', 'Blood seeps through the bandage', 'Gripping anything is painful']
+    },
+    badgeIcon: '✋',
+    outlineColor: '#DC143C'
+  },
+
+  {
+    id: 'BRUISED_RIBS',
+    name: 'Bruised Ribs',
+    type: 'traumatic',
+    severity: 'moderate',
+    availableEras: ['PREHISTORIC', 'ANCIENT', 'MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL', 'MODERN'],
+    availableRegions: ['EUROPEAN', 'EAST_ASIAN', 'MENA', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'NORTH_AMERICAN_COLONIAL', 'OCEANIA', 'SOUTH_ASIAN', 'SOUTH_AMERICAN', 'SUB_SAHARAN_AFRICAN'],
+    transmissionVector: 'traumatic',
+    baseTransmissionRate: 0.0,
+    proximityMultiplier: 1.0,
+    directContactMultiplier: 1.0,
+    symptoms: [
+      { id: 'CHEST_PAIN', name: 'Chest Pain', description: 'Sharp pain when breathing', severity: 0.6 },
+      { id: 'SHALLOW_BREATHING', name: 'Shallow Breathing', description: 'Cannot take deep breaths', severity: 0.5 },
+      { id: 'TENDER_RIBS', name: 'Tender Ribs', description: 'Ribs hurt when touched', severity: 0.4 }
+    ],
+    incubationDays: 0,
+    durationDays: 21,
+    mortalityRate: 0.0,
+    statEffects: {
+      health: -8,
+      fatigue: 10,
+      strength: -5,
+      intelligence: -1,
+      charisma: -2,
+      speed: -3
+    },
+    recoveryChance: 0.85,
+    grantsImmunity: false,
+    immunityDuration: 0,
+    narrativeHints: {
+      npcSymptoms: ['breathes carefully', 'holds their chest when moving', 'winces when touched'],
+      animalSymptoms: ['breathes shallowly', 'moves gingerly', 'shows signs of chest pain'],
+      playerSymptoms: ['Every breath sends pain through your chest', 'You cannot breathe deeply', 'Your ribs ache constantly']
+    },
+    badgeIcon: '🫁',
+    outlineColor: '#9370DB'
+  },
+
+  {
+    id: 'TORN_MUSCLE',
+    name: 'Torn Muscle',
+    type: 'traumatic',
+    severity: 'moderate',
+    availableEras: ['PREHISTORIC', 'ANCIENT', 'MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL', 'MODERN'],
+    availableRegions: ['EUROPEAN', 'EAST_ASIAN', 'MENA', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'NORTH_AMERICAN_COLONIAL', 'OCEANIA', 'SOUTH_ASIAN', 'SOUTH_AMERICAN', 'SUB_SAHARAN_AFRICAN'],
+    transmissionVector: 'traumatic',
+    baseTransmissionRate: 0.0,
+    proximityMultiplier: 1.0,
+    directContactMultiplier: 1.0,
+    symptoms: [
+      { id: 'MUSCLE_PAIN', name: 'Muscle Pain', description: 'Severe pain in affected muscle', severity: 0.7 },
+      { id: 'MUSCLE_WEAKNESS', name: 'Muscle Weakness', description: 'Significant loss of strength', severity: 0.6 },
+      { id: 'SWELLING', name: 'Swelling', description: 'Visible swelling and bruising', severity: 0.4 }
+    ],
+    incubationDays: 0,
+    durationDays: 28,
+    mortalityRate: 0.0,
+    statEffects: {
+      health: -10,
+      fatigue: 15,
+      strength: -8,
+      intelligence: 0,
+      charisma: -2,
+      speed: -5
+    },
+    recoveryChance: 0.8,
+    grantsImmunity: false,
+    immunityDuration: 0,
+    narrativeHints: {
+      npcSymptoms: ['moves stiffly', 'avoids using affected limb', 'has visible bruising'],
+      animalSymptoms: ['limps heavily', 'avoids certain movements', 'appears to be in pain'],
+      playerSymptoms: ['Sharp pain shoots through your muscle', 'The affected area feels weak and useless', 'Moving sends waves of agony']
+    },
+    badgeIcon: '💪',
+    outlineColor: '#B8860B'
+  },
+
+  {
+    id: 'HEAD_BUMP',
+    name: 'Head Bump',
+    type: 'traumatic',
+    severity: 'mild',
+    availableEras: ['PREHISTORIC', 'ANCIENT', 'MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL', 'MODERN'],
+    availableRegions: ['EUROPEAN', 'EAST_ASIAN', 'MENA', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'NORTH_AMERICAN_COLONIAL', 'OCEANIA', 'SOUTH_ASIAN', 'SOUTH_AMERICAN', 'SUB_SAHARAN_AFRICAN'],
+    transmissionVector: 'traumatic',
+    baseTransmissionRate: 0.0,
+    proximityMultiplier: 1.0,
+    directContactMultiplier: 1.0,
+    symptoms: [
+      { id: 'HEADACHE', name: 'Headache', description: 'Throbbing pain in head', severity: 0.5 },
+      { id: 'DIZZINESS', name: 'Dizziness', description: 'Feeling unsteady and dizzy', severity: 0.4 },
+      { id: 'CONFUSION', name: 'Mild Confusion', description: 'Slight mental fogginess', severity: 0.3 }
+    ],
+    incubationDays: 0,
+    durationDays: 5,
+    mortalityRate: 0.0,
+    statEffects: {
+      health: -4,
+      fatigue: 8,
+      strength: -1,
+      intelligence: -3,
+      charisma: -1,
+      speed: -2
+    },
+    recoveryChance: 0.95,
+    grantsImmunity: false,
+    immunityDuration: 0,
+    narrativeHints: {
+      npcSymptoms: ['rubs their head frequently', 'squints as if in pain', 'moves carefully'],
+      animalSymptoms: ['shakes head occasionally', 'appears disoriented', 'moves slowly'],
+      playerSymptoms: ['Your head throbs painfully', 'The world spins slightly', 'Thinking feels harder than usual']
+    },
+    badgeIcon: '🤕',
+    outlineColor: '#FFA07A'
+  },
+
+  {
+    id: 'SCRAPED_KNEE',
+    name: 'Scraped Knee',
+    type: 'traumatic',
+    severity: 'mild',
+    availableEras: ['PREHISTORIC', 'ANCIENT', 'MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL', 'MODERN'],
+    availableRegions: ['EUROPEAN', 'EAST_ASIAN', 'MENA', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'NORTH_AMERICAN_COLONIAL', 'OCEANIA', 'SOUTH_ASIAN', 'SOUTH_AMERICAN', 'SUB_SAHARAN_AFRICAN'],
+    transmissionVector: 'traumatic',
+    baseTransmissionRate: 0.0,
+    proximityMultiplier: 1.0,
+    directContactMultiplier: 1.0,
+    symptoms: [
+      { id: 'SURFACE_BLEEDING', name: 'Surface Bleeding', description: 'Minor bleeding from scrape', severity: 0.2 },
+      { id: 'STINGING', name: 'Stinging Pain', description: 'Sharp stinging sensation', severity: 0.3 },
+      { id: 'STIFFNESS', name: 'Knee Stiffness', description: 'Slight stiffness when bending', severity: 0.3 }
+    ],
+    incubationDays: 0,
+    durationDays: 5,
+    mortalityRate: 0.0,
+    statEffects: {
+      health: -2,
+      fatigue: 2,
+      strength: -1,
+      intelligence: 0,
+      charisma: -1,
+      speed: -2
+    },
+    recoveryChance: 0.98,
+    grantsImmunity: false,
+    immunityDuration: 0,
+    narrativeHints: {
+      npcSymptoms: ['has a bandaged knee', 'walks a bit stiffly', 'has visible scrapes'],
+      animalSymptoms: ['licks knee area', 'avoids kneeling', 'has visible scrape'],
+      playerSymptoms: ['Your knee stings when you move', 'The scrape is raw and tender', 'Bending your knee is uncomfortable']
+    },
+    badgeIcon: '🩹',
+    outlineColor: '#F0E68C'
+  },
+
+  {
+    id: 'DISLOCATED_SHOULDER',
+    name: 'Dislocated Shoulder',
+    type: 'traumatic',
+    severity: 'severe',
+    availableEras: ['PREHISTORIC', 'ANCIENT', 'MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL', 'MODERN'],
+    availableRegions: ['EUROPEAN', 'EAST_ASIAN', 'MENA', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'NORTH_AMERICAN_COLONIAL', 'OCEANIA', 'SOUTH_ASIAN', 'SOUTH_AMERICAN', 'SUB_SAHARAN_AFRICAN'],
+    transmissionVector: 'traumatic',
+    baseTransmissionRate: 0.0,
+    proximityMultiplier: 1.0,
+    directContactMultiplier: 1.0,
+    symptoms: [
+      { id: 'SEVERE_PAIN', name: 'Severe Pain', description: 'Excruciating shoulder pain', severity: 0.8 },
+      { id: 'ARM_IMMOBILITY', name: 'Arm Immobility', description: 'Cannot move affected arm', severity: 0.9 },
+      { id: 'VISIBLE_DEFORMITY', name: 'Visible Deformity', description: 'Shoulder appears misshapen', severity: 0.6 }
+    ],
+    incubationDays: 0,
+    durationDays: 35,
+    mortalityRate: 0.0,
+    statEffects: {
+      health: -15,
+      fatigue: 20,
+      strength: -12,
+      intelligence: -2,
+      charisma: -5,
+      speed: -4
+    },
+    recoveryChance: 0.7,
+    grantsImmunity: false,
+    immunityDuration: 0,
+    narrativeHints: {
+      npcSymptoms: ['holds arm in a sling', 'cannot raise their arm', 'shoulder looks wrong'],
+      animalSymptoms: ['cannot use front leg properly', 'appears to be in severe pain', 'limps heavily'],
+      playerSymptoms: ['Agony shoots through your shoulder', 'Your arm hangs uselessly', 'The shoulder looks grotesquely wrong']
+    },
+    badgeIcon: '🤲',
+    outlineColor: '#8B0000'
+  },
+
+  {
+    id: 'BROKEN_FINGER',
+    name: 'Broken Finger',
+    type: 'traumatic',
+    severity: 'mild',
+    availableEras: ['PREHISTORIC', 'ANCIENT', 'MEDIEVAL', 'EARLY_MODERN', 'INDUSTRIAL', 'MODERN'],
+    availableRegions: ['EUROPEAN', 'EAST_ASIAN', 'MENA', 'NORTH_AMERICAN_PRE_COLUMBIAN', 'NORTH_AMERICAN_COLONIAL', 'OCEANIA', 'SOUTH_ASIAN', 'SOUTH_AMERICAN', 'SUB_SAHARAN_AFRICAN'],
+    transmissionVector: 'traumatic',
+    baseTransmissionRate: 0.0,
+    proximityMultiplier: 1.0,
+    directContactMultiplier: 1.0,
+    symptoms: [
+      { id: 'FINGER_PAIN', name: 'Finger Pain', description: 'Sharp pain in broken finger', severity: 0.5 },
+      { id: 'SWELLING', name: 'Swelling', description: 'Finger is swollen and discolored', severity: 0.4 },
+      { id: 'LOSS_OF_FUNCTION', name: 'Loss of Function', description: 'Cannot bend finger properly', severity: 0.6 }
+    ],
+    incubationDays: 0,
+    durationDays: 21,
+    mortalityRate: 0.0,
+    statEffects: {
+      health: -3,
+      fatigue: 3,
+      strength: -2,
+      intelligence: 0,
+      charisma: -1,
+      speed: 0
+    },
+    recoveryChance: 0.9,
+    grantsImmunity: false,
+    immunityDuration: 0,
+    narrativeHints: {
+      npcSymptoms: ['has a splinted finger', 'favors one hand', 'finger is visibly bent wrong'],
+      animalSymptoms: ['favors one paw', 'licks injured digit', 'avoids putting weight on paw'],
+      playerSymptoms: ['Your finger throbs with each heartbeat', 'The finger is bent at an unnatural angle', 'You cannot grip properly']
+    },
+    badgeIcon: '👆',
+    outlineColor: '#FF6347'
   }
 ];
 

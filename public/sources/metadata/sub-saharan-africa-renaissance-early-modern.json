@@ -42,26 +42,68 @@
       "longExcerpt": "Ships come from India and from the lands of the Arabs bringing goods to trade for gold. This historical source from 1520 provides valuable insight into the sub-saharan-africa region during the renaissance-early-modern period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
     },
     {
-      "id": "sub-saharan-africa-renaissance-early-modern-chronicle",
-      "title": "African Early Modern Chronicle",
-      "author": "Various Authors",
-      "year": 1600,
+      "id": "leo-africanus-africa",
+      "title": "The History and Description of Africa",
+      "author": "Leo Africanus",
+      "year": 1526,
       "era": "RENAISSANCE_EARLY-MODERN",
       "culturalZones": [
         "SUB_SAHARAN_AFRICAN"
       ],
-      "excerpt": "A collection of early modern texts from the African region.",
-      "longExcerpt": "This represents a compilation of historical documents from the Early Modern period in the African region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "excerpt": "In Timbuktu there are numerous judges, teachers and priests, all properly appointed by the king. He greatly honors learning. Many hand-written books imported from Barbary are also sold. There is more profit made from this commerce than from all other merchandise.",
+      "longExcerpt": "In Timbuktu there are numerous judges, teachers and priests, all properly appointed by the king. He greatly honors learning. Many hand-written books imported from Barbary are also sold. There is more profit made from this commerce than from all other merchandise. The inhabitants are very rich, especially the strangers who have settled in the country; so much so that the current king has given two of his daughters in marriage to two brothers, both businessmen. This famous account from 1526 describes the intellectual and commercial wealth of Timbuktu at its height as a center of Islamic learning and trans-Saharan trade.",
       "keywords": [
-        "sub-saharan-africa",
-        "renaissance-early-modern",
-        "history",
-        "chronicle",
-        "primary source"
+        "Timbuktu",
+        "books",
+        "learning",
+        "trade",
+        "wealth",
+        "Mali",
+        "scholarship"
       ],
-      "wikisourceTitle": "African_Early Modern_Texts",
+      "contextualKeywords": [
+        {
+          "keyword": "Sankore",
+          "conditions": {
+            "culturalZone": "SUB_SAHARAN_AFRICAN",
+            "era": "RENAISSANCE_EARLY-MODERN"
+          }
+        }
+      ],
+      "wikisourceTitle": "The_History_and_Description_of_Africa",
+      "internetArchiveId": "historydescrip00leon",
       "citation": {
-        "originalPublication": "African Early Modern Period"
+        "translator": "John Pory",
+        "originalPublication": "Rome, 1526",
+        "modernSource": "Hakluyt Society, 1896"
+      }
+    },
+    {
+      "id": "duarte-barbosa-east-africa",
+      "title": "The Book of Duarte Barbosa",
+      "author": "Duarte Barbosa",
+      "year": 1516,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "The King of Kilwa wears silk robes richly worked with gold thread. A golden anklet was on his leg, and he had many rings on his fingers. They trade with Sofala, whence they bring back gold, and from Cambay and India they get beads and cotton cloth.",
+      "longExcerpt": "The King of Kilwa wears silk robes richly worked with gold thread. A golden anklet was on his leg, and he had many rings on his fingers. They trade with Sofala, whence they bring back gold, and from Cambay and India they get beads and cotton cloth. The houses are lofty and well built of stone and mortar, with terraces, and the streets are very narrow. This Portuguese account from 1516 provides one of the earliest European descriptions of the wealthy Swahili city-states, their architecture, dress, and extensive Indian Ocean trade networks.",
+      "keywords": [
+        "Kilwa",
+        "gold",
+        "silk",
+        "Sofala",
+        "India",
+        "Swahili",
+        "trade"
+      ],
+      "wikisourceTitle": "The_Book_of_Duarte_Barbosa",
+      "internetArchiveId": "bookofduartebar00barb",
+      "citation": {
+        "translator": "Mansel Longworth Dames",
+        "originalPublication": "Lisbon, c. 1516",
+        "modernSource": "Hakluyt Society, 1918"
       }
     }
   ]

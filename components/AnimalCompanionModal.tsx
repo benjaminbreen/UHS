@@ -22,26 +22,36 @@ const AnimalCompanionModal: React.FC<AnimalCompanionModalProps> = ({
 }) => {
   const [isNaming, setIsNaming] = useState(false);
   const [nameInput, setNameInput] = useState('');
+  const [currentDisplayName, setCurrentDisplayName] = useState(animal.name || animal.speciesName);
 
   if (!isOpen) return null;
 
   const animalData = ANIMAL_DATA[animal.baseId];
-  const displayName = animal.name || animal.speciesName;
+
+  // Update current display name when animal prop changes
+  React.useEffect(() => {
+    setCurrentDisplayName(animal.name || animal.speciesName);
+  }, [animal.name, animal.speciesName]);
   
   const handleNameSubmit = () => {
     if (nameInput.trim()) {
       onUpdateName(animal.id, nameInput.trim());
+      setCurrentDisplayName(nameInput.trim()); // Update display immediately
       setIsNaming(false);
       setNameInput('');
     }
+  };
+
+  const handleCancelNaming = () => {
+    setIsNaming(false);
+    setNameInput('');
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleNameSubmit();
     } else if (e.key === 'Escape') {
-      setIsNaming(false);
-      setNameInput('');
+      handleCancelNaming();
     }
   };
 
@@ -76,19 +86,20 @@ const AnimalCompanionModal: React.FC<AnimalCompanionModalProps> = ({
             <div>
               <h2 className="text-xl font-bold text-white">
                 {isNaming ? (
-                  <input
-                    type="text"
-                    value={nameInput}
-                    onChange={(e) => setNameInput(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                    onBlur={handleNameSubmit}
-                    placeholder={displayName}
-                    className="bg-slate-700/80 border border-slate-500 rounded px-2 py-1 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400/50"
-                    maxLength={20}
-                    autoFocus
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={nameInput}
+                      onChange={(e) => setNameInput(e.target.value)}
+                      onKeyDown={handleKeyPress}
+                      placeholder={currentDisplayName}
+                      className="bg-slate-700/80 border border-slate-500 rounded px-2 py-1 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400/50"
+                      maxLength={20}
+                      autoFocus
+                    />
+                  </div>
                 ) : (
-                  displayName
+                  currentDisplayName
                 )}
               </h2>
               <p className="text-sm text-slate-300">
@@ -178,23 +189,41 @@ const AnimalCompanionModal: React.FC<AnimalCompanionModalProps> = ({
 
         {/* Footer */}
         <div className="flex gap-3 p-6 border-t border-slate-600/50">
-          {!isNaming && (
-            <button
-              onClick={() => {
-                setIsNaming(true);
-                setNameInput(animal.name || '');
-              }}
-              className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors"
-            >
-              {animal.name ? 'Rename' : 'Name'} Companion
-            </button>
+          {isNaming ? (
+            <>
+              <button
+                onClick={handleNameSubmit}
+                disabled={!nameInput.trim()}
+                className="flex-1 py-2 px-4 bg-green-600 hover:bg-green-500 disabled:bg-green-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+              >
+                Save Name
+              </button>
+              <button
+                onClick={handleCancelNaming}
+                className="flex-1 py-2 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => {
+                  setIsNaming(true);
+                  setNameInput(currentDisplayName || '');
+                }}
+                className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors"
+              >
+                {currentDisplayName !== animal.speciesName ? 'Rename' : 'Name'} Companion
+              </button>
+              <button
+                onClick={onClose}
+                className="flex-1 py-2 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors"
+              >
+                Close
+              </button>
+            </>
           )}
-          <button
-            onClick={onClose}
-            className="flex-1 py-2 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors"
-          >
-            Close
-          </button>
         </div>
       </div>
     </div>

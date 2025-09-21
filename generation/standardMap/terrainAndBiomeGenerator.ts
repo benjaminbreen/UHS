@@ -1423,11 +1423,11 @@ export function applyClimateTransitions(
     localAreaName?: string
 ): void {
     if (!localAreaName) {
-        console.log("[Climate Stitching] No local area name provided, skipping climate transitions");
+        // console.log("[Climate Stitching] No local area name provided, skipping climate transitions");
         return;
     }
 
-    console.log(`[Climate Stitching] Applying climate transitions for ${localAreaName} (${currentClimate})`);
+    // console.log(`[Climate Stitching] Applying climate transitions for ${localAreaName} (${currentClimate}`);
     
     // Get neighboring climate information
     const neighboringClimates = getNeighboringClimateInfo(localAreaName, currentClimate);
@@ -1438,11 +1438,11 @@ export function applyClimateTransitions(
     );
     
     if (!hasClimateTransitions) {
-        console.log("[Climate Stitching] No climate transitions detected");
+        // console.log("[Climate Stitching] No climate transitions detected");
         return;
     }
 
-    console.log("[Climate Stitching] Neighboring climates:", neighboringClimates);
+    // console.log("[Climate Stitching] Neighboring climates:", neighboringClimates);
 
     // Convert tiles to simplified format for processing
     const tilesToProcess: { biome: BiomeType; x: number; y: number }[] = [];
@@ -1479,12 +1479,12 @@ export function applyClimateTransitions(
         }
         
         if (originalTile.biome !== processedTile.biome) {
-            console.log(`[Climate Stitching] Tile (${processedTile.x}, ${processedTile.y}): ${originalTile.biome} → ${processedTile.biome}`);
+            // console.log(`[Climate Stitching] Tile (${processedTile.x}, ${processedTile.y}): ${originalTile.biome} → ${processedTile.biome}`);
             originalTile.biome = processedTile.biome;
         }
     });
 
-    console.log("[Climate Stitching] Climate transitions applied successfully");
+    // console.log("[Climate Stitching] Climate transitions applied successfully");
     
     // Ensure edge continuity for land/water transitions
     ensureEdgeContinuity(tiles, localAreaName);
@@ -1495,7 +1495,7 @@ export function applyClimateTransitions(
  * to prevent discontinuities when crossing map boundaries
  */
 function ensureEdgeContinuity(tiles: Tile[][], localAreaName: string): void {
-    console.log("[Edge Continuity] Ensuring land/water continuity at map borders");
+    // console.log("[Edge Continuity] Ensuring land/water continuity at map borders");
     
     // Get saved edge data from neighboring maps if they exist
     const edgeData = getNeighboringEdgeData(localAreaName);
@@ -1593,7 +1593,7 @@ function ensureEdgeContinuity(tiles: Tile[][], localAreaName: string): void {
     // Save current map's edges for future neighboring maps
     saveMapEdgeData(tiles, localAreaName);
     
-    console.log("[Edge Continuity] Edge continuity ensured");
+    // console.log("[Edge Continuity] Edge continuity ensured");
 }
 
 /**

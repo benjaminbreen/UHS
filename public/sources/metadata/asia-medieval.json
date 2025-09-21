@@ -72,26 +72,59 @@
       "longExcerpt": "The countries beyond the horizon and at the ends of the earth have all become subjects. This historical source from 1433 provides valuable insight into the asia region during the medieval period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
     },
     {
-      "id": "asia-medieval-chronicle",
-      "title": "Asian Medieval Chronicle",
-      "author": "Various Authors",
-      "year": 1000,
+      "id": "marco-polo-travels",
+      "title": "The Travels of Marco Polo",
+      "author": "Marco Polo",
+      "year": 1300,
       "era": "MEDIEVAL",
       "culturalZones": [
         "EAST_ASIAN"
       ],
-      "excerpt": "A collection of medieval texts from the Asian region.",
-      "longExcerpt": "This represents a compilation of historical documents from the Medieval period in the Asian region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "excerpt": "Kublai Khan, Lord of Lords, is of a good stature, neither tall nor short but of middle height. He has a becoming amount of flesh and is very shapely in all his limbs. His complexion is white and red, the eyes black and fine, the nose well formed and well set on.",
+      "longExcerpt": "Kublai Khan, Lord of Lords, is of a good stature, neither tall nor short but of middle height. He has a becoming amount of flesh and is very shapely in all his limbs. His complexion is white and red, the eyes black and fine, the nose well formed and well set on. This famous account from 1300 introduced Europe to the wonders of the Mongol Empire and China, describing everything from paper money and coal to the Grand Canal and the imperial postal system.",
       "keywords": [
-        "asia",
-        "medieval",
-        "history",
-        "chronicle",
-        "primary source"
+        "Kublai Khan",
+        "Mongolia",
+        "China",
+        "travel",
+        "Silk Road",
+        "Venice",
+        "exploration"
       ],
-      "wikisourceTitle": "Asian_Medieval_Texts",
+      "wikisourceTitle": "The_Travels_of_Marco_Polo",
+      "internetArchiveId": "travelsofmarcopo00polo",
       "citation": {
-        "originalPublication": "Asian Medieval Period"
+        "translator": "Henry Yule",
+        "originalPublication": "Venice, c. 1300",
+        "modernSource": "John Murray, 1903"
+      }
+    },
+    {
+      "id": "nihon-shoki",
+      "title": "Chronicles of Japan",
+      "author": "Prince Toneri",
+      "year": 720,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "In ancient times, when heaven and earth were not yet separated, and yin and yang were not yet divided, they formed a chaotic mass like an egg, dimly obscure, containing germs. The purer and clearer part became heaven, while the heavier and grosser element settled down to become earth.",
+      "longExcerpt": "In ancient times, when heaven and earth were not yet separated, and yin and yang were not yet divided, they formed a chaotic mass like an egg, dimly obscure, containing germs. The purer and clearer part became heaven, while the heavier and grosser element settled down to become earth. This official history from 720 CE chronicles Japan from the age of the gods through the reign of Empress Jitō, blending mythology and historical records to establish imperial legitimacy.",
+      "keywords": [
+        "Japan",
+        "mythology",
+        "emperor",
+        "Shinto",
+        "history",
+        "creation",
+        "imperial"
+      ],
+      "wikisourceTitle": "Nihongi",
+      "internetArchiveId": "nihongichronicl00astogoog",
+      "citation": {
+        "translator": "W.G. Aston",
+        "originalPublication": "Japan, 720 CE",
+        "modernSource": "George Allen & Unwin, 1956"
       }
     },
     {

@@ -1177,6 +1177,511 @@ export const IDEOLOGIES: Ideology[] = [
     }
   },
 
+  // ========== WORLDVIEW IDEOLOGIES ==========
+  // These represent philosophical approaches to life that combine with religions
+
+  // Conservative/Traditional Worldviews
+  {
+    id: 'TRADITIONAL_CONSERVATIVE',
+    name: 'Traditional Conservative',
+    description: 'Values tradition, hierarchy, continuity, and established social order',
+    eras: [HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Roman Catholicism', 'Eastern Orthodox Christianity', 'Sunni Islam', 'Shia Islam', 'Hinduism', 'Buddhism', 'Confucianism'],
+    associatedBeliefs: {
+      'DIVINE_RIGHT_OF_KINGS': 0.7,
+      'FEUDAL_OBLIGATION': 0.8,
+      'HONOR_CULTURE': 0.75,
+      'COLLECTIVE_MEMORY': 0.85,
+      'TRIBAL_LOYALTY': 0.6,
+      'REVEALED_TRUTH': 0.7
+    }
+  },
+  {
+    id: 'LIBERAL_PROGRESSIVE',
+    name: 'Liberal Progressive',
+    description: 'Emphasizes individual freedom, social progress, and rational reform',
+    eras: [HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Protestantism', 'Judaism', 'Buddhism', 'Atheism', 'Unitarianism', 'Quakerism'],
+    associatedBeliefs: {
+      'INDIVIDUAL_FREEDOM': 0.9,
+      'EGALITARIAN_SPIRIT': 0.85,
+      'EMPIRICAL_KNOWLEDGE': 0.75,
+      'SCIENTIFIC_METHOD': 0.7,
+      'COMMERCIAL_ACUMEN': 0.6,
+      'SKEPTIC_OF_THE_DIVINE': 0.5
+    }
+  },
+  {
+    id: 'SOCIALIST_COLLECTIVIST',
+    name: 'Socialist Collectivist',
+    description: 'Prioritizes collective welfare, economic equality, and social solidarity',
+    eras: [HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Atheism', 'Christianity', 'Judaism', 'Buddhism', 'Local Beliefs'],
+    associatedBeliefs: {
+      'EGALITARIAN_SPIRIT': 0.95,
+      'COLLECTIVE_MEMORY': 0.8,
+      'TRIBAL_LOYALTY': 0.7,
+      'SCIENTIFIC_METHOD': 0.65,
+      'INDIVIDUAL_FREEDOM': 0.4,
+      'COMMERCIAL_ACUMEN': 0.3
+    }
+  },
+  {
+    id: 'CAPITALIST_ENTREPRENEUR',
+    name: 'Capitalist Entrepreneur',
+    description: 'Champions free markets, individual enterprise, and wealth creation',
+    eras: [HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Protestantism', 'Judaism', 'Hinduism', 'Confucianism', 'Atheism', 'Roman Catholicism'],
+    associatedBeliefs: {
+      'COMMERCIAL_ACUMEN': 0.95,
+      'INDIVIDUAL_FREEDOM': 0.85,
+      'EMPIRICAL_KNOWLEDGE': 0.7,
+      'SCIENTIFIC_METHOD': 0.65,
+      'HONOR_CULTURE': 0.5,
+      'FEUDAL_OBLIGATION': 0.2
+    }
+  },
+  {
+    id: 'NATIONALIST_PATRIOT',
+    name: 'Nationalist Patriot',
+    description: 'Devoted to national identity, sovereignty, and cultural preservation',
+    eras: [HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Christianity', 'Shinto', 'Hinduism', 'Buddhism', 'Islam', 'Judaism', 'Atheism'],
+    associatedBeliefs: {
+      'TRIBAL_LOYALTY': 0.9,
+      'HONOR_CULTURE': 0.85,
+      'COLLECTIVE_MEMORY': 0.8,
+      'INDIVIDUAL_FREEDOM': 0.5,
+      'EGALITARIAN_SPIRIT': 0.4,
+      'COMMERCIAL_ACUMEN': 0.5
+    }
+  },
+
+  // Philosophical Worldviews
+  {
+    id: 'MYSTICAL_SPIRITUAL',
+    name: 'Mystical Spiritual',
+    description: 'Seeks direct experience of the divine through meditation, prayer, or ritual',
+    eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Buddhism', 'Hinduism', 'Sufism', 'Christianity', 'Judaism', 'Taoism', 'Shinto', 'Local Beliefs'],
+    associatedBeliefs: {
+      'MYSTICAL_EXPERIENCE': 0.95,
+      'INTUITIVE_WISDOM': 0.85,
+      'LIVING_COSMOS': 0.8,
+      'REVEALED_TRUTH': 0.75,
+      'NATURE_AS_TEACHER': 0.7,
+      'CYCLICAL_TIME': 0.65
+    }
+  },
+  {
+    id: 'RATIONALIST_EMPIRICIST',
+    name: 'Rationalist Empiricist',
+    description: 'Values reason, logic, and scientific evidence over faith and tradition',
+    eras: [HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Atheism', 'Protestantism', 'Judaism', 'Buddhism', 'Confucianism'],
+    associatedBeliefs: {
+      'EMPIRICAL_KNOWLEDGE': 0.95,
+      'SCIENTIFIC_METHOD': 0.9,
+      'SKEPTIC_OF_THE_DIVINE': 0.75,
+      'MECHANICAL_UNIVERSE': 0.8,
+      'INDIVIDUAL_FREEDOM': 0.7,
+      'REVEALED_TRUTH': 0.2
+    }
+  },
+  {
+    id: 'COMMUNITARIAN_TRADITIONALIST',
+    name: 'Communitarian Traditionalist',
+    description: 'Emphasizes community bonds, ancestral wisdom, and collective responsibility',
+    eras: [HistoricalEra.PREHISTORY, HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Local Beliefs', 'Animist', 'Hinduism', 'Buddhism', 'Islam', 'Christianity'],
+    associatedBeliefs: {
+      'TRIBAL_LOYALTY': 0.95,
+      'COLLECTIVE_MEMORY': 0.9,
+      'ANCESTOR_WORSHIP': 0.85,
+      'FEUDAL_OBLIGATION': 0.7,
+      'HONOR_CULTURE': 0.75,
+      'INDIVIDUAL_FREEDOM': 0.3
+    }
+  },
+  {
+    id: 'REVOLUTIONARY_RADICAL',
+    name: 'Revolutionary Radical',
+    description: 'Seeks to overthrow existing systems and create fundamental social change',
+    eras: [HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Protestantism', 'Atheism', 'Buddhism', 'Islam', 'Christianity', 'Judaism'],
+    associatedBeliefs: {
+      'EGALITARIAN_SPIRIT': 0.9,
+      'INDIVIDUAL_FREEDOM': 0.85,
+      'SKEPTIC_OF_THE_DIVINE': 0.6,
+      'FEUDAL_OBLIGATION': 0.1,
+      'DIVINE_RIGHT_OF_KINGS': 0.05,
+      'COMMERCIAL_ACUMEN': 0.4
+    }
+  },
+  {
+    id: 'MERCANTILE_PRAGMATIST',
+    name: 'Mercantile Pragmatist',
+    description: 'Focuses on trade, practical solutions, and material prosperity',
+    eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Judaism', 'Islam', 'Hinduism', 'Christianity', 'Buddhism', 'Confucianism'],
+    associatedBeliefs: {
+      'COMMERCIAL_ACUMEN': 0.95,
+      'EMPIRICAL_KNOWLEDGE': 0.7,
+      'INDIVIDUAL_FREEDOM': 0.65,
+      'HONOR_CULTURE': 0.6,
+      'SCIENTIFIC_METHOD': 0.5,
+      'FEUDAL_OBLIGATION': 0.3
+    }
+  },
+  {
+    id: 'UTOPIAN_IDEALIST',
+    name: 'Utopian Idealist',
+    description: 'Believes in the possibility of creating a perfect society through human effort',
+    eras: [HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Christianity', 'Atheism', 'Buddhism', 'Judaism', 'Unitarianism'],
+    associatedBeliefs: {
+      'EGALITARIAN_SPIRIT': 0.9,
+      'SCIENTIFIC_METHOD': 0.8,
+      'INDIVIDUAL_FREEDOM': 0.75,
+      'MYSTICAL_EXPERIENCE': 0.4,
+      'COMMERCIAL_ACUMEN': 0.5,
+      'SKEPTIC_OF_THE_DIVINE': 0.6
+    }
+  },
+  {
+    id: 'MILITARIST_WARRIOR',
+    name: 'Militarist Warrior',
+    description: 'Values martial prowess, discipline, and glory through combat',
+    eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Islam', 'Shinto', 'Hinduism', 'Christianity', 'Norse Paganism', 'Roman Polytheism'],
+    associatedBeliefs: {
+      'HONOR_CULTURE': 0.95,
+      'DIVINE_RIGHT_OF_KINGS': 0.7,
+      'FEUDAL_OBLIGATION': 0.75,
+      'TRIBAL_LOYALTY': 0.8,
+      'INDIVIDUAL_FREEDOM': 0.4,
+      'EGALITARIAN_SPIRIT': 0.2
+    }
+  },
+  {
+    id: 'AGRARIAN_PASTORALIST',
+    name: 'Agrarian Pastoralist',
+    description: 'Centered on farming, herding, and connection to the land',
+    eras: [HistoricalEra.PREHISTORY, HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Local Beliefs', 'Hinduism', 'Christianity', 'Islam', 'Buddhism', 'Animist'],
+    associatedBeliefs: {
+      'NATURE_AS_TEACHER': 0.9,
+      'CYCLICAL_TIME': 0.85,
+      'ANCESTOR_WORSHIP': 0.75,
+      'ELEMENTAL_HARMONY': 0.8,
+      'COLLECTIVE_MEMORY': 0.7,
+      'COMMERCIAL_ACUMEN': 0.4
+    }
+  },
+  {
+    id: 'MONASTIC_ASCETIC',
+    name: 'Monastic Ascetic',
+    description: 'Renounces worldly pleasures in pursuit of spiritual enlightenment',
+    eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Buddhism', 'Christianity', 'Hinduism', 'Jainism', 'Islam'],
+    associatedBeliefs: {
+      'MYSTICAL_EXPERIENCE': 0.95,
+      'REVEALED_TRUTH': 0.85,
+      'INTUITIVE_WISDOM': 0.8,
+      'COMMERCIAL_ACUMEN': 0.1,
+      'INDIVIDUAL_FREEDOM': 0.3,
+      'FEUDAL_OBLIGATION': 0.4
+    }
+  },
+  {
+    id: 'TECHNOCRATIC_FUTURIST',
+    name: 'Technocratic Futurist',
+    description: 'Believes technology and expertise will solve humanitys problems',
+    eras: [HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA, HistoricalEra.FUTURE_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Atheism', 'Buddhism', 'Protestantism', 'Judaism', 'Hinduism'],
+    associatedBeliefs: {
+      'SCIENTIFIC_METHOD': 0.95,
+      'EMPIRICAL_KNOWLEDGE': 0.9,
+      'MECHANICAL_UNIVERSE': 0.85,
+      'INDIVIDUAL_FREEDOM': 0.7,
+      'SKEPTIC_OF_THE_DIVINE': 0.8,
+      'REVEALED_TRUTH': 0.1
+    }
+  },
+  {
+    id: 'ANARCHIST_LIBERTARIAN',
+    name: 'Anarchist Libertarian',
+    description: 'Rejects all forms of coercive authority in favor of voluntary association',
+    eras: [HistoricalEra.INDUSTRIAL_ERA, HistoricalEra.MODERN_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Atheism', 'Buddhism', 'Protestantism', 'Judaism'],
+    associatedBeliefs: {
+      'INDIVIDUAL_FREEDOM': 0.99,
+      'SKEPTIC_OF_THE_DIVINE': 0.7,
+      'FEUDAL_OBLIGATION': 0.01,
+      'DIVINE_RIGHT_OF_KINGS': 0.01,
+      'COMMERCIAL_ACUMEN': 0.6,
+      'EGALITARIAN_SPIRIT': 0.7
+    }
+  },
+
+  // Ancient and Medieval Worldviews
+  {
+    id: 'STOIC_PHILOSOPHER',
+    name: 'Stoic Philosopher',
+    description: 'Seeks virtue through reason, self-control, and acceptance of fate',
+    eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN],
+    culturalZones: ALL_CULTURES,
+    religions: ['Greek Polytheism', 'Roman Polytheism', 'Christianity', 'Buddhism', 'Confucianism'],
+    associatedBeliefs: {
+      'EMPIRICAL_KNOWLEDGE': 0.8,
+      'HONOR_CULTURE': 0.7,
+      'CYCLICAL_TIME': 0.6,
+      'INDIVIDUAL_FREEDOM': 0.5,
+      'REVEALED_TRUTH': 0.4,
+      'MECHANICAL_UNIVERSE': 0.6
+    }
+  },
+  {
+    id: 'HEDONISTIC_EPICUREAN',
+    name: 'Hedonistic Epicurean',
+    description: 'Pursues pleasure and happiness as the highest good in life',
+    eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN],
+    culturalZones: ALL_CULTURES,
+    religions: ['Greek Polytheism', 'Roman Polytheism', 'Buddhism', 'Taoism', 'Local Beliefs'],
+    associatedBeliefs: {
+      'INDIVIDUAL_FREEDOM': 0.85,
+      'COMMERCIAL_ACUMEN': 0.7,
+      'INTUITIVE_WISDOM': 0.6,
+      'SKEPTIC_OF_THE_DIVINE': 0.5,
+      'FEUDAL_OBLIGATION': 0.2,
+      'MYSTICAL_EXPERIENCE': 0.3
+    }
+  },
+  {
+    id: 'CYCLICAL_FATALIST',
+    name: 'Cyclical Fatalist',
+    description: 'Believes in eternal cycles and predetermined destiny',
+    eras: [HistoricalEra.PREHISTORY, HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL],
+    culturalZones: ALL_CULTURES,
+    religions: ['Hinduism', 'Buddhism', 'Greek Polytheism', 'Norse Paganism', 'Maya Polytheism'],
+    associatedBeliefs: {
+      'CYCLICAL_TIME': 0.95,
+      'REVEALED_TRUTH': 0.7,
+      'ANCESTOR_WORSHIP': 0.6,
+      'NATURE_AS_TEACHER': 0.7,
+      'INDIVIDUAL_FREEDOM': 0.3,
+      'SCIENTIFIC_METHOD': 0.2
+    }
+  },
+  {
+    id: 'SHAMANIC_MEDIATOR',
+    name: 'Shamanic Mediator',
+    description: 'Bridges the physical and spirit worlds through ritual and trance',
+    eras: [HistoricalEra.PREHISTORY, HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN],
+    culturalZones: ALL_CULTURES,
+    religions: ['Shamanism', 'Animist', 'Local Beliefs', 'Tengrism', 'Siberian Shamanism'],
+    associatedBeliefs: {
+      'MYSTICAL_EXPERIENCE': 0.95,
+      'NATURE_AS_TEACHER': 0.9,
+      'INTUITIVE_WISDOM': 0.85,
+      'LIVING_COSMOS': 0.9,
+      'FOREST_SPIRITS': 0.8,
+      'EMPIRICAL_KNOWLEDGE': 0.3
+    }
+  },
+  {
+    id: 'LEGALIST_AUTHORITARIAN',
+    name: 'Legalist Authoritarian',
+    description: 'Believes strict laws and harsh punishments create social order',
+    eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN],
+    culturalZones: ALL_CULTURES,
+    religions: ['Confucianism', 'Islam', 'Christianity', 'Judaism', 'Zoroastrianism'],
+    associatedBeliefs: {
+      'DIVINE_RIGHT_OF_KINGS': 0.9,
+      'FEUDAL_OBLIGATION': 0.85,
+      'HONOR_CULTURE': 0.8,
+      'TRIBAL_LOYALTY': 0.7,
+      'INDIVIDUAL_FREEDOM': 0.1,
+      'EGALITARIAN_SPIRIT': 0.1
+    }
+  },
+  {
+    id: 'SYNCRETIC_UNIVERSALIST',
+    name: 'Syncretic Universalist',
+    description: 'Seeks truth by combining elements from multiple traditions',
+    eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Manichaeism', 'Bahai Faith', 'Sikhism', 'Buddhism', 'Gnosticism', 'Syncretic Christianity'],
+    associatedBeliefs: {
+      'MYSTICAL_EXPERIENCE': 0.7,
+      'INTUITIVE_WISDOM': 0.7,
+      'EGALITARIAN_SPIRIT': 0.6,
+      'REVEALED_TRUTH': 0.5,
+      'EMPIRICAL_KNOWLEDGE': 0.5,
+      'CYCLICAL_TIME': 0.6
+    }
+  },
+  {
+    id: 'NOMADIC_WANDERER',
+    name: 'Nomadic Wanderer',
+    description: 'Values freedom of movement and adaptability over settled life',
+    eras: [HistoricalEra.PREHISTORY, HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN],
+    culturalZones: ALL_CULTURES,
+    religions: ['Tengrism', 'Islam', 'Buddhism', 'Local Beliefs', 'Shamanism'],
+    associatedBeliefs: {
+      'INDIVIDUAL_FREEDOM': 0.85,
+      'NATURE_AS_TEACHER': 0.8,
+      'TRIBAL_LOYALTY': 0.75,
+      'INTUITIVE_WISDOM': 0.7,
+      'FEUDAL_OBLIGATION': 0.2,
+      'DIVINE_RIGHT_OF_KINGS': 0.3
+    }
+  },
+  {
+    id: 'SCHOLARLY_THEOLOGIAN',
+    name: 'Scholarly Theologian',
+    description: 'Seeks divine truth through study of sacred texts and debate',
+    eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN],
+    culturalZones: ALL_CULTURES,
+    religions: ['Islam', 'Judaism', 'Christianity', 'Hinduism', 'Buddhism'],
+    associatedBeliefs: {
+      'REVEALED_TRUTH': 0.95,
+      'EMPIRICAL_KNOWLEDGE': 0.6,
+      'COLLECTIVE_MEMORY': 0.8,
+      'MYSTICAL_EXPERIENCE': 0.5,
+      'SKEPTIC_OF_THE_DIVINE': 0.05,
+      'SCIENTIFIC_METHOD': 0.4
+    }
+  },
+  {
+    id: 'CIVIC_REPUBLICAN',
+    name: 'Civic Republican',
+    description: 'Values civic virtue and participation in public life',
+    eras: [HistoricalEra.ANTIQUITY, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Roman Polytheism', 'Greek Polytheism', 'Christianity', 'Confucianism', 'Islam'],
+    associatedBeliefs: {
+      'HONOR_CULTURE': 0.8,
+      'COLLECTIVE_MEMORY': 0.75,
+      'EGALITARIAN_SPIRIT': 0.6,
+      'INDIVIDUAL_FREEDOM': 0.5,
+      'COMMERCIAL_ACUMEN': 0.6,
+      'FEUDAL_OBLIGATION': 0.4
+    }
+  },
+  {
+    id: 'HERMETIC_OCCULTIST',
+    name: 'Hermetic Occultist',
+    description: 'Pursues hidden knowledge through esoteric practices and symbolism',
+    eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN],
+    culturalZones: ALL_CULTURES,
+    religions: ['Hermeticism', 'Gnosticism', 'Judaism', 'Christianity', 'Islam', 'Egyptian Polytheism'],
+    associatedBeliefs: {
+      'MYSTICAL_EXPERIENCE': 0.9,
+      'INTUITIVE_WISDOM': 0.85,
+      'LIVING_COSMOS': 0.8,
+      'EMPIRICAL_KNOWLEDGE': 0.5,
+      'REVEALED_TRUTH': 0.7,
+      'MECHANICAL_UNIVERSE': 0.4
+    }
+  },
+  {
+    id: 'MILLENARIAN_PROPHET',
+    name: 'Millenarian Prophet',
+    description: 'Believes in imminent transformation or end of the current world order',
+    eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Christianity', 'Islam', 'Judaism', 'Zoroastrianism', 'Buddhism', 'Native American Spirituality'],
+    associatedBeliefs: {
+      'REVEALED_TRUTH': 0.9,
+      'MYSTICAL_EXPERIENCE': 0.8,
+      'CYCLICAL_TIME': 0.7,
+      'SKEPTIC_OF_THE_DIVINE': 0.05,
+      'COMMERCIAL_ACUMEN': 0.2,
+      'EMPIRICAL_KNOWLEDGE': 0.3
+    }
+  },
+  {
+    id: 'ARTISAN_CRAFTSMAN',
+    name: 'Artisan Craftsman',
+    description: 'Finds meaning through skilled creation and mastery of craft',
+    eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Confucianism', 'Local Beliefs'],
+    associatedBeliefs: {
+      'EMPIRICAL_KNOWLEDGE': 0.8,
+      'HONOR_CULTURE': 0.7,
+      'COMMERCIAL_ACUMEN': 0.75,
+      'COLLECTIVE_MEMORY': 0.7,
+      'INTUITIVE_WISDOM': 0.6,
+      'FEUDAL_OBLIGATION': 0.5
+    }
+  },
+  {
+    id: 'COURTLY_ROMANTIC',
+    name: 'Courtly Romantic',
+    description: 'Idealizes refined love, chivalry, and aristocratic culture',
+    eras: [HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN],
+    culturalZones: ALL_CULTURES,
+    religions: ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Shinto'],
+    associatedBeliefs: {
+      'HONOR_CULTURE': 0.95,
+      'FEUDAL_OBLIGATION': 0.8,
+      'DIVINE_RIGHT_OF_KINGS': 0.7,
+      'INDIVIDUAL_FREEDOM': 0.4,
+      'MYSTICAL_EXPERIENCE': 0.5,
+      'COMMERCIAL_ACUMEN': 0.3
+    }
+  },
+  {
+    id: 'NATURALIST_HARMONIST',
+    name: 'Naturalist Harmonist',
+    description: 'Seeks to live in balance with natural rhythms and forces',
+    eras: [HistoricalEra.PREHISTORY, HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN],
+    culturalZones: ALL_CULTURES,
+    religions: ['Taoism', 'Shinto', 'Native American Spirituality', 'Druidism', 'Animist', 'Buddhism'],
+    associatedBeliefs: {
+      'NATURE_AS_TEACHER': 0.95,
+      'ELEMENTAL_HARMONY': 0.9,
+      'LIVING_COSMOS': 0.85,
+      'CYCLICAL_TIME': 0.8,
+      'INTUITIVE_WISDOM': 0.75,
+      'MECHANICAL_UNIVERSE': 0.1
+    }
+  },
+  {
+    id: 'DIALECTICAL_THINKER',
+    name: 'Dialectical Thinker',
+    description: 'Sees truth emerging from conflict between opposing forces',
+    eras: [HistoricalEra.ANTIQUITY, HistoricalEra.MEDIEVAL, HistoricalEra.RENAISSANCE_EARLY_MODERN, HistoricalEra.INDUSTRIAL_ERA],
+    culturalZones: ALL_CULTURES,
+    religions: ['Greek Polytheism', 'Christianity', 'Islam', 'Judaism', 'Buddhism', 'Zoroastrianism'],
+    associatedBeliefs: {
+      'EMPIRICAL_KNOWLEDGE': 0.7,
+      'CYCLICAL_TIME': 0.6,
+      'REVEALED_TRUTH': 0.5,
+      'SCIENTIFIC_METHOD': 0.6,
+      'MYSTICAL_EXPERIENCE': 0.4,
+      'MECHANICAL_UNIVERSE': 0.5
+    }
+  },
+
   // Add the fallback ideologies
   PREHISTORIC_ANIMISM,
   MODERN_SECULARISM,

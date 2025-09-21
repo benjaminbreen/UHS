@@ -100,9 +100,55 @@ const PROFESSION_TO_WORKPLACE: Record<string, string[]> = {
   'barber_surgeon': ['barber_surgery', 'medical_barber'],
   'dentist': ['dental_practice', 'tooth_puller'],
   'veterinarian': ['animal_hospital', 'beast_healer'],
-  'vaidya': ['ayurvedic_clinic', 'healing_center'],
-  'hakim': ['traditional_medicine', 'healing_house'],
   'acupuncturist': ['acupuncture_clinic', 'needle_therapy'],
+
+  // South Asian healers
+  'vaidya': ['ayurvedic_clinic', 'healing_center', 'traditional_medicine'],
+  'hakim': ['unani_clinic', 'medicine_shop', 'healing_house'],
+  'dai': ['birthing_house', 'midwifery_clinic', 'maternity_home'],
+  'jadi_booti_wala': ['herb_shop', 'botanical_store', 'medicine_market'],
+  'nadi_vaidya': ['pulse_clinic', 'diagnosis_center', 'traditional_clinic'],
+
+  // African healers
+  'sangoma': ['divination_hut', 'healing_lodge', 'spirit_house'],
+  'mganga': ['traditional_clinic', 'healing_center', 'medicine_hut'],
+  'bone_setter': ['bone_clinic', 'orthopedic_hut', 'manipulation_center'],
+  'snake_doctor': ['venom_clinic', 'antivenom_center', 'bite_treatment'],
+  'birth_attendant': ['birthing_hut', 'maternity_lodge', 'midwifery'],
+
+  // MENA healers
+  'tabib': ['general_clinic', 'physician_office', 'medical_practice'],
+  'jarrah': ['surgical_clinic', 'operating_room', 'surgery_center'],
+  'attar': ['perfume_medicine_shop', 'aromatic_pharmacy', 'scent_apothecary'],
+  'kahhal': ['eye_clinic', 'ophthalmology_center', 'vision_treatment'],
+
+  // East Asian healers
+  'kampo_practitioner': ['kampo_clinic', 'japanese_medicine', 'herbal_center'],
+  'moxibustion_specialist': ['moxa_clinic', 'heat_therapy_center', 'treatment_room'],
+  'pulse_diagnostician': ['pulse_clinic', 'diagnosis_center', 'medical_consultation'],
+  'herbal_pharmacist': ['herbal_pharmacy', 'medicine_preparation', 'drug_store'],
+
+  // Oceania healers
+  'tohunga': ['sacred_healing_house', 'wharenui', 'maori_medicine_lodge'],
+  'taulasea': ['healing_fale', 'samoan_clinic', 'traditional_medicine'],
+  'clever_woman': ['spirit_healing_place', 'dreamtime_lodge', 'aboriginal_clinic'],
+  'clever_man': ['spirit_healing_place', 'dreamtime_lodge', 'aboriginal_clinic'],
+  'bone_singer': ['healing_circle', 'chant_house', 'song_medicine_place'],
+  'bush_medicine_woman': ['bush_pharmacy', 'plant_medicine_hut', 'herbal_center'],
+  'kahuna': ['healing_temple', 'hawaiian_medicine', 'sacred_clinic'],
+
+  // Pre-Columbian healers
+  'curandero': ['folk_clinic', 'healing_casa', 'traditional_medicine'],
+  'curandera': ['folk_clinic', 'healing_casa', 'traditional_medicine'],
+  'paqo': ['ritual_healing_temple', 'inca_medicine', 'andean_clinic'],
+  'ticitl': ['aztec_clinic', 'professional_medicine', 'mesoamerican_hospital'],
+  'herbatero': ['herb_workshop', 'plant_medicine_store', 'botanical_clinic'],
+  'sobador': ['massage_clinic', 'manipulation_center', 'bone_adjustment'],
+  'medicine_person': ['medicine_lodge', 'healing_tipi', 'sacred_healing_place'],
+  'medicine_man': ['medicine_lodge', 'healing_tipi', 'sacred_healing_place'],
+  'medicine_woman': ['medicine_lodge', 'healing_tipi', 'sacred_healing_place'],
+  'medicine_gatherer': ['medicinal_plant_store', 'herb_collection', 'healing_supplies'],
+  'shaman': ['spirit_lodge', 'shamanic_healing_center', 'ritual_clinic'],
 
   // === LEGAL & ADMINISTRATIVE ===
   'lawyer': ['law_office', 'legal_practice', 'advocacy'],
@@ -669,7 +715,30 @@ export function detectProfessionCategory(profession: string): string {
     return 'guild_hall';
   }
 
-  // Final fallback
+  // Enhanced fallback: Create profession-specific business type
+  // Convert profession to snake_case and add appropriate suffix
+  const professionWords = profession.toLowerCase()
+    .replace(/[^a-z\s]/g, '') // Remove non-letter characters
+    .trim()
+    .split(/\s+/) // Split on whitespace
+    .filter(word => word.length > 0);
+
+  if (professionWords.length > 0) {
+    const professionSlug = professionWords.join('_');
+
+    // Determine appropriate suffix based on profession characteristics
+    if (profLower.includes('tea') || profLower.includes('coffee') || profLower.includes('drink')) {
+      return `${professionSlug}_house`;
+    } else if (profLower.includes('food') || profLower.includes('cook') || profLower.includes('chef')) {
+      return `${professionSlug}_kitchen`;
+    } else if (profLower.includes('sell') || profLower.includes('merchant') || profLower.includes('trade')) {
+      return `${professionSlug}_shop`;
+    } else {
+      return `${professionSlug}_workshop`;
+    }
+  }
+
+  // Ultimate fallback
   return 'workshop';
 }
 
@@ -912,6 +981,156 @@ export function getSupplyChainConnections(businessType: string): {
 }
 
 /**
+ * Generate business status based on tile characteristics and random factors
+ */
+export function generateBusinessStatus(
+  culturalZone: CulturalZone,
+  era: HistoricalEra,
+  biome: BiomeType,
+  population: number,
+  sacrality?: number,
+  safety?: number
+): string {
+  // Base probabilities for different statuses
+  let baseScores = {
+    'barely_scraping_by': 0.15,
+    'down_on_its_luck': 0.20,
+    'modest': 0.35,
+    'doing_well': 0.20,
+    'thriving': 0.10
+  };
+
+  // Adjust based on settlement size
+  const populationFactor = Math.min(population / 10000, 1); // Normalize to 0-1
+  baseScores.thriving += populationFactor * 0.15;
+  baseScores.doing_well += populationFactor * 0.10;
+  baseScores.barely_scraping_by -= populationFactor * 0.10;
+
+  // Adjust based on biome type (urban areas generally more prosperous)
+  if (biome === BiomeType.DENSE_CITY || biome === BiomeType.CITY_CENTER) {
+    baseScores.thriving += 0.10;
+    baseScores.doing_well += 0.10;
+    baseScores.barely_scraping_by -= 0.15;
+  } else if (biome === BiomeType.HAMLET) {
+    baseScores.barely_scraping_by += 0.10;
+    baseScores.down_on_its_luck += 0.05;
+    baseScores.thriving -= 0.10;
+  }
+
+  // Adjust based on safety (0-1 scale)
+  if (safety !== undefined) {
+    const safetyBonus = (safety - 0.5) * 0.3; // -0.15 to +0.15
+    baseScores.thriving += safetyBonus;
+    baseScores.doing_well += safetyBonus * 0.5;
+    baseScores.barely_scraping_by -= safetyBonus;
+  }
+
+  // Adjust based on sacrality (pilgrimage/trade benefits)
+  if (sacrality !== undefined && sacrality > 0.5) {
+    const sacralityBonus = (sacrality - 0.5) * 0.2;
+    baseScores.doing_well += sacralityBonus;
+    baseScores.thriving += sacralityBonus * 0.5;
+  }
+
+  // Era-specific adjustments
+  if (era === HistoricalEra.INDUSTRIAL_ERA) {
+    baseScores.thriving += 0.05; // Industrial boom
+  } else if (era === HistoricalEra.MODERN_ERA) {
+    baseScores.doing_well += 0.10; // Modern stability
+    baseScores.modest += 0.05;
+  }
+
+  // Normalize scores to ensure they sum to 1
+  const totalScore = Object.values(baseScores).reduce((sum, score) => sum + score, 0);
+  Object.keys(baseScores).forEach(key => {
+    baseScores[key as keyof typeof baseScores] /= totalScore;
+  });
+
+  // Select status based on weighted random
+  const random = Math.random();
+  let cumulative = 0;
+  for (const [status, probability] of Object.entries(baseScores)) {
+    cumulative += probability;
+    if (random <= cumulative) {
+      return status;
+    }
+  }
+
+  return 'modest'; // Fallback
+}
+
+/**
+ * Generate goods quality level based on business status, culture, and era
+ */
+export function generateGoodsQuality(
+  businessStatus: string,
+  businessType: string,
+  culturalZone: CulturalZone,
+  era: HistoricalEra,
+  ownerWealth: string
+): string {
+  // Base quality mapping from business status
+  const statusQualityMapping: Record<string, string[]> = {
+    'barely_scraping_by': ['poor', 'poor', 'crude', 'rough'],
+    'down_on_its_luck': ['poor', 'basic', 'adequate'],
+    'modest': ['basic', 'adequate', 'decent'],
+    'doing_well': ['decent', 'good', 'fine'],
+    'thriving': ['fine', 'excellent', 'superior', 'masterwork']
+  };
+
+  let qualityOptions = statusQualityMapping[businessStatus] || ['basic', 'adequate'];
+
+  // Adjust based on business type (some inherently produce higher quality)
+  if (businessType.includes('goldsmith') || businessType.includes('jewelry') ||
+      businessType.includes('art') || businessType.includes('luxury')) {
+    qualityOptions = qualityOptions.map(q => {
+      const upgradeMap: Record<string, string> = {
+        'poor': 'basic', 'crude': 'basic', 'rough': 'adequate',
+        'basic': 'adequate', 'adequate': 'decent', 'decent': 'good',
+        'good': 'fine', 'fine': 'excellent', 'excellent': 'superior',
+        'superior': 'masterwork', 'masterwork': 'legendary'
+      };
+      return upgradeMap[q] || q;
+    });
+  }
+
+  // Cultural adjustments
+  if (culturalZone === 'EAST_ASIAN' && era === HistoricalEra.MEDIEVAL) {
+    // Ming/Song era renowned for craftsmanship
+    if (businessType.includes('potter') || businessType.includes('silk') || businessType.includes('tea')) {
+      qualityOptions.push('excellent', 'masterwork');
+    }
+  } else if (culturalZone === 'EUROPEAN' && era === HistoricalEra.RENAISSANCE_EARLY_MODERN) {
+    // Renaissance craftsmanship boom
+    if (businessType.includes('artist') || businessType.includes('craft')) {
+      qualityOptions.push('fine', 'excellent');
+    }
+  }
+
+  // Owner wealth influence
+  if (ownerWealth === 'wealthy' || ownerWealth === 'noble') {
+    qualityOptions = qualityOptions.filter(q => !['poor', 'crude', 'rough'].includes(q));
+    qualityOptions.push('fine', 'excellent');
+  } else if (ownerWealth === 'poor') {
+    qualityOptions = qualityOptions.filter(q => !['excellent', 'superior', 'masterwork'].includes(q));
+  }
+
+  // Select random quality from available options
+  return qualityOptions[Math.floor(Math.random() * qualityOptions.length)] || 'adequate';
+}
+
+/**
+ * Format business type for display with proper capitalization
+ */
+export function formatBusinessTypeForDisplay(businessType: string): string {
+  return businessType
+    .replace(/_/g, ' ')
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+/**
  * Enhanced function to integrate with urbanTileRegistryService
  * Generates complete business information for urban tiles
  */
@@ -919,16 +1138,24 @@ export function generateBusinessForUrbanTile(
   npc: NpcEntity,
   culturalZone: CulturalZone,
   era: HistoricalEra,
-  biome: BiomeType
+  biome: BiomeType,
+  population: number = 1000,
+  sacrality?: number,
+  safety?: number
 ): {
   name: string;
   type: string;
+  displayType: string;
   owner: string;
   ownerId: string;
   openHours: [number, number];
   employees: string[];
   maxEmployees: number;
   supplyChain: { suppliers: string[], customers: string[] };
+  businessStatus: string;
+  businessStatusDisplay: string;
+  goodsQuality: string;
+  goodsQualityDisplay: string;
   culturalDetails: {
     zone: CulturalZone;
     era: HistoricalEra;
@@ -946,6 +1173,17 @@ export function generateBusinessForUrbanTile(
   if (!isWorkplaceAppropriateForBiome(businessType, biome)) {
     return null;
   }
+
+  // Generate business status based on contextual factors
+  const businessStatus = generateBusinessStatus(culturalZone, era, biome, population, sacrality, safety);
+
+  // Determine owner wealth level
+  const ownerWealth = npc.wealthLevel ||
+    (npc.profession?.toLowerCase().includes('master') ? 'wealthy' :
+     npc.profession?.toLowerCase().includes('guild') ? 'comfortable' : 'modest');
+
+  // Generate goods quality
+  const goodsQuality = generateGoodsQuality(businessStatus, businessType, culturalZone, era, ownerWealth);
 
   // Generate culturally appropriate name
   const businessName = generateWorkplaceName(npc, culturalZone, era);
@@ -965,15 +1203,25 @@ export function generateBusinessForUrbanTile(
                        businessType === 'shop' ? 1 :
                        2;
 
+  // Format display strings
+  const displayType = formatBusinessTypeForDisplay(businessType);
+  const businessStatusDisplay = businessStatus.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  const goodsQualityDisplay = goodsQuality.charAt(0).toUpperCase() + goodsQuality.slice(1);
+
   return {
     name: businessName,
     type: businessType,
+    displayType,
     owner: npc.name,
     ownerId: npc.id,
     openHours,
     employees: [],
     maxEmployees,
     supplyChain,
+    businessStatus,
+    businessStatusDisplay,
+    goodsQuality,
+    goodsQualityDisplay,
     culturalDetails: {
       zone: culturalZone,
       era,

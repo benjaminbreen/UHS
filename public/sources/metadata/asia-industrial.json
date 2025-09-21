@@ -36,26 +36,59 @@
       "longExcerpt": "True civilization is that mode of conduct which points out to man the path of duty. This historical source from 1909 provides valuable insight into the asia region during the industrial period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
     },
     {
-      "id": "asia-industrial-chronicle",
-      "title": "Asian Industrial Chronicle",
-      "author": "Various Authors",
-      "year": 1850,
+      "id": "perry-japan",
+      "title": "Narrative of the Expedition to Japan",
+      "author": "Matthew C. Perry",
+      "year": 1856,
       "era": "INDUSTRIAL",
       "culturalZones": [
         "EAST_ASIAN"
       ],
-      "excerpt": "A collection of industrial texts from the Asian region.",
-      "longExcerpt": "This represents a compilation of historical documents from the Industrial period in the Asian region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "excerpt": "The Japanese are undoubtedly a very ingenious and industrious people. Nothing could exceed the curiosity with which they examined every part of the ship, and everything strange that they saw.",
+      "longExcerpt": "The Japanese are undoubtedly a very ingenious and industrious people. Nothing could exceed the curiosity with which they examined every part of the ship, and everything strange that they saw. Their questions showed a degree of intelligence that proved them to be acute observers. This official account from 1856 documents the historic opening of Japan to Western trade, marking a pivotal moment in Asian modernization.",
       "keywords": [
-        "asia",
-        "industrial",
-        "history",
-        "chronicle",
-        "primary source"
+        "Japan",
+        "opening",
+        "modernization",
+        "navy",
+        "trade",
+        "Edo",
+        "technology"
       ],
-      "wikisourceTitle": "Asian_Industrial_Texts",
+      "wikisourceTitle": "Narrative_of_the_Expedition_to_the_China_Seas_and_Japan",
+      "internetArchiveId": "narrativeofexped00perr",
       "citation": {
-        "originalPublication": "Asian Industrial Period"
+        "translator": null,
+        "originalPublication": "Washington, 1856",
+        "modernSource": "A.O.P. Nicholson, 1856"
+      }
+    },
+    {
+      "id": "opium-war-loch",
+      "title": "The Closing Events of the Campaign in China",
+      "author": "Granville G. Loch",
+      "year": 1843,
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "The Chinese war junks presented a most extraordinary appearance. They were painted with large eyes on the bows, that they might see their way, as the Chinese say.",
+      "longExcerpt": "The Chinese war junks presented a most extraordinary appearance. They were painted with large eyes on the bows, that they might see their way, as the Chinese say. Their unwieldy construction and total want of scientific arrangement rendered them quite unfit to cope with European vessels of war. This firsthand account from 1843 describes the First Opium War's conclusion, revealing the technological gap between China and European powers.",
+      "keywords": [
+        "China",
+        "Opium War",
+        "British",
+        "navy",
+        "Canton",
+        "treaty",
+        "warfare"
+      ],
+      "wikisourceTitle": "The_Closing_Events_of_the_Campaign_in_China",
+      "internetArchiveId": "closingeventsof00loch",
+      "citation": {
+        "translator": null,
+        "originalPublication": "London, 1843",
+        "modernSource": "John Murray, 1843"
       }
     }
   ],

@@ -174,15 +174,6 @@ export const getBackgroundPaths = (
   climate?: ClimateType,
   season?: Season
 ): string[] => {
-  console.log('[BackgroundService] getBackgroundPaths called with:', {
-    biome,
-    weatherState,
-    weatherPrecipitation: weatherState?.precipitation,
-    gameTime,
-    culture,
-    climate,
-    season
-  });
 
   // First, get the exact biome name (converted to lowercase with underscores)
   const biomeName = biome.toLowerCase().replace(/\s+/g, '_');
@@ -193,16 +184,6 @@ export const getBackgroundPaths = (
   const cultureSuffix = getCultureSuffix(culture);
   const climateSuffix = getClimateSuffix(climate, season);
 
-  console.log('[BackgroundService] Background path generation:', {
-    biome,
-    biomeName,
-    weatherSuffix,
-    timeSuffix,
-    cultureSuffix,
-    climateSuffix,
-    climate,
-    season
-  });
 
   // Helper function to add paths for a specific culture
   const addCulturalPaths = (cultureName: string, includeClimate: boolean = true) => {
@@ -290,30 +271,29 @@ export const loadBackgroundImage = async (
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
-        console.log('[BackgroundService] Image successfully loaded:', url);
+  
         resolve(true);
       };
       img.onerror = () => {
-        console.log('[BackgroundService] Image failed to load:', url);
+
         resolve(false);
       };
       img.src = url;
     });
   };
 
-  console.log('[BackgroundService] Checking background paths in priority order:', paths);
+
 
   // Check images in priority order
   for (const filename of paths) {
     const fullPath = `${basePath}${filename}`;
     const exists = await checkImageExists(fullPath);
     if (exists) {
-      console.log('[BackgroundService] Found background:', fullPath);
+
       return fullPath;
     }
   }
 
-  console.log('[BackgroundService] No specific background found, using fallback');
   // Try fallback to grassland if no background found
   return `${basePath}grassland.png`;
 };

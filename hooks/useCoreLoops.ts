@@ -2,11 +2,13 @@
  * hooks/useCoreLoops.ts - Encapsulates the main game loops for time, AI, and ambiance.
  */
 import { useEffect, useRef } from 'react';
+import { produce } from 'immer';
 import { useGame } from '../contexts/GameContext';
 import { usePlayer } from '../contexts/PlayerContext';
 import { useMap } from '../contexts/MapContext';
 import { useUI } from '../contexts/UIContext';
-import { getDaysInMonth, parseDateString } from '../utils/dateUtils';
+import { getDaysInMonth, parseDateString, formatDateWithSeason } from '../utils/dateUtils';
+import { getNextMapArea } from '../utils/geographyUtils';
 import { calculateAnimalUpdate, calculateNpcUpdate } from '../services/npcAIService';
 import { crossMapNpcService } from '../services/crossMapNpcService';
 import { spawnSingleAnimal } from '../generation/standardMap/features/animalGenerator';
@@ -33,6 +35,10 @@ import { questTriggerService } from '../services/questTriggerService';
 import { isTerrainPassable, getTerrainBlockMessage, getTerrainDamage } from '../constants/terrainPassability';
 import gameSounds from '../services/gameSoundsService';
 import { getFootstepMaterial } from '../services/biomeFootstepService';
+import { calculateDiseaseGameplayRestrictions, shouldPlayerDieFromDisease, checkDiseaseStageChanges } from '../services/diseaseProgressionService';
+import { DiseaseProgressionEvent } from '../services/diseaseNotificationService';
+import { Disease } from '../types/diseaseTypes';
+import { NpcEntity } from '../types/npcTypes';
 
 interface DeathInfo {
   type: 'disease' | 'starvation' | 'violence' | 'accident' | 'old_age' | 'combat' | 'terrain' | 'drowning' | 'exhaustion' | 'poison';
@@ -41,7 +47,11 @@ interface DeathInfo {
   terrain?: string;
 }
 
-const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
+const useCoreLoops = (
+  onDeath?: (deathInfo: DeathInfo) => void,
+  onNpcDeath?: (npc: NpcEntity, disease: Disease) => void,
+  onDiseaseProgression?: (events: DiseaseProgressionEvent[]) => void
+) => {
   const {
     setGameTimeMinutes,
     gameTimeMinutes,
@@ -333,8 +343,28 @@ const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
                     }
                   }
 
+                  // Check for disease stage changes and trigger notifications
+                  if (onDiseaseProgression) {
+                    const progressionEvents = checkDiseaseStageChanges(
+                      playerCharacter.name || 'player',
+                      playerCharacter.diseaseHealth
+                    );
+                    if (progressionEvents.length > 0) {
+                      onDiseaseProgression(progressionEvents);
+                    }
+                  }
+
                   setPlayerCharacter({ ...playerCharacter });
                 }
+
+                // Add day passing log entry
+                const newDate = { day, month, year };
+                addGameLogEntry(LogService.createMapEntryLog(
+                  'time',
+                  `A new day begins: ${formatDateWithSeason(newDate, season)}`,
+                  newDate,
+                  '00:00'
+                ));
 
                 return { day, month, year };
               });
@@ -367,28 +397,37 @@ const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
       const isSpecialOrInteriorMap = mapData?.mapType === 'special' || viewMode === 'interior';
       
       if (viewMode === 'standard' && mapData && controlledIconX !== null && controlledIconY !== null && !isSpecialOrInteriorMap) {
-        setAnimals((prevAnimals) => {
-          if (!prevAnimals) return [];
+        setAnimals(produce((draft) => {
+          if (!draft || draft.length === 0) return;
           const playerPos = { x: controlledIconX, y: controlledIconY };
-          const updatedAnimals = prevAnimals
-            .map((animal) => {
-              if (Math.hypot(animal.x - playerPos.x, animal.y - playerPos.y) <= AI_UPDATE_RADIUS) {
-                return { ...animal, ...calculateAnimalUpdate(animal, prevAnimals, playerPos, mapData, npcs) };
-              }
-              return animal;
-            })
-            .filter((animal) => animal.x >= 0 && animal.x < MAP_WIDTH_TILES && animal.y >= 0 && animal.y < MAP_HEIGHT_TILES);
 
-          if (updatedAnimals.length < MIN_ANIMALS && Math.random() < 0.25) {
-            const occupiedTiles = new Set(updatedAnimals.map((a) => `${a.x},${a.y}`));
+          // Update animals within radius
+          for (let i = 0; i < draft.length; i++) {
+            const animal = draft[i];
+            if (Math.hypot(animal.x - playerPos.x, animal.y - playerPos.y) <= AI_UPDATE_RADIUS) {
+              const update = calculateAnimalUpdate(animal, draft, playerPos, mapData, npcs);
+              Object.assign(draft[i], update);
+            }
+          }
+
+          // Filter out animals that are out of bounds
+          for (let i = draft.length - 1; i >= 0; i--) {
+            const animal = draft[i];
+            if (animal.x < 0 || animal.x >= MAP_WIDTH_TILES || animal.y < 0 || animal.y >= MAP_HEIGHT_TILES) {
+              draft.splice(i, 1);
+            }
+          }
+
+          // Spawn new animals if needed
+          if (draft.length < MIN_ANIMALS && Math.random() < 0.25) {
+            const occupiedTiles = new Set(draft.map((a) => `${a.x},${a.y}`));
             const culturalZone = mapLocationToCulture(currentZone, gameDate.year);
             const newAnimal = spawnSingleAnimal(mapData, animalSpawnNoise, occupiedTiles, culturalZone, mapData.localArea || 'Unknown');
             if (newAnimal) {
-              updatedAnimals.push(newAnimal);
+              draft.push(newAnimal);
             }
           }
-          return updatedAnimals;
-        });
+        }));
       }
     }, 2000);
 
@@ -399,7 +438,7 @@ const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
   useEffect(() => {
     const AI_UPDATE_RADIUS = 30;
     const UPDATE_BUCKETS = 4; // Spread NPCs across 4 update buckets
-    const TICK_INTERVAL = 250; // Check every 250ms (4x per second)
+    const TICK_INTERVAL = 1000; // Check every 1000ms (1x per second)
 
     const tickInterval = setInterval(() => {
       if (isAnyModalOpen || !playerCharacter) return;
@@ -408,41 +447,47 @@ const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
         // Calculate which bucket to update this tick
         const currentBucket = Math.floor(Date.now() / TICK_INTERVAL) % UPDATE_BUCKETS;
 
-        setNpcs((prevNpcs) => {
+        setNpcs(produce((draft) => {
           // Count NPCs being updated this tick for debugging
           let updateCount = 0;
+          const npcsToRemove: number[] = [];
 
-          let updatedNpcs = prevNpcs.map((npc) => {
+          draft.forEach((npc, index) => {
             // Hash NPC ID to a bucket (0-3) for consistent assignment
             const npcBucket = npc.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % UPDATE_BUCKETS;
 
             // Only update NPCs in the current bucket
-            if (npcBucket !== currentBucket) return npc;
+            if (npcBucket !== currentBucket) return;
 
             updateCount++;
 
             // Only update NPCs within range
             if (Math.hypot(npc.x - controlledIconX, npc.y - controlledIconY) <= AI_UPDATE_RADIUS) {
-              const updates = calculateNpcUpdate(npc, { x: controlledIconX, y: controlledIconY }, mapData, gameTimeHours, prevNpcs);
+              const updates = calculateNpcUpdate(npc, { x: controlledIconX, y: controlledIconY }, mapData, gameTimeHours, draft);
 
               // Check if NPC is leaving the map - BUT ONLY ON STANDARD MAPS, NOT SPECIAL MAPS
               if (updates.isLeavingMap && updates.mapExitDirection && mapData.mapType !== 'special') {
                 // Queue NPC for transfer to adjacent map
                 crossMapNpcService.queueNpcForTransfer(npc, updates.mapExitDirection);
-                // Remove NPC from current map by returning null (will be filtered out)
-                return null;
+                // Mark for removal
+                npcsToRemove.push(index);
+              } else {
+                // Apply updates directly to draft
+                Object.assign(npc, updates);
               }
-
-              return { ...npc, ...updates };
             }
-            return npc;
-          }).filter(npc => npc !== null); // Filter out NPCs that left the map
+          });
+
+          // Remove NPCs that left the map (in reverse order to maintain indices)
+          npcsToRemove.reverse().forEach(index => {
+            draft.splice(index, 1);
+          });
           
           // Check for reputation-based NPC approaches (only if reputation < 20)
           if (playerCharacter.mapReputation < 20) {
             const approachingNPCs = checkReputationBasedApproach(
               playerCharacter,
-              updatedNpcs,
+              draft,
               controlledIconX,
               controlledIconY
             );
@@ -473,9 +518,9 @@ const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
           // Only run comprehensive approach checks if no immediate hostile approaches
           if (playerCharacter.mapReputation >= 20) {
             // Get only visible NPCs for performance (within 12 tiles)
-            const visibleNPCs = updatedNpcs.filter(npc => {
+            const visibleNPCs = draft.filter(npc => {
               const distance = Math.sqrt(
-                Math.pow(npc.x - controlledIconX, 2) + 
+                Math.pow(npc.x - controlledIconX, 2) +
                 Math.pow(npc.y - controlledIconY, 2)
               );
               return distance <= 12;
@@ -507,7 +552,7 @@ const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
             // Handle approach results with enhanced narrator LLM integration
             if (approachResults.length > 0) {
               const approach = approachResults[0];
-              const approachingNPC = updatedNpcs.find(npc => npc.id === approach.npcId);
+              const approachingNPC = draft.find(npc => npc.id === approach.npcId);
               
               if (approachingNPC) {
                 const currentTime = Date.now();
@@ -587,15 +632,10 @@ const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
             console.log('[NPCNarration] Cleared narration history to prevent memory leaks');
           }
 
-          // Debug logging for staggered updates (only log occasionally to avoid spam)
-          if (Math.random() < 0.05 && updateCount > 0) { // 5% chance to log
-            console.log(`[NPC AI] Bucket ${currentBucket}: Updated ${updateCount}/${prevNpcs.length} NPCs`);
-          }
-
-          return updatedNpcs;
-        });
+          // Debug logging removed - too spammy
+        }));
       }
-    }, TICK_INTERVAL); // Update every 250ms, but each NPC only updates every 1 second (in their bucket)
+    }, TICK_INTERVAL); // Update every 1000ms, but each NPC only updates every 4 seconds (in their bucket)
 
     return () => clearInterval(tickInterval);
   }, [mapData, playerCharacter, controlledIconX, controlledIconY, viewMode, isAnyModalOpen, gameTimeHours]); // Remove setNpcs to prevent recreation
@@ -609,11 +649,9 @@ const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
       if (controlledIconX === null || controlledIconY === null) return;
 
       // Handle NPC-to-NPC and Animal-to-Animal spreading
-      setNpcs((prevNpcs) => {
-        const updatedNpcs = [...prevNpcs];
-
-        for (let i = 0; i < updatedNpcs.length; i++) {
-          const npc1 = updatedNpcs[i];
+      setNpcs(produce((draft) => {
+        for (let i = 0; i < draft.length; i++) {
+          const npc1 = draft[i];
 
           if (Math.hypot(npc1.x - controlledIconX, npc1.y - controlledIconY) > SPREAD_RADIUS) continue;
 
@@ -621,9 +659,9 @@ const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
 
           const disease = npc1.health.currentDiseases[0];
 
-          for (let j = 0; j < updatedNpcs.length; j++) {
+          for (let j = 0; j < draft.length; j++) {
             if (i === j) continue;
-            const npc2 = updatedNpcs[j];
+            const npc2 = draft[j];
 
             if (npc2.health?.currentDiseases?.length) continue;
 
@@ -639,21 +677,19 @@ const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
               if (constitution < 8) baseChance *= 1.3;
 
               if (Math.random() < baseChance) {
-                updatedNpcs[j] = {
-                  ...npc2,
-                  health: {
-                    currentDiseases: [
-                      {
-                        ...disease,
-                        contractedDate: Date.now(),
-                        stage: 'early',
-                      },
-                    ],
-                    exposureHistory: [],
-                    immunities: [],
-                    overallHealthStatus: 'sick',
-                    lastHealthUpdate: { year: parseInt(mapData?.timeSlice || '1500'), month: 1, day: 1 }
-                  },
+                // Directly mutate the draft
+                npc2.health = {
+                  currentDiseases: [
+                    {
+                      ...disease,
+                      contractedDate: Date.now(),
+                      stage: 'early',
+                    },
+                  ],
+                  exposureHistory: [],
+                  immunities: [],
+                  overallHealthStatus: 'sick',
+                  lastHealthUpdate: { year: parseInt(mapData?.timeSlice || '1500'), month: 1, day: 1 }
                 };
                 
                 // Show notification about disease spread
@@ -670,18 +706,64 @@ const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
           }
         }
 
-        return updatedNpcs;
-      });
+        // Check for NPC deaths from disease progression
+        const npcDeaths: { npc: NpcEntity; disease: Disease }[] = [];
+        const npcsToRemove: number[] = [];
+
+        for (let i = draft.length - 1; i >= 0; i--) {
+          const npc = draft[i];
+
+          if (npc.health?.currentDiseases?.length) {
+            const activeDiseases = npc.health.currentDiseases;
+
+            // Check each disease for potential death
+            for (const activeDisease of activeDiseases) {
+              const disease = activeDisease.disease;
+
+              // Calculate death chance based on disease mortality rate and NPC constitution
+              const constitution = npc.stats?.constitution || 10;
+              const constitutionMultiplier = constitution < 8 ? 1.5 : constitution > 14 ? 0.5 : 1.0;
+              const mortalityRate = disease.mortalityRate * constitutionMultiplier;
+
+              // Daily death check (very small chance per update tick)
+              const deathChance = mortalityRate * 0.001; // Scale down for frequent checks
+
+              if (Math.random() < deathChance) {
+                // NPC has died from disease
+                npcDeaths.push({ npc, disease });
+                updatedNpcs.splice(i, 1); // Remove from NPC array
+                break; // Stop checking other diseases for this NPC
+              }
+            }
+          }
+        }
+
+        // Show death notifications
+        npcDeaths.forEach(({ npc, disease }) => {
+          if (onNpcDeath) {
+            onNpcDeath(npc, disease);
+          }
+
+          const notification = `💀 ${npc.name} has died from ${disease.name}`;
+          showToast(notification);
+
+          console.log(`[NPC Death] ${npc.name} (age ${npc.age}) died from ${disease.name} (${(disease.mortalityRate * 100).toFixed(1)}% mortality rate)`);
+        });
+
+        // Remove dead NPCs
+        npcsToRemove.reverse().forEach(index => {
+          draft.splice(index, 1);
+        });
+      }));
 
       // Handle animal-to-animal and cross-species spreading
-      setAnimals((prevAnimals) => {
-        const updatedAnimals = [...prevAnimals];
+      setAnimals(produce((draft) => {
         // Get current NPCs from state
         const currentNpcs = [...(npcs || [])];
 
         // Animal-to-animal spreading
-        for (let i = 0; i < updatedAnimals.length; i++) {
-          const animal1 = updatedAnimals[i];
+        for (let i = 0; i < draft.length; i++) {
+          const animal1 = draft[i];
 
           if (Math.hypot(animal1.x - controlledIconX, animal1.y - controlledIconY) > SPREAD_RADIUS) continue;
 
@@ -689,9 +771,9 @@ const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
 
           const disease = animal1.diseaseHealth.currentDiseases[0];
 
-          for (let j = 0; j < updatedAnimals.length; j++) {
+          for (let j = 0; j < draft.length; j++) {
             if (i === j) continue;
-            const animal2 = updatedAnimals[j];
+            const animal2 = draft[j];
 
             if (animal2.diseaseHealth?.currentDiseases?.length) continue;
 
@@ -704,19 +786,17 @@ const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
               baseChance *= virality;
 
               if (Math.random() < baseChance) {
-                updatedAnimals[j] = {
-                  ...animal2,
-                  diseaseHealth: {
-                    currentDiseases: [
-                      {
-                        ...disease,
-                        contractedDate: Date.now(),
-                        stage: 'early',
-                      },
-                    ],
-                    exposureHistory: [],
-                    resistances: {},
-                  },
+                // Directly mutate the draft
+                animal2.diseaseHealth = {
+                  currentDiseases: [
+                    {
+                      ...disease,
+                      contractedDate: Date.now(),
+                      stage: 'early',
+                    },
+                  ],
+                  exposureHistory: [],
+                  resistances: {},
                 };
                 console.log(
                   `[Animal→Animal Disease Spread] ${animal1.speciesName}'s ${disease.disease.name} spread to ${animal2.speciesName} at distance ${distance.toFixed(
@@ -782,8 +862,8 @@ const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
 
           const disease = npc.health.currentDiseases[0];
 
-          for (let i = 0; i < updatedAnimals.length; i++) {
-            const animal = updatedAnimals[i];
+          for (let i = 0; i < draft.length; i++) {
+            const animal = draft[i];
 
             if (animal.diseaseHealth?.currentDiseases?.length) continue;
 
@@ -798,20 +878,18 @@ const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
                 // Show notification about reverse zoonotic transmission
                 const notification = `🐾 ${npc.name}'s ${disease.disease.name} has infected a ${animal.speciesName}!`;
                 showToast(notification);
-                
-                updatedAnimals[i] = {
-                  ...animal,
-                  diseaseHealth: {
-                    currentDiseases: [
-                      {
-                        ...disease,
-                        contractedDate: Date.now(),
-                        stage: 'early',
-                      },
-                    ],
-                    exposureHistory: [],
-                    resistances: {},
-                  },
+
+                // Directly mutate the draft
+                draft[i].diseaseHealth = {
+                  currentDiseases: [
+                    {
+                      ...disease,
+                      contractedDate: Date.now(),
+                      stage: 'early',
+                    },
+                  ],
+                  exposureHistory: [],
+                  resistances: {},
                 };
                 console.log(
                   `[Human→Animal Disease Spread] ${npc.name}'s ${disease.disease.name} jumped to ${animal.speciesName} at distance ${distance.toFixed(
@@ -822,9 +900,7 @@ const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
             }
           }
         });
-
-        return updatedAnimals;
-      });
+      }));
     }, 10000);
 
     return () => clearInterval(diseaseInterval);
@@ -1000,13 +1076,19 @@ const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
         return;
       }
 
+      // Check for urban tiles (should be treated as cities)
+      const isUrbanTile = [
+        BiomeType.HAMLET,
+        BiomeType.LOW_DENSITY_CITY,
+        BiomeType.DENSE_CITY,
+        BiomeType.CITY_CENTER,
+      ].includes(currentTile.biome);
+
       // Double-check to ensure government districts are never treated as regular buildings
       const isBuildingTile = currentTile.biome !== BiomeType.GOVERNMENT_DISTRICT && [
         BiomeType.PALACE,
         BiomeType.HOLY_SITE,
-        BiomeType.HAMLET,
-        BiomeType.LOW_DENSITY_CITY,
-        BiomeType.DENSE_CITY,
+        // Urban tiles are now handled separately
         // GOVERNMENT_DISTRICT is explicitly excluded and handled separately above
       ].includes(currentTile.biome);
 
@@ -1016,7 +1098,7 @@ const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
         setActionableTile({ type: 'marketplace', tile: currentTile });
       } else if (currentTile.biome === BiomeType.RUINS) {
         setActionableTile({ type: 'ruin', tile: currentTile });
-      } else if (currentTile.biome === BiomeType.CITY_CENTER) {
+      } else if (isUrbanTile) {
         setActionableTile({ type: 'city', tile: currentTile });
       } else if (isBuildingTile) {
         setActionableTile({ type: 'building', tile: currentTile });
@@ -1157,13 +1239,51 @@ const useCoreLoops = (onDeath?: (deathInfo: DeathInfo) => void) => {
 
  // Movement loop — simplified and consistent
 useEffect(() => {
-  const MOVE_ANIM_MS = 250; // Match the movement interval for consistency
+  const BASE_MOVE_ANIM_MS = 250; // Base movement interval
 
   const moveLoop = (currentTime: number) => {
     moveLoopId.current = requestAnimationFrame(moveLoop);
 
-    // Check if we're allowed to move yet
+    // Calculate disease-based movement penalty
+    const diseaseRestrictions = calculateDiseaseGameplayRestrictions(playerCharacter?.diseaseHealth);
+    const MOVE_ANIM_MS = Math.round(BASE_MOVE_ANIM_MS * diseaseRestrictions.movementPenaltyMultiplier);
+
+    // Check for terminal disease progression
+    const deathCheck = shouldPlayerDieFromDisease(playerCharacter?.diseaseHealth);
+    if (deathCheck.shouldDie && deathCheck.cause) {
+      const deathInfo: DeathInfo = {
+        type: 'disease',
+        disease: deathCheck.cause.disease,
+        description: `Succumbed to ${deathCheck.cause.disease.name} after ${deathCheck.cause.daysSinceContraction} days of illness`
+      };
+      onDeath?.(deathInfo);
+      return;
+    }
+
+    // Check if we're allowed to move yet (with disease penalty applied)
     if (currentTime < nextMoveAllowed.current) return;
+
+    // Add movement restriction narration for severe illness
+    if (diseaseRestrictions.movementPenaltyMultiplier > 10.0 && moveCount % 3 === 0) {
+      const restrictionMessages = [
+        "Your illness makes every step a struggle.",
+        "You move slowly, weakened by disease.",
+        "Each movement requires tremendous effort.",
+        "Your body can barely respond to your will."
+      ];
+      const randomMessage = restrictionMessages[Math.floor(Math.random() * restrictionMessages.length)];
+
+      setNarrationHistory(prev => [
+        ...prev,
+        {
+          id: `illness-movement-${Date.now()}`,
+          timestamp: gameDate,
+          timeString: formattedTime,
+          message: randomMessage,
+          type: 'system'
+        }
+      ]);
+    }
 
     // Basic guards - don't check isIconMoving here to avoid blocking
     if (
@@ -1217,10 +1337,78 @@ useEffect(() => {
         }
       } else {
         // Normal map edge transitions
-        if (newLogicalX < 0) { handleMapTransition('W', MAP_WIDTH_TILES - 1, controlledIconY); return; }
-        if (newLogicalX >= MAP_WIDTH_TILES) { handleMapTransition('E', 0, controlledIconY); return; }
-        if (newLogicalY < 0) { handleMapTransition('N', controlledIconX, MAP_HEIGHT_TILES - 1); return; }
-        if (newLogicalY >= MAP_HEIGHT_TILES) { handleMapTransition('S', controlledIconX, 0); return; }
+        if (newLogicalX < 0) {
+          // Get destination for proper logging
+          const nextMapResult = getNextMapArea(localArea, 'W');
+          const destination = nextMapResult.type === 'adjacent' ? nextMapResult.areaDef.name :
+                            nextMapResult.type === 'liminal' ? nextMapResult.destination :
+                            'Unknown destination';
+          addGameLogEntry({
+            id: `map-transition-${Date.now()}`,
+            timestamp: { ...gameDate },
+            timeString: formattedTime,
+            type: 'MAP_ENTRY',
+            icon: '🗺️',
+            summary: `Travelled west from ${localArea || 'current area'} to ${destination}`,
+            details: undefined,
+          });
+          handleMapTransition('W', MAP_WIDTH_TILES - 1, controlledIconY);
+          return;
+        }
+        if (newLogicalX >= MAP_WIDTH_TILES) {
+          // Get destination for proper logging
+          const nextMapResult = getNextMapArea(localArea, 'E');
+          const destination = nextMapResult.type === 'adjacent' ? nextMapResult.areaDef.name :
+                            nextMapResult.type === 'liminal' ? nextMapResult.destination :
+                            'Unknown destination';
+          addGameLogEntry({
+            id: `map-transition-${Date.now()}`,
+            timestamp: { ...gameDate },
+            timeString: formattedTime,
+            type: 'MAP_ENTRY',
+            icon: '🗺️',
+            summary: `Travelled east from ${localArea || 'current area'} to ${destination}`,
+            details: undefined,
+          });
+          handleMapTransition('E', 0, controlledIconY);
+          return;
+        }
+        if (newLogicalY < 0) {
+          // Get destination for proper logging
+          const nextMapResult = getNextMapArea(localArea, 'N');
+          const destination = nextMapResult.type === 'adjacent' ? nextMapResult.areaDef.name :
+                            nextMapResult.type === 'liminal' ? nextMapResult.destination :
+                            'Unknown destination';
+          addGameLogEntry({
+            id: `map-transition-${Date.now()}`,
+            timestamp: { ...gameDate },
+            timeString: formattedTime,
+            type: 'MAP_ENTRY',
+            icon: '🗺️',
+            summary: `Travelled north from ${localArea || 'current area'} to ${destination}`,
+            details: undefined,
+          });
+          handleMapTransition('N', controlledIconX, MAP_HEIGHT_TILES - 1);
+          return;
+        }
+        if (newLogicalY >= MAP_HEIGHT_TILES) {
+          // Get destination for proper logging
+          const nextMapResult = getNextMapArea(localArea, 'S');
+          const destination = nextMapResult.type === 'adjacent' ? nextMapResult.areaDef.name :
+                            nextMapResult.type === 'liminal' ? nextMapResult.destination :
+                            'Unknown destination';
+          addGameLogEntry({
+            id: `map-transition-${Date.now()}`,
+            timestamp: { ...gameDate },
+            timeString: formattedTime,
+            type: 'MAP_ENTRY',
+            icon: '🗺️',
+            summary: `Travelled south from ${localArea || 'current area'} to ${destination}`,
+            details: undefined,
+          });
+          handleMapTransition('S', controlledIconX, 0);
+          return;
+        }
       }
     }
 
@@ -1231,26 +1419,40 @@ useEffect(() => {
       const isAquaticCollectable = playerMode === 'ship' && animalData?.habitat === 'aquatic';
 
       if (isAquaticCollectable) {
+        // Remove the animal FIRST to prevent re-triggering
+        setAnimals(produce((draft) => {
+          const index = draft.findIndex(a => a.id === animalOnTile.id);
+          if (index !== -1) {
+            draft.splice(index, 1);
+          }
+        }));
+
+        // Then collect the drop
         const drop = animalData.drops.find(d => Math.random() < d.chance);
         if (drop) {
           const newItem = createItemInstance(drop.name);
           if (newItem) {
             setPlayerCharacter(prev => prev ? { ...prev, inventory: addItemToInventory(prev.inventory, newItem) } : null);
             setPanelNotificationItem(newItem);
-            // Use a ref to track timeout for cleanup
-            const notificationTimeout = setTimeout(() => setPanelNotificationItem(null), 2500);
+            setTimeout(() => setPanelNotificationItem(null), 2500);
             addGameLogEntry(LogService.createItemAcquiredLog(newItem.name, 1, 'from the water', gameDate, formattedTime));
-            
-            // Store timeout for potential cleanup (though this is short-lived)
-            return () => clearTimeout(notificationTimeout);
           }
         }
-        setAnimals(prev => prev.filter(a => a.id !== animalOnTile.id));
 
-        // commit move and set next allowed move time
+        // commit move and set next allowed move time (with disease penalty)
         setControlledIconX(newLogicalX);
         setControlledIconY(newLogicalY);
         nextMoveAllowed.current = currentTime + MOVE_ANIM_MS;
+
+        // Log map entry for every 5th movement to avoid spam
+        if (moveCount % 5 === 0) {
+          addGameLogEntry(LogService.createMapEntryLog(
+            `${newLogicalX > controlledIconX ? 'east' : newLogicalX < controlledIconX ? 'west' : newLogicalY > controlledIconY ? 'south' : 'north'}`,
+            localArea || 'Unknown location',
+            gameDate,
+            formattedTime
+          ));
+        }
         return;
       } else {
         if (animalOnTile.type === 'Predator') handleInitiateCombat(animalOnTile);
@@ -1274,13 +1476,13 @@ useEffect(() => {
       const blockMessage = getTerrainBlockMessage(targetTile.biome);
       if (blockMessage) {
         // Add to game log
-        addGameLogEntry({
-          id: `terrain-blocked-${Date.now()}`,
-          message: blockMessage,
-          type: 'warning',
-          timestamp: formattedTime,
-          gameDate
-        });
+        addGameLogEntry(LogService.createSkillUseLog(
+          'Movement',
+          `Blocked: ${blockMessage}`,
+          localArea || 'Unknown location',
+          gameDate,
+          formattedTime
+        ));
         
         // Add to narration panel
         setNarrationHistory(prev => [...prev, {
@@ -1312,13 +1514,13 @@ useEffect(() => {
         showToast(damageMessage, 'error');
         
         // Add to game log
-        addGameLogEntry({
-          id: `terrain-damage-${Date.now()}`,
-          message: `${damageMessage} (-${terrainDamage.damage} health)`,
-          type: 'damage',
-          timestamp: formattedTime,
-          gameDate
-        });
+        addGameLogEntry(LogService.createSkillUseLog(
+          'Movement',
+          `${damageMessage} (-${terrainDamage.damage} health)`,
+          localArea || 'Unknown location',
+          gameDate,
+          formattedTime
+        ));
         
         // Check for death
         if (newHealth <= 0) {
@@ -1356,13 +1558,13 @@ useEffect(() => {
         setPlayerCharacter({ ...playerCharacter });
         
         // Add to game log
-        addGameLogEntry({
-          id: `disease-contracted-${Date.now()}`,
-          message: terrainResult.message || `Contracted ${terrainResult.disease.name}`,
-          type: 'disease',
-          timestamp: formattedTime,
-          gameDate
-        });
+        addGameLogEntry(LogService.createSkillUseLog(
+          'Movement',
+          terrainResult.message || `Contracted ${terrainResult.disease.name}`,
+          localArea || 'Unknown location',
+          gameDate,
+          formattedTime
+        ));
         
         // Show disease modal if available
         if (typeof window !== 'undefined' && (window as any).showDiseaseModal) {
@@ -1371,7 +1573,7 @@ useEffect(() => {
       }
     }
 
-    // commit move and set next allowed move time
+    // commit move and set next allowed move time (with disease penalty)
     nextMoveAllowed.current = currentTime + MOVE_ANIM_MS;
 
     if (playerMode === 'ship') {
@@ -1478,13 +1680,13 @@ useEffect(() => {
           );
           if (res.narrativeHints.length) {
             for (const hint of res.narrativeHints) {
-              addGameLogEntry({
-                id: `disease-hint-${Date.now()}-${Math.random()}`,
-                message: hint,
-                type: 'observation',
-                timestamp: formattedTime,
-                gameDate
-              });
+              addGameLogEntry(LogService.createSkillUseLog(
+                'Health',
+                hint,
+                localArea || 'Unknown location',
+                gameDate,
+                formattedTime
+              ));
             }
           }
           if (res.transmitted) {

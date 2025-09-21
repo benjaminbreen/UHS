@@ -44,6 +44,7 @@ import { PrimarySourceModal } from './PrimarySourceModal';
 import { PrimarySourceMetadata } from '../services/primarySourceService';
 import { poiServiceHandler } from '../services/poiServiceHandler';
 import NpcConfrontationModal from './NpcConfrontationModal';
+import DiseaseContractedModal from './DiseaseContractedModal';
 import { processNpcReactions, ItemCollectionEvent } from '../services/npcAwarenessService';
 import { updateCachedContents } from '../services/containerCacheService';
 import { useState } from 'react';
@@ -88,7 +89,8 @@ const ModalHub: React.FC = () => {
         activePoi, setActivePoi,
         poiToastData, setPoiToastData,
         containerModalData, setContainerModalData, showToast,
-        selectedPrimarySource, setSelectedPrimarySource
+        selectedPrimarySource, setSelectedPrimarySource,
+        diseaseContractedModalData, setDiseaseContractedModalData
     } = useUI();
 
     const { 
@@ -646,6 +648,15 @@ const ModalHub: React.FC = () => {
                         }
                         setConfrontationData(null);
                     }}
+                />
+            )}
+            {diseaseContractedModalData?.isOpen && playerCharacter && (
+                <DiseaseContractedModal
+                    isOpen={diseaseContractedModalData.isOpen}
+                    onClose={() => setDiseaseContractedModalData(null)}
+                    disease={diseaseContractedModalData.disease}
+                    playerCharacter={playerCharacter}
+                    gameDate={gameDate}
                 />
             )}
         </>

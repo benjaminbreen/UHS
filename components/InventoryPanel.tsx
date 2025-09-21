@@ -3,6 +3,7 @@ import { Item, ItemQuality, PlayerCharacter } from '../types';
 import GenerativeItemIcon from './symbols/GenerativeItemIcon';
 import { loadTamedAnimals, TamedAnimal, updateAnimalName } from '../services/animalTamingService';
 import AnimalCompanionModal from './AnimalCompanionModal';
+import ButcherConfirmModal from './ButcherConfirmModal';
 import { vesselService } from '../services/vesselService';
 
 // Enhanced tooltip component
@@ -227,6 +228,7 @@ interface InventoryPanelProps {
     inventory: Item[];
     playerCharacter: PlayerCharacter;
     onCraft: (items: Item[], method: 'COMBINE' | 'DISAGGREGATE') => void;
+    onStudy?: (items: Item[]) => void; // New prop for study functionality
     onInventoryUpdate?: () => void; // Callback to refresh inventory after vessel deployment
     deployVesselToMap?: (vesselItem: Item, playerX: number, playerY: number) => { success: boolean, vesselPosition?: { x: number, y: number } };
     playerX?: number | null;
@@ -269,11 +271,13 @@ const getQualityLabel = (quality?: ItemQuality): string => {
     }
 };
 
-const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharacter, onCraft, onInventoryUpdate, deployVesselToMap, playerX, playerY, setShipDockPosition, setCurrentVessel, isDraggable = false, onDragStart }) => {
+const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharacter, onCraft, onStudy, onInventoryUpdate, deployVesselToMap, playerX, playerY, setShipDockPosition, setCurrentVessel, isDraggable = false, onDragStart }) => {
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [selectedAnimalIds, setSelectedAnimalIds] = useState<Set<string>>(new Set());
   const [selectedAnimal, setSelectedAnimal] = useState<TamedAnimal | null>(null);
   const [isAnimalModalOpen, setIsAnimalModalOpen] = useState(false);
+  const [showButcherModal, setShowButcherModal] = useState(false);
+  const [animalsToButcher, setAnimalsToButcher] = useState<TamedAnimal[]>([]);
   // Removed isActionMode - now always in selection mode
   
   // Load tamed animals with forced refresh when modal closes
@@ -294,55 +298,50 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
   };
   
   
-  const handleCraft = (method: 'COMBINE' | 'DISAGGREGATE') => {
+  const handleCraft = () => {
       const selectedItems = inventory.filter(item => selectedItemIds.has(item.id));
-      
-      // Handle animal disaggregation into meat items
-      if (selectedAnimalIds.size > 0 && method === 'DISAGGREGATE') {
-          const selectedAnimals = tamedAnimals.filter(animal => selectedAnimalIds.has(animal.id));
-          
-          selectedAnimals.forEach(animal => {
-              // Create meat items based on animal type
-              const meatItems: Item[] = [];
-              const meatName = getMeatNameForAnimal(animal.speciesName);
-              const meatQuantity = getMeatQuantityForAnimal(animal.speciesName);
-              
-              for (let i = 0; i < meatQuantity; i++) {
-                  meatItems.push({
-                      id: `${meatName}-${Date.now()}-${i}`,
-                      baseId: meatName.toUpperCase().replace(' ', '_'),
-                      name: meatName,
-                      description: `Fresh meat from a ${animal.speciesName}`,
-                      emoji: '🥩',
-                      rarity: 'Common' as const,
-                      value: Math.floor(animal.value / meatQuantity),
-                      weight: 2,
-                      wearable: false,
-                      stackable: true,
-                      quantity: 1,
-                      sustenance: 10,
-                      category: 'Food',
-                      material: 'Organic'
-                  });
-              }
-              
-              // Add meat items to inventory
-              meatItems.forEach(item => inventory.push(item));
-              
-              // Remove animal from tamed animals (save to localStorage)
-              const allAnimals = loadTamedAnimals();
-              const updatedAnimals = allAnimals.filter(a => a.id !== animal.id);
-              localStorage.setItem('tamedAnimals', JSON.stringify(updatedAnimals));
-          });
-          
-          // Refresh animals list and clear selection
-          setAnimalRefresh(prev => prev + 1);
-          setSelectedAnimalIds(new Set());
-          onInventoryUpdate?.();
-      } else {
-          // Normal item crafting
-          onCraft(selectedItems, method);
+      if (selectedItems.length > 0) {
+          // Open crafting modal with selected items
+          onCraft(selectedItems, 'COMBINE'); // Pass COMBINE as default, modal will handle mode selection
           setSelectedItemIds(new Set());
+      }
+  };
+
+  const handleStudy = () => {
+      const selectedItems = inventory.filter(item => selectedItemIds.has(item.id));
+      const selectedAnimals = tamedAnimals.filter(animal => selectedAnimalIds.has(animal.id));
+
+      // Combine selected items and animals for study
+      const allSelectedForStudy = [...selectedItems, ...selectedAnimals];
+
+      if (allSelectedForStudy.length > 0 && onStudy) {
+          onStudy(allSelectedForStudy);
+          setSelectedItemIds(new Set());
+          setSelectedAnimalIds(new Set());
+      }
+  };
+
+  const handleButcher = () => {
+      const selectedItems = inventory.filter(item => selectedItemIds.has(item.id));
+
+      // Handle animal butchering into meat items
+      if (selectedAnimalIds.size > 0) {
+          const selectedAnimals = tamedAnimals.filter(animal => selectedAnimalIds.has(animal.id));
+
+          // Check if any selected animals are companions (high loyalty or custom names)
+          const companionAnimals = selectedAnimals.filter(animal =>
+              animal.loyalty >= 70 || (animal.name && animal.name !== animal.speciesName)
+          );
+
+          if (companionAnimals.length > 0) {
+              // Show confirmation modal for companions
+              setAnimalsToButcher(selectedAnimals);
+              setShowButcherModal(true);
+              return; // Exit early, modal will handle the actual butchering
+          }
+
+          // Execute butchering for non-companion animals
+          executeButchering(selectedAnimals);
       }
   };
   
@@ -369,8 +368,10 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
       return 3;
   };
 
-  const canCombine = selectedItemIds.size >= 2 || (selectedItemIds.size >= 1 && selectedAnimalIds.size >= 1);
-  const canDisaggregate = selectedItemIds.size === 1 || selectedAnimalIds.size === 1;
+  const canCraft = selectedItemIds.size >= 1;
+  const canStudy = selectedItemIds.size >= 1 || selectedAnimalIds.size >= 1;
+  const canButcher = selectedAnimalIds.size === 1;
+  const showInfoInsteadOfCraft = selectedAnimalIds.size >= 1 && selectedItemIds.size === 0; // Only animals selected
   
   // Check if selected items contain vessels for deployment
   const selectedItems = inventory.filter(item => selectedItemIds.has(item.id));
@@ -380,6 +381,79 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
   const handleAnimalClick = (animal: TamedAnimal) => {
     setSelectedAnimal(animal);
     setIsAnimalModalOpen(true);
+  };
+
+  const handleAnimalInfo = () => {
+    if (selectedAnimalIds.size === 1) {
+      const animalId = Array.from(selectedAnimalIds)[0];
+      const animal = tamedAnimals.find(a => a.id === animalId);
+      if (animal) {
+        handleAnimalClick(animal);
+      }
+    }
+  };
+
+  const executeButchering = (animalsToProcess: TamedAnimal[]) => {
+    animalsToProcess.forEach(animal => {
+      // Create meat items based on animal type
+      const meatItems: Item[] = [];
+      const meatName = getMeatNameForAnimal(animal.speciesName);
+      const meatQuantity = getMeatQuantityForAnimal(animal.speciesName);
+
+      for (let i = 0; i < meatQuantity; i++) {
+        meatItems.push({
+          id: `${meatName}-${Date.now()}-${i}`,
+          baseId: meatName.toUpperCase().replace(' ', '_'),
+          name: meatName,
+          description: `Fresh meat from a ${animal.speciesName}`,
+          emoji: '🥩',
+          rarity: 'Common' as const,
+          value: Math.floor(animal.value / meatQuantity),
+          weight: 2,
+          wearable: false,
+          stackable: true,
+          quantity: 1,
+          sustenance: 10,
+          category: 'Food',
+          material: 'Organic'
+        });
+      }
+
+      // Add meat items to inventory
+      const currentInventory = inventory.slice();
+      currentInventory.push(...meatItems);
+
+      // Remove animal from tamed animals
+      const savedAnimals = localStorage.getItem('tamedAnimals');
+      if (savedAnimals) {
+        const animals: TamedAnimal[] = JSON.parse(savedAnimals);
+        const updatedAnimals = animals.filter(a => a.id !== animal.id);
+        localStorage.setItem('tamedAnimals', JSON.stringify(updatedAnimals));
+      }
+    });
+
+    // Force refresh of animal data
+    setAnimalRefresh(prev => prev + 1);
+
+    // Clear selections
+    setSelectedAnimalIds(new Set());
+    setSelectedItemIds(new Set());
+
+    // Trigger inventory update
+    if (onInventoryUpdate) {
+      onInventoryUpdate();
+    }
+  };
+
+  const handleButcherConfirm = () => {
+    executeButchering(animalsToButcher);
+    setShowButcherModal(false);
+    setAnimalsToButcher([]);
+  };
+
+  const handleButcherCancel = () => {
+    setShowButcherModal(false);
+    setAnimalsToButcher([]);
   };
 
   const handleAnimalModalClose = () => {
@@ -570,22 +644,42 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
                 </button>
               ) : (
                 <>
+                  {showInfoInsteadOfCraft ? (
+                    <button
+                        onClick={handleAnimalInfo}
+                        disabled={selectedAnimalIds.size !== 1}
+                        className="ff-action-button flex-1 text-xs px-2 py-1"
+                        title="View companion animal info"
+                    >
+                        ℹ️ Info
+                    </button>
+                  ) : (
+                    <button
+                        onClick={handleCraft}
+                        disabled={!canCraft}
+                        className="ff-action-button flex-1 text-xs px-2 py-1"
+                        title="Open crafting interface"
+                    >
+                        Craft
+                    </button>
+                  )}
                   <button
-                      onClick={() => handleCraft('COMBINE')}
-                      disabled={!canCombine}
+                      onClick={handleStudy}
+                      disabled={!canStudy}
                       className="ff-action-button flex-1 text-xs px-2 py-1"
-                      title="Combine selected items/animals"
+                      title="Study selected items"
                   >
-                      Combine
+                      Study 🔬
                   </button>
-                  <button
-                      onClick={() => handleCraft('DISAGGREGATE')}
-                      disabled={!canDisaggregate}
-                      className="ff-action-button flex-1 text-xs px-2 py-1"
-                      title="Break down selected item/animal"
-                  >
-                      Disaggregate
-                  </button>
+                  {canButcher && (
+                      <button
+                          onClick={handleButcher}
+                          className="ff-action-button flex-1 text-xs px-2 py-1"
+                          title="Process selected animal"
+                      >
+                          Butcher
+                      </button>
+                  )}
                 </>
               )}
           </div>
@@ -600,6 +694,14 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventory, playerCharac
           onUpdateName={handleAnimalNameUpdate}
         />
       )}
+
+      {/* Butcher Confirmation Modal */}
+      <ButcherConfirmModal
+        isOpen={showButcherModal}
+        animals={animalsToButcher}
+        onConfirm={handleButcherConfirm}
+        onCancel={handleButcherCancel}
+      />
     </div>
   );
 };

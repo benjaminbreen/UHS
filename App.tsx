@@ -33,11 +33,15 @@ import ContainerPrompt from './components/ContainerPrompt';
 import { parseURLConfig, URLGameConfig } from './services/urlConfigService';
 import { SeedManager } from './services/seedService';
 import { shareableStateService } from './services/shareableStateService';
+import { LogService } from './services/logService';
 import { findZoneForMapArea, findSimilarMapArea } from './services/zoneDetectionService';
 import { useURLGameConfig } from './hooks/useURLGameConfig';
 import FactionsModal from './components/FactionsModal';
 import FactionTooltip from './components/FactionTooltip';
 import GameOverModal from './components/GameOverModal';
+import NpcDeathModal from './components/NpcDeathModal';
+import DiseaseProgressionModal from './components/DiseaseProgressionModal';
+import { DiseaseProgressionEvent } from './services/diseaseNotificationService';
 import { SavedGame } from './services/saveGameService';
 import FloatingText from './components/ui/FloatingText';
 
@@ -176,6 +180,11 @@ const AppContent: React.FC = () => {
     // Death modal state
     const [showDeathModal, setShowDeathModal] = React.useState(false);
     const [deathCause, setDeathCause] = React.useState<any>(null);
+    const [showNpcDeathModal, setShowNpcDeathModal] = React.useState(false);
+    const [npcDeathData, setNpcDeathData] = React.useState<{ npc: any; disease: any } | null>(null);
+    const [showDiseaseProgressionModal, setShowDiseaseProgressionModal] = React.useState(false);
+    const [diseaseProgressionQueue, setDiseaseProgressionQueue] = React.useState<DiseaseProgressionEvent[]>([]);
+    const [currentDiseaseProgression, setCurrentDiseaseProgression] = React.useState<DiseaseProgressionEvent | null>(null);
 
     // Handle death callback
     const handleDeath = React.useCallback((deathInfo: any) => {
@@ -183,10 +192,32 @@ const AppContent: React.FC = () => {
         setShowDeathModal(true);
     }, []);
 
-    useCoreLoops(handleDeath);
+    // Handle NPC death callback
+    const handleNpcDeath = React.useCallback((npc: any, disease: any) => {
+        setNpcDeathData({ npc, disease });
+        setShowNpcDeathModal(true);
+    }, []);
+
+    // Handle disease progression events
+    const handleDiseaseProgression = React.useCallback((events: DiseaseProgressionEvent[]) => {
+        setDiseaseProgressionQueue(prev => [...prev, ...events]);
+    }, []);
+
+    useCoreLoops(handleDeath, handleNpcDeath, handleDiseaseProgression);
+
+    // Handle disease progression queue
+    React.useEffect(() => {
+        if (diseaseProgressionQueue.length > 0 && !showDiseaseProgressionModal && !currentDiseaseProgression) {
+            const nextEvent = diseaseProgressionQueue[0];
+            setCurrentDiseaseProgression(nextEvent);
+            setShowDiseaseProgressionModal(true);
+            setDiseaseProgressionQueue(prev => prev.slice(1));
+        }
+    }, [diseaseProgressionQueue, showDiseaseProgressionModal, currentDiseaseProgression]);
+
     const { isLeftSidebarExpanded, setIsLeftSidebarExpanded, debugSettings, isTestModeEnabled, floatingTextMessages, removeFloatingText, containerPrompt, hideContainerPrompt } = useUI();
     const { playerCharacter } = usePlayer();
-    const { gameDate, currentZone, currentRegion, isLoading } = useGame();
+    const { gameDate, currentZone, currentRegion, isLoading, addGameLogEntry, formattedTime } = useGame();
     const mapContext = useMap();
     const { localArea, mapData, onStartNewWorldAtZoneRegion, onStartNewWorldAtLocation, isSpecialMap, isEnteringSpecialMap } = mapContext;
     
@@ -432,7 +463,21 @@ const AppContent: React.FC = () => {
                 return; // Already processed this character
             }
             processedCharacterRef.current = playerCharacter.name;
-            
+
+            // Add initial game start log entry
+            if (addGameLogEntry && gameDate && formattedTime) {
+                const mapArea = localArea || mapData?.name || 'Unknown location';
+                addGameLogEntry({
+                    id: `game-start-${Date.now()}`,
+                    timestamp: { ...gameDate },
+                    timeString: formattedTime,
+                    type: 'MAP_ENTRY',
+                    icon: '🗺️',
+                    summary: `Started new game as ${playerCharacter.name} traversing ${mapArea}`,
+                    details: undefined,
+                });
+            }
+
             console.log('[GameMode] New character detected, resetting event system');
             resetForNewGame();
             // Reset initial scenario modal state for new character
@@ -817,6 +862,35 @@ const AppContent: React.FC = () => {
             onMainMenu={() => {
               setShowDeathModal(false);
               navigate('/'); // Navigate to main menu
+            }}
+          />
+        )}
+
+        {/* NPC Death Modal */}
+        {showNpcDeathModal && npcDeathData && (
+          <NpcDeathModal
+            isOpen={showNpcDeathModal}
+            npc={npcDeathData.npc}
+            disease={npcDeathData.disease}
+            onClose={() => {
+              setShowNpcDeathModal(false);
+              setNpcDeathData(null);
+            }}
+          />
+        )}
+
+        {/* Disease Progression Modal */}
+        {showDiseaseProgressionModal && currentDiseaseProgression && (
+          <DiseaseProgressionModal
+            isOpen={showDiseaseProgressionModal}
+            title={currentDiseaseProgression.title}
+            description={currentDiseaseProgression.description}
+            icon={currentDiseaseProgression.icon}
+            diseaseName={currentDiseaseProgression.diseaseName}
+            stage={currentDiseaseProgression.stage}
+            onClose={() => {
+              setShowDiseaseProgressionModal(false);
+              setCurrentDiseaseProgression(null);
             }}
           />
         )}

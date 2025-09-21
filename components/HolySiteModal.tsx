@@ -185,11 +185,15 @@ const HolySiteModal: React.FC<HolySiteModalProps> = ({
     >
       <div
         ref={panelRef}
-        className="relative w-full max-w-6xl max-h-[90vh] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl shadow-2xl overflow-hidden"
+        className="relative w-full max-w-6xl h-full sm:h-auto sm:max-h-[95vh] md:max-h-[90vh] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 sm:rounded-2xl shadow-2xl overflow-hidden"
+        style={{
+          maxHeight: 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px)',
+          marginBottom: 'env(safe-area-inset-bottom)'
+        }}
         style={{ transform: 'translateY(-10px)' }}
       >
         {/* Header */}
-        <div className="relative bg-gradient-to-r from-purple-900/80 via-indigo-900/80 to-purple-900/80 px-4 sm:px-6 py-3 sm:py-4 border-b border-purple-500/30">
+        <div className="relative bg-gradient-to-r from-purple-900/80 via-indigo-900/80 to-purple-900/80 px-3 sm:px-6 py-2 sm:py-4 border-b border-purple-500/30">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-purple-100 flex items-center gap-2">

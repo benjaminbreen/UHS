@@ -36,26 +36,87 @@
       "longExcerpt": "My soldiers must be like the wind: swift, sudden, and devastating. This historical source from 1820 provides valuable insight into the sub-saharan-africa region during the industrial period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
     },
     {
-      "id": "sub-saharan-africa-industrial-chronicle",
-      "title": "African Industrial Chronicle",
-      "author": "Various Authors",
-      "year": 1850,
+      "id": "mungo-park-niger",
+      "title": "Travels in the Interior Districts of Africa",
+      "author": "Mungo Park",
+      "year": 1799,
       "era": "INDUSTRIAL",
       "culturalZones": [
         "SUB_SAHARAN_AFRICAN"
       ],
-      "excerpt": "A collection of industrial texts from the African region.",
-      "longExcerpt": "This represents a compilation of historical documents from the Industrial period in the African region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "excerpt": "I saw with infinite pleasure the great object of my mission—the long sought for majestic Niger, glittering to the morning sun, as broad as the Thames at Westminster, and flowing slowly to the eastward. I hastened to the brink, and, having drunk of the water, lifted up my fervent thanks in prayer.",
+      "longExcerpt": "I saw with infinite pleasure the great object of my mission—the long sought for majestic Niger, glittering to the morning sun, as broad as the Thames at Westminster, and flowing slowly to the eastward. I hastened to the brink, and, having drunk of the water, lifted up my fervent thanks in prayer. The circumstance of the Niger's flowing to the east, and its collateral points, did not excite my surprise; for I had made frequent inquiries during my progress concerning this river. This account from 1799 marks one of the first European confirmations of the Niger River's eastward flow, solving a geographical mystery that had puzzled outsiders for centuries.",
       "keywords": [
-        "sub-saharan-africa",
-        "industrial",
-        "history",
-        "chronicle",
-        "primary source"
+        "Niger River",
+        "exploration",
+        "West Africa",
+        "discovery",
+        "geography",
+        "Mandinka",
+        "travel"
       ],
-      "wikisourceTitle": "African_Industrial_Texts",
+      "wikisourceTitle": "Travels_in_the_Interior_Districts_of_Africa",
+      "internetArchiveId": "travelsininterio00park",
       "citation": {
-        "originalPublication": "African Industrial Period"
+        "translator": null,
+        "originalPublication": "London, 1799",
+        "modernSource": "John Murray, 1816"
+      }
+    },
+    {
+      "id": "livingstone-zambezi",
+      "title": "Missionary Travels and Researches in South Africa",
+      "author": "David Livingstone",
+      "year": 1857,
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "No one can imagine the beauty of the view from anything witnessed in England. It had never been seen before by European eyes; but scenes so lovely must have been gazed upon by angels in their flight.",
+      "longExcerpt": "No one can imagine the beauty of the view from anything witnessed in England. It had never been seen before by European eyes; but scenes so lovely must have been gazed upon by angels in their flight. The falls are bounded on three sides by ridges 300 or 400 feet in height, which are covered with forest, with the red soil appearing amongst the trees. This description of Victoria Falls from 1857 introduced the world to one of Africa's great natural wonders, which Livingstone named after Queen Victoria but which the local Kololo people called 'Mosi-oa-Tunya' (the smoke that thunders).",
+      "keywords": [
+        "Victoria Falls",
+        "Zambezi",
+        "exploration",
+        "missionary",
+        "Southern Africa",
+        "nature",
+        "discovery"
+      ],
+      "wikisourceTitle": "Missionary_Travels_and_Researches_in_South_Africa",
+      "internetArchiveId": "missionarytrave00livigoog",
+      "citation": {
+        "translator": null,
+        "originalPublication": "London, 1857",
+        "modernSource": "John Murray, 1857"
+      }
+    },
+    {
+      "id": "mary-kingsley-west-africa",
+      "title": "Travels in West Africa",
+      "author": "Mary Henrietta Kingsley",
+      "year": 1897,
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "The African's life is one long fight—against man, beast, and nature. It is not a fight that develops the higher qualities; it is too hand-to-hand an affair for that.",
+      "longExcerpt": "The African's life is one long fight—against man, beast, and nature. It is not a fight that develops the higher qualities; it is too hand-to-hand an affair for that. You cannot be picturesque, or sentimental, or what is called moral, when you are fighting in the last ditch with a leopard. This controversial yet valuable account from 1897 provides a rare female European perspective on West African societies during the height of colonialism, offering detailed ethnographic observations despite its period prejudices.",
+      "keywords": [
+        "West Africa",
+        "ethnography",
+        "Congo",
+        "women explorers",
+        "Fang people",
+        "colonialism",
+        "anthropology"
+      ],
+      "wikisourceTitle": "Travels_in_West_Africa",
+      "internetArchiveId": "travelsinwestafr00king",
+      "citation": {
+        "translator": null,
+        "originalPublication": "London, 1897",
+        "modernSource": "Macmillan and Co., 1897"
       }
     }
   ]

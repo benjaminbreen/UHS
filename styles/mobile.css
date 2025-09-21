@@ -113,6 +113,44 @@ body {
   flex-direction: column;
 }
 
+/* Safari iOS modal fixes */
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari specific styles */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Ensure modals don't go behind Safari UI */
+  [class*="Modal"],
+  [class*="modal"] {
+    max-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 100px) !important;
+    margin-top: calc(env(safe-area-inset-top) + 20px) !important;
+    margin-bottom: calc(env(safe-area-inset-bottom) + 20px) !important;
+  }
+
+  /* Footer buttons always visible above Safari bottom bar */
+  [class*="modal"] [class*="footer"],
+  [class*="Modal"] [class*="Footer"],
+  .modal-footer,
+  .ff-action-button {
+    padding-bottom: max(16px, env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Scrollable content with padding */
+  [class*="modal"] [class*="content"],
+  [class*="Modal"] [class*="Content"],
+  .modal-content {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 80px) !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 .mobile-modal-header {
   padding: 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);

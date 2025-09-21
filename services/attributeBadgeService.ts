@@ -19,45 +19,58 @@ export class AttributeBadgeService {
   ): AttributeBadge[] {
     // Get all applicable attributes
     const applicable = getApplicableAttributes(character, year, geography);
-    
+
     if (applicable.length === 0) return [];
-    
+
+    // Separate attributes into categories for better selection
+    const universalAttributes = applicable.filter(attr =>
+      attr.category !== 'background' && !attr.id.includes('merchant') && !attr.id.includes('knight')
+    );
+    const backgroundAttributes = applicable.filter(attr =>
+      attr.category === 'background' || attr.id.includes('merchant') || attr.id.includes('knight')
+    );
+
     // Determine how many badges (0-maxBadges)
     const numBadges = this.rollBadgeCount(maxBadges);
     if (numBadges === 0) return [];
-    
-    // Select badges based on rarity
+
+    // Select badges with profession-aware logic
     const selected: AttributeBadge[] = [];
     const used = new Set<string>();
-    
+
     for (let i = 0; i < numBadges && applicable.length > 0; i++) {
       const rarity = this.rollRarity();
-      
+
+      // 80% chance to use universal attributes, 20% chance for background attributes
+      // This ensures most characters get appropriate generic attributes
+      const useUniversal = Math.random() < 0.8 || backgroundAttributes.length === 0;
+      const pool = useUniversal ? universalAttributes : backgroundAttributes;
+
       // Filter by rarity and not already used
-      const candidates = applicable.filter(
+      const candidates = pool.filter(
         attr => attr.rarity === rarity && !used.has(attr.id)
       );
-      
+
       if (candidates.length > 0) {
         const badge = candidates[Math.floor(Math.random() * candidates.length)];
-        
+
         // Check exclusions
         if (badge.excludes) {
           const hasExcluded = badge.excludes.some(id => used.has(id));
           if (hasExcluded) continue;
         }
-        
+
         // Check requirements
         if (badge.requires) {
           const hasRequired = badge.requires.every(id => used.has(id));
           if (!hasRequired) continue;
         }
-        
+
         selected.push(badge);
         used.add(badge.id);
       }
     }
-    
+
     return selected;
   }
   

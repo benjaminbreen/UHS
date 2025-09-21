@@ -40,11 +40,21 @@ export const useGameState = () => {
     // Log & Narration State
     const [gameLog, setGameLog] = useState<GameLogEntry[]>([]);
     const [playerJournal, setPlayerJournal] = useState<PlayerJournalEntry[]>([]);
+
+    // Milestone tracking state
+    const [milestoneStats, setMilestoneStats] = useState({
+        areasVisited: new Set<string>(),
+        npcsKilled: 0,
+        animalsKilled: 0,
+        questsCompleted: 0,
+        firstAnimalKill: false,
+        vipsMet: new Set<string>()
+    });
     const journalEntryIdCounter = useRef(0);
     const [isNarratorLoading, setIsNarratorLoading] = useState<boolean>(false);
     const [narrationHistory, setNarrationHistory] = useState<NarrationMessage[]>([ { sender: 'narrator-special', text: 'You can ask "What do I see?" or describe an action like "I check the desk for hidden drawers."' } ]);
     const [playerInput, setPlayerInput] = useState<string>('');
-    const [ambianceText, setAmbianceText] = useState<string>("Loading ambiance...");
+    const [ambianceText, setAmbianceText] = useState<string>("");  // Ambiance system deprecated
     const [lastAmbianceUpdateHour, setLastAmbianceUpdateHour] = useState<number>(-1);
     
     // UI Context State
@@ -123,7 +133,8 @@ export const useGameState = () => {
         formattedDate,
         currentZone,
         currentRegion,
-        
+        milestoneStats,
+
         // Setters
         setGameDate,
         setGameTimeHours,
@@ -144,7 +155,8 @@ export const useGameState = () => {
         setContextualMessage,
         setCurrentZone,
         setCurrentRegion,
-        
+        setMilestoneStats,
+
         // Handlers
         addGameLogEntry,
         onAddPlayerJournalEntry,

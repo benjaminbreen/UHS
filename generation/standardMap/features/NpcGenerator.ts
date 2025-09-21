@@ -1,7 +1,7 @@
 /**
  * generation/standardMap/features/NpcGenerator.ts - Enhanced NPC generation with portrait integration
  */
-import { Tile, ClimateType, NpcEntity, HistoricalEra, MapData, TerrainStructure, BiomeType, Appearance, Item, EquipmentSlot, ClothingPiece, Point, SocietalProfile, WealthLevel } from '../../../types';
+import { Tile, ClimateType, NpcEntity, HistoricalEra, MapData, TerrainStructure, BiomeType, Appearance, Item, EquipmentSlot, ClothingPiece, Point, SocietalProfile, WealthLevel, Gender } from '../../../types';
 import { MAP_WIDTH_TILES, MAP_HEIGHT_TILES, CulturalZone, STRUCTURE_BLUEPRINTS, PROFESSIONS, ProfessionDefinition, FACTION_DATA, GEOGRAPHICAL_DATA, STARTING_PACKAGES, SOCIETAL_PROFILES } from '../../../constants/index';
 import { ValueNoise } from '../../../utils/noise';
 import { generateBaseProfile, determineSocialRole, generateNpcName, assignBeliefs, generateCompleteOutfit } from '../../common/npcUtils';
@@ -16,6 +16,38 @@ import { generateCulturalAccessory } from '../../../services/culturalAccessorySe
 import { worldEntityRegistry } from '../../../services/worldEntityRegistry';
 import { urbanTileRegistry } from '../../../services/urbanTileRegistryService';
 import { generateWorkplaceName, shouldHaveIndividualWorkplace, getBusinessType, generateWorkingHours, detectProfessionCategory } from '../../../services/workplaceGenerationService';
+
+/**
+ * Get a random profession suitable for business ownership using the same system as real NPCs
+ */
+function getRandomProfessionForBusiness(culturalZone: CulturalZone, era: HistoricalEra, noise: ValueNoise): string {
+    // Use the same profession categories as the main NPC system
+    const businessCategories = ['MERCHANT', 'CRAFTER', 'ARTISAN', 'FOOD_SERVICES', 'SERVICES'];
+
+    // Randomly select a category
+    const category = businessCategories[Math.floor(noise.random() * businessCategories.length)];
+
+    // Get professions from the selected category
+    const categoryProfs = PROFESSIONS[culturalZone]?.[era]?.[category];
+
+    if (categoryProfs && Object.keys(categoryProfs).length > 0) {
+        const profKeys = Object.keys(categoryProfs);
+        return profKeys[Math.floor(noise.random() * profKeys.length)];
+    }
+
+    // Fallback: try MERCHANT first, then any available category
+    const fallbackCategories = ['MERCHANT', 'CRAFTER', 'ARTISAN'];
+    for (const fallbackCat of fallbackCategories) {
+        const fallbackProfs = PROFESSIONS[culturalZone]?.[era]?.[fallbackCat];
+        if (fallbackProfs && Object.keys(fallbackProfs).length > 0) {
+            const profKeys = Object.keys(fallbackProfs);
+            return profKeys[Math.floor(noise.random() * profKeys.length)];
+        }
+    }
+
+    // Final fallback to generic profession
+    return 'Merchant';
+}
 
 /**
  * Generate historically appropriate legs/trousers equipment
@@ -479,8 +511,8 @@ function createNpc(
         );
         
         if (attributes.length > 0) {
-            console.log(`[NPC Generator] Generated ${attributes.length} attribute(s) for ${name}:`, 
-                attributes.map(a => `${a.name} (${a.rarity})`).join(', '));
+            // console.log(`[NPC Generator] Generated ${attributes.length} attribute(s) for ${name}:`,
+            //     attributes.map(a => `${a.name} (${a.rarity})`).join(', '));
         }
         
         const npc: NpcEntity = {
@@ -851,12 +883,68 @@ export function generateNpcsForStandardMap(
         }
         
         // 3. Spawn remaining wandering NPCs
-        // HARD LIMIT: Never exceed 10 NPCs total
-        const MAX_NPCS_TOTAL = 10;
-        const targetNpcCount = Math.min(MAX_NPCS_TOTAL, calculateNpcCount(tiles, climate, noise, region, mapAreaName, dateInfo.year));
+        // Increased limit for better urban population
+        const MAX_NPCS_TOTAL = 20; // Increased from 10 to allow proper urban populations
+        const baseNpcCount = calculateNpcCount(tiles, climate, noise, region, mapAreaName, dateInfo.year);
+
+        // Count urban tiles to ensure proper urban NPC distribution
+        const urbanTiles = tiles.flat().filter(t =>
+            [BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.CITY_CENTER].includes(t.biome)
+        );
+
+        // Ensure at least 1 NPC per 2 urban tiles (50% occupancy)
+        const minUrbanNpcs = Math.ceil(urbanTiles.length / 2);
+        const targetNpcCount = Math.min(MAX_NPCS_TOTAL, Math.max(baseNpcCount, minUrbanNpcs));
         let attempts = 0;
         const maxAttempts = (targetNpcCount - npcs.length) * 50;
         
+        // Prioritize spawning NPCs in urban areas first
+        const remainingNpcsNeeded = targetNpcCount - npcs.length;
+        const urbanNpcsToSpawn = Math.min(remainingNpcsNeeded, Math.max(3, Math.floor(remainingNpcsNeeded * 0.7))); // 70% should be urban
+
+        // First pass: Spawn NPCs specifically in urban tiles
+        let urbanNpcsSpawned = 0;
+        const shuffledUrbanTiles = [...urbanTiles].sort(() => noise.random() - 0.5);
+
+        for (const urbanTile of shuffledUrbanTiles) {
+            if (urbanNpcsSpawned >= urbanNpcsToSpawn || npcs.length >= MAX_NPCS_TOTAL) break;
+
+            const position = findValidNpcPosition(tiles, npcPositions, noise, [urbanTile.x, urbanTile.y], 3);
+            if (!position) continue;
+
+            // Create an NPC appropriate for urban setting
+            const urbanNpc = createNpc(position.x, position.y, context, noise, stats, undefined);
+            if (urbanNpc) {
+                // Ensure urban NPCs have appropriate roles
+                if (urbanTile.biome === BiomeType.CITY_CENTER || urbanTile.biome === BiomeType.DENSE_CITY) {
+                    // Higher chance of merchants, crafters, scholars in cities
+                    urbanNpc.wealthLevel = noise.random() < 0.4 ? 'comfortable' : (noise.random() < 0.2 ? 'wealthy' : 'modest');
+                }
+
+                // Set home location in urban area
+                urbanNpc.homeLocation = { x: urbanTile.x, y: urbanTile.y };
+
+                // Register with urban tile registry
+                urbanTileRegistry.addResident(urbanTile, urbanNpc.id, undefined,
+                    urbanNpc.wealthLevel === 'wealthy' ? 'house' : 'apartment',
+                    urbanNpc.wealthLevel as any);
+
+                // Generate business if appropriate
+                if (shouldHaveIndividualWorkplace(urbanNpc.role || urbanNpc.profession || '', context.era, context.culturalZone)) {
+                    const business = urbanTileRegistry.generateAndRegisterBusiness(urbanNpc, urbanTile, context.culturalZone, context.era, urbanTile.biome);
+                    if (business) {
+                        urbanNpc.workplaceName = business.name;
+                        urbanNpc.workplaceLocation = { x: urbanTile.x, y: urbanTile.y };
+                    }
+                }
+
+                npcs.push(urbanNpc);
+                npcPositions.add(`${position.x},${position.y}`);
+                urbanNpcsSpawned++;
+            }
+        }
+
+        // Second pass: Spawn remaining NPCs in general areas
         while (npcs.length < targetNpcCount && npcs.length < MAX_NPCS_TOTAL && attempts < maxAttempts) {
             attempts++;
             const position = findValidNpcPosition(tiles, npcPositions, noise, null, 15);
@@ -919,28 +1007,74 @@ export function generateNpcsForStandardMap(
             }
         }
         
-        // 3. Post-Generation Social & Home Simulation
+        // 3. Post-Generation: Generate additional businesses for urban tiles without them
         const settlementTiles = tiles.flat().filter(t => [BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.CITY_CENTER].includes(t.biome));
 
-        // ENHANCED: Register NPCs with urban tile registry for culturally appropriate businesses
-        const urbanNpcs = npcs.filter(npc => {
-            const tile = tiles.flat().find(t => t.x === Math.floor(npc.x) && t.y === Math.floor(npc.y));
-            return tile && [BiomeType.HAMLET, BiomeType.LOW_DENSITY_CITY, BiomeType.DENSE_CITY, BiomeType.CITY_CENTER].includes(tile.biome);
-        });
+        // Generate businesses for urban tiles that don't have any yet
+        for (const urbanTile of settlementTiles) {
+            const existingBusinesses = urbanTileRegistry.getTileBusinesses(urbanTile.x, urbanTile.y);
 
-        urbanNpcs.forEach(npc => {
-            const tile = tiles.flat().find(t => t.x === Math.floor(npc.x) && t.y === Math.floor(npc.y));
-            if (tile && shouldHaveIndividualWorkplace(npc.role || npc.profession || '', context.era, context.culturalZone)) {
-                // Generate culturally appropriate business for this NPC
-                const business = urbanTileRegistry.generateAndRegisterBusiness(npc, tile, context.culturalZone, context.era, tile.biome);
+            // Skip if this tile already has businesses
+            if (existingBusinesses.length > 0) continue;
+
+            // Determine how many businesses this tile should have
+            let businessCount = 0;
+            switch(urbanTile.biome) {
+                case BiomeType.CITY_CENTER:
+                    businessCount = 3 + Math.floor(noise.random() * 3); // 3-5 businesses
+                    break;
+                case BiomeType.DENSE_CITY:
+                    businessCount = 2 + Math.floor(noise.random() * 2); // 2-3 businesses
+                    break;
+                case BiomeType.LOW_DENSITY_CITY:
+                    businessCount = 1 + Math.floor(noise.random() * 2); // 1-2 businesses
+                    break;
+                case BiomeType.HAMLET:
+                    businessCount = noise.random() < 0.6 ? 1 : 0; // 60% chance of 1 business
+                    break;
+            }
+
+            // Generate placeholder businesses for this tile
+            for (let i = 0; i < businessCount; i++) {
+                // Generate a culturally appropriate profession
+                const profession = getRandomProfessionForBusiness(context.culturalZone, context.era, noise);
+
+                // Generate a culturally appropriate name using the same system as real NPCs
+                const gender: Gender = noise.random() < 0.5 ? 'male' : 'female';
+                const name = generateNpcName(gender, context.culturalZone, context.region, context.year, noise) || `Proprietor ${i + 1}`;
+
+                // Generate appropriate emoji based on profession and culture
+                const { emoji } = determineSocialRole(
+                    { age: 30, gender, charisma: 15, intelligence: 15, wisdom: 15, constitution: 15, dexterity: 15, strength: 15 },
+                    { era: context.era, culturalZone: context.culturalZone, region: context.region },
+                    profession
+                ) || { emoji: '👤' };
+
+                // Create a virtual NPC to generate the business
+                const virtualNpc: NpcEntity = {
+                    id: `virtual_${urbanTile.x}_${urbanTile.y}_${i}`,
+                    name: name,
+                    x: urbanTile.x,
+                    y: urbanTile.y,
+                    emoji: emoji || '👤',
+                    health: 100,
+                    maxHealth: 100,
+                    role: profession,
+                    profession: profession,
+                    type: 'npc',
+                    behavior: {},
+                    inventory: [],
+                    homeLocation: { x: urbanTile.x, y: urbanTile.y },
+                    activity: 'working'
+                };
+
+                // Generate and register the business
+                const business = urbanTileRegistry.generateAndRegisterBusiness(virtualNpc, urbanTile, context.culturalZone, context.era, urbanTile.biome);
                 if (business) {
-                    // Update NPC with the generated business info
-                    npc.workplaceName = business.name;
-                    npc.workplaceLocation = { x: tile.x, y: tile.y };
-                    console.log(`[NPC] Generated ${context.culturalZone} ${context.era} business for ${npc.name}: "${business.name}"`);
+                    console.log(`[NPC] Generated standalone business "${business.name}" (owner: ${name}) for tile (${urbanTile.x}, ${urbanTile.y})`);
                 }
             }
-        });
+        }
 
         try {
             for (const npc of npcs) {
@@ -1110,7 +1244,7 @@ function findValidNpcPosition(
 }
 
 function calculateNpcCount(tiles: Tile[][], climate: ClimateType, noise: ValueNoise, regionName?: string, localAreaName?: string, year?: number): number {
-    console.log(`[NPC] Starting NPC count calculation for localArea="${localAreaName}", region="${regionName}"`);
+    // console.log(`[NPC] Starting NPC count calculation for localArea="${localAreaName}", region="${regionName}"`);
     
     // Use centralized city detection for accurate era calculation
     const dateInfo = parseDateString(year?.toString() || '1650');
@@ -1119,7 +1253,7 @@ function calculateNpcCount(tiles: Tile[][], climate: ClimateType, noise: ValueNo
     const hasCities = cityDetection.hasCities;
     const cityDensity = cityDetection.cityDensity;
     
-    console.log(`[NPC] City detection result: hasCities=${hasCities}, source=${cityDetection.source}, density=${cityDensity}`);
+    // console.log(`[NPC] City detection result: hasCities=${hasCities}, source=${cityDetection.source}, density=${cityDensity}`);
     
     // Count urban tiles to determine actual urbanization
     let urbanTileCount = 0;

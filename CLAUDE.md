@@ -244,11 +244,11 @@ This system allows **maximum flexibility** - create detailed cultural variants w
 - **NPC Generation**: Culturally accurate names, professions, appearances
 - **Professions System**: 4000+ lines of culturally-specific professions across all eras/zones
 - **Physical Feat System**: Narration panel detects and evaluates climbing, fording, jumping actions
+- **Save/Load System**: Fully integrated via settings menu with localStorage persistence - supports up to 10 saved games with complete state restoration
 
 ### ⚠️ Systems With Issues
 - **Quest System**: need to finalize the saving and loading system; currently quests should reset with every reloead since reloads start player in new setting as new playable character (PC)
 - **Primary Sources**: data embedded in various public/sources/metadata files, naming convention: asia-antiquity.json, asia-medieval.json, etc.
-- **Save/Load System**: Service exists but NOT integrated except stub implementation for testing in settings menu
 
 ### ⚠️ Partially Implemented
 - **NPC Testing Panel**: Basic testing works, missing dialogue/trade testing
@@ -507,9 +507,99 @@ interface SavedGame {
 }
 ```
 
+## ✅ Special Map Workspace Routing Enhancement (COMPLETED - September 19, 2025)
+
+### **Problem Analysis:**
+CityModal workspaces previously incorrectly routed to government district special maps instead of appropriate workspace archetypes. The system lacked:
+1. ❌ Dedicated WORKSHOP archetype for small craftsman buildings → ✅ **FIXED**
+2. ❌ Culture/era-specific routing logic → ✅ **IMPLEMENTED**
+3. ❌ Proper archetype mapping between business types and special map generators → ✅ **FIXED**
+
+### **Two-Phase Implementation (COMPLETED):**
+
+#### **✅ Phase 1: WorkshopGenerator Archetype (COMPLETED)**
+**Objective:** Create dedicated `WorkshopGenerator` for small craftsman buildings with single shopkeeper
+
+**1.1 Add WORKSHOP archetype to enum** (5 minutes)
+- Add `WORKSHOP = 'WORKSHOP'` to `SpecialMapArchetype` enum in `types/specialMapTypes.ts`
+
+**1.2 Create workshopGenerator.ts** (45 minutes)
+- Copy structure from `restaurantInnGenerator.ts`
+- Create smaller, simpler layout (8x8 or 10x10 default)
+- Single main room with:
+  - Work area (anvil/workbench/tools based on profession)
+  - Storage area (materials, finished goods)
+  - Simple entrance
+  - Cultural theming for walls/floors
+- Support workshop types: smithy, pottery, weaving, carpentry, etc.
+
+**1.3 Register WorkshopGenerator in specialMapGenerator.ts** (10 minutes)
+- Import `{ generateWorkshop } from './archetypes/workshopGenerator'`
+- Add case for `SpecialMapArchetype.WORKSHOP` in switch statement
+- Set appropriate map size constraints in `determineMapSize()`
+
+**1.4 Update CityModal archetype mapping** (15 minutes)
+- Fix `determineWorkspaceArchetype()` to return proper enum values
+- Map crafting professions (smith, baker, weaver, etc.) to `'WORKSHOP'`
+- Ensure config structure matches `SpecialMapConfig` interface
+
+#### **✅ Phase 2: Culture/Era-Specific Routing Logic (COMPLETED)**
+**Objective:** Route workspaces to appropriate archetypes based on cultural zone and historical era
+
+**✅ 2.1 Create Advanced Workspace Router (COMPLETED)**
+- ✅ Replaced `determineWorkspaceArchetype()` with `determineWorkspaceArchetypeAdvanced()`
+- ✅ Input: `businessType`, `culturalZone`, `era`, `population`, `wealthLevel`
+- ✅ Logic examples implemented:
+  - European Medieval tavern → RESTAURANT_INN
+  - MENA Medieval spice merchant → MARKET_BAZAAR
+  - East Asian blacksmith → WORKSHOP
+  - European Industrial factory → WORKSHOP (larger size)
+  - Tribal shaman hut → SACRED_COMPLEX (small)
+
+**✅ 2.2 Era-Specific Archetype Variations (COMPLETED)**
+- Modify existing generators to accept era/culture parameters
+- **restaurantInnGenerator**: Medieval taverns vs modern restaurants vs tribal gathering spaces
+- **marketGenerator**: Bazaars vs trading posts vs department stores vs tribal trade circles
+- **workshopGenerator**: Simple huts vs guild workshops vs industrial factories
+
+**✅ 2.3 Culture-Specific Layout Rules (COMPLETED)**
+- ✅ Leveraged existing cultural furniture systems
+- ✅ **European**: Stone/wood construction, rectangular layouts
+- ✅ **East Asian**: Paper screens, courtyard elements, tatami
+- ✅ **MENA**: Geometric tile patterns, enclosed courtyards
+- ✅ **Indigenous**: Circular layouts, natural materials, open designs
+- ✅ **Modern**: Industrial materials, larger spaces, electric lighting
+
+**✅ 2.4 Population-Based Scaling (COMPLETED)**
+- ✅ Small settlements (hamlet): Always WORKSHOP for individual craftsmen
+- ✅ Medium towns: Mix of WORKSHOP and MARKET_BAZAAR
+- ✅ Large cities: MARKET_BAZAAR for major merchants, WORKSHOP for specialists
+- ✅ Era scaling: Prehistoric/tribal always small, modern era can be massive
+- ✅ Population thresholds: >2000 = large settlements, >5000 = major cities
+- ✅ Workshops scale equipment/storage based on population and wealth
+
+**✅ Implementation Files (ALL COMPLETED):**
+- ✅ **New:** `generation/specialMap/archetypes/workshopGenerator.ts` (500+ lines)
+- ✅ **Modified:** `types/specialMapTypes.ts`, `generation/specialMap/specialMapGenerator.ts`, `components/CityModal.tsx`
+
+**✅ Testing Strategy (IMPLEMENTED):**
+- ✅ Phase 1: WORKSHOP archetype generation working across all cultural zones
+- ✅ Phase 2: Advanced routing system handles culture/era/population matrix properly
+- ✅ All workshop types (smithy, pottery, weaving, carpentry, bakery) implemented with scaling
+
 ## Update Log
 
-### September 12, 2025 (Today)
+### September 19, 2025
+- **✅ Special Map Workspace Routing Enhancement COMPLETED**: Fixed workspace routing that was incorrectly sending users to government districts
+  - ✅ Created comprehensive WorkshopGenerator archetype (500+ lines) supporting smithy, pottery, weaving, carpentry, bakery
+  - ✅ Implemented advanced culture/era-specific routing logic in CityModal
+  - ✅ Added population-based scaling for workshop complexity (village smithy vs major city industrial operations)
+  - ✅ Enhanced all workshop types with era-appropriate materials and technology
+  - ✅ Integration tested successfully - businesses now route to appropriate archetypes instead of government districts
+- **CityModal Enhancement Complete**: Added LLM-powered city descriptions and responsive banner sizing
+- **Special Map Routing Analysis**: Identified workspace routing issues and created implementation plan
+
+### September 12, 2025 (Previous)
 - **Physical Feat System**: Improved success rates for better gameplay (50-85% base chances)
 - **CLAUDE.md Updates**: Added Physical Feat System documentation, corrected date awareness issue
 - **Skeptical Review Results**:
@@ -529,36 +619,163 @@ interface SavedGame {
 - Maintained consistency with existing game date ranges and political entities
 - Every region now has complete faction coverage across all historical eras
 
-## Healing System Plan (Multi-Stage Implementation)
+## Disease Progression System Enhancement (September 20, 2025)
 
-### Stage 1: Profession-Based Healing Unlocks
-- Allow any character to become healer/herbalist on level up
-- Make healing professions available in ALL eras/zones
-- Unlock basic healing abilities with profession change
+### **Complete Implementation - All 6 Phases ✅**
 
-### Stage 2: Diagnosis Mechanics
-- Create HealingModal component for medical interactions
-- Implement symptom investigation mini-game
-- Add Intelligence/Wisdom checks for diagnosis accuracy
-- Risk of misdiagnosis leading to wrong treatments
+#### **Phase 1: Disease-Based Movement Restrictions** ✅
+- **File**: `services/diseaseProgressionService.ts` (NEW)
+- Movement penalty multipliers scale from 1.0x (normal) to 60.0x (terminal stage)
+- Movement restrictions ONLY apply at terminal stage (85%+ severity) to prevent premature limitations
+- 5 progression stages: early → moderate → severe → critical → terminal
+- Disease-specific penalties for rabies (complete paralysis), plague, tuberculosis
 
-### Stage 3: Treatment System
-- Expand medicine crafting from herbs/materials
-- Dosage selection (too little/much has consequences)
-- Era-appropriate treatments (bloodletting → antibiotics)
-- Track treatment outcomes and patient follow-ups
+#### **Phase 2: Voice Loss Dialogue Restrictions** ✅
+- **File**: `hooks/useUIState.ts` - Voice loss detection in narrator input
+- **File**: `components/EncounterModalUpdated.tsx` - Visual feedback system
+- Voice loss levels 0-3: normal → weak → whispers → complete silence
+- Input field color changes based on voice loss level (yellow → red)
+- Player input replaced with "..." when voice loss level >= 3
+- Warning messages about speech limitations in encounter UI
 
-### Stage 4: Medical Quests
-- Transform fetch quests into full medical scenarios
-- "Diagnose illness" → "Gather ingredients" → "Prepare remedy" → "Monitor recovery"
-- Epidemic response quests for disease outbreaks
-- Build medical reputation through successful treatments
+#### **Phase 3: Severe Visual Symptoms** ✅
+- **File**: `components/portraits/ProceduralPortrait.tsx`
+- Disease-specific visual symptoms overlaid on portraits:
+  - Smallpox: red facial rash/pockmarks
+  - Bubonic plague: darkened skin tone with gangrene
+  - Cholera: grayish pallor from dehydration
+  - Tuberculosis: pale, consumptive complexion
+- Symptoms scale with disease severity for realistic progression
 
-### Stage 5: Advanced Features
-- Medical skill progression tree
-- Specializations (surgeon, herbalist, plague doctor)
-- Medical equipment crafting/trading
-- Teaching/apprentice system for spreading medical knowledge
+#### **Phase 4: NPC Disease Awareness & Avoidance** ✅
+- **File**: `services/encounterService.ts` - Disease awareness integration
+- **File**: `services/llmService.ts` - LLM prompt modification
+- Social avoidance levels 0-3: normal → mild concern → obvious illness → severe/contagious
+- NPCs react appropriately to visible symptoms in dialogue
+- Disease modifier strings provide NPC context about player's condition
+
+#### **Phase 5: Player Death from Disease** ✅
+- **File**: `hooks/useCoreLoops.ts` - Death detection system
+- Random death checks for terminal diseases (up to 5% chance per day)
+- Immediate death for complete paralysis (rabies day 7+)
+- GameOverModal integration with disease-specific death messages
+
+#### **Phase 6: NPC Death Notifications** ✅
+- **File**: `components/NpcDeathModal.tsx` (NEW)
+- **File**: `hooks/useCoreLoops.ts` - NPC death detection
+- **File**: `App.tsx` - Modal integration
+- Auto-closing notifications (8 seconds) when NPCs die from disease
+- Shows NPC details, disease information, and contextual death messages
+
+### **Disease Stage Progression & Notifications** ✅
+
+#### **Core Notification System**
+- **File**: `services/diseaseNotificationService.ts` (NEW)
+- **File**: `components/DiseaseProgressionModal.tsx` (NEW)
+- Historically accurate, disease-specific progression descriptions
+- Stage change detection with notification events
+- Auto-closing modals with stage-appropriate timing (6-8 seconds)
+
+#### **Progression Stages & Effects**
+1. **Early Stage** (0-30% severity): Minimal symptoms, no gameplay impact
+2. **Moderate Stage** (30-50% severity): Visible symptoms, mild social avoidance
+3. **Severe Stage** (50-70% severity): Obvious illness, weak voice, social concern
+4. **Critical Stage** (70-85% severity): Severe symptoms, whispers only, active avoidance
+5. **Terminal Stage** (85%+ severity): Movement severely limited (60x slower), no speech, death approaching
+
+#### **Disease Progression Timing**
+- **Updates Once Per Game Day**: Disease progression occurs when game clock reaches midnight (newHours === 0)
+- **Location**: `useCoreLoops.ts` lines 305-358
+- **Not Hourly**: Progression is daily, not every hour or two as initially unclear
+- Stage changes trigger immediate notification modals to inform players
+
+### **Key Design Decisions**
+- **Movement restrictions delayed**: Only apply at terminal stage to prevent frustrating early-game limitations
+- **Player feedback prioritized**: Comprehensive notification system keeps players informed of disease progression
+- **Historical accuracy maintained**: Disease-specific symptoms and progression match historical medical understanding
+- **Integrated systems**: All disease effects flow through existing game systems (combat, dialogue, portraits, death)
+
+### **Files Created/Modified**
+**New Files:**
+- `services/diseaseProgressionService.ts` - Core disease restriction calculations
+- `services/diseaseNotificationService.ts` - Progression event generation
+- `components/DiseaseProgressionModal.tsx` - Player progression notifications
+- `components/NpcDeathModal.tsx` - NPC death notifications
+
+**Modified Files:**
+- `hooks/useCoreLoops.ts` - Movement penalties, death detection, progression checking
+- `hooks/useUIState.ts` - Voice loss input restrictions
+- `components/EncounterModalUpdated.tsx` - Voice loss visual feedback
+- `components/portraits/ProceduralPortrait.tsx` - Disease visual symptoms
+- `services/encounterService.ts` - NPC disease awareness
+- `services/llmService.ts` - Disease context in LLM prompts
+- `App.tsx` - Modal state management and callback integration
+
+## Disease & Medical System Status (September 2025)
+
+### ✅ FULLY IMPLEMENTED Systems
+
+**Comprehensive Disease System** (`types/diseaseTypes.ts`)
+- 35+ historically accurate diseases with multi-stage progression
+- Cultural/era restrictions (Columbian Exchange tracking)
+- Disease types: respiratory, gastrointestinal, vector-borne, contact, parasitic, zoonotic, nutritional, toxic
+- Progressive symptoms with stat effects (health, fatigue, strength penalties)
+
+**Cultural Medical Knowledge** (`services/culturalMedicalKnowledge.ts`)
+- Era-specific medical understanding for each cultural zone
+- Authentic historical quotes from real medical texts
+- Cultural disease interpretation (humors, qi, spirits, miasma theory)
+- Practitioner recommendations by era/culture
+
+**Historical Medicine & Treatments** (`services/historicalMedicineService.ts`)
+- Era-appropriate treatments with effectiveness ratings
+- Historical medicines: herbal remedies, bloodletting, opium, quinine, antibiotics
+- Treatment outcomes with success rates, side effects, costs
+- Cultural variation in treatment approaches
+
+**Disease Transmission & Progression** (`services/diseaseService.ts`)
+- Proximity, direct contact, and terrain-based transmission
+- Daily disease progression with recovery chances
+- NPC/Animal disease assignment based on historical prevalence
+- Epidemic detection for specific years/regions
+
+**Complete UI System**
+- `DiseaseModal.tsx`: Disease information with historical context and progression timeline
+- `DiseaseContractedModal.tsx`: Emergency notifications with survival rates
+- `NpcMedicalPanel.tsx`: Healer detection and treatment application interface
+
+**Healing Professions** (`constants/characterData/professions.ts`, `startingPackages.ts`)
+- 40+ culture-specific healing professions across all eras/zones
+- 50+ medical items and equipment in `itemDefinitions.ts`
+- Starting packages with appropriate medical supplies
+
+### ⚠️ PARTIALLY IMPLEMENTED
+
+**Medical Quest Integration**
+- NPC Medical Panel exists but limited quest scenario integration
+- Basic treatment application works but no epidemic response quests
+- No medical reputation tracking system
+
+**Entity Health System** (`services/entityHealthService.ts`)
+- Basic damage tracking and health persistence for NPCs/animals
+- Healing mechanics exist but not fully integrated with medical professions
+
+### ❌ NOT IMPLEMENTED (Future Features)
+
+**Interactive Diagnosis Mechanics**
+- No symptom investigation mini-game
+- No Intelligence/Wisdom checks for diagnosis accuracy
+- No misdiagnosis risk system
+
+**Advanced Medical Features**
+- No medical skill progression trees
+- No medical equipment crafting system
+- No teaching/apprentice system for medical knowledge
+- No dosage selection mechanics
+
+**Educational Integration**
+- No assessment tied to medical decisions
+- No learning objectives for medical scenarios
 
 ## Quest System Implementation - Phase 1 Complete (Latest Session)
 
@@ -752,10 +969,111 @@ Massive profession database with 4000+ lines of culturally-specific roles.
 - Each profession has stat requirements, social requirements, and gender biases where historically accurate
 - Modern era includes contemporary roles (CEO, Software Engineer, etc.)
 
+## Study & Documentation System Implementation (September 2025)
+
+### **Overview**
+Implemented a comprehensive study and documentation system that integrates with existing game mechanics to provide educational value without complexity. Replaces the underutilized Beliefs system with an interactive Study system.
+
+### **Phase 1 Implementation - COMPLETED**
+
+#### **A. InventoryPanel Updates** ✅
+- **File**: `components/InventoryPanel.tsx`
+- Replaced "Combine"/"Disaggregate" buttons with "Craft" and "Study 🔬" buttons
+- "Craft" opens CraftingModal (with new mode toggle)
+- "Study" moves selected items to Study tab and auto-switches to it
+- Separated animal butchering into dedicated "Butcher" button
+- Added `onStudy` prop to handle item transfer
+
+#### **B. CraftingModal Enhancement** ✅
+- **File**: `components/CraftingModal.tsx`
+- Added toggle at top: [Combine Items] [Take Apart]
+- Mode selection now happens within modal instead of before opening
+- "Take Apart" button disabled unless exactly 1 item selected
+- Updated `onExecuteCrafting` to pass selected method
+
+#### **C. Study Tab Implementation** ✅
+- **File**: `components/StudyPanel.tsx` (NEW)
+- **File**: `components/RightSidebar.tsx` (UPDATED)
+- Replaced "Beliefs" tab with "Study 🔬" tab
+- StudyPanel shows three sections:
+  - **Specimens**: Items under study with progress bars
+  - **NPCs**: Encountered NPCs with recall function
+  - **Animals**: Encountered animals with recall function
+- Each item has "Observe" and "Return to Inventory" buttons
+- Beliefs moved to CharacterProfile modal (already existed there)
+
+#### **D. Enhanced Journal Viewport** ✅
+- **File**: `components/JournalViewport.tsx` (NEW)
+- Slides down from top like POV viewport (mutual exclusion)
+- **Desktop Layout**: Left 2/3 writing area, right 1/3 entries list
+- **Mobile Layout**: Compact single-column with bottom controls
+- Auto-saves every 2 seconds
+- Beautiful serif font (Georgia) for text content
+- Auto-timestamps entries with location + date
+- Documentation mode toggle for click-to-document
+
+### **Data Structures**
+
+```typescript
+interface StudiedItem extends Item {
+  studyProgress?: number; // 0-100%
+  notes?: string[];
+  discoveredProperties?: string[];
+  dateStudied?: number; // timestamp
+}
+
+interface StudyData {
+  specimens: StudiedItem[];
+  encounters: {
+    npcs: NpcEntity[];
+    animals: Animal[];
+    timestamp: number;
+  }[];
+}
+
+interface JournalEntry {
+  id: string;
+  title?: string;
+  content: string;
+  location: string;
+  date: string;
+  timestamp: number;
+}
+```
+
+### **Key Features**
+- **Era-Agnostic**: No artificial limitations based on historical period
+- **Mobile Responsive**: Compact layouts that work on all screen sizes
+- **Auto-Save**: Journal entries persist automatically
+- **Study Progress**: Items can be examined multiple times to reveal properties
+- **Integration**: Works with existing inventory, crafting, and modal systems
+- **Educational**: Encourages documentation and observation
+
+### **Future Phases (Planned)**
+
+#### **Phase 2: Enhanced Documentation** (Next)
+- Click-to-document mode integration with map entities
+- Auto-generated descriptions for tiles/NPCs/animals
+- Mobile swipe gestures and voice-to-text
+- Export journal as text file
+
+#### **Phase 3: Advanced Study Actions** (Later)
+- Study action buttons: Observe, Examine, Compare, Test
+- LLM integration for "Examine" action (detailed historical context)
+- Discovery system revealing hidden item properties
+- Educational metrics tracking
+
+### **Benefits**
+1. **Minimalist Design**: Reuses existing UI patterns and components
+2. **Educational Value**: Encourages careful observation and documentation
+3. **Historical Accuracy**: No anachronistic features or era-gating
+4. **Procedural Richness**: Simple mechanics create emergent documentation gameplay
+5. **Assessment Ready**: Study progress easily trackable for educational metrics
+
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're necessary for achieving your goal.
-ALWAYS prefer editing an existing file to creating a new one unless asked otherwise. 
+ALWAYS prefer editing an existing file to creating a new one unless asked otherwise.
 NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
 ## Maps System Clarification - IMPORTANT
 
@@ -853,3 +1171,211 @@ Players can interact with containers (chests, barrels, crates, cabinets, etc.) i
 3. **Historical Accuracy**: Courts look like courts, not forums
 4. **Scalability**: Each archetype can have cultural variations
 5. **Reusability**: ~160 buildings get proper archetypes
+
+## Gamelog Restoration & Enhancement (September 19, 2025)
+
+### **Phase 1 Implementation - COMPLETED**
+
+#### **Overview**
+Restored and enhanced the existing gamelog system to replace the Journal tab with a dedicated Gamelog tab focused on automatic event tracking. The gamelog system tracks the player's historical journey through the simulation, automatically recording both standard and milestone events.
+
+#### **A. Left Sidebar Restructure** ✅
+- **File**: `components/LeftSidebar.tsx`
+- Replaced "Journal" major tab with "Gamelog"
+- Removed JournalPanel dependency
+- Direct integration with GamelogPanel component
+- Simplified tab structure (no sub-tabs needed)
+
+#### **B. Enhanced LogService** ✅
+- **File**: `services/logService.ts`
+- **File**: `types/journal.ts`
+- Added new log entry types:
+  - `QUEST_START` - Quest initiation tracking
+  - `QUEST_COMPLETE` - Quest completion with rewards
+  - `MILESTONE_COMBAT` - First kills, NPC deaths
+  - `MILESTONE_EXPLORATION` - Areas explored milestones
+  - `MILESTONE_ACHIEVEMENT` - VIP meetings, major accomplishments
+
+#### **C. Milestone Visual System** ✅
+- **File**: `components/GamelogPanel.tsx`
+- Special styling for milestone events:
+  - Golden gradient background for milestone entries
+  - 🏆 trophy icon prepended to milestone events
+  - "MILESTONE" badge with yellow highlight
+  - Ring border effect for visual emphasis
+- Color-coded entry types with distinct borders
+
+#### **D. Milestone Tracking State** ✅
+- **File**: `hooks/useGame.ts`
+- Added `milestoneStats` state tracking:
+  - `areasVisited` (Set) - Unique areas discovered
+  - `npcsKilled` (number) - NPCs defeated in combat
+  - `animalsKilled` (number) - Animals successfully hunted
+  - `questsCompleted` (number) - Quests finished
+  - `firstAnimalKill` (boolean) - First hunt milestone
+  - `vipsMet` (Set) - Important NPCs encountered
+- State management and setter exposure for external hooks
+
+#### **E. LogService Milestone Methods** ✅
+New methods for milestone event creation:
+- `createMilestoneFirstKillLog()` - First successful hunt
+- `createMilestoneNpcKillLog()` - NPC combat deaths
+- `createMilestoneAreasExploredLog()` - Exploration milestones (every 10th area)
+- `createMilestoneVipMeetingLog()` - Important NPC encounters
+- `createQuestStartLog()` / `createQuestCompleteLog()` - Quest tracking
+
+### **System Design Principles**
+
+#### **Automatic Event Detection**
+The gamelog captures events through existing game systems:
+- **Standard Events**: Map movement, NPC dialogue, combat initiation, item acquisition, trade, skill use
+- **Milestone Events**: Achievement thresholds (10th area, first kill, quest completion, VIP meetings)
+
+#### **Event Categories**
+- **🗺️ MAP_ENTRY**: Area transitions and exploration
+- **💬 DIALOGUE**: NPC conversations via encounter modal
+- **⚔️ COMBAT**: Combat initiation with animals/NPCs
+- **✨ ITEM_ACQUIRED**: Foraging, purchase, loot, quest rewards
+- **💰 TRADE**: Buy/sell transactions
+- **🛠️ SKILL_USE**: Skill activation results
+- **📜 QUEST_START**: Quest initiation
+- **🏆 MILESTONE Events**: Major achievements with special styling
+
+#### **Educational Value**
+- **Historical Journey**: Complete record of player's path through historical scenarios
+- **Cultural Documentation**: NPCs met, locations visited, items acquired all culturally contextualized
+- **Progressive Discovery**: Milestone system rewards thorough exploration and engagement
+- **Assessment Ready**: Event data easily exportable for educational analysis
+
+### **Phase 2 Implementation Plan - Next**
+
+#### **A. Study System LLM Integration**
+- **File**: `services/llmService.ts` - Add `generateItemStudyText()` function
+- Modified version of `generateObservationText()` focused on item analysis
+- Remove landscape/companion references, focus on:
+  - Item material analysis and historical context
+  - Cultural significance and craftsmanship details
+  - Era-appropriate scholarly language
+  - 3-4 sentence detailed descriptions
+
+#### **B. Study-to-Journal Flow**
+- **File**: `components/StudyPanel.tsx` - Wire up "Observe" button functionality
+- Connect study observations to Journal viewport
+- Auto-open Journal viewport when study observation is triggered
+- Create journal entries marked as "🔬 AI Study Analysis"
+
+#### **C. Enhanced Journal Integration**
+- **File**: `components/JournalViewport.tsx` - Handle study entry display
+- Special styling for AI-generated study entries
+- Include item metadata (name, material, condition, cultural origin)
+- "AI Study Analysis" badge to distinguish from manual entries
+
+#### **D. Comprehensive Event Logging**
+- Hook into existing game systems to auto-generate log entries:
+  - `useCoreLoops.ts` - Movement and map transitions
+  - `useUIState.ts` - Item acquisition, skill use, combat
+  - Quest system integration for quest start/complete
+  - NPC encounter detection for VIP meetings
+
+### **Technical Integration Points**
+- Leverages existing GamelogPanel component (no new UI needed)
+- Uses established LogService patterns for consistency
+- Integrates with useGame.ts state management
+- Maintains separation between automatic gamelog and manual journal
+- Educational assessment data automatically captured
+
+### **Benefits**
+1. **Simple Restoration**: Rebuilt existing functionality without over-engineering
+2. **Historical Tracking**: Complete automatic record of player's educational journey
+3. **Milestone Recognition**: Visual celebration of exploration and achievement
+4. **Assessment Ready**: Event data easily exportable for educational analysis
+5. **Cultural Context**: All events include era, location, and cultural context
+6. **Procedural Discovery**: Emergent storytelling through automatic event capture
+
+## Educational Game Setup Screen Plan (AWAITING APPROVAL)
+
+### **Overview**
+Replace the current immediate world generation flow with a proper educational game setup screen (like Civ 6). This would create a true educational onboarding experience with learning objectives selection and assessment tracking.
+
+### **Problem Statement**
+Current InitialScenarioModal assumes world is already generated and doesn't provide:
+- Game introduction for new educational users
+- Learning objectives selection
+- Assessment preference setup
+- Proper scenario selection (random vs custom vs curated)
+
+### **Proposed Solution: GameSetupScreen.tsx**
+
+#### **Section 1: Game Introduction**
+- Title: "Universal History Simulator"
+- Educational purpose explanation
+- UC Santa Cruz branding
+- Brief gameplay mechanics overview
+
+#### **Section 2: Mode Selection**
+```
+┌─ Quick Play (Traditional) ─┐  ┌─ Learning Mode (Educational) ─┐
+│ • Random scenario          │  │ • Learning objectives         │
+│ • No assessment tracking   │  │ • Progress tracking           │
+│ • Casual gameplay          │  │ • End-session reports         │
+└───────────────────────────┘  └───────────────────────────────┘
+```
+
+#### **Section 3: Scenario Selection**
+1. **Random Scenario** - "Surprise me!" quick start
+2. **Browse Scenarios** - Curated historical scenarios ("Survive Black Death", "Navigate Silk Road")
+3. **Custom Scenario** - WorldWeaver integration for AI-generated scenarios
+
+#### **Section 4: Learning Objectives (Learning Mode)**
+Multi-select checkboxes:
+- ☐ Historical Thinking (cause/effect analysis)
+- ☐ Cultural Comparison (worldviews/practices)
+- ☐ Economic Systems (trade/labor/resources)
+- ☐ Social Structures (class/gender/power)
+- ☐ Primary Source Analysis (document evaluation)
+- ☐ Geographic Impact (environment/human activity)
+
+#### **Section 5: Game Parameters**
+- Difficulty: Forgiving → Realistic → Hardcore
+- Session Length: Short (30m) → Extended (2h+)
+- AI Features: Enhanced descriptions, dynamic NPCs
+- Assessment Frequency: None → Occasional → Frequent
+
+### **Implementation Phases**
+
+#### **Phase 1: Basic Structure**
+- Create GameSetupScreen.tsx component
+- Update App.tsx routing (setup → generation → scenario → gameplay)
+- Add curated scenario database
+
+#### **Phase 2: Learning Integration**
+- Learning objectives selection system
+- Create learningObjectivesService.ts for tracking
+- Modify InitialScenarioModal to show selected objectives
+
+#### **Phase 3: WorldWeaver Integration**
+- Embed WorldWeaver in setup screen
+- Add scenario preview before confirmation
+- Save/bookmark custom scenarios
+
+#### **Phase 4: Assessment Setup**
+- Assessment preferences selection
+- Create assessment scheduler service
+- Teacher dashboard preparation
+
+### **New User Flow**
+```
+Current: App.tsx → World Generation → InitialScenarioModal → Gameplay
+Proposed: App.tsx → GameSetupScreen → World Generation → InitialScenarioModal → Gameplay
+```
+
+### **Educational Benefits**
+- Proper onboarding explains educational purpose
+- Learning objectives create clear goals
+- Assessment tracking enables classroom use
+- Custom scenarios allow curriculum alignment
+- Teacher dashboard supports formal education
+
+### **Status: AWAITING USER APPROVAL**
+**Note**: This plan requires explicit approval before implementation begins. Implementation will proceed in phases with user confirmation at each stage.
+

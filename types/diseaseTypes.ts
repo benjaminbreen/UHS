@@ -6,20 +6,22 @@ import { HistoricalEra } from './ambiance';
 import { CulturalZone } from './characterData';
 import { GameDate } from './index';
 
-export type DiseaseType = 
-  | 'respiratory'     // Airborne, close proximity 
+export type DiseaseType =
+  | 'respiratory'     // Airborne, close proximity
   | 'gastrointestinal' // Contaminated food/water
   | 'vector_borne'     // Insect/animal bites
   | 'contact'          // Direct contact, bodily fluids
   | 'parasitic'        // Contaminated water, poor hygiene
-  | 'zoonotic';        // Animal contact
+  | 'zoonotic'         // Animal contact
+  | 'traumatic';       // Physical injuries from accidents
 
-export type TransmissionVector = 
+export type TransmissionVector =
   | 'airborne'      // Respiratory droplets, shared air
   | 'waterborne'    // Contaminated water/food
   | 'vector'        // Insect/tick/flea bite
   | 'contact'       // Direct skin/fluid contact
-  | 'zoonotic';     // Animal-to-human transmission
+  | 'zoonotic'      // Animal-to-human transmission
+  | 'traumatic';    // Physical injury, no transmission
 
 export type DiseaseSeverity = 'mild' | 'moderate' | 'severe' | 'critical';
 

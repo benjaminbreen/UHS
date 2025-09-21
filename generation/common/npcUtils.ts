@@ -408,12 +408,12 @@ function generateBirthplace(noise: ValueNoise, context: { region: string, cultur
         const neighbors = getNeighboringMapAreas(context.region, context.culturalZone);
         if (neighbors.length > 0) {
             const neighbor = neighbors[Math.floor(noise.random() * neighbors.length)];
-            return `a small village near ${neighbor.name}`;
+            return `a village near ${neighbor.name}`;
         }
     }
 
     // 50% chance to be from the local region
-    return `a small village in the region of ${context.region}`;
+    return `a village in ${context.region}`;
 }
 
 export function generateCompleteOutfit(
@@ -468,15 +468,20 @@ export function generateCompleteOutfit(
     const filteredBelts = filterByOccupation(clothingSet.belts, 'belt');
     const filteredAccessories = filterByOccupation(clothingSet.accessories, 'accessory');
     
+    // Convert wealth level for clothing variations
+    const simplifiedWealth =
+        wealthLevel === 'poor' || wealthLevel === 'modest' ? 'poor' :
+        wealthLevel === 'comfortable' ? 'common' : 'wealthy';
+
     // Ensure we have at least one item in each category
     const safeGetRandom = (filtered: ClothingPiece[], original: ClothingPiece[]) => {
         if (filtered.length > 0) {
-            return clothingModule.getRandomClothingPiece(filtered);
+            return clothingModule.getRandomClothingPiece(filtered, simplifiedWealth);
         }
         // Fallback to basic item if all filtered out
         return { name: 'Simple Robe', material: 'Linen' };
     };
-    
+
     return {
         garment: safeGetRandom(filteredGarments, clothingSet.garments),
         headgear: safeGetRandom(filteredHeadgear, clothingSet.headgear),
@@ -802,7 +807,7 @@ export function determineSocialRole(
                     if (key.startsWith('min')) statName = key.replace('min', '').toLowerCase() as keyof CharacterStats;
                     if (key.startsWith('max')) statName = key.replace('max', '').toLowerCase() as keyof CharacterStats;
                     
-                    if (statName) {
+                    if (statName && profile.stats) {
                         score += checkStat(profile.stats[statName], req, undefined);
                     }
                 }

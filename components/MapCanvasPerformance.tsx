@@ -438,9 +438,9 @@ class MapCanvasRenderer {
           return;
         }
 
-        // LAND BACKGROUND: Fill grid square with neutral color to prevent blue bleed-through
+        // LAND BACKGROUND RECTANGLES: Fill grid square with brown color to prevent blue bleed-through
         // This only affects land tiles - water areas keep their beautiful blue
-        this.ctx!.fillStyle = '#7A6B47'; // Neutral brown-tan
+        this.ctx!.fillStyle = '#bd9d6c'; // Light sandy brown color
         this.ctx!.fillRect(tileX, tileY, TILE_SIZE_PX, TILE_SIZE_PX);
 
         // FEATURE TOGGLE: Edge feathering to fix blue background bleed-through
@@ -464,7 +464,7 @@ class MapCanvasRenderer {
           } else {
             // Chrome/Firefox: Use shadow blur
             this.ctx!.shadowColor = color;
-            this.ctx!.shadowBlur = 3;
+            this.ctx!.shadowBlur = 4;
             this.ctx!.shadowOffsetX = 0;
             this.ctx!.shadowOffsetY = 0;
             
@@ -499,7 +499,7 @@ class MapCanvasRenderer {
             patternOpacity = 0.4;
           }
           // ±0.02 jitter, seeded per tile
-          const jitter = hashToUnit(tile.x, tile.y, mapData.seed) * 0.04 - 0.02;
+          const jitter = hashToUnit(tile.x, tile.y, mapData.seed) * 0.04 - 0.03;
           const finalAlpha = Math.max(0, Math.min(1, patternOpacity + jitter));
           this.ctx!.globalAlpha = finalAlpha;
           this.ctx!.fillStyle = terrainPattern;
@@ -734,9 +734,9 @@ export const MapCanvasPerformance = React.forwardRef<HTMLCanvasElement, MapCanva
             mapData.climate === ClimateType.TROPICAL ||
             mapData.climate === ClimateType.SEMITROPICAL ||
             mapData.climate === ClimateType.ARID
-              ? 'contrast(1.02) saturate(1.05) brightness(1.00) hue-rotate(0deg)'
+              ? 'contrast(1.01) saturate(1.02) brightness(1.00) hue-rotate(0deg)'
               : mapData.climate === ClimateType.COLD
-              ? 'contrast(1) saturate(1) brightness(1.05) hue-rotate(0deg)'
+              ? 'contrast(1) saturate(0.98) brightness(1.01) hue-rotate(0deg)'
               : 'contrast(1.0) saturate(1.0) brightness(1.0)',
           transition: 'filter 0.1s ease-out'
           // contain: 'strict' // Disabled - may cause Safari blur issues

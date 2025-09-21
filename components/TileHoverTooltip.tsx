@@ -205,19 +205,31 @@ const TileHoverTooltip: React.FC<TileHoverTooltipProps> = ({
   const tooltipWidth = 240;
   const tooltipHeight = 120;
   const offset = 10;
-  
-  // Adjust horizontal position to keep on screen
-  let adjustedX = x;
-  if (x - tooltipWidth/2 < 10) {
-    adjustedX = tooltipWidth/2 + 10;
-  } else if (x + tooltipWidth/2 > window.innerWidth - 10) {
-    adjustedX = window.innerWidth - tooltipWidth/2 - 10;
+
+  // Check if we're on the right side of the screen
+  const isRightSide = x > window.innerWidth / 2;
+
+  // Apply offset based on screen position
+  let adjustedX;
+  if (isRightSide) {
+    // On right side: offset to the left of cursor
+    adjustedX = x - 400;  // Larger leftward offset for right side
+  } else {
+    // On left side: smaller offset works fine
+    adjustedX = x - 200;
   }
-  
-  // Position above cursor by default
+
   let adjustedY = y - offset;
-  if (adjustedY - tooltipHeight < 10) {
-    adjustedY = y + tooltipHeight + offset;
+
+  // Simple bounds checking
+  if (adjustedX < 10) {
+    adjustedX = 10;
+  } else if (adjustedX > window.innerWidth - tooltipWidth - 10) {
+    adjustedX = window.innerWidth - tooltipWidth - 10;
+  }
+
+  if (adjustedY < 10) {
+    adjustedY = y + offset;
   }
   
   return (

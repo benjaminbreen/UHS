@@ -5763,12 +5763,91 @@ function generateBasicClothing(
     };
 }
 
+// Clothing variation mappings to reduce repetition
+const CLOTHING_VARIATIONS: Record<string, { variants: string[], materials: Record<SimplifiedWealthLevel, string[]> }> = {
+    'Worker Trousers': {
+        variants: ['Work Pants', 'Labor Breeches', 'Factory Pants', 'Mill Trousers', 'Dock Pants', 'Workshop Bottoms', 'Industrial Trousers'],
+        materials: {
+            poor: ['Coarse Wool', 'Worn Cotton', 'Patched Canvas', 'Rough Denim'],
+            common: ['Heavy Cotton', 'Rough Wool', 'Durable Canvas', 'Thick Denim'],
+            wealthy: ['Fine Wool', 'Sturdy Cotton', 'Quality Canvas']
+        }
+    },
+    'Factory Shirt': {
+        variants: ['Work Shirt', 'Mill Top', 'Labor Tunic', 'Factory Smock', 'Workshop Shirt', 'Industrial Blouse'],
+        materials: {
+            poor: ['Rough Cotton', 'Worn Linen', 'Patched Wool'],
+            common: ['Plain Cotton', 'Simple Linen', 'Basic Wool'],
+            wealthy: ['Fine Cotton', 'Quality Linen', 'Good Wool']
+        }
+    },
+    'Bark Wrap': {
+        variants: ['Tapa Cloth', 'Grass Skirt', 'Hide Wrap', 'Leaf Covering', 'Fiber Wrap', 'Plant Weave'],
+        materials: {
+            poor: ['Fig Bark', 'Woven Grass', 'Raw Hide', 'Dried Leaves'],
+            common: ['Beaten Bark', 'Soft Grass', 'Treated Hide', 'Woven Fibers'],
+            wealthy: ['Fine Tapa', 'Silk Grass', 'Soft Leather']
+        }
+    },
+    'Hide Skirt': {
+        variants: ['Leather Skirt', 'Fur Wrap', 'Animal Hide', 'Pelt Covering', 'Skin Garment'],
+        materials: {
+            poor: ['Raw Hide', 'Rough Leather', 'Untreated Pelt'],
+            common: ['Soft Leather', 'Treated Hide', 'Cured Pelt'],
+            wealthy: ['Fine Leather', 'Supple Hide', 'Premium Fur']
+        }
+    },
+    'Simple Tunic': {
+        variants: ['Basic Shirt', 'Plain Top', 'Common Tunic', 'Work Blouse', 'Daily Wear', 'Field Shirt', 'Village Garment', 'Peasant Top', 'Labor Shirt', 'Folk Tunic', 'Roughspun Shirt', 'Homespun Top'],
+        materials: {
+            poor: ['Rough Wool', 'Coarse Linen', 'Hemp Cloth', 'Homespun Fabric', 'Raw Cotton'],
+            common: ['Plain Wool', 'Simple Cotton', 'Basic Linen', 'Standard Cloth', 'Common Weave'],
+            wealthy: ['Fine Wool', 'Good Cotton', 'Quality Linen', 'Smooth Fabric']
+        }
+    },
+    'Tunic': {
+        variants: ['Shirt', 'Blouse', 'Top', 'Jerkin', 'Vest', 'Doublet', 'Smock', 'Chemise', 'Garment', 'Upper Wear', 'Body Covering'],
+        materials: {
+            poor: ['Rough Cloth', 'Coarse Wool', 'Hemp', 'Burlap', 'Sackcloth'],
+            common: ['Plain Cloth', 'Wool', 'Cotton', 'Linen', 'Mixed Fabric'],
+            wealthy: ['Fine Cloth', 'Quality Wool', 'Silk Blend', 'Premium Linen']
+        }
+    },
+    'Wool Tunic': {
+        variants: ['Woolen Shirt', 'Fleece Top', 'Warm Tunic', 'Winter Shirt', 'Thick Blouse', 'Heavy Top', 'Cold Weather Wear'],
+        materials: {
+            poor: ['Rough Wool', 'Scratchy Fleece', 'Coarse Yarn'],
+            common: ['Plain Wool', 'Standard Fleece', 'Common Yarn'],
+            wealthy: ['Fine Wool', 'Soft Fleece', 'Quality Yarn', 'Merino']
+        }
+    }
+};
+
 /**
- * Get random clothing piece from a category
+ * Get random clothing piece from a category with variations
  */
-export const getRandomClothingPiece = (pieces: ClothingPiece[]): ClothingPiece => {
+export const getRandomClothingPiece = (pieces: ClothingPiece[], wealthLevel?: SimplifiedWealthLevel): ClothingPiece => {
     if (pieces.length === 0) return { name: 'None', material: 'None' };
-    return pieces[Math.floor(Math.random() * pieces.length)];
+
+    const selected = pieces[Math.floor(Math.random() * pieces.length)];
+    const wealth = wealthLevel || 'common';
+
+    // Check if this piece has variations (70% chance to vary)
+    const variation = CLOTHING_VARIATIONS[selected.name];
+    if (variation && Math.random() < 0.7) {
+        const variantName = variation.variants[Math.floor(Math.random() * variation.variants.length)];
+        const variantMaterial = variation.materials[wealth][
+            Math.floor(Math.random() * variation.materials[wealth].length)
+        ];
+
+        return {
+            ...selected,
+            name: variantName,
+            material: variantMaterial
+        };
+    }
+
+    return selected;
 };
 
 /**
@@ -5796,13 +5875,16 @@ export const generateRandomOutfit = (
     colors: { primary: string; secondary: string; accent: string };
 } => {
     const clothingSet = getClothingData(culturalZone, era, wealthLevel, gender);
-    
+    const simplifiedWealth: SimplifiedWealthLevel =
+        wealthLevel === 'poor' || wealthLevel === 'modest' ? 'poor' :
+        wealthLevel === 'comfortable' ? 'common' : 'wealthy';
+
     return {
-        garment: getRandomClothingPiece(clothingSet.garments),
-        headgear: getRandomClothingPiece(clothingSet.headgear),
-        footwear: getRandomClothingPiece(clothingSet.footwear),
-        belt: getRandomClothingPiece(clothingSet.belts),
-        accessory: getRandomClothingPiece(clothingSet.accessories),
+        garment: getRandomClothingPiece(clothingSet.garments, simplifiedWealth),
+        headgear: getRandomClothingPiece(clothingSet.headgear, simplifiedWealth),
+        footwear: getRandomClothingPiece(clothingSet.footwear, simplifiedWealth),
+        belt: getRandomClothingPiece(clothingSet.belts, simplifiedWealth),
+        accessory: getRandomClothingPiece(clothingSet.accessories, simplifiedWealth),
         colors: {
             primary: getRandomColor(clothingSet.palette, 'primary'),
             secondary: getRandomColor(clothingSet.palette, 'secondary'),

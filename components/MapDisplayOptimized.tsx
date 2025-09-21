@@ -6,6 +6,7 @@
 
 import React, { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react';
 import { MapData, Tile, BiomeType, ClimateType, DevTooltipDisplayData, AnimalEntity, NpcEntity, VegetationEntity, LensMode, TerrainStructure, Season, PlayerCharacter, HistoricalEra, DeployedVessel, PathType } from '../types/index';
+import { useUnifiedAnimations, ENABLE_UNIFIED_ANIMATIONS } from '../hooks/useUnifiedAnimations';
 import { loadTamedAnimals, TamedAnimal } from '../services/animalTamingService';
 import { fireService } from '../services/fireService';
 import { isMobileDevice } from '../utils/deviceUtils';
@@ -380,15 +381,91 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
   const [lastMoveDirection, setLastMoveDirection] = useState<{x: number, y: number}>({ x: 0, y: -1 });
 
   const [fireUpdateTrigger, setFireUpdateTrigger] = useState(0); // Force re-render when fires change
-  
+
+  // Camera smoothing callback for unified animations
+  const handleUnifiedCameraSmooth = useCallback((deltaTime: number) => {
+    if (!containerRef.current || !mapData) return;
+
+    const CAMERA_SMOOTH_FACTOR = 0.08;
+    const CAMERA_SNAP_THRESHOLD = 0.1;
+
+    let focusX: number | null = null;
+    let focusY: number | null = null;
+
+    if (displayPixelIconX !== null && displayPixelIconY !== null) {
+      focusX = displayPixelIconX;
+      focusY = displayPixelIconY;
+    }
+
+    if (focusX !== null && focusY !== null && !isDragging && !isFreePanMode) {
+      const containerWidth = containerRef.current.clientWidth;
+      const containerHeight = containerRef.current.clientHeight;
+      const margin = 4 * TILE_SIZE_PX * zoomLevel;
+      const deadZoneXMin = Math.min(margin, containerWidth * 0.4);
+      const deadZoneXMax = Math.max(containerWidth - margin, containerWidth * 0.6);
+      const deadZoneYMin = Math.min(margin, containerHeight * 0.4);
+      const deadZoneYMax = Math.max(containerHeight - margin, containerHeight * 0.6);
+
+      const focusScreenX = focusX * zoomLevel + currentPanX.current;
+      const focusScreenY = focusY * zoomLevel + currentPanY.current;
+
+      let newTargetPanX = targetPanX.current;
+      let newTargetPanY = targetPanY.current;
+
+      if (focusScreenX < deadZoneXMin) newTargetPanX = deadZoneXMin - focusX * zoomLevel;
+      else if (focusScreenX > deadZoneXMax) newTargetPanX = deadZoneXMax - focusX * zoomLevel;
+      if (focusScreenY < deadZoneYMin) newTargetPanY = deadZoneYMin - focusY * zoomLevel;
+      else if (focusScreenY > deadZoneYMax) newTargetPanY = deadZoneYMax - focusY * zoomLevel;
+
+      targetPanX.current = newTargetPanX;
+      targetPanY.current = newTargetPanY;
+    }
+
+    const deltaX = targetPanX.current - currentPanX.current;
+    const deltaY = targetPanY.current - currentPanY.current;
+
+    if (!isDragging && !isFreePanMode && (Math.abs(deltaX) > CAMERA_SNAP_THRESHOLD || Math.abs(deltaY) > CAMERA_SNAP_THRESHOLD)) {
+      currentPanX.current += deltaX * CAMERA_SMOOTH_FACTOR;
+      currentPanY.current += deltaY * CAMERA_SMOOTH_FACTOR;
+
+      const newTransform = `translate(${currentPanX.current}px, ${currentPanY.current}px) scale(${zoomLevel})`;
+      if (svgRef.current) svgRef.current.style.transform = newTransform;
+      if (canvasRef.current) canvasRef.current.style.transform = newTransform;
+    }
+  }, [displayPixelIconX, displayPixelIconY, isDragging, isFreePanMode, zoomLevel, mapData]);
+
+  // Unified Animation System Integration
+  const unifiedAnimations = useUnifiedAnimations({
+    componentId: 'map-display',
+
+    // Fire updates
+    onFireUpdate: useCallback(() => {
+      setFireUpdateTrigger(prev => prev + 1);
+    }, []),
+
+    // Boat updates
+    onBoatUpdate: useCallback(() => {
+      setBoatTick(prev => prev + 1);
+    }, []),
+
+    // Camera smoothing (now connected)
+    onCameraSmooth: ENABLE_UNIFIED_ANIMATIONS ? handleUnifiedCameraSmooth : undefined,
+    cameraTargetX: targetPanX.current,
+    cameraTargetY: targetPanY.current,
+
+    // Player movement detection
+    playerMoving: false, // Will be updated based on movement
+  });
+
   // Load tamed animals on mount and when player position changes
   useEffect(() => {
     const animals = loadTamedAnimals();
     setTamedAnimals(animals);
   }, [logicalControlledIconX, logicalControlledIconY]);
-  
-  // Listen for fire changes and batch updates with RAF
+
+  // Listen for fire changes and batch updates with RAF (OLD SYSTEM - disabled if unified enabled)
   useEffect(() => {
+    if (ENABLE_UNIFIED_ANIMATIONS) return; // Skip if using unified system
     let rafId: number | null = null;
     let pendingUpdate = false;
     
@@ -563,17 +640,22 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         // Reset and initialize simple boat service for new map
         simpleBoatService.reset();
         simpleBoatService.initialize(mapData);
-        
-        // Update boat position smoothly but infrequently
-        const boatInterval = setInterval(() => {
-          simpleBoatService.update();
-          setBoatTick(prev => prev + 1); // Just trigger a re-render
-        }, 500); // Update twice per second for smoother movement
-        
-        return () => {
-          clearInterval(boatInterval);
-          simpleBoatService.reset(); // Clean up on unmount
-        };
+
+        // Update boat position smoothly but infrequently (OLD SYSTEM - disabled if unified enabled)
+        if (!ENABLE_UNIFIED_ANIMATIONS) {
+          const boatInterval = setInterval(() => {
+            simpleBoatService.update();
+            setBoatTick(prev => prev + 1); // Just trigger a re-render
+          }, 500); // Update twice per second for smoother movement
+
+          return () => {
+            clearInterval(boatInterval);
+            simpleBoatService.reset(); // Clean up on unmount
+          };
+        } else {
+          // Unified system handles boat updates
+          simpleBoatService.reset();
+        }
     }
   }, [mapData, isMobile]);
 
@@ -598,10 +680,16 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     const CAMERA_SMOOTH_FACTOR = 0.08;
     const CAMERA_SNAP_THRESHOLD = 0.1;
 
+    // OLD SYSTEM - disabled if unified animations enabled
+    if (ENABLE_UNIFIED_ANIMATIONS) {
+      // Camera smoothing is handled by unified animation system
+      return () => {};
+    }
+
     let isLooping = true;
     let lastFrameTime = 0;
     const frameInterval = debugSettings?.throttleAnimationFPS ? 33 : 0; // 30fps = ~33ms per frame
-    
+
     const smoothCameraLoop = (timestamp?: number) => {
         if (!isLooping || !containerRef.current || !mapData) return;
         
@@ -971,11 +1059,18 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
     const containerRect = containerRef.current?.getBoundingClientRect();
     if (!containerRect) return { x: 0, y: 0 };
 
-    const tileScreenX = tileX * TILE_SIZE_PX * zoomLevel + panX + containerRect.left;
-    const tileScreenY = tileY * TILE_SIZE_PX * zoomLevel + panY + containerRect.top;
+    // The tile's position in SVG coordinates
+    const svgX = tileX * TILE_SIZE_PX + TILE_SIZE_PX / 2; // Center of tile
+    const svgY = tileY * TILE_SIZE_PX;
+
+    // Apply the transform: scale first, then translate
+    const transformedX = svgX * zoomLevel + panX;
+    const transformedY = svgY * zoomLevel + panY;
+
+    // Add container offset to get viewport coordinates
     return {
-      x: tileScreenX + (TILE_SIZE_PX * zoomLevel) / 2,
-      y: tileScreenY
+      x: transformedX + containerRect.left,
+      y: transformedY + containerRect.top
     };
   }, [zoomLevel, panX, panY]);
 
@@ -2143,7 +2238,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredTile(tile);
-                            setHoveredTileCoords(getTooltipPosition(tile.x, tile.y));
+                            // Offset to the left to fix positioning issue
+                            setHoveredTileCoords({ x: e.clientX - 200, y: e.clientY - 50 });
                           }
                         }}
                         onMouseLeave={() => {
@@ -2553,7 +2649,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredTile(tile);
-                            setHoveredTileCoords(getTooltipPosition(tile.x, tile.y));
+                            // Offset to the left to fix positioning issue
+                            setHoveredTileCoords({ x: e.clientX - 200, y: e.clientY - 50 });
                           }
                         }}
                         onMouseLeave={() => {
@@ -2572,7 +2669,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredTile(tile);
-                            setHoveredTileCoords(getTooltipPosition(tile.x, tile.y));
+                            // Offset to the left to fix positioning issue
+                            setHoveredTileCoords({ x: e.clientX - 200, y: e.clientY - 50 });
                           }
                         }}
                         onMouseLeave={() => {
@@ -2612,7 +2710,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(marketplaceStructure);
-                            setHoveredPOICoords(getTooltipPosition(tile.x, tile.y));
+                            setHoveredPOICoords({ x: e.clientX - 200, y: e.clientY - 50 });
                           }
                         }}
                         onMouseLeave={() => {
@@ -2675,7 +2773,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(palaceStructure);
-                            setHoveredPOICoords(getTooltipPosition(tile.x, tile.y));
+                            setHoveredPOICoords({ x: e.clientX - 200, y: e.clientY - 50 });
                           }
                         }}
                         onMouseLeave={() => {
@@ -2725,7 +2823,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(ruinStructure);
-                            setHoveredPOICoords(getTooltipPosition(tile.x, tile.y));
+                            setHoveredPOICoords({ x: e.clientX - 200, y: e.clientY - 50 });
                           }
                         }}
                         onMouseLeave={() => {
@@ -2807,7 +2905,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(holySiteStructure);
-                            setHoveredPOICoords(getTooltipPosition(tile.x, tile.y));
+                            setHoveredPOICoords({ x: e.clientX - 200, y: e.clientY - 50 });
                           }
                         }}
                         onMouseLeave={() => {
@@ -3005,7 +3103,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(structure);
-                            setHoveredPOICoords(getTooltipPosition(tile.x, tile.y));
+                            setHoveredPOICoords({ x: e.clientX - 200, y: e.clientY - 50 });
                           }
                         }}
                         onMouseLeave={() => {
@@ -3051,7 +3149,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(structure);
-                            setHoveredPOICoords(getTooltipPosition(tile.x, tile.y));
+                            setHoveredPOICoords({ x: e.clientX - 200, y: e.clientY - 50 });
                           }
                         }}
                         onMouseLeave={() => {
@@ -3096,7 +3194,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(structure);
-                            setHoveredPOICoords(getTooltipPosition(tile.x, tile.y));
+                            setHoveredPOICoords({ x: e.clientX - 200, y: e.clientY - 50 });
                           }
                         }}
                         onMouseLeave={() => {
@@ -3163,7 +3261,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(structure);
-                            setHoveredPOICoords(getTooltipPosition(tile.x, tile.y));
+                            setHoveredPOICoords({ x: e.clientX - 200, y: e.clientY - 50 });
                           }
                         }}
                         onMouseLeave={() => {
@@ -3208,7 +3306,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         onMouseEnter={(e) => {
                           if (!isDragging) {
                             setHoveredPOI(structure);
-                            setHoveredPOICoords(getTooltipPosition(tile.x, tile.y));
+                            setHoveredPOICoords({ x: e.clientX - 200, y: e.clientY - 50 });
                           }
                         }}
                         onMouseLeave={() => {
@@ -3524,7 +3622,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                    onMouseEnter={(e) => {
                      if (!isDragging) {
                        setHoveredAnimal(animal);
-                       setHoveredEntityCoords(getTooltipPosition(animal.x, animal.y));
+              
                      }
                    }}
                    onMouseLeave={() => {
@@ -4132,6 +4230,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
       
       {/* POI Hover Tooltip */}
       {hoveredPOI && hoveredPOICoords && (
+        console.log('POI tooltip at:', hoveredPOICoords),
         <POIHoverTooltip
           structure={hoveredPOI}
           x={hoveredPOICoords.x}
@@ -4161,8 +4260,8 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
         <div
           className="fixed pointer-events-none z-50"
           style={{
-            left: `${hoveredEntityCoords.x}px`,
-            top: `${hoveredEntityCoords.y - 10}px`,
+            left: `${hoveredEntityCoords.x - 200}px`,  // Offset left by 200px from the bad coordinates
+            top: `${hoveredEntityCoords.y - 50}px`,     // Slight upward offset
             transform: 'translate(-50%, -100%)'
           }}
         >
@@ -4195,7 +4294,7 @@ export const MapDisplayOptimized: React.FC<MapDisplayOptimizedProps> = ({
                         <span>{hoveredNPC.maxHealth || 'Unknown'}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-500 dark:text-slate-400">STR/CON:</span>
+                        <span className="text-slate-500 dark:text-slate-400">TEST/CON:</span>
                         <span>{hoveredNPC.stats.strength}/{hoveredNPC.stats.constitution}</span>
                       </div>
                     </div>

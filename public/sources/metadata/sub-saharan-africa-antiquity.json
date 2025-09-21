@@ -43,26 +43,74 @@
       "longExcerpt": "I have not done evil to mankind. I have not oppressed the members of my family. This historical source from -1550 provides valuable insight into the sub-saharan-africa region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
     },
     {
-      "id": "sub-saharan-africa-antiquity-chronicle",
-      "title": "African Ancient Chronicle",
-      "author": "Various Authors",
+      "id": "periplus-erythraean-sea",
+      "title": "Periplus of the Erythraean Sea",
+      "author": "Unknown Greek merchant",
+      "year": 60,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN"
+      ],
+      "excerpt": "Beyond Opone, the coast trending more to the south, come the Small and Great Bluffs of Azania. After about four thousand stadia sailing along the Azanian coast, there is the island Menuthias, about three hundred stadia from the mainland, low and wooded.",
+      "longExcerpt": "Beyond Opone, the coast trending more to the south, come the Small and Great Bluffs of Azania. After about four thousand stadia sailing along the Azanian coast, there is the island Menuthias, about three hundred stadia from the mainland, low and wooded. The inhabitants of this coast are men of piratical habits, very tall, and under separate chiefs for each place. This ancient trading manual from 60 CE provides invaluable insight into East African trade, describing the ports, peoples, and products of the ancient African coast from Egypt to Tanzania.",
+      "keywords": [
+        "trade",
+        "East Africa",
+        "Azania",
+        "navigation",
+        "ports",
+        "commerce",
+        "Red Sea"
+      ],
+      "contextualKeywords": [
+        {
+          "keyword": "ivory",
+          "conditions": {
+            "culturalZone": "SUB_SAHARAN_AFRICAN",
+            "era": "ANTIQUITY"
+          }
+        },
+        {
+          "keyword": "frankincense",
+          "conditions": {
+            "era": "ANTIQUITY"
+          }
+        }
+      ],
+      "wikisourceTitle": "The_Periplus_of_the_Erythraean_Sea",
+      "internetArchiveId": "periplus00scho",
+      "citation": {
+        "translator": "Wilfred H. Schoff",
+        "originalPublication": "Greek manuscript, c. 60 CE",
+        "modernSource": "University of Pennsylvania Press, 1912"
+      }
+    },
+    {
+      "id": "hanno-navigator-voyage",
+      "title": "The Voyage of Hanno",
+      "author": "Hanno the Navigator",
       "year": -500,
       "era": "ANTIQUITY",
       "culturalZones": [
         "SUB_SAHARAN_AFRICAN"
       ],
-      "excerpt": "A collection of ancient texts from the African region.",
-      "longExcerpt": "This represents a compilation of historical documents from the Ancient period in the African region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "excerpt": "We passed a country burning with fires and perfumes; and streams of fire supplied from it fell into the sea. The country was impassable on account of the heat.",
+      "longExcerpt": "We passed a country burning with fires and perfumes; and streams of fire supplied from it fell into the sea. The country was impassable on account of the heat. We sailed quickly thence, being much terrified; and passing on for four days, we discovered at night a country full of fire. This Carthaginian account from 500 BCE describes one of the earliest known explorations of the West African coast, possibly reaching as far as Mount Cameroon with its active volcanic activity.",
       "keywords": [
-        "sub-saharan-africa",
-        "antiquity",
-        "history",
-        "chronicle",
-        "primary source"
+        "exploration",
+        "West Africa",
+        "Carthage",
+        "navigation",
+        "volcano",
+        "coast",
+        "discovery"
       ],
-      "wikisourceTitle": "African_Ancient_Texts",
+      "wikisourceTitle": "The_Voyage_of_Hanno",
+      "internetArchiveId": "voyageofhannoca00falc",
       "citation": {
-        "originalPublication": "African Ancient Period"
+        "translator": "Thomas Falconer",
+        "originalPublication": "Carthaginian inscription, c. 500 BCE",
+        "modernSource": "T. Cadell and W. Davies, 1797"
       }
     }
   ]

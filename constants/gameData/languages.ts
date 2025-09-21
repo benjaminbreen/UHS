@@ -60,8 +60,90 @@ export const LANGUAGE_FAMILIES = {
 };
 
 export const LANGUAGES: Record<string, LanguageData> = {
-  // === ANCIENT LANGUAGES (Pre-500 CE) ===
-  
+  // === RECONSTRUCTED PROTO-LANGUAGES (Pre-3000 BCE) ===
+
+  PROTO_INDO_EUROPEAN: {
+    id: 'PROTO_INDO_EUROPEAN',
+    name: 'Proto-Indo-European',
+    nativeName: '*Prōtokʷoinos Indo-h₁ewropeyskos',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: ['Latin (reconstructed)'],
+    period: [-4000, -2500],
+    regions: ['Pontic-Caspian Steppe', 'Eastern Europe', 'Central Asia'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    isReconstructed: true,
+    successors: ['PROTO_GERMANIC', 'PROTO_CELTIC', 'PROTO_ITALIC', 'PROTO_INDO_IRANIAN', 'PROTO_ANATOLIAN'],
+    description: 'Reconstructed common ancestor of all Indo-European languages',
+    llmPrompt: 'Reconstruct a primitive Indo-European dialect using scholarly conventions. Use reconstructed *-marked roots and emphasize basic concepts: kinship, livestock, nature, tools. Word order is likely SOV. Vocabulary should focus on pastoral/agricultural terminology. Be conservative with complex abstract concepts.',
+  },
+
+  PROTO_SINO_TIBETAN: {
+    id: 'PROTO_SINO_TIBETAN',
+    name: 'Proto-Sino-Tibetan',
+    nativeName: '*Proto-Sino-Tibetan',
+    family: LANGUAGE_FAMILIES.SINO_TIBETAN,
+    script: ['Reconstructed'],
+    period: [-4000, -2000],
+    regions: ['Yellow River Valley', 'Tibetan Plateau', 'Southeast Asia'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    isReconstructed: true,
+    successors: ['OLD_CHINESE', 'PROTO_TIBETO_BURMAN'],
+    description: 'Reconstructed ancestor of Chinese and Tibetan languages',
+    llmPrompt: 'Use monosyllabic roots with tonal variations. Syntax is likely SVO with classifier systems. Focus on agricultural, geographic, and kinship terms. Use simple sentence structures and avoid complex grammatical particles.',
+  },
+
+  // === EARLIEST ATTESTED LANGUAGES (3500-1500 BCE) ===
+
+  SUMERIAN: {
+    id: 'SUMERIAN',
+    name: 'Sumerian',
+    nativeName: '𒅴𒂵',
+    family: LANGUAGE_FAMILIES.ISOLATE,
+    script: 'Cuneiform',
+    period: [-3500, -1750],
+    regions: ['Sumer', 'Babylon', 'Ur', 'Uruk', 'Mesopotamia'],
+    culturalZones: ['MENA' as CulturalZone],
+    description: 'World\'s first written language, language isolate',
+    greetings: {
+      hello: 'silim-ma',
+      goodbye: 'igi-zu he2-du7',
+      yes: 'he2-am3',
+      no: 'nu-me-a',
+      thanks: 'dug3-ga-zu',
+    },
+    llmPrompt: 'Emulate cuneiform administrative and religious texts. Use agglutinative morphology with complex case systems. Word order is typically SOV. Tone should be formal, ceremonial, and often invoke deities. Use repetitive formulaic structures typical of early legal/religious texts.',
+  },
+
+  ELAMITE: {
+    id: 'ELAMITE',
+    name: 'Elamite',
+    nativeName: 'Hatamti',
+    family: LANGUAGE_FAMILIES.ISOLATE,
+    script: ['Linear Elamite', 'Cuneiform'],
+    period: [-3200, -300],
+    regions: ['Elam', 'Susa', 'Fars', 'Khuzestan', 'Southwest Iran'],
+    culturalZones: ['MENA' as CulturalZone],
+    description: 'Ancient language of Elam, Iran. Language isolate with no known relatives.',
+    llmPrompt: 'Use the ergative-absolutive alignment typical of Elamite. Word order tends toward SOV. Employ complex verbal morphology and frequent use of compound verbs. Tone should reflect the formal court style of an ancient Iranian civilization.',
+  },
+
+  PROTO_AFROASIATIC: {
+    id: 'PROTO_AFROASIATIC',
+    name: 'Proto-Afroasiatic',
+    nativeName: '*Proto-Afroasiatic',
+    family: LANGUAGE_FAMILIES.AFRO_ASIATIC,
+    script: ['Reconstructed'],
+    period: [-10000, -6000],
+    regions: ['Northeast Africa', 'Arabian Peninsula', 'Levant'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone, 'MENA' as CulturalZone],
+    isReconstructed: true,
+    successors: ['PROTO_SEMITIC', 'ANCIENT_EGYPTIAN', 'PROTO_BERBER', 'PROTO_CUSHITIC'],
+    description: 'Reconstructed ancestor of Semitic, Egyptian, Berber, and Cushitic languages',
+    llmPrompt: 'Use triconsonantal roots typical of Afroasiatic. VSO word order preferred. Focus on pastoral vocabulary, celestial terms, and basic kinship. Use pharyngeal and emphatic consonants. Keep morphology relatively simple.',
+  },
+
+  // === ANCIENT ATTESTED LANGUAGES (Pre-500 CE) ===
+
   // Mediterranean & Near East
   LATIN: {
     id: 'LATIN',
@@ -156,6 +238,50 @@ export const LANGUAGES: Record<string, LanguageData> = {
     llmPrompt: 'Emulate Middle Egyptian, the classical phase of the language. Syntax is typically Verb-Subject-Object (VSO). Use passive voice and descriptive clauses (adjectives) frequently. The tone should be formal and often reverent, reflecting a society structured around divine kingship and a complex pantheon.',
   },
 
+  VEDIC_SANSKRIT: {
+    id: 'VEDIC_SANSKRIT',
+    name: 'Vedic Sanskrit',
+    nativeName: 'वैदिक संस्कृतम्',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: ['Oral tradition', 'Brahmi'],
+    period: [-1500, -500],
+    regions: ['Punjab', 'Sapta Sindhu', 'Indus Valley', 'Ganges Valley'],
+    culturalZones: ['SOUTH_ASIAN' as CulturalZone],
+    predecessors: ['PROTO_INDO_IRANIAN'],
+    successors: ['CLASSICAL_SANSKRIT'],
+    description: 'Archaic form of Sanskrit used in the earliest Hindu scriptures',
+    greetings: {
+      hello: 'svasti te',
+      goodbye: 'śubham bhavatu',
+      yes: 'evam',
+      no: 'na',
+      thanks: 'dhanyaḥ asmi',
+    },
+    llmPrompt: 'Use the archaic language of the Rigveda. Employ complex meter and elaborate compound formations. Word order is quite free but favors SOV. Use abundant ritual/religious terminology, fire imagery, and pastoral metaphors. Tone should be elevated, hymnic, and ceremonial.',
+  },
+
+  CLASSICAL_SANSKRIT: {
+    id: 'CLASSICAL_SANSKRIT',
+    name: 'Classical Sanskrit',
+    nativeName: 'संस्कृतम्',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Devanagari',
+    period: [-500, 1400],
+    regions: ['India', 'Southeast Asia', 'Central Asia'],
+    culturalZones: ['SOUTH_ASIAN' as CulturalZone],
+    predecessors: ['VEDIC_SANSKRIT'],
+    successors: ['PRAKRIT'],
+    description: 'Standardized form of Sanskrit used in classical literature and philosophy',
+    greetings: {
+      hello: 'namaste',
+      goodbye: 'śubhayātrā',
+      yes: 'āma',
+      no: 'na',
+      thanks: 'dhanyavādaḥ',
+    },
+    llmPrompt: 'Use Paninian grammatical precision. Employ elaborate compound words and complex syntactic structures. SOV word order predominates. Use formal scholarly register appropriate for philosophical, literary, or legal discourse.',
+  },
+
   SANSKRIT: {
     id: 'SANSKRIT',
     name: 'Sanskrit',
@@ -176,6 +302,28 @@ export const LANGUAGES: Record<string, LanguageData> = {
     llmPrompt: 'Emulate Classical Sanskrit. The syntax is extremely flexible due to a rich case system, but SOV is the neutral default. Use complex compound nouns (sandhi) where appropriate. The tone should be precise, elegant, and capable of conveying complex philosophical, religious, and literary ideas with great nuance.',
   },
 
+  OLD_CHINESE: {
+    id: 'OLD_CHINESE',
+    name: 'Old Chinese',
+    nativeName: '上古漢語',
+    family: LANGUAGE_FAMILIES.SINO_TIBETAN,
+    script: ['Oracle bone script', 'Bronze script', 'Early Chinese characters'],
+    period: [-1250, -221],
+    regions: ['Shang territory', 'Zhou domains', 'Yellow River', 'Central China'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    predecessors: ['PROTO_SINO_TIBETAN'],
+    successors: ['CLASSICAL_CHINESE'],
+    description: 'Archaic Chinese as spoken during Shang and Zhou dynasties',
+    greetings: {
+      hello: '*Gjaŋ',
+      goodbye: '*ʔjats',
+      yes: '*da',
+      no: '*pjər',
+      thanks: '*sjək',
+    },
+    llmPrompt: 'Use reconstructed Old Chinese phonology with complex consonant clusters and no tones. Word order is SVO but more flexible than later Chinese. Use simple monosyllabic words with minimal compounding. Tone should be archaic and ceremonial, appropriate for bronze inscriptions and oracle bones.',
+  },
+
   CLASSICAL_CHINESE: {
     id: 'CLASSICAL_CHINESE',
     name: 'Classical Chinese',
@@ -185,6 +333,7 @@ export const LANGUAGES: Record<string, LanguageData> = {
     period: [-500, 200], // More focused period for the spoken language
     regions: ['China', 'Yellow River', 'Yangtze River'],
     culturalZones: ['EAST_ASIAN' as CulturalZone],
+    predecessors: ['OLD_CHINESE'],
     successors: ['MIDDLE_CHINESE'],
     description: 'The literary language of ancient China, distinct from later spoken vernaculars.',
     greetings: {
@@ -195,6 +344,115 @@ export const LANGUAGES: Record<string, LanguageData> = {
       thanks: '謝',
     },
     llmPrompt: 'Emulate the concise, isolating, and often ambiguous style of Warring States and Han Dynasty texts. Word order is strict SVO. Omit subjects and objects where context allows. Use parallelism and balanced phrases. The tone should be formal, scholarly, and aphoristic, reflecting Confucian or Daoist philosophical underpinnings.',
+  },
+
+  HITTITE: {
+    id: 'HITTITE',
+    name: 'Hittite',
+    nativeName: '𒉈𒅆𒇷',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Cuneiform',
+    period: [-1650, -1200],
+    regions: ['Anatolia', 'Hattusa', 'Asia Minor', 'Central Turkey'],
+    culturalZones: ['MENA' as CulturalZone],
+    predecessors: ['PROTO_ANATOLIAN'],
+    description: 'Earliest attested Indo-European language, spoken by the Hittite Empire',
+    greetings: {
+      hello: 'šalli',
+      goodbye: 'āšši',
+      yes: 'nu',
+      no: 'natta',
+      thanks: 'šarā',
+    },
+    llmPrompt: 'Use the formal style of Hittite royal decrees and treaties. SOV word order is standard. Employ complex sentences with extensive use of conjunctions (nu, ta, ma). Tone should be legalistic, formal, and often invoke the gods as witnesses to treaties.',
+  },
+
+  PROTO_ANATOLIAN: {
+    id: 'PROTO_ANATOLIAN',
+    name: 'Proto-Anatolian',
+    nativeName: '*Proto-Anatolian',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: ['Reconstructed'],
+    period: [-3500, -2000],
+    regions: ['Anatolia', 'Central Asia Minor'],
+    culturalZones: ['MENA' as CulturalZone],
+    isReconstructed: true,
+    predecessors: ['PROTO_INDO_EUROPEAN'],
+    successors: ['HITTITE', 'LUWIAN', 'PALAIC'],
+    description: 'Reconstructed ancestor of Anatolian languages including Hittite',
+    llmPrompt: 'Use reconstructed Anatolian features with archaic Indo-European characteristics. SOV word order with complex verbal morphology. Focus on pastoral, metallurgical, and early agricultural terminology. Tone should be simple and direct.',
+  },
+
+  MINOAN: {
+    id: 'MINOAN',
+    name: 'Minoan',
+    nativeName: 'Linear A',
+    family: LANGUAGE_FAMILIES.ISOLATE,
+    script: 'Linear A',
+    period: [-2700, -1450],
+    regions: ['Crete', 'Aegean', 'Knossos', 'Phaistos'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    description: 'Undeciphered language of Bronze Age Crete. Language family unknown.',
+    llmPrompt: 'Since Minoan (Linear A) is undeciphered, construct plausible proto-Mediterranean speech patterns. Use simple SVO syntax with possible agglutinative elements. Focus on maritime, palace administration, and religious terminology. Tone should be ceremonial and trade-focused.',
+  },
+
+  PROTO_CELTIC: {
+    id: 'PROTO_CELTIC',
+    name: 'Proto-Celtic',
+    nativeName: '*Protokeltikos',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: ['Reconstructed'],
+    period: [-1300, -500],
+    regions: ['Central Europe', 'Austria', 'Bohemia', 'Gaul'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    isReconstructed: true,
+    predecessors: ['PROTO_INDO_EUROPEAN'],
+    successors: ['GAULISH', 'OLD_IRISH', 'BRYTHONIC'],
+    description: 'Reconstructed ancestor of all Celtic languages',
+    llmPrompt: 'Use reconstructed Celtic features with VSO word order becoming established. Employ complex consonant mutations and initial emphasis patterns. Focus on warrior culture, druids, agriculture, and metalworking. Tone should be tribal and ceremonial.',
+  },
+
+  GAULISH: {
+    id: 'GAULISH',
+    name: 'Gaulish',
+    nativeName: 'Gaulisca',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: ['Latin', 'Greek letters'],
+    period: [-500, 500],
+    regions: ['Gaul', 'France', 'Belgium', 'Switzerland'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    predecessors: ['PROTO_CELTIC'],
+    successors: ['VULGAR_LATIN'],
+    description: 'Continental Celtic language of ancient Gaul',
+    greetings: {
+      hello: 'Sveiks',
+      goodbye: 'Valete',
+      yes: 'Yo',
+      no: 'Nē',
+      thanks: 'Brogī',
+    },
+    llmPrompt: 'Use VSO word order characteristic of Celtic languages. Employ complex verbal conjugations and noun mutations. Vocabulary should reflect Gallic warrior society, druidism, and Roman contact. Tone should be proud, tribal, and resistant to Roman influence.',
+  },
+
+  GOTHIC: {
+    id: 'GOTHIC',
+    name: 'Gothic',
+    nativeName: 'Gutrazda',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Gothic alphabet',
+    period: [200, 700],
+    regions: ['Eastern Europe', 'Crimea', 'Black Sea', 'Visigothic Spain'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    predecessors: ['PROTO_GERMANIC'],
+    description: 'Earliest attested Germanic language, preserved in Wulfila\'s Bible translation',
+    greetings: {
+      hello: 'Hails',
+      goodbye: 'Faírra',
+      yes: 'Jai',
+      no: 'Ně',
+      thanks: 'Awiliuþ',
+    },
+    llmPrompt: 'Use the formal style of Wulfila\'s biblical Gothic. SOV word order with free variation for emphasis. Employ dual number and complex case system. Vocabulary should blend Germanic warrior culture with Christian terminology. Tone should be formal and religious.',
   },
 
   PROTO_GERMANIC: {
@@ -1019,7 +1277,846 @@ export const LANGUAGES: Record<string, LanguageData> = {
     },
     llmPrompt: 'This is a pidgin. Grammar must be very simple with a small vocabulary. Word order is typically SVO or VSO. Use a limited set of words derived from Chinookan, Nuu-chah-nulth, French, and English sources. The tone should be direct and transactional, suitable for the context of fur trading and inter-tribal communication.',
   },
+
+  // === NEW LANGUAGES FOR BETTER REGIONAL COVERAGE ===
+
+  // European Languages
+  DUTCH: {
+    id: 'DUTCH',
+    name: 'Dutch',
+    nativeName: 'Nederlands',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [1500, 2025],
+    regions: ['Netherlands', 'Holland', 'Flanders', 'Low Countries', 'Scheldt', 'Brabant', 'Amsterdam', 'Rotterdam', 'Utrecht', 'Suriname', 'Batavia'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    predecessors: ['OLD_DUTCH'],
+    greetings: {
+      hello: 'Goedendag',
+      goodbye: 'Tot ziens',
+      yes: 'Ja',
+      no: 'Nee',
+      thanks: 'Dank u',
+    },
+    llmPrompt: 'Emulate Dutch from the Golden Age onwards. Use SVO word order. The language shares Germanic roots with English but has evolved separately. Use diminutives frequently (-je, -tje). The tone should be direct and pragmatic, suitable for a maritime trading nation.',
+  },
+
+  GERMAN: {
+    id: 'GERMAN',
+    name: 'German',
+    nativeName: 'Deutsch',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [1000, 2025],
+    regions: ['Germany', 'Austria', 'Switzerland', 'Bavaria', 'Prussia', 'Saxony', 'Rhineland', 'Swabia', 'Brandenburg', 'Hanseatic', 'Alsace', 'Namibia'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    predecessors: ['OLD_HIGH_GERMAN'],
+    successors: ['MODERN_GERMAN'],
+    greetings: {
+      hello: 'Guten Tag',
+      goodbye: 'Auf Wiedersehen',
+      yes: 'Ja',
+      no: 'Nein',
+      thanks: 'Danke',
+    },
+    llmPrompt: 'Emulate High German. Use V2 (verb-second) word order in main clauses, with the verb moving to the end in subordinate clauses. Employ compound nouns freely. The tone should be formal and precise, with clear hierarchical address forms (Sie/du).',
+  },
+
+  YIDDISH: {
+    id: 'YIDDISH',
+    name: 'Yiddish',
+    nativeName: 'ייִדיש',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Hebrew',
+    period: [1000, 2025],
+    regions: ['Eastern Europe', 'Poland', 'Lithuania', 'Ukraine', 'Romania', 'Hungary', 'New York', 'Brooklyn'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    greetings: {
+      hello: 'Sholem aleykhem',
+      goodbye: 'A gutn tog',
+      yes: 'Yo',
+      no: 'Neyn',
+      thanks: 'A dank',
+    },
+    llmPrompt: 'Emulate Yiddish, the fusion of Middle High German with Hebrew, Aramaic, and Slavic elements. Use Germanic grammar with extensive Hebrew/Aramaic vocabulary for religious and abstract concepts. The tone should be expressive, often ironic or humorous, with frequent use of rhetorical questions.',
+  },
+
+  SCOTS: {
+    id: 'SCOTS',
+    name: 'Scots',
+    nativeName: 'Scots',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [1100, 2025],
+    regions: ['Scotland', 'Lowlands', 'Edinburgh', 'Glasgow', 'Ulster'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    predecessors: ['OLD_ENGLISH'],
+    greetings: {
+      hello: 'Guid day',
+      goodbye: 'Fare ye weel',
+      yes: 'Aye',
+      no: 'Naw',
+      thanks: 'Thankye',
+    },
+    llmPrompt: 'Emulate Lowland Scots. This is a distinct language from English, not a dialect. Use distinctive vocabulary (ken for know, bairn for child, kirk for church). The grammar is similar to English but with distinct features like the use of "nae" for "not". The tone can range from formal to familiar.',
+  },
+
+  IRISH_GAELIC: {
+    id: 'IRISH_GAELIC',
+    name: 'Irish Gaelic',
+    nativeName: 'Gaeilge',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [500, 2025],
+    regions: ['Ireland', 'Connacht', 'Munster', 'Ulster', 'Leinster', 'Gaeltacht'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    greetings: {
+      hello: 'Dia dhuit',
+      goodbye: 'Slán',
+      yes: 'Tá',
+      no: 'Níl',
+      thanks: 'Go raibh maith agat',
+    },
+    llmPrompt: 'Emulate Irish Gaelic. Use VSO word order strictly. Initial consonant mutations are a key feature (lenition and eclipsis). The language has no words for yes/no - instead echo the verb. Use the copula (is) vs substantive verb (tá) distinction.',
+  },
+
+  WELSH: {
+    id: 'WELSH',
+    name: 'Welsh',
+    nativeName: 'Cymraeg',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [500, 2025],
+    regions: ['Wales', 'Cymru', 'Gwynedd', 'Powys', 'Dyfed', 'Glamorgan'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    greetings: {
+      hello: 'Bore da',
+      goodbye: 'Hwyl fawr',
+      yes: 'Ie',
+      no: 'Na',
+      thanks: 'Diolch',
+    },
+    llmPrompt: 'Emulate Welsh. Use VSO word order. Initial consonant mutations are crucial (soft, nasal, aspirate). The language is highly inflected with complex verbal forms. Use the distinctive "ll" and "ch" sounds in vocabulary.',
+  },
+
+  CATALAN: {
+    id: 'CATALAN',
+    name: 'Catalan',
+    nativeName: 'Català',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [900, 2025],
+    regions: ['Catalonia', 'Valencia', 'Balearic Islands', 'Barcelona', 'Andorra', 'Roussillon'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    greetings: {
+      hello: 'Bon dia',
+      goodbye: 'Adéu',
+      yes: 'Sí',
+      no: 'No',
+      thanks: 'Gràcies',
+    },
+    llmPrompt: 'Emulate Catalan, distinct from Spanish. Use SVO word order with pronoun clitics. The language uses the distinctive "ny" sound and has eight vowel sounds. The tone should reflect a Mediterranean maritime culture.',
+  },
+
+  BASQUE: {
+    id: 'BASQUE',
+    name: 'Basque',
+    nativeName: 'Euskara',
+    family: LANGUAGE_FAMILIES.ISOLATE,
+    script: 'Latin',
+    period: [-2000, 2025],
+    regions: ['Basque Country', 'Euskadi', 'Navarre', 'Gipuzkoa', 'Bizkaia', 'Araba'],
+    culturalZones: ['EUROPEAN' as CulturalZone],
+    greetings: {
+      hello: 'Kaixo',
+      goodbye: 'Agur',
+      yes: 'Bai',
+      no: 'Ez',
+      thanks: 'Eskerrik asko',
+    },
+    llmPrompt: 'Emulate Basque/Euskera, the oldest language in Europe. This is an ergative-absolutive language with SOV word order. Use extensive agglutination and postpositions instead of prepositions. The language has no known relatives.',
+  },
+
+  // African Languages
+  AFRIKAANS: {
+    id: 'AFRIKAANS',
+    name: 'Afrikaans',
+    nativeName: 'Afrikaans',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [1700, 2025],
+    regions: ['South Africa', 'Cape Colony', 'Transvaal', 'Orange Free State', 'Namibia', 'Cape Town', 'Pretoria', 'Johannesburg'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone],
+    predecessors: ['DUTCH'],
+    greetings: {
+      hello: 'Goeie dag',
+      goodbye: 'Totsiens',
+      yes: 'Ja',
+      no: 'Nee',
+      thanks: 'Dankie',
+    },
+    llmPrompt: 'Emulate Afrikaans, which evolved from Dutch. The grammar is greatly simplified - no grammatical gender, simplified verb conjugations. Use double negation ("Ek weet nie" becomes "Ek weet nie...nie"). The tone should reflect a frontier society.',
+  },
+
+  ZULU: {
+    id: 'ZULU',
+    name: 'Zulu',
+    nativeName: 'isiZulu',
+    family: LANGUAGE_FAMILIES.NIGER_CONGO,
+    script: 'Latin',
+    period: [1500, 2025],
+    regions: ['KwaZulu-Natal', 'Zululand', 'Natal', 'Durban'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone],
+    greetings: {
+      hello: 'Sawubona',
+      goodbye: 'Hamba kahle',
+      yes: 'Yebo',
+      no: 'Cha',
+      thanks: 'Ngiyabonga',
+    },
+    llmPrompt: 'Emulate Zulu. This is an agglutinative language with a complex noun class system (15 classes). Use click consonants (c, q, x). The language has tonal distinctions. Agreement markers must match throughout the sentence.',
+  },
+
+  XHOSA: {
+    id: 'XHOSA',
+    name: 'Xhosa',
+    nativeName: 'isiXhosa',
+    family: LANGUAGE_FAMILIES.NIGER_CONGO,
+    script: 'Latin',
+    period: [1500, 2025],
+    regions: ['Eastern Cape', 'Cape Colony', 'Transkei', 'Ciskei'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone],
+    greetings: {
+      hello: 'Molo',
+      goodbye: 'Sala kakuhle',
+      yes: 'Ewe',
+      no: 'Hayi',
+      thanks: 'Enkosi',
+    },
+    llmPrompt: 'Emulate Xhosa. Like Zulu, this has noun classes and click consonants (c, q, x). The language is tonal. Use the distinctive Xhosa hlonipha (respect) vocabulary when appropriate.',
+  },
+
+  NAMA: {
+    id: 'NAMA',
+    name: 'Nama',
+    nativeName: 'Khoekhoegowab',
+    family: LANGUAGE_FAMILIES.ISOLATE,
+    script: 'Latin',
+    period: [-2000, 2025],
+    regions: ['Namibia', 'Namaland', 'Kalahari', 'Great Namaqualand'],
+    culturalZones: ['SUB_SAHARAN_AFRICAN' as CulturalZone],
+    greetings: {
+      hello: 'ǃGâi tsēs',
+      goodbye: 'ǀÎ ǃgâi',
+      yes: 'ǃÎ-ǃî',
+      no: 'ǀÎ-ǀî',
+      thanks: 'Gangans',
+    },
+    llmPrompt: 'Emulate Nama/Khoekhoe. This language has the most complex click consonant system (ǃ ǀ ǁ ǂ). It is a tonal language with grammatical gender. Use SOV word order.',
+  },
+
+  // Creole Languages
+  QUEBECOIS_FRENCH: {
+    id: 'QUEBECOIS_FRENCH',
+    name: 'Quebec French',
+    nativeName: 'Français québécois',
+    family: LANGUAGE_FAMILIES.INDO_EUROPEAN,
+    script: 'Latin',
+    period: [1600, 2025],
+    regions: ['Quebec', 'St. Lawrence River', 'Montreal', 'Quebec City', 'Trois-Rivières', 'New France', 'Acadia'],
+    culturalZones: ['NORTH_AMERICAN_COLONIAL' as CulturalZone],
+    predecessors: ['OLD_FRENCH'],
+    greetings: {
+      hello: 'Bonjour',
+      goodbye: 'Bonne journée',
+      yes: 'Oui',
+      no: 'Non',
+      thanks: 'Merci',
+    },
+    llmPrompt: 'Emulate Quebec French, which preserved many 17th-century French features lost in France. Use distinctive vocabulary (char for car, blonde for girlfriend). Pronounce "moi" as "moé" and "toi" as "toé". The tone should reflect North American frontier life mixed with French tradition.',
+  },
+
+  LOUISIANA_CREOLE: {
+    id: 'LOUISIANA_CREOLE',
+    name: 'Louisiana Creole',
+    nativeName: 'Kréyòl La Lwizyàn',
+    family: LANGUAGE_FAMILIES.PIDGIN,
+    script: 'Latin',
+    period: [1700, 2025],
+    regions: ['Louisiana', 'New Orleans', 'Mississippi Delta', 'Acadiana', 'Cajun Country'],
+    culturalZones: ['NORTH_AMERICAN_COLONIAL' as CulturalZone],
+    greetings: {
+      hello: 'Bonjou',
+      goodbye: 'Orevwa',
+      yes: 'Wi',
+      no: 'Non',
+      thanks: 'Mèsi',
+    },
+    llmPrompt: 'Emulate Louisiana Creole. Mix French vocabulary with West African grammar patterns. Simplified verb system with particles for tense (té for past, ké/va for future). No gender or complex agreement. The tone should reflect the cultural blend of French, African, and American influences.',
+  },
+
+  HAITIAN_CREOLE: {
+    id: 'HAITIAN_CREOLE',
+    name: 'Haitian Creole',
+    nativeName: 'Kreyòl ayisyen',
+    family: LANGUAGE_FAMILIES.PIDGIN,
+    script: 'Latin',
+    period: [1700, 2025],
+    regions: ['Haiti', 'Saint-Domingue', 'Port-au-Prince'],
+    culturalZones: ['MESOAMERICAN' as CulturalZone],
+    greetings: {
+      hello: 'Bonjou',
+      goodbye: 'Orevwa',
+      yes: 'Wi',
+      no: 'Non',
+      thanks: 'Mèsi',
+    },
+    llmPrompt: 'Emulate Haitian Creole. French-based vocabulary with West African grammatical structure. Use particles for tense marking (te for past, ap for progressive, pral for future). No gender or verb conjugation. The tone should reflect Caribbean culture.',
+  },
+
+  // Asian Languages
+  CANTONESE: {
+    id: 'CANTONESE',
+    name: 'Cantonese',
+    nativeName: '廣東話',
+    family: LANGUAGE_FAMILIES.SINO_TIBETAN,
+    script: 'Chinese characters',
+    period: [1200, 2025],
+    regions: ['Guangdong', 'Canton', 'Hong Kong', 'Macau', 'Guangzhou'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    predecessors: ['MIDDLE_CHINESE'],
+    greetings: {
+      hello: '你好',
+      goodbye: '再見',
+      yes: '係',
+      no: '唔係',
+      thanks: '唔該',
+    },
+    llmPrompt: 'Emulate Cantonese. This has 6-9 tones (depending on dialect). More conservative than Mandarin, preserving final consonants. Use sentence-final particles extensively (啦, 呀, 囉, 啊). The tone should be direct and pragmatic.',
+  },
+
+  OLD_KOREAN: {
+    id: 'OLD_KOREAN',
+    name: 'Old Korean',
+    nativeName: '古朝鮮語',
+    family: LANGUAGE_FAMILIES.ISOLATE,
+    script: ['Chinese characters (Idu)', 'Gugyeol'],
+    period: [-2000, 900],
+    regions: ['Korean Peninsula', 'Gojoseon', 'Three Kingdoms', 'Goguryeo', 'Baekje', 'Silla'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    successors: ['MIDDLE_KOREAN'],
+    description: 'Earliest attested form of Korean, written using Chinese characters',
+    llmPrompt: 'Use archaic Korean grammatical structures recorded in Chinese character transcriptions. SOV word order is strict. Use honorific particles abundantly. Vocabulary should focus on agricultural, military, and court terminology. Tone should be formal and deferential to authority.',
+  },
+
+  MIDDLE_KOREAN: {
+    id: 'MIDDLE_KOREAN',
+    name: 'Middle Korean',
+    nativeName: '중세 한국어',
+    family: LANGUAGE_FAMILIES.ISOLATE,
+    script: ['Hangul (early)', 'Hanja', 'Mixed script'],
+    period: [900, 1600],
+    regions: ['Goryeo', 'Early Joseon', 'Korean Peninsula'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    predecessors: ['OLD_KOREAN'],
+    successors: ['MODERN_KOREAN'],
+    description: 'Medieval Korean during Goryeo and early Joseon periods',
+    greetings: {
+      hello: '平安하시니잇가',
+      goodbye: '安寧히 가시옵소서',
+      yes: '그러하옵니다',
+      no: '아니하옵니다',
+      thanks: '고맙사옵니다',
+    },
+    llmPrompt: 'Use Middle Korean as recorded in 15th-16th century texts. Employ complex honorific system with multiple levels. Use archaic verbal endings (-옵-, -사-, -시-). Mix Sino-Korean and native vocabulary. Maintain highly formal court register.',
+  },
+
+  MODERN_KOREAN: {
+    id: 'MODERN_KOREAN',
+    name: 'Modern Korean',
+    nativeName: '한국어',
+    family: LANGUAGE_FAMILIES.ISOLATE,
+    script: 'Hangul',
+    period: [1600, 2025],
+    regions: ['Korea', 'Seoul', 'Pyongyang', 'Joseon', 'Busan', 'Gyeongju'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    predecessors: ['MIDDLE_KOREAN'],
+    greetings: {
+      hello: '안녕하세요',
+      goodbye: '안녕히 가세요',
+      yes: '네',
+      no: '아니요',
+      thanks: '감사합니다',
+    },
+    llmPrompt: 'Use contemporary Korean with appropriate honorific levels. SOV word order with complex agglutination. Employ formal speech levels (-습니다, -세요) in most contexts. Balance Sino-Korean and native vocabulary appropriately.',
+  },
+
+  KOREAN: {
+    id: 'KOREAN',
+    name: 'Korean',
+    nativeName: '한국어',
+    family: LANGUAGE_FAMILIES.ISOLATE,
+    script: 'Hangul',
+    period: [500, 2025],
+    regions: ['Korea', 'Seoul', 'Pyongyang', 'Joseon', 'Goryeo', 'Busan', 'Gyeongju'],
+    culturalZones: ['EAST_ASIAN' as CulturalZone],
+    greetings: {
+      hello: '안녕하세요',
+      goodbye: '안녕히 가세요',
+      yes: '네',
+      no: '아니요',
+      thanks: '감사합니다',
+    },
+    llmPrompt: 'Emulate Korean. Agglutinative language with SOV word order. Complex honorific system with multiple speech levels. Use appropriate endings based on social hierarchy (-습니다 formal, -어요 polite, -어 casual).',
+  },
+
+  VIETNAMESE: {
+    id: 'VIETNAMESE',
+    name: 'Vietnamese',
+    nativeName: 'Tiếng Việt',
+    family: LANGUAGE_FAMILIES.AUSTRONESIAN,
+    script: 'Latin',
+    period: [1000, 2025],
+    regions: ['Vietnam', 'Annam', 'Tonkin', 'Cochinchina', 'Saigon', 'Hanoi', 'Mekong Delta'],
+    culturalZones: ['SOUTH_ASIAN' as CulturalZone],
+    greetings: {
+      hello: 'Xin chào',
+      goodbye: 'Tạm biệt',
+      yes: 'Vâng',
+      no: 'Không',
+      thanks: 'Cảm ơn',
+    },
+    llmPrompt: 'Emulate Vietnamese. Tonal language (6 tones). Analytic/isolating grammar with SVO word order. Use classifiers for counting. Heavy Chinese vocabulary influence for formal/abstract terms.',
+  },
+
+  THAI: {
+    id: 'THAI',
+    name: 'Thai',
+    nativeName: 'ภาษาไทย',
+    family: LANGUAGE_FAMILIES.SINO_TIBETAN,
+    script: 'Thai',
+    period: [1200, 2025],
+    regions: ['Thailand', 'Siam', 'Bangkok', 'Ayutthaya', 'Chiang Mai'],
+    culturalZones: ['SOUTH_ASIAN' as CulturalZone],
+    greetings: {
+      hello: 'สวัสดี',
+      goodbye: 'ลาก่อน',
+      yes: 'ใช่',
+      no: 'ไม่',
+      thanks: 'ขอบคุณ',
+    },
+    llmPrompt: 'Emulate Thai. Tonal language (5 tones). SVO word order. No verb conjugation or noun declension. Use polite particles (ครับ for males, ค่ะ for females). Complex pronoun system based on social status.',
+  },
+
+  TAGALOG: {
+    id: 'TAGALOG',
+    name: 'Tagalog',
+    nativeName: 'Tagalog',
+    family: LANGUAGE_FAMILIES.AUSTRONESIAN,
+    script: 'Latin',
+    period: [1500, 2025],
+    regions: ['Philippines', 'Luzon', 'Manila', 'Batangas', 'Quezon'],
+    culturalZones: ['SOUTH_ASIAN' as CulturalZone],
+    predecessors: ['OLD_TAGALOG'],
+    greetings: {
+      hello: 'Kumusta',
+      goodbye: 'Paalam',
+      yes: 'Oo',
+      no: 'Hindi',
+      thanks: 'Salamat',
+    },
+    llmPrompt: 'Emulate modern Tagalog/Filipino. VSO word order with focus marking system. Spanish loanwords for numbers, time, kitchen items. English loanwords for modern concepts. Use po/opo for respect.',
+  },
+
+  // Indigenous American
+  INUKTITUT: {
+    id: 'INUKTITUT',
+    name: 'Inuktitut',
+    nativeName: 'ᐃᓄᒃᑎᑐᑦ',
+    family: LANGUAGE_FAMILIES.ISOLATE,
+    script: 'Canadian Aboriginal syllabics',
+    period: [-2000, 2025],
+    regions: ['Arctic', 'Nunavut', 'Greenland', 'Hudson Bay', 'Baffin Island', 'Canadian North'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    greetings: {
+      hello: 'ᐊᐃ',
+      goodbye: 'ᐊᑦᓯᐅᓂᖅᐊᖅᑐᖓ',
+      yes: 'ᐄ',
+      no: 'ᐊᐅᒃᑲ',
+      thanks: 'ᓇᑯᕐᒦᒃ',
+    },
+    llmPrompt: 'Emulate Inuktitut. Highly polysynthetic language where entire sentences can be one word. Ergative-absolutive alignment. Dual number in addition to singular/plural. Focus on words related to snow, ice, hunting, and Arctic life.',
+  },
+
+  NAVAJO: {
+    id: 'NAVAJO',
+    name: 'Navajo',
+    nativeName: 'Diné bizaad',
+    family: LANGUAGE_FAMILIES.ISOLATE,
+    script: 'Latin',
+    period: [1000, 2025],
+    regions: ['Southwest', 'Arizona', 'New Mexico', 'Four Corners', 'Navajo Nation'],
+    culturalZones: ['NORTH_AMERICAN_PRE_COLUMBIAN' as CulturalZone],
+    greetings: {
+      hello: 'Yáʼátʼééh',
+      goodbye: 'Hágoóneeʼ',
+      yes: 'Aooʼ',
+      no: 'Dooda',
+      thanks: 'Ahéheeʼ',
+    },
+    llmPrompt: 'Emulate Navajo/Diné. Complex verb morphology with aspectual rather than tense marking. Animacy hierarchy affects word order. Use fourth person (obviative) pronoun. The language emphasizes process over state.',
+  },
+
+  GUARANI: {
+    id: 'GUARANI',
+    name: 'Guarani',
+    nativeName: "Avañe'ẽ",
+    family: LANGUAGE_FAMILIES.ISOLATE,
+    script: 'Latin',
+    period: [1000, 2025],
+    regions: ['Paraguay', 'Misiones', 'Chaco', 'Parana River'],
+    culturalZones: ['SOUTH_AMERICAN' as CulturalZone],
+    greetings: {
+      hello: 'Mba\'éichapa',
+      goodbye: 'Jajotopáta',
+      yes: 'Heẽ',
+      no: 'Nahániri',
+      thanks: 'Aguyje',
+    },
+    llmPrompt: 'Emulate Guarani. Agglutinative language with nasal harmony. Active-stative alignment. Extensive Spanish loanwords in modern usage. The language coexists with Spanish in Paraguay.',
+  },
 };
+
+// Regional language mappings with name-based detection
+interface LanguageWeight {
+  id: string;
+  period: [number, number];
+  weight: number;
+}
+
+interface NamePattern {
+  pattern: RegExp;
+  language: string;
+  weight: number;
+}
+
+interface RegionLanguageMapping {
+  patterns: string[];
+  languages: LanguageWeight[];
+  namePatterns?: NamePattern[];
+}
+
+// Comprehensive regional language mappings
+const REGIONAL_LANGUAGE_MAPPINGS: RegionLanguageMapping[] = [
+  // === EUROPE ===
+  // Low Countries
+  {
+    patterns: ['low countries', 'scheldt', 'flanders', 'brabant', 'antwerp', 'bruges', 'ghent'],
+    languages: [
+      { id: 'DUTCH', period: [1500, 2025], weight: 60 },
+      { id: 'OLD_FRENCH', period: [1500, 1700], weight: 30 },
+      { id: 'FRENCH_MEDIEVAL', period: [1100, 1500], weight: 30 },
+      { id: 'GERMAN', period: [1500, 2025], weight: 5 },
+      { id: 'EARLY_SPANISH', period: [1550, 1700], weight: 5 },
+    ],
+    namePatterns: [
+      { pattern: /van der|van den|van|de \w+/i, language: 'DUTCH', weight: 95 },
+      { pattern: /Dubois|Dupont|Lefevre|Moreau/i, language: 'OLD_FRENCH', weight: 90 },
+      { pattern: /Schmidt|Mueller|Schneider/i, language: 'GERMAN', weight: 85 },
+    ],
+  },
+  // Netherlands
+  {
+    patterns: ['netherlands', 'holland', 'amsterdam', 'rotterdam', 'utrecht', 'hague'],
+    languages: [
+      { id: 'DUTCH', period: [1500, 2025], weight: 95 },
+      { id: 'GERMAN', period: [1500, 2025], weight: 3 },
+      { id: 'OLD_FRENCH', period: [1700, 1800], weight: 2 },
+    ],
+    namePatterns: [
+      { pattern: /van der|van den|van|de \w+|Jansen|Bakker|Visser/i, language: 'DUTCH', weight: 98 },
+    ],
+  },
+  // Ireland
+  {
+    patterns: ['ireland', 'dublin', 'cork', 'galway', 'limerick', 'connacht', 'munster', 'leinster', 'ulster'],
+    languages: [
+      { id: 'IRISH_GAELIC', period: [500, 2025], weight: 60 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1200, 2025], weight: 40 },
+    ],
+    namePatterns: [
+      { pattern: /O'|Mc|Mac|Ó|Ni /i, language: 'IRISH_GAELIC', weight: 75 },
+      { pattern: /Smith|Brown|Williams|Jones/i, language: 'EARLY_MODERN_ENGLISH', weight: 80 },
+    ],
+  },
+  // Scotland
+  {
+    patterns: ['scotland', 'edinburgh', 'glasgow', 'aberdeen', 'highlands', 'lowlands'],
+    languages: [
+      { id: 'SCOTS', period: [1100, 2025], weight: 40 },
+      { id: 'SCOTS_GAELIC', period: [500, 2025], weight: 30 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1500, 2025], weight: 30 },
+    ],
+    namePatterns: [
+      { pattern: /Mac|Mc|Campbell|Stewart|Murray|Ross/i, language: 'SCOTS_GAELIC', weight: 70 },
+      { pattern: /Burns|Scott|Wallace|Douglas/i, language: 'SCOTS', weight: 75 },
+    ],
+  },
+  // Wales
+  {
+    patterns: ['wales', 'cymru', 'cardiff', 'swansea', 'gwynedd', 'powys'],
+    languages: [
+      { id: 'WELSH', period: [500, 2025], weight: 60 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1500, 2025], weight: 40 },
+    ],
+    namePatterns: [
+      { pattern: /Llewellyn|Gwynn|Rhys|ap |ab /i, language: 'WELSH', weight: 85 },
+    ],
+  },
+  // Catalonia
+  {
+    patterns: ['catalonia', 'barcelona', 'valencia', 'balearic', 'mallorca'],
+    languages: [
+      { id: 'CATALAN', period: [900, 2025], weight: 70 },
+      { id: 'EARLY_SPANISH', period: [1500, 2025], weight: 30 },
+    ],
+    namePatterns: [
+      { pattern: /Puig|Ferrer|Serra|Soler|Mas/i, language: 'CATALAN', weight: 80 },
+    ],
+  },
+  // Basque Country
+  {
+    patterns: ['basque', 'euskadi', 'bilbao', 'san sebastian', 'vitoria', 'navarre'],
+    languages: [
+      { id: 'BASQUE', period: [-2000, 2025], weight: 50 },
+      { id: 'EARLY_SPANISH', period: [1500, 2025], weight: 35 },
+      { id: 'OLD_FRENCH', period: [1500, 1800], weight: 15 },
+    ],
+    namePatterns: [
+      { pattern: /Etxe|Iturri|Zugasti|Aguirre|Azkuna/i, language: 'BASQUE', weight: 90 },
+    ],
+  },
+  // Switzerland
+  {
+    patterns: ['switzerland', 'swiss', 'zurich', 'geneva', 'bern', 'basel', 'lucerne'],
+    languages: [
+      { id: 'GERMAN', period: [1000, 2025], weight: 65 },
+      { id: 'OLD_FRENCH', period: [1000, 2025], weight: 25 },
+      { id: 'ITALIAN', period: [1000, 2025], weight: 8 },
+      { id: 'ROMANSH', period: [500, 2025], weight: 2 },
+    ],
+  },
+
+  // === AMERICAS ===
+  // Quebec/St. Lawrence
+  {
+    patterns: ['st. lawrence', 'saint lawrence', 'quebec', 'montreal', 'trois-rivieres', 'new france'],
+    languages: [
+      { id: 'QUEBECOIS_FRENCH', period: [1600, 2025], weight: 85 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1760, 2025], weight: 10 },
+      { id: 'MOHAWK', period: [1000, 2025], weight: 5 },
+    ],
+    namePatterns: [
+      { pattern: /Tremblay|Gagnon|Roy|Côté|Bouchard|Gauthier/i, language: 'QUEBECOIS_FRENCH', weight: 95 },
+      { pattern: /Smith|Brown|Wilson|MacDonald/i, language: 'EARLY_MODERN_ENGLISH', weight: 90 },
+    ],
+  },
+  // Canadian North/Arctic
+  {
+    patterns: ['canadian north', 'hudson bay', 'nunavut', 'baffin', 'arctic canada', 'northwest territories'],
+    languages: [
+      { id: 'INUKTITUT', period: [-2000, 2025], weight: 70 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1700, 2025], weight: 25 },
+      { id: 'OLD_FRENCH', period: [1600, 1800], weight: 5 },
+    ],
+  },
+  // Louisiana
+  {
+    patterns: ['louisiana', 'new orleans', 'mississippi delta', 'baton rouge', 'cajun'],
+    languages: [
+      { id: 'LOUISIANA_CREOLE', period: [1700, 2025], weight: 30 },
+      { id: 'OLD_FRENCH', period: [1700, 1803], weight: 40 },
+      { id: 'EARLY_SPANISH', period: [1762, 1803], weight: 20 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1803, 2025], weight: 40 },
+    ],
+    namePatterns: [
+      { pattern: /Thibodaux|Boudreaux|Fontenot|Hebert|Landry/i, language: 'LOUISIANA_CREOLE', weight: 85 },
+    ],
+  },
+  // Caribbean
+  {
+    patterns: ['haiti', 'saint-domingue', 'port-au-prince'],
+    languages: [
+      { id: 'HAITIAN_CREOLE', period: [1700, 2025], weight: 85 },
+      { id: 'OLD_FRENCH', period: [1600, 1800], weight: 15 },
+    ],
+  },
+  // Southwest US
+  {
+    patterns: ['new mexico', 'santa fe', 'albuquerque', 'ancestral puebloan'],
+    languages: [
+      { id: 'NAVAJO', period: [1000, 2025], weight: 30 },
+      { id: 'EARLY_SPANISH', period: [1540, 2025], weight: 40 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1846, 2025], weight: 30 },
+    ],
+    namePatterns: [
+      { pattern: /Begay|Yazzie|Benally|Tsosie/i, language: 'NAVAJO', weight: 95 },
+      { pattern: /Martinez|Garcia|Lopez|Sanchez/i, language: 'EARLY_SPANISH', weight: 90 },
+    ],
+  },
+
+  // === AFRICA ===
+  // South Africa
+  {
+    patterns: ['cape colony', 'cape town', 'transvaal', 'johannesburg', 'pretoria', 'orange free state'],
+    languages: [
+      { id: 'AFRIKAANS', period: [1700, 2025], weight: 35 },
+      { id: 'ZULU', period: [1500, 2025], weight: 20 },
+      { id: 'XHOSA', period: [1500, 2025], weight: 20 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1800, 2025], weight: 20 },
+      { id: 'DUTCH', period: [1652, 1800], weight: 5 },
+    ],
+    namePatterns: [
+      { pattern: /van der|van den|van |de |Botha|Kruger|Pretorius/i, language: 'AFRIKAANS', weight: 90 },
+      { pattern: /Zulu|Buthelezi|Dlamini|Mthethwa/i, language: 'ZULU', weight: 95 },
+      { pattern: /Mandela|Sisulu|Tambo|Mbeki/i, language: 'XHOSA', weight: 90 },
+    ],
+  },
+  // Namibia
+  {
+    patterns: ['namibia', 'windhoek', 'kalahari', 'namib', 'walvis bay'],
+    languages: [
+      { id: 'NAMA', period: [-2000, 2025], weight: 25 },
+      { id: 'HERERO', period: [1500, 2025], weight: 20 },
+      { id: 'AFRIKAANS', period: [1800, 2025], weight: 25 },
+      { id: 'GERMAN', period: [1884, 2025], weight: 10 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1920, 2025], weight: 20 },
+    ],
+    namePatterns: [
+      { pattern: /ǃ|ǀ|ǁ|ǂ|!|\\|/i, language: 'NAMA', weight: 100 },
+      { pattern: /Tjituka|Kaura|Herero|Maharero/i, language: 'HERERO', weight: 95 },
+      { pattern: /von |Schmidt|Mueller|Zimmermann/i, language: 'GERMAN', weight: 95 },
+      { pattern: /van der|Botha|Swart|Venter/i, language: 'AFRIKAANS', weight: 90 },
+    ],
+  },
+
+  // === ASIA ===
+  // Hong Kong
+  {
+    patterns: ['hong kong', 'victoria', 'kowloon'],
+    languages: [
+      { id: 'CANTONESE', period: [1200, 2025], weight: 85 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1842, 2025], weight: 15 },
+    ],
+    namePatterns: [
+      { pattern: /Wong|Chan|Lee|Cheung|Ho|Lau/i, language: 'CANTONESE', weight: 95 },
+      { pattern: /Smith|Jones|Wilson/i, language: 'EARLY_MODERN_ENGLISH', weight: 90 },
+    ],
+  },
+  // China - Enhanced with proper archaic periodization
+  {
+    patterns: ['china', 'yellow river', 'yangtze', 'beijing', 'luoyang', 'changan', 'xian', 'kaifeng', 'nanjing', 'tang', 'song', 'ming', 'qing', 'shang', 'zhou'],
+    languages: [
+      { id: 'OLD_CHINESE', period: [-1250, -221], weight: 95 },
+      { id: 'CLASSICAL_CHINESE', period: [-221, 600], weight: 90 },
+      { id: 'MIDDLE_CHINESE', period: [600, 1400], weight: 90 },
+      { id: 'EARLY_MANDARIN', period: [1400, 1900], weight: 85 },
+      { id: 'MANDARIN', period: [1900, 2025], weight: 95 },
+    ],
+    namePatterns: [
+      { pattern: /Wang|Li|Zhang|Liu|Chen|Yang|Zhao|Huang|Zhou|Wu|Xu|Sun|Zhu|Ma|Hu|Guo|Lin|He|Gao|Luo/i, language: 'OLD_CHINESE', period: [-1250, -221], weight: 98 },
+      { pattern: /Wang|Li|Zhang|Liu|Chen|Yang|Zhao|Huang|Zhou|Wu|Xu|Sun|Zhu|Ma|Hu|Guo|Lin|He|Gao|Luo/i, language: 'CLASSICAL_CHINESE', period: [-221, 600], weight: 98 },
+      { pattern: /Wang|Li|Zhang|Liu|Chen|Yang|Zhao|Huang|Zhou|Wu|Xu|Sun|Zhu|Ma|Hu|Guo|Lin|He|Gao|Luo/i, language: 'MIDDLE_CHINESE', period: [600, 1400], weight: 98 },
+      { pattern: /Wang|Li|Zhang|Liu|Chen|Yang|Zhao|Huang|Zhou|Wu|Xu|Sun|Zhu|Ma|Hu|Guo|Lin|He|Gao|Luo/i, language: 'EARLY_MANDARIN', period: [1400, 1900], weight: 98 },
+      { pattern: /Wang|Li|Zhang|Liu|Chen|Yang|Zhao|Huang|Zhou|Wu|Xu|Sun|Zhu|Ma|Hu|Guo|Lin|He|Gao|Luo/i, language: 'MANDARIN', period: [1900, 2025], weight: 98 },
+    ],
+  },
+
+  // Korea - Enhanced with proper periodization
+  {
+    patterns: ['korea', 'seoul', 'pyongyang', 'busan', 'joseon', 'goryeo', 'silla', 'baekje', 'goguryeo', 'gojoseon'],
+    languages: [
+      { id: 'OLD_KOREAN', period: [-2000, 900], weight: 95 },
+      { id: 'MIDDLE_KOREAN', period: [900, 1600], weight: 95 },
+      { id: 'MODERN_KOREAN', period: [1600, 2025], weight: 95 },
+      { id: 'OLD_CHINESE', period: [-1000, 0], weight: 15 },
+      { id: 'CLASSICAL_CHINESE', period: [0, 1900], weight: 10 },
+    ],
+    namePatterns: [
+      { pattern: /Kim|Lee|Park|Choi|Jung|Kang|Yi|Yun|Song|Jang/i, language: 'OLD_KOREAN', period: [-2000, 900], weight: 98 },
+      { pattern: /Kim|Lee|Park|Choi|Jung|Kang|Yi|Yun|Song|Jang/i, language: 'MIDDLE_KOREAN', period: [900, 1600], weight: 98 },
+      { pattern: /Kim|Lee|Park|Choi|Jung|Kang|Yi|Yun|Song|Jang/i, language: 'MODERN_KOREAN', period: [1600, 2025], weight: 98 },
+    ],
+  },
+
+  // India - Enhanced with proper archaic Sanskrit forms
+  {
+    patterns: ['india', 'ganges', 'indus', 'punjab', 'delhi', 'agra', 'varanasi', 'pataliputra', 'hastinapura', 'mathura', 'vedic', 'arya', 'bharata'],
+    languages: [
+      { id: 'VEDIC_SANSKRIT', period: [-1500, -500], weight: 90 },
+      { id: 'CLASSICAL_SANSKRIT', period: [-500, 1400], weight: 85 },
+      { id: 'PRAKRIT', period: [-300, 1000], weight: 60 },
+      { id: 'HINDI', period: [1000, 2025], weight: 80 },
+      { id: 'PERSIAN', period: [1200, 1800], weight: 25 },
+      { id: 'ENGLISH', period: [1800, 1947], weight: 15 },
+    ],
+    namePatterns: [
+      { pattern: /Singh|Sharma|Gupta|Agarwal|Mishra|Yadav|Verma|Srivastava|Rai|Jha/i, language: 'VEDIC_SANSKRIT', period: [-1500, -500], weight: 95 },
+      { pattern: /Singh|Sharma|Gupta|Agarwal|Mishra|Yadav|Verma|Srivastava|Rai|Jha/i, language: 'CLASSICAL_SANSKRIT', period: [-500, 1000], weight: 95 },
+      { pattern: /Singh|Sharma|Gupta|Agarwal|Mishra|Yadav|Verma|Srivastava|Rai|Jha/i, language: 'HINDI', period: [1000, 2025], weight: 95 },
+    ],
+  },
+  // Vietnam
+  {
+    patterns: ['vietnam', 'annam', 'tonkin', 'cochinchina', 'saigon', 'hanoi', 'mekong'],
+    languages: [
+      { id: 'VIETNAMESE', period: [1000, 2025], weight: 85 },
+      { id: 'OLD_FRENCH', period: [1850, 1954], weight: 10 },
+      { id: 'CLASSICAL_CHINESE', period: [100, 1900], weight: 5 },
+    ],
+    namePatterns: [
+      { pattern: /Nguyen|Tran|Le|Pham|Vu|Hoang/i, language: 'VIETNAMESE', weight: 95 },
+    ],
+  },
+  // Philippines
+  {
+    patterns: ['philippines', 'luzon', 'manila', 'cebu', 'mindanao', 'visayas'],
+    languages: [
+      { id: 'TAGALOG', period: [1500, 2025], weight: 30 },
+      { id: 'OLD_CEBUANO', period: [900, 2025], weight: 20 },
+      { id: 'EARLY_SPANISH', period: [1565, 1898], weight: 25 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1898, 2025], weight: 25 },
+    ],
+    namePatterns: [
+      { pattern: /dela Cruz|Santos|Reyes|Garcia|Mendoza/i, language: 'EARLY_SPANISH', weight: 70 },
+      { pattern: /Magbanua|Magsaysay|Macapagal/i, language: 'TAGALOG', weight: 80 },
+    ],
+  },
+
+  // === OCEANIA ===
+  // New Zealand
+  {
+    patterns: ['new zealand', 'aotearoa', 'north island', 'south island', 'wellington', 'auckland'],
+    languages: [
+      { id: 'MAORI', period: [1200, 2025], weight: 40 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1840, 2025], weight: 60 },
+    ],
+    namePatterns: [
+      { pattern: /Te |Ngā|Wh/i, language: 'MAORI', weight: 90 },
+    ],
+  },
+  // Hawaii
+  {
+    patterns: ['hawaii', 'hawaiian islands', 'oahu', 'maui', 'big island'],
+    languages: [
+      { id: 'HAWAIIAN', period: [300, 2025], weight: 50 },
+      { id: 'EARLY_MODERN_ENGLISH', period: [1893, 2025], weight: 50 },
+    ],
+    namePatterns: [
+      { pattern: /Kamehameha|Kalani|Keoni|Leilani/i, language: 'HAWAIIAN', weight: 95 },
+    ],
+  },
+];
 
 /**
  * Get the appropriate language for a character based on context
@@ -1028,9 +2125,102 @@ export function getLanguageForCharacter(
   culturalZone: CulturalZone | string,
   year: number,
   region?: string,
-  localArea?: string
+  localArea?: string,
+  npcName?: string,
+  profession?: string
 ): LanguageData | undefined {
-  // First try to find exact matches based on region
+  // STEP 1: Name-based detection (highest priority)
+  if (npcName) {
+    const nameParts = npcName.split(' ');
+    const surname = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+    const fullName = npcName;
+
+    // Check against regional name patterns
+    const searchTerms = [
+      localArea?.toLowerCase(),
+      region?.toLowerCase()
+    ].filter(Boolean);
+
+    for (const mapping of REGIONAL_LANGUAGE_MAPPINGS) {
+      // Check if this region matches
+      const regionMatches = searchTerms.some(term =>
+        term && mapping.patterns.some(pattern => term.includes(pattern))
+      );
+
+      if (regionMatches && mapping.namePatterns) {
+        for (const namePattern of mapping.namePatterns) {
+          if (namePattern.pattern.test(fullName) || namePattern.pattern.test(surname)) {
+            const lang = LANGUAGES[namePattern.language];
+            if (lang && year >= lang.period[0] && year <= lang.period[1]) {
+              return lang;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // STEP 2: Profession-based detection
+  if (profession) {
+    const profLower = profession.toLowerCase();
+
+    // Clergy speak Latin in medieval/renaissance Europe
+    if (profLower.match(/priest|bishop|monk|friar|abbott|cardinal|pope/i)) {
+      if (year < 1700 && culturalZone === 'EUROPEAN') {
+        return LANGUAGES['LATIN'];
+      }
+    }
+
+    // Islamic scholars speak Arabic
+    if (profLower.match(/imam|mullah|qadi|ulama|sufi|muezzin/i)) {
+      return LANGUAGES['CLASSICAL_ARABIC'];
+    }
+
+    // Jewish religious figures
+    if (profLower.match(/rabbi|cantor|hazzan|maggid/i)) {
+      if (year >= 1000) {
+        return LANGUAGES['YIDDISH'];
+      }
+      return LANGUAGES['HEBREW'] || LANGUAGES['ARAMAIC'];
+    }
+
+    // Buddhist monks
+    if (profLower.match(/lama|rinpoche|bhikkhu/i)) {
+      if (culturalZone === 'EAST_ASIAN') {
+        return LANGUAGES['CLASSICAL_CHINESE'];
+      } else if (culturalZone === 'SOUTH_ASIAN') {
+        return LANGUAGES['SANSKRIT'];
+      }
+    }
+  }
+
+  // STEP 3: Regional override mappings
+  const searchTerms = [
+    localArea?.toLowerCase(),
+    region?.toLowerCase()
+  ].filter(Boolean);
+
+  for (const mapping of REGIONAL_LANGUAGE_MAPPINGS) {
+    const matches = searchTerms.some(term =>
+      term && mapping.patterns.some(pattern => term.includes(pattern))
+    );
+
+    if (matches) {
+      // Find the appropriate language for this time period
+      const validLanguages = mapping.languages
+        .filter(lang => year >= lang.period[0] && year <= lang.period[1])
+        .sort((a, b) => b.weight - a.weight);
+
+      if (validLanguages.length > 0) {
+        // Could implement weighted random selection here
+        // For now, just pick the highest weight
+        const selected = validLanguages[0];
+        return LANGUAGES[selected.id];
+      }
+    }
+  }
+
+  // STEP 4: Check exact language region matches (original logic)
   for (const lang of Object.values(LANGUAGES)) {
     // Check if this language is active in the time period
     if (year >= lang.period[0] && year <= lang.period[1]) {

@@ -1,26 +1,31 @@
 {
   "sources": [
     {
-      "id": "north-america-antiquity-chronicle",
-      "title": "North American Ancient Chronicle",
-      "author": "Various Authors",
-      "year": -500,
+      "id": "popol-vuh",
+      "title": "Popol Vuh",
+      "author": "K'iche' Maya priests",
+      "year": 1550,
       "era": "ANTIQUITY",
       "culturalZones": [
         "NORTH_AMERICAN_PRE_COLUMBIAN"
       ],
-      "excerpt": "A collection of ancient texts from the North American region.",
-      "longExcerpt": "This represents a compilation of historical documents from the Ancient period in the North American region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "excerpt": "This is the account of how all was in suspense, all calm, in silence; all motionless, still, and the expanse of the sky was empty. This is the first account, the first narrative.",
+      "longExcerpt": "This is the account of how all was in suspense, all calm, in silence; all motionless, still, and the expanse of the sky was empty. This is the first account, the first narrative. This sacred book of the K'iche' Maya, written down in 1550 but preserving much older oral traditions, tells of the creation of the world and the origins of Maya civilization.",
       "keywords": [
-        "north-america",
-        "antiquity",
-        "history",
-        "chronicle",
-        "primary source"
+        "Maya",
+        "creation",
+        "mythology",
+        "Guatemala",
+        "gods",
+        "corn",
+        "sacred"
       ],
-      "wikisourceTitle": "North American_Ancient_Texts",
+      "wikisourceTitle": "Popol_Vuh",
+      "internetArchiveId": "popolwuj00xime",
       "citation": {
-        "originalPublication": "North American Ancient Period"
+        "translator": "Dennis Tedlock",
+        "originalPublication": "Guatemala, c. 1550 (oral tradition much older)",
+        "modernSource": "Simon & Schuster, 1985"
       }
     }
   ]

@@ -6,18 +6,19 @@ interface CraftingModalProps {
     isOpen: boolean;
     onClose: () => void;
     items: Item[];
-    method: 'COMBINE' | 'DISAGGREGATE';
-    onExecuteCrafting: (intent: string) => Promise<CraftingResult | null>;
+    method?: 'COMBINE' | 'DISAGGREGATE'; // Made optional, will be selectable in modal
+    onExecuteCrafting: (intent: string, method: 'COMBINE' | 'DISAGGREGATE') => Promise<CraftingResult | null>;
 }
 
-const CraftingModal: React.FC<CraftingModalProps> = ({ isOpen, onClose, items, method, onExecuteCrafting }) => {
+const CraftingModal: React.FC<CraftingModalProps> = ({ isOpen, onClose, items, method: initialMethod, onExecuteCrafting }) => {
     const [intent, setIntent] = useState('');
     const [result, setResult] = useState<CraftingResult | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [method, setMethod] = useState<'COMBINE' | 'DISAGGREGATE'>(initialMethod || 'COMBINE');
 
     const handleConfirm = async () => {
         setIsLoading(true);
-        const craftResult = await onExecuteCrafting(intent);
+        const craftResult = await onExecuteCrafting(intent, method);
         setResult(craftResult);
         setIsLoading(false);
     };
@@ -25,6 +26,7 @@ const CraftingModal: React.FC<CraftingModalProps> = ({ isOpen, onClose, items, m
     const handleClose = () => {
         setResult(null);
         setIntent('');
+        setMethod('COMBINE'); // Reset to default
         onClose();
     };
 
@@ -66,6 +68,32 @@ const CraftingModal: React.FC<CraftingModalProps> = ({ isOpen, onClose, items, m
 
         return (
             <>
+                {/* Mode Toggle */}
+                <div className="flex justify-center gap-2 mb-4">
+                    <button
+                        onClick={() => setMethod('COMBINE')}
+                        className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
+                            method === 'COMBINE'
+                                ? 'bg-blue-600 text-white shadow-glow-primary'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        }`}
+                    >
+                        Combine Items
+                    </button>
+                    <button
+                        onClick={() => setMethod('DISAGGREGATE')}
+                        className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
+                            method === 'DISAGGREGATE'
+                                ? 'bg-orange-600 text-white shadow-glow-orange'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        }`}
+                        disabled={items.length !== 1}
+                        title={items.length !== 1 ? 'Select exactly one item to take apart' : ''}
+                    >
+                        Take Apart
+                    </button>
+                </div>
+
                 <div className="flex flex-wrap justify-center gap-4 mb-6">
                     {items.map(item => (
                         <div key={item.id} className="flex flex-col items-center text-center">

@@ -190,19 +190,31 @@ const POIHoverTooltip: React.FC<POIHoverTooltipProps> = ({
   const tooltipWidth = 240; // Approximate width
   const tooltipHeight = 120; // Approximate height
   const offset = 10; // Distance from cursor
-  
-  // Adjust horizontal position to keep on screen
-  let adjustedX = x;
-  if (x - tooltipWidth/2 < 10) {
-    adjustedX = tooltipWidth/2 + 10; // Keep 10px from left edge
-  } else if (x + tooltipWidth/2 > window.innerWidth - 10) {
-    adjustedX = window.innerWidth - tooltipWidth/2 - 10; // Keep 10px from right edge
+
+  // Check if we're on the right side of the screen
+  const isRightSide = x > window.innerWidth / 2;
+
+  // Apply offset based on screen position
+  let adjustedX;
+  if (isRightSide) {
+    // On right side: offset to the left of cursor
+    adjustedX = x - 400;  // Larger leftward offset for right side
+  } else {
+    // On left side: smaller offset works fine
+    adjustedX = x - 200;
   }
-  
-  // Position above cursor by default
-  let adjustedY = y - offset; // Very close to cursor
-  if (adjustedY - tooltipHeight < 10) {
-    adjustedY = y + tooltipHeight + offset; // Show below cursor if no room above
+
+  let adjustedY = y - offset;
+
+  // Simple bounds checking
+  if (adjustedX < 10) {
+    adjustedX = 10;
+  } else if (adjustedX > window.innerWidth - tooltipWidth - 10) {
+    adjustedX = window.innerWidth - tooltipWidth - 10;
+  }
+
+  if (adjustedY < 10) {
+    adjustedY = y + offset; // Show below if no room above
   }
   
   return (

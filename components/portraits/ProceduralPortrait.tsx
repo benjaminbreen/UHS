@@ -6,6 +6,7 @@ import {
   renderEnhancedEyes, renderHairHighlightAndFuzz,
   aaConcaveCorners, renderGlassesShine, renderEarring
 } from './portraitUtils';
+import { calculateDiseaseGameplayRestrictions } from '../../services/diseaseProgressionService';
 
 interface ProceduralPortraitProps {
   character: {
@@ -399,7 +400,37 @@ const parseHairstyle = (
   const headX = 32 - (headDim.width / 2);
   const headY = 10;
 
-  // ---------- Skin/Hair Palette ----------
+  // ---------- Disease Analysis & Visual Effects ----------
+  const diseaseRestrictions = calculateDiseaseGameplayRestrictions(character.diseaseHealth);
+  const currentDiseases = character.diseaseHealth?.currentDiseases || [];
+
+  // Get specific disease effects
+  const diseaseEffects = useMemo(() => {
+    const effects = {
+      hasSmallpox: false,
+      hasPlague: false,
+      hasTuberculosis: false,
+      hasCholera: false,
+      hasLeprosy: false,
+      hasRabies: false,
+      severity: diseaseRestrictions.socialAvoidanceLevel,
+      symptomDescription: diseaseRestrictions.symptomDescription
+    };
+
+    currentDiseases.forEach(activeDisease => {
+      const diseaseId = activeDisease.disease.name?.toLowerCase() || '';
+      if (diseaseId.includes('smallpox')) effects.hasSmallpox = true;
+      if (diseaseId.includes('plague')) effects.hasPlague = true;
+      if (diseaseId.includes('tuberculosis') || diseaseId.includes('consumption')) effects.hasTuberculosis = true;
+      if (diseaseId.includes('cholera')) effects.hasCholera = true;
+      if (diseaseId.includes('leprosy')) effects.hasLeprosy = true;
+      if (diseaseId.includes('rabies')) effects.hasRabies = true;
+    });
+
+    return effects;
+  }, [currentDiseases, diseaseRestrictions]);
+
+  // ---------- Skin/Hair Palette with Disease Effects ----------
   const isSick =
     (character.health !== undefined && character.maxHealth !== undefined && (character.health / character.maxHealth) < 0.6) ||
     (character.diseaseHealth?.currentDiseases && character.diseaseHealth.currentDiseases.length > 0);
@@ -409,9 +440,37 @@ const parseHairstyle = (
     const r = parseInt(actualSkinTone.slice(1, 3), 16);
     const g = parseInt(actualSkinTone.slice(3, 5), 16);
     const b = parseInt(actualSkinTone.slice(5, 7), 16);
-    const sickR = Math.max(0, r - 15);
-    const sickG = g;
-    const sickB = Math.max(0, b - 10);
+
+    let sickR = r, sickG = g, sickB = b;
+
+    // Disease-specific skin changes
+    if (diseaseEffects.hasTuberculosis) {
+      // Pale, gaunt appearance
+      sickR = Math.max(0, r - 25);
+      sickG = Math.max(0, g - 20);
+      sickB = Math.max(0, b - 15);
+    } else if (diseaseEffects.hasCholera) {
+      // Sunken, dehydrated look - grayish
+      sickR = Math.max(0, r - 30);
+      sickG = Math.max(0, g - 25);
+      sickB = Math.max(0, b - 20);
+    } else if (diseaseEffects.hasPlague) {
+      // Darkened, blackened appearance
+      sickR = Math.max(0, r - 40);
+      sickG = Math.max(0, g - 35);
+      sickB = Math.max(0, b - 30);
+    } else if (diseaseEffects.hasLeprosy) {
+      // Patchy, discolored skin
+      sickR = Math.max(0, r - 20);
+      sickG = Math.max(0, g - 15);
+      sickB = Math.max(0, b - 25);
+    } else {
+      // Generic illness
+      sickR = Math.max(0, r - 15);
+      sickG = g;
+      sickB = Math.max(0, b - 10);
+    }
+
     actualSkinTone = `#${sickR.toString(16).padStart(2, '0')}${sickG.toString(16).padStart(2, '0')}${sickB.toString(16).padStart(2, '0')}`;
   }
 
@@ -5338,6 +5397,87 @@ if (defaultCapStyles.has(hairStyle)) {
       {renderNose}
       {renderMouth}
       {renderFacialHair}
+
+      {/* Disease symptoms */}
+      {(() => {
+        const elements: JSX.Element[] = [];
+
+        // Smallpox: facial rash/pockmarks
+        if (diseaseEffects.hasSmallpox && diseaseEffects.severity >= 1) {
+          const rashColor = diseaseEffects.severity >= 2 ? '#8B0000' : '#CD5C5C'; // Dark red for severe, lighter for mild
+          const numSpots = diseaseEffects.severity >= 2 ? 12 : 6;
+
+          for (let i = 0; i < numSpots; i++) {
+            const spotRng = seededRng(character.stats.constitution + i * 7);
+            const x = headX + 2 + Math.floor(spotRng() * (headDim.width - 4));
+            const y = headY + 2 + Math.floor(spotRng() * (headDim.height - 4));
+            elements.push(
+              <rect key={`smallpox-${i}`} x={x} y={y} width="1" height="1" fill={rashColor} className="pixel" />
+            );
+            // Add larger spots for severe cases
+            if (diseaseEffects.severity >= 2 && i < 4) {
+              elements.push(
+                <rect key={`smallpox-large-${i}`} x={x+1} y={y} width="1" height="1" fill={rashColor} className="pixel" />,
+                <rect key={`smallpox-large2-${i}`} x={x} y={y+1} width="1" height="1" fill={rashColor} className="pixel" />
+              );
+            }
+          }
+        }
+
+        // Plague: darkened extremities and buboes
+        if (diseaseEffects.hasPlague && diseaseEffects.severity >= 2) {
+          const buboeColor = '#2F2F2F';
+          // Add dark patches around jawline
+          elements.push(
+            <rect key="plague-jaw1" x={headX + 1} y={headY + headDim.height - 2} width="2" height="1" fill={buboeColor} className="pixel" />,
+            <rect key="plague-jaw2" x={headX + headDim.width - 3} y={headY + headDim.height - 2} width="2" height="1" fill={buboeColor} className="pixel" />
+          );
+
+          // Severe plague: more extensive darkening
+          if (diseaseEffects.severity >= 3) {
+            elements.push(
+              <rect key="plague-severe1" x={headX} y={headY + headDim.height - 1} width="3" height="1" fill={buboeColor} className="pixel" />,
+              <rect key="plague-severe2" x={headX + headDim.width - 3} y={headY + headDim.height - 1} width="3" height="1" fill={buboeColor} className="pixel" />
+            );
+          }
+        }
+
+        // Leprosy: patchy discoloration
+        if (diseaseEffects.hasLeprosy && diseaseEffects.severity >= 1) {
+          const patchColor = mix(actualSkinTone, '#D3D3D3', 0.6); // Grayish patches
+          const numPatches = diseaseEffects.severity >= 2 ? 8 : 4;
+
+          for (let i = 0; i < numPatches; i++) {
+            const patchRng = seededRng(character.stats.constitution + i * 11);
+            const x = headX + 1 + Math.floor(patchRng() * (headDim.width - 2));
+            const y = headY + 1 + Math.floor(patchRng() * (headDim.height - 2));
+            elements.push(
+              <rect key={`leprosy-${i}`} x={x} y={y} width="2" height="1" fill={patchColor} className="pixel" />
+            );
+          }
+        }
+
+        // Cholera: sunken eyes effect (darkened eye sockets)
+        if (diseaseEffects.hasCholera && diseaseEffects.severity >= 2) {
+          const sunkenColor = createShadow(actualSkinTone, 0.3);
+          elements.push(
+            <rect key="cholera-socket1" x={headX + 4} y={headY + 6} width="3" height="1" fill={sunkenColor} className="pixel" />,
+            <rect key="cholera-socket2" x={headX + headDim.width - 7} y={headY + 6} width="3" height="1" fill={sunkenColor} className="pixel" />
+          );
+        }
+
+        // Rabies: foaming mouth effect
+        if (diseaseEffects.hasRabies && diseaseEffects.severity >= 2) {
+          const foamColor = '#F5F5F5';
+          elements.push(
+            <rect key="rabies-foam1" x={headX + headDim.width/2 - 1} y={headY + headDim.height - 3} width="1" height="1" fill={foamColor} className="pixel" />,
+            <rect key="rabies-foam2" x={headX + headDim.width/2} y={headY + headDim.height - 3} width="1" height="1" fill={foamColor} className="pixel" />,
+            <rect key="rabies-foam3" x={headX + headDim.width/2 + 1} y={headY + headDim.height - 4} width="1" height="1" fill={foamColor} className="pixel" />
+          );
+        }
+
+        return <g key="disease-symptoms">{elements}</g>;
+      })()}
 
       {/* Glasses (after face but before headgear) */}
       {renderGlasses}

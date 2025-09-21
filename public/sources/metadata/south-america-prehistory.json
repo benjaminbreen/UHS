@@ -19,6 +19,90 @@
       "citation": {
         "originalPublication": "Nazca Civilization, 200"
       }
+    },
+    {
+      "id": "cave-paintings-serra-capivara",
+      "title": "Serra da Capivara Rock Art",
+      "author": "Paleolithic inhabitants",
+      "year": -8000,
+      "era": "PREHISTORY",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "These ancient paintings depict hunting scenes, ritual dances, and daily life of early inhabitants. The rock shelters contain over 30,000 pictographs showing human figures, animals, and geometric patterns spanning thousands of years.",
+      "longExcerpt": "These ancient paintings depict hunting scenes, ritual dances, and daily life of early inhabitants. The rock shelters contain over 30,000 pictographs showing human figures, animals, and geometric patterns spanning thousands of years. The Serra da Capivara National Park in Brazil contains one of the largest collections of prehistoric art in the Americas, providing insight into the lives of hunter-gatherers who inhabited the region over 10,000 years ago.",
+      "keywords": [
+        "rock art",
+        "prehistory",
+        "Brazil",
+        "hunting",
+        "ritual",
+        "pictographs",
+        "archaeology"
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "serracapivaraart",
+      "citation": {
+        "translator": "Niède Guidon",
+        "originalPublication": "Serra da Capivara, Brazil, c. 8000 BCE",
+        "modernSource": "FUMDHAM, 1991"
+      }
+    },
+    {
+      "id": "monte-alegre-cave-art",
+      "title": "Monte Alegre Cave Paintings",
+      "author": "Paleoindian artists",
+      "year": -11000,
+      "era": "PREHISTORY",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "The cave walls show red and yellow paintings of human hands, animals, and geometric designs. These are among the oldest known artworks in South America, created by the first peoples to arrive in the Amazon basin.",
+      "longExcerpt": "The cave walls show red and yellow paintings of human hands, animals, and geometric designs. These are among the oldest known artworks in South America, created by the first peoples to arrive in the Amazon basin. Dating to approximately 11,000 years ago, these paintings in the Brazilian Amazon represent some of the earliest evidence of symbolic expression in the Americas.",
+      "keywords": [
+        "Amazon",
+        "cave paintings",
+        "Paleoindian",
+        "Brazil",
+        "hands",
+        "animals",
+        "prehistoric art"
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "montealegrecaves",
+      "citation": {
+        "translator": "Anna C. Roosevelt",
+        "originalPublication": "Monte Alegre, Brazil, c. 11000 BCE",
+        "modernSource": "Science Magazine, 1996"
+      }
+    },
+    {
+      "id": "chinchorro-mummies",
+      "title": "Chinchorro Mummification Practices",
+      "author": "Chinchorro culture",
+      "year": -5000,
+      "era": "PREHISTORY",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "The Chinchorro people practiced artificial mummification, removing organs and skin, then reconstructing the body with clay and reeds. This process preserved their dead for the journey to the afterlife, showing sophisticated understanding of preservation techniques.",
+      "longExcerpt": "The Chinchorro people practiced artificial mummification, removing organs and skin, then reconstructing the body with clay and reeds. This process preserved their dead for the journey to the afterlife, showing sophisticated understanding of preservation techniques. These mummies from the Atacama Desert of Chile and Peru represent the world's oldest known artificial mummification, predating Egyptian mummies by thousands of years.",
+      "keywords": [
+        "mummification",
+        "Atacama",
+        "Chile",
+        "Peru",
+        "burial",
+        "preservation",
+        "afterlife"
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "chinchorromummies",
+      "citation": {
+        "translator": "Bernardo Arriaza",
+        "originalPublication": "Atacama Desert, c. 5000 BCE",
+        "modernSource": "Smithsonian Institution, 1995"
+      }
     }
   ]
 }

@@ -6,6 +6,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AnimalEntity, NpcEntity, PlayerCharacter, MapData } from '../types';
 import { ANIMAL_DATA } from '../constants';
+import { debouncedStorage } from './debouncedStorageService';
 
 export interface TamingResult {
     success: 'tamed' | 'partial' | 'failed';
@@ -262,9 +263,10 @@ export function createTamedAnimal(
  */
 export function loadTamedAnimals(): TamedAnimal[] {
     try {
-        const stored = localStorage.getItem('tamedAnimals');
-        if (stored) {
-            return JSON.parse(stored);
+        // Use debounced storage which checks pending writes first
+        const animals = debouncedStorage.getItem<TamedAnimal[]>('tamedAnimals');
+        if (animals) {
+            return animals;
         }
     } catch (error) {
         console.error('Error loading tamed animals:', error);
@@ -277,8 +279,9 @@ export function loadTamedAnimals(): TamedAnimal[] {
  */
 export function saveTamedAnimals(animals: TamedAnimal[]): void {
     try {
-        localStorage.setItem('tamedAnimals', JSON.stringify(animals));
-        console.log(`[TamedAnimals] Saved ${animals.length} animals to storage`);
+        // Use debounced storage to prevent performance issues
+        debouncedStorage.setItem('tamedAnimals', animals);
+        // Logging removed - too frequent
     } catch (error) {
         console.error('Error saving tamed animals:', error);
     }

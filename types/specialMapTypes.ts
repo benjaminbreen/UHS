@@ -21,6 +21,7 @@ export enum SpecialMapArchetype {
   VESSEL = 'VESSEL',
   PLAYER_HOME = 'PLAYER_HOME',
   FORTRESS_COMMANDER_CHAMBER = 'FORTRESS_COMMANDER_CHAMBER',
+  WORKSHOP = 'WORKSHOP',
   
   // NEW: Historically accurate government archetypes
   TRIBAL_COUNCIL = 'TRIBAL_COUNCIL',

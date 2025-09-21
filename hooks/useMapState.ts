@@ -18,6 +18,7 @@ import { SeedManager } from '../services/seedService';
 import { npcPersistenceService } from '../services/npcPersistenceService';
 import { crossMapNpcService } from '../services/crossMapNpcService';
 import gameSoundsService from '../services/gameSoundsService';
+import { urbanTileRegistry } from '../services/urbanTileRegistryService';
 
 /**
  * Convert MapArchetype enum to a readable area name for display
@@ -58,12 +59,13 @@ interface CachedMapEntry {
   npcs: NpcEntity[];
   deployedVessels: DeployedVessel[];
   seed: number;
-  archetype: MapArchetype; 
-  climate: ClimateType;   
+  archetype: MapArchetype;
+  climate: ClimateType;
   worldX: number;
   worldY: number;
   region: string;
   localArea: string;
+  urbanRegistryData?: string; // Serialized urban tile registry data
 }
 
 interface useMapStateProps {
@@ -408,8 +410,25 @@ export const useMapState = (props: useMapStateProps) => {
         // Clean up expired transfers
         crossMapNpcService.cleanupExpiredTransfers();
 
-        const newCacheEntry = { mapData: newMap, animals: newAnimals, npcs: newNpcs, deployedVessels: [], seed: seedToUse, archetype: archetypeToUse, climate: climateToUse, worldX, worldY, region: regionToUse, localArea: localAreaToUse };
-        setMapDataCache(prevCache => new Map(prevCache).set(`${worldX},${worldY}`, newCacheEntry)); 
+        // Capture urban registry data for this map
+        const registryData = urbanTileRegistry.getCacheableData();
+        const urbanRegistryData = registryData ? JSON.stringify(registryData) : undefined;
+
+        const newCacheEntry = {
+            mapData: newMap,
+            animals: newAnimals,
+            npcs: newNpcs,
+            deployedVessels: [],
+            seed: seedToUse,
+            archetype: archetypeToUse,
+            climate: climateToUse,
+            worldX,
+            worldY,
+            region: regionToUse,
+            localArea: localAreaToUse,
+            urbanRegistryData
+        };
+        setMapDataCache(prevCache => new Map(prevCache).set(`${worldX},${worldY}`, newCacheEntry));
         return newCacheEntry;
     }, [generateHarbor, generateLargeCity, userSelectedBaseAltitude, forceVolcanicActivity, gameState.gameDate, isAgricultural, isPastoral, economicActivityLevel]);
 
@@ -524,6 +543,18 @@ export const useMapState = (props: useMapStateProps) => {
                 setLocalArea(cachedEntry.localArea);
                 setGameState.setCurrentZone(cachedEntry.mapData.continent || '');
                 setGameState.setCurrentRegion(cachedEntry.region);
+
+                // Restore urban tile registry data if available
+                if (cachedEntry.urbanRegistryData) {
+                    try {
+                        const registryData = JSON.parse(cachedEntry.urbanRegistryData);
+                        urbanTileRegistry.restoreFromCache(registryData);
+                        console.log('[useMapState] Restored urban registry from cache');
+                    } catch (error) {
+                        console.error('[useMapState] Failed to restore urban registry:', error);
+                    }
+                }
+
                 if (playerState.pendingIconTransitionInfo) {
                     validateAndPlacePlayerOnNewMap(cachedEntry.mapData, playerState.pendingIconTransitionInfo);
                 }
@@ -914,6 +945,10 @@ export const useMapState = (props: useMapStateProps) => {
         // Cache the current map state
         const cacheKey = `${currentWorldCoords.x},${currentWorldCoords.y}`;
         console.log('[enterSpecialMap] Caching current map with key:', cacheKey);
+        // Capture current urban registry state
+        const registryData = urbanTileRegistry.getCacheableData();
+        const urbanRegistryData = registryData ? JSON.stringify(registryData) : undefined;
+
         const currentMapCache = {
             mapData,
             animals,
@@ -925,7 +960,8 @@ export const useMapState = (props: useMapStateProps) => {
             worldX: currentWorldCoords.x,
             worldY: currentWorldCoords.y,
             region: mapData.region || '',
-            localArea: localArea
+            localArea: localArea,
+            urbanRegistryData
         };
         
         // Actually add to cache!

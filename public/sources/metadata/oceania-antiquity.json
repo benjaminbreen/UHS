@@ -41,26 +41,31 @@
       "longExcerpt": "In the beginning the earth was a bare plain. There was no life, no death. The sun, the moon, and the stars slept beneath the earth. This historical source from -40000 provides valuable insight into the oceania region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
     },
     {
-      "id": "oceania-antiquity-chronicle",
-      "title": "Oceanic Ancient Chronicle",
-      "author": "Various Authors",
-      "year": -500,
+      "id": "kumulipo",
+      "title": "The Kumulipo",
+      "author": "Hawaiian priests",
+      "year": 1700,
       "era": "ANTIQUITY",
       "culturalZones": [
         "OCEANIA"
       ],
-      "excerpt": "A collection of ancient texts from the Oceanic region.",
-      "longExcerpt": "This represents a compilation of historical documents from the Ancient period in the Oceanic region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "excerpt": "At the time when the earth became hot, at the time when the heavens turned about, at the time when the sun was darkened to cause the moon to shine, the time of the rise of the Pleiades, the slime was the source of the earth.",
+      "longExcerpt": "At the time when the earth became hot, at the time when the heavens turned about, at the time when the sun was darkened to cause the moon to shine, the time of the rise of the Pleiades, the slime was the source of the earth. This Hawaiian creation chant, composed around 1700 for a royal birth, traces genealogy back to the origins of the universe, demonstrating sophisticated astronomical knowledge.",
       "keywords": [
-        "oceania",
-        "antiquity",
-        "history",
-        "chronicle",
-        "primary source"
+        "Hawaii",
+        "creation",
+        "genealogy",
+        "astronomy",
+        "chant",
+        "cosmology",
+        "royalty"
       ],
-      "wikisourceTitle": "Oceanic_Ancient_Texts",
+      "wikisourceTitle": "The_Kumulipo",
+      "internetArchiveId": "kumulipo00lili",
       "citation": {
-        "originalPublication": "Oceanic Ancient Period"
+        "translator": "Martha Warren Beckwith",
+        "originalPublication": "Hawaii, c. 1700",
+        "modernSource": "University of Chicago Press, 1951"
       }
     }
   ]

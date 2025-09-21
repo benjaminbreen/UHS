@@ -20,6 +20,174 @@
       "citation": {
         "originalPublication": "Anonymous Seringueiro, 1905"
       }
+    },
+    {
+      "id": "bolivar-jamaica-letter",
+      "title": "Letter from Jamaica",
+      "author": "Simón Bolívar",
+      "year": 1815,
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "To form a stable government in America, one must use as foundation a constitution whose base is appropriate to the country, its history, location, and other circumstances.",
+      "longExcerpt": "To form a stable government in America, one must use as foundation a constitution whose base is appropriate to the country, its history, location, and other circumstances. This famous letter from 1815 outlines Bolívar's vision for Latin American independence and the challenges of creating new republics, written during his exile in Jamaica.",
+      "keywords": [
+        "independence",
+        "Bolívar",
+        "Jamaica",
+        "constitution",
+        "republic",
+        "Latin America",
+        "liberation"
+      ],
+      "wikisourceTitle": "Letter_from_Jamaica",
+      "internetArchiveId": "bolivarjamaica00boli",
+      "citation": {
+        "translator": "Lewis Bertrand",
+        "originalPublication": "Kingston, Jamaica, 1815",
+        "modernSource": "Library of Latin American History, 1951"
+      }
+    },
+    {
+      "id": "san-martin-proclamation",
+      "title": "Proclamation to the Peruvians",
+      "author": "José de San Martín",
+      "year": 1821,
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "Peruvians! You have declared your independence. From this moment Peru is free and independent by the general will of the people and the justice of their cause.",
+      "longExcerpt": "Peruvians! You have declared your independence. From this moment Peru is free and independent by the general will of the people and the justice of their cause. This proclamation from July 1821 announced Peru's independence from Spain, delivered by the great liberator José de San Martín in Lima's main plaza.",
+      "keywords": [
+        "Peru",
+        "independence",
+        "San Martín",
+        "liberation",
+        "freedom",
+        "proclamation",
+        "Lima"
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "sanmartinproclamation",
+      "citation": {
+        "translator": null,
+        "originalPublication": "Lima, Peru, 1821",
+        "modernSource": "Biblioteca Nacional del Perú, 1921"
+      }
+    },
+    {
+      "id": "pedro-i-independence",
+      "title": "Independence Proclamation of Brazil",
+      "author": "Pedro I of Brazil",
+      "year": 1822,
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "É tempo! Independência ou Morte! Estamos separados de Portugal! O Brasil está livre e independente!",
+      "longExcerpt": "É tempo! Independência ou Morte! Estamos separados de Portugal! O Brasil está livre e independente! This famous cry of 'Independence or Death!' on September 7, 1822, marked Brazil's declaration of independence from Portugal, proclaimed by Prince Pedro on the banks of the Ipiranga River near São Paulo.",
+      "keywords": [
+        "Brazil",
+        "independence",
+        "Pedro I",
+        "Ipiranga",
+        "Portugal",
+        "freedom",
+        "proclamation"
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "pedroisindependence",
+      "citation": {
+        "translator": null,
+        "originalPublication": "São Paulo, Brazil, 1822",
+        "modernSource": "Instituto Histórico e Geográfico Brasileiro, 1922"
+      }
+    },
+    {
+      "id": "machado-assis-memoir",
+      "title": "The Posthumous Memoirs of Brás Cubas",
+      "author": "Machado de Assis",
+      "year": 1881,
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "Ao verme que primeiro roeu as frias carnes do meu cadáver dedico como saudosa lembrança estas memórias póstumas.",
+      "longExcerpt": "Ao verme que primeiro roeu as frias carnes do meu cadáver dedico como saudosa lembrança estas memórias póstumas. This groundbreaking novel from 1881 by Brazil's greatest writer offers a satirical view of 19th-century Brazilian society, narrated by a dead man looking back on his life with ironic detachment.",
+      "keywords": [
+        "Brazil",
+        "literature",
+        "satire",
+        "society",
+        "19th century",
+        "realism",
+        "posthumous"
+      ],
+      "wikisourceTitle": "The_Posthumous_Memoirs_of_Brás_Cubas",
+      "internetArchiveId": "posthumousmemoir00mach",
+      "citation": {
+        "translator": "Gregory Rabassa",
+        "originalPublication": "Rio de Janeiro, 1881",
+        "modernSource": "Oxford University Press, 1997"
+      }
+    },
+    {
+      "id": "sarmiento-facundo",
+      "title": "Facundo: Civilization and Barbarism",
+      "author": "Domingo Faustino Sarmiento",
+      "year": 1845,
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "The Argentine Republic extends from the Andes to the Atlantic. The immense plains that surround it on all sides are the stage where gaucho life developed, a way of being that explains our national character.",
+      "longExcerpt": "The Argentine Republic extends from the Andes to the Atlantic. The immense plains that surround it on all sides are the stage where gaucho life developed, a way of being that explains our national character. This influential 1845 work by future Argentine president Sarmiento analyzes the conflict between urban civilization and rural traditions in post-independence Argentina.",
+      "keywords": [
+        "Argentina",
+        "gauchos",
+        "civilization",
+        "barbarism",
+        "pampas",
+        "politics",
+        "identity"
+      ],
+      "wikisourceTitle": "Facundo",
+      "internetArchiveId": "facundocivilizat00sarm",
+      "citation": {
+        "translator": "Mary Mann",
+        "originalPublication": "Santiago, Chile, 1845",
+        "modernSource": "University of California Press, 1961"
+      }
+    },
+    {
+      "id": "guerra-do-paraguai",
+      "title": "Diary of the Paraguayan War",
+      "author": "Alfredo d'Escragnolle Taunay",
+      "year": 1870,
+      "era": "INDUSTRIAL",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "A campanha do Paraguai foi terrível. Vimos homens morrerem não apenas de balas, mas de fome, doença e desespero. A guerra consumiu uma geração inteira.",
+      "longExcerpt": "A campanha do Paraguai foi terrível. Vimos homens morrerem não apenas de balas, mas de fome, doença e desespero. A guerra consumiu uma geração inteira. This diary from a Brazilian officer during the War of the Triple Alliance (1864-1870) provides a firsthand account of South America's deadliest conflict.",
+      "keywords": [
+        "Paraguay",
+        "war",
+        "Triple Alliance",
+        "Brazil",
+        "conflict",
+        "diary",
+        "military"
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "paraguayanwar00taun",
+      "citation": {
+        "translator": null,
+        "originalPublication": "Rio de Janeiro, 1870",
+        "modernSource": "Biblioteca Nacional do Brasil, 1946"
+      }
     }
   ]
 }

@@ -36,26 +36,59 @@
       "isStandard": true
     },
     {
-      "id": "oceania-renaissance-early-modern-chronicle",
-      "title": "Oceanic Early Modern Chronicle",
-      "author": "Various Authors",
-      "year": 1600,
+      "id": "cook-voyages",
+      "title": "The Three Voyages of Captain Cook",
+      "author": "James Cook",
+      "year": 1773,
       "era": "RENAISSANCE_EARLY-MODERN",
       "culturalZones": [
         "OCEANIA"
       ],
-      "excerpt": "A collection of early modern texts from the Oceanic region.",
-      "longExcerpt": "This represents a compilation of historical documents from the Early Modern period in the Oceanic region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "excerpt": "The inhabitants of this country are the miserablest people in the world. The Hodmadods of Monomatapa, though a nasty people, yet for wealth are gentlemen to these; who have no houses and skin garments, sheep, poultry, and fruits of the earth.",
+      "longExcerpt": "The inhabitants of this country are the miserablest people in the world. The Hodmadods of Monomatapa, though a nasty people, yet for wealth are gentlemen to these; who have no houses and skin garments, sheep, poultry, and fruits of the earth. This ethnocentric description of Aboriginal Australians from Cook's 1773 voyage reflects European prejudices while documenting first contact with Pacific peoples.",
       "keywords": [
-        "oceania",
-        "renaissance-early-modern",
-        "history",
-        "chronicle",
-        "primary source"
+        "exploration",
+        "Pacific",
+        "Australia",
+        "Tahiti",
+        "navigation",
+        "discovery",
+        "contact"
       ],
-      "wikisourceTitle": "Oceanic_Early Modern_Texts",
+      "wikisourceTitle": "The_Three_Voyages_of_Captain_James_Cook_Round_the_World",
+      "internetArchiveId": "threevoyagesofca01cook",
       "citation": {
-        "originalPublication": "Oceanic Early Modern Period"
+        "translator": null,
+        "originalPublication": "London, 1773-1784",
+        "modernSource": "Longman, Hurst, 1821"
+      }
+    },
+    {
+      "id": "bligh-breadfruit",
+      "title": "A Voyage to the South Sea",
+      "author": "William Bligh",
+      "year": 1792,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "OCEANIA"
+      ],
+      "excerpt": "The breadfruit grows on a tree about the size of a common oak. When properly baked, its taste is insipid, with a slight sweetness somewhat resembling that of the crumb of wheaten bread mixed with Jerusalem artichoke.",
+      "longExcerpt": "The breadfruit grows on a tree about the size of a common oak. When properly baked, its taste is insipid, with a slight sweetness somewhat resembling that of the crumb of wheaten bread mixed with Jerusalem artichoke. This account from 1792 documents Bligh's mission to transport breadfruit from Tahiti to the West Indies, a voyage that led to the famous mutiny on the Bounty.",
+      "keywords": [
+        "Tahiti",
+        "breadfruit",
+        "mutiny",
+        "Bounty",
+        "Pacific",
+        "navigation",
+        "botany"
+      ],
+      "wikisourceTitle": "A_Voyage_to_the_South_Sea",
+      "internetArchiveId": "voyagetosouthsea00blig",
+      "citation": {
+        "translator": null,
+        "originalPublication": "London, 1792",
+        "modernSource": "George Nicol, 1792"
       }
     }
   ]

@@ -6,6 +6,7 @@ import { AnimalEntity, NpcEntity, DialogueEntry, PlayerContext, PlayerCharacter,
 import { SpecialMapData, SpecialMapArchetype } from '../types/specialMapTypes';
 import { generateEncounterDialogue as generateLlmDialogue } from './llmService';
 import { REGION_SPECIFIC_DISTRICTS, CULTURAL_ZONE_DISTRICTS } from '../constants/gameData/governmentDistricts';
+import { calculateDiseaseGameplayRestrictions } from './diseaseProgressionService';
 // Removed unused import of specialMapAugmentation
 
 type EncounterableEntity = AnimalEntity | NpcEntity;
@@ -85,14 +86,33 @@ export function generateEncounterDialogue(
     mapData: MapData | null,
     useRealLanguage: boolean
 ): Promise<{ text: string, reputationChange?: number, shouldLeave?: boolean, shouldAttack?: boolean }> {
+
+    // Calculate disease visibility for NPC reactions
+    const diseaseRestrictions = calculateDiseaseGameplayRestrictions(playerCharacter?.diseaseHealth);
+    const playerIllnessLevel = diseaseRestrictions.socialAvoidanceLevel;
+    const visibleSymptoms = diseaseRestrictions.symptomDescription;
+
+    // Disease-based interaction modifications
+    let diseaseModifier = '';
+    if (playerIllnessLevel >= 3) {
+        // Severe/contagious illness - NPC wants to flee
+        diseaseModifier = `CRITICAL: The player appears severely ill with visible symptoms: ${visibleSymptoms}. You are frightened and want to stay far away. Keep responses very short and try to end the conversation quickly. Show fear and concern about contagion.`;
+    } else if (playerIllnessLevel >= 2) {
+        // Obviously ill - NPC is wary
+        diseaseModifier = `IMPORTANT: The player appears visibly ill with symptoms: ${visibleSymptoms}. You are concerned about their health and worried about getting sick yourself. Keep some distance and mention their appearance.`;
+    } else if (playerIllnessLevel >= 1) {
+        // Mild symptoms - NPC shows concern
+        diseaseModifier = `NOTE: The player looks somewhat unwell. You notice they don't look entirely healthy and may show mild concern.`;
+    }
     
     // Check if this is a special map with enhanced context
     if (isSpecialMapData(mapData)) {
         const specialMapContext = getSpecialMapContext(mapData, target as NpcEntity);
-        
+
         // Enhance the target with special map context
         const enhancedTarget = {
             ...target,
+            diseaseModifier, // Add disease awareness to NPC context
             specialMapContext: {
                 ...specialMapContext,
                 // Add role-specific context based on archetype
@@ -152,9 +172,14 @@ export function generateEncounterDialogue(
         
         return generateLlmDialogue(enhancedTarget, history, playerInput, playerCharacter, allNpcs, mapData, useRealLanguage);
     }
-    
-    // Regular encounter for non-special maps
-    return generateLlmDialogue(target, history, playerInput, playerCharacter, allNpcs, mapData, useRealLanguage);
+
+    // Regular encounter for non-special maps - add disease awareness
+    const enhancedTarget = {
+        ...target,
+        diseaseModifier // Add disease awareness to regular encounters too
+    } as any;
+
+    return generateLlmDialogue(enhancedTarget, history, playerInput, playerCharacter, allNpcs, mapData, useRealLanguage);
 }
 
 /**

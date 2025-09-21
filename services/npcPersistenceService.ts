@@ -4,6 +4,7 @@
  */
 
 import { NpcEntity, NpcMemory } from '../types';
+import { debouncedStorage } from './debouncedStorageService';
 
 interface PersistedNpcData {
   id: string;
@@ -58,13 +59,13 @@ class NpcPersistenceService {
         npcs: persistedNpcs
       };
 
-      // Save to localStorage
-      localStorage.setItem(this.getStorageKey(mapSeed), JSON.stringify(store));
-      
+      // Save to storage using debounced service
+      debouncedStorage.setItem(this.getStorageKey(mapSeed), store);
+
       // Also save a list of all map seeds with saved NPCs
       this.updateSavedMapsList(mapSeed);
-      
-      console.log(`[NPC Persistence] Saved ${Object.keys(persistedNpcs).length} NPCs for map ${mapSeed}`);
+
+      // Logging removed - too frequent
     } catch (error) {
       console.error('[NPC Persistence] Failed to save NPCs:', error);
       // Handle quota exceeded error
@@ -79,14 +80,15 @@ class NpcPersistenceService {
    */
   loadAndMergeNpcs(newNpcs: NpcEntity[], mapSeed: number): NpcEntity[] {
     try {
-      const storeJson = localStorage.getItem(this.getStorageKey(mapSeed));
-      if (!storeJson) {
+      // Use debounced storage which checks pending writes first
+      const store = debouncedStorage.getItem<PersistedNpcStore>(this.getStorageKey(mapSeed));
+      if (!store) {
         console.log(`[NPC Persistence] No saved NPCs for map ${mapSeed}`);
         return newNpcs;
       }
 
-      const store: PersistedNpcStore = JSON.parse(storeJson);
-      
+      // Data is already parsed by debouncedStorage
+
       // Check version compatibility
       if (store.version !== this.CURRENT_VERSION) {
         console.warn(`[NPC Persistence] Version mismatch. Expected ${this.CURRENT_VERSION}, got ${store.version}`);
@@ -288,8 +290,8 @@ class NpcPersistenceService {
 
   private getSavedMapsList(): number[] {
     try {
-      const list = localStorage.getItem('uhs_saved_maps_list');
-      return list ? JSON.parse(list) : [];
+      const list = debouncedStorage.getItem<number[]>('uhs_saved_maps_list');
+      return list || [];
     } catch {
       return [];
     }
@@ -312,7 +314,7 @@ class NpcPersistenceService {
         }
       }
       
-      localStorage.setItem('uhs_saved_maps_list', JSON.stringify(list));
+      debouncedStorage.setItem('uhs_saved_maps_list', list);
     } catch (error) {
       console.error('[NPC Persistence] Failed to update saved maps list:', error);
     }

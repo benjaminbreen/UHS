@@ -420,26 +420,60 @@
       "longExcerpt": "In my third campaign I marched against Hatti. Luli, king of Sidon, whom the terror-inspiring glamor of my lordship had overwhelmed, fled far overseas and perished. The awe-inspiring splendor of the 'Weapon' of Ashur, my lord, overwhelmed his strong cities Great Sidon, Little Sidon, Bit-Zitti, Zaribtu, Mahalliba, Ushu, Akzib, Akko, his strong, walled cities, where there were fodder and drink for his garrisons, and they bowed in submission to my feet. I installed Ethba'al upon the throne to be their king and imposed upon him tribute due to me as overlord to be paid annually without interruption. As to Hezekiah, the Jew, he did not submit to my yoke, I laid siege to 46 of his strong cities, walled forts and to the countless small villages in their vicinity, and conquered them by means of well-stamped earth-ramps, and battering-rams brought thus near to the walls combined with the attack by foot soldiers, using mines, breeches as well as sapper work. I drove out of them 200,150 people, young and old, male and female, horses, mules, donkeys, camels, big and small cattle beyond counting, and considered them booty. Like a bird in a cage I shut up Hezekiah in Jerusalem, his royal city. I surrounded him with earthworks to prevent escape. His towns which I had plundered, I gave to the kings of Ashdod, Ekron, and Gaza. Thus I reduced his country, but I still increased the tribute and the katru-presents due to me as his overlord which I imposed later upon him beyond the former tribute, to be delivered annually. This historical source from -700 provides valuable insight into the mena region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
     },
     {
-      "id": "mena-antiquity-chronicle",
-      "title": "Middle Eastern Ancient Chronicle",
-      "author": "Various Authors",
-      "year": -500,
+      "id": "herodotus-egypt",
+      "title": "The Histories: Book II",
+      "author": "Herodotus",
+      "year": -440,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "SUB_SAHARAN_AFRICAN",
+        "MENA"
+      ],
+      "excerpt": "Egypt is the gift of the river. When the Nile overflows, the whole country becomes a sea, and the towns, which alone remain above water, look like islands in the Aegean.",
+      "longExcerpt": "Egypt is the gift of the river. When the Nile overflows, the whole country becomes a sea, and the towns, which alone remain above water, look like islands in the Aegean. This famous description from 440 BCE in the world's first great work of history captures the vital importance of the Nile to Egyptian civilization.",
+      "keywords": [
+        "Egypt",
+        "Nile",
+        "history",
+        "Greeks",
+        "customs",
+        "flooding",
+        "agriculture"
+      ],
+      "wikisourceTitle": "History_of_Herodotus/Book_2",
+      "internetArchiveId": "historyherodotus00hero",
+      "citation": {
+        "translator": "George Rawlinson",
+        "originalPublication": "Greece, c. 440 BCE",
+        "modernSource": "John Murray, 1858"
+      }
+    },
+    {
+      "id": "behistun-inscription",
+      "title": "The Behistun Inscription",
+      "author": "Darius I",
+      "year": -520,
       "era": "ANTIQUITY",
       "culturalZones": [
         "MENA"
       ],
-      "excerpt": "A collection of ancient texts from the Middle Eastern region.",
-      "longExcerpt": "This represents a compilation of historical documents from the Ancient period in the Middle Eastern region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "excerpt": "I am Darius the Great King, King of Kings, King of Persia, King of countries, son of Hystaspes, grandson of Arsames, an Achaemenian. Says Darius the King: My father is Hystaspes; the father of Hystaspes was Arsames.",
+      "longExcerpt": "I am Darius the Great King, King of Kings, King of Persia, King of countries, son of Hystaspes, grandson of Arsames, an Achaemenian. Says Darius the King: My father is Hystaspes; the father of Hystaspes was Arsames. This trilingual inscription from 520 BCE carved into a mountain cliff tells how Darius I came to power and crushed rebellions, serving as the Rosetta Stone for Old Persian cuneiform.",
       "keywords": [
-        "mena",
-        "antiquity",
-        "history",
-        "chronicle",
-        "primary source"
+        "Persia",
+        "Darius",
+        "empire",
+        "inscription",
+        "rebellion",
+        "Ahura Mazda",
+        "kingship"
       ],
-      "wikisourceTitle": "Middle Eastern_Ancient_Texts",
+      "wikisourceTitle": "Behistun_Inscription",
+      "internetArchiveId": "behistuninscript00dari",
       "citation": {
-        "originalPublication": "Middle Eastern Ancient Period"
+        "translator": "L.W. King and R.C. Thompson",
+        "originalPublication": "Mount Behistun, Iran, c. 520 BCE",
+        "modernSource": "British Museum, 1907"
       }
     }
   ]

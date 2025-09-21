@@ -6,6 +6,7 @@
 import { PlayerCharacter, Tile, BiomeType, MapData, Item } from '../types';
 import { GoogleGenAI, Type } from '@google/genai';
 import gameSounds from './gameSoundsService';
+import { handleSkillFailureInjury } from './injuryService';
 
 export type FeatType = 'ford' | 'climb' | 'jump' | 'swim' | 'squeeze' | 'break' | 'scale';
 export type FeatRisk = 'low' | 'medium' | 'high' | 'extreme';
@@ -587,7 +588,8 @@ export async function executePhysicalFeat(
   attempt: PhysicalFeatAttempt,
   evaluation: PhysicalFeatResult,
   player: PlayerCharacter,
-  mapData?: MapData
+  mapData?: MapData,
+  currentDate?: { year: number; month: number; day: number }
 ): Promise<{
   success: boolean;
   message: string;
@@ -596,6 +598,7 @@ export async function executePhysicalFeat(
     damage?: number;
     lostItems?: Item[];
     newPosition?: { x: number, y: number };
+    injury?: any;
   };
 }> {
   if (!evaluation.possible) {
@@ -720,8 +723,29 @@ export async function executePhysicalFeat(
         soundService.playWallBumpSound(); // Generic failure
     }
 
-    if (evaluation.consequences?.healthRisk) {
-      effects.damage = Math.floor(evaluation.consequences.healthRisk * (0.5 + Math.random() * 0.5));
+    // Use injury system for realistic injuries instead of raw damage
+    if (evaluation.consequences?.healthRisk && currentDate) {
+      const injuryContext = {
+        type: 'physical_feat' as const,
+        featType: attempt.type,
+        risk: evaluation.risk,
+        severity: evaluation.consequences.healthRisk / 50 // Convert to 0-1 scale
+      };
+
+      const injuryResult = handleSkillFailureInjury(player, injuryContext, currentDate);
+
+      if (injuryResult.injured) {
+        effects.injury = injuryResult.injury;
+        // Update message to include injury
+        return {
+          success: false,
+          message: `${getFailureMessage(attempt.type, evaluation.risk)}\n\n${injuryResult.message}`,
+          effects
+        };
+      } else {
+        // Fallback to minor damage if no injury occurred
+        effects.damage = Math.floor(evaluation.consequences.healthRisk * 0.3);
+      }
     }
     
     if (evaluation.consequences?.itemLossChance && Math.random() < evaluation.consequences.itemLossChance) {

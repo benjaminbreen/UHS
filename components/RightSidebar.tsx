@@ -6,12 +6,16 @@ import { usePlayer } from '../contexts/PlayerContext';
 import { getSafariOptimizedClassName } from '../utils/safariUtils';
 import NarrationPanel from './NarrationPanel';
 import InventoryPanel from './InventoryPanel';
-import BeliefsPanel from './BeliefsPanel';
+import StudyPanel, { StudyData, StudiedItem } from './StudyPanel';
+import { StudyAction } from '../types/studyTypes';
 import { AnimatedPortrait } from './portraits';
 import { SKILL_DATA, SKILL_BUTTON_ORDER } from '../constants/index';
 import { SkillID } from '../types';
 import ActionConfigModal from './ActionConfigModal';
+import { useStudyActions } from '../hooks/useStudyActions';
+import { journalService } from '../services/journalService';
 import { Settings } from 'lucide-react';
+import { AttributeBadgeList } from './AttributeBadge';
 
 const MIN_SIDEBAR_WIDTH = 320;
 const MAX_SIDEBAR_WIDTH = 520;
@@ -20,16 +24,92 @@ const RHS_WIDTH_KEY = 'rhs.sidebarWidth';
 const RHS_TAB_KEY = 'rhs.activeTab';
 const ACTION_BUTTONS_KEY = 'rhs.actionButtons';
 
-type RightSidebarTab = 'narrator' | 'inventory' | 'beliefs';
+type RightSidebarTab = 'narrator' | 'inventory' | 'study';
+
+// Study-specific action button definitions
+const STUDY_ACTIONS = [
+  { id: 'observe', icon: '🔍', name: 'Observe', description: 'Examine item in detail', minItems: 1, maxItems: 1 },
+  { id: 'compare', icon: '⚖️', name: 'Compare', description: 'Compare multiple items', minItems: 2, maxItems: 4 },
+  { id: 'muse', icon: '💭', name: 'Muse', description: 'Reflect on deeper meaning', minItems: 1, maxItems: 2 },
+  { id: 'anatomize', icon: '🔬', name: 'Anatomize', description: 'Break down into components', minItems: 1, maxItems: 1 }
+];
 
 const RightSidebar: React.FC = () => {
-  const { setIsCharacterProfileModalOpen, onUseSkill, onSend, onCraft, combatant, inMiningRoguelike } = useUI();
+  const { setIsCharacterProfileModalOpen, onUseSkill, onSend, onCraft, combatant, inMiningRoguelike, onInventoryUpdate, setIsSkillsModalOpen, setSkillResult } = useUI();
   const { narrationHistory, playerInput, onPlayerInputChange, isNarratorLoading, gameTimeHours, contextualMessage } = useGame();
   const { playerCharacter, controlledIconX, controlledIconY, setShipDockX, setShipDockY, setCurrentVessel } = usePlayer();
-  const { deployVesselToMap, mapData } = useMap();
+  const { deployVesselToMap, mapData, localArea, culturalZone } = useMap();
+
+  // Study actions hook
+  const { executeStudyAction, isProcessing: isStudyProcessing } = useStudyActions();
+
+  // Handle study action execution - now uses SkillsModal
+  const handleStudyAction = async (actionId: string) => {
+    const selectedItems = studyData.specimens.filter(item => selectedStudyItems.includes(item.id));
+    if (selectedItems.length === 0) return;
+
+    const action = STUDY_ACTIONS.find(a => a.id === actionId);
+    if (!action) return;
+
+    // Check item count requirements
+    if (selectedItems.length < action.minItems || selectedItems.length > action.maxItems) {
+      alert(`${action.name} requires ${action.minItems === action.maxItems ? action.minItems : `${action.minItems}-${action.maxItems}`} item(s). You have ${selectedItems.length} selected.`);
+      return;
+    }
+
+    try {
+      // Create StudySkillResult and trigger SkillsModal
+      const result = await executeStudyAction(selectedItems[0], {
+        id: actionId,
+        name: action.name,
+        emoji: action.emoji,
+        prompt: action.name === 'Observe'
+          ? 'Describe this item focusing on vivid sensory details - its weight, texture, temperature, smell, surface patterns, how light plays on it, any wear marks or patina. Write as if the reader is holding it in their hands right now. Be specific and visceral, not abstract or historical.'
+          : `Provide a scholarly analysis using the ${action.name.toLowerCase()} approach.`,
+        category: 'analytical',
+        minInputLength: 0
+      }, ''); // No user input required for now
+
+      if (result.success && result.entry) {
+        // Create StudySkillResult for SkillsModal
+        const studyResult = {
+          type: 'study' as const,
+          action: action.name,
+          actionEmoji: action.emoji,
+          description: result.entry.content,
+          items: selectedItems.map(item => ({
+            name: item.name,
+            emoji: item.emoji
+          })),
+          xpGained: 5,
+          context: {
+            location: localArea || 'Study Collection',
+            date: result.entry.date,
+            culturalZone: culturalZone,
+            biome: mapData?.currentTile?.biomeType
+          }
+        };
+
+        // Use the SkillsModal directly
+        setSkillResult(studyResult);
+        setIsSkillsModalOpen(true);
+        setSelectedStudyItems([]); // Clear selection after successful study
+      } else {
+        alert(`Study action failed: ${result.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Study action failed:', error);
+      alert('Study action failed. Please try again.');
+    }
+  };
+
 
   /* ---------------------------- state & persistence --------------------------- */
   const [activeTab, setActiveTab] = useState<RightSidebarTab>('narrator');
+  const [studyData, setStudyData] = useState<StudyData>({
+    specimens: [],
+    encounters: []
+  });
   const [sidebarWidth, setSidebarWidth] = useState<number>(DEFAULT_SIDEBAR_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const resizeStartX = useRef(0);
@@ -37,6 +117,7 @@ const RightSidebar: React.FC = () => {
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [actionButtons, setActionButtons] = useState<SkillID[]>(SKILL_BUTTON_ORDER);
   const [hoveredButton, setHoveredButton] = useState<number | null>(null);
+  const [selectedStudyItems, setSelectedStudyItems] = useState<string[]>([]);
 
   useEffect(() => {
     try {
@@ -185,12 +266,12 @@ const RightSidebar: React.FC = () => {
                       <div className="absolute inset-0 z-10 pointer-events-none rounded-full bg-gradient-to-br from-transparent via-transparent to-black/50"></div>
                       <div className="absolute inset-0 z-10 pointer-events-none rounded-full bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
                       <div className="flex items-center justify-center w-full h-full">
-                        <AnimatedPortrait 
-                          character={playerCharacter} 
-                          size={96} 
+                        <AnimatedPortrait
+                          character={playerCharacter}
+                          size={96}
                           trackChanges={true}
-                          currentTile={mapData && controlledIconX !== null && controlledIconY !== null 
-                            ? mapData[controlledIconY]?.[controlledIconX] 
+                          currentTile={mapData && controlledIconX !== null && controlledIconY !== null
+                            ? mapData[controlledIconY]?.[controlledIconX]
                             : undefined}
                           gameTimeHours={gameTimeHours}
                           isInCombat={!!combatant}
@@ -205,6 +286,23 @@ const RightSidebar: React.FC = () => {
                         background: `conic-gradient(#60a5fa ${xpPercent * 3.6}deg, transparent 0deg)`
                       }}
                     />
+                    {/* Attribute badges overlay - positioned in lower right of portrait */}
+                    {playerCharacter.attributes && playerCharacter.attributes.length > 0 && (
+                      <div
+                        className="absolute bottom-0 right-0 z-20"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsCharacterProfileModalOpen(true);
+                        }}
+                        title="Click to view all attributes"
+                      >
+                        <AttributeBadgeList
+                          badges={playerCharacter.attributes}
+                          maxDisplay={2}
+                          size="small"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -328,6 +426,7 @@ const RightSidebar: React.FC = () => {
                     </div>
                   </div>
                 )}
+
               </div>
             </div>
           )}
@@ -345,50 +444,106 @@ const RightSidebar: React.FC = () => {
               </button>
             </div>
             <div className="grid grid-cols-4 gap-1.5">
-              {actionButtons.map((skillId, index) => {
-                const skill = SKILL_DATA[skillId];
-                if (!skill) return null;
-                return (
-                  <div key={skillId} className="relative">
-                    <button
-                      onClick={() => onUseSkill(skillId)}
-                      onMouseEnter={() => setHoveredButton(index)}
-                      onMouseLeave={() => setHoveredButton(null)}
-                      className="group relative w-full flex flex-col items-center justify-center px-2 py-1.5 text-md font-semibold text-gray-300 transition-all duration-200 border rounded-lg
-                                 bg-gradient-to-br from-slate-700/80 to-slate-800/60 border-gray-600/50
-                                 hover:bg-gradient-to-br hover:from-slate-600/90 hover:to-slate-700/70 hover:border-blue-400/50 hover:text-white hover:shadow-lg"
-                      style={{ aspectRatio: '1 / 0.7' }}
-                    >
-                      {/* Hotkey indicator */}
-                      <div className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center bg-blue-600/30 text-blue-300 text-[10px] font-bold rounded border border-blue-500/30">
-                        {index + 1}
-                      </div>
-                      <div
-                        className="mb-0.5 text-base"
-                        style={{
-                          filter: 'drop-shadow(0 0 3px rgba(255,255,255,0.3))',
-                          textShadow: '0 0 8px rgba(255,255,255,0.4)'
-                        }}
+              {activeTab === 'study' ? (
+                // Study-specific action buttons
+                STUDY_ACTIONS.map((action, index) => {
+                  const isDisabled = selectedStudyItems.length < action.minItems || selectedStudyItems.length > action.maxItems;
+                  return (
+                    <div key={action.id} className="relative">
+                      <button
+                        onClick={() => handleStudyAction(action.id)}
+                        onMouseEnter={() => setHoveredButton(index)}
+                        onMouseLeave={() => setHoveredButton(null)}
+                        disabled={isDisabled || isStudyProcessing}
+                        className={`group relative w-full flex flex-col items-center justify-center px-2 py-1.5 text-md font-semibold transition-all duration-200 border rounded-lg
+                                   ${isDisabled || isStudyProcessing
+                                     ? 'text-gray-500 bg-slate-800/40 border-gray-700/30 cursor-not-allowed'
+                                     : 'text-gray-300 bg-gradient-to-br from-slate-700/80 to-slate-800/60 border-gray-600/50 hover:bg-gradient-to-br hover:from-slate-600/90 hover:to-slate-700/70 hover:border-purple-400/50 hover:text-white hover:shadow-lg'
+                                   }`}
+                        style={{ aspectRatio: '1 / 0.7' }}
                       >
-                        {skill.icon}
-                      </div>
-                      <span className="text-[11px] leading-tight text-center">{skill.name}</span>
-                    </button>
-                    
-                    {/* Tooltip */}
-                    {hoveredButton === index && (
-                      <div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900/95 border border-slate-600/50 rounded-lg shadow-xl pointer-events-none animate-fadeIn">
-                        <p className="text-xs font-semibold text-white mb-1">{skill.name}</p>
-                        <p className="text-[10px] text-gray-300 mb-2">{skill.description}</p>
-                        <div className="flex items-center gap-2 text-[10px] text-blue-300">
-                          <kbd className="px-1 py-0.5 bg-slate-800 border border-slate-600 rounded">{index + 1}</kbd>
-                          <span>Press to activate</span>
+                        {/* Hotkey indicator */}
+                        <div className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center bg-purple-600/30 text-purple-300 text-[10px] font-bold rounded border border-purple-500/30">
+                          {index + 1}
                         </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                        <div
+                          className="mb-0.5 text-base"
+                          style={{
+                            filter: 'drop-shadow(0 0 3px rgba(255,255,255,0.3))',
+                            textShadow: '0 0 8px rgba(255,255,255,0.4)'
+                          }}
+                        >
+                          {action.icon}
+                        </div>
+                        <span className="text-[11px] leading-tight text-center">{action.name}</span>
+                      </button>
+
+                      {/* Tooltip */}
+                      {hoveredButton === index && (
+                        <div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900/95 border border-slate-600/50 rounded-lg shadow-xl pointer-events-none animate-fadeIn">
+                          <p className="text-xs font-semibold text-white mb-1">{action.name}</p>
+                          <p className="text-[10px] text-gray-300 mb-2">{action.description}</p>
+                          <div className="flex items-center gap-2 text-[10px] text-purple-300">
+                            <kbd className="px-1 py-0.5 bg-slate-800 border border-slate-600 rounded">{index + 1}</kbd>
+                            <span>Press to activate</span>
+                          </div>
+                          {isDisabled && (
+                            <p className="text-[10px] text-red-400 mt-2">
+                              Select {action.minItems === action.maxItems ? action.minItems : `${action.minItems}-${action.maxItems}`} item(s)
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                // Regular action buttons for other tabs
+                actionButtons.map((skillId, index) => {
+                  const skill = SKILL_DATA[skillId];
+                  if (!skill) return null;
+                  return (
+                    <div key={skillId} className="relative">
+                      <button
+                        onClick={() => onUseSkill(skillId)}
+                        onMouseEnter={() => setHoveredButton(index)}
+                        onMouseLeave={() => setHoveredButton(null)}
+                        className="group relative w-full flex flex-col items-center justify-center px-2 py-1.5 text-md font-semibold text-gray-300 transition-all duration-200 border rounded-lg
+                                   bg-gradient-to-br from-slate-700/80 to-slate-800/60 border-gray-600/50
+                                   hover:bg-gradient-to-br hover:from-slate-600/90 hover:to-slate-700/70 hover:border-blue-400/50 hover:text-white hover:shadow-lg"
+                        style={{ aspectRatio: '1 / 0.7' }}
+                      >
+                        {/* Hotkey indicator */}
+                        <div className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center bg-blue-600/30 text-blue-300 text-[10px] font-bold rounded border border-blue-500/30">
+                          {index + 1}
+                        </div>
+                        <div
+                          className="mb-0.5 text-base"
+                          style={{
+                            filter: 'drop-shadow(0 0 3px rgba(255,255,255,0.3))',
+                            textShadow: '0 0 8px rgba(255,255,255,0.4)'
+                          }}
+                        >
+                          {skill.icon}
+                        </div>
+                        <span className="text-[11px] leading-tight text-center">{skill.name}</span>
+                      </button>
+
+                      {/* Tooltip */}
+                      {hoveredButton === index && (
+                        <div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900/95 border border-slate-600/50 rounded-lg shadow-xl pointer-events-none animate-fadeIn">
+                          <p className="text-xs font-semibold text-white mb-1">{skill.name}</p>
+                          <p className="text-[10px] text-gray-300 mb-2">{skill.description}</p>
+                          <div className="flex items-center gap-2 text-[10px] text-blue-300">
+                            <kbd className="px-1 py-0.5 bg-slate-800 border border-slate-600 rounded">{index + 1}</kbd>
+                            <span>Press to activate</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
@@ -416,16 +571,21 @@ const RightSidebar: React.FC = () => {
             Inventory
           </button>
           <button
-            onClick={() => setActiveTab('beliefs')}
+            onClick={() => {
+              setActiveTab('study');
+              // Dispatch event to auto-slide journal
+              window.dispatchEvent(new CustomEvent('studyTabActivated'));
+            }}
             className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'beliefs'
-                ? 'text-white bg-blue-600 shadow-glow-primary'
+              activeTab === 'study'
+                ? 'text-white bg-purple-600 shadow-glow-purple'
                 : 'text-slate-400 hover:bg-slate-700/30'
             }`}
           >
-            Beliefs
+            Study 🔬
           </button>
         </div>
+
 
         {/* Panels */}
         <div className="flex-1 min-h-0 px-3 pb-1">
@@ -444,6 +604,22 @@ const RightSidebar: React.FC = () => {
               inventory={playerCharacter.inventory || []}
               playerCharacter={playerCharacter}
               onCraft={onCraft}
+              onStudy={(items) => {
+                // Add items to study data
+                const studiedItems: StudiedItem[] = items.map(item => ({
+                  ...item,
+                  studyProgress: 0,
+                  notes: [],
+                  discoveredProperties: [],
+                  dateStudied: Date.now()
+                }));
+                setStudyData(prev => ({
+                  ...prev,
+                  specimens: [...prev.specimens, ...studiedItems]
+                }));
+                // Switch to study tab
+                setActiveTab('study');
+              }}
               onInventoryUpdate={() => {}}
               deployVesselToMap={deployVesselToMap}
               playerX={controlledIconX}
@@ -456,7 +632,33 @@ const RightSidebar: React.FC = () => {
             />
           )}
 
-          {activeTab === 'beliefs' && <BeliefsPanel character={playerCharacter} />}
+          {activeTab === 'study' && (
+            <StudyPanel
+              studyData={studyData}
+              selectedItems={selectedStudyItems}
+              onSelectionChange={setSelectedStudyItems}
+              onReturnToInventory={(item: StudiedItem) => {
+                // Remove from study data and selection
+                setStudyData(prev => ({
+                  ...prev,
+                  specimens: prev.specimens.filter(s => s.id !== item.id)
+                }));
+                setSelectedStudyItems(prev => prev.filter(id => id !== item.id));
+                // Add back to inventory
+                if (onInventoryUpdate) {
+                  onInventoryUpdate();
+                }
+              }}
+              onObserve={(entity) => {
+                // Trigger observation action
+                onUseSkill('Observe');
+              }}
+              onStudyAction={async (item: any, action: StudyAction, input: string) => {
+                // This is now handled by the action buttons above
+                console.log('[StudyAction] Legacy handler - this should not be called');
+              }}
+            />
+          )}
         </div>
       </div>
       

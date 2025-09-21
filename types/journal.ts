@@ -3,7 +3,7 @@
  */
 import { GameDate, DialogueEntry } from './index';
 
-export type GameLogEntryType = 'DIALOGUE' | 'COMBAT' | 'MAP_ENTRY' | 'SKILL_USE' | 'ITEM_ACQUIRED' | 'TRADE' | 'REST';
+export type GameLogEntryType = 'DIALOGUE' | 'COMBAT' | 'MAP_ENTRY' | 'SKILL_USE' | 'ITEM_ACQUIRED' | 'TRADE' | 'REST' | 'MILESTONE_COMBAT' | 'MILESTONE_EXPLORATION' | 'MILESTONE_ACHIEVEMENT' | 'QUEST_START' | 'QUEST_COMPLETE' | 'STUDY';
 
 export interface GameLogEntry {
     id: string;
@@ -27,4 +27,38 @@ export interface PrimarySource {
     author: string;
     year: number;
     excerpt: string;
+}
+
+// Study-specific journal entries
+export interface StudyJournalEntry {
+    id: string;
+    timestamp: number;
+    type: 'study';
+    action: string; // 'Examine', 'Question', etc.
+    actionEmoji: string;
+    itemName: string;
+    itemEmoji?: string;
+    studentInput: string;
+    analysisResponse: string;
+    location: string;
+    date: string;
+}
+
+// Generic journal entry (for manual entries)
+export interface JournalEntry {
+    id: string;
+    timestamp: number;
+    type: 'manual' | 'study';
+    title?: string;
+    content: string;
+    location: string;
+    date: string;
+
+    // Study-specific fields (when type === 'study')
+    action?: string;
+    actionEmoji?: string;
+    itemName?: string;
+    itemEmoji?: string;
+    studentInput?: string;
+    analysisResponse?: string;
 }

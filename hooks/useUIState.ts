@@ -16,6 +16,8 @@ import { createItemInstance, addItemToInventory } from '../utils/inventoryUtils'
 import { executeSkill } from '../services/skillService';
 import { generateDmResponse, summarizeConversation } from '../services/llmService';
 import { executeCrafting } from '../services/craftingService';
+import { calculateDiseaseGameplayRestrictions } from '../services/diseaseProgressionService';
+import { diseaseService } from '../services/diseaseService';
 import { parseDateString } from '../utils/dateUtils';
 import { ANIMAL_DATA } from '../constants/index';
 import { isSafari } from '../utils/safariUtils';
@@ -67,6 +69,10 @@ export const useUIState = () => {
     const [isCraftingModalOpen, setIsCraftingModalOpen] = useState(false);
     const [craftingModalData, setCraftingModalData] = useState<CraftingModalData | null>(null);
     const [selectedPrimarySource, setSelectedPrimarySource] = useState<any>(null);
+    const [diseaseContractedModalData, setDiseaseContractedModalData] = useState<{
+        disease: any;
+        isOpen: boolean;
+    } | null>(null);
     
     // Dev Tooltip
     const [hoveredDevData, setHoveredDevData] = useState<DevTooltipDisplayData | null>(null);
@@ -520,6 +526,18 @@ export const useUIState = () => {
             addItemsToInventory([result.item]);
             setPanelNotificationItem(result.item);
             setTimeout(() => setPanelNotificationItem(null), 5000);
+
+            // Add gamelog entry for foraging
+            if (addGameLogEntry && gameDate && formattedTime) {
+                const location = localArea || mapData?.name || 'Unknown location';
+                addGameLogEntry(LogService.createItemAcquiredLog(
+                    result.item.name,
+                    result.item.quantity || 1,
+                    'by foraging',
+                    gameDate,
+                    formattedTime
+                ));
+            }
             
             // Show floating text for item found
             const screenX = window.innerWidth / 2 + (Math.random() - 0.5) * 200; // Add some randomness
@@ -543,6 +561,19 @@ export const useUIState = () => {
             addItemsToInventory([result.item]);
             setPanelNotificationItem(result.item);
             setTimeout(() => setPanelNotificationItem(null), 5000);
+
+            // Add gamelog entry for chopping
+            if (addGameLogEntry && gameDate && formattedTime) {
+                const location = localArea || mapData?.name || 'Unknown location';
+                addGameLogEntry(LogService.createItemAcquiredLog(
+                    result.item.name,
+                    result.item.quantity || 1,
+                    'by chopping',
+                    gameDate,
+                    formattedTime
+                ));
+            }
+
             if (result.entityToRemoveId) {
                 removeVegetation(result.entityToRemoveId);
             }
@@ -567,6 +598,18 @@ export const useUIState = () => {
                 addItemsToInventory([result.item]);
                 setPanelNotificationItem(result.item);
                 setTimeout(() => setPanelNotificationItem(null), 5000);
+
+                // Add gamelog entry for digging
+                if (addGameLogEntry && gameDate && formattedTime) {
+                    const location = localArea || mapData?.name || 'Unknown location';
+                    addGameLogEntry(LogService.createItemAcquiredLog(
+                        result.item.name,
+                        result.item.quantity || 1,
+                        'by digging',
+                        gameDate,
+                        formattedTime
+                    ));
+                }
             } else {
                 console.log("Dig succeeded but no item found:", result);
             }
@@ -623,11 +666,29 @@ export const useUIState = () => {
 
     const onSend = useCallback(async () => {
         if (!playerInput.trim() || !playerCharacter || !mapData || controlledIconX === null || controlledIconY === null) return;
-        
+
         const userMessage: NarrationMessage = { sender: 'player', text: playerInput };
         setNarrationHistory(prev => [...prev, userMessage]);
         setPlayerInput('');
         setIsNarratorLoading(true);
+
+        // Check if user is asking about location - trigger POV viewport
+        const lowerInput = playerInput.toLowerCase();
+        const locationQuestions = [
+            'where am i',
+            'what do i see',
+            'what is here',
+            'look around',
+            'describe this place',
+            'what\'s around me',
+            'what is around me',
+            'show me around'
+        ];
+
+        if (locationQuestions.some(question => lowerInput.includes(question))) {
+            // Emit event to show POV viewport
+            eventBus.emit('pov:show');
+        }
 
         // Check if this is a physical feat attempt
         const { detectPhysicalFeatIntent, evaluatePhysicalFeat, executePhysicalFeat } = await import('../services/physicalFeatService');
@@ -779,8 +840,33 @@ export const useUIState = () => {
             interiorContext
         };
         
+        // Check for voice loss from disease
+        const diseaseRestrictions = calculateDiseaseGameplayRestrictions(playerCharacter?.diseaseHealth);
+        let modifiedPlayerInput = playerInput;
+
+        if (diseaseRestrictions.voiceLossLevel > 0) {
+            // Apply voice loss restrictions
+            if (diseaseRestrictions.voiceLossLevel === 1) {
+                // Weak voice - add voice quality modifiers
+                modifiedPlayerInput = `[Speaking in a weak, strained voice] ${playerInput}`;
+            } else if (diseaseRestrictions.voiceLossLevel === 2) {
+                // Whispers only - replace with whispered version
+                modifiedPlayerInput = "..." + playerInput.substring(0, Math.min(10, playerInput.length)) + "...";
+            } else if (diseaseRestrictions.voiceLossLevel >= 3) {
+                // No speech - complete voice loss
+                modifiedPlayerInput = "...";
+                setNarrationHistory(prev => [...prev, {
+                    id: `voice-loss-${Date.now()}`,
+                    timestamp: gameDate,
+                    timeString: formattedTime,
+                    message: "You try to speak but your illness has robbed you of your voice. Only a faint whisper escapes your lips.",
+                    type: 'system'
+                }]);
+            }
+        }
+
         try {
-            const responseText = await generateDmResponse(playerInput, context);
+            const responseText = await generateDmResponse(modifiedPlayerInput, context);
             setNarrationHistory(prev => [...prev, { sender: 'narrator', text: responseText }]);
         } catch (error) {
             console.error("Error with DM response:", error);
@@ -810,11 +896,47 @@ export const useUIState = () => {
         if (encounterTarget && isNpc(encounterTarget) && history.length > 1) {
             // Store recent NPC and conversation for narration context
             setRecentNpc(encounterTarget);
-            
+
+            // Check for disease transmission from NPC interaction (direct contact = 100% chance)
+            if (encounterTarget.health?.currentDiseases?.length && playerCharacter) {
+                const currentYear = gameDate.year;
+
+                // Direct contact during conversation = very high transmission chance
+                const transmissionResult = diseaseService.checkProximityTransmission(
+                    encounterTarget,
+                    playerCharacter,
+                    0, // Distance 0 for direct contact
+                    currentYear
+                );
+
+                // If disease was transmitted, show the disease contracted modal
+                if (transmissionResult.transmitted && transmissionResult.exposures.length > 0) {
+                    // Get the first transmitted disease
+                    const exposedDiseaseId = transmissionResult.exposures[0].diseaseId;
+                    const transmittedDisease = encounterTarget.health.currentDiseases
+                        .find(d => d.disease.id === exposedDiseaseId)?.disease;
+
+                    if (transmittedDisease) {
+                        // Show disease contracted modal after a short delay so encounter modal can close first
+                        setTimeout(() => {
+                            setDiseaseContractedModalData({
+                                disease: transmittedDisease,
+                                isOpen: true
+                            });
+
+                            // Update player character with the new disease
+                            if (playerCharacter.health) {
+                                setPlayerCharacter(prev => prev ? { ...prev, health: playerCharacter.health } : null);
+                            }
+                        }, 500);
+                    }
+                }
+            }
+
             // Check quest progress for NPC interactions
             if (playerCharacter && playerCharacter.x !== undefined && playerCharacter.y !== undefined) {
                 questService.checkQuestProgress(playerCharacter.x, playerCharacter.y, 'npc_interaction');
-                
+
                 // Trigger contextual quest generation based on NPC interaction
                 if (mapData && mapData.tiles && controlledIconY !== null && controlledIconX !== null) {
                     const tile = mapData.tiles[controlledIconY]?.[controlledIconX];
@@ -827,19 +949,19 @@ export const useUIState = () => {
                             era: parseDateString(String(gameDate.year)).era,
                             gameMode: undefined // Will be filled from event service if needed
                         };
-                        
+
                         // Check for NPC interaction quest triggers
                         questTriggerService.onNPCInteraction(context, encounterTarget);
                     }
                 }
             }
-            
+
             // Check if this was a guard encounter and clear the alert state
             if (isGuardType(encounterTarget)) {
                 // Emit reset event to clear guard warning and alert states
                 eventBus.emit('guard:resolved', { npcId: encounterTarget.id });
             }
-            
+
             summarizeConversation(history).then(({ summary, sentiment }) => {
                 setRecentConversationSummary(summary);
                 
@@ -863,9 +985,33 @@ export const useUIState = () => {
                     return npc;
                 }));
             });
+
+            // Add dialogue log entry with conversation memory
+            if (addGameLogEntry && gameDate && formattedTime) {
+                const location = localArea || mapData?.name || 'Unknown location';
+                const npcName = 'name' in encounterTarget ? encounterTarget.name : encounterTarget.speciesName;
+
+                // Get existing conversation history from NPC memory
+                const existingMemories = isNpc(encounterTarget) ? encounterTarget.memory?.conversationSummaries || [] : [];
+                const memoryText = existingMemories.length > 0
+                    ? ` They remembered: "${existingMemories.join(' ')}"`
+                    : '';
+
+                // Create custom dialogue log with memory
+                const summary = `Spoke to ${npcName} in ${location}.${memoryText}`;
+                addGameLogEntry({
+                    id: `dialogue-${Date.now()}-${Math.random()}`,
+                    timestamp: { ...gameDate },
+                    timeString: formattedTime,
+                    type: 'DIALOGUE',
+                    icon: '💬',
+                    summary,
+                    details: history,
+                });
+            }
         }
         setEncounterTarget(null);
-    }, [encounterTarget, setNpcs, playerCharacter]);
+    }, [encounterTarget, setNpcs, playerCharacter, addGameLogEntry, gameDate, formattedTime, localArea, mapData, setPlayerCharacter, controlledIconX, controlledIconY, currentZone]);
 
     const handleInitiateCombat = useCallback((target: EncounterableEntity) => {
         // If it's an NPC, ensure we have the latest version from the npcs array
@@ -1070,6 +1216,18 @@ export const useUIState = () => {
     const handleLooting = useCallback((item: Item, opponentId: string) => {
         if(!playerCharacter) return;
         setPlayerCharacter(prev => prev ? { ...prev, inventory: addItemToInventory(prev.inventory, item) } : null);
+
+        // Add gamelog entry for combat loot
+        if (addGameLogEntry && gameDate && formattedTime) {
+            const location = localArea || mapData?.name || 'Unknown location';
+            addGameLogEntry(LogService.createItemAcquiredLog(
+                item.name,
+                item.quantity || 1,
+                'from combat loot',
+                gameDate,
+                formattedTime
+            ));
+        }
         setLootModalData((prev: LootModalData | null) => {
             if (!prev || prev.opponent.id !== opponentId) return prev;
             const newOpponentInventory = prev.opponent.inventory.filter(i => i.id !== item.id);
@@ -1089,7 +1247,7 @@ export const useUIState = () => {
                 } 
             };
         });
-    }, [playerCharacter, setPlayerCharacter]);
+    }, [playerCharacter, setPlayerCharacter, addGameLogEntry, gameDate, formattedTime, localArea, mapData]);
 
     const onTakeCoins = useCallback((amount: number, opponentId: string) => {
         if (!playerCharacter) return;
@@ -1169,7 +1327,7 @@ export const useUIState = () => {
         setIsSettingsModalOpen, setIsAboutModalOpen, setUseLlmForDescriptions, setUseLlmForCharacter, setShowDevTooltip,
         setIsTestModeEnabled, setDebugSettings, setIsDevBuildingModeOpen,
         setIsWorldMapModalOpen, setInteractionModalData, handleTakeItem,
-        setIsSkillsModalOpen, setIsMapDetailsModalOpen,
+        setIsSkillsModalOpen, setSkillResult, setIsMapDetailsModalOpen,
         handleEncounter, handleCloseEncounter, handleInitiateCombat,
         setCombatant, handleCombatVictory, setVictoryDetails, setIsCharacterProfileModalOpen,
         closeAllModals, setActiveMarketplaceModal, setActiveCityModal, setActiveRuinModal, setActiveGovernmentModal, setActiveFishingHutModal, setActiveMiningModal, setInRuinRoguelike, setInMiningRoguelike, setMiningRoguelikeData,
@@ -1185,6 +1343,8 @@ export const useUIState = () => {
         setContainerModalData,
         selectedPrimarySource,
         setSelectedPrimarySource,
+        diseaseContractedModalData,
+        setDiseaseContractedModalData,
         
         // Actions passed down from Player/Game contexts
         onUseSkill,

@@ -211,6 +211,9 @@ interface CityBannerProps {
   height?: number;
   mapData?: MapData;
   weather?: WeatherState | null;
+  npcs?: any[]; // NPC entities from settlement
+  selectedNpcId?: string; // Currently selected/highlighted NPC
+  onNpcClick?: (npcId: string) => void; // Callback when NPC clicked in banner
 }
 
 /* -------------------------------- Component -------------------------------- */
@@ -231,6 +234,9 @@ const CityBanner: React.FC<CityBannerProps> = ({
   height = 220,
   mapData,
   weather,
+  npcs = [],
+  selectedNpcId,
+  onNpcClick,
 }) => {
   const [frame, setFrame] = useState(0);
   useEffect(() => {
@@ -430,14 +436,35 @@ const CityBanner: React.FC<CityBannerProps> = ({
       return { x, bw, bh, y: baseY, type, hasChimney };
     });
 
-    // People
-    const peopleN = Math.floor(lerp(3, 8, density));
-    const people = Array.from({ length: peopleN }, (_, i) => ({
-      baseX: ((width / (peopleN + 1)) * (i + 1)) % width,
+    // NPCs or generic people
+    const maxNpcs = 6;
+    const npcCount = Math.min(maxNpcs, npcs.length);
+    const genericCount = Math.max(0, Math.floor(lerp(3, 8, density)) - npcCount);
+
+    // Use actual NPCs first (up to 6)
+    const npcPeople = npcs.slice(0, maxNpcs).map((npc, i) => ({
+      id: npc.id || `npc-${i}`,
+      name: npc.name || 'Unnamed',
+      profession: npc.profession || 'Resident',
+      culturalBackground: npc.culturalBackground,
+      baseX: ((width / (maxNpcs + 1)) * (i + 1)) % width,
       dir: rng.next() > 0.5 ? 1 : -1,
       phase: rng.range(0, 1000),
       tint: rng.range(0, 1),
+      isNpc: true,
     }));
+
+    // Add generic people to fill scene
+    const genericPeople = Array.from({ length: genericCount }, (_, i) => ({
+      id: `generic-${i}`,
+      baseX: ((width / (genericCount + 1)) * (i + 1)) % width,
+      dir: rng.next() > 0.5 ? 1 : -1,
+      phase: rng.range(0, 1000),
+      tint: rng.range(0, 1),
+      isNpc: false,
+    }));
+
+    const people = [...npcPeople, ...genericPeople];
 
     // Lamps
     const lampCount = Math.floor(lerp(4, 8, density));
@@ -450,7 +477,7 @@ const CityBanner: React.FC<CityBannerProps> = ({
     const boat = { x: width * 0.25 + 40 + rng.range(-4, 4), wobble: rng.range(0, Math.PI * 2) };
 
     return { baseY, stars, clouds, mountainSeeds, bg, fg, people, lamps, boat };
-  }, [seed, width, height, timeOfDay, weather?.cloudCover, era, culturalZone, size, condition]);
+  }, [seed, width, height, timeOfDay, weather?.cloudCover, era, culturalZone, size, condition, npcs]);
 
   /* -------------------------------- Renderers ------------------------------ */
 
@@ -1059,6 +1086,19 @@ const CityBanner: React.FC<CityBannerProps> = ({
       }
     })();
 
+    // Profession-based clothing colors
+    const getProfessionColor = (profession?: string) => {
+      if (!profession) return null;
+      const prof = profession.toLowerCase();
+      if (prof.includes('merchant') || prof.includes('trader')) return '#7c3aed';
+      if (prof.includes('scholar') || prof.includes('scribe')) return '#0891b2';
+      if (prof.includes('priest') || prof.includes('holy')) return '#f5f5f4';
+      if (prof.includes('artisan') || prof.includes('craft')) return '#ea580c';
+      if (prof.includes('guard') || prof.includes('soldier')) return '#dc2626';
+      if (prof.includes('farmer') || prof.includes('peasant')) return '#6b4423';
+      return null;
+    };
+
     const speed = timeOfDay === 'Night' ? 0.2 : (timeOfDay === 'Dawn' || timeOfDay === 'Dusk' ? 0.3 : 0.4);
     const peopleCount = Math.floor(layout.people.length * activityLevel);
 
@@ -1068,14 +1108,42 @@ const CityBanner: React.FC<CityBannerProps> = ({
           const x = (p.baseX + (frame + p.phase) * speed * p.dir + width * 2) % width;
           const walk = Math.floor((frame + i) / 8) % 2;
 
-          // Pick culturally appropriate clothing color
-          const clothingColor = clothingPalette[i % clothingPalette.length];
+          // Check if this is an NPC
+          const isNpc = p.isNpc;
+          const isSelected = isNpc && p.id === selectedNpcId;
+
+          // Pick clothing color based on NPC profession or cultural default
+          const clothingColor = isNpc ?
+            (getProfessionColor(p.profession) || clothingPalette[i % clothingPalette.length]) :
+            clothingPalette[i % clothingPalette.length];
 
           // Vary skin tones slightly
           const skinTone = blend('#ffdbac', '#d4a574', (i * 17) % 100 / 200);
 
           return (
-            <g key={i} transform={`translate(${x}, ${rowY})`}>
+            <g key={p.id || i}
+               transform={`translate(${x}, ${rowY})`}
+               onClick={isNpc ? () => onNpcClick?.(p.id) : undefined}
+               style={isNpc ? { cursor: 'pointer' } : undefined}>
+
+              {/* Highlight effect for selected NPC */}
+              {isSelected && (
+                <>
+                  <circle cx="0" cy="-6" r="12" fill="#00ff88" opacity={0.3} style={{ mixBlendMode: 'screen' as any }} />
+                  <circle cx="0" cy="-6" r="8" fill="#00ff88" opacity={0.5} style={{ mixBlendMode: 'screen' as any }} />
+                  {/* Name label above NPC */}
+                  <rect x={-20} y={-22} width={40} height={10} rx={2} fill="#000" opacity={0.7} />
+                  <text x={0} y={-14} fill="#fff" fontSize={6} textAnchor="middle" style={{ fontFamily: 'monospace' }}>
+                    {p.name}
+                  </text>
+                </>
+              )}
+
+              {/* Tooltip for NPC on hover (profession) */}
+              {isNpc && !isSelected && (
+                <title>{p.name} - {p.profession}</title>
+              )}
+
               {/* Body with cultural clothing */}
               <rect x="-2" y="-8" width="4" height="6" fill={clothingColor} />
 

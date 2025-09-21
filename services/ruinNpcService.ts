@@ -486,7 +486,18 @@ export function generateRuinNPCs(
 
         // Generate name
         const gender = profDef.genderBias || (Math.random() > 0.5 ? 'Male' : 'Female');
-        const name = generateNpcName(culturalZone, gender as Gender);
+        // Create a simple noise function for name generation
+        const simpleNoise = {
+            random: () => Math.random()
+        };
+        // Use approximate year based on era
+        const year = era === HistoricalEra.PREHISTORY ? -1000 :
+                     era === HistoricalEra.ANTIQUITY ? 100 :
+                     era === HistoricalEra.MEDIEVAL ? 1200 :
+                     era === HistoricalEra.RENAISSANCE_EARLY_MODERN ? 1600 :
+                     era === HistoricalEra.INDUSTRIAL_ERA ? 1850 :
+                     era === HistoricalEra.MODERN_ERA ? 1980 : 2010;
+        const name = generateNpcName(gender as Gender, culturalZone, undefined, year, simpleNoise as any);
 
         // Generate loot
         const loot = generateMarginalLoot(displayName, era, culturalZone);

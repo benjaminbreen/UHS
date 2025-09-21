@@ -126,9 +126,69 @@ export const STARTING_PACKAGES: Record<string, {
     'Fisher': { equipment: { main_hand: '*CONTEXTUAL*' }, inventory: ['FISH_MEAT', 'VINE', 'EARTHWORM'] },
     'Bone Carver': { equipment: { torso: 'LEATHER_APRON', main_hand: '*CONTEXTUAL*' }, inventory: ['BONES', 'FLINT_STONE', 'KNIFE'] },
 
+    // --- HEALING PROFESSIONS (All Zones/Eras) ---
+    // Sub-Saharan African Healers
+    'Mganga': { equipment: { torso: 'SIMPLE_ROBE', head: 'CLOTH_CAP' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'MORTAR_PESTLE', 'HEALING_SALVE', 'HERB_BUNDLE'], companions: [] },
+    'Snake Doctor': { equipment: { torso: 'SIMPLE_TUNIC', belt: 'LEATHER_BAG' }, inventory: ['ANTIDOTE_VIAL', 'TOURNIQUET', 'KNIFE', 'HEALING_SALVE', 'BANDAGE'], companions: [] },
+    'Birth Attendant': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HEALERS_KIT', 'STERILE_GAUZE', 'SOAP_BAR', 'CLOTH', 'HONEY_JAR'], companions: [] },
+    'Bone Setter': { equipment: { torso: 'LEATHER_APRON' }, inventory: ['SPLINT_WOOD', 'BANDAGE', 'HEALING_SALVE', 'ROPE', 'PAIN_POWDER'], companions: [] },
+
+    // MENA Healers
+    'Tabib': { equipment: { torso: 'SIMPLE_ROBE', head: 'TURBAN' }, inventory: ['HEALERS_KIT', 'SURGICAL_TOOLS', 'MEDICINAL_HERBS', 'ALCOHOL_FLASK', 'MEDICAL_JOURNAL'], companions: [] },
+    'Jarrah': { equipment: { torso: 'LEATHER_APRON' }, inventory: ['BONE_SAW', 'CAUTERY_IRON', 'BANDAGE', 'PAIN_POWDER', 'ALCOHOL_FLASK'], companions: [] },
+    'Attar': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['MORTAR_PESTLE', 'FRANKINCENSE', 'MYRRH_RESIN', 'HEALING_SALVE', 'TINCTURE_BOTTLE'], companions: [] },
+    'Kahhal': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['SURGICAL_TOOLS', 'ALCOHOL_FLASK', 'STERILE_GAUZE', 'HEALING_SALVE'], companions: [] },
+
+    // East Asian Healers
+    'Kampo Practitioner': { equipment: { torso: 'SILK_ROBE' }, inventory: ['HEALERS_KIT', 'GINSENG_ROOT', 'MEDICINAL_HERBS', 'MORTAR_PESTLE', 'PULSE_CHART'], companions: [] },
+    'Moxibustion Specialist': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['MOXIBUSTION_STICKS', 'ACUPUNCTURE_NEEDLES', 'HEALING_SALVE', 'PULSE_CHART'], companions: [] },
+    'Pulse Diagnostician': { equipment: { torso: 'SILK_ROBE' }, inventory: ['PULSE_CHART', 'MEDICAL_JOURNAL', 'MEDICINAL_HERBS', 'TINCTURE_BOTTLE'], companions: [] },
+    'Bone Reader': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['BONES', 'INCENSE', 'MEDICINAL_HERBS', 'HEALING_SALVE'], companions: [] },
+
+    // South Asian Healers
+    'Vaidya': { equipment: { torso: 'SIMPLE_ROBE', head: 'CLOTH_CAP' }, inventory: ['HEALERS_KIT', 'TURMERIC_ROOT', 'NEEM_LEAVES', 'MORTAR_PESTLE', 'MEDICAL_JOURNAL'], companions: [] },
+    'Hakim': { equipment: { torso: 'SIMPLE_ROBE', head: 'TURBAN' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'PULSE_CHART', 'TINCTURE_BOTTLE', 'MEDICAL_JOURNAL'], companions: [] },
+    'Dai': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HEALERS_KIT', 'STERILE_GAUZE', 'SOAP_BAR', 'TURMERIC_ROOT', 'HONEY_JAR'], companions: [] },
+    'Jadi Booti Wala': { equipment: { torso: 'SIMPLE_TUNIC', belt: 'LEATHER_BAG' }, inventory: ['MEDICINAL_HERBS', 'NEEM_LEAVES', 'TURMERIC_ROOT', 'MORTAR_PESTLE', 'HERB_BUNDLE'], companions: [] },
+    'Nadi Vaidya': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['PULSE_CHART', 'MEDICAL_JOURNAL', 'MEDICINAL_HERBS', 'TINCTURE_BOTTLE'], companions: [] },
+
+    // Oceania Healers
+    'Tohunga': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'PRAYER_BEADS', 'HEALING_SALVE', 'HERB_BUNDLE'], companions: [] },
+    'Taulasea': { equipment: { torso: 'SIMPLE_TUNIC' }, inventory: ['MEDICINAL_HERBS', 'EUCALYPTUS_OIL', 'HEALING_SALVE', 'MORTAR_PESTLE'], companions: [] },
+    'Clever Woman': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'HEALING_SALVE', 'HERB_BUNDLE', 'HONEY_JAR'], companions: [] },
+    'Bone Singer': { equipment: { torso: 'SIMPLE_TUNIC' }, inventory: ['SPLINT_WOOD', 'BANDAGE', 'HEALING_SALVE', 'MEDICINAL_HERBS'], companions: [] },
+    'Bush Medicine Woman': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['MEDICINAL_HERBS', 'EUCALYPTUS_OIL', 'ALOE_VERA', 'MORTAR_PESTLE', 'HEALING_SALVE'], companions: [] },
+
+    // Pre-Columbian/American Healers
+    'Medicine Man': { equipment: { torso: 'FUR_CLOAK', head: 'EAGLE_FEATHER' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'INCENSE', 'PRAYER_BEADS', 'HEALING_SALVE'], companions: [] },
+    'Medicine Woman': { equipment: { torso: 'DEER_HIDE' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'WILLOW_BARK', 'MORTAR_PESTLE', 'HEALING_SALVE'], companions: [] },
+    'Paqo': { equipment: { torso: 'PONCHO' }, inventory: ['COCA_LEAVES', 'MEDICINAL_HERBS', 'HEALING_SALVE', 'PRAYER_BEADS'], companions: [] },
+    'Ticitl': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'MORTAR_PESTLE', 'HEALING_SALVE', 'MEDICAL_JOURNAL'], companions: [] },
+    'Curandero': { equipment: { torso: 'SIMPLE_TUNIC' }, inventory: ['MEDICINAL_HERBS', 'HEALING_SALVE', 'PRAYER_BEADS', 'INCENSE', 'TINCTURE_BOTTLE'], companions: [] },
+    'Curandera': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['MEDICINAL_HERBS', 'HEALING_SALVE', 'PRAYER_BEADS', 'INCENSE', 'TINCTURE_BOTTLE'], companions: [] },
+    'Herbatero': { equipment: { torso: 'SIMPLE_TUNIC' }, inventory: ['MEDICINAL_HERBS', 'MORTAR_PESTLE', 'TINCTURE_BOTTLE', 'HEALING_SALVE'], companions: [] },
+    'Sobador': { equipment: { torso: 'LEATHER_APRON' }, inventory: ['HEALING_SALVE', 'BANDAGE', 'SPLINT_WOOD', 'PAIN_POWDER'], companions: [] },
+
+    // European Healers
+    'Herbalist': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'WILLOW_BARK', 'MORTAR_PESTLE', 'TINCTURE_BOTTLE'], companions: [] },
+    'Apothecary': { equipment: { torso: 'LEATHER_APRON' }, inventory: ['MORTAR_PESTLE', 'MEDICINAL_HERBS', 'TINCTURE_BOTTLE', 'HEALING_SALVE', 'SCALE'], companions: [] },
+    'Barber-Surgeon': { equipment: { torso: 'LEATHER_APRON' }, inventory: ['SURGICAL_TOOLS', 'BLEEDING_BOWL', 'LEECH', 'BANDAGE', 'ALCOHOL_FLASK'], companions: [] },
+    'Plague Doctor': { equipment: { torso: 'LEATHER_APRON', head: 'PLAGUE_MASK' }, inventory: ['HEALERS_KIT', 'INCENSE', 'MEDICINAL_HERBS', 'VINEGAR', 'MERCURY_VIAL'], companions: [] },
+    'Midwife': { equipment: { torso: 'SIMPLE_ROBE' }, inventory: ['HEALERS_KIT', 'STERILE_GAUZE', 'SOAP_BAR', 'HONEY_JAR', 'MEDICINAL_HERBS'], companions: [] },
+    'Wise Woman': { equipment: { torso: 'SIMPLE_ROBE', head: 'CLOTH_HOOD' }, inventory: ['MEDICINAL_HERBS', 'HEALING_SALVE', 'WILLOW_BARK', 'MORTAR_PESTLE', 'HERB_BUNDLE'], companions: [] },
+    'Leech Collector': { equipment: { torso: 'SIMPLE_TUNIC' }, inventory: ['LEECH', 'LEECH', 'LEECH', 'BUCKET', 'BANDAGE'], companions: [] },
+    'Hospital Orderly': { equipment: { torso: 'SIMPLE_TUNIC' }, inventory: ['BANDAGE', 'SOAP_BAR', 'BUCKET', 'STERILE_GAUZE'], companions: [] },
+
+    // Modern Era Healers
+    'Doctor': { equipment: { torso: 'WHITE_COAT' }, inventory: ['STETHOSCOPE', 'THERMOMETER', 'SYRINGE', 'MEDICAL_JOURNAL', 'BANDAGE'], companions: [] },
+    'Nurse': { equipment: { torso: 'NURSE_UNIFORM' }, inventory: ['THERMOMETER', 'BANDAGE', 'STERILE_GAUZE', 'SOAP_BAR', 'MEDICAL_JOURNAL'], companions: [] },
+    'Surgeon': { equipment: { torso: 'SURGICAL_SCRUBS' }, inventory: ['SURGICAL_TOOLS', 'SUTURE_THREAD', 'ALCOHOL_FLASK', 'STERILE_GAUZE'], companions: [] },
+    'Pharmacist': { equipment: { torso: 'WHITE_COAT' }, inventory: ['MORTAR_PESTLE', 'SCALE', 'MEDICAL_JOURNAL', 'MEDICINE_BOTTLE'], companions: [] },
+    'Paramedic': { equipment: { torso: 'UNIFORM' }, inventory: ['HEALERS_KIT', 'TOURNIQUET', 'BANDAGE', 'SYRINGE', 'THERMOMETER'], companions: [] },
+
     // --- ANTIQUITY (Using procedural weapon selection) ---
     'Merchant': { equipment: { torso: 'CITIZEN_TOGA', belt: 'PURSE', main_hand: '*CONTEXTUAL*', necklace: 'BRONZE_TORC' }, inventory: ['SCALE', 'COIN', 'AMPHORA', 'OLIVES'] }, // Requires AMPHORA
-    'Physician': { equipment: { torso: 'SIMPLE_ROBE', main_hand: '*CONTEXTUAL*' }, inventory: ['MEDICINAL_HERBS', 'BANDAGE', 'SCROLL', 'BRONZE_PIN'] },
+    'Physician': { equipment: { torso: 'SIMPLE_ROBE', main_hand: '*CONTEXTUAL*' }, inventory: ['HEALERS_KIT', 'MEDICINAL_HERBS', 'BANDAGE', 'SURGICAL_TOOLS', 'URINE_FLASK'] },
     'Scribe': { equipment: { torso: 'SIMPLE_ROBE', main_hand: '*CONTEXTUAL*' }, inventory: ['SCROLL', 'QUILL', 'INK_POT', 'PARCHMENT_ROLL'] },
     'Lawyer': { equipment: { torso: 'CITIZEN_TOGA', main_hand: '*CONTEXTUAL*' }, inventory: ['BOOK', 'SCROLL', 'QUILL', 'COIN'] },
     'Teacher': { equipment: { torso: 'SIMPLE_ROBE', main_hand: '*CONTEXTUAL*' }, inventory: ['BOOK', 'SCROLL', 'STICK'] },

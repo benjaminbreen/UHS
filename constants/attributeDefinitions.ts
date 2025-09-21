@@ -399,12 +399,16 @@ export const UNIVERSAL_ATTRIBUTES: AttributeBadge[] = [
   },
   {
     id: 'merchant',
-    name: 'Merchant',
+    name: 'Merchant Background',
     icon: 'FaBalanceScaleLeft',
     rarity: 'common',
-    category: 'skill',
-    description: 'Experienced trader',
+    category: 'background',
+    description: 'Has experience as a trader',
     effect: '20% better prices',
+    // Only for actual merchants or former merchants
+    condition: (char) => char.profession?.toLowerCase().includes('merchant') ||
+                        char.profession?.toLowerCase().includes('trader') ||
+                        char.profession?.toLowerCase().includes('vendor'),
     dialogueHint: 'Evaluates everything\'s worth'
   },
   {
@@ -531,6 +535,279 @@ export const UNIVERSAL_ATTRIBUTES: AttributeBadge[] = [
     description: 'Can predict weather changes',
     effect: 'Warns of storms 1 hour early',
     dialogueHint: 'Comments on coming weather'
+  },
+
+  // Additional universal personality/condition attributes
+  {
+    id: 'alcoholic',
+    name: 'Alcoholic',
+    icon: 'FaWineBottle',
+    rarity: 'common',
+    category: 'condition',
+    description: 'Dependent on drink',
+    effect: '-1 all stats when sober',
+    dialogueHint: 'Smells of alcohol'
+  },
+  {
+    id: 'veteran',
+    name: 'Veteran',
+    icon: 'GiSwordWound',
+    rarity: 'uncommon',
+    category: 'background',
+    description: 'Experienced in combat',
+    condition: (char) => char.age > 30,
+    effect: '+1 combat, -morale from violence',
+    dialogueHint: 'Mentions past battles'
+  },
+  {
+    id: 'street_smart',
+    name: 'Street Smart',
+    icon: 'FaStreetView',
+    rarity: 'common',
+    category: 'skill',
+    description: 'Knows the city\'s secrets',
+    effect: '+perception in urban areas',
+    dialogueHint: 'Knows all the shortcuts'
+  },
+  {
+    id: 'pessimist',
+    name: 'Pessimist',
+    icon: 'FaFrownOpen',
+    rarity: 'common',
+    category: 'personality',
+    description: 'Expects the worst',
+    effect: '-morale but +preparation',
+    dialogueHint: 'Always expects failure'
+  },
+  {
+    id: 'optimist',
+    name: 'Optimist',
+    icon: 'FaSmile',
+    rarity: 'common',
+    category: 'personality',
+    description: 'Always hopeful',
+    effect: '+morale recovery',
+    dialogueHint: 'Sees the bright side'
+  },
+  {
+    id: 'insomniac',
+    name: 'Insomniac',
+    icon: 'FaMoon',
+    rarity: 'common',
+    category: 'condition',
+    description: 'Cannot sleep well',
+    effect: '-fatigue recovery at night',
+    dialogueHint: 'Has dark circles under eyes'
+  },
+  {
+    id: 'glutton',
+    name: 'Glutton',
+    icon: 'FaHamburger',
+    rarity: 'common',
+    category: 'personality',
+    description: 'Overeats constantly',
+    effect: 'Consumes double food',
+    dialogueHint: 'Always eating something'
+  },
+  {
+    id: 'ascetic',
+    name: 'Ascetic',
+    icon: 'GiMeditation',
+    rarity: 'uncommon',
+    category: 'personality',
+    description: 'Rejects worldly pleasures',
+    effect: 'Needs less food, -charisma',
+    dialogueHint: 'Disdains material things'
+  },
+  {
+    id: 'curious',
+    name: 'Curious',
+    icon: 'FaSearch',
+    rarity: 'common',
+    category: 'personality',
+    description: 'Always investigating',
+    effect: '+perception, may trigger events',
+    dialogueHint: 'Asks many questions'
+  },
+  {
+    id: 'cautious',
+    name: 'Cautious',
+    icon: 'FaShieldAlt',
+    rarity: 'common',
+    category: 'personality',
+    description: 'Careful and methodical',
+    effect: '-movement speed, +trap avoidance',
+    dialogueHint: 'Proceeds carefully'
+  },
+  {
+    id: 'reckless',
+    name: 'Reckless',
+    icon: 'FaBolt',
+    rarity: 'common',
+    category: 'personality',
+    description: 'Acts without thinking',
+    effect: '+movement speed, -defense',
+    dialogueHint: 'Rushes into danger'
+  },
+  {
+    id: 'patient',
+    name: 'Patient',
+    icon: 'FaHourglass',
+    rarity: 'uncommon',
+    category: 'personality',
+    description: 'Willing to wait',
+    effect: '+negotiation success',
+    dialogueHint: 'Never rushes decisions'
+  },
+  {
+    id: 'impatient',
+    name: 'Impatient',
+    icon: 'FaRunning',
+    rarity: 'common',
+    category: 'personality',
+    description: 'Always in a hurry',
+    effect: '-negotiation, +initiative',
+    dialogueHint: 'Taps foot constantly'
+  },
+  {
+    id: 'stubborn',
+    name: 'Stubborn',
+    icon: 'FaRock',
+    rarity: 'common',
+    category: 'personality',
+    description: 'Refuses to change mind',
+    effect: 'Immune to persuasion',
+    dialogueHint: 'Will not be swayed'
+  },
+  {
+    id: 'adaptable',
+    name: 'Adaptable',
+    icon: 'FaWater',
+    rarity: 'uncommon',
+    category: 'personality',
+    description: 'Adjusts to any situation',
+    effect: '+1 all skills in new areas',
+    dialogueHint: 'Comfortable anywhere'
+  },
+  {
+    id: 'hard_of_hearing',
+    name: 'Hard of Hearing',
+    icon: 'FaVolumeDown',
+    rarity: 'common',
+    category: 'physical',
+    description: 'Partial hearing loss',
+    effect: 'Must be closer to hear dialogue',
+    dialogueHint: 'Often asks people to repeat themselves'
+  },
+  {
+    id: 'quarrelsome',
+    name: 'Quarrelsome',
+    icon: 'GiFist',
+    rarity: 'common',
+    category: 'personality',
+    description: 'Quick to anger and argue',
+    effect: '-reputation gain from dialogue',
+    dialogueHint: 'Takes offense easily'
+  },
+  {
+    id: 'generous',
+    name: 'Generous',
+    icon: 'FaGift',
+    rarity: 'uncommon',
+    category: 'personality',
+    description: 'Gives freely to others',
+    effect: '+reputation when giving gifts',
+    dialogueHint: 'Offers to share'
+  },
+  {
+    id: 'paranoid',
+    name: 'Paranoid',
+    icon: 'FaEye',
+    rarity: 'common',
+    category: 'personality',
+    description: 'Suspicious of everyone',
+    effect: 'Cannot be surprised but -trust',
+    dialogueHint: 'Constantly looking over shoulder'
+  },
+  {
+    id: 'devout',
+    name: 'Devout',
+    icon: 'FaPray',
+    rarity: 'common',
+    category: 'personality',
+    description: 'Deeply religious',
+    effect: '+reputation with clergy',
+    dialogueHint: 'Frequently mentions faith'
+  },
+  {
+    id: 'gambler',
+    name: 'Gambler',
+    icon: 'FaDice',
+    rarity: 'common',
+    category: 'personality',
+    description: 'Addicted to games of chance',
+    effect: 'Randomly gains or loses money',
+    dialogueHint: 'Talks about luck and odds'
+  },
+  {
+    id: 'melancholic',
+    name: 'Melancholic',
+    icon: 'FaCloudRain',
+    rarity: 'common',
+    category: 'personality',
+    description: 'Prone to sadness',
+    effect: '-morale in bad weather',
+    dialogueHint: 'Seems perpetually sad'
+  },
+  {
+    id: 'twin',
+    name: 'Twin',
+    icon: 'FaUsers',
+    rarity: 'uncommon',
+    category: 'background',
+    description: 'Has a twin sibling',
+    effect: 'May encounter twin',
+    dialogueHint: 'Mentions their twin'
+  },
+  {
+    id: 'orphan',
+    name: 'Orphan',
+    icon: 'FaHome',
+    rarity: 'common',
+    category: 'background',
+    description: 'Raised without parents',
+    effect: '+self reliance',
+    dialogueHint: 'Never knew their parents'
+  },
+  {
+    id: 'foreigner',
+    name: 'Foreigner',
+    icon: 'FaGlobeAmericas',
+    rarity: 'common',
+    category: 'background',
+    description: 'Not from these lands',
+    effect: '-local reputation, +languages',
+    dialogueHint: 'Has an accent'
+  },
+  {
+    id: 'local',
+    name: 'Local',
+    icon: 'FaMapMarkerAlt',
+    rarity: 'common',
+    category: 'background',
+    description: 'Born and raised here',
+    effect: '+local reputation',
+    dialogueHint: 'Knows everyone in town'
+  },
+  {
+    id: 'wanderer',
+    name: 'Wanderer',
+    icon: 'FaWalking',
+    rarity: 'common',
+    category: 'background',
+    description: 'Never stays in one place',
+    effect: '+travel speed',
+    dialogueHint: 'Has been everywhere'
   }
 ];
 
@@ -587,12 +864,17 @@ export const CULTURAL_ATTRIBUTES: AttributeBadge[] = [
   },
   {
     id: 'knight_errant',
-    name: 'Knight Errant',
+    name: 'Former Knight',
     icon: 'GiMountedKnight',
     rarity: 'epic',
-    category: 'cultural',
-    description: 'Wandering knight seeking glory',
+    category: 'background',
+    description: 'Once served as a knight',
     yearRange: [1100, 1500],
+    // Only for actual knights or soldiers
+    condition: (char) => char.profession?.toLowerCase().includes('knight') ||
+                        char.profession?.toLowerCase().includes('soldier') ||
+                        char.profession?.toLowerCase().includes('warrior') ||
+                        char.profession?.toLowerCase().includes('guard'),
     requiredCulture: ['european'],
     effect: '+3 combat, can challenge to duels',
     dialogueHint: 'Speaks of honor and chivalry'

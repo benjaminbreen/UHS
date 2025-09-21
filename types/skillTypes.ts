@@ -78,6 +78,7 @@ export interface DigSkillResult {
     xpGained?: number;
     tileCoords?: { x: number, y: number }; // The tile that was mined
     amountExtracted?: number; // How much was removed from the deposit
+    injury?: any; // Injury from failed skill attempt
 }
 
 export interface ChopSkillResult {
@@ -87,6 +88,7 @@ export interface ChopSkillResult {
     item?: Item;
     xpGained?: number;
     entityToRemoveId?: string;
+    injury?: any; // Injury from failed skill attempt
 }
 
 export interface CombatSkillResult {
@@ -108,4 +110,22 @@ export interface SingSkillResult {
     xpGained?: number;
 }
 
-export type SkillResult = ObserveSkillResult | ForageSkillResult | DigSkillResult | CombatSkillResult | ChopSkillResult | SingSkillResult | null;
+export interface StudySkillResult {
+    type: 'study';
+    action: string; // 'observe', 'compare', 'muse', 'anatomize'
+    actionEmoji: string;
+    description: string;
+    items: {
+        name: string;
+        emoji?: string;
+    }[];
+    xpGained?: number;
+    context?: {
+        biome?: string;
+        culturalZone?: string;
+        location?: string;
+        date?: string;
+    };
+}
+
+export type SkillResult = ObserveSkillResult | ForageSkillResult | DigSkillResult | CombatSkillResult | ChopSkillResult | SingSkillResult | StudySkillResult | null;

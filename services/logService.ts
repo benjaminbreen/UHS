@@ -82,5 +82,62 @@ export const LogService = {
         time: string
     ): GameLogEntry => createLogEntry(
         'TRADE', '💰', `${action} ${item.quantity}x ${item.name} for ${price} coin(s) in ${location}.`, date, time
+    ),
+
+    createQuestStartLog: (
+        questName: string,
+        location: string,
+        date: GameDate,
+        time: string
+    ): GameLogEntry => createLogEntry(
+        'QUEST_START', '📜', `Started quest "${questName}" in ${location}.`, date, time
+    ),
+
+    createQuestCompleteLog: (
+        questName: string,
+        location: string,
+        date: GameDate,
+        time: string,
+        rewards?: string
+    ): GameLogEntry => createLogEntry(
+        'QUEST_COMPLETE', '✅', `Completed quest "${questName}" in ${location}.${rewards ? ` Rewards: ${rewards}` : ''}`, date, time
+    ),
+
+    // MILESTONE EVENTS
+    createMilestoneFirstKillLog: (
+        opponentName: string,
+        location: string,
+        date: GameDate,
+        time: string
+    ): GameLogEntry => createLogEntry(
+        'MILESTONE_COMBAT', '💀', `First successful hunt: defeated ${opponentName} in ${location}.`, date, time
+    ),
+
+    createMilestoneNpcKillLog: (
+        npcName: string,
+        location: string,
+        date: GameDate,
+        time: string
+    ): GameLogEntry => createLogEntry(
+        'MILESTONE_COMBAT', '⚔️', `Killed ${npcName} in ${location}.`, date, time
+    ),
+
+    createMilestoneAreasExploredLog: (
+        areaCount: number,
+        currentArea: string,
+        date: GameDate,
+        time: string
+    ): GameLogEntry => createLogEntry(
+        'MILESTONE_EXPLORATION', '🗺️', `Explored ${areaCount} different areas. Currently in ${currentArea}.`, date, time
+    ),
+
+    createMilestoneVipMeetingLog: (
+        vipName: string,
+        vipTitle: string,
+        location: string,
+        date: GameDate,
+        time: string
+    ): GameLogEntry => createLogEntry(
+        'MILESTONE_ACHIEVEMENT', '👑', `Met ${vipTitle} ${vipName} in ${location}.`, date, time
     )
 };

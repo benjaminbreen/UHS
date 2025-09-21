@@ -186,26 +186,59 @@
       "isStandard": true
     },
     {
-      "id": "north-america-renaissance-early-modern-chronicle",
-      "title": "North American Early Modern Chronicle",
-      "author": "Various Authors",
-      "year": 1600,
+      "id": "columbus-letter",
+      "title": "Letter on the First Voyage",
+      "author": "Christopher Columbus",
+      "year": 1493,
       "era": "RENAISSANCE_EARLY-MODERN",
       "culturalZones": [
         "NORTH_AMERICAN_COLONIAL"
       ],
-      "excerpt": "A collection of early modern texts from the North American region.",
-      "longExcerpt": "This represents a compilation of historical documents from the Early Modern period in the North American region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "excerpt": "I found very many islands filled with people innumerable, and of them all I have taken possession for their Highnesses, by proclamation made and with the royal standard unfurled. To the first island I gave the name San Salvador.",
+      "longExcerpt": "I found very many islands filled with people innumerable, and of them all I have taken possession for their Highnesses, by proclamation made and with the royal standard unfurled. To the first island I gave the name San Salvador. This letter from 1493 announcing Columbus's 'discovery' of the Americas became one of the first bestsellers of the print age, fundamentally changing European understanding of the world.",
       "keywords": [
-        "north-america",
-        "renaissance-early-modern",
-        "history",
-        "chronicle",
-        "primary source"
+        "Columbus",
+        "discovery",
+        "Caribbean",
+        "Spain",
+        "natives",
+        "gold",
+        "exploration"
       ],
-      "wikisourceTitle": "North American_Early Modern_Texts",
+      "wikisourceTitle": "Letter_of_Columbus_on_the_First_Voyage",
+      "internetArchiveId": "letterofcolumbus00colu",
       "citation": {
-        "originalPublication": "North American Early Modern Period"
+        "translator": null,
+        "originalPublication": "Barcelona, 1493",
+        "modernSource": "William E. Curtis, 1893"
+      }
+    },
+    {
+      "id": "john-smith-new-england",
+      "title": "A Description of New England",
+      "author": "John Smith",
+      "year": 1616,
+      "era": "RENAISSANCE_EARLY-MODERN",
+      "culturalZones": [
+        "NORTH_AMERICAN_COLONIAL"
+      ],
+      "excerpt": "Here nature and liberty afford us that freely which in England we want, or it costeth us dearly. What pleasure can be more than to recreate themselves before their own doors, in their own boats upon the sea?",
+      "longExcerpt": "Here nature and liberty afford us that freely which in England we want, or it costeth us dearly. What pleasure can be more than to recreate themselves before their own doors, in their own boats upon the sea? This promotional tract from 1616 by the Jamestown leader painted an idealized picture of New England to attract colonists, shaping European perceptions of American abundance.",
+      "keywords": [
+        "colonization",
+        "New England",
+        "fishing",
+        "Native Americans",
+        "exploration",
+        "settlement",
+        "promotion"
+      ],
+      "wikisourceTitle": "A_Description_of_New_England",
+      "internetArchiveId": "descriptionofnew00smit",
+      "citation": {
+        "translator": null,
+        "originalPublication": "London, 1616",
+        "modernSource": "James Royal, 1616"
       }
     }
   ]

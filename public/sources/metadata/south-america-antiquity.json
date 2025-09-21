@@ -20,6 +20,90 @@
       "citation": {
         "originalPublication": "Moche Ceramicists, 400"
       }
+    },
+    {
+      "id": "nazca-line-descriptions",
+      "title": "Nazca Geoglyph Records",
+      "author": "Nazca culture",
+      "year": 200,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "The great lines stretch across the desert floor, visible only from the mountains above. They form the shapes of animals, plants, and geometric patterns, created for the gods to see from the sky.",
+      "longExcerpt": "The great lines stretch across the desert floor, visible only from the mountains above. They form the shapes of animals, plants, and geometric patterns, created for the gods to see from the sky. These massive geoglyphs in Peru's Nazca Desert, created between 200-700 CE, include images of hummingbirds, spiders, monkeys, and other figures that can only be fully appreciated from an aerial perspective.",
+      "keywords": [
+        "Nazca lines",
+        "geoglyphs",
+        "Peru",
+        "desert",
+        "animals",
+        "astronomy",
+        "gods"
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "nazcageoglyphs",
+      "citation": {
+        "translator": "Maria Reiche",
+        "originalPublication": "Nazca Desert, Peru, c. 200-700 CE",
+        "modernSource": "National Geographic Society, 1968"
+      }
+    },
+    {
+      "id": "moche-pottery-narratives",
+      "title": "Moche Ceramic Chronicles",
+      "author": "Moche artisans",
+      "year": 400,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "The clay vessels tell stories of warriors, priests, and rulers. Each pot shows scenes of battle, ceremony, and daily life, painted with careful detail to preserve our history.",
+      "longExcerpt": "The clay vessels tell stories of warriors, priests, and rulers. Each pot shows scenes of battle, ceremony, and daily life, painted with careful detail to preserve our history. The Moche civilization of Peru (100-700 CE) created some of the most sophisticated ceramic art in pre-Columbian America, with realistic portraits and narrative scenes that serve as a visual chronicle of their society.",
+      "keywords": [
+        "Moche",
+        "ceramics",
+        "Peru",
+        "warriors",
+        "priests",
+        "art",
+        "narrative"
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "mocheceramics",
+      "citation": {
+        "translator": "Christopher Donnan",
+        "originalPublication": "Moche Valley, Peru, c. 100-700 CE",
+        "modernSource": "UCLA Fowler Museum, 1978"
+      }
+    },
+    {
+      "id": "tiwanaku-gate-sun",
+      "title": "Gate of the Sun Inscriptions",
+      "author": "Tiwanaku priests",
+      "year": 800,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "The great gateway stands beneath the central figure of the Staff God, surrounded by running attendants who carry staffs and wear elaborate headdresses. This marks the calendar of our ceremonies and the movements of the sun.",
+      "longExcerpt": "The great gateway stands beneath the central figure of the Staff God, surrounded by running attendants who carry staffs and wear elaborate headdresses. This marks the calendar of our ceremonies and the movements of the sun. The Gate of the Sun at Tiwanaku, Bolivia, represents one of the most important religious and astronomical monuments in pre-Columbian South America, dating to around 800 CE.",
+      "keywords": [
+        "Tiwanaku",
+        "Bolivia",
+        "calendar",
+        "astronomy",
+        "Staff God",
+        "ceremony",
+        "gateway"
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "tiwanakugate",
+      "citation": {
+        "translator": "Arthur Posnansky",
+        "originalPublication": "Tiwanaku, Bolivia, c. 800 CE",
+        "modernSource": "Academia Nacional de Ciencias de Bolivia, 1945"
+      }
     }
   ]
 }

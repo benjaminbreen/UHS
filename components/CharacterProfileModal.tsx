@@ -74,6 +74,10 @@ import {
   MoreVertical,
 } from 'lucide-react';
 
+/* Attribute Components */
+import { AttributeBadgeList } from './AttributeBadge';
+import AttributeModal from './AttributeModal';
+
 /* -------------------------------------------------------------------------- */
 /* Utilities                                                                  */
 /* -------------------------------------------------------------------------- */
@@ -127,22 +131,30 @@ const DetailRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label,
 
 // Utility function to get gameplay impact explanations for stats
 const getStatImpact = (statName: string, value: number): string => {
-  const impacts: Record<string, (val: number) => string> = {
-    strength: (val) => `Combat damage +${Math.round((val - 10) * 5)}%, carrying capacity +${Math.round((val - 10) * 10)}%`,
-    dexterity: (val) => `Combat hit chance +${Math.round((val - 10) * 3)}%, crafting precision +${Math.round((val - 10) * 4)}%`,
-    constitution: (val) => `Max health +${Math.round((val - 10) * 8)}%, disease resistance +${Math.round((val - 10) * 6)}%`,
-    intelligence: (val) => `Learning speed +${Math.round((val - 10) * 7)}%, medical knowledge +${Math.round((val - 10) * 5)}%`,
-    persuasion: (val) => `Trade prices ${val >= 10 ? 'better' : 'worse'} by ${Math.abs(Math.round((val - 10) * 2))}%, NPC relations +${Math.round((val - 10) * 4)}%`,
-    perception: (val) => `Quest discovery +${Math.round((val - 10) * 6)}%, hidden items +${Math.round((val - 10) * 8)}%`,
+  const getThreshold = (val: number): string => {
+    if (val <= 3) return "Very Poor";
+    if (val <= 5) return "Poor";
+    if (val <= 7) return "Average";
+    if (val <= 9) return "Good";
+    return "Excellent";
   };
-  
-  return impacts[statName.toLowerCase()]?.(value) || `Affects various gameplay mechanics based on value of ${value}`;
+
+  const impacts: Record<string, (val: number) => string> = {
+    strength: (val) => `${getThreshold(val)} • Combat damage ${val >= 10 ? '+' : ''}${Math.round((val - 10) * 5)}%, carrying capacity ${val >= 10 ? '+' : ''}${Math.round((val - 10) * 10)}%`,
+    dexterity: (val) => `${getThreshold(val)} • Combat hit chance ${val >= 10 ? '+' : ''}${Math.round((val - 10) * 3)}%, crafting precision ${val >= 10 ? '+' : ''}${Math.round((val - 10) * 4)}%`,
+    constitution: (val) => `${getThreshold(val)} • Max health ${val >= 10 ? '+' : ''}${Math.round((val - 10) * 8)}%, disease resistance ${val >= 10 ? '+' : ''}${Math.round((val - 10) * 6)}%`,
+    intelligence: (val) => `${getThreshold(val)} • Learning speed ${val >= 10 ? '+' : ''}${Math.round((val - 10) * 7)}%, medical knowledge ${val >= 10 ? '+' : ''}${Math.round((val - 10) * 5)}%`,
+    persuasion: (val) => `${getThreshold(val)} • Trade prices ${val >= 10 ? 'better' : 'worse'} by ${Math.abs(Math.round((val - 10) * 2))}%, NPC relations ${val >= 10 ? '+' : ''}${Math.round((val - 10) * 4)}%`,
+    perception: (val) => `${getThreshold(val)} • Quest discovery ${val >= 10 ? '+' : ''}${Math.round((val - 10) * 6)}%, hidden items ${val >= 10 ? '+' : ''}${Math.round((val - 10) * 8)}%`,
+  };
+
+  return impacts[statName.toLowerCase()]?.(value) || `${getThreshold(value)} • Affects various gameplay mechanics based on value of ${value}`;
 };
 
 const StatBar: React.FC<{ label: string; value: number; max?: number; Icon: any; color: string; tooltip?: string }> = ({
   label,
   value,
-  max = 20,
+  max = 10,
   Icon,
   color,
   tooltip,
@@ -166,7 +178,11 @@ const StatBar: React.FC<{ label: string; value: number; max?: number; Icon: any;
           }}
         />
       </div>
-      <span className="w-8 text-right font-bold text-white">{value}</span>
+      <div className="flex items-center gap-1">
+        <span className="w-8 text-right font-bold text-white">{value}</span>
+        {value > 8 && <span className="text-green-400 text-xs">▲</span>}
+        {value < 5 && <span className="text-red-400 text-xs">▼</span>}
+      </div>
       
       {/* Tooltip */}
       <div className="absolute left-0 bottom-full mb-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 z-50">
@@ -513,6 +529,8 @@ const CharacterProfileModal: React.FC<Props> = ({
   const [selectedAnimal, setSelectedAnimal] = useState<TamedAnimal | null>(null);
   const [isAnimalModalOpen, setIsAnimalModalOpen] = useState(false);
 
+  const [showAttributeModal, setShowAttributeModal] = useState(false);
+
   useEffect(() => {
     if (isOpen) setTamedAnimals(loadTamedAnimals());
   }, [isOpen]);
@@ -595,7 +613,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                 <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-slate-600 shadow-lg bg-slate-800">
                   <AnimatedPortrait character={character} size={44} trackChanges />
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <h2 className="text-xl md:text-3xl font-bold text-white truncate">{character.name}</h2>
                   <div className="flex flex-wrap items-center gap-2 mt-1">
                     <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-xs font-semibold capitalize border border-amber-400/40 flex items-center gap-1">
@@ -611,6 +629,16 @@ const CharacterProfileModal: React.FC<Props> = ({
                     <span className="px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-300 text-xs font-semibold border border-yellow-400/40 flex items-center gap-1">
                       <Coins className="w-3.5 h-3.5" /> {character.currency ?? 0}
                     </span>
+                    {/* Character Attributes - moved to badge row */}
+                    {character.attributes && character.attributes.length > 0 && (
+                      <button
+                        onClick={() => setShowAttributeModal(true)}
+                        className="flex-shrink-0 ml-auto rounded-lg hover:bg-slate-700/30 px-1 py-0.5 transition-all"
+                        title="View all attributes"
+                      >
+                        <AttributeBadgeList badges={character.attributes} maxDisplay={2} size="small" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -755,7 +783,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                           <div className="flex justify-between text-sm mb-1">
                             <span className="flex items-center gap-1 text-red-400"><Heart className="w-4 h-4" /> Health</span>
                             <span className="text-white font-bold">
-                              {Math.ceil(character.health)}/{Math.ceil(character.maxHealth)}
+                              {Math.round(character.health)}/{Math.round(character.maxHealth)}
                             </span>
                           </div>
                           <div className="h-3 rounded bg-slate-700 overflow-hidden">
@@ -769,7 +797,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                           <div className="flex justify-between text-sm mb-1">
                             <span className="flex items-center gap-1 text-amber-400"><Moon className="w-4 h-4" /> Fatigue</span>
                             <span className="text-white font-bold">
-                              {Math.ceil(character.fatigue)}/{Math.ceil(character.maxFatigue || 100)}
+                              {Math.round(character.fatigue)}/{Math.round(character.maxFatigue || 100)}
                             </span>
                           </div>
                           <div className="h-3 rounded bg-slate-700 overflow-hidden">
@@ -783,7 +811,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                           <div className="flex justify-between text-sm mb-1">
                             <span className="flex items-center gap-1 text-cyan-400"><Star className="w-4 h-4" /> Experience</span>
                             <span className="text-white font-bold">
-                              {Math.ceil(character.experience)}/{Math.ceil(character.maxExperience)}
+                              {Math.round(character.experience)}/{Math.round(character.maxExperience)}
                             </span>
                           </div>
                           <div className="h-3 rounded bg-slate-700 overflow-hidden">
@@ -931,6 +959,49 @@ const CharacterProfileModal: React.FC<Props> = ({
                       </div>
                     </div>
 
+                    {/* Quick Actions */}
+                    <div className="p-4 rounded-lg border border-slate-700/60 bg-slate-800/50">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-purple-300 mb-3">Quick Actions</h4>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => setActive('equipment')}
+                          className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 transition-colors text-left"
+                        >
+                          <div className="flex items-center gap-2 text-amber-300">
+                            <Sword className="w-4 h-4" />
+                            <span className="text-xs font-semibold">Equipment</span>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => setActive('inventory')}
+                          className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 transition-colors text-left"
+                        >
+                          <div className="flex items-center gap-2 text-green-300">
+                            <Backpack className="w-4 h-4" />
+                            <span className="text-xs font-semibold">Inventory</span>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => setActive('health')}
+                          className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 transition-colors text-left"
+                        >
+                          <div className="flex items-center gap-2 text-red-300">
+                            <Activity className="w-4 h-4" />
+                            <span className="text-xs font-semibold">Full Stats</span>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => setActive('household')}
+                          className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 transition-colors text-left"
+                        >
+                          <div className="flex items-center gap-2 text-blue-300">
+                            <House className="w-4 h-4" />
+                            <span className="text-xs font-semibold">Household</span>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+
                     <div className="p-4 rounded-lg border border-slate-700/60 bg-slate-800/50">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-blue-300 mb-3">Top Stats</h4>
                       <div className="space-y-3">
@@ -987,7 +1058,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                           label="Overall Health"
                           value={
                             <span className="text-white">
-                              {character.health}/{character.maxHealth} HP
+                              {Math.round(character.health)}/{Math.round(character.maxHealth)} HP
                             </span>
                           }
                         />
@@ -1001,7 +1072,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                           label="Fatigue Level"
                           value={
                             <span className="text-white">
-                              {character.fatigue}/{character.maxFatigue}
+                              {Math.round(character.fatigue)}/{Math.round(character.maxFatigue || 100)}
                             </span>
                           }
                         />
@@ -1355,7 +1426,7 @@ const CharacterProfileModal: React.FC<Props> = ({
                               <div>
                                 <div className="flex justify-between text-xs mb-1">
                                   <span className="text-slate-400">Health</span>
-                                  <span className="text-white">{a.health}/10</span>
+                                  <span className="text-white">{Math.round(a.health)}/10</span>
                                 </div>
                                 <div className="h-2 rounded bg-slate-700 overflow-hidden">
                                   <div
@@ -1454,7 +1525,7 @@ const CharacterProfileModal: React.FC<Props> = ({
               <div>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-slate-400">Health</span>
-                  <span className="text-white">{selectedAnimal.health}/10</span>
+                  <span className="text-white">{Math.round(selectedAnimal.health)}/10</span>
                 </div>
                 <div className="h-2 rounded bg-slate-700 overflow-hidden">
                   <div
@@ -1469,7 +1540,7 @@ const CharacterProfileModal: React.FC<Props> = ({
               <div>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-slate-400">Loyalty</span>
-                  <span className="text-white">{selectedAnimal.loyalty}/100</span>
+                  <span className="text-white">{Math.round(selectedAnimal.loyalty)}/100</span>
                 </div>
                 <div className="h-2 rounded bg-slate-700 overflow-hidden">
                   <div
@@ -1512,6 +1583,16 @@ const CharacterProfileModal: React.FC<Props> = ({
             updateAnimalName(id, name);
             refreshAnimals();
           }}
+        />
+      )}
+
+      {/* Attribute Modal */}
+      {showAttributeModal && character.attributes && (
+        <AttributeModal
+          isOpen={showAttributeModal}
+          onClose={() => setShowAttributeModal(false)}
+          attributes={character.attributes}
+          characterName={character.name}
         />
       )}
     </div>

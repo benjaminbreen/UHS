@@ -5,7 +5,7 @@ import {
   Cpu, ScrollText, MapPin, Compass, Activity,
   Zap, Download, History, AlertCircle, Sliders, Trophy, Target, Clock,
   Shield, Compass as CompassIcon, Coins, BookOpen, Crown, Home, Users, Scale,
-  Sun, Moon
+  Sun, Moon, FileText
 } from 'lucide-react';
 import { useUI } from '../contexts/UIContext';
 import { useMap } from '../contexts/MapContext';
@@ -24,10 +24,13 @@ import { useEventSystem } from '../hooks/useEventSystem';
 import { usePlayer } from '../contexts/PlayerContext';
 import { questService } from '../services/questService';
 import { themeService } from '../services/themeService';
+import { journalService } from '../services/journalService';
+import JournalViewport from './JournalViewport';
 
 // Button group configurations for better organization
 const NAV_BUTTON_GROUPS = {
   game: [
+    { id: 'quests', icon: ScrollText, label: 'Quests', color: 'slate' },
     { id: 'world-map', icon: Globe, label: 'World Map', color: 'slate' },
   ],
   info: [
@@ -135,6 +138,7 @@ const TopNavBarPolished: React.FC = () => {
   const [showLLMHistory, setShowLLMHistory] = useState(false);
   const [llmHistory, setLLMHistory] = useState(eventService.getLLMHistory());
   const [showQuestsPanel, setShowQuestsPanel] = useState(false);
+  const [showJournal, setShowJournal] = useState(false);
   const [showGameModeTooltip, setShowGameModeTooltip] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(themeService.isDarkMode());
   
@@ -173,6 +177,41 @@ const TopNavBarPolished: React.FC = () => {
       setIsDarkMode(theme === 'dark');
     });
     return unsubscribe;
+  }, []);
+
+  // Subscribe to journal auto-open events
+  useEffect(() => {
+    const unsubscribe = journalService.onJournalOpen(() => {
+      console.log('[TopNavBarPolished] Auto-opening journal from study action');
+      setShowJournal(true);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Auto-slide journal when receiving a message from RightSidebar about study tab activation
+  useEffect(() => {
+    const handleStudyTabActive = () => {
+      console.log('[TopNavBarPolished] Study tab activated, auto-sliding journal');
+      setShowJournal(true);
+    };
+
+    // Listen for custom event from RightSidebar
+    window.addEventListener('studyTabActivated', handleStudyTabActive);
+    return () => window.removeEventListener('studyTabActivated', handleStudyTabActive);
+  }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Command+J (Mac) or Ctrl+J (PC) to toggle Journal
+      if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
+        e.preventDefault();
+        setShowJournal(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
   
   // Show modal when map finishes loading with pending scenario data
@@ -271,6 +310,9 @@ const TopNavBarPolished: React.FC = () => {
 
   const handleNavAction = (actionId: string) => {
     switch (actionId) {
+      case 'quests':
+        setShowQuestsPanel(prev => !prev);
+        break;
       case 'world-map':
         setIsWorldMapModalOpen(true);
         break;
@@ -431,25 +473,25 @@ const TopNavBarPolished: React.FC = () => {
                   )}
                 </div>
               
-              {/* Quests Button - Right next to Game Mode */}
+              {/* Journal Button - Right next to Game Mode */}
               <div className="relative ml-2">
                 <button
-                  onClick={() => setShowQuestsPanel(prev => !prev)}
+                  onClick={() => setShowJournal(prev => !prev)}
                   className={getOptimizedButtonClassName(`
                     px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-white rounded-md
                     transition-all duration-200 flex items-center gap-1.5
                     bg-slate-200/60 dark:bg-slate-700/60 hover:bg-slate-300/60 dark:hover:bg-slate-600/60
                     shadow-sm hover:shadow-md hover:scale-105
-                    ${showQuestsPanel ? 'ring-2 ring-purple-500/50 bg-purple-200/40 dark:bg-purple-900/30' : ''}
+                    ${showJournal ? 'ring-2 ring-amber-500/50 bg-amber-200/40 dark:bg-amber-900/30' : ''}
                   `)}
-                  title="Quests & Objectives"
+                  title="Field Journal (⌘J)"
                 >
-                  <ScrollText className="w-4 h-4" />
-                  <span className="hidden lg:inline">Quests</span>
+                  <FileText className="w-4 h-4" />
+                  <span className="hidden lg:inline">Journal</span>
                 </button>
-                
+
                 {/* Helpful UI text when active */}
-                {showQuestsPanel && (
+                {showJournal && (
                   <span className="absolute -right-2 top-full mt-1 text-[10px] text-slate-400 whitespace-nowrap animate-pulse">
                     click to close
                   </span>
@@ -544,7 +586,7 @@ const TopNavBarPolished: React.FC = () => {
                       title={button.label}
                     >
                       <Icon className="w-4 h-4" />
-                      <span className="hidden lg:inline">{button.label}</span>
+                      <span className={`${button.id === 'quests' ? 'hidden md:inline' : 'hidden lg:inline'}`}>{button.label}</span>
                     </button>
                   );
                 })}
@@ -577,20 +619,6 @@ const TopNavBarPolished: React.FC = () => {
                   );
                 })}
 
-                {/* Theme Toggle Button */}
-                <button
-                  onClick={() => handleNavAction('theme')}
-                  className={getOptimizedButtonClassName(`
-                    px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-white rounded-md
-                    transition-all duration-200 flex items-center gap-1.5
-                    ${getButtonColorClasses('slate')}
-                    shadow-sm hover:shadow-md hover:scale-105
-                  `)}
-                  title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-                >
-                  {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                  <span className="hidden xl:inline">{isDarkMode ? 'Light' : 'Dark'}</span>
-                </button>
               </div>
             </div>
 
@@ -684,25 +712,6 @@ const TopNavBarPolished: React.FC = () => {
                   );
                 })}
                 
-                {/* Quests button for mobile */}
-                <button
-                  onClick={() => {
-                    setShowQuestsPanel(prev => !prev);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`
-                    w-full px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-white rounded-lg
-                    transition-all duration-200 flex items-center gap-2
-                    bg-slate-200/30 dark:bg-slate-700/30 hover:bg-slate-300/40 dark:hover:bg-slate-600/40
-                    ${showQuestsPanel ? 'ring-2 ring-purple-500/50 bg-purple-200/40 dark:bg-purple-900/30' : ''}
-                  `}
-                >
-                  <ScrollText className="w-4 h-4" />
-                  Quests
-                  {showQuestsPanel && (
-                    <span className="ml-auto text-xs text-slate-400">(open)</span>
-                  )}
-                </button>
               </div>
 
               {/* Info Actions */}
@@ -731,18 +740,6 @@ const TopNavBarPolished: React.FC = () => {
                   );
                 })}
 
-                {/* Mobile Theme Toggle */}
-                <button
-                  onClick={() => handleNavAction('theme')}
-                  className={`
-                    w-full px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-white rounded-lg
-                    transition-all duration-200 flex items-center gap-2
-                    ${getButtonColorClasses('slate')}
-                  `}
-                >
-                  {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                  {isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-                </button>
               </div>
             </div>
           </div>
@@ -1057,7 +1054,15 @@ const TopNavBarPolished: React.FC = () => {
           </div>
         )}
       </nav>
-      
+
+      {/* Journal Viewport */}
+      <JournalViewport
+        visible={showJournal}
+        onClose={() => setShowJournal(false)}
+        currentLocation={currentZone || 'Unknown Location'}
+        currentDate={gameDate ? `${gameDate.month}/${gameDate.day}/${gameDate.year}` : 'Unknown Date'}
+      />
+
       {/* Modals */}
       <WorldWeaverModal
         isOpen={worldWeaverModalData.isOpen}

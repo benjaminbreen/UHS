@@ -22,22 +22,28 @@ const AttributeBadge: React.FC<AttributeBadgeProps> = ({
   showTooltip = true
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  
+
+  // Handle undefined badge
+  if (!badge) {
+    console.warn('AttributeBadge received undefined badge');
+    return null;
+  }
+
   // Get the icon component
   const getIcon = () => {
     const allIcons = { ...FaIcons, ...GiIcons };
     const IconComponent = allIcons[badge.icon as keyof typeof allIcons] as React.ElementType;
-    
+
     if (!IconComponent) {
       // Fallback icon if not found
       return FaIcons.FaQuestionCircle;
     }
-    
+
     return IconComponent;
   };
-  
+
   const Icon = getIcon();
-  const color = RARITY_COLORS[badge.rarity];
+  const color = RARITY_COLORS[badge.rarity] || '#808080';
   
   // Size configurations
   const sizeConfig = {
@@ -129,14 +135,16 @@ export const AttributeBadgeList: React.FC<AttributeBadgeListProps> = ({
   size = 'small',
   onBadgeClick
 }) => {
-  const displayBadges = badges.slice(0, maxDisplay);
-  const hasMore = badges.length > maxDisplay;
-  
+  // Filter out any undefined or null badges
+  const validBadges = (badges || []).filter(badge => badge != null);
+  const displayBadges = validBadges.slice(0, maxDisplay);
+  const hasMore = validBadges.length > maxDisplay;
+
   return (
     <div className="flex items-center gap-1">
       {displayBadges.map((badge, index) => (
         <AttributeBadge
-          key={badge.id}
+          key={badge.id || `badge-${index}`}
           badge={badge}
           size={size}
           onClick={() => onBadgeClick?.(badge)}
@@ -144,7 +152,7 @@ export const AttributeBadgeList: React.FC<AttributeBadgeListProps> = ({
       ))}
       {hasMore && (
         <div className="text-xs text-slate-400 ml-1">
-          +{badges.length - maxDisplay}
+          +{validBadges.length - maxDisplay}
         </div>
       )}
     </div>

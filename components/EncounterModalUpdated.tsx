@@ -42,6 +42,7 @@ import gameSounds from '../services/gameSoundsService';
 import { HighlightedText } from '../hooks/usePrimarySourceKeywords';
 import { mapLocationToCulture } from '../utils/mapUtils';
 import { parseDateString } from '../utils/dateUtils';
+import { calculateDiseaseGameplayRestrictions } from '../services/diseaseProgressionService';
 
 // Styles for animations
 const styles = `
@@ -139,16 +140,18 @@ function isNpc(target: EncounterableEntity): target is NpcEntity {
 // Helper function to get historical language for the target
 function getHistoricalLanguage(target: EncounterableEntity, mapData: MapData | null): string {
     if (!isNpc(target) || !mapData) return 'Historical Language';
-    
+
     try {
         const year = parseInt(mapData.timeSlice || '1500');
         const language = getLanguageForCharacter(
             target.culturalZone || mapData.culturalZone || 'EUROPEAN',
             year,
             mapData.region,
-            mapData.localArea
+            mapData.localArea,
+            target.name,  // Pass NPC's name for name-based detection
+            target.profession  // Pass profession for clergy/scholar detection
         );
-        
+
         return language?.name || 'Historical Language';
     } catch (error) {
         console.warn('Error getting historical language:', error);
@@ -568,15 +571,38 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
     // Handle sending message
     const handleSend = async () => {
         if (!playerInput.trim() || isLoading || !playerCharacter || npcWantsToLeave) return;
-        
-        const newPlayerEntry: DialogueEntry = { 
-            speaker: 'player', 
-            text: playerInput, 
-            timestamp: new Date() 
+
+        // Check for voice loss from disease
+        const diseaseRestrictions = calculateDiseaseGameplayRestrictions(playerCharacter?.diseaseHealth);
+        let displayText = playerInput;
+        let actualInput = playerInput;
+
+        if (diseaseRestrictions.voiceLossLevel > 0) {
+            // Apply voice loss restrictions to what the player actually says
+            if (diseaseRestrictions.voiceLossLevel === 1) {
+                // Weak voice - show in dialogue but modify what NPC hears
+                displayText = `[Weakly] ${playerInput}`;
+                actualInput = `[Speaking in a weak, barely audible voice] ${playerInput}`;
+            } else if (diseaseRestrictions.voiceLossLevel === 2) {
+                // Whispers only - severely limit what can be said
+                const whisperText = playerInput.substring(0, Math.min(15, playerInput.length));
+                displayText = `[Whispers] ${whisperText}${whisperText.length < playerInput.length ? '...' : ''}`;
+                actualInput = `[Whispering very quietly] ${whisperText}`;
+            } else if (diseaseRestrictions.voiceLossLevel >= 3) {
+                // Complete voice loss - can only make gestures
+                displayText = "[You try to speak but only manage incoherent whispers and gestures]";
+                actualInput = "[The person is trying to communicate but appears to have lost their voice - they can only make gestures and very quiet sounds]";
+            }
+        }
+
+        const newPlayerEntry: DialogueEntry = {
+            speaker: 'player',
+            text: displayText,
+            timestamp: new Date()
         };
         const newHistory = [...history, newPlayerEntry];
         setHistory(newHistory);
-        const currentInput = playerInput;
+        const currentInput = actualInput; // Use modified input for NPC response
         setPlayerInput('');
         setIsLoading(true);
         
@@ -728,11 +754,11 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
     return (
         <>
             <style>{styles}</style>
-            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-2 md:p-4" onClick={handleClose}>
-                <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border-2 border-slate-700 rounded-2xl max-w-5xl w-full h-[95vh] md:h-[85vh] shadow-2xl transition-all duration-300 overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-0 sm:p-2 md:p-4" onClick={handleClose}>
+                <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border-2 border-slate-700 sm:rounded-2xl max-w-5xl w-full h-[100vh] h-[100dvh] sm:h-[95vh] sm:h-[95dvh] md:h-[85vh] shadow-2xl transition-all duration-300 overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
                     
                     {/* Header with reputation and language */}
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50 flex-shrink-0">
+                    <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b border-slate-700/50 flex-shrink-0">
                         <div className="flex items-center gap-2 text-sm">
                             <span className="text-amber-400">⭐</span>
                             <span className="text-slate-400">Reputation:</span>
@@ -767,16 +793,16 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                         )}
                     </div>
                     
-                    {/* Main content area - two column layout */}
-                    <div className="flex gap-6 p-6 flex-1 min-h-0 overflow-hidden">
+                    {/* Main content area - responsive layout */}
+                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-3 sm:p-6 flex-1 min-h-0 overflow-hidden">
                         
                         {/* Left column - Portrait and NPC info */}
-                        <div className="flex flex-col gap-4" style={{ width: '220px', flexShrink: 0 }}>
+                        <div className="flex flex-row sm:flex-col gap-3 sm:gap-4 sm:w-[220px] flex-shrink-0">
                             
                             {/* Portrait with quest indicator and animations */}
                             <div className="relative group">
-                                <div 
-                                    className={`w-[200px] h-[200px] rounded-xl overflow-hidden border-3 transition-all duration-300 cursor-pointer relative ${
+                                <div
+                                    className={`w-[100px] h-[100px] sm:w-[200px] sm:h-[200px] rounded-xl overflow-hidden border-3 transition-all duration-300 cursor-pointer relative ${
                                         questOffer?.hasQuest || relevantQuests.length > 0 
                                             ? 'border-amber-500 shadow-lg shadow-amber-500/20 animate-pulse-subtle' 
                                             : 'border-slate-600 hover:border-amber-500 hover:shadow-lg hover:shadow-amber-500/20'
@@ -795,9 +821,9 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                     )}
                                     
                                     {isNpc(target) ? (
-                                        <ProceduralPortrait 
-                                            character={target as any} 
-                                            size={200}
+                                        <ProceduralPortrait
+                                            character={target as any}
+                                            size={typeof window !== 'undefined' && window.innerWidth <= 640 ? 100 : 200}
                                             temporaryExpression={portraitExpr}
                                             onExpressionComplete={clearPortrait}
                                         />
@@ -818,11 +844,11 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                             
                             {/* NPC Info Panel */}
                             {isNpc(target) && (
-                                <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-                                    <h2 className="text-2xl font-bold text-amber-400 text-center mb-3 tracking-wide" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
+                                <div className="flex-1 sm:flex-none bg-slate-800/50 rounded-xl p-3 sm:p-4 border border-slate-700/50">
+                                    <h2 className="text-lg sm:text-2xl font-bold text-amber-400 text-center mb-2 sm:mb-3 tracking-wide" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
                                         {targetName}
                                     </h2>
-                                    <div className="space-y-2 text-sm">
+                                    <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
                                         <div className="flex justify-between hover:bg-slate-700/30 px-2 py-1 rounded transition-colors">
                                             <span className="text-slate-500">Age:</span>
                                             <span className="text-slate-200">{target.age || 'Unknown'}</span>
@@ -845,8 +871,8 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                         </div>
                                     </div>
                                     
-                                    {/* Action Icons */}
-                                    <div className="flex justify-center gap-2 mt-4">
+                                    {/* Action Icons - Hidden on mobile, shown in tabs instead */}
+                                    <div className="hidden sm:flex justify-center gap-2 mt-4">
                                         <button 
                                             onClick={handleOpenInfo}
                                             className="w-10 h-10 bg-slate-700/50 border border-slate-600 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-600/50 hover:text-slate-200 hover:border-slate-500 transition-all hover:-translate-y-0.5 hover:scale-105 group relative"
@@ -883,11 +909,11 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                             
                             {/* Animal Info */}
                             {!isNpc(target) && (
-                                <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-                                    <h2 className="text-2xl font-bold text-amber-400 text-center mb-3 tracking-wide">
+                                <div className="flex-1 sm:flex-none bg-slate-800/50 rounded-xl p-3 sm:p-4 border border-slate-700/50">
+                                    <h2 className="text-lg sm:text-2xl font-bold text-amber-400 text-center mb-2 sm:mb-3 tracking-wide">
                                         {targetName}
                                     </h2>
-                                    <div className="space-y-2 text-sm">
+                                    <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
                                         <div className="flex justify-between hover:bg-slate-700/30 px-2 py-1 rounded transition-colors">
                                             <span className="text-slate-500">Type:</span>
                                             <span className="text-slate-200">Animal</span>
@@ -902,8 +928,8 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                         </div>
                                     </div>
                                     
-                                    {/* Action Icons for Animals */}
-                                    <div className="flex justify-center gap-2 mt-4">
+                                    {/* Action Icons for Animals - Hidden on mobile */}
+                                    <div className="hidden sm:flex justify-center gap-2 mt-4">
                                         <button 
                                             onClick={handleOpenInfo}
                                             className="w-10 h-10 bg-slate-700/50 border border-slate-600 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-600/50 hover:text-slate-200 hover:border-slate-500 transition-all hover:-translate-y-0.5 hover:scale-105 group relative"
@@ -943,10 +969,10 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                         <div className="flex-1 flex flex-col min-h-0 h-full">
                             
                             {/* Tab Navigation - Show for both NPCs and animals */}
-                                <nav className="flex gap-0 border-b border-slate-700 mb-4">
-                                    <button 
-                                        onClick={() => setActiveTab('dialogue')} 
-                                        className={`px-4 py-2.5 text-sm font-medium transition-all relative ${
+                                <nav className="flex gap-0 border-b border-slate-700 mb-3 sm:mb-4 overflow-x-auto scrollbar-hide">
+                                    <button
+                                        onClick={() => setActiveTab('dialogue')}
+                                        className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all relative whitespace-nowrap ${
                                             activeTab === 'dialogue' 
                                                 ? 'text-blue-400 border-b-2 border-blue-400' 
                                                 : 'text-slate-500 hover:text-slate-300 border-b-2 border-transparent'
@@ -989,11 +1015,11 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                         {isNpc(target) ? 'Trade' : 'Tame'}
                                     </button>
                                     {(questOffer?.hasQuest || relevantQuests.length > 0) && (
-                                        <button 
-                                            onClick={() => setActiveTab('quest')} 
-                                            className={`px-4 py-2.5 text-sm font-medium transition-all flex items-center gap-1.5 ${
-                                                activeTab === 'quest' 
-                                                    ? 'text-amber-400 border-b-2 border-amber-400' 
+                                        <button
+                                            onClick={() => setActiveTab('quest')}
+                                            className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                                                activeTab === 'quest'
+                                                    ? 'text-amber-400 border-b-2 border-amber-400'
                                                     : 'text-amber-500 hover:text-amber-400 border-b-2 border-transparent'
                                             }`}
                                         >
@@ -1001,10 +1027,28 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                                             Quests
                                         </button>
                                     )}
+
+                                    {/* Mobile-only action buttons */}
+                                    <div className="flex sm:hidden ml-auto">
+                                        <button
+                                            onClick={handleOpenInfo}
+                                            className="px-3 py-2 text-xs font-medium text-slate-400 hover:text-slate-300 border-b-2 border-transparent transition-all whitespace-nowrap"
+                                            title="Profile"
+                                        >
+                                            👤
+                                        </button>
+                                        <button
+                                            onClick={() => onInitiateCombat(target)}
+                                            className="px-3 py-2 text-xs font-medium text-red-400 hover:text-red-300 border-b-2 border-transparent transition-all whitespace-nowrap"
+                                            title="Attack"
+                                        >
+                                            ⚔️
+                                        </button>
+                                    </div>
                                 </nav>
                             
                             {/* Conversation Area */}
-                            <div className="flex-1 bg-slate-800/30 border border-slate-700/50 rounded-xl p-4 mb-4 overflow-y-auto conversation-scrollbar min-h-0">
+                            <div className="flex-1 bg-slate-800/30 border border-slate-700/50 rounded-xl p-3 sm:p-4 mb-3 sm:mb-4 overflow-y-auto conversation-scrollbar min-h-0">
                                 {activeTab === 'dialogue' && (
                                     <div className="space-y-4">
                                         {history.length === 0 && isLoading ? (
@@ -1294,31 +1338,65 @@ const EncounterModalUpdated: React.FC<EncounterModalProps> = ({
                             </div>
                             
                             {/* Input Area - Available for both NPCs and animals */}
-                            {activeTab === 'dialogue' && (
-                                <div className="flex gap-3 flex-shrink-0">
-                                    <input 
-                                        type="text" 
-                                        placeholder={isLoading ? "Waiting for response..." : isNpc(target) ? "Say something..." : "Try to communicate..."} 
-                                        value={playerInput} 
-                                        onChange={(e) => setPlayerInput(e.target.value)} 
-                                        onKeyPress={(e) => e.key === 'Enter' && handleSend()} 
-                                        disabled={isLoading}
-                                        className="flex-1 px-4 py-3 text-base text-white placeholder-slate-500 bg-slate-800/60 border border-slate-600 rounded-lg focus:outline-none focus:border-blue-400 focus:bg-slate-700/60 disabled:opacity-50 disabled:cursor-not-allowed transition-all input-glow"
-                                    />
-                                    <button 
-                                        onClick={handleSend} 
-                                        disabled={isLoading || !playerInput.trim()}
-                                        className="ff-action-button"
-                                    >
-                                        Send
-                                    </button>
-                                </div>
-                            )}
+                            {activeTab === 'dialogue' && (() => {
+                                const diseaseRestrictions = calculateDiseaseGameplayRestrictions(playerCharacter?.diseaseHealth);
+
+                                let placeholder = isLoading ? "Waiting for response..." : isNpc(target) ? "Say something..." : "Try to communicate...";
+                                let inputClassName = "flex-1 px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base text-white placeholder-slate-500 bg-slate-800/60 border border-slate-600 rounded-lg focus:outline-none focus:border-blue-400 focus:bg-slate-700/60 disabled:opacity-50 disabled:cursor-not-allowed transition-all input-glow";
+
+                                // Modify placeholder and styling based on voice loss
+                                if (diseaseRestrictions.voiceLossLevel === 1) {
+                                    placeholder = isLoading ? "Waiting for response..." : "[Weak voice] Say something...";
+                                    inputClassName += " border-yellow-600/50 bg-yellow-900/20";
+                                } else if (diseaseRestrictions.voiceLossLevel === 2) {
+                                    placeholder = isLoading ? "Waiting for response..." : "[Whispers only] Try to whisper...";
+                                    inputClassName += " border-orange-600/50 bg-orange-900/20";
+                                } else if (diseaseRestrictions.voiceLossLevel >= 3) {
+                                    placeholder = isLoading ? "Waiting for response..." : "[No voice] Try to gesture...";
+                                    inputClassName += " border-red-600/50 bg-red-900/20";
+                                }
+
+                                return (
+                                    <div className="flex-shrink-0">
+                                        {diseaseRestrictions.voiceLossLevel > 0 && (
+                                            <div className="mb-2">
+                                                <div className="text-xs text-yellow-400 mb-1 flex items-center gap-1">
+                                                    <span>⚠️</span>
+                                                    {diseaseRestrictions.voiceLossLevel === 1 && "Your voice is weak from illness"}
+                                                    {diseaseRestrictions.voiceLossLevel === 2 && "Your illness reduces you to whispers"}
+                                                    {diseaseRestrictions.voiceLossLevel >= 3 && "Your illness has robbed you of speech"}
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div className="flex gap-2 sm:gap-3">
+                                            <input
+                                                type="text"
+                                                placeholder={placeholder}
+                                                value={playerInput}
+                                                onChange={(e) => setPlayerInput(e.target.value)}
+                                                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                                                disabled={isLoading}
+                                                className={inputClassName}
+                                            />
+                                            <button
+                                                onClick={handleSend}
+                                                disabled={isLoading || !playerInput.trim()}
+                                                className="ff-action-button"
+                                            >
+                                                Send
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
                     
                     {/* Footer bar with Leave button */}
-                    <div className="border-t border-slate-700/50 px-6 py-4 bg-slate-900/50 flex-shrink-0">
+                    <div className="border-t border-slate-700/50 px-3 sm:px-6 bg-slate-900/50 flex-shrink-0" style={{
+                        paddingTop: '12px',
+                        paddingBottom: 'max(12px, env(safe-area-inset-bottom))'
+                    }}>
                         <div className="flex justify-end">
                             <button 
                                 onClick={handleClose}

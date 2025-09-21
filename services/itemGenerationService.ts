@@ -260,6 +260,164 @@ const QUALITY_ADJECTIVES = {
   excellent: ['Masterwork', 'Exceptional', 'Exquisite', 'Legendary', 'Pristine', 'Perfect', 'Flawless']
 };
 
+// Categories that should never have materials assigned
+const MATERIAL_EXCLUDED_CATEGORIES = ['Food', 'Consumable', 'Document', 'Special'];
+
+// Specific items that shouldn't get material variations
+const MATERIAL_EXCLUDED_ITEMS = [
+  'SALT', 'ROCK_SALT', 'SEA_SALT', 'WHETSTONE', 'INCENSE', 'CANDLES',
+  'SPICE_POUCH', 'HERBS', 'MEDICINAL_HERBS', 'HERB_BUNDLE'
+];
+
+// Regional meat variants for different cultures and eras
+const REGIONAL_MEAT_VARIANTS: Record<CulturalZone, Record<HistoricalEra, string[]>> = {
+  'SUB_SAHARAN_AFRICAN': {
+    'PREHISTORY': ['Wild Game', 'Bush Meat', 'Antelope Haunch'],
+    'ANTIQUITY': ['Goat Meat', 'Zebu Beef', 'Guinea Fowl'],
+    'MEDIEVAL': ['Goat Shank', 'Beef Strips', 'Bushmeat'],
+    'RENAISSANCE_EARLY_MODERN': ['Dried Biltong', 'Goat Meat', 'Ostrich Meat'],
+    'INDUSTRIAL_ERA': ['Biltong Strips', 'Goat Shank', 'Dried Antelope', 'Beef Chunks'],
+    'MODERN_ERA': ['Beef Pieces', 'Chicken Parts', 'Dried Biltong', 'Goat Meat'],
+    'FUTURE_ERA': ['Lab-grown Meat', 'Protein Chunks', 'Cultured Beef']
+  },
+  'EUROPEAN': {
+    'PREHISTORY': ['Wild Boar', 'Venison', 'Aurochs Meat'],
+    'ANTIQUITY': ['Pork', 'Mutton', 'Wild Game'],
+    'MEDIEVAL': ['Salt Pork', 'Mutton Leg', 'Venison Haunch', 'Beef Joint'],
+    'RENAISSANCE_EARLY_MODERN': ['Ham Hock', 'Beef Roast', 'Mutton Chop', 'Bacon'],
+    'INDUSTRIAL_ERA': ['Beef Cuts', 'Pork Chops', 'Lamb Shank', 'Sausage'],
+    'MODERN_ERA': ['Steak', 'Ground Beef', 'Chicken Breast', 'Pork Loin'],
+    'FUTURE_ERA': ['Synthetic Meat', 'Protein Substitute', 'Cultured Steak']
+  },
+  'EAST_ASIAN': {
+    'PREHISTORY': ['Wild Fowl', 'Fish', 'Wild Boar'],
+    'ANTIQUITY': ['Duck', 'Pork Belly', 'River Fish'],
+    'MEDIEVAL': ['Pork Strips', 'Duck Meat', 'Dried Fish', 'Chicken'],
+    'RENAISSANCE_EARLY_MODERN': ['Char Siu', 'Peking Duck', 'Beef Slices', 'Fish Fillet'],
+    'INDUSTRIAL_ERA': ['Pork Belly', 'Beef Strips', 'Chicken Parts', 'Duck'],
+    'MODERN_ERA': ['Wagyu Beef', 'Pork Cutlet', 'Chicken Thigh', 'Fish Fillet'],
+    'FUTURE_ERA': ['Synthetic Fish', 'Lab Wagyu', 'Protein Cubes']
+  },
+  'MENA': {
+    'PREHISTORY': ['Wild Game', 'Gazelle', 'Wild Birds'],
+    'ANTIQUITY': ['Lamb', 'Goat', 'Camel'],
+    'MEDIEVAL': ['Lamb Kebab', 'Goat Meat', 'Camel Hump', 'Chicken'],
+    'RENAISSANCE_EARLY_MODERN': ['Mutton', 'Lamb Shank', 'Beef Kofta', 'Pigeon'],
+    'INDUSTRIAL_ERA': ['Lamb Chops', 'Beef Chunks', 'Chicken Shawarma', 'Goat'],
+    'MODERN_ERA': ['Halal Beef', 'Lamb Meat', 'Chicken Parts', 'Merguez'],
+    'FUTURE_ERA': ['Halal Synthetic', 'Lab Lamb', 'Cultured Protein']
+  },
+  'SOUTH_ASIAN': {
+    'PREHISTORY': ['Wild Deer', 'Jungle Fowl', 'Wild Boar'],
+    'ANTIQUITY': ['Water Buffalo', 'Goat', 'Chicken'],
+    'MEDIEVAL': ['Mutton Curry Cut', 'Goat Meat', 'Chicken', 'Fish'],
+    'RENAISSANCE_EARLY_MODERN': ['Mutton', 'Buffalo Meat', 'Chicken Tandoori', 'Fish Curry Cut'],
+    'INDUSTRIAL_ERA': ['Mutton Pieces', 'Chicken Parts', 'Fish', 'Goat Curry Cut'],
+    'MODERN_ERA': ['Halal Mutton', 'Chicken Tikka', 'Fish Fillet', 'Prawns'],
+    'FUTURE_ERA': ['Plant Protein', 'Lab Mutton', 'Synthetic Chicken']
+  },
+  'NORTH_AMERICAN_PRE_COLUMBIAN': {
+    'PREHISTORY': ['Mammoth Meat', 'Bison', 'Wild Turkey'],
+    'ANTIQUITY': ['Venison', 'Turkey', 'Duck', 'Fish'],
+    'MEDIEVAL': ['Buffalo Meat', 'Venison', 'Wild Turkey', 'Rabbit'],
+    'RENAISSANCE_EARLY_MODERN': ['Bison Hump', 'Elk Meat', 'Turkey', 'Salmon'],
+    'INDUSTRIAL_ERA': ['Buffalo Steak', 'Venison', 'Turkey', 'Fish'],
+    'MODERN_ERA': ['Bison Burger', 'Venison Steak', 'Turkey', 'Salmon'],
+    'FUTURE_ERA': ['Lab Bison', 'Synthetic Game', 'Cultured Protein']
+  },
+  'NORTH_AMERICAN_COLONIAL': {
+    'PREHISTORY': ['Wild Game', 'Fish', 'Fowl'],
+    'ANTIQUITY': ['Venison', 'Wild Boar', 'Turkey'],
+    'MEDIEVAL': ['Salt Pork', 'Beef', 'Turkey', 'Fish'],
+    'RENAISSANCE_EARLY_MODERN': ['Ham', 'Beef Jerky', 'Turkey', 'Salt Cod'],
+    'INDUSTRIAL_ERA': ['Beef Steak', 'Pork Chops', 'Chicken', 'Bacon'],
+    'MODERN_ERA': ['Ground Beef', 'Chicken Breast', 'Pork Ribs', 'Turkey'],
+    'FUTURE_ERA': ['Beyond Meat', 'Lab Beef', 'Synthetic Protein']
+  },
+  'SOUTH_AMERICAN': {
+    'PREHISTORY': ['Wild Game', 'Fish', 'Birds'],
+    'ANTIQUITY': ['Llama', 'Guinea Pig', 'Fish'],
+    'MEDIEVAL': ['Alpaca Meat', 'Cuy', 'Dried Fish', 'Wild Fowl'],
+    'RENAISSANCE_EARLY_MODERN': ['Charqui', 'Guinea Pig', 'Beef', 'Fish'],
+    'INDUSTRIAL_ERA': ['Beef Asado', 'Pork', 'Chicken', 'Fish'],
+    'MODERN_ERA': ['Picanha', 'Churrasco', 'Chicken', 'Fish Fillet'],
+    'FUTURE_ERA': ['Lab Beef', 'Synthetic Protein', 'Cultured Meat']
+  },
+  'OCEANIA': {
+    'PREHISTORY': ['Megafauna', 'Fish', 'Shellfish'],
+    'ANTIQUITY': ['Wild Boar', 'Fish', 'Sea Birds'],
+    'MEDIEVAL': ['Pig', 'Fish', 'Turtle', 'Flying Fox'],
+    'RENAISSANCE_EARLY_MODERN': ['Kalua Pig', 'Fish', 'Mutton Bird', 'Dugong'],
+    'INDUSTRIAL_ERA': ['Mutton', 'Beef', 'Pork', 'Fish'],
+    'MODERN_ERA': ['Lamb Chops', 'Beef Steak', 'Barramundi', 'Kangaroo'],
+    'FUTURE_ERA': ['Lab Lamb', 'Synthetic Seafood', 'Cultured Protein']
+  }
+};
+
+// Context-appropriate quality descriptors by item category
+const CATEGORY_QUALITY_WORDS: Record<ItemCategory, Record<ItemQuality, string[]>> = {
+  'Material': {
+    'poor': ['Impure', 'Crude', 'Raw', 'Low-grade', 'Inferior'],
+    'standard': ['Common', 'Regular', 'Basic', 'Standard', 'Plain'],
+    'good': ['Pure', 'Refined', 'Quality', 'High-grade', 'Select'],
+    'excellent': ['Pristine', 'Perfect', 'Superior', 'Premium', 'Flawless']
+  },
+  'Food': {
+    'poor': ['Tough', 'Stale', 'Spoiled', 'Rancid', 'Old'],
+    'standard': ['Common', 'Plain', 'Regular', 'Simple', 'Basic'],
+    'good': ['Fresh', 'Choice', 'Select', 'Quality', 'Fine'],
+    'excellent': ['Prime', 'Premium', 'Gourmet', 'Exceptional', 'Perfect']
+  },
+  'Weapon': {
+    'poor': ['Crude', 'Rusty', 'Bent', 'Damaged', 'Worn'],
+    'standard': ['Common', 'Standard', 'Basic', 'Simple', 'Regular'],
+    'good': ['Fine', 'Sharp', 'Balanced', 'Quality', 'Well-made'],
+    'excellent': ['Masterwork', 'Legendary', 'Exquisite', 'Perfect', 'Superior']
+  },
+  'Apparel': {
+    'poor': ['Torn', 'Patched', 'Threadbare', 'Worn', 'Faded'],
+    'standard': ['Common', 'Plain', 'Simple', 'Basic', 'Regular'],
+    'good': ['Fine', 'Well-made', 'Quality', 'Elegant', 'Stylish'],
+    'excellent': ['Exquisite', 'Luxurious', 'Masterwork', 'Royal', 'Perfect']
+  },
+  'Tool': {
+    'poor': ['Crude', 'Worn', 'Bent', 'Rusty', 'Damaged'],
+    'standard': ['Common', 'Standard', 'Basic', 'Simple', 'Regular'],
+    'good': ['Fine', 'Sturdy', 'Well-made', 'Quality', 'Reliable'],
+    'excellent': ['Masterwork', 'Professional', 'Perfect', 'Superior', 'Precision']
+  },
+  'Document': {
+    'poor': ['Torn', 'Faded', 'Stained', 'Damaged', 'Weathered'],
+    'standard': ['Common', 'Plain', 'Simple', 'Basic', 'Regular'],
+    'good': ['Fine', 'Clear', 'Well-preserved', 'Quality', 'Legible'],
+    'excellent': ['Pristine', 'Illuminated', 'Perfect', 'Masterwork', 'Mint']
+  },
+  'Container': {
+    'poor': ['Cracked', 'Leaky', 'Worn', 'Damaged', 'Patched'],
+    'standard': ['Common', 'Plain', 'Simple', 'Basic', 'Regular'],
+    'good': ['Sturdy', 'Well-made', 'Quality', 'Solid', 'Reliable'],
+    'excellent': ['Masterwork', 'Perfect', 'Superior', 'Exquisite', 'Flawless']
+  },
+  'Special': {
+    'poor': ['Strange', 'Unusual', 'Odd', 'Mysterious', 'Worn'],
+    'standard': ['Common', 'Regular', 'Normal', 'Basic', 'Plain'],
+    'good': ['Remarkable', 'Notable', 'Impressive', 'Fine', 'Quality'],
+    'excellent': ['Legendary', 'Mythical', 'Divine', 'Sacred', 'Perfect']
+  },
+  'Consumable': {
+    'poor': ['Weak', 'Diluted', 'Expired', 'Stale', 'Inferior'],
+    'standard': ['Common', 'Regular', 'Basic', 'Standard', 'Plain'],
+    'good': ['Potent', 'Pure', 'Quality', 'Fresh', 'Strong'],
+    'excellent': ['Perfect', 'Premium', 'Superior', 'Exceptional', 'Pristine']
+  },
+  'Armor': {
+    'poor': ['Dented', 'Rusty', 'Cracked', 'Worn', 'Damaged'],
+    'standard': ['Common', 'Standard', 'Basic', 'Simple', 'Regular'],
+    'good': ['Fine', 'Sturdy', 'Well-made', 'Quality', 'Solid'],
+    'excellent': ['Masterwork', 'Legendary', 'Perfect', 'Superior', 'Invincible']
+  }
+};
+
 // Material quality variations
 const MATERIAL_VARIATIONS: Record<string, Record<ItemQuality, string[]>> = {
   'iron': {
@@ -834,8 +992,36 @@ export function generateMaterialVariation(material: string, quality: ItemQuality
   return `${adjective} ${material}`;
 }
 
+// Item name variations to reduce repetition
+const ITEM_NAME_VARIATIONS: Record<string, string[]> = {
+  'Walking Staff': ['Traveling Staff', 'Pilgrim Rod', 'Wanderer Stick', 'Journey Staff', 'Trail Pole', 'Hiking Staff', 'Support Cane', 'Path Staff', 'Road Stick'],
+  'Stick': ['Branch', 'Rod', 'Pole', 'Staff', 'Club', 'Baton', 'Cudgel', 'Switch'],
+  'Quarterstaff': ['Battle Staff', 'Fighting Stick', 'War Staff', 'Combat Pole', 'Defense Rod'],
+  'Herding Staff': ['Shepherd Rod', 'Cattle Stick', 'Livestock Pole', 'Animal Staff', 'Flock Stick'],
+  'Walking Cane': ['Gentleman Cane', 'Support Stick', 'Mobility Aid', 'Elder Staff', 'Town Cane']
+};
+
+// Helper function to get regional meat name
+function getRegionalMeatName(culture: CulturalZone, era: HistoricalEra): string {
+  const meatVariants = REGIONAL_MEAT_VARIANTS[culture]?.[era];
+  if (meatVariants && meatVariants.length > 0) {
+    return randomChoice(meatVariants);
+  }
+  // Fallback to generic meat
+  return 'Meat';
+}
+
+// Helper function to get item name variation
+function getItemNameVariation(baseName: string): string {
+  const variations = ITEM_NAME_VARIATIONS[baseName];
+  if (variations && Math.random() < 0.6) { // 60% chance to vary
+    return randomChoice(variations);
+  }
+  return baseName;
+}
+
 export function generateProceduralName(
-  baseItem: ItemDefinition, 
+  baseItem: ItemDefinition,
   options: {
     quality?: ItemQuality;
     condition?: number;
@@ -843,14 +1029,31 @@ export function generateProceduralName(
     material?: string;
     age?: number;
     color?: string;
+    culture?: CulturalZone;
+    era?: HistoricalEra;
   }
 ): string {
+  // For meat items, use regional variants
+  if (baseItem.baseId === 'MEAT' && options.culture && options.era) {
+    const meatName = getRegionalMeatName(options.culture, options.era);
+    if (options.quality && options.quality !== 'standard') {
+      // Use food-specific quality words for meat
+      const foodQualityWords = CATEGORY_QUALITY_WORDS['Food']?.[options.quality] || QUALITY_ADJECTIVES[options.quality];
+      const qualityWord = randomChoice(foodQualityWords);
+      return `${qualityWord} ${meatName}`;
+    }
+    return meatName;
+  }
+
   // Simple, clean naming: [Quality] [Color] [Material] [Item Name]
   const parts: string[] = [];
 
-  // Only add ONE quality descriptor (not condition, age, etc.)
+  // Use category-specific quality descriptors
   if (options.quality && options.quality !== 'standard') {
-    const qualityWord = randomChoice(QUALITY_ADJECTIVES[options.quality]);
+    const categoryQualityWords = CATEGORY_QUALITY_WORDS[baseItem.category]?.[options.quality];
+    const qualityWord = categoryQualityWords
+      ? randomChoice(categoryQualityWords)
+      : randomChoice(QUALITY_ADJECTIVES[options.quality]);
     parts.push(qualityWord);
   }
 
@@ -867,10 +1070,11 @@ export function generateProceduralName(
   if (options.material && options.material !== baseItem.material) {
     parts.push(options.material);
   }
-  
-  // Base item name (always last)
-  parts.push(baseItem.name);
-  
+
+  // Base item name with variations (always last)
+  const variedName = getItemNameVariation(baseItem.name);
+  parts.push(variedName);
+
   return parts.join(' ');
 }
 
@@ -953,8 +1157,8 @@ export function generateProceduralItem(
   let eraAppropriateMaterial: string | undefined;
   let culturalStyle: string | undefined;
 
-  const shouldHaveMaterial = baseItem.category !== 'Food' &&
-                            baseItem.category !== 'Consumable' &&
+  const shouldHaveMaterial = !MATERIAL_EXCLUDED_CATEGORIES.includes(baseItem.category) &&
+                            !MATERIAL_EXCLUDED_ITEMS.includes(baseItemId) &&
                             (baseItem.material || baseItem.category === 'Weapon' ||
                              baseItem.category === 'Apparel' || baseItem.category === 'Armor');
 
@@ -991,11 +1195,13 @@ export function generateProceduralItem(
     item = assignProceduralColors(item, options.culture, options.socialClass);
   }
   
-  // Generate procedural name with color
+  // Generate procedural name with color, culture, and era
   item.name = generateProceduralName(baseItem, {
     quality,
     material: eraAppropriateMaterial, // Will be undefined for food/consumables
-    color: item.color
+    color: item.color,
+    culture: options.culture,
+    era: era
   });
   
   // Apply quality modifiers to stats (but not name)

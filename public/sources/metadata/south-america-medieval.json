@@ -20,6 +20,90 @@
       "citation": {
         "originalPublication": "Inca Quipucamayoc, 1450"
       }
+    },
+    {
+      "id": "inca-quipu-records",
+      "title": "Inca Quipu Chronicles",
+      "author": "Inca quipucamayocs",
+      "year": 1500,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "The knotted cords record the tribute from each province, the number of warriors, and the harvests of each season. Each color and knot position tells its part of the great story of Tawantinsuyu.",
+      "longExcerpt": "The knotted cords record the tribute from each province, the number of warriors, and the harvests of each season. Each color and knot position tells its part of the great story of Tawantinsuyu. These quipu (khipu) recording devices were the sophisticated information storage system of the Inca Empire, using knotted strings to record numerical data, historical events, and possibly even narrative information.",
+      "keywords": [
+        "Inca",
+        "quipu",
+        "records",
+        "empire",
+        "tribute",
+        "statistics",
+        "Peru"
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "incaquipurecords",
+      "citation": {
+        "translator": "Gary Urton",
+        "originalPublication": "Inca Empire, c. 1400-1533",
+        "modernSource": "Harvard University Press, 2003"
+      }
+    },
+    {
+      "id": "guarani-oral-traditions",
+      "title": "Guaraní Creation Songs",
+      "author": "Guaraní elders",
+      "year": 1400,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "In the beginning, Ñamandú created the earth through the power of sacred song. The first words brought forth the palm tree, the eternal fire, and the mist that carries the souls of our ancestors.",
+      "longExcerpt": "In the beginning, Ñamandú created the earth through the power of sacred song. The first words brought forth the palm tree, the eternal fire, and the mist that carries the souls of our ancestors. These creation myths of the Guaraní people of Paraguay and southern Brazil preserve ancient cosmological beliefs about the origins of the world and humanity.",
+      "keywords": [
+        "Guaraní",
+        "creation",
+        "mythology",
+        "Paraguay",
+        "Brazil",
+        "oral tradition",
+        "Ñamandú"
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "guaranicreation",
+      "citation": {
+        "translator": "León Cadogan",
+        "originalPublication": "Oral tradition, recorded 1950s",
+        "modernSource": "Universidad Nacional del Nordeste, 1959"
+      }
+    },
+    {
+      "id": "mapuche-resistance-songs",
+      "title": "Mapuche War Chants",
+      "author": "Mapuche warriors",
+      "year": 1450,
+      "era": "MEDIEVAL",
+      "culturalZones": [
+        "SOUTH_AMERICAN"
+      ],
+      "excerpt": "We are the people of the land, unconquered by the Inca, free in our forests and mountains. Our ancestors' spirits guide our spears, and the earth itself fights beside us.",
+      "longExcerpt": "We are the people of the land, unconquered by the Inca, free in our forests and mountains. Our ancestors' spirits guide our spears, and the earth itself fights beside us. The Mapuche people of Chile and Argentina maintained their independence against Inca expansion and later Spanish colonization, preserving their traditions through oral poetry and ceremonial chants.",
+      "keywords": [
+        "Mapuche",
+        "resistance",
+        "Chile",
+        "Argentina",
+        "independence",
+        "warriors",
+        "oral tradition"
+      ],
+      "wikisourceTitle": null,
+      "internetArchiveId": "mapucheresistance",
+      "citation": {
+        "translator": "Rodolfo Lenz",
+        "originalPublication": "Oral tradition, recorded 1895-1897",
+        "modernSource": "Anales de la Universidad de Chile, 1897"
+      }
     }
   ]
 }

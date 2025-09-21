@@ -82,7 +82,10 @@ const CoralReefSymbol: React.FC<CoralReefSymbolProps> = React.memo(({ x, y, size
     
      // Add inline keyframes for darting arrow fish animation
     // Only add fish animations on non-Safari browsers
-    if (!isSafari()) {
+    const isSafariBrowser = isSafari();
+    console.log(`[CoralReef ${tileX},${tileY}] Safari: ${isSafariBrowser}`);
+
+    if (!isSafariBrowser) {
         elements.push(
             <g key="fish-defs">
                 <defs>
@@ -161,8 +164,10 @@ const CoralReefSymbol: React.FC<CoralReefSymbolProps> = React.memo(({ x, y, size
 
         // Add swimming fish with circular patterns
         const fishChance = localRand();
-        const numFish = fishChance < 0.7 ? 0 : Math.floor(localRand() * 3) + 1; // 70% chance of no fish, otherwise 1-3
-        
+        const numFish = fishChance < 0.2 ? 0 : Math.floor(localRand() * 3) + 2; // 20% chance of no fish, otherwise 2-4 fish
+
+        console.log(`[CoralReef ${tileX},${tileY}] Fish count: ${numFish}, chance: ${fishChance.toFixed(2)}`);
+
             for(let i = 0; i < numFish; i++) {
                 const fishSize = size * (0.025 + localRand() * 0.015); // Smaller fish
                 const centerX = size * 0.3 + localRand() * size * 0.4; // Center of circular path

@@ -47,6 +47,7 @@ import { getOceanQuests } from './oceanQuestTemplates';
 import { questRealityBinding } from './questRealityBinding';
 import { worldEntityRegistry } from './worldEntityRegistry';
 import { unifiedQuestPipeline, QuestGenerationContext } from './unifiedQuestPipeline';
+import { debouncedStorage } from './debouncedStorageService';
 
 export class QuestService {
   private activeQuests: Quest[] = [];
@@ -2023,9 +2024,9 @@ export class QuestService {
    */
   private loadQuests(): void {
     try {
-      const savedData = localStorage.getItem('uhs_quest_data');
-      if (savedData) {
-        const questData = JSON.parse(savedData);
+      // Use debounced storage which checks pending writes first
+      const questData = debouncedStorage.getItem<any>('uhs_quest_data');
+      if (questData) {
         this.activeQuests = questData.activeQuests || [];
         this.completedQuests = questData.completedQuests || [];
         this.questChains = questData.questChains || [];
@@ -2061,10 +2062,11 @@ export class QuestService {
         questMarkers: this.questMarkers,
         timestamp: Date.now()
       };
-      localStorage.setItem('uhs_quest_data', JSON.stringify(questData));
-      console.log('[QuestService] Saved quests to localStorage:', questData.activeQuests.length, 'active,', questData.completedQuests.length, 'completed');
+      // Use debounced storage to prevent performance issues
+      debouncedStorage.setItem('uhs_quest_data', questData);
+      // Logging removed - too frequent
     } catch (error) {
-      console.error('[QuestService] Failed to save quests to localStorage:', error);
+      console.error('[QuestService] Failed to save quests:', error);
     }
   }
   

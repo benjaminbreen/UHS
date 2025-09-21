@@ -111,26 +111,68 @@
       "longExcerpt": "The wound caused by fire will heal within, but the wound caused by words will never heal. This historical source from 300 provides valuable insight into the asia region during the antiquity period. It represents the voices, experiences, and perspectives of people who lived during this transformative time in human history. Such primary sources are essential for understanding not just the major events of history, but the daily lives, beliefs, and struggles of ordinary people across different cultures and time periods."
     },
     {
-      "id": "asia-antiquity-chronicle",
-      "title": "Asian Ancient Chronicle",
-      "author": "Various Authors",
+      "id": "analects-confucius",
+      "title": "The Analects",
+      "author": "Confucius",
       "year": -500,
       "era": "ANTIQUITY",
       "culturalZones": [
         "EAST_ASIAN"
       ],
-      "excerpt": "A collection of ancient texts from the Asian region.",
-      "longExcerpt": "This represents a compilation of historical documents from the Ancient period in the Asian region. These sources provide insight into the daily life, beliefs, and experiences of people during this time. While specific texts vary, they collectively paint a picture of human civilization's development across different cultures and time periods. Such documents are invaluable for understanding how societies evolved and interacted throughout history.",
+      "excerpt": "Is it not a pleasure, having learned something, to try it out at due intervals? Is it not a joy to have friends come from afar? Is one human who does not know yet does not resent it, not a gentleman?",
+      "longExcerpt": "Is it not a pleasure, having learned something, to try it out at due intervals? Is it not a joy to have friends come from afar? Is one human who does not know yet does not resent it, not a gentleman? These opening lines of the Analects encapsulate Confucian ideals about learning, friendship, and proper conduct. This foundational text of Chinese philosophy from around 500 BCE shaped East Asian thought for millennia, emphasizing moral cultivation, social harmony, and the importance of education.",
       "keywords": [
-        "asia",
-        "antiquity",
-        "history",
-        "chronicle",
-        "primary source"
+        "Confucius",
+        "philosophy",
+        "ethics",
+        "learning",
+        "gentleman",
+        "China",
+        "wisdom"
       ],
-      "wikisourceTitle": "Asian_Ancient_Texts",
+      "contextualKeywords": [
+        {
+          "keyword": "Lu",
+          "conditions": {
+            "culturalZone": "EAST_ASIAN",
+            "era": "ANTIQUITY"
+          }
+        }
+      ],
+      "wikisourceTitle": "The_Analects",
+      "internetArchiveId": "analectsconfuciu00conf",
       "citation": {
-        "originalPublication": "Asian Ancient Period"
+        "translator": "James Legge",
+        "originalPublication": "Compiled by disciples, c. 500-400 BCE",
+        "modernSource": "Oxford University Press, 1893"
+      }
+    },
+    {
+      "id": "records-grand-historian",
+      "title": "Records of the Grand Historian",
+      "author": "Sima Qian",
+      "year": -94,
+      "era": "ANTIQUITY",
+      "culturalZones": [
+        "EAST_ASIAN"
+      ],
+      "excerpt": "When the Grand Historian wrote this work, he was cut off from his generation. He dwelt in sorrow and anger, yet his will became all the stronger. He wished to set forth the true facts for later generations.",
+      "longExcerpt": "When the Grand Historian wrote this work, he was cut off from his generation. He dwelt in sorrow and anger, yet his will became all the stronger. He wished to set forth the true facts for later generations. This monumental historical work from 94 BCE covers over 2,000 years of Chinese history, from the Yellow Emperor to Emperor Wu of Han, establishing the template for all subsequent Chinese historical writing.",
+      "keywords": [
+        "history",
+        "China",
+        "Han dynasty",
+        "emperors",
+        "biography",
+        "records",
+        "chronicle"
+      ],
+      "wikisourceTitle": "Records_of_the_Grand_Historian",
+      "internetArchiveId": "recordsofgrandhi00sima",
+      "citation": {
+        "translator": "Burton Watson",
+        "originalPublication": "Han dynasty, c. 94 BCE",
+        "modernSource": "Columbia University Press, 1993"
       }
     }
   ]

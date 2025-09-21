@@ -44,7 +44,7 @@ const DetailRow: React.FC<{ label: string; value: string | number | React.ReactN
     </div>
 );
 
-const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData, onClose, gameTimeHours, season, npcs = [], playerCharacter }) => {
+const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData, onClose, gameTimeHours, season, npcs, playerCharacter }) => {
     // Portrait expression management
     const { expr: portraitExpr, flash: flashPortrait, clear: clearPortrait } = usePortraitExpression();
 
@@ -56,23 +56,119 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
     const [activeTab, setActiveTab] = useState<'overview' | 'residents' | 'businesses'>('overview');
     const [tileData, setTileData] = useState<any>(null);
 
+    // Get ALL NPCs from mapData for better detection
+    const allMapNpcs = useMemo(() => {
+        // Use passed npcs if available, otherwise get from mapData
+        return npcs || mapData.npcs || [];
+    }, [npcs, mapData]);
+
     // Load urban tile data on mount
     useEffect(() => {
+        // Fix any business names that might have "Unknown" in them
+        urbanTileRegistry.fixBusinessNamesWithRealNpcs(allMapNpcs);
+
         const data = urbanTileRegistry.getTileData(tile.x, tile.y);
         setTileData(data);
-    }, [tile.x, tile.y]);
+    }, [tile.x, tile.y, allMapNpcs]);
 
-    // Get residents of this tile from urban tile registry
+    // Get residents of this tile - REGISTRY FIRST approach
     const residents = useMemo(() => {
-        if (!tileData?.residences) return [];
-        const residentIds = tileData.residences.flatMap((r: any) => r.occupants);
-        return npcs.filter(npc => residentIds.includes(npc.id));
-    }, [tileData, npcs]);
+        // Primary method: Use urban tile registry as source of truth
+        if (tileData?.residences && tileData.residences.length > 0) {
+            const residentIds = tileData.residences.flatMap((r: any) => r.occupants);
 
-    // Get businesses in this tile
+            // Try to find NPCs by ID first
+            let registeredNpcs = allMapNpcs.filter(npc => residentIds.includes(npc.id));
+
+            // If no matches by ID but registry has residents, try proximity match
+            if (registeredNpcs.length === 0 && residentIds.length > 0) {
+                console.log('[SettlementInfo] Registry has', residentIds.length, 'residents but no ID matches. Trying proximity match.');
+
+                // Find NPCs near this tile OR with home location here
+                const potentialNpcs = allMapNpcs.filter(npc => {
+                    const npcX = Math.floor(npc.x);
+                    const npcY = Math.floor(npc.y);
+                    const isNearby = Math.abs(npcX - tile.x) <= 1 && Math.abs(npcY - tile.y) <= 1;
+
+                    const hasHomeHere = npc.homeLocation &&
+                        npc.homeLocation.x === tile.x &&
+                        npc.homeLocation.y === tile.y;
+
+                    const hasWorkplaceHere = npc.workplaceLocation &&
+                        npc.workplaceLocation.x === tile.x &&
+                        npc.workplaceLocation.y === tile.y;
+
+                    return isNearby || hasHomeHere || hasWorkplaceHere;
+                });
+
+                // Take up to the number registry says should be here
+                registeredNpcs = potentialNpcs.slice(0, residentIds.length);
+            }
+
+            if (registeredNpcs.length > 0) {
+                return registeredNpcs;
+            }
+        }
+
+        // Fallback 1: NPCs with home location at this tile
+        const npcsWithHomeHere = allMapNpcs.filter(npc =>
+            npc.homeLocation &&
+            npc.homeLocation.x === tile.x &&
+            npc.homeLocation.y === tile.y
+        );
+
+        if (npcsWithHomeHere.length > 0) {
+            return npcsWithHomeHere;
+        }
+
+        // Fallback 2: NPCs at or near this tile
+        const nearbyNpcs = allMapNpcs.filter(npc => {
+            const npcX = Math.floor(npc.x);
+            const npcY = Math.floor(npc.y);
+            return Math.abs(npcX - tile.x) <= 1 && Math.abs(npcY - tile.y) <= 1;
+        });
+
+        return nearbyNpcs;
+    }, [allMapNpcs, tile, tileData]);
+
+    // Get businesses in this tile - simple registry-based approach with fallback
     const businesses = useMemo(() => {
-        return tileData?.businesses || [];
-    }, [tileData]);
+        // Primary source: Urban tile registry
+        const registryBusinesses = tileData?.businesses || [];
+
+        if (registryBusinesses.length > 0) {
+            console.log('[SettlementInfo] Found', registryBusinesses.length, 'businesses in registry');
+            return registryBusinesses;
+        }
+
+        // Fallback: Check if any NPCs have workplaces here
+        const businessMap = new Map();
+
+        allMapNpcs.forEach(npc => {
+            if (npc.workplaceName && npc.workplaceLocation &&
+                npc.workplaceLocation.x === tile.x &&
+                npc.workplaceLocation.y === tile.y) {
+
+                const bizId = `biz_fallback_${npc.id}`;
+                businessMap.set(bizId, {
+                    id: bizId,
+                    name: npc.workplaceName,
+                    type: npc.profession?.toLowerCase().replace(/ /g, '_') || 'workshop',
+                    ownerId: npc.id,
+                    employees: [],
+                    location: { x: tile.x, y: tile.y },
+                    openHours: [6, 18]
+                });
+            }
+        });
+
+        const fallbackBusinesses = Array.from(businessMap.values());
+        if (fallbackBusinesses.length > 0) {
+            console.log('[SettlementInfo] Using', fallbackBusinesses.length, 'fallback businesses from NPC data');
+        }
+
+        return fallbackBusinesses;
+    }, [tileData, allMapNpcs, tile]);
 
     // Get activity status for an NPC (same logic as CityModal)
     const getActivityStatus = (npc: NpcEntity): string => {
@@ -262,7 +358,9 @@ const SettlementInfoModal: React.FC<SettlementInfoModalProps> = ({ tile, mapData
                 const context = createDialogueContext(mapData, {
                     isMarketplace: tile.biome === BiomeType.MARKETPLACE,
                     timeOfDay: timeOfDay.toLowerCase(),
-                    season: season.toLowerCase()
+                    season: season.toLowerCase(),
+                    npc: npcEntity,
+                    terrainStructures: terrainStructures || []
                 });
                 
                 const response = await generateNpcGreeting(npcEntity, context, playerCharacter);

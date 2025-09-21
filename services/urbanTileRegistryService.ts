@@ -23,10 +23,15 @@ export interface BusinessInfo {
   id: string;
   name: string;
   type: string; // bakery, smithy, tavern, etc.
+  displayType: string; // Formatted for display: "Bamboo Worker Workshop"
   ownerId: string; // NPC ID who owns this
   employees: string[]; // Other NPCs who work here
   location: Point; // Which tile this business is in
   openHours: [number, number]; // [6, 18] for 6am-6pm
+  businessStatus?: string; // barely_scraping_by, modest, thriving, etc.
+  businessStatusDisplay?: string; // "Barely Scraping By", "Thriving", etc.
+  goodsQuality?: string; // poor, adequate, excellent, etc.
+  goodsQualityDisplay?: string; // "Poor", "Excellent", etc.
 }
 
 export interface ResidenceInfo {
@@ -208,6 +213,27 @@ class UrbanTileRegistry {
   }
 
   /**
+   * Update business names to use real NPC names instead of "Unknown"
+   * This fixes businesses that were generated with placeholder names
+   */
+  fixBusinessNamesWithRealNpcs(allNpcs: any[]): void {
+    this.tileData.forEach((data, key) => {
+      data.businesses.forEach(business => {
+        if (business.name.includes('Unknown')) {
+          // Find the owner NPC
+          const owner = allNpcs.find(npc => npc.id === business.ownerId);
+          if (owner && owner.name && owner.name !== 'Unknown Proprietor') {
+            const oldName = business.name;
+            business.name = business.name.replace('Unknown', owner.name);
+            console.log(`[UrbanRegistry] Fixed business name: "${oldName}" → "${business.name}"`);
+          }
+        }
+      });
+      data.lastUpdated = Date.now();
+    });
+  }
+
+  /**
    * Find which tile an NPC lives in
    */
   findNpcHome(npcId: string): Point | null {
@@ -242,6 +268,73 @@ class UrbanTileRegistry {
    */
   clear(): void {
     this.tileData.clear();
+  }
+
+  /**
+   * Clear data for a specific tile (for testing or regeneration)
+   */
+  clearTile(x: number, y: number): void {
+    const key = this.getTileKey(x, y);
+    const deleted = this.tileData.delete(key);
+    if (deleted) {
+      console.log(`[UrbanTileRegistry] Cleared tile data for (${x}, ${y}) - businesses will regenerate`);
+    }
+  }
+
+  /**
+   * Update existing businesses with new enhanced fields
+   */
+  upgradeBusinessesWithEnhancedFields(
+    culturalZone: CulturalZone,
+    era: HistoricalEra,
+    biome: BiomeType,
+    allNpcs: any[]
+  ): void {
+    let updatedCount = 0;
+
+    this.tileData.forEach((data, key) => {
+      data.businesses.forEach(business => {
+        // Skip if already has enhanced fields
+        if (business.displayType && business.businessStatus) {
+          return;
+        }
+
+        // Find the owner NPC
+        const owner = allNpcs.find(npc => npc.id === business.ownerId);
+        if (!owner) return;
+
+        // Generate enhanced business data
+        const population = 1000; // Default
+        const businessData = generateBusinessForUrbanTile(
+          owner,
+          culturalZone,
+          era,
+          biome,
+          population
+        );
+
+        if (businessData) {
+          // Update business with enhanced fields
+          business.displayType = businessData.displayType;
+          business.businessStatus = businessData.businessStatus;
+          business.businessStatusDisplay = businessData.businessStatusDisplay;
+          business.goodsQuality = businessData.goodsQuality;
+          business.goodsQualityDisplay = businessData.goodsQualityDisplay;
+
+          // Update the type if it was generic
+          if (business.type === 'shop' || business.type === 'workshop') {
+            business.type = businessData.type;
+          }
+
+          updatedCount++;
+        }
+      });
+      data.lastUpdated = Date.now();
+    });
+
+    if (updatedCount > 0) {
+      console.log(`[UrbanTileRegistry] Upgraded ${updatedCount} businesses with enhanced fields`);
+    }
   }
 
   /**
@@ -307,32 +400,55 @@ class UrbanTileRegistry {
     tile: Tile | Point,
     culturalZone: CulturalZone,
     era: HistoricalEra,
-    biome: BiomeType
+    biome: BiomeType,
+    population?: number,
+    sacrality?: number,
+    safety?: number
   ): BusinessInfo | null {
     // Use the enhanced workplace generation
-    const businessData = generateBusinessForUrbanTile(npc, culturalZone, era, biome);
+    const businessData = generateBusinessForUrbanTile(
+      npc,
+      culturalZone,
+      era,
+      biome,
+      population || (tile as any).population || 1000,
+      sacrality || (tile as any).sacrality,
+      safety || (tile as any).safety
+    );
 
     if (!businessData) {
       // This NPC shouldn't have a workplace (e.g., guard, noble, serf)
       return null;
     }
 
+    // Ensure the business name uses the NPC's actual name
+    let businessName = businessData.name;
+    if (businessName.includes('Unknown') && npc.name && npc.name !== 'Unknown Proprietor') {
+      // Replace "Unknown" with actual NPC name
+      businessName = businessName.replace('Unknown', npc.name);
+    }
+
     // Create BusinessInfo with unique ID
     const business: BusinessInfo = {
       id: `biz_${tile.x}_${tile.y}_${Date.now()}`,
-      name: businessData.name,
+      name: businessName,
       type: businessData.type,
+      displayType: businessData.displayType,
       ownerId: npc.id,
       employees: businessData.employees,
       location: { x: tile.x, y: tile.y },
-      openHours: businessData.openHours
+      openHours: businessData.openHours,
+      businessStatus: businessData.businessStatus,
+      businessStatusDisplay: businessData.businessStatusDisplay,
+      goodsQuality: businessData.goodsQuality,
+      goodsQualityDisplay: businessData.goodsQualityDisplay
     };
 
     // Register the business
     this.addBusiness(tile, business);
 
     // Log for debugging
-    console.log(`[UrbanRegistry] Generated ${culturalZone} ${era} business: "${business.name}" (${business.type}) for ${npc.name} the ${npc.profession}`);
+    console.log(`[UrbanRegistry] Generated ${culturalZone} ${era} business: "${business.name}" (${business.displayType}) - ${business.businessStatusDisplay} with ${business.goodsQualityDisplay} goods for ${npc.name} the ${npc.profession}`);
 
     return business;
   }
@@ -447,7 +563,30 @@ class UrbanTileRegistry {
 
     return connections;
   }
+
+  /**
+   * Get all registry data for caching with map data
+   */
+  getCacheableData(): Array<[string, TileUrbanData]> {
+    return Array.from(this.tileData.entries());
+  }
+
+  /**
+   * Restore registry data from cached map data
+   */
+  restoreFromCache(data: Array<[string, TileUrbanData]>): void {
+    this.tileData.clear();
+    data.forEach(([key, value]) => {
+      this.tileData.set(key, value);
+    });
+    console.log('[UrbanTileRegistry] Restored', this.tileData.size, 'tiles from cache');
+  }
 }
 
 // Export singleton instance
 export const urbanTileRegistry = new UrbanTileRegistry();
+
+// Expose for debugging in browser console
+if (typeof window !== 'undefined') {
+  (window as any).urbanTileRegistry = urbanTileRegistry;
+}

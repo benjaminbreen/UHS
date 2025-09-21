@@ -13,9 +13,15 @@ const LogEntry: React.FC<{ entry: GameLogEntry }> = ({ entry }) => {
         'ITEM_ACQUIRED': { color: 'text-purple-400', borderColor: 'border-purple-500/50' },
         'TRADE': { color: 'text-yellow-400', borderColor: 'border-yellow-500/50' },
         'REST': { color: 'text-indigo-400', borderColor: 'border-indigo-500/50' },
+        'MILESTONE_COMBAT': { color: 'text-orange-300', borderColor: 'border-yellow-500/50' },
+        'MILESTONE_EXPLORATION': { color: 'text-cyan-300', borderColor: 'border-cyan-500/50' },
+        'MILESTONE_ACHIEVEMENT': { color: 'text-emerald-300', borderColor: 'border-emerald-500/50' },
+        'QUEST_START': { color: 'text-pink-400', borderColor: 'border-pink-500/50' },
+        'QUEST_COMPLETE': { color: 'text-lime-400', borderColor: 'border-lime-500/50' },
     };
 
     const style = typeStyles[entry.type] || { color: 'text-gray-300', borderColor: 'border-gray-600' };
+    const isMilestone = entry.type.startsWith('MILESTONE_') || entry.type === 'QUEST_COMPLETE';
 
     const renderDetails = () => {
         if (!entry.details || !isExpanded) return null;
@@ -35,12 +41,14 @@ const LogEntry: React.FC<{ entry: GameLogEntry }> = ({ entry }) => {
     };
 
     return (
-        <div className={`p-3 rounded-lg bg-slate-800/50 border-l-4 ${style.borderColor}`}>
+        <div className={`p-3 rounded-lg ${isMilestone ? 'bg-gradient-to-r from-yellow-900/30 to-slate-800/50 shadow-lg' : 'bg-slate-800/50'} border-l-4 ${style.borderColor} ${isMilestone ? 'ring-1 ring-yellow-500/20' : ''}`}>
             <div className="flex justify-between items-start">
                 <div className="flex-1">
-                    <p className={`font-semibold ${style.color}`}>
+                    <p className={`font-semibold ${style.color} ${isMilestone ? 'flex items-center gap-2' : ''}`}>
                         <span className="mr-2 text-base">{entry.icon}</span>
+                        {isMilestone && <span className="text-yellow-400">🏆</span>}
                         {entry.summary}
+                        {isMilestone && <span className="text-xs text-yellow-300 bg-yellow-900/30 px-2 py-0.5 rounded ml-2">MILESTONE</span>}
                     </p>
                     <p className="text-xs text-slate-500 font-mono">{entry.timestamp.day}/{entry.timestamp.month}/{entry.timestamp.year} {entry.timeString}</p>
                 </div>
